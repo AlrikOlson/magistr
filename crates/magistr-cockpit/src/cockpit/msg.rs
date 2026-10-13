@@ -87,6 +87,8 @@ pub enum Msg {
     /// a headline. Separate from [`Msg::Mode`] because the two
     /// capabilities are: a sixel terminal has pixels and no text sizing.
     TextSizing(bool),
+    /// The session owner admitted this user message.
+    InputAccepted(String),
     /// The agent's session reported something.
     Agent(AgentEvent),
     /// An effect was not delivered or its owner refused it.
@@ -119,8 +121,11 @@ pub enum Msg {
     /// The checkpoint spine answered — a state taken, restored or
     /// forked.
     Checkpoint(CheckpointEvent),
-    /// The host settled this window's project and admitted another: what
-    /// it seeded for the new project. The window builds the model and
-    /// keeps what is its own — its size, theme, focus and the unsent draft.
-    Rehosted(Box<super::ProjectSeed>),
+    /// An ordered observation batch, or a retained-state reseed after a gap.
+    SessionFrame {
+        address: magistr_domain::identity::SessionAddress,
+        sequence: u64,
+        seed: Option<Box<super::ProjectSeed>>,
+        messages: Vec<Msg>,
+    },
 }

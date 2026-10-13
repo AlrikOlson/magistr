@@ -88,7 +88,7 @@ async fn reconnect_restores_each_purpose_and_omits_replayed_history() {
         .send(AgentEvent::Text("Opening history".into()))
         .unwrap();
     assert!(
-        matches!(next(&mut events).await, Msg::Agent(AgentEvent::Text(text)) if text == "Opening history")
+        matches!(next_observation(&mut events).await, Msg::Agent(AgentEvent::Text(text)) if text == "Opening history")
     );
     opening
         .events
@@ -98,7 +98,7 @@ async fn reconnect_restores_each_purpose_and_omits_replayed_history() {
         })
         .unwrap();
     assert!(matches!(
-        next(&mut events).await,
+        next_observation(&mut events).await,
         Msg::Agent(AgentEvent::Initialized { .. })
     ));
     // Park the conversation while planning acquires its own identity.
@@ -110,7 +110,7 @@ async fn reconnect_restores_each_purpose_and_omits_replayed_history() {
     assert_eq!(planning.purpose, SessionPurpose::Roadmap);
     assert_eq!(next(&mut planning.prompts).await, "First plan");
     assert!(matches!(
-        next(&mut events).await,
+        next_observation(&mut events).await,
         Msg::RoadmapRequestStarted
     ));
     planning
@@ -121,7 +121,7 @@ async fn reconnect_restores_each_purpose_and_omits_replayed_history() {
         })
         .unwrap();
     assert!(matches!(
-        next(&mut events).await,
+        next_observation(&mut events).await,
         Msg::Agent(AgentEvent::Initialized { .. })
     ));
     planning
@@ -129,7 +129,7 @@ async fn reconnect_restores_each_purpose_and_omits_replayed_history() {
         .send(AgentEvent::TurnEnded(TurnEnd::EndTurn))
         .unwrap();
     assert!(matches!(
-        next(&mut events).await,
+        next_observation(&mut events).await,
         Msg::Agent(AgentEvent::TurnEnded(_))
     ));
     commands
@@ -161,13 +161,13 @@ async fn reconnect_restores_each_purpose_and_omits_replayed_history() {
                 .send(Cmd::RoadmapPrompt("Select planning".into()))
                 .unwrap();
             assert!(matches!(
-                next(&mut events).await,
+                next_observation(&mut events).await,
                 Msg::RoadmapRequestStarted
             ));
             assert_eq!(next(&mut current.prompts).await, "Select planning");
         }
         assert!(matches!(
-            next(&mut events).await,
+            next_observation(&mut events).await,
             Msg::Agent(AgentEvent::Error(_))
         ));
         commands.send(command).unwrap();
@@ -177,7 +177,7 @@ async fn reconnect_restores_each_purpose_and_omits_replayed_history() {
         assert!(next(&mut restored.prompts).await.starts_with("Retry"));
         if purpose == SessionPurpose::Roadmap {
             assert!(matches!(
-                next(&mut events).await,
+                next_observation(&mut events).await,
                 Msg::RoadmapRequestStarted
             ));
         }
@@ -198,7 +198,7 @@ async fn reconnect_restores_each_purpose_and_omits_replayed_history() {
             .unwrap();
         // The first displayed event must be the new connection, not replay.
         assert!(matches!(
-            next(&mut events).await,
+            next_observation(&mut events).await,
             Msg::Agent(AgentEvent::Initialized { .. })
         ));
         restored
@@ -206,14 +206,14 @@ async fn reconnect_restores_each_purpose_and_omits_replayed_history() {
             .send(AgentEvent::Text("New response".into()))
             .unwrap();
         assert!(
-            matches!(next(&mut events).await, Msg::Agent(AgentEvent::Text(text)) if text == "New response")
+            matches!(next_observation(&mut events).await, Msg::Agent(AgentEvent::Text(text)) if text == "New response")
         );
         restored
             .events
             .send(AgentEvent::TurnEnded(TurnEnd::EndTurn))
             .unwrap();
         assert!(matches!(
-            next(&mut events).await,
+            next_observation(&mut events).await,
             Msg::Agent(AgentEvent::TurnEnded(_))
         ));
         // Keep the connection alive while the other purpose is selected.
@@ -249,7 +249,7 @@ async fn failed_restoration_keeps_the_identity_and_rejects_the_unsent_request() 
         })
         .unwrap();
     assert!(matches!(
-        next(&mut events).await,
+        next_observation(&mut events).await,
         Msg::Agent(AgentEvent::Initialized { .. })
     ));
     opening
@@ -258,7 +258,7 @@ async fn failed_restoration_keeps_the_identity_and_rejects_the_unsent_request() 
         .unwrap();
     drop(opening.events);
     assert!(matches!(
-        next(&mut events).await,
+        next_observation(&mut events).await,
         Msg::Agent(AgentEvent::Error(_))
     ));
     for prompt in ["Keep this request", "Try again"] {
@@ -267,7 +267,7 @@ async fn failed_restoration_keeps_the_identity_and_rejects_the_unsent_request() 
             next(&mut attempts).await,
             (SessionPurpose::Conversation, Some("retained".into()))
         );
-        assert!(matches!(next(&mut events).await,
+        assert!(matches!(next_observation(&mut events).await,
             Msg::Agent(AgentEvent::PromptRejected { text, error })
                 if text == prompt && error.contains("cannot restore")));
     }
@@ -300,15 +300,21 @@ async fn planning_waits_for_the_turn_and_keeps_a_separate_reusable_context() {
     commands
         .send(Cmd::RoadmapPrompt("Discard this request".into()))
         .unwrap();
-    assert!(matches!(next(&mut events).await, Msg::RoadmapRequestQueued));
+    assert!(matches!(
+        next_observation(&mut events).await,
+        Msg::RoadmapRequestQueued
+    ));
     commands.send(Cmd::CancelRoadmapPrompt).unwrap();
     assert!(matches!(
-        next(&mut events).await,
+        next_observation(&mut events).await,
         Msg::RoadmapRequestCancelled
     ));
     assert!(connections.try_recv().is_err());
     commands.send(Cmd::RoadmapPrompt("Plan".into())).unwrap();
-    assert!(matches!(next(&mut events).await, Msg::RoadmapRequestQueued));
+    assert!(matches!(
+        next_observation(&mut events).await,
+        Msg::RoadmapRequestQueued
+    ));
     assert!(
         connections.try_recv().is_err(),
         "planning cannot start during the turn"
@@ -318,11 +324,11 @@ async fn planning_waits_for_the_turn_and_keeps_a_separate_reusable_context() {
         .send(AgentEvent::TurnEnded(TurnEnd::EndTurn))
         .unwrap();
     assert!(matches!(
-        next(&mut events).await,
+        next_observation(&mut events).await,
         Msg::Agent(AgentEvent::TurnEnded(_))
     ));
     assert!(matches!(
-        next(&mut events).await,
+        next_observation(&mut events).await,
         Msg::RoadmapRequestStarted
     ));
     let mut planning = next(&mut connections).await;
@@ -334,14 +340,14 @@ async fn planning_waits_for_the_turn_and_keeps_a_separate_reusable_context() {
         .send(AgentEvent::Text("Planning reply".into()))
         .unwrap();
     assert!(
-        matches!(next(&mut events).await, Msg::Agent(AgentEvent::Text(text)) if text == "Planning reply")
+        matches!(next_observation(&mut events).await, Msg::Agent(AgentEvent::Text(text)) if text == "Planning reply")
     );
     planning
         .events
         .send(AgentEvent::TurnEnded(TurnEnd::EndTurn))
         .unwrap();
     assert!(matches!(
-        next(&mut events).await,
+        next_observation(&mut events).await,
         Msg::Agent(AgentEvent::TurnEnded(_))
     ));
     commands.send(Cmd::Prompt("Continue".into())).unwrap();
@@ -355,12 +361,12 @@ async fn planning_waits_for_the_turn_and_keeps_a_separate_reusable_context() {
         .send(AgentEvent::TurnEnded(TurnEnd::EndTurn))
         .unwrap();
     assert!(matches!(
-        next(&mut events).await,
+        next_observation(&mut events).await,
         Msg::Agent(AgentEvent::TurnEnded(_))
     ));
     commands.send(Cmd::RoadmapPrompt("Refine".into())).unwrap();
     assert!(matches!(
-        next(&mut events).await,
+        next_observation(&mut events).await,
         Msg::RoadmapRequestStarted
     ));
     assert_eq!(next(&mut planning.prompts).await, "Refine");
@@ -401,7 +407,7 @@ async fn connection_failure_and_provider_death_allow_a_new_attempt() {
         .send(Cmd::Prompt("Keep this request".into()))
         .unwrap();
     assert!(
-        matches!(next(&mut events).await, Msg::Agent(AgentEvent::PromptRejected { text, error }) if text == "Keep this request" && error.contains("offline"))
+        matches!(next_observation(&mut events).await, Msg::Agent(AgentEvent::PromptRejected { text, error }) if text == "Keep this request" && error.contains("offline"))
     );
     commands.send(Cmd::Prompt("Retry".into())).unwrap();
     let mut first = next(&mut connections).await;
@@ -411,7 +417,7 @@ async fn connection_failure_and_provider_death_allow_a_new_attempt() {
         .send(AgentEvent::Error("provider died".into()))
         .unwrap();
     assert!(
-        matches!(next(&mut events).await, Msg::Agent(AgentEvent::Error(error)) if error == "provider died")
+        matches!(next_observation(&mut events).await, Msg::Agent(AgentEvent::Error(error)) if error == "provider died")
     );
     commands.send(Cmd::Prompt("Reconnect".into())).unwrap();
     let mut second = next(&mut connections).await;
@@ -485,16 +491,17 @@ async fn aborting_owner_releases_both_contexts_and_fences_a_running_local_job() 
         .events
         .send(AgentEvent::TurnEnded(TurnEnd::EndTurn))
         .unwrap();
-    next(&mut events).await;
+    next_observation(&mut events).await;
     commands
         .send(Cmd::RoadmapPrompt("Planning".into()))
         .unwrap();
     let mut planning = next(&mut connections).await;
     next(&mut planning.prompts).await;
     assert!(matches!(
-        next(&mut events).await,
+        next_observation(&mut events).await,
         Msg::RoadmapRequestStarted
     ));
+    assert!(matches!(next(&mut events).await, Msg::InputAccepted(text) if text == "Planning\n"));
     commands
         .send(Cmd::Workbench(WorkbenchCmd::Open {
             path: "held.rs".into(),
@@ -764,7 +771,7 @@ async fn a_start_during_a_response_or_inside_running_work_is_refused_in_words() 
     assert_eq!(next(&mut opening.prompts).await, "think");
     commands.send(Cmd::Launch(LaunchAction::Next)).unwrap();
     assert!(matches!(
-        next(&mut events).await,
+        next_observation(&mut events).await,
         Msg::CommandFailed { cmd: Cmd::Launch(LaunchAction::Next), error }
             if error.contains("current response")
     ));
@@ -779,7 +786,7 @@ async fn a_start_during_a_response_or_inside_running_work_is_refused_in_words() 
     commands.send(Cmd::Prompt("still here".into())).unwrap();
     let running = tokio::spawn(async move { session.run(&mut receiver, None, false).await });
     assert!(matches!(
-        next(&mut events).await,
+        next_observation(&mut events).await,
         Msg::CommandFailed { cmd: Cmd::Launch(LaunchAction::Gates), error }
             if error == "The checks are not ready."
     ));
@@ -804,7 +811,7 @@ async fn a_start_during_a_response_or_inside_running_work_is_refused_in_words() 
     .spawn(receiver);
     commands.send(Cmd::Launch(LaunchAction::Next)).unwrap();
     assert!(matches!(
-        next(&mut events).await,
+        next_observation(&mut events).await,
         Msg::CommandFailed { cmd: Cmd::Launch(_), error } if error.contains("cannot start work")
     ));
     drop(commands);
@@ -819,7 +826,17 @@ async fn a_start_during_a_response_or_inside_running_work_is_refused_in_words() 
     let exit = session.run(&mut receiver, None, true).await;
     assert_eq!(exit.launch, None);
     assert!(matches!(
-        next(&mut events).await,
+        next_observation(&mut events).await,
         Msg::CommandFailed { cmd: Cmd::Launch(_), error } if error.contains("already running")
     ));
+}
+/// These coordinator tests assert routing and control events. Admission
+/// observations are asserted independently by the relay's companion suite.
+async fn next_observation(receiver: &mut mpsc::UnboundedReceiver<Msg>) -> Msg {
+    loop {
+        let message = next(receiver).await;
+        if !matches!(message, Msg::InputAccepted(_)) {
+            return message;
+        }
+    }
 }

@@ -331,6 +331,23 @@ fn the_roles_and_names_come_from_the_widget_ids() {
 /// The composer carries what it holds as a value — the window's prompt
 /// is readable, not just named.
 #[test]
+fn an_empty_composer_exposes_an_empty_value_instead_of_its_placeholder() {
+    let mut model = Model::new(Size::new(122, 32))
+        .with_surface(magistr_cockpit::cockpit::Surface::Native)
+        .with_tab(magistr_cockpit::cockpit::StageTab::Turn);
+    let frame = frame_of(&mut model);
+    assert_eq!(
+        frame
+            .access()
+            .find(Widget::Composer)
+            .expect("composer")
+            .value
+            .as_deref(),
+        Some("")
+    );
+}
+
+#[test]
 fn the_composer_carries_its_text_as_a_value() {
     let mut model = Fixture::mock("05", Size::new(122, 32)).expect("view 05");
     for ch in "ship it".chars() {

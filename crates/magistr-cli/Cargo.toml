@@ -26,6 +26,7 @@ terminal = ["dep:magistr-tui"]
 
 [dependencies]
 magistr-application = { path = "../magistr-application" }
+magistr-domain = { path = "../magistr-domain" }
 magistr-core = { path = "../magistr-core" }
 magistr-workspace = { path = "../magistr-workspace" }
 magistr-process = { path = "../magistr-process" }

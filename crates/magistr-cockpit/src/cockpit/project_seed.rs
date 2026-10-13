@@ -9,7 +9,7 @@ use super::{Model, SupervisionSeed};
 ///
 /// A [`Model`] cannot cross threads (its highlighter state is not `Send`),
 /// so a host that opens a project off the surface's thread sends this and
-/// the surface builds the model ([`Msg::Rehosted`](super::Msg::Rehosted)).
+/// the surface builds the model from an addressed [`Msg::SessionFrame`](super::Msg::SessionFrame).
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ProjectSeed {
     /// The project's name.
@@ -26,6 +26,10 @@ pub struct ProjectSeed {
     pub snapshot: NativeSnapshot,
     /// The workspace's files, for the composer's chooser.
     pub workspace_files: Vec<String>,
+    pub session_address: Option<magistr_domain::identity::SessionAddress>,
+    /// Bounded owner observations used when returning to a resident session.
+    pub replay: Vec<super::Msg>,
+    pub draft: Option<String>,
 }
 
 impl ProjectSeed {
@@ -37,10 +41,19 @@ impl ProjectSeed {
             .with_project(self.name, self.dir)
             .with_title(self.title)
             .with_debug(self.debug);
-        self.supervision
+        let mut model = self
+            .supervision
             .seed(model)
             .with_snapshot(&self.snapshot)
-            .with_workspace_files(self.workspace_files)
+            .with_workspace_files(self.workspace_files);
+        model.session_address = self.session_address;
+        for message in self.replay {
+            let _ = super::update(&mut model, message);
+        }
+        if let Some(draft) = self.draft {
+            let _ = super::update(&mut model, super::Msg::PromptReplace(draft));
+        }
+        model
     }
 }
 

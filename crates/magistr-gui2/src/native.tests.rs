@@ -92,11 +92,25 @@ fn the_window_title_follows_the_open_project() {
     assert_eq!(window_title("Magistr", &model), "first \u{2014} Magistr");
     update(
         &mut model,
-        Msg::Rehosted(Box::new(ProjectSeed {
-            name: "second".into(),
-            dir: "/projects/second".into(),
-            ..ProjectSeed::default()
-        })),
+        Msg::SessionFrame {
+            address: magistr_cockpit::cockpit::SessionAddress {
+                project: "second".into(),
+                workspace: "/projects/second".into(),
+                session: "second".into(),
+            },
+            sequence: 1,
+            seed: Some(Box::new(ProjectSeed {
+                name: "second".into(),
+                dir: "/projects/second".into(),
+                session_address: Some(magistr_cockpit::cockpit::SessionAddress {
+                    project: "second".into(),
+                    workspace: "/projects/second".into(),
+                    session: "second".into(),
+                }),
+                ..ProjectSeed::default()
+            })),
+            messages: Vec::new(),
+        },
     );
     assert_eq!(window_title("Magistr", &model), "second \u{2014} Magistr");
 }

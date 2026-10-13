@@ -206,6 +206,11 @@ fn pointer_caret_and_preedit_preserve_the_committed_draft() {
     paint(&mut f, &mut m, 1100, 760);
     assert_eq!(m.prompt(), &draft);
     assert!(f.says().iter().any(|(text, _)| text.starts_with("你好Wi")));
+    assert_eq!(
+        f.access().find(Widget::Composer).unwrap().value.as_deref(),
+        Some(draft.text()),
+        "composition preview is not committed input"
+    );
     assert!(f.set_preedit(""));
     input(&mut f, &mut m, Msg::Paste("你好".into()));
     assert_eq!(m.prompt().text(), "你好Wi e\u{301}🙂\nsecond");

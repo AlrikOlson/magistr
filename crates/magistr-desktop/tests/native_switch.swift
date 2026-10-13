@@ -93,8 +93,10 @@ func exercise() throws {
         _ = try waitFor("frontmost desktop") { () -> Bool? in
             AXUIElementSetAttributeValue(app, kAXFrontmostAttribute as CFString, kCFBooleanTrue)
             AXUIElementPerformAction(window, kAXRaiseAction as CFString)
-            return NSWorkspace.shared.frontmostApplication?.processIdentifier
-                == process.processIdentifier ? true : nil
+            guard NSWorkspace.shared.frontmostApplication?.processIdentifier
+                == process.processIdentifier,
+                  let focused = attribute(app, kAXFocusedWindowAttribute) else { return nil }
+            return CFEqual(focused, window) ? true : nil
         }
     }
     func click(_ element: AXUIElement) throws {
@@ -110,6 +112,13 @@ func exercise() throws {
                     "Invalid project control bounds")
         point.x += extent.width / 2
         point.y += extent.height / 2
+        _ = try waitFor("project control under the pointer") { () -> Bool? in
+            var hit: AXUIElement?
+            guard AXUIElementCopyElementAtPosition(AXUIElementCreateSystemWide(),
+                Float(point.x), Float(point.y), &hit) == .success,
+                  let hit else { return nil }
+            return CFEqual(hit, element) ? true : nil
+        }
         for type in [CGEventType.mouseMoved, .leftMouseDown, .leftMouseUp] {
             guard let event = CGEvent(mouseEventSource: nil, mouseType: type,
                                       mouseCursorPosition: point, mouseButton: .left) else {
@@ -131,8 +140,14 @@ func exercise() throws {
         if let current { try press(named("Open project " + current, "AXLink")) }
         try press(named("Conversation", kAXRadioButtonRole))
         let editor = try named("Message Magistr", kAXTextAreaRole)
-        _ = try waitFor("draft \(text)") {
-            attribute(editor, kAXValueAttribute) as? String == text ? true : nil
+        var observed = ""
+        do {
+            _ = try waitFor("draft \(text)", seconds: 5) {
+                observed = attribute(editor, kAXValueAttribute) as? String ?? ""
+                return observed == text ? true : nil
+            }
+        } catch {
+            throw Failure(description: "Draft expected \(String(reflecting: text)), observed \(String(reflecting: observed))")
         }
     }
     let names = [first, second, held].map { URL(fileURLWithPath: $0).lastPathComponent }
@@ -152,7 +167,7 @@ func exercise() throws {
     try draftIs(draft, homeOf: names[0])
     print("PASS: a project another window holds was refused in words; the first project stayed open")
 
-    // Switched, three ways, there and back and there again; the draft comes along.
+    // Switch three ways and restore each session's own draft.
     var target = 1
     for method in ["accessibility", "keyboard", "pointer"] {
         try home()
@@ -173,7 +188,11 @@ func exercise() throws {
         _ = try waitFor("the window moved to \(names[target])", seconds: 60) {
             (attribute(window, kAXTitleAttribute) as? String)?.hasPrefix(names[target] + " ") == true ? true : nil
         }
-        try draftIs(draft)
+        try draftIs(target == 0 ? draft : (method == "accessibility" ? "" : "Second draft"))
+        if method == "accessibility" {
+            let secondEditor = try named("Message Magistr", kAXTextAreaRole)
+            try require(AXUIElementSetAttributeValue(secondEditor, kAXValueAttribute as CFString, "Second draft" as CFString) == .success, "Set second draft")
+        }
         print("PASS: switched to \(names[target]) by \(method) with the draft kept")
         target = target == 1 ? 0 : 1
     }

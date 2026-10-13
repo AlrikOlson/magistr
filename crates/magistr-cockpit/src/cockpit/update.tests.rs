@@ -1523,7 +1523,9 @@ fn enter_sends_the_prompt_echoes_it_and_streams_until_the_turn_ends() {
     assert_eq!(m.prompt().history(), ["fix the tests"]);
     assert_eq!(m.turn_state(), TurnState::Streaming);
     assert!(m.viewport().is_following(), "the echo is at the tail");
-    let last = m.turn().rows().last().expect("the echo");
+    assert!(m.turn().is_empty(), "the view waits for admission");
+    update(&mut m, Msg::InputAccepted("fix the tests\n".into()));
+    let last = m.turn().rows().last().expect("the admitted input");
     assert_eq!(last.kind, RowKind::Prose(Voice::User));
     assert_eq!(last.text, "fix the tests");
     type_text(&mut m, "again");
@@ -3713,7 +3715,12 @@ fn the_research_button_asks_the_agent_not_the_engine() {
     assert!(text.starts_with("Research signal s1"), "{text}");
     assert!(text.contains("faster"), "the signal's own words: {text}");
     assert!(text.contains("signal_research"), "{text}");
-    assert!(m.turn().len() > rows, "the ask is echoed on the stage");
+    assert_eq!(m.turn().len(), rows, "the view waits for admission");
+    agent(&mut m, AgentEvent::UserText(format!("{text}\n")));
+    assert!(
+        m.turn().len() > rows,
+        "the admitted request appears on the stage"
+    );
     assert_eq!(
         update(&mut m, left_click(Widget::signal_research(0))),
         vec![],

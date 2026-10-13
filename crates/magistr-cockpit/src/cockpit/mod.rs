@@ -33,6 +33,7 @@ pub mod checkpoint_event;
 pub mod checkpoint_state;
 pub mod chunk_state;
 pub mod cmd;
+pub use magistr_domain::identity::SessionAddress;
 pub mod completion;
 pub mod completion_kind;
 pub mod copy;

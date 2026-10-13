@@ -267,9 +267,14 @@ impl Walk<'_> {
                             | Widget::TraceDetail
                     )
                 )
-                .then(|| match &element.kind {
-                    Kind::Text { content, .. } => content.clone(),
-                    _ => said,
+                .then(|| {
+                    element
+                        .editor_value
+                        .clone()
+                        .unwrap_or_else(|| match &element.kind {
+                            Kind::Text { content, .. } => content.clone(),
+                            _ => said,
+                        })
                 });
                 let point = f64::from;
                 let node = AccessNode {
@@ -298,7 +303,7 @@ impl Walk<'_> {
 
 /// Every text run inside `element`'s subtree, joined — what the
 /// element says on screen, which is what a node with no static word is
-/// called and what the composer's value holds.
+/// called. Editors publish their committed value separately.
 fn subtree_text(element: &Element) -> String {
     let mut said: Vec<&str> = Vec::new();
     element.each(&mut |_, node| {

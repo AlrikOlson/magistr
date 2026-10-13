@@ -40,10 +40,7 @@ pub fn access_of(root: &Element, layout: &ElementLayout) -> Vec<AccessNode> {
             disabled: element.disabled,
             role: element.role,
             label,
-            value: element.editor_cursor.and_then(|_| match &element.kind {
-                Kind::Text { content, .. } => Some(content.clone()),
-                _ => None,
-            }),
+            value: element.editor_value.clone(),
             bounds: Some((
                 f64::from(x),
                 f64::from(y),

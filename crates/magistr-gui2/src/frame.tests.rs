@@ -1072,17 +1072,36 @@ fn another_project_opens_by_pointer_keyboard_and_accessibility_and_a_refusal_is_
         }
         update(
             &mut model,
-            Msg::Rehosted(Box::new(ProjectSeed {
-                name: "Other".into(),
-                dir: "/projects/other".into(),
-                title: "Other".into(),
-                ..ProjectSeed::default()
-            })),
+            Msg::SessionFrame {
+                address: magistr_cockpit::cockpit::SessionAddress {
+                    project: "other".into(),
+                    workspace: "/projects/other".into(),
+                    session: "other".into(),
+                },
+                sequence: 1,
+                seed: Some(Box::new(ProjectSeed {
+                    name: "Other".into(),
+                    dir: "/projects/other".into(),
+                    title: "Other".into(),
+                    session_address: Some(magistr_cockpit::cockpit::SessionAddress {
+                        project: "other".into(),
+                        workspace: "/projects/other".into(),
+                        session: "other".into(),
+                    }),
+                    draft: Some("Other draft".into()),
+                    ..ProjectSeed::default()
+                })),
+                messages: Vec::new(),
+            },
         );
         frame.still(&mut model, &clock(), width, height).unwrap();
         assert_eq!(model.place(), Some(Place::Sky));
         assert_eq!(model.galaxy().projects()[0].name, "Other");
-        assert_eq!(model.prompt(), &draft, "the unsent message came along");
+        assert_eq!(
+            model.prompt().text(),
+            "Other draft",
+            "the selected session owns its draft"
+        );
     }
 }
 

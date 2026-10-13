@@ -416,3 +416,35 @@ fn changed_project_policy_cannot_substitute_a_workflows_saved_model() {
             .contains("selected model is no longer allowed")
     );
 }
+#[test]
+fn application_execution_binds_every_tool_child_instead_of_configured_stale_ids() {
+    let tmp = tempfile::tempdir().unwrap();
+    std::fs::write(tmp.path().join(".mcp.json"), serde_json::json!({ "mcpServers": { "magistr": { "command": "magistr", "args": ["mcp-launch", "magistr", "."], "env": { "MAGISTR_EXECUTION_ID": "wrong", "WORKBENCH_SESSION_ID": "wrong", "CUSTOM": "kept" } } } }).to_string()).unwrap();
+    let inputs = crate::config::inputs::ProjectInputs::from_lookup(tmp.path(), |_| None);
+    let mut config = AgentConfig::new("", tmp.path()).with_inputs(&inputs);
+    config.execution_id = Some("resident-one".into());
+    let spec = ResolvedSessionSpec::resolve_with_runtime(
+        config,
+        &UserConfig::default(),
+        runtime("claude"),
+    )
+    .unwrap();
+    let McpServer::Stdio(server) = &spec.mcp_servers()[0] else {
+        panic!("stdio");
+    };
+    for key in ["MAGISTR_EXECUTION_ID", "WORKBENCH_SESSION_ID"] {
+        let values: Vec<_> = server
+            .env
+            .iter()
+            .filter(|var| var.name == key)
+            .map(|var| var.value.as_str())
+            .collect();
+        assert_eq!(values, ["resident-one"]);
+    }
+    assert!(
+        server
+            .env
+            .iter()
+            .any(|var| var.name == "CUSTOM" && var.value == "kept")
+    );
+}

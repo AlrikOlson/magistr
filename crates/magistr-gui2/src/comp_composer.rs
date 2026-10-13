@@ -53,7 +53,7 @@ impl ComposerComposition {
         } else {
             Element::text(Self::VOICE, lex.tx, prompt.text())
         }
-        .editor_cursor(prompt.cursor())
+        .editor(prompt.text(), prompt.cursor())
         .height((height - Self::CHROME).max(Self::LINE))
         .min_width(0.0)
         .no_shrink()

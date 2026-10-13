@@ -1,197 +1,173 @@
+use super::super::session_registry::tests::{Log, projects, registry};
 use super::*;
 use magistr_application::sessions::AgentEvent;
-use std::sync::{Arc, Mutex};
-use std::time::Duration;
 use tokio::sync::mpsc;
-
-/// A controlled project host: it records the commands it was given, posts
-/// what it is told to on its own inbox, and notes when it was settled.
-#[derive(Clone, Default)]
-struct Log(Arc<Mutex<Vec<String>>>);
-
-impl Log {
-    fn note(&self, line: impl Into<String>) {
-        self.0.lock().unwrap().push(line.into());
-    }
-    fn lines(&self) -> Vec<String> {
-        self.0.lock().unwrap().clone()
-    }
-}
-
-struct Hosted {
-    stop: tokio::sync::oneshot::Sender<()>,
-    task: JoinHandle<Result<(), String>>,
-}
-
-impl Settle for Hosted {
-    fn settle(self) -> Pin<Box<dyn Future<Output = Result<(), String>> + Send>> {
-        Box::pin(async move {
-            let _ = self.stop.send(());
-            self.task.await.map_err(|error| error.to_string())?
-        })
-    }
-}
-
-fn opener(log: Log) -> Open<Hosted> {
-    Box::new(move |opening: Opening| {
-        let log = log.clone();
-        Box::pin(async move {
-            let name = opening
-                .dir
-                .file_name()
-                .unwrap()
-                .to_string_lossy()
-                .into_owned();
-            if name == "held" {
-                return Err("Another Magistr session has this project open.".to_owned());
-            }
-            log.note(format!("open {name} switched={}", opening.switched));
-            let seed = ProjectSeed {
-                name: name.clone(),
-                dir: opening.dir.display().to_string(),
-                ..ProjectSeed::default()
-            };
-            let Opening {
-                inbox,
-                mut commands,
-                ..
-            } = opening;
-            let (stop, mut stopped) = tokio::sync::oneshot::channel::<()>();
-            let served = log.clone();
-            let task = tokio::spawn(async move {
-                loop {
-                    tokio::select! {
-                        _ = &mut stopped => break,
-                        command = commands.next() => match command {
-                            Some(Cmd::Prompt(text)) => {
-                                served.note(format!("{name} got {text}"));
-                                inbox.send(Msg::Agent(AgentEvent::Text(format!("{name}: {text}"))));
-                            }
-                            Some(_) => {}
-                            None => break,
-                        },
-                    }
-                }
-                // A settling host may still speak; the window must not hear it.
-                inbox.send(Msg::Agent(AgentEvent::Text(format!("{name} closing"))));
-                served.note(format!("settled {name}"));
-                Ok(())
-            });
-            Ok((Hosted { stop, task }, seed))
-        })
-    })
-}
-
-struct Window {
-    host: ProjectWindow,
-    commands: mpsc::UnboundedSender<Cmd>,
-    events: mpsc::UnboundedReceiver<Msg>,
-    log: Log,
-    _tmp: tempfile::TempDir,
-    root: std::path::PathBuf,
-}
-
-async fn window() -> Window {
-    let tmp = tempfile::tempdir().unwrap();
-    let root = tmp.path().canonicalize().unwrap();
-    for name in ["first", "second", "held"] {
-        std::fs::create_dir_all(root.join(name).join(".magistr")).unwrap();
-        std::fs::write(root.join(name).join(".magistr/project.json"), "{}").unwrap();
-    }
-    std::fs::create_dir(root.join("bare")).unwrap();
-    let log = Log::default();
-    let (inbox, events) = Inbox::channel();
-    let (commands, receiver) = Commands::channel();
-    let (host, seed) =
-        ProjectWindow::start_with(opener(log.clone()), root.join("first"), inbox, receiver)
-            .await
-            .unwrap();
-    assert_eq!(seed.name, "first");
-    Window {
-        host,
-        commands,
-        events,
-        log,
-        _tmp: tmp,
-        root,
-    }
-}
 
 async fn next(events: &mut mpsc::UnboundedReceiver<Msg>) -> Msg {
     tokio::time::timeout(Duration::from_secs(3), events.recv())
         .await
-        .expect("an event in time")
-        .expect("the window's inbox stays open")
+        .unwrap()
+        .unwrap()
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn a_switch_admits_the_next_project_then_settles_the_previous_one_behind_a_fence() {
-    let mut w = window().await;
-    let second = w.root.join("second").display().to_string();
-    w.commands.send(Cmd::OpenProject(second)).unwrap();
-    let Msg::Rehosted(seed) = next(&mut w.events).await else {
-        panic!("the swap is the first thing the window hears");
+async fn switching_views_retains_hosts_and_replays_unseen_observations() {
+    let tmp = projects();
+    let log = Log::default();
+    let (inbox, mut events) = Inbox::channel();
+    let (commands, receiver) = Commands::channel();
+    let (window, first) = ProjectWindow::start_with(
+        registry(log.clone()),
+        tmp.path().join("first"),
+        inbox,
+        receiver,
+    )
+    .await
+    .unwrap();
+    let address = first.session_address.unwrap();
+    commands
+        .send(Cmd::Session {
+            address: address.clone(),
+            command: Box::new(Cmd::OpenProject(
+                tmp.path().join("second").display().to_string(),
+            )),
+            draft: String::new(),
+        })
+        .unwrap();
+    let Msg::SessionFrame {
+        address: second,
+        seed: Some(_),
+        ..
+    } = next(&mut events).await
+    else {
+        panic!("selected second");
     };
-    assert_eq!(seed.name, "second");
-    assert_eq!(
-        w.log.lines(),
-        [
-            "open first switched=false",
-            "open second switched=true",
-            "settled first"
-        ],
-        "admitted before the previous host was settled"
-    );
-    w.commands.send(Cmd::Prompt("hello".into())).unwrap();
-    assert_eq!(
-        next(&mut w.events).await,
-        Msg::Agent(AgentEvent::Text("second: hello".into())),
-        "commands reach the new host and the settled host's last words never arrive"
-    );
-    w.host.shutdown().await.unwrap();
-    assert_eq!(w.log.lines().last().unwrap(), "settled second");
-}
-
-#[tokio::test(flavor = "multi_thread")]
-async fn a_refused_switch_says_why_and_the_current_project_keeps_serving() {
-    let mut w = window().await;
-    for (name, words) in [
-        ("held", "Another Magistr session has this project open."),
-        ("bare", "has no Magistr setup"),
-        ("missing", "is not a directory"),
-    ] {
-        let dir = w.root.join(name).display().to_string();
-        w.commands.send(Cmd::OpenProject(dir.clone())).unwrap();
-        let Msg::CommandFailed { cmd, error } = next(&mut w.events).await else {
-            panic!("a refusal in words");
-        };
-        assert_eq!(cmd, Cmd::OpenProject(dir));
-        assert!(error.contains(words), "{name}: {error}");
+    assert_eq!(log.lines(), ["open first", "open second"]);
+    commands
+        .send(Cmd::Session {
+            address: address.clone(),
+            command: Box::new(Cmd::Prompt("hidden stream".into())),
+            draft: "first draft".into(),
+        })
+        .unwrap();
+    commands
+        .send(Cmd::Session {
+            address: second,
+            command: Box::new(Cmd::OpenProject(
+                tmp.path().join("first").display().to_string(),
+            )),
+            draft: "second draft".into(),
+        })
+        .unwrap();
+    loop {
+        let message = next(&mut events).await;
+        if let Msg::SessionFrame {
+            address: selected,
+            seed: Some(seed),
+            ..
+        } = message
+        {
+            assert_eq!(selected, address);
+            assert_eq!(seed.draft.as_deref(), Some("first draft"));
+            // The prompt can complete before or after selection; both deliveries
+            // name first and cannot land in second.
+            let mut replay = seed.replay;
+            if !replay.iter().any(|msg| matches!(msg, Msg::Agent(AgentEvent::Text(text)) if text == "first: hidden stream")) {
+                let Msg::SessionFrame { address: update, messages, .. } = next(&mut events).await else { panic!("first stream"); };
+                assert_eq!(update, address); replay.extend(messages);
+            }
+            assert!(replay.iter().any(|msg| matches!(msg, Msg::Agent(AgentEvent::Text(text)) if text == "first: hidden stream")));
+            break;
+        }
     }
-    w.commands.send(Cmd::Prompt("still here".into())).unwrap();
+    window.shutdown().await.unwrap();
     assert_eq!(
-        next(&mut w.events).await,
-        Msg::Agent(AgentEvent::Text("first: still here".into()))
+        log.lines()
+            .iter()
+            .filter(|line| line.starts_with("settled"))
+            .count(),
+        2
     );
-    assert!(!w.log.lines().iter().any(|line| line == "settled first"));
-    w.host.shutdown().await.unwrap();
 }
 
 #[tokio::test]
-async fn a_request_queued_while_the_project_changed_returns_to_the_editor() {
-    let mut w = window().await;
-    let second = w.root.join("second").display().to_string();
-    // Both are queued before the window host reads either.
-    w.commands.send(Cmd::OpenProject(second)).unwrap();
-    w.commands
-        .send(Cmd::Prompt("for the first".into()))
+async fn provider_failure_keeps_the_selected_host_and_draft_available() {
+    let tmp = projects();
+    let log = Log::default();
+    let (inbox, mut events) = Inbox::channel();
+    let (commands, receiver) = Commands::channel();
+    let (window, first) = ProjectWindow::start_with(
+        registry(log.clone()),
+        tmp.path().join("first"),
+        inbox,
+        receiver,
+    )
+    .await
+    .unwrap();
+    commands
+        .send(Cmd::Session {
+            address: first.session_address.clone().unwrap(),
+            command: Box::new(Cmd::OpenProject(
+                tmp.path().join("held").display().to_string(),
+            )),
+            draft: "keep".into(),
+        })
         .unwrap();
-    assert!(matches!(next(&mut w.events).await, Msg::Rehosted(_)));
-    let Msg::CommandFailed { cmd, error } = next(&mut w.events).await else {
-        panic!("the queued request comes back");
-    };
-    assert_eq!(cmd, Cmd::Prompt("for the first".into()));
-    assert!(error.contains("project changed"), "{error}");
-    assert!(!w.log.lines().iter().any(|line| line.contains("got")));
-    w.host.shutdown().await.unwrap();
+    assert!(
+        matches!(next(&mut events).await, Msg::CommandFailed { error, .. } if error.contains("provider unavailable"))
+    );
+    commands
+        .send(Cmd::Session {
+            address: first.session_address.unwrap(),
+            command: Box::new(Cmd::Prompt("still here".into())),
+            draft: "keep".into(),
+        })
+        .unwrap();
+    assert!(
+        matches!(next(&mut events).await, Msg::SessionFrame { messages, .. } if messages.iter().any(|msg| matches!(msg, Msg::Agent(AgentEvent::Text(text)) if text == "first: still here")))
+    );
+    window.shutdown().await.unwrap();
+}
+
+#[tokio::test]
+async fn a_closed_selected_session_does_not_block_navigation_or_stop_other_sessions() {
+    let tmp = projects();
+    let log = Log::default();
+    let registry = registry(log.clone());
+    let client = registry.client();
+    let (inbox, mut events) = Inbox::channel();
+    let (commands, receiver) = Commands::channel();
+    let (window, first) =
+        ProjectWindow::start_with(registry, tmp.path().join("first"), inbox, receiver)
+            .await
+            .unwrap();
+    let first = first.session_address.unwrap();
+    let second = client.open(tmp.path().join("second")).await.unwrap();
+    client.close(&first).await.unwrap();
+    commands
+        .send(Cmd::Session {
+            address: first,
+            command: Box::new(Cmd::OpenProject(
+                tmp.path().join("second").display().to_string(),
+            )),
+            draft: String::new(),
+        })
+        .unwrap();
+    loop {
+        match next(&mut events).await {
+            Msg::SessionFrame {
+                address,
+                seed: Some(_),
+                ..
+            } => {
+                assert_eq!(address, second);
+                break;
+            }
+            Msg::CommandFailed { error, .. } => panic!("navigation refused: {error}"),
+            _ => {}
+        }
+    }
+    assert_eq!(client.list().await.unwrap().len(), 1);
+    assert!(!log.lines().iter().any(|line| line == "settled second"));
+    window.shutdown().await.unwrap();
 }

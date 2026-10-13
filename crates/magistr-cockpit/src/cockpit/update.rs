@@ -148,6 +148,25 @@ pub fn update(model: &mut Model, msg: Msg) -> Vec<Cmd> {
     if now != was {
         cmds.push(now.map_or(Cmd::Still, Cmd::Animate));
     }
+    if let Some(address) = &model.session_address {
+        let draft = model.prompt().text().to_owned();
+        cmds = cmds
+            .into_iter()
+            .map(|command| match command {
+                Cmd::Quit
+                | Cmd::Animate(_)
+                | Cmd::Still
+                | Cmd::Announce(_)
+                | Cmd::Clipboard(_)
+                | Cmd::Session { .. } => command,
+                command => Cmd::Session {
+                    address: address.clone(),
+                    command: Box::new(command),
+                    draft: draft.clone(),
+                },
+            })
+            .collect();
+    }
     cmds
 }
 
@@ -165,6 +184,35 @@ fn fold(model: &mut Model, msg: Msg) -> Vec<Cmd> {
         model.last_input = model.ticks;
     }
     match msg {
+        Msg::InputAccepted(text) => return update(model, Msg::Agent(AgentEvent::UserText(text))),
+        Msg::SessionFrame {
+            address,
+            sequence,
+            seed,
+            messages,
+        } => {
+            if let Some(seed) = seed {
+                if seed.session_address.as_ref() != Some(&address)
+                    || (model.session_address.as_ref() == Some(&address)
+                        && sequence < model.session_sequence)
+                {
+                    return Vec::new();
+                }
+                let commands = super::project_switch::rehosted(model, *seed);
+                model.session_sequence = sequence;
+                return commands;
+            }
+            if model.session_address.as_ref() != Some(&address)
+                || sequence <= model.session_sequence
+            {
+                return Vec::new();
+            }
+            model.session_sequence = sequence;
+            return messages
+                .into_iter()
+                .flat_map(|message| update(model, message))
+                .collect();
+        }
         Msg::Resize(size) => {
             model.size = size;
             model.session.turn.set_cell_size(model.cell_size());
@@ -438,7 +486,6 @@ fn fold(model: &mut Model, msg: Msg) -> Vec<Cmd> {
         Msg::Loop(event) => return loop_event(model, event),
         Msg::Workbench(event) => changes::fold(model, event),
         Msg::Checkpoint(event) => checkpoint(model, event),
-        Msg::Rehosted(next) => return super::project_switch::rehosted(model, *next),
     }
     Vec::new()
 }
@@ -2973,10 +3020,7 @@ fn signal_click(model: &mut Model, index: usize, act: SignalAct) -> Vec<Cmd> {
                 "Research signal {id} (\u{201c}{title}\u{201d}): ground it in the codebase, \
                  research the world, and record the findings with signal_research."
             );
-            model
-                .session
-                .turn
-                .push_text(Voice::User, &format!("{text}\n"));
+            // The session publishes this admitted user message.
             model.session.notice = None;
             model.session.state = TurnState::Streaming;
             let (total, height) = model.conversation_window();

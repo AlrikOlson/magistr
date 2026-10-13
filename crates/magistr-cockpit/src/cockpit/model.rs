@@ -161,6 +161,8 @@ pub struct Model {
     /// The session's host runs work in place: a start is a command, not
     /// a quit for an entry point to re-dispatch.
     pub(super) hosted_work: bool,
+    pub(super) session_address: Option<magistr_domain::identity::SessionAddress>,
+    pub(super) session_sequence: u64,
     pub(super) session_sel: Option<usize>,
     pub(super) review_sel: usize,
     pub(super) session_note: Option<String>,
@@ -626,6 +628,8 @@ impl Model {
             session_note: None,
             launch: None,
             hosted_work: false,
+            session_address: None,
+            session_sequence: 0,
             sheet: false,
             roadmap_graph_rect: None,
             roadmap_graph_px: None,

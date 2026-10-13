@@ -13,7 +13,7 @@ use qs_gpu::batcher::Renderer;
 use qs_gpu::device::{Acquired, GpuContext, SurfaceRecovery, acquire, new_instance};
 use qs_gpu::path::RenderPath;
 use qs_platform::{PlatformWindow, WinitWindow};
-use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
+use tokio::sync::mpsc::Receiver;
 use winit::application::ApplicationHandler;
 use winit::dpi::LogicalSize;
 use winit::event::WindowEvent;
@@ -47,8 +47,8 @@ pub struct Native {
     title: String,
     logical: LogicalSize<f64>,
     inbox: Inbox,
-    messages: UnboundedReceiver<Msg>,
-    commands_tx: UnboundedSender<Cmd>,
+    messages: Receiver<Msg>,
+    commands_tx: tokio::sync::mpsc::Sender<Cmd>,
     commands: Option<Commands>,
 }
 
@@ -60,8 +60,8 @@ impl Native {
     /// A runtime whose window will be titled `title`.
     #[must_use]
     pub fn new(title: &str) -> Self {
-        let (inbox, messages) = Inbox::channel();
-        let (commands_tx, commands) = Commands::channel();
+        let (inbox, messages) = Inbox::bounded(64);
+        let (commands_tx, commands) = Commands::bounded(64);
         let (width, height) = Self::DEFAULT_LOGICAL;
         Self {
             title: title.to_owned(),
@@ -131,10 +131,16 @@ impl Native {
             .name("gui2-inbox".to_owned())
             .spawn(move || {
                 while let Some(msg) = messages.blocking_recv() {
+                    // Only one observation may be outstanding in the OS event queue.
+                    // The window never waits on this acknowledgement.
+                    let (received, receipt) = std::sync::mpsc::sync_channel(1);
                     if proxy
-                        .send_event(NativeEvent::Message(Box::new(msg)))
+                        .send_event(NativeEvent::Message(Box::new(msg), received))
                         .is_err()
                     {
+                        break;
+                    }
+                    if receipt.recv().is_err() {
                         break;
                     }
                 }
@@ -225,7 +231,7 @@ impl ActionHandler for Actions {
 
 #[derive(Debug)]
 enum NativeEvent {
-    Message(Box<Msg>),
+    Message(Box<Msg>, std::sync::mpsc::SyncSender<()>),
     Access(ActionRequest),
     AccessActivated,
 }
@@ -517,7 +523,10 @@ impl ApplicationHandler<NativeEvent> for App {
     /// A producer's message, forwarded off the inbox.
     fn user_event(&mut self, event_loop: &ActiveEventLoop, event: NativeEvent) {
         match event {
-            NativeEvent::Message(msg) => self.fold(event_loop, *msg),
+            NativeEvent::Message(msg, received) => {
+                self.fold(event_loop, *msg);
+                let _ = received.try_send(());
+            }
             NativeEvent::AccessActivated => {}
             NativeEvent::Access(request) => {
                 // Reconcile with producer updates and resize events received since publication.

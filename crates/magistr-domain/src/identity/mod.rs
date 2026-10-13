@@ -9,7 +9,9 @@ mod project_id;
 mod provider_session_binding;
 mod provider_session_id;
 mod run_id;
+mod session_address;
 mod session_id;
+pub use session_address::SessionAddress;
 mod turn_id;
 
 pub use attempt_id::AttemptId;

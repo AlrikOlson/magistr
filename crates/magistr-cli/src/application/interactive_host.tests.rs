@@ -33,8 +33,10 @@ async fn fixture() -> (tempfile::TempDir, AgentConfig, NativeConfig, Resources) 
         config,
         native,
         Resources {
-            endpoint,
-            workspace,
+            admitted: Arc::new(AdmittedResources {
+                endpoint,
+                workspace,
+            }),
             engines,
         },
     )
@@ -120,7 +122,7 @@ async fn started(
     let (tx, rx) = mpsc::unbounded_channel();
     let session = Session {
         probe,
-        _source: resources.workspace.source_route(),
+        _source: resources.admitted.workspace.source_route(),
         tx,
         rx,
     };
@@ -246,14 +248,14 @@ async fn a_second_host_attaches_workflow_and_refuses_source_without_replacing_ow
     assert!(second.writer().is_none());
     assert!(second.attached_generation().is_some());
     let resources = Resources::open(second, config.inputs()).await.unwrap();
-    assert!(resources.endpoint.is_none());
+    assert!(resources.admitted.endpoint.is_none());
     assert!(matches!(
-        resources.workspace.source_route(),
+        resources.admitted.workspace.source_route(),
         SourceRoute::Refused(magistr_application::effects::SourceRefusal::OwnerElsewhere)
     ));
     resources.close().await.unwrap();
     assert!(EngineClient::with_config(native.clone()).is_err());
-    assert!(first.workspace.hosted().is_some());
+    assert!(first.admitted.workspace.hosted().is_some());
     first.close().await.unwrap();
     EngineClient::with_config(native).unwrap();
 }
@@ -273,7 +275,7 @@ async fn close_deadline_aborts_and_joins_an_unresponsive_relay() {
         std::future::pending::<Result<(), String>>().await
     }));
     let (_sender, commands) = Commands::channel();
-    let (forward, _receiver) = Commands::channel();
+    let (forward, _receiver) = Commands::bounded(32);
     let (stop, stopped) = oneshot::channel();
     stop.send(()).unwrap();
     let (inbox, _events) = Inbox::channel();
@@ -293,7 +295,7 @@ async fn a_closed_relay_returns_the_undelivered_command_to_the_surface() {
         Ok(())
     }));
     let (sender, commands) = Commands::channel();
-    let (forward, receiver) = Commands::channel();
+    let (forward, receiver) = Commands::bounded(32);
     drop(receiver);
     let (_stop, stopped) = oneshot::channel();
     let (inbox, mut events) = Inbox::channel();
@@ -308,4 +310,50 @@ async fn a_closed_relay_returns_the_undelivered_command_to_the_surface() {
     );
     finish.notify_one();
     task.await.unwrap().unwrap();
+}
+#[tokio::test(flavor = "multi_thread")]
+async fn same_copy_sessions_share_source_owner_and_keep_separate_workflow_executions() {
+    let (_dir, config, native, resources) = fixture().await;
+    let writer = resources.engines.writer().unwrap();
+    let first = writer.for_working_copy(&config.cwd, "first").unwrap();
+    let second = writer.for_working_copy(&config.cwd, "second").unwrap();
+    first
+        .ship_set_objective("First".into(), vec![], vec![], "chunk:first".into())
+        .unwrap();
+    second
+        .ship_set_objective("Second".into(), vec![], vec![], "chunk:second".into())
+        .unwrap();
+    assert_eq!(first.ship_status()["objective"]["scope"], "chunk:first");
+    assert_eq!(second.ship_status()["objective"]["scope"], "chunk:second");
+    let first_resources = resources.fork(EngineClient::attach(first));
+    let second_resources = resources.fork(EngineClient::attach(second));
+    assert!(Arc::ptr_eq(
+        &first_resources.admitted,
+        &second_resources.admitted
+    ));
+    let SourceRoute::Admitted(first_source) = first_resources.admitted.workspace.source_route()
+    else {
+        panic!("first source");
+    };
+    let SourceRoute::Admitted(second_source) = second_resources.admitted.workspace.source_route()
+    else {
+        panic!("second source");
+    };
+    let root = config.cwd.canonicalize().unwrap();
+    let first_path = root.join("first.txt").display().to_string();
+    let second_path = root.join("second.txt").display().to_string();
+    first_source.write_text(&first_path, "first").await.unwrap();
+    second_source
+        .write_text(&second_path, "second")
+        .await
+        .unwrap();
+    assert_eq!(std::fs::read_to_string(&first_path).unwrap(), "first");
+    assert_eq!(std::fs::read_to_string(&second_path).unwrap(), "second");
+    drop(first_source);
+    drop(second_source);
+    first_resources.close().await.unwrap();
+    assert!(resources.admitted.workspace.hosted().is_some());
+    second_resources.close().await.unwrap();
+    resources.close_last().await.unwrap();
+    EngineClient::with_config(native).unwrap();
 }
