@@ -410,7 +410,7 @@ fn queued_planning_routes_to_its_owner_and_never_borrows_implementation_output()
     use magistr_cockpit::input::KeyCode;
     use magistr_cockpit_runtime::channel::Commands;
     use magistr_gui2::route::Route;
-    let (sender, mut commands) = Commands::channel();
+    let (sender, mut commands) = Commands::bounded(64);
     let route = Route::new(sender);
     let mut model = Model::new(Size::new(120, 40))
         .with_surface(Surface::Native)

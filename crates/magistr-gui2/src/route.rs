@@ -1,7 +1,7 @@
 //! What the window does with what `update` answers.
 
 use magistr_cockpit::cockpit::{Cmd, Model, Msg, update};
-use tokio::sync::mpsc::UnboundedSender;
+use tokio::sync::mpsc::Sender;
 
 /// Route cockpit commands from the native event loop.
 ///
@@ -13,13 +13,13 @@ use tokio::sync::mpsc::UnboundedSender;
 /// through the commands channel to the session producers.
 #[derive(Debug)]
 pub struct Route {
-    commands: UnboundedSender<Cmd>,
+    commands: Sender<Cmd>,
 }
 
 impl Route {
     /// A route whose forwarded commands land on `commands`.
     #[must_use]
-    pub fn new(commands: UnboundedSender<Cmd>) -> Self {
+    pub fn new(commands: Sender<Cmd>) -> Self {
         Self { commands }
     }
 
@@ -63,8 +63,22 @@ impl Route {
                     // A receiver that is gone is a session that ended;
                     // the cockpit keeps painting, as it does on a
                     // terminal whose session hung up.
-                    if let Err(error) = self.commands.send(other) {
-                        self.fold(model, error.0.undelivered());
+                    if let Err(error) = self.commands.try_send(other) {
+                        let reason = match &error {
+                            tokio::sync::mpsc::error::TrySendError::Full(_) => {
+                                "The session is busy. Try the action again."
+                            }
+                            tokio::sync::mpsc::error::TrySendError::Closed(_) => {
+                                "The session connection closed. Reopen the session and try again."
+                            }
+                        };
+                        self.fold(
+                            model,
+                            Msg::CommandFailed {
+                                cmd: error.into_inner(),
+                                error: reason.into(),
+                            },
+                        );
                     }
                 }
             }

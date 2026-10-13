@@ -29,7 +29,7 @@ type Shared<P> = Arc<Mutex<Box<P>>>;
 /// The handle owns provider startup, turn admission, permission decisions and
 /// cancellation. This relay stamps presentation durations, posts its events to
 /// the inbox, and forwards session commands. Opening transcript events come
-/// from the owner; later prompts are already echoed by the cockpit model.
+/// from the provider; accepted later inputs are published by this relay once.
 /// Workbench, engine and checkpoint requests run as the relay's owned jobs
 /// on their local ports, off this task and independently of
 /// the provider; a request whose port is absent is refused by name rather
@@ -56,6 +56,7 @@ pub fn spawn_session(
         jobs: SessionJobs::new(),
         tool_started: HashMap::new(),
         started: Instant::now(),
+        input_origin: InputOrigin::ProviderHistory,
     };
     tokio::spawn(session.run(commands))
 }
@@ -69,6 +70,14 @@ struct Session {
     jobs: SessionJobs,
     tool_started: HashMap<String, Instant>,
     started: Instant,
+    input_origin: InputOrigin,
+}
+
+/// Initial/resumed history comes from the provider; after admission this relay
+/// publishes application input and provider echoes cannot create a second row.
+enum InputOrigin {
+    ProviderHistory,
+    Application,
 }
 
 impl Session {
@@ -78,6 +87,7 @@ impl Session {
             tokio::select! {
                 event = self.handle.next_event(), if observing => match event {
                     Some(mut event) => {
+                        if matches!(self.input_origin, InputOrigin::Application) && matches!(event, AgentEvent::UserText(_)) { continue; }
                         self.stamp(&mut event);
                         if !self.inbox.send(Msg::Agent(event)) {
                             break;
@@ -140,9 +150,15 @@ impl Session {
             Cmd::Engine(cmd) => return self.engine(cmd),
             Cmd::Checkpoint(cmd) => return self.checkpoint(cmd),
             Cmd::Prompt(text) => {
-                if let Err(error) = self.handle.submit_turn(&text) {
-                    self.inbox
-                        .send(Msg::Agent(AgentEvent::PromptRejected { text, error }));
+                match self.handle.submit_turn(&text) {
+                    Ok(()) => {
+                        self.input_origin = InputOrigin::Application;
+                        self.inbox.send(Msg::InputAccepted(format!("{text}\n")));
+                    }
+                    Err(error) => {
+                        self.inbox
+                            .send(Msg::Agent(AgentEvent::PromptRejected { text, error }));
+                    }
                 }
                 return;
             }

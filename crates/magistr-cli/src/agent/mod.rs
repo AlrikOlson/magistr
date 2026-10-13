@@ -159,6 +159,7 @@ pub struct AgentConfig {
     /// was composed. Resolution reads only these; it never consults the
     /// process environment again.
     inputs: Arc<ProjectInputs>,
+    pub(crate) execution_id: Option<String>,
 }
 
 impl AgentConfig {
@@ -187,6 +188,7 @@ impl AgentConfig {
             effort: None,
             backend: Backend::default(),
             allowed_tools: ToolPermissions::base().into_strings(),
+            execution_id: None,
         }
     }
 

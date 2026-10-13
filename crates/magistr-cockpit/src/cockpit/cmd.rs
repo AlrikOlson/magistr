@@ -125,12 +125,16 @@ pub enum Cmd {
     /// answer back through the inbox; a consumer with no folder to
     /// read lets it pass.
     Birth(BirthCmd),
-    /// Open the project in this directory in the same window. The host
-    /// admits it before it settles the current project, answers with
-    /// [`Msg::Rehosted`](super::Msg::Rehosted), and refuses in words
-    /// through [`Msg::CommandFailed`](super::Msg::CommandFailed) with the
-    /// current project still open.
+    /// Select a resident session in this project, opening it when needed.
+    /// The host replies with an addressed observation; admission refusal keeps
+    /// the currently selected session available.
     OpenProject(String),
+    /// An effect addressed when the surface produced it, before navigation.
+    Session {
+        address: magistr_domain::identity::SessionAddress,
+        command: Box<Cmd>,
+        draft: String,
+    },
 }
 
 impl Cmd {
@@ -148,6 +152,14 @@ impl Cmd {
     pub(super) fn failed(self, model: &mut super::Model, error: String) -> Vec<Self> {
         use super::{CheckpointEvent, Msg, WorkbenchEvent};
         let message = match self {
+            Self::Session {
+                address, command, ..
+            } => {
+                if model.session_address.as_ref() != Some(&address) {
+                    return Vec::new();
+                }
+                return command.failed(model, error);
+            }
             Self::Prompt(text) | Self::RoadmapPrompt(text) => {
                 Msg::Agent(magistr_application::sessions::AgentEvent::PromptRejected {
                     text,
@@ -205,7 +217,8 @@ impl Cmd {
                     | Self::Workbench(_)
                     | Self::Engine(_)
                     | Self::Checkpoint(_)
-                    | Self::OpenProject(_) => {
+                    | Self::OpenProject(_)
+                    | Self::Session { .. } => {
                         unreachable!("project and prompt failures are handled above")
                     }
                 };

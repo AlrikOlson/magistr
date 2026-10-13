@@ -12,6 +12,8 @@
 pub mod arrivals;
 pub mod commands;
 pub mod inbox;
+mod observation_sink;
+pub use observation_sink::ObservationSink;
 
 pub use arrivals::Arrivals;
 pub use commands::Commands;

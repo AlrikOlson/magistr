@@ -1,5 +1,6 @@
 //! Live interface admission and lifetime: the provider, project owners and feeds
-//! close together. Surfaces supply only a model, inbox and command receiver.
+//! close together. Registry sessions share admitted resources; surfaces supply
+//! only a model, observation inbox and command receiver.
 
 use std::future::Future;
 use std::time::Duration;
@@ -12,10 +13,7 @@ use magistr_engine::OwnerEndpoint;
 use tokio::sync::oneshot;
 use tokio::task::JoinHandle;
 
-use super::{
-    WorkspaceAdmission,
-    workflow_client::{EngineClient, EngineError},
-};
+use super::{WorkspaceAdmission, workflow_client::EngineClient};
 use crate::agent::{AgentConfig, ResolvedSessionSpec, cockpit_session::CockpitSession};
 use crate::orchestration::{
     hosted_work::HostedWork, interactive_session::interactive_session, loop_driver::Connector,
@@ -67,42 +65,12 @@ impl InteractiveHost {
         Self::live(config, resources, inbox, commands).await
     }
 
-    /// As [`Self::open`] for a project a window switches to: this process
-    /// becomes the project's host and owns its workspace, or the open is
-    /// refused in words and nothing of the project stays held. A window never
-    /// swaps a project it hosts for one it could only attach to.
-    ///
-    /// # Errors
-    /// The host lease or the workspace is held elsewhere, or as [`Self::open`].
-    pub async fn open_owned(
+    pub(super) async fn open_admitted(
         config: AgentConfig,
+        resources: Resources,
         inbox: Inbox,
         commands: Commands,
     ) -> eyre::Result<(Self, ProjectSeed)> {
-        let engines =
-            EngineClient::with_config(magistr_core::evidence::writer_config_from_env(&config.cwd))
-                .map_err(|error| match &error {
-                    EngineError::Admission { source, .. }
-                        if source.kind() == std::io::ErrorKind::WouldBlock =>
-                    {
-                        eyre::eyre!("Another Magistr session has this project open.")
-                    }
-                    _ => eyre::Report::new(error).wrap_err("Magistr could not open the project"),
-                })?;
-        let resources = Resources::open(engines, config.inputs()).await?;
-        if let WorkspaceAdmission::Refused(refusal) = &resources.workspace {
-            use magistr_application::effects::SourceRefusal;
-            let held = match refusal {
-                SourceRefusal::NotAdmitted(reason) => {
-                    eyre::eyre!("Its source workspace could not be opened: {reason}")
-                }
-                SourceRefusal::OwnerElsewhere | SourceRefusal::NoAuthority => {
-                    eyre::eyre!("Another Magistr process holds this project's source workspace.")
-                }
-            };
-            let cleanup = resources.close().await;
-            return Err(startup_error(held, cleanup));
-        }
         Self::live(config, resources, inbox, commands).await
     }
 
@@ -147,7 +115,7 @@ impl InteractiveHost {
         F: FnOnce(ResolvedSessionSpec) -> Fut,
         Fut: Future<Output = eyre::Result<Box<dyn SessionHandle>>>,
     {
-        let source = resources.workspace.source_route();
+        let source = resources.admitted.workspace.source_route();
         let spec = match spec {
             Ok(spec) => spec.with_source_route(source.clone()),
             Err(error) => {
@@ -197,7 +165,7 @@ impl InteractiveHost {
             resources.engines.clone(),
             tapped,
         );
-        let (forward, receiver) = Commands::channel();
+        let (forward, receiver) = Commands::bounded(32);
         let relay = OwnedTask(tokio::spawn(work.run(session, receiver)));
         let (stop, stopped) = oneshot::channel();
         let task = tokio::spawn(async move {
@@ -224,6 +192,7 @@ impl InteractiveHost {
                 supervision,
                 snapshot: seed,
                 workspace_files,
+                ..ProjectSeed::default()
             },
         ))
     }
@@ -252,41 +221,85 @@ impl Drop for InteractiveHost {
     }
 }
 
-struct Resources {
+pub(super) struct Resources {
+    pub(super) engines: EngineClient,
+    admitted: std::sync::Arc<AdmittedResources>,
+}
+struct AdmittedResources {
     endpoint: Option<OwnerEndpoint>,
     workspace: WorkspaceAdmission,
-    engines: EngineClient,
 }
 
 impl Resources {
-    async fn open(
+    pub(super) async fn open(
         engines: EngineClient,
         inputs: &crate::config::inputs::ProjectInputs,
+    ) -> eyre::Result<Self> {
+        Self::open_served(engines, inputs, true).await
+    }
+
+    pub(super) async fn open_served(
+        engines: EngineClient,
+        inputs: &crate::config::inputs::ProjectInputs,
+        serve: bool,
     ) -> eyre::Result<Self> {
         engines
             .port()
             .ok_or_else(|| eyre::eyre!("Magistr could not connect to the project"))?;
-        let endpoint = engines.serve_owner().await?;
+        let endpoint = if serve {
+            engines.serve_owner().await?
+        } else {
+            None
+        };
         let workspace = WorkspaceAdmission::admit(inputs).await;
         Ok(Self {
-            endpoint,
-            workspace,
+            admitted: std::sync::Arc::new(AdmittedResources {
+                endpoint,
+                workspace,
+            }),
             engines,
         })
     }
 
-    async fn close(self) -> Result<(), String> {
-        let endpoint = match self.endpoint {
+    pub(super) fn is_admitted(&self) -> bool {
+        self.admitted.workspace.hosted().is_some()
+    }
+    pub(super) fn source_report(&self) -> String {
+        self.admitted.workspace.report()
+    }
+
+    pub(super) fn fork(&self, engines: EngineClient) -> Self {
+        Self {
+            engines,
+            admitted: std::sync::Arc::clone(&self.admitted),
+        }
+    }
+
+    pub(super) async fn close_last(self) -> Result<(), String> {
+        if std::sync::Arc::strong_count(&self.admitted) != 1 {
+            return Err("Session references remain after closing the working copy.".into());
+        }
+        self.close().await
+    }
+
+    pub(super) async fn close(self) -> Result<(), String> {
+        let Self { engines, admitted } = self;
+        let Ok(admitted) = std::sync::Arc::try_unwrap(admitted) else {
+            drop(engines);
+            return Ok(());
+        };
+        let endpoint = match admitted.endpoint {
             Some(endpoint) => endpoint.shutdown().await.map_err(|error| error.to_string()),
             None => Ok(()),
         };
-        let workspace = self
+        let workspace = admitted
             .workspace
             .shutdown()
             .await
             .map_err(|error| error.to_string());
         // The workflow writer is released only after its endpoint and workspace.
-        drop(self.engines);
+
+        drop(engines);
         combine(endpoint, workspace)
     }
 }
@@ -310,7 +323,7 @@ impl<T> OwnedTask<T> {
 
 async fn serve(
     mut commands: Commands,
-    forward: tokio::sync::mpsc::UnboundedSender<Cmd>,
+    forward: tokio::sync::mpsc::Sender<Cmd>,
     mut stopped: oneshot::Receiver<()>,
     mut relay: OwnedTask<Result<(), String>>,
     inbox: Inbox,
@@ -324,12 +337,12 @@ async fn serve(
                 match command {
                     None | Some(Cmd::Quit) => break,
                     Some(command) => {
-                        if let Err(error) = forward.send(command) {
-                            inbox.send(magistr_cockpit::cockpit::Msg::CommandFailed {
-                                cmd: error.0,
-                                error: "The session connection closed. Reopen the session and try again.".into(),
-                            });
-                            break;
+                        if let Err(error) = forward.try_send(command) {
+                            let message = match &error {
+                                tokio::sync::mpsc::error::TrySendError::Full(_) => "The session is busy. Try the action again.",
+                                tokio::sync::mpsc::error::TrySendError::Closed(_) => "The session connection closed. Reopen the session and try again.",
+                            };
+                            inbox.send(magistr_cockpit::cockpit::Msg::CommandFailed { cmd: error.into_inner(), error: message.into() });
                         }
                     }
                 }
@@ -338,7 +351,8 @@ async fn serve(
     }
     // Quit overtakes queued commands on close: discard the external receiver.
     drop(commands);
-    let _ = forward.send(Cmd::Quit);
+    // Dropping the only sender closes the coordinator after its bounded queue.
+    let _ = forward.try_send(Cmd::Quit);
     drop(forward);
     match tokio::time::timeout(CLOSE_GRACE, &mut relay.0).await {
         Ok(result) => joined(result),

@@ -2,7 +2,7 @@ use super::*;
 
 #[test]
 fn a_closed_command_owner_reports_stop_without_claiming_it_stopped() {
-    let (tx, commands) = Commands::channel();
+    let (tx, commands) = Commands::bounded(64);
     drop(commands);
     let route = Route::new(tx);
     let mut m = model();
@@ -27,7 +27,7 @@ fn a_closed_command_owner_reports_stop_without_claiming_it_stopped() {
 fn failed_delivery_restores_text_and_files_in_both_destinations() {
     use magistr_cockpit::cockpit::{RequestPhase, StageTab};
     for tab in [StageTab::Turn, StageTab::Roadmap] {
-        let (tx, commands) = Commands::channel();
+        let (tx, commands) = Commands::bounded(64);
         drop(commands);
         let route = Route::new(tx);
         let mut m = model().with_tab(tab);
@@ -71,7 +71,7 @@ fn drain(commands: &mut Commands) -> Vec<Cmd> {
 
 #[test]
 fn a_submitted_prompt_reaches_the_commands_the_session_takes() {
-    let (tx, mut commands) = Commands::channel();
+    let (tx, mut commands) = Commands::bounded(64);
     let route = Route::new(tx);
     let mut m = model();
     for c in "go".chars() {
@@ -83,7 +83,7 @@ fn a_submitted_prompt_reaches_the_commands_the_session_takes() {
 
 #[test]
 fn a_producers_event_lands_in_the_model_and_its_animation_stays_here() {
-    let (tx, mut commands) = Commands::channel();
+    let (tx, mut commands) = Commands::bounded(64);
     let route = Route::new(tx);
     let mut m = model();
     assert!(!route.fold(&mut m, Msg::Agent(AgentEvent::Text("hi".to_owned()))));
@@ -98,7 +98,7 @@ fn a_producers_event_lands_in_the_model_and_its_animation_stays_here() {
 
 #[test]
 fn an_announcement_is_the_loops_own_and_the_answer_to_it_is_a_producers() {
-    let (tx, mut commands) = Commands::channel();
+    let (tx, mut commands) = Commands::bounded(64);
     let route = Route::new(tx);
     let mut m = model();
     route.fold(
@@ -132,7 +132,7 @@ fn an_announcement_is_the_loops_own_and_the_answer_to_it_is_a_producers() {
 
 #[test]
 fn ctrl_d_on_an_empty_prompt_is_the_quit_and_a_gone_session_is_not_an_error() {
-    let (tx, commands) = Commands::channel();
+    let (tx, commands) = Commands::bounded(64);
     drop(commands);
     let route = Route::new(tx);
     let mut m = model();
@@ -153,7 +153,7 @@ fn ctrl_d_on_an_empty_prompt_is_the_quit_and_a_gone_session_is_not_an_error() {
 /// system clipboard — or logs that it could not — and nothing reaches a producer.
 #[test]
 fn a_transcript_copy_is_the_loops_own_and_never_a_producers() {
-    let (tx, mut commands) = Commands::channel();
+    let (tx, mut commands) = Commands::bounded(64);
     let route = Route::new(tx);
     let mut m = crate::fixture::Fixture::pane_following(Size::new(120, 40));
     assert!(!route.fold(&mut m, key(KeyCode::Char('y'))));

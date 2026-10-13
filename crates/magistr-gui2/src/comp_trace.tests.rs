@@ -52,7 +52,10 @@ fn selected_receipt_and_stale_identity_are_visible() {
     assert_eq!(model.selected(), selected.as_ref());
     let text = texts(&TraceComposition::el(&model, Medium::Night)).join("\n");
     assert!(
-        text.contains("This record is no longer available."),
+        text.split_whitespace()
+            .collect::<Vec<_>>()
+            .join(" ")
+            .contains("This item is no longer available."),
         "{text}"
     );
 }

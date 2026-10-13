@@ -1,4 +1,4 @@
-//! A native window over the projects it opens, one admitted host at a time.
+//! A native window selecting resident sessions owned by the Rust application.
 
 use crate::args::Desktop;
 use color_eyre::eyre;

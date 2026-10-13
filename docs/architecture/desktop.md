@@ -79,7 +79,7 @@ The launcher runs the native event loop on the main thread while a multithread
 Tokio runtime services the host. After normal window close or a window error,
 it awaits host shutdown before dropping the runtime. If both the window and
 shutdown fail, the returned error includes both causes. Native close ends the
-open project's host lifetime; it does not claim to persist an unsent draft for
+application's owned session lifetimes; it does not claim to persist an unsent draft for
 another launch. The window's title names the project it has open.
 
 Provider adapters and workspace workers invoke the current executable. The
@@ -200,41 +200,55 @@ frames; repainting does not advance time.
 
 ## Opening another project
 
-`application::ProjectWindow` serves one window across the projects it opens. The
-window keeps a single inbox and command channel; each project gets its own
-`InteractiveHost` behind a fence, so a project that is settling can never post
-into the next project's view.
+`application::SessionRegistry` owns the resident sessions across admitted
+projects and working copies. `ProjectWindow` selects and subscribes to one of
+them for the current renderer. Opening another project does not stop a response,
+a permission request or work running in the previous project. Returning to a
+project restores its retained observations and its own unsent message.
 
-The home page lists the open project and the projects this machine has recorded
-sessions in (`commands/galaxy_data.rs` reads the session database's recorded
-directories and keeps those that still hold a Magistr project). Another project's
-**Open project** control, Return on the walked selection, and an **Open project**
-row in Commands all ask the host once (`Cmd::OpenProject`). The window stays on
-the current project and says `Opening…` until the host answers.
+Admission stays in Rust. One source owner is shared by sessions in the same
+canonical working copy; each session gets a separate source journal and workflow
+execution. Linked working copies share the admitted project authority through
+`NativeEngines::for_working_copy`. A held owner, missing setup or failed provider
+returns a reason and leaves existing sessions available. Provider and configured
+MCP children receive the admitted execution and source-session identity before
+they start.
 
-The host admits the chosen project first and settles the previous one only after
-that succeeded:
+Commands carry the complete application-issued project, working-copy and session
+address. The model addresses them when it produces them, before any navigation
+or queue delay. Late observations, duplicate sequences and failures for another
+session cannot change the selected view or its draft. Permission answers must
+name a pending request and one of its offered options. A repeated answer or a
+removed session produces an explicit refusal.
 
-- The directory must already have its Magistr setup. One that does not is
-  refused in words; setting a project up from the window is separate work.
-- The window must become the project's host and own its source workspace
-  (`InteractiveHost::open_owned`). A project another Magistr session has open,
-  or whose workspace is held, is refused in words and nothing of it stays held.
-  Only the first project of a launch may attach to a running host.
-- A refusal leaves the current project open and usable. The words are painted
-  beside the project and carried on its control's accessible name, and the
-  control can be tried again.
-- On success the previous host's sessions, owner endpoint and workspace are
-  settled, the window builds the new project's view from the seed the host sent
-  (`Msg::Rehosted` carries a `ProjectSeed`; a view model cannot cross threads)
-  and shows its roadmap. The window keeps what is its own: size, theme, focus,
-  zoom and the unsent message. A request sent while the project was changing
-  returns to the editor instead of reaching a project it was not meant for.
-- While a response or started work is in flight the window refuses the switch
-  before asking the host, because settling the project would end it.
+The registry admits up to 64 sessions through a 32-request queue. Each session
+retains up to 512 observations and 1 MiB of estimated observation payload, plus
+bounded pending requests and the latest usage. Slow readers receive coalesced
+watch snapshots with sequence and truncation counts. A cursor outside retention
+requires a reseed; it never pretends the missing transcript is complete. Reconnect
+and reseed read current workflow data through the existing native reader away
+from the window thread. Too many pending requests stop only their owning session.
+Full command queues return the unsent action for retry.
 
-Session records currently have no writer, so a project first opened with `--dir`
-is not listed until finished sessions are saved again (`session-records-writer`).
+The window publishes at most one batch per 16 ms and retains the latest snapshot
+when its bounded inbox refuses delivery. Its OS event forwarder waits for
+consumption of the previous observation before posting the next. Native input
+never waits for that acknowledgement. The renderer keeps its surface, theme,
+size and focus; session observations and drafts belong to their addressed session.
+
+Explicit close removes and settles exactly the addressed session; cancelling a
+turn retains it. Application quit stops admission, settles hosts concurrently
+within eight seconds, then closes shared workspace resources concurrently within
+a further eight seconds. Cleanup failures are returned after attempting every
+owner. Dropping a handle requests the same close; callers must keep the runtime
+alive and await shutdown. This does not provide background survival after app quit.
+
+The home page still reads recorded project directories through
+`commands/galaxy_data.rs`. Session history has no production writer yet;
+`rust-gui-session-history` owns that next repair. The Tauri foundation remains
+a fixture. The renderer replacement will register typed Tauri commands and
+ordered IPC channels over this registry and its subscriptions, without taking
+over provider lifetime or adding global token events.
 
 `project_switch.tests.rs` (cockpit), `project_window.tests.rs` and
 `galaxy_data.tests.rs` (host) and `frame.tests.rs` (pointer at the painted box,

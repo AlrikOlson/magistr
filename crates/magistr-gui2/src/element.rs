@@ -87,6 +87,8 @@ pub struct Element {
     pub(crate) nowrap: bool,
     /// Insertion byte offset for a text editor, owned by the shared draft.
     pub(crate) editor_cursor: Option<usize>,
+    /// Committed draft text, separate from the painted placeholder or IME preview.
+    pub(crate) editor_value: Option<String>,
     /// A row that breaks its children into lines — CSS
     /// `flex-wrap: wrap`, the inline box a line of word runs needs so a
     /// marked word can sit inside a sentence that still wraps.
@@ -190,6 +192,7 @@ impl Element {
             pin: [None; 4],
             nowrap: false,
             editor_cursor: None,
+            editor_value: None,
             wrap: false,
             owner: None,
             exact: false,
@@ -313,9 +316,11 @@ impl Element {
         self
     }
 
-    /// Render this text as a bounded editor with a proportional insertion caret.
+    /// Render an editor with its committed value and proportional insertion caret.
+    /// Painted text may instead be a placeholder or a composition preview.
     #[must_use]
-    pub fn editor_cursor(mut self, cursor: usize) -> Self {
+    pub fn editor(mut self, value: impl Into<String>, cursor: usize) -> Self {
+        self.editor_value = Some(value.into());
         self.editor_cursor = Some(cursor);
         self
     }

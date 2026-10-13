@@ -39,7 +39,7 @@ struct Pane {
 impl Pane {
     fn new() -> Self {
         let (inbox, messages) = Inbox::channel();
-        let (commands_tx, commands) = Commands::channel();
+        let (commands_tx, commands) = Commands::bounded(64);
         Self {
             model: Model::new(SIZE).with_tab(StageTab::Turn),
             frame: Frame::new().expect("the embedded face yields a grid"),

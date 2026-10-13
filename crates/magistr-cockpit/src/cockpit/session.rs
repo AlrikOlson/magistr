@@ -426,7 +426,7 @@ pub(super) fn draft_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
     Some(Vec::new())
 }
 
-/// Send the prompt line as a turn: echoed on the stage in the user's
+/// Send the prompt line as a turn; the owner publishes it in the user's
 /// voice, the turn streaming, the window back at the tail. On an empty
 /// prompt, Enter instead expands or collapses the most recent card. A
 /// palette command goes to its port instead of the agent — `/search`,
@@ -497,16 +497,14 @@ pub(super) fn send(model: &mut Model) -> Vec<Cmd> {
     if model.session.state == TurnState::Streaming || model.roadmap_request_pending() {
         return Vec::new();
     }
-    let text = echo(model);
+    let text = model.session.prompt.take();
     model.agent_activity.begin("Conversation");
     model.session.streaming();
     // A new turn answers the refusal card: the thing to do was to send
     // another, and it has been sent.
     model.refused = false;
-    // Back to the tail to watch the answer. Not a scroll — the echo row
-    // that just landed is already fading in, and a glide under
-    // it would be a second move on the same event — so the window simply
-    // is at the bottom.
+    // The session publishes the accepted user message. Keep the view at the
+    // tail while its admission and response arrive.
     let (total, height) = model.conversation_window();
     model
         .session

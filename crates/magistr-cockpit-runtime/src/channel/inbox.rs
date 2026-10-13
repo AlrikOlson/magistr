@@ -1,70 +1,71 @@
-//! The channel every producer posts on.
-
-use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
-
-use crate::channel::Arrivals;
+//! One observation destination for every session producer and its optional tap.
+use crate::channel::{Arrivals, ObservationSink};
 use magistr_cockpit::cockpit::Msg;
+use std::sync::Arc;
+use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 
-/// A sender into the runtime's event loop, cloned out to every producer
-/// — jobs, the engine feed, the agent relay, the harness's fakes. What is
-/// sent here is folded into the model with the same coalescing as the
-/// terminal's own events: a burst costs one paint.
-///
-/// A tapped inbox ([`Inbox::tap`]) also hands a copy of everything sent
-/// through it to an observer — how a driver outside the loop (the
-/// iteration loop) sees exactly what the cockpit sees from a producer,
-/// without a second event path. A stamped inbox ([`Inbox::stamped`])
-/// notes the instant of every send synchronously, ahead of both
-/// channels — how a test pins "the first frame after this event".
+#[derive(Clone, Debug)]
+enum Delivery {
+    Unbounded(UnboundedSender<Msg>),
+    Bounded(mpsc::Sender<Msg>),
+    Observed(Arc<dyn ObservationSink>),
+}
+
+/// Producer port independent of the surface and its observation lifetime.
 #[derive(Clone, Debug)]
 pub struct Inbox {
-    tx: UnboundedSender<Msg>,
+    delivery: Delivery,
     tap: Option<UnboundedSender<Msg>>,
     stamp: Option<Arrivals>,
 }
 
 impl Inbox {
-    /// A fresh inbox and the receiver the loop drains.
     #[must_use]
     pub fn channel() -> (Self, UnboundedReceiver<Msg>) {
-        let (tx, rx) = unbounded_channel();
-        (
-            Self {
-                tx,
-                tap: None,
-                stamp: None,
-            },
-            rx,
-        )
+        let (tx, rx) = mpsc::unbounded_channel();
+        (Self::new(Delivery::Unbounded(tx)), rx)
     }
 
-    /// A clone of this inbox whose sends are also delivered to
-    /// `observer`, replacing any earlier tap. An observer that went away
-    /// costs nothing; only the loop's own side decides
-    /// [`Inbox::send`]'s answer.
+    /// Bounded surface delivery. A full queue refuses the message without closing.
+    #[must_use]
+    pub fn bounded(capacity: usize) -> (Self, mpsc::Receiver<Msg>) {
+        let (tx, rx) = mpsc::channel(capacity.max(1));
+        (Self::new(Delivery::Bounded(tx)), rx)
+    }
+
+    /// Fold observations directly into their application-owned projection.
+    #[must_use]
+    pub fn observed(sink: Arc<dyn ObservationSink>) -> Self {
+        Self::new(Delivery::Observed(sink))
+    }
+
+    fn new(delivery: Delivery) -> Self {
+        Self {
+            delivery,
+            tap: None,
+            stamp: None,
+        }
+    }
+
     #[must_use]
     pub fn tap(&self, observer: UnboundedSender<Msg>) -> Self {
         Self {
-            tx: self.tx.clone(),
+            delivery: self.delivery.clone(),
             tap: Some(observer),
             stamp: self.stamp.clone(),
         }
     }
 
-    /// A clone of this inbox that records the instant of every send into
-    /// `arrivals`, replacing any earlier stamp. The record is taken
-    /// before the message goes to the tap or the loop, so a stamp is
-    /// never later than the loop's first chance to see the message.
     #[must_use]
     pub fn stamped(&self, arrivals: Arrivals) -> Self {
         Self {
-            tx: self.tx.clone(),
+            delivery: self.delivery.clone(),
             tap: self.tap.clone(),
             stamp: Some(arrivals),
         }
     }
 
-    /// Post `msg`; `false` once the loop is gone.
+    /// Post once to the owner; false means the destination refused delivery.
     pub fn send(&self, msg: Msg) -> bool {
         if let Some(stamp) = &self.stamp {
             stamp.record(&msg);
@@ -72,17 +73,27 @@ impl Inbox {
         if let Some(tap) = &self.tap {
             let _ = tap.send(msg.clone());
         }
-        self.tx.send(msg).is_ok()
+        match &self.delivery {
+            Delivery::Unbounded(tx) => tx.send(msg).is_ok(),
+            Delivery::Bounded(tx) => tx.try_send(msg).is_ok(),
+            Delivery::Observed(sink) => sink.send(msg),
+        }
     }
 
-    /// Whether the loop is gone.
     #[must_use]
     pub fn is_closed(&self) -> bool {
-        self.tx.is_closed()
+        match &self.delivery {
+            Delivery::Unbounded(tx) => tx.is_closed(),
+            Delivery::Bounded(tx) => tx.is_closed(),
+            Delivery::Observed(sink) => sink.is_closed(),
+        }
     }
 
-    /// Resolves once the loop is gone.
     pub async fn closed(&self) {
-        self.tx.closed().await;
+        match &self.delivery {
+            Delivery::Unbounded(tx) => tx.closed().await,
+            Delivery::Bounded(tx) => tx.closed().await,
+            Delivery::Observed(sink) => sink.closed().await,
+        }
     }
 }

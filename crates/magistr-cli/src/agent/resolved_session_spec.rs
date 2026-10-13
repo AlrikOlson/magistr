@@ -134,7 +134,29 @@ impl ResolvedSessionSpec {
             config.workflow_permissions,
             config.model.as_deref(),
         )?;
-        let mcp_servers = resolved_mcp_servers(&config.cwd)?;
+        let mut mcp_servers = resolved_mcp_servers(&config.cwd)?;
+        if let Some(execution) = &config.execution_id {
+            for server in &mut mcp_servers {
+                if let McpServer::Stdio(server) = server {
+                    server.env.retain(|var| {
+                        var.name != "MAGISTR_EXECUTION_ID" && var.name != "WORKBENCH_SESSION_ID"
+                    });
+                    server
+                        .env
+                        .push(agent_client_protocol::schema::v1::EnvVariable::new(
+                            "MAGISTR_EXECUTION_ID",
+                            execution,
+                        ));
+                    server
+                        .env
+                        .push(agent_client_protocol::schema::v1::EnvVariable::new(
+                            "WORKBENCH_SESSION_ID",
+                            execution,
+                        ));
+                }
+            }
+            provenance.insert("execution_context", Explicit);
+        }
         Ok(Self {
             config,
             runtime,
@@ -281,7 +303,8 @@ impl ResolvedSessionSpec {
         .session_model_preferred(self.session_model_choice(true))
         .session_effort(self.config.effort.clone())
         .session_system_prompt(self.config.system_prompt.clone())
-        .local_effects(self.source.clone());
+        .local_effects(self.source.clone())
+        .execution_id(self.config.execution_id.clone());
         transport
             .connect_checkpointed(|| {
                 before_spawn().map_err(|error| magistr_acp::AcpError::connection(error.to_string()))

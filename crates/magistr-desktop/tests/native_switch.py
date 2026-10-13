@@ -108,7 +108,7 @@ def main():
             server.server_close()
             thread.join(timeout=2)
     print("PASS: refused switch kept the first project; pointer, keyboard and accessibility "
-          "switches carried the draft; the second project answered; every owner was released")
+          "switches restored each session's own draft; the second project answered; every owner was released")
 
 
 if __name__ == "__main__":

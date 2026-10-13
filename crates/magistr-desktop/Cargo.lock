@@ -3588,6 +3588,7 @@ dependencies = [
  "magistr-cockpit",
  "magistr-cockpit-runtime",
  "magistr-core",
+ "magistr-domain",
  "magistr-engine",
  "magistr-mcp",
  "magistr-process",

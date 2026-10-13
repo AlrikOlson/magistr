@@ -54,6 +54,7 @@ pub struct AcpTransport {
     cli_path: PathBuf,
     cli_args: Vec<String>,
     cwd: Option<PathBuf>,
+    execution_id: Option<String>,
     session_mode: AcpSessionMode,
     mcp_servers: Vec<McpServer>,
     session_meta: Option<Meta>,
@@ -99,6 +100,7 @@ impl AcpTransport {
             cli_path,
             cli_args,
             cwd,
+            execution_id: None,
             session_mode: AcpSessionMode::New,
             mcp_servers: Vec::new(),
             session_meta: None,
@@ -114,6 +116,13 @@ impl AcpTransport {
             local_effects: None,
             effects: None,
         })
+    }
+
+    /// Bind provider and tool children to the admitted application's execution.
+    #[must_use]
+    pub fn execution_id(mut self, execution_id: Option<String>) -> Self {
+        self.execution_id = execution_id;
+        self
     }
 
     /// Configure the application's capability implementation before connecting.
@@ -233,7 +242,12 @@ impl AcpTransport {
             return Ok(());
         }
         self.close_previous_connection().await?;
-        let command = spawn::build_command(&self.cli_path, &self.cli_args, self.cwd.as_deref());
+        let mut command = spawn::build_command(&self.cli_path, &self.cli_args, self.cwd.as_deref());
+        if let Some(execution) = &self.execution_id {
+            command
+                .env("MAGISTR_EXECUTION_ID", execution)
+                .env("WORKBENCH_SESSION_ID", execution);
+        }
         before_spawn()?;
         let spawned = spawn::spawn_agent(command)?;
         self.child_group = spawned.group;
@@ -301,6 +315,7 @@ impl AcpTransport {
         let inputs = ConnectionInputs {
             child,
             cwd,
+
             session_mode: self.session_mode.clone(),
             mcp_servers: self.mcp_servers.clone(),
             session_meta: self.session_meta.clone(),

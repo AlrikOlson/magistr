@@ -115,7 +115,7 @@ async fn next<T>(receiver: &mut mpsc::UnboundedReceiver<T>) -> T {
 }
 
 #[tokio::test]
-async fn forwards_session_events_without_echoing_prompts_or_owning_permission_ids() {
+async fn publishes_accepted_input_once_and_preserves_provider_history_and_permission_ids() {
     let (handle, events, mut calls) = fake();
     let (inbox, mut messages) = Inbox::channel();
     let (commands_tx, commands) = Commands::channel();
@@ -140,9 +140,13 @@ async fn forwards_session_events_without_echoing_prompts_or_owning_permission_id
         .send(Cmd::Prompt("follow-up".to_owned()))
         .expect("command sent");
     assert_eq!(next(&mut calls).await, "prompt follow-up");
+    assert!(matches!(next(&mut messages).await, Msg::InputAccepted(text) if text == "follow-up\n"));
+    events
+        .send(AgentEvent::UserText("follow-up\n".into()))
+        .unwrap();
+    events.send(AgentEvent::Text("next reply".into())).unwrap();
     assert!(
-        messages.try_recv().is_err(),
-        "the model already echoed this prompt"
+        matches!(next(&mut messages).await, Msg::Agent(AgentEvent::Text(text)) if text == "next reply")
     );
     drop(commands_tx);
     task.await
@@ -565,6 +569,7 @@ fn the_relay_stamps_elapsed_time_without_changing_other_tool_fields() {
             Instant::now() - Duration::from_secs(3),
         )]),
         started: Instant::now() - Duration::from_secs(9),
+        input_origin: InputOrigin::ProviderHistory,
     };
     let mut event = AgentEvent::ToolCallUpdate {
         id: "tool-1".to_owned(),

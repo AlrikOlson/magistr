@@ -107,6 +107,11 @@ fn the_draft_and_the_turn_live_on_the_session() {
     assert_eq!(m.session().notice(), None);
     let cmds = update(&mut m, key(KeyCode::Enter));
     assert!(cmds.contains(&Cmd::Prompt("fix it".to_owned())));
+    assert!(
+        m.turn().is_empty(),
+        "input appears after the owner admits it"
+    );
+    update(&mut m, Msg::Agent(AgentEvent::UserText("fix it\n".into())));
     assert!(m.session().prompt().is_empty());
     assert_eq!(m.session().state(), TurnState::Streaming);
     assert_eq!(m.turn_state(), m.session().state());

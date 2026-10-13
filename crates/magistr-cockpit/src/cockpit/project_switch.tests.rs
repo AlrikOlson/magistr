@@ -127,15 +127,13 @@ fn the_palette_lists_the_other_projects_and_opens_the_chosen_one() {
 }
 
 #[test]
-fn work_in_flight_refuses_the_switch_in_words_before_the_host_is_asked() {
+fn work_in_flight_does_not_prevent_selecting_another_project() {
     let mut model = window();
     model.agent_activity.active = true;
     let cmds = update(&mut model, click(1));
-    assert!(opens(&cmds).is_empty(), "{cmds:?}");
-    assert_eq!(model.galaxy().opening(), None);
-    let refusal = model.galaxy().refusal("/projects/other").expect("words");
-    assert!(refusal.contains("response"), "{refusal}");
-    assert!(cmds.contains(&Cmd::Announce(refusal.to_owned())));
+    assert_eq!(opens(&cmds), ["/projects/other"], "{cmds:?}");
+    assert_eq!(model.galaxy().opening(), Some("/projects/other"));
+    assert_eq!(model.prompt().text(), "Keep my draft");
 }
 
 #[test]
@@ -173,7 +171,23 @@ fn a_rehosted_window_shows_the_new_project_and_keeps_what_the_window_owns() {
         title: "other · acp".into(),
         ..ProjectSeed::default()
     };
-    let cmds = update(&mut model, Msg::Rehosted(Box::new(next)));
+    let address = super::super::SessionAddress {
+        project: "other".into(),
+        workspace: "/projects/other".into(),
+        session: "other-session".into(),
+    };
+    let mut next = next;
+    next.session_address = Some(address.clone());
+    next.draft = Some("Other draft".into());
+    let cmds = update(
+        &mut model,
+        Msg::SessionFrame {
+            address,
+            sequence: 1,
+            seed: Some(Box::new(next)),
+            messages: Vec::new(),
+        },
+    );
     assert_eq!(model.title(), Some("other · acp"));
     assert_eq!(model.galaxy().projects()[0].name, "other");
     assert!(model.galaxy().projects()[0].here);
@@ -183,10 +197,92 @@ fn a_rehosted_window_shows_the_new_project_and_keeps_what_the_window_owns() {
     );
     assert_eq!(model.galaxy().opening(), None);
     assert_eq!(model.size(), Size::new(150, 50), "the window's size");
-    assert_eq!(model.prompt().text(), "Keep my draft", "the unsent draft");
+    assert_eq!(
+        model.prompt().text(),
+        "Other draft",
+        "the selected session owns its draft"
+    );
     assert_eq!(model.place(), Some(Place::Sky), "the new project's roadmap");
     assert!(
         cmds.contains(&Cmd::Announce("Opened other.".into())),
         "{cmds:?}"
     );
+}
+#[test]
+fn commands_are_addressed_before_navigation_and_late_frames_are_ignored() {
+    use magistr_application::sessions::AgentEvent;
+    let first = super::super::SessionAddress {
+        project: "one".into(),
+        workspace: "/one".into(),
+        session: "one".into(),
+    };
+    let second = super::super::SessionAddress {
+        project: "two".into(),
+        workspace: "/two".into(),
+        session: "two".into(),
+    };
+    let mut model = ProjectSeed {
+        session_address: Some(first.clone()),
+        ..ProjectSeed::default()
+    }
+    .seed(window());
+    let commands = update(&mut model, click(1));
+    assert!(commands.iter().any(|command| matches!(command, Cmd::Session { address, command, draft } if address == &first && matches!(&**command, Cmd::OpenProject(_)) && draft == "Keep my draft")));
+    let next = ProjectSeed {
+        name: "two".into(),
+        session_address: Some(second.clone()),
+        draft: Some("second draft".into()),
+        ..ProjectSeed::default()
+    };
+    update(
+        &mut model,
+        Msg::SessionFrame {
+            address: second.clone(),
+            sequence: 20,
+            seed: Some(Box::new(next)),
+            messages: Vec::new(),
+        },
+    );
+    let before = model.agent_events;
+    update(
+        &mut model,
+        Msg::SessionFrame {
+            address: first.clone(),
+            sequence: 40,
+            seed: None,
+            messages: vec![Msg::Agent(AgentEvent::Text("old session".into()))],
+        },
+    );
+    update(
+        &mut model,
+        Msg::SessionFrame {
+            address: second.clone(),
+            sequence: 19,
+            seed: None,
+            messages: vec![Msg::Agent(AgentEvent::Text("old sequence".into()))],
+        },
+    );
+    update(
+        &mut model,
+        Msg::CommandFailed {
+            cmd: Cmd::Session {
+                address: first,
+                command: Box::new(Cmd::Prompt("old rejected".into())),
+                draft: String::new(),
+            },
+            error: "closed".into(),
+        },
+    );
+    assert_eq!(model.agent_events, before);
+    assert_eq!(model.prompt().text(), "second draft");
+    update(
+        &mut model,
+        Msg::SessionFrame {
+            address: second,
+            sequence: 21,
+            seed: None,
+            messages: vec![Msg::Agent(AgentEvent::Text("current".into()))],
+        },
+    );
+    assert_eq!(model.agent_events, before + 1);
 }

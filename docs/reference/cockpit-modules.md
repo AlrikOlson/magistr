@@ -194,7 +194,12 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit-runtime/src/channel/mod.rs` | Producer inbox and runtime command channels | `magistr-tui/tests/runtime_harness.rs` |
 | `magistr-cockpit-runtime/src/channel/arrivals.rs` | When a message reached the runtime's inbox | `magistr-cockpit-runtime/src/channel/arrivals.tests.rs` |
 | `magistr-cockpit-runtime/src/channel/commands.rs` | The core's commands on their way to the session | `magistr-tui/tests/runtime_harness.rs` |
-| `magistr-cockpit-runtime/src/channel/inbox.rs` | The channel every producer posts on | `magistr-tui/tests/runtime_harness.rs` |
+| `magistr-cockpit-runtime/src/channel/inbox.rs` | Producer delivery through direct channels or retained application observations | `magistr-tui/tests/runtime_harness.rs`, `magistr-cli/src/application/session_observation.tests.rs` |
+| `magistr-cockpit-runtime/src/channel/observation_sink.rs` | Application-owned observation delivery and explicit owner closure | `magistr-cli/src/application/session_observation.tests.rs`, `magistr-cli/src/application/session_registry.tests.rs` |
+| `magistr-cli/src/application/session_registry.rs` | Addressed resident session admission, controls and bounded concurrent settlement | `magistr-cli/src/application/session_registry.tests.rs`, `magistr-cli/tests/resident_session_process.py` |
+| `magistr-cli/src/application/session_admissions.rs` | Shared source and workflow admission with separate session executions | `magistr-cli/src/application/session_admissions.tests.rs`, `magistr-cli/src/application/interactive_host.tests.rs` |
+| `magistr-cli/src/application/session_observation.rs` | Bounded sequenced replay, pending requests, usage and session drafts | `magistr-cli/src/application/session_observation.tests.rs` |
+| `magistr-cli/src/application/project_window.rs` | Selected-view subscription and coalesced updates over resident sessions | `magistr-cli/src/application/project_window.tests.rs`, `magistr-desktop/tests/native_switch.py` |
 
 ### `checkpoint` — the ledger rail's port
 
