@@ -9,6 +9,7 @@ mod index_build_task;
 mod journal_list;
 mod journal_list_input;
 mod legacy_migration;
+mod lifecycle_lock;
 mod lock_record;
 mod open_error;
 mod open_options;

@@ -14,5 +14,11 @@ type Attached = ();
 /// task it started before returning; it must not detach that task. The
 /// engine owns connection lifetime without depending on MCP itself.
 pub type McpAcceptor = Arc<
-    dyn Fn(Attached, CancellationToken) -> Pin<Box<dyn Future<Output = ()> + Send>> + Send + Sync,
+    dyn Fn(
+            Attached,
+            CancellationToken,
+            Option<super::NativeEngines>,
+        ) -> Pin<Box<dyn Future<Output = ()> + Send>>
+        + Send
+        + Sync,
 >;

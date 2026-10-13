@@ -189,9 +189,9 @@ fn a_gate_configuration_edit_moves_the_revision_and_the_contracts() {
         "project.json is a config input"
     );
     assert_ne!(before.source_digest, after.source_digest);
-    assert_eq!(
+    assert_ne!(
         before.config_digest, after.config_digest,
-        "in-tree, not external"
+        "the project settings are also shared configuration"
     );
     assert_eq!(
         evidence.required_gates().unwrap()[1].command,
@@ -241,4 +241,63 @@ fn writer_config_carries_the_capability_over_the_lookups_layers() {
         .observation();
     assert_eq!(plain.source_digest, governed.source_digest);
     assert_ne!(plain.config_digest, governed.config_digest);
+}
+
+#[test]
+fn linked_copy_reads_and_writes_shared_settings_and_observes_their_changes() {
+    let temp = tempfile::tempdir().unwrap();
+    let main = temp.path().join("main");
+    let linked = temp.path().join("task");
+    let metadata = main.join(".git/worktrees/task");
+    fs::create_dir_all(&metadata).unwrap();
+    fs::create_dir_all(&linked).unwrap();
+    project(&main);
+    fs::write(linked.join("main.rs"), "fn main() {}\n").unwrap();
+    fs::write(
+        linked.join(".git"),
+        format!("gitdir: {}", metadata.display()),
+    )
+    .unwrap();
+    fs::write(metadata.join("commondir"), "../..").unwrap();
+    fs::write(
+        metadata.join("gitdir"),
+        linked.join(".git").display().to_string(),
+    )
+    .unwrap();
+
+    let inputs = ProjectInputs::from_lookup(&linked, |_| None);
+    let path = inputs.project_json().unwrap();
+    assert_eq!(
+        path,
+        main.canonicalize().unwrap().join(".magistr/project.json")
+    );
+    assert_eq!(
+        inputs.project_config().unwrap().value.unwrap().project.name,
+        "p"
+    );
+    assert_eq!(
+        WorkspaceEvidence::gate_contracts(&linked).unwrap(),
+        WorkspaceEvidence::gate_contracts(&main).unwrap()
+    );
+    let evidence = WorkspaceEvidence::from_inputs(&inputs);
+    let witness = evidence.observe().unwrap();
+    let before = witness.observation();
+    let content = fs::read_to_string(&path)
+        .unwrap()
+        .replace("cargo test", "cargo nextest run");
+    fs::write(&path, content).unwrap();
+    assert_eq!(
+        witness.validate().unwrap(),
+        SourceFreshness::Reconfigured {
+            layers: vec!["workspace".into()]
+        }
+    );
+    let after = evidence.observe().unwrap().observation();
+    assert_eq!(before.source_digest, after.source_digest);
+    assert_ne!(before.config_digest, after.config_digest);
+    assert_eq!(
+        evidence.required_gates().unwrap()[1].command,
+        "cargo nextest run"
+    );
+    assert!(!linked.join(".magistr/project.json").exists());
 }

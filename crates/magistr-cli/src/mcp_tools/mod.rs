@@ -395,7 +395,10 @@ fn extract_executable(command: &str) -> Option<&str> {
 /// command, and checks availability with `which`. Returns a list of warning
 /// strings for any missing executables.
 fn validate_project_executables(project_root: &Path) -> Vec<String> {
-    let config_path = crate::paths::project_json(project_root);
+    let config_path = match crate::paths::project_json(project_root) {
+        Ok(path) => path,
+        Err(error) => return vec![error.to_string()],
+    };
     let config_str = match std::fs::read_to_string(&config_path) {
         Ok(s) => s,
         Err(_) => return vec![], // No config file — nothing to validate

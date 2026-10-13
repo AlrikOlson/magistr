@@ -45,6 +45,18 @@ impl NativeFrame {
         })
     }
 
+    /// Shared planning events reach every view; task and command events reach
+    /// only the execution that produced them. Unbound task events are refused.
+    #[must_use]
+    pub fn is_for_execution(&self, key: &str) -> bool {
+        !matches!(self.family.as_str(), "ship" | "magistr")
+            || self
+                .payload
+                .get("execution_key")
+                .and_then(serde_json::Value::as_str)
+                == Some(key)
+    }
+
     /// The typed event this line carries, and where it stands in its
     /// publisher's sequence. `None` for a family or a kind this build does
     /// not know, or a payload that is not the shape its kind promises — a

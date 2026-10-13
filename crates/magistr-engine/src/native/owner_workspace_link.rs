@@ -24,6 +24,7 @@ pub(super) async fn attach(
         build: BuildIdentity::this_build(),
         identity: OwnerIdentity::Workspace { root },
         attach: AttachKind::Mcp,
+        context: None,
         caller,
     };
     tokio::time::timeout(deadline, exchange(&path, &hello))

@@ -60,6 +60,8 @@ pub use source_observation::SourceObservation;
 pub use source_witness::SourceWitness;
 pub use status::ShipStatus;
 pub use task_admission::TaskAdmission;
+mod execution_binding;
+pub use execution_binding::ExecutionBinding;
 
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex, MutexGuard};

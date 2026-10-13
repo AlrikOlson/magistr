@@ -71,7 +71,7 @@ impl WorkspaceEvidence {
     pub fn gate_contracts(root: &Path) -> Result<Vec<GateContract>, String> {
         // A plain read: the config loader that repairs a stale stack on
         // disk would move the source revision it is being asked about.
-        let path = crate::paths::project_json(root);
+        let path = crate::paths::project_json(root).map_err(|error| error.to_string())?;
         let bytes = std::fs::read(&path)
             .map_err(|error| format!("read gate configuration {}: {error}", path.display()))?;
         let config: ProjectConfig = serde_json::from_slice(&bytes)
@@ -89,6 +89,12 @@ impl WorkspaceEvidence {
 }
 
 impl EvidencePort for WorkspaceEvidence {
+    fn for_working_copy(&self, root: &Path) -> Result<std::sync::Arc<dyn EvidencePort>, String> {
+        let mut evidence = self.clone();
+        evidence.root = root.canonicalize().map_err(|error| error.to_string())?;
+        Ok(std::sync::Arc::new(evidence))
+    }
+
     fn retained_receipts(&self) -> Result<std::collections::BTreeSet<String>, String> {
         use crate::workflow::iteration::IterationState;
         use magistr_domain::workflow::OperationKind;
@@ -125,12 +131,16 @@ impl EvidencePort for WorkspaceEvidence {
     fn observe(&self) -> Result<Box<dyn SourceWitness>, String> {
         let snapshot = SourceSnapshot::capture(&self.root, self.policy.clone())
             .map_err(|error| error.to_string())?;
-        let configuration =
-            ConfigDigest::observe(&self.layers).map_err(|error| error.to_string())?;
+        let mut layers = self.layers.clone();
+        layers.push((
+            ConfigLayer::Workspace,
+            crate::paths::project_json(&self.root).map_err(|error| error.to_string())?,
+        ));
+        let configuration = ConfigDigest::observe(&layers).map_err(|error| error.to_string())?;
         Ok(Box::new(SnapshotWitness::new(
             self.root.clone(),
             snapshot,
-            self.layers.clone(),
+            layers,
             configuration,
         )))
     }

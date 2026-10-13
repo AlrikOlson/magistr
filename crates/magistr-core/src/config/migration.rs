@@ -34,7 +34,7 @@ pub fn check_migration(project_dir: &Path) -> Result<MigrationCheck> {
     // A project that predates the key keeps its YAML roadmap (inferred);
     // writing the resolved value makes the choice explicit and stable.
     let backend = crate::roadmap::backend_for(project_dir);
-    if paths::project_json(project_dir).is_file()
+    if paths::project_json(project_dir)?.is_file()
         && crate::roadmap::declared_backend(project_dir).is_none()
     {
         actions.push(MigrationAction::WriteRoadmapBackend(backend));
@@ -60,7 +60,7 @@ pub fn check_migration(project_dir: &Path) -> Result<MigrationCheck> {
 
     // ── Manual: missing project.json ────────────────────────────────────
     // Check in .magistr/ (or .jig/ if rename hasn't happened yet)
-    let has_project_json = project_dir.join(".magistr").join("project.json").is_file()
+    let has_project_json = paths::project_json(project_dir)?.is_file()
         || project_dir.join(".jig").join("project.json").is_file();
 
     if claude_dir.is_dir() && !has_project_json {
@@ -122,7 +122,7 @@ pub fn write_roadmap_backend(
     backend: magistr_engine::native::RoadmapBackend,
 ) -> Result<()> {
     use crate::error::MagistrError;
-    let config_path = paths::project_json(project_dir);
+    let config_path = paths::project_json(project_dir)?;
     let raw =
         std::fs::read_to_string(&config_path).map_err(|e| MagistrError::io(&config_path, e))?;
     let mut value: serde_json::Value =
@@ -209,7 +209,9 @@ fn remove_jig_version_key(project_dir: &Path) {
 
 /// Patch `spec.file` in `.magistr/project.json` from `"ROADMAP.md"` to `".magistr-roadmap.yml"`.
 fn patch_project_json_spec_file(project_dir: &Path) {
-    let config_path = project_dir.join(".magistr").join("project.json");
+    let Ok(config_path) = paths::project_json(project_dir) else {
+        return;
+    };
     if !config_path.exists() {
         return;
     }

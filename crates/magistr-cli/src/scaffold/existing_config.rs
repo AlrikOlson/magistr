@@ -19,7 +19,7 @@ impl ExistingConfig {
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
             Err(e) => return Err(MagistrError::io(&namespace, e)),
         }
-        Self::read_json(&crate::paths::project_json(dir))?;
+        Self::read_json(&crate::paths::project_json(dir)?)?;
         if let Some(doc) = Self::read_json(&dir.join(".mcp.json"))?
             && let Some(servers) = doc.get("mcpServers")
             && !servers.is_object()

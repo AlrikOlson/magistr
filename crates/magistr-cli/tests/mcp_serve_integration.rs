@@ -506,10 +506,19 @@ async fn one_server_serves_both_surfaces_and_records_gates_through_ship() {
         "phase action recorded: {actions:?} (task {task})"
     );
 
-    // Everything persisted under the temp store, keyed by the declared identity.
+    // Work persists under this execution's partition and declared project identity.
+    let context = magistr_engine::native::ExecutionContext::new(
+        &root,
+        ship["execution"]["execution_id"]
+            .as_str()
+            .expect("execution id"),
+    )
+    .expect("admitted context");
     assert!(
         data_dir
-            .join("ship/sessions/mcp-serve-fixture.json")
+            .join("ship/executions")
+            .join(context.key())
+            .join("sessions/mcp-serve-fixture.json")
             .exists()
     );
 

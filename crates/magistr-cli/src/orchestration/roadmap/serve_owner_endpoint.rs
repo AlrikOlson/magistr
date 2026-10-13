@@ -33,9 +33,9 @@ pub async fn serve_owner_endpoint(
         );
         return Ok(None);
     }
-    OwnerEndpoint::serve(engines.clone())
+    crate::mcp_tools::MagistrService::from_engines(engines.clone())
+        .serve_owner_endpoint()
         .await
-        .map(Some)
         .map_err(|error| eyre::eyre!("{error}"))
 }
 

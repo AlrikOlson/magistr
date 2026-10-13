@@ -61,7 +61,7 @@ fn cmd_config_check(dir: &std::path::Path, inputs: &ProjectInputs) -> eyre::Resu
     let mut ok_count: usize = 0;
 
     // 1. Check project.json
-    let project_json = paths::project_json(&dir);
+    let project_json = paths::project_json(&dir)?;
     if project_json.exists() {
         match std::fs::read_to_string(&project_json) {
             Ok(content) => match serde_json::from_str::<types::ProjectConfig>(&content) {
@@ -190,7 +190,7 @@ fn cmd_config_show(dir: &std::path::Path, inputs: &ProjectInputs) -> eyre::Resul
     }
 
     // Project config
-    let project_json = paths::project_json(&dir);
+    let project_json = paths::project_json(&dir)?;
     if project_json.exists() {
         match std::fs::read_to_string(&project_json) {
             Ok(content) => match serde_json::from_str::<types::ProjectConfig>(&content) {

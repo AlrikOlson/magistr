@@ -571,9 +571,8 @@ impl ProjectInputs {
         self.config_dir.as_ref().map(|dir| dir.join(leaf))
     }
 
-    /// `<project_root>/.magistr/project.json`.
-    #[must_use]
-    pub fn project_json(&self) -> PathBuf {
+    /// The shared project configuration resolved from this working copy.
+    pub fn project_json(&self) -> Result<PathBuf> {
         crate::paths::project_json(&self.project_root)
     }
 
@@ -602,7 +601,7 @@ impl ProjectInputs {
     /// detection-driven rewrite `validate::load_project_config` performs.
     /// `None` when the file is absent; an unreadable or invalid file is an error.
     pub fn project_config(&self) -> Result<CapturedInput<Option<ProjectConfig>>> {
-        let path = self.project_json();
+        let path = self.project_json()?;
         if !path.is_file() {
             return Ok(CapturedInput::absent(None, path));
         }

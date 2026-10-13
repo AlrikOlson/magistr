@@ -1,6 +1,27 @@
 use std::io;
 
 use super::*;
+
+#[test]
+fn owner_generation_advances_when_the_same_project_changes_store() {
+    let tmp = tempfile::tempdir().expect("temporary");
+    let root = tmp.path().join("project");
+    std::fs::create_dir(&root).expect("project");
+    let config = NativeConfig::from_lookup(&root, |_| None).with_data_dir(tmp.path().join("a"));
+    let first = ProjectAuthority::admit(&config, WriterRole::Host).expect("first owner");
+    let generation = first.generation();
+    drop(first);
+    let next = ProjectAuthority::admit(
+        &config.with_data_dir(tmp.path().join("b")),
+        WriterRole::Service,
+    )
+    .expect("new store");
+    assert!(
+        next.generation() > generation,
+        "project generation is independent of the selected store"
+    );
+}
+
 use magistr_workflow::roadmap::domain::ChunkStatus;
 
 fn config(tmp: &tempfile::TempDir) -> NativeConfig {
@@ -55,48 +76,31 @@ fn add_chunk(engines: &NativeEngines, id: &str) {
 }
 
 #[test]
-fn one_writer_per_role_is_admitted_and_the_roles_coexist() {
+fn one_project_writer_is_admitted_across_host_and_service_roles() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = config(&tmp);
     let host =
         ProjectAuthority::admit_for_project(&cfg, "lease".into(), WriterRole::Host).expect("host");
-    assert_eq!(host.role(), WriterRole::Host);
-    assert_eq!(host.project_id(), "lease");
-    assert!(host.feed().is_none());
-    // The cockpit and its agent's mcp-serve are different roles: both admitted.
-    let service = ProjectAuthority::admit_for_project(&cfg, "lease".into(), WriterRole::Service)
-        .expect("service beside the host");
     assert_eq!(
         refused(&cfg, WriterRole::Host).kind(),
         io::ErrorKind::WouldBlock
     );
-    let error = refused(&cfg, WriterRole::Service);
-    assert_eq!(error.kind(), io::ErrorKind::WouldBlock);
-    assert!(error.to_string().contains("project owner"), "{error}");
-    assert!(
-        refused(&cfg, WriterRole::Host)
-            .to_string()
-            .contains("project host owner")
+    assert_eq!(
+        refused(&cfg, WriterRole::Service).kind(),
+        io::ErrorKind::WouldBlock
     );
-
-    // Each role has its own stable lock file under the store.
-    let sessions = cfg.data_dir.join("roadmap/sessions");
-    assert!(sessions.join("lease.host-owner.lock").is_file());
-    assert!(sessions.join("lease.mcp-owner.lock").is_file());
-
-    // Both writers act on one store; the reader sees them without a lease.
+    let other_store = cfg.clone().with_data_dir(tmp.path().join("other-store"));
+    assert_eq!(
+        refused(&other_store, WriterRole::Service).kind(),
+        io::ErrorKind::WouldBlock
+    );
     let host = host.open();
-    let service = service.open();
     add_chunk(&host, "from-host");
-    add_chunk(&service, "from-service");
     let observer = NativeReader::open_for_project(&cfg, "lease".into());
-    let ids: Vec<String> = observer
-        .roadmap_chunks()
-        .into_iter()
-        .map(|c| c.id)
-        .collect();
-    assert!(ids.contains(&"from-host".into()) && ids.contains(&"from-service".into()));
-    drop((host, service));
+    assert_eq!(observer.roadmap_chunks().len(), 1);
+    drop(host);
+    ProjectAuthority::admit_for_project(&cfg, "lease".into(), WriterRole::Service)
+        .expect("service succeeds after host exits");
 }
 
 #[test]
@@ -131,7 +135,11 @@ fn a_stateless_store_leases_under_the_project_root_and_writes_nothing() {
         .expect("host")
         .open();
     add_chunk(&host, "ephemeral");
-    assert!(cfg.project_root.join(".magistr/host-owner.lock").is_file());
+    assert!(
+        cfg.project_root
+            .join(".magistr/project-owner.lock")
+            .is_file()
+    );
     assert_eq!(
         refused(&cfg, WriterRole::Host).kind(),
         io::ErrorKind::WouldBlock
@@ -150,7 +158,7 @@ fn a_lock_io_failure_is_reported_before_any_engine_opens() {
     std::fs::write(&cfg.data_dir, "existing file").expect("blocking path");
     let error = refused(&cfg, WriterRole::Host);
     assert_ne!(error.kind(), io::ErrorKind::WouldBlock);
-    assert!(error.to_string().contains("project host owner"), "{error}");
+    assert!(error.to_string().contains("project owner"), "{error}");
     assert_eq!(
         std::fs::read_to_string(&cfg.data_dir).expect("unchanged file"),
         "existing file"

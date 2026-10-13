@@ -103,7 +103,7 @@ pub fn repair(dir: &Path) -> Vec<String> {
 #[must_use]
 pub(crate) fn plan(dir: &Path) -> ChangePlan {
     let mut plan = ChangePlan::new(AdminOperation::Repair);
-    if !dir.join(".magistr/project.json").is_file() {
+    if !crate::paths::project_json(dir).is_ok_and(|path| path.is_file()) {
         return plan;
     }
     let owned = owned_files();

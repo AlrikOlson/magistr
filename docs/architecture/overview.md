@@ -61,7 +61,7 @@ one admitted owner. The
 controls cooperating MCP owners; a second process must not open an independent
 cached writer for the same project. The [client inventory](clients.md) names
 every supported surface's capability and admission path, and states what
-is and is not coherent across the Host writer, the Service writer, attached
+is coherent across the project's owner, working-copy executions, attached
 clients and readers.
 
 The accepted [first-party subsystem decision](owned-subsystems.md) makes

@@ -59,6 +59,57 @@ impl FamilyServices {
         }
     }
 
+    pub(crate) fn for_execution(
+        &self,
+        engine: ShipEngine,
+        evidence: Option<Arc<dyn EvidencePort>>,
+    ) -> Self {
+        let mut ship = ShipUseCases::new(Arc::new(Mutex::new(engine)));
+        if let Some(evidence) = evidence {
+            ship = ship.with_evidence(evidence);
+        }
+        let roadmap = RoadmapUseCases::new(self.roadmap.engine(), ship.clone())
+            .with_signal(self.signal.engine());
+        Self {
+            think: self.think.clone(),
+            ship,
+            roadmap,
+            signal: self.signal.clone(),
+        }
+    }
+
+    pub(crate) fn bind_feed(
+        &self,
+        feed: &magistr_workflow::infra::Broadcaster,
+        execution_key: &str,
+    ) -> std::io::Result<()> {
+        let (think, ship, roadmap, signal) = self.engines();
+        think
+            .lock()
+            .map_err(|_| std::io::Error::other("The reasoning publisher could not be attached."))?
+            .set_broadcaster(
+                magistr_workflow::think::broadcast::Broadcaster::from_engine(feed.clone()),
+            );
+        ship.lock()
+            .map_err(|_| std::io::Error::other("The task publisher could not be attached."))?
+            .set_broadcaster(magistr_workflow::ship::broadcast::Broadcaster::from_engine(
+                feed.clone().with_execution(execution_key.to_owned()),
+            ));
+        roadmap
+            .lock()
+            .map_err(|_| std::io::Error::other("The roadmap publisher could not be attached."))?
+            .set_broadcaster(
+                magistr_workflow::roadmap::broadcast::Broadcaster::from_engine(feed.clone()),
+            );
+        signal
+            .lock()
+            .map_err(|_| std::io::Error::other("The signal publisher could not be attached."))?
+            .set_broadcaster(
+                magistr_workflow::signal::broadcast::Broadcaster::from_engine(feed.clone()),
+            );
+        Ok(())
+    }
+
     /// The MCP transport's view of the same services.
     pub(crate) fn unified(&self) -> UnifiedService {
         UnifiedService::new(
