@@ -12,7 +12,7 @@ desktop workspace. Companion Rust tests live beside their owners.
 | Contract | Owner and evidence |
 | --- | --- |
 | Resident admission, addressed controls and settlement | `crates/magistr-cli/src/application/session_registry.rs`, its companion suite and `crates/magistr-cli/tests/resident_session_process.py` |
-| Retained observations, status, requests and drafts | `crates/magistr-cli/src/application/session_observation.rs` and its companion suite |
+| Names, configuration, accepted input, status, requests and drafts | `crates/magistr-cli/src/application/session_observation.rs` and its companion suite |
 | Provider and project resources | `crates/magistr-cli/src/application/interactive_host.rs` and `crates/magistr-cli/src/application/project_resources.rs` |
 | One workflow and source authority | `crates/magistr-cli/src/application/workflow_client` and `crates/magistr-cli/src/application/workspace_client` |
 | Protocol-only child roles, no retired dependencies | `crates/magistr-desktop/tests/process.rs` and `crates/magistr-cli/tests/host_clients.rs` |
@@ -79,6 +79,7 @@ desktop workspace. Companion Rust tests live beside their owners.
 - `crates/magistr-cockpit/src/workbench/run_row.rs`
 - `crates/magistr-desktop/src/args.rs`
 - `crates/magistr-desktop/src/commands.rs`
+- `crates/magistr-desktop/src/conversations.rs`
 - `crates/magistr-desktop/src/credit.rs`
 - `crates/magistr-desktop/src/launch.rs`
 - `crates/magistr-desktop/src/main.rs`
@@ -95,9 +96,12 @@ desktop workspace. Companion Rust tests live beside their owners.
 - `crates/magistr-desktop/tests/process_roles.py`
 - `crates/magistr-desktop/tests/response.mjs`
 - `crates/magistr-desktop/tests/selection.mjs`
+- `crates/magistr-desktop/tests/session_controls.mjs`
+- `crates/magistr-desktop/tests/session_controls_fixture.py`
 - `crates/magistr-desktop/ui/app.mjs`
 - `crates/magistr-desktop/ui/composer.mjs`
 - `crates/magistr-desktop/ui/conversation.mjs`
 - `crates/magistr-desktop/ui/selection.mjs`
+- `crates/magistr-desktop/ui/session_controls.mjs`
 - `crates/magistr-desktop/ui/supervision.mjs`
 - `crates/magistr-desktop/tests/supervision.mjs`

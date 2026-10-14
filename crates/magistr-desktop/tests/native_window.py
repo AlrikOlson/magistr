@@ -14,6 +14,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from session_controls_fixture import start_api, peer_script
 
 ROOT = Path(__file__).resolve().parents[3]
 SOURCE = ROOT / "crates/magistr-desktop"
@@ -34,10 +35,15 @@ def project(path, name):
     run("git","-C",path,"add",".")
     run("git","-C",path,"-c","user.name=Native Journey","-c","user.email=journey@example.invalid","commit","-m","fixture")
 def source_hashes():
-    files = sorted([*SOURCE.glob("src/*.rs"),*SOURCE.glob("ui/*"),SOURCE/"Cargo.toml",SOURCE/"Cargo.lock",SOURCE/"build.rs",SOURCE/"tauri.conf.json"])
+    files = sorted([*SOURCE.glob("src/*.rs"),*SOURCE.glob("ui/*"),SOURCE/"Cargo.toml",SOURCE/"Cargo.lock",SOURCE/"build.rs",SOURCE/"tauri.conf.json",SOURCE/"tests/native_window.py",SOURCE/"tests/native_window.swift",SOURCE/"tests/session_controls_fixture.py"])
     files.extend(ROOT/path for path in (
         "crates/magistr-application/src/sessions/event.rs",
         "crates/magistr-application/src/sessions/session_activity.rs",
+        "crates/magistr-application/src/sessions/session_policy.rs",
+        "crates/magistr-cli/src/agent/session_supervisor/permissions.rs",
+        "crates/magistr-cli/src/agent/session_supervisor/opening.rs",
+        "crates/magistr-cli/src/agent/cockpit_session.rs",
+        "crates/magistr-cli/src/orchestration/roadmap_request.rs",
         "crates/magistr-cli/src/application/session_catalog.rs",
         "crates/magistr-cli/src/application/session_observation.rs",
         "crates/magistr-cli/src/application/session_registry.rs",
@@ -45,6 +51,24 @@ def source_hashes():
         "crates/magistr-cli/src/agent/session_supervisor/owner.rs",
         "crates/magistr-cli/src/agent/session_supervisor/control.rs",
         "crates/magistr-cockpit-runtime/src/interactive_session.rs",
+        "crates/magistr-cockpit-runtime/src/session.rs",
+        "crates/magistr-application/src/sessions/session_handle.rs",
+        "crates/magistr-application/src/sessions/conversation.rs",
+        "crates/magistr-application/src/sessions/session_config.rs",
+        "crates/magistr-cli/src/application/session_opening.rs",
+        "crates/magistr-cli/src/application/saved_conversations.rs",
+        "crates/magistr-cli/src/application/session_admissions.rs",
+        "crates/magistr-cli/src/agent/runtime.rs",
+        "crates/magistr-cli/src/agent/resolved_session_spec.rs",
+        "crates/magistr-acp/src/transport/handshake.rs",
+        "crates/magistr-cli/src/agent/probe.rs",
+        "crates/magistr-cli/src/orchestration/interactive_session.rs",
+        "crates/magistr-cli/src/permissions/session_permission_policy.rs",
+        "crates/magistr-cli/src/agent/translate.rs",
+        "crates/magistr-cli/src/agent/persistence/history.rs",
+        "crates/magistr-cli/src/agent/persistence/storage.rs",
+        "crates/magistr-cli/src/agent/persistence/session_record.rs",
+        "crates/magistr-core/src/config/inputs/project_inputs.rs",
     ))
     return {str(path.relative_to(ROOT)):hashlib.sha256(path.read_bytes()).hexdigest() for path in files if path.is_file() and not path.name.endswith(".tests.rs")}
 
@@ -62,7 +86,11 @@ def main():
     def call(mode,*values):
         try:result=run(driver,mode,*values)
         except subprocess.CalledProcessError as error:
-            print(error.stderr,file=sys.stderr);raise
+            print(error.stderr,file=sys.stderr)
+            if mode=="activate" and values:
+                try:run("sample",values[0],1,1,"-file",evidence/"startup-failure-sample.txt",timeout=5)
+                except (subprocess.CalledProcessError,subprocess.TimeoutExpired):pass
+            raise
         return json.loads(result.stdout) if result.stdout.strip() else None
     environment=call("environment")
     assert environment["accessibility"] and environment["screen_capture"] and environment["post_events"],environment
@@ -83,12 +111,14 @@ def main():
         run("codesign","--force","--sign","-",bundle)
         tools=parent/"bin";tools.mkdir()
         peer=tools/"copilot"
-        peer.write_text("#!/usr/bin/python3\nimport os,json\nfrom pathlib import Path\np=Path(os.environ['JOURNEY_PEERS']);p.mkdir(exist_ok=True)\n(p/(str(os.getpid())+'.json')).write_text(json.dumps({'pid':os.getpid(),'parent':os.getppid(),'workspace':os.getcwd()}))\nos.execv("+repr(str(executable))+",["+repr(str(executable))+",'acp-agent','--provider','scripted'])\n")
+        peer.write_text(peer_script(executable))
         peer.chmod(0o755)
         peers=parent/"peers"
+        refuse_load=parent/"refuse-load"
+        api=start_api()
         # WebKit requires the real macOS home for its GPU process. Isolate the
         # application's settings/history through their supported XDG/Magistr roots.
-        env=dict(os.environ,PATH=str(tools)+os.pathsep+os.environ["PATH"],XDG_DATA_HOME=str(parent/"data"),XDG_CONFIG_HOME=str(parent/"config"),MAGISTR_HOME=str(parent/"state"),MAGISTR_WORKSPACE_NETWORK="0",JOURNEY_PEERS=str(peers),RUST_LOG="info")
+        env=dict(os.environ,PATH=str(tools)+os.pathsep+os.environ["PATH"],XDG_DATA_HOME=str(parent/"data"),XDG_CONFIG_HOME=str(parent/"config"),MAGISTR_HOME=str(parent/"state"),MAGISTR_WORKSPACE_NETWORK="0",JOURNEY_PEERS=str(peers),JOURNEY_REFUSE_LOAD=str(refuse_load),OPENAI_API_KEY="native-fixture",OPENAI_BASE_URL="http://127.0.0.1:"+str(api.server_port),RUST_LOG="info")
         started=time.monotonic()
         log_path=evidence/"launch.log"
         log=log_path.open("w")
@@ -210,6 +240,12 @@ def main():
             wait("cancel visible",text_has("Stopped"))
             wait("draft survived cancellation",lambda tree:any(r.get("AXRole")=="AXTextArea" and r.get("AXValue")=="Keep my unsent draft" for r in tree))
             call("press",pid,"New session")
+            wait("available agent choices open without a provider",enabled("Start conversation"))
+            call("screenshot",pid,evidence/"agent-choice.png")
+            call("press",pid,"Choose model…")
+            wait("initial model choices come from the selected agent",text_has("Initial model"))
+            call("press",pid,"Initial model");call("press",pid,"Scripted (fast)")
+            call("press",pid,"Start conversation")
             wait("second resident session",text_has("First project session 4"))
             draft("Second draft")
             call("press",pid,"First project session 3")
@@ -271,6 +307,59 @@ def main():
             wait("background close preserves another session and draft",lambda tree:not enabled("Close First project session 4")(tree) and exact_draft("Second supervision draft")(tree))
             send("supervised sessions remain independent")
             wait("selected session remains usable after background close",text_has("[scripted-fast] echo: supervised sessions remain independent"))
+            call("press",pid,"Model");call("press",pid,"Scripted (slow)")
+            wait("model choice applied by its owner",lambda tree:any(r.get("AXRole")=="AXPopUpButton" and r.get("AXValue")=="Scripted (slow)" for r in tree))
+            send("chosen model")
+            wait("next turn uses the chosen model",text_has("[scripted-slow] echo: chosen model"))
+            send("fail model reconnect")
+            wait("changed model session exposes reconnect",enabled("Reconnect Second project session 6"))
+            call("press",pid,"Reconnect")
+            wait("changed model reconnect settles without a new prompt",enabled("Reconnect",False))
+            send("after model reconnect")
+            wait("confirmed model survives provider reconnect",text_has("[scripted-slow] echo: after model reconnect"))
+            send("hang controls")
+            wait("active turn can accept followups",text_has("hanging until cancel"))
+            send("follow-up to cancel")
+            wait("accepted followup is queued and clears its exact draft",lambda tree:text_has("1 message queued")(tree) and exact_draft("")(tree))
+            draft("Keep a newer draft")
+            call("press",pid,"Stop")
+            wait("cancel clears queued input while retaining the newer draft",lambda tree:text_has("0 messages queued")(tree) and text_has("1 queued message was not sent.")(tree) and exact_draft("Keep a newer draft")(tree))
+            copied=call("copy-button",pid,"Copy conversation")["text"]
+            assert "[scripted-slow] echo: follow-up to cancel" not in copied,copied
+            call("focus",pid,"Conversation name");call("paste",pid,"Release review");call("press",pid,"Save name")
+            wait("owner name reaches the rail and conversation",text_has("Release review"))
+            call("screenshot",pid,evidence/"conversation-controls.png")
+            call("press",pid,"Close session")
+            wait("closing a named conversation settles its history",text_has("Conversation"))
+            call("press",pid,"New session")
+            wait("second provider is offered from configured availability",enabled("Start conversation"))
+            call("press",pid,"Agent");call("press",pid,"OpenAI");call("press",pid,"Start conversation")
+            wait("second provider opens independently",lambda tree:any(r.get("AXRole")=="AXTextArea" and r.get("enabled") for r in tree))
+            send("API history")
+            wait("configured API provider replies through the real owner",text_has("Isolated API reply"))
+            call("focus",pid,"Conversation name");call("paste",pid,"Summary only");call("press",pid,"Save name")
+            wait("second provider has its own name",text_has("Summary only"))
+            call("press",pid,"Close session")
+            wait("other sessions remain usable after second provider closes",text_has("Conversation"))
+            before_history=len(list(peers.glob("*.json")))
+            call("press",pid,"Saved conversations")
+            wait("existing saved names are listed",text_has("Summary only"))
+            call("press",pid,"Summary only")
+            wait("unsupported resume remains an honest saved summary",lambda tree:text_has("Isolated API reply")(tree) and enabled("Resume conversation",False)(tree) and text_has("cannot resume")(tree))
+            assert len(list(peers.glob("*.json")))==before_history,"Reading summaries must not launch a provider"
+            call("screenshot",pid,evidence/"resume-unavailable.png")
+            call("press",pid,"Release review")
+            wait("supported saved conversation offers an explicit resume",enabled("Resume conversation"))
+            call("screenshot",pid,evidence/"saved-summary.png")
+            refuse_load.write_text("refuse one provider load")
+            call("press",pid,"Resume conversation")
+            wait("refused resume stays recoverable beside the saved summary",text_has("This saved conversation is unavailable."))
+            call("screenshot",pid,evidence/"resume-refused.png")
+            refuse_load.unlink()
+            call("press",pid,"Resume conversation")
+            wait("saved conversation resumes its exact provider context",lambda tree:text_has("Release review")(tree) and text_has("resumed ")(tree) and any(r.get("AXRole")=="AXTextArea" and r.get("enabled") for r in tree))
+            send("after saved reopen")
+            wait("saved model and name remain with resumed conversation",lambda tree:text_has("[scripted-slow] echo: after saved reopen")(tree) and text_has("Release review")(tree))
             choose_theme("dark",1);choose_theme("light",2)
             call("resize",pid,800,680);call("screenshot",pid,evidence/"narrow.png")
             call("ax",pid,evidence/"accessibility.json")
@@ -319,7 +408,7 @@ def main():
         with sqlite3.connect(database) as history:
             history_rows=history.execute("SELECT workspace,turns,outcome FROM sessions").fetchall()
         print("HISTORY:",history_rows,flush=True)
-        assert len(history_rows)==6,history_rows
+        assert len(history_rows)==7,history_rows
         results["history"]=[{"workspace":Path(w).name,"turns":t,"outcome":o} for w,t,o in history_rows]
         results["checks"]["session history written by application"]=True
         launch_new=parent/"launch-new";launch_new.mkdir()
@@ -358,8 +447,9 @@ def main():
         assert not (launch_new/".magistr").exists(),"Explicit new launch is a read-only preview"
         assert (invalid_settings/".magistr/project.json").read_text()=="invalid"
         with sqlite3.connect(database) as history:
-            assert history.execute("SELECT COUNT(*) FROM sessions").fetchone()[0]==6,"Rejected opens must not create session history"
+            assert history.execute("SELECT COUNT(*) FROM sessions").fetchone()[0]==7,"Rejected opens must not create session history"
         results["checks"]["rejected launches preserve settings and create no session history"]=True
+        api.shutdown();api.server_close()
         call("restore-front",front)
     results["source_hashes"]=source_hashes()
     (evidence/"receipt.json").write_text(json.dumps(results,ensure_ascii=False,indent=2)+"\n")

@@ -153,7 +153,7 @@ async fn run_loop(
                     break;
                 }
             }
-            command = commands.recv() => match command {
+            command = commands.recv(), if session_id.is_some() => match command {
                 None | Some(Command::Terminate) => break,
                 Some(Command::Wake) => {},
                 Some(Command::Interrupt) => {
@@ -221,14 +221,20 @@ async fn run_loop(
                         } else {
                             Err(acp_error("Session not initialized — cannot set config option"))
                         };
-                        state.lock().expect("supervisor state lock poisoned").control_busy = false;
+                        let mut inner = state.lock().expect("supervisor state lock poisoned");
+                        inner.control_busy = false;
+                        if let Ok(options) = &result {
+                            inner.config_options.clone_from(options);
+                            inner.history.observe_configuration(options);
+                            inner.emit_cockpit(crate::agent::translate::configuration(options));
+                        }
                         if let Some(reply) = reply {
                             let _ = reply.send(result);
                         } else {
-                            let mut inner = state.lock().expect("supervisor state lock poisoned");
-                            inner.emit(result.map(|options| AgentMessage::ConfigUpdate {
-                                options: crate::agent::types::config_options_from_acp(&options),
-                            }));
+                            match result {
+                                Ok(options) => inner.emit(Ok(AgentMessage::ConfigUpdate { options: crate::agent::types::config_options_from_acp(&options) })),
+                                Err(error) => inner.emit_cockpit(magistr_application::sessions::AgentEvent::Notice(format!("The agent could not apply this choice: {error}"))),
+                            }
                         }
                     }));
                 }
@@ -251,14 +257,19 @@ async fn run_loop(
                             }
                             continue;
                         }
-                        if let AcpEvent::Initialized { session_id: id, agent_capabilities, .. } = &event {
+                        if let AcpEvent::Initialized { session_id: id, agent_capabilities, config_options, .. } = &event {
                             session_id = Some(id.clone());
+                            inner.config_options = config_options.clone().unwrap_or_default();
                             if options.is_none() && inner.snapshot.active_turn.is_some() { inner.history.begin_turn(); }
                             inner.capabilities = Some((**agent_capabilities).clone());
                             if let Some(options) = options.take() {
                                 control = Some(Box::pin(super::opening::initialize(transport, event, options, state)));
                                 continue;
                             }
+                        }
+                        if let AcpEvent::SessionUpdate { update, .. } = &event
+                            && let agent_client_protocol::schema::v1::SessionUpdate::ConfigOptionUpdate(update) = &**update {
+                            inner.config_options.clone_from(&update.config_options);
                         }
                         if let AcpEvent::System { subtype, data } = &event
                             && subtype == "permission_lapsed"
@@ -342,6 +353,7 @@ async fn run_loop(
                 }
             } => {
                 control = None;
+                state.lock().expect("supervisor state lock poisoned").publish_activity();
             }
         }
     }

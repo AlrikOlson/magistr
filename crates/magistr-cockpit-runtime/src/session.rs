@@ -153,7 +153,7 @@ impl Session {
                 match self.handle.submit_turn(&text) {
                     Ok(()) => {
                         self.input_origin = InputOrigin::Application;
-                        self.inbox.send(Msg::InputAccepted(format!("{text}\n")));
+                        self.inbox.send(Msg::InputAccepted(text));
                     }
                     Err(error) => {
                         self.inbox
@@ -174,6 +174,8 @@ impl Session {
             cmd => cmd,
         };
         let result = match &cmd {
+            Cmd::Rename(name) => self.handle.rename(name),
+            Cmd::Configure { id, value } => self.handle.configure(id, value),
             Cmd::Cancel => self.handle.cancel_turn(),
             Cmd::Permission { id, option_id } => self.handle.answer_permission(*id, option_id),
             Cmd::Constraint { id, condition } => self.handle.constrain_permission(*id, condition),

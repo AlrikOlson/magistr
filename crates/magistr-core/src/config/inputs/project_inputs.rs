@@ -94,6 +94,7 @@ pub struct ProjectInputs {
     agent_backend: Option<String>,
     session_selection: Option<crate::config::session_selection::SessionSelection>,
     claude_api_key: bool,
+    configured_api_providers: Vec<String>,
     plugin_index_url: Option<String>,
     workspace_env: BTreeMap<String, String>,
     workspace_network_override: Option<String>,
@@ -234,6 +235,19 @@ impl ProjectInputs {
             "provider.claude_api_key",
             Self::source_for(claude_api_key, CLAUDE_API_KEY),
         );
+        let configured_api_providers = [
+            ("openai", vec!["OPENAI_API_KEY"]),
+            ("gemini", vec!["GEMINI_API_KEY", "GOOGLE_API_KEY"]),
+            ("ollama", vec!["OLLAMA_HOST"]),
+        ]
+        .into_iter()
+        .filter_map(|(provider, keys)| {
+            keys.iter()
+                .any(|key| value(key).is_some())
+                .then(|| provider.to_owned())
+        })
+        .collect();
+
         let plugin_index_url = value(PLUGIN_INDEX_URL);
         sources.insert(
             "plugin.index_url",
@@ -277,6 +291,7 @@ impl ProjectInputs {
             agent_backend,
             session_selection: None,
             claude_api_key,
+            configured_api_providers,
             plugin_index_url,
             workspace_env,
             workspace_network_override,
@@ -493,6 +508,13 @@ impl ProjectInputs {
     #[must_use]
     pub fn has_claude_api_key(&self) -> bool {
         self.claude_api_key
+    }
+
+    /// API providers with credentials or a local endpoint configured at capture.
+    /// Contains provider names only, never keys or endpoint values.
+    #[must_use]
+    pub fn configured_api_providers(&self) -> &[String] {
+        &self.configured_api_providers
     }
 
     /// `MAGISTR_PLUGIN_INDEX_URL`, trimmed and nonblank.

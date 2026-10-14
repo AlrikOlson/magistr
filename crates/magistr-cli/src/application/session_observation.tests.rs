@@ -222,3 +222,33 @@ fn finished_and_closed_sessions_keep_reported_spending_for_reconnected_readers()
         }))
     ));
 }
+#[test]
+fn conversation_name_and_complete_configuration_survive_transcript_pruning() {
+    let owner = SessionObservation::new(address());
+    owner.send(Msg::Agent(AgentEvent::Conversation(
+        magistr_application::sessions::Conversation {
+            id: "saved".into(),
+            name: Some("Review café".into()),
+            provider: "copilot".into(),
+        },
+    )));
+    owner.send(Msg::Agent(AgentEvent::Configuration {
+        model: Some("confirmed".into()),
+        options: vec![magistr_application::sessions::SessionConfig {
+            id: "model".into(),
+            name: "Model".into(),
+            current_value: "confirmed".into(),
+            values: vec![("confirmed".into(), "Confirmed".into())],
+        }],
+    }));
+    for _ in 0..MAX_MESSAGES + 2 {
+        owner.send(Msg::Agent(AgentEvent::Text("reply".into())));
+    }
+    let snapshot = owner.snapshot();
+    assert_eq!(
+        snapshot.conversation.unwrap().name.as_deref(),
+        Some("Review café")
+    );
+    assert_eq!(snapshot.model.as_deref(), Some("confirmed"));
+    assert_eq!(snapshot.configuration[0].current_value, "confirmed");
+}

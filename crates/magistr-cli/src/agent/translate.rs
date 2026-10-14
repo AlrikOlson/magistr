@@ -127,9 +127,29 @@ fn session_update(update: &SessionUpdate) -> AgentEvent {
         },
         SessionUpdate::AvailableCommandsUpdate(_) => system("available_commands"),
         SessionUpdate::CurrentModeUpdate(_) => system("current_mode"),
-        SessionUpdate::ConfigOptionUpdate(_) => system("config_options"),
+        SessionUpdate::ConfigOptionUpdate(update) => configuration(&update.config_options),
         SessionUpdate::SessionInfoUpdate(_) => system("session_info"),
         _ => system("session_update"),
+    }
+}
+
+pub(super) fn configuration(options: &[SessionConfigOption]) -> AgentEvent {
+    AgentEvent::Configuration {
+        options: super::types::config_options_from_acp(options)
+            .into_iter()
+            .filter(|option| !option.options.is_empty())
+            .map(|option| magistr_application::sessions::SessionConfig {
+                id: option.id,
+                name: option.name,
+                current_value: option.current_value,
+                values: option
+                    .options
+                    .into_iter()
+                    .map(|value| (value.value_id, value.name))
+                    .collect(),
+            })
+            .collect(),
+        model: current_model(Some(options)),
     }
 }
 

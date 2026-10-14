@@ -1,15 +1,18 @@
+import { Submissions, shouldSaveDraft } from "./session_controls.mjs";
 import { attachComposer } from "./composer.mjs";
 import { Selection } from "./selection.mjs";
 import { ProjectOpening } from "./projects.mjs";
 import { Catalog, usageText, capabilityText } from "./supervision.mjs";
 const {invoke,Channel}=window.__TAURI__.core;
 const $=id=>document.getElementById(id);
-let selected=null,view=null,sessions=[],projects=[],sending=false;
+let selected=null,view=null,sessions=[],projects=[];
+const submissions=new Submissions();
 const selection=new Selection();
 const catalog=new Catalog();
 const railNodes=new Map(),attentionNodes=new Map();
 let announcementKey="";
 const messageNodes=new WeakMap();
+let configurationKey="";
 let requestsKey="",railKey="";
 const labels=new Map();let issuedLabel=0;
 const showError=error=>{$("error").textContent=String(error);$("error").hidden=false;};
@@ -26,7 +29,7 @@ function renderRail() {
   const signature=JSON.stringify([projects,sessions,selected]);if(signature===railKey)return;railKey=signature;
   $("projects").replaceChildren(...projects.map(project=>button(project.name,()=>openDirectory(project.directory))));
   const rows=sessions.map(session=>{
-    const id=session.address.session,index=labels.get(id),name=session.name+" session "+index;
+    const id=session.address.session,index=labels.get(id),name=session.conversation?.name??(session.name+" session "+index);
     let row=railNodes.get(id);
     if(!row) {
       row=document.createElement("div");row.className="session-row";
@@ -36,7 +39,7 @@ function renderRail() {
       actions.append(button("Stop",()=>act(session.address,"cancel")),button("Reconnect",()=>act(session.address,"reconnect")),button("Close",()=>closeAddress(session.address)));
       row.append(item,path,actions);railNodes.set(id,row);
     }
-    const item=row.children[0];item.children[0].textContent=session.name+" · "+index;
+    const item=row.children[0];item.children[0].textContent=session.conversation?.name??(session.name+" · "+index);
     const status=session.status+(session.pending.length?" · "+session.pending.length+" waiting":"")+(session.activity?.queued_turns?" · "+session.activity.queued_turns+" queued":"");
     if(item.children[1].textContent!==status)item.children[1].textContent=status;
     item.setAttribute("aria-current",String(selected?.session===id));item.setAttribute("aria-label",name);
@@ -55,7 +58,7 @@ function renderRail() {
     const key=JSON.stringify([session.address,request.id]);
     let item=attentionNodes.get(key);
     if(!item){item=button("",()=>select(session.address,request.id).catch(showError));attentionNodes.set(key,item);}
-    item.textContent=session.name+" session "+labels.get(session.address.session)+": "+request.title;
+    item.textContent=(session.conversation?.name??(session.name+" session "+labels.get(session.address.session)))+": "+request.title;
     return item;
   });
   placeChildren($("attention"),waitingRows);
@@ -86,7 +89,7 @@ async function connectCatalog() {
 
 }
 async function saveDraft(address=selected,value=$("draft").value) {
-  if(!address)return;
+  if(!shouldSaveDraft(address,value,sessions,submissions))return;
   await invoke("save_draft",{address,text:value});
 }
 async function select(address,requestId=null) {
@@ -98,7 +101,7 @@ async function select(address,requestId=null) {
       return invoke("subscribe_session",{address,channel,selection:intent});
     },
     commit:(candidate,initial)=>{
-      selected=address;view=candidate;candidate.requestId=requestId;requestsKey="";railKey="";
+      selected=address;view=candidate;candidate.requestId=requestId;requestsKey="";railKey="";configurationKey="";
       $("welcome").hidden=true;$("workspace").hidden=false;$("view-title").textContent="Conversation";
       $("draft").value="";
       $("draft").disabled=true;$("send").disabled=true;
@@ -123,6 +126,8 @@ function receiveFrame(candidate,frame) {
   const initial=candidate.sequence<0;
   if(candidate.apply(frame)) {
     if(initial) $("draft").value=frame.draft;
+    const accepted=submissions.observe(frame);
+    if(accepted!==null&&$("draft").value===accepted)$("draft").value="";
     if(frame.draft && !$("draft").value && frame.events.some(event=>event.kind==="error")) $("draft").value=frame.draft;
     render(frame);
   }
@@ -146,14 +151,15 @@ function render(frame) {
   $("latest").hidden=follow;
   if($("status").textContent!==frame.status)$("status").textContent=frame.status;
   $("stop").disabled=!["Working","Waiting for you"].includes(frame.status);
-  $("send").disabled=sending || frame.closed;
+  $("send").disabled=submissions.pending(frame.address) || frame.closed || frame.activity?.cancellation_requested;
   $("draft").disabled=frame.closed;
   $("new-session").disabled=frame.closed;$("close-session").disabled=frame.closed;
   $("copy").disabled=view.messages.length===0;
   $("model").textContent=frame.model??"Model information is unavailable.";
+  renderConfiguration(frame);
   $("usage").textContent=usageText(frame.usage);
   $("capabilities").textContent=capabilityText(frame.activity);
-  $("queue").textContent=frame.activity?frame.activity.queued_turns+" messages queued"+(frame.activity.cancellation_requested?" · Waiting for the agent to stop.":""):"Queue information is unavailable.";
+  $("queue").textContent=frame.activity?frame.activity.queued_turns+(frame.activity.queued_turns===1?" message queued":" messages queued")+(frame.activity.cancellation_requested?" · Waiting for the agent to stop.":""):"Queue information is unavailable.";
   $("reconnect").disabled=frame.closed||frame.status!=="Connection lost"||frame.activity?.can_resume!==true;
   const pendingKey=JSON.stringify([frame.address,view.pending]);
   if(pendingKey!==requestsKey) {$("requests").replaceChildren(...view.pending.map(request=>{
@@ -178,7 +184,7 @@ function render(frame) {
 async function openSession(directory,fresh=false) {
   const resident=!fresh&&sessions.find(session=>session.address.workspace===directory);
   if(resident)return resident.address;
-  return invoke("open_session",{directory});
+  return invoke("open_session",{directory,choice:{kind:"launch"}});
 }
 async function openKnownWorkspace(directory,fresh=false) {
   try {
@@ -257,21 +263,19 @@ async function browseFolder() {
 }
 attachComposer($("draft"),$("composer"));
 $("composer").onsubmit=async event=>{
-  event.preventDefault();if(sending||!selected)return;
+  event.preventDefault();if(!selected||submissions.pending(selected))return;
   const address=selected,value=$("draft").value;if(!value.trim())return;
-  sending=true;$("send").disabled=true;clearError();
+  submissions.begin(address,value,view.sequence);$("send").disabled=true;clearError();
   try {
-    await saveDraft(address,value);
+    await invoke("save_draft",{address,text:value});
     await invoke("session_action",{address,action:{action:"send",text:value}});
-    if(selected?.session===address.session && $("draft").value===value) {$("draft").value="";await saveDraft(address,"");}
-  } catch(error){showError(error);}
-  finally {sending=false;$("send").disabled=false;}
+  } catch(error){submissions.fail(address);showError(error);if(selected?.session===address.session)$("send").disabled=false;}
 };
 $("stop").onclick=()=>selected&&act(selected,"cancel");
 $("reconnect").onclick=()=>selected&&act(selected,"reconnect");
 $("draft").onblur=()=>saveDraft().catch(showError);
 $("latest").onclick=()=>{$("transcript").scrollTop=$("transcript").scrollHeight;$("latest").hidden=true;};
-$("new-session").onclick=()=>selected&&openKnownWorkspace(selected.workspace,true);
+$("new-session").onclick=()=>selected&&chooseAgent(selected.workspace).catch(showError);
 $("working-copy").onchange=event=>openKnownWorkspace(event.target.value);
 $("open-project").onclick=()=>showPicker();
 $("welcome-path").onclick=()=>showPicker();
@@ -316,6 +320,107 @@ async function closeAddress(address) {
   }catch(error){showError(error);}
 }
 $("close-session").onclick=()=>selected&&closeAddress(selected);
+
+function renderConfiguration(frame) {
+  $("view-title").textContent=frame.conversation?.name??"Conversation";
+  if(document.activeElement!==$("conversation-name"))$("conversation-name").value=frame.conversation?.name??"";
+  $("conversation-name").disabled=frame.closed||!frame.conversation;
+  $("save-name").disabled=frame.closed||!frame.conversation;
+  $("agent-provider").textContent=frame.conversation?.provider_label??"Agent information is unavailable.";
+  const key=JSON.stringify([frame.address,frame.configuration]);
+  if(key!==configurationKey) {
+    $("agent-configuration").replaceChildren(...(frame.configuration??[]).map(option=>{
+      const label=document.createElement("label");label.append(text("span",option.name));
+      const select=document.createElement("select");select.setAttribute("aria-label",option.name);
+      for(const [value,name] of option.values){const choice=document.createElement("option");choice.value=value;choice.textContent=name;choice.selected=value===option.current_value;select.append(choice);}
+      if(!option.values.some(([value])=>value===option.current_value)){const unavailable=document.createElement("option");unavailable.textContent="Current choice unavailable";unavailable.disabled=true;unavailable.selected=true;select.append(unavailable);}
+      select.onchange=async()=>{
+        const value=select.value;select.value=option.current_value;select.disabled=true;
+        try{await invoke("session_action",{address:frame.address,action:{action:"configure",id:option.id,value}});}
+        catch(error){showError(error);select.disabled=false;}
+      };
+      label.append(select);return label;
+    }));configurationKey=key;
+  }
+  for(const select of $("agent-configuration").querySelectorAll("select"))select.disabled=frame.closed||frame.activity?.active||!!frame.activity?.queued_turns||frame.activity?.cancellation_requested||frame.activity?.configuration_in_progress;
+}
+$("name-form").onsubmit=async event=>{
+  event.preventDefault();if(!selected)return;
+  try{await invoke("session_action",{address:selected,action:{action:"rename",name:$("conversation-name").value}});}
+  catch(error){showError(error);}
+};
+const agentLabels=new Map();
+let newWorkspace=null,chosenHistory=null,openingGeneration=0;
+async function chooseAgent(directory) {
+  const generation=++openingGeneration;newWorkspace=directory;$("initial-model-control").hidden=true;$("initial-model").replaceChildren();$("choose-initial-model").disabled=false;$("session-picker-error").hidden=true;$("agent-choice").replaceChildren();
+  $("session-picker-open").disabled=true;$("session-picker").showModal();
+  try {
+    const choices=await invoke("agent_choices");if(generation!==openingGeneration)return;for(const choice of choices)agentLabels.set(choice.id,choice.label);
+    $("agent-choice").replaceChildren(...choices.map(choice=>{const option=document.createElement("option");option.value=choice.id;option.textContent=choice.label;return option;}));
+    const current=sessions.find(session=>session.address.session===selected?.session)?.conversation?.provider;
+    if(choices.some(choice=>choice.id===current))$("agent-choice").value=current;
+    $("session-picker-open").disabled=choices.length===0;
+    if(!choices.length)throw new Error("No agents are available. Set up an agent and try again.");
+    $("agent-choice").focus();
+  }catch(error){$("session-picker-error").textContent=String(error);$("session-picker-error").hidden=false;}
+}
+$("session-picker-cancel").onclick=()=>{++openingGeneration;$("session-picker").close();};
+$("session-picker").oncancel=()=>{++openingGeneration;};
+$("agent-choice").onchange=()=>{$("initial-model-control").hidden=true;$("initial-model").replaceChildren();};
+$("choose-initial-model").onclick=async()=>{
+  const generation=openingGeneration,provider=$("agent-choice").value;
+  $("choose-initial-model").disabled=true;$("session-picker-open").disabled=true;$("session-picker-error").hidden=true;
+  try {
+    const models=await invoke("model_choices",{directory:newWorkspace,provider});
+    if(generation!==openingGeneration||provider!==$("agent-choice").value)return;
+    $("initial-model").replaceChildren(...models.map(model=>{const option=document.createElement("option");option.value=model.id;option.textContent=model.name;return option;}));
+    $("initial-model-control").hidden=!models.length;
+    if(!models.length)throw new Error("This agent offers no available model choices for this project.");
+    $("initial-model").focus();
+  }catch(error){if(generation===openingGeneration){$("session-picker-error").textContent=String(error);$("session-picker-error").hidden=false;}}
+  finally{if(generation===openingGeneration){$("choose-initial-model").disabled=false;$("session-picker-open").disabled=false;if($("initial-model-control").hidden)$("choose-initial-model").focus();}}
+};
+$("session-form").onsubmit=async event=>{
+  event.preventDefault();$("session-picker-open").disabled=true;
+  try {
+    const address=await invoke("open_session",{directory:newWorkspace,choice:{kind:"new",provider:$("agent-choice").value,model:$("initial-model-control").hidden?null:$("initial-model").value}});
+    await refresh();await select(address);$("session-picker").close();$("draft").focus();
+  }catch(error){$("session-picker-error").textContent=String(error);$("session-picker-error").hidden=false;}
+  finally{$("session-picker-open").disabled=false;if($("session-picker").open)$("session-picker-open").focus();}
+};
+async function showHistory() {
+  $("history-error").hidden=true;$("history-summary").hidden=true;$("history-list").replaceChildren(text("p","Reading saved conversations…"));
+  $("history-picker").showModal();
+  try {
+    const saved=await invoke("saved_conversations");
+    $("history-list").replaceChildren(...saved.map(record=>{
+      const name=record.name??("Conversation in "+record.workspace.split(/[\\/]/).filter(Boolean).at(-1));
+      const item=button(name,()=>{
+        chosenHistory=record;$("history-summary").hidden=false;$("history-name").textContent=name;
+        const turns=record.turns==="unknown"?"Turns not reported":record.turns+(record.turns==="1"?" turn":" turns");
+        const cost=record.cost==="unknown"?"Spending not reported":record.cost;
+        $("history-details").textContent=[record.provider,new Date(record.ended_at).toLocaleString(),turns,cost].join(" · ")+"\n"+record.workspace;
+        $("history-text").textContent=record.summary??"No reply summary was saved.";
+        $("history-resume-reason").textContent=record.resume_reason??"Resume with the original agent and conversation.";
+        $("history-resume").disabled=!!record.resume_reason;
+        for(const row of $("history-list").children)row.setAttribute("aria-current",String(row===item));
+        $("history-summary").focus();
+      });
+      item.setAttribute("aria-label",name);item.append(text("small",record.provider+" · "+new Date(record.ended_at).toLocaleDateString()));return item;
+    }));
+    if(!saved.length)$("history-list").append(text("p","No saved conversations yet."));
+  }catch(error){$("history-error").textContent=String(error);$("history-error").hidden=false;$("history-list").replaceChildren();}
+}
+$("saved-conversations").onclick=()=>showHistory().catch(showError);
+$("history-close").onclick=()=>$("history-picker").close();
+$("history-resume").onclick=async()=>{
+  if(!chosenHistory)return;const record=chosenHistory;$("history-resume").disabled=true;$("history-error").hidden=true;
+  try {
+    const resident=sessions.find(session=>session.conversation?.id===record.id);
+    const address=resident?.address??await invoke("open_session",{directory:record.workspace,choice:{kind:"resume",id:record.id}});
+    await refresh();await select(address);$("history-picker").close();$("draft").focus();
+  }catch(error){$("history-error").textContent=String(error);$("history-error").hidden=false;$("history-resume").disabled=!!record.resume_reason;$("history-resume").focus();}
+};
 document.addEventListener("keydown",event=>{
   if((event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==="o"){event.preventDefault();$("open-project").click();}
 });

@@ -11,6 +11,12 @@ impl SessionHandle for LocalSession {
     fn submit_turn(&mut self, _: &str) -> Result<(), String> {
         Err("Connect to Magistr before sending a message.".into())
     }
+    fn rename(&mut self, _: &str) -> Result<(), String> {
+        Err("Naming is unavailable in this session.".into())
+    }
+    fn configure(&mut self, _: &str, _: &str) -> Result<(), String> {
+        Err("Agent choices are unavailable in this session.".into())
+    }
     fn cancel_turn(&mut self) -> Result<(), String> {
         Err("No agent is connected. Send a message to connect, then try again.".into())
     }

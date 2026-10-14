@@ -29,6 +29,12 @@ impl SessionHandle for FakeSession {
         }
     }
 
+    fn rename(&mut self, _: &str) -> Result<(), String> {
+        Err("Naming is unavailable in this session.".into())
+    }
+    fn configure(&mut self, _: &str, _: &str) -> Result<(), String> {
+        Err("Agent choices are unavailable in this session.".into())
+    }
     fn cancel_turn(&mut self) -> Result<(), String> {
         self.calls.send("cancel".to_owned()).expect("call observer");
         Ok(())
@@ -140,7 +146,7 @@ async fn publishes_accepted_input_once_and_preserves_provider_history_and_permis
         .send(Cmd::Prompt("follow-up".to_owned()))
         .expect("command sent");
     assert_eq!(next(&mut calls).await, "prompt follow-up");
-    assert!(matches!(next(&mut messages).await, Msg::InputAccepted(text) if text == "follow-up\n"));
+    assert!(matches!(next(&mut messages).await, Msg::InputAccepted(text) if text == "follow-up"));
     events
         .send(AgentEvent::UserText("follow-up\n".into()))
         .unwrap();

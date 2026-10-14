@@ -1,7 +1,7 @@
 //! Application session admission, addressed controls and orderly settlement form
 //! one ownership contract. Views hold subscriptions; this registry holds hosts.
 use super::{
-    InteractiveHost,
+    InteractiveHost, SessionOpening,
     interactive_host::combine,
     session_observation::{SessionObservation, SessionSnapshot, SessionSubscription},
 };
@@ -40,6 +40,7 @@ impl Settle for InteractiveHost {
 }
 pub(super) struct Opening {
     pub(super) address: SessionAddress,
+    pub(super) choice: SessionOpening,
     pub(super) inbox: Inbox,
     pub(super) commands: Commands,
     pub(super) observation: Arc<SessionObservation>,
@@ -53,6 +54,7 @@ enum Request {
     Open {
         project: String,
         root: PathBuf,
+        choice: SessionOpening,
         reply: oneshot::Sender<Result<SessionAddress, String>>,
     },
     Command {
@@ -94,7 +96,11 @@ impl SessionClient {
         }
     }
     /// Resolve admission inputs away from the surface, then start an independent session.
-    pub async fn open(&self, root: impl AsRef<Path>) -> Result<SessionAddress, String> {
+    pub async fn open(
+        &self,
+        root: impl AsRef<Path>,
+        choice: SessionOpening,
+    ) -> Result<SessionAddress, String> {
         let root = root.as_ref().to_path_buf();
         let (project, root) = tokio::task::spawn_blocking(move || prepared(&root))
             .await
@@ -103,6 +109,7 @@ impl SessionClient {
         self.post(Request::Open {
             project,
             root,
+            choice,
             reply,
         })?;
         result
@@ -222,6 +229,7 @@ impl SessionRegistry {
                 closing: BTreeMap::new(),
                 pending: JoinSet::new(),
                 instance,
+                resume_claims: BTreeMap::new(),
                 issued: 0,
                 opening: 0,
                 failures: Ok(()),
@@ -289,6 +297,7 @@ struct Serving<H> {
     closing: BTreeMap<SessionAddress, Arc<SessionObservation>>,
     pending: JoinSet<Completed<H>>,
     instance: String,
+    resume_claims: BTreeMap<SessionAddress, String>,
     issued: u64,
     opening: usize,
     failures: Result<(), String>,
@@ -397,10 +406,31 @@ impl<H: Settle> Serving<H> {
             Request::Open {
                 project,
                 root,
+                choice,
                 reply,
             } => {
                 if self.sessions.len() + self.closing.len() + self.opening >= MAX_SESSIONS {
                     let _ = reply.send(Err("Close a session before opening more.".into()));
+                    return;
+                }
+                if let SessionOpening::Resume { id } = &choice
+                    && (self.resume_claims.values().any(|claimed| claimed == id)
+                        || self
+                            .sessions
+                            .values()
+                            .map(|resident| &resident.observation)
+                            .chain(self.closing.values())
+                            .any(|observation| {
+                                observation
+                                    .snapshot()
+                                    .conversation
+                                    .as_ref()
+                                    .is_some_and(|conversation| &conversation.id == id)
+                            }))
+                {
+                    let _ = reply.send(Err(
+                        "This conversation is already open. Choose it from Sessions.".into(),
+                    ));
                     return;
                 }
                 self.issued += 1;
@@ -410,11 +440,15 @@ impl<H: Settle> Serving<H> {
                     workspace: root.display().to_string(),
                     session: format!("{}-{}", self.instance, self.issued),
                 };
+                if let SessionOpening::Resume { id } = &choice {
+                    self.resume_claims.insert(address.clone(), id.clone());
+                }
                 let observation = Arc::new(SessionObservation::new(address.clone()));
                 observation.wake_with(Arc::clone(&self.wake));
                 let (commands, receiver) = Commands::bounded(CAPACITY);
                 let opened = (self.open)(Opening {
                     address: address.clone(),
+                    choice,
                     inbox: Inbox::observed(observation.clone()),
                     commands: receiver,
                     observation: Arc::clone(&observation),
@@ -587,6 +621,7 @@ impl<H: Settle> Serving<H> {
                         }
                     }
                     Err(error) => {
+                        self.resume_claims.remove(&address);
                         observation.stop();
                         let _ = reply.send(Err(error));
                     }
@@ -594,6 +629,7 @@ impl<H: Settle> Serving<H> {
             }
             Ok(Completed::Closed { address, result }) => {
                 self.closing.remove(&address);
+                self.resume_claims.remove(&address);
                 self.failures = combine(std::mem::replace(&mut self.failures, Ok(())), result);
             }
             Err(error) => {

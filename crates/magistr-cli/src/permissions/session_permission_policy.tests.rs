@@ -1172,3 +1172,17 @@ fn standing_answers_do_not_turn_glob_shaped_tool_titles_into_wildcard_rules() {
         PolicyDecision::Ask(_)
     ));
 }
+#[test]
+fn model_choices_use_the_same_frozen_policy_as_permission_decisions() {
+    let governance = magistr_engine::policy::GovernancePolicy {
+        approved_models: vec!["approved".into()],
+        ..Default::default()
+    };
+    let mut policy = policy(PermissionProfile::Standard, false)
+        .governed_by(governance.compile())
+        .on_model(Some("initial".into()));
+    assert!(policy.can_use_model("approved"));
+    assert!(!policy.can_use_model("other"));
+    policy.model_changed(Some("approved".into()));
+    assert_eq!(policy.model.as_deref(), Some("approved"));
+}

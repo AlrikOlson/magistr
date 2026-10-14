@@ -1,24 +1,29 @@
 {
   "reviewed_on": "2026-10-13",
   "images": {
-    "chooser-dark.png": "fb56a76c3630b90d7197316a37ca1725d36551b892d5dfec6ba9a899233b00cc",
-    "chooser-light.png": "51b5740fdef9aff82425135eb7493d21d991baedd23334612f163278d589f269",
-    "dark.png": "5d3cd499e22423c612fc5e4b7ba532eeccc9fa37216df17e45a706df6ae0b884",
-    "light.png": "e6d3a7ca076a66ce147f2889aa8dec3bc4f510c787ca89a083dfb6574b36c565",
-    "narrow.png": "df5e4c443d43bee85b011b3ce836036e01f6058c8e1db15ed0368fce85ac87dd",
-    "provider-unavailable.png": "57445288ee1c6cf4e4c7d91cc6cbcd43ac2c157638481e398b695dc024074345",
-    "setup-partial.png": "91a8d41281b30c4fb38f961acecae7275bd499cd15c75a54192c93733c80565e",
-    "setup-review.png": "154af76bd7aba6350e92317132e4ade82a38fbdc36d463cfb25eaa3be96b9904",
-    "supervision.png": "b9ac91d736aae3d1a4cdb4469427e91f6c099672c9af3c4e15b66caf04248d5d"
+    "agent-choice.png": "455a43f5d7e2160d9eb025d14d4dfbc02769317bf731f861e39ce06beb333cef",
+    "chooser-dark.png": "0323bb5c1e1d0dda7a18bdace795e9efd257d26ae6b95fc513e55eb9f3931d5d",
+    "chooser-light.png": "5593f630dd6759d504aeffdf1eb02743165160abe001acb4f3faf6bb28bf5ee6",
+    "conversation-controls.png": "a140973046273f0d28445aacceca268307fc0dbc613a8ee79c77d186e98511eb",
+    "dark.png": "a618fa60e98950f0a069062728a6a997dd628b51be0d4ce918beef3dd924bfc3",
+    "light.png": "b60691190d6634fac7ae1829dcaa26c98f9b12e1aae300b547e4d965cca1a5bd",
+    "narrow.png": "0d0633e11d7296124c3b841a7e78dcffffd3d45c2c4b51519cc5ecc816327c24",
+    "provider-unavailable.png": "1183ea6effc2c6f214a3331e98673aa22668cebf2fc2f3f18cc9cd6b6bdcffda",
+    "resume-refused.png": "c52fdaed6d4d77a5a41eb9dbc8e882392cb39845e47514821b1e0f62611967c2",
+    "resume-unavailable.png": "9c913b8b7153856393f020416ac2e50ce15b63c91d07e8867f72dbb22ab813dc",
+    "saved-summary.png": "b40b182b8a14d4f3c27608411511dcfedcda0eb06d9a3a6bf59340bb56763531",
+    "setup-partial.png": "8ce0d5146766542ebb0a1546472a7d7b37bf15b14e0f36394f4c8d484e928bc4",
+    "setup-review.png": "f8aa69f5f2e630007ef57da8f4ce63a3278b95de44eed6c9a06efc6b1d0d1792",
+    "supervision.png": "2b2b1dfafbadb606aea342bfd824f727066640e739cbe36beca2c2ef207ecb77"
   },
-  "accessibility": "69593666c9e27a0aafeec65814fb5676fa73da73f7871fab43f258c48940a35c",
-  "chooser_accessibility": "1dbc3eff02c17b1b4f203f05aa044b0e33b0ff32a6de0f86a9b248a8ef40f8cc",
+  "accessibility": "231eeff36ba3d8e34599768e6dc41f0250b21e0151bca88548d0af5f6aef2d1b",
+  "chooser_accessibility": "9b865d0073f65190b33400b27144f74bbed6a185b3cae7ac15238805854a23d2",
   "findings": [
-    "Reviewed the real light, dark and 800 x 680 conversation windows. Text wraps, the composer and session controls remain usable, and the active keyboard focus is outlined. The rail and details scroll independently.",
-    "The concurrent supervision capture shows the waiting First project session beside the working Second project session and its retained draft. Needs your attention stays visible while the rail scrolls. Working-copy names distinguish the main and feature copies; full paths remain available to accessibility and in tooltips.",
-    "The native journey verifies exact request navigation and focus, accepted/cancelled request removal, background Stop/Reconnect/Close, stable drafts and selection, no provider startup from catalog observation, one replacement provider on reconnect and six logical histories after settlement.",
-    "Both chooser appearances expose folder selection and path entry without starting a project or provider. Setup review and partial outcomes keep Apply, Review again and Cancel accessible beside the independently scrolling file list.",
-    "The unavailable-agent capture preserves the usable project picker and actual installation guidance.",
-    "Current Japanese input-source observation delivered Latin preedit. This capture run does not prove native conversion or a VoiceOver walk; those remain in their existing native accessibility/input roadmap work."
+    "Light, dark and 800 x 680 resumed-conversation windows retain the saved name and confirmed model. Messages wrap, the composer stays usable and focused controls have visible outlines; the rail and details scroll independently.",
+    "The conversation-controls capture shows the accepted follow-up, the owner's unsent-queue notice, zero queued messages and the newer retained draft. The named session is visible in its header and rail.",
+    "Agent choice keeps the current draft behind a modal with explicit Start and Cancel controls. Native input exercises provider-advertised initial models and moves focus to the returned selection.",
+    "Saved summaries expose agent, time, turn count and missing spending accurately. Unsupported resume is disabled with its reason. A refused load preserves the selected summary and places focus on the retry button; retry restores the exact provider conversation, name and model.",
+    "Both chooser appearances, setup review, partial setup, unavailable-agent guidance and concurrent supervision retain usable controls. Window accessibility captures exclude the system menu's unrelated recent documents.",
+    "The current receipt records 90 passing native checks, seven settled logical histories and a 133.16 ms native key-to-accessible-reply observation. It also reports Latin preedit from the selected Japanese source; this run does not prove native conversion or a VoiceOver walk. Wider native input and screen-reader coverage remains in its existing roadmap work."
   ]
 }

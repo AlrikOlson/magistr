@@ -84,7 +84,9 @@ pub(crate) async fn acp_handshake(
                     )
                     .block_task()
                     .await
-                    .map_err(|e| AcpError::connection(format!("ACP session/load failed: {e}")))?;
+                    .map_err(|e| {
+                        AcpError::connection(format!("Could not reopen the conversation: {e}"))
+                    })?;
                 // session/load does not echo the id — it is the one we asked for.
                 (sid, response.config_options)
             }

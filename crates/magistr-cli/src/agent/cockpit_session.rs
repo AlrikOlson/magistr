@@ -99,6 +99,16 @@ impl SessionHandle for CockpitSession {
             .send_followup(text)
             .map_err(|error| error.to_string())
     }
+    fn rename(&mut self, name: &str) -> std::result::Result<(), String> {
+        self.supervisor
+            .rename(name)
+            .map_err(|error| error.to_string())
+    }
+    fn configure(&mut self, id: &str, value: &str) -> std::result::Result<(), String> {
+        self.supervisor
+            .send_config_change(id.to_owned(), value.to_owned())
+            .map_err(|error| error.to_string())
+    }
     fn cancel_turn(&mut self) -> std::result::Result<(), String> {
         self.supervisor
             .cancel_turn()

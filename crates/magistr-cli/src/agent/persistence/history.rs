@@ -106,6 +106,7 @@ impl SessionHistory {
         if state.record.is_none() {
             state.record = Some(SessionRecord {
                 session_id: state.id.clone(),
+                name: None,
                 project,
                 workspace,
                 provider: provider.to_owned(),
@@ -130,6 +131,52 @@ impl SessionHistory {
         state.active_turn = false;
         state.summary.clear();
         Ok(())
+    }
+
+    pub(crate) fn conversation(&self) -> Option<magistr_application::sessions::Conversation> {
+        let state = self.0.lock().expect("history state lock poisoned");
+        state
+            .record
+            .as_ref()
+            .map(|record| magistr_application::sessions::Conversation {
+                id: record.session_id.clone(),
+                name: record.name.clone(),
+                provider: record.provider.clone(),
+            })
+    }
+
+    pub(crate) fn current_model(&self) -> Option<String> {
+        self.0
+            .lock()
+            .expect("history state lock poisoned")
+            .record
+            .as_ref()
+            .and_then(|record| record.model.clone())
+    }
+
+    pub(crate) fn rename(&self, name: &str) -> Result<()> {
+        let name = name.trim();
+        if name.is_empty() || name.chars().count() > 120 || name.chars().any(char::is_control) {
+            return Err(MagistrError::Config(
+                "Use a conversation name with 1 to 120 characters and no line breaks.".into(),
+            ));
+        }
+        let mut state = self.0.lock().expect("history state lock poisoned");
+        let record = state.record.as_mut().ok_or_else(|| {
+            MagistrError::Config("Wait for the conversation to open before naming it.".into())
+        })?;
+        record.name = Some(name.to_owned());
+        Ok(())
+    }
+
+    pub(crate) fn observe_configuration(
+        &self,
+        options: &[agent_client_protocol::schema::v1::SessionConfigOption],
+    ) {
+        let mut state = self.0.lock().expect("history state lock poisoned");
+        if let Some(record) = &mut state.record {
+            record.model = crate::agent::translate::current_model(Some(options));
+        }
     }
 
     pub(crate) fn bind_transport(&self, transport: &magistr_acp::AcpTransport) {

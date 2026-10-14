@@ -32,6 +32,16 @@ fn explicit_codex_resolves_to_the_coding_adapter_without_auth_probing() {
     assert_ne!(runtime.provider_id(), magistr_acp_agent::OpenAi::NAME);
 }
 
+#[test]
+fn installed_codex_is_an_available_choice_without_creating_a_provider() {
+    let choices = AgentRuntime::detect_all_with(
+        |name| (name == "codex").then(|| PathBuf::from("/tools/codex")),
+        |_| panic!("Codex login belongs to startup"),
+    );
+    assert_eq!(choices.len(), 1);
+    assert_eq!(choices[0].provider_id(), "codex");
+}
+
 // ── AuthMethod ───────────────────────────────────────────────
 
 #[test]

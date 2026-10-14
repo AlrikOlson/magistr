@@ -55,7 +55,12 @@ impl AgentRuntime {
     /// Human-readable provider name for display in the provider settings.
     #[must_use]
     pub fn provider_label(&self) -> &str {
-        match self.provider.as_str() {
+        Self::provider_label_for(&self.provider)
+    }
+
+    #[must_use]
+    pub fn provider_label_for(provider: &str) -> &str {
+        match provider {
             CLAUDE_PROVIDER => "Claude Code",
             CODEX_PROVIDER => "Codex",
             COPILOT_PROVIDER => "GitHub Copilot",
@@ -313,10 +318,20 @@ impl AgentRuntime {
     /// to probe each provider's model list independently.
     #[must_use]
     pub fn detect_all_for(inputs: &ProjectInputs) -> Vec<Self> {
-        Self::detect_all_with(
+        let mut runtimes = Self::detect_all_with(
             |name| which::which(name).ok(),
             claude_auth(inputs.has_claude_api_key()),
-        )
+        );
+        for provider in inputs.configured_api_providers() {
+            if !runtimes
+                .iter()
+                .any(|runtime| runtime.provider_id() == provider)
+                && let Ok(runtime) = Self::in_binary(provider)
+            {
+                runtimes.push(runtime);
+            }
+        }
+        runtimes
     }
 
     fn detect_all_with(
@@ -328,6 +343,18 @@ impl AgentRuntime {
         // Claude Code (best available auth), through the in-binary agent
         if let Some(claude) = find(CLAUDE_CLI)
             && let Ok(runtime) = Self::claude(auth(&claude))
+        {
+            runtimes.push(runtime);
+        }
+
+        if find(CODEX_PROVIDER).is_some()
+            && let Ok(runtime) = Self::in_binary(CODEX_PROVIDER)
+        {
+            runtimes.push(runtime);
+        }
+
+        if find(OLLAMA_PROVIDER).is_some()
+            && let Ok(runtime) = Self::in_binary(OLLAMA_PROVIDER)
         {
             runtimes.push(runtime);
         }

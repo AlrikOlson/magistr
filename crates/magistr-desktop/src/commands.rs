@@ -4,7 +4,9 @@ use crate::{
     streams::Streams,
     wire::{CatalogFrame, Frame, SessionInfo},
 };
-use magistr::application::{RecentProject, SessionClient, WorkingCopies, WorkingCopy};
+use magistr::application::{
+    RecentProject, SessionClient, SessionOpening, WorkingCopies, WorkingCopy,
+};
 use magistr::config::inputs::ProjectInputs;
 use magistr_cockpit::cockpit::Cmd;
 use magistr_domain::identity::SessionAddress;
@@ -33,6 +35,8 @@ pub(crate) enum Action {
     Send { text: String },
     Cancel,
     Reconnect,
+    Rename { name: String },
+    Configure { id: String, value: String },
     Answer { id: u64, option_id: String },
 }
 
@@ -116,9 +120,10 @@ pub(crate) async fn working_copies(directory: PathBuf) -> Result<Vec<WorkingCopy
 #[tauri::command]
 pub(crate) async fn open_session(
     directory: PathBuf,
+    choice: SessionOpening,
     state: State<'_, DesktopState>,
 ) -> Result<SessionAddress, String> {
-    state.client.open(directory).await
+    state.client.open(directory, choice).await
 }
 #[tauri::command]
 pub(crate) async fn subscribe_session(
@@ -158,6 +163,8 @@ pub(crate) async fn session_action(
 ) -> Result<(), String> {
     let command = match action {
         Action::Send { text } => Cmd::Prompt(text),
+        Action::Rename { name } => Cmd::Rename(name),
+        Action::Configure { id, value } => Cmd::Configure { id, value },
         Action::Cancel => Cmd::Cancel,
         Action::Reconnect => Cmd::Reconnect,
         Action::Answer { id, option_id } => Cmd::Permission { id, option_id },

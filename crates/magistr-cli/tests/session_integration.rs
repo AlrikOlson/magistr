@@ -29,6 +29,7 @@ fn make_record(id: &str, project: &str, cost: f64, turns: u32) -> SessionRecord 
     let now = Utc::now();
     SessionRecord {
         session_id: id.into(),
+        name: None,
         project: project.into(),
         workspace: project.into(),
         provider: "scripted".into(),
@@ -116,6 +117,7 @@ fn purge_removes_old_keeps_recent() {
     let now = Utc::now();
     let old_record = SessionRecord {
         session_id: "old-session".into(),
+        name: None,
         project: "project".into(),
         workspace: "project".into(),
         provider: "scripted".into(),

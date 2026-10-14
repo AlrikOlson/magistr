@@ -1,5 +1,5 @@
 use crate::agent::Backend;
-use crate::agent::probe::probe_all_providers;
+use crate::agent::probe_all_providers;
 use crate::error;
 use crate::models;
 use crate::output::OutputRenderer;
@@ -34,7 +34,7 @@ pub async fn cmd_models(
 fn render_json(
     renderer: &dyn OutputRenderer,
     registry: &models::ModelRegistry,
-    providers: &[crate::agent::probe::ProviderModelSet],
+    providers: &[crate::agent::provider_model_set::ProviderModelSet],
 ) -> eyre::Result<()> {
     let data = build_models_json(registry, providers);
     renderer
@@ -50,7 +50,7 @@ fn render_json(
 /// resolves in the registry.
 pub(crate) fn build_models_json(
     registry: &models::ModelRegistry,
-    providers: &[crate::agent::probe::ProviderModelSet],
+    providers: &[crate::agent::provider_model_set::ProviderModelSet],
 ) -> serde_json::Value {
     let provider_json: Vec<serde_json::Value> = providers
         .iter()
@@ -118,7 +118,7 @@ pub(crate) fn build_models_json(
 
 fn render_text(
     registry: &models::ModelRegistry,
-    providers: &[crate::agent::probe::ProviderModelSet],
+    providers: &[crate::agent::provider_model_set::ProviderModelSet],
     config_path: Option<&std::path::Path>,
 ) {
     eprintln!("{}\n", fmt::bold("🤖 Models your agents can run"));

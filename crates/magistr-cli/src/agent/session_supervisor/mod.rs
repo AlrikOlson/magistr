@@ -46,6 +46,7 @@ type Policy = (
 struct Inner {
     snapshot: SessionSupervisorSnapshot,
     history: super::persistence::SessionHistory,
+    policy: Option<permissions::PolicyAuthority>,
     queue: VecDeque<(u64, String)>,
     next_turn: u64,
     completed_turns: u32,
@@ -59,6 +60,7 @@ struct Inner {
     control_busy: bool,
     goal_turn: Option<u64>,
     capabilities: Option<AgentCapabilities>,
+    config_options: Vec<SessionConfigOption>,
     last_activity: Option<magistr_application::sessions::SessionActivity>,
     messages: Option<ObservationSender<Result<AgentMessage>>>,
     cockpit_events: Option<ObservationSender<AgentEvent>>,
@@ -89,6 +91,7 @@ impl Inner {
         let activity = magistr_application::sessions::SessionActivity {
             active: self.snapshot.active_turn.is_some(),
             queued_turns: self.snapshot.queued_turns,
+            configuration_in_progress: self.control_busy,
             cancellation_requested: self.snapshot.cancellation_requested,
             can_resume: self
                 .capabilities
@@ -113,7 +116,26 @@ impl Inner {
         }
     }
 
+    fn configuration_event(&self) -> AgentEvent {
+        let mut event = super::translate::configuration(&self.config_options);
+        if let Some(authority) = &self.policy {
+            let mut policy = authority.lock().expect("session policy lock poisoned");
+            if let AgentEvent::Configuration { options, model } = &mut event {
+                policy.model_changed(model.clone());
+                for option in options {
+                    if self.config_options.iter().any(|original| original.id.to_string() == option.id && original.category == Some(agent_client_protocol::schema::v1::SessionConfigOptionCategory::Model)) {
+                        option.values.retain(|(value, _)| policy.can_use_model(value));
+                    }
+                }
+            }
+        }
+        event
+    }
+
     fn emit_cockpit(&mut self, mut event: AgentEvent) {
+        if matches!(event, AgentEvent::Configuration { .. }) {
+            event = self.configuration_event();
+        }
         let initialized = matches!(event, AgentEvent::Initialized { .. });
         if let AgentEvent::Usage { cost_cents, .. } = &mut event {
             *cost_cents = self
@@ -130,6 +152,12 @@ impl Inner {
             self.snapshot.client_attached = false;
         }
         self.publish_activity();
+        if initialized {
+            if let Some(conversation) = self.history.conversation() {
+                self.emit_cockpit(AgentEvent::Conversation(conversation));
+            }
+            self.emit_cockpit(super::translate::configuration(&self.config_options));
+        }
         if initialized && let Some(cost) = self.history.reported_cost_usd() {
             self.emit_cockpit(AgentEvent::Usage {
                 context: None,
@@ -145,6 +173,14 @@ impl Inner {
         self.queue.clear();
         self.snapshot.queued_turns = 0;
         if count > 0 {
+            self.emit_cockpit(AgentEvent::Notice(format!(
+                "{count} queued {} not sent.",
+                if count == 1 {
+                    "message was"
+                } else {
+                    "messages were"
+                }
+            )));
             self.emit(Ok(AgentMessage::System {
                 subtype: "turns_discarded".into(),
                 data: serde_json::json!({"count": count, "turn_ids": turn_ids, "reason": reason}),
@@ -299,6 +335,10 @@ impl SessionSupervisor {
         let opening = !prompt.trim().is_empty();
         let history = history.unwrap_or_else(super::persistence::SessionHistory::new);
         history.bind_transport(&transport);
+        let config_options = transport
+            .session_config_options()
+            .unwrap_or_default()
+            .to_vec();
         if opening {
             transport
                 .prompt(prompt)
@@ -319,6 +359,7 @@ impl SessionSupervisor {
             next_turn: if opening { 2 } else { 1 },
             completed_turns: 0,
             max_turns,
+            policy: permissions.authority(),
             history,
             closing: false,
             draining: false,
@@ -326,6 +367,7 @@ impl SessionSupervisor {
             control_busy: false,
             goal_turn: None,
             capabilities: None,
+            config_options,
             last_activity: None,
             messages: Some(messages),
             cockpit_events: None,
@@ -390,6 +432,10 @@ impl SessionSupervisor {
         let (commands, command_rx) = mpsc::unbounded_channel();
         let history = history.unwrap_or_else(super::persistence::SessionHistory::new);
         history.bind_transport(&transport);
+        let config_options = transport
+            .session_config_options()
+            .unwrap_or_default()
+            .to_vec();
         let opening = options
             .opening_prompt
             .as_ref()
@@ -410,6 +456,7 @@ impl SessionSupervisor {
             next_turn: if opening.is_some() { 2 } else { 1 },
             completed_turns: 0,
             max_turns: options.max_turns,
+            policy: permissions.authority(),
             history,
             closing: false,
             draining: false,
@@ -417,6 +464,7 @@ impl SessionSupervisor {
             control_busy: true,
             goal_turn: None,
             capabilities: None,
+            config_options,
             last_activity: None,
             messages: None,
             cockpit_events: Some(cockpit_events),
@@ -674,6 +722,7 @@ impl SessionSupervisor {
             ));
         }
         inner.control_busy = true;
+        inner.publish_activity();
         Ok(())
     }
 
@@ -687,12 +736,62 @@ impl SessionSupervisor {
             .map_err(|_| acp_error("list_sessions response channel dropped"))?
     }
 
+    pub fn rename(&self, name: &str) -> Result<()> {
+        let mut inner = self.inner.lock().expect("supervisor state lock poisoned");
+        if inner.closing || inner.snapshot.residency != SessionResidency::Resident {
+            return Err(acp_error("This session has closed."));
+        }
+        inner.history.rename(name)?;
+        if let Some(conversation) = inner.history.conversation() {
+            inner.emit_cockpit(AgentEvent::Conversation(conversation));
+        }
+        Ok(())
+    }
+
+    fn validate_config(&self, config_id: &str, value_id: &str) -> Result<()> {
+        let inner = self.inner.lock().expect("supervisor state lock poisoned");
+        let available = super::types::config_options_from_acp(&inner.config_options);
+        if let Some(authority) = &inner.policy
+            && inner.config_options.iter().any(|option| {
+                option.id.to_string() == config_id
+                    && option.category
+                        == Some(
+                            agent_client_protocol::schema::v1::SessionConfigOptionCategory::Model,
+                        )
+            })
+            && !authority
+                .lock()
+                .expect("session policy lock poisoned")
+                .can_use_model(value_id)
+        {
+            return Err(acp_error(
+                "This model is not allowed by the project's settings.",
+            ));
+        }
+        if !available.iter().any(|option| {
+            option.id == config_id
+                && option
+                    .options
+                    .iter()
+                    .any(|value| value.value_id == value_id)
+        }) {
+            return Err(acp_error(
+                "This choice is no longer available. Choose from the agent's current options.",
+            ));
+        }
+        Ok(())
+    }
+
     /// Apply a configuration change only while the session is idle.
     pub async fn set_config_option(
         &self,
         config_id: String,
         value: SessionConfigOptionValue,
     ) -> Result<Vec<SessionConfigOption>> {
+        let SessionConfigOptionValue::ValueId { value: choice } = &value else {
+            return Err(acp_error("This agent choice is unavailable."));
+        };
+        self.validate_config(&config_id, &choice.0)?;
         self.reserve_control()?;
         let (reply, response) = oneshot::channel();
         self.send_command(Command::Config {
@@ -707,6 +806,7 @@ impl SessionSupervisor {
 
     /// Queue an idle configuration change; asynchronous refusal is emitted on the message stream.
     pub fn send_config_change(&self, config_id: String, value_id: String) -> Result<()> {
+        self.validate_config(&config_id, &value_id)?;
         self.reserve_control()?;
         self.send_command(Command::Config {
             config_id,

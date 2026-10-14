@@ -232,7 +232,7 @@ fn acp_no_agent_found_has_install_suggestion() {
 #[test]
 fn acp_spawn_no_such_file_has_install_suggestion() {
     let err = MagistrError::Acp(
-        "Failed to connect ACP transport: Connection error: Failed to spawn ACP agent \
+        "Could not connect to the agent: Connection error: Failed to spawn ACP agent \
          `/opt/bin/claude`: No such file or directory (os error 2)"
             .into(),
     );
@@ -242,7 +242,7 @@ fn acp_spawn_no_such_file_has_install_suggestion() {
 #[test]
 fn acp_session_refusal_points_at_the_agent_reason_not_install() {
     let err = MagistrError::Acp(
-        "Failed to connect ACP transport: Connection error: ACP session/new failed: \
+        "Could not connect to the agent: Connection error: ACP session/new failed: \
          Invalid permissions.defaultMode: auto."
             .into(),
     );

@@ -62,6 +62,9 @@ pub(crate) async fn run(cli: Desktop) -> eyre::Result<()> {
         })
         .invoke_handler(tauri::generate_handler![
             crate::commands::overview,
+            crate::conversations::agent_choices,
+            crate::conversations::model_choices,
+            crate::conversations::saved_conversations,
             crate::commands::working_copies,
             crate::commands::pick_folder,
             crate::commands::preview_project,

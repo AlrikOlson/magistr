@@ -123,7 +123,12 @@ async fn goal_reply_is_observed_after_text_on_both_sides_of_its_echo() {
         // must already be queued. Waiting here could hide an early reply.
         let mut transcript = Vec::new();
         while let Ok(event) = fixture.events.try_recv() {
-            if !matches!(event, AgentEvent::Activity(_)) {
+            if !matches!(
+                event,
+                AgentEvent::Activity(_)
+                    | AgentEvent::Conversation(_)
+                    | AgentEvent::Configuration { .. }
+            ) {
                 transcript.push(event);
             }
         }

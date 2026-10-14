@@ -25,7 +25,7 @@ const DB_FILENAME: &str = "sessions.db";
 const BUSY_WAIT: std::time::Duration = std::time::Duration::from_millis(500);
 
 /// Current schema only. Older formats are refused, never migrated.
-const SCHEMA_VERSION: i32 = 7;
+const SCHEMA_VERSION: i32 = 8;
 
 /// The session database, `<data_dir>/sessions.db`, over the captured data
 /// directory — the same directory the cost ledger and the audit log share;
@@ -37,8 +37,17 @@ pub fn sessions_db_path(inputs: &ProjectInputs) -> Option<PathBuf> {
 
 /// Open existing session history without creating or updating its schema.
 pub fn open_readonly_db(path: &Path) -> Result<Connection> {
-    Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)
-        .map_err(|error| MagistrError::sqlite("read session history", error))
+    let conn = Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)
+        .map_err(|error| MagistrError::sqlite("read session history", error))?;
+    let version: i32 = conn
+        .pragma_query_value(None, "user_version", |row| row.get(0))
+        .map_err(|error| MagistrError::sqlite("read saved conversations", error))?;
+    if version != SCHEMA_VERSION {
+        return Err(MagistrError::Config(
+            "Saved conversations in this folder cannot be read by this version of Magistr.".into(),
+        ));
+    }
+    Ok(conn)
 }
 /// Open or create the session database, including its parent directories and schema.
 pub fn open_db(path: &Path) -> Result<Connection> {
@@ -128,7 +137,8 @@ fn initialize(conn: &Connection) -> Result<()> {
                 tags TEXT NOT NULL,
                 summary TEXT,
                 model TEXT,
-                owner TEXT
+                owner TEXT,
+                name TEXT
             );
             CREATE INDEX idx_sessions_project ON sessions(project);
             CREATE INDEX idx_sessions_workspace ON sessions(workspace);
@@ -145,7 +155,7 @@ fn initialize(conn: &Connection) -> Result<()> {
                 UNIQUE(session_id, turn_index)
             );
             CREATE INDEX idx_turns_session ON session_turns(session_id);
-            PRAGMA user_version = 7;"
+            PRAGMA user_version = 8;"
         ).map_err(|e| MagistrError::sqlite("create session schema", e))
     })();
     match result {
@@ -171,15 +181,15 @@ pub fn insert_session(conn: &Connection, record: &SessionRecord) -> Result<()> {
             "INSERT INTO sessions
             (session_id, project, started_at, ended_at, cost_usd, turns,
              duration_ms, files_changed, tags, summary, model, owner,
-             workspace, provider, provider_session_id, resume_supported, outcome)
+             workspace, provider, provider_session_id, resume_supported, outcome, name)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12,
-                 ?13, ?14, ?15, ?16, ?17)
+                 ?13, ?14, ?15, ?16, ?17, ?18)
          ON CONFLICT(session_id) DO UPDATE SET
              ended_at=excluded.ended_at, cost_usd=excluded.cost_usd,
              turns=excluded.turns, duration_ms=excluded.duration_ms,
              files_changed=excluded.files_changed, summary=excluded.summary,
              model=excluded.model, provider_session_id=excluded.provider_session_id,
-             resume_supported=excluded.resume_supported, outcome=excluded.outcome
+             resume_supported=excluded.resume_supported, outcome=excluded.outcome, name=excluded.name
          WHERE excluded.ended_at > sessions.ended_at
            AND excluded.project = sessions.project
            AND excluded.workspace = sessions.workspace
@@ -203,6 +213,7 @@ pub fn insert_session(conn: &Connection, record: &SessionRecord) -> Result<()> {
                 record.provider_session_id,
                 record.resume_supported,
                 record.outcome.as_str(),
+                record.name,
             ],
         )
         .map_err(|e| MagistrError::sqlite("save session", e))?;
@@ -226,7 +237,7 @@ pub fn query_sessions(conn: &Connection, filter: &SessionFilter) -> Result<Vec<S
     let mut sql = String::from(
         "SELECT session_id, project, started_at, ended_at, cost_usd, turns,
                 duration_ms, files_changed, tags, summary, model, owner,
-                workspace, provider, provider_session_id, resume_supported, outcome
+                workspace, provider, provider_session_id, resume_supported, outcome, name
          FROM sessions WHERE 1=1",
     );
     let mut param_values: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
@@ -286,7 +297,7 @@ pub fn get_session(conn: &Connection, session_id: &str) -> Result<Option<Session
         .prepare(
             "SELECT session_id, project, started_at, ended_at, cost_usd, turns,
                     duration_ms, files_changed, tags, summary, model, owner,
-                workspace, provider, provider_session_id, resume_supported, outcome
+                workspace, provider, provider_session_id, resume_supported, outcome, name
              FROM sessions WHERE session_id = ?1",
         )
         .map_err(|e| MagistrError::sqlite("prepare session query", e))?;
@@ -504,6 +515,7 @@ fn row_to_record(row: &rusqlite::Row<'_>) -> rusqlite::Result<SessionRecord> {
         })?;
     Ok(SessionRecord {
         session_id: row.get(0)?,
+        name: row.get(17)?,
         project: row.get(1)?,
         started_at: timestamp(row, 2)?,
         ended_at: timestamp(row, 3)?,

@@ -51,6 +51,10 @@ pub(crate) fn session_with_checkpoints(
             };
             // The coordinator owns one observed identity per purpose. Restore it
             // through the normal provider loader, which refuses unsupported loads.
+            if resume.is_some() && purpose == SessionPurpose::Conversation {
+                config.model = config.history.current_model();
+                config.effort = None;
+            }
             config.resume = resume;
             if purpose == SessionPurpose::Roadmap {
                 config.history = roadmap_history.clone();
