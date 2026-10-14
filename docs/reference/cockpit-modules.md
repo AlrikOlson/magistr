@@ -116,6 +116,8 @@ desktop workspace. Companion Rust tests live beside their owners.
 - `crates/magistr-desktop/src/projects.rs`
 - `crates/magistr-desktop/tests/projects.mjs`
 - `crates/magistr-desktop/ui/projects.mjs`
+- `crates/magistr-desktop/ui/project_picker.mjs` — folder entry, independent file review, exact approval selection and setup recovery.
+- `crates/magistr-desktop/tests/browser/projects.spec.mjs` — background setup review, cancellation, partial results and short-window actions.
 - `crates/magistr-desktop/src/streams.rs`
 - `crates/magistr-desktop/src/wire.rs`
 - `crates/magistr-desktop/tests/composer.mjs`

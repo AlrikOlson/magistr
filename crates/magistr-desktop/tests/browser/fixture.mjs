@@ -62,7 +62,13 @@ export function workspaceSeed() {
     updated_at:"2026-10-"+String(14-Math.floor(index/2)).padStart(2,"0")+"T15:30:00Z",ended_at:null,turns:"8",cost:"$0.42",resume_reason:null,
     summary:index===0?"The release is ready for a final review.\n\nCheck the installer on a clean machine, keep the previous build available, and confirm that reopening a project restores the unsent message.\n\n"+Array.from({length:8},(_,n)=>"Review "+(n+1)+": confirm the expected behavior with the person responsible for this part of the release. Keep a short note of what changed and how to recover.").join("\n\n"):"We reviewed the current behavior and agreed on the next change. Return to this conversation to continue with the same context."
   }));
-  return {frames,history,projects:[{id:"magistr",name:"Magistr",directory:"/Projects/magistr"},{id:"website",name:"Website",directory:"/Projects/website"}]};
+  const setup={kind:"setup",review:1,directory:"/Projects/new-project",setup_directory:"/Projects/new-project",files:[
+    {path:".magistr/project.json",action:"Create file",ownership:"Managed by Magistr",reason:null,selectable:true,before:null,after:'{\n  "name": "New project",\n  "language": "Rust"\n}\n',diff:null},
+    {path:"AGENTS.md",action:"Update file",ownership:"Shared file",reason:"Only the Magistr instructions will change. Your project notes stay in place.",selectable:true,before:"# Project notes\n",after:"# Project notes\n\nUse focused checks for this project.\n",diff:"@@ -1 +1,3 @@\n # Project notes\n+\n+Use focused checks for this project.\n"},
+    {path:".claude/settings.json",action:"Keep file",ownership:"Your file",reason:"This file has been edited. Its current contents will be kept.",selectable:false,before:'{ "permissions": { "allow": [] } }',after:"",diff:null},
+    ...Array.from({length:10},(_,index)=>({path:".agents/skills/"+["craft","next","validate","roadmap","roadmap-refresh","signals","handoff","workbench-routing","init","next-loop"][index]+"/SKILL.md",action:"Create file",ownership:"Managed by Magistr",reason:null,selectable:true,before:null,after:"# Project workflow\n\nRead the current project state before starting work.\n\n"+Array.from({length:12},()=>"- Keep each change focused and verify the affected behavior.").join("\n"),diff:null}))
+  ]};
+  return {frames,history,setup,projects:[{id:"magistr",name:"Magistr",directory:"/Projects/magistr"},{id:"website",name:"Website",directory:"/Projects/website"}]};
 }
 function install(seed) {
   const frames=new Map(seed.frames.map(frame=>[frame.address.session,frame])),calls=[];
@@ -80,6 +86,9 @@ function install(seed) {
       case "overview":return {directory:null,reduce_motion:false,sessions:sessions(),projects:seed.projects,attachment_limits:{file_bytes:8388608}};
       case "subscribe_catalog":catalog=args.channel;catalog.onmessage({stream:1,sequence:++stream,sessions:sessions()});return 1;
       case "subscribe_file_drops":case "subscribe_exit":case "acknowledge":case "session_action":return;
+      case "preview_project":return {...structuredClone(seed.setup),directory:args.directory,setup_directory:args.directory,review:++stream};
+      case "discard_setup":return;
+      case "pick_folder":return null;
       case "saved_conversations":return structuredClone(seed.history);
       case "saved_draft":{
         const record=saved.get(args.id);if(!record)throw new Error("Unknown saved conversation.");

@@ -75,6 +75,25 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
   await expect(app.getByRole("heading",{name:"Release notes and rollback",exact:true})).toBeVisible();
   await capture("history-narrow-light.png");
   checks["saved history has fixed heading, search, independent panes and resume action"]=true;
+  await app.getByRole("button",{name:"Close saved conversations",exact:true}).click();
+  await app.getByRole("button",{name:"Open project",exact:true}).click();
+  await app.getByLabel("Project folder",{exact:true}).fill("/Projects/new-project");
+  await app.locator("#picker-submit").click();
+  await expect(app.getByRole("heading",{name:"Review project setup",exact:true})).toBeVisible();
+  await app.getByRole("button",{name:"Read AGENTS.md",exact:true}).click();
+  await capture("setup-narrow-light.png");
+  await app.getByRole("button",{name:"Cancel",exact:true}).click();
+  await app.setViewportSize({width:1280,height:820});
+  await app.getByRole("button",{name:"Settings",exact:true}).click();
+  await app.getByLabel("Appearance",{exact:true}).selectOption("dark");
+  await app.getByRole("button",{name:"Done",exact:true}).click();
+  await app.getByRole("button",{name:"Open project",exact:true}).click();
+  await capture("open-project-dark.png");
+  await app.locator("#picker-submit").click();
+  await expect(app.getByRole("heading",{name:"Review project setup",exact:true})).toBeVisible();
+  await app.getByRole("button",{name:"Read AGENTS.md",exact:true}).click();
+  await capture("setup-dark.png");
+  checks["setup review separates file approval from reading with fixed actions"]=true;
   const sources={};
   for(const name of (await readdir(ui)).sort()){
     const file=resolve(ui,name);
