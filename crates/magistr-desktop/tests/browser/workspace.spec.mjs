@@ -108,6 +108,19 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
   await app.getByLabel("Model for this conversation",{exact:true}).selectOption("sonnet");
   await capture("new-conversation-narrow-light.png");
   checks["new conversation exposes destination, agents and optional model choice"]=true;
+  await app.getByRole("button",{name:"Cancel",exact:true}).click();
+  await app.getByRole("button",{name:"Find a conversation",exact:true}).click();
+  await app.getByLabel("Find an open conversation",{exact:true}).fill("magistr");
+  await app.keyboard.press("ArrowDown");
+  await capture("find-conversation-narrow-light.png");
+  await app.keyboard.press("Escape");
+  await app.setViewportSize({width:1280,height:820});
+  await app.getByRole("button",{name:"Settings",exact:true}).click();
+  await app.getByLabel("Appearance",{exact:true}).selectOption("dark");
+  await app.getByRole("button",{name:"Done",exact:true}).click();
+  await app.getByRole("button",{name:"Find a conversation",exact:true}).click();
+  await capture("find-conversation-dark.png");
+  checks["conversation finding and documented keyboard navigation keep focus visible"]=true;
   const sources={};
   for(const name of (await readdir(ui)).sort()){
     const file=resolve(ui,name);

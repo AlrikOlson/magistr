@@ -1,28 +1,29 @@
 {
-  "receipt": "d532a9d7b2597743193bb6d212f2d354c3bfcfc3e0c2662a8a84993c5d8cfb85",
+  "receipt": "aa0b276eda1b34c4b2b0be05d3c816649751acc51b1808d5d8b000d3fffdd130",
   "images": {
-    "welcome-dark.png": "79e72cd80fd09260941e65f9850b18d1c4de3f60197b90867bc2e01735e49de0",
-    "workspace-dark.png": "83923e7816c24b594be689a56230b83e88b303c6ff55f43c5d9ac051bca4cd1b",
-    "settings-light.png": "a24d06bc090c3d51109c7706dd8170e96c99a3fa962744075805fe88ac0b1582",
-    "workspace-light.png": "dd07c37291da38e03d1c3f2801bbb96f6e97834ad503783a396e8ad47cb10875",
-    "workspace-narrow.png": "9567b432b14adc3d00153bd320a3fbb46a8d1af532f774f6a9f3979c5f64e06a",
-    "details-narrow.png": "5218f730dba05e680ba5a757f68fa0aa4f2d3b7162417692cd52eec6935ec966",
-    "rename-light.png": "ff54bdac452da9842ab43c13375bccf29abb573f4f2ab0fa17c467a0b4143683",
-    "work-paused-dark.png": "9c84d2bc0b9334978c2718eeaa4506672a8de7f1046fabfcb6c95e4a0c79c81f",
-    "history-dark.png": "c275bd7e66f7ec0fe0248ce52789777386d15ffd7b0b0cd8f50b20793c8a6f39",
-    "history-narrow-light.png": "1800e40c7cc85e13c6965be43e2cfb19ce18fa4dd594934702e819e0f684fcc1",
-    "setup-narrow-light.png": "952a7484f8d4125352ca5e96ee401e8da65259cdc6b238808b055cf2e23d9928",
-    "open-project-dark.png": "9c55544b547896d3b3bbef4ddd7c22a460f5f079d7150475b30987bb5cb12436",
-    "setup-dark.png": "3f5d0c4240dc95bcfa8d1bcd219fb864c262cfd36daf7edc5dab6eeac5dd1e5e",
-    "new-conversation-dark.png": "734891feb8091db30080ddd33d53491bf4955069dfb8ba322074a6a43da330d7",
-    "new-conversation-narrow-light.png": "814ffd9b4d0eaee318802001f5e77dc03202f8d4f12665509c443fdc4776795a"
+    "welcome-dark.png": "9b1765076fbfa8e1f8d2c9bd9657e23d124771c751dec18146b5bde00ab3ec9c",
+    "workspace-dark.png": "ec570204e856c05a0d658dfd438d6f1180dfb39b3ac4ca28a8aeb3f10b22e6d1",
+    "settings-light.png": "ef5283848ea9bf78eade1f81aeaafed8fbefdf5731e4e2051b80fcbc76902f25",
+    "workspace-light.png": "c930c3db68e4d95cc68250c514847927855f1df0319edeb21806853a9743780d",
+    "workspace-narrow.png": "78567fab621b9930d4acfe36aea8800d631e6617a05c8a2623c2a8fa89264a2b",
+    "details-narrow.png": "948d9c8f5093845a08082cfbc6e3f8de9f08d18c2ad5750c0d2c7be2278c74f6",
+    "rename-light.png": "04e762c50ebc38a5bcfe5f02d53f2dd01241cc90365893059e6f3fcf17726965",
+    "work-paused-dark.png": "85ed505aa4b0c0a0b1f47d5e2505a8670433b3f947038fe0e571475579ea4813",
+    "history-dark.png": "101684449cb5b7c526186fac51f6fa512ac462c4ad29a87247f0917c3059ae06",
+    "history-narrow-light.png": "6d44716f60a3e7318b87b5449284c4fb7e5e79e125901610c53a0ccfd29e65b6",
+    "setup-narrow-light.png": "38bce6954654bd9d55e6f04d76778f8a831ab688eb22c1f66be5260eb7c6aee2",
+    "open-project-dark.png": "38576a38d56f39e1b94a7bebda27171231e1ef6b6d3f2886f195ad905ecf6785",
+    "setup-dark.png": "5d1ae2a7aed5d65c9be720be859a80635e5dfae903f674398b2c123422b25076",
+    "new-conversation-dark.png": "c6b564919ccfad17f9cebb83b9ec9ff731076e10b47c284c23ef35afe2c236f4",
+    "new-conversation-narrow-light.png": "77ca9d0234cda7a7556f0dff73ce8867bb67253fc9317c7d5b107279de1dacad",
+    "find-conversation-narrow-light.png": "c02583fb5f48f41f2d77fd61c3b1b334ebcf37dc1db38cbf92b069e63a189832",
+    "find-conversation-dark.png": "6913271b946e4ec61e5f0ce15b674d5e7d16048cd9b306daf82619755d6e23bd"
   },
   "reviewed_on": "2026-10-14",
   "findings": [
-    "Reviewed fifteen captures. The thirteen prior workspace/history/setup captures retain their reviewed hashes; inspected both new-conversation captures at full size, including the revised whole-choice keyboard focus.",
-    "New conversation clearly names the project and working copy, uses native radio choices for detected agents and keeps optional model discovery separate. Narrow light layout preserves the model and visible Start/Cancel actions; short-window coverage passed at 800×560.",
-    "All fifteen images are unchanged after adding transient reading/editor bookmarks. Focused WebKit journeys verify restored paragraph offsets, valid selected text, tool disclosures and draft caret/scroll, current background replies, hidden Details updates, changed/pruned source and Latest. A resize feedback loop found during the hidden-view test was corrected and the affected checks pass.",
-    "Background journeys cover detection unavailable versus empty, stale model failure, admission refusal, pending controls, preserved choices and navigation retry after successful admission without starting a second agent. The actual desktop rebuilt.",
-    "Production UI with isolated observations only. Native OS input, IME, OS dialogs, VoiceOver and other-platform checks remain unrun; prior native receipts retain their source versions."
+    "Inspected all seventeen current captures at full size. The rail now exposes Find a conversation and its platform shortcut; the larger Settings dialog keeps appearance/motion and the shortcut list legible. Existing conversation, Details, saved-history, setup and new-conversation surfaces remain coherent in both appearances.",
+    "The switcher uses ordinary search and result buttons with visible keyboard focus, project/path context and current/waiting state. Narrow light filtering retains clear result hierarchy and Cancel.",
+    "Four focused background keyboard journeys verify search/cancel focus, F6 and reverse region traversal in compact mode, collapsed-project recovery, modal/composition guards and failed-draft navigation recovery. A collapsed-details focus case and a test key-name typo were corrected; all affected checks pass. The actual desktop rebuilt.",
+    "Headless WebKit verifies production DOM only. Native OS input, IME, VoiceOver, OS dialogs and other platforms remain unrun; archived native receipts retain their actual source versions."
   ]
 }

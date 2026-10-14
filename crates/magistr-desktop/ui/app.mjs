@@ -1,3 +1,5 @@
+import { ConversationSwitcher } from "./switcher.mjs";
+import { KeyboardNavigation } from "./keyboard.mjs";
 import { EditorPlaces } from "./reading.mjs";
 import { ConversationPicker } from "./conversation_picker.mjs";
 import { HistoryBrowser } from "./history.mjs";
@@ -60,6 +62,9 @@ const navigation=new ProjectNavigation($("projects"),{
   select:address=>select(address).catch(showError),open:openDirectory,act,close:closeAddress,
   label:session=>session.conversation?.name??("Conversation "+labels.get(session.address.session))
 });
+const switcher=new ConversationSwitcher($,{sessions:()=>sessions,selected:()=>selected,ready:()=>catalog.sequence>=0,select,
+  label:session=>session.conversation?.name??("Conversation "+labels.get(session.address.session))});
+new KeyboardNavigation($,layout);
 $("open-settings").onclick=()=>{if(!document.querySelector("dialog[open]"))$("settings").showModal();};
 $("settings-close").onclick=()=>$("settings").close();
 $("settings").onclose=()=>$("open-settings").focus();
@@ -134,7 +139,7 @@ async function connectCatalog() {
     const targets=new Set(sessions.filter(session=>!session.closed).flatMap(session=>session.owned_conversations.map(conversation=>targetKey({address:session.address,conversation}))));
     transcriptView.retain(targets);editorPlaces.retain(targets);
     for(const session of sessions)if(!labels.has(session.address.session))labels.set(session.address.session,++issuedLabel);
-    renderRail();savedDraftEditor.render();history.update();
+    renderRail();savedDraftEditor.render();history.update();switcher.update();
     invoke("acknowledge",{stream:frame.stream,sequence:frame.sequence}).catch(showError);
   };
   channel.onmessage=frame=>ready?receive(frame):early=frame;
@@ -469,9 +474,6 @@ const conversationPicker=new ConversationPicker(invoke,$,{
 const chooseAgent=directory=>conversationPicker.show({
   directory,name:sessions.find(session=>addressKey(session.address)===addressKey(selected))?.name??"Project",
   provider:sessions.find(session=>addressKey(session.address)===addressKey(selected))?.conversation?.provider
-});
-document.addEventListener("keydown",event=>{
-  if(!event.isComposing&&!document.querySelector("dialog[open]")&&(event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==="o"){event.preventDefault();$("open-project").click();}
 });
 try {
   const info=await refresh();await connectCatalog();await connectFileDrops();

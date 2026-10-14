@@ -146,6 +146,9 @@ desktop workspace. Companion Rust tests live beside their owners.
 - `crates/magistr-desktop/tests/browser/opening.spec.mjs` — background discovery, model read fencing, admission retry and focus.
 - `crates/magistr-desktop/ui/conversation_actions.mjs` — addressed rename dialog with pending acknowledgement, errors and stale-target refusal.
 - `crates/magistr-desktop/tests/browser/context.spec.mjs` — rename recovery, work summary and waiting-request navigation.
+- `crates/magistr-desktop/ui/keyboard.mjs` — platform shortcut hints, modal/IME guards and logical region navigation.
+- `crates/magistr-desktop/ui/switcher.mjs` — searchable current-catalog conversations and guarded selection/focus recovery.
+- `crates/magistr-desktop/tests/browser/keyboard.spec.mjs` — background shortcut, region, modal, IME guard and refused-selection journeys.
 - `crates/magistr-desktop/ui/navigation.mjs` — grouped project/conversation presentation and addressed row actions.
 - `crates/magistr-desktop/tests/navigation.mjs` — project identity and linked-copy grouping.
 - `crates/magistr-desktop/tests/browser/navigation.spec.mjs` — background navigation, contextual actions and Settings recovery.
