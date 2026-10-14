@@ -333,7 +333,7 @@ async fn a_finished_loop_keeps_delivering_roadmap_and_conversation_requests() {
         "post-loop local controls share the loop's existing checkpoint history: {restored:?}"
     );
     for text in ["Add more ready work", "Include accessibility"] {
-        commands.send(Cmd::RoadmapPrompt(text.to_owned())).unwrap();
+        commands.send(Cmd::RoadmapPrompt(text.into())).unwrap();
         next_matching(&mut events, |event| {
             matches!(event, Msg::RoadmapRequestStarted)
         })
@@ -353,9 +353,9 @@ async fn a_finished_loop_keeps_delivering_roadmap_and_conversation_requests() {
         "planning follow-ups reuse their context"
     );
     for command in [
-        Cmd::Prompt("Explain the last result".to_owned()),
-        Cmd::RoadmapPrompt("Keep the earlier testing request".to_owned()),
-        Cmd::Prompt("Continue your explanation".to_owned()),
+        Cmd::Prompt("Explain the last result".into()),
+        Cmd::RoadmapPrompt("Keep the earlier testing request".into()),
+        Cmd::Prompt("Continue your explanation".into()),
     ] {
         commands.send(command).unwrap();
         next_matching(&mut events, |event| {
@@ -435,8 +435,8 @@ async fn conversation_messages_during_checks_are_rejected_with_the_original_draf
     })
     .await;
     assert!(
-        matches!(rejected, Msg::Agent(AgentEvent::PromptRejected { text, error })
-        if text == "Keep this question" && error.contains("draft is kept"))
+        matches!(rejected, Msg::Agent(AgentEvent::PromptRejected { input, error })
+        if input.text == "Keep this question" && error.contains("draft is kept"))
     );
     let report = tokio::time::timeout(Duration::from_secs(20), task)
         .await
@@ -532,8 +532,8 @@ async fn interactive_roadmap_startup_failure_preserves_request_and_does_not_clai
     })
     .await;
     assert!(
-        matches!(event, Msg::Agent(AgentEvent::PromptRejected { text, error })
-        if text == "Add more work" && error.contains("offline"))
+        matches!(event, Msg::Agent(AgentEvent::PromptRejected { input, error })
+        if input.text == "Add more work" && error.contains("offline"))
     );
     drop(commands);
     session.await.unwrap().unwrap();

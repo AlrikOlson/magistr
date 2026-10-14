@@ -1,12 +1,14 @@
 import { Transcript } from "./transcript.mjs";
-import { Submissions, shouldSaveDraft } from "./session_controls.mjs";
+import { Submissions, shouldSaveDraft, reconcileDraft } from "./session_controls.mjs";
 import { attachComposer } from "./composer.mjs";
+import { AttachmentList, clipboardFiles, sizeLabel } from "./attachments.mjs";
 import { Selection } from "./selection.mjs";
 import { ProjectOpening } from "./projects.mjs";
 import { Catalog, usageText, capabilityText } from "./supervision.mjs";
 const {invoke,Channel}=window.__TAURI__.core;
 const $=id=>document.getElementById(id);
-let selected=null,view=null,sessions=[],projects=[];
+let selected=null,view=null,sessions=[],projects=[],composerFrame=null,attachmentLimits=null;
+const attachmentWork=new Set();
 const submissions=new Submissions();
 const selection=new Selection();
 const catalog=new Catalog();
@@ -23,9 +25,14 @@ const showError=error=>{$("error").textContent=String(error);$("error").hidden=f
 const clearError=()=>{$("error").hidden=true;};
 const button=(label,click)=>{const element=document.createElement("button");element.textContent=label;element.onclick=click;return element;};
 const text=(tag,value)=>{const element=document.createElement(tag);element.textContent=value;return element;};
+const attachmentList=new AttachmentList($("pending-attachments"),id=>{
+  const address=selected;
+  return changeAttachments(address,()=>invoke("remove_attachment",{address,id}));
+},()=>$("add-files").focus());
 
 async function refresh() {
   const info=await invoke("overview");if(catalog.sequence<0)sessions=info.sessions;projects=info.projects;
+  attachmentLimits=info.attachment_limits;
   for(const session of sessions)if(!labels.has(session.address.session))labels.set(session.address.session,++issuedLabel);
   renderRail();return info;
 }
@@ -92,14 +99,47 @@ async function connectCatalog() {
   if(early)receive(early);
 
 }
-async function saveDraft(address=selected,value=$("draft").value) {
-  if(!shouldSaveDraft(address,value,sessions,submissions))return;
-  await invoke("save_draft",{address,text:value});
+function renderComposer() {
+  if(!composerFrame)return;
+  const frame=composerFrame,busy=attachmentWork.has(JSON.stringify(frame.address));
+  $("send").disabled=busy||submissions.pending(frame.address)||frame.closed||frame.activity?.cancellation_requested;
+  $("add-files").disabled=busy||frame.closed;
+  attachmentList.apply(frame.attachments, busy||frame.closed);
+  const images=attachmentList.files.some(file=>file.mime_type);
+  const note=busy?"Updating files…":images&&frame.activity?.can_send_images===false?
+    "This agent cannot receive images. Remove the image before sending.":
+    images&&frame.activity?.can_send_images!==true?"Image support has not been reported. Your files stay here if the agent cannot receive them.":
+    attachmentLimits?"Add text files or PNG, JPEG and WebP images · "+sizeLabel(attachmentLimits.file_bytes)+" per file.":"";
+  if($("attachment-note").textContent!==note)$("attachment-note").textContent=note;
+}
+async function changeAttachments(address,operation) {
+  if(!address)return;
+  const key=JSON.stringify(address);
+  if(attachmentWork.has(key)){showError("Wait for the current file selection to finish.");return;}
+  attachmentWork.add(key);renderComposer();clearError();
+  try{await operation();}catch(error){showError(error);}
+  finally{attachmentWork.delete(key);renderComposer();}
+}
+async function connectFileDrops() {
+  const channel=new Channel();
+  channel.onmessage=notice=>{
+    if(notice.kind==="error"){showError(notice.message);return;}
+    if(!selected||JSON.stringify(selected)!==JSON.stringify(notice.address)||selection.current?.stream!==notice.stream||document.querySelector("dialog[open]")) {
+      showError("The selected conversation changed. Drop the files again.");return;
+    }
+    const address=selected;
+    changeAttachments(address,()=>invoke("attach_dropped_files",{address,stream:notice.stream,selection:notice.selection}));
+  };
+  await invoke("subscribe_file_drops",{channel});
+}
+async function saveDraft(address=selected,input=attachmentList.input($("draft").value)) {
+  if(!shouldSaveDraft(address,input,sessions,submissions))return;
+  await invoke("save_draft",{address,text:input.text});
 }
 async function select(address,requestId=null) {
-  const previous=selected,value=$("draft").value;
+  const previous=selected,input=attachmentList.input($("draft").value);
   const accepted=await selection.open(address,{
-    save:()=>previous?saveDraft(previous,value):Promise.resolve(),
+    save:()=>previous?saveDraft(previous,input):Promise.resolve(),
     subscribe:async(address,intent,receive)=>{
       const channel=new Channel();channel.onmessage=receive;
       return invoke("subscribe_session",{address,channel,selection:intent});
@@ -107,8 +147,8 @@ async function select(address,requestId=null) {
     commit:(candidate,initial)=>{
       selected=address;view=candidate;candidate.requestId=requestId;requestsKey="";railKey="";configurationKey="";
       $("welcome").hidden=true;$("workspace").hidden=false;$("view-title").textContent="Conversation";
-      $("draft").value="";
-      $("draft").disabled=true;$("send").disabled=true;
+      $("draft").value="";composerFrame=null;attachmentList.clear();
+      $("draft").disabled=true;$("send").disabled=true;$("add-files").disabled=true;$("attachment-note").textContent="";
       $("workspace-path").textContent=address.workspace;
       $("project-name").textContent=sessions.find(session=>session.address.session===address.session)?.name??"Project";
       $("status").textContent="Connecting";renderRail();clearError();
@@ -127,12 +167,12 @@ async function select(address,requestId=null) {
   }));
 }
 function receiveFrame(candidate,frame) {
-  const initial=candidate.sequence<0;
+  const previousSequence=candidate.sequence;
   if(candidate.apply(frame)) {
-    if(initial) $("draft").value=frame.draft;
+    if(previousSequence<0) $("draft").value=frame.draft;
     const accepted=submissions.observe(frame);
-    if(accepted!==null&&$("draft").value===accepted)$("draft").value="";
-    if(frame.draft && !$("draft").value && frame.events.some(event=>event.role==="Error")) $("draft").value=frame.draft;
+    const draft=reconcileDraft(frame,attachmentList.input($("draft").value),accepted,previousSequence);
+    if(draft!==$("draft").value)$("draft").value=draft;
     render(frame);
   }
   invoke("acknowledge",{stream:frame.stream,sequence:frame.sequence}).catch(()=>{});
@@ -141,7 +181,7 @@ function render(frame) {
   transcriptView.render(view);
   if($("status").textContent!==frame.status)$("status").textContent=frame.status;
   $("stop").disabled=!["Working","Waiting for you"].includes(frame.status);
-  $("send").disabled=submissions.pending(frame.address) || frame.closed || frame.activity?.cancellation_requested;
+  composerFrame=frame;renderComposer();
   $("draft").disabled=frame.closed;
   $("new-session").disabled=frame.closed;$("close-session").disabled=frame.closed;
   $("copy").disabled=view.messages.length===0;
@@ -189,11 +229,11 @@ async function openDirectory(directory) {
   showPicker(directory);await projectOpening.choose(directory);
 }
 function showWelcome(note="") {
-  selected=null;view=null;selection.clear();requestsKey="";railKey="";
+  selected=null;view=null;composerFrame=null;attachmentList.clear();selection.clear();requestsKey="";railKey="";
   $("workspace").hidden=true;$("welcome").hidden=false;
   $("project-name").textContent="Magistr";$("view-title").textContent="Projects";$("status").textContent="Ready";
   $("draft").value="";$("requests").replaceChildren();transcriptView.clear();
-  for(const id of ["draft","send","stop","new-session","close-session","copy","reconnect"])$(id).disabled=true;
+  for(const id of ["draft","send","stop","new-session","close-session","copy","reconnect","add-files"])$(id).disabled=true;
   $("welcome-note").textContent=note;$("welcome-note").hidden=!note;
   renderRail();
 }
@@ -251,15 +291,36 @@ async function browseFolder() {
     if(directory){showPicker(directory);await projectOpening.choose(directory);}
   }catch(error){showPicker();$("picker-error").textContent=String(error);$("picker-error").hidden=false;}
 }
+$("add-files").onclick=()=>{
+  const address=selected;
+  changeAttachments(address,()=>invoke("pick_attachments",{address}));
+};
+$("draft").addEventListener("paste",event=>{
+  try {
+    const files=clipboardFiles(event,attachmentLimits,attachmentList.files);
+    if(!files.length||!selected)return;
+    const address=selected;
+    changeAttachments(address,async()=>{
+      for(const file of files) {
+        const bytes=new Uint8Array(await file.arrayBuffer());
+        await invoke("attach_clipboard_file",{address,name:file.name||"Pasted image",bytes:Array.from(bytes)});
+      }
+    });
+  }catch(error){showError(error);}
+});
+// The native host owns file drops; prevent a dropped URL from navigating the page.
+document.addEventListener("dragover",event=>event.preventDefault());
+document.addEventListener("drop",event=>event.preventDefault());
 attachComposer($("draft"),$("composer"));
 $("composer").onsubmit=async event=>{
-  event.preventDefault();if(!selected||submissions.pending(selected))return;
-  const address=selected,value=$("draft").value;if(!value.trim())return;
-  submissions.begin(address,value,view.sequence);$("send").disabled=true;clearError();
+  event.preventDefault();if(!selected||submissions.pending(selected)||attachmentWork.has(JSON.stringify(selected)))return;
+  const address=selected,input=attachmentList.input($("draft").value);
+  if(!input.text.trim()&&!input.attachments.length)return;
+  submissions.begin(address,input,view.sequence);$("send").disabled=true;clearError();
   try {
-    await invoke("save_draft",{address,text:value});
-    await invoke("session_action",{address,action:{action:"send",text:value}});
-  } catch(error){submissions.fail(address);showError(error);if(selected?.session===address.session)$("send").disabled=false;}
+    await invoke("save_draft",{address,text:input.text});
+    await invoke("session_action",{address,action:{action:"send",text:input.text,attachment_ids:input.attachments.map(file=>file.id)}});
+  } catch(error){submissions.fail(address);showError(error);if(selected?.session===address.session)renderComposer();}
 };
 $("stop").onclick=()=>selected&&act(selected,"cancel");
 $("reconnect").onclick=()=>selected&&act(selected,"reconnect");
@@ -415,7 +476,7 @@ document.addEventListener("keydown",event=>{
   if((event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==="o"){event.preventDefault();$("open-project").click();}
 });
 try {
-  const info=await refresh();await connectCatalog();
+  const info=await refresh();await connectCatalog();await connectFileDrops();
   document.documentElement.dataset.reducedMotion=String(info.reduce_motion||matchMedia("(prefers-reduced-motion: reduce)").matches);
   if(info.directory){showPicker(info.directory);await projectOpening.choose(info.directory);}
   else {showWelcome();$("welcome-open").focus();}

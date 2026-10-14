@@ -40,7 +40,7 @@ assert receipt["checks"] and all(receipt["checks"].values()),"Native journey has
 for file,expected in receipt["source_hashes"].items():
     assert sha(ROOT/file)==expected,"Native evidence is stale for "+file
 review=json.loads((EVIDENCE/"review.json").read_text())
-for name in ("dark","light","narrow","chooser-dark","chooser-light","setup-review","setup-partial","provider-unavailable","supervision","agent-choice","conversation-controls","resume-unavailable","saved-summary","resume-refused","rich-dark","rich-light","rich-narrow"):
+for name in ("dark","light","narrow","chooser-dark","chooser-light","setup-review","setup-partial","provider-unavailable","supervision","agent-choice","conversation-controls","resume-unavailable","saved-summary","resume-refused","rich-dark","rich-light","rich-narrow","attachments-dark","attachments-light","attachments-narrow","attachments-refused"):
     path=EVIDENCE/(name+".png")
     assert path.read_bytes()[:8]==b"\x89PNG\r\n\x1a\n"
     width,height=struct.unpack(">II",path.read_bytes()[16:24])
@@ -49,5 +49,8 @@ for name in ("dark","light","narrow","chooser-dark","chooser-light","setup-revie
 assert review["accessibility"]==sha(EVIDENCE/"accessibility.json")
 assert review["chooser_accessibility"]==sha(EVIDENCE/"chooser-accessibility.json")
 assert review["rich_accessibility"]==sha(EVIDENCE/"rich-accessibility.json")
+assert review["attachments_accessibility"]==receipt["attachments"]["native_accessibility_sha256"]==sha(EVIDENCE/"attachments-accessibility.json")
+assert review["attachment_observation"]==receipt["attachment_observation_sha256"]==sha(EVIDENCE/"attachment-observation.json")
+assert review["attachment_prompts"]==receipt["attachment_prompts_sha256"]==sha(EVIDENCE/"attachment-prompts.json")
 assert review["rich_observation"]==receipt["rich_observation_sha256"]==sha(EVIDENCE/"rich-observation.json")
 print("PASS: current native screenshots, reviewed source, accessible controls, contrast, icon and reduced motion")

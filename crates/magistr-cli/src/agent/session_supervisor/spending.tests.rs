@@ -40,7 +40,7 @@ async fn terminal_and_live_usage_keep_reported_spending_across_unpriced_turns() 
     let (sender, mut live) = crate::agent::observation::channel(ObservationCapacity::DEFAULT);
     fixture.supervisor.inner.lock().unwrap().cockpit_events = Some(sender);
     for prompt in ["priced", "unpriced usage"] {
-        fixture.supervisor.send_followup(prompt).unwrap();
+        fixture.supervisor.send_followup(&prompt.into()).unwrap();
         assert_eq!(price(fixture.next_terminal().await.unwrap()), Some(0.25));
         let mut reported = None;
         loop {
@@ -74,7 +74,7 @@ async fn cumulative_spending_replaces_one_conversation_across_reconnect_and_resu
     let history = SessionHistory::new();
     let mut first = start("priced", &inputs, &history).await;
     assert_eq!(price(first.next_terminal().await.unwrap()), Some(0.25));
-    first.supervisor.send_followup("higher").unwrap();
+    first.supervisor.send_followup(&"higher".into()).unwrap();
     assert_eq!(price(first.next_terminal().await.unwrap()), Some(0.75));
     first.close().await;
     let conn = storage::open_db(&storage::sessions_db_path(&inputs).unwrap()).unwrap();

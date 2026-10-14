@@ -18,7 +18,7 @@ async fn drain_session_interactive(session: &mut agent::session::AgentSession) -
         if std::io::stdin().read_line(&mut input).is_err() || input.trim().is_empty() {
             break;
         }
-        session.send_followup(input.trim())?;
+        session.send_followup(&input.trim().into())?;
     }
     Ok(())
 }

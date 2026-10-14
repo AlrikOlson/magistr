@@ -21,7 +21,7 @@ const MAX_ENTRIES: usize = 100_000;
 impl WorkspaceQueries<'_> {
     /// One live observation of a file that must fit the ceiling; an oversized
     /// file is the named `BUDGET_TOO_SMALL` refusal.
-    pub(super) fn snapshot(&self, path: &str) -> Result<SourceObservation, WorkspaceError> {
+    pub(crate) fn snapshot(&self, path: &str) -> Result<SourceObservation, WorkspaceError> {
         match self.observe(path)? {
             SourceRead::Observed(observation) => Ok(observation),
             SourceRead::Oversized { bytes } => Err(WorkspaceError::new(

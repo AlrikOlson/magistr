@@ -1,7 +1,11 @@
 //! Provider-neutral session commands and observations.
 
-mod prompt_files;
-pub use prompt_files::prompt_file_references;
+mod prompt_input;
+pub use prompt_input::{
+    AttachmentReceipt, MAX_ATTACHMENT_BYTES, MAX_ATTACHMENT_HASH_BYTES, MAX_ATTACHMENT_NAME_BYTES,
+    MAX_ATTACHMENT_TOTAL_BYTES, MAX_ATTACHMENTS, MAX_PROMPT_BYTES, PromptAttachment,
+    PromptAttachmentKind, PromptInput, PromptReceipt,
+};
 
 mod ask_everything;
 mod ask_plan;

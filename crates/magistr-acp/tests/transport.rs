@@ -196,7 +196,7 @@ async fn the_session_meta_rides_on_session_load_too() {
 async fn a_prompt_streams_updates_and_ends_with_the_prompt_response() {
     let (transport, mut events, _) = connect(Script::default()).await;
     let _ = next(&mut events).await; // Initialized
-    transport.prompt("hi").expect("prompt");
+    transport.prompt(&"hi".into()).expect("prompt");
 
     let chunk = next_matching(&mut events, |e| matches!(e, AcpEvent::SessionUpdate { .. })).await;
     let AcpEvent::SessionUpdate { update, session_id } = chunk else {
@@ -216,6 +216,98 @@ async fn a_prompt_streams_updates_and_ends_with_the_prompt_response() {
 }
 
 #[tokio::test]
+async fn exact_attachments_reach_the_negotiated_session_without_file_reads() {
+    use base64::Engine as _;
+    use magistr_application::sessions::{PromptAttachment, PromptInput};
+
+    let (mut transport, mut events, observed) = connect(Script {
+        supports_images: true,
+        ..Script::default()
+    })
+    .await;
+    let body = "Keep tenant A separate.\r\n日本語\n";
+    let png = base64::engine::general_purpose::STANDARD
+        .decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j8ioAAAAASUVORK5CYII=")
+        .unwrap();
+    let input = PromptInput {
+        text: "Review these files".into(),
+        attachments: vec![
+            PromptAttachment::from_bytes("guide ü.md", "text-hash", body.as_bytes().to_vec())
+                .unwrap(),
+            PromptAttachment::from_bytes("image.dat", "image-hash", png.clone()).unwrap(),
+        ],
+    };
+    transport.prompt(&input).unwrap();
+    next_matching(&mut events, |event| {
+        matches!(event, AcpEvent::PromptResponse { .. })
+    })
+    .await;
+    {
+        let requests = observed.prompts.lock().unwrap();
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].session_id.to_string(), SESSION_ID);
+        let json = serde_json::to_value(&requests[0]).unwrap();
+        assert_eq!(json["prompt"][0]["text"], input.text);
+        assert_eq!(
+            json["prompt"][1]["text"],
+            format!("Attached file: guide ü.md\n\n{body}")
+        );
+        assert_eq!(json["prompt"][2]["text"], "Attached image: image.dat");
+        assert_eq!(json["prompt"][3]["mimeType"], "image/png");
+        assert_eq!(
+            base64::engine::general_purpose::STANDARD
+                .decode(json["prompt"][3]["data"].as_str().unwrap())
+                .unwrap(),
+            png
+        );
+    }
+    transport.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn unsupported_images_are_refused_by_transport_and_sender_before_dispatch() {
+    use magistr_application::sessions::{PromptAttachment, PromptInput};
+
+    let (mut transport, mut events, observed) = connect(Script::default()).await;
+    let input = PromptInput {
+        text: "Review".into(),
+        attachments: vec![
+            PromptAttachment::from_bytes("image.png", "hash", b"\x89PNG\r\n\x1a\nimage".to_vec())
+                .unwrap(),
+        ],
+    };
+    assert!(
+        transport
+            .prompt(&input)
+            .unwrap_err()
+            .to_string()
+            .contains("does not accept images")
+    );
+    assert!(
+        transport
+            .sender()
+            .unwrap()
+            .prompt(&input)
+            .unwrap_err()
+            .to_string()
+            .contains("does not accept images")
+    );
+    transport.prompt(&"Literal @missing.txt".into()).unwrap();
+    next_matching(&mut events, |event| {
+        matches!(event, AcpEvent::PromptResponse { .. })
+    })
+    .await;
+    {
+        let requests = observed.prompts.lock().unwrap();
+        assert_eq!(requests.len(), 1, "neither unsupported image was sent");
+        let json = serde_json::to_value(&requests[0]).unwrap();
+        assert_eq!(json["prompt"][0]["text"], "Literal @missing.txt");
+        assert_eq!(json["prompt"].as_array().unwrap().len(), 1);
+    }
+    transport.close().await.unwrap();
+}
+
+#[tokio::test]
 async fn a_permission_request_round_trips_through_the_application() {
     let (mut transport, mut events, observed) = connect(Script {
         ask_permission: true,
@@ -224,7 +316,7 @@ async fn a_permission_request_round_trips_through_the_application() {
     .await;
     let mut perm_rx = transport.take_permission_rx().expect("permission channel");
     let _ = next(&mut events).await;
-    transport.prompt("do it").expect("prompt");
+    transport.prompt(&"do it".into()).expect("prompt");
 
     let request = tokio::time::timeout(WAIT, perm_rx.recv())
         .await
@@ -264,7 +356,7 @@ async fn a_dropped_permission_receiver_denies_instead_of_wedging() {
     //  — so the turn still completes.
     drop(transport.take_permission_rx());
     let _ = next(&mut events).await;
-    transport.prompt("do it").expect("prompt");
+    transport.prompt(&"do it".into()).expect("prompt");
     let _ = next_matching(&mut events, |e| {
         matches!(e, AcpEvent::PromptResponse { .. })
     })
@@ -291,7 +383,7 @@ async fn the_agent_can_read_files_through_the_client() {
     )
     .await;
     let _ = next(&mut events).await;
-    transport.prompt("read").expect("prompt");
+    transport.prompt(&"read".into()).expect("prompt");
     let _ = next_matching(&mut events, |e| {
         matches!(e, AcpEvent::PromptResponse { .. })
     })
@@ -313,7 +405,7 @@ async fn the_agent_can_run_a_terminal_through_the_client() {
     )
     .await;
     let _ = next(&mut events).await;
-    transport.prompt("run").expect("prompt");
+    transport.prompt(&"run".into()).expect("prompt");
 
     let mut subtypes = Vec::new();
     loop {
@@ -359,7 +451,7 @@ async fn a_terminals_bytes_stream_raw_and_the_agent_reads_stripped_text() {
     )
     .await;
     let _ = next(&mut events).await;
-    transport.prompt("run").expect("prompt");
+    transport.prompt(&"run".into()).expect("prompt");
 
     let mut created = None;
     let mut streamed: Vec<(String, Vec<u8>)> = Vec::new();
@@ -402,7 +494,7 @@ async fn cancel_mid_turn_ends_the_turn_with_cancelled() {
     })
     .await;
     let _ = next(&mut events).await;
-    transport.prompt("think forever").expect("prompt");
+    transport.prompt(&"think forever".into()).expect("prompt");
     // Wait until the turn is provably in flight.
     let _ = next_matching(&mut events, |e| matches!(e, AcpEvent::SessionUpdate { .. })).await;
 
@@ -492,7 +584,7 @@ async fn load_mode_rejects_unsupported_resume_without_creating_an_empty_session(
     assert!(error.to_string().contains("old-1"), "{error}");
     assert!(error.to_string().contains("does not support"), "{error}");
     assert!(!transport.is_ready());
-    assert!(transport.prompt("must not infer").is_err());
+    assert!(transport.prompt(&"must not infer".into()).is_err());
     assert!(observed.loaded_session.lock().expect("lock").is_none());
     assert!(observed.session_meta.lock().expect("lock").is_none());
 }
@@ -530,7 +622,7 @@ async fn close_ends_the_connection_and_the_agent() {
     transport.connect_over(client_end).await.expect("handshake");
     transport.close().await.expect("close");
     assert!(!transport.is_ready());
-    assert!(transport.prompt("late").is_err());
+    assert!(transport.prompt(&"late".into()).is_err());
     let finished = tokio::time::timeout(WAIT, agent).await;
     assert!(
         finished.is_ok(),
@@ -603,7 +695,7 @@ async fn an_extension_request_mid_turn_is_served_too() {
     })
     .await;
     let _ = next(&mut events).await;
-    transport.prompt("work").expect("prompt");
+    transport.prompt(&"work".into()).expect("prompt");
     let _ = next_matching(&mut events, |e| matches!(e, AcpEvent::SessionUpdate { .. })).await;
     let answer = transport
         .extension(
@@ -792,7 +884,7 @@ async fn a_sender_outlives_the_transport_handle_and_a_tap_sees_every_ok_event() 
         (transport, seen)
     });
     sender
-        .prompt("via the sender")
+        .prompt(&"via the sender".into())
         .expect("prompt through the sender");
     let (_transport, seen) = tokio::time::timeout(WAIT, owner)
         .await
@@ -844,7 +936,7 @@ async fn bare_transport_advertises_no_host_effects_and_refuses_a_direct_file_rea
     assert!(!caps.fs.read_text_file);
     assert!(!caps.fs.write_text_file);
     assert!(!caps.terminal);
-    transport.prompt("read").expect("prompt");
+    transport.prompt(&"read".into()).expect("prompt");
     let _ = next_matching(&mut events, |event| {
         matches!(event, AcpEvent::PromptResponse { .. })
     })
@@ -878,7 +970,7 @@ async fn local_effects_are_advertised_but_each_read_still_needs_host_authorizati
         .expect("caps");
     assert!(caps.fs.read_text_file && caps.fs.write_text_file && caps.terminal);
     let mut permissions = transport.take_permission_rx().expect("permissions");
-    transport.prompt("read").expect("prompt");
+    transport.prompt(&"read".into()).expect("prompt");
     let request = tokio::time::timeout(WAIT, permissions.recv())
         .await
         .expect("request")
@@ -923,7 +1015,7 @@ async fn a_pending_effect_permission_keeps_dispatch_live_and_cancel_refuses_a_la
     )
     .await;
     let mut permissions = transport.take_permission_rx().expect("permissions");
-    transport.prompt("read").expect("prompt");
+    transport.prompt(&"read".into()).expect("prompt");
     let request = tokio::time::timeout(WAIT, permissions.recv())
         .await
         .expect("request")
@@ -970,7 +1062,7 @@ async fn a_missing_host_permission_consumer_denies_a_direct_effect() {
     )
     .await;
     drop(transport.take_permission_rx());
-    transport.prompt("read").expect("prompt");
+    transport.prompt(&"read".into()).expect("prompt");
     let _ = next_matching(&mut events, |event| {
         matches!(event, AcpEvent::PromptResponse { .. })
     })
@@ -1010,7 +1102,7 @@ async fn a_refused_source_route_withholds_the_write_capability_and_reads_go_on()
         "a host without an admitted writer advertises no write capability"
     );
     let mut permissions = transport.take_permission_rx().expect("permissions");
-    transport.prompt("read then write").expect("prompt");
+    transport.prompt(&"read then write".into()).expect("prompt");
     let request = tokio::time::timeout(WAIT, permissions.recv())
         .await
         .expect("request")
@@ -1057,7 +1149,7 @@ async fn a_denied_direct_write_cannot_change_the_filesystem() {
     )
     .await;
     let mut permissions = transport.take_permission_rx().expect("permissions");
-    transport.prompt("write").expect("prompt");
+    transport.prompt(&"write".into()).expect("prompt");
     let request = tokio::time::timeout(WAIT, permissions.recv())
         .await
         .expect("request")
@@ -1097,7 +1189,7 @@ async fn a_denied_direct_terminal_does_not_start_a_child() {
     )
     .await;
     let mut permissions = transport.take_permission_rx().expect("permissions");
-    transport.prompt("run").expect("prompt");
+    transport.prompt(&"run".into()).expect("prompt");
     let request = tokio::time::timeout(WAIT, permissions.recv())
         .await
         .expect("request")

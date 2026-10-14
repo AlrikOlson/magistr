@@ -6,7 +6,7 @@ async fn activity_reports_actual_queue_cancel_reservation_and_terminal_acknowled
     fixture.next_started().await;
     let (sender, mut events) = crate::agent::observation::channel(ObservationCapacity::DEFAULT);
     fixture.supervisor.inner.lock().unwrap().cockpit_events = Some(sender);
-    fixture.supervisor.send_followup("queued").unwrap();
+    fixture.supervisor.send_followup(&"queued".into()).unwrap();
     let queued = tokio::time::timeout(DEADLINE, events.recv())
         .await
         .unwrap()
@@ -81,7 +81,7 @@ async fn configuration_choices_are_owner_validated_and_success_publishes_complet
     assert_eq!(options[0].current_value, ScriptedProvider::SLOW);
     fixture
         .supervisor
-        .send_followup("after configuration")
+        .send_followup(&"after configuration".into())
         .unwrap();
     assert_eq!(
         fixture.next_started().await.1.as_deref(),
@@ -135,7 +135,7 @@ async fn model_controls_filter_and_refuse_disallowed_choices_without_disrupting_
     );
     fixture
         .supervisor
-        .send_followup("still usable after refused model")
+        .send_followup(&"still usable after refused model".into())
         .unwrap();
     assert_eq!(
         fixture.next_started().await.1.as_deref(),

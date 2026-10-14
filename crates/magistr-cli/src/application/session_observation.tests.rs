@@ -45,7 +45,7 @@ fn current_session_facts_survive_retained_transcript_rotation() {
         session_id: "provider".into(),
         model: Some("known model".into()),
     }));
-    owner.send(Msg::InputAccepted("hello".into()));
+    owner.send(Msg::InputAccepted(PromptInput::from("hello").receipt()));
     for _ in 0..MAX_MESSAGES + 5 {
         owner.send(Msg::Agent(AgentEvent::Notice("reply".into())));
     }
@@ -164,7 +164,7 @@ fn usage_survives_rotation_and_too_many_requests_have_a_bounded_explicit_outcome
 fn rejected_messages_remain_drafts_after_rotation_without_replacing_newer_input() {
     let owner = std::sync::Arc::new(SessionObservation::new(address()));
     owner.send(Msg::Agent(AgentEvent::PromptRejected {
-        text: "unsent".into(),
+        input: "unsent".into(),
         error: "provider unavailable".into(),
     }));
     for _ in 0..MAX_MESSAGES + 1 {
@@ -174,7 +174,7 @@ fn rejected_messages_remain_drafts_after_rotation_without_replacing_newer_input(
     assert_eq!(owner.snapshot().seed.draft.as_deref(), Some("unsent"));
     owner.draft("newer input".into());
     owner.send(Msg::Agent(AgentEvent::PromptRejected {
-        text: "old".into(),
+        input: "old".into(),
         error: "closed".into(),
     }));
     assert_eq!(owner.snapshot().seed.draft.as_deref(), Some("newer input"));
@@ -487,4 +487,49 @@ fn conversation_name_and_complete_configuration_survive_transcript_pruning() {
     );
     assert_eq!(snapshot.model.as_deref(), Some("confirmed"));
     assert_eq!(snapshot.configuration[0].current_value, "confirmed");
+}
+#[test]
+fn submission_outcome_survives_history_pruning_without_retaining_attachment_bytes() {
+    use magistr_application::sessions::{MAX_ATTACHMENT_BYTES, PromptAttachment};
+    let owner = SessionObservation::new(address());
+    let input = PromptInput {
+        text: "image".into(),
+        attachments: vec![
+            PromptAttachment::from_bytes(
+                "picture.png",
+                "exact-hash",
+                [
+                    b"\x89PNG\r\n\x1a\n".as_slice(),
+                    &vec![1; MAX_ATTACHMENT_BYTES - 8],
+                ]
+                .concat(),
+            )
+            .unwrap(),
+        ],
+    };
+    owner.send(Msg::InputAccepted(input.receipt()));
+    let accepted = owner.snapshot().admission.unwrap();
+    assert!(accepted.accepted);
+    for _ in 0..MAX_MESSAGES + 1 {
+        owner.send(Msg::Agent(AgentEvent::Notice("later".into())));
+    }
+    assert_eq!(owner.snapshot().admission.as_ref(), Some(&accepted));
+    owner.send(Msg::Agent(AgentEvent::PromptRejected {
+        input: input.clone(),
+        error: "Try again".into(),
+    }));
+    let refused = owner.snapshot();
+    assert!(!refused.admission.as_ref().unwrap().accepted);
+    assert!(refused.admission.as_ref().unwrap().sequence > accepted.sequence);
+    assert_eq!(
+        refused.attachments[0].content().bytes(),
+        input.attachments[0].bytes()
+    );
+    assert!(refused.messages.iter().all(|record| !matches!(
+        record.message,
+        Msg::Agent(AgentEvent::PromptRejected { .. })
+    )));
+    assert!(
+        matches!(&refused.messages.last().unwrap().message, Msg::Agent(AgentEvent::Notice(error)) if error == "Try again")
+    );
 }

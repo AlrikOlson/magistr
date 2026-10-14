@@ -19,6 +19,7 @@ use tokio_util::sync::CancellationToken;
 struct Active {
     id: u64,
     selection: u64,
+    address: Option<SessionAddress>,
     stop: CancellationToken,
     credit: Arc<Credit>,
 }
@@ -29,6 +30,12 @@ pub(crate) struct Streams {
     next: AtomicU64,
 }
 impl Streams {
+    pub(crate) fn selected(&self) -> Option<(u64, SessionAddress)> {
+        let active = self.active.try_lock().ok()?;
+        let active = active.as_ref()?;
+        Some((active.id, active.address.clone()?))
+    }
+
     pub(crate) async fn subscribe(
         &self,
         client: &SessionClient,
@@ -60,6 +67,7 @@ impl Streams {
         *active = Some(Active {
             id,
             selection,
+            address: Some(address.clone()),
             stop,
             credit,
         });
@@ -87,6 +95,7 @@ impl Streams {
         *active = Some(Active {
             id,
             selection: 0,
+            address: None,
             stop,
             credit,
         });
@@ -125,8 +134,14 @@ async fn forward(
 ) {
     let mut snapshot = subscription.snapshot();
     let mut seen = None;
+    let mut attachments_seen = Vec::new();
     loop {
-        let frame = Frame::from_snapshot(id, &snapshot, seen);
+        let frame = Frame::from_snapshot(id, &snapshot, seen, &attachments_seen);
+        attachments_seen = frame
+            .attachments
+            .iter()
+            .map(|file| file.id.clone())
+            .collect();
         let sequence = frame.sequence;
         if !credit.offer(sequence) || channel.send(frame).is_err() {
             return;

@@ -58,7 +58,7 @@ fn read_events_is_none_before_connect() {
 #[test]
 fn prompt_before_connect_is_an_error() {
     let t = unconnected();
-    let err = t.prompt("hi").expect_err("not connected");
+    let err = t.prompt(&"hi".into()).expect_err("not connected");
     assert!(matches!(err, AcpError::Transport(m) if m.contains("not ready")));
 }
 

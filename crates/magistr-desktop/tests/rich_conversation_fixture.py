@@ -7,6 +7,8 @@ import sys
 import threading
 import time
 
+from attachment_fixture import attachment_turn, observe_response
+
 PROMPT = "Show the rich conversation review"
 SELECTION_TEXT = "Native selection café 日本語 👩🏽‍💻."
 LATE_TEXT = "\n\nSelected reply received an update."
@@ -92,7 +94,7 @@ def proxy(executable):
 
     def forward_output():
         for line in child.stdout:
-            output(line)
+            output(observe_response(line))
 
     relay = threading.Thread(target=forward_output, daemon=True)
     relay.start()
@@ -158,6 +160,8 @@ def proxy(executable):
             message = json.loads(line)
             method = message.get("method")
             content = "".join(block.get("text", "") for block in message.get("params", {}).get("prompt", []))
+            if attachment_turn(message, output):
+                continue
             if method == "session/prompt" and content == PROMPT:
                 if rich_thread is not None:
                     raise RuntimeError("The native rich corpus is used once per peer")

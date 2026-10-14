@@ -198,8 +198,8 @@ pub enum AgentEvent {
     },
     /// The local message could not be sent; the session remains available.
     PromptRejected {
-        /// Original message, restored when no newer draft exists.
-        text: String,
+        /// Original message and files, restored when no newer draft exists.
+        input: super::PromptInput,
         /// The file or validation problem the user can fix.
         error: String,
     },

@@ -42,20 +42,6 @@ pub fn translate(event: &magistr_acp::Result<AcpEvent>) -> AgentEvent {
             terminal_id: terminal_id.clone(),
             bytes: bytes.clone(),
         },
-        AcpEvent::System { subtype, data } if subtype == "prompt_rejected" => {
-            AgentEvent::PromptRejected {
-                text: data
-                    .get("text")
-                    .and_then(serde_json::Value::as_str)
-                    .unwrap_or_default()
-                    .to_owned(),
-                error: data
-                    .get("error")
-                    .and_then(serde_json::Value::as_str)
-                    .unwrap_or("Your message could not be sent.")
-                    .to_owned(),
-            }
-        }
         AcpEvent::System { subtype, .. } => AgentEvent::System {
             subtype: subtype.clone(),
         },

@@ -59,7 +59,7 @@ async fn an_unknown_model_fails_before_the_first_prompt() {
         .expect_err("unknown model");
     assert!(error.to_string().contains("not-a-model"), "{error}");
     assert!(!transport.is_ready());
-    assert!(transport.prompt("must not infer").is_err());
+    assert!(transport.prompt(&"must not infer".into()).is_err());
     assert!(observed.config_sets.lock().expect("lock").is_empty());
 }
 

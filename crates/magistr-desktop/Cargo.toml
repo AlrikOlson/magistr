@@ -18,6 +18,7 @@ license = "MIT"
 publish = false
 
 [dependencies]
+base64 = "0.22"
 clap = { version = "4", features = ["derive"] }
 color-eyre = "0.6"
 magistr = { package = "magistr-cli", path = "../magistr-cli" }

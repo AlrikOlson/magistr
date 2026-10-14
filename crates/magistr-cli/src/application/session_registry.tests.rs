@@ -63,7 +63,8 @@ pub(crate) fn opener(log: Log) -> Open<Hosted> {
                     tokio::select! {
                         _ = &mut stopped => break,
                         command = commands.next() => match command {
-                            Some(Cmd::Prompt(text)) => {
+                            Some(Cmd::Prompt(input)) => {
+                                let text = input.text;
                                 log.note(format!("{name} got {text}"));
                                 inbox.send(Msg::Agent(AgentEvent::Text(format!("{name}: {text}"))));
                                 if text == "ask" {
@@ -138,6 +139,53 @@ async fn until(
     .unwrap()
 }
 
+#[test]
+fn stop_invalidates_delayed_preparation_and_concurrent_sends_cannot_overtake() {
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .max_blocking_threads(1)
+        .build()
+        .unwrap();
+    runtime.block_on(async {
+        let tmp = projects();
+        let log = Log::default();
+        let registry = registry(log.clone());
+        let client = registry.client();
+        let address = client.open(tmp.path().join("first"), SessionOpening::Launch).await.unwrap();
+        let mut reader = client.subscribe(&address).await.unwrap();
+        // Hold the sole source worker after admission so cancellation occurs
+        // deterministically before exact-byte preparation can complete.
+        let (started, ready) = oneshot::channel();
+        let (release, held) = std::sync::mpsc::channel();
+        let worker = tokio::task::spawn_blocking(move || {
+            let _ = started.send(());
+            let _ = held.recv();
+        });
+        ready.await.unwrap();
+        let sender = client.clone();
+        let target = address.clone();
+        let pending = tokio::spawn(async move {
+            sender.send(&target, "stopped message".into(), Vec::new()).await
+        });
+        until(&mut reader, |snapshot| snapshot.seed.draft.as_deref() == Some("stopped message")).await;
+        assert!(client.send(&address, "later message".into(), Vec::new())
+            .await.unwrap_err().contains("still being checked"));
+        assert!(client.command(&address, Cmd::Prompt("cannot overtake".into()))
+            .await.unwrap_err().contains("still being checked"));
+        client.command(&address, Cmd::Cancel).await.unwrap();
+        release.send(()).unwrap();
+        worker.await.unwrap();
+        assert!(pending.await.unwrap().unwrap_err().contains("was stopped"));
+        assert_eq!(reader.snapshot().seed.draft.as_deref(), Some("stopped message"));
+        client.send(&address, "send after stopping".into(), Vec::new()).await.unwrap();
+        until(&mut reader, |snapshot| snapshot.messages.iter().any(|event|
+            matches!(&event.message, Msg::Agent(AgentEvent::Text(text)) if text == "first: send after stopping")
+        )).await;
+        assert!(!log.lines().iter().any(|line| line == "first got stopped message"));
+        assert!(log.lines().iter().any(|line| line == "first cancelled"));
+        registry.shutdown().await.unwrap();
+    });
+}
 #[tokio::test(flavor = "multi_thread")]
 async fn addressed_sessions_in_two_workspaces_survive_disconnect_and_route_permissions() {
     let tmp = projects();
@@ -391,7 +439,7 @@ async fn oversized_input_is_refused_before_entering_the_owner_queue() {
     assert!(
         tokio::time::timeout(
             Duration::from_millis(100),
-            client.command(&address, Cmd::Prompt(text))
+            client.command(&address, Cmd::Prompt(text.into()))
         )
         .await
         .expect("must refuse before posting")

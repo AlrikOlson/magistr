@@ -21,7 +21,7 @@ use agent_client_protocol::schema::v1::{
     AgentCapabilities, SessionConfigOption, SessionConfigOptionValue, SessionInfo, StopReason,
 };
 use magistr_acp::AcpTransport;
-use magistr_application::sessions::{AgentEvent, SessionOptions, SessionPolicy};
+use magistr_application::sessions::{AgentEvent, PromptInput, SessionOptions, SessionPolicy};
 use magistr_core::AcpSessionState;
 use tokio::sync::{mpsc, oneshot};
 use tokio::task::JoinHandle;
@@ -47,7 +47,7 @@ struct Inner {
     snapshot: SessionSupervisorSnapshot,
     history: super::persistence::SessionHistory,
     policy: Option<permissions::PolicyAuthority>,
-    queue: VecDeque<(u64, String)>,
+    queue: VecDeque<(u64, PromptInput)>,
     next_turn: u64,
     completed_turns: u32,
     /// Host-owned turn budget; provider inference is never started past it.
@@ -341,7 +341,7 @@ impl SessionSupervisor {
             .to_vec();
         if opening {
             transport
-                .prompt(prompt)
+                .prompt(&prompt.into())
                 .map_err(|error| acp_error(format!("Failed to send initial prompt: {error}")))?;
         }
         let (messages, receiver) = super::observation::channel(capacity);
@@ -439,7 +439,16 @@ impl SessionSupervisor {
         let opening = options
             .opening_prompt
             .as_ref()
-            .filter(|prompt| !prompt.trim().is_empty());
+            .filter(|prompt| !prompt.is_empty());
+        if let Some(prompt) = opening {
+            prompt
+                .validate(
+                    transport
+                        .agent_capabilities()
+                        .is_some_and(|capabilities| capabilities.prompt_capabilities.image),
+                )
+                .map_err(acp_error)?;
+        }
         let inner = Arc::new(Mutex::new(Inner {
             snapshot: SessionSupervisorSnapshot {
                 active_turn: None,
@@ -523,9 +532,22 @@ impl SessionSupervisor {
     /// Admit a follow-up in FIFO order. At most one prompt reaches the
     /// provider, and at most [`SessionSupervisor::QUEUED_TURN_CAPACITY`]
     /// wait behind it; one more is refused with the reason.
-    pub fn send_followup(&self, content: &str) -> Result<()> {
+    pub fn send_followup(&self, content: &PromptInput) -> Result<()> {
         let mut inner = self.inner.lock().expect("supervisor state lock poisoned");
         inner.check_admission()?;
+        content
+            .validate(
+                inner
+                    .capabilities
+                    .as_ref()
+                    .is_some_and(|capabilities| capabilities.prompt_capabilities.image),
+            )
+            .map_err(acp_error)?;
+        if content.is_empty() {
+            return Err(acp_error(
+                "Write a message or attach a file before sending.",
+            ));
+        }
         if inner.queue.len() >= Self::QUEUED_TURN_CAPACITY {
             return Err(acp_error(format!(
                 "Turn queue is full: {} follow-ups are already waiting behind the active turn; wait for one to end",
@@ -534,7 +556,7 @@ impl SessionSupervisor {
         }
         let id = inner.next_turn;
         inner.next_turn += 1;
-        inner.queue.push_back((id, content.to_owned()));
+        inner.queue.push_back((id, content.clone()));
         inner.snapshot.queued_turns = inner.queue.len();
         inner.publish_activity();
         if self.commands.send(Command::Wake).is_err() {

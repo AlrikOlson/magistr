@@ -132,25 +132,42 @@ func click(_ point: CGPoint) {
     }
 }
 func pause(_ seconds: Double) async throws { try await Task.sleep(nanoseconds: UInt64(seconds*1e9)) }
-@MainActor func focus(_ pid: Int32) async throws {
+@MainActor func waitForApplicationFocus(_ pid: Int32) throws {
     let application = try app(pid)
-    var requested = false
-    var accepted = false
-    for _ in 0..<40 {
-        if NSWorkspace.shared.frontmostApplication?.processIdentifier == pid {
-            try await pause(0.15); return
+    let accessibility = AXUIElementCreateApplication(pid)
+    var activation: AXError?
+    var raised: AXError?
+    let deadline = Date(timeIntervalSinceNow: 3)
+    repeat {
+        // AppKit refreshes process state on main run-loop turns. Keep this poll
+        // synchronous so the observer services that loop before reading state.
+        // A system-wide AXFocusedApplication query can block during native menu tracking.
+        CFRunLoopRunInMode(.defaultMode, 0.01, true)
+        if NSWorkspace.shared.frontmostApplication?.processIdentifier == pid { return }
+        // A background observer's cooperative activate() request is not user intent.
+        // Use AX only to activate the validated fixture when it is not foreground.
+        if activation == nil, let window = try? windowAX(pid) {
+            raised = AXUIElementPerformAction(window, "AXRaise" as CFString)
+            activation = AXUIElementSetAttributeValue(accessibility, "AXFrontmost" as CFString, kCFBooleanTrue)
         }
-        // Launch Services can expose the process before AppKit can activate it.
-        if application.isFinishedLaunching && !requested {
-            requested = true
-            accepted = application.activate(options: [.activateAllWindows])
-        }
-        try await pause(0.05)
-    }
-    throw Failure.message("Disposable desktop app did not become foreground: finished=\(application.isFinishedLaunching), policy=\(application.activationPolicy.rawValue), requested=\(requested), accepted=\(accepted), front=\(NSWorkspace.shared.frontmostApplication?.processIdentifier ?? 0)")
+        CFRunLoopRunInMode(.defaultMode, 0.05, true)
+    } while Date() < deadline
+    throw Failure.message("Disposable desktop app did not become foreground: finished=\(application.isFinishedLaunching), policy=\(application.activationPolicy.rawValue), activation=\(activation?.rawValue ?? -1), raised=\(raised?.rawValue ?? -1), front=\(NSWorkspace.shared.frontmostApplication?.processIdentifier ?? 0)")
+}
+@MainActor func focus(_ pid: Int32) async throws {
+    try waitForApplicationFocus(pid)
+    try await pause(0.15)
 }
 @MainActor func press(_ pid: Int32, _ label: String) async throws {
     let element = try await find(pid,label)
+    var nativeActions: CFArray?
+    let actionRead = AXUIElementCopyActionNames(element, &nativeActions)
+    if string(element, "AXRole") == "AXDisclosureTriangle", actionRead == .success,
+       !(nativeActions as? [String] ?? []).contains("AXPress") {
+        // WebKit summaries advertise no AXPress; Space activates their native disclosure.
+        _ = try await keyboardTarget(pid, label, activate: true)
+        return
+    }
     let error = AXUIElementPerformAction(element,"AXPress" as CFString)
     if error != .success {
         guard let rect = rectangle(element) else { throw Failure.message("Cannot press " + label) }
@@ -279,6 +296,7 @@ func configuration(_ window: SCWindow) -> SCStreamConfiguration {
     try await focus(pid)
     if mode=="activate" {return}
     if try await richOperation(mode,pid,args) {return}
+    if try await attachmentOperation(mode,pid,args) {return}
     if mode=="press" {try await press(pid,args[2]);return}
     if mode=="choose-option" {try emit(try await chooseOption(pid,args[2],args[3],args[4]));return}
     if mode=="click" {

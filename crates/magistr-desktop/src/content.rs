@@ -13,6 +13,14 @@ pub(crate) struct Observation {
     pub(crate) text: String,
     pub(crate) document: Option<Document>,
     pub(crate) tool: Option<Tool>,
+    pub(crate) attachments: Vec<SentAttachment>,
+}
+#[derive(Serialize)]
+pub(crate) struct SentAttachment {
+    id: String,
+    name: String,
+    size: usize,
+    source: &'static str,
 }
 #[derive(Serialize)]
 pub(crate) struct Detail {
@@ -39,9 +47,29 @@ pub(crate) fn observation(
         text: String::new(),
         document: None,
         tool: None,
+        attachments: Vec::new(),
     };
     let (role, source, rich) = match &record.message {
-        Msg::InputAccepted(text) => ("You", text.clone(), false),
+        Msg::InputAccepted(input) => {
+            result.attachments = input
+                .attachments
+                .iter()
+                .map(|file| SentAttachment {
+                    id: file.id.clone(),
+                    name: file.name.clone(),
+                    size: file.byte_len,
+                    source: match file.kind {
+                        magistr_application::sessions::PromptAttachmentKind::Image => {
+                            "Image attached"
+                        }
+                        magistr_application::sessions::PromptAttachmentKind::Text => {
+                            "Text file attached"
+                        }
+                    },
+                })
+                .collect();
+            ("You", input.text.clone(), false)
+        }
         Msg::CommandFailed { error, .. } => ("Error", error.clone(), false),
         Msg::Agent(event) => match event {
             AgentEvent::Text(text) => ("Agent", text.clone(), true),

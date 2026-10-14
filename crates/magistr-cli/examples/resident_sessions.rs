@@ -108,7 +108,7 @@ async fn exercise(parent: PathBuf) -> eyre::Result<()> {
     );
     ensure!(
         snapshot.replay().iter().any(
-            |message| matches!(message, Msg::InputAccepted(text) if text == "first streaming")
+            |message| matches!(message, Msg::InputAccepted(input) if input.text == "first streaming")
         ),
         "the session owns the accepted user message"
     );

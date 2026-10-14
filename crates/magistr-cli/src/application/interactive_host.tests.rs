@@ -76,8 +76,11 @@ impl Drop for Session {
 }
 
 impl SessionHandle for Session {
-    fn submit_turn(&mut self, text: &str) -> Result<(), String> {
-        self.tx.send(AgentEvent::Text(text.into())).unwrap();
+    fn submit_turn(
+        &mut self,
+        input: &magistr_application::sessions::PromptInput,
+    ) -> Result<(), String> {
+        self.tx.send(AgentEvent::Text(input.text.clone())).unwrap();
         Ok(())
     }
     fn rename(&mut self, _: &str) -> Result<(), String> {
@@ -302,7 +305,7 @@ async fn a_closed_relay_returns_the_undelivered_command_to_the_surface() {
         .unwrap();
     assert!(
         matches!(event, Some(Msg::CommandFailed { cmd: Cmd::Prompt(text), error })
-        if text == "Keep this draft" && error.contains("closed"))
+        if text.text == "Keep this draft" && error.contains("closed"))
     );
     finish.notify_one();
     task.await.unwrap().unwrap();

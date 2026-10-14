@@ -73,12 +73,10 @@ pub(super) async fn initialize(
         *model = Some(selected);
     }
     inner.emit_cockpit(translated);
-    if let Some(prompt) = options
-        .opening_prompt
-        .filter(|prompt| !prompt.trim().is_empty())
+    if let Some(prompt) = options.opening_prompt.filter(|prompt| !prompt.is_empty())
         && inner.queue.front().is_some_and(|(id, _)| *id == 1)
     {
-        inner.emit_cockpit(AgentEvent::UserText(format!("{prompt}\n")));
+        inner.emit_cockpit(AgentEvent::UserText(format!("{}\n", prompt.text)));
     }
     inner.control_busy = false;
     inner.publish_activity();

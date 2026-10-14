@@ -10,7 +10,7 @@ use magistr_application::sessions::AgentEvent;
 #[allow(clippy::large_enum_variant)]
 #[derive(Clone, Debug, PartialEq)]
 pub enum Msg {
-    InputAccepted(String),
+    InputAccepted(magistr_application::sessions::PromptReceipt),
     PromptReplace(String),
     Agent(AgentEvent),
     CommandFailed { cmd: Cmd, error: String },

@@ -8,7 +8,10 @@ use std::{future::Future, pin::Pin};
 pub(crate) struct LocalSession;
 
 impl SessionHandle for LocalSession {
-    fn submit_turn(&mut self, _: &str) -> Result<(), String> {
+    fn submit_turn(
+        &mut self,
+        _: &magistr_application::sessions::PromptInput,
+    ) -> Result<(), String> {
         Err("Connect to Magistr before sending a message.".into())
     }
     fn rename(&mut self, _: &str) -> Result<(), String> {

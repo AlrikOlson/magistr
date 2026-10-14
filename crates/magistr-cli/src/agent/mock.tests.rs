@@ -47,8 +47,8 @@ async fn mock_session_receives_messages() {
 async fn mock_session_tracks_follow_ups() {
     let (session, _tx, follow_ups) = mock_session_with_followups();
 
-    session.send_followup("first").unwrap();
-    session.send_followup("second").unwrap();
+    session.send_followup(&"first".into()).unwrap();
+    session.send_followup(&"second".into()).unwrap();
 
     let ups = follow_ups.lock().unwrap();
     assert_eq!(ups.len(), 2);
@@ -74,7 +74,7 @@ async fn mock_session_multi_turn_flow() {
     let _ = session.next_message().await;
 
     // User sends follow-up
-    session.send_followup("tell me more").unwrap();
+    session.send_followup(&"tell me more".into()).unwrap();
 
     // Turn 2
     tx.send(Ok(assistant_msg("More details..."))).unwrap();

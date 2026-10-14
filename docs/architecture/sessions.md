@@ -88,6 +88,31 @@ contract:
 The ACP agent advertises the supported system prompt session option alongside
 model and effort.
 
+## Prompt ownership
+
+`magistr-application::sessions::PromptInput` carries authored text and ordered
+attachments across the session command, runtime and supervisor contracts.
+`PromptAttachment` holds a selection identity, name, source content hash, validated
+kind and immutable shared bytes. Clones preserve its identity; selecting the same
+bytes again creates a new identity, so an older acceptance cannot clear that
+selection. Files are limited to 1 MiB each, eight files and 8 MiB per message;
+authored text has its own 1 MiB limit. Names and source hashes are also bounded.
+
+The application session owner reads and revalidates selected workspace files
+through the workspace source owner before admission. The supervisor checks the
+whole typed input, including negotiated image support, before accepting it into
+the bounded turn queue. A queued turn owns the admitted bytes even if the draft
+or source file changes later. Cancellation clears queued turns and their files.
+
+ACP only encodes that admitted content: authored text and labeled UTF-8 file
+blocks preserve exact text bodies; PNG, JPEG and WebP files use labeled image
+blocks with exact base64 bytes when the agent advertises image support.
+The adapter never interprets `@path` text or opens attachment paths. A refusal
+retains the full input for the application owner to restore. Successful runtime
+admission emits a `PromptReceipt` containing authored text and ordered file
+identity metadata, so observations acknowledge the draft without retaining
+file payloads.
+
 ## Capability guarantees
 
 The in-binary agent publishes its implemented guarantees in

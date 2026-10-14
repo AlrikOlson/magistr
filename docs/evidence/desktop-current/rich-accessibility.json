@@ -13,7 +13,7 @@
       "AXScrollToVisible"
     ],
     "AXDescription" : "",
-    "AXHelp" : "http:\/\/127.0.0.1:50268\/rich-link\/1791946372075040000",
+    "AXHelp" : "http:\/\/127.0.0.1:52636\/rich-link\/1791951930347414000",
     "AXRole" : "AXLink",
     "AXTitle" : "Open the local reading note",
     "AXValue" : "",
@@ -21,7 +21,7 @@
     "focused" : true,
     "rect" : [
       422,
-      81,
+      62,
       179,
       17
     ]
@@ -40,7 +40,7 @@
     "focused" : false,
     "rect" : [
       422,
-      37,
+      18,
       344,
       63
     ]
@@ -60,7 +60,7 @@
     "focused" : false,
     "rect" : [
       422,
-      -71,
+      -90,
       344,
       5895
     ]
@@ -81,7 +81,7 @@
       404,
       282,
       380,
-      332
+      276
     ]
   },
   {
@@ -218,7 +218,7 @@
     "focused" : false,
     "rect" : [
       422,
-      81,
+      62,
       179,
       17
     ]
@@ -237,7 +237,7 @@
     "focused" : false,
     "rect" : [
       422,
-      39,
+      20,
       126,
       17
     ]
@@ -256,7 +256,7 @@
     "focused" : false,
     "rect" : [
       547,
-      39,
+      20,
       116,
       17
     ]
@@ -275,7 +275,7 @@
     "focused" : false,
     "rect" : [
       662,
-      39,
+      20,
       9,
       17
     ]
@@ -294,7 +294,7 @@
     "focused" : false,
     "rect" : [
       422,
-      39,
+      20,
       281,
       38
     ]
@@ -313,7 +313,7 @@
     "focused" : false,
     "rect" : [
       483,
-      60,
+      41,
       9,
       17
     ]
@@ -332,7 +332,7 @@
     "focused" : false,
     "rect" : [
       491,
-      60,
+      41,
       99,
       17
     ]
@@ -351,7 +351,7 @@
     "focused" : false,
     "rect" : [
       589,
-      60,
+      41,
       32,
       17
     ]
@@ -371,7 +371,7 @@
     "focused" : false,
     "rect" : [
       620,
-      60,
+      41,
       105,
       19
     ]
@@ -390,7 +390,7 @@
     "focused" : false,
     "rect" : [
       725,
-      60,
+      41,
       41,
       17
     ]
@@ -409,7 +409,7 @@
     "focused" : false,
     "rect" : [
       600,
-      81,
+      62,
       134,
       17
     ]
@@ -429,7 +429,7 @@
     "focused" : false,
     "rect" : [
       422,
-      -71,
+      -90,
       344,
       24
     ]
@@ -447,7 +447,7 @@
     "focused" : false,
     "rect" : [
       422,
-      -37,
+      -56,
       344,
       31
     ]
@@ -466,7 +466,7 @@
     "focused" : false,
     "rect" : [
       422,
-      4,
+      -15,
       344,
       21
     ]
@@ -485,7 +485,7 @@
     "focused" : false,
     "rect" : [
       441,
-      114,
+      95,
       325,
       21
     ]
@@ -504,7 +504,7 @@
     "focused" : false,
     "rect" : [
       441,
-      147,
+      128,
       325,
       42
     ]
@@ -524,7 +524,7 @@
     "focused" : false,
     "rect" : [
       422,
-      203,
+      184,
       344,
       104
     ]
@@ -543,7 +543,7 @@
     "focused" : false,
     "rect" : [
       422,
-      323,
+      304,
       344,
       42
     ]
@@ -563,7 +563,7 @@
     "focused" : false,
     "rect" : [
       422,
-      377,
+      358,
       344,
       104
     ]
@@ -582,7 +582,7 @@
     "focused" : false,
     "rect" : [
       422,
-      499,
+      480,
       260,
       38
     ]
@@ -601,7 +601,7 @@
     "focused" : false,
     "rect" : [
       422,
-      539,
+      520,
       344,
       21
     ]
@@ -621,7 +621,7 @@
     "focused" : false,
     "rect" : [
       422,
-      572,
+      553,
       344,
       2
     ]
@@ -639,7 +639,7 @@
     "focused" : false,
     "rect" : [
       422,
-      594,
+      575,
       344,
       27
     ]
@@ -658,7 +658,7 @@
     "focused" : false,
     "rect" : [
       422,
-      631,
+      612,
       344,
       105
     ]
@@ -676,7 +676,7 @@
     "focused" : false,
     "rect" : [
       422,
-      756,
+      737,
       344,
       27
     ]
@@ -695,7 +695,7 @@
     "focused" : false,
     "rect" : [
       422,
-      793,
+      774,
       344,
       105
     ]
@@ -713,7 +713,7 @@
     "focused" : false,
     "rect" : [
       422,
-      918,
+      899,
       344,
       27
     ]
@@ -732,7 +732,7 @@
     "focused" : false,
     "rect" : [
       422,
-      955,
+      936,
       344,
       105
     ]
@@ -750,7 +750,7 @@
     "focused" : false,
     "rect" : [
       422,
-      1080,
+      1061,
       344,
       27
     ]
@@ -769,7 +769,7 @@
     "focused" : false,
     "rect" : [
       422,
-      1117,
+      1098,
       344,
       105
     ]
@@ -787,7 +787,7 @@
     "focused" : false,
     "rect" : [
       422,
-      1242,
+      1223,
       344,
       27
     ]
@@ -806,7 +806,7 @@
     "focused" : false,
     "rect" : [
       422,
-      1279,
+      1260,
       344,
       105
     ]
@@ -824,7 +824,7 @@
     "focused" : false,
     "rect" : [
       422,
-      1404,
+      1385,
       344,
       27
     ]
@@ -843,7 +843,7 @@
     "focused" : false,
     "rect" : [
       422,
-      1441,
+      1422,
       344,
       105
     ]
@@ -861,7 +861,7 @@
     "focused" : false,
     "rect" : [
       422,
-      1566,
+      1547,
       344,
       27
     ]
@@ -880,7 +880,7 @@
     "focused" : false,
     "rect" : [
       422,
-      1603,
+      1584,
       344,
       105
     ]
@@ -898,7 +898,7 @@
     "focused" : false,
     "rect" : [
       422,
-      1728,
+      1709,
       344,
       27
     ]
@@ -917,7 +917,7 @@
     "focused" : false,
     "rect" : [
       422,
-      1765,
+      1746,
       344,
       105
     ]
@@ -935,7 +935,7 @@
     "focused" : false,
     "rect" : [
       422,
-      1890,
+      1871,
       344,
       27
     ]
@@ -954,7 +954,7 @@
     "focused" : false,
     "rect" : [
       422,
-      1927,
+      1908,
       344,
       105
     ]
@@ -972,7 +972,7 @@
     "focused" : false,
     "rect" : [
       422,
-      2052,
+      2033,
       344,
       27
     ]
@@ -991,7 +991,7 @@
     "focused" : false,
     "rect" : [
       422,
-      2089,
+      2070,
       344,
       105
     ]
@@ -1009,7 +1009,7 @@
     "focused" : false,
     "rect" : [
       422,
-      2214,
+      2195,
       344,
       27
     ]
@@ -1028,7 +1028,7 @@
     "focused" : false,
     "rect" : [
       422,
-      2251,
+      2232,
       344,
       105
     ]
@@ -1046,7 +1046,7 @@
     "focused" : false,
     "rect" : [
       422,
-      2376,
+      2357,
       344,
       27
     ]
@@ -1065,7 +1065,7 @@
     "focused" : false,
     "rect" : [
       422,
-      2413,
+      2394,
       344,
       105
     ]
@@ -1083,7 +1083,7 @@
     "focused" : false,
     "rect" : [
       422,
-      2538,
+      2519,
       344,
       27
     ]
@@ -1102,7 +1102,7 @@
     "focused" : false,
     "rect" : [
       422,
-      2575,
+      2556,
       344,
       105
     ]
@@ -1120,7 +1120,7 @@
     "focused" : false,
     "rect" : [
       422,
-      2700,
+      2681,
       344,
       27
     ]
@@ -1139,7 +1139,7 @@
     "focused" : false,
     "rect" : [
       422,
-      2737,
+      2718,
       344,
       105
     ]
@@ -1157,7 +1157,7 @@
     "focused" : false,
     "rect" : [
       422,
-      2862,
+      2843,
       344,
       27
     ]
@@ -1176,7 +1176,7 @@
     "focused" : false,
     "rect" : [
       422,
-      2899,
+      2880,
       344,
       105
     ]
@@ -1194,7 +1194,7 @@
     "focused" : false,
     "rect" : [
       422,
-      3024,
+      3005,
       344,
       27
     ]
@@ -1213,7 +1213,7 @@
     "focused" : false,
     "rect" : [
       422,
-      3061,
+      3042,
       344,
       105
     ]
@@ -1231,7 +1231,7 @@
     "focused" : false,
     "rect" : [
       422,
-      3186,
+      3167,
       344,
       27
     ]
@@ -1250,7 +1250,7 @@
     "focused" : false,
     "rect" : [
       422,
-      3223,
+      3204,
       344,
       105
     ]
@@ -1268,7 +1268,7 @@
     "focused" : false,
     "rect" : [
       422,
-      3348,
+      3329,
       344,
       27
     ]
@@ -1287,7 +1287,7 @@
     "focused" : false,
     "rect" : [
       422,
-      3385,
+      3366,
       344,
       105
     ]
@@ -1305,7 +1305,7 @@
     "focused" : false,
     "rect" : [
       422,
-      3510,
+      3491,
       344,
       27
     ]
@@ -1324,7 +1324,7 @@
     "focused" : false,
     "rect" : [
       422,
-      3547,
+      3528,
       344,
       105
     ]
@@ -1342,7 +1342,7 @@
     "focused" : false,
     "rect" : [
       422,
-      3672,
+      3653,
       344,
       27
     ]
@@ -1361,7 +1361,7 @@
     "focused" : false,
     "rect" : [
       422,
-      3709,
+      3690,
       344,
       105
     ]
@@ -1379,7 +1379,7 @@
     "focused" : false,
     "rect" : [
       422,
-      3834,
+      3815,
       344,
       27
     ]
@@ -1398,7 +1398,7 @@
     "focused" : false,
     "rect" : [
       422,
-      3871,
+      3852,
       344,
       105
     ]
@@ -1416,7 +1416,7 @@
     "focused" : false,
     "rect" : [
       422,
-      3996,
+      3977,
       344,
       27
     ]
@@ -1435,7 +1435,7 @@
     "focused" : false,
     "rect" : [
       422,
-      4033,
+      4014,
       344,
       105
     ]
@@ -1453,7 +1453,7 @@
     "focused" : false,
     "rect" : [
       422,
-      4158,
+      4139,
       344,
       27
     ]
@@ -1472,7 +1472,7 @@
     "focused" : false,
     "rect" : [
       422,
-      4195,
+      4176,
       344,
       105
     ]
@@ -1490,7 +1490,7 @@
     "focused" : false,
     "rect" : [
       422,
-      4320,
+      4301,
       344,
       27
     ]
@@ -1509,7 +1509,7 @@
     "focused" : false,
     "rect" : [
       422,
-      4357,
+      4338,
       344,
       105
     ]
@@ -1527,7 +1527,7 @@
     "focused" : false,
     "rect" : [
       422,
-      4482,
+      4463,
       344,
       27
     ]
@@ -1546,7 +1546,7 @@
     "focused" : false,
     "rect" : [
       422,
-      4519,
+      4500,
       344,
       105
     ]
@@ -1564,7 +1564,7 @@
     "focused" : false,
     "rect" : [
       422,
-      4644,
+      4625,
       344,
       27
     ]
@@ -1583,7 +1583,7 @@
     "focused" : false,
     "rect" : [
       422,
-      4681,
+      4662,
       344,
       105
     ]
@@ -1601,7 +1601,7 @@
     "focused" : false,
     "rect" : [
       422,
-      4806,
+      4787,
       344,
       27
     ]
@@ -1620,7 +1620,7 @@
     "focused" : false,
     "rect" : [
       422,
-      4843,
+      4824,
       344,
       105
     ]
@@ -1638,7 +1638,7 @@
     "focused" : false,
     "rect" : [
       422,
-      4968,
+      4949,
       344,
       27
     ]
@@ -1657,7 +1657,7 @@
     "focused" : false,
     "rect" : [
       422,
-      5005,
+      4986,
       344,
       105
     ]
@@ -1675,7 +1675,7 @@
     "focused" : false,
     "rect" : [
       422,
-      5130,
+      5111,
       344,
       27
     ]
@@ -1694,7 +1694,7 @@
     "focused" : false,
     "rect" : [
       422,
-      5167,
+      5148,
       344,
       105
     ]
@@ -1712,7 +1712,7 @@
     "focused" : false,
     "rect" : [
       422,
-      5292,
+      5273,
       344,
       27
     ]
@@ -1731,7 +1731,7 @@
     "focused" : false,
     "rect" : [
       422,
-      5329,
+      5310,
       344,
       105
     ]
@@ -1749,7 +1749,7 @@
     "focused" : false,
     "rect" : [
       422,
-      5454,
+      5435,
       344,
       27
     ]
@@ -1768,7 +1768,7 @@
     "focused" : false,
     "rect" : [
       422,
-      5491,
+      5472,
       344,
       105
     ]
@@ -1786,7 +1786,7 @@
     "focused" : false,
     "rect" : [
       422,
-      5616,
+      5597,
       344,
       27
     ]
@@ -1805,7 +1805,7 @@
     "focused" : false,
     "rect" : [
       422,
-      5653,
+      5634,
       344,
       105
     ]
@@ -1824,7 +1824,7 @@
     "focused" : false,
     "rect" : [
       422,
-      5770,
+      5751,
       344,
       21
     ]
@@ -1843,7 +1843,7 @@
     "focused" : false,
     "rect" : [
       422,
-      5803,
+      5784,
       344,
       21
     ]
@@ -1863,67 +1863,7 @@
     "focused" : false,
     "rect" : [
       422,
-      -1131,
-      344,
-      76
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "You",
-    "AXHelp" : "",
-    "AXRole" : "AXGroup",
-    "AXSubrole" : "AXDocumentArticle",
-    "AXTitle" : "You",
-    "AXValue" : "",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      422,
-      -1031,
-      344,
-      97
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "Thinking",
-    "AXHelp" : "",
-    "AXRole" : "AXGroup",
-    "AXSubrole" : "AXDocumentArticle",
-    "AXTitle" : "Thinking",
-    "AXValue" : "",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      422,
-      -910,
-      344,
-      53
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "Agent reply",
-    "AXHelp" : "",
-    "AXRole" : "AXGroup",
-    "AXSubrole" : "AXDocumentArticle",
-    "AXTitle" : "Agent reply",
-    "AXValue" : "",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      422,
-      -833,
+      -2939,
       344,
       55
     ]
@@ -1943,7 +1883,367 @@
     "focused" : false,
     "rect" : [
       422,
-      -754,
+      -2860,
+      344,
+      97
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "Thinking",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXDocumentArticle",
+    "AXTitle" : "Thinking",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -2739,
+      344,
+      53
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "Agent reply",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXDocumentArticle",
+    "AXTitle" : "Agent reply",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -2662,
+      344,
+      55
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "You",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXDocumentArticle",
+    "AXTitle" : "You",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -2583,
+      344,
+      212
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "Agent reply",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXDocumentArticle",
+    "AXTitle" : "Agent reply",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -2347,
+      344,
+      55
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "You",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXDocumentArticle",
+    "AXTitle" : "You",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -2268,
+      344,
+      159
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "Agent reply",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXDocumentArticle",
+    "AXTitle" : "Agent reply",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -2085,
+      344,
+      55
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "You",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXDocumentArticle",
+    "AXTitle" : "You",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -2006,
+      344,
+      159
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "Agent reply",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXDocumentArticle",
+    "AXTitle" : "Agent reply",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -1823,
+      344,
+      55
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "You",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXDocumentArticle",
+    "AXTitle" : "You",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -1744,
+      344,
+      97
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "Thinking",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXDocumentArticle",
+    "AXTitle" : "Thinking",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -1623,
+      344,
+      53
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "Agent reply",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXDocumentArticle",
+    "AXTitle" : "Agent reply",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -1546,
+      344,
+      76
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "You",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXDocumentArticle",
+    "AXTitle" : "You",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -1446,
+      344,
+      97
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "Thinking",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXDocumentArticle",
+    "AXTitle" : "Thinking",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -1325,
+      344,
+      53
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "Agent reply",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXDocumentArticle",
+    "AXTitle" : "Agent reply",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -1248,
+      344,
+      55
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "Error",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXDocumentArticle",
+    "AXTitle" : "Error",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -1169,
+      344,
+      110
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "You",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXDocumentArticle",
+    "AXTitle" : "You",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -1035,
+      344,
+      159
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "Agent reply",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXDocumentArticle",
+    "AXTitle" : "Agent reply",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -852,
+      344,
+      55
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "You",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXDocumentArticle",
+    "AXTitle" : "You",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -773,
       344,
       97
     ]
@@ -1963,7 +2263,7 @@
     "focused" : false,
     "rect" : [
       422,
-      -633,
+      -652,
       344,
       538
     ]
@@ -1983,7 +2283,7 @@
     "focused" : false,
     "rect" : [
       422,
-      5848,
+      5829,
       344,
       83
     ]
@@ -2003,9 +2303,9 @@
     "focused" : false,
     "rect" : [
       422,
-      5955,
+      5936,
       344,
-      4180
+      4246
     ]
   },
   {
@@ -2022,8 +2322,8 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      643,
-      595,
+      651,
+      501,
       115,
       39
     ]
@@ -2043,9 +2343,9 @@
     "focused" : false,
     "rect" : [
       404,
-      614,
+      558,
       380,
-      225
+      281
     ]
   },
   {
@@ -2185,7 +2485,7 @@
     "focused" : false,
     "rect" : [
       624,
-      62,
+      43,
       98,
       15
     ]
@@ -2204,7 +2504,7 @@
     "focused" : false,
     "rect" : [
       422,
-      -67,
+      -86,
       36,
       15
     ]
@@ -2224,7 +2524,7 @@
     "focused" : false,
     "rect" : [
       693,
-      -71,
+      -90,
       74,
       24
     ]
@@ -2243,7 +2543,7 @@
     "focused" : false,
     "rect" : [
       422,
-      -35,
+      -54,
       222,
       27
     ]
@@ -2262,7 +2562,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6,
+      -13,
       209,
       17
     ]
@@ -2281,7 +2581,7 @@
     "focused" : false,
     "rect" : [
       441,
-      116,
+      97,
       319,
       17
     ]
@@ -2300,7 +2600,7 @@
     "focused" : false,
     "rect" : [
       441,
-      149,
+      130,
       307,
       38
     ]
@@ -2319,7 +2619,7 @@
     "focused" : false,
     "rect" : [
       446,
-      203,
+      184,
       320,
       21
     ]
@@ -2338,7 +2638,7 @@
     "focused" : false,
     "rect" : [
       446,
-      229,
+      210,
       320,
       78
     ]
@@ -2357,7 +2657,7 @@
     "focused" : false,
     "rect" : [
       422,
-      325,
+      306,
       338,
       38
     ]
@@ -2376,7 +2676,7 @@
     "focused" : false,
     "rect" : [
       438,
-      393,
+      374,
       1395,
       72
     ]
@@ -2395,7 +2695,7 @@
     "focused" : false,
     "rect" : [
       422,
-      541,
+      522,
       118,
       17
     ]
@@ -2414,7 +2714,7 @@
     "focused" : false,
     "rect" : [
       543,
-      541,
+      522,
       159,
       17
     ]
@@ -2433,7 +2733,7 @@
     "focused" : false,
     "rect" : [
       422,
-      596,
+      577,
       176,
       23
     ]
@@ -2452,7 +2752,7 @@
     "focused" : false,
     "rect" : [
       422,
-      633,
+      614,
       340,
       101
     ]
@@ -2471,7 +2771,7 @@
     "focused" : false,
     "rect" : [
       422,
-      758,
+      739,
       179,
       23
     ]
@@ -2490,7 +2790,7 @@
     "focused" : false,
     "rect" : [
       422,
-      795,
+      776,
       340,
       101
     ]
@@ -2509,7 +2809,7 @@
     "focused" : false,
     "rect" : [
       422,
-      920,
+      901,
       179,
       23
     ]
@@ -2528,7 +2828,7 @@
     "focused" : false,
     "rect" : [
       422,
-      957,
+      938,
       340,
       101
     ]
@@ -2547,7 +2847,7 @@
     "focused" : false,
     "rect" : [
       422,
-      1082,
+      1063,
       180,
       23
     ]
@@ -2566,7 +2866,7 @@
     "focused" : false,
     "rect" : [
       422,
-      1119,
+      1100,
       340,
       101
     ]
@@ -2585,7 +2885,7 @@
     "focused" : false,
     "rect" : [
       422,
-      1244,
+      1225,
       179,
       23
     ]
@@ -2604,7 +2904,7 @@
     "focused" : false,
     "rect" : [
       422,
-      1281,
+      1262,
       340,
       101
     ]
@@ -2623,7 +2923,7 @@
     "focused" : false,
     "rect" : [
       422,
-      1406,
+      1387,
       180,
       23
     ]
@@ -2642,7 +2942,7 @@
     "focused" : false,
     "rect" : [
       422,
-      1443,
+      1424,
       340,
       101
     ]
@@ -2661,7 +2961,7 @@
     "focused" : false,
     "rect" : [
       422,
-      1568,
+      1549,
       178,
       23
     ]
@@ -2680,7 +2980,7 @@
     "focused" : false,
     "rect" : [
       422,
-      1605,
+      1586,
       340,
       101
     ]
@@ -2699,7 +2999,7 @@
     "focused" : false,
     "rect" : [
       422,
-      1730,
+      1711,
       180,
       23
     ]
@@ -2718,7 +3018,7 @@
     "focused" : false,
     "rect" : [
       422,
-      1767,
+      1748,
       340,
       101
     ]
@@ -2737,7 +3037,7 @@
     "focused" : false,
     "rect" : [
       422,
-      1892,
+      1873,
       180,
       23
     ]
@@ -2756,7 +3056,7 @@
     "focused" : false,
     "rect" : [
       422,
-      1929,
+      1910,
       340,
       101
     ]
@@ -2775,7 +3075,7 @@
     "focused" : false,
     "rect" : [
       422,
-      2054,
+      2035,
       176,
       23
     ]
@@ -2794,7 +3094,7 @@
     "focused" : false,
     "rect" : [
       422,
-      2091,
+      2072,
       340,
       101
     ]
@@ -2813,7 +3113,7 @@
     "focused" : false,
     "rect" : [
       422,
-      2216,
+      2197,
       173,
       23
     ]
@@ -2832,7 +3132,7 @@
     "focused" : false,
     "rect" : [
       422,
-      2253,
+      2234,
       340,
       101
     ]
@@ -2851,7 +3151,7 @@
     "focused" : false,
     "rect" : [
       422,
-      2378,
+      2359,
       175,
       23
     ]
@@ -2870,7 +3170,7 @@
     "focused" : false,
     "rect" : [
       422,
-      2415,
+      2396,
       340,
       101
     ]
@@ -2889,7 +3189,7 @@
     "focused" : false,
     "rect" : [
       422,
-      2540,
+      2521,
       176,
       23
     ]
@@ -2908,7 +3208,7 @@
     "focused" : false,
     "rect" : [
       422,
-      2577,
+      2558,
       340,
       101
     ]
@@ -2927,7 +3227,7 @@
     "focused" : false,
     "rect" : [
       422,
-      2702,
+      2683,
       176,
       23
     ]
@@ -2946,7 +3246,7 @@
     "focused" : false,
     "rect" : [
       422,
-      2739,
+      2720,
       340,
       101
     ]
@@ -2965,7 +3265,7 @@
     "focused" : false,
     "rect" : [
       422,
-      2864,
+      2845,
       176,
       23
     ]
@@ -2984,7 +3284,7 @@
     "focused" : false,
     "rect" : [
       422,
-      2901,
+      2882,
       340,
       101
     ]
@@ -3003,7 +3303,7 @@
     "focused" : false,
     "rect" : [
       422,
-      3026,
+      3007,
       176,
       23
     ]
@@ -3022,7 +3322,7 @@
     "focused" : false,
     "rect" : [
       422,
-      3063,
+      3044,
       340,
       101
     ]
@@ -3041,7 +3341,7 @@
     "focused" : false,
     "rect" : [
       422,
-      3188,
+      3169,
       175,
       23
     ]
@@ -3060,7 +3360,7 @@
     "focused" : false,
     "rect" : [
       422,
-      3225,
+      3206,
       340,
       101
     ]
@@ -3079,7 +3379,7 @@
     "focused" : false,
     "rect" : [
       422,
-      3350,
+      3331,
       176,
       23
     ]
@@ -3098,7 +3398,7 @@
     "focused" : false,
     "rect" : [
       422,
-      3387,
+      3368,
       340,
       101
     ]
@@ -3117,7 +3417,7 @@
     "focused" : false,
     "rect" : [
       422,
-      3512,
+      3493,
       176,
       23
     ]
@@ -3136,7 +3436,7 @@
     "focused" : false,
     "rect" : [
       422,
-      3549,
+      3530,
       340,
       101
     ]
@@ -3155,7 +3455,7 @@
     "focused" : false,
     "rect" : [
       422,
-      3674,
+      3655,
       179,
       23
     ]
@@ -3174,7 +3474,7 @@
     "focused" : false,
     "rect" : [
       422,
-      3711,
+      3692,
       340,
       101
     ]
@@ -3193,7 +3493,7 @@
     "focused" : false,
     "rect" : [
       422,
-      3836,
+      3817,
       175,
       23
     ]
@@ -3212,7 +3512,7 @@
     "focused" : false,
     "rect" : [
       422,
-      3873,
+      3854,
       340,
       101
     ]
@@ -3231,7 +3531,7 @@
     "focused" : false,
     "rect" : [
       422,
-      3998,
+      3979,
       178,
       23
     ]
@@ -3250,7 +3550,7 @@
     "focused" : false,
     "rect" : [
       422,
-      4035,
+      4016,
       340,
       101
     ]
@@ -3269,7 +3569,7 @@
     "focused" : false,
     "rect" : [
       422,
-      4160,
+      4141,
       179,
       23
     ]
@@ -3288,7 +3588,7 @@
     "focused" : false,
     "rect" : [
       422,
-      4197,
+      4178,
       340,
       101
     ]
@@ -3307,7 +3607,7 @@
     "focused" : false,
     "rect" : [
       422,
-      4322,
+      4303,
       179,
       23
     ]
@@ -3326,7 +3626,7 @@
     "focused" : false,
     "rect" : [
       422,
-      4359,
+      4340,
       340,
       101
     ]
@@ -3345,7 +3645,7 @@
     "focused" : false,
     "rect" : [
       422,
-      4484,
+      4465,
       178,
       23
     ]
@@ -3364,7 +3664,7 @@
     "focused" : false,
     "rect" : [
       422,
-      4521,
+      4502,
       340,
       101
     ]
@@ -3383,7 +3683,7 @@
     "focused" : false,
     "rect" : [
       422,
-      4646,
+      4627,
       179,
       23
     ]
@@ -3402,7 +3702,7 @@
     "focused" : false,
     "rect" : [
       422,
-      4683,
+      4664,
       340,
       101
     ]
@@ -3421,7 +3721,7 @@
     "focused" : false,
     "rect" : [
       422,
-      4808,
+      4789,
       177,
       23
     ]
@@ -3440,7 +3740,7 @@
     "focused" : false,
     "rect" : [
       422,
-      4845,
+      4826,
       340,
       101
     ]
@@ -3459,7 +3759,7 @@
     "focused" : false,
     "rect" : [
       422,
-      4970,
+      4951,
       179,
       23
     ]
@@ -3478,7 +3778,7 @@
     "focused" : false,
     "rect" : [
       422,
-      5007,
+      4988,
       340,
       101
     ]
@@ -3497,7 +3797,7 @@
     "focused" : false,
     "rect" : [
       422,
-      5132,
+      5113,
       179,
       23
     ]
@@ -3516,7 +3816,7 @@
     "focused" : false,
     "rect" : [
       422,
-      5169,
+      5150,
       340,
       101
     ]
@@ -3535,7 +3835,7 @@
     "focused" : false,
     "rect" : [
       422,
-      5294,
+      5275,
       179,
       23
     ]
@@ -3554,7 +3854,7 @@
     "focused" : false,
     "rect" : [
       422,
-      5331,
+      5312,
       340,
       101
     ]
@@ -3573,7 +3873,7 @@
     "focused" : false,
     "rect" : [
       422,
-      5456,
+      5437,
       176,
       23
     ]
@@ -3592,7 +3892,7 @@
     "focused" : false,
     "rect" : [
       422,
-      5493,
+      5474,
       340,
       101
     ]
@@ -3611,7 +3911,7 @@
     "focused" : false,
     "rect" : [
       422,
-      5618,
+      5599,
       179,
       23
     ]
@@ -3630,7 +3930,7 @@
     "focused" : false,
     "rect" : [
       422,
-      5655,
+      5636,
       340,
       101
     ]
@@ -3649,7 +3949,7 @@
     "focused" : false,
     "rect" : [
       422,
-      5772,
+      5753,
       207,
       17
     ]
@@ -3668,7 +3968,7 @@
     "focused" : false,
     "rect" : [
       422,
-      5805,
+      5786,
       224,
       17
     ]
@@ -3688,7 +3988,7 @@
     "focused" : false,
     "rect" : [
       422,
-      -1131,
+      -2939,
       344,
       24
     ]
@@ -3707,9 +4007,9 @@
     "focused" : false,
     "rect" : [
       422,
-      -1097,
+      -2905,
       344,
-      42
+      21
     ]
   },
   {
@@ -3727,7 +4027,7 @@
     "focused" : false,
     "rect" : [
       439,
-      -1016,
+      -2845,
       310,
       24
     ]
@@ -3746,7 +4046,7 @@
     "focused" : false,
     "rect" : [
       439,
-      -982,
+      -2811,
       310,
       21
     ]
@@ -3766,7 +4066,7 @@
     "focused" : false,
     "rect" : [
       422,
-      -910,
+      -2739,
       344,
       24
     ]
@@ -3785,7 +4085,7 @@
     "focused" : false,
     "rect" : [
       422,
-      -876,
+      -2705,
       344,
       19
     ]
@@ -3805,7 +4105,7 @@
     "focused" : false,
     "rect" : [
       422,
-      -833,
+      -2662,
       344,
       24
     ]
@@ -3824,7 +4124,7 @@
     "focused" : false,
     "rect" : [
       422,
-      -799,
+      -2628,
       344,
       21
     ]
@@ -3844,7 +4144,7 @@
     "focused" : false,
     "rect" : [
       439,
-      -739,
+      -2568,
       310,
       24
     ]
@@ -3863,7 +4163,672 @@
     "focused" : false,
     "rect" : [
       439,
-      -705,
+      -2534,
+      310,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "Attached files",
+    "AXHelp" : "",
+    "AXRole" : "AXList",
+    "AXSubrole" : "AXContentList",
+    "AXTitle" : "Attached files",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -2501,
+      310,
+      115
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXSectionHeader",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -2347,
+      344,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -2313,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXSectionHeader",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -2253,
+      310,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -2219,
+      310,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "Attached files",
+    "AXHelp" : "",
+    "AXRole" : "AXList",
+    "AXSubrole" : "AXContentList",
+    "AXTitle" : "Attached files",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -2186,
+      310,
+      62
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXSectionHeader",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -2085,
+      344,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -2051,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXSectionHeader",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -1991,
+      310,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -1957,
+      310,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "Attached files",
+    "AXHelp" : "",
+    "AXRole" : "AXList",
+    "AXSubrole" : "AXContentList",
+    "AXTitle" : "Attached files",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -1924,
+      310,
+      62
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXSectionHeader",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -1823,
+      344,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -1789,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXSectionHeader",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -1729,
+      310,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -1695,
+      310,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXSectionHeader",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -1623,
+      344,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -1589,
+      344,
+      19
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXSectionHeader",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -1546,
+      344,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -1512,
+      344,
+      42
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXSectionHeader",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -1431,
+      310,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -1397,
+      310,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXSectionHeader",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -1325,
+      344,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -1291,
+      344,
+      19
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXSectionHeader",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -1248,
+      344,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -1214,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXSectionHeader",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      437,
+      -1158,
+      314,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      437,
+      -1124,
+      314,
+      42
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXSectionHeader",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -1020,
+      310,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -986,
+      310,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "Attached files",
+    "AXHelp" : "",
+    "AXRole" : "AXList",
+    "AXSubrole" : "AXContentList",
+    "AXTitle" : "Attached files",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -953,
+      310,
+      62
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXSectionHeader",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -852,
+      344,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -818,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXSectionHeader",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -758,
+      310,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -724,
       310,
       21
     ]
@@ -3883,7 +4848,7 @@
     "focused" : false,
     "rect" : [
       439,
-      -619,
+      -638,
       310,
       24
     ]
@@ -3904,7 +4869,7 @@
     "focused" : false,
     "rect" : [
       439,
-      -585,
+      -604,
       310,
       476
     ]
@@ -3924,7 +4889,7 @@
     "focused" : false,
     "rect" : [
       439,
-      5862,
+      5843,
       310,
       24
     ]
@@ -3945,7 +4910,7 @@
     "focused" : false,
     "rect" : [
       439,
-      5896,
+      5877,
       310,
       21
     ]
@@ -3965,7 +4930,7 @@
     "focused" : false,
     "rect" : [
       422,
-      5955,
+      5936,
       344,
       24
     ]
@@ -3984,7 +4949,7 @@
     "focused" : false,
     "rect" : [
       422,
-      5989,
+      5970,
       344,
       21
     ]
@@ -4003,7 +4968,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6022,
+      6003,
       344,
       21
     ]
@@ -4022,7 +4987,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6055,
+      6036,
       344,
       21
     ]
@@ -4041,7 +5006,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6088,
+      6069,
       344,
       21
     ]
@@ -4060,7 +5025,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6121,
+      6102,
       344,
       21
     ]
@@ -4079,7 +5044,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6154,
+      6135,
       344,
       21
     ]
@@ -4098,7 +5063,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6187,
+      6168,
       344,
       21
     ]
@@ -4117,7 +5082,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6220,
+      6201,
       344,
       21
     ]
@@ -4136,7 +5101,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6253,
+      6234,
       344,
       21
     ]
@@ -4155,7 +5120,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6286,
+      6267,
       344,
       21
     ]
@@ -4174,7 +5139,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6319,
+      6300,
       344,
       21
     ]
@@ -4193,7 +5158,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6352,
+      6333,
       344,
       21
     ]
@@ -4212,7 +5177,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6385,
+      6366,
       344,
       21
     ]
@@ -4231,7 +5196,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6418,
+      6399,
       344,
       21
     ]
@@ -4250,7 +5215,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6451,
+      6432,
       344,
       21
     ]
@@ -4269,7 +5234,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6484,
+      6465,
       344,
       21
     ]
@@ -4288,7 +5253,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6517,
+      6498,
       344,
       21
     ]
@@ -4307,7 +5272,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6550,
+      6531,
       344,
       21
     ]
@@ -4326,7 +5291,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6583,
+      6564,
       344,
       21
     ]
@@ -4345,7 +5310,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6616,
+      6597,
       344,
       21
     ]
@@ -4364,7 +5329,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6649,
+      6630,
       344,
       21
     ]
@@ -4383,7 +5348,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6682,
+      6663,
       344,
       21
     ]
@@ -4402,7 +5367,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6715,
+      6696,
       344,
       21
     ]
@@ -4421,7 +5386,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6748,
+      6729,
       344,
       21
     ]
@@ -4440,7 +5405,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6781,
+      6762,
       344,
       21
     ]
@@ -4459,7 +5424,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6814,
+      6795,
       344,
       21
     ]
@@ -4478,7 +5443,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6847,
+      6828,
       344,
       21
     ]
@@ -4497,7 +5462,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6880,
+      6861,
       344,
       21
     ]
@@ -4516,7 +5481,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6913,
+      6894,
       344,
       21
     ]
@@ -4535,7 +5500,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6946,
+      6927,
       344,
       21
     ]
@@ -4554,7 +5519,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6979,
+      6960,
       344,
       21
     ]
@@ -4573,7 +5538,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7012,
+      6993,
       344,
       21
     ]
@@ -4592,7 +5557,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7045,
+      7026,
       344,
       21
     ]
@@ -4611,7 +5576,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7078,
+      7059,
       344,
       21
     ]
@@ -4630,7 +5595,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7111,
+      7092,
       344,
       21
     ]
@@ -4649,7 +5614,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7144,
+      7125,
       344,
       21
     ]
@@ -4668,7 +5633,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7177,
+      7158,
       344,
       21
     ]
@@ -4687,7 +5652,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7210,
+      7191,
       344,
       21
     ]
@@ -4706,7 +5671,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7243,
+      7224,
       344,
       21
     ]
@@ -4725,7 +5690,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7276,
+      7257,
       344,
       21
     ]
@@ -4744,7 +5709,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7309,
+      7290,
       344,
       21
     ]
@@ -4763,7 +5728,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7342,
+      7323,
       344,
       21
     ]
@@ -4782,7 +5747,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7375,
+      7356,
       344,
       21
     ]
@@ -4801,7 +5766,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7408,
+      7389,
       344,
       21
     ]
@@ -4820,7 +5785,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7441,
+      7422,
       344,
       21
     ]
@@ -4839,7 +5804,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7474,
+      7455,
       344,
       21
     ]
@@ -4858,7 +5823,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7507,
+      7488,
       344,
       21
     ]
@@ -4877,7 +5842,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7540,
+      7521,
       344,
       21
     ]
@@ -4896,7 +5861,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7573,
+      7554,
       344,
       21
     ]
@@ -4915,7 +5880,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7606,
+      7587,
       344,
       21
     ]
@@ -4934,7 +5899,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7639,
+      7620,
       344,
       21
     ]
@@ -4953,7 +5918,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7672,
+      7653,
       344,
       21
     ]
@@ -4972,7 +5937,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7705,
+      7686,
       344,
       21
     ]
@@ -4991,7 +5956,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7738,
+      7719,
       344,
       21
     ]
@@ -5010,7 +5975,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7771,
+      7752,
       344,
       21
     ]
@@ -5029,7 +5994,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7804,
+      7785,
       344,
       21
     ]
@@ -5048,7 +6013,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7837,
+      7818,
       344,
       21
     ]
@@ -5067,7 +6032,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7870,
+      7851,
       344,
       21
     ]
@@ -5086,7 +6051,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7903,
+      7884,
       344,
       21
     ]
@@ -5105,7 +6070,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7936,
+      7917,
       344,
       21
     ]
@@ -5124,7 +6089,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7969,
+      7950,
       344,
       21
     ]
@@ -5143,7 +6108,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8002,
+      7983,
       344,
       21
     ]
@@ -5162,7 +6127,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8035,
+      8016,
       344,
       21
     ]
@@ -5181,7 +6146,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8068,
+      8049,
       344,
       21
     ]
@@ -5200,7 +6165,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8101,
+      8082,
       344,
       21
     ]
@@ -5219,7 +6184,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8134,
+      8115,
       344,
       21
     ]
@@ -5238,7 +6203,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8167,
+      8148,
       344,
       21
     ]
@@ -5257,7 +6222,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8200,
+      8181,
       344,
       21
     ]
@@ -5276,7 +6241,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8233,
+      8214,
       344,
       21
     ]
@@ -5295,7 +6260,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8266,
+      8247,
       344,
       21
     ]
@@ -5314,7 +6279,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8299,
+      8280,
       344,
       21
     ]
@@ -5333,7 +6298,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8332,
+      8313,
       344,
       21
     ]
@@ -5352,7 +6317,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8365,
+      8346,
       344,
       21
     ]
@@ -5371,7 +6336,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8398,
+      8379,
       344,
       21
     ]
@@ -5390,7 +6355,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8431,
+      8412,
       344,
       21
     ]
@@ -5409,7 +6374,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8464,
+      8445,
       344,
       21
     ]
@@ -5428,7 +6393,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8497,
+      8478,
       344,
       21
     ]
@@ -5447,7 +6412,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8530,
+      8511,
       344,
       21
     ]
@@ -5466,7 +6431,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8563,
+      8544,
       344,
       21
     ]
@@ -5485,7 +6450,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8596,
+      8577,
       344,
       21
     ]
@@ -5504,7 +6469,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8629,
+      8610,
       344,
       21
     ]
@@ -5523,7 +6488,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8662,
+      8643,
       344,
       21
     ]
@@ -5542,7 +6507,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8695,
+      8676,
       344,
       21
     ]
@@ -5561,7 +6526,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8728,
+      8709,
       344,
       21
     ]
@@ -5580,7 +6545,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8761,
+      8742,
       344,
       21
     ]
@@ -5599,7 +6564,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8794,
+      8775,
       344,
       21
     ]
@@ -5618,7 +6583,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8827,
+      8808,
       344,
       21
     ]
@@ -5637,7 +6602,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8860,
+      8841,
       344,
       21
     ]
@@ -5656,7 +6621,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8893,
+      8874,
       344,
       21
     ]
@@ -5675,7 +6640,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8926,
+      8907,
       344,
       21
     ]
@@ -5694,7 +6659,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8959,
+      8940,
       344,
       21
     ]
@@ -5713,7 +6678,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8992,
+      8973,
       344,
       21
     ]
@@ -5732,7 +6697,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9025,
+      9006,
       344,
       21
     ]
@@ -5751,7 +6716,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9058,
+      9039,
       344,
       21
     ]
@@ -5770,7 +6735,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9091,
+      9072,
       344,
       21
     ]
@@ -5789,7 +6754,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9124,
+      9105,
       344,
       21
     ]
@@ -5808,7 +6773,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9157,
+      9138,
       344,
       21
     ]
@@ -5827,7 +6792,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9190,
+      9171,
       344,
       21
     ]
@@ -5846,7 +6811,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9223,
+      9204,
       344,
       21
     ]
@@ -5865,7 +6830,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9256,
+      9237,
       344,
       21
     ]
@@ -5884,7 +6849,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9289,
+      9270,
       344,
       21
     ]
@@ -5903,7 +6868,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9322,
+      9303,
       344,
       21
     ]
@@ -5922,7 +6887,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9355,
+      9336,
       344,
       21
     ]
@@ -5941,7 +6906,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9388,
+      9369,
       344,
       21
     ]
@@ -5960,7 +6925,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9421,
+      9402,
       344,
       21
     ]
@@ -5979,7 +6944,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9454,
+      9435,
       344,
       21
     ]
@@ -5998,7 +6963,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9487,
+      9468,
       344,
       21
     ]
@@ -6017,7 +6982,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9520,
+      9501,
       344,
       21
     ]
@@ -6036,7 +7001,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9553,
+      9534,
       344,
       21
     ]
@@ -6055,7 +7020,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9586,
+      9567,
       344,
       21
     ]
@@ -6074,7 +7039,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9619,
+      9600,
       344,
       21
     ]
@@ -6093,7 +7058,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9652,
+      9633,
       344,
       21
     ]
@@ -6112,7 +7077,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9685,
+      9666,
       344,
       21
     ]
@@ -6131,7 +7096,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9718,
+      9699,
       344,
       21
     ]
@@ -6150,7 +7115,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9751,
+      9732,
       344,
       21
     ]
@@ -6169,7 +7134,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9784,
+      9765,
       344,
       21
     ]
@@ -6188,7 +7153,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9817,
+      9798,
       344,
       21
     ]
@@ -6207,7 +7172,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9850,
+      9831,
       344,
       21
     ]
@@ -6226,7 +7191,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9883,
+      9864,
       344,
       21
     ]
@@ -6245,7 +7210,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9916,
+      9897,
       344,
       21
     ]
@@ -6264,7 +7229,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9949,
+      9930,
       344,
       21
     ]
@@ -6283,7 +7248,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9982,
+      9963,
       344,
       21
     ]
@@ -6302,7 +7267,7 @@
     "focused" : false,
     "rect" : [
       422,
-      10015,
+      9996,
       344,
       21
     ]
@@ -6321,7 +7286,7 @@
     "focused" : false,
     "rect" : [
       422,
-      10048,
+      10029,
       344,
       21
     ]
@@ -6340,7 +7305,7 @@
     "focused" : false,
     "rect" : [
       422,
-      10081,
+      10062,
       344,
       21
     ]
@@ -6359,7 +7324,45 @@
     "focused" : false,
     "rect" : [
       422,
-      10114,
+      10095,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      10128,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      10161,
       344,
       21
     ]
@@ -6378,7 +7381,7 @@
     "focused" : false,
     "rect" : [
       422,
-      631,
+      569,
       344,
       18
     ]
@@ -6399,9 +7402,49 @@
     "focused" : false,
     "rect" : [
       422,
-      656,
+      594,
       344,
       110
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXApplicationStatus",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      716,
+      344,
+      16
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXButton",
+    "AXTitle" : "Add files…",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      741,
+      92,
+      39
     ]
   },
   {
@@ -6417,8 +7460,8 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      422,
-      784,
+      521,
+      745,
       168,
       30
     ]
@@ -6437,8 +7480,8 @@
     "enabled" : false,
     "focused" : false,
     "rect" : [
-      627,
-      780,
+      711,
+      741,
       55,
       39
     ]
@@ -6457,9 +7500,9 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      689,
-      780,
-      78,
+      422,
+      788,
+      77,
       39
     ]
   },
@@ -7051,7 +8094,7 @@
     "focused" : false,
     "rect" : [
       425,
-      205,
+      186,
       18,
       17
     ]
@@ -7070,7 +8113,7 @@
     "focused" : false,
     "rect" : [
       446,
-      205,
+      186,
       186,
       17
     ]
@@ -7089,7 +8132,7 @@
     "focused" : false,
     "rect" : [
       425,
-      231,
+      212,
       18,
       17
     ]
@@ -7108,7 +8151,7 @@
     "focused" : false,
     "rect" : [
       446,
-      231,
+      212,
       152,
       17
     ]
@@ -7128,7 +8171,7 @@
     "focused" : false,
     "rect" : [
       446,
-      260,
+      241,
       320,
       47
     ]
@@ -7147,7 +8190,7 @@
     "focused" : false,
     "rect" : [
       422,
-      -1127,
+      -2935,
       36,
       15
     ]
@@ -7167,7 +8210,7 @@
     "focused" : false,
     "rect" : [
       693,
-      -1131,
+      -2939,
       74,
       24
     ]
@@ -7181,14 +8224,14 @@
     "AXHelp" : "",
     "AXRole" : "AXStaticText",
     "AXTitle" : "",
-    "AXValue" : "resumed 08aad22e-a346-41dc-95dd-d13eb40c8951",
+    "AXValue" : "resumed 2ecf377a-baad-4177-a029-f1554cf56919",
     "enabled" : true,
     "focused" : false,
     "rect" : [
       422,
-      -1095,
-      251,
-      38
+      -2903,
+      334,
+      17
     ]
   },
   {
@@ -7205,7 +8248,7 @@
     "focused" : false,
     "rect" : [
       439,
-      -1012,
+      -2841,
       23,
       15
     ]
@@ -7225,7 +8268,7 @@
     "focused" : false,
     "rect" : [
       655,
-      -1016,
+      -2845,
       94,
       24
     ]
@@ -7244,7 +8287,7 @@
     "focused" : false,
     "rect" : [
       439,
-      -980,
+      -2809,
       122,
       17
     ]
@@ -7263,7 +8306,7 @@
     "focused" : false,
     "rect" : [
       422,
-      -906,
+      -2735,
       52,
       15
     ]
@@ -7283,7 +8326,7 @@
     "focused" : false,
     "rect" : [
       672,
-      -910,
+      -2739,
       94,
       24
     ]
@@ -7302,7 +8345,7 @@
     "focused" : false,
     "rect" : [
       422,
-      -875,
+      -2704,
       192,
       16
     ]
@@ -7321,7 +8364,7 @@
     "focused" : false,
     "rect" : [
       422,
-      -829,
+      -2658,
       36,
       15
     ]
@@ -7341,7 +8384,7 @@
     "focused" : false,
     "rect" : [
       693,
-      -833,
+      -2662,
       74,
       24
     ]
@@ -7360,7 +8403,7 @@
     "focused" : false,
     "rect" : [
       422,
-      -797,
+      -2626,
       264,
       17
     ]
@@ -7379,7 +8422,7 @@
     "focused" : false,
     "rect" : [
       439,
-      -735,
+      -2564,
       23,
       15
     ]
@@ -7399,7 +8442,7 @@
     "focused" : false,
     "rect" : [
       655,
-      -739,
+      -2568,
       94,
       24
     ]
@@ -7413,13 +8456,13 @@
     "AXHelp" : "",
     "AXRole" : "AXStaticText",
     "AXTitle" : "",
-    "AXValue" : "Show the rich conversation review",
+    "AXValue" : "Attachment check: files",
     "enabled" : true,
     "focused" : false,
     "rect" : [
       439,
-      -703,
-      221,
+      -2532,
+      152,
       17
     ]
   },
@@ -7430,207 +8473,16 @@
     ],
     "AXDescription" : "",
     "AXHelp" : "",
-    "AXRole" : "AXStaticText",
-    "AXTitle" : "",
-    "AXValue" : "Command",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      439,
-      -615,
-      61,
-      15
-    ]
-  },
-  {
-    "actions" : [
-      "AXPress",
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXButton",
-    "AXTitle" : "Copy tool details",
-    "AXValue" : "",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      644,
-      -619,
-      105,
-      24
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXDisclosureTriangle",
-    "AXSubrole" : "AXSummary",
-    "AXTitle" : "Review local build · Failed",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      439,
-      -585,
-      310,
-      21
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXHeading",
-    "AXTitle" : "Input",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      439,
-      -540,
-      310,
-      18
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
     "AXRole" : "AXGroup",
-    "AXSubrole" : "AXPreformattedStyleGroup",
     "AXTitle" : "",
     "AXValue" : "",
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      439,
-      -510,
-      310,
-      47
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXHeading",
-    "AXTitle" : "Output",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      439,
-      -447,
-      310,
-      18
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXGroup",
-    "AXSubrole" : "AXPreformattedStyleGroup",
-    "AXTitle" : "",
-    "AXValue" : "",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      439,
-      -417,
-      310,
-      47
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXHeading",
-    "AXTitle" : "Result",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      439,
-      -354,
-      310,
-      18
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXGroup",
-    "AXSubrole" : "AXPreformattedStyleGroup",
-    "AXTitle" : "",
-    "AXValue" : "",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      439,
-      -324,
-      310,
-      85
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXHeading",
-    "AXTitle" : "Location",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      439,
-      -223,
-      310,
-      18
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXGroup",
-    "AXSubrole" : "AXPreformattedStyleGroup",
-    "AXTitle" : "",
-    "AXValue" : "",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      439,
-      -193,
-      310,
-      47
+      442,
+      -2498,
+      304,
+      56
     ]
   },
   {
@@ -7646,68 +8498,10 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      439,
-      -130,
-      310,
-      21
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXStaticText",
-    "AXTitle" : "",
-    "AXValue" : "Command",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      439,
-      5866,
-      61,
-      15
-    ]
-  },
-  {
-    "actions" : [
-      "AXPress",
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXButton",
-    "AXTitle" : "Copy tool details",
-    "AXValue" : "",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      644,
-      5862,
-      105,
-      24
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXDisclosureTriangle",
-    "AXSubrole" : "AXSummary",
-    "AXTitle" : "Track reading progress · Finished",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      439,
-      5896,
-      310,
-      21
+      442,
+      -2434,
+      304,
+      56
     ]
   },
   {
@@ -7724,7 +8518,7 @@
     "focused" : false,
     "rect" : [
       422,
-      5959,
+      -2343,
       36,
       15
     ]
@@ -7744,7 +8538,1221 @@
     "focused" : false,
     "rect" : [
       693,
-      5955,
+      -2347,
+      74,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Native attachment accepted: files",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -2311,
+      218,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "You",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -2249,
+      23,
+      15
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXButton",
+    "AXTitle" : "Copy message",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      655,
+      -2253,
+      94,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Attachment check: clipboard",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -2217,
+      186,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      442,
+      -2183,
+      304,
+      56
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Agent",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -2081,
+      36,
+      15
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXButton",
+    "AXTitle" : "Copy reply",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      693,
+      -2085,
+      74,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Native attachment accepted: clipboard",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -2049,
+      251,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "You",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -1987,
+      23,
+      15
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXButton",
+    "AXTitle" : "Copy message",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      655,
+      -1991,
+      94,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Attachment check: drop",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -1955,
+      156,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      442,
+      -1921,
+      304,
+      56
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Agent",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -1819,
+      36,
+      15
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXButton",
+    "AXTitle" : "Copy reply",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      693,
+      -1823,
+      74,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Native attachment accepted: drop",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -1787,
+      221,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "You",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -1725,
+      23,
+      15
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXButton",
+    "AXTitle" : "Copy message",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      655,
+      -1729,
+      94,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "hang attachment cancellation",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -1693,
+      191,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Thinking",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -1619,
+      52,
+      15
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXButton",
+    "AXTitle" : "Copy message",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      672,
+      -1623,
+      94,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "considering: hang attachment cancellation",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -1588,
+      258,
+      16
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Agent",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -1542,
+      36,
+      15
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXButton",
+    "AXTitle" : "Copy reply",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      693,
+      -1546,
+      74,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "[scripted-slow] echo: hang attachment cancellationhanging until cancel",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -1510,
+      252,
+      38
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "You",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -1427,
+      23,
+      15
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXButton",
+    "AXTitle" : "Copy message",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      655,
+      -1431,
+      94,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "fail attachment capability",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -1395,
+      163,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Thinking",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -1321,
+      52,
+      15
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXButton",
+    "AXTitle" : "Copy message",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      672,
+      -1325,
+      94,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "considering: fail attachment capability",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -1290,
+      231,
+      16
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Agent",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -1244,
+      36,
+      15
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXButton",
+    "AXTitle" : "Copy reply",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      693,
+      -1248,
+      74,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "[scripted-slow] echo: fail attachment capability",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -1212,
+      305,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Error",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      437,
+      -1154,
+      31,
+      15
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXButton",
+    "AXTitle" : "Copy message",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      657,
+      -1158,
+      94,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Agent error: Transport error: ACP prompt failed: Internal error: \"scripted failure\"",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      437,
+      -1122,
+      312,
+      38
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "You",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -1016,
+      23,
+      15
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXButton",
+    "AXTitle" : "Copy message",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      655,
+      -1020,
+      94,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Attachment check: unsupported",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -984,
+      208,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      442,
+      -950,
+      304,
+      56
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Agent",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -848,
+      36,
+      15
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXButton",
+    "AXTitle" : "Copy reply",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      693,
+      -852,
+      74,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Native attachment accepted: unsupported",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -816,
+      273,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "You",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -754,
+      23,
+      15
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXButton",
+    "AXTitle" : "Copy message",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      655,
+      -758,
+      94,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Show the rich conversation review",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -722,
+      221,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Command",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -634,
+      61,
+      15
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXButton",
+    "AXTitle" : "Copy tool details",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      644,
+      -638,
+      105,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXDisclosureTriangle",
+    "AXSubrole" : "AXSummary",
+    "AXTitle" : "Review local build · Failed",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -604,
+      310,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXHeading",
+    "AXTitle" : "Input",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -559,
+      310,
+      18
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXPreformattedStyleGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -529,
+      310,
+      47
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXHeading",
+    "AXTitle" : "Output",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -466,
+      310,
+      18
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXPreformattedStyleGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -436,
+      310,
+      47
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXHeading",
+    "AXTitle" : "Result",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -373,
+      310,
+      18
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXPreformattedStyleGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -343,
+      310,
+      85
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXHeading",
+    "AXTitle" : "Location",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -242,
+      310,
+      18
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXPreformattedStyleGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -212,
+      310,
+      47
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -149,
+      310,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Command",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      5847,
+      61,
+      15
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXButton",
+    "AXTitle" : "Copy tool details",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      644,
+      5843,
+      105,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXDisclosureTriangle",
+    "AXSubrole" : "AXSummary",
+    "AXTitle" : "Track reading progress · Finished",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      5877,
+      310,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Agent",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      5940,
+      36,
+      15
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXButton",
+    "AXTitle" : "Copy reply",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      693,
+      5936,
       74,
       24
     ]
@@ -7763,7 +9771,7 @@
     "focused" : false,
     "rect" : [
       422,
-      5991,
+      5972,
       329,
       17
     ]
@@ -7782,7 +9790,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6024,
+      6005,
       331,
       17
     ]
@@ -7801,7 +9809,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6057,
+      6038,
       331,
       17
     ]
@@ -7820,7 +9828,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6090,
+      6071,
       331,
       17
     ]
@@ -7839,7 +9847,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6123,
+      6104,
       331,
       17
     ]
@@ -7858,7 +9866,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6156,
+      6137,
       331,
       17
     ]
@@ -7877,7 +9885,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6189,
+      6170,
       330,
       17
     ]
@@ -7896,7 +9904,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6222,
+      6203,
       331,
       17
     ]
@@ -7915,7 +9923,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6255,
+      6236,
       331,
       17
     ]
@@ -7934,7 +9942,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6288,
+      6269,
       329,
       17
     ]
@@ -7953,7 +9961,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6321,
+      6302,
       327,
       17
     ]
@@ -7972,7 +9980,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6354,
+      6335,
       329,
       17
     ]
@@ -7991,7 +9999,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6387,
+      6368,
       329,
       17
     ]
@@ -8010,7 +10018,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6420,
+      6401,
       329,
       17
     ]
@@ -8029,7 +10037,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6453,
+      6434,
       329,
       17
     ]
@@ -8048,7 +10056,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6486,
+      6467,
       329,
       17
     ]
@@ -8067,7 +10075,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6519,
+      6500,
       328,
       17
     ]
@@ -8086,7 +10094,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6552,
+      6533,
       329,
       17
     ]
@@ -8105,7 +10113,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6585,
+      6566,
       329,
       17
     ]
@@ -8124,7 +10132,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6618,
+      6599,
       331,
       17
     ]
@@ -8143,7 +10151,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6651,
+      6632,
       329,
       17
     ]
@@ -8162,7 +10170,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6684,
+      6665,
       331,
       17
     ]
@@ -8181,7 +10189,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6717,
+      6698,
       331,
       17
     ]
@@ -8200,7 +10208,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6750,
+      6731,
       331,
       17
     ]
@@ -8219,7 +10227,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6783,
+      6764,
       331,
       17
     ]
@@ -8238,7 +10246,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6816,
+      6797,
       331,
       17
     ]
@@ -8257,7 +10265,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6849,
+      6830,
       330,
       17
     ]
@@ -8276,7 +10284,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6882,
+      6863,
       331,
       17
     ]
@@ -8295,7 +10303,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6915,
+      6896,
       331,
       17
     ]
@@ -8314,7 +10322,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6948,
+      6929,
       331,
       17
     ]
@@ -8333,7 +10341,7 @@
     "focused" : false,
     "rect" : [
       422,
-      6981,
+      6962,
       329,
       17
     ]
@@ -8352,7 +10360,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7014,
+      6995,
       331,
       17
     ]
@@ -8371,7 +10379,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7047,
+      7028,
       331,
       17
     ]
@@ -8390,7 +10398,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7080,
+      7061,
       331,
       17
     ]
@@ -8409,7 +10417,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7113,
+      7094,
       331,
       17
     ]
@@ -8428,7 +10436,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7146,
+      7127,
       331,
       17
     ]
@@ -8447,7 +10455,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7179,
+      7160,
       330,
       17
     ]
@@ -8466,7 +10474,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7212,
+      7193,
       331,
       17
     ]
@@ -8485,7 +10493,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7245,
+      7226,
       331,
       17
     ]
@@ -8504,7 +10512,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7278,
+      7259,
       331,
       17
     ]
@@ -8523,7 +10531,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7311,
+      7292,
       329,
       17
     ]
@@ -8542,7 +10550,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7344,
+      7325,
       331,
       17
     ]
@@ -8561,7 +10569,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7377,
+      7358,
       331,
       17
     ]
@@ -8580,7 +10588,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7410,
+      7391,
       332,
       17
     ]
@@ -8599,7 +10607,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7443,
+      7424,
       331,
       17
     ]
@@ -8618,7 +10626,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7476,
+      7457,
       332,
       17
     ]
@@ -8637,7 +10645,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7509,
+      7490,
       330,
       17
     ]
@@ -8656,7 +10664,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7542,
+      7523,
       332,
       17
     ]
@@ -8675,7 +10683,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7575,
+      7556,
       332,
       17
     ]
@@ -8694,7 +10702,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7608,
+      7589,
       331,
       17
     ]
@@ -8713,7 +10721,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7641,
+      7622,
       329,
       17
     ]
@@ -8732,7 +10740,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7674,
+      7655,
       331,
       17
     ]
@@ -8751,7 +10759,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7707,
+      7688,
       331,
       17
     ]
@@ -8770,7 +10778,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7740,
+      7721,
       331,
       17
     ]
@@ -8789,7 +10797,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7773,
+      7754,
       331,
       17
     ]
@@ -8808,7 +10816,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7806,
+      7787,
       331,
       17
     ]
@@ -8827,7 +10835,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7839,
+      7820,
       330,
       17
     ]
@@ -8846,7 +10854,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7872,
+      7853,
       331,
       17
     ]
@@ -8865,7 +10873,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7905,
+      7886,
       331,
       17
     ]
@@ -8884,7 +10892,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7938,
+      7919,
       331,
       17
     ]
@@ -8903,7 +10911,7 @@
     "focused" : false,
     "rect" : [
       422,
-      7971,
+      7952,
       329,
       17
     ]
@@ -8922,7 +10930,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8004,
+      7985,
       331,
       17
     ]
@@ -8941,7 +10949,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8037,
+      8018,
       331,
       17
     ]
@@ -8960,7 +10968,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8070,
+      8051,
       332,
       17
     ]
@@ -8979,7 +10987,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8103,
+      8084,
       331,
       17
     ]
@@ -8998,7 +11006,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8136,
+      8117,
       331,
       17
     ]
@@ -9017,7 +11025,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8169,
+      8150,
       330,
       17
     ]
@@ -9036,7 +11044,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8202,
+      8183,
       331,
       17
     ]
@@ -9055,7 +11063,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8235,
+      8216,
       331,
       17
     ]
@@ -9074,7 +11082,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8268,
+      8249,
       330,
       17
     ]
@@ -9093,7 +11101,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8301,
+      8282,
       328,
       17
     ]
@@ -9112,7 +11120,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8334,
+      8315,
       330,
       17
     ]
@@ -9131,7 +11139,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8367,
+      8348,
       330,
       17
     ]
@@ -9150,7 +11158,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8400,
+      8381,
       330,
       17
     ]
@@ -9169,7 +11177,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8433,
+      8414,
       330,
       17
     ]
@@ -9188,7 +11196,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8466,
+      8447,
       330,
       17
     ]
@@ -9207,7 +11215,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8499,
+      8480,
       329,
       17
     ]
@@ -9226,7 +11234,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8532,
+      8513,
       330,
       17
     ]
@@ -9245,7 +11253,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8565,
+      8546,
       330,
       17
     ]
@@ -9264,7 +11272,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8598,
+      8579,
       331,
       17
     ]
@@ -9283,7 +11291,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8631,
+      8612,
       329,
       17
     ]
@@ -9302,7 +11310,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8664,
+      8645,
       331,
       17
     ]
@@ -9321,7 +11329,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8697,
+      8678,
       331,
       17
     ]
@@ -9340,7 +11348,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8730,
+      8711,
       332,
       17
     ]
@@ -9359,7 +11367,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8763,
+      8744,
       331,
       17
     ]
@@ -9378,7 +11386,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8796,
+      8777,
       331,
       17
     ]
@@ -9397,7 +11405,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8829,
+      8810,
       330,
       17
     ]
@@ -9416,7 +11424,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8862,
+      8843,
       332,
       17
     ]
@@ -9435,7 +11443,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8895,
+      8876,
       331,
       17
     ]
@@ -9454,7 +11462,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8928,
+      8909,
       331,
       17
     ]
@@ -9473,7 +11481,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8961,
+      8942,
       329,
       17
     ]
@@ -9492,7 +11500,7 @@
     "focused" : false,
     "rect" : [
       422,
-      8994,
+      8975,
       331,
       17
     ]
@@ -9511,7 +11519,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9027,
+      9008,
       331,
       17
     ]
@@ -9530,7 +11538,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9060,
+      9041,
       332,
       17
     ]
@@ -9549,7 +11557,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9093,
+      9074,
       331,
       17
     ]
@@ -9568,7 +11576,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9126,
+      9107,
       331,
       17
     ]
@@ -9587,7 +11595,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9159,
+      9140,
       330,
       17
     ]
@@ -9606,7 +11614,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9192,
+      9173,
       331,
       17
     ]
@@ -9625,7 +11633,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9225,
+      9206,
       331,
       17
     ]
@@ -9644,7 +11652,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9258,
+      9239,
       329,
       17
     ]
@@ -9663,7 +11671,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9291,
+      9272,
       327,
       17
     ]
@@ -9682,7 +11690,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9324,
+      9305,
       329,
       17
     ]
@@ -9701,7 +11709,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9357,
+      9338,
       329,
       17
     ]
@@ -9720,7 +11728,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9390,
+      9371,
       329,
       17
     ]
@@ -9739,7 +11747,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9423,
+      9404,
       329,
       17
     ]
@@ -9758,7 +11766,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9456,
+      9437,
       329,
       17
     ]
@@ -9777,7 +11785,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9489,
+      9470,
       327,
       17
     ]
@@ -9796,7 +11804,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9522,
+      9503,
       329,
       17
     ]
@@ -9815,7 +11823,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9555,
+      9536,
       329,
       17
     ]
@@ -9834,7 +11842,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9588,
+      9569,
       327,
       17
     ]
@@ -9853,7 +11861,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9621,
+      9602,
       324,
       17
     ]
@@ -9872,7 +11880,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9654,
+      9635,
       326,
       17
     ]
@@ -9891,7 +11899,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9687,
+      9668,
       327,
       17
     ]
@@ -9910,7 +11918,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9720,
+      9701,
       327,
       17
     ]
@@ -9929,7 +11937,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9753,
+      9734,
       326,
       17
     ]
@@ -9948,7 +11956,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9786,
+      9767,
       327,
       17
     ]
@@ -9967,7 +11975,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9819,
+      9800,
       325,
       17
     ]
@@ -9986,7 +11994,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9852,
+      9833,
       327,
       17
     ]
@@ -10005,7 +12013,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9885,
+      9866,
       327,
       17
     ]
@@ -10024,7 +12032,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9918,
+      9899,
       329,
       17
     ]
@@ -10043,7 +12051,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9951,
+      9932,
       326,
       17
     ]
@@ -10062,7 +12070,7 @@
     "focused" : false,
     "rect" : [
       422,
-      9984,
+      9965,
       328,
       17
     ]
@@ -10081,7 +12089,7 @@
     "focused" : false,
     "rect" : [
       422,
-      10017,
+      9998,
       329,
       17
     ]
@@ -10100,7 +12108,7 @@
     "focused" : false,
     "rect" : [
       422,
-      10050,
+      10031,
       329,
       17
     ]
@@ -10119,7 +12127,7 @@
     "focused" : false,
     "rect" : [
       422,
-      10083,
+      10064,
       328,
       17
     ]
@@ -10138,7 +12146,45 @@
     "focused" : false,
     "rect" : [
       422,
-      10116,
+      10097,
+      329,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0127: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      10130,
+      327,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0128: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      10163,
       329,
       17
     ]
@@ -10157,7 +12203,7 @@
     "focused" : false,
     "rect" : [
       422,
-      632,
+      570,
       108,
       15
     ]
@@ -10176,7 +12222,7 @@
     "focused" : false,
     "rect" : [
       435,
-      669,
+      607,
       318,
       21
     ]
@@ -10190,13 +12236,32 @@
     "AXHelp" : "",
     "AXRole" : "AXStaticText",
     "AXTitle" : "",
-    "AXValue" : "Project",
+    "AXValue" : "Add text files or PNG, JPEG and WebP images · 1 MB per file.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      717,
+      319,
+      13
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Second project",
     "enabled" : true,
     "focused" : false,
     "rect" : [
       430,
       212,
-      41,
+      86,
       15
     ]
   },
@@ -10266,7 +12331,7 @@
     "AXHelp" : "",
     "AXRole" : "AXStaticText",
     "AXTitle" : "",
-    "AXValue" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-szz_ai16\/second",
+    "AXValue" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-86mz5dsa\/second",
     "enabled" : true,
     "focused" : false,
     "rect" : [
@@ -10708,11 +12773,11 @@
       "AXShowMenu",
       "AXScrollToVisible"
     ],
-    "AXDescription" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-szz_ai16\/feature",
-    "AXHelp" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-szz_ai16\/feature",
+    "AXDescription" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-86mz5dsa\/feature",
+    "AXHelp" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-86mz5dsa\/feature",
     "AXRole" : "AXGroup",
     "AXSubrole" : "AXApplicationGroup",
-    "AXTitle" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-szz_ai16\/feature",
+    "AXTitle" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-86mz5dsa\/feature",
     "AXValue" : "",
     "enabled" : true,
     "focused" : false,
@@ -10808,11 +12873,11 @@
       "AXShowMenu",
       "AXScrollToVisible"
     ],
-    "AXDescription" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-szz_ai16\/first",
-    "AXHelp" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-szz_ai16\/first",
+    "AXDescription" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-86mz5dsa\/first",
+    "AXHelp" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-86mz5dsa\/first",
     "AXRole" : "AXGroup",
     "AXSubrole" : "AXApplicationGroup",
-    "AXTitle" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-szz_ai16\/first",
+    "AXTitle" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-86mz5dsa\/first",
     "AXValue" : "",
     "enabled" : true,
     "focused" : false,
@@ -10908,11 +12973,11 @@
       "AXShowMenu",
       "AXScrollToVisible"
     ],
-    "AXDescription" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-szz_ai16\/second",
-    "AXHelp" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-szz_ai16\/second",
+    "AXDescription" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-86mz5dsa\/second",
+    "AXHelp" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-86mz5dsa\/second",
     "AXRole" : "AXGroup",
     "AXSubrole" : "AXApplicationGroup",
-    "AXTitle" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-szz_ai16\/second",
+    "AXTitle" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-86mz5dsa\/second",
     "AXValue" : "",
     "enabled" : true,
     "focused" : false,
@@ -11049,7 +13114,7 @@
     "focused" : false,
     "rect" : [
       470,
-      260,
+      241,
       296,
       21
     ]
@@ -11068,9 +13133,199 @@
     "focused" : false,
     "rect" : [
       470,
-      286,
+      267,
       296,
       21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      452,
+      -2488,
+      284,
+      18
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "13 KB · Image attached",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      452,
+      -2467,
+      121,
+      13
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      452,
+      -2424,
+      284,
+      18
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "84 KB · Text file attached",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      452,
+      -2403,
+      133,
+      13
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      452,
+      -2173,
+      284,
+      18
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "13 KB · Image attached",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      452,
+      -2152,
+      121,
+      13
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      452,
+      -1911,
+      284,
+      18
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "33 B · Text file attached",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      452,
+      -1890,
+      125,
+      13
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      452,
+      -940,
+      284,
+      18
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "84 KB · Text file attached",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      452,
+      -919,
+      133,
+      13
     ]
   },
   {
@@ -11087,7 +13342,7 @@
     "focused" : false,
     "rect" : [
       453,
-      -583,
+      -602,
       173,
       17
     ]
@@ -11106,7 +13361,7 @@
     "focused" : false,
     "rect" : [
       439,
-      -539,
+      -558,
       32,
       15
     ]
@@ -11125,7 +13380,7 @@
     "focused" : false,
     "rect" : [
       455,
-      -494,
+      -513,
       468,
       15
     ]
@@ -11144,7 +13399,7 @@
     "focused" : false,
     "rect" : [
       439,
-      -446,
+      -465,
       43,
       15
     ]
@@ -11163,7 +13418,7 @@
     "focused" : false,
     "rect" : [
       455,
-      -401,
+      -420,
       921,
       15
     ]
@@ -11182,7 +13437,7 @@
     "focused" : false,
     "rect" : [
       439,
-      -353,
+      -372,
       39,
       15
     ]
@@ -11201,7 +13456,7 @@
     "focused" : false,
     "rect" : [
       455,
-      -308,
+      -327,
       446,
       53
     ]
@@ -11220,7 +13475,7 @@
     "focused" : false,
     "rect" : [
       439,
-      -222,
+      -241,
       52,
       15
     ]
@@ -11234,12 +13489,12 @@
     "AXHelp" : "",
     "AXRole" : "AXStaticText",
     "AXTitle" : "",
-    "AXValue" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-szz_ai16\/second\/sample.rs:2",
+    "AXValue" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-86mz5dsa\/second\/sample.rs:2",
     "enabled" : true,
     "focused" : false,
     "rect" : [
       455,
-      -177,
+      -196,
       802,
       15
     ]
@@ -11253,13 +13508,13 @@
     "AXHelp" : "",
     "AXRole" : "AXStaticText",
     "AXTitle" : "",
-    "AXValue" : "Duration: 12.85 seconds.",
+    "AXValue" : "Duration: 13.13 seconds.",
     "enabled" : true,
     "focused" : false,
     "rect" : [
       439,
-      -128,
-      161,
+      -147,
+      159,
       17
     ]
   },
@@ -11277,7 +13532,7 @@
     "focused" : false,
     "rect" : [
       453,
-      5898,
+      5879,
       226,
       17
     ]
@@ -11296,7 +13551,7 @@
     "focused" : false,
     "rect" : [
       435,
-      671,
+      609,
       129,
       17
     ]
@@ -11467,7 +13722,7 @@
     "focused" : false,
     "rect" : [
       453,
-      262,
+      243,
       7,
       17
     ]
@@ -11486,7 +13741,7 @@
     "focused" : false,
     "rect" : [
       470,
-      262,
+      243,
       175,
       17
     ]
@@ -11505,7 +13760,7 @@
     "focused" : false,
     "rect" : [
       453,
-      288,
+      269,
       7,
       17
     ]
@@ -11524,9 +13779,104 @@
     "focused" : false,
     "rect" : [
       470,
-      288,
+      269,
       144,
       17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "preview.png",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      452,
+      -2487,
+      74,
+      15
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "reading-note.txt",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      452,
+      -2423,
+      100,
+      15
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "image.png",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      452,
+      -2172,
+      64,
+      15
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "drop-note.txt",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      452,
+      -1910,
+      82,
+      15
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "reading-note.txt",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      452,
+      -939,
+      100,
+      15
     ]
   }
 ]

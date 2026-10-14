@@ -24,7 +24,7 @@ its existing view or receive a refusal.
 | Component | Owns |
 | --- | --- |
 | `application::SessionRegistry` | Resident sessions, admission, addressed controls, bounded observation and ordered shutdown |
-| `InteractiveHost` and `ProjectResources` | Provider, workflow attachment, source workspace and their child lifetimes |
+| `InteractiveHost` and `Resources` | Provider, workflow attachment, source workspace and their child lifetimes |
 | `SessionObservation` | Retained conversation identity/name, messages, complete configuration, status/usage, requests and drafts |
 | `ProjectFolder`, `ProjectSetup`, `ScaffoldPipeline` and `AdminService` | Read-only readiness, detected setup plan, exact approved writes, ownership and per-path receipts |
 | Desktop commands | Typed translation from window actions to the application client; ephemeral single-use setup review handles |
@@ -141,6 +141,41 @@ matching draft after an addressed acceptance with its real observation sequence;
 a rejected send or a newer draft is retained. Cancellation clears the owner's queue
 and reports unsent queued messages. Navigation saves drafts only to live catalog
 owners, so closing the selected conversation can switch to another resident.
+
+Pending files belong to the addressed session alongside its text draft. The
+native picker and native file drops stage project files through the admitted
+workspace's exact `read_source` observation. Clipboard files supply bytes only;
+they grant no filesystem access. Staging classifies content from bytes and keeps
+its SHA-256 revision. Source files are checked again before send; changed,
+missing, oversized or outside-project files refuse without discarding the draft.
+Reads run away from the registry loop and settle before project resources close.
+Each session admits only one preparation at a time. Stop invalidates that
+preparation before it can dispatch, so a slow file check cannot start work after
+cancellation. A newly selected attachment has a new identity even when its bytes
+match a previous selection; an earlier acknowledgement cannot clear it.
+
+`PromptInput` carries immutable text/image content through the shared command,
+session, supervisor queue and provider adapter. Its bounds are one MiB per file,
+eight files and eight MiB of attachments, plus one MiB of message text. Text files
+become separate labeled text blocks with their exact UTF-8 content; PNG, JPEG and
+WebP become image blocks only when the provider negotiated image support.
+Other binary files are refused. The adapter encodes already prepared content;
+it does not read files mentioned in message text. Once queued, a request's
+bytes cannot change with the filesystem.
+
+Each selected stream sends image and text preview data once per new attachment
+identity. Subsequent frames carry metadata; the desktop retains only that
+presentation data until removal or navigation. A new stream seeds its previews
+again. Native file drops grant one use to the full selected session and stream;
+JavaScript receives no path-reading capability.
+
+The current submission outcome is an explicitly sequenced owner fact, separate
+from bounded conversation history. It records actual acceptance or refusal with
+ordered file identities, names, hashes, kinds and lengths, so attachment payloads do not fill
+the transcript. Acceptance clears only the matching text and attachments;
+late outcomes leave newer edits intact. Rejection can restore exact bytes into
+an empty pending draft. The desktop allows one outstanding send per addressed
+session and never infers acceptance from an empty editor.
 
 Appearance selects System, Light or Dark. Motion is absent; native reduced-motion
 preferences and `--reduce-motion` are honored.

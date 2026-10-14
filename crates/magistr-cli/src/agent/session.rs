@@ -138,7 +138,10 @@ impl AgentSession {
 
     /// Send a follow-up message in the current conversation.
     #[instrument(skip_all)]
-    pub fn send_followup(&self, content: &str) -> Result<()> {
+    pub fn send_followup(
+        &self,
+        content: &magistr_application::sessions::PromptInput,
+    ) -> Result<()> {
         #[cfg(test)]
         if self.channel_closed {
             return Err(crate::error::MagistrError::Acp(
@@ -152,7 +155,7 @@ impl AgentSession {
                 follow_ups
                     .lock()
                     .expect("follow_ups lock poisoned")
-                    .push(content.to_string());
+                    .push(content.text.clone());
                 Ok(())
             }
         }
