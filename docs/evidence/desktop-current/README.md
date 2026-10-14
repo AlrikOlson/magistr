@@ -4,6 +4,12 @@ The real Tauri window is exercised with disposable Git projects, working copies,
 a signed app bundle, a controlled ACP peer and a local streaming API fixture. Application state uses temporary XDG and Magistr directories; the real macOS home is preserved for WebKit's renderer. The screenshots contain the live
 window; no annotations or simulated terminal rendering are added.
 
+The 14 October 2026 captures use the executable from the installed Tauri app
+at `~/Applications/Magistr.app`. Both native journeys pass against the same
+source hashes. A separate installed-app check verifies the unmodified bundle's
+signature, Launch Services, accessible chooser without build tools on PATH,
+and native Quit from a disposable directory outside the checkout.
+
 The receipt records keyboard and pointer actions, accessible controls, Unicode
 and multiline editing, clipboard round trips, permissions with requested action
 details, cancellation, retained drafts, separate sessions and working copies,
