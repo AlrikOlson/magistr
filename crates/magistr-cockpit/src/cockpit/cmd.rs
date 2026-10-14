@@ -1,5 +1,5 @@
 //! Addressable actions handled by resident session and workflow services.
-use super::{CheckpointCmd, EngineCmd, KillCmd, LaunchAction, LoopCmd, WorkbenchCmd};
+use super::{CheckpointCmd, EngineCmd, KillCmd, LaunchAction, RunCommand, WorkbenchCmd};
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Cmd {
     /// Carry the exact logical conversation through asynchronous command dispatch.
@@ -21,7 +21,7 @@ pub enum Cmd {
         condition: String,
     },
     Delegate(String),
-    Loop(LoopCmd),
+    Loop(RunCommand),
     Launch(LaunchAction),
     Kill(KillCmd),
     Workbench(WorkbenchCmd),

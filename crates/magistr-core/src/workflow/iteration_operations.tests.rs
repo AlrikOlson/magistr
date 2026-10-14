@@ -281,7 +281,8 @@ fn admit_receipt(
         .unwrap();
     let admission = engines
         .ship_admit_gate(Some("verify"), gate, "true".into(), true)
-        .unwrap();
+        .unwrap()
+        .value;
     il.start_operation(&attempt, Some(format!("receipt:{}", admission.receipt_id)))
         .unwrap();
     (attempt, admission)

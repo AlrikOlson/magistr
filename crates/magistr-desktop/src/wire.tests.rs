@@ -38,6 +38,7 @@ fn catalog_frames_preserve_full_ownership_and_omit_transcript_and_request_detail
         status: magistr::application::SessionStatus::Working,
         closed: false,
         model: None,
+        work: None,
         usage: Some(Msg::Agent(AgentEvent::Usage {
             context: None,
             cost_cents: Some(0),

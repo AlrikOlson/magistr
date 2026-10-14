@@ -13,11 +13,11 @@ BINARY = str(Path(sys.argv[1]).resolve())
 
 
 class Rpc:
-    def __init__(self, args, cwd):
+    def __init__(self, args, cwd, env=None):
         self.stderr = tempfile.TemporaryFile()
         self.child = subprocess.Popen(
             [BINARY, *args], cwd=cwd, stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE, stderr=self.stderr, text=True,
+            stdout=subprocess.PIPE, stderr=self.stderr, text=True, env=env,
         )
         self.lines = queue.Queue()
         self.reader = threading.Thread(target=self.read, daemon=True)

@@ -62,7 +62,7 @@ def project(path, name):
     run("git","-C",path,"add",".")
     run("git","-C",path,"-c","user.name=Native Journey","-c","user.email=journey@example.invalid","commit","-m","fixture")
 def source_hashes():
-    files = sorted([*SOURCE.glob("src/*.rs"),*SOURCE.glob("ui/*"),*SOURCE.glob("tests/rich_conversation*"),*SOURCE.glob("tests/attachment*"),*SOURCE.glob("tests/draft*"),*SOURCE.glob("tests/preferences*"),*SOURCE.glob("tests/saved_drafts*"),SOURCE/"Cargo.toml",SOURCE/"Cargo.lock",SOURCE/"build.rs",SOURCE/"tauri.conf.json",SOURCE/"tests/native_window.py",SOURCE/"tests/native_window.swift",SOURCE/"tests/session_controls_fixture.py"])
+    files = sorted([*SOURCE.glob("src/*.rs"),*SOURCE.glob("ui/*"),*SOURCE.glob("tests/rich_conversation*"),*SOURCE.glob("tests/attachment*"),*SOURCE.glob("tests/draft*"),*SOURCE.glob("tests/preferences*"),*SOURCE.glob("tests/saved_drafts*"),*SOURCE.glob("tests/work*"),SOURCE/"Cargo.toml",SOURCE/"Cargo.lock",SOURCE/"build.rs",SOURCE/"tauri.conf.json",SOURCE/"tests/native_window.py",SOURCE/"tests/native_window.swift",SOURCE/"tests/session_controls_fixture.py"])
     files.extend(ROOT/path for path in (
         "crates/magistr-application/src/sessions/event.rs",
         "crates/magistr-application/src/sessions/session_activity.rs",
@@ -73,6 +73,20 @@ def source_hashes():
         "crates/magistr-cli/src/orchestration/roadmap_request.rs",
         "crates/magistr-cli/src/application/mod.rs",
         "crates/magistr-cli/src/application/session_catalog.rs",
+        "crates/magistr-cli/src/application/interactive_host.rs",
+        "crates/magistr-cli/src/application/work_target.rs",
+        "crates/magistr-cli/src/application/work_admission.rs",
+        "crates/magistr-cli/src/orchestration/hosted_work.rs",
+        "crates/magistr-cli/src/orchestration/loop_driver/driver.rs",
+        "crates/magistr-cli/src/orchestration/loop_driver/control.rs",
+        "crates/magistr-cli/src/orchestration/loop_driver/checkpoint_detach.rs",
+        "crates/magistr-cockpit-runtime/src/jobs.rs",
+        "crates/magistr-cockpit/src/cockpit/work_run.rs",
+        "crates/magistr-cockpit/src/cockpit/work_phase.rs",
+        "crates/magistr-cockpit/src/cockpit/run_command.rs",
+        "crates/magistr-core/src/workflow/iteration.rs",
+        "crates/magistr-core/src/workflow/loop_lease.rs",
+        "crates/magistr-desktop/tests/process_roles.py",
         "crates/magistr-cli/src/application/session_drafts.rs",
         "crates/magistr-cli/src/application/desktop_preferences.rs",
         "crates/magistr-core/src/config/user_config.rs",

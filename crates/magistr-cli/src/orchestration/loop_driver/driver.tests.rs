@@ -49,7 +49,14 @@ async fn absent_provider_reports_every_failed_control_and_keeps_local_controls_a
         Cmd::Delegate("read".into()),
         Cmd::Reconnect,
         Cmd::CancelRoadmapPrompt,
-        Cmd::Loop(magistr_cockpit::cockpit::LoopCmd::Pause),
+        Cmd::Loop(magistr_cockpit::cockpit::RunCommand {
+            run_id: magistr_domain::identity::RunId::new(
+                magistr_domain::identity::ProjectId::new("fixture").unwrap(),
+                "run",
+            )
+            .unwrap(),
+            action: magistr_cockpit::cockpit::LoopCmd::Pause,
+        }),
     ] {
         commands.send(command.clone()).unwrap();
         let event = tokio::time::timeout(Duration::from_secs(2), events.recv())
@@ -1185,9 +1192,9 @@ async fn a_pause_holds_the_boundary_and_x_skips_the_next_iteration() {
     // while the first turn waits, A answers it, x at the paused
     // boundary, A for the third turn.
     let script = Actions::new()
-        .command(MS(300), Cmd::Loop(LoopCmd::Pause))
+        .control(MS(300), LoopCmd::Pause)
         .allow(MS(600))
-        .command(MS(1_200), Cmd::Loop(LoopCmd::Skip))
+        .control(MS(1_200), LoopCmd::Skip)
         .allow(MS(1_800))
         .command(MS(3_000), Cmd::Quit);
     let (model, report, prompts) = run(
@@ -1205,21 +1212,12 @@ async fn a_pause_holds_the_boundary_and_x_skips_the_next_iteration() {
         &LoopEnd::NoCommits,
         "two iterations without a commit stop the loop"
     );
-    let notes = notes(&model);
     assert!(
-        notes.contains(&"pausing at the end of this iteration".to_owned()),
-        "{notes:?}"
-    );
-    assert!(
-        notes
+        model
             .iter()
-            .any(|n| n.starts_with("paused — space resumes")),
-        "the boundary note is on the stage (wrapped to the stage's width): {notes:?}"
+            .any(|event| matches!(event, Msg::WorkRun(work) if work.phase == WorkPhase::Paused))
     );
-    assert!(
-        notes.contains(&"skipped iteration 2".to_owned()),
-        "{notes:?}"
-    );
+    assert!(notes(&model).contains(&"skipped iteration 2".to_owned()));
 }
 
 /// A yaml project inside a fresh git repository whose `check` gate is an
@@ -1253,9 +1251,9 @@ async fn s_while_paused_steps_one_iteration_then_pauses_again() {
     // s at the paused boundary, A for the second turn; the cockpit is
     // quit while the loop holds the boundary before iteration 3.
     let script = Actions::new()
-        .command(MS(300), Cmd::Loop(LoopCmd::Pause))
+        .control(MS(300), LoopCmd::Pause)
         .allow(MS(600))
-        .command(MS(1_200), Cmd::Loop(LoopCmd::Step))
+        .control(MS(1_200), LoopCmd::Step)
         .allow(MS(1_800))
         .command(MS(4_000), Cmd::Quit);
     let (model, report, prompts) = run(
@@ -1278,21 +1276,12 @@ async fn s_while_paused_steps_one_iteration_then_pauses_again() {
         notes.iter().any(|n| n.starts_with("committed ")),
         "the fixture's gate commits, so the no-commit rule stays out of it: {notes:?}"
     );
-    assert!(
-        notes.contains(&"stepping one iteration, then pausing".to_owned()),
-        "{notes:?}"
-    );
-    assert!(
-        notes.contains(&"paused: stepped iteration 2".to_owned()),
-        "the driver said so at the boundary: {notes:?}"
-    );
     assert_eq!(
-        notes
+        model
             .iter()
-            .filter(|n| n.starts_with("paused — space resumes"))
+            .filter(|event| matches!(event, Msg::WorkRun(work) if work.phase == WorkPhase::Paused))
             .count(),
-        2,
-        "held before iteration 2 and again before iteration 3: {notes:?}"
+        2
     );
 }
 
@@ -1300,9 +1289,9 @@ async fn s_while_paused_steps_one_iteration_then_pauses_again() {
 async fn esc_while_paused_aborts_the_loop() {
     let dir = project("true", "true", "true");
     let script = Actions::new()
-        .command(MS(300), Cmd::Loop(LoopCmd::Pause))
+        .control(MS(300), LoopCmd::Pause)
         .allow(MS(600))
-        .command(MS(1_200), Cmd::Loop(LoopCmd::Abort))
+        .control(MS(1_200), LoopCmd::Abort)
         .command(MS(2_000), Cmd::Quit);
     let (model, report, prompts) = run(
         dir.path(),
@@ -1316,17 +1305,15 @@ async fn esc_while_paused_aborts_the_loop() {
     assert_eq!(report.iterations(), 1);
     assert_eq!(report.end(), &LoopEnd::Aborted);
 
-    assert!(
-        notes(&model).contains(&"aborting the loop".to_owned()),
-        "{:?}",
-        notes(&model)
-    );
+    assert!(model.iter().any(
+        |event| matches!(event, Msg::WorkRun(work) if work.requested == Some(LoopCmd::Abort))
+    ));
 }
 
 /// Quitting the cockpit mid-gates ends the gate's process: the sleeping
 /// test gate writes its own pid (the process-group leader under
 /// `setsid`) and would outlive the whole test at 30s — after ctrl-D the
-/// driver cancels the gate jobs and the process dies within the grace.
+/// driver joins the gate job before publishing completion.
 #[cfg(unix)]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn quitting_mid_gates_ends_the_gates_child_process() {
@@ -1350,16 +1337,12 @@ async fn quitting_mid_gates_ends_the_gates_child_process() {
         .trim()
         .parse()
         .expect("a pid");
-    // Gone within the session grace — a sleeping sh dies on the SIGTERM.
-    let deadline = std::time::Instant::now() + Duration::from_secs(6);
     // SAFETY: signal 0 only probes for existence.
-    while unsafe { libc::kill(pid, 0) } == 0 {
-        assert!(
-            std::time::Instant::now() < deadline,
-            "the gate's child process outlived the quit"
-        );
-        tokio::time::sleep(Duration::from_millis(50)).await;
-    }
+    assert_ne!(
+        unsafe { libc::kill(pid, 0) },
+        0,
+        "completion must not precede the gate child's exit"
+    );
 }
 
 /// The driver reaches no process and no file itself: the agent comes
@@ -1384,7 +1367,10 @@ fn the_driver_runs_gates_only_through_jobs_and_spawns_nothing_itself() {
             assert!(!source.contains(forbidden), "{name} reaches {forbidden}");
         }
     }
-    assert!(driver.contains(".spawn_job("), "the gates go through Jobs");
+    assert!(
+        driver.contains(".spawn_owned_job("),
+        "the gates go through Jobs"
+    );
     assert!(
         !driver.contains("run_command"),
         "the driver never runs a command on its own thread"
@@ -1623,7 +1609,7 @@ async fn an_ok_verdict_over_green_gates_completes_the_chunk_through_the_engines(
     // is never started by anyone but the driver.
     let engines = engines_with_active_task(dir.path());
     let judge = Scripted::new([Verdict::met("both criteria hold")]);
-    let script = Actions::new().command(MS(2_500), Cmd::Quit);
+    let script = Actions::new();
     let (model, report, _) = run_with(
         dir.path(),
         1,
@@ -1684,7 +1670,7 @@ async fn a_judged_completion_names_the_task_its_gates_were_recorded_on() {
     let dir = project("true", "true", "true");
     let engines = engines_with_active_task(dir.path());
     let judge = Scripted::new([Verdict::met("both criteria hold")]);
-    let script = Actions::new().command(MS(2_500), Cmd::Quit);
+    let script = Actions::new();
     let (_, report, _) = run_with(
         dir.path(),
         1,
@@ -1723,7 +1709,7 @@ async fn a_two_archetype_project_completes_through_the_loops_own_receipts() {
     let dir = polyglot_project("test -f web.marker", "true");
     let engines = engines_with_active_task(dir.path());
     let judge = Scripted::new([Verdict::met("both criteria hold")]);
-    let script = Actions::new().command(MS(4_000), Cmd::Quit);
+    let script = Actions::new();
     let (model, report, _) = run_with(
         dir.path(),
         1,
@@ -1777,7 +1763,7 @@ async fn a_red_required_custom_gate_refuses_the_judged_completion() {
     let dir = polyglot_project("test -f web.marker", "exit 3");
     let engines = engines_with_active_task(dir.path());
     let judge = Scripted::new([Verdict::met("looks done to me")]);
-    let script = Actions::new().command(MS(4_000), Cmd::Quit);
+    let script = Actions::new();
     let (model, _, _) = run_with(
         dir.path(),
         1,
@@ -1861,7 +1847,7 @@ async fn a_required_archetype_gate_cannot_disappear_behind_a_green_top_level_com
     let dir = polyglot_project("exit 5", "true");
     let engines = engines_with_active_task(dir.path());
     let judge = Scripted::new([Verdict::met("looks done to me")]);
-    let script = Actions::new().command(MS(4_000), Cmd::Quit);
+    let script = Actions::new();
     let (model, _, _) = run_with(
         dir.path(),
         1,
@@ -2355,7 +2341,7 @@ fn recorded(engines: &NativeEngines) -> Vec<magistr_workflow::ship::domain::chec
 async fn every_gate_the_loop_runs_reaches_the_trace_as_a_verified_check() {
     let dir = project("true", "echo ran-the-tests", "exit 4");
     let engines = engines_with_active_task(dir.path());
-    let script = Actions::new().command(MS(4_000), Cmd::Quit);
+    let script = Actions::new();
     let (model, _, _) = run_with(
         dir.path(),
         1,
@@ -2399,7 +2385,7 @@ async fn a_flake_is_recorded_as_passed_with_both_exit_codes_on_the_record() {
     let flake = "if [ -e flake.marker ]; then exit 0; else touch flake.marker; exit 9; fi";
     let dir = project("true", flake, "true");
     let engines = engines_with_active_task(dir.path());
-    let script = Actions::new().command(MS(4_000), Cmd::Quit);
+    let script = Actions::new();
     let (_, _, _) = run_with(
         dir.path(),
         1,
@@ -2435,7 +2421,7 @@ async fn a_passing_gate_does_not_persist_its_whole_output_and_a_red_one_does() {
         &format!("{noisy}; exit 1"),
     );
     let engines = engines_with_active_task(dir.path());
-    let script = Actions::new().command(MS(6_000), Cmd::Quit);
+    let script = Actions::new();
     let (_, _, _) = run_with(
         dir.path(),
         1,
@@ -2548,7 +2534,7 @@ async fn a_red_gate_reopens_the_chunk_the_agent_completed_itself() {
         let inner = Arc::clone(&inner);
         async move { inner.connect(config).await }
     });
-    let script = Actions::new().command(MS(4_000), Cmd::Quit);
+    let script = Actions::new();
     let (model, _, _) = run_over(
         dir.path(),
         1,
@@ -3058,7 +3044,7 @@ async fn a_self_completed_chunk_over_a_red_gate_reaches_the_authority_rule() {
         let inner = Arc::clone(&inner);
         async move { inner.connect(config).await }
     });
-    let script = Actions::new().command(MS(5_000), Cmd::Quit);
+    let script = Actions::new();
     let (model, _, _) = run_over(
         dir.path(),
         1,
@@ -3114,7 +3100,7 @@ async fn a_judged_iteration_leaves_every_operation_settled_in_the_checkpoint() {
     let dir = project("true", "true", "true");
     let engines = engines_with_active_task(dir.path());
     let judge = Scripted::new([Verdict::met("both criteria hold")]);
-    let script = Actions::new().command(MS(2_500), Cmd::Quit);
+    let script = Actions::new();
     let (_, report, _) = run_with(
         dir.path(),
         1,

@@ -11,7 +11,9 @@ use magistr_acp::AcpEvent;
 use magistr_application::sessions::SessionHandle;
 use magistr_application::sessions::{AgentEvent, SessionOptions, TurnEnd};
 use magistr_cockpit::checkpoint::CheckpointPort;
-use magistr_cockpit::cockpit::{CheckpointCmd, Cmd, KillCmd, LoopCmd, LoopEvent, LoopStage, Msg};
+use magistr_cockpit::cockpit::{
+    CheckpointCmd, Cmd, KillCmd, LoopCmd, LoopEvent, LoopStage, Msg, RunCommand, WorkPhase,
+};
 use magistr_cockpit::engine::EngineEvent;
 use magistr_cockpit_runtime::Jobs;
 use magistr_cockpit_runtime::channel::{Commands, Inbox};
@@ -69,10 +71,6 @@ const ECHO_TIMEOUT: Duration = Duration::from_secs(5);
 /// session is dropped.
 const CLEAR_GRACE: Duration = Duration::from_millis(300);
 
-/// How long a boundary checkpoint gets to land before the loop goes on
-/// without waiting — one `git status` on a large tree, not a hung one.
-const LEDGER_SAVE_GRACE: Duration = Duration::from_secs(10);
-
 /// The iteration loop as a task beside the cockpit's runtime.
 ///
 /// Built from the loop's state and configuration, the runtime's
@@ -100,6 +98,7 @@ pub struct LoopDriver {
     inbox: Inbox,
     commands: Commands,
     jobs: Jobs,
+    lease: Option<Arc<magistr_core::workflow::loop_lease::LoopLease>>,
     connector: Connector,
     persist: bool,
     auto_pause: bool,
@@ -117,10 +116,7 @@ pub struct LoopDriver {
     echo_timeout: Duration,
     tap_tx: UnboundedSender<Msg>,
     tap_rx: UnboundedReceiver<Msg>,
-    paused: bool,
-    /// A step is running: the boundary after this iteration pauses.
-    stepping: bool,
-    pending: Option<LoopCmd>,
+    control: super::control::Control,
     completed: Vec<String>,
     /// The chunk the iteration's prompt was built for.
     target: Option<String>,
@@ -290,6 +286,8 @@ impl LoopDriver {
         let (tap_tx, tap_rx) = unbounded_channel();
         Self {
             jobs: Jobs::new(inbox.clone()),
+            lease: None,
+            control: super::control::Control::new(&iter_loop, inbox.clone()),
             iter_loop,
             native,
             wf,
@@ -314,9 +312,6 @@ impl LoopDriver {
             carry: None,
             tap_tx,
             tap_rx,
-            paused: false,
-            stepping: false,
-            pending: None,
             completed: Vec::new(),
             target: None,
             began: None,
@@ -333,6 +328,14 @@ impl LoopDriver {
             checkpoints: None,
             ledger: None,
         }
+    }
+
+    pub(crate) fn holding_lease(
+        mut self,
+        lease: Arc<magistr_core::workflow::loop_lease::LoopLease>,
+    ) -> Self {
+        self.lease = Some(lease);
+        self
     }
 
     /// Use the profile explicitly selected by the launching interface.
@@ -483,6 +486,7 @@ impl LoopDriver {
     }
 
     async fn run(&mut self) -> LoopReport {
+        self.control.publish();
         let end = loop {
             // An interrupt admits no further attempt: the one in flight
             // has already been wound down by its session owner.
@@ -512,7 +516,12 @@ impl LoopDriver {
                         }
                     }
                     Wake::Cmd(Cmd::Quit) | Wake::Closed => break LoopEnd::CockpitClosed,
-                    Wake::Cmd(Cmd::Loop(LoopCmd::Abort)) => break LoopEnd::Aborted,
+                    Wake::Cmd(Cmd::Loop(command)) => {
+                        self.decide(command);
+                        if self.control.snapshot().requested == Some(LoopCmd::Abort) {
+                            break LoopEnd::Aborted;
+                        }
+                    }
                     Wake::Cmd(cmd) => {
                         self.inbox.send(Msg::CommandFailed {
                             cmd,
@@ -522,6 +531,22 @@ impl LoopDriver {
                     _ => {}
                 }
                 continue;
+            }
+            if let Some(reason) = self.iter_loop.run_state().stop_reason() {
+                break LoopEnd::from_stop(reason, self.iter_loop.max_iterations());
+            }
+            match self.boundary().await {
+                Boundary::Go => {}
+                Boundary::Skip => {
+                    self.note(format!(
+                        "skipped iteration {}",
+                        self.iter_loop.display_iteration()
+                    ));
+                    self.advance();
+                    continue;
+                }
+                Boundary::Abort => break LoopEnd::Aborted,
+                Boundary::Closed => break LoopEnd::CockpitClosed,
             }
             let pre = match self.iter_loop.pre_iteration_check() {
                 Ok(pre) => pre,
@@ -562,19 +587,6 @@ impl LoopDriver {
             {
                 break LoopEnd::Failed(format!("could not checkpoint attempt: {error}"));
             }
-            match self.boundary().await {
-                Boundary::Go => {}
-                Boundary::Skip => {
-                    self.note(format!(
-                        "skipped iteration {}",
-                        self.iter_loop.display_iteration()
-                    ));
-                    self.advance();
-                    continue;
-                }
-                Boundary::Abort => break LoopEnd::Aborted,
-                Boundary::Closed => break LoopEnd::CockpitClosed,
-            }
             match self.iteration().await {
                 Ok(Step::Next) => {}
                 Ok(Step::Closed) => break LoopEnd::CockpitClosed,
@@ -605,6 +617,8 @@ impl LoopDriver {
         {
             self.note(format!("could not checkpoint terminal state: {error}"));
         }
+        self.join_ledger().await;
+        self.control.end(end.to_string());
         if let LoopEnd::Failed(why) = &end {
             self.post(LoopEvent::Failed(why.clone()));
         }
@@ -646,10 +660,9 @@ impl LoopDriver {
                 )) as _
             }),
         );
+        let control = self.control.clone();
+        let session = session.controlling_work(move |command| control.request(command));
         let exit = session.run(&mut self.commands, first, once).await;
-        for control in exit.controls {
-            self.decide(control);
-        }
         // No start is taken here: a follow-up inside the work refuses one, and
         // the kept-open follow-up belongs to the terminal loop, whose model
         // offers none (a hosted session gets its commands back instead).
@@ -660,48 +673,44 @@ impl LoopDriver {
     /// meanwhile takes effect; a step that ran its one iteration pauses
     /// here and says so; a pause waits here for the user's decision.
     async fn boundary(&mut self) -> Boundary {
-        if let Some(decision) = self.take_decision() {
-            return decision;
+        // Drain already queued requests before the next attempt can begin.
+        while let Some(command) = self.commands.try_next() {
+            match self.dispatch(Wake::Cmd(command)) {
+                Wake::Cmd(Cmd::Loop(command)) => self.decide(command),
+                Wake::Closed => return Boundary::Closed,
+                Wake::Cmd(command) => {
+                    self.inbox.send(Msg::CommandFailed {
+                        cmd: command,
+                        error: "Wait for the next agent response before using this action.".into(),
+                    });
+                }
+                _ => {}
+            }
         }
-        if self.stepping {
-            // The stepped iteration is behind us: hold, and say so the
-            // way the auto-pause does, so the strip reads paused without
-            // a second key from the user.
-            self.stepping = false;
-            self.paused = true;
-            self.post(LoopEvent::Paused(format!(
-                "stepped iteration {}",
-                self.iter_loop.display_iteration().saturating_sub(1)
-            )));
-        }
-        if !self.paused {
-            return Boundary::Go;
-        }
-        self.note("paused — space resumes · s steps one iteration · x skips the next · esc aborts");
+        self.control.boundary();
         loop {
+            let state = self.control.snapshot();
+            match state.requested {
+                Some(LoopCmd::Abort) => return Boundary::Abort,
+                Some(LoopCmd::Skip) => {
+                    self.control.take_skip();
+                    return Boundary::Skip;
+                }
+                _ => {}
+            }
+            if state.phase != WorkPhase::Paused {
+                return Boundary::Go;
+            }
             if let Some(text) = self.roadmap_request.take()
                 && !self.interact(Some(Cmd::RoadmapPrompt(text)), true).await
             {
                 return Boundary::Closed;
             }
             match self.wake(None, None).await {
-                Wake::Cmd(Cmd::Loop(cmd)) => {
-                    self.decide(cmd);
-                    if !self.paused {
-                        return self.take_decision().unwrap_or(Boundary::Go);
-                    }
-                }
+                Wake::Cmd(Cmd::Loop(command)) => self.decide(command),
                 Wake::Closed => return Boundary::Closed,
                 _ => {}
             }
-        }
-    }
-
-    fn take_decision(&mut self) -> Option<Boundary> {
-        match self.pending.take()? {
-            LoopCmd::Skip => Some(Boundary::Skip),
-            LoopCmd::Abort => Some(Boundary::Abort),
-            LoopCmd::Pause | LoopCmd::Resume | LoopCmd::Step => None,
         }
     }
 
@@ -747,6 +756,7 @@ impl LoopDriver {
             self.note(format!("Resuming {}", chunk.title));
         }
         self.target = target.map(|chunk| chunk.id);
+        self.control.begin(&self.iter_loop, self.target.clone());
         let prompt = self
             .iter_loop
             .next_prompt(&self.wf.project_config)
@@ -893,9 +903,8 @@ impl LoopDriver {
             Ok(result) => result
                 .map_err(|error| format!("the agent connection ended unexpectedly: {error}"))?,
             Err(_) => {
-                session.abort();
                 let _ = session.await;
-                Err("the agent took too long to close and was stopped".to_owned())
+                Err("The agent took longer than expected to close.".to_owned())
             }
         };
         while let Ok(msg) = self.tap_rx.try_recv() {
@@ -911,9 +920,15 @@ impl LoopDriver {
             _ => magistr_engine::workflow::StopReason::Failed,
         };
         self.iter_loop.stop(reason);
-        Err(format!(
-            "the agent stopped before completing its turn: {end:?}"
-        ))
+        Err(match end {
+            TurnEnd::EndTurn => unreachable!(),
+            TurnEnd::Cancelled => "The current reply was stopped.",
+            TurnEnd::MaxTokens => "The agent reached its response length limit.",
+            TurnEnd::MaxTurnRequests => "The agent reached its turn limit.",
+            TurnEnd::Refusal => "The agent declined the request.",
+            TurnEnd::Other => "The agent stopped before completing its reply.",
+        }
+        .into())
     }
 
     /// Carry the command's frozen selection to every fresh session.
@@ -981,6 +996,11 @@ impl LoopDriver {
             // and the boundary's is taken only once the session is gone.
             None,
         );
+        let lease = self.lease.clone();
+        let session = tokio::spawn(async move {
+            let _lease = lease;
+            session.await.map_err(|error| error.to_string())?
+        });
         self.session_active = true;
         self.conversation = conversation;
         Ok((session, session_tx, control))
@@ -996,10 +1016,8 @@ impl LoopDriver {
     /// the next handshake has not begun. That ordering is the whole of
     /// the fix for flake, where one git read at `Started`
     /// sat on the delegated goal's echo deadline; here the two are
-    /// sequential on one task, by construction. Both waits are bounded
-    /// so a stalled runtime or a hung `git` cannot wedge the loop, and
-    /// a late answer still lands on its row. `false` when the cockpit
-    /// closed meanwhile.
+    /// sequential on one task, by construction. The checkpoint job is joined before the next iteration or owner release.
+    /// Controls stay available while it settles. `false` when the cockpit closed.
     async fn boundary_checkpoint(&mut self, iteration: u32, gates: &[GateOutcome]) -> bool {
         if self.checkpoints.is_none() {
             return true;
@@ -1017,26 +1035,43 @@ impl LoopDriver {
                 )
                 .collect(),
         });
+        if !self.join_ledger().await {
+            return false;
+        }
         self.ledger(CheckpointCmd::Save {
             id: format!("cp-{iteration}"),
             reason: magistr_domain::workflow::CheckpointReason::Iteration,
             label: format!("iteration {iteration}"),
         });
-        if let Some(save) = self.ledger.take()
-            && tokio::time::timeout(LEDGER_SAVE_GRACE, save).await.is_err()
-        {
-            self.note(format!(
-                "checkpoint for iteration {iteration} is still saving — going on without it"
-            ));
-        }
-        true
+        self.join_ledger().await
     }
 
-    /// Serve one ledger verb on the port, off this task; the answer
-    /// reaches the cockpit as `Msg::Checkpoint` when it lands.
+    async fn join_ledger(&mut self) -> bool {
+        let mut open = true;
+        while let Some(mut work) = self.ledger.take() {
+            loop {
+                tokio::select! {
+                    _ = &mut work => break,
+                    wake = self.wake(None, None), if open => match wake {
+                        Wake::Closed => open = false,
+                        Wake::Cmd(Cmd::Loop(command)) => self.decide(command),
+                        _ => {}
+                    }
+                }
+            }
+        }
+        open
+    }
+
+    /// Only one checkpoint job may use the port at a time, and its owner joins it.
     fn ledger(&mut self, cmd: CheckpointCmd) {
-        if let Some(port) = &self.checkpoints {
-            self.ledger = Some(detach(port, cmd, &self.inbox));
+        if self.ledger.as_ref().is_some_and(|job| !job.is_finished()) {
+            self.inbox.send(Msg::CommandFailed {
+                cmd: Cmd::Checkpoint(cmd),
+                error: "A checkpoint is still being saved. Wait before trying again.".into(),
+            });
+        } else if let Some(port) = &self.checkpoints {
+            self.ledger = Some(detach(port, cmd, &self.inbox, self.lease.clone()));
         }
     }
 
@@ -2225,29 +2260,40 @@ impl LoopDriver {
         // cockpit closing still ends it, and the held kill ends this gate alone — its process group, the way a
         // timeout would — and the run comes back cancelled.
         let own = cancel.child_token();
-        let job = self.jobs.spawn_job(gate_job(
+        let _cancel_on_drop = own.clone().drop_guard();
+        let gate = gate_job(
             name.to_owned(),
             command.to_owned(),
             self.wf.project_dir.clone(),
             report,
             self.inbox.clone(),
             own.clone(),
-        ));
+        );
+        let lease = self.lease.clone();
+        let (job, completion) = self.jobs.spawn_owned_job(move || {
+            let _lease = lease;
+            gate()
+        });
         self.post(LoopEvent::GateStarted {
             name: name.to_owned(),
             job,
         });
-        loop {
+        let outcome = loop {
             match self.wake(Some(&mut outcomes_rx), Some(ticks)).await {
-                Wake::Gate(outcome) => return GateStep::Ran(outcome),
-                Wake::GatesGone => return GateStep::Gone,
+                Wake::Gate(outcome) => break GateStep::Ran(outcome),
+                Wake::GatesGone => break GateStep::Gone,
                 Wake::Cmd(Cmd::Loop(cmd)) => self.decide(cmd),
                 Wake::Cmd(Cmd::Kill(KillCmd::Gate(gate))) if gate == name => own.cancel(),
                 Wake::Tick => self.post(LoopEvent::Elapsed(started.elapsed())),
-                Wake::Closed => return GateStep::Closed,
+                Wake::Closed => break GateStep::Closed,
                 Wake::Tap(_) | Wake::Cmd(_) | Wake::Ledger => {}
             }
+        };
+        if matches!(outcome, GateStep::Closed) {
+            own.cancel();
         }
+        let _ = completion.await;
+        outcome
     }
 
     /// After the gates: the commit check, the chunks the feed saw
@@ -2292,7 +2338,7 @@ impl LoopDriver {
         if let Some(why) = self.gates_unresolved.take() {
             // Said once, by the end of the run; the pause only says it is one.
             if self.auto_pause {
-                self.paused = true;
+                self.control.pause();
                 self.post(LoopEvent::Paused("the checks need attention".to_owned()));
             }
             return Some(LoopEnd::Failed(why));
@@ -2315,7 +2361,7 @@ impl LoopDriver {
             let names = failed.join(", ");
             self.post(LoopEvent::Failed(format!("quality gates failed: {names}")));
             if self.auto_pause {
-                self.paused = true;
+                self.control.pause();
                 self.post(LoopEvent::Paused(format!("quality gates failed: {names}")));
             }
             self.verify(gates);
@@ -2363,7 +2409,7 @@ impl LoopDriver {
                 self.note(format!(
                     "Work records could not be read; completed work was not changed: {error}"
                 ));
-                self.paused = true;
+                self.control.pause();
                 self.post(LoopEvent::Paused(
                     "Work records could not be read. Retry after restoring access.".into(),
                 ));
@@ -2417,31 +2463,12 @@ impl LoopDriver {
         let _ = self.wf.cleanup();
     }
 
-    /// A loop decision from the cockpit: pauses and resumes take effect
-    /// as flags, a step arms the pause for the boundary after the
-    /// iteration it lets run, a skip or an abort waits for the boundary.
-    /// Every decision but Step ends a step in flight — the newest word
-    /// wins.
-    fn decide(&mut self, cmd: LoopCmd) {
-        self.stepping = false;
-        match cmd {
-            LoopCmd::Pause => {
-                self.paused = true;
-                self.note("pausing at the end of this iteration");
-            }
-            LoopCmd::Resume => self.paused = false,
-            LoopCmd::Step => {
-                self.paused = false;
-                self.stepping = true;
-                self.note("stepping one iteration, then pausing");
-            }
-            LoopCmd::Skip | LoopCmd::Abort => {
-                if cmd == LoopCmd::Abort {
-                    self.note("aborting the loop");
-                }
-                self.paused = false;
-                self.pending = Some(cmd);
-            }
+    fn decide(&mut self, command: RunCommand) {
+        if let Err(error) = self.control.request(command.clone()) {
+            self.inbox.send(Msg::CommandFailed {
+                cmd: Cmd::Loop(command),
+                error,
+            });
         }
     }
 
@@ -2460,6 +2487,10 @@ impl LoopDriver {
             outcome = recv_gate(gates) => outcome.map_or(Wake::GatesGone, Wake::Gate),
             () = tick(ticks) => Wake::Tick,
         };
+        self.dispatch(wake)
+    }
+
+    fn dispatch(&mut self, wake: Wake) -> Wake {
         let wake = match wake {
             Wake::Cmd(command) => self
                 .inbox

@@ -24,10 +24,12 @@ pub fn detach(
     port: &Arc<Mutex<Box<dyn CheckpointPort>>>,
     cmd: CheckpointCmd,
     inbox: &Inbox,
+    lease: Option<Arc<magistr_core::workflow::loop_lease::LoopLease>>,
 ) -> JoinHandle<()> {
     let port = Arc::clone(port);
     let inbox = inbox.clone();
     tokio::task::spawn_blocking(move || {
+        let _lease = lease;
         let mut port = port.lock().unwrap_or_else(PoisonError::into_inner);
         let event = apply(port.as_mut(), &cmd);
         drop(port);

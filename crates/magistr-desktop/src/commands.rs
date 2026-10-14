@@ -41,6 +41,8 @@ pub(crate) enum Action {
         attachment_ids: Vec<String>,
     },
     Cancel,
+    Next,
+    Loop,
     Reconnect,
     Rename {
         name: String,
@@ -187,6 +189,10 @@ pub(crate) async fn session_action(
         Action::Rename { name } => Cmd::Rename(name),
         Action::Configure { id, value } => Cmd::Configure { id, value },
         Action::Cancel => Cmd::Cancel,
+        Action::Next => Cmd::Launch(magistr_cockpit::cockpit::LaunchAction::Next),
+        Action::Loop => Cmd::Launch(magistr_cockpit::cockpit::LaunchAction::Loop(
+            magistr_cockpit::cockpit::LoopScope::AllTracks,
+        )),
         Action::Reconnect => Cmd::Reconnect,
         Action::Answer { id, option_id } => Cmd::Permission { id, option_id },
     };

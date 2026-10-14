@@ -331,7 +331,7 @@
       "AXScrollToVisible"
     ],
     "AXDescription" : "",
-    "AXHelp" : "",
+    "AXHelp" : "Stop the current reply",
     "AXRole" : "AXButton",
     "AXTitle" : "Stop",
     "AXValue" : "",
@@ -656,7 +656,7 @@
       422,
       308,
       344,
-      76
+      55
     ]
   },
   {
@@ -949,6 +949,26 @@
       "AXShowMenu",
       "AXScrollToVisible"
     ],
+    "AXDescription" : "Planned work",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXLandmarkRegion",
+    "AXTitle" : "Planned work",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      799,
+      888,
+      211,
+      192
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
     "AXDescription" : "Requests waiting for you",
     "AXHelp" : "",
     "AXRole" : "AXGroup",
@@ -979,7 +999,7 @@
     "focused" : false,
     "rect" : [
       799,
-      920,
+      1124,
       211,
       39
     ]
@@ -999,7 +1019,7 @@
     "focused" : false,
     "rect" : [
       799,
-      967,
+      1171,
       211,
       39
     ]
@@ -1019,7 +1039,7 @@
     "focused" : false,
     "rect" : [
       799,
-      1014,
+      1218,
       211,
       39
     ]
@@ -1504,7 +1524,7 @@
       422,
       342,
       344,
-      42
+      21
     ]
   },
   {
@@ -1592,7 +1612,7 @@
     "AXHelp" : "",
     "AXRole" : "AXStaticText",
     "AXTitle" : "",
-    "AXValue" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-faxby9jk\/first",
+    "AXValue" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-_pydnt6c\/first",
     "enabled" : true,
     "focused" : false,
     "rect" : [
@@ -1841,6 +1861,103 @@
     ],
     "AXDescription" : "",
     "AXHelp" : "",
+    "AXRole" : "AXHeading",
+    "AXTitle" : "PLANNED WORK",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      799,
+      903,
+      211,
+      18
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXApplicationStatus",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      799,
+      930,
+      211,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      799,
+      960,
+      211,
+      36
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXButton",
+    "AXTitle" : "Work on next item",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      799,
+      1005,
+      122,
+      34
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXButton",
+    "AXTitle" : "Start 10 items",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      799,
+      1046,
+      99,
+      34
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
     "AXRole" : "AXGroup",
     "AXTitle" : "",
     "AXValue" : "",
@@ -1994,11 +2111,11 @@
       "AXShowMenu",
       "AXScrollToVisible"
     ],
-    "AXDescription" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-faxby9jk\/feature",
-    "AXHelp" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-faxby9jk\/feature",
+    "AXDescription" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-_pydnt6c\/feature",
+    "AXHelp" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-_pydnt6c\/feature",
     "AXRole" : "AXGroup",
     "AXSubrole" : "AXApplicationGroup",
-    "AXTitle" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-faxby9jk\/feature",
+    "AXTitle" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-_pydnt6c\/feature",
     "AXValue" : "",
     "enabled" : true,
     "focused" : false,
@@ -2094,11 +2211,11 @@
       "AXShowMenu",
       "AXScrollToVisible"
     ],
-    "AXDescription" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-faxby9jk\/first",
-    "AXHelp" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-faxby9jk\/first",
+    "AXDescription" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-_pydnt6c\/first",
+    "AXHelp" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-_pydnt6c\/first",
     "AXRole" : "AXGroup",
     "AXSubrole" : "AXApplicationGroup",
-    "AXTitle" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-faxby9jk\/first",
+    "AXTitle" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-_pydnt6c\/first",
     "AXValue" : "",
     "enabled" : true,
     "focused" : false,
@@ -2194,11 +2311,11 @@
       "AXShowMenu",
       "AXScrollToVisible"
     ],
-    "AXDescription" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-faxby9jk\/first",
-    "AXHelp" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-faxby9jk\/first",
+    "AXDescription" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-_pydnt6c\/first",
+    "AXHelp" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-_pydnt6c\/first",
     "AXRole" : "AXGroup",
     "AXSubrole" : "AXApplicationGroup",
-    "AXTitle" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-faxby9jk\/first",
+    "AXTitle" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-_pydnt6c\/first",
     "AXValue" : "",
     "enabled" : true,
     "focused" : false,
@@ -2503,14 +2620,14 @@
     "AXHelp" : "",
     "AXRole" : "AXStaticText",
     "AXTitle" : "",
-    "AXValue" : "resumed 67eca199-604f-469b-b8bd-f15a37984040",
+    "AXValue" : "resumed 9318514c-5e71-4016-b727-277c5054bf96",
     "enabled" : true,
     "focused" : false,
     "rect" : [
       422,
       344,
-      249,
-      38
+      342,
+      17
     ]
   },
   {
@@ -2530,6 +2647,63 @@
       481,
       109,
       15
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "PLANNED WORK",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      799,
+      904,
+      108,
+      15
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "No work is running.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      799,
+      932,
+      125,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Choose one item or up to ten items from the roadmap.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      799,
+      961,
+      199,
+      33
     ]
   },
   {

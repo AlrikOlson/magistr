@@ -106,6 +106,7 @@ pub(crate) fn opener(log: Log) -> Open<Hosted> {
                                 inbox.send(Msg::Agent(AgentEvent::PermissionCancelled { id }));
                             }
                             Cmd::Cancel => { log.note(format!("{name} cancelled")); }
+                            Cmd::Loop(command) => { log.note(format!("{name} work {} {:?}", command.run_id.local(), command.action)); }
                             _ => {}
                             }
                         },
@@ -791,3 +792,6 @@ async fn saved_conversation_claims_are_unique_and_release_after_close_or_refusal
     }
     registry.shutdown().await.unwrap();
 }
+
+#[path = "session_registry_work.tests.rs"]
+mod work_tests;

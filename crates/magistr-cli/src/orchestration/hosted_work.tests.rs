@@ -132,10 +132,82 @@ async fn a_held_loop_owner_lock_refuses_the_loop_in_words_and_stays_open() {
             &LaunchAction::Loop(magistr_cockpit::cockpit::LoopScope::AllTracks),
         )
         .await;
-        assert!(error.contains("A loop is already running"), "{error}");
+        assert!(error.contains("Work is already running"), "{error}");
     }
     assert!(!dir.path().join(".magistr/loop-state.json").exists());
     drop(held);
     drop(host.commands);
     host.task.await.unwrap().unwrap();
+}
+
+#[test]
+fn both_admitted_modes_exclude_every_start_before_cleanup_or_checkpoint_writes() {
+    use magistr_cockpit::cockpit::LoopScope;
+    for first in [LaunchAction::Next, LaunchAction::Loop(LoopScope::AllTracks)] {
+        let dir = project();
+        let engines = EngineClient::with_config(store(dir.path())).unwrap();
+        let admitted = prepare(dir.path(), &engines, &first, None).unwrap();
+        let plan = dir.path().join(".magistr/current-plan.md");
+        std::fs::write(&plan, "owned work").unwrap();
+        let saved = std::fs::read(dir.path().join(".magistr/loop-state.json")).unwrap();
+        for other in [LaunchAction::Next, LaunchAction::Loop(LoopScope::AllTracks)] {
+            let error = prepare(dir.path(), &engines, &other, None)
+                .err()
+                .expect("lease refusal");
+            assert!(error.contains("already running"), "{error}");
+            assert_eq!(std::fs::read_to_string(&plan).unwrap(), "owned work");
+            assert_eq!(
+                std::fs::read(dir.path().join(".magistr/loop-state.json")).unwrap(),
+                saved
+            );
+        }
+        drop(admitted);
+        assert!(LoopLease::acquire(dir.path()).is_ok());
+    }
+}
+
+#[test]
+fn one_item_refuses_unfinished_loop_without_erasing_its_progress() {
+    let dir = project();
+    let engines = EngineClient::with_config(store(dir.path())).unwrap();
+    let loop_run = prepare(
+        dir.path(),
+        &engines,
+        &LaunchAction::Loop(magistr_cockpit::cockpit::LoopScope::AllTracks),
+        None,
+    )
+    .unwrap();
+    let path = dir.path().join(".magistr/loop-state.json");
+    let saved = std::fs::read(&path).unwrap();
+    drop(loop_run);
+    let error = prepare(dir.path(), &engines, &LaunchAction::Next, None)
+        .err()
+        .expect("mode mismatch");
+    assert!(error.contains("unfinished"), "{error}");
+    assert_eq!(std::fs::read(path).unwrap(), saved);
+}
+
+#[test]
+fn admitted_work_freezes_its_agent_and_refuses_recovery_with_a_different_selection() {
+    use crate::config::session_selection::SessionSelection;
+    let dir = project();
+    let engines = EngineClient::with_config(store(dir.path())).unwrap();
+    let chosen = SessionSelection {
+        agent: "copilot".into(),
+        model: Some("chosen-model".into()),
+        effort: None,
+        sources: Default::default(),
+    };
+    let prepared = prepare(dir.path(), &engines, &LaunchAction::Next, Some(&chosen)).unwrap();
+    let state_path = dir.path().join(".magistr/loop-state.json");
+    let saved = std::fs::read(&state_path).unwrap();
+    let state: crate::workflow::iteration::IterationState = serde_json::from_slice(&saved).unwrap();
+    assert_eq!(state.session_selection.as_ref(), Some(&chosen));
+    drop(prepared);
+    let other = SessionSelection {
+        agent: "claude".into(),
+        ..chosen
+    };
+    assert!(prepare(dir.path(), &engines, &LaunchAction::Next, Some(&other)).is_err());
+    assert_eq!(std::fs::read(state_path).unwrap(), saved);
 }

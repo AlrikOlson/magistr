@@ -64,6 +64,11 @@ enum Request {
         command: Cmd,
         reply: oneshot::Sender<Result<(), String>>,
     },
+    ControlWork {
+        target: super::WorkTarget,
+        action: magistr_cockpit::cockpit::LoopCmd,
+        reply: oneshot::Sender<Result<(), String>>,
+    },
     Subscribe {
         address: SessionAddress,
         reply: oneshot::Sender<Result<SessionSubscription, String>>,
@@ -167,6 +172,21 @@ impl SessionClient {
         result
             .await
             .map_err(|_| "The application connection closed.".to_owned())?
+    }
+
+    /// Queue a control for this run; the executing owner validates it again.
+    pub async fn control_work(
+        &self,
+        target: &super::WorkTarget,
+        action: magistr_cockpit::cockpit::LoopCmd,
+    ) -> Result<(), String> {
+        let (reply, result) = oneshot::channel();
+        self.post(Request::ControlWork {
+            target: target.clone(),
+            action,
+            reply,
+        })?;
+        result.await.map_err(|_| gone())?
     }
 
     pub async fn subscribe(&self, address: &SessionAddress) -> Result<SessionSubscription, String> {
@@ -711,6 +731,13 @@ impl<H: Settle> Serving<H> {
                 }
                 let _ = reply.send(result);
             }
+            Request::ControlWork {
+                target,
+                action,
+                reply,
+            } => {
+                let _ = reply.send(self.control_work(&target, action));
+            }
             Request::Subscribe { address, reply } => {
                 let _ = reply.send(
                     self.sessions
@@ -1033,7 +1060,36 @@ impl<H: Settle> Serving<H> {
         self.command(address, Cmd::Prompt(input))
     }
 
+    fn control_work(
+        &mut self,
+        target: &super::WorkTarget,
+        action: magistr_cockpit::cockpit::LoopCmd,
+    ) -> Result<(), String> {
+        let resident = self.sessions.get(&target.address).ok_or_else(gone)?;
+        let snapshot = resident.observation.snapshot();
+        if snapshot.closed
+            || !snapshot
+                .work
+                .as_ref()
+                .is_some_and(|work| work.id == target.run_id && work.is_active())
+        {
+            return Err(
+                "That work run has ended. Review the current work before trying again.".into(),
+            );
+        }
+        resident
+            .commands
+            .try_send(Cmd::Loop(magistr_cockpit::cockpit::RunCommand {
+                run_id: target.run_id.clone(),
+                action,
+            }))
+            .map_err(|_| "The session is busy or closed. Try the action again.".to_owned())
+    }
+
     fn command(&mut self, address: &ConversationTarget, command: Cmd) -> Result<(), String> {
+        if matches!(command, Cmd::Loop(_)) {
+            return Err("Work controls must name the current work run.".into());
+        }
         if let Cmd::Prompt(input) | Cmd::RoadmapPrompt(input) = &command {
             input.validate(true)?;
             if input.is_empty() {

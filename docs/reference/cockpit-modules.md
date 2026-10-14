@@ -25,6 +25,8 @@ desktop workspace. Companion Rust tests live beside their owners.
 | Native window, keyboard, pointer, clipboard, requests and Quit | `crates/magistr-desktop/tests/native_window.py` and its Swift driver |
 | Source/index fitness, contrast, icon and current captures | `scripts/interface-index-gate.py`, `scripts/desktop-visual-gate.py` |
 
+| Work admission, retained run state and boundary controls | `crates/magistr-cli/src/orchestration/hosted_work.rs`, `crates/magistr-cli/src/orchestration/loop_driver/control.rs`, `crates/magistr-desktop/src/work.rs` and `crates/magistr-desktop/tests/work_journey.py` |
+
 ## Modules and harnesses
 
 - `crates/magistr-cockpit-runtime/src/channel/arrivals.rs`
@@ -137,3 +139,11 @@ desktop workspace. Companion Rust tests live beside their owners.
 - `crates/magistr-desktop/ui/session_controls.mjs`
 - `crates/magistr-desktop/ui/supervision.mjs`
 - `crates/magistr-desktop/tests/supervision.mjs`
+- `crates/magistr-cockpit/src/cockpit/run_command.rs`
+- `crates/magistr-cockpit/src/cockpit/work_phase.rs`
+- `crates/magistr-cockpit/src/cockpit/work_run.rs`
+- `crates/magistr-desktop/src/work.rs`
+- `crates/magistr-desktop/ui/work.mjs`
+- `crates/magistr-desktop/tests/work.mjs`
+- `crates/magistr-desktop/tests/work_fixture.py`
+- `crates/magistr-desktop/tests/work_journey.py`

@@ -24,6 +24,7 @@ pub struct SessionSummary {
     pub usage: Option<Msg>,
     pub requests: Vec<WaitingRequest>,
     pub activity: Option<SessionActivity>,
+    pub work: Option<magistr_cockpit::cockpit::WorkRun>,
 }
 impl SessionSummary {
     pub(super) fn from_snapshot(snapshot: &SessionSnapshot) -> Self {
@@ -58,6 +59,7 @@ impl SessionSummary {
                 })
                 .collect(),
             activity: snapshot.activity.clone(),
+            work: snapshot.work.clone(),
         }
     }
     #[must_use]
@@ -72,6 +74,12 @@ impl SessionSummary {
             "Stopping"
         } else if !self.requests.is_empty() {
             "Waiting for you"
+        } else if let Some(work) = self.work.as_ref().filter(|work| work.is_active()) {
+            match work.phase {
+                magistr_cockpit::cockpit::WorkPhase::Paused => "Work paused",
+                magistr_cockpit::cockpit::WorkPhase::Starting => "Starting work",
+                _ => "Work running",
+            }
         } else {
             self.status.label()
         }

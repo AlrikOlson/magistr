@@ -644,3 +644,59 @@ async fn duplicate_events_do_not_advance_sequence_or_freshness_and_close_refresh
     assert!(snapshot.closed);
     assert!(snapshot.seed.snapshot.roadmap.current().is_err());
 }
+
+#[test]
+fn actual_work_and_launch_refusal_survive_pruning_reseed_and_conversation_switches() {
+    use magistr_cockpit::cockpit::{LaunchAction, WorkPhase, WorkRun};
+    use magistr_domain::{
+        identity::{ProjectId, RunId},
+        workflow::RunMode,
+    };
+    let owner = std::sync::Arc::new(SessionObservation::new(address()));
+    bind(&owner);
+    let mut run = WorkRun {
+        id: RunId::new(ProjectId::new("project").unwrap(), "run-one").unwrap(),
+        mode: RunMode::ChunkLoop,
+        track: None,
+        chunk: Some("item".into()),
+        iteration: 1,
+        limit: 10,
+        phase: WorkPhase::Starting,
+        requested: None,
+    };
+    owner.send(Msg::CommandFailed {
+        cmd: magistr_cockpit::cockpit::Cmd::Launch(LaunchAction::Next),
+        error: "Work is already running.".into(),
+    });
+    assert!(
+        owner.snapshot().work.is_none(),
+        "refusal never starts a run"
+    );
+    assert!(owner.snapshot().work_admission.unwrap().run_id.is_none());
+    owner.send(Msg::WorkRun(run.clone()));
+    let admitted = owner.snapshot().work_admission.unwrap();
+    assert_eq!(admitted.run_id.as_ref(), Some(&run.id));
+    run.phase = WorkPhase::Running;
+    owner.send(Msg::WorkRun(run.clone()));
+    for _ in 0..MAX_MESSAGES + 3 {
+        owner.send(Msg::Agent(AgentEvent::Notice("trim history".into())));
+    }
+    assert!(owner.snapshot().since(0).is_none());
+    assert_eq!(owner.subscribe().snapshot().work.as_ref(), Some(&run));
+    owner.bind_context_for_test(magistr_application::sessions::Conversation {
+        id: "other".into(),
+        name: None,
+        provider: "scripted".into(),
+        purpose: magistr_application::sessions::SessionPurpose::Conversation,
+    });
+    run.phase = WorkPhase::Paused;
+    owner.send(Msg::WorkRun(run.clone()));
+    owner.activate_context("one").unwrap();
+    assert_eq!(owner.snapshot().work.as_ref(), Some(&run));
+    assert_eq!(owner.snapshot().work_admission, Some(admitted));
+    run.phase = WorkPhase::Ended {
+        reason: "Finished.".into(),
+    };
+    owner.send(Msg::WorkRun(run.clone()));
+    assert_eq!(owner.context_snapshot("other").unwrap().work, Some(run));
+}

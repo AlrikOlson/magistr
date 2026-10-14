@@ -32,6 +32,9 @@ pub(crate) struct Frame {
     pub(crate) conversation: Option<Conversation>,
     pub(crate) configuration: Vec<Configuration>,
     pub(crate) admissions: Vec<Admission>,
+    pub(crate) work: Option<magistr_cockpit::cockpit::WorkRun>,
+    pub(crate) work_admission: Option<magistr::application::WorkAdmission>,
+    pub(crate) work_error: Option<String>,
 }
 #[derive(Serialize)]
 pub(crate) struct Conversation {
@@ -201,6 +204,7 @@ pub(crate) struct SessionInfo {
     address: SessionAddress,
     target: Option<ConversationTarget>,
     owned_conversations: Vec<String>,
+    work: Option<magistr_cockpit::cockpit::WorkRun>,
     name: String,
     conversation: Option<Conversation>,
     status: String,
@@ -227,6 +231,7 @@ impl From<&SessionSummary> for SessionInfo {
                     conversation: conversation.id.clone(),
                 }),
             owned_conversations: summary.owned_conversations.clone(),
+            work: summary.work.clone(),
             name: summary.name.clone(),
             conversation: summary.conversation.as_ref().map(Conversation::from),
             status: summary.label().into(),
@@ -326,6 +331,9 @@ impl Frame {
             model,
             usage,
             closed: snapshot.closed,
+            work: snapshot.work.clone(),
+            work_admission: snapshot.work_admission.clone(),
+            work_error: snapshot.work_error.clone(),
             activity: snapshot.activity.as_ref().map(Activity::from),
             conversation: snapshot.conversation.as_ref().map(Conversation::from),
             configuration: snapshot

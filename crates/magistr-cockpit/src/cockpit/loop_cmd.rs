@@ -4,7 +4,8 @@
 /// the loop driver — as [`Cmd::Loop`](super::Cmd::Loop) carries it.
 /// Every decision takes effect at the next iteration boundary; the turn
 /// in flight is not touched (ctrl-C cancels that).
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum LoopCmd {
     /// Stop before the next iteration.
     Pause,

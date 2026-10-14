@@ -63,13 +63,13 @@ impl fmt::Display for LoopEnd {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::NoReadyChunk => f.write_str(
-                "Nothing on the roadmap is ready. Open Roadmap to review unfinished work.",
+                "Nothing on the roadmap is ready to start.",
             ),
             Self::SpecComplete => f.write_str("All planned work is complete."),
             Self::MaxIterations(1) => f.write_str("Reached the limit of 1 attempt."),
             Self::MaxIterations(max) => write!(f, "Reached the limit of {max} attempts."),
             Self::NoCommits => f.write_str("The last several attempts produced no commits."),
-            Self::Aborted => f.write_str("Cancelled."),
+            Self::Aborted => f.write_str("Stopped after the current item."),
             Self::Failed(why) => f.write_str(why),
             Self::CockpitClosed => f.write_str("The application closed."),
             Self::NeedsHuman(why) => write!(f, "Your input is needed: {why}"),

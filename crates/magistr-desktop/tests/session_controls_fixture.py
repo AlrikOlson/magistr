@@ -48,6 +48,9 @@ if Path(os.environ['JOURNEY_REFUSE_LOAD']).exists():
         print(json.dumps(reply),flush=True)
 else:
     sys.path.insert(0,HELPERS)
-    from rich_conversation_fixture import proxy
+    if os.environ.get('JOURNEY_WORK'):
+        from work_fixture import proxy
+    else:
+        from rich_conversation_fixture import proxy
     proxy(EXECUTABLE)
 """.replace("EXECUTABLE",repr(str(executable))).replace("HELPERS",repr(str(Path(__file__).resolve().parent)))

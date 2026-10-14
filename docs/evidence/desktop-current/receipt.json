@@ -9,7 +9,7 @@
         "width": 1728
       }
     ],
-    "front_pid": 14201,
+    "front_pid": 1940,
     "input_source": "com.apple.keylayout.US",
     "input_sources": [
       "com.apple.keylayout.US",
@@ -493,6 +493,7 @@
     "raw HTML and unsafe links remain text and remote images are not fetched": true,
     "rich reply link accepts native keyboard focus": true,
     "native keyboard opens the controlled link and closes only its test tab": true,
+    "IME commit keeps unsent draft": true,
     "closed session returns to another resident": true,
     "quit settles providers and releases owner": true,
     "session history written by application": true,
@@ -506,9 +507,9 @@
     "unavailable provider keeps the window usable returns to chooser": true,
     "rejected launches preserve settings and create no session history": true
   },
-  "launch_to_window_ms": 531.8960420117946,
+  "launch_to_window_ms": 537.3810419987421,
   "latency": {
-    "native_event_to_accessible_reply_ms": 92.84508334530983
+    "native_event_to_accessible_reply_ms": 96.22570834471844
   },
   "initial_model_picker": {
     "after": {
@@ -1029,7 +1030,7 @@
         "focused": true,
         "rect": [
           474,
-          747,
+          655,
           714,
           110
         ]
@@ -1037,9 +1038,9 @@
       "drag_started": true,
       "native_drag_moves": 21,
       "native_mouse_down": true,
-      "native_mouse_down_window": 6401,
+      "native_mouse_down_window": 7204,
       "operation": 1,
-      "pasteboard_file_url": "file:///var/folders/ml/51b226t50rxf09jwljnq7tn00000gn/T/magistr-desktop-journey-qqq5fjhz/second/drop-note.txt",
+      "pasteboard_file_url": "file:///var/folders/ml/51b226t50rxf09jwljnq7tn00000gn/T/magistr-desktop-journey-0py5014f/second/drop-note.txt",
       "pasteboard_types": [
         "public.file-url",
         "CorePasteboardFlavorType 0x6675726C",
@@ -1049,13 +1050,13 @@
         "Apple URL pasteboard type"
       ],
       "source": "drop-note.txt",
-      "source_window": 6401,
+      "source_window": 7204,
       "source_window_hit_test": true
     },
-    "native_accessibility_sha256": "d11e152f910404316605a35909b993cf239e4bf9afccb14a16b62a2e25920d17"
+    "native_accessibility_sha256": "205d89a942c98c1f21718d5b50654c47f6d8e8edee9a2307c28a1ae37aab54b8"
   },
-  "attachment_observation_sha256": "92da97b5e3f507045f777a06a853141c2a307da0eab1c272e24ebc88faef742e",
-  "attachment_prompts_sha256": "c90425bb331123a80079ff5d3a3832f144243fb0dec4fef0639c2f967da2e39c",
+  "attachment_observation_sha256": "69326d24ee17d59eaecf4438bae6f0ca18aaf3cbe9c2dcef9fb4ddd395e53868",
+  "attachment_prompts_sha256": "3d2dff6a8411888ba5308c3e024165aa7500b61d27117d7b7c9c09c4f1e93f66",
   "rich_conversation": {
     "tool_keyboard": {
       "activation": "native keyboard",
@@ -1155,7 +1156,8 @@
         "Reading progress 0021: new result café 日本語 👩🏽‍💻.",
         "Reading progress 0022: new result café 日本語 👩🏽‍💻.",
         "Reading progress 0023: new result café 日本語 👩🏽‍💻.",
-        "Reading progress 0024: new result café 日本語 👩🏽‍💻."
+        "Reading progress 0024: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0025: new result café 日本語 👩🏽‍💻."
       ],
       "tool_values": [
         "Review local build · Running",
@@ -1229,8 +1231,7 @@
         "Reading progress 0041: new result café 日本語 👩🏽‍💻.",
         "Reading progress 0042: new result café 日本語 👩🏽‍💻.",
         "Reading progress 0043: new result café 日本語 👩🏽‍💻.",
-        "Reading progress 0044: new result café 日本語 👩🏽‍💻.",
-        "Reading progress 0045: new result café 日本語 👩🏽‍💻."
+        "Reading progress 0044: new result café 日本語 👩🏽‍💻."
       ],
       "tool_values": [
         "Review local build · Running",
@@ -1272,7 +1273,7 @@
         "AXHelp": "",
         "AXRole": "AXStaticText",
         "AXTitle": "",
-        "AXValue": "Reading progress 0063: new result café 日本語 👩🏽‍💻.",
+        "AXValue": "Reading progress 0062: new result café 日本語 👩🏽‍💻.",
         "enabled": true,
         "focused": false,
         "rect": [
@@ -1303,7 +1304,7 @@
       }
     },
     "latest_after": {
-      "coherent_sample_attempts": 2,
+      "coherent_sample_attempts": 1,
       "selected_text": "",
       "tail": {
         "actions": [
@@ -1314,7 +1315,7 @@
         "AXHelp": "",
         "AXRole": "AXStaticText",
         "AXTitle": "",
-        "AXValue": "Reading progress 0092: new result café 日本語 👩🏽‍💻.",
+        "AXValue": "Reading progress 0089: new result café 日本語 👩🏽‍💻.",
         "enabled": true,
         "focused": false,
         "rect": [
@@ -1468,10 +1469,7 @@
         "Reading progress 0098: new result café 日本語 👩🏽‍💻.",
         "Reading progress 0099: new result café 日本語 👩🏽‍💻.",
         "Reading progress 0100: new result café 日本語 👩🏽‍💻.",
-        "Reading progress 0101: new result café 日本語 👩🏽‍💻.",
-        "Reading progress 0102: new result café 日本語 👩🏽‍💻.",
-        "Reading progress 0103: new result café 日本語 👩🏽‍💻.",
-        "Reading progress 0104: new result café 日本語 👩🏽‍💻."
+        "Reading progress 0101: new result café 日本語 👩🏽‍💻."
       ],
       "tool_values": [
         "Review local build · Running",
@@ -1626,11 +1624,7 @@
         "Reading progress 0122: new result café 日本語 👩🏽‍💻.",
         "Reading progress 0123: new result café 日本語 👩🏽‍💻.",
         "Reading progress 0124: new result café 日本語 👩🏽‍💻.",
-        "Reading progress 0125: new result café 日本語 👩🏽‍💻.",
-        "Reading progress 0126: new result café 日本語 👩🏽‍💻.",
-        "Reading progress 0127: new result café 日本語 👩🏽‍💻.",
-        "Reading progress 0128: new result café 日本語 👩🏽‍💻.",
-        "Reading progress 0129: new result café 日本語 👩🏽‍💻."
+        "Reading progress 0125: new result café 日本語 👩🏽‍💻."
       ],
       "tool_values": [
         "Review local build · Running",
@@ -1639,26 +1633,26 @@
     },
     "stream": {
       "stage": "finished",
-      "chunks": 133,
-      "elapsed": 13.735132583999999,
+      "chunks": 129,
+      "elapsed": 13.374504292000001,
       "stop_reason": "end_turn"
     },
     "canonical": {
       "reply_bytes": 11321,
-      "reply_sha256": "d55d375ea7f713748b007cd49b79074f16a3555df13bdbc0c08fa37c3c929766",
-      "conversation_bytes": 21864,
-      "conversation_sha256": "e7c21cb3179eb0472a97e2da5a9ed09a53af5d3547deeb5fab4769e2c6342b82"
+      "reply_sha256": "ea033ac49e33a1e3dab1e816bb30ab44365138e4baccfcc1f0014b6c95ce5e90",
+      "conversation_bytes": 21592,
+      "conversation_sha256": "f3b87a8ea87efc60f4d71f94bbb9e954f52c511acc418961933c232e75bd92e3"
     },
     "link": {
       "activated": true,
       "activation_sent": true,
       "after_close_observation": {
         "matches": false,
-        "readable": true
+        "readable": false
       },
       "browser": "org.mozilla.firefox",
       "closed_controlled_tab": true,
-      "controlled_marker_visible": true,
+      "controlled_marker_visible": false,
       "destination_observation": {
         "matches": true,
         "readable": true
@@ -1672,7 +1666,7 @@
             "AXScrollToVisible"
           ],
           "AXDescription": "",
-          "AXHelp": "http://127.0.0.1:61349/rich-link/1791999182623802000",
+          "AXHelp": "http://127.0.0.1:51634/rich-link/1792011240109644000",
           "AXRole": "AXLink",
           "AXTitle": "Open the local reading note",
           "AXValue": "",
@@ -1689,14 +1683,13 @@
       "request_observed": true
     }
   },
-  "rich_observation_sha256": "bd7f02f731fc9a39fbb96713eafae85dbe9ff610f8965cb0473c94aa2ef691ee",
+  "rich_observation_sha256": "db277978594a30ad2a029c25ba657074381f304213a33394c639fce14017cde3",
   "ime": {
     "source": "com.apple.inputmethod.Kotoeri.KanaTyping.Japanese",
     "committed": [
-      "nihon"
+      "ミニくらみ"
     ],
-    "native_composition": false,
-    "reason": "The reported Japanese source delivered Latin preedit; conversion automation is unavailable."
+    "native_composition": true
   },
   "history": [
     {
@@ -1821,8 +1814,8 @@
     "crates/magistr-cli/src/agent/session_supervisor/turn_outcome.rs": "2570ca87bf4a935896fe73f7639449229bccb5a70f1064e4471d565335f0498f",
     "crates/magistr-cli/src/agent/translate.rs": "4482e63eae2f35d8403c1083a0792913212e8b9d2d503c604e3f3d260642728b",
     "crates/magistr-cli/src/application/desktop_preferences.rs": "8b4d8005c9b6166dfedc370ea1276903dd43aced2dea46f63cad3f6f2e7327b5",
-    "crates/magistr-cli/src/application/interactive_host.rs": "41660996333f446f1457479b66c928ff28fc9a950d49974588a7723f47a46a4b",
-    "crates/magistr-cli/src/application/mod.rs": "5cd8c4ac98b2fe64ef159785bb6bf7f889930dfcb4f23dbf495308a3df81c25d",
+    "crates/magistr-cli/src/application/interactive_host.rs": "7e8c1b51d3b670cf77ad5e20732019219698a24a08263b80e210df1b85d3cbee",
+    "crates/magistr-cli/src/application/mod.rs": "a39eb75b8a255c0d8a7ba8dc43554f67b4a47f4445a31ad479a501b9a05dc0d9",
     "crates/magistr-cli/src/application/retained_observation.rs": "845f91b953e6da2c16b552f428d55e6a107b20070677a977f7f42daeec2028df",
     "crates/magistr-cli/src/application/retained_observation.tests.rs": "470ba5cd2ecc99a28e327443cce836b822b9f7cbdf46ce3ba71345a84acb7a6a",
     "crates/magistr-cli/src/application/saved_conversations.rs": "771db9377f1a69a6f264c7bd5e83989b3d80e0eab6b2218832399ce2dbb124a0",
@@ -1830,28 +1823,33 @@
     "crates/magistr-cli/src/application/session_admissions.tests.rs": "6debf9cfd41f2b77c99f92f18d2a26c42815c35d42cc252791ded795f8301c48",
     "crates/magistr-cli/src/application/session_attachments.rs": "47494f9963a3b088ca8e9908fe719ae4d6b13da3fc1e9aa8b8e2f0df3a6c8d6d",
     "crates/magistr-cli/src/application/session_attachments.tests.rs": "157ef4277e053df6bab413ad686099034c8133a4ab38f4932cff5ace3c04154b",
-    "crates/magistr-cli/src/application/session_catalog.rs": "298597f96934e92b3e4568aad7d5310cf33c5670ad9257fe44377baaeb185726",
+    "crates/magistr-cli/src/application/session_catalog.rs": "223e32ff524b528ab2b12fa211165a3ff2331d854ebfe3862aa20d43aafd5a19",
     "crates/magistr-cli/src/application/session_catalog.tests.rs": "f6d7fe7a10c152925fc36739b261512301ac8487d886ebd0612129a8046f84b9",
     "crates/magistr-cli/src/application/session_context.tests.rs": "3c17cdaf49e6e31194e082d82f994a9dd6a8303ea81e331d316a89c3a61b73e1",
     "crates/magistr-cli/src/application/session_drafts.rs": "d3d857bf2e6f1c02d68b62cb51d50cbbc9166165d995f74b3078bcdb327398a2",
     "crates/magistr-cli/src/application/session_drafts.tests.rs": "b3323b9928e2a098fe632ad904d56fe4f96dce9218db092dd12b6b3b6396855c",
-    "crates/magistr-cli/src/application/session_observation.rs": "7a5149d827cceee7844c2e5d036fa67250fceacec7824f7823ecedf08e221c95",
-    "crates/magistr-cli/src/application/session_observation.tests.rs": "c5f22742b4ec2287c2b234abd0f1f593598158778bc94db0cf14f8cec5a6c11f",
+    "crates/magistr-cli/src/application/session_observation.rs": "ee70fa429393a72d11beabf56f6923882d8cee8b06254a4e49f5e5db5bfa5088",
+    "crates/magistr-cli/src/application/session_observation.tests.rs": "f4049acedee0c699099fed0e2c14d50a9d7d458ef127493c941c62dcec097802",
     "crates/magistr-cli/src/application/session_opening.rs": "a95cf41c57c0a6913a0eb5828e1f45b59a56bf648c3d71db431c5c272664a7f7",
     "crates/magistr-cli/src/application/session_opening.tests.rs": "4c47f04fd3503e9cfd996e33bb591743ba7ee1decc72f58d2fc6dea31dfceee3",
     "crates/magistr-cli/src/application/session_registry.ownership.tests.rs": "623ae7eb9e8be0b33f119cccfd87669ae2da8752ecd27596cbea72c6c7b22b88",
-    "crates/magistr-cli/src/application/session_registry.rs": "dde587aee694edb29a6fbae6d4dcaada3b946fd9333846eb3203e539f494e501",
-    "crates/magistr-cli/src/application/session_registry.tests.rs": "a379a1fc52f69e29b17a2a1413190a24d7c4ceaa6519aad6246f1ed49b2e0c1b",
+    "crates/magistr-cli/src/application/session_registry.rs": "4b29e6f1707cb7c74c17e55ac209c8545f0f6a0f7407204aa0ba4abdaab37988",
+    "crates/magistr-cli/src/application/session_registry.tests.rs": "6170095afac49f231281d6ef59edf4defa96e9df79dac1a12c54e6d2d6a481ab",
+    "crates/magistr-cli/src/application/session_registry_work.tests.rs": "e360661223008eed8ab90b684aae7168a0b55000e627c3bf793243bf9bb80ed4",
     "crates/magistr-cli/src/application/session_workflow.rs": "c3200e2a6c3fd7a4f761cfd49b93955ba30d05c357a1aac2a3ad85afef50408b",
     "crates/magistr-cli/src/application/session_workflow.tests.rs": "5636cef96e4d35134f8d925447a1c91023e790ed0c5d85b5d224262c30d4a8dc",
+    "crates/magistr-cli/src/application/work_admission.rs": "f207a9b422f8ac14253a87f90911a67bb4f17e82b1ae88666b5f41fd6d290b81",
+    "crates/magistr-cli/src/application/work_target.rs": "c1641d09979be088e32a506a90652c5037198d4c958f07136ef028f1c64e6bd9",
     "crates/magistr-cli/src/cost/append_entry.rs": "377ef787ff1b0a1a2403175b4909cb286c85338e34b681f0a818b370a4bde6ad",
-    "crates/magistr-cli/src/orchestration/hosted_work.rs": "8d5f41aeb211cd7b71a206e3d5927840fbd3466dbf25074211f20fd6c7b5b442",
+    "crates/magistr-cli/src/orchestration/hosted_work.rs": "421e20b8e5ce5a0630d8e37a8ffc1d4bca292b8f7288b1c5d3c1e83bfb8672a7",
     "crates/magistr-cli/src/orchestration/interactive_session.rs": "942b7502a1cace5ec39c9a362d75e8f034426c672f938390f7dd23888bd0c19f",
-    "crates/magistr-cli/src/orchestration/loop_driver/checkpoint_detach.rs": "760fc04dd77da7f92542efaf4bf9f6f8ed8565e65ae0ad09aa271ecfcf5ae4e1",
+    "crates/magistr-cli/src/orchestration/loop_driver/checkpoint_detach.rs": "fce02e510b78b756725e8677cd780b4575b047a035ec69e826ae517ead5f88f6",
     "crates/magistr-cli/src/orchestration/loop_driver/connector.rs": "341d46c5b0315ab6f6ffe76ec10020ff839e5d93034afc251f2b81aa0577abf2",
-    "crates/magistr-cli/src/orchestration/loop_driver/controller_harness.test_support.rs": "b568b6737193e40c873fcf7091564df08152b66189476002bcca0ba0fc0d49be",
-    "crates/magistr-cli/src/orchestration/loop_driver/driver.rs": "220f5b0d4a6374dc788c9952c6960f78278fa8e82813382b741db961f53580ff",
-    "crates/magistr-cli/src/orchestration/loop_driver/driver.tests.rs": "5864f493b3eae8774fad33a8f05b7222688d36583b0133c6ededfed653fc2416",
+    "crates/magistr-cli/src/orchestration/loop_driver/control.rs": "a9d938849c3e260aed32da4c73cd59862417b3916c20e5ff70346dc783e03c4b",
+    "crates/magistr-cli/src/orchestration/loop_driver/control.tests.rs": "72c4a72d4d4d3b184db9458f457b34ea3c92e041dee590778d8407a450d229bb",
+    "crates/magistr-cli/src/orchestration/loop_driver/controller_harness.test_support.rs": "e7e52f6399b3ec0a1f7ee0367fadc5cbc550c75a42ae764e495a14dabe658eb4",
+    "crates/magistr-cli/src/orchestration/loop_driver/driver.rs": "97d071773012808e29d735786a3925e1858667f30f80b7094385a4b08f2d8509",
+    "crates/magistr-cli/src/orchestration/loop_driver/driver.tests.rs": "0507241272c0f63262945561151778cb5ee25b82c39076803a793fe3d5105190",
     "crates/magistr-cli/src/orchestration/loop_driver/failure_brief.rs": "4acb5c66663382bfe4befd35d5052c301373b1359fbbe97e7634528bf69f18b5",
     "crates/magistr-cli/src/orchestration/loop_driver/failure_brief.tests.rs": "f8b7fa0fcb9ea3e982ee0897ec94098ba6bcda569ef9197ed82b173a966c93d3",
     "crates/magistr-cli/src/orchestration/loop_driver/gate_job.rs": "d01c98d1f7d7b5d1b2afeb653b0ddc7902379b8985f533f88c7276957e791ee0",
@@ -1859,23 +1857,26 @@
     "crates/magistr-cli/src/orchestration/loop_driver/gate_outcome.rs": "b0efee6367549c72f31adfb87c99e2533945b30748ad00f5fd2c08b1d39080bf",
     "crates/magistr-cli/src/orchestration/loop_driver/iteration_metrics.rs": "751e3f2c463f401ce9ed0ad23eb5fda0d45f6474038af463e980b588bccddce8",
     "crates/magistr-cli/src/orchestration/loop_driver/iteration_metrics.tests.rs": "ab8796a3c38ce18b5f80420ba690e2bc2d4a2b8674a038782367d40a163179e4",
-    "crates/magistr-cli/src/orchestration/loop_driver/loop_end.rs": "aeb0361213f761556b2c82acbedc4a6aca01d60784d2079e767b3cbf36b3997d",
+    "crates/magistr-cli/src/orchestration/loop_driver/loop_end.rs": "09ccb0acf09c784352be56fb8d6b508ffa8d1f30d83c23532f6517dda23778c8",
     "crates/magistr-cli/src/orchestration/loop_driver/loop_report.rs": "e30396b32b7c8c31d4cce5b77d007d43b1e6ff28267bb0800d238a43ac468bf3",
     "crates/magistr-cli/src/orchestration/loop_driver/loop_report.tests.rs": "0654eebec857d1dd7003dab1bc40e51074cd15a2204e34bd37b1585f51d430b1",
-    "crates/magistr-cli/src/orchestration/loop_driver/mod.rs": "acdee99992ea4ab408d2e8c82a3817e704d269d9e62c07bd07ba31d26e68225f",
+    "crates/magistr-cli/src/orchestration/loop_driver/mod.rs": "9999d7e754fb463484e54e746a58f348bf82e0b913553f34d9e95eff0711d2d7",
     "crates/magistr-cli/src/orchestration/roadmap_request.rs": "1ac000b0970a7e8ef5ac0cfa7a595e63306101eb051fa82eb67702384f635279",
     "crates/magistr-cli/src/permissions/session_permission_policy.rs": "e3a86e124e8f32d15f5acf44bf004694d597b79d1da2e5c1c54b25769a0019d3",
-    "crates/magistr-cockpit/src/cockpit/cmd.rs": "55ed400dd51a22d9a7598276cc00d3f706072ff3e9e66719f9eb05bb6908fc0d",
+    "crates/magistr-cockpit/src/cockpit/cmd.rs": "312d5a96ff799cc51f5c09ee0a3dfb68b788f5bc20f87f9cff07a69e2c05db90",
+    "crates/magistr-cockpit/src/cockpit/run_command.rs": "305c73c70a43c43ea6ee3037563a38fd3bf5bedea8358ab2da0cdbf2db46cb4e",
+    "crates/magistr-cockpit/src/cockpit/work_phase.rs": "4bd9ddd518ca66228ed580a437d78980b8d7acd8d2f2857ff03ac0b9ff577b2d",
+    "crates/magistr-cockpit/src/cockpit/work_run.rs": "dab96b14775d1aee8414841761bbf9260dabb70ab0d95bb0749278924e4dfdb1",
     "crates/magistr-cockpit-runtime/src/channel/arrivals.rs": "8c3563157dd11d4235a249f34f9a8817f6f6fadc8e91cdafd20959cf1b5e03cd",
     "crates/magistr-cockpit-runtime/src/channel/arrivals.tests.rs": "d6671d8428b50aef56655b889859039f4f1b28b67534e750562dcf1a74259151",
     "crates/magistr-cockpit-runtime/src/channel/commands.rs": "3ed9fc2ee7f2cf63deead9223cb0e0e2c160f8ddf08b003e828005b3955ba565",
     "crates/magistr-cockpit-runtime/src/channel/inbox.rs": "9fd2af7b9ec9b7f23e4a4c7d26fa16e7c42b32c81632142088b551b736868840",
     "crates/magistr-cockpit-runtime/src/channel/mod.rs": "2b8699daf0502d642cf29b0ad82fb210804acefe35d126ee0be67f99cfad3f3c",
     "crates/magistr-cockpit-runtime/src/channel/observation_sink.rs": "d1a6cce78376c82605cc8203f25b81f5357c0fce9b4c73d9ec28137ce10ec2b3",
-    "crates/magistr-cockpit-runtime/src/interactive_session.rs": "982457d2f05ae8032e8ee5ef823535e920ce8f4786978d627f411b901028777d",
-    "crates/magistr-cockpit-runtime/src/interactive_session.tests.rs": "e6605dcdf1a1afe94c19b0adf0f6fefbe8a9c818661094d2f35ab3b27da8977c",
+    "crates/magistr-cockpit-runtime/src/interactive_session.rs": "07bd1844722046b6041703d45c7bb8c360e357e036ccc5e11b2701d90cf00f19",
+    "crates/magistr-cockpit-runtime/src/interactive_session.tests.rs": "b48bbd9d5f0baafc2fe884f2c623b2e967b04609e7a1f79c8ab84c30a0c88425",
     "crates/magistr-cockpit-runtime/src/interactive_session_context.tests.rs": "d870abd0f28880b5d9a30c66beb182c6562e8276a206004c8a03d004b3b3e278",
-    "crates/magistr-cockpit-runtime/src/jobs.rs": "c0fa1f7fe878ad76376952ff93209abcb05936e273cbd01983fe924f933b2b84",
+    "crates/magistr-cockpit-runtime/src/jobs.rs": "c06f1bca2e22c75c85ccacb51548ac1ec415241fd8f745581077297f86541f18",
     "crates/magistr-cockpit-runtime/src/jobs.tests.rs": "639860afc6ee612c6598169046f7966ac8f74e31b912cf4892702f91d5d8a08d",
     "crates/magistr-cockpit-runtime/src/lib.rs": "f025515f15cf83baa304bcd6cfc657ea28508841d2ee1af99d172921240f4fc5",
     "crates/magistr-cockpit-runtime/src/local_session.rs": "bdf4291614ba70cf0526a529c66e7abbc6fd71f4e23cce1f68d12d516574a934",
@@ -1886,7 +1887,9 @@
     "crates/magistr-core/src/config/user_config.rs": "3e0e1a62633f348bcd7da2c568cd669a9c2470ddf3f15822e34063300a88ed9f",
     "crates/magistr-core/src/config/user_config_document.rs": "c772fa0190bb4eea1ee185ea8b32de18bb1e11583e004907c18ad87ee1fda15f",
     "crates/magistr-core/src/durable_write.rs": "c967847df53fe04c9c3d4bd3e7bd79b162d6827403f8fcede76c8fd12b82ea8b",
-    "crates/magistr-desktop/Cargo.lock": "3590b6d335db3a763bcf9508c66713f42de96114a46ad8c60315775ad5de1436",
+    "crates/magistr-core/src/workflow/iteration.rs": "10e3473d2c7e05220edae57b6d4427cd51fa4f975d0a74a040f24761a1fc09a6",
+    "crates/magistr-core/src/workflow/loop_lease.rs": "04b1b578b1f6a9423728698c872a38aa93ffd1bd2b11707fc863461118cfc2fa",
+    "crates/magistr-desktop/Cargo.lock": "f526a5356980ce5c11353cef36d9b57a74d16f25390b4c225f46e6700dfd10f7",
     "crates/magistr-desktop/Cargo.toml": "e28f4026722acf4bfa26be55d0b48c87dbfe5630a5647716c4b75c531c32581f",
     "crates/magistr-desktop/build.rs": "6aeeab41bc35efde4e3c2b644a6248f7fc06d24ae30b75c0d33491cbb0c1fa31",
     "crates/magistr-desktop/src/args.rs": "c9c9e1abe0416cca1323a5070c67e1514ac3380aea4a510bf36975395210f086",
@@ -1894,7 +1897,7 @@
     "crates/magistr-desktop/src/args_history.tests.rs": "0e28b14732877ca9e90e910faaf7a64ee25e8f4edbb09a2d5ed929e31dbf3f69",
     "crates/magistr-desktop/src/attachments.rs": "2e565e95af9a27b1fafae304c92a37dfe509902b19dc1e6712836f4ff7ecce82",
     "crates/magistr-desktop/src/attachments.tests.rs": "abea785823c3fc85ae6281babcea0b5c92cec7a3826fb51acfa029f86dc0e43a",
-    "crates/magistr-desktop/src/commands.rs": "f56749b6703fc474a16863739f1a30a866f377ca5e53742f196f5edd646172c1",
+    "crates/magistr-desktop/src/commands.rs": "e35e67820875f4652ee48655da3474929b12ea48752f14f1940666d03368ccc3",
     "crates/magistr-desktop/src/content.rs": "d91ca67d09b9ad33675404118aa441f7478ea489f374f27d493bd2ed54d7ed79",
     "crates/magistr-desktop/src/content.tests.rs": "6fa126a3da57be231b120efdab97e20a3502771cece57b2f91ef57ea9719a314",
     "crates/magistr-desktop/src/conversations.rs": "7fadbc46e46b64c58be2d07ab0a0894cbe287b4fe8f63757a52e8fc552e028d0",
@@ -1905,17 +1908,18 @@
     "crates/magistr-desktop/src/document.tests.rs": "cb58753b0ae2d770c33d8756628de4b16d05c258440d568fdec1ea53160a1999",
     "crates/magistr-desktop/src/drafts.rs": "743b6cd98d10a47dbe066b9fe83f8c96047b53197f89f0ec60e10dbe1fec9162",
     "crates/magistr-desktop/src/exit.rs": "e1566f08f1b70f4481218517b6f96ed199033b2870c926869b36cc77c621905a",
-    "crates/magistr-desktop/src/launch.rs": "245fc351148c9d38612d862e28c6f9b3325305778c991735b704a65532f31bdb",
+    "crates/magistr-desktop/src/launch.rs": "c6f13b0cb628a487c219db9a6170ded2380c37f3414f4fc41a7b6fc7baf53d12",
     "crates/magistr-desktop/src/launch.tests.rs": "c3c00bf5cd05fdf6cb15299c92af33894a47a3cefa9e4cb660818d2e425a4ad3",
     "crates/magistr-desktop/src/links.rs": "7b10947b582b1f0090ca518e519cc9773560cec0108565546b2ce580415490fd",
     "crates/magistr-desktop/src/links.tests.rs": "37b90ae520628a92289528665c41603dbe464e0b9e58003cce16b94283cf0875",
-    "crates/magistr-desktop/src/main.rs": "76e5a582e8c0ba1f2df85edbd98919cd0707e5e96c36d1564ab71210ef50740d",
+    "crates/magistr-desktop/src/main.rs": "34eefbab3e767a37772bb60e5d8f5a3d9bdb5d54082d983c00a1437dfeddd996",
     "crates/magistr-desktop/src/preferences.rs": "824b83cb56269d2e8a50ae2d8c5ede5aae543962d35334085745b53b18829b15",
     "crates/magistr-desktop/src/projects.rs": "bae44c4ace2504d2eadffddf123ae694d97393864c4b6f839c6a3709951032cd",
     "crates/magistr-desktop/src/projects.tests.rs": "af45a85ce0979a67fd97b6a2269b8ed9e635a85e0576903547acec0f60e3b44c",
     "crates/magistr-desktop/src/streams.rs": "2c39430f840b8600962c00b34b360c747bd6fd0622396662f7d2fbf3240b0921",
-    "crates/magistr-desktop/src/wire.rs": "73231860077131798280888edf8fbe08dd8331a7e01a6933fb73be0b7aa9b909",
-    "crates/magistr-desktop/src/wire.tests.rs": "5d108f4535b8387a880144f24c80d0c6148870529fdccb998f4d03b09e9c8e36",
+    "crates/magistr-desktop/src/wire.rs": "11c71853772f5cd88f4ba4d84e99ac45c9e04ae3906b4ae1e2c8f37da638e26d",
+    "crates/magistr-desktop/src/wire.tests.rs": "e6f9279af17c8d16c1bcd1b77796e48d4ecfa7c87c7181dccae4b0c1e20555e4",
+    "crates/magistr-desktop/src/work.rs": "74ef52375b3b51ec3945ba61712ff18a48baa7216560770646b2edf3779ff989",
     "crates/magistr-desktop/tauri.conf.json": "b8af99622336b041fe41255fe57d6225447631945d6a89c5a4f3dc1c7348b4b9",
     "crates/magistr-desktop/tests/attachment.swift": "8c576478c14c2c3af04366295c4e159095e331f2fc8a2eba0480bbf78a6f29ce",
     "crates/magistr-desktop/tests/attachment_fixture.py": "21513d328e2e6a99ff12d576eb61f6cb313030c6667cb5c251b59c11484319e3",
@@ -1924,33 +1928,38 @@
     "crates/magistr-desktop/tests/draft_persistence.swift": "95b853b033bbb88fe5052c9a3c368cb955eb5ac1d3fa746c3c07838cb260d9a9",
     "crates/magistr-desktop/tests/draft_persistence_journey.py": "faa3f049f5702ecc6229994f44b297da70e61b6f91ed9bc9cfb0dcdb9e0a8e2d",
     "crates/magistr-desktop/tests/drafts.mjs": "371f679eaf90ba821df7c0491810aabce899f845b623dedc6b8c66f2693f8323",
-    "crates/magistr-desktop/tests/native_window.py": "c7a6257759c7ad2f40f4f27761500a42468f5c861f5909851d4667a4abe71e08",
+    "crates/magistr-desktop/tests/native_window.py": "6fe4af1bcc6fc78d401958c14b0222f068aa676a628477db522cc92424e0d5e8",
     "crates/magistr-desktop/tests/native_window.swift": "d67d033a2980070eb252af599f3e9a0389f7d0b08458a0b1a054d99e87f6456d",
     "crates/magistr-desktop/tests/preferences.mjs": "aafbdfc322774f97a185d88a1d74097104b606b5ccf25fea67dc09b4fe987d3a",
+    "crates/magistr-desktop/tests/process_roles.py": "2406be1b8ebd5b026f2e498797ffa49932f373d595c487b57c73234869bcac94",
     "crates/magistr-desktop/tests/rich_conversation.swift": "6c6362c38438d71087c91b0707dfe7bf3946f69c400bd8f6d3f7ebf249001f2f",
     "crates/magistr-desktop/tests/rich_conversation_fixture.py": "b97fa784f12fbcb9e478e3bc409651b7b7080f2cc62e25e4ef504bf828e7c146",
     "crates/magistr-desktop/tests/rich_conversation_journey.py": "1d44fcfea1d0afa56c5ca612d34c04c2c9a7a84819a60e7997f5b8d6fb0d2400",
     "crates/magistr-desktop/tests/saved_drafts.mjs": "91af528a99e0c99578215cdca6a14dab2d94afed6247a25b26c3de17907fe879",
-    "crates/magistr-desktop/tests/session_controls_fixture.py": "9c7ca60ce147938b1775d3eaed1e369e96a3534cb23b28831ef8043e8bd08aac",
-    "crates/magistr-desktop/ui/app.mjs": "44e8adcd5fca31b51a2c4692e9102421a0add2a46735acd706f1ceaf8b51c437",
+    "crates/magistr-desktop/tests/session_controls_fixture.py": "151ba2cf725b15ef1a245203d518d90fb09ba85aff6a54c1b37f88fb84cdc2fb",
+    "crates/magistr-desktop/tests/work.mjs": "19b658066bb80ab9ee473cdbe5a88a00ff242a0e730f053ba163605a97dab840",
+    "crates/magistr-desktop/tests/work_fixture.py": "35eb7a0a8257d26711138e6673bbaf20bbedcd5dd455fbc0343086e2afe53a6d",
+    "crates/magistr-desktop/tests/work_journey.py": "7fd7626d30d1023f532e57d8017b15d2198c79742d4d72aba36e3611fb010570",
+    "crates/magistr-desktop/ui/app.mjs": "3c52b810da5fc97e7f16c008e7500933b252c08bcce41b6c0243689879f1d310",
     "crates/magistr-desktop/ui/attachments.mjs": "c598ca322b4a2c1b22b9f378ddc35ce7ec89a7e93c81673de978b3269a28ce63",
     "crates/magistr-desktop/ui/composer.mjs": "9accf554a6a2f6e7c029f4972fa4221e40d755546693c8343cbd528ef2a00bc0",
     "crates/magistr-desktop/ui/context.mjs": "9476a17db8e8c3032bd081dbdcd6088e9338ca2c41f9b455278243f5c98e4bcd",
     "crates/magistr-desktop/ui/conversation.mjs": "ee2753fdfa58093276bbb4e0b329d5eac03f2d04c79cdde4f6b131a26caf0651",
     "crates/magistr-desktop/ui/drafts.mjs": "6d5dab26f19fb14f67a79077b5927adff41f3dea78186ace91cc7cc5246888b4",
     "crates/magistr-desktop/ui/icon.png": "392002a92fdd8dc81923944cd5abd170d0867fe8eb3701d71d4df4aea083dd10",
-    "crates/magistr-desktop/ui/index.html": "a8142dd5405251fbf25963612756fd2b4e2f15d6cdb1cdda881a97d8d6d7d2f6",
+    "crates/magistr-desktop/ui/index.html": "e2290e26f0e47558d243e4c7afaf31461ef246b4d8bee8ffa3126831f539c6c0",
     "crates/magistr-desktop/ui/preferences.mjs": "119dfd44c2fbdf82da45e0973c6a12bbf3a284ffabf416f766e1315a47cad2d5",
     "crates/magistr-desktop/ui/projects.mjs": "e19f9be0696a2e21d082561403a2188e1b55cedb898539a7a5ae7280b8807031",
     "crates/magistr-desktop/ui/saved_drafts.mjs": "ae921dfdfa52f9b2e54920aefa6b09bef285ebe7ea326f3bec3287953ca9f52a",
     "crates/magistr-desktop/ui/selection.mjs": "fd844d9e146a9c5e1fb9ab6e2fc72c0273da66d4f59a70ce639877a87aff05fc",
     "crates/magistr-desktop/ui/session_controls.mjs": "738386755be2b65fd03899ae28e1b357b4313258d67b3edfaf72fe3fe37ff123",
-    "crates/magistr-desktop/ui/style.css": "808ac73794554be06d62f55fb1831ad7c76136317785c76c6d4a5dce5056a883",
+    "crates/magistr-desktop/ui/style.css": "7d293e8d7d994e0773864c84d66f4ef71eba5f1df486bcd2301ba77b54012ca5",
     "crates/magistr-desktop/ui/supervision.mjs": "032a49085ae6738687065e58e06950cf7229f4fa7f7e0e64ed7390edf3629d12",
     "crates/magistr-desktop/ui/transcript.mjs": "1e22dc70fe457e303b2d1e3edca61491f86d882406825cb5afe6bda9eff9d6ae",
+    "crates/magistr-desktop/ui/work.mjs": "a7c16622a695378969fc6ecc34ae22d27d888c108641960522e7cd7b605a0658",
     "crates/magistr-workspace/src/query/source_access.rs": "a0f0071f385ee432152840eeb07446ac9ac88fbbcb1f2ff9de5859d5e3478eda",
     "crates/magistr-workspace/src/query/source_observation.rs": "1ea56c3d85458476326f32309a66b1848167347e054e3fa35838c0e6318092e6",
-    "crates/magistr-workspace/src/service/workspace_service.rs": "1e6da5dd0eb5c759f854a9a72db7740dc269acdb6c0ff0e05418c38f49091f03",
-    "scripts/desktop-visual-gate.py": "866bcb29abd80342e338dca940e4d36dcd71916b102d044760b4190817764969"
+    "crates/magistr-workspace/src/service/workspace_service.rs": "23500f38e2e9ebae67c201b694ea72a38884d0b9bd2ec92cffa2d8bc4a1d13fd",
+    "scripts/desktop-visual-gate.py": "de0d3f7b6fc57c2668f0e02634ad846e51570a1c33764c0f68a9e84a7d558f2e"
   }
 }
