@@ -44,16 +44,35 @@ export function workspaceSeed() {
   second.retained=[1];second.status="Waiting";
   second.pending=[{id:7,title:"Run the focused sync checks",detail:"cargo nextest run -p sync --lib",choices:[{option_id:"allow",label:"Allow once"},{option_id:"deny",label:"Decline"}]}];
   const frames=[first,second,third];
-  return {frames,projects:[{id:"magistr",name:"Magistr",directory:"/Projects/magistr"},{id:"website",name:"Website",directory:"/Projects/website"}]};
+  const history=[
+    ["release-notes","Release notes and rollback","magistr"],
+    ["sync-review","Review the sync retry","magistr"],
+    ["home-layout","Home page content and navigation","website"],
+    ["auth-review","Review authorization changes","magistr"],
+    ["install-guide","Improve the installation guide","magistr"],
+    ["contact-page","Contact page accessibility","website"],
+    ["project-search","Find projects more quickly","magistr"],
+    ["agent-setup","Choose an agent for this project","magistr"],
+    ["release-checks","Verify the release checklist","magistr"],
+    ["mobile-layout","Review the narrow layout","website"],
+    ["empty-states","Clearer messages for empty projects","magistr"],
+    ["copy-review","Review product language","website"],
+  ].map(([id,name,project],index)=>({
+    id,name,workspace:"/Projects/"+project,provider:"GitHub Copilot",purpose:"conversation",model:"Claude Sonnet",
+    updated_at:"2026-10-"+String(14-Math.floor(index/2)).padStart(2,"0")+"T15:30:00Z",ended_at:null,turns:"8",cost:"$0.42",resume_reason:null,
+    summary:index===0?"The release is ready for a final review.\n\nCheck the installer on a clean machine, keep the previous build available, and confirm that reopening a project restores the unsent message.\n\n"+Array.from({length:8},(_,n)=>"Review "+(n+1)+": confirm the expected behavior with the person responsible for this part of the release. Keep a short note of what changed and how to recover.").join("\n\n"):"We reviewed the current behavior and agreed on the next change. Return to this conversation to continue with the same context."
+  }));
+  return {frames,history,projects:[{id:"magistr",name:"Magistr",directory:"/Projects/magistr"},{id:"website",name:"Website",directory:"/Projects/website"}]};
 }
 function install(seed) {
   const frames=new Map(seed.frames.map(frame=>[frame.address.session,frame])),calls=[];
+  const saved=new Map(seed.history.map((record,index)=>[record.id,{text:index===0?"Before shipping, confirm the rollback steps and check that the installation guide matches the new release.":"",revision:1}]));
   let stream=1,subscription=null,catalog=null,preferences={revision:1,preferences:{theme:"dark",reduce_motion:true}};
   const sessions=()=>[...frames.values()].map(f=>({address:f.address,target:f.target,owned_conversations:[f.conversation.id],
     name:seed.projects.find(p=>p.directory===f.address.workspace)?.name??"Project",conversation:f.conversation,status:f.status,closed:f.closed,
     pending:f.pending.map(({id,title})=>({id,title})),activity:f.activity,usage:f.usage,model:f.model,work:f.work}));
   const emit=()=>{if(subscription){const f=frames.get(subscription.session);subscription.channel.onmessage({...structuredClone(f),stream:subscription.stream,sequence:++f.sequence});}};
-  window.__fixture={calls,frames,handlers:{},publish(session,patch){Object.assign(frames.get(session),patch);if(subscription?.session===session)emit();catalog?.onmessage({stream:1,sequence:++stream,sessions:sessions()});}};
+  window.__fixture={calls,frames,history:seed.history,saved,handlers:{},publish(session,patch){Object.assign(frames.get(session),patch);if(subscription?.session===session)emit();catalog?.onmessage({stream:1,sequence:++stream,sessions:sessions()});}};
   window.__TAURI__={core:{Channel:class{},async invoke(command,args={}) {
     calls.push({command,args:JSON.parse(JSON.stringify(args))});
     if(window.__fixture.handlers[command])return window.__fixture.handlers[command](args);
@@ -61,6 +80,16 @@ function install(seed) {
       case "overview":return {directory:null,reduce_motion:false,sessions:sessions(),projects:seed.projects,attachment_limits:{file_bytes:8388608}};
       case "subscribe_catalog":catalog=args.channel;catalog.onmessage({stream:1,sequence:++stream,sessions:sessions()});return 1;
       case "subscribe_file_drops":case "subscribe_exit":case "acknowledge":case "session_action":return;
+      case "saved_conversations":return structuredClone(seed.history);
+      case "saved_draft":{
+        const record=saved.get(args.id);if(!record)throw new Error("Unknown saved conversation.");
+        return {text:record.text,attachments:[],status:{conversation:args.id,revision:record.revision,saved_revision:record.revision,save_attempt:record.revision,error:null}};
+      }
+      case "save_saved_draft":{
+        const record=saved.get(args.id);if(record.revision!==args.expectedRevision)throw new Error("Draft revision mismatch.");
+        record.text=args.text;record.revision++;
+        return {conversation:args.id,revision:record.revision,saved_revision:record.revision,save_attempt:record.revision,error:null};
+      }
       case "preferences":return structuredClone(preferences);
       case "save_preferences":preferences={revision:preferences.revision+1,preferences:args.preferences};return structuredClone(preferences);
       case "subscribe_session":subscription={channel:args.channel,session:args.address.session,stream:++stream};emit();return subscription.stream;

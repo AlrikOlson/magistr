@@ -1,3 +1,4 @@
+import { HistoryBrowser } from "./history.mjs";
 import { ConversationName } from "./conversation_actions.mjs";
 import { ProjectNavigation } from "./navigation.mjs";
 import { WorkspaceLayout } from "./layout.mjs";
@@ -7,7 +8,7 @@ import { Transcript } from "./transcript.mjs";
 import { Drafts } from "./drafts.mjs";
 import { Preferences, effectiveMotion } from "./preferences.mjs";
 import { SavedDraftEditor } from "./saved_drafts.mjs";
-import { Submissions, shouldSaveDraft, reconcileDraft, conversationOwner, resumeReason } from "./session_controls.mjs";
+import { Submissions, shouldSaveDraft, reconcileDraft, conversationOwner } from "./session_controls.mjs";
 import { attachComposer } from "./composer.mjs";
 import { AttachmentList, clipboardFiles, sizeLabel } from "./attachments.mjs";
 import { Selection } from "./selection.mjs";
@@ -20,6 +21,11 @@ const attachmentWork=new Map(),draftMutations=new Set();
 const submissions=new Submissions();
 const drafts=new Drafts((target,expectedRevision,text)=>invoke("save_draft",{target,expectedRevision,text}),()=>renderDraftStatus());
 const savedDraftEditor=new SavedDraftEditor($,invoke,id=>conversationOwner(id,sessions));
+const history=new HistoryBrowser($,invoke,{drafts:savedDraftEditor,sessions:()=>sessions,resume:async record=>{
+  const resident=conversationOwner(record.id,sessions);
+  const address=resident?.address??await invoke("open_session",{directory:record.workspace,choice:{kind:"resume",id:record.id}});
+  await refresh();await select(address);
+}});
 let forcedMotion=false;
 const systemMotion=matchMedia("(prefers-reduced-motion: reduce)");
 const preferences=new Preferences(invoke,()=>renderPreferences());
@@ -123,7 +129,7 @@ async function connectCatalog() {
     if(!catalog.apply(frame))return;
     sessions=catalog.sessions;
     for(const session of sessions)if(!labels.has(session.address.session))labels.set(session.address.session,++issuedLabel);
-    renderRail();savedDraftEditor.render();renderHistoryResume();
+    renderRail();savedDraftEditor.render();history.update();
     invoke("acknowledge",{stream:frame.stream,sequence:frame.sequence}).catch(showError);
   };
   channel.onmessage=frame=>ready?receive(frame):early=frame;
@@ -206,7 +212,6 @@ $("discard-draft").onclick=async()=>{
   }catch(error){contextError(target,error);}
   finally{draftMutations.delete(key);if(currentIs(target))renderComposer();}
 };
-async function closeHistory() {await savedDraftEditor.flush();$("history-picker").close();}
 async function connectExit() {
   const channel=new Channel();let exiting=false;
   channel.onmessage=async()=>{
@@ -517,7 +522,7 @@ function renderConfiguration(frame) {
   for(const select of $("agent-configuration").querySelectorAll("select"))select.disabled=frame.closed||frame.activity?.active||!!frame.activity?.queued_turns||frame.activity?.cancellation_requested||frame.activity?.configuration_in_progress;
 }
 const agentLabels=new Map();
-let newWorkspace=null,chosenHistory=null,openingGeneration=0,historyResuming=false;
+let newWorkspace=null,openingGeneration=0;
 async function chooseAgent(directory) {
   const generation=++openingGeneration;newWorkspace=directory;$("initial-model-control").hidden=true;$("initial-model").replaceChildren();$("choose-initial-model").disabled=false;$("session-picker-error").hidden=true;$("agent-choice").replaceChildren();
   $("session-picker-open").disabled=true;$("session-picker").showModal();
@@ -554,49 +559,6 @@ $("session-form").onsubmit=async event=>{
     await refresh();await select(address);$("session-picker").close();$("draft").focus();
   }catch(error){$("session-picker-error").textContent=String(error);$("session-picker-error").hidden=false;}
   finally{$("session-picker-open").disabled=false;if($("session-picker").open)$("session-picker-open").focus();}
-};
-function renderHistoryResume() {
-  if(!chosenHistory)return;
-  const reason=resumeReason(chosenHistory,sessions);
-  $("history-resume-reason").textContent=reason??"Resume with the original agent and conversation.";
-  $("history-resume").disabled=!!reason||historyResuming;
-}
-async function showHistory() {
-  $("history-error").hidden=true;$("history-summary").hidden=true;$("history-list").replaceChildren(text("p","Reading saved conversations…"));
-  $("history-picker").showModal();
-  try {
-    const saved=await invoke("saved_conversations");
-    $("history-list").replaceChildren(...saved.map(record=>{
-      const name=record.name??((record.purpose==="roadmap"?"Planning in ":"Conversation in ")+record.workspace.split(/[\\/]/).filter(Boolean).at(-1));
-      const item=button(name,async()=>{
-        try {if(!await savedDraftEditor.open(record))return;}catch(error){$("history-error").textContent=String(error);$("history-error").hidden=false;return;}
-        chosenHistory=record;$("history-summary").hidden=false;$("history-name").textContent=name;
-        const turns=record.turns==="unknown"?"Turns not reported":record.turns+(record.turns==="1"?" turn":" turns");
-        const cost=record.cost==="unknown"?"Spending not reported":record.cost;
-        $("history-details").textContent=[record.provider,(record.ended_at?"Finished ":"Last saved ")+new Date(record.updated_at).toLocaleString(),turns,cost].join(" · ")+"\n"+record.workspace;
-        $("history-text").textContent=record.summary??"No reply summary was saved.";
-        renderHistoryResume();
-        for(const row of $("history-list").children)row.setAttribute("aria-current",String(row===item));
-        $("history-summary").focus();
-      });
-      item.setAttribute("aria-label",name);item.append(text("small",record.provider+" · "+new Date(record.updated_at).toLocaleDateString()));return item;
-    }));
-    if(!saved.length)$("history-list").append(text("p","No saved conversations yet."));
-  }catch(error){$("history-error").textContent=String(error);$("history-error").hidden=false;$("history-list").replaceChildren();}
-}
-$("saved-conversations").onclick=()=>showHistory().catch(showError);
-$("history-close").onclick=()=>closeHistory().catch(showError);
-$("history-picker").oncancel=event=>{event.preventDefault();closeHistory().catch(showError);};
-$("history-resume").onclick=async()=>{
-  if(!chosenHistory||historyResuming)return;const record=chosenHistory;historyResuming=true;$("history-resume").disabled=true;$("history-error").hidden=true;
-  try {
-    await savedDraftEditor.flush();
-    const reason=resumeReason(record,sessions);if(reason)throw new Error(reason);
-    const resident=conversationOwner(record.id,sessions);
-    const address=resident?.address??await invoke("open_session",{directory:record.workspace,choice:{kind:"resume",id:record.id}});
-    await refresh();await select(address);$("history-picker").close();$("draft").focus();
-  }catch(error){$("history-error").textContent=String(error);$("history-error").hidden=false;historyResuming=false;renderHistoryResume();$("history-resume").focus();}
-  finally{historyResuming=false;renderHistoryResume();}
 };
 document.addEventListener("keydown",event=>{
   if(!event.isComposing&&!document.querySelector("dialog[open]")&&(event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==="o"){event.preventDefault();$("open-project").click();}

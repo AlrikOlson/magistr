@@ -63,6 +63,18 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
   await app.getByRole("button",{name:"Work paused",exact:true}).click();
   await capture("work-paused-dark.png");
   checks["work summary opens exact controls and naming has its own dialog"]=true;
+  await app.getByRole("button",{name:"Saved conversations",exact:true}).click();
+  await expect(app.getByRole("heading",{name:"Release notes and rollback",exact:true})).toBeVisible();
+  await capture("history-dark.png");
+  await app.getByRole("button",{name:"Close saved conversations",exact:true}).click();
+  await app.getByRole("button",{name:"Settings",exact:true}).click();
+  await app.getByLabel("Appearance",{exact:true}).selectOption("light");
+  await app.getByRole("button",{name:"Done",exact:true}).click();
+  await app.setViewportSize({width:800,height:680});
+  await app.getByRole("button",{name:"Saved conversations",exact:true}).click();
+  await expect(app.getByRole("heading",{name:"Release notes and rollback",exact:true})).toBeVisible();
+  await capture("history-narrow-light.png");
+  checks["saved history has fixed heading, search, independent panes and resume action"]=true;
   const sources={};
   for(const name of (await readdir(ui)).sort()){
     const file=resolve(ui,name);

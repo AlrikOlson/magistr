@@ -301,3 +301,16 @@ test("parked and closing claims keep saved text read-only until the owner releas
  await h.editor.flush();
  assert.equal(h.records.get("first").text,"Editable after release");
 });
+
+test("closing a browser cancels its pending read without replacing the previous editor",async()=>{
+ const h=harness(),entered=deferred(),release=deferred();
+ await h.editor.open({id:"first"});
+ h.before=async(command,args)=>{if(command==="saved_draft"&&args.id==="second"){entered.resolve();await release.promise;}};
+ const opening=h.editor.open({id:"second"});await entered.promise;
+ h.editor.cancelOpen();
+ h.element("saved-message").input("Keep editing the original message");await h.editor.flush();
+ release.resolve();
+ assert.equal(await opening,false);
+ assert.equal(h.editor.current.conversation,"first");
+ assert.equal(h.element("saved-message").value,"Keep editing the original message");
+});

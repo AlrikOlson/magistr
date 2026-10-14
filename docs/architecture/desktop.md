@@ -247,7 +247,7 @@ failure. Saved-only edits use the durable revision while no resident writer exis
 
 Admission restores by canonical project, working copy and logical conversation
 identity, then maps to a new resident address. Saved conversations can read and
-edit a draft without starting a provider. Text and file selections share one
+edit a draft without starting a provider. Its desktop browser searches the returned records by name, project, agent and summary; filtering never replaces the selected draft. Fixed heading/search and Resume controls surround independently scrolling results and reading surfaces. SavedDraftEditor retains all write authority and cancels obsolete reads when the browser closes; refused saves preserve the current editable message, and pending resume cannot be redirected or dismissed mid-admission. Text and file selections share one
 revision. Files retain immutable bytes, their selection identity and any source
 path; source files are checked again before Send, so changed or missing files
 can be removed without losing the message. Explicit discard writes an empty
