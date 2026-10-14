@@ -37,7 +37,7 @@ pub async fn cmd_next_loop_headless(
         &dir,
         &wf.spec_path,
         request.max_iterations,
-        crate::roadmap::admit_native_host(&dir)?,
+        crate::roadmap::open_native_reader(&dir)?,
     )
     .suggest()?;
     super::select_loop_track(&mut iter_loop, request.track, false)?;
@@ -48,9 +48,6 @@ pub async fn cmd_next_loop_headless(
     iter_loop.set_budget_limit(max_cost).suggest()?;
     let max_cost = iter_loop.run_state().budget_limit_usd;
     iter_loop.persist().suggest()?;
-    // The host's owner endpoint, for a cockpit opened beside this loop;
-    // it lives for the loop and drops before the writer.
-    let _owner_endpoint = crate::roadmap::serve_owner_endpoint(iter_loop.native()).await?;
     // The workspace this host owns for the loop: every iteration's session
     // writes through it, or is refused when it could not be admitted.
     let workspace =

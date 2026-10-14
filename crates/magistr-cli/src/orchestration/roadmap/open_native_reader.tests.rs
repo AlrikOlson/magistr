@@ -1,6 +1,5 @@
-use super::super::admit_native_host::admit_native_host_with;
 use super::*;
-use magistr_engine::native::ChunkStatus;
+use magistr_engine::native::{ChunkStatus, ProjectAuthority, WriterRole};
 
 fn write_project_json(dir: &Path, backend: Option<&str>) {
     let magistr = dir.join(".magistr");
@@ -42,14 +41,12 @@ fn current_backend_resolution_uses_declared_settings_or_native_default() {
 }
 
 #[test]
-fn current_native_readers_and_hosts_refuse_invalid_settings() {
+fn current_native_readers_refuse_invalid_settings() {
     let tmp = tempfile::tempdir().unwrap();
     write_project_json(tmp.path(), Some("invalid"));
     assert!(open_native_reader_with(tmp.path(), |_| None).is_err());
-    assert!(admit_native_host_with(tmp.path(), |_| None).is_err());
     std::fs::write(tmp.path().join(".git"), "invalid link").unwrap();
     assert!(open_native_reader_with(tmp.path(), |_| None).is_err());
-    assert!(admit_native_host_with(tmp.path(), |_| None).is_err());
 }
 
 #[test]
@@ -59,11 +56,6 @@ fn yaml_project_opens_nothing() {
     assert!(
         open_native_reader_with(tmp.path(), |_| None)
             .unwrap()
-            .is_none()
-    );
-    assert!(
-        admit_native_host_with(tmp.path(), |_| None)
-            .expect("nothing to admit")
             .is_none()
     );
 }
@@ -82,9 +74,10 @@ fn native_project_admits_one_host_and_readers_on_the_configured_store() {
     let data_dir = tmp.path().join("data").display().to_string();
     let lookup = move |key: &str| (key == "THINK_AND_SHIP_DATA_DIR").then(|| data_dir.clone());
 
-    let engines = admit_native_host_with(&project, &lookup)
+    let config = magistr_core::evidence::writer_config(&project, &lookup);
+    let engines = ProjectAuthority::admit(&config, WriterRole::Service)
         .expect("admitted")
-        .expect("native engines");
+        .open();
     engines
         .roadmap_add_chunk(
             "one".into(),
@@ -112,12 +105,9 @@ fn native_project_admits_one_host_and_readers_on_the_configured_store() {
         "store lives under the injected data dir"
     );
     // A second host on the same project is refused with the lease's reason.
-    let refused = admit_native_host_with(&project, &lookup).expect_err("second host");
+    let refused = ProjectAuthority::admit(&config, WriterRole::Host).expect_err("second host");
     assert!(refused.to_string().contains("project owner"), "{refused}");
     drop(engines);
-    assert!(
-        admit_native_host_with(&project, &lookup)
-            .expect("released")
-            .is_some()
-    );
+    ProjectAuthority::admit(&config, WriterRole::Host)
+        .expect("the reader does not retain the writer lease");
 }

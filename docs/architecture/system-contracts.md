@@ -53,8 +53,8 @@ tests for the first group are in the [client inventory](clients.md#client-invent
 | `magistr roadmap` show, next, status, export | reader | none | none |
 | `magistr roadmap generate` | none here; the agent's `mcp-serve` writes | admitted for the run | `AgentSession` |
 | `magistr run` plain and `--headless` | none here; the agent's `mcp-serve` writes | admitted for the run | `AgentSession` |
-| `magistr next` | reader and Host writer for the selected work | admitted for the run | supervisor per attempt |
-| `magistr next-loop` | Host writer; the loop-owner lock | admitted per loop | supervisor per attempt; judge with no tools |
+| `magistr next` | reader; the agent's MCP tools use the project owner | admitted for the run | supervisor per attempt |
+| `magistr next-loop` | NativeReader for progress; loop-owner lock for the checkpoint; agent MCP tools use the project owner | admitted per loop | supervisor per attempt |
 | `magistr resolve-dispatch` | none; rewrites the loop checkpoint under the loop-owner lock | none | none |
 | `magistr mcp-serve` | Service writer, or stdio proxy to the owner when held | lock-free evidence only | none |
 | `magistr mcp-launch` `magistr` or `workbench-mcp` | as `mcp-serve`, or none | the owner when free, else an attached bridge | none |

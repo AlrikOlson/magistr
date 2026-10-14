@@ -26,8 +26,7 @@
 #    inventory names: the workspace bridge (attach-or-admit) and the
 #    run/loop host's HostedWorkspace (arch-14f3).
 # 10. ProjectAuthority is admitted only at the inventory's admission
-#    sites: the MCP service, admit_native_host, the loop's auto_native and
-#    the cockpit host (arch-14f3).
+#    sites: the MCP service and cockpit host. Iteration progress is read-only.
 # 11. Owner attachment happens only on the inventory's attached surfaces:
 #    the second cockpit, the second mcp-serve proxy and the workspace
 #    bridge (arch-14f3).
@@ -190,8 +189,6 @@ while IFS= read -r f; do
     case "$f" in
         crates/magistr-engine/src/native/*) continue ;;
         crates/magistr-cli/src/mcp_tools/service.rs) continue ;;
-        crates/magistr-cli/src/orchestration/roadmap/admit_native_host.rs) continue ;;
-        crates/magistr-core/src/workflow/iteration.rs) continue ;;
         crates/magistr-cli/src/application/workflow_client/client.rs) continue ;;
     esac
     hits=$(grep -nE 'ProjectAuthority::(admit|admit_for_project)\(' "$f" | grep -vE '^[0-9]+:\s*//' || true)
