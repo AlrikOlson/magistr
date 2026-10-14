@@ -2,7 +2,7 @@
 
 #[test]
 fn protocol_roles_use_the_actual_desktop_executable() {
-    let result = std::process::Command::new("python3")
+    let result = std::process::Command::new(if cfg!(windows) { "python" } else { "python3" })
         .arg(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/tests/process_roles.py"

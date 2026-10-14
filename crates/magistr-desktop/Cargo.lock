@@ -3838,6 +3838,7 @@ dependencies = [
  "rustix 1.1.4",
  "tokio",
  "tokio-util",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

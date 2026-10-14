@@ -1,5 +1,8 @@
 //! Desktop composition and current-executable child roles.
 #![deny(dead_code, unused)]
+// The same executable also serves pipe-based child roles; a GUI subsystem keeps
+// ordinary Windows launches from opening a console while preserving those pipes.
+#![cfg_attr(windows, windows_subsystem = "windows")]
 
 mod args;
 mod attachments;

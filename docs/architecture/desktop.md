@@ -1,13 +1,26 @@
 # Desktop architecture
 
 The desktop is `magistr-desktop`: a Rust Tauri 2.12 host with the operating
-system's WebView and semantic HTML/CSS. Its only launch route is:
+system's WebView and semantic HTML/CSS. Tauri owns its app bundle and installer;
+`Launch Magistr.command` and `Launch Magistr.cmd` call `scripts/desktop.mjs` to
+build the current checkout and open that same executable. Installed users open
+Magistr from Applications/Dock on macOS or the Start menu on Windows.
 
 ```sh
-cargo run --manifest-path crates/magistr-desktop/Cargo.toml --locked
-# Optionally open a particular folder after the window is ready:
-cargo run --manifest-path crates/magistr-desktop/Cargo.toml --locked -- --dir /path/to/project
+node scripts/desktop.mjs open
+node scripts/desktop.mjs open --dir /path/to/project
+node scripts/desktop.mjs package
 ```
+
+The helper selects the host Rust target and reads Cargo metadata for the output
+directory. Tauri bundles the canonical icon and embedded frontend; macOS emits
+an app and disk image, Windows a per-user NSIS installer with WebView2 setup.
+Windows uses the GUI subsystem while worker, ACP and MCP roles keep their inherited
+pipes. Installed child roles continue to use the current executable, with no
+checkout-relative runtime assets or separate CLI installation. Node and Cargo
+are build tools only. Direct `cargo run --manifest-path crates/magistr-desktop/Cargo.toml --locked`
+remains a development command. See [development](../development.md) for prerequisites
+and artifact locations.
 
 The window opens before project or provider admission. With no directory it
 shows a project chooser and reads existing session history without creating a
@@ -280,7 +293,10 @@ Performance checks exercise the production conversation reducer and the native
 event-to-accessible-reply receipt. This is not a whole-application release benchmark.
 The [foundation decision](desktop-foundation.md) retains the framework comparison.
 
-macOS has been exercised locally. Linux is configured in CI; Windows build,
-process-tree settlement and complete native IME observation have their own
-roadmap items. Automated Japanese input-source observation must be reported as
+macOS has been exercised locally. Linux retains its existing CI checks. The
+separate desktop-app delivery workflow builds on macOS and Windows, checks the
+actual packaged protocol roles and installs/opens/closes the Windows app. It
+also runs the process owner's tests on both platforms; a workflow definition
+alone is not passing native evidence. Complete native IME observation remains
+separate desktop work. Automated Japanese input-source observation must be reported as
 observed; composition unit tests and Unicode paste alone do not prove conversion.
