@@ -8,7 +8,6 @@
 
 pub mod clean_tree_guard;
 pub mod context_builder;
-pub mod durable_write;
 pub mod format_result;
 pub mod formatter;
 pub mod gate_cache;

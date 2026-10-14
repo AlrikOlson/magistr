@@ -592,9 +592,9 @@
     "focused" : false,
     "rect" : [
       240,
-      903,
+      830,
       191,
-      72
+      145
     ]
   },
   {
@@ -796,7 +796,7 @@
     "focused" : false,
     "rect" : [
       240,
-      924,
+      851,
       191,
       21
     ]
@@ -816,9 +816,48 @@
     "focused" : false,
     "rect" : [
       240,
-      953,
+      880,
       191,
       22
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      240,
+      910,
+      191,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXApplicationStatus",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      240,
+      939,
+      191,
+      36
     ]
   },
   {
@@ -892,9 +931,66 @@
     "focused" : false,
     "rect" : [
       240,
-      926,
+      853,
       78,
       17
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXCheckBox",
+    "AXTitle" : "Reduce motion",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      240,
+      910,
+      191,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reduce motion",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      264,
+      912,
+      97,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reduced motion is enabled for this launch.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      240,
+      940,
+      173,
+      33
     ]
   }
 ]

@@ -8,6 +8,7 @@
 //! Storage location: `~/.local/share/magistr/sessions.db`
 
 pub mod commit_info;
+pub(crate) mod draft;
 mod history;
 pub mod resume;
 pub mod retention_policy;

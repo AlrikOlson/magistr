@@ -106,10 +106,11 @@ fn an_attempt_is_reserved_by_the_checkpoint_that_carries_it() {
     il.persist().unwrap();
 
     // Crash mid-write: the temporary is there, the rename never happened.
-    let torn = dir
-        .path()
-        .join(".magistr")
-        .join(format!(".loop-state.json.tmp-{}", std::process::id()));
+    let torn = dir.path().join(".magistr").join(format!(
+        ".loop-state.json.tmp-{}-{}",
+        std::process::id(),
+        u64::MAX
+    ));
     std::fs::write(&torn, b"{\"iteration\": 1, \"run\": ").unwrap();
     drop(il);
     let recovered = recover(dir.path(), &spec, None);
@@ -121,7 +122,11 @@ fn an_attempt_is_reserved_by_the_checkpoint_that_carries_it() {
     assert!(recovered.reconciliation().is_empty());
     assert_eq!(recovered.iteration(), 0);
     recovered.persist().unwrap();
-    assert!(!torn.exists());
+    // A later replacement never consumes or removes another write's temporary.
+    assert_eq!(
+        std::fs::read(&torn).unwrap(),
+        b"{\"iteration\": 1, \"run\": "
+    );
 }
 
 #[test]

@@ -1,10 +1,10 @@
 {
   "files": {
     "jsonrpc": "2.0",
-    "id": "34767a2d-51a9-4e83-bc03-341e97e977fe",
+    "id": "96c62fec-8d3d-47f4-b981-6d31965af8fd",
     "method": "session/prompt",
     "params": {
-      "sessionId": "2ecf377a-baad-4177-a029-f1554cf56919",
+      "sessionId": "e982175f-e392-4031-9ea8-7f6632511011",
       "prompt": [
         {
           "type": "text",
@@ -28,10 +28,10 @@
   },
   "clipboard": {
     "jsonrpc": "2.0",
-    "id": "668aadfb-07fc-4e14-8921-79783925c065",
+    "id": "04fe0461-6c5f-4824-8222-63dc52b49bce",
     "method": "session/prompt",
     "params": {
-      "sessionId": "2ecf377a-baad-4177-a029-f1554cf56919",
+      "sessionId": "e982175f-e392-4031-9ea8-7f6632511011",
       "prompt": [
         {
           "type": "text",
@@ -51,10 +51,10 @@
   },
   "drop": {
     "jsonrpc": "2.0",
-    "id": "b35f4358-0bfd-4d01-96c7-0dba4ce64832",
+    "id": "d1cff9dd-6e45-4181-bc84-37f395e84ac3",
     "method": "session/prompt",
     "params": {
-      "sessionId": "2ecf377a-baad-4177-a029-f1554cf56919",
+      "sessionId": "e982175f-e392-4031-9ea8-7f6632511011",
       "prompt": [
         {
           "type": "text",
@@ -69,10 +69,10 @@
   },
   "unsupported": {
     "jsonrpc": "2.0",
-    "id": "e82bf64c-0697-4a81-83da-4bbf207214a2",
+    "id": "8592fa27-73e9-4cd5-a0b7-044a52008d2f",
     "method": "session/prompt",
     "params": {
-      "sessionId": "2ecf377a-baad-4177-a029-f1554cf56919",
+      "sessionId": "e982175f-e392-4031-9ea8-7f6632511011",
       "prompt": [
         {
           "type": "text",

@@ -104,6 +104,18 @@ fn user_config_distinguishes_absent_loaded_and_unreadable() {
 }
 
 #[test]
+fn user_config_does_not_treat_a_directory_as_absent() {
+    let dir = tempfile::tempdir().unwrap();
+    let inputs = ProjectInputs::from_lookup(dir.path(), |_| None).with_config_dir(dir.path());
+    let path = inputs.user_config_path().unwrap();
+    std::fs::create_dir(&path).unwrap();
+    assert!(matches!(
+        inputs.user_config(),
+        Err(UserConfigError::Io(actual, _)) if actual == path
+    ));
+}
+
+#[test]
 fn project_config_distinguishes_absent_loaded_and_invalid() {
     let dir = tempfile::TempDir::new().unwrap();
     let inputs = ProjectInputs::from_lookup(dir.path(), lookup(vec![]));

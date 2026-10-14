@@ -81,7 +81,7 @@ async fn exercise(parent: PathBuf) -> eyre::Result<()> {
     text(&mut stream, "first streaming").await?;
     drop(stream);
     client
-        .draft(&a, "unsent first".into())
+        .draft(&a, 0, "unsent first".into())
         .await
         .map_err(|error| eyre::eyre!(error))?;
     let mut other = client

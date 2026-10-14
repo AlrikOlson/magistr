@@ -6,7 +6,7 @@ use std::fmt;
 
 use super::session_outcome::SessionOutcome;
 
-/// One settled conversation, identified by Magistr independently of its provider.
+/// One conversation checkpoint, identified by Magistr independently of its provider.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SessionRecord {
     pub session_id: String,
@@ -21,8 +21,11 @@ pub struct SessionRecord {
     /// The negotiated provider supports loading this conversation.
     pub resume_supported: bool,
     pub started_at: DateTime<Utc>,
-    pub ended_at: DateTime<Utc>,
-    pub outcome: SessionOutcome,
+    /// The latest durable owner checkpoint.
+    pub updated_at: DateTime<Utc>,
+    /// Present only after the owner actually settles.
+    pub ended_at: Option<DateTime<Utc>>,
+    pub outcome: Option<SessionOutcome>,
     /// Reported cumulative USD cost; absent when the provider did not price it.
     pub cost_usd: Option<f64>,
     /// Terminal responses observed by the owner; absent when not recorded.

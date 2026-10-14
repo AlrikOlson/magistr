@@ -9,6 +9,7 @@ pub(crate) async fn run(cli: Desktop) -> eyre::Result<()> {
     let inputs =
         magistr::config::inputs::ProjectInputs::from_env(directory.clone().unwrap_or_default());
     let session_inputs = inputs.clone();
+    let preferences = magistr::application::DesktopPreferencesService::new(inputs.clone());
     let reduce_motion = cli.reduce_motion;
     let mut initial = true;
     let registry = SessionRegistry::start(move |dir| {
@@ -25,8 +26,12 @@ pub(crate) async fn run(cli: Desktop) -> eyre::Result<()> {
                 .build(),
         )
         .on_window_event(|window, event| {
+            use tauri::Manager as _;
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                api.prevent_close();
+                window.app_handle().exit(0);
+            }
             if let tauri::WindowEvent::DragDrop(tauri::DragDropEvent::Drop { paths, .. }) = event {
-                use tauri::Manager as _;
                 let state = window.state::<DesktopState>();
                 let target = state.streams.selected();
                 tracing::debug!(
@@ -87,9 +92,20 @@ pub(crate) async fn run(cli: Desktop) -> eyre::Result<()> {
             projects: std::sync::Arc::default(),
             inputs,
             reduce_motion,
+            preferences,
+            exit: crate::exit::Exit::default(),
         })
         .invoke_handler(tauri::generate_handler![
             crate::commands::overview,
+            crate::exit::subscribe_exit,
+            crate::exit::finish_exit,
+            crate::preferences::preferences,
+            crate::preferences::save_preferences,
+            crate::drafts::discard_draft,
+            crate::drafts::saved_draft,
+            crate::drafts::save_saved_draft,
+            crate::drafts::discard_saved_draft,
+            crate::drafts::remove_saved_attachment,
             crate::attachments::subscribe_file_drops,
             crate::attachments::pick_attachments,
             crate::attachments::attach_dropped_files,
@@ -121,9 +137,15 @@ pub(crate) async fn run(cli: Desktop) -> eyre::Result<()> {
     let mut closing = Some((registry, settled));
     // Native Quit must wait for application resources before the OS accepts exit.
     let exit = app.run_return(move |app, event| {
-        if let tauri::RunEvent::ExitRequested { api, .. } = event
-            && let Some((registry, settled)) = closing.take()
-        {
+        if let tauri::RunEvent::ExitRequested { api, .. } = event {
+            use tauri::Manager as _;
+            if closing.is_some() && app.state::<DesktopState>().exit.request() {
+                api.prevent_exit();
+                return;
+            }
+            let Some((registry, settled)) = closing.take() else {
+                return;
+            };
             tracing::info!("native Quit requested; awaiting session registry");
             api.prevent_exit();
             let app = app.clone();

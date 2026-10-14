@@ -62,7 +62,7 @@ def project(path, name):
     run("git","-C",path,"add",".")
     run("git","-C",path,"-c","user.name=Native Journey","-c","user.email=journey@example.invalid","commit","-m","fixture")
 def source_hashes():
-    files = sorted([*SOURCE.glob("src/*.rs"),*SOURCE.glob("ui/*"),*SOURCE.glob("tests/rich_conversation*"),*SOURCE.glob("tests/attachment*"),SOURCE/"Cargo.toml",SOURCE/"Cargo.lock",SOURCE/"build.rs",SOURCE/"tauri.conf.json",SOURCE/"tests/native_window.py",SOURCE/"tests/native_window.swift",SOURCE/"tests/session_controls_fixture.py"])
+    files = sorted([*SOURCE.glob("src/*.rs"),*SOURCE.glob("ui/*"),*SOURCE.glob("tests/rich_conversation*"),*SOURCE.glob("tests/attachment*"),*SOURCE.glob("tests/draft*"),*SOURCE.glob("tests/preferences*"),*SOURCE.glob("tests/saved_drafts*"),SOURCE/"Cargo.toml",SOURCE/"Cargo.lock",SOURCE/"build.rs",SOURCE/"tauri.conf.json",SOURCE/"tests/native_window.py",SOURCE/"tests/native_window.swift",SOURCE/"tests/session_controls_fixture.py"])
     files.extend(ROOT/path for path in (
         "crates/magistr-application/src/sessions/event.rs",
         "crates/magistr-application/src/sessions/session_activity.rs",
@@ -73,6 +73,12 @@ def source_hashes():
         "crates/magistr-cli/src/orchestration/roadmap_request.rs",
         "crates/magistr-cli/src/application/mod.rs",
         "crates/magistr-cli/src/application/session_catalog.rs",
+        "crates/magistr-cli/src/application/session_drafts.rs",
+        "crates/magistr-cli/src/application/desktop_preferences.rs",
+        "crates/magistr-core/src/config/user_config.rs",
+        "crates/magistr-core/src/config/user_config_document.rs",
+        "crates/magistr-core/src/durable_write.rs",
+        "crates/magistr-cli/src/cost/append_entry.rs",
         "crates/magistr-cli/src/application/session_observation.rs",
         "crates/magistr-cli/src/application/session_observation.tests.rs",
         "crates/magistr-cli/src/application/retained_observation.rs",
@@ -99,6 +105,7 @@ def source_hashes():
         "crates/magistr-cli/src/permissions/session_permission_policy.rs",
         "crates/magistr-cli/src/agent/translate.rs",
         "crates/magistr-cli/src/agent/persistence/history.rs",
+        "crates/magistr-cli/src/agent/persistence/draft.rs",
         "crates/magistr-cli/src/agent/persistence/storage.rs",
         "crates/magistr-cli/src/agent/persistence/session_record.rs",
         "crates/magistr-core/src/config/inputs/project_inputs.rs",
@@ -123,7 +130,7 @@ def main():
     binary=args.binary.resolve()
     evidence=args.evidence.resolve();evidence.mkdir(parents=True,exist_ok=True)
     driver=evidence/"driver"
-    try:run("swiftc","-parse-as-library",SOURCE/"tests/native_window.swift",SOURCE/"tests/rich_conversation.swift",SOURCE/"tests/attachment.swift","-o",driver,timeout=60)
+    try:run("swiftc","-parse-as-library",SOURCE/"tests/native_window.swift",SOURCE/"tests/rich_conversation.swift",SOURCE/"tests/attachment.swift",SOURCE/"tests/draft_persistence.swift","-o",driver,timeout=60)
     except subprocess.CalledProcessError as error:
         print(error.stderr,file=sys.stderr);raise
     def call(mode,*values,failure_prefix="failure"):
@@ -429,7 +436,29 @@ def main():
             refuse_load.write_text("refuse one provider load")
             call("press",pid,"Resume conversation")
             wait("refused resume stays recoverable beside the saved summary",text_has("This saved conversation is unavailable."))
+            def history_close_geometry(tree):
+                close=next((row for row in tree if row.get("AXRole")=="AXButton" and row.get("AXTitle")=="Close" and row.get("enabled")),None)
+                dialog=next((row for row in tree if row.get("AXRole") in ("AXGroup","AXDialog","AXSheet") and
+                             "Saved conversations" in (row.get("AXTitle"),row.get("AXDescription"))),None)
+                window=next((row for row in tree if row.get("AXRole")=="AXWindow"),None)
+                if not all(row and len(row.get("rect",[]))==4 and row["rect"][2]>0 and row["rect"][3]>0 for row in (close,dialog,window)):return None
+                x,y,width,height=close["rect"]
+                for container in (dialog,window):
+                    left,top,wide,high=container["rect"]
+                    if x<left or y<top or x+width>left+wide or y+height>top+high:return None
+                return {"button":close,"dialog":dialog,"window":window}
+            visible=wait("refused history keeps Close fully inside the native dialog and window",lambda tree:history_close_geometry(tree) is not None)
+            results["history_refusal_close"]=history_close_geometry(visible)
             call("screenshot",pid,evidence/"resume-refused.png")
+            call("click",pid,"Close")
+            wait("native pointer closes refused history and restores the live editor",lambda tree:
+                 any(row.get("AXRole")=="AXTextArea" and row.get("AXTitle")=="Message the agent" and row.get("enabled") for row in tree) and
+                 not any(row.get("AXRole")=="AXTextArea" and row.get("AXTitle")=="Saved message" for row in tree))
+            call("press",pid,"Saved conversations")
+            wait("saved conversations reopen after a refused resume",enabled("Release review"))
+            call("press",pid,"Release review")
+            wait("the same saved draft remains recoverable after reopening",lambda tree:enabled("Resume conversation")(tree) and
+                 any(row.get("AXRole")=="AXTextArea" and row.get("AXTitle")=="Saved message" and row.get("AXValue")=="Keep a newer draft" for row in tree))
             refuse_load.unlink()
             call("press",pid,"Resume conversation")
             wait("saved conversation resumes its exact provider context",lambda tree:text_has("Release review")(tree) and text_has("resumed ")(tree) and any(r.get("AXRole")=="AXTextArea" and r.get("enabled") for r in tree))

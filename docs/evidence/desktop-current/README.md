@@ -35,6 +35,17 @@ The file list exposes previews and removal in light, dark and narrow windows.
 Selection IDs distinguish an identical file chosen again from an earlier request;
 source preparation participates in the addressed session's cancellation.
 
+The draft recovery journey reopens four named conversations across two working
+copies and two providers. It reads and edits saved text without starting an
+agent, recovers source and clipboard files, and confirms changed or missing
+source files refuse without losing the draft. It exercises a final edit followed
+immediately by native Quit, interrupted exit after a saved rapid revision,
+database contention with continued editing and Retry save, a refused Quit that
+keeps the unsaved message editable, explicit discard, and saved appearance and
+reduced motion. Normal Quit also checks that every logical
+conversation retains exactly one spending record. Its separate receipt records exact source,
+binary and capture hashes and verifies that recovery sends no unintended prompt.
+
 The attention capture shows concurrent waiting and working agents with the
 selected draft. Light, dark and narrow conversation screenshots, chooser appearances, setup review, partial results, unavailable-agent guidance, agent/model selection, named conversation controls, saved summaries and refused resume are reviewed
 against their hashes in `review.json`. The receipt names interface and shared session-owner and observer source hashes.
@@ -62,6 +73,7 @@ Regenerate from the repository:
 ```sh
 cargo build --manifest-path crates/magistr-desktop/Cargo.toml --locked
 python3 crates/magistr-desktop/tests/native_window.py crates/magistr-desktop/target/debug/magistr-desktop
+python3 crates/magistr-desktop/tests/draft_persistence_journey.py crates/magistr-desktop/target/debug/magistr-desktop
 ```
 
 Review the resulting `.magistr/desktop-native` images, then copy them and their

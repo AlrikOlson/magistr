@@ -80,8 +80,8 @@ impl ResumeContext {
     /// Queries git for commits and changes since the session ended.
     /// If git is unavailable or the directory is not a repo, git fields are empty.
     pub fn build(session: SessionRecord, project_dir: &Path) -> Self {
-        let commits_since = git_commits_since(project_dir, &session.ended_at);
-        let files_changed_since = git_files_changed_since(project_dir, &session.ended_at);
+        let commits_since = git_commits_since(project_dir, &session.updated_at);
+        let files_changed_since = git_files_changed_since(project_dir, &session.updated_at);
         let has_dirty_working_tree = has_dirty_tree(project_dir);
 
         Self {

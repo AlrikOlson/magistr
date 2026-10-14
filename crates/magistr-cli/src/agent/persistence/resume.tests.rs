@@ -11,9 +11,10 @@ fn sample_session() -> SessionRecord {
         provider: "scripted".into(),
         provider_session_id: Some("provider-fixture".into()),
         resume_supported: true,
-        outcome: HistoryOutcome::Completed,
+        outcome: Some(HistoryOutcome::Completed),
         started_at: Utc.with_ymd_and_hms(2026, 3, 10, 10, 0, 0).unwrap(),
-        ended_at: Utc.with_ymd_and_hms(2026, 3, 10, 11, 30, 0).unwrap(),
+        updated_at: Utc.with_ymd_and_hms(2026, 3, 10, 11, 30, 0).unwrap(),
+        ended_at: Some(Utc.with_ymd_and_hms(2026, 3, 10, 11, 30, 0).unwrap()),
         cost_usd: Some(2.50),
         turns: Some(15),
         duration_ms: 5_400_000,
@@ -177,7 +178,7 @@ fn saved_resume_refuses_wrong_agent_working_copy_and_missing_load_capability() {
     super::super::storage::insert_session(&conn, &record).unwrap();
     let config = || crate::agent::AgentConfig::new("", &root).with_inputs(&inputs);
     assert!(saved_config(config(), &record.session_id).is_err());
-    record.ended_at += chrono::Duration::seconds(1);
+    record.updated_at += chrono::Duration::seconds(1);
     record.resume_supported = true;
     super::super::storage::insert_session(&conn, &record).unwrap();
     assert!(saved_config(config().provider("another-agent"), &record.session_id).is_err());
@@ -189,7 +190,7 @@ fn saved_resume_refuses_wrong_agent_working_copy_and_missing_load_capability() {
         )
         .is_err()
     );
-    record.ended_at += chrono::Duration::seconds(1);
+    record.updated_at += chrono::Duration::seconds(1);
     record.provider_session_id = None;
     super::super::storage::insert_session(&conn, &record).unwrap();
     assert!(saved_config(config(), &record.session_id).is_err());

@@ -1,0 +1,797 @@
+[
+  {
+    "actions" : [
+
+    ],
+    "AXRole" : "AXApplication",
+    "AXTitle" : "Magistr Draft Journey"
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXButton",
+    "AXTitle" : "Discard saved draft",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : true,
+    "rect" : [
+      943,
+      821,
+      151,
+      39
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "Saved summary",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXLandmarkRegion",
+    "AXTitle" : "Saved summary",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      816,
+      319,
+      354,
+      544
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "Saved conversations",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXApplicationDialog",
+    "AXTitle" : "Saved conversations",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      524,
+      231,
+      680,
+      720
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "Magistr",
+    "AXHelp" : "",
+    "AXRole" : "AXWebArea",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : true,
+    "rect" : [
+      224,
+      191,
+      1280,
+      800
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXScrollArea",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : true,
+    "rect" : [
+      224,
+      191,
+      1280,
+      800
+    ]
+  },
+  {
+    "actions" : [
+
+    ],
+    "AXRole" : "AXGroup",
+    "focused" : false,
+    "rect" : [
+      224,
+      159,
+      1280,
+      832
+    ]
+  },
+  {
+    "actions" : [
+
+    ],
+    "AXRole" : "AXGroup",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      224,
+      159,
+      1280,
+      832
+    ]
+  },
+  {
+    "actions" : [
+      "AXRaise"
+    ],
+    "AXRole" : "AXWindow",
+    "AXSubrole" : "AXStandardWindow",
+    "AXTitle" : "Magistr",
+    "focused" : false,
+    "rect" : [
+      224,
+      159,
+      1280,
+      832
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXHeading",
+    "AXTitle" : "Offline notes",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      819,
+      322,
+      348,
+      25
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      819,
+      357,
+      348,
+      72
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      819,
+      447,
+      348,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      819,
+      486,
+      348,
+      36
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXButton",
+    "AXTitle" : "Resume conversation",
+    "AXValue" : "",
+    "enabled" : false,
+    "focused" : false,
+    "rect" : [
+      819,
+      540,
+      163,
+      39
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXHeading",
+    "AXTitle" : "Unsent message",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      819,
+      612,
+      348,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Saved message",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      819,
+      643,
+      348,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXTextArea",
+    "AXSelectedText" : "",
+    "AXTitle" : "Saved message",
+    "AXValue" : "A saved message remains editable without agent resume.\nThe last edit was followed directly by Quit.\nEdited after restarting.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      819,
+      672,
+      348,
+      110
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXApplicationStatus",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      819,
+      795,
+      348,
+      18
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXButton",
+    "AXTitle" : "Save message",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      819,
+      821,
+      117,
+      39
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXHeading",
+    "AXTitle" : "Saved conversations",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      554,
+      236,
+      620,
+      30
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      554,
+      276,
+      620,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "Saved conversations",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXLandmarkNavigation",
+    "AXTitle" : "Saved conversations",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      558,
+      319,
+      236,
+      544
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXButton",
+    "AXTitle" : "Close",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      1097,
+      885,
+      81,
+      39
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress"
+    ],
+    "AXRole" : "AXButton",
+    "AXSubrole" : "AXCloseButton",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      232,
+      167,
+      16,
+      16
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXZoomWindow",
+      "AXShowMenu"
+    ],
+    "AXHelp" : "this button also has an action to zoom the window",
+    "AXRole" : "AXButton",
+    "AXSubrole" : "AXFullScreenButton",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      278,
+      167,
+      16,
+      16
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress"
+    ],
+    "AXRole" : "AXButton",
+    "AXSubrole" : "AXMinimizeButton",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      255,
+      167,
+      16,
+      16
+    ]
+  },
+  {
+    "actions" : [
+
+    ],
+    "AXRole" : "AXStaticText",
+    "AXValue" : "Magistr",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      306,
+      167,
+      54,
+      16
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Offline notes",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      819,
+      324,
+      105,
+      20
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "OpenAI · Finished 10\/13\/2026, 10:39:05 PM · 0 turns · Spending not reported \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-lkxpl2vl\/first",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      819,
+      358,
+      347,
+      69
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "No reply summary was saved.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      819,
+      449,
+      193,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "This agent cannot resume this conversation. You can read its saved summary.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      819,
+      487,
+      344,
+      33
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Unsent message",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      819,
+      614,
+      115,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Saved message",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      819,
+      645,
+      102,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      832,
+      685,
+      322,
+      84
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Draft saved",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      819,
+      796,
+      66,
+      15
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Saved conversations",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      554,
+      239,
+      191,
+      23
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Read a saved summary, recover an unsent message or resume with its original agent.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      554,
+      278,
+      548,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "Feature notes",
+    "AXHelp" : "",
+    "AXRole" : "AXButton",
+    "AXTitle" : "Feature notes",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      558,
+      319,
+      236,
+      55
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "Main notes",
+    "AXHelp" : "",
+    "AXRole" : "AXButton",
+    "AXTitle" : "Main notes",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      558,
+      382,
+      236,
+      55
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "Second notes",
+    "AXHelp" : "",
+    "AXRole" : "AXButton",
+    "AXTitle" : "Second notes",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      558,
+      445,
+      236,
+      55
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "Offline notes",
+    "AXHelp" : "",
+    "AXRole" : "AXButton",
+    "AXTitle" : "Offline notes",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      558,
+      508,
+      236,
+      55
+    ]
+  },
+  {
+    "actions" : [
+
+    ],
+    "AXRole" : "AXGroup",
+    "focused" : false,
+    "rect" : [
+      279,
+      168,
+      14,
+      14
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "A saved message remains editable without agent resume.\nThe last edit was followed directly by Quit.\nEdited after restarting.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      832,
+      687,
+      320,
+      80
+    ]
+  },
+  {
+    "actions" : [
+
+    ],
+    "AXRole" : "AXGroup",
+    "focused" : false,
+    "rect" : [
+      279,
+      168,
+      14,
+      14
+    ]
+  }
+]

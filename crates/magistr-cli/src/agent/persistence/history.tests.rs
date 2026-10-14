@@ -24,7 +24,7 @@ async fn no_provider_id_and_unknown_usage_survive_reopen_and_repeated_settlement
         storage::query_sessions(&conn, &super::super::session_filter::SessionFilter::new())
             .unwrap();
     assert_eq!(records.len(), 1);
-    assert_eq!(records[0].outcome, SessionOutcome::Failed);
+    assert_eq!(records[0].outcome, Some(SessionOutcome::Failed));
     assert_eq!(records[0].provider_session_id, None);
     assert_eq!(records[0].cost_usd, None);
     assert_eq!(records[0].model, None);
@@ -59,7 +59,7 @@ async fn reconnect_retains_identity_and_counts_new_terminal_responses_once() {
     assert_eq!(storage::count_sessions(&conn).unwrap(), 1);
     assert_eq!(second.started_at, first.started_at);
     assert_eq!(second.turns, Some(2));
-    assert_eq!(second.outcome, SessionOutcome::Cancelled);
+    assert_eq!(second.outcome, Some(SessionOutcome::Cancelled));
 }
 
 #[tokio::test]
@@ -77,7 +77,7 @@ async fn failed_storage_is_returned_after_settlement_without_replacing_facts() {
     let state = history.0.lock().unwrap();
     assert_eq!(
         state.record.as_ref().unwrap().outcome,
-        SessionOutcome::Completed
+        Some(SessionOutcome::Completed)
     );
     assert!(
         state.started.is_none(),

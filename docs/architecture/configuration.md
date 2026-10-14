@@ -206,6 +206,47 @@ the test runner's process environment. The
 [Rust 2024 environment guidance](https://doc.rust-lang.org/stable/edition-guide/rust-2024/newly-unsafe-functions.html)
 explains why process-wide mutation is unsuitable for concurrent tests.
 
+## Personal appearance settings
+
+Desktop appearance uses the user's captured `config.toml` location. The same
+[UserConfigDocument](../../crates/magistr-core/src/config/user_config_document.rs)
+reads settings for `ProjectInputs`, saves desktop choices and saves personal
+agent preferences from `magistr config set`. A read creates no directories or
+files. A missing file uses defaults; unreadable files, directories in the file's
+place and invalid TOML produce an error.
+
+```toml
+[theme]
+default = "system"
+
+[accessibility]
+reduce_motion = false
+```
+
+`theme.default` accepts `system`, `light` or `dark`. The default is `system`,
+which follows the operating system's appearance. Unsupported values are errors.
+`accessibility.reduce_motion` defaults to `false`. Reduced motion is enabled
+when any of these requests it: the explicit `--reduce-motion` flag, the saved
+preference, or the operating system. Saving `false` cannot cancel an active
+command-line or operating-system request.
+
+[DesktopPreferencesService](../../crates/magistr-cli/src/application/desktop_preferences.rs)
+captures the settings path from `ProjectInputs` and performs filesystem work on
+a blocking worker. Each successful load or save returns the accepted choices
+and a new service revision. A save must name the displayed revision; rejected
+writes retain the previous accepted state, so the interface can keep the user's
+edits available for retry.
+
+The configuration writer preserves TOML comments and unrelated settings.
+All personal preference writes share a stable sibling file lock. While holding
+that lock, the writer checks the exact file bytes against the observed document,
+validates the updated document and replaces the file through the core
+[durable writer](../../crates/magistr-core/src/durable_write.rs), retaining the
+existing file permissions. A changed file
+requires a fresh load before saving; a busy writer or failed write reports an
+error. The operating system releases the lock when the writer exits, and the
+lock file remains in place for later writers.
+
 ## Administrative change plan
 
 Project administration — setup and re-initialization, presets and import,

@@ -55,8 +55,8 @@ impl SessionSummary {
                 _ => {}
             }
             match summary.latest {
-                None => summary.latest = Some(r.ended_at),
-                Some(l) if r.ended_at > l => summary.latest = Some(r.ended_at),
+                None => summary.latest = Some(r.updated_at),
+                Some(l) if r.updated_at > l => summary.latest = Some(r.updated_at),
                 _ => {}
             }
         }

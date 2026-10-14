@@ -20,6 +20,7 @@ desktop workspace. Companion Rust tests live beside their owners.
 | Protocol-only child roles, no retired dependencies | `crates/magistr-desktop/tests/process.rs` and `crates/magistr-cli/tests/host_clients.rs` |
 | Rich source, native held selection, concurrent updates and reading position | `crates/magistr-desktop/tests/rich_conversation_fixture.py`, `crates/magistr-desktop/tests/rich_conversation_journey.py` and `crates/magistr-desktop/tests/rich_conversation.swift` |
 | Immutable attachment input, addressed staging and native selection | `crates/magistr-application/src/sessions/prompt_input.rs`, `crates/magistr-cli/src/application/session_attachments.rs`, `crates/magistr-desktop/src/attachments.rs`, `crates/magistr-desktop/ui/attachments.mjs` and `crates/magistr-desktop/tests/attachment_journey.py` |
+| Saved drafts, stable attachment selections and appearance | `crates/magistr-cli/src/application/session_drafts.rs`, `crates/magistr-cli/src/agent/persistence/draft.rs`, `crates/magistr-cli/src/application/desktop_preferences.rs` and `crates/magistr-desktop/tests/draft_persistence_journey.py` |
 | Native window, keyboard, pointer, clipboard, requests and Quit | `crates/magistr-desktop/tests/native_window.py` and its Swift driver |
 | Source/index fitness, contrast, icon and current captures | `scripts/interface-index-gate.py`, `scripts/desktop-visual-gate.py` |
 
@@ -96,6 +97,17 @@ desktop workspace. Companion Rust tests live beside their owners.
 - `crates/magistr-desktop/tests/transcript.mjs`
 - `crates/magistr-desktop/src/conversations.rs`
 - `crates/magistr-desktop/src/credit.rs`
+- `crates/magistr-desktop/src/drafts.rs`
+- `crates/magistr-desktop/src/exit.rs`
+- `crates/magistr-desktop/src/preferences.rs`
+- `crates/magistr-desktop/ui/drafts.mjs`
+- `crates/magistr-desktop/ui/preferences.mjs`
+- `crates/magistr-desktop/ui/saved_drafts.mjs`
+- `crates/magistr-desktop/tests/drafts.mjs`
+- `crates/magistr-desktop/tests/preferences.mjs`
+- `crates/magistr-desktop/tests/saved_drafts.mjs`
+- `crates/magistr-desktop/tests/draft_persistence.swift`
+- `crates/magistr-desktop/tests/draft_persistence_journey.py`
 - `crates/magistr-desktop/src/launch.rs`
 - `crates/magistr-desktop/src/main.rs`
 - `crates/magistr-desktop/src/projects.rs`

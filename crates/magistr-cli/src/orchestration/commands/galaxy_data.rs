@@ -39,7 +39,7 @@ fn from_records(here: Option<&Path>, records: &[SessionRecord], now: DateTime<Ut
             .unwrap_or_else(|_| path.to_path_buf())
     });
     let mut records: Vec<&SessionRecord> = records.iter().collect();
-    records.sort_by_key(|record| std::cmp::Reverse(record.ended_at));
+    records.sort_by_key(|record| std::cmp::Reverse(record.updated_at));
     let mut projects: Vec<_> = here.iter().map(|path| project(path, true, None)).collect();
     let mut seen: Vec<_> = here.iter().cloned().collect();
     let mut spent_cents = 0u64;
@@ -113,7 +113,7 @@ fn project(dir: &Path, here: bool, idle_secs: Option<u64>) -> GalaxyProject {
 }
 
 fn idle_secs(record: &SessionRecord, now: DateTime<Utc>) -> Option<u64> {
-    u64::try_from((now - record.ended_at).num_seconds()).ok()
+    u64::try_from((now - record.updated_at).num_seconds()).ok()
 }
 
 #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)] // a session's cost is small and never negative once clamped

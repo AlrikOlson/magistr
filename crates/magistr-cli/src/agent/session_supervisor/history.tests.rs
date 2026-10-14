@@ -38,7 +38,7 @@ async fn actual_completion_reopens_with_usage_summary_and_one_identity_across_re
     let before = storage::query_sessions(&conn, &SessionFilter::new())
         .unwrap()
         .remove(0);
-    assert_eq!(before.outcome, SessionOutcome::Completed);
+    assert_eq!(before.outcome, Some(SessionOutcome::Completed));
     assert_eq!(before.turns, Some(2));
     assert_eq!(before.cost_usd, Some(0.25));
     assert_eq!(before.model.as_deref(), Some(ScriptedProvider::SLOW));
@@ -77,7 +77,7 @@ async fn failed_provider_session_is_saved_with_its_actual_failure() {
     let record = storage::query_sessions(&conn, &SessionFilter::new())
         .unwrap()
         .remove(0);
-    assert_eq!(record.outcome, SessionOutcome::Failed);
+    assert_eq!(record.outcome, Some(SessionOutcome::Failed));
     assert_eq!(record.cost_usd, None);
     assert_eq!(record.turns, Some(0));
     assert!(record.provider_session_id.is_some());
@@ -137,7 +137,7 @@ async fn forced_owner_close_records_stopped_after_releasing_the_connection() {
     })
     .await
     .unwrap();
-    assert_eq!(record.outcome, SessionOutcome::Stopped);
+    assert_eq!(record.outcome, Some(SessionOutcome::Stopped));
     assert_eq!(record.turns, Some(0));
 }
 
@@ -163,7 +163,7 @@ async fn a_real_child_that_fails_setup_saves_without_a_provider_id() {
     let record = storage::query_sessions(&conn, &SessionFilter::new())
         .unwrap()
         .remove(0);
-    assert_eq!(record.outcome, SessionOutcome::Failed);
+    assert_eq!(record.outcome, Some(SessionOutcome::Failed));
     assert_eq!(record.provider_session_id, None);
     assert_eq!(record.cost_usd, None);
     assert!(!record.can_resume());
@@ -207,5 +207,5 @@ async fn immediate_idle_close_keeps_the_already_accepted_provider_identity() {
         record.provider_session_id.is_some(),
         "connect already accepted the provider session before owner observation began"
     );
-    assert_eq!(record.outcome, SessionOutcome::Stopped);
+    assert_eq!(record.outcome, Some(SessionOutcome::Stopped));
 }

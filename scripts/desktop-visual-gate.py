@@ -39,8 +39,14 @@ receipt=json.loads((EVIDENCE/"receipt.json").read_text())
 assert receipt["checks"] and all(receipt["checks"].values()),"Native journey has an incomplete check"
 for file,expected in receipt["source_hashes"].items():
     assert sha(ROOT/file)==expected,"Native evidence is stale for "+file
+drafts=json.loads((EVIDENCE/"draft-persistence-receipt.json").read_text())
+assert drafts["checks"] and all(drafts["checks"].values()),"Draft reopen journey has an incomplete check"
+assert drafts["source_hashes"]==receipt["source_hashes"],"Native journeys used different source versions"
+for file,expected in drafts["evidence_hashes"].items():
+    assert sha(EVIDENCE/file)==expected,"Draft recovery evidence changed: "+file
 review=json.loads((EVIDENCE/"review.json").read_text())
-for name in ("dark","light","narrow","chooser-dark","chooser-light","setup-review","setup-partial","provider-unavailable","supervision","agent-choice","conversation-controls","resume-unavailable","saved-summary","resume-refused","rich-dark","rich-light","rich-narrow","attachments-dark","attachments-light","attachments-narrow","attachments-refused"):
+assert review["draft_persistence"]==sha(EVIDENCE/"draft-persistence-receipt.json")
+for name in ("dark","light","narrow","chooser-dark","chooser-light","setup-review","setup-partial","provider-unavailable","supervision","agent-choice","conversation-controls","resume-unavailable","saved-summary","resume-refused","rich-dark","rich-light","rich-narrow","attachments-dark","attachments-light","attachments-narrow","attachments-refused","drafts-saved-message","drafts-restored-dark","drafts-restored-light","drafts-restored-narrow","drafts-save-failure"):
     path=EVIDENCE/(name+".png")
     assert path.read_bytes()[:8]==b"\x89PNG\r\n\x1a\n"
     width,height=struct.unpack(">II",path.read_bytes()[16:24])

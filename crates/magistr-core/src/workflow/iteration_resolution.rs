@@ -4,8 +4,8 @@ use std::num::NonZeroU32;
 use std::path::Path;
 
 use super::{IterationState, loop_state_path};
+use crate::durable_write::durable_write;
 use crate::error::{MagistrError, Result};
-use crate::workflow::durable_write::durable_write;
 use crate::workflow::loop_lease::LoopLease;
 use crate::workflow::process_alive::is_process_alive;
 use crate::workflow::runtime_handle::RuntimeHandle;

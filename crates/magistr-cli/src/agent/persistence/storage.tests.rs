@@ -33,9 +33,10 @@ fn sample_record(id: &str, project: &str) -> SessionRecord {
         provider: "scripted".into(),
         provider_session_id: Some("provider-fixture".into()),
         resume_supported: true,
-        outcome: HistoryOutcome::Completed,
+        outcome: Some(HistoryOutcome::Completed),
         started_at: Utc.with_ymd_and_hms(2026, 3, 10, 9, 0, 0).unwrap(),
-        ended_at: Utc.with_ymd_and_hms(2026, 3, 10, 9, 30, 0).unwrap(),
+        updated_at: Utc.with_ymd_and_hms(2026, 3, 10, 9, 30, 0).unwrap(),
+        ended_at: Some(Utc.with_ymd_and_hms(2026, 3, 10, 9, 30, 0).unwrap()),
         cost_usd: Some(2.50),
         turns: Some(5),
         duration_ms: 1_800_000,
@@ -88,7 +89,7 @@ fn newer_settlement_updates_without_duplicate() {
     let mut record = sample_record("sess-001", "proj");
     insert_session(&conn, &record).unwrap();
 
-    record.ended_at += chrono::Duration::seconds(1);
+    record.updated_at += chrono::Duration::seconds(1);
     record.cost_usd = Some(5.00);
     record.turns = Some(10);
     insert_session(&conn, &record).unwrap();
@@ -135,7 +136,7 @@ fn query_filter_by_since() {
 
     let mut old = sample_record("old", "proj");
     old.started_at = Utc.with_ymd_and_hms(2025, 1, 1, 0, 0, 0).unwrap();
-    old.ended_at = old.started_at + chrono::Duration::hours(1);
+    old.updated_at = old.started_at + chrono::Duration::hours(1);
     insert_session(&conn, &old).unwrap();
 
     let recent = sample_record("new", "proj");
@@ -171,7 +172,7 @@ fn query_respects_limit() {
     for i in 0..10 {
         let mut r = sample_record(&format!("s-{i}"), "proj");
         r.started_at = Utc.with_ymd_and_hms(2026, 3, 10, 9, i, 0).unwrap();
-        r.ended_at = r.started_at + chrono::Duration::minutes(1);
+        r.updated_at = r.started_at + chrono::Duration::minutes(1);
         insert_session(&conn, &r).unwrap();
     }
 
@@ -188,12 +189,12 @@ fn query_ordered_most_recent_first() {
 
     let mut r1 = sample_record("early", "proj");
     r1.started_at = Utc.with_ymd_and_hms(2026, 1, 1, 0, 0, 0).unwrap();
-    r1.ended_at = r1.started_at + chrono::Duration::hours(1);
+    r1.updated_at = r1.started_at + chrono::Duration::hours(1);
     insert_session(&conn, &r1).unwrap();
 
     let mut r2 = sample_record("late", "proj");
     r2.started_at = Utc.with_ymd_and_hms(2026, 6, 1, 0, 0, 0).unwrap();
-    r2.ended_at = r2.started_at + chrono::Duration::hours(1);
+    r2.updated_at = r2.started_at + chrono::Duration::hours(1);
     insert_session(&conn, &r2).unwrap();
 
     let results = query_sessions(&conn, &SessionFilter::new()).unwrap();
@@ -221,14 +222,14 @@ fn purge_removes_old_sessions() {
 
     let mut old = sample_record("old", "proj");
     old.started_at = Utc.with_ymd_and_hms(2020, 1, 1, 0, 0, 0).unwrap();
-    old.ended_at = old.started_at + chrono::Duration::hours(1);
+    old.updated_at = old.started_at + chrono::Duration::hours(1);
     insert_session(&conn, &old).unwrap();
 
     // The shared fixture carries a fixed 2026-03-10 date, which ages past any
     // retention window; a "recent" session must be anchored to now.
     let mut recent = sample_record("recent", "proj");
     recent.started_at = Utc::now();
-    recent.ended_at = Utc::now();
+    recent.updated_at = Utc::now();
     insert_session(&conn, &recent).unwrap();
 
     let policy = RetentionPolicy { max_age_days: 30 };
@@ -246,7 +247,7 @@ fn purge_keeps_all_recent() {
     for id in ["a", "b"] {
         let mut record = sample_record(id, "p");
         record.started_at = Utc::now();
-        record.ended_at = Utc::now();
+        record.updated_at = Utc::now();
         insert_session(&conn, &record).unwrap();
     }
 
@@ -595,15 +596,15 @@ fn recent_history_and_since_filter_follow_the_latest_settlement_of_a_resumed_con
     let mut continued = sample_record("continued", "project");
     let mut newer = sample_record("newer", "project");
     continued.started_at = newer.started_at - chrono::Duration::days(30);
-    continued.ended_at = newer.ended_at + chrono::Duration::days(1);
-    newer.ended_at -= chrono::Duration::hours(1);
+    continued.updated_at = newer.updated_at + chrono::Duration::days(1);
+    newer.updated_at -= chrono::Duration::hours(1);
     insert_session(&conn, &newer).unwrap();
     insert_session(&conn, &continued).unwrap();
     let records = query_sessions(&conn, &SessionFilter::new().with_limit(1)).unwrap();
     assert_eq!(records[0].session_id, "continued");
     let records = query_sessions(
         &conn,
-        &SessionFilter::new().with_since(newer.ended_at + chrono::Duration::minutes(1)),
+        &SessionFilter::new().with_since(newer.updated_at + chrono::Duration::minutes(1)),
     )
     .unwrap();
     assert_eq!(records.len(), 1);
@@ -616,7 +617,7 @@ fn a_settlement_cannot_mix_facts_from_another_working_copy_or_provider() {
     let record = sample_record("host", "project");
     insert_session(&conn, &record).unwrap();
     let mut unrelated = record.clone();
-    unrelated.ended_at += chrono::Duration::seconds(1);
+    unrelated.updated_at += chrono::Duration::seconds(1);
     unrelated.workspace = "another-working-copy".into();
     assert!(insert_session(&conn, &unrelated).is_err());
     unrelated.workspace = record.workspace.clone();

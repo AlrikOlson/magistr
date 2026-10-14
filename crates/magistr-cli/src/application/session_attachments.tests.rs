@@ -144,7 +144,7 @@ async fn addressed_pending_files_survive_switching_refusal_and_cancellation() {
         )
         .await
         .unwrap();
-    client.draft(&first, "image draft".into()).await.unwrap();
+    client.draft(&first, 0, "image draft".into()).await.unwrap();
     client
         .attach_bytes(
             &first,

@@ -31,7 +31,7 @@ impl StagedAttachment {
     pub(super) fn sent(content: PromptAttachment) -> Self {
         Self::new(content, None)
     }
-    fn new(content: PromptAttachment, path: Option<String>) -> Self {
+    pub(crate) fn new(content: PromptAttachment, path: Option<String>) -> Self {
         Self { content, path }
     }
 }

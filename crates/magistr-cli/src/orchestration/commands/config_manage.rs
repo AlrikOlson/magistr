@@ -137,10 +137,7 @@ fn cmd_config_show(dir: &std::path::Path, inputs: &ProjectInputs) -> eyre::Resul
     // User config
     let user_config = inputs.user_config()?.value;
     eprintln!("{}", fmt::bold("User Config"));
-    eprintln!(
-        "  theme:        {}",
-        user_config.theme.default.as_deref().unwrap_or("(auto)")
-    );
+    eprintln!("  theme:        {}", user_config.theme.default.label());
     if let Some(limit) = user_config.budget.limit {
         eprintln!("  budget.limit:  ${limit:.2}");
     }
