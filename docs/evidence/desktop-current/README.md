@@ -16,6 +16,16 @@ the main conversation journey. The chooser opens without a project or provider; 
 release the project owner and leave no provider process. Reopening the source endpoint proves
 its owner can be admitted again.
 
+The rich-conversation journey keeps native multilingual selection fixed while
+its original reply, an earlier tool and a separate reply update. It verifies exact
+source bytes for reply, tool and conversation copying, clears held selection with
+Latest, follows new replies and keeps a scrolled reading anchor stable. A controlled
+web link opens by keyboard in the default browser; the observer verifies the exact
+local destination and closes only that test tab. Authored HTML stays literal,
+unsafe links stay text and remote Markdown images make no request. The rich
+accessibility and observation records retain those measurements alongside the
+light, dark and narrow captures.
+
 The attention capture shows concurrent waiting and working agents with the
 selected draft. Light, dark and narrow conversation screenshots, chooser appearances, setup review, partial results, unavailable-agent guidance, agent/model selection, named conversation controls, saved summaries and refused resume are reviewed
 against their hashes in `review.json`. The receipt names interface and shared session-owner and observer source hashes.

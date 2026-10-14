@@ -1,3 +1,4 @@
+import { Transcript } from "./transcript.mjs";
 import { Submissions, shouldSaveDraft } from "./session_controls.mjs";
 import { attachComposer } from "./composer.mjs";
 import { Selection } from "./selection.mjs";
@@ -11,7 +12,10 @@ const selection=new Selection();
 const catalog=new Catalog();
 const railNodes=new Map(),attentionNodes=new Map();
 let announcementKey="";
-const messageNodes=new WeakMap();
+const transcriptView=new Transcript($("transcript"),$("latest"),{
+  copy:value=>navigator.clipboard.writeText(value).catch(error=>showError("Could not copy the text. "+error)),
+  openLink:destination=>invoke("open_link",{destination}).catch(showError)
+});
 let configurationKey="";
 let requestsKey="",railKey="";
 const labels=new Map();let issuedLabel=0;
@@ -128,27 +132,13 @@ function receiveFrame(candidate,frame) {
     if(initial) $("draft").value=frame.draft;
     const accepted=submissions.observe(frame);
     if(accepted!==null&&$("draft").value===accepted)$("draft").value="";
-    if(frame.draft && !$("draft").value && frame.events.some(event=>event.kind==="error")) $("draft").value=frame.draft;
+    if(frame.draft && !$("draft").value && frame.events.some(event=>event.role==="Error")) $("draft").value=frame.draft;
     render(frame);
   }
   invoke("acknowledge",{stream:frame.stream,sequence:frame.sequence}).catch(()=>{});
 }
 function render(frame) {
-  const transcript=$("transcript");
-  const follow=transcript.scrollHeight-transcript.scrollTop-transcript.clientHeight<100;
-  const elements=[];
-  if(view.dropped) {const gap=text("p","Some earlier messages are unavailable.");gap.className="gap";elements.push(gap);}
-  if(view.messages.length===0) {const empty=document.createElement("div");empty.className="empty";empty.append(text("h2","What would you like to work on?"),text("p","Send a message to start a conversation in this working copy."));elements.push(empty);}
-  for(const message of view.messages) {
-    let article=messageNodes.get(message);
-    if(!article) {article=document.createElement("article");article.className=message.role.toLowerCase();article.append(text("h2",message.role),text("p",message.text));messageNodes.set(message,article);}
-    else if(article.lastChild.textContent!==message.text)article.lastChild.textContent=message.text;
-    elements.push(article);
-  }
-  elements.forEach((element,index)=>{if(transcript.children[index]!==element)transcript.insertBefore(element,transcript.children[index]??null);});
-  while(transcript.children.length>elements.length)transcript.lastChild.remove();
-  if(follow) transcript.scrollTop=transcript.scrollHeight;
-  $("latest").hidden=follow;
+  transcriptView.render(view);
   if($("status").textContent!==frame.status)$("status").textContent=frame.status;
   $("stop").disabled=!["Working","Waiting for you"].includes(frame.status);
   $("send").disabled=submissions.pending(frame.address) || frame.closed || frame.activity?.cancellation_requested;
@@ -202,7 +192,7 @@ function showWelcome(note="") {
   selected=null;view=null;selection.clear();requestsKey="";railKey="";
   $("workspace").hidden=true;$("welcome").hidden=false;
   $("project-name").textContent="Magistr";$("view-title").textContent="Projects";$("status").textContent="Ready";
-  $("draft").value="";$("requests").replaceChildren();$("transcript").replaceChildren();
+  $("draft").value="";$("requests").replaceChildren();transcriptView.clear();
   for(const id of ["draft","send","stop","new-session","close-session","copy","reconnect"])$(id).disabled=true;
   $("welcome-note").textContent=note;$("welcome-note").hidden=!note;
   renderRail();
@@ -274,7 +264,7 @@ $("composer").onsubmit=async event=>{
 $("stop").onclick=()=>selected&&act(selected,"cancel");
 $("reconnect").onclick=()=>selected&&act(selected,"reconnect");
 $("draft").onblur=()=>saveDraft().catch(showError);
-$("latest").onclick=()=>{$("transcript").scrollTop=$("transcript").scrollHeight;$("latest").hidden=true;};
+
 $("new-session").onclick=()=>selected&&chooseAgent(selected.workspace).catch(showError);
 $("working-copy").onchange=event=>openKnownWorkspace(event.target.value);
 $("open-project").onclick=()=>showPicker();
@@ -306,7 +296,7 @@ $("project-form").onsubmit=async event=>{
 };
 $("theme").onchange=event=>{if(event.target.value==="auto")delete document.documentElement.dataset.theme;else document.documentElement.dataset.theme=event.target.value;};
 $("copy").onclick=async()=>{
-  const value=view?.messages.map(message=>message.role+"\n"+message.text).join("\n\n")??"";
+  const value=view?.copy()??"";
   try{await navigator.clipboard.writeText(value);}catch(error){showError("Could not copy the conversation. "+error);}
 };
 async function closeAddress(address) {

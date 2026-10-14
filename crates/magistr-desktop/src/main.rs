@@ -3,9 +3,12 @@
 
 mod args;
 mod commands;
+mod content;
 mod conversations;
 mod credit;
+mod document;
 mod launch;
+mod links;
 mod projects;
 mod streams;
 mod wire;

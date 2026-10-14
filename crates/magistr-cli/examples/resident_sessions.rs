@@ -30,7 +30,7 @@ async fn text(reader: &mut SessionSubscription, expected: &str) -> eyre::Result<
             let joined: String = snapshot
                 .messages
                 .iter()
-                .filter_map(|(_, msg)| match msg {
+                .filter_map(|record| match &record.message {
                     Msg::Agent(AgentEvent::Text(text)) => Some(text.as_str()),
                     _ => None,
                 })

@@ -158,6 +158,48 @@ func pause(_ seconds: Double) async throws { try await Task.sleep(nanoseconds: U
     }
     try await pause(0.12)
 }
+@MainActor func chooseOption(_ pid: Int32, _ dialogTitle: String, _ label: String, _ value: String) async throws -> [String: Any] {
+    let application = AXUIElementCreateApplication(pid)
+    func popup() throws -> AXUIElement {
+        let dialog = nodes(application).first { candidate in
+            ["AXGroup", "AXDialog", "AXSheet"].contains(string(candidate, "AXRole")) &&
+            ["AXTitle", "AXDescription"].contains { string(candidate, $0) == dialogTitle }
+        }
+        guard let dialog, let control = nodes(dialog).first(where: { candidate in
+            string(candidate, "AXRole") == "AXPopUpButton" &&
+            ["AXTitle", "AXDescription"].contains { string(candidate, $0) == label }
+        }) else { throw Failure.message("No native " + label + " picker in " + dialogTitle) }
+        return control
+    }
+    let control = try popup(), before = row(control)
+    try require(AXUIElementPerformAction(control, "AXPress" as CFString) == .success,
+                "The scoped native " + label + " picker did not accept AXPress")
+    var observed: [[String: Any]] = []
+    for attempt in 1...60 {
+        let menus = nodes(application).filter { string($0, "AXRole") == "AXMenu" }
+        let items = menus.flatMap { nodes($0) }.filter { string($0, "AXRole") == "AXMenuItem" }
+        observed = items.map { row($0) }
+        if let item = items.first(where: { candidate in
+            ["AXTitle", "AXDescription", "AXValue"].contains { string(candidate, $0) == value }
+        }) {
+            let chosen = row(item)
+            try require(AXUIElementPerformAction(item, "AXPress" as CFString) == .success,
+                        "The open native menu option did not accept AXPress: " + value)
+            for _ in 0..<40 {
+                let current = try popup()
+                if string(current, "AXValue") == value {
+                    return ["before": before, "menu_option": chosen, "after": row(current),
+                            "menu_observation_attempts": attempt]
+                }
+                try await pause(0.05)
+            }
+            throw Failure.message("The native picker did not commit " + value + "; current value: " + string(try popup(), "AXValue"))
+        }
+        try await pause(0.05)
+    }
+    let detail = String(data: try JSONSerialization.data(withJSONObject: observed), encoding: .utf8) ?? "[]"
+    throw Failure.message("No open native menu option " + value + "; observed menu items: " + detail)
+}
 func clipboardSaved() -> [(NSPasteboard.PasteboardType,Data)] {
     let board=NSPasteboard.general
     return (board.types ?? []).compactMap { kind in board.data(forType:kind).map { (kind,$0) } }
@@ -236,7 +278,9 @@ func configuration(_ window: SCWindow) -> SCStreamConfiguration {
     if mode=="quit" {try await focus(pid);key(12,.maskCommand);try await pause(0.2);return}
     try await focus(pid)
     if mode=="activate" {return}
+    if try await richOperation(mode,pid,args) {return}
     if mode=="press" {try await press(pid,args[2]);return}
+    if mode=="choose-option" {try emit(try await chooseOption(pid,args[2],args[3],args[4]));return}
     if mode=="click" {
         let element=try await find(pid,args[2]);guard let rect=rectangle(element) else {throw Failure.message("Button has no bounds")}
         click(CGPoint(x:rect.midX,y:rect.midY));try await pause(0.15);return

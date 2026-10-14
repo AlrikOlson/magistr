@@ -15,6 +15,7 @@ import sys
 import tempfile
 import time
 from session_controls_fixture import start_api, peer_script
+from rich_conversation_journey import exercise_rich_conversation
 
 ROOT = Path(__file__).resolve().parents[3]
 SOURCE = ROOT / "crates/magistr-desktop"
@@ -35,7 +36,7 @@ def project(path, name):
     run("git","-C",path,"add",".")
     run("git","-C",path,"-c","user.name=Native Journey","-c","user.email=journey@example.invalid","commit","-m","fixture")
 def source_hashes():
-    files = sorted([*SOURCE.glob("src/*.rs"),*SOURCE.glob("ui/*"),SOURCE/"Cargo.toml",SOURCE/"Cargo.lock",SOURCE/"build.rs",SOURCE/"tauri.conf.json",SOURCE/"tests/native_window.py",SOURCE/"tests/native_window.swift",SOURCE/"tests/session_controls_fixture.py"])
+    files = sorted([*SOURCE.glob("src/*.rs"),*SOURCE.glob("ui/*"),*SOURCE.glob("tests/rich_conversation*"),SOURCE/"Cargo.toml",SOURCE/"Cargo.lock",SOURCE/"build.rs",SOURCE/"tauri.conf.json",SOURCE/"tests/native_window.py",SOURCE/"tests/native_window.swift",SOURCE/"tests/session_controls_fixture.py"])
     files.extend(ROOT/path for path in (
         "crates/magistr-application/src/sessions/event.rs",
         "crates/magistr-application/src/sessions/session_activity.rs",
@@ -44,8 +45,14 @@ def source_hashes():
         "crates/magistr-cli/src/agent/session_supervisor/opening.rs",
         "crates/magistr-cli/src/agent/cockpit_session.rs",
         "crates/magistr-cli/src/orchestration/roadmap_request.rs",
+        "crates/magistr-cli/src/application/mod.rs",
         "crates/magistr-cli/src/application/session_catalog.rs",
         "crates/magistr-cli/src/application/session_observation.rs",
+        "crates/magistr-cli/src/application/session_observation.tests.rs",
+        "crates/magistr-cli/src/application/retained_observation.rs",
+        "crates/magistr-cli/src/application/retained_observation.tests.rs",
+        "crates/magistr-application/src/sessions/tool_record.rs",
+        "scripts/desktop-visual-gate.py",
         "crates/magistr-cli/src/application/session_registry.rs",
         "crates/magistr-cli/src/agent/session_supervisor/mod.rs",
         "crates/magistr-cli/src/agent/session_supervisor/owner.rs",
@@ -70,7 +77,7 @@ def source_hashes():
         "crates/magistr-cli/src/agent/persistence/session_record.rs",
         "crates/magistr-core/src/config/inputs/project_inputs.rs",
     ))
-    return {str(path.relative_to(ROOT)):hashlib.sha256(path.read_bytes()).hexdigest() for path in files if path.is_file() and not path.name.endswith(".tests.rs")}
+    return {str(path.relative_to(ROOT)):hashlib.sha256(path.read_bytes()).hexdigest() for path in files if path.is_file()}
 
 def main():
     parser=argparse.ArgumentParser()
@@ -80,13 +87,21 @@ def main():
     binary=args.binary.resolve()
     evidence=args.evidence.resolve();evidence.mkdir(parents=True,exist_ok=True)
     driver=evidence/"driver"
-    try:run("swiftc","-parse-as-library",SOURCE/"tests/native_window.swift","-o",driver,timeout=60)
+    try:run("swiftc","-parse-as-library",SOURCE/"tests/native_window.swift",SOURCE/"tests/rich_conversation.swift","-o",driver,timeout=60)
     except subprocess.CalledProcessError as error:
         print(error.stderr,file=sys.stderr);raise
     def call(mode,*values):
         try:result=run(driver,mode,*values)
-        except subprocess.CalledProcessError as error:
+        except (subprocess.CalledProcessError,subprocess.TimeoutExpired) as error:
             print(error.stderr,file=sys.stderr)
+            if values and mode not in ("environment","restore-front"):
+                stamp=str(time.time_ns());failure={"timestamp_ns":stamp,"mode":mode,"pid":str(values[0]),"error":str(error.stderr)}
+                for operation,name in (("ax","failure-ax.json"),("screenshot","failure.png")):
+                    try:
+                        run(driver,operation,values[0],evidence/name,timeout=10)
+                        shutil.copy2(evidence/name,evidence/(stamp+"-"+name))
+                    except (subprocess.CalledProcessError,subprocess.TimeoutExpired) as capture:failure[operation]=str(capture)
+                (evidence/"failure-driver.json").write_text(json.dumps(failure,indent=2))
             if mode=="activate" and values:
                 try:run("sample",values[0],1,1,"-file",evidence/"startup-failure-sample.txt",timeout=5)
                 except (subprocess.CalledProcessError,subprocess.TimeoutExpired):pass
@@ -116,9 +131,12 @@ def main():
         peers=parent/"peers"
         refuse_load=parent/"refuse-load"
         api=start_api()
+        rich=parent/"rich";rich.mkdir()
+        rich_link=f"http://127.0.0.1:{api.server_port}/rich-link/{time.time_ns()}"
         # WebKit requires the real macOS home for its GPU process. Isolate the
         # application's settings/history through their supported XDG/Magistr roots.
         env=dict(os.environ,PATH=str(tools)+os.pathsep+os.environ["PATH"],XDG_DATA_HOME=str(parent/"data"),XDG_CONFIG_HOME=str(parent/"config"),MAGISTR_HOME=str(parent/"state"),MAGISTR_WORKSPACE_NETWORK="0",JOURNEY_PEERS=str(peers),JOURNEY_REFUSE_LOAD=str(refuse_load),OPENAI_API_KEY="native-fixture",OPENAI_BASE_URL="http://127.0.0.1:"+str(api.server_port),RUST_LOG="info")
+        env.update(JOURNEY_RICH=str(rich),JOURNEY_RICH_LINK=rich_link)
         started=time.monotonic()
         log_path=evidence/"launch.log"
         log=log_path.open("w")
@@ -333,8 +351,10 @@ def main():
             wait("closing a named conversation settles its history",text_has("Conversation"))
             call("press",pid,"New session")
             wait("second provider is offered from configured availability",enabled("Start conversation"))
-            call("press",pid,"Agent");call("press",pid,"OpenAI");call("press",pid,"Start conversation")
-            wait("second provider opens independently",lambda tree:any(r.get("AXRole")=="AXTextArea" and r.get("enabled") for r in tree))
+            results["provider_picker"]=call("choose-option",pid,"New conversation","Agent","OpenAI")
+            wait("native provider picker commits OpenAI before admission",lambda tree:any(r.get("AXRole")=="AXPopUpButton" and r.get("AXTitle")=="Agent" and r.get("AXValue")=="OpenAI" for r in tree))
+            call("press",pid,"Start conversation")
+            wait("second provider opens independently",lambda tree:any(r.get("AXRole")=="AXTextArea" and r.get("enabled") for r in tree) and any(r.get("AXRole")=="AXStaticText" and r.get("AXValue")=="OpenAI" for r in tree))
             send("API history")
             wait("configured API provider replies through the real owner",text_has("Isolated API reply"))
             call("focus",pid,"Conversation name");call("paste",pid,"Summary only");call("press",pid,"Save name")
@@ -360,6 +380,7 @@ def main():
             wait("saved conversation resumes its exact provider context",lambda tree:text_has("Release review")(tree) and text_has("resumed ")(tree) and any(r.get("AXRole")=="AXTextArea" and r.get("enabled") for r in tree))
             send("after saved reopen")
             wait("saved model and name remain with resumed conversation",lambda tree:text_has("[scripted-slow] echo: after saved reopen")(tree) and text_has("Release review")(tree))
+            exercise_rich_conversation(call=call,pid=pid,evidence=evidence,results=results,send=send,wait=wait,text_has=text_has,rows=rows,directory=second,control=rich,link=rich_link,api=api)
             choose_theme("dark",1);choose_theme("light",2)
             call("resize",pid,800,680);call("screenshot",pid,evidence/"narrow.png")
             call("ax",pid,evidence/"accessibility.json")

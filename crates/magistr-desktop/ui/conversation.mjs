@@ -1,31 +1,18 @@
-// An addressed presentation of the application owner's ordered observations.
+// A presentation of the owner's complete, identified source revisions.
 export class Conversation {
-  constructor(address) { this.address=address; this.sequence=-1; this.messages=[]; this.pending=[]; this.dropped=0; this.status="Ready"; this.active=false; }
+  constructor(address) { this.address=address; this.sequence=-1; this.messages=[]; this.pending=[]; this.dropped=0; this.status="Ready"; }
   apply(frame) {
     if (JSON.stringify(frame.address)!==JSON.stringify(this.address) || frame.sequence<=this.sequence) return false;
-    if (frame.reseed) { this.messages=[]; this.active=false; this.dropped=frame.dropped; }
-    for (const event of frame.events) {
-      const {kind,data}=event;
-      if (kind==="user") { this.messages.push({role:"You",text:data}); this.active=false; }
-      if (kind==="text" || kind==="thought") {
-        const role=kind==="text"?"Agent":"Thinking";
-        const tail=this.messages.at(-1);
-        if(this.active && tail?.role===role) tail.text+=data;
-        else this.messages.push({role,text:data});
-        this.active=true;
-      }
-      if (kind==="ended") this.active=false;
-      if (["notice","error","tool"].includes(kind)) {
-        this.messages.push({role:kind==="tool"?"Command":"Magistr",text:data});
-        this.active=false;
-      }
+    const retained=new Set(frame.retained), existing=new Map(this.messages.map(message=>[message.id,message]));
+    for(const incoming of frame.events) {
+      const held=existing.get(incoming.id);
+      if(held) Object.assign(held,incoming);
+      else existing.set(incoming.id,{...incoming});
     }
-    let bytes=this.messages.reduce((n,m)=>n+new TextEncoder().encode(m.text).byteLength,0);
-    while(this.messages.length>512 || bytes>1048576) {
-      const removed=this.messages.shift();
-      bytes-=new TextEncoder().encode(removed.text).byteLength; this.dropped++;
-    }
-    this.sequence=frame.sequence; this.pending=frame.pending; this.status=frame.status;
+    this.messages=frame.retained.map(id=>existing.get(id)).filter(Boolean);
+    for(const id of existing.keys()) if(!retained.has(id))existing.delete(id);
+    this.sequence=frame.sequence; this.pending=frame.pending; this.status=frame.status;this.dropped=frame.dropped;
     return true;
   }
+  copy() { return this.messages.map(message=>message.role+"\n"+message.text).join("\n\n"); }
 }
