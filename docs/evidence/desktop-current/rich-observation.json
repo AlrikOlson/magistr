@@ -258,13 +258,13 @@
       "AXHelp": "",
       "AXRole": "AXStaticText",
       "AXTitle": "",
-      "AXValue": "Reading progress 0089: new result café 日本語 👩🏽‍💻.",
+      "AXValue": "Reading progress 0091: new result café 日本語 👩🏽‍💻.",
       "enabled": true,
       "focused": false,
       "rect": [
         474,
         636,
-        331,
+        329,
         17
       ]
     },
@@ -412,7 +412,9 @@
       "Reading progress 0098: new result café 日本語 👩🏽‍💻.",
       "Reading progress 0099: new result café 日本語 👩🏽‍💻.",
       "Reading progress 0100: new result café 日本語 👩🏽‍💻.",
-      "Reading progress 0101: new result café 日本語 👩🏽‍💻."
+      "Reading progress 0101: new result café 日本語 👩🏽‍💻.",
+      "Reading progress 0102: new result café 日本語 👩🏽‍💻.",
+      "Reading progress 0103: new result café 日本語 👩🏽‍💻."
     ],
     "tool_values": [
       "Review local build · Running",
@@ -569,7 +571,10 @@
       "Reading progress 0124: new result café 日本語 👩🏽‍💻.",
       "Reading progress 0125: new result café 日本語 👩🏽‍💻.",
       "Reading progress 0126: new result café 日本語 👩🏽‍💻.",
-      "Reading progress 0127: new result café 日本語 👩🏽‍💻."
+      "Reading progress 0127: new result café 日本語 👩🏽‍💻.",
+      "Reading progress 0128: new result café 日本語 👩🏽‍💻.",
+      "Reading progress 0129: new result café 日本語 👩🏽‍💻.",
+      "Reading progress 0130: new result café 日本語 👩🏽‍💻."
     ],
     "tool_values": [
       "Review local build · Running",
@@ -578,15 +583,15 @@
   },
   "stream": {
     "stage": "finished",
-    "chunks": 130,
-    "elapsed": 13.338802290999999,
+    "chunks": 133,
+    "elapsed": 13.617596749999999,
     "stop_reason": "end_turn"
   },
   "canonical": {
     "reply_bytes": 11321,
-    "reply_sha256": "343dd653621d32065cb1d9f29ef9119327c5f7e559c6b1e23648081160c7c8eb",
-    "conversation_bytes": 21660,
-    "conversation_sha256": "227efa1a9efb8100e9c005b1d16229f3faeff964284ac42f2f8a258dac42ca49"
+    "reply_sha256": "856194f08da48beae55eff0613623769f6669030d51531de697a6234f4ed52d0",
+    "conversation_bytes": 21864,
+    "conversation_sha256": "63f356b39be9bd8d3cf1cd38605293143bdf97e39327789e30f2b6737927b6a0"
   },
   "link": {
     "activated": true,
@@ -611,7 +616,7 @@
           "AXScrollToVisible"
         ],
         "AXDescription": "",
-        "AXHelp": "http://127.0.0.1:63811/rich-link/1791956377807972000",
+        "AXHelp": "http://127.0.0.1:54447/rich-link/1791991504302041000",
         "AXRole": "AXLink",
         "AXTitle": "Open the local reading note",
         "AXValue": "",
