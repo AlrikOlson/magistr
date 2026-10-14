@@ -8,9 +8,11 @@
   },
   "scripts": {
     "start": "node ../../scripts/desktop.mjs open",
-    "package": "node ../../scripts/desktop.mjs package"
+    "package": "node ../../scripts/desktop.mjs package",
+    "test:ui": "playwright test"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "2.12.2"
+    "@tauri-apps/cli": "2.12.2",
+    "@playwright/test": "1.64.1"
   }
 }

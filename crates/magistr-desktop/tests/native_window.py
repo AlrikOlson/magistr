@@ -153,11 +153,21 @@ def source_hashes():
         files.extend(ROOT.glob(pattern))
     return {str(path.relative_to(ROOT)):hashlib.sha256(path.read_bytes()).hexdigest() for path in sorted(set(files)) if path.is_file()}
 
+def native_arguments(parser):
+    """Native input belongs only in an explicitly reserved interactive session."""
+    parser.add_argument("--allow-foreground", action="store_true",
+                        help="allow this journey to activate apps and control keyboard, pointer and clipboard")
+    args = parser.parse_args()
+    if not args.allow_foreground:
+        parser.error("This journey controls the foreground desktop. Use --allow-foreground only when the desktop is reserved for testing. For background UI checks, use npm run test:ui -- <scenario>.")
+    return args
+
+
 def main():
     parser=argparse.ArgumentParser()
     parser.add_argument("binary",type=Path)
     parser.add_argument("--evidence",type=Path,default=ROOT/".magistr/desktop-native")
-    args=parser.parse_args()
+    args=native_arguments(parser)
     binary=args.binary.resolve()
     evidence=args.evidence.resolve();evidence.mkdir(parents=True,exist_ok=True)
     driver=evidence/"driver"

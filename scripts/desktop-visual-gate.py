@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
-"""Check the current native capture review, palette, icon and source freshness."""
+"""Check current UI layout evidence and the integrity of recorded native evidence."""
+import argparse
 import hashlib
 import json
 from pathlib import Path
 import re
 import struct
+parser=argparse.ArgumentParser(description=__doc__)
+parser.add_argument("--native-current",action="store_true",help="also require every recorded native journey to match all current integration sources")
+args=parser.parse_args()
 ROOT=Path(__file__).resolve().parents[1]
 UI=ROOT/"crates/magistr-desktop/ui"
 EVIDENCE=ROOT/"docs/evidence/desktop-current"
@@ -37,16 +41,12 @@ assert "prefers-reduced-motion" in css
 assert sha(UI/"icon.png")=="392002a92fdd8dc81923944cd5abd170d0867fe8eb3701d71d4df4aea083dd10","Selected brand icon changed; review its provenance"
 receipt=json.loads((EVIDENCE/"receipt.json").read_text())
 assert receipt["checks"] and all(receipt["checks"].values()),"Native journey has an incomplete check"
-for file,expected in receipt["source_hashes"].items():
-    assert sha(ROOT/file)==expected,"Native evidence is stale for "+file
 drafts=json.loads((EVIDENCE/"draft-persistence-receipt.json").read_text())
 assert drafts["checks"] and all(drafts["checks"].values()),"Draft reopen journey has an incomplete check"
-assert drafts["source_hashes"]==receipt["source_hashes"],"Native journeys used different source versions"
 for file,expected in drafts["evidence_hashes"].items():
     assert sha(EVIDENCE/file)==expected,"Draft recovery evidence changed: "+file
 work=json.loads((EVIDENCE/"work-receipt.json").read_text())
 assert work["checks"] and all(work["checks"].values()),"Work journey has an incomplete check"
-assert work["source_hashes"]==receipt["source_hashes"],"Work journey used different source versions"
 review=json.loads((EVIDENCE/"review.json").read_text())
 assert review["work"]==sha(EVIDENCE/"work-receipt.json")
 for name,expected in work["captures"].items():
@@ -65,4 +65,27 @@ assert review["attachments_accessibility"]==receipt["attachments"]["native_acces
 assert review["attachment_observation"]==receipt["attachment_observation_sha256"]==sha(EVIDENCE/"attachment-observation.json")
 assert review["attachment_prompts"]==receipt["attachment_prompts_sha256"]==sha(EVIDENCE/"attachment-prompts.json")
 assert review["rich_observation"]==receipt["rich_observation_sha256"]==sha(EVIDENCE/"rich-observation.json")
-print("PASS: current native screenshots, reviewed source, accessible controls, contrast, icon and reduced motion")
+layout=ROOT/"docs/evidence/desktop-layout"
+current=json.loads((layout/"receipt.json").read_text())
+reviewed=json.loads((layout/"review.json").read_text())
+assert current["renderer"]=="headless WebKit"
+assert current["checks"] and all(current["checks"].values()),"Background layout check is incomplete"
+assert reviewed["receipt"]==sha(layout/"receipt.json"),"Review the current background layout receipt"
+expected_sources={str(file.relative_to(ROOT)) for file in UI.iterdir() if file.is_file()}
+assert expected_sources.issubset(current["source_hashes"]),"Background layout omits a UI source"
+for file,expected in current["source_hashes"].items():
+    assert sha(ROOT/file)==expected,"Background layout is stale for "+file+"; run the affected headless scenario and review its captures"
+for name,expected in current["images"].items():
+    data=(layout/name).read_bytes()
+    assert data[:8]==b"\x89PNG\r\n\x1a\n"
+    width,height=struct.unpack(">II",data[16:24])
+    assert width>=800 and height>=680,(name,width,height)
+    assert sha(layout/name)==expected==reviewed["images"][name],"Background capture changed after review: "+name
+print("PASS: current headless WebKit layout, reviewed captures, contrast, icon and reduced motion")
+for name,record in (("window",receipt),("draft recovery",drafts),("work",work)):
+    changed=[file for file,expected in record["source_hashes"].items() if not (ROOT/file).is_file() or sha(ROOT/file)!=expected]
+    if args.native_current:
+        assert not changed,"Native "+name+" evidence is stale for "+", ".join(changed)
+    elif changed:
+        print("NOTE: native "+name+" evidence is retained at its recorded source version; current OS-input behavior was not re-run.")
+print("PASS: recorded native evidence and review integrity")

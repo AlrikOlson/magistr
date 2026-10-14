@@ -1,4 +1,10 @@
-# Current native desktop evidence
+# Recorded native desktop evidence
+
+These are the last reviewed native integration captures, with their actual
+source versions retained in each receipt. Background UI verification now lives
+in [desktop-layout](../desktop-layout/README.md). Native journeys control the
+foreground desktop and require explicit authorization and `--allow-foreground`;
+do not use them as the default check for an ordinary UI edit.
 
 The real Tauri window is exercised with disposable Git projects, working copies,
 a signed app bundle, a controlled ACP peer and a local streaming API fixture. Application state uses temporary XDG and Magistr directories; the real macOS home is preserved for WebKit's renderer. The screenshots contain the live
@@ -67,9 +73,11 @@ records 25 checks and the light and dark captures reviewed in `review.json`.
 The attention capture shows concurrent waiting and working agents with the
 selected draft. Light, dark and narrow conversation screenshots, chooser appearances, setup review, partial results, unavailable-agent guidance, agent/model selection, named conversation controls, saved summaries and refused resume are reviewed
 against their hashes in `review.json`. The receipt names interface and shared session-owner and observer source hashes.
-The screenshot gate rejects changed source or images until the native journey
-and review are renewed. It also checks text/control contrast, the selected icon,
-reduced motion and the current module index. This evidence does not establish
+The screenshot gate validates these recorded images against their reviews and
+validates current UI layout through the separate headless WebKit receipt. It
+reports when native integration sources have changed; `--native-current` on
+`desktop-visual-gate.py` requires exact native freshness explicitly. The gate
+also checks text/control contrast, the icon, reduced motion and module index. This evidence does not establish
 pixel equality across operating systems.
 
 Runs have observed Japanese Kana `ミニくらみ` committed as an unsent draft and
@@ -90,9 +98,9 @@ Regenerate from the repository:
 
 ```sh
 cargo build --manifest-path crates/magistr-desktop/Cargo.toml --locked
-python3 crates/magistr-desktop/tests/native_window.py crates/magistr-desktop/target/debug/magistr-desktop
-python3 crates/magistr-desktop/tests/draft_persistence_journey.py crates/magistr-desktop/target/debug/magistr-desktop
-python3 crates/magistr-desktop/tests/work_journey.py crates/magistr-desktop/target/debug/magistr-desktop
+python3 crates/magistr-desktop/tests/native_window.py crates/magistr-desktop/target/debug/magistr-desktop --allow-foreground
+python3 crates/magistr-desktop/tests/draft_persistence_journey.py crates/magistr-desktop/target/debug/magistr-desktop --allow-foreground
+python3 crates/magistr-desktop/tests/work_journey.py crates/magistr-desktop/target/debug/magistr-desktop --allow-foreground
 ```
 
 Review the resulting images in `.magistr/desktop-native`, `.magistr/desktop-native-drafts`

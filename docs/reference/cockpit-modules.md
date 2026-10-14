@@ -120,6 +120,9 @@ desktop workspace. Companion Rust tests live beside their owners.
 - `crates/magistr-desktop/src/wire.rs`
 - `crates/magistr-desktop/tests/composer.mjs`
 - `crates/magistr-desktop/tests/conversation.mjs`
+- `crates/magistr-desktop/tests/browser/fixture.mjs` — isolated observation fixture for the production UI; no OS input or owner integration.
+- `crates/magistr-desktop/tests/browser/workspace.spec.mjs` — headless WebKit layout, themes, narrow Details and reviewed captures.
+- `crates/magistr-desktop/tests/native_opt_in.test.mjs` — refuses foreground journeys before side effects unless explicitly enabled.
 - `crates/magistr-desktop/tests/native_window.py`
 - `crates/magistr-desktop/tests/native_window.swift`
 - `crates/magistr-desktop/tests/process.rs`

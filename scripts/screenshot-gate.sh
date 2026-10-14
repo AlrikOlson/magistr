@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Current native evidence must match the reviewed images and interface sources.
+# Current headless layout, palette, icon, module index and recorded native evidence.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"

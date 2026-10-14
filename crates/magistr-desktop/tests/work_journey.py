@@ -8,7 +8,7 @@ import tempfile
 import time
 
 from draft_persistence_journey import Journey, button, text_has, label
-from native_window import ROOT, source_hashes
+from native_window import ROOT, source_hashes, native_arguments
 from process_roles import Rpc
 
 
@@ -85,7 +85,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("binary", type=Path)
     parser.add_argument("--evidence", type=Path, default=ROOT / ".magistr/desktop-work")
-    args = parser.parse_args()
+    args = native_arguments(parser)
     evidence = args.evidence.resolve()
     evidence.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="magistr-work-journey-") as temporary:
