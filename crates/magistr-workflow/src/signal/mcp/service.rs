@@ -94,7 +94,7 @@ impl SignalService {
 
     /// Logical failures are MCP errors with stable diagnostics and explicit recovery.
     pub(super) fn err_structured(kind: &str, message: impl Into<String>) -> CallToolResult {
-        crate::infra::tool_result::soft_error(kind, message)
+        crate::infra::tool_failure::ToolFailure::rejected(kind, message, Vec::new())
     }
 
     pub(super) fn present<T: serde::Serialize>(
@@ -108,7 +108,22 @@ impl SignalService {
                 SignalError::Poisoned.to_string(),
                 None,
             )),
-            Err(error) => Ok(Self::err_structured(error.kind(), error.to_string())),
+            Err(error) => {
+                use crate::infra::tool_failure::ToolFailure;
+                if error.effect() == "unknown"
+                    && matches!(&error, SignalError::PartialPromotion { .. })
+                {
+                    Ok(ToolFailure::uncertain(error.kind(), error.to_string()))
+                } else if let Some(store) = error.store_error() {
+                    Ok(ToolFailure::store(error.kind(), store))
+                } else {
+                    Ok(ToolFailure::rejected(
+                        error.kind(),
+                        error.to_string(),
+                        Vec::new(),
+                    ))
+                }
+            }
         }
     }
 }

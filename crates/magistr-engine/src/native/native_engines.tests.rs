@@ -122,10 +122,10 @@ fn compaction_owner_command_keeps_current_receipts_and_removes_old_settled_histo
         let admission = engines
             .ship_admit_gate(None, "test", "true".into(), true)
             .unwrap();
-        let receipt_id = admission.receipt_id.clone();
+        let receipt_id = admission.value.receipt_id.clone();
         engines
             .ship_settle_gate(
-                admission,
+                admission.value,
                 CheckExecution::Exited { code: 0 },
                 String::new(),
                 None,
@@ -270,23 +270,24 @@ fn round_trip_through_a_temp_store() {
         add_chunk(&engines, "base", 100, &[]);
         add_chunk(&engines, "next", 200, &["base"]);
         let started = engines.roadmap_start_chunk("base").expect("start");
-        assert_eq!(started.status, ChunkStatus::InProgress);
+        assert_eq!(started.value.status, ChunkStatus::InProgress);
 
         assert!(engines.think_record_step(step(1, "open")).is_ok());
         // Returns the prior pinned state; a fresh step was not pinned.
-        assert_eq!(engines.think_pin_step(1, true), Ok(false));
+        assert!(!engines.think_pin_step(1, true).unwrap().value);
 
         assert_eq!(
             engines
                 .ship_set_objective("obj".into(), vec![], vec![], "chunk:base".into())
-                .expect("objective"),
+                .expect("objective")
+                .value,
             0
         );
         engines
             .ship_add_task("t1".into(), "Task one".into(), TaskType::Implement, None)
             .expect("add task");
         let t = engines.ship_start_task("t1").expect("start task");
-        assert_eq!(t.id, "t1");
+        assert_eq!(t.value.id, "t1");
         let action = engines
             .ship_record_action(
                 None,
@@ -297,7 +298,7 @@ fn round_trip_through_a_temp_store() {
                 Some(1),
             )
             .expect("action");
-        assert_eq!(action.think_step, Some(1));
+        assert_eq!(action.value.think_step, Some(1));
         let check = engines
             .ship_record_gate(
                 None,
@@ -309,12 +310,12 @@ fn round_trip_through_a_temp_store() {
                 None,
             )
             .expect("gate");
-        assert!(check.passed && check.verified);
-        assert_eq!(check.exit_code, Some(0));
+        assert!(check.value.passed && check.value.verified);
+        assert_eq!(check.value.exit_code, Some(0));
         let failed = engines
             .ship_record_gate(None, "lint", "clippy".into(), 1, String::new(), true, None)
             .expect("gate");
-        assert!(!failed.passed && failed.verified);
+        assert!(!failed.value.passed && failed.value.verified);
         // The red lint is current evidence against completion until it
         // is re-run green; then it is a recovered failure, not an
         // outstanding one.
@@ -322,7 +323,9 @@ fn round_trip_through_a_temp_store() {
             .roadmap_complete_chunk("base", Some("task:t1"))
             .expect_err("a failed required gate refuses completion");
         assert!(
-            refused.contains("lint: the latest attempt did not pass (exit 1)"),
+            refused
+                .to_string()
+                .contains("lint: the latest attempt did not pass (exit 1)"),
             "{refused}"
         );
         engines
@@ -333,16 +336,16 @@ fn round_trip_through_a_temp_store() {
         let sig = engines
             .signal_capture(SignalKind::Idea, "alice".into(), "make it faster".into())
             .expect("capture");
-        assert_eq!(sig.body, "make it faster");
+        assert_eq!(sig.value.body, "make it faster");
         let done = engines
             .roadmap_complete_chunk("base", Some("task:t1"))
             .expect("complete chunk");
-        assert_eq!(done.status, ChunkStatus::Done);
+        assert_eq!(done.value.status, ChunkStatus::Done);
         let report = engines
             .ship_finalize(vec![], Some("done".into()))
             .expect("finalize");
-        assert_eq!(report.status, "shipped");
-        assert_eq!(report.recovered_failures, vec!["lint (task: t1)"]);
+        assert_eq!(report.value.status, "shipped");
+        assert_eq!(report.value.recovered_failures, vec!["lint (task: t1)"]);
     }
 
     // A second process on the same store sees everything.
@@ -491,8 +494,8 @@ fn roadmap_mutation_wrappers_round_trip() {
             Some("Identity".into()),
         )
         .expect("add");
-    assert_eq!(added.group.as_deref(), Some("Identity"));
-    assert!(!added.name.is_empty(), "name is derived from the id");
+    assert_eq!(added.value.group.as_deref(), Some("Identity"));
+    assert!(!added.value.name.is_empty(), "name is derived from the id");
 
     let updated = engines
         .roadmap_update_chunk(
@@ -505,41 +508,48 @@ fn roadmap_mutation_wrappers_round_trip() {
             None,
         )
         .expect("update");
-    assert_eq!(updated.title, "Authenticate every user");
-    assert_eq!(updated.priority, 100);
-    assert_eq!(updated.acceptance.len(), 2);
+    assert_eq!(updated.value.title, "Authenticate every user");
+    assert_eq!(updated.value.priority, 100);
+    assert_eq!(updated.value.acceptance.len(), 2);
 
     let proposed = engines
         .roadmap_reprioritize("auth", 300, "less urgent".into())
         .expect("propose");
-    assert_eq!(proposed.priority, 100, "a proposal never reorders");
+    assert_eq!(proposed.value.priority, 100, "a proposal never reorders");
     assert_eq!(
-        proposed.reprioritize.as_ref().map(|p| p.suggested_priority),
+        proposed
+            .value
+            .reprioritize
+            .as_ref()
+            .map(|p| p.suggested_priority),
         Some(300)
     );
 
     let linked = engines.roadmap_link("auth", "think:7").expect("link");
-    assert!(linked.cross_refs.contains(&"think:7".to_string()));
+    assert!(linked.value.cross_refs.contains(&"think:7".to_string()));
 
     let regrouped = engines
         .roadmap_set_group("auth", Some("Accounts".into()))
         .expect("set group");
-    assert_eq!(regrouped.group.as_deref(), Some("Accounts"));
+    assert_eq!(regrouped.value.group.as_deref(), Some("Accounts"));
 
     let backlogged = engines
         .roadmap_set_status("auth", ChunkStatus::Backlog)
         .expect("set status");
-    assert_eq!(backlogged.status, ChunkStatus::Backlog);
+    assert_eq!(backlogged.value.status, ChunkStatus::Backlog);
     let refused = engines
         .roadmap_set_status("auth", ChunkStatus::Done)
         .expect_err("done is never set by name");
-    assert!(refused.contains("roadmap_complete_chunk"), "{refused}");
+    assert!(
+        refused.to_string().contains("roadmap_complete_chunk"),
+        "{refused}"
+    );
 
     let gone = engines
         .roadmap_obsolete_chunk("auth", "superseded".into())
         .expect("obsolete");
-    assert_eq!(gone.status, ChunkStatus::Obsoleted);
-    assert_eq!(gone.obsoleted_reason.as_deref(), Some("superseded"));
+    assert_eq!(gone.value.status, ChunkStatus::Obsoleted);
+    assert_eq!(gone.value.obsoleted_reason.as_deref(), Some("superseded"));
 
     assert!(engines.roadmap_link("missing", "think:1").is_err());
 }
@@ -634,28 +644,32 @@ fn signal_triage_wrappers_round_trip() {
         .into_iter()
         .map(|s| s.id)
         .collect();
-    assert!(ids.contains(&a.id) && ids.contains(&b.id) && ids.contains(&c.id));
+    assert!(ids.contains(&a.value.id) && ids.contains(&b.value.id) && ids.contains(&c.value.id));
 
     // Promote needs a researched signal; a fresh one is refused with a reason.
-    assert!(engines.signal_promote(&a.id).is_err());
+    assert!(engines.signal_promote(&a.value.id).is_err());
     let researched = engines
-        .signal_research(&a.id, "validated".into(), 0.9, vec![], None)
+        .signal_research(&a.value.id, "validated".into(), 0.9, vec![], None)
         .expect("research");
-    assert_eq!(researched.status, SignalStatus::Researched);
+    assert_eq!(researched.value.status, SignalStatus::Researched);
     assert!(
         engines
             .signal_research("missing", "x".into(), 0.5, vec![], None)
             .is_err()
     );
-    let promoted = engines.signal_promote(&a.id).expect("promote");
-    assert_eq!(promoted.status, SignalStatus::Promoted);
+    let promoted = engines.signal_promote(&a.value.id).expect("promote");
+    assert_eq!(promoted.signal.value.status, SignalStatus::Promoted);
     // The reciprocal half the MCP verb has always done: promotion creates
     // the backlog chunk and links the two both ways.
-    let chunk_id = format!("signal-{}", a.id);
+    let chunk_id = format!("signal-{}", a.value.id);
     assert!(
-        promoted.cross_refs.contains(&format!("chunk:{chunk_id}")),
+        promoted
+            .signal
+            .value
+            .cross_refs
+            .contains(&format!("chunk:{chunk_id}")),
         "{:?}",
-        promoted.cross_refs
+        promoted.signal.value.cross_refs
     );
     let chunk = engines
         .roadmap_chunk(&chunk_id)
@@ -663,10 +677,10 @@ fn signal_triage_wrappers_round_trip() {
         .expect("promotion created the backlog chunk");
     assert_eq!(chunk.status, ChunkStatus::Backlog);
     assert_eq!(chunk.title, "[idea] faster");
-    assert!(chunk.cross_refs.contains(&format!("signal:{}", a.id)));
+    assert!(chunk.cross_refs.contains(&format!("signal:{}", a.value.id)));
     // Promoting again is idempotent: the same chunk, still one of it.
-    let again = engines.signal_promote(&a.id).expect("promote again");
-    assert_eq!(again.status, SignalStatus::Promoted);
+    let again = engines.signal_promote(&a.value.id).expect("promote again");
+    assert_eq!(again.signal.value.status, SignalStatus::Promoted);
     assert_eq!(
         engines
             .roadmap_chunks()
@@ -677,12 +691,16 @@ fn signal_triage_wrappers_round_trip() {
         1
     );
 
-    let dismissed = engines.signal_ignore(&b.id).expect("ignore");
-    assert_eq!(dismissed.status, SignalStatus::Dismissed);
+    let dismissed = engines.signal_ignore(&b.value.id).expect("ignore");
+    assert_eq!(dismissed.value.status, SignalStatus::Dismissed);
 
-    let snoozed = engines.signal_snooze(&c.id, 30).expect("snooze");
-    assert!(snoozed.snooze_until.is_some(), "snooze stamped");
-    assert_eq!(snoozed.status, SignalStatus::New, "snooze keeps status");
+    let snoozed = engines.signal_snooze(&c.value.id, 30).expect("snooze");
+    assert!(snoozed.value.snooze_until.is_some(), "snooze stamped");
+    assert_eq!(
+        snoozed.value.status,
+        SignalStatus::New,
+        "snooze keeps status"
+    );
 
     assert!(engines.signal_promote("missing").is_err());
 }
@@ -698,20 +716,20 @@ fn proposal_resolution_wrappers_round_trip() {
     let proposed = engines
         .roadmap_propose_title("a", "Better title".into(), "why".into(), "tracker".into())
         .expect("propose title");
-    assert_eq!(proposed.title, "Chunk a", "a proposal never renames");
-    assert!(proposed.title_proposal.is_some());
+    assert_eq!(proposed.value.title, "Chunk a", "a proposal never renames");
+    assert!(proposed.value.title_proposal.is_some());
     let rejected = engines
         .roadmap_resolve_title_proposal("a", false)
         .expect("reject title");
-    assert_eq!(rejected.title, "Chunk a");
-    assert!(rejected.title_proposal.is_none());
+    assert_eq!(rejected.value.title, "Chunk a");
+    assert!(rejected.value.title_proposal.is_none());
     engines
         .roadmap_propose_title("a", "Better title".into(), "why".into(), "tracker".into())
         .expect("propose title again");
     let accepted = engines
         .roadmap_resolve_title_proposal("a", true)
         .expect("accept title");
-    assert_eq!(accepted.title, "Better title");
+    assert_eq!(accepted.value.title, "Better title");
     assert!(engines.roadmap_resolve_title_proposal("a", true).is_err());
 
     // Status: accept takes the suggested transition, reject keeps the
@@ -725,15 +743,15 @@ fn proposal_resolution_wrappers_round_trip() {
         )
         .expect("propose status");
     assert_eq!(
-        proposed.status,
+        proposed.value.status,
         ChunkStatus::Pending,
         "a proposal never moves"
     );
     let kept = engines
         .roadmap_resolve_status_proposal("a", false)
         .expect("reject status");
-    assert_eq!(kept.status, ChunkStatus::Pending);
-    assert!(kept.status_proposal.is_none());
+    assert_eq!(kept.value.status, ChunkStatus::Pending);
+    assert!(kept.value.status_proposal.is_none());
     engines
         .roadmap_propose_status(
             "a",
@@ -745,8 +763,8 @@ fn proposal_resolution_wrappers_round_trip() {
     let moved = engines
         .roadmap_resolve_status_proposal("a", true)
         .expect("accept status");
-    assert_eq!(moved.status, ChunkStatus::InProgress);
-    assert!(moved.status_proposal.is_none());
+    assert_eq!(moved.value.status, ChunkStatus::InProgress);
+    assert!(moved.value.status_proposal.is_none());
     assert!(engines.roadmap_resolve_status_proposal("a", true).is_err());
 
     // Reprioritize: accept takes the suggested priority, reject keeps the
@@ -758,24 +776,27 @@ fn proposal_resolution_wrappers_round_trip() {
     let kept = engines
         .roadmap_resolve_reprioritize("a", false)
         .expect("reject reprioritize");
-    assert_eq!(kept.priority, 100);
-    assert!(kept.reprioritize.is_none());
+    assert_eq!(kept.value.priority, 100);
+    assert!(kept.value.reprioritize.is_none());
     engines
         .roadmap_reprioritize("a", 300, "later".into())
         .expect("propose reprioritize again");
     let moved = engines
         .roadmap_resolve_reprioritize("a", true)
         .expect("accept reprioritize");
-    assert_eq!(moved.priority, 300);
-    assert!(moved.reprioritize.is_none());
+    assert_eq!(moved.value.priority, 300);
+    assert!(moved.value.reprioritize.is_none());
     engines
         .roadmap_reprioritize("a", 300, "no-op suggestion".into())
         .expect("propose the current priority");
     let same = engines
         .roadmap_resolve_reprioritize("a", true)
         .expect("accept the no-op");
-    assert_eq!(same.priority, 300);
-    assert!(same.reprioritize.is_none(), "disposed even when identical");
+    assert_eq!(same.value.priority, 300);
+    assert!(
+        same.value.reprioritize.is_none(),
+        "disposed even when identical"
+    );
     assert!(engines.roadmap_resolve_reprioritize("a", true).is_err());
     assert!(
         engines
@@ -791,9 +812,8 @@ fn think_pin_and_checkpoint_act_on_the_live_trace() {
     let engines = host(&cfg, "pin-checkpoint");
     assert!(engines.think_record_step(step(1, "hypothesis")).is_ok());
 
-    assert_eq!(
-        engines.think_pin_step(1, true),
-        Ok(false),
+    assert!(
+        !engines.think_pin_step(1, true).unwrap().value,
         "the previous flag comes back"
     );
     let pinned = engines
@@ -1032,7 +1052,10 @@ fn a_blocker_is_cleared_through_the_wrapper_and_erring_is_loud() {
     );
 
     let cleared = engines.roadmap_clear_blocked_by("stuck").expect("clear");
-    assert!(cleared.blocked_by.is_none(), "the card's blocker is lifted");
+    assert!(
+        cleared.value.blocked_by.is_none(),
+        "the card's blocker is lifted"
+    );
     assert!(engines.roadmap_clear_blocked_by("stuck").is_err());
     assert!(engines.roadmap_clear_blocked_by("missing").is_err());
 }
@@ -1052,7 +1075,10 @@ fn a_blocker_is_set_through_the_wrapper_the_way_the_verb_sets_it() {
             Some("think:345".into()),
         )
         .expect("set");
-    let blocker = blocked.blocked_by.expect("the blocker is on the chunk");
+    let blocker = blocked
+        .value
+        .blocked_by
+        .expect("the blocker is on the chunk");
     assert_eq!(blocker.kind, BlockerKind::AwaitingHuman);
     assert!(blocker.reason.contains("cannot be met"));
     assert_eq!(blocker.evidence.as_deref(), Some("think:345"));
@@ -1104,7 +1130,7 @@ fn signal_queries_observe_another_writers_capture() {
         .into_iter()
         .map(|s| s.id)
         .collect();
-    assert_eq!(ids, vec![captured.id]);
+    assert_eq!(ids, vec![captured.value.id]);
     assert_eq!(host.signal_status().unwrap()["counts"]["total"], 1);
 }
 
@@ -1247,9 +1273,12 @@ fn a_missing_report_is_not_parsed_and_never_a_failure() {
         )
         .expect("a missing report does not fail the record");
 
-    assert!(check.passed, "the exit code decides, never the report");
-    assert!(check.results.is_none());
-    assert_eq!(check.report.as_ref().map(|r| r.parsed), Some(false));
+    assert!(
+        check.value.passed,
+        "the exit code decides, never the report"
+    );
+    assert!(check.value.results.is_none());
+    assert_eq!(check.value.report.as_ref().map(|r| r.parsed), Some(false));
 }
 
 #[test]
@@ -1269,7 +1298,10 @@ fn a_gate_cannot_be_recorded_with_no_task_to_record_it_against() {
             None,
         )
         .expect_err("no active task");
-    assert!(!refusal.is_empty(), "the refusal says something");
+    assert!(
+        !refusal.to_string().is_empty(),
+        "the refusal says something"
+    );
 }
 
 /// The verb's own refusals reach the caller in the handler's words: what
@@ -1284,29 +1316,30 @@ fn the_handlers_refusals_are_the_writers_refusals() {
     let empty = engines
         .signal_capture(SignalKind::Idea, "alice".into(), "   ".into())
         .expect_err("an empty body is refused as the verb refuses it");
-    assert_eq!(empty, "signal body is empty");
+    assert_eq!(empty.to_string(), "signal body is empty");
 
     let captured = engines
         .signal_capture(SignalKind::Idea, "alice".into(), "faster".into())
         .expect("capture");
     let blank = engines
-        .signal_research(&captured.id, "  ".into(), 0.5, vec![], None)
+        .signal_research(&captured.value.id, "  ".into(), 0.5, vec![], None)
         .expect_err("a blank summary is refused");
-    assert_eq!(blank, "research summary is empty");
+    assert_eq!(blank.to_string(), "research summary is empty");
 
     add_chunk(&engines, "c", 100, &[]);
     let done = engines
         .roadmap_complete_chunk("c", None)
         .expect_err("no objective certifies the chunk");
     assert!(
-        done.starts_with("completion refused: no ship objective is set"),
+        done.to_string()
+            .starts_with("completion refused: no ship objective is set"),
         "{done}"
     );
 
     let no_task = engines
         .ship_start_task("nothing")
         .expect_err("an unknown task is refused");
-    assert!(no_task.contains("nothing"), "{no_task}");
+    assert!(no_task.to_string().contains("nothing"), "{no_task}");
 }
 
 /// A fresh objective after a shipped one clears the stale plan — the
@@ -1319,7 +1352,8 @@ fn a_fresh_cycle_reports_how_many_stale_tasks_it_cleared() {
     assert_eq!(
         engines
             .ship_set_objective("first".into(), vec![], vec![], String::new())
-            .expect("objective"),
+            .expect("objective")
+            .value,
         0
     );
     engines
@@ -1332,7 +1366,8 @@ fn a_fresh_cycle_reports_how_many_stale_tasks_it_cleared() {
     assert_eq!(
         engines
             .ship_set_objective("second".into(), vec![], vec![], String::new())
-            .expect("objective"),
+            .expect("objective")
+            .value,
         2,
         "the finished cycle's two tasks were cleared"
     );

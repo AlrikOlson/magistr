@@ -29,6 +29,7 @@ use serde_json::Value;
 
 use crate::signal::domain::Signal;
 use crate::think::output_schemas::JsonObject;
+use magistr_workflow_contracts::Observed;
 
 /// `signal_status` — mirrors `SignalEngine::status`.
 #[derive(Debug, Serialize, JsonSchema)]
@@ -78,25 +79,14 @@ pub struct SignalPendingOutput {
     pub signals: Vec<Signal>,
 }
 
-/// `signal_promote` — the signal-to-chunk hop.
-///
-/// Two shapes share one schema because they are one response with a flag:
-/// `created: false` means the signal was already promoted and `chunk` carries
-/// the existing chunk; `created: true` means a chunk was minted and `signal`
-/// carries the updated record. Both optional fields are absent in the other
-/// case, which is why neither is required.
+/// Each owner acknowledges its own committed value and save source.
 #[derive(Debug, Serialize, JsonSchema)]
 pub struct SignalPromoteOutput {
     pub signal_id: String,
     pub chunk_id: String,
-    /// False when this call was a no-op against an already-promoted signal.
     pub created: bool,
-    /// Present on the already-promoted path.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub chunk: Option<Value>,
-    /// Present on the newly-created path.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub signal: Option<Signal>,
+    pub chunk: Observed<Value>,
+    pub signal: Observed<Signal>,
 }
 
 /// The JSON Schema for a `signal_*` tool's `structuredContent`, or `None` for
@@ -108,8 +98,9 @@ pub struct SignalPromoteOutput {
 pub fn output_schema_for(tool_name: &str) -> Option<Arc<JsonObject>> {
     let value: Value = match tool_name {
         // The seven that return the signal itself.
-        "signal_capture" | "signal_get" | "signal_link" | "signal_research" | "signal_surface"
-        | "signal_snooze" | "signal_ignore" => schema_for!(Signal).to_value(),
+        "signal_get" => schema_for!(Signal).to_value(),
+        "signal_capture" | "signal_link" | "signal_research" | "signal_surface"
+        | "signal_snooze" | "signal_ignore" => schema_for!(Observed<Signal>).to_value(),
         "signal_status" => schema_for!(SignalStatusOutput).to_value(),
         "signal_pending" => schema_for!(SignalPendingOutput).to_value(),
         "signal_promote" => schema_for!(SignalPromoteOutput).to_value(),

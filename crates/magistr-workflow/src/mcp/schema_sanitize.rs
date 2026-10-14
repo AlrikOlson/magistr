@@ -1,4 +1,4 @@
-//! Strip non-standard JSON Schema `format` hints from served tool schemas.
+//! Keep served schemas portable and output validation compact.
 //!
 //! schemars stamps Rust integer widths as `format: "uint32"` / `"uint64"`
 //! (and friends) on generated schemas. Those aren't JSON Schema formats, so
@@ -69,8 +69,55 @@ pub fn sanitize_tool_schemas(tool: &mut Tool) {
     if let Some(schema) = tool.output_schema.take() {
         let mut output = Value::Object((*schema).clone());
         sanitize_value(&mut output);
+        compact_output_schema(&mut output);
         if let Value::Object(obj) = output {
             tool.output_schema = Some(Arc::new(obj));
+        }
+    }
+}
+
+/// Output descriptions repeat tool and domain documentation on every response schema.
+/// Keep validation intact, including properties named "title" or "description" and
+/// literal values under const/default/examples; only visit schema-bearing keywords.
+fn compact_output_schema(schema: &mut Value) {
+    let Some(map) = schema.as_object_mut() else {
+        return;
+    };
+    map.remove("title");
+    map.remove("description");
+    for key in [
+        "$defs",
+        "definitions",
+        "properties",
+        "patternProperties",
+        "dependentSchemas",
+    ] {
+        if let Some(Value::Object(children)) = map.get_mut(key) {
+            for child in children.values_mut() {
+                compact_output_schema(child);
+            }
+        }
+    }
+    for key in [
+        "items",
+        "contains",
+        "additionalProperties",
+        "unevaluatedProperties",
+        "propertyNames",
+        "not",
+        "if",
+        "then",
+        "else",
+    ] {
+        if let Some(child) = map.get_mut(key) {
+            compact_output_schema(child);
+        }
+    }
+    for key in ["allOf", "anyOf", "oneOf", "prefixItems"] {
+        if let Some(Value::Array(children)) = map.get_mut(key) {
+            for child in children {
+                compact_output_schema(child);
+            }
         }
     }
 }
@@ -97,6 +144,34 @@ mod tests {
         assert!(!s.contains("uint32") && !s.contains("uint64") && !s.contains("double"));
         // Bounds survive the cleanup.
         assert_eq!(v["properties"]["step_number"]["minimum"], json!(0));
+    }
+
+    #[test]
+    fn compact_output_retains_the_validation_contract_and_literal_fields() {
+        let original = json!({
+            "type": "object", "description": "Repeated domain documentation",
+            "required": ["description", "title"],
+            "properties": {
+                "description": { "type": "string", "description": "Field documentation", "minLength": 3 },
+                "title": { "const": { "description": "literal", "title": "literal" } }
+            },
+            "additionalProperties": false
+        });
+        let mut compact = original.clone();
+        compact_output_schema(&mut compact);
+        let before = jsonschema::validator_for(&original).unwrap();
+        let after = jsonschema::validator_for(&compact).unwrap();
+        let valid =
+            json!({"description": "yes", "title": {"description": "literal", "title": "literal"}});
+        for (value, expected) in [
+            (valid, true),
+            (json!({}), false),
+            (json!({"description": "no", "title": {}}), false),
+        ] {
+            assert_eq!(before.is_valid(&value), expected);
+            assert_eq!(after.is_valid(&value), expected);
+        }
+        assert!(compact.to_string().len() < original.to_string().len());
     }
 
     #[test]

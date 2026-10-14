@@ -81,7 +81,7 @@ async fn native_and_mcp_views_share_one_engine_and_response_contract() {
         .await
         .unwrap();
     assert_eq!(
-        answer.structured_content.unwrap(),
+        answer.structured_content.unwrap()["value"],
         serde_json::to_value(cases.plan().unwrap()).unwrap()
     );
     assert_eq!(
@@ -98,6 +98,7 @@ async fn native_and_mcp_views_share_one_engine_and_response_contract() {
         cases
             .start_task("verify")
             .unwrap_err()
+            .to_string()
             .contains("already active")
     );
 }
@@ -124,7 +125,7 @@ async fn ordinary_completion_keeps_failed_required_checks_as_warnings() {
         .structured_content
         .unwrap();
     assert_eq!(
-        report,
+        report["value"],
         json!({ "status": "shipped", "summary": null,
         "tasks": { "total": 1, "completed": 1 }, "artifacts_count": 0,
         "ship_artifacts": [], "warnings": ["required checks failed: test (task: verify)"],
@@ -142,7 +143,7 @@ async fn check_result_keeps_its_admitted_task_when_active_task_changes() {
     let temp = tempfile::tempdir().unwrap();
     let cases = stored(temp.path());
     planned(&cases);
-    let admission = cases.admit_check(request()).unwrap();
+    let admission = cases.admit_check(request()).unwrap().value;
     cases.block_task("verify", "other work".into()).unwrap();
     cases
         .add_task("other".into(), "Other".into(), TaskType::Test, None, None)
@@ -165,7 +166,7 @@ async fn late_async_result_after_peer_rollover_is_returned_intact() {
     let temp = tempfile::tempdir().unwrap();
     let cases = stored(temp.path());
     planned(&cases);
-    let admission = cases.admit_check(request()).unwrap();
+    let admission = cases.admit_check(request()).unwrap().value;
     let admitted_run = admission.target.run_id.clone();
     let expected = serde_json::to_value(&admission).unwrap();
     let peer = stored(temp.path());
@@ -197,10 +198,10 @@ async fn late_async_result_after_peer_rollover_is_returned_intact() {
     };
     assert_eq!(serde_json::to_value(&admission).unwrap(), expected);
     // The late result kept its own durable record under the original run.
-    assert_eq!(receipt.id, admission.receipt_id);
-    assert_eq!(receipt.target.run_id, admitted_run);
-    assert!(!receipt.is_applied());
-    assert!(receipt.passed());
+    assert_eq!(receipt.value.id, admission.receipt_id);
+    assert_eq!(receipt.value.target.run_id, admitted_run);
+    assert!(!receipt.value.is_applied());
+    assert!(receipt.value.passed());
     assert_eq!(
         serde_json::to_value(returned).unwrap(),
         serde_json::to_value(outcome()).unwrap()
@@ -218,19 +219,18 @@ fn task_removal_survives_stale_writer_and_reuse_gets_a_new_instance() {
     let temp = tempfile::tempdir().unwrap();
     let cases = stored(temp.path());
     planned(&cases);
-    let admission = cases.admit_check(request()).unwrap();
+    let admission = cases.admit_check(request()).unwrap().value;
     let stale = stored(temp.path());
     cases.block_task("verify", "replace task".into()).unwrap();
     cases.remove_task("verify").unwrap();
     assert!(stored(temp.path()).snapshot().unwrap().tasks.is_empty());
     // Exercise the inherited merge path with an engine that has not refreshed.
-    stale.engine().lock().unwrap().add_task(
-        "other".into(),
-        "Other".into(),
-        TaskType::Docs,
-        None,
-        None,
-    );
+    stale
+        .engine()
+        .lock()
+        .unwrap()
+        .add_task("other".into(), "Other".into(), TaskType::Docs, None, None)
+        .unwrap();
     assert!(
         stored(temp.path())
             .snapshot()
@@ -269,19 +269,24 @@ fn task_removal_survives_stale_writer_and_reuse_gets_a_new_instance() {
 }
 
 #[test]
-fn reset_during_execution_does_not_resurrect_the_native_file() {
+fn reset_during_execution_retains_the_committed_empty_run() {
     let temp = tempfile::tempdir().unwrap();
     let cases = stored(temp.path());
     planned(&cases);
-    let admission = cases.admit_check(request()).unwrap();
+    let admission = cases.admit_check(request()).unwrap().value;
     stored(temp.path()).reset().unwrap();
     let path = temp.path().join("ship/sessions/project.json");
-    assert!(!path.exists());
+    let reset_bytes = std::fs::read(&path).unwrap();
+    assert!(stored(temp.path()).snapshot().unwrap().tasks.is_empty());
     assert!(matches!(
         cases.settle_check(admission, outcome()).unwrap(),
         CheckSettlement::Stale { .. }
     ));
-    assert!(!path.exists(), "late settlement cannot undo reset");
+    assert_eq!(
+        std::fs::read(&path).unwrap(),
+        reset_bytes,
+        "late settlement cannot undo reset"
+    );
 }
 
 #[test]
@@ -315,7 +320,7 @@ fn editing_an_inflight_objective_keeps_its_run_and_admission() {
     let temp = tempfile::tempdir().unwrap();
     let cases = stored(temp.path());
     planned(&cases);
-    let admission = cases.admit_check(request()).unwrap();
+    let admission = cases.admit_check(request()).unwrap().value;
     cases
         .set_objective(
             "Clarified objective".into(),
@@ -337,8 +342,9 @@ fn invalid_check_arguments_are_refused_before_task_admission() {
     let mut invalid = request();
     invalid.command = None;
     let refused = cases.admit_check(invalid).unwrap_err();
-    assert_eq!(refused.kind, "invalid_args");
-    assert!(refused.message.contains("`passed` is required"));
+    assert_eq!(refused.kind(), "invalid_args");
+    assert_eq!(refused.effect(), "none");
+    assert_eq!(refused.message(), "Provide a command or a check result.");
 }
 
 #[tokio::test]
@@ -380,8 +386,8 @@ async fn approval_defaults_and_refusals_match_the_mcp_adapter() {
         .unwrap()
         .structured_content
         .unwrap();
-    assert_eq!(wire_error["error_kind"], typed_error.kind);
-    assert_eq!(wire_error["message"], typed_error.message);
+    assert_eq!(wire_error["error_kind"], typed_error.kind());
+    assert_eq!(wire_error["message"], typed_error.message());
 }
 
 #[test]
@@ -389,7 +395,7 @@ fn switching_scopes_restores_the_exact_unfinished_plan_across_restart() {
     let temp = tempfile::tempdir().unwrap();
     let cases = stored(temp.path());
     planned(&cases);
-    let admitted = cases.admit_check(request()).unwrap();
+    let admitted = cases.admit_check(request()).unwrap().value;
     cases.settle_check(admitted, outcome()).unwrap();
     cases
         .block_task("verify", "Waiting for an answer".into())
@@ -455,7 +461,7 @@ async fn mcp_scope_recovery_preserves_blocked_work_and_saved_objective_metadata(
         )
         .unwrap();
     cases.start_task("trials").unwrap();
-    let admitted = cases.admit_check(request()).unwrap();
+    let admitted = cases.admit_check(request()).unwrap().value;
     cases.settle_check(admitted, outcome()).unwrap();
     cases
         .block_task("trials", "Waiting for credentials".into())
@@ -499,7 +505,7 @@ async fn mcp_scope_recovery_preserves_blocked_work_and_saved_objective_metadata(
             .unwrap()
             .structured_content
             .unwrap();
-        assert_eq!(answer, expected["objective"]);
+        assert_eq!(answer["value"], expected["objective"]);
         assert_eq!(
             serde_json::to_value(reopened.snapshot().unwrap()).unwrap(),
             expected
@@ -533,13 +539,16 @@ fn stale_writers_cannot_reselect_a_saved_plan_or_erase_its_latest_tasks() {
     current
         .set_objective("Other".into(), vec![], vec![], "chunk:other".into())
         .unwrap();
-    stale.add_task(
-        "stale".into(),
-        "Stale mutation".into(),
-        TaskType::Implement,
-        None,
-        None,
-    );
+    let refused = stale
+        .add_task(
+            "stale".into(),
+            "Stale mutation".into(),
+            TaskType::Implement,
+            None,
+            None,
+        )
+        .unwrap_err();
+    assert_eq!(refused.kind(), "stale_target");
     let reopened = stored(temp.path());
     assert_eq!(
         reopened.snapshot().unwrap().objective.unwrap().scope,
@@ -574,13 +583,16 @@ fn a_reset_run_cannot_be_replaced_by_a_stale_track_selection() {
     cases.reset().unwrap();
     planned(&cases);
     let run = cases.snapshot().unwrap().run_id;
-    stale.add_task(
-        "stale".into(),
-        "Stale task".into(),
-        TaskType::Test,
-        None,
-        None,
-    );
+    let refused = stale
+        .add_task(
+            "stale".into(),
+            "Stale task".into(),
+            TaskType::Test,
+            None,
+            None,
+        )
+        .unwrap_err();
+    assert_eq!(refused.kind(), "stale_target");
     let actual = stored(temp.path()).snapshot().unwrap();
     assert_eq!(actual.run_id, run);
     assert_eq!(actual.tasks.len(), 1);

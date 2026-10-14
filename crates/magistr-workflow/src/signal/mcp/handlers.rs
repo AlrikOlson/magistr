@@ -231,21 +231,7 @@ impl SignalService {
         &self,
         Parameters(args): Parameters<PromoteArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        match self.application.promote(&args.id) {
-            Ok(result) if result.created => Self::present(Ok(serde_json::json!({
-                "signal_id": result.signal_id,
-                "chunk_id": result.chunk_id,
-                "created": true,
-                "signal": result.signal,
-            }))),
-            Ok(result) => Self::present(Ok(serde_json::json!({
-                "signal_id": result.signal_id,
-                "chunk_id": result.chunk_id,
-                "created": false,
-                "chunk": result.chunk,
-            }))),
-            Err(error) => Self::present::<()>(Err(error)),
-        }
+        Self::present(self.application.promote(&args.id))
     }
 
     #[tool(

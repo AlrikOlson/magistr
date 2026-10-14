@@ -67,12 +67,6 @@ impl ShipService {
         self.use_cases.clone()
     }
 
-    pub(super) fn application_result<T: serde::Serialize>(
-        result: Result<T, String>,
-    ) -> Result<CallToolResult, ErrorData> {
-        Self::typed_result(result.map_err(ShipError::from))
-    }
-
     pub(super) fn typed_result<T: serde::Serialize>(
         result: Result<T, ShipError>,
     ) -> Result<CallToolResult, ErrorData> {
@@ -81,8 +75,11 @@ impl ShipService {
                 serde_json::to_value(value)
                     .map_err(|error| ErrorData::internal_error(error.to_string(), None))?,
             )),
-            Err(error) if error.message == "engine mutex poisoned" => Err(Self::poisoned()),
-            Err(error) => Ok(Self::err_structured(error.kind, error.message)),
+            Err(error) if error.message() == "engine mutex poisoned" => Err(Self::poisoned()),
+            Err(error) => Ok(match error.store_error() {
+                Some(store) => crate::infra::tool_failure::ToolFailure::store(error.kind(), store),
+                None => Self::err_structured(error.kind(), error.message()),
+            }),
         }
     }
 
@@ -117,7 +114,7 @@ impl ShipService {
 
     /// Logical failures are MCP errors with stable diagnostics and explicit recovery.
     pub(super) fn err_structured(kind: &str, message: impl Into<String>) -> CallToolResult {
-        crate::infra::tool_result::soft_error(kind, message)
+        crate::infra::tool_failure::ToolFailure::rejected(kind, message, Vec::new())
     }
 }
 

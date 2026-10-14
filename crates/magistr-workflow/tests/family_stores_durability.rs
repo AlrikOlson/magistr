@@ -131,10 +131,16 @@ fn concurrent_signal_writer_does_not_clobber_acked_signals() {
 
     let b_id = b
         .capture(SignalKind::Bug, "b@example.com".into(), "from b".into())
+        .as_ref()
+        .unwrap()
+        .value
         .id
         .clone();
     let a_id = a
         .capture(SignalKind::Idea, "a@example.com".into(), "from a".into())
+        .as_ref()
+        .unwrap()
+        .value
         .id
         .clone();
 
@@ -160,6 +166,9 @@ fn stale_signal_writer_does_not_roll_back_lifecycle_progress() {
     let seeded_id = {
         let mut seed = signal_engine(&tmp, "proj");
         seed.capture(SignalKind::Question, "q@example.com".into(), "seed".into())
+            .as_ref()
+            .unwrap()
+            .value
             .id
             .clone()
     };
@@ -168,7 +177,8 @@ fn stale_signal_writer_does_not_roll_back_lifecycle_progress() {
     let mut b = signal_engine(&tmp, "proj");
 
     b.set_status(&seeded_id, SignalStatus::Triaged).unwrap(); // B advances
-    a.capture(SignalKind::Feedback, "a@example.com".into(), "new".into()); // A persists stale copy
+    a.capture(SignalKind::Feedback, "a@example.com".into(), "new".into())
+        .unwrap(); // A persists stale copy
 
     let reloaded = signal_engine(&tmp, "proj");
     let seeded = reloaded
@@ -193,7 +203,8 @@ fn stale_signal_writer_does_not_roll_back_lifecycle_progress() {
 fn concurrent_ship_writers_union_tasks_within_one_cycle() {
     let tmp = TempDir::new().unwrap();
     let mut a = ship_engine(&tmp, "proj");
-    a.set_objective("Shared cycle".into(), vec![], vec![], String::new());
+    a.set_objective("Shared cycle".into(), vec![], vec![], String::new())
+        .unwrap();
 
     // B loads the persisted objective — same cycle as A.
     let mut b = ship_engine(&tmp, "proj");
@@ -205,7 +216,8 @@ fn concurrent_ship_writers_union_tasks_within_one_cycle() {
         TaskType::Implement,
         None,
         None,
-    );
+    )
+    .unwrap();
     // B never saw a-task; its save must not erase it.
     b.add_task(
         "b-task".into(),
@@ -213,7 +225,8 @@ fn concurrent_ship_writers_union_tasks_within_one_cycle() {
         TaskType::Test,
         None,
         None,
-    );
+    )
+    .unwrap();
 
     let reloaded = ship_engine(&tmp, "proj");
     let ids: Vec<&str> = reloaded.tasks.iter().map(|t| t.id.as_str()).collect();
@@ -230,13 +243,15 @@ fn concurrent_ship_writers_union_tasks_within_one_cycle() {
 fn stale_ship_cycle_does_not_clobber_a_newer_cycle() {
     let tmp = TempDir::new().unwrap();
     let mut a = ship_engine(&tmp, "proj");
-    a.set_objective("Old cycle".into(), vec![], vec![], String::new());
+    a.set_objective("Old cycle".into(), vec![], vec![], String::new())
+        .unwrap();
 
     let mut b = ship_engine(&tmp, "proj"); // B holds the old cycle
     assert_eq!(b.objective.as_ref().unwrap().description, "Old cycle");
 
-    a.reset();
-    a.set_objective("New cycle".into(), vec![], vec![], String::new());
+    a.reset().unwrap();
+    a.set_objective("New cycle".into(), vec![], vec![], String::new())
+        .unwrap();
 
     // B (stale, old cycle) saves — it must not resurrect the old cycle.
     b.add_task(
@@ -245,7 +260,8 @@ fn stale_ship_cycle_does_not_clobber_a_newer_cycle() {
         TaskType::Implement,
         None,
         None,
-    );
+    )
+    .unwrap_err();
 
     let reloaded = ship_engine(&tmp, "proj");
     assert_eq!(
@@ -266,24 +282,28 @@ fn stale_ship_cycle_does_not_clobber_a_newer_cycle() {
 fn ship_reset_is_not_resurrected_by_later_saves() {
     let tmp = TempDir::new().unwrap();
     let mut a = ship_engine(&tmp, "proj");
-    a.set_objective("Cycle 1".into(), vec![], vec![], String::new());
+    a.set_objective("Cycle 1".into(), vec![], vec![], String::new())
+        .unwrap();
     a.add_task(
         "old".into(),
         "pre-reset".into(),
         TaskType::Implement,
         None,
         None,
-    );
+    )
+    .unwrap();
 
-    a.reset();
-    a.set_objective("Cycle 2".into(), vec![], vec![], String::new());
+    a.reset().unwrap();
+    a.set_objective("Cycle 2".into(), vec![], vec![], String::new())
+        .unwrap();
     a.add_task(
         "new".into(),
         "post-reset".into(),
         TaskType::Implement,
         None,
         None,
-    );
+    )
+    .unwrap();
 
     let reloaded = ship_engine(&tmp, "proj");
     assert_eq!(
@@ -292,4 +312,137 @@ fn ship_reset_is_not_resurrected_by_later_saves() {
     );
     let ids: Vec<&str> = reloaded.tasks.iter().map(|t| t.id.as_str()).collect();
     assert_eq!(ids, vec!["new"], "reset-away task resurrected: {ids:?}");
+}
+
+#[test]
+fn rejected_roadmap_and_signal_writes_preserve_bytes_and_retry_after_repair() {
+    use magistr_workflow::roadmap::engine::RoadmapMutationError;
+    use magistr_workflow::signal::engine::SignalMutationError;
+    use magistr_workflow_contracts::{ReadErrorKind, ReadSource, WriteErrorKind};
+    let tmp = TempDir::new().unwrap();
+    let mut roadmap = roadmap_engine(&tmp, "proj");
+    let mut signal = signal_engine(&tmp, "proj");
+    add_chunk(&mut roadmap, "saved");
+    let captured = signal
+        .capture(SignalKind::Idea, "author".into(), "saved".into())
+        .unwrap();
+    let roadmap_path = Persistence::new(&infra_cfg(&tmp), Domain::Roadmap).path_for("proj");
+    let signal_path = Persistence::new(&infra_cfg(&tmp), Domain::Signal).path_for("proj");
+    let roadmap_bytes = std::fs::read(&roadmap_path).unwrap();
+    let signal_bytes = std::fs::read(&signal_path).unwrap();
+    for (bad, kind) in [
+        (b"{".to_vec(), ReadErrorKind::Decode),
+        (b"{}".to_vec(), ReadErrorKind::Decode),
+    ] {
+        std::fs::write(&roadmap_path, &bad).unwrap();
+        std::fs::write(&signal_path, &bad).unwrap();
+        let RoadmapMutationError::Store(error) =
+            roadmap.link_chunk("saved", "think:1").unwrap_err()
+        else {
+            panic!("expected store refusal")
+        };
+        assert_eq!(error.kind, WriteErrorKind::Read(kind));
+        assert_eq!(error.effect(), "none");
+        let SignalMutationError::Store(error) =
+            signal.link(&captured.value.id, "think:1").unwrap_err()
+        else {
+            panic!("expected store refusal")
+        };
+        assert_eq!(error.kind, WriteErrorKind::Read(kind));
+        assert_eq!(error.effect(), "none");
+        assert_eq!(std::fs::read(&roadmap_path).unwrap(), bad);
+        assert_eq!(std::fs::read(&signal_path).unwrap(), bad);
+        assert!(roadmap.roadmap().chunks[0].cross_refs.is_empty());
+        assert!(signal.signals().signals[0].cross_refs.is_empty());
+    }
+    std::fs::write(&roadmap_path, roadmap_bytes).unwrap();
+    std::fs::write(&signal_path, signal_bytes).unwrap();
+    let saved = roadmap.link_chunk("saved", "think:1").unwrap();
+    assert!(matches!(saved.source, ReadSource::File(_)));
+    assert_eq!(saved.source, roadmap.observe().unwrap().source);
+    let saved = signal.link(&captured.value.id, "think:1").unwrap();
+    assert_eq!(saved.source, signal.observe().unwrap().source);
+    assert_eq!(saved.value.cross_refs, ["think:1"]);
+}
+
+#[test]
+fn simultaneous_owner_transactions_retain_every_acknowledged_record() {
+    let tmp = TempDir::new().unwrap();
+    let barrier = std::sync::Barrier::new(8);
+    std::thread::scope(|scope| {
+        for i in 0..8 {
+            let tmp = &tmp;
+            let barrier = &barrier;
+            scope.spawn(move || {
+                let mut roadmap = roadmap_engine(tmp, "proj");
+                let mut signals = signal_engine(tmp, "proj");
+                barrier.wait();
+                add_chunk(&mut roadmap, &format!("work-{i}"));
+                signals
+                    .capture(SignalKind::Idea, "author".into(), format!("idea {i}"))
+                    .unwrap();
+            });
+        }
+    });
+    assert_eq!(
+        roadmap_engine(&tmp, "proj")
+            .observe()
+            .unwrap()
+            .value
+            .chunks
+            .len(),
+        8
+    );
+    assert_eq!(
+        signal_engine(&tmp, "proj")
+            .observe()
+            .unwrap()
+            .value
+            .signals
+            .len(),
+        8
+    );
+}
+
+#[tokio::test]
+async fn signal_mcp_refuses_failed_saves_and_acknowledges_the_repaired_owner() {
+    use magistr_workflow::signal::{SignalService, mcp::handlers::CaptureArgs};
+    use rmcp::handler::server::wrapper::Parameters;
+    let tmp = TempDir::new().unwrap();
+    let signal = signal_engine(&tmp, "proj");
+    let path = Persistence::new(&infra_cfg(&tmp), Domain::Signal).path_for("proj");
+    std::fs::write(&path, "{").unwrap();
+    let service = SignalService::new(signal);
+    let args = || {
+        Parameters(CaptureArgs {
+            kind: "idea".into(),
+            from: "author".into(),
+            body: "Keep my work".into(),
+            content: None,
+        })
+    };
+    let refused = service.signal_capture(args()).await.unwrap();
+    assert_eq!(refused.is_error, Some(true));
+    let body = refused.structured_content.unwrap();
+    assert_eq!(body["effect"], "none");
+    assert_eq!(body["error_kind"], "store_unavailable");
+    assert_eq!(std::fs::read(&path).unwrap(), b"{");
+    std::fs::remove_file(&path).unwrap();
+    let saved = service.signal_capture(args()).await.unwrap();
+    assert_ne!(saved.is_error, Some(true));
+    let body = saved.structured_content.unwrap();
+    assert_eq!(body["source"]["kind"], "file");
+    assert_eq!(body["value"]["body"], "Keep my work");
+    assert_eq!(
+        service
+            .engine()
+            .lock()
+            .unwrap()
+            .observe()
+            .unwrap()
+            .value
+            .signals
+            .len(),
+        1
+    );
 }

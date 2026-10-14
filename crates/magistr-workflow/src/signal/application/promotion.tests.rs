@@ -1,4 +1,5 @@
 use super::*;
+use crate::roadmap::RoadmapEngine;
 
 use std::sync::{Arc, Barrier, Mutex};
 
@@ -21,9 +22,9 @@ fn promotable() -> (SignalUseCases, Arc<Mutex<RoadmapEngine>>, Signal) {
         )
         .unwrap();
     let signal = app
-        .research(&captured.id, "Verified".into(), 0.9, vec![], None)
+        .research(&captured.value.id, "Verified".into(), 0.9, vec![], None)
         .unwrap();
-    (app, roadmap, signal)
+    (app, roadmap, signal.value)
 }
 
 #[test]
@@ -56,8 +57,11 @@ fn concurrent_native_promotions_create_one_reciprocally_linked_chunk() {
         [format!("signal:{}", signal.id)]
     );
     for result in results {
-        assert_eq!(result.signal.status, SignalStatus::Promoted);
-        assert_eq!(result.signal.cross_refs, [format!("chunk:{chunk_id}")]);
+        assert_eq!(result.signal.value.status, SignalStatus::Promoted);
+        assert_eq!(
+            result.signal.value.cross_refs,
+            [format!("chunk:{chunk_id}")]
+        );
     }
 }
 
@@ -68,16 +72,31 @@ fn retries_recover_both_partial_promotion_boundaries() {
         let chunk_id = chunk_id_for(&signal.id);
         {
             let mut roadmap = roadmap.lock().unwrap();
-            ensure_chunk(&mut roadmap, &signal, &chunk_id).unwrap();
+            roadmap
+                .add_chunk(
+                    chunk_id.clone(),
+                    "Change".into(),
+                    ChunkStatus::Backlog,
+                    0,
+                    signal.body.clone(),
+                    vec![],
+                    vec![],
+                    false,
+                )
+                .unwrap();
+            roadmap
+                .link_chunk(&chunk_id, &format!("signal:{}", signal.id))
+                .unwrap();
         }
         if already_promoted {
             app.engine().lock().unwrap().promote(&signal.id).unwrap();
         }
         let result = app.promote(&signal.id).unwrap();
-        assert_eq!(result.signal.status, SignalStatus::Promoted);
+        assert_eq!(result.signal.value.status, SignalStatus::Promoted);
         assert!(
             result
                 .signal
+                .value
                 .cross_refs
                 .contains(&format!("chunk:{chunk_id}"))
         );
@@ -87,7 +106,7 @@ fn retries_recover_both_partial_promotion_boundaries() {
 }
 
 #[tokio::test]
-async fn native_then_mcp_promotion_preserves_legacy_retry_shape() {
+async fn native_and_mcp_promotion_return_both_committed_owners() {
     let (app, roadmap, signal) = promotable();
     let service = SignalService::from_use_cases(app.clone());
     let fresh = service
@@ -100,7 +119,8 @@ async fn native_then_mcp_promotion_preserves_legacy_retry_shape() {
         .unwrap();
     assert_eq!(fresh["created"], true);
     assert!(fresh.get("signal").is_some());
-    assert!(fresh.get("chunk").is_none());
+    assert!(fresh["chunk"].get("source").is_some());
+    assert!(fresh["signal"].get("source").is_some());
     assert!(!app.promote(&signal.id).unwrap().created);
     let retry = service
         .signal_promote(Parameters(PromoteArgs {
@@ -111,8 +131,8 @@ async fn native_then_mcp_promotion_preserves_legacy_retry_shape() {
         .structured_content
         .unwrap();
     assert_eq!(retry["created"], false);
-    assert!(retry.get("signal").is_none());
-    assert_eq!(retry["chunk"]["id"], chunk_id_for(&signal.id));
+    assert!(retry["signal"].get("source").is_some());
+    assert_eq!(retry["chunk"]["value"]["id"], chunk_id_for(&signal.id));
     assert_eq!(roadmap.lock().unwrap().roadmap().chunks.len(), 1);
 }
 
@@ -124,16 +144,16 @@ fn invalid_state_and_unwired_promotion_leave_native_state_unchanged() {
         .capture(SignalKind::Bug, "user".into(), "Broken".into(), None)
         .unwrap();
     assert!(matches!(
-        app.promote(&signal.id),
+        app.promote(&signal.value.id),
         Err(SignalError::NotWired)
     ));
     let roadmap = Arc::new(Mutex::new(RoadmapEngine::new("project".into())));
     let app = app.with_roadmap(Arc::clone(&roadmap));
     assert!(matches!(
-        app.promote(&signal.id),
+        app.promote(&signal.value.id),
         Err(SignalError::InvalidState(_))
     ));
     assert!(roadmap.lock().unwrap().roadmap().chunks.is_empty());
-    assert_eq!(app.get(&signal.id).unwrap(), signal);
+    assert_eq!(app.get(&signal.value.id).unwrap(), signal.value);
     assert_eq!(chunk_id_for("f1c9a4e2-1234"), "signal-f1c9a4e2-1234");
 }

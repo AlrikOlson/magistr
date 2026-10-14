@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 /// a check was admitted against when its result came back. `Unchanged` is
 /// the agreement of two reads, never proof that nothing happened between
 /// them.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(tag = "freshness", rename_all = "snake_case")]
 pub enum SourceFreshness {
     /// The settlement read matched the admission read.

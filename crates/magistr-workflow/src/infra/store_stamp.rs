@@ -5,6 +5,7 @@ use std::{fs, io, path::Path};
 use magistr_workflow_contracts::StoreStamp;
 
 /// Observe a regular file. Absence is the only successful result without a stamp.
+#[cfg(test)]
 pub(crate) fn of(path: &Path) -> io::Result<Option<StoreStamp>> {
     let file = match open_regular(path) {
         Ok(file) => file,

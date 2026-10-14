@@ -635,14 +635,10 @@ impl RoadmapService {
         &self,
         Parameters(args): Parameters<StartChunkArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        match self.application.start_chunk(&args.id) {
-            Ok(chunk) => Self::present(Ok(serde_json::json!({
-                "chunk": chunk,
-                "backref": CrossRef::RoadmapChunk(args.id).to_wire(),
-                "hint": "pass `backref` to ship_set_objective and a think execution_ref, then roadmap_link the resulting task:/think: refs back",
-            }))),
-            Err(error) => Self::present::<()>(Err(error)),
-        }
+        Self::present(self.application.start_chunk(&args.id).map(|observed| observed.map(|chunk| serde_json::json!({
+            "chunk": chunk, "backref": CrossRef::RoadmapChunk(args.id).to_wire(),
+            "hint": "pass `backref` to ship_set_objective and a think execution_ref, then roadmap_link the resulting task:/think: refs back",
+        }))))
     }
 
     #[tool(
@@ -703,9 +699,11 @@ impl RoadmapService {
             .application
             .record_refresh(args.summary.clone(), args.think_steps.clone())
         {
-            Ok(total) => Self::present(Ok(serde_json::json!({
-                "recorded": true, "summary": args.summary, "think_steps": args.think_steps,
-                "total_refreshes": total,
+            Ok(total) => Self::present(Ok(total.map(|total| {
+                serde_json::json!({
+                    "recorded": true, "summary": args.summary, "think_steps": args.think_steps,
+                    "total_refreshes": total,
+                })
             }))),
             Err(error) => Self::present::<()>(Err(error)),
         }
@@ -874,7 +872,16 @@ impl RoadmapService {
             .await
         {
             Ok(report) => report,
-            Err(error) => return Ok(Self::err_structured(error.kind, error.message)),
+            Err(error) => {
+                use crate::infra::tool_failure::ToolFailure;
+                return Ok(if error.effect == "unknown" {
+                    ToolFailure::uncertain(error.kind, error.message)
+                } else if let Some(store) = error.store {
+                    ToolFailure::store(error.kind, &store)
+                } else {
+                    Self::err_structured(error.kind, error.message)
+                });
+            }
         };
         let (project_id, phase, outcome) = (report.project_id, report.phase, report.outcome);
         use crate::roadmap::application::tracker::TargetPhase;
@@ -900,6 +907,7 @@ impl RoadmapService {
             "mirroring_enabled": outcome.mirroring_enabled,
             "included": outcome.included,
             "already_included": outcome.already_included,
+            "roadmap_source": outcome.roadmap_source,
             "next_steps": next_steps,
         })))
     }
@@ -1012,11 +1020,17 @@ mod tests {
     /// Patch the chunk with raw wire JSON, exactly as a client would send it.
     async fn patch(svc: &RoadmapService, wire: &str) -> serde_json::Value {
         let args: UpdateChunkArgs = serde_json::from_str(wire).expect("wire deserializes");
-        svc.roadmap_update_chunk(Parameters(args))
+        let mut answer = svc
+            .roadmap_update_chunk(Parameters(args))
             .await
             .expect("handler returns")
             .structured_content
-            .expect("structured content")
+            .expect("structured content");
+        if answer.get("ok") == Some(&serde_json::json!(false)) {
+            return answer;
+        }
+        assert_eq!(answer["source"]["kind"], "memory");
+        answer["value"].take()
     }
 
     #[tokio::test]
@@ -1285,11 +1299,17 @@ mod tests {
 
     async fn focus_set(svc: &RoadmapService, wire: &str) -> serde_json::Value {
         let args: FocusSetArgs = serde_json::from_str(wire).expect("wire deserializes");
-        svc.roadmap_focus_set(Parameters(args))
+        let mut answer = svc
+            .roadmap_focus_set(Parameters(args))
             .await
             .expect("handler returns")
             .structured_content
-            .expect("structured content")
+            .expect("structured content");
+        if answer.get("ok") == Some(&serde_json::json!(false)) {
+            return answer;
+        }
+        assert_eq!(answer["source"]["kind"], "memory");
+        answer["value"].take()
     }
 
     /// A chunk created over the wire WITH a group is focusable in one call.
@@ -1313,7 +1333,8 @@ mod tests {
             .unwrap()
             .structured_content
             .unwrap();
-        assert_eq!(created["group"], "Authentication");
+        assert_eq!(created["value"]["group"], "Authentication");
+        assert_eq!(created["source"]["kind"], "memory");
 
         // Focus and read the frontier: the chunk is there, with no set_group.
         let focused = focus_set(
@@ -1340,7 +1361,9 @@ mod tests {
             .structured_content
             .unwrap();
         assert!(
-            created.get("group").is_none_or(serde_json::Value::is_null),
+            created["value"]
+                .get("group")
+                .is_none_or(serde_json::Value::is_null),
             "an omitted group must leave the chunk ungrouped, not invent one"
         );
     }
@@ -1387,7 +1410,6 @@ mod tests {
         // the absence of `ok:false` IS the success signal here.
         assert!(set.get("ok").is_none(), "success must not report an error");
         assert_eq!(set["lane"], "/w/a");
-        assert_eq!(set["persistent"], false);
         assert_eq!(set["focus"]["group"], "Authentication");
         assert_eq!(set["focus"]["mode"], "build");
         // The frontier is the FOCUSED workstream's, not the roadmap's: bill-1
@@ -1600,6 +1622,9 @@ mod tests {
         let mut se = SignalEngine::new("p".into());
         let id = se
             .capture(SignalKind::Idea, "x".into(), "do it".into())
+            .as_ref()
+            .unwrap()
+            .value
             .id
             .clone();
         se.research(&id, "looked".into(), 0.9, vec![], None)

@@ -78,7 +78,7 @@ async fn a_closed_ticket_proposes_done_it_does_not_transition() {
     let report = reconcile(&e, &tracker, dir.path(), T2)
         .await
         .expect("sweep");
-    let touched = propose_status_from_sweep(&mut e, PROVIDER, &report);
+    let touched = propose_status_from_sweep(&mut e, PROVIDER, &report).unwrap();
 
     assert_eq!(touched, vec!["c1".to_string()]);
 
@@ -191,7 +191,7 @@ async fn a_ticket_we_never_projected_proposes_nothing() {
     let report = reconcile(&e, &tracker, dir.path(), T2)
         .await
         .expect("sweep");
-    let touched = propose_status_from_sweep(&mut e, PROVIDER, &report);
+    let touched = propose_status_from_sweep(&mut e, PROVIDER, &report).unwrap();
     assert!(touched.is_empty());
 }
 
@@ -522,5 +522,5 @@ fn resolving_without_an_open_proposal_is_loud() {
     let err = e
         .resolve_title_proposal("c1", true)
         .expect_err("must refuse");
-    assert!(err.contains("no open title proposal"), "{err}");
+    assert!(err.to_string().contains("no open title proposal"), "{err}");
 }

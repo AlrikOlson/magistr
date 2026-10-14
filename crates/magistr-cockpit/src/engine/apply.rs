@@ -1,6 +1,6 @@
 //! Carrying an engine command out on a port.
 
-use magistr_workflow_contracts::{Chunk, Signal};
+use magistr_workflow_contracts::{Chunk, Observed, Signal, WorkflowMutationError};
 use magistr_workflow_contracts::{NativeEvent, RoadmapFrame, SignalFrame};
 
 use super::describe::describe;
@@ -27,13 +27,16 @@ pub fn apply(port: &mut dyn EnginePort, cmd: &EngineCmd) -> EngineEvent {
             pinned,
         } => port
             .pin(*step_number, *pinned)
-            .map(|()| EngineEvent::Pinned {
+            .map(|_| EngineEvent::Pinned {
                 step_number: *step_number,
                 pinned: *pinned,
             }),
-        EngineCmd::Checkpoint => port.checkpoint().map(|report| EngineEvent::Checkpoint {
-            lines: lines(&report),
-        }),
+        EngineCmd::Checkpoint => port
+            .checkpoint()
+            .map_err(WorkflowMutationError::rejected)
+            .map(|report| EngineEvent::Checkpoint {
+                lines: lines(&report),
+            }),
         EngineCmd::StartChunk { id } => chunk_event(port.start_chunk(id), |chunk| {
             RoadmapFrame::ChunkChanged { chunk }
         }),
@@ -50,9 +53,10 @@ pub fn apply(port: &mut dyn EnginePort, cmd: &EngineCmd) -> EngineEvent {
         EngineCmd::ClearBlocker { chunk } => chunk_event(port.clear_blocker(chunk), |chunk| {
             RoadmapFrame::ChunkChanged { chunk }
         }),
-        EngineCmd::PromoteSignal { id } => signal_event(port.promote_signal(id), |signal| {
-            SignalFrame::SignalChanged { signal }
-        }),
+        EngineCmd::PromoteSignal { id } => signal_event(
+            port.promote_signal(id).map(|promotion| promotion.signal),
+            |signal| SignalFrame::SignalChanged { signal },
+        ),
         EngineCmd::IgnoreSignal { id } => signal_event(port.ignore_signal(id), |signal| {
             SignalFrame::SignalDismissed { signal }
         }),
@@ -65,24 +69,24 @@ pub fn apply(port: &mut dyn EnginePort, cmd: &EngineCmd) -> EngineEvent {
     answer.unwrap_or_else(|error| EngineEvent::PortFailed {
         cmd: cmd.clone(),
         what: describe(cmd),
-        error,
+        error: error.to_string(),
     })
 }
 
 /// A port's chunk answer as the roadmap event the engines would announce.
 fn chunk_event(
-    answer: Result<Chunk, String>,
+    answer: Result<Observed<Chunk>, WorkflowMutationError>,
     frame: impl FnOnce(Chunk) -> RoadmapFrame,
-) -> Result<EngineEvent, String> {
-    answer.map(|chunk| EngineEvent::local(NativeEvent::Roadmap(frame(chunk))))
+) -> Result<EngineEvent, WorkflowMutationError> {
+    answer.map(|chunk| EngineEvent::local(NativeEvent::Roadmap(frame(chunk.value))))
 }
 
 /// A port's signal answer as the signal event the engines would announce.
 fn signal_event(
-    answer: Result<Signal, String>,
+    answer: Result<Observed<Signal>, WorkflowMutationError>,
     frame: impl FnOnce(Signal) -> SignalFrame,
-) -> Result<EngineEvent, String> {
-    answer.map(|signal| EngineEvent::local(NativeEvent::Signal(frame(signal))))
+) -> Result<EngineEvent, WorkflowMutationError> {
+    answer.map(|signal| EngineEvent::local(NativeEvent::Signal(frame(signal.value))))
 }
 
 /// The report as readable lines: pretty-printed, since its shape is the

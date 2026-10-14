@@ -270,9 +270,13 @@ async fn a_client_that_declared_nothing_still_gets_the_blocking_result() {
 
     let body = complete_body(&response);
     assert_not_a_soft_error(&body);
-    assert_eq!(body["verified"], json!(true), "envelope: {body}");
-    assert_eq!(body["exit_code"], json!(0));
-    assert_eq!(body["passed"], json!(true));
+    assert_eq!(
+        body["check"]["value"]["verified"],
+        json!(true),
+        "envelope: {body}"
+    );
+    assert_eq!(body["check"]["value"]["exit_code"], json!(0));
+    assert_eq!(body["check"]["value"]["passed"], json!(true));
     let _ = client.cancel().await;
 }
 
@@ -316,14 +320,14 @@ async fn the_tasks_terminal_result_is_the_same_envelope_as_the_inline_one() {
         "details",
     ] {
         assert_eq!(
-            task_body[field], inline_body[field],
+            task_body["check"]["value"][field], inline_body["check"]["value"][field],
             "field `{field}` diverged between the task and inline paths\n\
              task:   {task_body}\ninline: {inline_body}"
         );
     }
     assert_not_a_soft_error(&task_body);
-    assert_eq!(task_body["verified"], json!(true));
-    assert_eq!(task_body["passed"], json!(true));
+    assert_eq!(task_body["check"]["value"]["verified"], json!(true));
+    assert_eq!(task_body["check"]["value"]["passed"], json!(true));
 
     let _ = inline.cancel().await;
     let _ = tasked.cancel().await;
@@ -351,9 +355,13 @@ async fn a_failing_command_run_as_a_task_still_reports_failure() {
         "the task itself ran fine; it is the GATE that failed"
     );
     let body = completed_envelope(&payload);
-    assert_eq!(body["passed"], json!(false), "envelope: {body}");
-    assert_eq!(body["exit_code"], json!(3));
-    assert_eq!(body["verified"], json!(true));
+    assert_eq!(
+        body["check"]["value"]["passed"],
+        json!(false),
+        "envelope: {body}"
+    );
+    assert_eq!(body["check"]["value"]["exit_code"], json!(3));
+    assert_eq!(body["check"]["value"]["verified"], json!(true));
 
     let _ = client.cancel().await;
 }

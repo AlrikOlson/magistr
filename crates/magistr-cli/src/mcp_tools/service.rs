@@ -350,6 +350,7 @@ impl MagistrService {
             Err(why) => {
                 result["recorded"] = json!(false);
                 result["note"] = json!(unrecorded_note(&why.to_string()));
+                result["failure"] = json!(why.mutation_failure());
                 return result;
             }
         };
@@ -365,14 +366,17 @@ impl MagistrService {
                 // record parsed (the report names tests the panic scan may
                 // not).
                 let mut rows = run.rows.clone();
-                junit_rows(&check, &mut rows);
+                junit_rows(&check.value, &mut rows);
                 result["rows"] = json!(rows);
                 result["recorded"] = json!(true);
-                result["verified"] = json!(check.verified);
+                result["verified"] = json!(check.value.verified);
+                result["saved_check"] = json!(check);
+                result["saved_receipt"] = json!(receipt);
                 result["task_id"] = json!(task);
-                result["receipt"] = json!(receipt.id);
-                result["source_revision"] = json!(receipt.source.as_ref().map(|s| &s.revision));
-                result["source_freshness"] = json!(receipt.freshness);
+                result["receipt"] = json!(receipt.value.id);
+                result["source_revision"] =
+                    json!(receipt.value.source.as_ref().map(|s| &s.revision));
+                result["source_freshness"] = json!(receipt.value.freshness);
             }
             Ok(CheckSettlement::Stale {
                 admission,
@@ -385,11 +389,13 @@ impl MagistrService {
                 ));
                 result["stale_admission"] = json!(admission);
                 result["unsettled_outcome"] = json!(outcome);
-                result["receipt"] = json!(receipt.id);
+                result["saved_receipt"] = json!(receipt);
+                result["receipt"] = json!(receipt.value.id);
             }
             Err(why) => {
                 result["recorded"] = json!(false);
                 result["note"] = json!(unrecorded_note(&why.to_string()));
+                result["failure"] = json!(why.mutation_failure());
             }
         }
         result

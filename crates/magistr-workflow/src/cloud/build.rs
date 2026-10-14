@@ -313,9 +313,23 @@ pub fn from_action(tenant: &str, cycle: &str, action: &Action) -> UnifiedRecordE
 /// graph). A dependency's relation is kept only if it's one of the schema's
 /// think relations (`supports`/`refutes`/`depends_on`); any other value is
 /// dropped to unlabeled, mirroring the engine's allowlist.
-#[must_use]
-pub fn from_step(tenant: &str, step: &ThinkStep) -> UnifiedRecordEnvelope {
-    let record = serde_json::to_value(step).unwrap_or(serde_json::Value::Null);
+pub fn from_step(
+    tenant: &str,
+    step: &ThinkStep,
+) -> Result<UnifiedRecordEnvelope, magistr_workflow_contracts::ReadError> {
+    use magistr_workflow_contracts::{ReadError, ReadErrorKind};
+    let id = step
+        .record_id
+        .as_deref()
+        .filter(|id| !id.trim().is_empty())
+        .ok_or_else(|| {
+            ReadError::new(
+                ReadErrorKind::Identity,
+                "This reasoning record has no identity.",
+            )
+        })?;
+    let record = serde_json::to_value(step)
+        .map_err(|error| ReadError::new(ReadErrorKind::Decode, error.to_string()))?;
     let edges = step
         .dependencies
         .as_deref()
@@ -329,21 +343,15 @@ pub fn from_step(tenant: &str, step: &ThinkStep) -> UnifiedRecordEnvelope {
                 .map(str::to_string),
         })
         .collect();
-    UnifiedRecordEnvelope::owner(
+    Ok(UnifiedRecordEnvelope::owner(
         tenant,
         Family::Think,
         Kind::Step,
-        // The immutable record id is the wire identity; step_number is only
-        // the human-facing display number and may be renumbered locally
-        // (think-step-stable-id). Number fallback covers content-keyless
-        // steps that never got an id.
-        step.record_id
-            .clone()
-            .unwrap_or_else(|| step.step_number.to_string()),
+        id.to_owned(),
         step.timestamp.clone().unwrap_or_default(),
         record,
         edges,
-    )
+    ))
 }
 
 #[cfg(test)]
@@ -580,6 +588,7 @@ mod tests {
         };
         let step: ThinkStep = serde_json::from_value(json!({
             "step_number": 909,
+            "record_id": "step-909",
             "estimated_total": 910,
             "purpose": "x",
             "thought": "y",
@@ -613,6 +622,7 @@ mod tests {
             think_branch: None,
         };
         let check = Check {
+            receipt_id: None,
             check_type: CheckType::Test,
             name: "cargo test".into(),
             passed: true,
@@ -641,7 +651,7 @@ mod tests {
         let built: Vec<(&str, UnifiedRecordEnvelope)> = vec![
             ("roadmap chunk", from_chunk(US, &owned_chunk, &[], &[])),
             ("signal", from_signal(US, &owned_signal)),
-            ("think step", from_step(US, &step)),
+            ("think step", from_step(US, &step).unwrap()),
             ("ship action", from_action(US, cycle, &action)),
             (
                 "ship task",
@@ -784,6 +794,7 @@ mod tests {
 
         // Check names contain spaces — the id never embeds the name.
         let check = Check {
+            receipt_id: None,
             check_type: CheckType::Test,
             name: "cargo test + clippy".into(),
             passed: true,
@@ -824,6 +835,7 @@ mod tests {
         use serde_json::json;
         let step: ThinkStep = serde_json::from_value(json!({
             "step_number": 909,
+            "record_id": "step-909",
             "estimated_total": 910,
             "purpose": "x",
             "thought": "y",
@@ -832,8 +844,8 @@ mod tests {
             "timestamp": "2026-06-08T00:00:00Z"
         }))
         .unwrap();
-        let envelope = from_step("think-and-ship-676f38", &step);
-        assert_eq!(envelope.id, "909");
+        let envelope = from_step("think-and-ship-676f38", &step).unwrap();
+        assert_eq!(envelope.id, "step-909");
         assert_eq!(envelope.edges.len(), 3);
         // bare dep → unlabeled
         assert_eq!(envelope.edges[0].target, "think:8");

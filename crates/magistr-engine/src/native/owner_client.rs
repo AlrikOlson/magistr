@@ -249,7 +249,7 @@ impl OwnerClient {
             Ok(Err(CommandRefusal::StaleGeneration { current })) => {
                 Err(AttachError::StaleGeneration { current })
             }
-            Ok(Err(CommandRefusal::Engine(why))) => Err(AttachError::Engine(why)),
+            Ok(Err(CommandRefusal::Engine(why))) => Err(AttachError::Engine(Box::new(why))),
             Err(error) => {
                 // A late answer could no longer be told from the next
                 // command's: the connection is spent.

@@ -29,6 +29,7 @@
 //! asserted.
 
 use crate::roadmap::engine::RoadmapEngine;
+use crate::tracker::TrackerError;
 
 /// The content hash a seeded link carries, and the reason it is this value.
 ///
@@ -84,17 +85,20 @@ pub fn seed_links_from(
     engine: &mut RoadmapEngine,
     from: &str,
     to: &str,
-) -> Result<SeedReport, String> {
+) -> Result<SeedReport, TrackerError> {
     let from = from.trim().to_ascii_lowercase();
     let to = to.trim().to_ascii_lowercase();
     if from.is_empty() || to.is_empty() {
-        return Err("seeding needs a source lane and a destination lane".to_string());
+        return Err(TrackerError::Local {
+            message: "Choose a source and destination tracker.".into(),
+            store: None,
+        });
     }
     if from == to {
-        return Err(format!(
-            "'{to}' cannot be seeded from itself — a lane's own links are the ones a seed would \
-             overwrite"
-        ));
+        return Err(TrackerError::Local {
+            message: format!("Choose a destination tracker different from {from}."),
+            store: None,
+        });
     }
 
     // Snapshot the work list before mutating: the borrow on the engine ends
@@ -122,7 +126,19 @@ pub fn seed_links_from(
         // lane's record of what IT last saw, and handing it to another provider
         // would make the echo fence there compare against a version that
         // provider never issued.
-        engine.record_tracker_link(&chunk_id, &to, &external_id, NEVER_WRITTEN, None)?;
+        engine
+            .record_tracker_link(&chunk_id, &to, &external_id, NEVER_WRITTEN, None)
+            .map_err(|error| {
+                let message = format!(
+                    "Saved {} links; could not save {chunk_id}: {error}",
+                    report.seeded.len()
+                );
+                let store = match error {
+                    crate::roadmap::engine::RoadmapMutationError::Store(error) => Some(error),
+                    crate::roadmap::engine::RoadmapMutationError::Rejected(_) => None,
+                };
+                TrackerError::Local { message, store }
+            })?;
         report.seeded.push(chunk_id);
     }
     Ok(report)

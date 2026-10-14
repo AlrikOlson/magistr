@@ -63,7 +63,7 @@ impl ShipUseCases {
                 "`gate_id` is required (returned by ship_gate_open)",
             ));
         }
-        let client = self.lock()?.cloud_client().ok_or_else(|| ShipError {
+        let client = self.lock()?.cloud_client().ok_or_else(|| ShipError::Refused {
             kind: "no_cloud", message: "no cloud workspace is connected — gates live in the workspace. Apply your declared default.".into(),
         })?;
         let wait_secs = wait_secs.unwrap_or(25).clamp(0, 55);
@@ -72,13 +72,13 @@ impl ShipUseCases {
             let envelope = match client.get("ship", "gate", gate_id).await {
                 Ok(Some(envelope)) => envelope,
                 Ok(None) => {
-                    return Err(ShipError {
+                    return Err(ShipError::Refused {
                         kind: "not_found",
                         message: format!("gate '{gate_id}' was not found in the workspace"),
                     });
                 }
                 Err(error) => {
-                    return Err(ShipError {
+                    return Err(ShipError::Refused {
                         kind: "cloud_unreachable",
                         message: format!(
                             "the workspace could not be reached ({error}) — apply your declared default once expires_at passes"
@@ -116,7 +116,7 @@ impl ShipUseCases {
                     tokio::time::sleep(remaining.min(std::time::Duration::from_secs(3))).await;
                 }
                 Err(message) => {
-                    return Err(ShipError {
+                    return Err(ShipError::Refused {
                         kind: "malformed_gate",
                         message,
                     });

@@ -99,7 +99,7 @@ fn a_writers_memory_is_the_merged_file_after_its_own_save() {
 }
 
 #[test]
-fn a_conflicting_roadmap_transition_resolves_by_the_newest_record_and_the_loser_observes_it() {
+fn roadmap_changes_apply_to_fresh_state_without_overwriting_other_fields() {
     let tmp = TempDir::new().unwrap();
     let mut a = roadmap_engine(&tmp);
     add_chunk(&mut a, "c");
@@ -118,22 +118,27 @@ fn a_conflicting_roadmap_transition_resolves_by_the_newest_record_and_the_loser_
     b.update_chunk("c", Some("B's title".into()), None, None, None, None, None)
         .unwrap();
 
-    // Declared outcome: the copy with the newest `updated_at` wins whole.
-    // B's write is newer, so B's record — pending, retitled — is the store,
-    // and A's start is superseded rather than silently kept in A's memory.
+    // The title edit applies to the current committed chunk and retains its status.
     let on_disk = roadmap_engine(&tmp);
     let chunk = &on_disk.roadmap().chunks[0];
     assert_eq!(chunk.title, "B's title");
-    assert_eq!(chunk.status, ChunkStatus::Pending);
+    assert_eq!(chunk.status, ChunkStatus::InProgress);
     assert_eq!(a.refresh_if_stale(), Ok(true));
     let seen = &a.roadmap().chunks[0];
     assert_eq!(
         (seen.title.as_str(), seen.status),
-        ("B's title", ChunkStatus::Pending)
+        ("B's title", ChunkStatus::InProgress)
     );
     // A's next transition validates against the record it now holds.
-    a.start_chunk("c").expect("pending again, so it starts");
-    assert_eq!(b.refresh_if_stale(), Ok(true));
+    assert!(
+        a.start_chunk("c").is_err(),
+        "the started chunk cannot start twice"
+    );
+    assert_eq!(
+        b.refresh_if_stale(),
+        Ok(false),
+        "a refused write changes no file"
+    );
     assert_eq!(b.roadmap().chunks[0].status, ChunkStatus::InProgress);
 }
 
@@ -143,6 +148,9 @@ fn a_conflicting_signal_write_resolves_by_lifecycle_rank_not_by_who_wrote_last()
     let mut a = signal_engine(&tmp);
     let id = a
         .capture(SignalKind::Idea, "alice".into(), "rank".into())
+        .as_ref()
+        .unwrap()
+        .value
         .id
         .clone();
     let mut b = signal_engine(&tmp);
@@ -171,8 +179,10 @@ fn a_ship_refresh_validates_the_store_and_reports_changes() {
     let mut b = ship_engine(&tmp);
     assert_eq!(b.refresh_if_stale(), Ok(false));
 
-    a.set_objective("cycle".into(), vec![], vec![], "chunk:c".into());
-    a.add_task("t".into(), "task".into(), TaskType::Implement, None, None);
+    a.set_objective("cycle".into(), vec![], vec![], "chunk:c".into())
+        .unwrap();
+    a.add_task("t".into(), "task".into(), TaskType::Implement, None, None)
+        .unwrap();
     assert_eq!(b.refresh_if_stale(), Ok(true));
     assert_eq!(b.tasks.len(), 1);
     assert_eq!(b.refresh_if_stale(), Ok(false));
@@ -200,7 +210,9 @@ fn corrupt_cold_ship_reads_never_confirm_empty_and_recover_without_reopening() {
     use magistr_workflow_contracts::ReadErrorKind;
     let tmp = TempDir::new().unwrap();
     let mut writer = ship_engine(&tmp);
-    writer.set_objective("kept".into(), vec![], vec![], "chunk:c".into());
+    writer
+        .set_objective("kept".into(), vec![], vec![], "chunk:c".into())
+        .unwrap();
     let persistence = ship_persistence::Persistence::new(&ship_persistence::PersistenceConfig {
         enabled: true,
         data_dir: tmp.path().to_owned(),
@@ -230,9 +242,12 @@ fn each_family_retries_refused_reads_and_observes_deletion() {
     let mut roadmap = roadmap_engine(&tmp);
     add_chunk(&mut roadmap, "kept");
     let mut signal = signal_engine(&tmp);
-    signal.capture(SignalKind::Idea, "author".into(), "kept".into());
+    signal
+        .capture(SignalKind::Idea, "author".into(), "kept".into())
+        .unwrap();
     let mut ship = ship_engine(&tmp);
-    ship.set_objective("kept".into(), vec![], vec![], "chunk:kept".into());
+    ship.set_objective("kept".into(), vec![], vec![], "chunk:kept".into())
+        .unwrap();
     let paths = [
         Persistence::new(&infra_cfg(&tmp), Domain::Roadmap).path_for("proj"),
         Persistence::new(&infra_cfg(&tmp), Domain::Signal).path_for("proj"),
@@ -278,7 +293,7 @@ fn each_family_retries_refused_reads_and_observes_deletion() {
 }
 
 #[test]
-fn ship_observes_the_opened_execution_and_preserves_unsaved_writer_state() {
+fn ship_observes_the_opened_execution_and_refuses_an_unsavable_mutation() {
     use magistr_workflow_contracts::ReadSource;
     let tmp = TempDir::new().unwrap();
     let config = ship_persistence::PersistenceConfig {
@@ -291,8 +306,10 @@ fn ship_observes_the_opened_execution_and_preserves_unsaved_writer_state() {
     let mut a = ShipEngine::new("proj".into()).with_persistence(a_store.clone());
     let a_reader = ShipEngine::new("proj".into()).with_persistence(a_store);
     let mut b = ShipEngine::new("proj".into()).with_persistence(b_store);
-    a.set_objective("execution a".into(), vec![], vec![], "chunk:a".into());
-    b.set_objective("execution b".into(), vec![], vec![], "chunk:b".into());
+    a.set_objective("execution a".into(), vec![], vec![], "chunk:a".into())
+        .unwrap();
+    b.set_objective("execution b".into(), vec![], vec![], "chunk:b".into())
+        .unwrap();
     assert_eq!(
         a_reader
             .observe()
@@ -310,36 +327,46 @@ fn ship_observes_the_opened_execution_and_preserves_unsaved_writer_state() {
     let lock = a_path.with_extension("json.lock");
     std::fs::remove_file(&lock).unwrap();
     std::fs::create_dir(&lock).unwrap();
-    a.add_task(
-        "unsaved".into(),
-        "Retain in memory".into(),
-        TaskType::Implement,
-        None,
-        None,
-    );
-    assert_eq!(a.tasks.len(), 1);
+    let refused = a
+        .add_task(
+            "unsaved".into(),
+            "Refuse the unsavable task".into(),
+            TaskType::Implement,
+            None,
+            None,
+        )
+        .unwrap_err();
+    assert_eq!(refused.effect(), "none");
+    assert!(a.tasks.is_empty());
     assert!(a.observe().unwrap().value.tasks.is_empty());
-    assert_eq!(a.tasks.len(), 1);
+    assert!(a.tasks.is_empty());
     std::fs::remove_file(&a_path).unwrap();
     assert_eq!(a_reader.observe().unwrap().source, ReadSource::Missing);
     assert!(b.observe().unwrap().value.objective.is_some());
 }
 
 #[test]
-fn signal_observation_does_not_certify_or_erase_a_failed_save() {
+fn signal_failure_keeps_the_last_committed_memory_and_observation() {
     let tmp = TempDir::new().unwrap();
     let mut signal = signal_engine(&tmp);
-    signal.capture(SignalKind::Idea, "author".into(), "saved".into());
+    signal
+        .capture(SignalKind::Idea, "author".into(), "saved".into())
+        .unwrap();
     let path = Persistence::new(&infra_cfg(&tmp), Domain::Signal).path_for("proj");
     let lock = path.with_extension("json.lock");
     std::fs::remove_file(&lock).unwrap();
     std::fs::create_dir(&lock).unwrap();
-    signal.capture(SignalKind::Idea, "author".into(), "unsaved".into());
-    assert_eq!(signal.signals().signals.len(), 2);
+    let refused = signal
+        .capture(SignalKind::Idea, "author".into(), "unsaved".into())
+        .unwrap_err();
+    assert!(
+        matches!(refused, magistr_workflow::signal::engine::SignalMutationError::Store(ref error) if error.effect() == "none")
+    );
+    assert_eq!(signal.signals().signals.len(), 1);
     let read = signal.observe().unwrap();
     assert_eq!(read.value.signals.len(), 1);
     assert_eq!(read.value.signals[0].body, "saved");
-    assert_eq!(signal.signals().signals.len(), 2);
+    assert_eq!(signal.signals().signals.len(), 1);
 }
 
 #[test]
@@ -366,7 +393,7 @@ fn reasoning_reads_preserve_authored_ids_numbers_and_file_bytes() {
     }
     let persistence =
         magistr_workflow::think::persistence::Persistence::for_project(&config.persistence, "proj");
-    let path = persistence.default_store_path().unwrap();
+    let path = persistence.store_path().unwrap();
     let original = std::fs::read(&path).unwrap();
     let before = writer.observe_archive().unwrap();
     let reader = ReasoningServer::new_for_project(config, "proj".into());
@@ -396,7 +423,7 @@ fn reasoning_reads_preserve_authored_ids_numbers_and_file_bytes() {
     );
     assert_eq!(std::fs::read(&path).unwrap(), original);
     let mut invalid: serde_json::Value = serde_json::from_slice(&original).unwrap();
-    invalid["history"]["steps"][1]["step_number"] = serde_json::json!(7);
+    invalid["histories"]["proj"]["steps"][1]["step_number"] = serde_json::json!(7);
     let bytes = serde_json::to_vec(&invalid).unwrap();
     std::fs::write(&path, &bytes).unwrap();
     assert_eq!(
@@ -407,7 +434,7 @@ fn reasoning_reads_preserve_authored_ids_numbers_and_file_bytes() {
 }
 
 #[test]
-fn reasoning_observes_the_selected_session_without_adopting_other_files() {
+fn reasoning_observes_selected_history_from_one_validated_project() {
     use magistr_workflow::think::{
         config::ThinkConfig, domain::ThinkStep, engine::ReasoningServer,
         persistence::Persistence as ThinkPersistence,
@@ -431,13 +458,12 @@ fn reasoning_observes_the_selected_session_without_adopting_other_files() {
     let mut default = ReasoningServer::new_for_project(config.clone(), "proj".into());
     default.process_step_native(step(1, None)).unwrap();
     let store = ThinkPersistence::for_project(&config.persistence, "proj");
-    let default_path = store.default_store_path().unwrap();
-    let default_bytes = std::fs::read(&default_path).unwrap();
+    let default_history = default.observe_archive().unwrap().value;
     config.features.enable_sessions = true;
     config.features.default_session_id = Some("chosen".into());
     let mut writer = ReasoningServer::new_for_project(config.clone(), "proj".into());
     let missing = writer.observe_archive().unwrap();
-    assert_eq!(missing.source, ReadSource::Missing);
+    assert!(matches!(missing.source, ReadSource::File(_)));
     assert_eq!(missing.value.session_id.as_deref(), Some("proj__chosen"));
     assert!(writer.history().steps.is_empty());
     writer.process_step_native(step(7, None)).unwrap();
@@ -446,8 +472,8 @@ fn reasoning_observes_the_selected_session_without_adopting_other_files() {
     assert_eq!(chosen.value.steps[0].step_number, 7);
     let detached = ReasoningServer::new_for_project(config.clone(), "proj".into());
     assert_eq!(
-        serde_json::to_value(detached.observe_archive().unwrap()).unwrap(),
-        serde_json::to_value(&chosen).unwrap()
+        serde_json::to_value(detached.observe_archive().unwrap().value).unwrap(),
+        serde_json::to_value(&chosen.value).unwrap()
     );
     writer.process_step_native(step(9, Some("other"))).unwrap();
     let other = writer.observe_archive().unwrap();
@@ -455,14 +481,14 @@ fn reasoning_observes_the_selected_session_without_adopting_other_files() {
     assert_eq!(other.value.steps.len(), 1);
     assert_eq!(other.value.steps[0].step_number, 9);
     assert_eq!(
-        serde_json::to_value(detached.observe_archive().unwrap()).unwrap(),
-        serde_json::to_value(&chosen).unwrap()
+        serde_json::to_value(detached.observe_archive().unwrap().value).unwrap(),
+        serde_json::to_value(&chosen.value).unwrap()
     );
 
-    let other_path = store.session_store_path("proj__other").unwrap();
+    let other_path = store.store_path().unwrap();
     let bytes = std::fs::read(&other_path).unwrap();
     let mut wrong: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
-    wrong["history"]["session_id"] = serde_json::json!("proj__chosen");
+    wrong["histories"]["proj__other"]["session_id"] = serde_json::json!("proj__chosen");
     let wrong_bytes = serde_json::to_vec(&wrong).unwrap();
     std::fs::write(&other_path, &wrong_bytes).unwrap();
     assert_eq!(
@@ -472,8 +498,8 @@ fn reasoning_observes_the_selected_session_without_adopting_other_files() {
     assert_eq!(std::fs::read(&other_path).unwrap(), wrong_bytes);
     assert_eq!(writer.history().steps[0].step_number, 9);
     assert_eq!(
-        serde_json::to_value(detached.observe_archive().unwrap()).unwrap(),
-        serde_json::to_value(&chosen).unwrap()
+        detached.observe_archive().unwrap_err().kind,
+        ReadErrorKind::Identity
     );
     std::fs::write(&other_path, bytes).unwrap();
     assert_eq!(
@@ -486,7 +512,10 @@ fn reasoning_observes_the_selected_session_without_adopting_other_files() {
     let observed = project_session.observe_archive().unwrap();
     assert_eq!(observed.value.session_id, None);
     assert_eq!(observed.value.steps[0].step_number, 1);
-    assert_eq!(std::fs::read(default_path).unwrap(), default_bytes);
+    assert_eq!(
+        serde_json::to_value(observed.value).unwrap(),
+        serde_json::to_value(default_history).unwrap()
+    );
 }
 
 #[test]

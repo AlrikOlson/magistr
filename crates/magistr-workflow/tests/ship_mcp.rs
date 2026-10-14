@@ -142,11 +142,8 @@ fn output_schema_is_valid_json_schema() {
     let svc = service();
     for tool in svc.list_tools_view() {
         let schema = tool.output_schema.as_ref().unwrap();
-        assert!(
-            schema.contains_key("type") || schema.contains_key("properties"),
-            "tool '{}' output_schema doesn't look like a JSON Schema: {:?}",
-            tool.name,
-            schema.keys().collect::<Vec<_>>()
+        jsonschema::validator_for(&serde_json::Value::Object((**schema).clone())).unwrap_or_else(
+            |error| panic!("tool '{}' has an invalid output schema: {error}", tool.name),
         );
     }
 }

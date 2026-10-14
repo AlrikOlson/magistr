@@ -43,6 +43,7 @@ pub mod identity;
 mod local_stream;
 pub mod magistr_frame;
 pub mod mcp_acceptor;
+pub use magistr_workflow_contracts::{WorkflowMutationError, signal::SignalPromotion};
 pub mod native_config;
 pub mod native_engines;
 pub mod native_event;

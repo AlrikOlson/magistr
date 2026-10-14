@@ -20,6 +20,12 @@ pub enum CloudError {
     Http(#[from] reqwest::Error),
     #[error("cloud backend returned {status}: {body}")]
     Status { status: u16, body: String },
+    #[error("Local update failed after {saved} saved records: {message}")]
+    Local {
+        saved: usize,
+        message: String,
+        store: Option<magistr_workflow_contracts::WriteError>,
+    },
 }
 
 /// Whether a push failure is worth replaying: transport errors (offline) and
@@ -28,6 +34,7 @@ fn retryable(e: &CloudError) -> bool {
     match e {
         CloudError::Http(_) => true,
         CloudError::Status { status, .. } => *status >= 500,
+        CloudError::Local { .. } => false,
     }
 }
 

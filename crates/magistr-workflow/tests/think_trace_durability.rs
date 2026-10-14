@@ -9,7 +9,7 @@
 use std::collections::HashSet;
 
 use magistr_workflow::think::config::ThinkConfig;
-use magistr_workflow::think::domain::{NextAction, ThinkHistory, ThinkStep};
+use magistr_workflow::think::domain::{NextAction, ThinkStep};
 use magistr_workflow::think::engine::core::ReasoningServer;
 use tempfile::TempDir;
 
@@ -174,18 +174,6 @@ fn projects_are_isolated_on_one_data_dir() {
     assert_eq!(r1.history().steps[0].thought, "thought 1");
 }
 
-fn history_with(steps: Vec<ThinkStep>) -> ThinkHistory {
-    ThinkHistory {
-        steps,
-        branches: None,
-        completed: false,
-        session_id: None,
-        created_at: None,
-        updated_at: None,
-        metadata: None,
-    }
-}
-
 /// An explicit wipe must stay a wipe — the merge-on-save discipline must not
 /// resurrect deleted steps from a pre-wipe file.
 #[test]
@@ -195,7 +183,7 @@ fn wipe_is_not_resurrected_by_later_saves() {
     let _ = s.process_step_native(step_n(1));
     let _ = s.process_step_native(step_n(2));
 
-    s.clear_history();
+    s.clear_history().unwrap();
     let _ = s.process_step_native(step_n(10));
 
     let survived = persisted_step_numbers(&tmp);
@@ -206,44 +194,149 @@ fn wipe_is_not_resurrected_by_later_saves() {
     assert!(survived.contains(&10));
 }
 
-/// A file written under a schema this build does not know is not interpreted —
-/// neither on read nor by the merge a later save performs. The refusal used to
-/// live in the read the save did for itself; it now lives in the merge policy
-/// the shared lock calls, so it needs its own proof that a future-schema file
-/// cannot leak steps into a trace through the back door.
 #[test]
-fn a_future_schema_file_is_neither_read_nor_merged() {
-    let tmp = TempDir::new().unwrap();
-    let project = "schema-probe-project".to_string();
-
-    let sessions = tmp.path().join("think").join("sessions");
-    std::fs::create_dir_all(&sessions).unwrap();
-    let path = sessions.join(format!("{project}.json"));
-    let future = serde_json::json!({
-        "schema_version": 999,
-        "history": history_with(vec![step_n(7)]),
-    });
-    std::fs::write(&path, serde_json::to_string(&future).unwrap()).unwrap();
-
-    let mut engine = ReasoningServer::new_for_project(persisting_config(&tmp), project.clone());
-    assert!(
-        engine.history().steps.is_empty(),
-        "a future-schema file must not be read into the trace"
+fn an_unsupported_project_document_is_not_overwritten() {
+    let directory = TempDir::new().unwrap();
+    let config = persisting_config(&directory);
+    let mut owner = ReasoningServer::new_for_project(config.clone(), "project".into());
+    owner.process_step_native(step_n(1)).unwrap();
+    let persistence = magistr_workflow::think::persistence::Persistence::for_project(
+        &config.persistence,
+        "project",
     );
+    let path = persistence.store_path().unwrap();
+    let mut document: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    document["schema_version"] = serde_json::json!(999);
+    let refused = serde_json::to_vec(&document).unwrap();
+    std::fs::write(&path, &refused).unwrap();
+    let before = owner.history_snapshot();
+    let error = owner.process_step_native(step_n(2)).unwrap_err();
+    assert_eq!(error.effect(), "none");
+    assert_eq!(owner.history_snapshot(), before);
+    assert_eq!(std::fs::read(&path).unwrap(), refused);
+}
 
-    let _ = engine.process_step_native(step_n(1));
-    drop(engine);
-
-    let reloaded = ReasoningServer::new_for_project(persisting_config(&tmp), project);
-    let nums: HashSet<u32> = reloaded
-        .history()
-        .steps
-        .iter()
-        .map(|s| s.step_number)
+#[test]
+fn concurrent_owners_allocate_numbers_for_distinct_identical_inputs() {
+    use std::sync::{Arc, Barrier};
+    let directory = TempDir::new().unwrap();
+    let mut config = persisting_config(&directory);
+    config.features.enable_sessions = true;
+    let barrier = Arc::new(Barrier::new(2));
+    let threads: Vec<_> = ["review", "build"]
+        .into_iter()
+        .map(|session| {
+            let barrier = barrier.clone();
+            let config = config.clone();
+            std::thread::spawn(move || {
+                let mut owner = ReasoningServer::new_for_project(config, "concurrent".into());
+                let mut step = step_n(1);
+                step.session_id = Some(session.into());
+                barrier.wait();
+                owner.process_step_native(step).unwrap()
+            })
+        })
         .collect();
-    assert!(nums.contains(&1), "the real step must persist: {nums:?}");
+    let results: Vec<_> = threads
+        .into_iter()
+        .map(|thread| thread.join().unwrap())
+        .collect();
+    assert_ne!(results[0].step.step_number, results[1].step.step_number);
+    assert_ne!(results[0].step.record_id, results[1].step.record_id);
+    let reopened = ReasoningServer::new_for_project(config, "concurrent".into());
+    let saved: Vec<_> = reopened
+        .sessions()
+        .values()
+        .flat_map(|entry| &entry.history.steps)
+        .collect();
+    assert_eq!(saved.len(), 2);
+    for recorded in results {
+        assert!(
+            saved
+                .iter()
+                .any(|step| step.record_id == recorded.step.record_id)
+        );
+        assert!(matches!(
+            recorded.source,
+            magistr_workflow_contracts::ReadSource::File(_)
+        ));
+    }
+}
+
+#[test]
+fn failed_record_pin_estimate_branch_and_wipe_keep_the_committed_state() {
+    use magistr_workflow_contracts::ReadState;
+    let directory = TempDir::new().unwrap();
+    let config = persisting_config(&directory);
+    let mut owner = ReasoningServer::new_for_project(config.clone(), "failure".into());
+    owner.process_step_native(step_n(1)).unwrap();
+    let mut branch = step_n(2);
+    branch.branch_from = Some(1);
+    branch.branch_name = Some("Check the evidence".into());
+    let branch = owner
+        .process_step_native(branch)
+        .unwrap()
+        .step
+        .branch_id
+        .unwrap();
+    let persistence = magistr_workflow::think::persistence::Persistence::for_project(
+        &config.persistence,
+        "failure",
+    );
+    let path = persistence.store_path().unwrap();
+    let saved = std::fs::read(&path).unwrap();
+    let before = owner.history_snapshot();
+    let lock = path.with_extension("json.lock");
+    std::fs::remove_file(&lock).unwrap();
+    std::fs::create_dir(&lock).unwrap();
+    let errors = [
+        owner.process_step_native(step_n(3)).unwrap_err(),
+        owner.pin_step(1, true).unwrap_err(),
+        owner.revise_estimate(30).unwrap_err(),
+        owner
+            .set_branch_status(&branch, "merged", Some(2))
+            .unwrap_err(),
+        owner.clear_history().unwrap_err(),
+    ];
     assert!(
-        !nums.contains(&7),
-        "a save merged a step out of a file written under an unknown schema: {nums:?}"
+        errors
+            .iter()
+            .all(|error| error.effect() == "none" && error.store.is_some())
+    );
+    assert!(matches!(owner.mutation_state(), ReadState::Stale { .. }));
+    assert_eq!(owner.history_snapshot(), before);
+    assert_eq!(std::fs::read(&path).unwrap(), saved);
+    std::fs::remove_dir(&lock).unwrap();
+    owner.pin_step(1, true).unwrap();
+    let retry = owner.process_step_native(step_n(3)).unwrap();
+    assert_eq!(retry.step.step_number, 3);
+    let reopened = ReasoningServer::new_for_project(config, "failure".into());
+    assert_eq!(reopened.history().steps.len(), 3);
+    assert_eq!(reopened.history().steps[0].pinned, Some(true));
+}
+
+#[test]
+fn a_stale_owner_after_clear_cannot_resurrect_any_session() {
+    let directory = TempDir::new().unwrap();
+    let mut config = persisting_config(&directory);
+    config.features.enable_sessions = true;
+    let mut first = ReasoningServer::new_for_project(config.clone(), "clear".into());
+    for name in ["one", "two"] {
+        let mut step = step_n(0);
+        step.session_id = Some(name.into());
+        first.process_step_native(step).unwrap();
+    }
+    let mut stale = ReasoningServer::new_for_project(config.clone(), "clear".into());
+    first.clear_history().unwrap();
+    let mut step = step_n(0);
+    step.session_id = Some("three".into());
+    stale.process_step_native(step).unwrap();
+    let reopened = ReasoningServer::new_for_project(config, "clear".into());
+    assert_eq!(reopened.sessions().len(), 1);
+    assert_eq!(reopened.sessions()["clear__three"].history.steps.len(), 1);
+    assert_eq!(
+        reopened.sessions()["clear__three"].history.steps[0].step_number,
+        1
     );
 }

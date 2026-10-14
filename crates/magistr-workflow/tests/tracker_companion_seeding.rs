@@ -295,7 +295,10 @@ fn a_lane_cannot_be_seeded_from_itself() {
 
     let refusal = seed_links_from(&mut e, ISSUES, ISSUES).expect_err("must refuse");
 
-    assert!(refusal.contains(ISSUES), "the refusal must name the lane");
+    assert!(
+        refusal.to_string().contains(ISSUES),
+        "the refusal must name the lane"
+    );
     // LOAD-BEARING: the refusal cost nothing — the hash is untouched.
     assert_eq!(
         e.tracker_link("c1", ISSUES)

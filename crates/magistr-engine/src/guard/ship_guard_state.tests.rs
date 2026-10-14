@@ -29,6 +29,7 @@ fn task(id: &str, checks: usize) -> Task {
         artifacts: Vec::new(),
         checks: (0..checks)
             .map(|_| Check {
+                receipt_id: None,
                 check_type: CheckType::Test,
                 name: "gate".to_owned(),
                 passed: false,

@@ -64,7 +64,7 @@ fn roadmap_lifecycle_mirrors_records_and_commits_on_complete() {
     // add → start → record_refresh → complete (the terminal/commit event).
     add(&mut engine, "phase-1");
     engine.start_chunk("phase-1").unwrap();
-    engine.record_refresh("revisited".into(), vec![8]);
+    engine.record_refresh("revisited".into(), vec![8]).unwrap();
     engine
         .complete_chunk("phase-1", Some("task:build-it"))
         .unwrap();

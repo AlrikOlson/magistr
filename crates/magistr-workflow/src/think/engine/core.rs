@@ -1,6 +1,6 @@
 //! Core reasoning-step engine. Owns the `ReasoningServer` struct and its sibling impl blocks.
 
-use magistr_workflow_contracts::{Observed, ReadError, ReadSource};
+use magistr_workflow_contracts::{Observed, ReadError, ReadSource, ReadState};
 
 use std::collections::{HashMap, HashSet};
 use std::time::Instant;
@@ -14,7 +14,7 @@ use crate::think::domain::{
     Branch, HistoryMetadata, NextAction, SessionEntry, ThinkHistory, ThinkStep,
 };
 use crate::think::formatter::Formatter;
-use crate::think::persistence::Persistence;
+use crate::think::persistence::{PersistedProject, Persistence};
 
 pub struct ReasoningServer {
     // Fields are `pub(crate)` so sibling modules under `engine::*` can
@@ -22,6 +22,9 @@ pub struct ReasoningServer {
     // this crate still goes through the `config()` / `history()` /
     // `branches()` / `sessions()` accessors.
     pub(crate) history: ThinkHistory,
+    /// Complete owner state; history and session indexes are derived views.
+    pub(crate) project: PersistedProject,
+    pub(crate) observation: ReadState<()>,
     pub(crate) config: ThinkConfig,
     pub(crate) formatter: Formatter,
     pub(crate) persistence: Persistence,
@@ -34,7 +37,6 @@ pub struct ReasoningServer {
     pub(crate) step_to_branch: HashMap<u32, String>,
     pub(crate) branch_depth_cache: HashMap<u32, u32>,
     pub(crate) steps_since_cleanup: u32,
-    pub(crate) branches_seq: u64,
     /// When sessions are enabled, the session whose history is currently
     /// loaded into `self.history`. `None` means we're on the default
     /// non-session history.
@@ -115,17 +117,16 @@ impl ReasoningServer {
         &self.project_id
     }
 
-    pub(crate) fn cloud_push_last_step(&self) {
+    pub(crate) fn cloud_push_step(&self, step: &ThinkStep) {
         let Some(client) = &self.cloud else {
-            return;
-        };
-        let Some(step) = self.history.steps.last() else {
             return;
         };
         let Ok(handle) = tokio::runtime::Handle::try_current() else {
             return;
         };
-        let envelope = crate::cloud::build::from_step(&self.project_id, step);
+        let Ok(envelope) = crate::cloud::build::from_step(&self.project_id, step) else {
+            return;
+        };
         let client = client.clone();
         handle.spawn(async move {
             if let Err(e) = client.push(&envelope).await {
@@ -163,9 +164,7 @@ impl ReasoningServer {
     /// the caller should pass the same id it gives the ship/roadmap/signal
     /// engines — `new` resolves it from the environment for convenience.
     pub fn new_for_project(config: ThinkConfig, project_id: String) -> Self {
-        let formatter = Formatter::new(config.display.color_output);
         let persistence = Persistence::for_project(&config.persistence, &project_id);
-
         let active_session = config.features.enable_sessions.then(|| {
             namespace_session_id(
                 &project_id,
@@ -176,108 +175,52 @@ impl ReasoningServer {
                     .unwrap_or(&project_id),
             )
         });
-        let selected = match active_session.as_deref() {
-            Some(session) => persistence.load_session(session),
-            None => persistence.load_default(),
-        };
-        let selected_stored = selected.as_ref().is_ok_and(|read| read.value.is_some());
-        let mut history = match selected {
-            Ok(read) => read.value.unwrap_or_else(Self::new_history),
-            Err(error) => {
-                tracing::warn!(%error, "The reasoning archive could not be loaded");
-                Self::new_history()
-            }
-        };
-        let persisted_sessions = persistence.load_sessions().unwrap_or_else(|error| {
-            tracing::warn!(%error, "Reasoning sessions could not be loaded");
-            HashMap::new()
-        });
-
-        let mut sessions: HashMap<String, SessionEntry> = persisted_sessions
-            .into_iter()
-            .map(|(id, hist)| {
-                (
-                    id,
-                    SessionEntry {
-                        history: hist,
-                        last_accessed: Self::now_ms(),
-                    },
-                )
-            })
-            .collect();
-
-        if let Some(session) = &active_session {
-            history.session_id = (session != &project_id).then(|| session.clone());
-            if selected_stored {
-                sessions.insert(
-                    session.clone(),
-                    SessionEntry {
-                        history: history.clone(),
-                        last_accessed: Self::now_ms(),
-                    },
-                );
-            }
-        }
-
+        let observed = persistence.load_project();
+        let mut observation = ReadState::default();
+        observation.record(
+            observed
+                .as_ref()
+                .map(|read| Observed {
+                    value: (),
+                    source: read.source,
+                })
+                .map_err(Clone::clone),
+        );
+        let project = observed
+            .ok()
+            .and_then(|read| read.value)
+            .unwrap_or_else(|| PersistedProject::empty(&project_id));
+        let broadcaster = config.broadcast.path.clone().and_then(Broadcaster::spawn);
         let cwd = std::env::current_dir()
             .ok()
             .map(|p| p.canonicalize().unwrap_or(p))
             .map(|p| p.display().to_string());
-
-        let mut step_index: HashMap<u32, usize> = HashMap::new();
-        let mut step_numbers: HashSet<u32> = HashSet::new();
-        let mut step_to_branch: HashMap<u32, String> = HashMap::new();
-        let mut tools_used_set: HashSet<String> = HashSet::new();
-        let branches = Self::restored_branches(&history);
-
-        for (idx, step) in history.steps.iter().enumerate() {
-            step_index.insert(step.step_number, idx);
-            step_numbers.insert(step.step_number);
-            if let Some(bid) = &step.branch_id {
-                step_to_branch.insert(step.step_number, bid.clone());
-            }
-        }
-        if let Some(meta) = &history.metadata {
-            if let Some(tools) = &meta.tools_used {
-                for t in tools {
-                    tools_used_set.insert(t.clone());
-                }
-            }
-        }
-        // Ensure metadata reflects loaded state.
-        if let Some(meta) = history.metadata.as_mut() {
-            meta.tools_used = Some({
-                let mut v: Vec<String> = tools_used_set.iter().cloned().collect();
-                v.sort();
-                v
-            });
-        }
-
-        let broadcaster = config.broadcast.path.clone().and_then(Broadcaster::spawn);
-
-        Self {
-            history,
+        let mut server = Self {
+            history: Self::new_history(),
+            project: project.clone(),
+            observation,
+            formatter: Formatter::new(config.display.color_output),
             config,
-            formatter,
             persistence,
             start_time: Instant::now(),
-            branches,
-            sessions,
-            step_index,
-            step_numbers,
-            tools_used: tools_used_set,
-            step_to_branch,
+            branches: HashMap::new(),
+            sessions: HashMap::new(),
+            step_index: HashMap::new(),
+            step_numbers: HashSet::new(),
+            tools_used: HashSet::new(),
+            step_to_branch: HashMap::new(),
             branch_depth_cache: HashMap::new(),
             steps_since_cleanup: 0,
-            branches_seq: 0,
-            active_session,
+            active_session: active_session.clone(),
             broadcaster,
             cwd,
             project_id,
             mirror: None,
             repo_shared: false,
             cloud: None,
-        }
+        };
+        server.install_project(project, active_session, false);
+        server
     }
 
     /// Build a read-only view of a history loaded from elsewhere — e.g.
@@ -285,8 +228,25 @@ impl ReasoningServer {
     /// `impact_of` / `checkpoint_snapshot` / `recent_steps_rollup` on it.
     /// No persistence handle, no broadcaster, no disk I/O. The returned
     /// server's mutating methods still work but they only touch memory.
-    pub fn for_analysis(history: ThinkHistory, branches: HashMap<String, Branch>) -> Self {
+    pub fn for_analysis(mut history: ThinkHistory, branches: HashMap<String, Branch>) -> Self {
         let config = ThinkConfig::default();
+        let project_id = history
+            .metadata
+            .as_ref()
+            .and_then(|meta| meta.project_id.clone())
+            .unwrap_or_else(|| "analysis".into());
+        history
+            .metadata
+            .get_or_insert_with(Default::default)
+            .project_id = Some(project_id.clone());
+        let mut project = PersistedProject::empty(&project_id);
+        project.histories.insert(
+            history
+                .session_id
+                .clone()
+                .unwrap_or_else(|| project_id.clone()),
+            history.clone(),
+        );
 
         let mut step_index: HashMap<u32, usize> = HashMap::new();
         let mut step_numbers: HashSet<u32> = HashSet::new();
@@ -314,10 +274,15 @@ impl ReasoningServer {
         }
 
         let formatter = Formatter::new(false);
-        let persistence = Persistence::for_project(&config.persistence, "analysis");
+        let persistence = Persistence::for_project(&config.persistence, &project_id);
 
         Self {
             history,
+            project,
+            observation: ReadState::Current(Observed {
+                value: (),
+                source: ReadSource::Memory,
+            }),
             config,
             formatter,
             persistence,
@@ -330,15 +295,10 @@ impl ReasoningServer {
             step_to_branch,
             branch_depth_cache: HashMap::new(),
             steps_since_cleanup: 0,
-            branches_seq: 0,
             active_session: None,
             broadcaster: None,
             cwd: None,
-            // for_analysis is read-only — no namespacing decisions get
-            // made through this constructor, so an empty project id is
-            // fine. Any path that would consult it (process_step) is
-            // not reachable from a viewer-side `for_analysis` server.
-            project_id: String::new(),
+            project_id,
             // Read-only view: never mirrors to a repo.
             mirror: None,
             repo_shared: false,
@@ -440,113 +400,4 @@ impl ReasoningServer {
 
     // recover_xml_injection, validate_required_fields, validate_confidence
     // moved to `super::validation`.
-
-    /// Merge steps pulled from the cloud into the loaded trace
-    /// (sync-think-reconcile): insert-if-absent by `step_number` via the SAME
-    /// `merge_histories` rule the disk merge uses — an existing local step is
-    /// NEVER replaced, so a stale cloud copy cannot clobber local reasoning.
-    /// A SILENT merge: no broadcast, no repo mirror, no cloud push-back (a
-    /// reconcile that re-emitted would loop the pull straight into a push).
-    /// Returns the number of steps adopted; persists only when > 0.
-    ///
-    /// The content guard holds against the FULL persisted archive, not just
-    /// the trimmed in-memory window (adopt-archive-guard): the in-memory
-    /// history is bounded by `max_history_size`, so a cloud clone of an older
-    /// step would pass a memory-only check and re-pollute the disk on every
-    /// reconcile. Incoming steps are pre-filtered against the archive's
-    /// content keys and step numbers, and against each other (the cloud can
-    /// hold several clones of the same step).
-    pub fn adopt_steps(&mut self, steps: Vec<ThinkStep>) -> usize {
-        if steps.is_empty() {
-            return 0;
-        }
-        let mut seen: std::collections::HashSet<(String, String, String)> =
-            std::collections::HashSet::new();
-        let mut known_ids: std::collections::HashSet<String> = std::collections::HashSet::new();
-        let mut known_numbers: HashSet<u32> = HashSet::new();
-        if self.persistence.enabled() {
-            let archive = match self.read_active_archive() {
-                Ok(read) => read.value,
-                Err(error) => {
-                    tracing::warn!(%error, "Reasoning adoption refused because the archive could not be read");
-                    return 0;
-                }
-            };
-            if let Some(archive) = archive {
-                for step in &archive.steps {
-                    if let Some(k) = step.content_key() {
-                        seen.insert(k);
-                    }
-                    if let Some(id) = step
-                        .record_id
-                        .clone()
-                        .or_else(|| step.backfilled_record_id())
-                    {
-                        known_ids.insert(id);
-                    }
-                    known_numbers.insert(step.step_number);
-                }
-            }
-        }
-        for step in self.history.steps.iter() {
-            if let Some(id) = &step.record_id {
-                known_ids.insert(id.clone());
-            }
-        }
-        let mut steps = steps;
-        for step in steps.iter_mut() {
-            step.ensure_record_id();
-        }
-        let steps: Vec<ThinkStep> = steps
-            .into_iter()
-            .filter(|s| {
-                if known_numbers.contains(&s.step_number) {
-                    return false;
-                }
-                if let Some(id) = &s.record_id {
-                    if !known_ids.insert(id.clone()) {
-                        return false;
-                    }
-                }
-                match s.content_key() {
-                    Some(k) => seen.insert(k),
-                    None => true,
-                }
-            })
-            .collect();
-        if steps.is_empty() {
-            return 0;
-        }
-        let before = self.history.steps.len();
-        let mut incoming = Self::new_history();
-        incoming.steps = steps;
-        incoming.branches = None;
-        self.history = crate::think::persistence::merge_histories(&self.history, incoming);
-        let adopted = self.history.steps.len() - before;
-        if adopted > 0 {
-            self.history
-                .metadata
-                .get_or_insert_with(Default::default)
-                .project_id = Some(self.project_id.clone());
-            self.persist_active();
-        }
-        adopted
-    }
-
-    /// Persist whatever history is currently loaded — the active session
-    /// when one is set, otherwise the default history. Logs but doesn't
-    /// propagate I/O errors so the in-memory state always stays consistent.
-    pub(crate) fn persist_active(&self) {
-        if !self.persistence.enabled() {
-            return;
-        }
-        let snapshot = self.history_with_branches();
-        match &self.active_session {
-            Some(id) => self.persistence.save_session(id, &snapshot),
-            None => self.persistence.save_default(&snapshot),
-        }
-    }
 }
-
-// Text helpers moved to `crate::think::util::text`.
-// Recovery helpers moved to `crate::think::engine::recovery`.

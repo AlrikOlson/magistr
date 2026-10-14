@@ -782,7 +782,7 @@ pub async fn project_all_with_policy(
                 &written,
                 outcome.version.as_deref(),
             )
-            .map_err(TrackerError::Unsupported)?;
+            .map_err(local_projection_failure)?;
         // The SECOND fence, stamped from the same sent item. `written` covers
         // fields the team owns and so cannot answer "would we write again?";
         // this one covers only what we author, which is what the preview needs
@@ -795,7 +795,7 @@ pub async fn project_all_with_policy(
                 &provider,
                 &crate::tracker::ownership::authored_hash(policy, reconciled.item()),
             )
-            .map_err(TrackerError::Unsupported)?;
+            .map_err(local_projection_failure)?;
 
         report.outcomes.push((
             chunk.id.clone(),
@@ -874,7 +874,7 @@ pub async fn project_all_with_policy(
             Ok(()) => {
                 engine
                     .record_tracker_relations(&chunk.id, &provider, &hash)
-                    .map_err(TrackerError::Unsupported)?;
+                    .map_err(local_projection_failure)?;
                 report.relations_written.push(chunk.id.clone());
             }
             // The provider said it could and then refused this particular set.
@@ -891,6 +891,16 @@ pub async fn project_all_with_policy(
     }
 
     Ok(report)
+}
+
+fn local_projection_failure(error: crate::roadmap::engine::RoadmapMutationError) -> TrackerError {
+    let message =
+        format!("The tracker was updated, but its saved link could not be confirmed: {error}");
+    let store = match error {
+        crate::roadmap::engine::RoadmapMutationError::Store(error) => Some(error),
+        crate::roadmap::engine::RoadmapMutationError::Rejected(_) => None,
+    };
+    TrackerError::Local { message, store }
 }
 
 #[cfg(test)]

@@ -1,11 +1,12 @@
-//! Native result of a reasoning mutation; display projection is not its identity.
+//! Native result of a committed reasoning mutation.
+use crate::ReadSource;
 use crate::think::ThinkStep;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct RecordedStep {
     pub project_id: String,
     pub step: ThinkStep,
-    /// The existing extensible trace display projection, produced without a
-    /// serialization roundtrip. Native callers use `step` for identity.
+    pub source: ReadSource,
+    /// Bounded display projection of the committed state.
     pub report: serde_json::Value,
 }

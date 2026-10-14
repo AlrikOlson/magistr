@@ -246,7 +246,7 @@ fn run(
     command: &str,
     execution: CheckExecution,
 ) -> CheckSettlement {
-    let admission = cases.admit_check(request(gate, command)).unwrap();
+    let admission = cases.admit_check(request(gate, command)).unwrap().value;
     cases
         .settle_check(admission, outcome(execution, command))
         .unwrap()
@@ -291,7 +291,10 @@ fn admission_publishes_a_durable_receipt_and_settlement_completes_it() {
     let world = world();
     let cases = stored(temp.path(), &world);
     planned(&cases);
-    let admission = cases.admit_check(request("test", "cargo test")).unwrap();
+    let admission = cases
+        .admit_check(request("test", "cargo test"))
+        .unwrap()
+        .value;
     let ledger = cases.engine().lock().unwrap().receipts().clone();
     let admitted = ledger.get(&admission.receipt_id).unwrap().unwrap();
     assert_eq!(admitted.attempt, 1);
@@ -301,7 +304,7 @@ fn admission_publishes_a_durable_receipt_and_settlement_completes_it() {
     assert_eq!(source.config_digest, "c1");
     assert_eq!(source.revision, "r1@Some(3)");
     assert_eq!(admitted.acceptance_revision, admission.acceptance_revision);
-    assert!(admitted.execution.is_none() && admitted.settlement.is_none());
+    assert!(admitted.execution().is_none() && admitted.settlement.is_none());
     assert!(
         ledger
             .directory()
@@ -319,11 +322,14 @@ fn admission_publishes_a_durable_receipt_and_settlement_completes_it() {
     let CheckSettlement::Applied { check, receipt } = settled else {
         panic!("current instance applies");
     };
-    assert!(check.verified && check.passed);
-    assert!(receipt.is_applied() && receipt.passed() && receipt.verified());
-    assert_eq!(receipt.freshness, Some(SourceFreshness::Unchanged));
-    assert!(receipt.settled_at.is_some() && receipt.duration_ms.is_some());
-    assert_eq!(ledger.get(&receipt.id).unwrap().unwrap(), *receipt);
+    assert!(check.value.verified && check.value.passed);
+    assert!(receipt.value.is_applied() && receipt.value.passed() && receipt.value.verified());
+    assert_eq!(receipt.value.freshness, Some(SourceFreshness::Unchanged));
+    assert!(receipt.value.settled_at.is_some() && receipt.value.duration_ms.is_some());
+    assert_eq!(
+        ledger.get(&receipt.value.id).unwrap().unwrap(),
+        receipt.value
+    );
     // A fresh engine over the same store reads the same receipt.
     let again = stored(temp.path(), &world);
     let run = again.admit_task(None).unwrap().run_id;
@@ -335,7 +341,7 @@ fn admission_publishes_a_durable_receipt_and_settlement_completes_it() {
             .receipts()
             .for_run(&run)
             .unwrap(),
-        vec![*receipt]
+        vec![receipt.value]
     );
 }
 
@@ -351,7 +357,10 @@ fn attempts_count_per_instance_and_gate_and_a_change_during_the_run_is_recorded(
         "cargo test",
         CheckExecution::Exited { code: 1 },
     );
-    let admission = cases.admit_check(request("test", "cargo test")).unwrap();
+    let admission = cases
+        .admit_check(request("test", "cargo test"))
+        .unwrap()
+        .value;
     world.set_revision("r2");
     let settled = cases
         .settle_check(
@@ -360,9 +369,9 @@ fn attempts_count_per_instance_and_gate_and_a_change_during_the_run_is_recorded(
         )
         .unwrap();
     let receipt = settled.receipt();
-    assert_eq!(receipt.attempt, 2);
+    assert_eq!(receipt.value.attempt, 2);
     assert_eq!(
-        receipt.freshness,
+        receipt.value.freshness,
         Some(SourceFreshness::Changed {
             paths: vec!["src/lib.rs".into()]
         })
@@ -373,7 +382,11 @@ fn attempts_count_per_instance_and_gate_and_a_change_during_the_run_is_recorded(
         "cargo clippy",
         CheckExecution::Exited { code: 0 },
     );
-    assert_eq!(lint.receipt().attempt, 1, "another gate counts on its own");
+    assert_eq!(
+        lint.receipt().value.attempt,
+        1,
+        "another gate counts on its own"
+    );
 }
 
 #[test]
@@ -394,7 +407,7 @@ fn every_execution_outcome_is_recorded_and_none_but_exit_zero_certifies() {
         (CheckExecution::Exited { code: 101 }, "exit 101"),
     ] {
         let settled = run(&cases, "test", "cargo test", execution.clone());
-        assert_eq!(settled.receipt().execution, Some(execution));
+        assert_eq!(settled.receipt().value.execution(), Some(&execution));
         let refusal = cases.verify_completion("chunk:c1", None).unwrap_err();
         let CompletionRefusal::Outstanding(evidence) = &refusal else {
             panic!("{refusal}");
@@ -463,7 +476,7 @@ fn completion_accepts_current_evidence_and_separates_recovered_from_outstanding(
     assert_eq!(evidence.recovered.len(), 1);
 
     // The finalize report tells the same story.
-    let report = cases.finalize(vec![], None).unwrap();
+    let report = cases.finalize(vec![], None).unwrap().value;
     assert_eq!(report.recovered_failures, vec!["test (task: verify)"]);
     assert!(report.outstanding_failures.is_empty());
     assert!(
@@ -552,7 +565,7 @@ fn a_self_reported_pass_never_certifies_a_configured_gate() {
     let mut claim = request("test", "cargo test");
     claim.command = None;
     claim.passed = Some(true);
-    let admission = cases.admit_check(claim.clone()).unwrap();
+    let admission = cases.admit_check(claim.clone()).unwrap().value;
     let execution = ShipUseCases::self_reported(&claim);
     let mut reported = outcome(execution, "cargo test");
     reported.command = None;
@@ -567,7 +580,10 @@ fn late_settlement_after_rollover_stays_under_its_receipt_and_a_reused_name_star
     let world = world();
     let cases = stored(temp.path(), &world);
     planned(&cases);
-    let admission = cases.admit_check(request("test", "cargo test")).unwrap();
+    let admission = cases
+        .admit_check(request("test", "cargo test"))
+        .unwrap()
+        .value;
     let first_run = admission.target.run_id.clone();
     cases.complete_task("verify", vec![]).unwrap();
     cases.finalize(vec![], None).unwrap();
@@ -581,11 +597,11 @@ fn late_settlement_after_rollover_stays_under_its_receipt_and_a_reused_name_star
     let CheckSettlement::Stale { receipt, .. } = settled else {
         panic!("a superseded run must not collect the result");
     };
-    assert_eq!(receipt.id, admission.receipt_id);
-    assert_eq!(receipt.target.run_id, first_run);
-    assert!(receipt.passed() && !receipt.is_applied());
+    assert_eq!(receipt.value.id, admission.receipt_id);
+    assert_eq!(receipt.value.target.run_id, first_run);
+    assert!(receipt.value.passed() && !receipt.value.is_applied());
     let ledger = cases.engine().lock().unwrap().receipts().clone();
-    assert_eq!(ledger.for_run(&first_run).unwrap(), vec![*receipt]);
+    assert_eq!(ledger.for_run(&first_run).unwrap(), vec![receipt.value]);
 
     // The new run's `verify` has no evidence of its own.
     let new_run = cases.admit_task(None).unwrap().run_id;
@@ -600,7 +616,7 @@ fn late_settlement_after_rollover_stays_under_its_receipt_and_a_reused_name_star
         "cargo test",
         CheckExecution::Exited { code: 0 },
     );
-    assert_eq!(fresh.receipt().attempt, 1);
+    assert_eq!(fresh.receipt().value.attempt, 1);
     assert!(cases.verify_completion("chunk:c1", None).is_ok());
 }
 
@@ -621,8 +637,8 @@ fn without_an_evidence_capability_admission_still_works_and_completion_refuses()
         "cargo test",
         CheckExecution::Exited { code: 0 },
     );
-    assert!(settled.receipt().source.is_none());
-    assert!(settled.receipt().is_applied());
+    assert!(settled.receipt().value.source.is_none());
+    assert!(settled.receipt().value.is_applied());
     assert!(matches!(
         cases.verify_completion("chunk:c1", None).unwrap_err(),
         CompletionRefusal::NoEvidenceCapability
@@ -639,10 +655,8 @@ fn a_refused_observation_refuses_admission_before_anything_runs() {
     let error = cases
         .admit_check(request("test", "cargo test"))
         .unwrap_err();
-    assert!(
-        error.message.contains("source observation refused"),
-        "{error}"
-    );
+    assert_eq!(error.kind(), "source_unavailable");
+    assert_eq!(error.effect(), "none");
     let ledger = cases.engine().lock().unwrap().receipts().clone();
     let run_id = cases.admit_task(None).unwrap().run_id;
     assert!(ledger.for_run(&run_id).unwrap().is_empty());
@@ -660,7 +674,10 @@ fn explicit_compaction_preserves_completion_and_late_results_across_rollover() {
         "cargo test",
         CheckExecution::Exited { code: 0 },
     );
-    let pending = old.admit_check(request("test", "cargo test")).unwrap();
+    let pending = old
+        .admit_check(request("test", "cargo test"))
+        .unwrap()
+        .value;
     let original = old
         .engine()
         .lock()
@@ -696,7 +713,7 @@ fn explicit_compaction_preserves_completion_and_late_results_across_rollover() {
         (1, 2, 1)
     );
     let ledger = newer.engine().lock().unwrap().receipts().clone();
-    assert!(ledger.get(&finished.receipt().id).unwrap().is_none());
+    assert!(ledger.get(&finished.receipt().value.id).unwrap().is_none());
     assert_eq!(
         ledger.get(&pending.receipt_id).unwrap(),
         Some(original.clone())
@@ -708,8 +725,8 @@ fn explicit_compaction_preserves_completion_and_late_results_across_rollover() {
         )
         .unwrap();
     assert!(matches!(late, CheckSettlement::Stale { .. }));
-    assert_eq!(late.receipt().attempt, original.attempt);
-    assert_eq!(late.receipt().target, original.target);
+    assert_eq!(late.receipt().value.attempt, original.attempt);
+    assert_eq!(late.receipt().value.target, original.target);
     assert_eq!(
         serde_json::to_value(newer.verify_completion("chunk:c1", None).unwrap()).unwrap(),
         serde_json::to_value(before).unwrap()
@@ -746,7 +763,7 @@ fn completion_never_reads_poisoned_receipts_from_an_older_run() {
         CheckExecution::Exited { code: 0 },
     );
     std::fs::write(
-        directory.join(format!("{}.json", old.receipt().id)),
+        directory.join(format!("{}.json", old.receipt().value.id)),
         b"damaged old receipt",
     )
     .unwrap();
@@ -788,7 +805,7 @@ async fn compaction_is_explicit_through_the_mcp_surface() {
             .lock()
             .unwrap()
             .receipts()
-            .get(&old.receipt().id)
+            .get(&old.receipt().value.id)
             .unwrap()
             .is_some()
     );
@@ -800,7 +817,7 @@ async fn compaction_is_explicit_through_the_mcp_surface() {
     assert_eq!(
         result.structured_content.unwrap(),
         serde_json::json!({
-            "removed": 1, "retained_current": 1, "retained_unsettled": 0, "retained_referenced": 0
+            "removed": 1, "retained_current": 1, "retained_unsettled": 0, "retained_referenced": 0, "storage": "file"
         })
     );
 }
@@ -811,7 +828,10 @@ fn an_external_layer_edited_while_the_gate_ran_is_named_and_the_latest_attempt_g
     let world = world();
     let cases = stored(temp.path(), &world);
     planned(&cases);
-    let admission = cases.admit_check(request("test", "cargo test")).unwrap();
+    let admission = cases
+        .admit_check(request("test", "cargo test"))
+        .unwrap()
+        .value;
     // The organization policy moved while the command ran; not one source
     // byte did.
     world.set_config("c2");
@@ -822,7 +842,7 @@ fn an_external_layer_edited_while_the_gate_ran_is_named_and_the_latest_attempt_g
         )
         .unwrap();
     assert_eq!(
-        settled.receipt().freshness,
+        settled.receipt().value.freshness,
         Some(SourceFreshness::Reconfigured {
             layers: vec!["org-policy".into()]
         })
@@ -842,8 +862,11 @@ fn an_external_layer_edited_while_the_gate_ran_is_named_and_the_latest_attempt_g
         "cargo test",
         CheckExecution::Exited { code: 0 },
     );
-    assert_eq!(again.receipt().attempt, 2);
-    assert_eq!(again.receipt().source.as_ref().unwrap().config_digest, "c2");
+    assert_eq!(again.receipt().value.attempt, 2);
+    assert_eq!(
+        again.receipt().value.source.as_ref().unwrap().config_digest,
+        "c2"
+    );
     let evidence = cases.verify_completion("chunk:c1", None).unwrap();
     assert_eq!(evidence.config_digest, "c2");
     assert_eq!(evidence.accepted[0].attempt, 2);
@@ -949,7 +972,10 @@ fn a_settlement_without_the_witness_compares_digests_not_generations() {
 
     // Admitted here, settled by another process (a fresh handle over the
     // same store holds no witness): only the observations are compared.
-    let admission = cases.admit_check(request("test", "cargo test")).unwrap();
+    let admission = cases
+        .admit_check(request("test", "cargo test"))
+        .unwrap()
+        .value;
     world.set_generation(4);
     let elsewhere = stored(temp.path(), &world);
     let settled = elsewhere
@@ -959,11 +985,14 @@ fn a_settlement_without_the_witness_compares_digests_not_generations() {
         )
         .unwrap();
     assert_eq!(
-        settled.receipt().freshness,
+        settled.receipt().value.freshness,
         Some(SourceFreshness::Unchanged)
     );
 
-    let admission = cases.admit_check(request("test", "cargo test")).unwrap();
+    let admission = cases
+        .admit_check(request("test", "cargo test"))
+        .unwrap()
+        .value;
     world.set_config("c2");
     let settled = elsewhere
         .settle_check(
@@ -972,11 +1001,14 @@ fn a_settlement_without_the_witness_compares_digests_not_generations() {
         )
         .unwrap();
     assert_eq!(
-        settled.receipt().freshness,
+        settled.receipt().value.freshness,
         Some(SourceFreshness::Reconfigured { layers: vec![] })
     );
 
-    let admission = cases.admit_check(request("test", "cargo test")).unwrap();
+    let admission = cases
+        .admit_check(request("test", "cargo test"))
+        .unwrap()
+        .value;
     world.set_revision("r2");
     let settled = elsewhere
         .settle_check(
@@ -985,7 +1017,7 @@ fn a_settlement_without_the_witness_compares_digests_not_generations() {
         )
         .unwrap();
     assert_eq!(
-        settled.receipt().freshness,
+        settled.receipt().value.freshness,
         Some(SourceFreshness::Diverged {
             before: "r1".into(),
             after: "r2".into()
@@ -1032,7 +1064,7 @@ fn receipt_compaction_keeps_the_checks_of_saved_unfinished_plans() {
             .lock()
             .unwrap()
             .receipts()
-            .get(&verified.receipt().id)
+            .get(&verified.receipt().value.id)
             .unwrap()
             .is_some()
     );

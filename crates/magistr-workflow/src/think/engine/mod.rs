@@ -12,6 +12,7 @@
 //! Rust lets us decompose without splitting the type. The struct itself
 //! stays single-source in `core`.
 
+pub mod adoption;
 pub mod branching;
 pub mod core;
 pub mod export;
@@ -25,6 +26,7 @@ pub mod recovery;
 pub mod revisions;
 pub mod sessions;
 pub mod snapshots;
+mod transaction;
 pub mod validation;
 
 pub use core::ReasoningServer;

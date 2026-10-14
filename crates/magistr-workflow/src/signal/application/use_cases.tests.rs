@@ -41,17 +41,17 @@ fn native_capture_and_research_enforce_validation_before_mutation() {
         .capture(SignalKind::Bug, "user".into(), "Broken view".into(), None)
         .unwrap();
     assert!(matches!(
-        app.research(&signal.id, "\n".into(), 0.9, vec![], None),
+        app.research(&signal.value.id, "\n".into(), 0.9, vec![], None),
         Err(SignalError::InvalidArgs(_))
     ));
-    assert_eq!(app.get(&signal.id).unwrap(), signal);
+    assert_eq!(app.get(&signal.value.id).unwrap(), signal.value);
     let updated = app
-        .research(&signal.id, "Confirmed".into(), 2.0, vec![], Some(42))
+        .research(&signal.value.id, "Confirmed".into(), 2.0, vec![], Some(42))
         .unwrap();
-    assert_eq!(updated.status, SignalStatus::Researched);
-    assert_eq!(updated.enrichment[0].confidence, 1.0);
-    assert_eq!(updated.cross_refs, ["think:42"]);
-    assert_eq!(app.pending(None, &[], None).unwrap(), [updated]);
+    assert_eq!(updated.value.status, SignalStatus::Researched);
+    assert_eq!(updated.value.enrichment[0].confidence, 1.0);
+    assert_eq!(updated.value.cross_refs, ["think:42"]);
+    assert_eq!(app.pending(None, &[], None).unwrap(), [updated.value]);
 }
 
 #[tokio::test]
@@ -84,7 +84,7 @@ async fn mcp_and_native_views_share_state_and_logical_error_classification() {
         .unwrap();
     let result = service
         .signal_research(Parameters(ResearchArgs {
-            id: signal.id.clone(),
+            id: signal.value.id.clone(),
             summary: "Evidence".into(),
             confidence: 0.8,
             sources: vec!["local source".into()],
@@ -93,8 +93,8 @@ async fn mcp_and_native_views_share_state_and_logical_error_classification() {
         .await
         .unwrap();
     assert_eq!(
-        result.structured_content.unwrap(),
-        serde_json::to_value(app.get(&signal.id).unwrap()).unwrap()
+        result.structured_content.unwrap()["value"],
+        serde_json::to_value(app.get(&signal.value.id).unwrap()).unwrap()
     );
     assert!(Arc::ptr_eq(&service.engine(), &app.engine()));
 }
@@ -106,21 +106,30 @@ fn native_link_and_terminal_mutations_keep_domain_rules() {
         .capture(SignalKind::Question, "user".into(), "Why?".into(), None)
         .unwrap();
     assert!(matches!(
-        app.link(&signal.id, "unknown:value"),
+        app.link(&signal.value.id, "unknown:value"),
         Err(SignalError::InvalidArgs(_))
     ));
-    app.link(&signal.id, "think:8").unwrap();
+    app.link(&signal.value.id, "think:8").unwrap();
     assert_eq!(
-        app.link(&signal.id, "think:8").unwrap().cross_refs,
+        app.link(&signal.value.id, "think:8")
+            .unwrap()
+            .value
+            .cross_refs,
         ["think:8"]
     );
-    assert!(app.snooze(&signal.id, None).unwrap().snooze_until.is_some());
+    assert!(
+        app.snooze(&signal.value.id, None)
+            .unwrap()
+            .value
+            .snooze_until
+            .is_some()
+    );
     assert_eq!(
-        app.ignore(&signal.id).unwrap().status,
+        app.ignore(&signal.value.id).unwrap().value.status,
         SignalStatus::Dismissed
     );
     assert!(matches!(
-        app.research(&signal.id, "Later".into(), 1.0, vec![], None),
+        app.research(&signal.value.id, "Later".into(), 1.0, vec![], None),
         Err(SignalError::InvalidState(_))
     ));
 }

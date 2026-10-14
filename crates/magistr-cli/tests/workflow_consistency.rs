@@ -131,7 +131,7 @@ async fn an_attached_command_is_current_on_every_capability_and_observer() {
     else {
         panic!("a chunk comes back");
     };
-    assert_eq!(chunk.id, "via-attached");
+    assert_eq!(chunk.value.id, "via-attached");
     assert!(
         host.roadmap_chunk("via-attached").unwrap().is_some(),
         "the owner is current"
@@ -170,7 +170,7 @@ async fn an_attached_command_is_current_on_every_capability_and_observer() {
     let refused = host
         .roadmap_start_chunk("via-attached")
         .expect_err("obsoleted on disk");
-    assert!(refused.contains("replaced"), "{refused}");
+    assert!(refused.to_string().contains("replaced"), "{refused}");
     assert_eq!(
         host.roadmap_chunk("via-attached")
             .unwrap()
@@ -209,7 +209,7 @@ fn shared_ship_capabilities_and_observers_retain_a_recorded_gate() {
             None,
         )
         .expect("the service sees the host's task");
-    assert!(check.verified && check.passed);
+    assert!(check.value.verified && check.value.passed);
     assert_eq!(
         service.ship_active_task_id().unwrap().as_deref(),
         Some("verify")
@@ -219,6 +219,7 @@ fn shared_ship_capabilities_and_observers_retain_a_recorded_gate() {
     let completed = host.ship_complete_task("verify", vec![]).expect("complete");
     assert_eq!(
         completed
+            .value
             .checks
             .iter()
             .map(|c| c.name.as_str())
@@ -291,7 +292,7 @@ fn shared_signal_capabilities_promote_once_and_observers_refresh() {
         .signal_capture(SignalKind::Idea, "alice".into(), "read through".into())
         .expect("capture");
     assert_eq!(
-        host.signal(&captured.id)
+        host.signal(&captured.value.id)
             .unwrap()
             .map(|s| s.body)
             .as_deref(),
@@ -301,10 +302,12 @@ fn shared_signal_capabilities_promote_once_and_observers_refresh() {
     assert_eq!(observer.signal_status().unwrap()["counts"]["total"], 1);
 
     // A decision through the host capability is visible to the service view.
-    host.signal_research(&captured.id, "worth it".into(), 0.9, vec![], None)
+    host.signal_research(&captured.value.id, "worth it".into(), 0.9, vec![], None)
         .expect("research");
-    let promoted = host.signal_promote(&captured.id).expect("promote");
+    let promoted = host.signal_promote(&captured.value.id).expect("promote");
     let chunk_id = promoted
+        .signal
+        .value
         .cross_refs
         .iter()
         .find_map(|r| r.strip_prefix("chunk:"))
@@ -316,8 +319,13 @@ fn shared_signal_capabilities_promote_once_and_observers_refresh() {
     );
     // The service's own promote of the same signal is the same promotion:
     // it observes the promoted record and creates nothing.
-    let again = service.signal_promote(&captured.id).expect("idempotent");
-    assert_eq!(again.cross_refs, promoted.cross_refs);
+    let again = service
+        .signal_promote(&captured.value.id)
+        .expect("idempotent");
+    assert_eq!(
+        again.signal.value.cross_refs,
+        promoted.signal.value.cross_refs
+    );
     assert_eq!(observer.roadmap_chunks().unwrap().len(), 1);
 }
 

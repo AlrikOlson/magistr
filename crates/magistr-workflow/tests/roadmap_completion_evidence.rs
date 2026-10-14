@@ -127,7 +127,7 @@ fn gate(ship: &ShipUseCases, code: i32) {
         })
         .unwrap();
     ship.settle_check(
-        admission,
+        admission.value,
         CheckOutcome {
             passed: code == 0,
             details: String::new(),
@@ -178,11 +178,11 @@ fn completion_refuses_without_receipts_and_names_the_resolved_task_when_it_compl
 
     gate(&ship, 0);
     let done = roadmap.complete_chunk("c1", None).unwrap();
-    assert_eq!(done.status, ChunkStatus::Done);
+    assert_eq!(done.value.status, ChunkStatus::Done);
     assert!(
-        done.cross_refs.iter().any(|r| r == "task:verify"),
+        done.value.cross_refs.iter().any(|r| r == "task:verify"),
         "{:?}",
-        done.cross_refs
+        done.value.cross_refs
     );
 }
 
@@ -251,7 +251,7 @@ fn stale_source_evidence_is_refused_until_the_gate_reruns() {
     );
     gate(&ship, 0);
     assert_eq!(
-        roadmap.complete_chunk("c1", None).unwrap().status,
+        roadmap.complete_chunk("c1", None).unwrap().value.status,
         ChunkStatus::Done
     );
 }
@@ -306,17 +306,23 @@ fn without_an_evidence_capability_every_route_to_done_is_refused_and_planning_co
         roadmap
             .set_status("c1", ChunkStatus::Blocked)
             .unwrap()
+            .value
             .status,
         ChunkStatus::Blocked
     );
     assert_eq!(
-        roadmap.link_chunk("c1", "think:7").unwrap().cross_refs,
+        roadmap
+            .link_chunk("c1", "think:7")
+            .unwrap()
+            .value
+            .cross_refs,
         vec!["think:7".to_owned()]
     );
     assert_eq!(
         roadmap
             .add_chunk(chunk("shipped-last-year", ChunkStatus::Done))
             .unwrap()
+            .value
             .status,
         ChunkStatus::Done
     );
@@ -324,6 +330,7 @@ fn without_an_evidence_capability_every_route_to_done_is_refused_and_planning_co
         roadmap
             .obsolete_chunk("c1", "superseded".into())
             .unwrap()
+            .value
             .status,
         ChunkStatus::Obsoleted
     );

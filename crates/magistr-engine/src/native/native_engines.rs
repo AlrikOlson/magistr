@@ -3,8 +3,10 @@ use std::ops::Deref;
 use std::sync::Arc;
 
 use magistr_workflow::content::StructuredContent;
+use magistr_workflow::roadmap::application::RoadmapError;
 use magistr_workflow::roadmap::application::{BlockerDraft, ChunkDraft, ChunkPatch};
 use magistr_workflow::roadmap::domain::{BlockerKind, Chunk, ChunkStatus};
+use magistr_workflow::ship::application::ShipError;
 use magistr_workflow::ship::application::{
     CheckAdmission, CheckExecution, CheckOutcome, CheckRequest, CheckSettlement, ShipReport,
 };
@@ -12,8 +14,10 @@ use magistr_workflow::ship::domain::action::{Action, ActionType};
 use magistr_workflow::ship::domain::artifact::Artifact;
 use magistr_workflow::ship::domain::check::Check;
 use magistr_workflow::ship::domain::task::{Task, TaskType};
+use magistr_workflow::signal::application::{SignalError, SignalPromotion};
 use magistr_workflow::signal::domain::{Signal, SignalKind};
 use magistr_workflow::think::domain::{RecordedStep, StepError, ThinkStep};
+use magistr_workflow_contracts::Observed;
 use serde_json::Value;
 
 use super::check_type_for::check_type_for;
@@ -207,22 +211,16 @@ impl NativeEngines {
 
     // ── Roadmap ────────────────────────────────────────────────────────
 
-    pub fn roadmap_start_chunk(&self, id: &str) -> Result<Chunk, String> {
-        self.services
-            .roadmap
-            .start_chunk(id)
-            .map_err(|error| error.to_string())
+    pub fn roadmap_start_chunk(&self, id: &str) -> Result<Observed<Chunk>, RoadmapError> {
+        self.services.roadmap.start_chunk(id)
     }
 
     pub fn roadmap_complete_chunk(
         &self,
         id: &str,
         ship_ref: Option<&str>,
-    ) -> Result<Chunk, String> {
-        self.services
-            .roadmap
-            .complete_chunk(id, ship_ref)
-            .map_err(|error| error.to_string())
+    ) -> Result<Observed<Chunk>, RoadmapError> {
+        self.services.roadmap.complete_chunk(id, ship_ref)
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -238,23 +236,20 @@ impl NativeEngines {
         deps: Vec<String>,
         content: Option<StructuredContent>,
         group: Option<String>,
-    ) -> Result<Chunk, String> {
-        self.services
-            .roadmap
-            .add_chunk(ChunkDraft {
-                id,
-                title,
-                name,
-                status,
-                priority,
-                description,
-                acceptance,
-                deps,
-                content,
-                group,
-                shared: false,
-            })
-            .map_err(|error| error.to_string())
+    ) -> Result<Observed<Chunk>, RoadmapError> {
+        self.services.roadmap.add_chunk(ChunkDraft {
+            id,
+            title,
+            name,
+            status,
+            priority,
+            description,
+            acceptance,
+            deps,
+            content,
+            group,
+            shared: false,
+        })
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -267,7 +262,7 @@ impl NativeEngines {
         acceptance: Option<Vec<String>>,
         deps: Option<Vec<String>>,
         content: Option<StructuredContent>,
-    ) -> Result<Chunk, String> {
+    ) -> Result<Observed<Chunk>, RoadmapError> {
         self.update_chunk(
             id,
             ChunkPatch {
@@ -282,14 +277,11 @@ impl NativeEngines {
         )
     }
 
-    fn update_chunk(&self, id: &str, patch: ChunkPatch) -> Result<Chunk, String> {
-        self.services
-            .roadmap
-            .update_chunk(id, patch)
-            .map_err(|error| error.to_string())
+    fn update_chunk(&self, id: &str, patch: ChunkPatch) -> Result<Observed<Chunk>, RoadmapError> {
+        self.services.roadmap.update_chunk(id, patch)
     }
 
-    pub fn roadmap_clear_blocked_by(&self, id: &str) -> Result<Chunk, String> {
+    pub fn roadmap_clear_blocked_by(&self, id: &str) -> Result<Observed<Chunk>, RoadmapError> {
         self.update_chunk(
             id,
             ChunkPatch {
@@ -305,7 +297,7 @@ impl NativeEngines {
         kind: BlockerKind,
         reason: String,
         evidence: Option<String>,
-    ) -> Result<Chunk, String> {
+    ) -> Result<Observed<Chunk>, RoadmapError> {
         self.update_chunk(
             id,
             ChunkPatch {
@@ -319,18 +311,20 @@ impl NativeEngines {
         )
     }
 
-    pub fn roadmap_set_status(&self, id: &str, to: ChunkStatus) -> Result<Chunk, String> {
-        self.services
-            .roadmap
-            .set_status(id, to)
-            .map_err(|error| error.to_string())
+    pub fn roadmap_set_status(
+        &self,
+        id: &str,
+        to: ChunkStatus,
+    ) -> Result<Observed<Chunk>, RoadmapError> {
+        self.services.roadmap.set_status(id, to)
     }
 
-    pub fn roadmap_obsolete_chunk(&self, id: &str, reason: String) -> Result<Chunk, String> {
-        self.services
-            .roadmap
-            .obsolete_chunk(id, reason)
-            .map_err(|error| error.to_string())
+    pub fn roadmap_obsolete_chunk(
+        &self,
+        id: &str,
+        reason: String,
+    ) -> Result<Observed<Chunk>, RoadmapError> {
+        self.services.roadmap.obsolete_chunk(id, reason)
     }
 
     pub fn roadmap_reprioritize(
@@ -338,11 +332,10 @@ impl NativeEngines {
         id: &str,
         suggested_priority: u32,
         reason: String,
-    ) -> Result<Chunk, String> {
+    ) -> Result<Observed<Chunk>, RoadmapError> {
         self.services
             .roadmap
             .propose_reprioritize(id, suggested_priority, reason)
-            .map_err(|error| error.to_string())
     }
 
     pub fn roadmap_propose_title(
@@ -351,11 +344,10 @@ impl NativeEngines {
         suggested_title: String,
         reason: String,
         source: String,
-    ) -> Result<Chunk, String> {
+    ) -> Result<Observed<Chunk>, RoadmapError> {
         self.services
             .roadmap
             .propose_title(id, suggested_title, reason, source)
-            .map_err(|error| error.to_string())
     }
 
     pub fn roadmap_propose_status(
@@ -364,46 +356,46 @@ impl NativeEngines {
         suggested_status: ChunkStatus,
         reason: String,
         source: String,
-    ) -> Result<Chunk, String> {
+    ) -> Result<Observed<Chunk>, RoadmapError> {
         self.services
             .roadmap
             .propose_status(id, suggested_status, reason, source)
-            .map_err(|error| error.to_string())
     }
 
-    pub fn roadmap_link(&self, id: &str, cross_ref: &str) -> Result<Chunk, String> {
-        self.services
-            .roadmap
-            .link_chunk(id, cross_ref)
-            .map_err(|error| error.to_string())
+    pub fn roadmap_link(&self, id: &str, cross_ref: &str) -> Result<Observed<Chunk>, RoadmapError> {
+        self.services.roadmap.link_chunk(id, cross_ref)
     }
 
-    pub fn roadmap_set_group(&self, id: &str, group: Option<String>) -> Result<Chunk, String> {
-        self.services
-            .roadmap
-            .set_group(id, group)
-            .map_err(|error| error.to_string())
+    pub fn roadmap_set_group(
+        &self,
+        id: &str,
+        group: Option<String>,
+    ) -> Result<Observed<Chunk>, RoadmapError> {
+        self.services.roadmap.set_group(id, group)
     }
 
-    pub fn roadmap_resolve_title_proposal(&self, id: &str, accept: bool) -> Result<Chunk, String> {
-        self.services
-            .roadmap
-            .resolve_title_proposal(id, accept)
-            .map_err(|error| error.to_string())
+    pub fn roadmap_resolve_title_proposal(
+        &self,
+        id: &str,
+        accept: bool,
+    ) -> Result<Observed<Chunk>, RoadmapError> {
+        self.services.roadmap.resolve_title_proposal(id, accept)
     }
 
-    pub fn roadmap_resolve_status_proposal(&self, id: &str, accept: bool) -> Result<Chunk, String> {
-        self.services
-            .roadmap
-            .resolve_status_proposal(id, accept)
-            .map_err(|error| error.to_string())
+    pub fn roadmap_resolve_status_proposal(
+        &self,
+        id: &str,
+        accept: bool,
+    ) -> Result<Observed<Chunk>, RoadmapError> {
+        self.services.roadmap.resolve_status_proposal(id, accept)
     }
 
-    pub fn roadmap_resolve_reprioritize(&self, id: &str, accept: bool) -> Result<Chunk, String> {
-        self.services
-            .roadmap
-            .resolve_reprioritize(id, accept)
-            .map_err(|error| error.to_string())
+    pub fn roadmap_resolve_reprioritize(
+        &self,
+        id: &str,
+        accept: bool,
+    ) -> Result<Observed<Chunk>, RoadmapError> {
+        self.services.roadmap.resolve_reprioritize(id, accept)
     }
 
     // ── Think ──────────────────────────────────────────────────────────
@@ -416,7 +408,11 @@ impl NativeEngines {
 
     /// Pin or unpin a step (the `think_pin_step` verb); answers whether it
     /// was pinned before.
-    pub fn think_pin_step(&self, step_number: u32, pinned: bool) -> Result<bool, String> {
+    pub fn think_pin_step(
+        &self,
+        step_number: u32,
+        pinned: bool,
+    ) -> Result<Observed<bool>, StepError> {
         self.services.think.pin_step(step_number, pinned)
     }
 
@@ -437,11 +433,11 @@ impl NativeEngines {
         acceptance_criteria: Vec<String>,
         constraints: Vec<String>,
         scope: String,
-    ) -> Result<usize, String> {
+    ) -> Result<Observed<usize>, ShipError> {
         self.services
             .ship
             .set_objective(description, acceptance_criteria, constraints, scope)
-            .map(|result| result.cleared_stale_tasks)
+            .map(|result| result.map(|value| value.cleared_stale_tasks))
     }
 
     /// Define the objective with an explicit verification scope.
@@ -452,7 +448,7 @@ impl NativeEngines {
         constraints: Vec<String>,
         scope: String,
         verification: magistr_workflow::ship::domain::objective::VerificationMode,
-    ) -> Result<usize, String> {
+    ) -> Result<Observed<usize>, ShipError> {
         self.services
             .ship
             .set_objective_with_verification(
@@ -462,7 +458,7 @@ impl NativeEngines {
                 scope,
                 verification,
             )
-            .map(|result| result.cleared_stale_tasks)
+            .map(|result| result.map(|value| value.cleared_stale_tasks))
     }
 
     /// Validate existing receipts against current source and acceptance without
@@ -479,7 +475,7 @@ impl NativeEngines {
     }
 
     /// Explicitly prune older settled check receipts through the shared use case.
-    pub fn ship_compact_receipts(&self) -> Result<super::ReceiptCompaction, String> {
+    pub fn ship_compact_receipts(&self) -> Result<super::ReceiptCompaction, ShipError> {
         self.services.ship.compact_receipts()
     }
 
@@ -490,14 +486,14 @@ impl NativeEngines {
         title: String,
         task_type: TaskType,
         estimate: Option<String>,
-    ) -> Result<(), String> {
+    ) -> Result<Observed<()>, ShipError> {
         self.services
             .ship
             .add_task(id, title, task_type, estimate, None)
     }
 
     /// Begin a task (the `ship_start` verb).
-    pub fn ship_start_task(&self, task_id: &str) -> Result<Task, String> {
+    pub fn ship_start_task(&self, task_id: &str) -> Result<Observed<Task>, ShipError> {
         self.services.ship.start_task(task_id)
     }
 
@@ -511,7 +507,7 @@ impl NativeEngines {
         files_touched: Vec<String>,
         tools_used: Vec<String>,
         think_step: Option<u32>,
-    ) -> Result<Action, String> {
+    ) -> Result<Observed<Action>, ShipError> {
         self.services.ship.record_action(
             task_id,
             action_type,
@@ -523,7 +519,7 @@ impl NativeEngines {
         )
     }
 
-    /// Compatibility entry point for an immediately available result.
+    /// Record an immediately available result against its captured owner.
     /// Async runners must capture `ship_admit_gate` before execution and pass
     /// that identity to `ship_settle_gate` afterward. They must not admit an
     /// already-running command against whichever task is current on return.
@@ -538,8 +534,10 @@ impl NativeEngines {
         details: String,
         required: bool,
         report: Option<(&str, &str)>,
-    ) -> Result<Check, String> {
-        let admission = self.ship_admit_gate(task_id, gate, command, required)?;
+    ) -> Result<Observed<Check>, ShipError> {
+        let admission = self
+            .ship_admit_gate(task_id, gate, command, required)?
+            .value;
         match self.ship_settle_gate(
             admission,
             CheckExecution::Exited { code: exit_code },
@@ -547,10 +545,10 @@ impl NativeEngines {
             report,
         )? {
             CheckSettlement::Applied { check, .. } => Ok(check),
-            CheckSettlement::Stale { admission, .. } => Err(format!(
-                "check belongs to superseded run {} task {}",
-                admission.target.run_id, admission.target.task_id,
-            )),
+            CheckSettlement::Stale { .. } => Err(ShipError::Refused {
+                kind: "stale_check",
+                message: "This result belongs to earlier work. Read the saved check receipt before continuing.".into(),
+            }),
         }
     }
 
@@ -558,7 +556,7 @@ impl NativeEngines {
     pub fn ship_admit_task(
         &self,
         task_id: Option<&str>,
-    ) -> Result<magistr_workflow::ship::application::TaskAdmission, String> {
+    ) -> Result<magistr_workflow::ship::application::TaskAdmission, ShipError> {
         self.services.ship.admit_task(task_id)
     }
 
@@ -569,20 +567,17 @@ impl NativeEngines {
         gate: &str,
         command: String,
         required: bool,
-    ) -> Result<CheckAdmission, String> {
-        self.services
-            .ship
-            .admit_check(CheckRequest {
-                task_id: task_id.map(str::to_owned),
-                check_type: check_type_for(gate),
-                name: gate.to_owned(),
-                passed: None,
-                details: String::new(),
-                required,
-                command: Some(command),
-                report: None,
-            })
-            .map_err(|error| error.to_string())
+    ) -> Result<Observed<CheckAdmission>, ShipError> {
+        self.services.ship.admit_check(CheckRequest {
+            task_id: task_id.map(str::to_owned),
+            check_type: check_type_for(gate),
+            name: gate.to_owned(),
+            passed: None,
+            details: String::new(),
+            required,
+            command: Some(command),
+            report: None,
+        })
     }
 
     /// Settle only against the captured native identity. A stale result retains
@@ -596,7 +591,7 @@ impl NativeEngines {
         execution: CheckExecution,
         details: String,
         report: Option<(&str, &str)>,
-    ) -> Result<CheckSettlement, String> {
+    ) -> Result<CheckSettlement, ShipError> {
         let (report, results) = match report {
             Some((format, path)) => {
                 let (record, results) = magistr_workflow::ship::report::read_report(format, path);
@@ -622,7 +617,7 @@ impl NativeEngines {
         &self,
         task_id: &str,
         artifacts: Vec<Artifact>,
-    ) -> Result<Task, String> {
+    ) -> Result<Observed<Task>, ShipError> {
         self.services.ship.complete_task(task_id, artifacts)
     }
 
@@ -631,7 +626,7 @@ impl NativeEngines {
         &self,
         artifacts: Vec<Artifact>,
         summary: Option<String>,
-    ) -> Result<ShipReport, String> {
+    ) -> Result<Observed<ShipReport>, ShipError> {
         self.services.ship.finalize(artifacts, summary)
     }
 
@@ -644,11 +639,8 @@ impl NativeEngines {
         kind: SignalKind,
         from: String,
         body: String,
-    ) -> Result<Signal, String> {
-        self.services
-            .signal
-            .capture(kind, from, body, None)
-            .map_err(|error| error.to_string())
+    ) -> Result<Observed<Signal>, SignalError> {
+        self.services.signal.capture(kind, from, body, None)
     }
 
     /// Record research on a signal (the `signal_research` verb): a summary,
@@ -661,11 +653,10 @@ impl NativeEngines {
         confidence: f64,
         sources: Vec<String>,
         think_step: Option<u32>,
-    ) -> Result<Signal, String> {
+    ) -> Result<Observed<Signal>, SignalError> {
         self.services
             .signal
             .research(id, summary, confidence, sources, think_step)
-            .map_err(|error| error.to_string())
     }
 
     /// Promote a researched or surfaced signal to the roadmap (the
@@ -673,29 +664,19 @@ impl NativeEngines {
     /// and the two are cross-linked — `signal:<id>` on the chunk,
     /// `chunk:<id>` on the signal — idempotently. Answers the signal as it
     /// stands after.
-    pub fn signal_promote(&self, id: &str) -> Result<Signal, String> {
-        self.services
-            .signal
-            .promote(id)
-            .map(|result| result.signal)
-            .map_err(|error| error.to_string())
+    pub fn signal_promote(&self, id: &str) -> Result<SignalPromotion, SignalError> {
+        self.services.signal.promote(id)
     }
 
     /// Dismiss a signal (the `signal_ignore` verb; terminal).
-    pub fn signal_ignore(&self, id: &str) -> Result<Signal, String> {
-        self.services
-            .signal
-            .ignore(id)
-            .map_err(|error| error.to_string())
+    pub fn signal_ignore(&self, id: &str) -> Result<Observed<Signal>, SignalError> {
+        self.services.signal.ignore(id)
     }
 
     /// Suppress a signal from surfacing for `minutes` (the `signal_snooze`
     /// verb); status unchanged.
-    pub fn signal_snooze(&self, id: &str, minutes: i64) -> Result<Signal, String> {
-        self.services
-            .signal
-            .snooze(id, Some(minutes))
-            .map_err(|error| error.to_string())
+    pub fn signal_snooze(&self, id: &str, minutes: i64) -> Result<Observed<Signal>, SignalError> {
+        self.services.signal.snooze(id, Some(minutes))
     }
 }
 

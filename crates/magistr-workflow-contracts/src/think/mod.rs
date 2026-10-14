@@ -9,7 +9,7 @@ mod session;
 mod step;
 mod step_error;
 
-pub use branch::{Branch, BranchStatus};
+pub use branch::{Branch, BranchStatus, BranchStatusChange};
 pub use dep_edge::DepEdge;
 pub use frame::ThinkFrame;
 pub use history::{HistoryMetadata, ThinkHistory};

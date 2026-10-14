@@ -86,7 +86,7 @@ fn a_check_with_no_task_is_refused_before_any_bytes_are_hashed() {
     let refused = AdmittedCheck::admit(&engines, &root, None, "lint", "true".into(), true)
         .expect_err("no active task");
     assert!(
-        matches!(&refused, CheckEvidenceError::Admission(reason) if reason.contains("no active task")),
+        matches!(&refused, CheckEvidenceError::Admission(reason) if reason.to_string().contains("no active task")),
         "{refused}"
     );
 }
@@ -127,10 +127,10 @@ fn a_superseded_objective_settles_stale_with_the_outcome_and_receipt_intact() {
             assert_eq!(outcome.exit_code, Some(1));
             assert!(!outcome.passed);
             assert!(outcome.verified);
-            assert_eq!(receipt.id, receipt_id);
-            assert_eq!(receipt.target, original);
+            assert_eq!(receipt.value.id, receipt_id);
+            assert_eq!(receipt.value.target, original);
             assert!(matches!(
-                receipt.settlement,
+                receipt.value.settlement,
                 Some(ReceiptSettlement::Stale { .. })
             ));
         }
@@ -161,7 +161,7 @@ fn a_timeout_and_a_cancel_are_recorded_as_what_they_were() {
         let check = settled.check().expect("recorded");
         assert!(!check.passed && check.verified);
         assert_eq!(check.exit_code, None);
-        assert_eq!(settled.receipt().execution, Some(execution));
+        assert_eq!(settled.receipt().execution(), Some(&execution));
     }
 }
 
@@ -180,7 +180,7 @@ fn an_unobservable_root_is_a_source_refusal_at_admission() {
     let refused = AdmittedCheck::admit(&engines, &absent, None, "test", "true".into(), true)
         .expect_err("missing root");
     assert!(
-        matches!(&refused, CheckEvidenceError::Source(reason) if reason.contains("does not exist")),
+        matches!(&refused, CheckEvidenceError::Source(reason) if reason.to_string().contains("does not exist")),
         "{refused}"
     );
     assert!(

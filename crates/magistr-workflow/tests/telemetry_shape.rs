@@ -24,6 +24,7 @@ const PLANTED: &[&str] = &[
 fn planted_step() -> ThinkStep {
     serde_json::from_value(serde_json::json!({
         "step_number": 7,
+        "record_id": "step-7",
         "estimated_total": 9,
         "purpose": format!("Investigate the leak of {}", PLANTED[0]),
         "context": format!("Customer reported {} in logs; contact {}", PLANTED[1], PLANTED[3]),
@@ -58,7 +59,7 @@ fn planted_chunk() -> Chunk {
 
 fn envelopes() -> Vec<UnifiedRecordEnvelope> {
     vec![
-        from_step("tenant-x", &planted_step()),
+        from_step("tenant-x", &planted_step()).unwrap(),
         from_chunk("tenant-x", &planted_chunk(), &[], &[]),
     ]
 }

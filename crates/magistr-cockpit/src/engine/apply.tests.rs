@@ -3,6 +3,14 @@ use magistr_workflow_contracts::{Delivery, NativeEvent, RoadmapFrame, SignalFram
 use serde_json::json;
 
 use super::*;
+use magistr_workflow_contracts::{ReadSource, signal::SignalPromotion};
+
+fn observed<T>(value: T) -> Observed<T> {
+    Observed {
+        value,
+        source: ReadSource::Memory,
+    }
+}
 use crate::harness::fixtures;
 
 struct Port {
@@ -23,33 +31,37 @@ fn signal(id: &str, status: SignalStatus) -> Signal {
 }
 
 impl EnginePort for Port {
-    fn pin(&mut self, step_number: u32, pinned: bool) -> Result<(), String> {
+    fn pin(
+        &mut self,
+        step_number: u32,
+        pinned: bool,
+    ) -> Result<Observed<bool>, WorkflowMutationError> {
         if self.fail {
-            return Err("no such step".to_owned());
+            return Err(WorkflowMutationError::rejected("no such step"));
         }
         self.pins.push((step_number, pinned));
-        Ok(())
+        Ok(observed(false))
     }
 
     fn checkpoint(&mut self) -> Result<serde_json::Value, String> {
         if self.fail {
-            return Err("engine gone".to_owned());
+            return Err("engine gone".into());
         }
         Ok(json!({"open_hypotheses": []}))
     }
 
-    fn start_chunk(&mut self, id: &str) -> Result<Chunk, String> {
+    fn start_chunk(&mut self, id: &str) -> Result<Observed<Chunk>, WorkflowMutationError> {
         if self.fail {
-            return Err("no such chunk".to_owned());
+            return Err(WorkflowMutationError::rejected("no such chunk"));
         }
-        Ok(chunk(id, ChunkStatus::InProgress))
+        Ok(observed(chunk(id, ChunkStatus::InProgress)))
     }
 
-    fn complete_chunk(&mut self, id: &str) -> Result<Chunk, String> {
+    fn complete_chunk(&mut self, id: &str) -> Result<Observed<Chunk>, WorkflowMutationError> {
         if self.fail {
-            return Err("no such chunk".to_owned());
+            return Err(WorkflowMutationError::rejected("no such chunk"));
         }
-        Ok(chunk(id, ChunkStatus::Done))
+        Ok(observed(chunk(id, ChunkStatus::Done)))
     }
 
     fn resolve_proposal(
@@ -57,41 +69,51 @@ impl EnginePort for Port {
         id: &str,
         _kind: crate::cockpit::ProposalKind,
         _accept: bool,
-    ) -> Result<Chunk, String> {
+    ) -> Result<Observed<Chunk>, WorkflowMutationError> {
         if self.fail {
-            return Err("no open proposal".to_owned());
+            return Err(WorkflowMutationError::rejected("no open proposal"));
         }
-        Ok(chunk(id, ChunkStatus::Pending))
+        Ok(observed(chunk(id, ChunkStatus::Pending)))
     }
 
-    fn clear_blocker(&mut self, id: &str) -> Result<Chunk, String> {
+    fn clear_blocker(&mut self, id: &str) -> Result<Observed<Chunk>, WorkflowMutationError> {
         if self.fail {
-            return Err("no blocker to clear".to_owned());
+            return Err(WorkflowMutationError::rejected("no blocker to clear"));
         }
-        Ok(chunk(id, ChunkStatus::Pending))
+        Ok(observed(chunk(id, ChunkStatus::Pending)))
     }
 
-    fn promote_signal(&mut self, id: &str) -> Result<Signal, String> {
+    fn promote_signal(&mut self, id: &str) -> Result<SignalPromotion, WorkflowMutationError> {
         if self.fail {
-            return Err("not researched".to_owned());
+            return Err(WorkflowMutationError::rejected("not researched"));
         }
-        Ok(signal(id, SignalStatus::Promoted))
+        Ok(SignalPromotion {
+            signal_id: id.into(),
+            chunk_id: "new".into(),
+            created: true,
+            signal: observed(signal(id, SignalStatus::Promoted)),
+            chunk: observed(chunk("new", ChunkStatus::Backlog)),
+        })
     }
 
-    fn ignore_signal(&mut self, id: &str) -> Result<Signal, String> {
+    fn ignore_signal(&mut self, id: &str) -> Result<Observed<Signal>, WorkflowMutationError> {
         if self.fail {
-            return Err("no such signal".to_owned());
+            return Err(WorkflowMutationError::rejected("no such signal"));
         }
-        Ok(signal(id, SignalStatus::Dismissed))
+        Ok(observed(signal(id, SignalStatus::Dismissed)))
     }
 
-    fn snooze_signal(&mut self, id: &str, _minutes: u32) -> Result<Signal, String> {
+    fn snooze_signal(
+        &mut self,
+        id: &str,
+        _minutes: u32,
+    ) -> Result<Observed<Signal>, WorkflowMutationError> {
         if self.fail {
-            return Err("no such signal".to_owned());
+            return Err(WorkflowMutationError::rejected("no such signal"));
         }
         let mut signal = signal(id, SignalStatus::Researched);
         signal.snooze_until = Some("soon".to_owned());
-        Ok(signal)
+        Ok(observed(signal))
     }
 }
 

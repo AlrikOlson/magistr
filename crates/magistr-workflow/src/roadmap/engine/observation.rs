@@ -17,36 +17,21 @@ impl RoadmapEngine {
         let value = read
             .value
             .unwrap_or_else(|| Self::empty_roadmap(&self.project_id));
-        if value.project_id != self.project_id
-            || value
-                .chunks
-                .iter()
-                .any(|chunk| chunk.project_id.as_deref() != Some(self.project_id.as_str()))
-        {
-            return Err(ReadError::new(
-                ReadErrorKind::Identity,
-                "The saved roadmap could not be matched to this project.",
-            ));
-        }
-        let mut ids = std::collections::HashSet::new();
-        if value
-            .chunks
-            .iter()
-            .any(|chunk| chunk.id.trim().is_empty() || !ids.insert(&chunk.id))
-        {
-            return Err(ReadError::new(
-                ReadErrorKind::Identity,
-                "The saved roadmap contains incomplete or duplicate work.",
-            ));
-        }
+        validate(&value, &self.project_id)?;
         Ok(Observed {
             value,
             source: read.source,
         })
     }
 
-    pub(super) fn refresh_observed(&mut self) -> Result<bool, ReadError> {
-        let read = self.observe()?;
+    pub(crate) fn refresh_observed(&mut self) -> Result<bool, ReadError> {
+        let read = match self.observe() {
+            Ok(read) => read,
+            Err(error) => {
+                self.stamp = None;
+                return Err(error);
+            }
+        };
         let stamp = match read.source {
             ReadSource::Memory => return Ok(false),
             ReadSource::Missing => None,
@@ -62,3 +47,29 @@ impl RoadmapEngine {
 #[cfg(test)]
 #[path = "observation.tests.rs"]
 mod tests;
+pub(super) fn validate(value: &Roadmap, project_id: &str) -> Result<(), ReadError> {
+    if value.project_id != project_id
+        || value
+            .chunks
+            .iter()
+            .any(|chunk| chunk.project_id.as_deref() != Some(project_id))
+    {
+        return Err(ReadError::new(
+            ReadErrorKind::Identity,
+            "The saved roadmap could not be matched to this project.",
+        ));
+    }
+    let mut ids = std::collections::HashSet::new();
+    if value
+        .chunks
+        .iter()
+        .any(|chunk| chunk.id.trim().is_empty() || !ids.insert(&chunk.id))
+    {
+        return Err(ReadError::new(
+            ReadErrorKind::Identity,
+            "The saved roadmap contains incomplete or duplicate work.",
+        ));
+    }
+
+    Ok(())
+}

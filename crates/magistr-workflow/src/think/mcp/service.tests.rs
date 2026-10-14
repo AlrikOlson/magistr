@@ -108,3 +108,123 @@ async fn native_domain_refusals_keep_their_existing_tool_error_shapes() {
     );
     assert!(service.use_cases().get_step(1, false).unwrap().is_none());
 }
+
+fn valid_step() -> crate::think::domain::ThinkStep {
+    serde_json::from_value(serde_json::json!({
+        "estimated_total": 8, "purpose": "analysis", "context": "durability",
+        "thought": "The saved record must exist before the acknowledgement",
+        "outcome": "checked", "next_action": "continue", "rationale": "verify"
+    }))
+    .unwrap()
+}
+
+#[tokio::test]
+async fn memory_only_acknowledgement_is_explicit() {
+    let result = service()
+        .think_record_step(Parameters(valid_step()))
+        .await
+        .unwrap();
+    let body = result.structured_content.unwrap();
+    assert_eq!(body["source"]["kind"], "memory");
+    assert!(body["record_id"].as_str().is_some_and(|id| !id.is_empty()));
+}
+
+#[tokio::test]
+async fn mcp_reports_the_owner_write_refusal_and_retry_saves_once() {
+    let directory = tempfile::tempdir().unwrap();
+    let mut config = ThinkConfig::default();
+    config.persistence.enabled = true;
+    config.persistence.data_dir = directory.path().to_path_buf();
+    let persistence =
+        crate::think::persistence::Persistence::for_project(&config.persistence, "mcp-write");
+    let service = ThinkService::new(ReasoningServer::new_for_project(config, "mcp-write".into()));
+    let first = service
+        .think_record_step(Parameters(valid_step()))
+        .await
+        .unwrap();
+    assert_eq!(first.structured_content.unwrap()["source"]["kind"], "file");
+    let path = persistence.store_path().unwrap();
+    let original = std::fs::read(&path).unwrap();
+    let lock = path.with_extension("json.lock");
+    std::fs::remove_file(&lock).unwrap();
+    std::fs::create_dir(&lock).unwrap();
+    let failures = [
+        service
+            .think_record_step(Parameters(valid_step()))
+            .await
+            .unwrap(),
+        service
+            .think_pin_step(Parameters(PinArgs {
+                step_number: 1,
+                pinned: Some(true),
+            }))
+            .await
+            .unwrap(),
+        service
+            .think_revise_estimate(Parameters(ReviseEstimateArgs {
+                estimated_total: 20,
+                reason: None,
+            }))
+            .await
+            .unwrap(),
+        service
+            .think_wipe_trace(Parameters(NoArgs {}))
+            .await
+            .unwrap(),
+    ];
+    for failed in failures {
+        assert_eq!(failed.is_error, Some(true));
+        let body = failed.structured_content.unwrap();
+        assert_eq!(body["effect"], "none");
+        assert_eq!(body["code"], "write_failed");
+    }
+    assert_eq!(std::fs::read(&path).unwrap(), original);
+    assert_eq!(service.engine().lock().unwrap().history().steps.len(), 1);
+    std::fs::remove_dir(lock).unwrap();
+    let retry = service
+        .think_record_step(Parameters(valid_step()))
+        .await
+        .unwrap();
+    let body = retry.structured_content.unwrap();
+    assert_eq!(body["step_number"], 2);
+    assert_eq!(body["source"]["kind"], "file");
+    assert_eq!(
+        persistence
+            .load_default()
+            .unwrap()
+            .value
+            .unwrap()
+            .steps
+            .len(),
+        2
+    );
+}
+
+#[tokio::test]
+async fn branch_status_acknowledges_the_committed_merge_destination() {
+    let service = service();
+    service.use_cases().record_step(valid_step()).unwrap();
+    let mut branch = valid_step();
+    branch.branch_from = Some(1);
+    branch.branch_name = Some("Does the evidence agree?".into());
+    let branch_id = service
+        .use_cases()
+        .record_step(branch)
+        .unwrap()
+        .step
+        .branch_id
+        .unwrap();
+    service
+        .use_cases()
+        .set_branch_status(&branch_id, "merged", Some(2))
+        .unwrap();
+    let result = service
+        .think_set_branch_status(Parameters(BranchStatusArgs {
+            branch_id,
+            status: "merged".into(),
+            merged_into: None,
+        }))
+        .await
+        .unwrap();
+    assert_eq!(result.structured_content.unwrap()["merged_into"], 2);
+}

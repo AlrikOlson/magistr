@@ -15,8 +15,8 @@ use crate::think::domain::{Branch, BranchStatus, ThinkHistory, ThinkStep};
 use super::core::ReasoningServer;
 
 impl ReasoningServer {
-    /// Restore recorded lifecycle metadata first, then fill legacy histories
-    /// from their members. Stored status and merge destination are authoritative.
+    /// Restore lifecycle metadata and derive branch membership from canonical
+    /// records. New imported questions obtain their first branch entry here.
     pub(crate) fn restored_branches(history: &ThinkHistory) -> HashMap<String, Branch> {
         let mut branches: HashMap<String, Branch> = history
             .branches
@@ -24,8 +24,8 @@ impl ReasoningServer {
             .flatten()
             .map(|branch| {
                 let mut restored = branch.clone();
-                // Canonical history carries renumbered/revised records. Stored
-                // member copies may predate startup repair.
+                // Canonical records own revisions and identity; member copies
+                // are a view of those records.
                 restored.steps.clear();
                 (restored.id.clone(), restored)
             })
@@ -98,8 +98,7 @@ impl ReasoningServer {
     }
 
     pub(crate) fn next_branch_id(&mut self) -> String {
-        self.branches_seq += 1;
-        format!("branch-{}-{:04}", Self::now_ms(), self.branches_seq)
+        format!("branch-{}", uuid::Uuid::new_v4())
     }
 
     /// Validate branch metadata without changing stored records. Continuing an

@@ -2,6 +2,7 @@ use crate::roadmap::domain::{
     FocusMode, FocusState, WorkstreamCatalog, WorkstreamResolution, validate_lane,
 };
 use crate::roadmap::engine::RoadmapEngine;
+use magistr_workflow_contracts::Observed;
 
 use super::{
     FocusChange, FocusRead, GroupProposal, RoadmapError, RoadmapUseCases, WorkstreamInspection,
@@ -53,30 +54,30 @@ impl RoadmapUseCases {
         lane: &str,
         group: &str,
         mode: FocusMode,
-    ) -> Result<FocusChange, RoadmapError> {
+    ) -> Result<Observed<FocusChange>, RoadmapError> {
         let mut engine = self.lock()?;
         let focus = engine
             .focus_set(lane, group, mode)
-            .map_err(RoadmapError::InvalidArgs)?;
-        let frontier = engine.workstream_frontier(Some(&focus.group));
-        Ok(FocusChange::Set {
+            .map_err(RoadmapError::invalid_args)?;
+        let frontier = engine.workstream_frontier(Some(&focus.value.group));
+        Ok(focus.map(|focus| FocusChange::Set {
             lane: focus.lane.clone(),
             focus,
             frontier,
-            persistent: engine.persistence_enabled(),
-        })
+        }))
     }
 
-    pub fn focus_clear(&self, lane: &str) -> Result<FocusChange, RoadmapError> {
+    pub fn focus_clear(&self, lane: &str) -> Result<Observed<FocusChange>, RoadmapError> {
         validate_lane(lane).map_err(RoadmapError::InvalidArgs)?;
         let mut engine = self.lock()?;
-        let released = engine.focus_clear(lane);
-        Ok(FocusChange::Cleared {
+        let released = engine
+            .focus_clear(lane)
+            .map_err(RoadmapError::invalid_args)?;
+        Ok(released.map(|released| FocusChange::Cleared {
             lane: lane.to_owned(),
             focus: None,
             released,
-            persistent: engine.persistence_enabled(),
-        })
+        }))
     }
 
     pub fn propose_groups(&self, min_shared: usize) -> Result<GroupProposal, RoadmapError> {

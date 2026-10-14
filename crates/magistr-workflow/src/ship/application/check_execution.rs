@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 /// How a check's command ended. A timeout, a cancellation and a launch
 /// failure are statements about the clock, the caller and the host; only
 /// an exit is a statement about the code, and only exit zero passes.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum CheckExecution {
     /// The command exited with `code`.

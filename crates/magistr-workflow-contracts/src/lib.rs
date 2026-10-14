@@ -9,6 +9,8 @@ pub use content::{
     parse_optional,
 };
 mod family;
+mod mutation_error;
+pub use mutation_error::WorkflowMutationError;
 pub mod roadmap;
 pub mod ship;
 pub mod signal;
@@ -28,6 +30,8 @@ mod read_state;
 mod roadmap_progress;
 mod store_stamp;
 mod think_branch;
+mod write_error;
+pub use write_error::{WriteError, WriteErrorKind};
 
 pub use broadcast_frame::NativeFrame;
 pub use delivery::Delivery;

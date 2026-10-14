@@ -2,6 +2,7 @@
 //! `ship` family's approach: each JSON-returning tool advertises a schema so
 //! 2026 clients can parse `structuredContent` instead of the text fallback.
 
+use magistr_workflow_contracts::Observed;
 use std::sync::Arc;
 
 use rmcp::model::JsonObject;
@@ -303,6 +304,7 @@ pub struct TrackerSetupOutput {
     pub included: Vec<String>,
     /// Chunk ids that were already opted in.
     pub already_included: usize,
+    pub roadmap_source: Option<magistr_workflow_contracts::ReadSource>,
     /// Follow-up a human must perform — notably that nothing has been sent,
     /// because this host runs no background push.
     pub next_steps: Vec<String>,
@@ -316,16 +318,16 @@ pub fn output_schema_for(tool_name: &str) -> Option<Arc<JsonObject>> {
         | "roadmap_obsolete_chunk"
         | "roadmap_reprioritize"
         | "roadmap_complete_chunk"
-        | "roadmap_link"
-        | "roadmap_next" => schema_for!(ChunkOutput).to_value(),
+        | "roadmap_link" => schema_for!(Observed<ChunkOutput>).to_value(),
+        "roadmap_next" => schema_for!(ChunkOutput).to_value(),
         "roadmap_status" => schema_for!(RoadmapStatusOutput).to_value(),
         "roadmap_export" => schema_for!(RoadmapExportOutput).to_value(),
         "roadmap_get" => schema_for!(RoadmapGetOutput).to_value(),
-        "roadmap_start_chunk" => schema_for!(StartChunkOutput).to_value(),
-        "roadmap_record_refresh" => schema_for!(RefreshOutput).to_value(),
+        "roadmap_start_chunk" => schema_for!(Observed<StartChunkOutput>).to_value(),
+        "roadmap_record_refresh" => schema_for!(Observed<RefreshOutput>).to_value(),
         // roadmap_set_group returns the patched chunk, exactly as the other
         // chunk-mutating verbs above do.
-        "roadmap_set_group" => schema_for!(ChunkOutput).to_value(),
+        "roadmap_set_group" => schema_for!(Observed<ChunkOutput>).to_value(),
         "roadmap_propose_groups" => schema_for!(ProposeGroupsOutput).to_value(),
         // tracker_* rides this family (see UnifiedService::route_of), so its
         // schemas live here rather than in a fifth module.

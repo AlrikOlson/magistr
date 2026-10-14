@@ -622,8 +622,8 @@ mod tests {
         }
 
         assert_eq!(
-            total_connects, 5,
-            "expected 5 live in-process connect sites across the broadcast tests; \
+            total_connects, 6,
+            "expected 6 live in-process connect sites, including failed-save publication; \
              found {total_connects}. If a file moved or was renamed this gate stopped \
              covering it — fix the window, do not adjust the count to match.",
         );

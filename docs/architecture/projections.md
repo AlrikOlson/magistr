@@ -81,9 +81,9 @@ scope; `None` names the one default project archive. A retained value keeps its
 original session identity after a failed read of another session. These reads
 do not claim to discover every reasoning session in the project.
 
-An observation returns validated durable data without certifying unsaved writer
-memory or erasing it. A writer refresh adopts only a successfully validated
-value. Reading does not repair old identities, adopt other projects or rewrite
+An observation returns validated durable data. Failed mutations leave the held
+state at its preceding commit; an observation never certifies an attempted
+change. A writer refresh adopts only a successfully validated value. Reading does not repair old identities, adopt other projects or rewrite
 old formats. Failed validation remains retryable even if file metadata is
 unchanged.
 
@@ -102,6 +102,40 @@ failures as an empty roadmap.
 Checkpoint progress and roadmap identity come from the same validated
 observation. Receipt-ledger reconciliation reads its own ledger independently
 of whether the execution aggregate can be read.
+
+## Mutation acknowledgement
+
+Each family mutates freshly validated canonical state under its stable file lock.
+The shared transaction primitive writes a candidate to a temporary file, flushes
+and synchronizes it, atomically replaces the destination, and synchronizes the
+parent directory. It returns the stamp of the committed descriptor. Only then
+does the owner install the candidate and publish its family events. Disabled
+persistence is an explicit memory transaction and returns `ReadSource::Memory`.
+Unreadable, malformed, unsupported or wrongly owned records refuse the mutation;
+they are never replaced with an empty starting point.
+
+Successful commands return `Observed<T>`. Current native, owner IPC and MCP
+consumers preserve that source rather than pair a value with a later read.
+`WriteError` distinguishes read refusal, failure before replacement and an
+uncertain result after replacement. The first two report `effect: none`;
+uncertainty reports `effect: unknown` and requires reading saved records before
+retry. `WorkflowMutationError` preserves this distinction across owner IPC.
+A partial signal promotion carries the committed roadmap identity and source;
+retry resumes the same reciprocal link instead of creating another work item.
+
+Reasoning stores all project histories in one schema-2 document. That owner
+assigns project-wide numbers while preserving immutable authored record IDs.
+Selected sessions and bounded history windows are projections, not independent
+writers. Import identifies records by authored ID, keeps distinct records with
+equal prose or numbers, remaps unambiguous references, and refuses conflicting
+identities. Reads never renumber authored records.
+
+Execution receipts retain the admitted identity and complete command outcome.
+Settlement persists the outcome, records application intent, applies the check
+idempotently by receipt ID, then acknowledges the terminal receipt. A retry
+finishes that sequence without rerunning the command or duplicating the check.
+Reset commits an empty run under the same stable owner lock; it does not unlink
+the lock or erase receipts. Late outcomes remain attached to their original run.
 
 ## Feed and reseeding
 

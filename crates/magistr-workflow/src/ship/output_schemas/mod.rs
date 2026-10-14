@@ -1,3 +1,4 @@
+use magistr_workflow_contracts::Observed;
 use std::sync::Arc;
 
 use rmcp::model::JsonObject;
@@ -224,22 +225,22 @@ pub struct GateWaitOutput {
 
 pub fn output_schema_for(tool_name: &str) -> Option<Arc<JsonObject>> {
     let value: Value = match tool_name {
-        "ship_set_objective" => schema_for!(ObjectiveOutput).to_value(),
-        "ship_plan" => schema_for!(PlanOutput).to_value(),
-        "ship_start" => schema_for!(TaskOutput).to_value(),
-        "ship_record" => schema_for!(ActionOutput).to_value(),
-        "ship_complete" => schema_for!(TaskOutput).to_value(),
-        "ship_block" => schema_for!(TaskOutput).to_value(),
-        "ship_check" => schema_for!(CheckOutput).to_value(),
+        "ship_set_objective" => schema_for!(Observed<ObjectiveOutput>).to_value(),
+        "ship_plan" => schema_for!(Observed<PlanOutput>).to_value(),
+        "ship_start" => schema_for!(Observed<TaskOutput>).to_value(),
+        "ship_record" => schema_for!(Observed<ActionOutput>).to_value(),
+        "ship_complete" => schema_for!(Observed<TaskOutput>).to_value(),
+        "ship_block" => schema_for!(Observed<TaskOutput>).to_value(),
+        "ship_check" => schema_for!(crate::ship::application::CheckSettlement).to_value(),
         "ship_gate_open" => schema_for!(GateOpenOutput).to_value(),
         "ship_gate_wait" => schema_for!(GateWaitOutput).to_value(),
-        "ship_finalize" => schema_for!(ShipReport).to_value(),
+        "ship_finalize" => schema_for!(Observed<ShipReport>).to_value(),
         "ship_compact_receipts" => {
             schema_for!(crate::ship::receipt_compaction::ReceiptCompaction).to_value()
         }
         "ship_status" => schema_for!(StatusOutput).to_value(),
         "ship_export" => schema_for!(ExportOutput).to_value(),
-        "ship_reset" => schema_for!(ClearOutput).to_value(),
+        "ship_reset" => schema_for!(Observed<ClearOutput>).to_value(),
         _ => return None,
     };
     match value {

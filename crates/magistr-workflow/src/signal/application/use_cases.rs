@@ -1,3 +1,4 @@
+use magistr_workflow_contracts::{Observed, WriteError};
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::content::StructuredContent;
@@ -38,7 +39,9 @@ impl SignalUseCases {
     /// state through a validated read of the selected store.
     pub(super) fn lock(&self) -> Result<MutexGuard<'_, SignalEngine>, SignalError> {
         let mut engine = self.engine.lock().map_err(|_| SignalError::Poisoned)?;
-        engine.refresh_if_stale().map_err(SignalError::Store)?;
+        engine
+            .refresh_observed()
+            .map_err(|error| SignalError::Store(WriteError::read(error)))?;
         Ok(engine)
     }
 
@@ -48,17 +51,16 @@ impl SignalUseCases {
         from: String,
         body: String,
         content: Option<StructuredContent>,
-    ) -> Result<Signal, SignalError> {
+    ) -> Result<Observed<Signal>, SignalError> {
         if body.trim().is_empty() {
             return Err(SignalError::InvalidArgs("signal body is empty".into()));
         }
         if let Some(content) = &content {
             content.validate().map_err(SignalError::InvalidArgs)?;
         }
-        Ok(self
-            .lock()?
+        self.lock()?
             .capture_with_content(kind, from, body, content)
-            .clone())
+            .map_err(SignalError::invalid_args)
     }
 
     pub fn get(&self, id: &str) -> Result<Signal, SignalError> {
@@ -69,11 +71,10 @@ impl SignalUseCases {
         Ok(SignalInbox::from(self.lock()?.signals()))
     }
 
-    pub fn link(&self, id: &str, cross_ref: &str) -> Result<Signal, SignalError> {
+    pub fn link(&self, id: &str, cross_ref: &str) -> Result<Observed<Signal>, SignalError> {
         self.lock()?
             .link(id, cross_ref)
-            .cloned()
-            .map_err(SignalError::InvalidArgs)
+            .map_err(SignalError::invalid_args)
     }
 
     pub fn research(
@@ -83,14 +84,13 @@ impl SignalUseCases {
         confidence: f64,
         sources: Vec<String>,
         think_step: Option<u32>,
-    ) -> Result<Signal, SignalError> {
+    ) -> Result<Observed<Signal>, SignalError> {
         if summary.trim().is_empty() {
             return Err(SignalError::InvalidArgs("research summary is empty".into()));
         }
         self.lock()?
             .research(id, summary, confidence, sources, think_step)
-            .cloned()
-            .map_err(SignalError::InvalidState)
+            .map_err(SignalError::invalid_state)
     }
 
     pub fn pending(
@@ -111,25 +111,18 @@ impl SignalUseCases {
             .collect())
     }
 
-    pub fn surface(&self, id: &str) -> Result<Signal, SignalError> {
-        self.lock()?
-            .surface(id)
-            .cloned()
-            .map_err(SignalError::InvalidState)
+    pub fn surface(&self, id: &str) -> Result<Observed<Signal>, SignalError> {
+        self.lock()?.surface(id).map_err(SignalError::invalid_state)
     }
 
-    pub fn snooze(&self, id: &str, minutes: Option<i64>) -> Result<Signal, SignalError> {
+    pub fn snooze(&self, id: &str, minutes: Option<i64>) -> Result<Observed<Signal>, SignalError> {
         self.lock()?
             .snooze(id, minutes.unwrap_or(60))
-            .cloned()
-            .map_err(SignalError::NotFound)
+            .map_err(SignalError::invalid_state)
     }
 
-    pub fn ignore(&self, id: &str) -> Result<Signal, SignalError> {
-        self.lock()?
-            .ignore(id)
-            .cloned()
-            .map_err(SignalError::InvalidState)
+    pub fn ignore(&self, id: &str) -> Result<Observed<Signal>, SignalError> {
+        self.lock()?.ignore(id).map_err(SignalError::invalid_state)
     }
 }
 

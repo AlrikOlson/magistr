@@ -85,6 +85,55 @@ impl ThinkService {
         }
     }
 
+    pub(super) fn mutation_result<T: serde::Serialize>(
+        result: Result<T, crate::think::domain::StepError>,
+        kind: &str,
+    ) -> Result<CallToolResult, ErrorData> {
+        match result {
+            Ok(value) => serde_json::to_value(value)
+                .map(CallToolResult::structured)
+                .map_err(|error| ErrorData::internal_error(error.to_string(), None)),
+            Err(error) => Self::step_failure(error, kind),
+        }
+    }
+
+    pub(super) fn step_failure(
+        error: crate::think::domain::StepError,
+        validation_kind: &str,
+    ) -> Result<CallToolResult, ErrorData> {
+        if error.error == "engine mutex poisoned" {
+            return Err(Self::poisoned());
+        }
+        let mut result = match &error.store {
+            Some(store) => crate::infra::tool_failure::ToolFailure::store(error.kind(), store),
+            None => crate::infra::tool_failure::ToolFailure::rejected(
+                validation_kind,
+                &error.error,
+                vec![],
+            ),
+        };
+        if let Some(body) = result
+            .structured_content
+            .as_mut()
+            .and_then(serde_json::Value::as_object_mut)
+        {
+            body.insert("error".into(), serde_json::json!(error.error));
+            body.insert("status".into(), serde_json::json!(error.status));
+            body.insert("hint".into(), serde_json::json!(error.hint));
+            if let Some(id) = error.record_id {
+                body.insert("record_id".into(), serde_json::json!(id));
+            }
+        }
+        result.content = vec![rmcp::model::ContentBlock::text(
+            result
+                .structured_content
+                .as_ref()
+                .expect("structured refusal")
+                .to_string(),
+        )];
+        Ok(result)
+    }
+
     pub(super) fn poisoned() -> ErrorData {
         ErrorData::internal_error("engine mutex poisoned", None)
     }

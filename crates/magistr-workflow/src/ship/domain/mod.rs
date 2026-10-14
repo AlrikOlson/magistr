@@ -5,5 +5,6 @@ pub mod check_receipt;
 pub(crate) mod execution_identity;
 pub mod objective;
 pub mod receipt_settlement;
+pub mod receipt_stage;
 pub mod task;
 pub mod verification_mode;

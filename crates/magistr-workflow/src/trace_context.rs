@@ -222,7 +222,13 @@ fn store_handle() -> Persistence {
 /// Last-writer-wins by design: the exporter wants the newest tree to hang
 /// under, not a merge of every caller that ever called. No-op when persistence
 /// is disabled.
-pub fn store(project: &str, trace: &InboundTrace) -> std::io::Result<()> {
+pub fn store(
+    project: &str,
+    trace: &InboundTrace,
+) -> Result<
+    magistr_workflow_contracts::Observed<InboundTrace>,
+    magistr_workflow_contracts::WriteError,
+> {
     store_into(&store_handle(), project, trace)
 }
 
@@ -243,7 +249,10 @@ pub(crate) fn store_into(
     store: &Persistence,
     project: &str,
     trace: &InboundTrace,
-) -> std::io::Result<()> {
+) -> Result<
+    magistr_workflow_contracts::Observed<InboundTrace>,
+    magistr_workflow_contracts::WriteError,
+> {
     store.save(project, trace)
 }
 

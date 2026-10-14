@@ -1,4 +1,5 @@
 use super::domain::check_receipt::CheckReceipt;
+use super::receipt_storage::ReceiptStorage;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -7,6 +8,7 @@ use serde::{Deserialize, Serialize};
 /// older settled checks referenced by unresolved host operations.
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct ReceiptCompaction {
+    pub storage: ReceiptStorage,
     pub removed: usize,
     pub retained_current: usize,
     pub retained_unsettled: usize,
@@ -24,7 +26,7 @@ impl ReceiptCompaction {
             self.retained_current += 1;
             true
         } else if receipt.settlement.is_none()
-            || receipt.execution.is_none()
+            || receipt.outcome.is_none()
             || receipt.settled_at.is_none()
         {
             self.retained_unsettled += 1;
