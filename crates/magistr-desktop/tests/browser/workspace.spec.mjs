@@ -49,6 +49,20 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
   await expect(editor).toBeVisible();
   await expect(app.getByRole("button",{name:"Details",exact:true})).toBeFocused();
   checks["Details and Escape preserve the draft and restore focus"]=true;
+  await app.getByLabel("Conversation actions",{exact:true}).click();
+  await app.getByRole("button",{name:"Rename conversation",exact:true}).click();
+  await capture("rename-light.png");
+  await app.getByRole("button",{name:"Cancel",exact:true}).click();
+  await app.setViewportSize({width:1280,height:820});
+  await app.getByRole("button",{name:"Settings",exact:true}).click();
+  await app.getByLabel("Appearance",{exact:true}).selectOption("dark");
+  await app.getByRole("button",{name:"Done",exact:true}).click();
+  await app.evaluate(()=>window.__fixture.publish("release",{work:{
+    id:{project:"magistr",local:"review"},phase:{kind:"paused"},iteration:3,limit:10,requested:null
+  }}));
+  await app.getByRole("button",{name:"Work paused",exact:true}).click();
+  await capture("work-paused-dark.png");
+  checks["work summary opens exact controls and naming has its own dialog"]=true;
   const sources={};
   for(const name of (await readdir(ui)).sort()){
     const file=resolve(ui,name);

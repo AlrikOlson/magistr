@@ -18,8 +18,8 @@ export function workPresentation(frame, pending=false) {
 }
 
 export class WorkPanel {
-  constructor(element,invoke,onError) {
-    this.$=element;this.invoke=invoke;this.onError=onError;this.pending=new Map();this.frame=null;
+  constructor(element,invoke,onError,present=()=>{}) {
+    this.$=element;this.invoke=invoke;this.onError=onError;this.present=present;this.pending=new Map();this.frame=null;
     for(const [id,action] of [["work-next","next"],["work-loop","loop"]])this.$(id).onclick=()=>this.start(action);
     for(const [id,action] of [["work-pause","pause"],["work-resume","resume"],["work-step","step"],["work-abort","abort"]])this.$(id).onclick=()=>this.control(action);
   }
@@ -30,7 +30,7 @@ export class WorkPanel {
     const view=workPresentation(frame,this.pending.has(key));
     this.$("work-status").textContent=view.status;this.$("work-detail").textContent=view.detail;
     this.$("work-error").textContent=view.error??"";this.$("work-error").hidden=!view.error;
-    for(const id of ["work-next","work-loop"])this.$(id).disabled=!view.canStart;
+    for(const id of ["work-next","work-loop"]) {this.$(id).disabled=!view.canStart;this.$(id).hidden=view.active||this.pending.has(key);}
     for(const id of ["work-pause","work-resume","work-step","work-abort"]) {
       this.$(id).hidden=!view.active;
       this.$(id).disabled=!!frame?.closed||view.stopped;
@@ -40,6 +40,7 @@ export class WorkPanel {
     this.$("work-resume").hidden=!view.active||(!view.paused&&!["pause","step"].includes(frame?.work?.requested));
     this.$("work-step").hidden=!view.active||!view.paused;
     this.$("work-abort").textContent=view.paused?"Stop work":"Finish item and stop";
+    this.present(view,frame);
   }
   async start(action) {
     const frame=this.frame;if(!workPresentation(frame,this.pending.has(addressKey(frame?.address))).canStart)return;

@@ -1,3 +1,4 @@
+import { ConversationName } from "./conversation_actions.mjs";
 import { ProjectNavigation } from "./navigation.mjs";
 import { WorkspaceLayout } from "./layout.mjs";
 import { WorkPanel } from "./work.mjs";
@@ -36,7 +37,8 @@ let configurationKey="";
 let requestsKey="",railKey="";
 const labels=new Map();let issuedLabel=0;
 const showError=error=>{$("error").textContent=error?.message??String(error);$("error").hidden=false;};
-const workPanel=new WorkPanel($,invoke,showError);
+const workPanel=new WorkPanel($,invoke,showError,renderWorkSummary);
+const conversationName=new ConversationName($,invoke);
 const clearError=()=>{$("error").hidden=true;};
 const button=(label,click)=>{const element=document.createElement("button");element.textContent=label;element.onclick=click;return element;};
 const text=(tag,value)=>{const element=document.createElement(tag);element.textContent=value;return element;};
@@ -52,7 +54,25 @@ const navigation=new ProjectNavigation($("projects"),{
 $("open-settings").onclick=()=>{if(!document.querySelector("dialog[open]"))$("settings").showModal();};
 $("settings-close").onclick=()=>$("settings").close();
 $("settings").onclose=()=>$("open-settings").focus();
-$("agent-quick-settings").onclick=()=>{layout.show(true);$("agent-configuration").querySelector("select")?.focus();};
+$("agent-quick-settings").onclick=()=>{layout.show(true,true);$("agent-configuration").querySelector("select")?.focus();};
+$("close-details").onclick=()=>{layout.show(false);$("toggle-details").focus();};
+$("copy-summary").onclick=()=>{layout.show(true);$("working-copy").focus();};
+$("work-summary").onclick=()=>{layout.show(true);$("work-title").focus();};
+$("review-requests").onclick=()=>{layout.show(true);$("requests").querySelector(".request")?.focus();};
+$("conversation-actions").addEventListener("click",event=>{if(event.target.closest("button"))$("conversation-actions").open=false;});
+$("conversation-actions").addEventListener("keydown",event=>{
+  if(event.key==="Escape"&&!event.isComposing){event.preventDefault();$("conversation-actions").open=false;$("conversation-menu-trigger").focus();}
+});
+document.addEventListener("pointerdown",event=>{
+  if(!$("conversation-actions").contains(event.target))$("conversation-actions").open=false;
+});
+function renderWorkSummary(presentation,frame) {
+  const summary=$("work-summary");
+  summary.disabled=!frame?.target;
+  summary.textContent=presentation.error?"Work needs attention":frame?.work||presentation.status==="Requesting work…"?presentation.status.replace(/[.]$/,""):"Planned work";
+  summary.title=presentation.detail;
+  summary.dataset.active=String(presentation.active||presentation.status==="Requesting work…");
+}
 
 async function refresh() {
   const info=await invoke("overview");if(catalog.sequence<0)sessions=info.sessions;projects=info.projects;
@@ -114,7 +134,10 @@ async function connectCatalog() {
 function renderComposer() {
   if(!composerFrame)return;
   const frame=composerFrame,key=targetKey(frame.target),fileBusy=attachmentWork.has(key),busy=fileBusy||draftMutations.has(key)||draftMutations.has(addressKey(frame.address));
-  $("draft").disabled=!frame.target||frame.closed||draftMutations.has(key)||draftMutations.has(addressKey(frame.address));
+  const closing=draftMutations.has(addressKey(frame.address));
+  $("close-session").disabled=frame.closed||closing;
+  $("close-session").textContent=closing?"Closing…":"Close conversation";
+  $("draft").disabled=!frame.target||frame.closed||draftMutations.has(key)||closing;
   $("send").disabled=!frame.target||busy||submissions.pending(frame.target)||frame.closed||frame.activity?.cancellation_requested;
   $("add-files").disabled=!frame.target||busy||frame.closed;
   attachmentList.apply(frame.attachments, !frame.target||busy||frame.closed);
@@ -218,6 +241,9 @@ async function select(address,requestId=null,requestTarget=null) {
       $("draft").value="";composerFrame=null;workPanel.render(null);attachmentList.clear();
       $("draft").disabled=true;$("send").disabled=true;$("add-files").disabled=true;$("attachment-note").textContent="";
       $("workspace-path").textContent=address.workspace;
+      $("copy-summary").textContent="Working copy";
+      $("copy-summary").title=address.workspace;
+      $("conversation-toolbar").hidden=false;$("conversation-actions").hidden=false;$("conversation-actions").open=false;
       $("project-name").textContent=sessions.find(session=>session.address.session===address.session)?.name??"Project";
       $("status").textContent="Connecting";renderRail();navigation.reveal(address);clearError();
       if(initial)receiveFrame(candidate,initial);
@@ -227,6 +253,9 @@ async function select(address,requestId=null,requestTarget=null) {
   if(!accepted)return;
   const copies=await invoke("working_copies",{directory:address.workspace});
   if(selected?.session!==address.session)return;
+  const activeCopy=copies.find(copy=>copy.path===address.workspace);
+  $("copy-summary").textContent=activeCopy?.state.status==="unversioned"?"Project folder":activeCopy?.branch??"Detached working copy";
+  $("copy-summary").setAttribute("aria-label","Working copy: "+$("copy-summary").textContent);
   $("working-copy").replaceChildren(...copies.map(copy=>{
     const option=document.createElement("option");option.value=copy.path;
     option.textContent=(copy.state.status==="unversioned"?"Project folder":copy.branch??"Detached working copy")+(copy.is_main?" · Main":"");
@@ -241,7 +270,6 @@ function receiveFrame(candidate,frame) {
     if(previousSequence<0||targetKey(previousTarget)!==targetKey(frame.target)) {
       $("draft").value=drafts.restore(frame);
       attachmentList.clear();requestsKey="";configurationKey="";
-      $("conversation-name").value=frame.conversation?.name??"";
       clearError();
     }
     const accepted=submissions.observe(frame);
@@ -259,14 +287,22 @@ function render(frame) {
   $("agent-quick-settings").disabled=frame.closed;
   $("agent-quick-settings").textContent=frame.model??frame.conversation?.provider_label??"Agent settings";
   composerFrame=frame;renderComposer();workPanel.render(frame);
-  $("new-session").disabled=frame.closed;$("close-session").disabled=frame.closed;
+  $("new-session").disabled=frame.closed;
   $("copy").disabled=view.messages.length===0;
   $("model").textContent=frame.model??"Model information is unavailable.";
   renderConfiguration(frame);
   $("usage").textContent=usageText(frame.usage);
+  const meter=$("context-meter"),known=frame.usage?.used!=null&&frame.usage?.size>0;
+  meter.hidden=!known;
+  if(known){meter.max=frame.usage.size;meter.value=frame.usage.used;meter.setAttribute("aria-valuetext",frame.usage.used.toLocaleString()+" of "+frame.usage.size.toLocaleString()+" context tokens");}
+  $("model").hidden=(frame.configuration??[]).some(option=>option.id==="model");
+  $("queue").hidden=!frame.activity?.queued_turns&&!frame.activity?.cancellation_requested;
+  $("review-requests").hidden=!view.pending.length;
+  $("review-requests").textContent=view.pending.length+(view.pending.length===1?" request needs your answer":" requests need your answer")+" →";
   $("capabilities").textContent=capabilityText(frame.activity);
   $("queue").textContent=frame.activity?frame.activity.queued_turns+(frame.activity.queued_turns===1?" message queued":" messages queued")+(frame.activity.cancellation_requested?" · Waiting for the agent to stop.":""):"Queue information is unavailable.";
   $("reconnect").disabled=frame.closed||frame.status!=="Connection lost"||frame.activity?.can_resume!==true;
+  $("reconnect").hidden=$("reconnect").disabled;
   const pendingKey=JSON.stringify([frame.target,view.pending]);
   if(pendingKey!==requestsKey) {$("requests").replaceChildren(...view.pending.map(request=>{
     const section=document.createElement("section");section.className="request";section.dataset.request=String(request.id);section.tabIndex=-1;section.setAttribute("aria-label","Request: "+request.title);
@@ -307,6 +343,7 @@ async function openDirectory(directory) {
 function showWelcome(note="") {
   selected=null;view=null;composerFrame=null;attachmentList.clear();selection.clear();requestsKey="";railKey="";
   $("workspace").hidden=true;$("welcome").hidden=false;layout.enable(false);
+  $("conversation-toolbar").hidden=true;$("conversation-actions").hidden=true;$("conversation-actions").open=false;conversationName.render(null);workPanel.render(null);
   $("project-name").textContent="Magistr";$("view-title").textContent="Projects";$("status").textContent="Ready";
   $("draft").value="";$("requests").replaceChildren();transcriptView.clear();
   for(const id of ["draft","send","stop","new-session","close-session","copy","reconnect","add-files"])$(id).disabled=true;
@@ -460,9 +497,7 @@ $("close-session").onclick=()=>selected&&closeAddress(selected);
 
 function renderConfiguration(frame) {
   $("view-title").textContent=frame.conversation?.name??(frame.conversation?.purpose==="roadmap"?"Planning":"Conversation");
-  if(document.activeElement!==$("conversation-name"))$("conversation-name").value=frame.conversation?.name??"";
-  $("conversation-name").disabled=frame.closed||!frame.conversation;
-  $("save-name").disabled=frame.closed||!frame.conversation;
+  conversationName.render(frame);
   $("agent-provider").textContent=frame.conversation?.provider_label??"Agent information is unavailable.";
   const key=JSON.stringify([frame.target,frame.configuration]);
   if(key!==configurationKey) {
@@ -481,11 +516,6 @@ function renderConfiguration(frame) {
   }
   for(const select of $("agent-configuration").querySelectorAll("select"))select.disabled=frame.closed||frame.activity?.active||!!frame.activity?.queued_turns||frame.activity?.cancellation_requested||frame.activity?.configuration_in_progress;
 }
-$("name-form").onsubmit=async event=>{
-  event.preventDefault();const target=currentTarget();if(!target)return;
-  try{await invoke("session_action",{target,action:{action:"rename",name:$("conversation-name").value}});}
-  catch(error){contextError(target,error);}
-};
 const agentLabels=new Map();
 let newWorkspace=null,chosenHistory=null,openingGeneration=0,historyResuming=false;
 async function chooseAgent(directory) {
