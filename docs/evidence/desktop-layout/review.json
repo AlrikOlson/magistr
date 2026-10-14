@@ -1,5 +1,5 @@
 {
-  "receipt": "f795a3aa6a08abb995bcd7648de89044be39956b1541e29ae16f24e4a5a77d58",
+  "receipt": "088c44f07faaea7b4340cf1bc4392b864331fb91b0232f0483b3f997a32ba73d",
   "images": {
     "welcome-dark.png": "79e72cd80fd09260941e65f9850b18d1c4de3f60197b90867bc2e01735e49de0",
     "workspace-dark.png": "83923e7816c24b594be689a56230b83e88b303c6ff55f43c5d9ac051bca4cd1b",
@@ -13,13 +13,15 @@
     "history-narrow-light.png": "1800e40c7cc85e13c6965be43e2cfb19ce18fa4dd594934702e819e0f684fcc1",
     "setup-narrow-light.png": "952a7484f8d4125352ca5e96ee401e8da65259cdc6b238808b055cf2e23d9928",
     "open-project-dark.png": "9c55544b547896d3b3bbef4ddd7c22a460f5f079d7150475b30987bb5cb12436",
-    "setup-dark.png": "3f5d0c4240dc95bcfa8d1bcd219fb864c262cfd36daf7edc5dab6eeac5dd1e5e"
+    "setup-dark.png": "3f5d0c4240dc95bcfa8d1bcd219fb864c262cfd36daf7edc5dab6eeac5dd1e5e",
+    "new-conversation-dark.png": "734891feb8091db30080ddd33d53491bf4955069dfb8ba322074a6a43da330d7",
+    "new-conversation-narrow-light.png": "814ffd9b4d0eaee318802001f5e77dc03202f8d4f12665509c443fdc4776795a"
   },
   "reviewed_on": "2026-10-14",
   "findings": [
-    "Reviewed all thirteen captures. The ten prior workspace/history captures retain exactly their reviewed image hashes; inspected the three new opening and setup captures at full size.",
-    "Folder entry is compact and explicit. Setup separates checkboxes from reading actions, presents the selected file beside the index, and keeps selection count and Apply/Cancel visible in both appearances and a narrow window.",
-    "Focused background journeys cover exact selected indexes, pending apply, partial failure, new review, changed folder, cancelled reads, folder-picker error and returning to a resident conversation. The desktop rebuilt successfully.",
-    "These are production UI renders with isolated observations. Native OS input, IME, OS file dialogs, VoiceOver and other-platform checks were not run. Native receipts remain archived at their actual source versions."
+    "Reviewed fifteen captures. The thirteen prior workspace/history/setup captures retain their reviewed hashes; inspected both new-conversation captures at full size, including the revised whole-choice keyboard focus.",
+    "New conversation clearly names the project and working copy, uses native radio choices for detected agents and keeps optional model discovery separate. Narrow light layout preserves the model and visible Start/Cancel actions; short-window coverage passed at 800×560.",
+    "Background journeys cover detection unavailable versus empty, stale model failure, admission refusal, pending controls, preserved choices and navigation retry after successful admission without starting a second agent. The actual desktop rebuilt.",
+    "Production UI with isolated observations only. Native OS input, IME, OS dialogs, VoiceOver and other-platform checks remain unrun; prior native receipts retain their source versions."
   ]
 }
