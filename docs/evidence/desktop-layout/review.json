@@ -1,5 +1,5 @@
 {
-  "receipt": "3f3272dca26db073001cd10bbbdf61a434dd3ab2e5d2d316546455b1514a46ee",
+  "receipt": "1ed43af8420354eefbd96db2d433d5620746d83c74dd24f78d04c9c3d46f5aa8",
   "images": {
     "welcome-dark.png": "79e72cd80fd09260941e65f9850b18d1c4de3f60197b90867bc2e01735e49de0",
     "workspace-dark.png": "83923e7816c24b594be689a56230b83e88b303c6ff55f43c5d9ac051bca4cd1b",
@@ -8,13 +8,15 @@
     "workspace-narrow.png": "9567b432b14adc3d00153bd320a3fbb46a8d1af532f774f6a9f3979c5f64e06a",
     "details-narrow.png": "5218f730dba05e680ba5a757f68fa0aa4f2d3b7162417692cd52eec6935ec966",
     "rename-light.png": "ff54bdac452da9842ab43c13375bccf29abb573f4f2ab0fa17c467a0b4143683",
-    "work-paused-dark.png": "9c84d2bc0b9334978c2718eeaa4506672a8de7f1046fabfcb6c95e4a0c79c81f"
+    "work-paused-dark.png": "9c84d2bc0b9334978c2718eeaa4506672a8de7f1046fabfcb6c95e4a0c79c81f",
+    "history-dark.png": "c275bd7e66f7ec0fe0248ce52789777386d15ffd7b0b0cd8f50b20793c8a6f39",
+    "history-narrow-light.png": "1800e40c7cc85e13c6965be43e2cfb19ce18fa4dd594934702e819e0f684fcc1"
   },
   "reviewed_on": "2026-10-14",
   "findings": [
-    "Reviewed eight production-UI WebKit captures: light/dark conversation, narrow conversation and Details, Settings, welcome, rename and paused work.",
-    "The header owns conversation actions, with explicit rename entry, pending save and failure recovery. Working copy, work state and requests are reachable from the toolbar. Details removes repeated name/lifecycle/model/queue controls and shows measured context use.",
-    "Paused work shows only the current run controls, with Continue emphasized. New-run buttons disappear during a run. Narrow Details and rename remain within the window; focused headless journeys cover exact-target actions and focus recovery.",
-    "Headless fixtures verify DOM behavior and layout, not native OS-input, IME, system file pickers, VoiceOver or other platforms. The actual desktop rebuilt successfully; archived native receipts remain bound to their recorded sources."
+    "Reviewed the ten current captures across the conversation, welcome, Settings, rename, paused work and saved-history surfaces. The eight prior workspace captures are unchanged; both new history captures were inspected at full size.",
+    "Saved history now uses a fixed title, search and Resume footer, with independent results and reading regions. Narrow light view retains readable title, draft editor, visible selection and actions. Ordinary saved text autosaves; Retry save appears only on failure.",
+    "Focused background journeys cover filtering without replacing drafts, failed save and close recovery, cancelled loading, unavailable versus empty history, refused resume and returning to an existing resident. The desktop rebuilt successfully.",
+    "These are real production UI renders with isolated observations. Native OS-input, IME, file dialogs, VoiceOver and other-platform checks were not run. Native receipts remain archived at their actual source versions."
   ]
 }

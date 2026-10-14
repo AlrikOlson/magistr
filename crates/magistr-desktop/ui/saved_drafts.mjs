@@ -27,6 +27,7 @@ export class SavedDraftEditor {
     }catch(error){if(generation!==this.generation)return false;throw error;}
     finally{if(generation===this.generation){this.loading=false;this.render();}}
   }
+  cancelOpen() {++this.generation;this.loading=false;this.render();}
   observe(target,status) {
     this.writer.accept(target,status);
   }
@@ -42,6 +43,7 @@ export class SavedDraftEditor {
       "This conversation belongs to an open session. Close that session before editing this saved message.";
     this.$("saved-message").disabled=open||this.busy||this.loading;
     this.$("save-saved-message").disabled=open||this.busy||this.loading;
+    this.$("save-saved-message").hidden=!this.mutationError&&!status.error;
     this.$("discard-saved-draft").disabled=open||this.busy||this.loading;
     this.files.apply(this.files.files,open||this.busy||this.loading);
     this.$("saved-draft-status").textContent=open?openMessage:
