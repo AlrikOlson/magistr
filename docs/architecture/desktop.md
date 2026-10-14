@@ -162,7 +162,7 @@ explicit, and reported zero remains distinct from missing information. The conve
 native editable text and selectable messages; the contextual panel shows the
 working copy, model, usage and permission requests. Open project, New session,
 Send, Stop, Allow/Deny, Copy conversation and Close session call real owners.
-New session lists installed or configured agents without opening them. Choose model
+New conversation names the destination project and working copy, then lists detected agents as native radio choices without opening them. Optional model discovery and admission have distinct pending states. Late reads are fenced by the current dialog and provider choice; an admitted address is retained until selection finishes, so retrying a navigation failure cannot start another agent. Choose model
 explicitly invokes the existing zero-turn ACP probe in the selected folder; it
 sends no prompt and awaits cleanup, without writing Magistr history. Model values
 and labels come from the provider and are filtered by the project policy. Normal

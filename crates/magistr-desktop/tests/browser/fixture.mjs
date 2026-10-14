@@ -86,6 +86,8 @@ function install(seed) {
       case "overview":return {directory:null,reduce_motion:false,sessions:sessions(),projects:seed.projects,attachment_limits:{file_bytes:8388608}};
       case "subscribe_catalog":catalog=args.channel;catalog.onmessage({stream:1,sequence:++stream,sessions:sessions()});return 1;
       case "subscribe_file_drops":case "subscribe_exit":case "acknowledge":case "session_action":return;
+      case "agent_choices":return [{id:"copilot",label:"GitHub Copilot"},{id:"api",label:"API Agent"}];
+      case "model_choices":return [{id:"sonnet",name:"Claude Sonnet"},{id:"gpt",name:"GPT"}];
       case "preview_project":return {...structuredClone(seed.setup),directory:args.directory,setup_directory:args.directory,review:++stream};
       case "discard_setup":return;
       case "pick_folder":return null;

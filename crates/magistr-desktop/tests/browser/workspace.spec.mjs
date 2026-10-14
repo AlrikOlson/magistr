@@ -94,6 +94,20 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
   await app.getByRole("button",{name:"Read AGENTS.md",exact:true}).click();
   await capture("setup-dark.png");
   checks["setup review separates file approval from reading with fixed actions"]=true;
+  await app.getByRole("button",{name:"Cancel",exact:true}).click();
+  await app.getByRole("button",{name:"New conversation",exact:true}).click();
+  await expect(app.getByRole("radio",{name:"GitHub Copilot",exact:true})).toBeVisible();
+  await capture("new-conversation-dark.png");
+  await app.getByRole("button",{name:"Cancel",exact:true}).click();
+  await app.getByRole("button",{name:"Settings",exact:true}).click();
+  await app.getByLabel("Appearance",{exact:true}).selectOption("light");
+  await app.getByRole("button",{name:"Done",exact:true}).click();
+  await app.setViewportSize({width:800,height:680});
+  await app.getByRole("button",{name:"New conversation",exact:true}).click();
+  await app.getByRole("button",{name:"Choose a model…",exact:true}).click();
+  await app.getByLabel("Model for this conversation",{exact:true}).selectOption("sonnet");
+  await capture("new-conversation-narrow-light.png");
+  checks["new conversation exposes destination, agents and optional model choice"]=true;
   const sources={};
   for(const name of (await readdir(ui)).sort()){
     const file=resolve(ui,name);

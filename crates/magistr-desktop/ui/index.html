@@ -118,11 +118,15 @@
   </form>
 </dialog>
 <dialog id="session-picker" aria-labelledby="session-picker-title">
-  <form id="session-form"><h2 id="session-picker-title">New conversation</h2><p>Choose an available agent. Choose a model here if your project requires one. You can change supported settings after opening.</p>
-    <label for="agent-choice">Agent</label><select id="agent-choice" required></select>
-    <button id="choose-initial-model" type="button">Choose model…</button><div id="initial-model-control" hidden><label for="initial-model">Initial model</label><select id="initial-model"></select></div>
-    <p id="session-picker-error" class="error" role="alert" hidden></p>
-    <div class="dialog-actions"><button id="session-picker-cancel" type="button">Cancel</button><button id="session-picker-open" type="submit">Start conversation</button></div>
+  <form id="session-form">
+    <header class="picker-heading"><h2 id="session-picker-title">New conversation</h2><p>Choose an agent to work with in this project.</p></header>
+    <div class="session-destination"><span>In this project</span><strong id="session-destination-name"></strong><p id="session-destination-path" class="path"></p></div>
+    <div class="session-choices">
+      <fieldset><legend>Agent</legend><div id="agent-choice"></div><p id="agent-choice-empty" hidden>No agents were found. Set up an agent on this computer, then check again.</p><button id="session-picker-retry" type="button" hidden>Check again</button></fieldset>
+      <section id="session-model-section" aria-label="Model choice" hidden><div class="model-choice-heading"><h3>Model <span>Optional</span></h3><button id="choose-initial-model" type="button">Choose a model…</button></div><p id="model-choice-note">Use the default model, or check the available choices.</p><div id="initial-model-control" hidden><label for="initial-model">Model for this conversation</label><select id="initial-model"></select></div></section>
+      <p id="session-picker-status" role="status" aria-live="polite" hidden></p><p id="session-picker-error" class="error" role="alert" tabindex="-1" hidden></p>
+    </div>
+    <footer class="picker-footer"><div class="dialog-actions"><button id="session-picker-cancel" type="button">Cancel</button><button id="session-picker-open" type="submit">Start conversation</button></div></footer>
   </form>
 </dialog>
 <dialog id="history-picker" aria-labelledby="history-title">

@@ -1,3 +1,4 @@
+import { ConversationPicker } from "./conversation_picker.mjs";
 import { HistoryBrowser } from "./history.mjs";
 import { ConversationName } from "./conversation_actions.mjs";
 import { ProjectNavigation } from "./navigation.mjs";
@@ -451,44 +452,14 @@ function renderConfiguration(frame) {
   for(const select of $("agent-configuration").querySelectorAll("select"))select.disabled=frame.closed||frame.activity?.active||!!frame.activity?.queued_turns||frame.activity?.cancellation_requested||frame.activity?.configuration_in_progress;
 }
 const agentLabels=new Map();
-let newWorkspace=null,openingGeneration=0;
-async function chooseAgent(directory) {
-  const generation=++openingGeneration;newWorkspace=directory;$("initial-model-control").hidden=true;$("initial-model").replaceChildren();$("choose-initial-model").disabled=false;$("session-picker-error").hidden=true;$("agent-choice").replaceChildren();
-  $("session-picker-open").disabled=true;$("session-picker").showModal();
-  try {
-    const choices=await invoke("agent_choices");if(generation!==openingGeneration)return;for(const choice of choices)agentLabels.set(choice.id,choice.label);
-    $("agent-choice").replaceChildren(...choices.map(choice=>{const option=document.createElement("option");option.value=choice.id;option.textContent=choice.label;return option;}));
-    const current=sessions.find(session=>session.address.session===selected?.session)?.conversation?.provider;
-    if(choices.some(choice=>choice.id===current))$("agent-choice").value=current;
-    $("session-picker-open").disabled=choices.length===0;
-    if(!choices.length)throw new Error("No agents are available. Set up an agent and try again.");
-    $("agent-choice").focus();
-  }catch(error){$("session-picker-error").textContent=String(error);$("session-picker-error").hidden=false;}
-}
-$("session-picker-cancel").onclick=()=>{++openingGeneration;$("session-picker").close();};
-$("session-picker").oncancel=()=>{++openingGeneration;};
-$("agent-choice").onchange=()=>{$("initial-model-control").hidden=true;$("initial-model").replaceChildren();};
-$("choose-initial-model").onclick=async()=>{
-  const generation=openingGeneration,provider=$("agent-choice").value;
-  $("choose-initial-model").disabled=true;$("session-picker-open").disabled=true;$("session-picker-error").hidden=true;
-  try {
-    const models=await invoke("model_choices",{directory:newWorkspace,provider});
-    if(generation!==openingGeneration||provider!==$("agent-choice").value)return;
-    $("initial-model").replaceChildren(...models.map(model=>{const option=document.createElement("option");option.value=model.id;option.textContent=model.name;return option;}));
-    $("initial-model-control").hidden=!models.length;
-    if(!models.length)throw new Error("This agent offers no available model choices for this project.");
-    $("initial-model").focus();
-  }catch(error){if(generation===openingGeneration){$("session-picker-error").textContent=String(error);$("session-picker-error").hidden=false;}}
-  finally{if(generation===openingGeneration){$("choose-initial-model").disabled=false;$("session-picker-open").disabled=false;if($("initial-model-control").hidden)$("choose-initial-model").focus();}}
-};
-$("session-form").onsubmit=async event=>{
-  event.preventDefault();$("session-picker-open").disabled=true;
-  try {
-    const address=await invoke("open_session",{directory:newWorkspace,choice:{kind:"new",provider:$("agent-choice").value,model:$("initial-model-control").hidden?null:$("initial-model").value}});
-    await refresh();await select(address);$("session-picker").close();$("draft").focus();
-  }catch(error){$("session-picker-error").textContent=String(error);$("session-picker-error").hidden=false;}
-  finally{$("session-picker-open").disabled=false;if($("session-picker").open)$("session-picker-open").focus();}
-};
+const conversationPicker=new ConversationPicker(invoke,$,{
+  opened:async address=>{await refresh();await select(address);},
+  rememberAgents:choices=>{for(const choice of choices)agentLabels.set(choice.id,choice.label);}
+});
+const chooseAgent=directory=>conversationPicker.show({
+  directory,name:sessions.find(session=>addressKey(session.address)===addressKey(selected))?.name??"Project",
+  provider:sessions.find(session=>addressKey(session.address)===addressKey(selected))?.conversation?.provider
+});
 document.addEventListener("keydown",event=>{
   if(!event.isComposing&&!document.querySelector("dialog[open]")&&(event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==="o"){event.preventDefault();$("open-project").click();}
 });
