@@ -311,8 +311,7 @@ def exercise(journey):
            lambda tree: editor(first)(tree) and pending(tree) == attached)
     j.new("Offline notes", "OpenAI")
     j.edit(offline)
-    j.call("press", j.pid, "Appearance")
-    j.call("press", j.pid, "Dark")
+    j.call("choose-option", j.pid, "", "Appearance", "Dark")
     j.call("press", j.pid, "Reduce motion")
     j.wait("saved appearance and motion are selected",
            lambda tree: any(row.get("AXRole") == "AXPopUpButton" and
@@ -378,8 +377,7 @@ def exercise(journey):
     j.wait("source files and clipboard bytes restore with their conversation",
            lambda tree: pending(tree) == attached and editor(first)(tree))
     j.capture("drafts-restored-dark")
-    j.call("press", j.pid, "Appearance")
-    j.call("press", j.pid, "Light")
+    j.call("choose-option", j.pid, "", "Appearance", "Light")
     j.capture("drafts-restored-light")
     bounds = next(row["rect"] for row in j.rows() if row.get("AXRole") == "AXWindow"
                   and row.get("rect", [0, 0, 0])[2] > 400)

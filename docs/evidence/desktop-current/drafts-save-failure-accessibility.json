@@ -1359,7 +1359,7 @@
     "AXHelp" : "",
     "AXRole" : "AXStaticText",
     "AXTitle" : "",
-    "AXValue" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-_pydnt6c\/first",
+    "AXValue" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-qehch9tq\/first",
     "enabled" : true,
     "focused" : false,
     "rect" : [
@@ -1858,11 +1858,11 @@
       "AXShowMenu",
       "AXScrollToVisible"
     ],
-    "AXDescription" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-_pydnt6c\/first",
-    "AXHelp" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-_pydnt6c\/first",
+    "AXDescription" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-qehch9tq\/first",
+    "AXHelp" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-qehch9tq\/first",
     "AXRole" : "AXGroup",
     "AXSubrole" : "AXApplicationGroup",
-    "AXTitle" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-_pydnt6c\/first",
+    "AXTitle" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-qehch9tq\/first",
     "AXValue" : "",
     "enabled" : true,
     "focused" : false,
@@ -2072,13 +2072,13 @@
     "AXHelp" : "",
     "AXRole" : "AXStaticText",
     "AXTitle" : "",
-    "AXValue" : "resumed eed4e5c1-38ea-483d-97c9-f7460a76d610",
+    "AXValue" : "resumed 1b10e189-23a3-4c5d-9841-fc85027ece19",
     "enabled" : true,
     "focused" : false,
     "rect" : [
       474,
       386,
-      344,
+      339,
       17
     ]
   },

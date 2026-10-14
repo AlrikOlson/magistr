@@ -266,8 +266,9 @@ def main():
             draft(value)
             if method=="key":call("key",pid,36,0)
             else:call(method,pid,"Send")
-        def choose_theme(label,down):
-            call("press",pid,"Appearance");call("press",pid,label.capitalize());time.sleep(.15)
+        def choose_theme(label):
+            results.setdefault("appearance", []).append(call("choose-option",pid,"","Appearance",label.capitalize()))
+            wait("appearance commits "+label,lambda tree:any(r.get("AXRole")=="AXPopUpButton" and r.get("AXTitle")=="Appearance" and r.get("AXValue")==label.capitalize() for r in tree))
             call("screenshot",pid,evidence/(label+".png"))
         def enter_folder(directory):
             call("press",pid,"Open project")
@@ -281,8 +282,8 @@ def main():
             assert not (parent/"data/magistr/sessions.db").exists(),"Showing the chooser must not create history"
             results["checks"]["chooser launches no provider and creates no history"]=True
             call("ax",pid,evidence/"chooser-accessibility.json")
-            choose_theme("dark",1);call("screenshot",pid,evidence/"chooser-dark.png")
-            choose_theme("light",2);call("screenshot",pid,evidence/"chooser-light.png")
+            choose_theme("dark");call("screenshot",pid,evidence/"chooser-dark.png")
+            choose_theme("light");call("screenshot",pid,evidence/"chooser-light.png")
             enter_folder(parent/"missing")
             wait("invalid directory stays in the chooser",text_has("Could not open folder"))
             call("press",pid,"Cancel")
@@ -497,7 +498,7 @@ def main():
             wait("saved model and name remain with resumed conversation",lambda tree:text_has("[scripted-slow] echo: after saved reopen")(tree) and text_has("Release review")(tree))
             exercise_attachments(call=call,pid=pid,evidence=evidence,results=results,send=send,draft=draft,wait=wait,text_has=text_has,rows=rows,directory=second,control=attachments)
             exercise_rich_conversation(call=call,pid=pid,evidence=evidence,results=results,send=send,wait=wait,text_has=text_has,rows=rows,directory=second,control=rich,link=rich_link,api=api)
-            choose_theme("dark",1);choose_theme("light",2)
+            choose_theme("dark");choose_theme("light")
             call("resize",pid,800,680);call("screenshot",pid,evidence/"narrow.png")
             call("ax",pid,evidence/"accessibility.json")
             draft("")
