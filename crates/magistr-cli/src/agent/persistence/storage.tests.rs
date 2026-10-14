@@ -26,6 +26,7 @@ fn test_db() -> (TempDir, Connection) {
 
 fn sample_record(id: &str, project: &str) -> SessionRecord {
     SessionRecord {
+        purpose: magistr_application::sessions::SessionPurpose::Conversation,
         session_id: id.to_string(),
         name: None,
         project: project.to_string(),
@@ -612,7 +613,7 @@ fn recent_history_and_since_filter_follow_the_latest_settlement_of_a_resumed_con
 }
 
 #[test]
-fn a_settlement_cannot_mix_facts_from_another_working_copy_or_provider() {
+fn a_settlement_cannot_change_working_copy_provider_or_purpose() {
     let (_directory, conn) = test_db();
     let record = sample_record("host", "project");
     insert_session(&conn, &record).unwrap();
@@ -622,6 +623,9 @@ fn a_settlement_cannot_mix_facts_from_another_working_copy_or_provider() {
     assert!(insert_session(&conn, &unrelated).is_err());
     unrelated.workspace = record.workspace.clone();
     unrelated.provider = "another-agent".into();
+    assert!(insert_session(&conn, &unrelated).is_err());
+    unrelated.provider = record.provider.clone();
+    unrelated.purpose = magistr_application::sessions::SessionPurpose::Roadmap;
     assert!(insert_session(&conn, &unrelated).is_err());
     assert_eq!(get_session(&conn, "host").unwrap().unwrap(), record);
 }

@@ -42,6 +42,14 @@ async fn host_reconnect_loads_the_same_session_without_repeating_history() {
                         provider: "scripted".into(),
                     },
                 )?;
+                let history_inputs =
+                    crate::config::inputs::ProjectInputs::from_lookup(&config.cwd, |key| {
+                        (key == "XDG_DATA_HOME")
+                            .then(|| config.cwd.join("session-data").display().to_string())
+                    });
+                spec.history()
+                    .begin(&history_inputs, &config.cwd, "scripted", spec.model())
+                    .await?;
                 let (channel, agent) = replaying_agent();
                 let mut transport =
                     magistr_acp::AcpTransport::new_with_args("controlled".into(), vec![], None)
@@ -82,7 +90,10 @@ async fn host_reconnect_loads_the_same_session_without_repeating_history() {
         commands.send(prompt("Continue")).unwrap();
         let (restored, agent) = opened.recv().await.unwrap();
         assert_eq!(restored.resume.as_deref(), Some("retained-session"));
-        assert_eq!(restored.planning_only, planning);
+        assert_eq!(
+            restored.history.purpose() == SessionPurpose::Roadmap,
+            planning
+        );
         assert!(!restored.continue_conversation && restored.prompt.is_empty());
         assert_eq!(
             turn_text(&mut events).await,
@@ -185,17 +196,11 @@ async fn host_connector_preserves_choices_and_separates_planning_configuration()
         assert!(
             actual.prompt.is_empty() && actual.resume.is_none() && !actual.continue_conversation
         );
-        assert_eq!(actual.planning_only, planning);
-        assert_eq!(actual.workflow_permissions, !planning);
-        if planning {
-            assert!(
-                actual
-                    .allowed_tools
-                    .iter()
-                    .any(|tool| tool == "roadmap_add_chunk")
-            );
-            assert!(!actual.allowed_tools.iter().any(|tool| tool == "ship_start"));
-        }
+        assert_eq!(
+            actual.history.purpose() == SessionPurpose::Roadmap,
+            planning
+        );
+        assert!(actual.workflow_permissions);
         assert!(
             matches!(events.recv().await, Some(Msg::Agent(AgentEvent::PromptRejected { error, .. })) if error.contains("connection refused"))
         );

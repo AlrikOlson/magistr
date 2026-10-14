@@ -1,5 +1,14 @@
 use super::*;
 
+fn bind(owner: &SessionObservation) {
+    owner.bind_context_for_test(magistr_application::sessions::Conversation {
+        id: "one".into(),
+        name: None,
+        provider: "scripted".into(),
+        purpose: magistr_application::sessions::SessionPurpose::Conversation,
+    });
+}
+
 fn address() -> SessionAddress {
     SessionAddress {
         project: "project".into(),
@@ -12,7 +21,8 @@ fn address() -> SessionAddress {
 fn drafts_and_answers_advance_the_same_observation_sequence() {
     let owner = std::sync::Arc::new(SessionObservation::new(address()));
     let before = owner.snapshot().sequence;
-    owner.draft("draft".into());
+    bind(&owner);
+    owner.draft_for("one", "draft".into()).unwrap();
     assert!(owner.snapshot().sequence > before);
     owner.send(Msg::Agent(AgentEvent::PermissionRequest {
         detail: String::new(),
@@ -24,7 +34,7 @@ fn drafts_and_answers_advance_the_same_observation_sequence() {
         plan: None,
     }));
     let pending = owner.snapshot().sequence;
-    owner.permission_answered(7);
+    owner.permission_answered_for("one", 7).unwrap();
     let snapshot = owner.snapshot();
     assert!(snapshot.sequence > pending);
     assert_eq!(snapshot.pending_requests().count(), 0);
@@ -84,6 +94,7 @@ async fn disconnected_readers_do_not_close_the_owner_and_reconnect_gets_a_reseed
 #[test]
 fn bounded_bytes_and_pending_permission_survive_transcript_rotation() {
     let owner = std::sync::Arc::new(SessionObservation::new(address()));
+    bind(&owner);
     let request = Msg::Agent(AgentEvent::PermissionRequest {
         detail: String::new(),
         id: 7,
@@ -108,8 +119,8 @@ fn bounded_bytes_and_pending_permission_survive_transcript_rotation() {
             .iter()
             .any(|msg| matches!(msg, Msg::Agent(AgentEvent::PermissionRequest { id: 7, .. })))
     );
-    owner.permission_answered(7);
-    assert!(owner.is_answered(7));
+    owner.permission_answered_for("one", 7).unwrap();
+    assert!(owner.is_answered("one", 7));
     owner.send(Msg::Agent(AgentEvent::PermissionCancelled { id: 7 }));
     assert!(!owner.snapshot().pending.contains_key(&7));
 }
@@ -172,7 +183,8 @@ fn rejected_messages_remain_drafts_after_rotation_without_replacing_newer_input(
     }
     assert!(owner.snapshot().dropped > 0);
     assert_eq!(owner.snapshot().seed.draft.as_deref(), Some("unsent"));
-    owner.draft("newer input".into());
+    bind(&owner);
+    owner.draft_for("one", "newer input".into()).unwrap();
     owner.send(Msg::Agent(AgentEvent::PromptRejected {
         input: "old".into(),
         error: "closed".into(),
@@ -465,6 +477,7 @@ fn conversation_name_and_complete_configuration_survive_transcript_pruning() {
             id: "saved".into(),
             name: Some("Review café".into()),
             provider: "copilot".into(),
+            purpose: magistr_application::sessions::SessionPurpose::Conversation,
         },
     )));
     owner.send(Msg::Agent(AgentEvent::Configuration {
@@ -539,7 +552,8 @@ fn workflow_snapshots_survive_separately_without_evicting_conversation_or_drafts
     use magistr_cockpit::{engine::EngineEvent, harness::fixtures};
     use magistr_engine::{ReadError, ReadErrorKind, ReadState};
     let owner = std::sync::Arc::new(SessionObservation::new(address()));
-    owner.draft("unsent message".into());
+    bind(&owner);
+    owner.draft_for("one", "unsent message".into()).unwrap();
     owner.send(Msg::Agent(AgentEvent::UserText("earlier question".into())));
     owner.send(Msg::Agent(AgentEvent::PermissionRequest {
         detail: String::new(),

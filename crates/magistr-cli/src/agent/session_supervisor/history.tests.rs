@@ -26,7 +26,8 @@ async fn start(prompt: &str, inputs: &ProjectInputs, history: &SessionHistory) -
 async fn actual_completion_reopens_with_usage_summary_and_one_identity_across_reconnect() {
     let directory = tempfile::tempdir().unwrap();
     let inputs = inputs(&directory);
-    let history = SessionHistory::new();
+    let history =
+        SessionHistory::for_purpose(magistr_application::sessions::SessionPurpose::Roadmap);
     let mut first = start("priced", &inputs, &history).await;
     first.next_terminal().await.unwrap();
     first.supervisor.send_followup(&"second".into()).unwrap();
@@ -38,6 +39,10 @@ async fn actual_completion_reopens_with_usage_summary_and_one_identity_across_re
     let before = storage::query_sessions(&conn, &SessionFilter::new())
         .unwrap()
         .remove(0);
+    assert_eq!(
+        before.purpose,
+        magistr_application::sessions::SessionPurpose::Roadmap
+    );
     assert_eq!(before.outcome, Some(SessionOutcome::Completed));
     assert_eq!(before.turns, Some(2));
     assert_eq!(before.cost_usd, Some(0.25));
@@ -51,7 +56,9 @@ async fn actual_completion_reopens_with_usage_summary_and_one_identity_across_re
     storage::tag_session(&conn, &before.session_id, "reviewed").unwrap();
     storage::set_session_owner(&conn, &before.session_id, "next-person").unwrap();
     drop(conn);
-    let mut restored = start("third", &inputs, &history).await;
+    let restored_history = SessionHistory::from_record(before.clone());
+    assert_eq!(restored_history.id(), history.id());
+    let mut restored = start("third", &inputs, &restored_history).await;
     restored.next_terminal().await.unwrap();
     restored.close().await;
     let conn = storage::open_db(&path).unwrap();
@@ -59,6 +66,7 @@ async fn actual_completion_reopens_with_usage_summary_and_one_identity_across_re
         .unwrap()
         .unwrap();
     assert_eq!(storage::count_sessions(&conn).unwrap(), 1);
+    assert_eq!(after.purpose, before.purpose);
     assert_eq!(after.started_at, before.started_at);
     assert_eq!(after.turns, Some(3));
     assert_eq!(after.owner.as_deref(), Some("next-person"));
@@ -208,4 +216,94 @@ async fn immediate_idle_close_keeps_the_already_accepted_provider_identity() {
         "connect already accepted the provider session before owner observation began"
     );
     assert_eq!(record.outcome, Some(SessionOutcome::Stopped));
+}
+
+#[tokio::test]
+async fn saved_planning_reopens_under_yolo_and_refuses_implementation_on_the_wire() {
+    use crate::agent::{AgentConfig, AgentRuntime, AuthMethod, ResolvedSessionSpec};
+    use crate::permissions::PermissionProfile;
+    use magistr_application::sessions::SessionPurpose;
+
+    let directory = tempfile::tempdir().unwrap();
+    let inputs = inputs(&directory);
+    let mut config = AgentConfig::new("", directory.path())
+        .with_inputs(&inputs)
+        .permission_profile(PermissionProfile::Yolo);
+    config.history = SessionHistory::for_purpose(SessionPurpose::Roadmap);
+    let id = config.history.id();
+
+    for (attempt, prompt, expected) in [
+        (0, "mcp__magistr__roadmap_add_chunk", "selected allow"),
+        (1, "Write", "selected reject"),
+    ] {
+        if attempt != 0 {
+            config = crate::agent::persistence::resume::saved_config(
+                AgentConfig::new("", directory.path())
+                    .with_inputs(&inputs)
+                    .permission_profile(PermissionProfile::Yolo),
+                &id,
+            )
+            .unwrap();
+            assert_eq!(config.history.id(), id);
+            assert_eq!(config.history.purpose(), SessionPurpose::Roadmap);
+            assert_eq!(config.resume.as_deref(), Some("parity-session"));
+        }
+        let spec = ResolvedSessionSpec::resolve_with_runtime(
+            config.clone(),
+            &crate::config::user_config::UserConfig::default(),
+            AgentRuntime {
+                path: "unused-in-process-agent".into(),
+                args: Vec::new(),
+                auth: AuthMethod::Implicit,
+                provider: "permission-fixture".into(),
+            },
+        )
+        .unwrap();
+        let history = spec.history();
+        // Channel fixtures initialize the same durable owner before connecting.
+        history
+            .begin(
+                &inputs,
+                spec.cwd(),
+                spec.runtime().provider_id(),
+                spec.model(),
+            )
+            .await
+            .unwrap();
+        let (transport, mut server, mut outcomes) =
+            permission_agent_with_mode(spec.cwd(), spec.session_mode()).await;
+        let policy = spec.into_session_policy();
+        let (mut supervisor, mut messages) =
+            SessionSupervisor::start_connected_history(prompt, transport, Some(policy), history)
+                .await
+                .unwrap();
+        let outcome = tokio::time::timeout(DEADLINE, outcomes.recv())
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(wire(outcome), expected);
+        tokio::time::timeout(DEADLINE, async {
+            while let Some(message) = messages.recv().await {
+                if matches!(message.unwrap(), AgentMessage::Result { .. }) {
+                    return;
+                }
+            }
+            panic!("the owner must observe the actual terminal response");
+        })
+        .await
+        .unwrap();
+        supervisor.terminate_session().await.unwrap();
+        tokio::time::timeout(DEADLINE, &mut server)
+            .await
+            .unwrap()
+            .unwrap();
+
+        let conn = storage::open_readonly_db(&storage::sessions_db_path(&inputs).unwrap()).unwrap();
+        assert_eq!(storage::count_sessions(&conn).unwrap(), 1);
+        let saved = storage::get_session(&conn, &id).unwrap().unwrap();
+        assert_eq!(saved.purpose, SessionPurpose::Roadmap);
+        assert!(saved.can_resume());
+        assert_eq!(saved.provider_session_id.as_deref(), Some("parity-session"));
+        assert_eq!(saved.turns, Some(attempt + 1));
+    }
 }

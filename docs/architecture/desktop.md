@@ -45,18 +45,35 @@ its existing view or receive a refusal.
 | WebView | Native editing, accessible controls, focus, layout and bounded conversation presentation |
 
 The UI never launches a provider or writes a second session registry. Every
-command and frame carries project, canonical workspace and logical session
-identity. Switching views replaces the subscription; resident work continues.
+frame carries project, canonical workspace and resident session identity. Every
+conversation mutation also carries the logical conversation ID in a
+`ConversationTarget`; resident navigation and Close address the resident itself. Switching views replaces the subscription; resident work continues.
 Close session settles that session. Quit awaits the registry and its project
 resources before the native event loop accepts exit. Window visibility preserves
 the current view; replacing a selection or dropping the window stream ends its
 subscription without closing resident sessions.
 
+The supervisor activates a conversation only after its history, draft writer and
+observation are bound. Conversation metadata cannot activate a context. Planning
+and ordinary conversations retain separate provider identities, names, messages,
+permission requests and drafts when parked. Purpose is required in the existing
+history record and restores the planning policy on reopen. No duplicate history
+or per-view persistence owns these facts.
+
+Draft and attachment edits resolve the named retained conversation even while it
+is parked. Provider commands and Send additionally require that conversation to
+be active when dispatched. Preparation and queued commands retain the same target,
+so a switch cannot redirect their work. Late provider events and save results
+update only their own context. Close flushes every retained draft writer before
+releasing its history claims. The catalog projects all retained conversation IDs,
+including parked and closing contexts; saved history uses those claims to prevent
+concurrent editing or duplicate resume.
+
 A Tauri Channel delivers ordered batches. One batch may be in flight; the next
 waits for acknowledgement of the exact sequence after DOM application. Slow views
 cannot accumulate token payloads. Navigation intentions are monotonic at both
 ends. Late subscriptions and frames cannot replace the selected session.
-The application snapshot retains at most 512 source records within a one MiB
+Each conversation snapshot retains at most 512 source records within a one MiB
 payload budget. Each record has its first observation identity and latest
 revision. Text chunks amend their original record; tool updates merge by call
 identity into complete tool facts, including the original input and later
@@ -77,8 +94,14 @@ See [projections](projections.md) for the read and retry contract.
 Incremental frames replace changed records by identity and carry the owner's
 complete retained-id order. A cursor outside retention causes an owner refresh
 and explicit reseed; surviving source and DOM identities remain stable. There is
-one canonical source store in the application. The WebView retains only its
-current presentation and removes records when the owner removes them.
+one canonical source store in the application. Activation preserves a monotonically
+increasing resident cursor, while each new conversation presentation reseeds
+messages and attachment previews. Editor and send state are keyed by the full
+conversation target, including pending writes when a conversation is parked. The WebView retains only its
+current presentation and removes records when the owner removes them. A successful
+draft RPC retains its acknowledged text and revision until an equally current
+owner frame arrives, so returning to a parked conversation cannot restore older
+text while the frame catches up.
 
 Replies are parsed by pulldown-cmark into typed, allowlisted document nodes.
 Headings, lists, code, emphasis and web links are semantic elements. Authored
@@ -159,7 +182,7 @@ a rejected send or a newer draft is retained. Cancellation clears the owner's qu
 and reports unsent queued messages. Navigation saves drafts only to live catalog
 owners, so closing the selected conversation can switch to another resident.
 
-Pending files belong to the addressed session alongside its text draft. The
+Pending files belong to the addressed conversation alongside its text draft. The
 native picker and native file drops stage project files through the admitted
 workspace's exact `read_source` observation. Clipboard files supply bytes only;
 they grant no filesystem access. Staging classifies content from bytes and keeps
@@ -183,7 +206,8 @@ bytes cannot change with the filesystem.
 Each selected stream sends image and text preview data once per new attachment
 identity. Subsequent frames carry metadata; the desktop retains only that
 presentation data until removal or navigation. A new stream seeds its previews
-again. Native file drops grant one use to the full selected session and stream;
+again, including when the logical conversation changes inside one resident.
+Native file drops grant one use to the full selected conversation and stream;
 JavaScript receives no path-reading capability.
 
 The current submission outcome is an explicitly sequenced owner fact, separate
@@ -192,7 +216,7 @@ ordered file identities, names, hashes, kinds and lengths, so attachment payload
 the transcript. Acceptance clears only the matching text and attachments;
 late outcomes leave newer edits intact. Rejection can restore exact bytes into
 an empty pending draft. The desktop allows one outstanding send per addressed
-session and never infers acceptance from an empty editor.
+conversation and never infers acceptance from an empty editor.
 
 Appearance selects System, Light or Dark and saves through
 `DesktopPreferencesService` to the captured user settings path. System follows

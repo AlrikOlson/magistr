@@ -47,6 +47,10 @@ pub fn spawn_session(
     engine: Option<Box<dyn EnginePort>>,
     checkpoints: Option<Box<dyn CheckpointPort>>,
 ) -> JoinHandle<Result<(), String>> {
+    let inbox = match handle.conversation() {
+        Some(conversation) => inbox.for_conversation(&conversation.id),
+        None => inbox,
+    };
     let session = Session {
         handle,
         inbox,
@@ -145,6 +149,13 @@ impl Session {
     }
 
     fn command(&mut self, cmd: Cmd) {
+        let conversation = self.handle.conversation();
+        let Some(cmd) = self.inbox.command_for(
+            cmd,
+            conversation.as_ref().map(|context| context.id.as_str()),
+        ) else {
+            return;
+        };
         let cmd = match cmd {
             Cmd::Workbench(cmd) => return self.workbench(cmd),
             Cmd::Engine(cmd) => return self.engine(cmd),

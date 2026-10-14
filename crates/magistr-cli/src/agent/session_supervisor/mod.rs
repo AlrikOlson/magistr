@@ -265,11 +265,11 @@ impl SessionSupervisor {
         let history = spec.history();
         let transport = spec.connect_transport_checkpointed(before_spawn).await?;
         let prompt = spec.prompt().to_owned();
-        let (policy, handling) = spec.into_permission_policy();
+        let (policy, handling) = spec.into_session_policy();
         Self::start_connected_bounded_with_limit(
             &prompt,
             transport,
-            Some((Box::new(policy), handling)),
+            Some((policy, handling)),
             ObservationCapacity::DEFAULT,
             max_turns,
             Some(history),
@@ -671,6 +671,14 @@ impl SessionSupervisor {
     #[must_use]
     pub fn provider_pid(&self) -> Option<u32> {
         self.provider_pid
+    }
+
+    pub(crate) fn conversation(&self) -> Option<magistr_application::sessions::Conversation> {
+        self.inner
+            .lock()
+            .expect("supervisor state lock poisoned")
+            .history
+            .conversation()
     }
 
     /// Read consistent admission, outcome and residency facts.

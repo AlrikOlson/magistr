@@ -2,13 +2,24 @@
 use super::{CheckpointCmd, EngineCmd, KillCmd, LaunchAction, LoopCmd, WorkbenchCmd};
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Cmd {
+    /// Carry the exact logical conversation through asynchronous command dispatch.
+    ForConversation {
+        id: String,
+        command: Box<Self>,
+    },
     Quit,
     Prompt(magistr_application::sessions::PromptInput),
     RoadmapPrompt(magistr_application::sessions::PromptInput),
     CancelRoadmapPrompt,
     Cancel,
-    Permission { id: u64, option_id: String },
-    Constraint { id: u64, condition: String },
+    Permission {
+        id: u64,
+        option_id: String,
+    },
+    Constraint {
+        id: u64,
+        condition: String,
+    },
     Delegate(String),
     Loop(LoopCmd),
     Launch(LaunchAction),
@@ -18,7 +29,10 @@ pub enum Cmd {
     Checkpoint(CheckpointCmd),
     Reconnect,
     Rename(String),
-    Configure { id: String, value: String },
+    Configure {
+        id: String,
+        value: String,
+    },
 }
 impl Cmd {
     #[must_use]

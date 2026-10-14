@@ -4,6 +4,7 @@ use chrono::{Duration, TimeZone};
 
 fn record(project: &str, started: DateTime<Utc>, cost_usd: f64) -> SessionRecord {
     SessionRecord {
+        purpose: magistr_application::sessions::SessionPurpose::Conversation,
         session_id: format!("{project}-{started}"),
         name: None,
         project: project.to_owned(),

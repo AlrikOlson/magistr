@@ -1,3 +1,4 @@
+import { addressKey } from "./context.mjs";
 // Native selection and reading position belong to this semantic document view.
 import { AttachmentList } from "./attachments.mjs";
 const tags=new Set(["p","h1","h2","h3","h4","h5","h6","blockquote","pre","ol","ul","li","em","strong","s","a","span","code","hr","br"]);
@@ -71,7 +72,7 @@ export class Transcript {
   }
   render(view) {
     if(!view)return;
-    const address=JSON.stringify(view.address),fresh=address!==this.address;
+    const address=JSON.stringify([addressKey(view.address),view.target?.conversation]),fresh=address!==this.address;
     if(fresh) {this.clear();this.address=address;}
     this.view=view;
     const selection=this.document.getSelection(),selected=selectedWithin(selection,this.root);

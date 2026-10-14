@@ -3,7 +3,7 @@ import test from "node:test";
 import { Conversation } from "../ui/conversation.mjs";
 const address={project:"p",workspace:"/p",session:"s"};
 const message=(id,revision,text,role="Agent")=>({id,revision,role,text,document:null,tool:null});
-const frame=(sequence,events,retained=events.map(value=>value.id),extra={})=>({address,sequence,events,retained,reseed:false,pending:[],draft:"",dropped:0,status:"Ready",...extra});
+const frame=(sequence,events,retained=events.map(value=>value.id),extra={})=>({address,target:{address,conversation:"one"},sequence,events,retained,reseed:false,pending:[],draft:"",dropped:0,status:"Ready",...extra});
 test("late and wrongly addressed frames cannot alter retained source",()=>{
  const view=new Conversation(address);view.apply(frame(2,[message(1,2,"reply")]));
  assert.equal(view.apply(frame(1,[message(1,1,"old")])),false);
@@ -43,4 +43,30 @@ test("current requests remain authoritative with source pruning",()=>{
  assert.equal(view.pending[0].id,7);
  view.apply(frame(2,[],[],{pending:[],dropped:3}));
  assert.equal(view.pending.length,0);
+});
+
+test("switching conversations in one resident replaces retained messages even when IDs collide",()=>{
+ const view=new Conversation(address);
+ view.apply(frame(4,[message(1,1,"First conversation")]));
+ const previous=view.messages[0];
+ view.apply(frame(5,[message(1,1,"Planning conversation")],[1],{
+   target:{address,conversation:"planning"},reseed:true,pending:[{id:7,title:"Plan"}]
+ }));
+ assert.equal(view.target.conversation,"planning");
+ assert.notEqual(view.messages[0],previous);
+ assert.equal(view.copy(),"Agent\nPlanning conversation");
+ assert.equal(view.apply(frame(4,[message(1,9,"Late first reply")])),false);
+ assert.equal(view.copy(),"Agent\nPlanning conversation");
+ view.apply(frame(6,[message(1,1,"First conversation")],[1],{reseed:true}));
+ assert.equal(view.target.conversation,"one");
+ assert.equal(view.copy(),"Agent\nFirst conversation");
+});
+
+test("opening diagnostics retain incremental messages before a conversation is bound",()=>{
+ const view=new Conversation(address);
+ view.apply(frame(1,[message(1,1,"Connecting")],[1],{target:null}));
+ view.apply(frame(2,[message(2,2,"Opening failed")],[1,2],{target:null}));
+ assert.equal(view.copy(),"Agent\nConnecting\n\nAgent\nOpening failed");
+ view.apply(frame(3,[],[],{reseed:true}));
+ assert.equal(view.messages.length,0);
 });

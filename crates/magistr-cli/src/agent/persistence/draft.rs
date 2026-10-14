@@ -45,7 +45,13 @@ pub(crate) fn load(conn: &Connection, id: &str) -> Result<SavedDraft, String> {
         [id], |row| Ok((row.get(0)?, row.get(1)?)),
     ).optional().map_err(read_failure)?;
     let Some((text_len, attachment_len)) = lengths else {
-        return Ok(SavedDraft::default());
+        return Ok(SavedDraft {
+            status: DraftStatus {
+                conversation: id.to_owned(),
+                ..DraftStatus::default()
+            },
+            ..SavedDraft::default()
+        });
     };
     if text_len < 0
         || text_len > MAX_PROMPT_BYTES as i64
@@ -89,6 +95,7 @@ pub(crate) fn load(conn: &Connection, id: &str) -> Result<SavedDraft, String> {
         text,
         attachments,
         status: DraftStatus {
+            conversation: id.to_owned(),
             revision,
             saved_revision: revision,
             save_attempt: 0,

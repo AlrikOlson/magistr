@@ -7,20 +7,13 @@ use std::{future::Future, pin::Pin, sync::Arc, time::Duration};
 
 use crate::channel::{Commands, Inbox};
 use crate::spawn_session;
-use magistr_application::sessions::{AgentEvent, SessionHandle};
+use magistr_application::sessions::{AgentEvent, Conversation, SessionHandle, SessionPurpose};
 use magistr_cockpit::checkpoint::CheckpointPort;
 use magistr_cockpit::cockpit::{Cmd, LaunchAction, LoopCmd, Msg};
 use magistr_cockpit::engine::EnginePort;
 use magistr_cockpit::workbench::WorkbenchPort;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 use tokio::task::JoinHandle;
-
-/// Provider context requested from the host. Planning must use its own policy.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum SessionPurpose {
-    Conversation,
-    Roadmap,
-}
 
 /// How a conversation phase ended, for the owner of its commands.
 #[derive(Debug, PartialEq, Eq)]
@@ -56,6 +49,8 @@ struct Connection {
     task: JoinHandle<Result<(), String>>,
     commands: Option<UnboundedSender<Cmd>>,
     events: UnboundedReceiver<Msg>,
+    conversation: Conversation,
+    inbox: Inbox,
     roadmap: bool,
     replaying: bool,
 }
@@ -68,8 +63,7 @@ impl Drop for Connection {
     }
 }
 
-/// Only the active connection can publish into the displayed turn. An idle
-/// connection keeps its own channel while its provider context is parked.
+/// Every provider retains its own event queue and immutable observation scope.
 async fn connection_event(connection: &mut Option<Connection>) -> Option<Msg> {
     match connection {
         Some(connection) => connection.events.recv().await,
@@ -91,6 +85,8 @@ pub struct InteractiveSession {
     conversation_id: Option<String>,
     conversation_can_resume: Option<bool>,
     roadmap_id: Option<String>,
+    roadmap_can_resume: Option<bool>,
+    active_context: Option<Conversation>,
     busy: bool,
     queued: Option<magistr_application::sessions::PromptInput>,
     closed: bool,
@@ -141,6 +137,8 @@ impl InteractiveSession {
             conversation_id: None,
             conversation_can_resume: None,
             roadmap_id: None,
+            roadmap_can_resume: None,
+            active_context: None,
             busy: false,
             queued: None,
             closed: false,
@@ -160,12 +158,24 @@ impl InteractiveSession {
 
     /// Adopt the opening conversation connected before the interface starts.
     pub fn connected(mut self, handle: Box<dyn SessionHandle>, busy: bool) -> Self {
-        self.attach(handle, false, false);
-        self.busy = busy;
+        match self.attach(handle, false) {
+            Ok(()) => self.busy = busy,
+            Err(error) => {
+                self.current_inbox()
+                    .send(Msg::Agent(AgentEvent::Error(error)));
+            }
+        }
         self
     }
 
-    fn attach(&mut self, handle: Box<dyn SessionHandle>, roadmap: bool, replaying: bool) {
+    fn attach(&mut self, handle: Box<dyn SessionHandle>, replaying: bool) -> Result<(), String> {
+        let conversation = handle.conversation().ok_or_else(|| {
+            "The conversation could not be opened. Try opening it again.".to_owned()
+        })?;
+        let outbound = self.inbox.for_conversation(&conversation.id);
+        outbound.activate(&conversation.id)?;
+        self.active_context = Some(conversation.clone());
+        let roadmap = conversation.purpose == SessionPurpose::Roadmap;
         let (commands, receiver) = Commands::channel();
         let (inbox, events) = Inbox::channel();
         let task = spawn_session(handle, inbox, receiver, None, None, None);
@@ -173,9 +183,36 @@ impl InteractiveSession {
             task,
             commands: Some(commands),
             events,
+            conversation,
+            inbox: outbound,
             roadmap,
             replaying,
         });
+        Ok(())
+    }
+
+    fn current_inbox(&self) -> Inbox {
+        self.active_context.as_ref().map_or_else(
+            || self.inbox.clone(),
+            |context| self.inbox.for_conversation(&context.id),
+        )
+    }
+
+    fn command_for(&self, command: Cmd) -> Option<Cmd> {
+        self.inbox.command_for(
+            command,
+            self.active_context
+                .as_ref()
+                .map(|context| context.id.as_str()),
+        )
+    }
+
+    fn activate_connection(&mut self) -> Result<(), String> {
+        if let Some(connection) = &self.connection {
+            connection.inbox.activate(&connection.conversation.id)?;
+            self.active_context = Some(connection.conversation.clone());
+        }
+        Ok(())
     }
 
     async fn submit(
@@ -197,7 +234,7 @@ impl InteractiveSession {
             }
             if roadmap && self.queued.is_none() {
                 self.queued = Some(text);
-                self.inbox.send(Msg::RoadmapRequestQueued);
+                self.current_inbox().send(Msg::RoadmapRequestQueued);
             } else {
                 self.reject(
                     text,
@@ -206,6 +243,7 @@ impl InteractiveSession {
             }
             return;
         }
+        let mut swapped = false;
         if self
             .connection
             .as_ref()
@@ -214,6 +252,7 @@ impl InteractiveSession {
             // Each purpose keeps its own provider context, including sessions
             // that cannot be loaded again after their connection is closed.
             std::mem::swap(&mut self.connection, &mut self.parked);
+            swapped = true;
         }
         if self.connection.is_none()
             && self
@@ -222,6 +261,14 @@ impl InteractiveSession {
                 .is_some_and(|session| session.roadmap == roadmap)
         {
             std::mem::swap(&mut self.connection, &mut self.parked);
+            swapped = !swapped;
+        }
+        if let Err(error) = self.activate_connection() {
+            if swapped {
+                std::mem::swap(&mut self.connection, &mut self.parked);
+            }
+            self.reject(text, &error);
+            return;
         }
         if self.connection.is_none() {
             let purpose = if roadmap {
@@ -248,19 +295,27 @@ impl InteractiveSession {
                             return;
                         }
                     },
-                    command = commands.next() => match command {
+                    command = commands.next() => {
+                        let command = match command {
+                            Some(command) => match self.command_for(command) {
+                                Some(command) => Some(command),
+                                None => continue,
+                            },
+                            None => None,
+                        };
+                        match command {
                         None | Some(Cmd::Quit) => {
                             self.closed = true;
                             return;
                         }
                         Some(Cmd::CancelRoadmapPrompt) if roadmap => {
                             self.reject(text, "This send was stopped. Your draft is still available.");
-                            self.inbox.send(Msg::RoadmapRequestCancelled);
+                            self.current_inbox().send(Msg::RoadmapRequestCancelled);
                             return;
                         }
                         Some(Cmd::Cancel) if !roadmap => {
                             self.reject(text, "This send was stopped. Your draft is still available.");
-                            self.inbox.send(Msg::Agent(AgentEvent::TurnEnded(
+                            self.current_inbox().send(Msg::Agent(AgentEvent::TurnEnded(
                                 magistr_application::sessions::TurnEnd::Cancelled,
                             )));
                             return;
@@ -271,9 +326,9 @@ impl InteractiveSession {
                             if abort {
                                 self.reject(text, "This send was stopped. Your draft is still available.");
                                 if roadmap {
-                                    self.inbox.send(Msg::RoadmapRequestCancelled);
+                                    self.current_inbox().send(Msg::RoadmapRequestCancelled);
                                 } else {
-                                    self.inbox.send(Msg::Agent(AgentEvent::TurnEnded(
+                                    self.current_inbox().send(Msg::Agent(AgentEvent::TurnEnded(
                                         magistr_application::sessions::TurnEnd::Cancelled,
                                     )));
                                 }
@@ -285,11 +340,12 @@ impl InteractiveSession {
                         }
                         Some(Cmd::Launch(action)) => self.refuse_start(action, START_WAITS.to_owned()),
                         Some(other) => { self.forward(other); }
+                        }
                     }
                 }
             };
-            match connected {
-                Ok(handle) => self.attach(handle, roadmap, replaying),
+            match connected.and_then(|handle| self.attach(handle, replaying)) {
+                Ok(()) => {}
                 Err(error) => {
                     self.reject(text, &format!("Magistr could not connect: {error}"));
                     return;
@@ -297,7 +353,7 @@ impl InteractiveSession {
             }
         }
         if roadmap {
-            self.inbox.send(Msg::RoadmapRequestStarted);
+            self.current_inbox().send(Msg::RoadmapRequestStarted);
         }
         self.busy = true;
         if !self.forward(Cmd::Prompt(text)) {
@@ -308,16 +364,25 @@ impl InteractiveSession {
 
     // Retain identities even after their connection has closed. Replay belongs
     // to the provider's restored context, not to a second displayed response.
-    fn observe(&mut self, event: &Msg) -> bool {
-        let Some(connection) = self.connection.as_mut() else {
+    fn observe(&mut self, event: &Msg, parked: bool) -> bool {
+        let current = if parked {
+            &mut self.parked
+        } else {
+            &mut self.connection
+        };
+        let Some(connection) = current.as_mut() else {
             return true;
         };
-        if !connection.roadmap
-            && let Msg::Agent(AgentEvent::Activity(activity)) = event
-        {
-            self.conversation_can_resume = activity.can_resume;
-            self.busy =
-                activity.active || activity.queued_turns > 0 || activity.cancellation_requested;
+        if let Msg::Agent(AgentEvent::Activity(activity)) = event {
+            if connection.roadmap {
+                self.roadmap_can_resume = activity.can_resume;
+            } else {
+                self.conversation_can_resume = activity.can_resume;
+            }
+            if !parked {
+                self.busy =
+                    activity.active || activity.queued_turns > 0 || activity.cancellation_requested;
+            }
         }
         if let Msg::Agent(AgentEvent::Initialized { session_id, .. }) = event {
             let saved = if connection.roadmap {
@@ -329,6 +394,7 @@ impl InteractiveSession {
             connection.replaying = false;
         }
         !connection.replaying
+            || !matches!(event, Msg::Agent(_))
             || matches!(
                 event,
                 Msg::Agent(AgentEvent::Error(_) | AgentEvent::PromptRejected { .. })
@@ -336,50 +402,76 @@ impl InteractiveSession {
     }
 
     async fn reconnect(&mut self, commands: &mut Commands) {
+        let roadmap = self
+            .active_context
+            .as_ref()
+            .is_some_and(|context| context.purpose == SessionPurpose::Roadmap);
+        let can_resume = if roadmap {
+            self.roadmap_can_resume
+        } else {
+            self.conversation_can_resume
+        };
         let refusal = if self.busy {
             Some("Wait for the current response before reconnecting.")
         } else if self.connection.is_some() {
             Some("The agent is already connected.")
-        } else if self.conversation_can_resume != Some(true) {
+        } else if can_resume != Some(true) {
             Some("This agent cannot reopen the conversation. Open a new session to continue.")
         } else {
             None
         };
         if let Some(error) = refusal {
-            self.inbox.send(Msg::CommandFailed {
+            self.current_inbox().send(Msg::CommandFailed {
                 cmd: Cmd::Reconnect,
                 error: error.into(),
             });
             return;
         }
-        let Some(identity) = self.conversation_id.clone() else {
+        let identity = if roadmap {
+            &self.roadmap_id
+        } else {
+            &self.conversation_id
+        };
+        let Some(identity) = identity.clone() else {
             return;
         };
+        let purpose = if roadmap {
+            SessionPurpose::Roadmap
+        } else {
+            SessionPurpose::Conversation
+        };
         let connect = Arc::clone(&self.connect);
-        let connected = tokio::time::timeout(
-            Duration::from_secs(30),
-            connect(SessionPurpose::Conversation, Some(identity)),
-        );
+        let connected =
+            tokio::time::timeout(Duration::from_secs(30), connect(purpose, Some(identity)));
         tokio::pin!(connected);
         let result = loop {
             tokio::select! {
                 result = &mut connected => break result.unwrap_or_else(|_| Err("The agent took too long to reconnect. Try again.".into())),
-                command = commands.next() => match command {
+                command = commands.next() => {
+                    let command = match command {
+                        Some(command) => match self.command_for(command) {
+                            Some(command) => Some(command),
+                            None => continue,
+                        },
+                        None => None,
+                    };
+                    match command {
                     None | Some(Cmd::Quit) => { self.closed = true; return; }
                     Some(Cmd::Cancel) => {
-                        self.inbox.send(Msg::CommandFailed { cmd: Cmd::Reconnect, error: "Reconnection cancelled.".into() });
+                        self.current_inbox().send(Msg::CommandFailed { cmd: Cmd::Reconnect, error: "Reconnection cancelled.".into() });
                         return;
                     }
                     Some(command) => {
-                        self.inbox.send(Msg::CommandFailed { cmd: command, error: "Wait for the agent to reconnect.".into() });
+                        self.current_inbox().send(Msg::CommandFailed { cmd: command, error: "Wait for the agent to reconnect.".into() });
+                    }
                     }
                 }
             }
         };
-        match result {
-            Ok(handle) => self.attach(handle, false, true),
+        match result.and_then(|handle| self.attach(handle, true)) {
+            Ok(()) => {}
             Err(error) => {
-                self.inbox.send(Msg::CommandFailed {
+                self.current_inbox().send(Msg::CommandFailed {
                     cmd: Cmd::Reconnect,
                     error,
                 });
@@ -388,10 +480,11 @@ impl InteractiveSession {
     }
 
     fn reject(&self, text: magistr_application::sessions::PromptInput, error: &str) {
-        self.inbox.send(Msg::Agent(AgentEvent::PromptRejected {
-            input: text,
-            error: error.to_owned(),
-        }));
+        self.current_inbox()
+            .send(Msg::Agent(AgentEvent::PromptRejected {
+                input: text,
+                error: error.to_owned(),
+            }));
     }
 
     fn forward(&self, cmd: Cmd) -> bool {
@@ -410,7 +503,12 @@ impl InteractiveSession {
             },
             None => cmd,
         };
-        self.inbox.send(Msg::CommandFailed {
+        let inbox = if local {
+            self.inbox.clone()
+        } else {
+            self.current_inbox()
+        };
+        inbox.send(Msg::CommandFailed {
             cmd: refused,
             error: if local {
                 "The project connection closed. Reopen the session and try again."
@@ -422,8 +520,8 @@ impl InteractiveSession {
         false
     }
 
-    async fn close(&mut self) {
-        if let Some(mut connection) = self.connection.take() {
+    async fn close_connection(connection: Option<Connection>) {
+        if let Some(mut connection) = connection {
             drop(connection.commands.take());
             if tokio::time::timeout(CLOSE_GRACE, &mut connection.task)
                 .await
@@ -432,7 +530,25 @@ impl InteractiveSession {
                 connection.task.abort();
                 let _ = (&mut connection.task).await;
             }
+            while let Ok(event) = connection.events.try_recv() {
+                if matches!(event, Msg::Agent(AgentEvent::Initialized { .. })) {
+                    connection.replaying = false;
+                }
+                if !connection.replaying
+                    || !matches!(event, Msg::Agent(_))
+                    || matches!(
+                        event,
+                        Msg::Agent(AgentEvent::Error(_) | AgentEvent::PromptRejected { .. })
+                    )
+                {
+                    connection.inbox.send(event);
+                }
+            }
         }
+    }
+
+    async fn close(&mut self) {
+        Self::close_connection(self.connection.take()).await;
         self.busy = false;
     }
 
@@ -462,7 +578,7 @@ impl InteractiveSession {
                     event = connection_event(&mut self.connection) => {
                         let Some(event) = event else {
                             self.busy = false;
-                            self.inbox.send(Msg::Agent(AgentEvent::Error(
+                            self.current_inbox().send(Msg::Agent(AgentEvent::Error(
                                 "The agent connection closed. Send your message again to reconnect.".into(),
                             )));
                             self.close().await;
@@ -473,10 +589,12 @@ impl InteractiveSession {
                             }
                             continue;
                         };
-                        if !self.observe(&event) {
+                        if !self.observe(&event, false) {
                             continue;
                         }
-                        self.inbox.send(event.clone());
+                        if let Some(connection) = &self.connection {
+                            connection.inbox.send(event.clone());
+                        }
                         if matches!(event, Msg::Agent(
                             AgentEvent::TurnEnded(_) | AgentEvent::Error(_)
                             | AgentEvent::PromptRejected { .. }
@@ -493,6 +611,19 @@ impl InteractiveSession {
                         }
                         continue;
                     }
+                    event = connection_event(&mut self.parked) => {
+                        if let Some(event) = event {
+                            if self.observe(&event, true) && let Some(parked) = &self.parked {
+                                parked.inbox.send(event.clone());
+                            }
+                            if matches!(event, Msg::Agent(AgentEvent::Error(_))) {
+                                Self::close_connection(self.parked.take()).await;
+                            }
+                        } else {
+                            Self::close_connection(self.parked.take()).await;
+                        }
+                        continue;
+                    }
                     command = commands.next() => command,
                 }
             };
@@ -500,9 +631,24 @@ impl InteractiveSession {
                 closed = true;
                 break;
             };
+            let addressed = matches!(command, Cmd::ForConversation { .. });
+            let Some(command) = self.command_for(command) else {
+                continue;
+            };
             match command {
                 Cmd::Reconnect => self.reconnect(commands).await,
-                Cmd::Prompt(text) => self.submit(text, false, commands, &mut controls).await,
+                Cmd::Prompt(text) => {
+                    let roadmap = addressed
+                        && self
+                            .active_context
+                            .as_ref()
+                            .is_some_and(|context| context.purpose == SessionPurpose::Roadmap);
+                    if addressed && self.busy && self.connection.is_some() {
+                        self.forward(Cmd::Prompt(text));
+                    } else {
+                        self.submit(text, roadmap, commands, &mut controls).await;
+                    }
+                }
                 Cmd::RoadmapPrompt(text) => self.submit(text, true, commands, &mut controls).await,
                 Cmd::CancelRoadmapPrompt => {
                     if let Some(input) = self.queued.take() {
@@ -510,7 +656,7 @@ impl InteractiveSession {
                             input,
                             "This send was stopped. Your draft is still available.",
                         );
-                        self.inbox.send(Msg::RoadmapRequestCancelled);
+                        self.current_inbox().send(Msg::RoadmapRequestCancelled);
                     } else if self
                         .connection
                         .as_ref()
@@ -519,7 +665,7 @@ impl InteractiveSession {
                     {
                         self.forward(Cmd::Cancel);
                     } else {
-                        self.inbox.send(Msg::CommandFailed {
+                        self.current_inbox().send(Msg::CommandFailed {
                             cmd: Cmd::CancelRoadmapPrompt,
                             error: "There is no roadmap request to stop.".into(),
                         });
@@ -560,7 +706,7 @@ impl InteractiveSession {
             }
             if !once {
                 for command in controls.drain(..) {
-                    self.inbox.send(Msg::CommandFailed {
+                    self.current_inbox().send(Msg::CommandFailed {
                         cmd: Cmd::Loop(command),
                         error: "There is no running work loop for this action.".into(),
                     });
@@ -575,8 +721,7 @@ impl InteractiveSession {
             }
         }
         self.close().await;
-        self.connection = self.parked.take();
-        self.close().await;
+        Self::close_connection(self.parked.take()).await;
         drop(self.local_commands.take());
         if tokio::time::timeout(CLOSE_GRACE, &mut self.local_task)
             .await
@@ -593,7 +738,7 @@ impl InteractiveSession {
     }
 
     fn refuse_start(&self, action: LaunchAction, error: String) {
-        self.inbox.send(Msg::CommandFailed {
+        self.current_inbox().send(Msg::CommandFailed {
             cmd: Cmd::Launch(action),
             error,
         });

@@ -6,6 +6,7 @@ use std::path::Path;
 use agent_client_protocol::schema::v1::McpServer;
 use magistr_acp::{AcpSessionMode, AcpTransport};
 use magistr_application::effects::{SourceRefusal, SourceRoute};
+use magistr_application::sessions::{SessionPolicy, SessionPurpose};
 
 use super::{AgentConfig, AgentRuntime, SessionConfigSource};
 use crate::config::user_config::UserConfig;
@@ -75,6 +76,7 @@ impl ResolvedSessionSpec {
         runtime: AgentRuntime,
     ) -> Result<Self> {
         use SessionConfigSource::{Explicit, ProjectFile, ProjectPolicy, RuntimeDefault};
+        super::purpose_policy::apply(&mut config);
         validate_continuation(&config)?;
         config.cwd = std::fs::canonicalize(&config.cwd)
             .map_err(|error| MagistrError::io(&config.cwd, error))?;
@@ -174,7 +176,7 @@ impl ResolvedSessionSpec {
     /// no source-write authority.
     #[must_use]
     pub fn with_source_route(mut self, source: SourceRoute) -> Self {
-        self.source = if self.config.planning_only {
+        self.source = if self.config.history.purpose() == SessionPurpose::Roadmap {
             SourceRoute::Refused(SourceRefusal::NoAuthority)
         } else {
             source
@@ -354,8 +356,14 @@ impl ResolvedSessionSpec {
 
     /// Transfer the already resolved policy and unattended response mode to its owner.
     #[must_use]
-    pub fn into_permission_policy(self) -> (SessionPermissionPolicy, NoninteractivePolicy) {
-        (self.policy, self.handling)
+    pub fn into_session_policy(self) -> (Box<dyn SessionPolicy>, NoninteractivePolicy) {
+        let policy: Box<dyn SessionPolicy> = match self.config.history.purpose() {
+            SessionPurpose::Conversation => Box::new(self.policy),
+            SessionPurpose::Roadmap => {
+                Box::new(super::purpose_policy::RoadmapPolicy::new(self.policy))
+            }
+        };
+        (policy, self.handling)
     }
 }
 

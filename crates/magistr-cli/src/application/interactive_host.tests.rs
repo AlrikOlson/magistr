@@ -64,6 +64,7 @@ struct Probe {
 
 struct Session {
     probe: Probe,
+    conversation: magistr_application::sessions::Conversation,
     _source: SourceRoute,
     tx: mpsc::UnboundedSender<AgentEvent>,
     rx: mpsc::UnboundedReceiver<AgentEvent>,
@@ -76,6 +77,9 @@ impl Drop for Session {
 }
 
 impl SessionHandle for Session {
+    fn conversation(&self) -> Option<magistr_application::sessions::Conversation> {
+        Some(self.conversation.clone())
+    }
     fn submit_turn(
         &mut self,
         input: &magistr_application::sessions::PromptInput,
@@ -131,6 +135,12 @@ async fn started(
     let (tx, rx) = mpsc::unbounded_channel();
     let session = Session {
         probe,
+        conversation: magistr_application::sessions::Conversation {
+            id: config.history.id(),
+            purpose: config.history.purpose(),
+            name: None,
+            provider: "claude".into(),
+        },
         _source: resources.admitted.workspace.source_route(),
         tx,
         rx,
@@ -145,7 +155,7 @@ async fn started(
         spec,
         inbox,
         commands,
-        |_| async { Ok(Box::new(session) as Box<dyn SessionHandle>) },
+        |_, _| async { Ok(Box::new(session) as Box<dyn SessionHandle>) },
         Connector::live,
     )
     .await
@@ -188,7 +198,7 @@ async fn startup_failure_releases_source_and_project_owners() {
             spec,
             inbox,
             commands,
-            |_| async { Err(eyre::eyre!("provider unavailable")) },
+            |_, _| async { Err(eyre::eyre!("provider unavailable")) },
             Connector::live,
         )
         .await;
@@ -242,6 +252,12 @@ async fn unreadable_work_records_are_reported_without_preventing_chat_startup() 
     let (tx, rx) = mpsc::unbounded_channel();
     let session = Session {
         probe: probe.clone(),
+        conversation: magistr_application::sessions::Conversation {
+            id: config.history.id(),
+            purpose: config.history.purpose(),
+            name: None,
+            provider: "claude".into(),
+        },
         _source: resources.admitted.workspace.source_route(),
         tx,
         rx,
@@ -255,7 +271,7 @@ async fn unreadable_work_records_are_reported_without_preventing_chat_startup() 
         spec,
         inbox,
         commands,
-        |_| async { Ok(Box::new(session) as Box<dyn SessionHandle>) },
+        |_, _| async { Ok(Box::new(session) as Box<dyn SessionHandle>) },
         Connector::live,
     )
     .await

@@ -152,22 +152,15 @@ impl SessionRegistry {
                 if let Some(source) = resources.source_reader() {
                     opening.observation.set_source(source);
                 }
-                let history = config.history.clone();
                 let opened = InteractiveHost::open_admitted(
                     config,
                     resources,
                     opening.inbox,
                     opening.commands,
+                    Arc::clone(&opening.observation),
                 )
                 .await
                 .map_err(|error| format!("{error:#}"))?;
-                if let Err(error) = opening.observation.attach_history(history).await {
-                    let cleanup = opened.0.shutdown().await;
-                    return Err(format!(
-                        "The saved message could not be restored: {error}. {}",
-                        cleanup.err().unwrap_or_default()
-                    ));
-                }
                 Ok(opened)
             })
         });

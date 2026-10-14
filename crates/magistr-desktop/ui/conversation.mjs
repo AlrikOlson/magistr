@@ -1,8 +1,11 @@
+import { addressKey, targetKey } from "./context.mjs";
 // A presentation of the owner's complete, identified source revisions.
 export class Conversation {
-  constructor(address) { this.address=address; this.sequence=-1; this.messages=[]; this.pending=[]; this.dropped=0; this.status="Ready"; }
+  constructor(address) { this.address=address;this.target=null; this.sequence=-1; this.messages=[]; this.pending=[]; this.dropped=0; this.status="Ready"; }
   apply(frame) {
-    if (JSON.stringify(frame.address)!==JSON.stringify(this.address) || frame.sequence<=this.sequence) return false;
+    if (addressKey(frame.address)!==addressKey(this.address) || frame.sequence<=this.sequence) return false;
+    if(targetKey(this.target)!==targetKey(frame.target))this.messages=[];
+    this.target=frame.target;
     const retained=new Set(frame.retained), existing=new Map(this.messages.map(message=>[message.id,message]));
     for(const incoming of frame.events) {
       const held=existing.get(incoming.id);

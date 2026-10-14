@@ -4,6 +4,7 @@ use chrono::TimeZone;
 
 fn sample_record(id: &str, project: &str, cost: f64, turns: u32) -> SessionRecord {
     SessionRecord {
+        purpose: magistr_application::sessions::SessionPurpose::Conversation,
         session_id: id.to_string(),
         name: None,
         project: project.to_string(),
@@ -105,4 +106,20 @@ fn absent_usage_remains_unknown_and_resume_requires_identity_and_capability() {
     assert!(!record.can_resume());
     record.resume_supported = true;
     assert!(record.can_resume());
+}
+
+#[test]
+fn purpose_is_required_and_round_trips_in_exported_history() {
+    let mut record = sample_record("planning", "project", 0.0, 0);
+    record.purpose = SessionPurpose::Roadmap;
+    let mut encoded = serde_json::to_value(&record).unwrap();
+    assert_eq!(encoded["purpose"], "roadmap");
+    assert_eq!(
+        serde_json::from_value::<SessionRecord>(encoded.clone()).unwrap(),
+        record
+    );
+    encoded["purpose"] = serde_json::json!("unknown");
+    assert!(serde_json::from_value::<SessionRecord>(encoded.clone()).is_err());
+    encoded.as_object_mut().unwrap().remove("purpose");
+    assert!(serde_json::from_value::<SessionRecord>(encoded).is_err());
 }

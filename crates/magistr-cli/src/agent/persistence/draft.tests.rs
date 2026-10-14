@@ -49,6 +49,7 @@ fn draft(text: &str, revision: u64) -> SavedDraft {
 async fn first_turn_is_not_required_for_a_truthful_recoverable_checkpoint() {
     let dir = tempfile::tempdir().unwrap();
     let (inputs, history, id) = history(&dir).await;
+    assert_eq!(history.load_draft().await.unwrap().status.conversation, id);
     let mut message = draft("日本語\r\nNever sent", 1);
     message.attachments = pasted("clipboard.png", b"\x89PNG\r\n\x1a\nimage");
     let attachment_id = message.attachments[0].id().to_owned();
@@ -65,6 +66,7 @@ async fn first_turn_is_not_required_for_a_truthful_recoverable_checkpoint() {
     assert!(records[0].updated_at >= records[0].started_at);
     drop(history); // No settlement: this models recovery from a lost process.
     let recovered = crate::application::saved_draft(&inputs, &id).unwrap();
+    assert_eq!(recovered.status.conversation, id);
     assert_eq!(recovered.text, message.text);
     assert_eq!(recovered.attachments[0].id(), attachment_id);
     assert_eq!(
@@ -125,6 +127,8 @@ async fn offline_edit_remove_and_discard_preserve_stable_files_and_reject_stale_
     )
     .unwrap();
     let current = crate::application::saved_draft(&inputs, &id).unwrap();
+    assert_eq!(status.conversation, id);
+    assert_eq!(current.status.conversation, id);
     assert_eq!(current.attachments[0].id(), attachment_id);
     assert_eq!(current.attachments[0].content().bytes(), b"original bytes");
     assert!(edit_saved(&inputs, &id, 1, SavedEdit::Discard).is_err());

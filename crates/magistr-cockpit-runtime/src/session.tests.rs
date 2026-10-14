@@ -18,6 +18,14 @@ struct FakeSession {
 }
 
 impl SessionHandle for FakeSession {
+    fn conversation(&self) -> Option<magistr_application::sessions::Conversation> {
+        Some(magistr_application::sessions::Conversation {
+            id: "logical-conversation".into(),
+            name: None,
+            provider: "fake".into(),
+            purpose: magistr_application::sessions::SessionPurpose::Conversation,
+        })
+    }
     fn submit_turn(
         &mut self,
         input: &magistr_application::sessions::PromptInput,
@@ -175,6 +183,47 @@ async fn publishes_accepted_input_once_and_preserves_provider_history_and_permis
     task.await
         .expect("relay task joins")
         .expect("session cleanup succeeds");
+}
+
+#[tokio::test]
+async fn relay_rejects_commands_for_another_logical_conversation() {
+    let (handle, _events, mut calls) = fake();
+    let (inbox, mut messages) = Inbox::channel();
+    let (sender, commands) = Commands::channel();
+    let task = spawn_session(Box::new(handle), inbox, commands, None, None, None);
+    let permission = Cmd::Permission {
+        id: 8,
+        option_id: "allow".into(),
+    };
+    sender
+        .send(Cmd::ForConversation {
+            id: "other-conversation".into(),
+            command: Box::new(permission.clone()),
+        })
+        .unwrap();
+    assert!(
+        matches!(next(&mut messages).await, Msg::CommandFailed { cmd, .. } if cmd == permission)
+    );
+    assert!(calls.try_recv().is_err());
+    sender
+        .send(Cmd::ForConversation {
+            id: "other-conversation".into(),
+            command: Box::new(Cmd::Prompt("stale draft".into())),
+        })
+        .unwrap();
+    assert!(
+        matches!(next(&mut messages).await, Msg::Agent(AgentEvent::PromptRejected { input, .. }) if input.text == "stale draft")
+    );
+    assert!(calls.try_recv().is_err());
+    sender
+        .send(Cmd::ForConversation {
+            id: "logical-conversation".into(),
+            command: Box::new(permission),
+        })
+        .unwrap();
+    assert_eq!(next(&mut calls).await, "answer 8 allow");
+    drop(sender);
+    task.await.unwrap().unwrap();
 }
 
 #[tokio::test]

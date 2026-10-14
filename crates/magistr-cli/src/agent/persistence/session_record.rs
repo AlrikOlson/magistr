@@ -1,6 +1,7 @@
 //! Durable facts for one host-owned agent conversation.
 
 use chrono::{DateTime, Utc};
+use magistr_application::sessions::SessionPurpose;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
@@ -10,6 +11,12 @@ use super::session_outcome::SessionOutcome;
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SessionRecord {
     pub session_id: String,
+    /// Intent fixed when the conversation is created; controls startup authority.
+    #[serde(
+        serialize_with = "serialize_purpose",
+        deserialize_with = "deserialize_purpose"
+    )]
+    pub purpose: SessionPurpose,
     /// A name assigned through the owning conversation.
     pub name: Option<String>,
     /// Canonical project authority directory shared by its working copies.
@@ -86,6 +93,35 @@ impl fmt::Display for SessionRecord {
             self.file_count(),
         )
     }
+}
+
+pub(super) fn purpose_name(purpose: SessionPurpose) -> &'static str {
+    match purpose {
+        SessionPurpose::Conversation => "conversation",
+        SessionPurpose::Roadmap => "roadmap",
+    }
+}
+
+pub(super) fn purpose_from_name(value: &str) -> Result<SessionPurpose, String> {
+    match value {
+        "conversation" => Ok(SessionPurpose::Conversation),
+        "roadmap" => Ok(SessionPurpose::Roadmap),
+        _ => Err(format!("Unknown saved conversation purpose: {value}")),
+    }
+}
+
+fn serialize_purpose<S: serde::Serializer>(
+    purpose: &SessionPurpose,
+    serializer: S,
+) -> Result<S::Ok, S::Error> {
+    serializer.serialize_str(purpose_name(*purpose))
+}
+
+fn deserialize_purpose<'de, D: serde::Deserializer<'de>>(
+    deserializer: D,
+) -> Result<SessionPurpose, D::Error> {
+    let value = String::deserialize(deserializer)?;
+    purpose_from_name(&value).map_err(serde::de::Error::custom)
 }
 
 #[cfg(test)]

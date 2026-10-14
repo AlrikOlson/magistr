@@ -14,6 +14,7 @@ use std::{
 use agent_client_protocol::schema::v1::{ContentBlock, SessionUpdate, ToolCallContent};
 use chrono::Utc;
 use magistr_acp::AcpEvent;
+use magistr_application::sessions::SessionPurpose;
 
 use super::{session_outcome::SessionOutcome, session_record::SessionRecord, storage};
 use crate::{
@@ -30,6 +31,7 @@ pub(crate) struct SessionHistory(Arc<Mutex<State>>);
 
 struct State {
     id: String,
+    purpose: SessionPurpose,
     record: Option<SessionRecord>,
     path: Option<PathBuf>,
     started: Option<Instant>,
@@ -41,6 +43,10 @@ struct State {
 
 impl SessionHistory {
     pub(crate) fn new() -> Self {
+        Self::for_purpose(SessionPurpose::Conversation)
+    }
+
+    pub(crate) fn for_purpose(purpose: SessionPurpose) -> Self {
         Self(Arc::new(Mutex::new(State {
             id: format!(
                 "{}-{}-{}",
@@ -48,6 +54,7 @@ impl SessionHistory {
                 Utc::now().timestamp_nanos_opt().unwrap_or_default(),
                 ISSUED.fetch_add(1, Ordering::Relaxed)
             ),
+            purpose,
             record: None,
             path: None,
             started: None,
@@ -59,7 +66,7 @@ impl SessionHistory {
     }
 
     pub(crate) fn from_record(record: SessionRecord) -> Self {
-        let history = Self::new();
+        let history = Self::for_purpose(record.purpose);
         {
             let mut state = history.0.lock().expect("history state lock poisoned");
             state.id = record.session_id.clone();
@@ -67,6 +74,18 @@ impl SessionHistory {
             state.record = Some(record);
         }
         history
+    }
+
+    pub(crate) fn id(&self) -> String {
+        self.0
+            .lock()
+            .expect("history state lock poisoned")
+            .id
+            .clone()
+    }
+
+    pub(crate) fn purpose(&self) -> SessionPurpose {
+        self.0.lock().expect("history state lock poisoned").purpose
     }
 
     pub(crate) async fn begin(
@@ -106,6 +125,7 @@ impl SessionHistory {
         if state.record.is_none() {
             state.record = Some(SessionRecord {
                 session_id: state.id.clone(),
+                purpose: state.purpose,
                 name: None,
                 project,
                 workspace,
@@ -145,6 +165,7 @@ impl SessionHistory {
             .as_ref()
             .map(|record| magistr_application::sessions::Conversation {
                 id: record.session_id.clone(),
+                purpose: state.purpose,
                 name: record.name.clone(),
                 provider: record.provider.clone(),
             })
@@ -302,7 +323,9 @@ impl SessionHistory {
         Some((path, record.clone(), inputs))
     }
 
-    /// Restore only this conversation's draft, without creating storage.
+    /// Restore this live conversation's draft after joining storage initialization.
+    /// SQLite exposes a new file before its schema transaction commits; the live
+    /// owner must establish readiness before loading or admitting its draft writer.
     pub(crate) async fn load_draft(
         &self,
     ) -> std::result::Result<crate::application::SavedDraft, String> {
@@ -313,10 +336,7 @@ impl SessionHistory {
         tokio::task::spawn_blocking(move || {
             let path =
                 path.ok_or_else(|| "No folder is available for saved conversations.".to_owned())?;
-            if !path.exists() {
-                return Ok(crate::application::SavedDraft::default());
-            }
-            let conn = storage::open_readonly_db(&path).map_err(super::draft::read_failure)?;
+            let conn = storage::open_db(&path).map_err(super::draft::read_failure)?;
             super::draft::load(&conn, &id)
         })
         .await

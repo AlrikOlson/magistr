@@ -12,6 +12,8 @@ use core::{future::Future, pin::Pin};
 /// resources. Dropping the
 /// owning handle also releases those resources, including pending decisions.
 pub trait SessionHandle: Send {
+    /// The immutable logical context owned by this handle; local project ports have none.
+    fn conversation(&self) -> Option<super::Conversation>;
     /// Admit input in FIFO order after any active turn.
     fn submit_turn(&mut self, input: &super::PromptInput) -> Result<(), String>;
     /// Assign the conversation's name through its history owner.

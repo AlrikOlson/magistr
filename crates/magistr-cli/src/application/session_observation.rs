@@ -82,8 +82,22 @@ pub struct SessionSnapshot {
 
 impl SessionSnapshot {
     #[must_use]
+    pub fn target(&self) -> Option<super::ConversationTarget> {
+        self.conversation
+            .as_ref()
+            .map(|conversation| super::ConversationTarget {
+                address: self.address.clone(),
+                conversation: conversation.id.clone(),
+            })
+    }
+    #[must_use]
     pub fn draft_status(&self) -> super::DraftStatus {
         super::DraftStatus {
+            conversation: self
+                .conversation
+                .as_ref()
+                .map(|conversation| conversation.id.clone())
+                .unwrap_or_default(),
             revision: self.draft_revision,
             saved_revision: self.draft_saved_revision,
             save_attempt: self.draft_save_attempt,
@@ -343,11 +357,18 @@ fn weight(message: &Msg) -> usize {
     }
 }
 
+#[derive(Debug, Default)]
+struct Conversations {
+    active: Option<String>,
+    parked: BTreeMap<String, SessionSnapshot>,
+    writers: BTreeMap<String, std::sync::Arc<super::session_drafts::DraftWriter>>,
+}
+
 #[derive(Debug)]
-pub(super) struct SessionObservation {
+pub(crate) struct SessionObservation {
     state: watch::Sender<SessionSnapshot>,
+    conversations: std::sync::Mutex<Conversations>,
     closed: AtomicBool,
-    draft_writer: std::sync::OnceLock<std::sync::Arc<super::session_drafts::DraftWriter>>,
     closing: Notify,
     reader: std::sync::OnceLock<super::workflow_client::SnapshotReads>,
     snapshot_requests: std::sync::OnceLock<super::workflow_client::FeedLink>,
@@ -355,37 +376,40 @@ pub(super) struct SessionObservation {
     wake: std::sync::OnceLock<std::sync::Arc<Notify>>,
 }
 
+fn empty_snapshot(address: SessionAddress) -> SessionSnapshot {
+    SessionSnapshot {
+        address,
+        sequence: 0,
+        seed: ProjectSeed::default(),
+        messages: Vec::new(),
+        pending: BTreeMap::new(),
+        dropped: 0,
+        closed: false,
+        status: SessionStatus::Ready,
+        model: None,
+        conversation: None,
+        configuration: Vec::new(),
+        attachments: Vec::new(),
+        draft_revision: 0,
+        draft_saved_revision: 0,
+        draft_save_attempt: 0,
+        draft_save_error: None,
+        admission: None,
+        activity: None,
+        bytes: 0,
+        retained_from: 1,
+        continuation: None,
+        answered: std::collections::BTreeSet::new(),
+        usage: None,
+    }
+}
+
 impl SessionObservation {
-    pub(super) fn new(address: SessionAddress) -> Self {
+    pub(crate) fn new(address: SessionAddress) -> Self {
         Self {
-            state: watch::channel(SessionSnapshot {
-                address,
-                sequence: 0,
-                seed: ProjectSeed::default(),
-                messages: Vec::new(),
-                pending: BTreeMap::new(),
-                dropped: 0,
-                closed: false,
-                status: SessionStatus::Ready,
-                model: None,
-                conversation: None,
-                configuration: Vec::new(),
-                attachments: Vec::new(),
-                draft_revision: 0,
-                draft_saved_revision: 0,
-                draft_save_attempt: 0,
-                draft_save_error: None,
-                admission: None,
-                activity: None,
-                bytes: 0,
-                retained_from: 1,
-                continuation: None,
-                answered: std::collections::BTreeSet::new(),
-                usage: None,
-            })
-            .0,
+            state: watch::channel(empty_snapshot(address)).0,
+            conversations: std::sync::Mutex::default(),
             closed: AtomicBool::new(false),
-            draft_writer: std::sync::OnceLock::new(),
             closing: Notify::new(),
             reader: std::sync::OnceLock::new(),
             snapshot_requests: std::sync::OnceLock::new(),
@@ -394,8 +418,173 @@ impl SessionObservation {
         }
     }
 
-    pub(super) fn seed(&self, seed: ProjectSeed) {
+    /// One canonical retained snapshot per conversation: the active snapshot is
+    /// in the watch sender, and parked snapshots are moved into this owner's map.
+    fn modify<R>(
+        &self,
+        id: Option<&str>,
+        require_active: bool,
+        change: impl FnOnce(&mut SessionSnapshot) -> R,
+    ) -> Result<R, String> {
+        let mut conversations = self
+            .conversations
+            .lock()
+            .expect("conversation state lock poisoned");
+        if require_active && conversations.active.as_deref() != id {
+            return Err(changed_conversation());
+        }
+        if let Some(id) = id
+            && conversations.active.as_deref() != Some(id)
+        {
+            let snapshot = conversations
+                .parked
+                .get_mut(id)
+                .ok_or_else(changed_conversation)?;
+            return Ok(change(snapshot));
+        }
+        let mut change = Some(change);
+        let mut result = None;
         self.state.send_modify(|state| {
+            result = Some(change.take().expect("one state mutation")(state));
+        });
+        Ok(result.expect("state mutation ran"))
+    }
+
+    #[cfg(test)]
+    pub(super) fn bind_context_for_test(
+        &self,
+        conversation: magistr_application::sessions::Conversation,
+    ) {
+        let id = conversation.id.clone();
+        let mut snapshot = empty_snapshot(self.state.borrow().address.clone());
+        snapshot.conversation = Some(conversation);
+        self.conversations
+            .lock()
+            .expect("conversation state lock poisoned")
+            .parked
+            .insert(id.clone(), snapshot);
+        self.activate_context(&id)
+            .expect("fixture context activates");
+    }
+
+    pub(crate) fn owns(&self, id: &str) -> bool {
+        let contexts = self
+            .conversations
+            .lock()
+            .expect("conversation state lock poisoned");
+        contexts.active.as_deref() == Some(id) || contexts.parked.contains_key(id)
+    }
+
+    pub(super) fn validate_target(&self, target: &super::ConversationTarget) -> Result<(), String> {
+        let contexts = self
+            .conversations
+            .lock()
+            .expect("conversation state lock poisoned");
+        if self.is_closed()
+            || self.state.borrow().address != target.address
+            || (contexts.active.as_deref() != Some(&target.conversation)
+                && !contexts.parked.contains_key(&target.conversation))
+        {
+            return Err(changed_conversation());
+        }
+        Ok(())
+    }
+
+    pub(super) fn validate_active(&self, target: &super::ConversationTarget) -> Result<(), String> {
+        self.validate_target(target)?;
+        let contexts = self
+            .conversations
+            .lock()
+            .expect("conversation state lock poisoned");
+        if contexts.active.as_deref() != Some(&target.conversation) {
+            return Err(changed_conversation());
+        }
+        Ok(())
+    }
+
+    pub(crate) async fn bind_history(
+        self: &std::sync::Arc<Self>,
+        history: crate::agent::persistence::SessionHistory,
+    ) -> Result<(), String> {
+        let id = history.id();
+        if self.owns(&id) {
+            return Ok(());
+        }
+        let conversation = history.conversation().ok_or_else(|| {
+            "Wait for the conversation to open before saving a message.".to_owned()
+        })?;
+        let saved = history.load_draft().await?;
+        let mut snapshot = empty_snapshot(self.state.borrow().address.clone());
+        snapshot.conversation = Some(conversation);
+        snapshot.seed.draft = Some(saved.text);
+        snapshot.attachments = saved.attachments;
+        snapshot.draft_revision = saved.status.revision;
+        snapshot.draft_saved_revision = saved.status.saved_revision;
+        snapshot.draft_save_attempt = saved.status.save_attempt;
+        let initial = snapshot.draft_status();
+        let weak = std::sync::Arc::downgrade(self);
+        let completed_id = id.clone();
+        let writer = super::session_drafts::DraftWriter::start(history, initial, move |status| {
+            if let Some(owner) = weak.upgrade() {
+                let _ = owner.modify(Some(&completed_id), false, |snapshot| {
+                    snapshot.draft_saved_revision = status.saved_revision;
+                    snapshot.draft_save_attempt = status.save_attempt;
+                    snapshot.draft_save_error.clone_from(&status.error);
+                    snapshot.sequence = snapshot.sequence.saturating_add(1);
+                });
+            }
+        });
+        {
+            let mut contexts = self
+                .conversations
+                .lock()
+                .expect("conversation state lock poisoned");
+            if contexts.active.as_deref() == Some(&id) || contexts.parked.contains_key(&id) {
+                return Ok(());
+            }
+            contexts.parked.insert(id.clone(), snapshot);
+            contexts.writers.insert(id.clone(), writer);
+        }
+        self.persist_draft_for(Some(&id));
+        self.wake_catalog();
+        Ok(())
+    }
+
+    pub(crate) fn activate_context(&self, id: &str) -> Result<(), String> {
+        let mut contexts = self
+            .conversations
+            .lock()
+            .expect("conversation state lock poisoned");
+        if self.is_closed() {
+            return Err(changed_conversation());
+        }
+        if contexts.active.as_deref() == Some(id) {
+            return Ok(());
+        }
+        let mut next = contexts
+            .parked
+            .remove(id)
+            .ok_or_else(changed_conversation)?;
+        let previous_id = contexts.active.replace(id.to_owned());
+        self.state.send_modify(|current| {
+            let draft = next.seed.draft.take();
+            next.seed = current.seed.clone();
+            next.seed.draft = draft;
+            next.sequence = current.sequence.max(next.sequence).saturating_add(1);
+            // A switch is a reseed even when both contexts reused source IDs.
+            next.retained_from = next.sequence.saturating_add(1);
+            let previous = std::mem::replace(current, next.clone());
+            if let Some(previous_id) = previous_id {
+                contexts.parked.insert(previous_id, previous);
+            }
+        });
+        drop(contexts);
+        self.wake_catalog();
+        Ok(())
+    }
+
+    pub(super) fn seed(&self, seed: ProjectSeed) {
+        let _ = self.modify(None, false, |state| {
             let draft = state.seed.draft.take();
             let observed = std::mem::take(&mut state.seed.snapshot);
             state.seed = seed;
@@ -408,94 +597,137 @@ impl SessionObservation {
         });
         self.wake_catalog();
     }
-    pub(super) fn draft(&self, text: String) {
-        self.state.send_modify(|state| {
+
+    pub(super) fn draft_for(&self, id: &str, text: String) -> Result<(), String> {
+        self.modify(Some(id), true, |state| {
             if state.seed.draft.as_ref() != Some(&text) {
                 state.record(Msg::PromptReplace(text));
             }
-        });
-        self.persist_draft();
-    }
-
-    pub(super) async fn attach_history(
-        &self,
-        history: crate::agent::persistence::SessionHistory,
-    ) -> Result<(), String> {
-        let saved = history.load_draft().await?;
-        self.state.send_modify(|state| {
-            if state.draft_revision == 0 {
-                state.seed.draft = Some(saved.text);
-                state.attachments = saved.attachments;
-                state.draft_revision = saved.status.revision;
-                state.draft_saved_revision = saved.status.saved_revision;
-                state.draft_save_attempt = saved.status.save_attempt;
-            }
-        });
-        let writer = super::session_drafts::DraftWriter::start(history, self.state.clone());
-        self.draft_writer
-            .set(writer)
-            .map_err(|_| "This conversation already has a draft owner.".to_owned())?;
-        self.persist_draft();
+        })?;
+        self.persist_draft_for(Some(id));
         Ok(())
     }
 
-    pub(super) fn edit_draft(
+    pub(super) fn edit_draft_for(
         &self,
+        id: &str,
         expected: u64,
         text: String,
         discard: bool,
     ) -> Result<u64, String> {
-        let mut result = Ok(expected);
-        self.state.send_if_modified(|state| {
+        self.edit_draft_in(Some(id), expected, text, discard)
+    }
+
+    fn edit_draft_in(
+        &self,
+        id: Option<&str>,
+        expected: u64,
+        text: String,
+        discard: bool,
+    ) -> Result<u64, String> {
+        let result = self.modify(id, false, |state| {
             if state.closed {
-                result = Err("This session is no longer open.".into());
-                return false;
+                return Err("This session is no longer open.".into());
             }
             if state.draft_revision != expected {
-                result = Err(crate::agent::persistence::draft::STALE.into());
-                return false;
+                return Err(crate::agent::persistence::draft::STALE.into());
             }
-            let changed = state.seed.draft.as_ref() != Some(&text)
-                || (discard && !state.attachments.is_empty());
-            if !changed {
-                return false;
+            if state.seed.draft.as_ref() != Some(&text)
+                || (discard && !state.attachments.is_empty())
+            {
+                state.seed.draft = Some(text);
+                if discard {
+                    state.attachments.clear();
+                }
+                state.draft_revision = state.draft_revision.saturating_add(1);
+                state.sequence = state.sequence.saturating_add(1);
             }
-            state.seed.draft = Some(text);
-            if discard {
-                state.attachments.clear();
-            }
-            state.draft_revision = state.draft_revision.saturating_add(1);
-            result = Ok(state.draft_revision);
-            state.sequence = state.sequence.saturating_add(1);
-            true
-        });
+            Ok(state.draft_revision)
+        })?;
         if result.is_ok() {
-            self.persist_draft();
+            self.persist_draft_for(id);
         }
         result
     }
 
-    fn persist_draft(&self) {
-        if let Some(writer) = self.draft_writer.get() {
-            writer.save(super::SavedDraft::from_snapshot(&self.state.borrow()));
+    fn persist_draft_for(&self, id: Option<&str>) {
+        let contexts = self
+            .conversations
+            .lock()
+            .expect("conversation state lock poisoned");
+        let Some(id) = id.or(contexts.active.as_deref()) else {
+            return;
+        };
+        let Some(writer) = contexts.writers.get(id) else {
+            return;
+        };
+        let snapshot = if contexts.active.as_deref() == Some(id) {
+            self.state.borrow().clone()
+        } else if let Some(snapshot) = contexts.parked.get(id) {
+            snapshot.clone()
+        } else {
+            return;
+        };
+        writer.save(super::SavedDraft::from_snapshot(&snapshot));
+    }
+
+    pub(super) async fn flush_draft_for(&self, id: &str) -> super::DraftStatus {
+        let writer = self
+            .conversations
+            .lock()
+            .expect("conversation state lock poisoned")
+            .writers
+            .get(id)
+            .cloned();
+        match writer {
+            Some(writer) => writer.flush().await,
+            None => {
+                let mut status = self
+                    .context_snapshot(id)
+                    .map(|snapshot| snapshot.draft_status())
+                    .unwrap_or_default();
+                status.conversation = id.to_owned();
+                status
+            }
+        }
+    }
+    pub(crate) async fn flush_all(&self) -> Result<(), String> {
+        let writers: Vec<_> = self
+            .conversations
+            .lock()
+            .expect("conversation state lock poisoned")
+            .writers
+            .values()
+            .cloned()
+            .collect();
+        let mut errors = Vec::new();
+        for writer in writers {
+            if let Some(error) = writer.flush().await.error {
+                errors.push(error);
+            }
+        }
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors.join("\n"))
         }
     }
 
-    pub(super) async fn flush_draft(&self) -> super::DraftStatus {
-        match self.draft_writer.get() {
-            Some(writer) => writer.flush().await,
-            None => self.state.borrow().draft_status(),
-        }
-    }
-    pub(super) fn add_attachments(
+    pub(super) fn add_attachments_for(
         &self,
+        id: &str,
         attachments: Vec<super::StagedAttachment>,
     ) -> Result<(), String> {
-        let mut result = Ok(());
-        self.state.send_if_modified(|state| {
+        self.add_attachments_in(Some(id), attachments)
+    }
+    fn add_attachments_in(
+        &self,
+        id: Option<&str>,
+        attachments: Vec<super::StagedAttachment>,
+    ) -> Result<(), String> {
+        let result = self.modify(id, false, |state| {
             if state.closed {
-                result = Err("This session is no longer open.".into());
-                return false;
+                return Err("This session is no longer open.".into());
             }
             let input = PromptInput {
                 text: state.seed.draft.clone().unwrap_or_default(),
@@ -506,26 +738,25 @@ impl SessionObservation {
                     .map(|attachment| attachment.content().clone())
                     .collect(),
             };
-            if let Err(error) = input.validate(true) {
-                result = Err(error);
-                return false;
+            input.validate(true)?;
+            if !attachments.is_empty() {
+                state.attachments.extend(attachments);
+                state.draft_revision = state.draft_revision.saturating_add(1);
+                state.sequence = state.sequence.saturating_add(1);
             }
-            if attachments.is_empty() {
-                return false;
-            }
-            state.attachments.extend(attachments);
-            state.draft_revision = state.draft_revision.saturating_add(1);
-            state.sequence = state.sequence.saturating_add(1);
-            true
-        });
+            Ok(())
+        })?;
         if result.is_ok() {
-            self.persist_draft();
+            self.persist_draft_for(id);
         }
         result
     }
-    pub(super) fn remove_attachment(&self, id: &str) -> Result<(), String> {
-        let mut found = false;
-        self.state.send_if_modified(|state| {
+
+    pub(super) fn remove_attachment_for(&self, conversation: &str, id: &str) -> Result<(), String> {
+        self.remove_attachment_in(Some(conversation), id)
+    }
+    fn remove_attachment_in(&self, conversation: Option<&str>, id: &str) -> Result<(), String> {
+        let found = self.modify(conversation, false, |state| {
             if state.closed {
                 return false;
             }
@@ -539,16 +770,16 @@ impl SessionObservation {
             state.attachments.remove(at);
             state.draft_revision = state.draft_revision.saturating_add(1);
             state.sequence = state.sequence.saturating_add(1);
-            found = true;
             true
-        });
+        })?;
         if found {
-            self.persist_draft();
+            self.persist_draft_for(conversation);
             Ok(())
         } else {
             Err("This attachment is no longer in the message.".into())
         }
     }
+
     pub(super) fn set_source(
         &self,
         source: std::sync::Weak<magistr_workspace::service::WorkspaceService>,
@@ -560,8 +791,19 @@ impl SessionObservation {
     ) -> Option<std::sync::Arc<magistr_workspace::service::WorkspaceService>> {
         self.source.get()?.upgrade()
     }
-    pub(super) fn snapshot(&self) -> SessionSnapshot {
+    pub(crate) fn snapshot(&self) -> SessionSnapshot {
         self.state.borrow().clone()
+    }
+    pub(crate) fn context_snapshot(&self, id: &str) -> Option<SessionSnapshot> {
+        let contexts = self
+            .conversations
+            .lock()
+            .expect("conversation state lock poisoned");
+        if contexts.active.as_deref() == Some(id) {
+            Some(self.state.borrow().clone())
+        } else {
+            contexts.parked.get(id).cloned()
+        }
     }
     pub(super) fn wake_with(&self, wake: std::sync::Arc<Notify>) {
         let _ = self.wake.set(wake);
@@ -572,7 +814,20 @@ impl SessionObservation {
         }
     }
     pub(super) fn summary(&self) -> super::session_catalog::SessionSummary {
-        super::session_catalog::SessionSummary::from_snapshot(&self.state.borrow())
+        let contexts = self
+            .conversations
+            .lock()
+            .expect("conversation state lock poisoned");
+        let mut summary =
+            super::session_catalog::SessionSummary::from_snapshot(&self.state.borrow());
+        summary.owned_conversations = contexts
+            .parked
+            .keys()
+            .chain(contexts.active.iter())
+            .cloned()
+            .collect();
+        summary.owned_conversations.sort();
+        summary
     }
     pub(super) fn set_reader(
         &self,
@@ -588,31 +843,92 @@ impl SessionObservation {
             observation: std::sync::Arc::clone(self),
         }
     }
-    pub(super) fn is_answered(&self, id: u64) -> bool {
-        self.state.borrow().answered.contains(&id)
+    pub(super) fn is_answered(&self, conversation: &str, id: u64) -> bool {
+        self.context_snapshot(conversation)
+            .is_some_and(|snapshot| snapshot.answered.contains(&id))
     }
-    pub(super) fn permission_answered(&self, id: u64) {
-        self.state.send_modify(|state| {
+    pub(super) fn permission_answered_for(
+        &self,
+        conversation: &str,
+        id: u64,
+    ) -> Result<(), String> {
+        self.modify(Some(conversation), false, |state| {
             if state.answered.insert(id) {
                 state.sequence = state.sequence.saturating_add(1);
             }
-        });
+        })?;
         self.wake_catalog();
+        Ok(())
     }
     pub(super) fn stop(&self) {
         self.closed.store(true, Ordering::Release);
+        let mut contexts = self
+            .conversations
+            .lock()
+            .expect("conversation state lock poisoned");
+        for snapshot in contexts.parked.values_mut() {
+            snapshot.closed = true;
+        }
         self.state.send_modify(|state| {
             state.closed = true;
             state.sequence = state.sequence.saturating_add(1);
         });
+        drop(contexts);
         self.closing.notify_waiters();
-        if let Some(wake) = self.wake.get() {
-            wake.notify_one();
+        self.wake_catalog();
+    }
+
+    fn record_for(&self, id: Option<&str>, message: Msg) -> bool {
+        if self.is_closed() {
+            return false;
         }
+        let mut overloaded = false;
+        let mut draft_changed = false;
+        let result = self.modify(id, false, |state| {
+            if state.closed { return; }
+            if let Msg::Agent(AgentEvent::Conversation(conversation)) = &message
+                && id.is_some_and(|id| id != conversation.id) { return; }
+            if let Msg::Agent(AgentEvent::PermissionRequest { id, .. }) = &message {
+                let bytes: usize = state.pending.values().map(weight).sum();
+                if !state.pending.contains_key(id) && (state.pending.len() >= MAX_REQUESTS || bytes.saturating_add(weight(&message)) > MAX_BYTES) {
+                    state.record(Msg::Agent(AgentEvent::Error("The agent sent too many requests and was stopped. Open a new session to continue.".into())));
+                    overloaded = true;
+                    return;
+                }
+            }
+            let revision = state.draft_revision;
+            let configuration = matches!(&message, Msg::Agent(AgentEvent::Conversation(_) | AgentEvent::Configuration { .. }));
+            state.record(message);
+            draft_changed = configuration || state.draft_revision != revision;
+        });
+        if result.is_err() {
+            return false;
+        }
+        if draft_changed {
+            self.persist_draft_for(id);
+        }
+        self.wake_catalog();
+        if overloaded {
+            self.stop();
+        }
+        !overloaded
     }
 }
 
+fn changed_conversation() -> String {
+    "The conversation changed. Review the current conversation and try again.".into()
+}
+
 impl ObservationSink for SessionObservation {
+    fn activate(&self, id: &str) -> Result<(), String> {
+        self.activate_context(id)
+    }
+    fn send_for(&self, id: &str, message: Msg) -> bool {
+        if matches!(&message, Msg::Engine(_)) {
+            return self.send(message);
+        }
+        self.record_for(Some(id), message)
+    }
     fn send(&self, message: Msg) -> bool {
         if self.is_closed() {
             return false;
@@ -621,17 +937,15 @@ impl ObservationSink for SessionObservation {
             let publishing = matches!(&event, magistr_cockpit::engine::EngineEvent::Seed(_));
             let apply = || {
                 let mut requested = false;
-                self.state.send_if_modified(|state| {
+                let _ = self.modify(None, false, |state| {
                     if state.closed {
-                        return false;
+                        return;
                     }
                     let before = state.seed.snapshot.clone();
                     requested = super::session_workflow::observe(&mut state.seed.snapshot, event);
-                    if before == state.seed.snapshot {
-                        return false;
+                    if before != state.seed.snapshot {
+                        state.sequence = state.sequence.saturating_add(1);
                     }
-                    state.sequence = state.sequence.saturating_add(1);
-                    true
                 });
                 requested
             };
@@ -645,38 +959,7 @@ impl ObservationSink for SessionObservation {
             }
             return true;
         }
-        let mut overloaded = false;
-        let mut catalog_changed = false;
-        let mut draft_changed = false;
-        self.state.send_modify(|state| {
-            let streamed_content = matches!(&message, Msg::Agent(AgentEvent::Text(_) | AgentEvent::Thought(_) | AgentEvent::Terminal { .. }));
-            let before = (!streamed_content || state.status != SessionStatus::Working)
-                .then(|| super::session_catalog::SessionSummary::from_snapshot(state));
-            if state.closed { return; }
-            if let Msg::Agent(AgentEvent::PermissionRequest { id, .. }) = &message {
-                let bytes: usize = state.pending.values().map(weight).sum();
-                if !state.pending.contains_key(id) && (state.pending.len() >= MAX_REQUESTS || bytes.saturating_add(weight(&message)) > MAX_BYTES) {
-                    state.record(Msg::Agent(AgentEvent::Error("The agent sent too many requests and was stopped. Open a new session to continue.".into())));
-                    overloaded = true;
-                    return;
-                }
-            }
-            let revision = state.draft_revision;
-            let configuration = matches!(&message, Msg::Agent(AgentEvent::Conversation(_) | AgentEvent::Configuration { .. }));
-            state.record(message);
-            draft_changed = configuration || state.draft_revision != revision;
-            catalog_changed = before.is_some_and(|before| before != super::session_catalog::SessionSummary::from_snapshot(state));
-        });
-        if draft_changed {
-            self.persist_draft();
-        }
-        if catalog_changed {
-            self.wake_catalog();
-        }
-        if overloaded {
-            self.stop();
-        }
-        !overloaded
+        self.record_for(None, message)
     }
     fn is_closed(&self) -> bool {
         self.closed.load(Ordering::Acquire)
@@ -730,3 +1013,7 @@ impl SessionSubscription {
 #[cfg(test)]
 #[path = "session_observation.tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "session_context.tests.rs"]
+mod context_tests;

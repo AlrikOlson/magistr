@@ -394,13 +394,13 @@ async fn a_finished_loop_keeps_delivering_roadmap_and_conversation_requests() {
         ["Explain the last result", "Continue your explanation"]
     );
     let configs = captured.lock().unwrap();
-    assert!(configs[0].planning_only && !configs[0].workflow_permissions);
-    assert!(!configs[1].planning_only);
-    assert!(
-        !configs[0]
-            .allowed_tools
-            .iter()
-            .any(|name| name == "Bash" || name == "ship_start")
+    assert_eq!(
+        configs[0].history.purpose(),
+        magistr_application::sessions::SessionPurpose::Roadmap
+    );
+    assert_eq!(
+        configs[1].history.purpose(),
+        magistr_application::sessions::SessionPurpose::Conversation
     );
 }
 
@@ -729,10 +729,12 @@ fn polyglot_project(web_test: &str, smoke: &str) -> tempfile::TempDir {
 /// The connector that hands every connection to a fresh copy of `agent`
 /// over a duplex channel, and what each of them observed.
 fn fake_connector(agent: FakeAcpAgent) -> (Connector, Arc<Mutex<Vec<Arc<AcpObserved>>>>) {
+    let history_root = Arc::new(tempfile::tempdir().unwrap());
     let seen: Arc<Mutex<Vec<Arc<AcpObserved>>>> = Arc::new(Mutex::new(Vec::new()));
     let connector = {
         let seen = Arc::clone(&seen);
         Connector::new(move |config| {
+            let history_root = Arc::clone(&history_root);
             let (client_end, observed, _agent_task) = agent.clone().spawn();
             seen.lock()
                 .unwrap_or_else(std::sync::PoisonError::into_inner)
@@ -748,6 +750,13 @@ fn fake_connector(agent: FakeAcpAgent) -> (Connector, Arc<Mutex<Vec<Arc<AcpObser
                         provider: "scripted".to_owned(),
                     },
                 )?;
+                let history_inputs =
+                    crate::config::inputs::ProjectInputs::from_lookup(spec.cwd(), |key| {
+                        (key == "XDG_DATA_HOME").then(|| history_root.path().display().to_string())
+                    });
+                spec.history()
+                    .begin(&history_inputs, spec.cwd(), "scripted", spec.model())
+                    .await?;
                 let mut transport =
                     AcpTransport::new_with_args(PathBuf::from("fake-acp-agent"), Vec::new(), None)
                         .map_err(|e| MagistrError::Acp(e.to_string()))?
@@ -955,7 +964,7 @@ async fn closing_sessions_drains_priced_usage_before_the_next_cost_baseline() {
             .connect(AgentConfig::new("", dir.path()).backend(Backend::Acp))
             .await
             .unwrap();
-        let (session, session_tx, _) = driver.open_session(transport, spec, false).unwrap();
+        let (session, session_tx, _) = driver.open_session(transport, spec, false).await.unwrap();
         let before = driver.iter_loop.run_state().budget_total_usd;
         // These final updates are queued after the turn consumer has stopped.
         // Repeated cumulative updates from one session must count only once.
@@ -3747,12 +3756,46 @@ async fn a_start_in_a_hosted_session_runs_a_judged_iteration_and_returns_to_conv
     let engines = engines_with_active_task(dir.path());
     let judge = Scripted::new([Verdict::met("both criteria hold")]);
     let (connector, seen) = fake_connector(FakeAcpAgent::new().reply("did the thing"));
-    let inputs = crate::config::inputs::ProjectInputs::from_lookup(dir.path(), |key| {
-        (key == "MAGISTR_GOAL").then(|| "native".to_owned())
+    let history_root = tempfile::tempdir().unwrap();
+    let inputs = crate::config::inputs::ProjectInputs::from_lookup(dir.path(), |key| match key {
+        "MAGISTR_GOAL" => Some("native".to_owned()),
+        "XDG_DATA_HOME" => Some(history_root.path().display().to_string()),
+        _ => None,
     });
     let config = AgentConfig::new("", dir.path()).with_inputs(&inputs);
     let client = EngineClient::attach(engines.clone());
-    let (inbox, mut events) = Inbox::channel();
+    let observation = Arc::new(
+        crate::application::session_observation::SessionObservation::new(
+            magistr_domain::identity::SessionAddress {
+                project: "project".into(),
+                workspace: dir.path().display().to_string(),
+                session: "resident".into(),
+            },
+        ),
+    );
+    let (identities, mut connected) = unbounded_channel();
+    let connector = Connector::new(move |config: AgentConfig| {
+        let connector = connector.clone();
+        let identities = identities.clone();
+        async move {
+            let (transport, spec) = connector.connect(config.clone()).await?;
+            spec.history()
+                .begin(config.inputs(), &config.cwd, "scripted", spec.model())
+                .await?;
+            identities.send(spec.history().id()).unwrap();
+            Ok((transport, spec))
+        }
+    })
+    .observing(Some(observation.clone()));
+    let (event_tx, mut events) = unbounded_channel();
+    let inbox = Inbox::observed(observation.clone()).tap(event_tx);
+    let (transport, spec) = connector.connect(config.clone()).await.unwrap();
+    let opening = connector
+        .start_session(transport, spec, SessionOptions::new())
+        .await
+        .unwrap();
+    let a = observation.snapshot().target().unwrap();
+    assert_eq!(connected.recv().await.unwrap(), a.conversation);
     let (commands, receiver) = Commands::channel();
     let (_feed, tapped) = unbounded_channel();
     let session = interactive_session(
@@ -3760,7 +3803,8 @@ async fn a_start_in_a_hosted_session_runs_a_judged_iteration_and_returns_to_conv
         connector.clone(),
         inbox.clone(),
         Some(client.clone()),
-    );
+    )
+    .connected(Box::new(opening), false);
     let scripted = Arc::clone(&judge);
     let work = HostedWork::new(config, connector, inbox, client, tapped).judged_by(Box::new(
         move |_, native, _, _, _| native.then(|| Arc::clone(&scripted) as Arc<dyn Judge>),
@@ -3768,9 +3812,12 @@ async fn a_start_in_a_hosted_session_runs_a_judged_iteration_and_returns_to_conv
     let task = tokio::spawn(work.run(session, receiver));
 
     commands
-        .send(Cmd::Launch(LaunchAction::Loop(
-            magistr_cockpit::cockpit::LoopScope::AllTracks,
-        )))
+        .send(Cmd::ForConversation {
+            id: a.conversation.clone(),
+            command: Box::new(Cmd::Launch(LaunchAction::Loop(
+                magistr_cockpit::cockpit::LoopScope::AllTracks,
+            ))),
+        })
         .unwrap();
     let ended = tokio::time::timeout(Duration::from_secs(60), async {
         loop {
@@ -3807,8 +3854,41 @@ async fn a_start_in_a_hosted_session_runs_a_judged_iteration_and_returns_to_conv
     assert_eq!(state.operations.unsettled().count(), 0);
     assert!(!task.is_finished(), "the session outlives the run");
 
-    // The same session converses again, on a fresh provider context.
-    commands.send(Cmd::Prompt("What changed?".into())).unwrap();
+    let c = connected.recv().await.unwrap();
+    let d_id = connected.recv().await.unwrap();
+    let d = tokio::time::timeout(Duration::from_secs(5), async {
+        loop {
+            if let Some(target) = observation.snapshot().target()
+                && target.conversation == d_id
+            {
+                break target;
+            }
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .unwrap();
+    assert!(observation.context_snapshot(&c).unwrap().replay().iter().any(
+        |message| matches!(message, Msg::Agent(AgentEvent::Text(text)) if text == "did the thing")
+    ));
+    assert_ne!(d.conversation, a.conversation);
+    assert_ne!(d.conversation, c);
+    assert_eq!(d.address, a.address);
+    assert!(observation.context_snapshot(&a.conversation).is_some());
+    assert!(observation.context_snapshot(&c).is_some());
+    // A command captured before work cannot reach the new conversation.
+    commands
+        .send(Cmd::ForConversation {
+            id: a.conversation.clone(),
+            command: Box::new(Cmd::Prompt("old queued input".into())),
+        })
+        .unwrap();
+    commands
+        .send(Cmd::ForConversation {
+            id: d.conversation.clone(),
+            command: Box::new(Cmd::Prompt("What changed?".into())),
+        })
+        .unwrap();
     next_matching(&mut events, |event| {
         matches!(event, Msg::Agent(AgentEvent::TurnEnded(TurnEnd::EndTurn)))
     })
@@ -3843,6 +3923,21 @@ async fn a_start_in_a_hosted_session_runs_a_judged_iteration_and_returns_to_conv
         .expect("the host phase loop ends with its commands")
         .unwrap()
         .unwrap();
+    observation.flush_all().await.unwrap();
+    let conn = crate::agent::persistence::storage::open_readonly_db(
+        &crate::agent::persistence::storage::sessions_db_path(&inputs).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        crate::agent::persistence::storage::count_sessions(&conn).unwrap(),
+        3
+    );
+    for (id, turns) in [(&a.conversation, 0), (&c, 1), (&d.conversation, 1)] {
+        let record = crate::agent::persistence::storage::get_session(&conn, id)
+            .unwrap()
+            .unwrap();
+        assert_eq!(record.turns, Some(turns), "wrong persisted owner {id}");
+    }
 }
 
 #[tokio::test]

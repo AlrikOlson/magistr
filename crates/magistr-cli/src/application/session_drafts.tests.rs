@@ -36,8 +36,9 @@ async fn owner(
         workspace: dir.path().display().to_string(),
         session: "resident".into(),
     }));
-    owner.attach_history(history.clone()).await.unwrap();
-    assert!(owner.flush_draft().await.error.is_none());
+    owner.bind_history(history.clone()).await.unwrap();
+    owner.activate_context(&id).unwrap();
+    assert!(owner.flush_draft_for(&id).await.error.is_none());
     (inputs, history, owner, id)
 }
 
@@ -55,10 +56,10 @@ async fn coalesced_edits_flush_the_latest_revision_and_restart_with_the_same_con
     let (inputs, _, owner, id) = owner(&dir).await;
     for revision in 0..200 {
         owner
-            .edit_draft(revision, format!("message {}", revision + 1), false)
+            .edit_draft_for(&id, revision, format!("message {}", revision + 1), false)
             .unwrap();
     }
-    let status = owner.flush_draft().await;
+    let status = owner.flush_draft_for(&id).await;
     assert_eq!(status.revision, 200);
     assert_eq!(status.saved_revision, 200);
     assert!(status.error.is_none());
@@ -77,14 +78,15 @@ async fn coalesced_edits_flush_the_latest_revision_and_restart_with_the_same_con
         workspace: dir.path().display().to_string(),
         session: "new-resident".into(),
     }));
-    restored.attach_history(history).await.unwrap();
+    restored.bind_history(history).await.unwrap();
+    restored.activate_context(&id).unwrap();
     restored.seed(magistr_cockpit::cockpit::ProjectSeed::default());
     assert_eq!(
         restored.snapshot().seed.draft.as_deref(),
         Some("message 200")
     );
     assert_eq!(restored.snapshot().draft_revision, 200);
-    assert!(restored.flush_draft().await.error.is_none());
+    assert!(restored.flush_draft_for(&id).await.error.is_none());
 }
 
 #[tokio::test]
@@ -95,9 +97,9 @@ async fn refused_storage_is_visible_and_retrying_identical_text_really_saves_it(
     let lock = storage::open_db(&storage::sessions_db_path(&inputs).unwrap()).unwrap();
     lock.execute_batch("BEGIN IMMEDIATE;").unwrap();
     owner
-        .edit_draft(0, "keep in the editor".into(), false)
+        .edit_draft_for(&id, 0, "keep in the editor".into(), false)
         .unwrap();
-    let failed = owner.flush_draft().await;
+    let failed = owner.flush_draft_for(&id).await;
     assert_eq!(failed.revision, 1);
     assert_eq!(failed.saved_revision, 0);
     assert!(failed.save_attempt > initial.save_attempt);
@@ -112,18 +114,18 @@ async fn refused_storage_is_visible_and_retrying_identical_text_really_saves_it(
     );
     lock.execute_batch("ROLLBACK;").unwrap();
     owner
-        .edit_draft(1, "keep in the editor".into(), false)
+        .edit_draft_for(&id, 1, "keep in the editor".into(), false)
         .unwrap();
-    let retried = owner.flush_draft().await;
+    let retried = owner.flush_draft_for(&id).await;
     assert_eq!(retried.revision, failed.revision);
     assert_eq!(retried.saved_revision, 1);
     assert!(retried.save_attempt > failed.save_attempt);
     assert!(retried.error.is_none());
     assert_eq!(owner.snapshot().draft_status(), retried);
     owner
-        .edit_draft(1, "keep in the editor".into(), false)
+        .edit_draft_for(&id, 1, "keep in the editor".into(), false)
         .unwrap();
-    let repeated = owner.flush_draft().await;
+    let repeated = owner.flush_draft_for(&id).await;
     assert_eq!(repeated.revision, retried.revision);
     assert_eq!(repeated.saved_revision, retried.saved_revision);
     assert!(repeated.save_attempt > retried.save_attempt);
@@ -142,27 +144,33 @@ async fn refused_storage_is_visible_and_retrying_identical_text_really_saves_it(
 async fn accepted_input_is_durably_cleared_and_late_editor_saves_cannot_resurrect_it() {
     let dir = tempfile::tempdir().unwrap();
     let (inputs, _, owner, id) = owner(&dir).await;
-    owner.edit_draft(0, "send me".into(), false).unwrap();
-    owner.flush_draft().await;
+    owner
+        .edit_draft_for(&id, 0, "send me".into(), false)
+        .unwrap();
+    owner.flush_draft_for(&id).await;
     let input: PromptInput = "send me".into();
     owner.send(Msg::InputAccepted(input.receipt()));
-    assert!(owner.edit_draft(1, "send me".into(), false).is_err());
-    assert_eq!(owner.flush_draft().await.saved_revision, 2);
+    assert!(
+        owner
+            .edit_draft_for(&id, 1, "send me".into(), false)
+            .is_err()
+    );
+    assert_eq!(owner.flush_draft_for(&id).await.saved_revision, 2);
     assert_eq!(saved_draft(&inputs, &id).unwrap().text, "");
     owner.send(Msg::Agent(AgentEvent::PromptRejected {
         input: input.clone(),
         error: "queue stopped".into(),
     }));
-    assert_eq!(owner.flush_draft().await.saved_revision, 3);
+    assert_eq!(owner.flush_draft_for(&id).await.saved_revision, 3);
     assert_eq!(saved_draft(&inputs, &id).unwrap().text, "send me");
     owner
-        .edit_draft(3, "a newer thought".into(), false)
+        .edit_draft_for(&id, 3, "a newer thought".into(), false)
         .unwrap();
     owner.send(Msg::InputAccepted(input.receipt()));
-    owner.flush_draft().await;
+    owner.flush_draft_for(&id).await;
     assert_eq!(saved_draft(&inputs, &id).unwrap().text, "a newer thought");
-    owner.edit_draft(4, String::new(), true).unwrap();
-    assert_eq!(owner.flush_draft().await.saved_revision, 5);
+    owner.edit_draft_for(&id, 4, String::new(), true).unwrap();
+    assert_eq!(owner.flush_draft_for(&id).await.saved_revision, 5);
     assert_eq!(saved_draft(&inputs, &id).unwrap().text, "");
 }
 
@@ -182,8 +190,8 @@ async fn restored_files_keep_exact_bytes_but_a_changed_or_missing_source_still_r
         .prepare(Some(&service))
         .unwrap();
     let selection = attachments[0].id().to_owned();
-    owner.add_attachments(attachments).unwrap();
-    owner.flush_draft().await;
+    owner.add_attachments_for(&id, attachments).unwrap();
+    owner.flush_draft_for(&id).await;
     let restored = saved_draft(&inputs, &id).unwrap();
     assert_eq!(restored.attachments[0].id(), selection);
     assert_eq!(
@@ -237,8 +245,9 @@ async fn registry_reply_keeps_its_accepted_revision_and_saved_edits_share_the_ow
             let history = history.clone();
             let opened = open(opening);
             Box::pin(async move {
-                owner.attach_history(history.clone()).await?;
-                owner.flush_draft().await;
+                owner.bind_history(history.clone()).await?;
+                owner.activate_context(&history.id())?;
+                owner.flush_draft_for(&history.id()).await;
                 owner.send(Msg::Agent(AgentEvent::Conversation(
                     history.conversation().unwrap(),
                 )));
@@ -250,6 +259,7 @@ async fn registry_reply_keeps_its_accepted_revision_and_saved_edits_share_the_ow
     let client = registry.client();
     let address = client.open(&root, SessionOpening::Launch).await.unwrap();
     let owner = observation.lock().unwrap().clone().unwrap();
+    let target = owner.snapshot().target().unwrap();
     assert!(
         client
             .save_saved_draft(inputs.clone(), id.clone(), 0, "wrong path".into())
@@ -261,8 +271,8 @@ async fn registry_reply_keeps_its_accepted_revision_and_saved_edits_share_the_ow
     lock.execute_batch("BEGIN IMMEDIATE;").unwrap();
     let saving = {
         let client = client.clone();
-        let address = address.clone();
-        tokio::spawn(async move { client.draft(&address, 0, "send this".into()).await })
+        let target = target.clone();
+        tokio::spawn(async move { client.draft(&target, 0, "send this".into()).await })
     };
     tokio::time::timeout(std::time::Duration::from_secs(1), async {
         while owner.snapshot().draft_revision != 1 {
@@ -278,13 +288,13 @@ async fn registry_reply_keeps_its_accepted_revision_and_saved_edits_share_the_ow
         status.revision, 1,
         "the reply only acknowledges its own edit"
     );
-    let completed = owner.flush_draft().await;
+    let completed = owner.flush_draft_for(&id).await;
     assert_eq!(completed.saved_revision, 2);
     assert!(status.save_attempt > 0);
     assert!(status.save_attempt <= completed.save_attempt);
     assert_eq!(owner.snapshot().draft_status(), completed);
     assert_eq!(saved_draft(&inputs, &id).unwrap().text, "");
-    assert!(client.draft(&address, 1, "late save".into()).await.is_err());
+    assert!(client.draft(&target, 1, "late save".into()).await.is_err());
     client.close(&address).await.unwrap();
     let status = client
         .save_saved_draft(

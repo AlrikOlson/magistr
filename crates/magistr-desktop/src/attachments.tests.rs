@@ -1,10 +1,13 @@
 use super::*;
 
-fn address(session: &str) -> SessionAddress {
-    SessionAddress {
-        project: "project".into(),
-        workspace: "working-copy".into(),
-        session: session.into(),
+fn address(session: &str) -> ConversationTarget {
+    ConversationTarget {
+        conversation: "history".into(),
+        address: magistr_domain::identity::SessionAddress {
+            project: "project".into(),
+            workspace: "working-copy".into(),
+            session: session.into(),
+        },
     }
 }
 
@@ -24,8 +27,11 @@ fn a_native_drop_is_bound_to_the_full_address_and_stream_and_consumed_once() {
     );
     assert!(inputs.take(1, &address("two"), 3).is_err());
     assert!(inputs.take(1, &target, 4).is_err());
+    let mut other_conversation = target.clone();
+    other_conversation.conversation = "planning".into();
+    assert!(inputs.take(1, &other_conversation, 3).is_err());
     let mut other_workspace = target.clone();
-    other_workspace.workspace = "other-copy".into();
+    other_workspace.address.workspace = "other-copy".into();
     assert!(inputs.take(1, &other_workspace, 3).is_err());
     assert_eq!(
         inputs.take(1, &target, 3).unwrap(),

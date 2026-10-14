@@ -1,7 +1,6 @@
 //! Saved and resident draft commands delegate to application-owned history.
 use crate::{commands::DesktopState, wire::Attachment};
-use magistr::application::DraftStatus;
-use magistr_domain::identity::SessionAddress;
+use magistr::application::{ConversationTarget, DraftStatus};
 use serde::Serialize;
 use tauri::State;
 
@@ -36,14 +35,11 @@ pub(crate) async fn saved_draft(
 }
 #[tauri::command]
 pub(crate) async fn discard_draft(
-    address: SessionAddress,
+    target: ConversationTarget,
     expected_revision: u64,
     state: State<'_, DesktopState>,
 ) -> Result<DraftStatus, String> {
-    state
-        .client
-        .discard_draft(&address, expected_revision)
-        .await
+    state.client.discard_draft(&target, expected_revision).await
 }
 #[tauri::command]
 pub(crate) async fn save_saved_draft(
