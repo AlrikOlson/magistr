@@ -391,6 +391,15 @@ def main():
             send("hang concurrent")
             wait("another session works while the first waits",lambda tree:enabled("Stop Second project session 6")(tree) and text_has("1 request waiting")(tree))
             draft("Second supervision draft")
+            tree = rows()
+            window = next(row["rect"] for row in tree if row.get("AXRole") == "AXWindow"
+                          and row.get("rect", [0, 0, 0])[2] > 400)
+            for name in ("Open project", "New session", "Saved conversations", "Appearance"):
+                control = next(row for row in tree if row.get("AXRole") in ("AXButton", "AXPopUpButton")
+                               and name in (row.get("AXTitle"), row.get("AXDescription")))
+                x, y, width, height = control["rect"]
+                assert window[0] <= x and window[1] <= y and x + width <= window[0] + window[2] and y + height <= window[1] + window[3], (name, control, window)
+            results["checks"]["primary navigation and preferences stay inside the working window"] = True
             call("screenshot",pid,evidence/"supervision.png")
             call("press",pid,attention)
             wait("attention navigates to the owning copy and preserves its draft",lambda tree:text_has(str(first))(tree) and exact_draft("First supervision draft")(tree))
@@ -518,6 +527,8 @@ def main():
                     print("UNAVAILABLE: native Japanese preedit; observation retained",flush=True)
             else:
                 results["ime"]={"native_composition":False,"reason":"Japanese input source unavailable"}
+            call("press",pid,"Details")
+            wait("narrow details exposes conversation actions",enabled("Close session"))
             call("press",pid,"Close session")
             wait("closed session returns to another resident",text_has("Conversation"))
             assert len(list(peers.glob("*.json")))>=5

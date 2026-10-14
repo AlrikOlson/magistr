@@ -39,6 +39,10 @@
     "saved text is readable without a provider: Main notes": true,
     "resuming restores the exact draft: Main notes": true,
     "source files and clipboard bytes restore with their conversation": true,
+    "narrow window gives the conversation its own surface": true,
+    "narrow editor has useful reading and editing width": true,
+    "details opens work controls without a duplicate editor": true,
+    "Escape returns to the exact draft and its files": true,
     "restored changed source refuses without losing the draft": true,
     "restored missing source refuses without losing the draft": true,
     "an explicit send clears the restored clipboard attachment": true,
@@ -92,7 +96,7 @@
         "width": 1728
       }
     ],
-    "front_pid": 1940,
+    "front_pid": 38742,
     "input_source": "com.apple.keylayout.US",
     "input_sources": [
       "com.apple.keylayout.US",
@@ -428,7 +432,7 @@
   },
   "immediate_quit": {
     "expected_text": "A saved message remains editable without agent resume.\nThe last edit was followed directly by Quit.",
-    "paste_to_quit_ms": 30.254750003223307
+    "paste_to_quit_ms": 30.218333326047286
   },
   "motion_restored": {
     "control": {
@@ -445,9 +449,9 @@
       "focused": false,
       "rect": [
         240,
-        946,
-        191,
-        21
+        961,
+        199,
+        18
       ]
     },
     "reduce_motion": true
@@ -469,10 +473,10 @@
         "enabled": true,
         "focused": true,
         "rect": [
-          819,
-          821,
-          117,
-          39
+          816,
+          827,
+          116,
+          37
         ]
       }
     },
@@ -492,10 +496,10 @@
         "enabled": true,
         "focused": true,
         "rect": [
-          943,
-          821,
-          151,
-          39
+          939,
+          827,
+          149,
+          37
         ]
       }
     }
@@ -505,7 +509,7 @@
     "image_sha256": "cf133f92ffb620a92a6e9a294e10e7d92e2b3379255b27b746516b759114118c"
   },
   "rapid_edits": {
-    "elapsed_ms": 1676.2224583362695,
+    "elapsed_ms": 1664.5971666730475,
     "final": {
       "actions": [
         "AXPress",
@@ -521,191 +525,193 @@
       "enabled": true,
       "focused": true,
       "rect": [
-        474,
-        747,
-        714,
-        110
+        480,
+        843,
+        712,
+        87
       ]
     },
     "input": "native_unicode_events",
     "revisions": [
       {
-        "elapsed_ms": 43.541999999433756,
+        "elapsed_ms": 39.28816666302737,
         "expected": "Rapid saved revision 00 · café 日本語",
         "observed": "Rapid saved revision 00 · café 日本語"
       },
       {
-        "elapsed_ms": 75.24716666375753,
+        "elapsed_ms": 68.91691667260602,
         "expected": "Rapid saved revision 01 · café 日本語",
-        "observed": "Rapid saved revi"
+        "observed": "Rapid saved revision 00 · café 日本語"
       },
       {
-        "elapsed_ms": 102.2862083336804,
+        "elapsed_ms": 99.2873333307216,
         "expected": "Rapid saved revision 02 · café 日本語",
         "observed": "Rapid saved revision 01 · café 日本語"
       },
       {
-        "elapsed_ms": 132.53120833542198,
+        "elapsed_ms": 128.7235833297018,
         "expected": "Rapid saved revision 03 · café 日本語",
-        "observed": "Rapid saved revision 02 · café 日本語"
+        "observed": "Rapid saved revi"
       },
       {
-        "elapsed_ms": 158.69704166834708,
+        "elapsed_ms": 159.06216666917317,
         "expected": "Rapid saved revision 04 · café 日本語",
         "observed": "Rapid saved revision 02 · café 日本語"
       },
       {
-        "elapsed_ms": 185.1989999995567,
+        "elapsed_ms": 184.6322916680947,
         "expected": "Rapid saved revision 05 · café 日本語",
-        "observed": "Rapid saved revision 03 · café 日"
+        "observed": "Rapid saved revision 03 · café 日本語"
       },
       {
-        "elapsed_ms": 213.8120000017807,
+        "elapsed_ms": 212.12966667371802,
         "expected": "Rapid saved revision 06 · café 日本語",
         "observed": "Rapid saved revision 03 · café 日本語"
       },
       {
-        "elapsed_ms": 241.9581249996554,
+        "elapsed_ms": 242.3759166704258,
         "expected": "Rapid saved revision 07 · café 日本語",
         "observed": "Rapid saved revision 04 · café 日本語"
       },
       {
-        "elapsed_ms": 272.21312500478234,
+        "elapsed_ms": 272.6706249959534,
         "expected": "Rapid saved revision 08 · café 日本語",
         "observed": "Rapid saved revision 04 · café 日本語"
       },
       {
-        "elapsed_ms": 302.45479167206213,
+        "elapsed_ms": 299.25254166300874,
         "expected": "Rapid saved revision 09 · café 日本語",
         "observed": "Rapid saved revision 05 · café 日本語"
       },
       {
-        "elapsed_ms": 332.78362499549985,
+        "elapsed_ms": 329.5369166735327,
         "expected": "Rapid saved revision 10 · café 日本語",
         "observed": "Rapid saved revision 05 · café 日本語"
       },
       {
-        "elapsed_ms": 358.70808333856985,
+        "elapsed_ms": 391.1310833354946,
         "expected": "Rapid saved revision 11 · café 日本語",
         "observed": "Rapid saved revision 06 · café 日本語"
       },
       {
-        "elapsed_ms": 390.9232083387906,
+        "elapsed_ms": 418.93783333944157,
         "expected": "Rapid saved revision 12 · café 日本語",
-        "observed": "Rapid saved revision 07 · café 日"
-      },
-      {
-        "elapsed_ms": 420.9438749967376,
-        "expected": "Rapid saved revision 13 · café 日本語",
         "observed": "Rapid saved revision 07 · café 日本語"
       },
       {
-        "elapsed_ms": 450.29329166573007,
+        "elapsed_ms": 449.167041660985,
+        "expected": "Rapid saved revision 13 · café 日本語",
+        "observed": "Rapid saved revision 08 · café 日本語"
+      },
+      {
+        "elapsed_ms": 479.4382916734321,
         "expected": "Rapid saved revision 14 · café 日本語",
         "observed": "Rapid saved revision 08 · café 日本語"
       },
       {
-        "elapsed_ms": 478.4863749955548,
+        "elapsed_ms": 505.61274999927264,
         "expected": "Rapid saved revision 15 · café 日本語",
-        "observed": "Rapid saved revision 08 · café 日本語"
+        "observed": "Rapid saved revision 09 · café 日本語"
       },
       {
-        "elapsed_ms": 508.71366666979156,
+        "elapsed_ms": 535.8216666645603,
         "expected": "Rapid saved revision 16 · café 日本語",
         "observed": "Rapid saved revision 09 · café 日本語"
       },
       {
-        "elapsed_ms": 539.0042916696984,
+        "elapsed_ms": 563.8219583343016,
         "expected": "Rapid saved revision 17 · café 日本語",
-        "observed": "Rapid saved revision 09 · café 日本語"
+        "observed": "Rapid saved revision 10 · café 日本語"
       },
       {
-        "elapsed_ms": 569.3369999935385,
+        "elapsed_ms": 593.856458333903,
         "expected": "Rapid saved revision 18 · café 日本語",
         "observed": "Rapid saved revision 10 · café 日本語"
       },
       {
-        "elapsed_ms": 595.9814583329717,
+        "elapsed_ms": 624.1752916685073,
         "expected": "Rapid saved revision 19 · café 日本語",
-        "observed": "Rapid saved revision 10 · café 日本語"
-      },
-      {
-        "elapsed_ms": 626.2735416676151,
-        "expected": "Rapid saved revision 20 · café 日本語",
         "observed": "Rapid saved revision 11 · café 日本語"
       },
       {
-        "elapsed_ms": 655.2949166652979,
+        "elapsed_ms": 654.4568333338248,
+        "expected": "Rapid saved revision 20 · café 日本語",
+        "observed": "Rapid saved revision 12 · café 日"
+      },
+      {
+        "elapsed_ms": 684.7454583330546,
         "expected": "Rapid saved revision 21 · café 日本語",
         "observed": "Rapid saved revision 12 · café 日本語"
       },
       {
-        "elapsed_ms": 684.1860833374085,
+        "elapsed_ms": 710.5065000068862,
         "expected": "Rapid saved revision 22 · café 日本語",
-        "observed": "Rapid saved revision 12 · café 日本語"
+        "observed": "Rapid saved revision 13 · café 日本語"
       },
       {
-        "elapsed_ms": 714.423583340249,
+        "elapsed_ms": 738.6897083342774,
         "expected": "Rapid saved revision 23 · café 日本語",
         "observed": "Rapid saved revision 13 · café 日本語"
       },
       {
-        "elapsed_ms": 744.725833326811,
+        "elapsed_ms": 768.8325833296403,
         "expected": "Rapid saved revision 24 · café 日本語",
-        "observed": "Rapid saved revision 13 · café 日本語"
+        "observed": "Rapid saved revision 14 · café 日本語"
       },
       {
-        "elapsed_ms": 771.9113333296264,
+        "elapsed_ms": 799.0909999934956,
         "expected": "Rapid saved revision 25 · café 日本語",
         "observed": "Rapid saved revision 14 · café 日本語"
       },
       {
-        "elapsed_ms": 802.1952916606097,
+        "elapsed_ms": 826.4207083266228,
         "expected": "Rapid saved revision 26 · café 日本語",
-        "observed": "Rapid saved revision 14 · café 日本語"
+        "observed": "Rapid saved revision 15 · café 日本語"
       },
       {
-        "elapsed_ms": 832.5351249950472,
+        "elapsed_ms": 856.6227083356353,
         "expected": "Rapid saved revision 27 · café 日本語",
         "observed": "Rapid saved revision 15 · café 日本語"
       },
       {
-        "elapsed_ms": 862.7721666707657,
+        "elapsed_ms": 883.6890833335929,
         "expected": "Rapid saved revision 28 · café 日本語",
         "observed": "Rapid saved revision 16 · café 日本語"
       },
       {
-        "elapsed_ms": 893.0549999931827,
+        "elapsed_ms": 913.2090833300026,
         "expected": "Rapid saved revision 29 · café 日本語",
-        "observed": "Rapid saved revision 16 · café 日本語"
+        "observed": "Rapid saved revi"
       },
       {
-        "elapsed_ms": 919.5719166600611,
+        "elapsed_ms": 939.8192083317554,
         "expected": "Rapid saved revision 30 · café 日本語",
         "observed": "Rapid saved revision 17 · café 日本語"
       },
       {
-        "elapsed_ms": 949.8965416714782,
+        "elapsed_ms": 969.6792916656705,
         "expected": "Rapid saved revision 31 · café 日本語",
-        "observed": "Rapid saved revision 17 · café 日本語"
+        "observed": "Rapid saved revision 18 · café 日本語"
       }
     ]
   },
-  "interrupted_revision": 92,
+  "interrupted_revision": 85,
   "prompt_count": 1,
   "api_posts": [],
   "evidence_hashes": {
-    "drafts-save-failure.png": "b640d16a159b8c09359d8ee33406910b6277647005978fcb2de6a6f3e84f159c",
-    "drafts-saved-message.png": "af4f4dbf2cc95f774275d073d1825b4483d1cda3e89a70da4dc1fecd36953a3c",
-    "drafts-restored-dark.png": "414fbbc40381dde9f5db7f4694b627a3462e6d9956f0d8c178055664bb726105",
-    "drafts-restored-narrow.png": "7c29af0a40a7f6cc49460f77be5f886e582e99dcd777c5a42e072950a2609816",
-    "drafts-restored-light.png": "4123db57e0b1807525a53ea8eca8e90440abf7b49d4bf247da369b62b3ac9ecd",
-    "drafts-restored-light-accessibility.json": "258576b6a712c71036942819dccd3291a76abe8ce8e43d0241198c7647e11172",
-    "drafts-save-failure-accessibility.json": "2efb8a5a7c47502cfded71c9ec55c48f1f61c55f1605cc4b958564a327f54625",
-    "drafts-restored-narrow-accessibility.json": "ff131da6141829c9a366cb636c69a84bb7f8628d6a761006ddef393252c42569",
-    "drafts-saved-message-accessibility.json": "dadb031320434c7b06b487ce2633b14764d34f6d0ac896dbe3bbee871eda769f",
-    "drafts-restored-dark-accessibility.json": "c6e2e8d646b062a28a7c01a6a7e29f67aafc27ac278059af6a68df827a86c48f",
-    "draft-prompts.json": "f5c4c2988f0ba932ce85a5cdeea76e2fa9bdb93171ea16bd2b1c916e2f4259b5"
+    "drafts-save-failure.png": "9ca20e6325bfc7c6d78935d7c67b4060b21cf57671bfe7f69d28f3a26122c6ce",
+    "drafts-saved-message.png": "9f3756d320b066c5c1647880f40c563d64578b416499aa9cb47bfa7f4cc7edcc",
+    "drafts-restored-dark.png": "d8296fde6a506ef37bd8e1a5b68feaf48635ca1aad8f014ad83ffb85df9243be",
+    "drafts-restored-narrow.png": "e2e40c00ab326ebbf8c3bca9737d77aa075f5977484e83123b9e46f6eec63cd3",
+    "drafts-details-narrow.png": "41741147602bc9c9b19ee472196e22a722778a240be3bc456ddb65f18570613b",
+    "drafts-restored-light.png": "59f32bea6b0f9c5c8abb2b2719f9d9ef352e7c4c0610302e549897da54193063",
+    "drafts-restored-light-accessibility.json": "a9fad690c6ad2aa811e933c4946d0632ba7d409e88c6ed5dd610cc58dd6b91d1",
+    "drafts-details-narrow-accessibility.json": "a3ea8f5bdb28ab292889f88600f9e4332669dafeb06e9df14e083fc1571ff775",
+    "drafts-save-failure-accessibility.json": "963a157633a434aa7ca9b061ebe3996b102d0211d6f68f8b57a5da3df0b679a9",
+    "drafts-restored-narrow-accessibility.json": "e2e36ae6ad99f3be83235147880cf35cc6ea5e8c4f96cc3ddfa502732b3e47b1",
+    "drafts-saved-message-accessibility.json": "95a9b1bedc2b4e52c8a532d60f69741c3b679e6d541fc170ee621953e0c84794",
+    "drafts-restored-dark-accessibility.json": "a64efdbd8f1398325ac2761683cd81063145e844203a2a3c0d2283e3dec7434a",
+    "draft-prompts.json": "3ee50525f6e286c19802a8e126d2b4bfcf43b6ad8dcda82bfc51fc9a3e5764ad"
   },
   "source_hashes": {
     "crates/magistr-acp/src/transport/command.rs": "90a5b025a2c22f3a2e8d8d5d9be9eadbc28c3eb273413cb7efda61e8ea6bf9e4",
@@ -905,9 +911,9 @@
     "crates/magistr-desktop/tests/attachment_journey.py": "f42519a0d13331a44448f255ca68d894885305ed143760d7834bcab55fbeb6d1",
     "crates/magistr-desktop/tests/attachments.mjs": "e761ba21b9d05ffa8e07532ac6bd6543c9f6820c6ffedc1f60afe76688c81f66",
     "crates/magistr-desktop/tests/draft_persistence.swift": "95b853b033bbb88fe5052c9a3c368cb955eb5ac1d3fa746c3c07838cb260d9a9",
-    "crates/magistr-desktop/tests/draft_persistence_journey.py": "72e36bc6a2571f55b5a8a936065d2544520870585a76f31f61779f85d7955ad0",
+    "crates/magistr-desktop/tests/draft_persistence_journey.py": "81bbd3e042ddd8ee4778bdd4df2e11ca39863067ad641918e2e46009d132c9f5",
     "crates/magistr-desktop/tests/drafts.mjs": "371f679eaf90ba821df7c0491810aabce899f845b623dedc6b8c66f2693f8323",
-    "crates/magistr-desktop/tests/native_window.py": "8dc9b404ff4766968025086cf80aa23a7f08f92f526ffac0eb6bc2b3e73185ac",
+    "crates/magistr-desktop/tests/native_window.py": "014f02f7a2e1e953d9d12efe6b67c8469ec92ae42c47b4c5765cf227330aec09",
     "crates/magistr-desktop/tests/native_window.swift": "5d379e0b01b8a4aaa55a63c435bce0dcf5d68df8fb4ef64978f31100c892af80",
     "crates/magistr-desktop/tests/preferences.mjs": "aafbdfc322774f97a185d88a1d74097104b606b5ccf25fea67dc09b4fe987d3a",
     "crates/magistr-desktop/tests/process_roles.py": "2406be1b8ebd5b026f2e498797ffa49932f373d595c487b57c73234869bcac94",
@@ -919,20 +925,21 @@
     "crates/magistr-desktop/tests/work.mjs": "19b658066bb80ab9ee473cdbe5a88a00ff242a0e730f053ba163605a97dab840",
     "crates/magistr-desktop/tests/work_fixture.py": "35eb7a0a8257d26711138e6673bbaf20bbedcd5dd455fbc0343086e2afe53a6d",
     "crates/magistr-desktop/tests/work_journey.py": "ee80613f18530a93f459943f0175d5387d1632e896148ddbe9f399b359d291be",
-    "crates/magistr-desktop/ui/app.mjs": "3c52b810da5fc97e7f16c008e7500933b252c08bcce41b6c0243689879f1d310",
+    "crates/magistr-desktop/ui/app.mjs": "571dba98bed5e2a7107bc6a89fa084c277c3dbf4705936579ce8beb979c3b692",
     "crates/magistr-desktop/ui/attachments.mjs": "c598ca322b4a2c1b22b9f378ddc35ce7ec89a7e93c81673de978b3269a28ce63",
     "crates/magistr-desktop/ui/composer.mjs": "9accf554a6a2f6e7c029f4972fa4221e40d755546693c8343cbd528ef2a00bc0",
     "crates/magistr-desktop/ui/context.mjs": "9476a17db8e8c3032bd081dbdcd6088e9338ca2c41f9b455278243f5c98e4bcd",
     "crates/magistr-desktop/ui/conversation.mjs": "ee2753fdfa58093276bbb4e0b329d5eac03f2d04c79cdde4f6b131a26caf0651",
     "crates/magistr-desktop/ui/drafts.mjs": "6d5dab26f19fb14f67a79077b5927adff41f3dea78186ace91cc7cc5246888b4",
     "crates/magistr-desktop/ui/icon.png": "392002a92fdd8dc81923944cd5abd170d0867fe8eb3701d71d4df4aea083dd10",
-    "crates/magistr-desktop/ui/index.html": "e2290e26f0e47558d243e4c7afaf31461ef246b4d8bee8ffa3126831f539c6c0",
+    "crates/magistr-desktop/ui/index.html": "5422d717a0f60ea173e7729e4b4e1f3d64d4336d0a42d7ec583ce52b96583877",
+    "crates/magistr-desktop/ui/layout.mjs": "897467ab99a74ad6a351a56a54e7974746339c84af71a0612c11776a8d330980",
     "crates/magistr-desktop/ui/preferences.mjs": "119dfd44c2fbdf82da45e0973c6a12bbf3a284ffabf416f766e1315a47cad2d5",
     "crates/magistr-desktop/ui/projects.mjs": "e19f9be0696a2e21d082561403a2188e1b55cedb898539a7a5ae7280b8807031",
     "crates/magistr-desktop/ui/saved_drafts.mjs": "ae921dfdfa52f9b2e54920aefa6b09bef285ebe7ea326f3bec3287953ca9f52a",
     "crates/magistr-desktop/ui/selection.mjs": "fd844d9e146a9c5e1fb9ab6e2fc72c0273da66d4f59a70ce639877a87aff05fc",
     "crates/magistr-desktop/ui/session_controls.mjs": "738386755be2b65fd03899ae28e1b357b4313258d67b3edfaf72fe3fe37ff123",
-    "crates/magistr-desktop/ui/style.css": "7d293e8d7d994e0773864c84d66f4ef71eba5f1df486bcd2301ba77b54012ca5",
+    "crates/magistr-desktop/ui/style.css": "714b3dd99e2f8727e33c62a8997923a67c00d772a974d48012cef5ac48e4f534",
     "crates/magistr-desktop/ui/supervision.mjs": "032a49085ae6738687065e58e06950cf7229f4fa7f7e0e64ed7390edf3629d12",
     "crates/magistr-desktop/ui/transcript.mjs": "1e22dc70fe457e303b2d1e3edca61491f86d882406825cb5afe6bda9eff9d6ae",
     "crates/magistr-desktop/ui/work.mjs": "a7c16622a695378969fc6ecc34ae22d27d888c108641960522e7cd7b605a0658",
@@ -941,6 +948,6 @@
     "crates/magistr-workspace/src/service/workspace_service.rs": "23500f38e2e9ebae67c201b694ea72a38884d0b9bd2ec92cffa2d8bc4a1d13fd",
     "scripts/desktop-visual-gate.py": "de0d3f7b6fc57c2668f0e02634ad846e51570a1c33764c0f68a9e84a7d558f2e"
   },
-  "binary_sha256": "ebe2b068ade7b7722ef05083da25a137bc5a59b5327b27f2348122852238c1b8",
-  "captured_at": "2026-10-14T21:42:35Z"
+  "binary_sha256": "8f82e021041b91c85a70f3b494fa402907fcb8cda5c06b2fdb011b44ed51f2e0",
+  "captured_at": "2026-10-14T22:03:04Z"
 }

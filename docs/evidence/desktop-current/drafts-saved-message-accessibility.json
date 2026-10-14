@@ -20,10 +20,10 @@
     "enabled" : true,
     "focused" : true,
     "rect" : [
-      943,
-      821,
-      151,
-      39
+      939,
+      827,
+      149,
+      37
     ]
   },
   {
@@ -40,10 +40,10 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      816,
-      319,
-      354,
-      544
+      813,
+      329,
+      370,
+      538
     ]
   },
   {
@@ -60,9 +60,9 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      524,
+      514,
       231,
-      680,
+      700,
       720
     ]
   },
@@ -158,9 +158,9 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      819,
-      322,
-      348,
+      816,
+      332,
+      364,
       25
     ]
   },
@@ -177,9 +177,9 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      819,
-      357,
-      348,
+      816,
+      367,
+      364,
       72
     ]
   },
@@ -196,9 +196,9 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      819,
-      447,
-      348,
+      816,
+      457,
+      364,
       21
     ]
   },
@@ -215,9 +215,9 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      819,
-      486,
-      348,
+      816,
+      496,
+      364,
       36
     ]
   },
@@ -235,10 +235,10 @@
     "enabled" : false,
     "focused" : false,
     "rect" : [
-      819,
-      540,
-      163,
-      39
+      816,
+      550,
+      162,
+      37
     ]
   },
   {
@@ -253,9 +253,9 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      819,
-      612,
-      348,
+      816,
+      620,
+      364,
       21
     ]
   },
@@ -272,9 +272,9 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      819,
-      643,
-      348,
+      816,
+      651,
+      364,
       21
     ]
   },
@@ -293,10 +293,10 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      819,
-      672,
-      348,
-      110
+      816,
+      680,
+      364,
+      108
     ]
   },
   {
@@ -313,9 +313,9 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      819,
-      795,
-      348,
+      816,
+      801,
+      364,
       18
     ]
   },
@@ -333,10 +333,10 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      819,
-      821,
-      117,
-      39
+      816,
+      827,
+      116,
+      37
     ]
   },
   {
@@ -351,10 +351,10 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      554,
-      236,
-      620,
-      30
+      542,
+      245,
+      644,
+      31
     ]
   },
   {
@@ -370,9 +370,9 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      554,
-      276,
-      620,
+      542,
+      286,
+      644,
       21
     ]
   },
@@ -390,10 +390,10 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      558,
-      319,
-      236,
-      544
+      546,
+      329,
+      246,
+      538
     ]
   },
   {
@@ -410,10 +410,10 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      1097,
-      885,
-      81,
-      39
+      1113,
+      889,
+      77,
+      37
     ]
   },
   {
@@ -492,9 +492,9 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      819,
-      324,
-      105,
+      816,
+      334,
+      106,
       20
     ]
   },
@@ -507,13 +507,13 @@
     "AXHelp" : "",
     "AXRole" : "AXStaticText",
     "AXTitle" : "",
-    "AXValue" : "OpenAI · Finished 10\/14\/2026, 2:42:04 PM · 0 turns · Spending not reported \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-qehch9tq\/first",
+    "AXValue" : "OpenAI · Finished 10\/14\/2026, 3:02:30 PM · 0 turns · Spending not reported \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-1oluorjz\/first",
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      819,
-      358,
-      347,
+      816,
+      368,
+      362,
       69
     ]
   },
@@ -530,8 +530,8 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      819,
-      449,
+      816,
+      459,
       193,
       17
     ]
@@ -549,9 +549,9 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      819,
-      487,
-      344,
+      816,
+      497,
+      345,
       33
     ]
   },
@@ -568,9 +568,9 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      819,
-      614,
-      115,
+      816,
+      622,
+      116,
       17
     ]
   },
@@ -587,8 +587,8 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      819,
-      645,
+      816,
+      653,
       102,
       17
     ]
@@ -606,9 +606,9 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      832,
-      685,
-      322,
+      829,
+      692,
+      338,
       84
     ]
   },
@@ -625,8 +625,8 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      819,
-      796,
+      816,
+      802,
       66,
       15
     ]
@@ -644,10 +644,10 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      554,
-      239,
-      191,
-      23
+      542,
+      248,
+      196,
+      24
     ]
   },
   {
@@ -663,8 +663,8 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      554,
-      278,
+      542,
+      288,
       548,
       17
     ]
@@ -683,10 +683,10 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      558,
-      319,
-      236,
-      55
+      546,
+      329,
+      246,
+      53
     ]
   },
   {
@@ -703,10 +703,10 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      558,
-      382,
-      236,
-      55
+      546,
+      390,
+      246,
+      53
     ]
   },
   {
@@ -723,10 +723,10 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      558,
-      445,
-      236,
-      55
+      546,
+      451,
+      246,
+      53
     ]
   },
   {
@@ -743,10 +743,10 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      558,
-      508,
-      236,
-      55
+      546,
+      512,
+      246,
+      53
     ]
   },
   {
@@ -775,8 +775,8 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      832,
-      687,
+      829,
+      694,
       320,
       80
     ]

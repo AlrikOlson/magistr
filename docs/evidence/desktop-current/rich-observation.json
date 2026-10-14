@@ -14,9 +14,9 @@
       "enabled": true,
       "focused": true,
       "rect": [
-        491,
-        483,
-        680,
+        495,
+        498,
+        682,
         21
       ]
     }
@@ -35,10 +35,10 @@
       "enabled": true,
       "focused": false,
       "rect": [
-        474,
-        402,
-        209,
-        17
+        480,
+        387,
+        221,
+        18
       ]
     },
     "pending_reply_visible": false,
@@ -64,10 +64,10 @@
       "enabled": true,
       "focused": false,
       "rect": [
-        474,
-        402,
-        209,
-        17
+        480,
+        387,
+        221,
+        18
       ]
     },
     "pending_reply_visible": false,
@@ -98,8 +98,7 @@
       "Reading progress 0022: new result café 日本語 👩🏽‍💻.",
       "Reading progress 0023: new result café 日本語 👩🏽‍💻.",
       "Reading progress 0024: new result café 日本語 👩🏽‍💻.",
-      "Reading progress 0025: new result café 日本語 👩🏽‍💻.",
-      "Reading progress 0026: new result café 日本語 👩🏽‍💻."
+      "Reading progress 0025: new result café 日本語 👩🏽‍💻."
     ],
     "tool_values": [
       "Review local build · Running",
@@ -120,10 +119,10 @@
       "enabled": true,
       "focused": false,
       "rect": [
-        474,
-        402,
-        209,
-        17
+        480,
+        387,
+        221,
+        18
       ]
     },
     "pending_reply_visible": false,
@@ -196,10 +195,10 @@
       "enabled": true,
       "focused": true,
       "rect": [
-        1081,
-        648,
-        115,
-        39
+        1090,
+        754,
+        103,
+        34
       ]
     }
   },
@@ -219,10 +218,10 @@
       "enabled": true,
       "focused": false,
       "rect": [
-        474,
-        636,
-        329,
-        17
+        480,
+        720,
+        349,
+        18
       ]
     },
     "viewport": {
@@ -238,10 +237,10 @@
       "enabled": true,
       "focused": false,
       "rect": [
-        448,
-        282,
-        766,
-        423
+        456,
+        267,
+        760,
+        530
       ]
     }
   },
@@ -261,10 +260,10 @@
       "enabled": true,
       "focused": false,
       "rect": [
-        474,
-        636,
-        332,
-        17
+        480,
+        720,
+        352,
+        18
       ]
     },
     "viewport": {
@@ -280,10 +279,10 @@
       "enabled": true,
       "focused": false,
       "rect": [
-        448,
-        282,
-        766,
-        423
+        456,
+        267,
+        760,
+        530
       ]
     }
   },
@@ -301,10 +300,10 @@
       "enabled": true,
       "focused": false,
       "rect": [
-        474,
-        402,
-        175,
-        23
+        480,
+        387,
+        178,
+        24
       ]
     },
     "pending_reply_visible": true,
@@ -410,8 +409,7 @@
       "Reading progress 0097: new result café 日本語 👩🏽‍💻.",
       "Reading progress 0098: new result café 日本語 👩🏽‍💻.",
       "Reading progress 0099: new result café 日本語 👩🏽‍💻.",
-      "Reading progress 0100: new result café 日本語 👩🏽‍💻.",
-      "Reading progress 0101: new result café 日本語 👩🏽‍💻."
+      "Reading progress 0100: new result café 日本語 👩🏽‍💻."
     ],
     "tool_values": [
       "Review local build · Running",
@@ -432,10 +430,10 @@
       "enabled": true,
       "focused": false,
       "rect": [
-        474,
-        402,
-        175,
-        23
+        480,
+        387,
+        178,
+        24
       ]
     },
     "pending_reply_visible": true,
@@ -568,8 +566,7 @@
       "Reading progress 0124: new result café 日本語 👩🏽‍💻.",
       "Reading progress 0125: new result café 日本語 👩🏽‍💻.",
       "Reading progress 0126: new result café 日本語 👩🏽‍💻.",
-      "Reading progress 0127: new result café 日本語 👩🏽‍💻.",
-      "Reading progress 0128: new result café 日本語 👩🏽‍💻."
+      "Reading progress 0127: new result café 日本語 👩🏽‍💻."
     ],
     "tool_values": [
       "Review local build · Running",
@@ -578,15 +575,15 @@
   },
   "stream": {
     "stage": "finished",
-    "chunks": 132,
-    "elapsed": 13.588262375,
+    "chunks": 131,
+    "elapsed": 13.518151791999998,
     "stop_reason": "end_turn"
   },
   "canonical": {
     "reply_bytes": 11321,
-    "reply_sha256": "2d05ab16ef700bde1a3c57d2c3307c6085ec81ffef4add8d783aac21f929d6fc",
-    "conversation_bytes": 21796,
-    "conversation_sha256": "9f3a338d8b44cbda8e95abe9107208d5010f3681a97b71660af88850a9e349da"
+    "reply_sha256": "d8b500274691c2d43e487eb1b6226b0c84de6cab1e3e737119858932997cb388",
+    "conversation_bytes": 21728,
+    "conversation_sha256": "befd65277923c934cc371902998c0b8ace75592dec3f6a7f88d0cd5766c2c696"
   },
   "link": {
     "activated": true,
@@ -611,17 +608,17 @@
           "AXScrollToVisible"
         ],
         "AXDescription": "",
-        "AXHelp": "http://127.0.0.1:52563/rich-link/1792013866098244000",
+        "AXHelp": "http://127.0.0.1:52928/rich-link/1792015098913719000",
         "AXRole": "AXLink",
         "AXTitle": "Open the local reading note",
         "AXValue": "",
         "enabled": true,
         "focused": true,
         "rect": [
-          474,
-          435,
-          692,
-          38
+          480,
+          423,
+          709,
+          42
         ]
       }
     },

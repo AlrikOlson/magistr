@@ -257,9 +257,9 @@
         "enabled": true,
         "focused": false,
         "rect": [
-          487,
-          833,
-          619,
+          493,
+          901,
+          617,
           16
         ]
       },
@@ -280,9 +280,9 @@
         "enabled": true,
         "focused": true,
         "rect": [
-          487,
-          785,
-          619,
+          493,
+          873,
+          617,
           16
         ]
       },
@@ -303,9 +303,9 @@
         "enabled": true,
         "focused": true,
         "rect": [
-          487,
-          833,
-          619,
+          493,
+          901,
+          617,
           16
         ]
       },
@@ -339,18 +339,18 @@
       "enabled": true,
       "focused": true,
       "rect": [
-        474,
-        655,
-        714,
-        110
+        480,
+        751,
+        712,
+        87
       ]
     },
     "drag_started": true,
     "native_drag_moves": 21,
     "native_mouse_down": true,
-    "native_mouse_down_window": 7613,
+    "native_mouse_down_window": 8356,
     "operation": 1,
-    "pasteboard_file_url": "file:///var/folders/ml/51b226t50rxf09jwljnq7tn00000gn/T/magistr-desktop-journey-9k11md3d/second/drop-note.txt",
+    "pasteboard_file_url": "file:///var/folders/ml/51b226t50rxf09jwljnq7tn00000gn/T/magistr-desktop-journey-gt_fi4og/second/drop-note.txt",
     "pasteboard_types": [
       "public.file-url",
       "CorePasteboardFlavorType 0x6675726C",
@@ -360,8 +360,8 @@
       "Apple URL pasteboard type"
     ],
     "source": "drop-note.txt",
-    "source_window": 7613,
+    "source_window": 8356,
     "source_window_hit_test": true
   },
-  "native_accessibility_sha256": "d7e14161659a24dd0ca0b31f8636bab03d72a2167e2d301a42169dcce6ef8aa3"
+  "native_accessibility_sha256": "8eb3dcfd5ac6591bc0a48669ed21e26e6d411e8cb4601a8b33192d851825f5eb"
 }

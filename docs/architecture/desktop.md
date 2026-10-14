@@ -139,6 +139,8 @@ and supporting packages. Existing locked versions are unchanged.
 
 ## Interface
 
+The desktop frame gives the conversation a broad reading surface and a compact composer. The left rail keeps project opening, new sessions, saved history and preferences outside its scrolling project/conversation list. Violet identifies selection and primary actions; light and dark appearances use the same semantic roles. A labeled Details control shows requests and planned work before agent settings, working copy and conversation actions. Above 1100 CSS pixels it controls an adjacent pane; at narrower widths it switches between the same conversation and details nodes. No subscription or session is restarted by changing layout. Escape returns from Details to its toggle, and resizing preserves focus in the active surface. Latest reply has its own row so it cannot cover conversation text.
+
 The left rail lists known projects and resident sessions. A summary-only catalog
 updates every resident agent's status, queued messages and waiting requests.
 Only changed supervision facts publish a catalog update; transcript tokens and

@@ -381,8 +381,23 @@ def exercise(journey):
     j.capture("drafts-restored-light")
     bounds = next(row["rect"] for row in j.rows() if row.get("AXRole") == "AXWindow"
                   and row.get("rect", [0, 0, 0])[2] > 400)
+    j.call("focus", j.pid, "Message the agent")
     j.call("resize", j.pid, 800, 680)
+    tree = j.wait("narrow window gives the conversation its own surface",
+                  lambda tree: editor(first)(tree) and not button("Work on next item")(tree))
+    area = next(row for row in tree if row.get("AXRole") == "AXTextArea"
+                and label(row) == "Message the agent")
+    assert area["rect"][2] >= 500, area
+    j.results["checks"]["narrow editor has useful reading and editing width"] = True
     j.capture("drafts-restored-narrow")
+    j.call("press", j.pid, "Details")
+    j.wait("details opens work controls without a duplicate editor",
+           lambda tree: button("Work on next item")(tree) and not editor(first)(tree))
+    j.capture("drafts-details-narrow")
+    j.call("key", j.pid, 53, 0)
+    j.wait("Escape returns to the exact draft and its files",
+           lambda tree: editor(first)(tree) and pending(tree) == attached
+           and any(label(row) == "Details" and row.get("focused") for row in tree))
     j.call("resize", j.pid, bounds[2], bounds[3])
     j.call("press", j.pid, "Send")
     j.wait("restored changed source refuses without losing the draft",
