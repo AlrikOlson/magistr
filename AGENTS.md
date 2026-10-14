@@ -78,6 +78,15 @@ new evidence or a relevant correction. Keep this policy in the canonical workflo
 templates as well as generated skills so `magistr init` and repair preserve it.
 Scope changes and commits to the requested task; preserve other sessions' work.
 
+Desktop checks run in the background by default. Use focused headless WebKit
+scenarios for HTML/CSS/JavaScript layout and interaction, plus the affected unit
+or crate checks. Do not run every native journey or every desktop test for a
+small edit. Native OS-input journeys control the screen, keyboard and clipboard;
+run them only when the user explicitly authorizes foreground testing for that
+run, using `--allow-foreground`. Retain their actual source-bound evidence and
+report native/assistive-technology gaps instead of implying headless tests cover
+them. See [desktop verification](docs/development.md#desktop-verification).
+
 Keep shared session and workflow contracts independent of terminal protocols.
 The desktop owns native editing and layout. Motion respects reduced motion.
 Preserve contrast, icon, screenshot, and architecture-index checks. Update

@@ -297,6 +297,18 @@ handling, stale navigation and bounded retention. `tests/process.rs` exercises
 the actual executable's worker, ACP and both MCP roles and rejects retired
 renderer dependencies.
 
+Routine UI checks run selected scenarios under `tests/browser` in headless WebKit.
+They load the actual HTML/CSS/JavaScript and isolated observation fixtures; they
+never activate applications or post OS input. Current reviewed layout evidence
+lives in `docs/evidence/desktop-layout`. These fixtures verify rendering and DOM
+interaction, not Rust commands, native editing, OS dialogs or assistive technology.
+
+Native journeys require explicit authorization for foreground control and the
+`--allow-foreground` argument. The guard runs before compiling observers,
+creating evidence or launching apps. Run the affected journey only when native
+integration is the behavior being changed; retain its actual source-bound
+receipt without forcing unrelated journeys for ordinary UI changes.
+
 `tests/native_window.py` builds a disposable signed macOS app around the real
 binary. It uses native keyboard, pointer and accessibility input with a controlled
 ACP peer, isolated projects and state. The fixture preserves the real macOS home for WebKit and isolates application state with XDG and Magistr paths. It exercises independent sessions and
@@ -316,10 +328,10 @@ separate reply change; it compares exact clipboard source, selected text and
 reading position, then exercises Latest and disclosure stability. Its dark,
 light and narrow captures and rich observation/accessibility receipts accompany
 the ordinary journey evidence.
-Run it after rebuilding the desktop:
+When foreground testing is authorized, rebuild and run it:
 
 ```sh
-python3 crates/magistr-desktop/tests/native_window.py crates/magistr-desktop/target/debug/magistr-desktop
+python3 crates/magistr-desktop/tests/native_window.py crates/magistr-desktop/target/debug/magistr-desktop --allow-foreground
 ```
 
 The separate `tests/draft_persistence_journey.py` uses the same native observer
@@ -333,8 +345,10 @@ provider. It verifies lease refusal in another resident, navigation during
 pending pause, one-item stepping, resume, stop after the item, single-item
 completion, reply cancellation and orderly Quit in both appearances.
 
-See [current evidence](../evidence/desktop-current/README.md). Screenshot checks
-verify current capture hashes, contrast, the selected icon and source freshness.
+See [recorded native evidence](../evidence/desktop-current/README.md). Screenshot
+checks verify its integrity, current background layout captures, contrast, the
+selected icon and UI source freshness. Exact freshness of all native integration
+sources is a separate explicit `--native-current` check.
 Performance checks exercise the production conversation reducer and the native
 event-to-accessible-reply receipt. This is not a whole-application release benchmark.
 The [foundation decision](desktop-foundation.md) retains the framework comparison.

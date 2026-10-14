@@ -1,0 +1,15 @@
+{
+  "receipt": "e16d9d1cb376647f8e27666be55852dfc3f4e0a89cd5585258861a7df2f85272",
+  "images": {
+    "workspace-dark.png": "51d5ecfa37595d9230a2aae4cd8e3899104077e8e56009ef0c0de15907d1c26c",
+    "workspace-light.png": "81a1cca7a5542cb19fb9e2361ef8f86b0c93fd3247b42143321debfb27e8e1bf",
+    "workspace-narrow.png": "d8139c678610e94f8a1be17b4a6eceb75e7d96eee6e0d2d53d7296e6c9bf19e4",
+    "details-narrow.png": "6430b69c2e17d588cf435a233f77e0fc5a2923991205e86e6e82501c9dcc526f"
+  },
+  "reviewed_on": "2026-10-14",
+  "findings": [
+    "Reviewed the four headless WebKit captures at 1280 × 820 and 800 × 680. The real UI retains consistent light/dark hierarchy, readable conversation content, a fixed composer and independently scrolling navigation.",
+    "Narrow Details replaces the conversation, exposes work controls and returns the exact draft with focus on Details after Escape. Navigation actions remain inside the viewport.",
+    "Fixtures describe plausible work and requests but do not establish Rust owner integration, native keyboard/IME, file pickers, VoiceOver or Windows behavior. Recorded native evidence remains separate."
+  ]
+}

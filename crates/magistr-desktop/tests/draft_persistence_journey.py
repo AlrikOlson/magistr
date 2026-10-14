@@ -15,7 +15,7 @@ import time
 import tomllib
 
 from attachment_fixture import fixture_files
-from native_window import ROOT, SOURCE, project, run, source_hashes
+from native_window import ROOT, SOURCE, project, run, source_hashes, native_arguments
 from session_controls_fixture import peer_script, start_api
 
 
@@ -499,7 +499,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("binary", type=Path)
     parser.add_argument("--evidence", type=Path, default=ROOT / ".magistr/desktop-native-drafts")
-    args = parser.parse_args()
+    args = native_arguments(parser)
     evidence = args.evidence.resolve()
     evidence.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="magistr-desktop-journey-") as temporary:

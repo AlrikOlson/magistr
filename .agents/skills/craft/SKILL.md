@@ -30,10 +30,12 @@ start an implementation loop by itself.
 - Reuse existing domain objects, relationships, commands, and attributes.
   Share constants and behavior through their owning abstractions.
 - For interface work, read its architecture and design contract and use its
-  real renderer and interaction tests. Native applications require native
-  captures and gates; use existing stories and browser checks for web
-  components. Verify meaningful states, keyboard behavior, visual hierarchy,
-  and light/dark modes where supported.
+  real renderer and interaction tests. Use focused background renderer checks
+  for layout and DOM behavior. Native OS-input checks require explicit user
+  authorization when they take over the foreground, keyboard or clipboard;
+  headless checks do not establish native input or assistive-technology behavior.
+  Run only the affected scenarios and checks. Verify meaningful states,
+  keyboard behavior, visual hierarchy and supported light/dark modes.
 
 `$next` owns one implementation iteration; `$next-loop` owns bounded
 fresh-session handoffs, one chunk per agent session. `$roadmap-refresh` and `$signals` research and
