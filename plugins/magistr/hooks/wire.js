@@ -195,9 +195,19 @@ export function validate(kind, raw) {
     })
   } else if (kind === 'focus') {
     string(v.lane, 'the session')
+    const focusState = v.focus_state
+    if (
+      !record(focusState) ||
+      !['unset', 'current', 'closed', 'missing'].includes(focusState.state)
+    )
+      throw new Error('The chosen workstream could not be checked.')
     if (v.focus != null) {
       string(v.focus.group, 'the workstream')
       string(v.focus.mode, 'the work mode')
+      if (focusState.state === 'unset' || focusState.group !== v.focus.group)
+        throw new Error('The chosen workstream does not match its reported state.')
+    } else if (focusState.state !== 'unset') {
+      throw new Error('The chosen workstream was not returned.')
     }
   } else if (kind === 'findings') {
     if (!Number.isSafeInteger(v.next_step_number))

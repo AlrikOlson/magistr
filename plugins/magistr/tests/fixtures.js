@@ -111,14 +111,47 @@ export function answer(f, server, tool, args) {
       return f.ship
     case 'roadmap_status':
       return f.roadmap
-    case 'roadmap_focus_get':
+    case 'roadmap_focus_get': {
+      const activity = {
+        counts: { total: 1, backlog: 0, pending: 1, in_progress: 0, blocked: 0 },
+        readiness: { ready: 1, waiting: 0, blocked: 0 },
+        next_ready: 'search',
+      }
       return {
         lane: args.lane,
         focus: f.focus || null,
-        groups: ['Search'],
-        frontier: null,
+        focus_state: f.focus
+          ? { state: 'current', group: f.focus.group }
+          : { state: 'unset' },
+        workstreams: {
+          current: { Search: activity },
+          history: {},
+          ungrouped: {
+            counts: { total: 0, backlog: 0, pending: 0, in_progress: 0, blocked: 0 },
+            readiness: { ready: 0, waiting: 0, blocked: 0 },
+            next_ready: null,
+          },
+          ungrouped_history: { done: 0, obsoleted: 0 },
+        },
+        frontier: f.focus
+          ? {
+              state: 'current',
+              frontier: {
+                group: f.focus.group,
+                activity,
+                items: [{
+                  id: f.work.id,
+                  name: f.work.name,
+                  priority: 100,
+                  status: f.work.status,
+                  readiness: { state: 'ready' },
+                }],
+              },
+            }
+          : { state: 'unset' },
         persistent: true,
       }
+    }
     case 'magistr_context':
       return {
         ...f.context,

@@ -27,14 +27,14 @@ fn counts_chunks_and_names_the_next_ready_one() {
     add(&e, "first", 100, &[]);
     add(&e, "second", 200, &["first"]);
 
-    let s = native_spec_summary(&e);
+    let s = native_spec_summary(&e).unwrap();
     assert_eq!((s.total, s.checked, s.unchecked), (2, 0, 2));
     assert_eq!(s.unchecked_items, vec!["first — Chunk first".to_string()]);
     assert!(!s.all_done());
 
     e.roadmap_start_chunk("first").unwrap();
     complete_native_chunk(&e, "first");
-    let s = native_spec_summary(&e);
+    let s = native_spec_summary(&e).unwrap();
     assert_eq!((s.total, s.checked), (2, 1));
     assert_eq!(s.unchecked_items, vec!["second — Chunk second".to_string()]);
 }
@@ -66,7 +66,7 @@ fn resumes_one_active_item_before_higher_priority_pending_work_without_writes() 
         "selection must not rewrite any native state"
     );
     assert_eq!(
-        native_spec_summary(&e).unchecked_items,
+        native_spec_summary(&e).unwrap().unchecked_items,
         ["urgent — Chunk urgent"]
     );
 }
@@ -295,7 +295,7 @@ fn active_dependencies_are_checked_again_and_missing_work_is_not_invented() {
 
     let mut missing = e.roadmap_chunk("recovery").unwrap();
     missing.deps = vec!["private-missing-identifier".into()];
-    let error = ensure_available(&missing, &e.roadmap_chunks())
+    let error = ensure_available(&missing, &e.roadmap_chunks().unwrap())
         .unwrap_err()
         .to_string();
     assert!(error.contains("required work item is missing"), "{error}");
@@ -359,7 +359,7 @@ fn unfinished_work_is_not_reported_as_complete_when_nothing_is_ready() {
     add(&e, "only", 100, &[]);
     e.roadmap_start_chunk("only").unwrap();
     // Availability and completion are independent facts.
-    let s = native_spec_summary(&e);
+    let s = native_spec_summary(&e).unwrap();
     assert_eq!((s.total, s.checked, s.unchecked), (1, 0, 1));
     assert!(s.unchecked_items.is_empty());
     assert!(!s.all_done());

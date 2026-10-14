@@ -362,7 +362,12 @@ fn two_writers_merge_without_data_loss() {
     // B wrote last from stale memory (it never saw from-a). A plain
     // overwrite would have erased from-a; the locked merge keeps both.
     let c = reader(&cfg, "shared");
-    let ids: Vec<String> = c.roadmap_chunks().into_iter().map(|c| c.id).collect();
+    let ids: Vec<String> = c
+        .roadmap_chunks()
+        .unwrap()
+        .into_iter()
+        .map(|c| c.id)
+        .collect();
     assert!(
         ids.contains(&"from-a".to_string()),
         "A's chunk survived: {ids:?}"
@@ -423,7 +428,7 @@ fn persistence_off_writes_nothing() {
     add_chunk(&engines, "a", 1, &[]);
     assert!(!tmp.path().join("data").join("roadmap").exists());
     let again = reader(&cfg, "ephemeral");
-    assert!(again.roadmap_chunks().is_empty());
+    assert!(again.roadmap_chunks().unwrap().is_empty());
 }
 
 #[test]
@@ -518,7 +523,7 @@ fn reload_picks_up_another_writers_changes() {
     // The host's in-memory copies predate those writes; its queries read
     // through, and an explicit reload is the same current answer.
     assert_eq!(
-        host.roadmap_next().map(|c| c.id).as_deref(),
+        host.roadmap_next().unwrap().map(|c| c.id).as_deref(),
         Some("only-on-disk")
     );
     assert_eq!(host.ship_status()["tasks"]["total"], 1);
@@ -526,7 +531,7 @@ fn reload_picks_up_another_writers_changes() {
     host.reload_roadmap();
     host.reload_ship();
     assert_eq!(
-        host.roadmap_next().map(|c| c.id).as_deref(),
+        host.roadmap_next().unwrap().map(|c| c.id).as_deref(),
         Some("only-on-disk")
     );
     assert_eq!(host.ship_status()["tasks"]["total"], 1);
@@ -617,6 +622,7 @@ fn signal_triage_wrappers_round_trip() {
     assert_eq!(
         engines
             .roadmap_chunks()
+            .unwrap()
             .iter()
             .filter(|c| c.id == chunk_id)
             .count(),

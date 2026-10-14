@@ -1,4 +1,4 @@
-use crate::roadmap::domain::Focus;
+use crate::roadmap::domain::{Focus, WorkstreamFrontier};
 
 /// A focus mutation with the frontier observed under the same native lock.
 #[derive(Debug, Clone, serde::Serialize)]
@@ -7,7 +7,7 @@ pub enum FocusChange {
     Set {
         lane: String,
         focus: Focus,
-        frontier: serde_json::Value,
+        frontier: WorkstreamFrontier,
         persistent: bool,
     },
     Cleared {

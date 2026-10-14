@@ -76,7 +76,6 @@ pub mod project_authority;
 mod project_location;
 mod working_copy_lease;
 pub use working_copy_lease::WorkingCopyLease;
-pub mod region_counts;
 pub mod roadmap_backend;
 pub mod roadmap_command;
 pub mod ship_command;
@@ -125,10 +124,9 @@ pub use owner_reply::OwnerReply;
 pub use owner_report::OwnerReport;
 pub use owner_socket::owner_socket_path;
 pub use owner_wire::OWNER_PROTOCOL_VERSION;
-pub use progress::progress_from_roadmap;
+pub use progress::progress_from_chunks;
 pub use project_authority::ProjectAuthority;
 pub use project_location::ProjectLocation;
-pub use region_counts::RegionCounts;
 pub use roadmap_backend::RoadmapBackend;
 pub use roadmap_command::RoadmapCommand;
 pub use ship_command::ShipCommand;
@@ -153,8 +151,10 @@ pub use magistr_workflow::infra::{
 // — are the events every surface folds, under the family's name.
 pub use magistr_workflow::roadmap::broadcast::RoadmapFrame;
 pub use magistr_workflow::roadmap::domain::{
-    BlockedBy, BlockerKind, Chunk, ChunkStatus, ReprioritizeProposal, Roadmap, StatusProposal,
-    TitleProposal,
+    BlockedBy, BlockerKind, Chunk, ChunkStatus, FocusState, Readiness, ReprioritizeProposal,
+    Roadmap, StatusProposal, TitleProposal, WorkstreamActivity, WorkstreamCatalog,
+    WorkstreamFrontier, WorkstreamHistory, WorkstreamResolution, assess_readiness, next_ready,
+    workstream_catalog, workstream_frontier,
 };
 pub use magistr_workflow::ship::application::{
     CheckAdmission, CheckExecution, CheckSettlement, CompletionEvidence, CompletionRefusal,

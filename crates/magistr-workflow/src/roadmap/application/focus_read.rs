@@ -1,11 +1,14 @@
-use crate::roadmap::domain::Focus;
+use crate::roadmap::domain::{Focus, FocusState, WorkstreamCatalog};
 
-/// A lane's read-only focus and the existing extensible frontier projection.
+use super::WorkstreamInspection;
+
+/// A saved lane focus and the current roadmap observed under one owner lock.
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct FocusRead {
     pub lane: String,
     pub focus: Option<Focus>,
-    pub frontier: serde_json::Value,
-    pub groups: Vec<String>,
+    pub focus_state: FocusState,
+    pub frontier: WorkstreamInspection,
+    pub workstreams: WorkstreamCatalog,
     pub persistent: bool,
 }

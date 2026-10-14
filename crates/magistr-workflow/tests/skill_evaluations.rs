@@ -20,8 +20,7 @@
 use std::path::{Path, PathBuf};
 
 use magistr_workflow::roadmap::RoadmapEngine;
-use magistr_workflow::roadmap::domain::{ChunkStatus, FocusMode};
-use magistr_workflow::roadmap::engine::GroupResolution;
+use magistr_workflow::roadmap::domain::{ChunkStatus, FocusMode, WorkstreamResolution};
 
 fn skills_dir() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("skills")
@@ -279,8 +278,8 @@ fn an_ambiguous_group_mutates_no_focus_and_names_the_candidates() {
         .unwrap();
         e.set_group(id, Some(group.to_string())).unwrap();
     }
-    match e.resolve_group("billing") {
-        GroupResolution::Ambiguous(names) => {
+    match e.workstreams().resolve_current("billing") {
+        WorkstreamResolution::Ambiguous { matches: names } => {
             assert_eq!(names, vec!["Billing core", "Billing reports"]);
         }
         other => panic!("expected ambiguity, got {other:?}"),
@@ -336,12 +335,12 @@ fn no_ready_work_is_reported_as_a_state_rather_than_an_absence() {
     e.set_status("auth-1", ChunkStatus::InProgress).unwrap();
     e.set_status("auth-2", ChunkStatus::Blocked).unwrap();
 
-    let s = e.group_status("Authentication");
-    assert_eq!(s["ready_count"], 0);
-    assert_eq!(s["next"], serde_json::Value::Null);
+    let s = e.workstream_frontier(Some("Authentication"));
+    assert_eq!(s.activity.readiness.ready, 0);
+    assert_eq!(s.activity.next_ready, None);
     // The frontier still describes the workstream rather than going silent.
-    assert_eq!(s["counts"]["total"], 2);
-    assert_eq!(s["blocked_count"], 1);
+    assert_eq!(s.activity.counts.total, 2);
+    assert_eq!(s.activity.readiness.blocked, 1);
 }
 
 /// A no-focus lane is an actionable stop, not an error and not a default.
@@ -351,7 +350,10 @@ fn a_lane_with_no_focus_is_answered_rather_than_defaulted() {
     assert!(e.focus_get("never-focused").is_none());
     // And the workstreams are still discoverable, which is what makes the
     // stop actionable rather than a dead end.
-    assert_eq!(e.groups(), vec!["Authentication", "Billing"]);
+    assert_eq!(
+        e.workstreams().current_names(),
+        vec!["Authentication", "Billing"]
+    );
 }
 
 /// Mode is closed. An agent cannot invent a fourth boundary by naming one.

@@ -2,7 +2,9 @@ use std::fmt;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use magistr_workflow::roadmap::RoadmapEngine;
-use magistr_workflow::roadmap::domain::Chunk;
+use magistr_workflow::roadmap::domain::{
+    Chunk, FocusState, WorkstreamCatalog, WorkstreamFrontier, WorkstreamResolution,
+};
 use magistr_workflow::ship::domain::check_receipt::CheckReceipt;
 use magistr_workflow::ship::domain::objective::Objective;
 use magistr_workflow::ship::domain::task::Task;
@@ -39,6 +41,20 @@ pub struct NativeReader {
     think: Arc<Mutex<ReasoningServer>>,
     ship: Arc<Mutex<ShipEngine>>,
     signal: Arc<Mutex<SignalEngine>>,
+}
+
+fn require_current_track(catalog: &WorkstreamCatalog, track: &str) -> Result<(), String> {
+    let refusal = match catalog.focus_state(Some(track)) {
+        FocusState::Current { .. } => return Ok(()),
+        FocusState::Closed { group } => WorkstreamResolution::Closed {
+            group,
+            choices: catalog.current_names(),
+        },
+        FocusState::Missing { .. } | FocusState::Unset => WorkstreamResolution::Unknown {
+            choices: catalog.current_names(),
+        },
+    };
+    Err(refusal.explain(track))
 }
 
 impl fmt::Debug for NativeReader {
@@ -153,11 +169,19 @@ impl NativeReader {
     /// cannot be observed is logged and the engine answers what it holds —
     /// a query has no refusal to give.
     fn current_roadmap(&self) -> MutexGuard<'_, RoadmapEngine> {
+        self.observed_roadmap()
+            .unwrap_or_else(|_| lock(&self.roadmap))
+    }
+
+    /// One refresh policy for roadmap reads. Selection propagates a refusal;
+    /// retained broad projections still use the documented cached read above.
+    fn observed_roadmap(&self) -> Result<MutexGuard<'_, RoadmapEngine>, String> {
         let mut engine = lock(&self.roadmap);
-        if let Err(error) = engine.refresh_if_stale() {
-            tracing::warn!("magistr: roadmap store not observed: {error}");
-        }
-        engine
+        engine.refresh_if_stale().map_err(|error| {
+            tracing::warn!(%error, "roadmap store could not be read");
+            "The roadmap could not be read. Restore access to it and try again.".to_owned()
+        })?;
+        Ok(engine)
     }
 
     /// The ship engine, observed; see [`Self::current_roadmap`].
@@ -237,7 +261,7 @@ impl NativeReader {
             let roadmap = self.current_roadmap();
             (
                 roadmap.roadmap().chunks.clone(),
-                super::progress::progress_from_roadmap(roadmap.roadmap()),
+                super::progress::progress_from_chunks(&roadmap.roadmap().chunks),
             )
         };
         let signals = self.current_signal().signals().signals.clone();
@@ -302,40 +326,56 @@ impl NativeReader {
 
     // ── Roadmap ────────────────────────────────────────────────────────
 
-    /// Counts, next ready chunk, regions and progress.
+    /// Counts, next ready chunk, current workstreams, history and progress.
     #[must_use]
     pub fn roadmap_snapshot(&self) -> NativeRoadmapSnapshot {
-        NativeRoadmapSnapshot::from_engine(&self.current_roadmap())
+        let engine = self.current_roadmap();
+        NativeRoadmapSnapshot::from_chunks(&self.project_id, &engine.roadmap().chunks)
     }
 
     /// The engine's progress view of the roadmap.
     #[must_use]
     pub fn roadmap_progress(&self) -> RoadmapProgress {
-        super::progress::progress_from_roadmap(self.current_roadmap().roadmap())
+        super::progress::progress_from_chunks(&self.current_roadmap().roadmap().chunks)
     }
 
-    /// The next ready chunk, if any.
-    #[must_use]
-    pub fn roadmap_next(&self) -> Option<Chunk> {
-        self.current_roadmap().next().cloned()
+    /// The next ready chunk, including ungrouped work. An unreadable store
+    /// refuses selection instead of returning a cached candidate.
+    pub fn roadmap_next(&self) -> Result<Option<Chunk>, String> {
+        Ok(self.observed_roadmap()?.next().cloned())
     }
 
-    /// The next ready chunk in one track; never falls through to another.
-    #[must_use]
-    pub fn roadmap_next_in_track(&self, track: &str) -> Option<Chunk> {
-        self.current_roadmap().next_in_group(track).cloned()
+    /// The next ready chunk in an exactly named current workstream.
+    /// Closed or missing saved names never select similarly named work.
+    pub fn roadmap_next_in_track(&self, track: &str) -> Result<Option<Chunk>, String> {
+        let engine = self.observed_roadmap()?;
+        require_current_track(&engine.workstreams(), track)?;
+        Ok(engine.next_in_group(track).cloned())
     }
 
-    /// Track names as the roadmap owner stores them.
-    #[must_use]
-    pub fn roadmap_tracks(&self) -> Vec<String> {
-        self.current_roadmap().groups()
+    /// Current workstreams, authored history and ungrouped work from one read.
+    pub fn roadmap_workstreams(&self) -> Result<WorkstreamCatalog, String> {
+        Ok(self.observed_roadmap()?.workstreams())
     }
 
-    /// Resolve an exact track name or an unambiguous fragment without writing.
+    /// The current work in an exact workstream; None selects ungrouped work.
+    pub fn roadmap_frontier(&self, group: Option<&str>) -> Result<WorkstreamFrontier, String> {
+        let engine = self.observed_roadmap()?;
+        if let Some(group) = group {
+            require_current_track(&engine.workstreams(), group)?;
+        }
+        Ok(engine.workstream_frontier(group))
+    }
+
+    /// Resolve an explicit current name or unambiguous fragment without writing.
+    /// An exact authored closed name is a refusal before fragment matching.
     pub fn roadmap_resolve_track(&self, query: &str) -> Result<String, String> {
-        match self.current_roadmap().resolve_group(query) {
-            magistr_workflow::roadmap::engine::GroupResolution::Exact(name) => Ok(name),
+        match self
+            .observed_roadmap()?
+            .workstreams()
+            .resolve_current(query)
+        {
+            WorkstreamResolution::Current { group } => Ok(group),
             refusal => Err(refusal.explain(query)),
         }
     }
@@ -351,10 +391,9 @@ impl NativeReader {
             .cloned()
     }
 
-    /// Every chunk, in stored order.
-    #[must_use]
-    pub fn roadmap_chunks(&self) -> Vec<Chunk> {
-        self.current_roadmap().roadmap().chunks.clone()
+    /// Every chunk in stored order, only after the store was successfully observed.
+    pub fn roadmap_chunks(&self) -> Result<Vec<Chunk>, String> {
+        Ok(self.observed_roadmap()?.roadmap().chunks.clone())
     }
 
     /// The same bounded JSON `roadmap_status` answers over MCP.
@@ -434,3 +473,7 @@ impl NativeReader {
         self.current_signal().signals().signals.clone()
     }
 }
+
+#[cfg(test)]
+#[path = "native_reader.tests.rs"]
+mod tests;

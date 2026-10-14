@@ -90,8 +90,8 @@ the loop.
 | `roadmap_get`            | Full records for a named handful of chunks, with sparse fields   |
 | `roadmap_set_group`      | Put a chunk in a workstream, or take it out of one               |
 | `roadmap_propose_groups` | Which ungrouped chunks belong together, for *you* to name        |
-| `roadmap_focus_get`      | What one LANE is working on, and the frontier inside it (read-only) |
-| `roadmap_focus_set`      | Point one lane at a workstream and a mode — the only focus writer |
+| `roadmap_focus_get`      | Exact saved focus, current workstreams and named history (read-only) |
+| `roadmap_focus_set`      | Point one lane at a current workstream and mode, or clear its focus |
 
 ### Focus is per-caller
 
@@ -111,6 +111,11 @@ workstream — the one a tracker maps to a project. No second taxonomy exists.
 names a *boundary* and an open vocabulary would be a vocabulary of
 unenforceable ones.
 
+`roadmap_focus_get` defaults to `view: "current"` and includes history counts.
+Use `view: "history"` to return completed and obsolete IDs for the supplied group
+or the caller's exact saved focus. Mixed current/history groups support both
+views, and reading either view never changes focus.
+
 `roadmap_next` and `roadmap_status` are unchanged and still take no input:
 focusing does not narrow what they return. The narrowing lives in the frontier
 the focus tools report, which is scoped to one workstream and cannot name a
@@ -123,7 +128,7 @@ elsewhere".
 > shapes are documented in the tool descriptions instead — where a model
 > actually reads them, since clients bridging to the Messages API drop
 > `outputSchema` before the model sees it. See
-> `crates/think-and-ship/src/roadmap/output_schemas`.
+> `crates/magistr-workflow/src/roadmap/output_schemas`.
 
 ## `signal_*` — the stakeholder track (10 tools)
 

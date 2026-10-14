@@ -215,7 +215,7 @@ impl IterationLoop {
         };
 
         let summary = match &native {
-            Some(engines) => super::native_summary::native_spec_summary(engines),
+            Some(engines) => super::native_summary::native_spec_summary(engines)?,
             None => spec::spec_summary_from_project(&project_dir, &spec_path)?,
         };
 
@@ -384,6 +384,15 @@ impl IterationLoop {
 
     /// Select the track before a new run starts. Recovery keeps its original scope.
     pub fn select_track(&mut self, track: Option<&str>) -> Result<()> {
+        if (track.is_none() || self.recovered || !self.state.operations.records().is_empty())
+            && let Some(saved) = self.state.native_track.as_deref()
+        {
+            self.native
+                .as_ref()
+                .ok_or_else(|| MagistrError::Workflow("Tracks require a native roadmap.".into()))?
+                .roadmap_frontier(Some(saved))
+                .map_err(MagistrError::Workflow)?;
+        }
         let Some(track) = track else {
             return Ok(());
         };
