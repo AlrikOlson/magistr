@@ -6,6 +6,7 @@ use std::path::{Path, PathBuf};
 
 #[derive(Serialize)]
 pub struct RecentProject {
+    pub id: String,
     pub name: String,
     pub directory: String,
 }
@@ -16,6 +17,7 @@ pub fn recent_projects(inputs: &ProjectInputs, active: &[PathBuf]) -> Vec<Recent
         .into_iter()
         .filter_map(|project| {
             project.dir.map(|directory| RecentProject {
+                id: magistr_engine::native::NativeConfig::from_env(&directory).resolve_project_id(),
                 name: project.name,
                 directory,
             })
@@ -33,6 +35,7 @@ pub fn recent_projects(inputs: &ProjectInputs, active: &[PathBuf]) -> Vec<Recent
             .to_string();
         if known.insert(directory.clone()) {
             projects.push(RecentProject {
+                id: magistr_engine::native::NativeConfig::from_env(&directory).resolve_project_id(),
                 name: crate::commands::galaxy_data::project_name(Path::new(&directory)),
                 directory,
             });

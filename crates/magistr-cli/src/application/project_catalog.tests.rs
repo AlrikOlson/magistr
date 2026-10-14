@@ -24,3 +24,25 @@ fn resident_projects_are_listed_before_history_settlement() {
         second.canonicalize().unwrap().display().to_string()
     );
 }
+
+#[test]
+fn equal_folder_names_keep_their_resolved_project_identities() {
+    let temp = tempfile::tempdir().unwrap();
+    let first = temp.path().join("one/app");
+    let second = temp.path().join("two/app");
+    std::fs::create_dir_all(&first).unwrap();
+    std::fs::create_dir_all(&second).unwrap();
+    let inputs = ProjectInputs::from_lookup(temp.path(), |_| None);
+    let projects = recent_projects(&inputs, &[first.clone(), second.clone()]);
+    assert_eq!(projects.len(), 2);
+    assert_eq!(projects[0].name, projects[1].name);
+    assert_ne!(projects[0].id, projects[1].id);
+    for (project, path) in projects.iter().zip([first, second]) {
+        assert_eq!(
+            project.id,
+            magistr_core::evidence::writer_config_from_env(path.canonicalize().unwrap())
+                .resolve_project_id(),
+            "catalog and session admission must resolve the same identity"
+        );
+    }
+}
