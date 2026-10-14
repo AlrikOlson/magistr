@@ -7,7 +7,11 @@ mod error;
 mod feed;
 mod feed_link;
 mod native_port;
+mod read_snapshot;
 mod reseed;
+
+pub(crate) use feed_link::FeedLink;
+pub(crate) use read_snapshot::SnapshotReads;
 
 pub use attached_port::AttachedEnginePort;
 pub use client::EngineClient;

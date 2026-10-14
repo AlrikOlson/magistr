@@ -240,9 +240,8 @@ pub fn resolve_project_id() -> String {
 
 /// Rewrite a caller-supplied session id so it lands inside the current
 /// project's namespace on disk. Idempotent: passing an already-prefixed
-/// id (whether `<project>__<rest>` or the legacy `<project>-<…>` form
-/// emitted by older auto-rotation) returns the input unchanged. The
-/// final output is always valid against `is_safe_session_id`.
+/// id (`<project>__<rest>`) returns the input unchanged. Persistence validates
+/// the final identifier before selecting a file.
 pub fn namespace_session_id(project_id: &str, raw: &str) -> String {
     let raw = raw.trim();
     // Empty / equal-to-project ⇒ the bare project session.
@@ -252,11 +251,6 @@ pub fn namespace_session_id(project_id: &str, raw: &str) -> String {
     // Already namespaced under this project (idempotent).
     let sep_prefix = format!("{project_id}{PROJECT_SEP}");
     if raw.starts_with(&sep_prefix) {
-        return raw.to_string();
-    }
-    // Legacy auto-rotation: `<project>-YYYYMMDD-HHMMSS-<4>`. Keep as-is.
-    let legacy_prefix = format!("{project_id}-");
-    if raw.starts_with(&legacy_prefix) {
         return raw.to_string();
     }
     // Otherwise prefix and re-sanitize. The combined id is clamped to

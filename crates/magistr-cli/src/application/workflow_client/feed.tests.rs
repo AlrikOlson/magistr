@@ -57,7 +57,6 @@ async fn waits_for_the_socket_decodes_lines_and_reattaches_after_a_hangup() {
     let task = spawn_feed(socket.clone(), "selected".into(), inbox, link.clone());
 
     assert_eq!(next(&mut rx).await, EngineEvent::Feed(FeedStatus::Waiting));
-    assert!(!link.is_attached(), "nothing to attach to yet");
     assert!(!requested(&link).await, "and nothing to re-read for");
 
     let listener = UnixListener::bind(&socket).expect("bind");
@@ -66,7 +65,6 @@ async fn waits_for_the_socket_decodes_lines_and_reattaches_after_a_hangup() {
         next(&mut rx).await,
         EngineEvent::Feed(FeedStatus::Connected { reconnect: false })
     );
-    assert!(link.is_attached(), "the socket is held");
     assert!(
         requested(&link).await,
         "attaching asks for a snapshot: frames before the registration are gone"
@@ -91,7 +89,6 @@ async fn waits_for_the_socket_decodes_lines_and_reattaches_after_a_hangup() {
         next(&mut rx).await,
         EngineEvent::Feed(FeedStatus::Disconnected)
     );
-    assert!(!link.is_attached(), "and let go on the hangup");
 
     let (mut server, _) = listener.accept().await.expect("accept again");
     assert_eq!(
@@ -166,7 +163,10 @@ async fn deliveries_follow_the_publishers_sequence_and_a_new_owner_is_noticed() 
         ]
     );
     assert!(requested(&link).await, "the new owner asked for a snapshot");
-    assert!(!requested(&link).await, "and nothing else did");
+    assert!(
+        !requested(&link).await,
+        "selected changes coalesce into one request"
+    );
     task.abort();
 }
 
@@ -185,7 +185,6 @@ async fn without_unix_sockets_the_feed_waits_and_never_attaches() {
 
     assert_eq!(next(&mut rx).await, EngineEvent::Feed(FeedStatus::Waiting));
     tokio::time::sleep(Duration::from_millis(50)).await;
-    assert!(!link.is_attached(), "there is no socket to attach to");
     assert!(rx.try_recv().is_err(), "and nothing more is posted");
     task.abort();
 }
@@ -244,8 +243,62 @@ async fn other_executions_do_not_replace_the_selected_task_or_create_sequence_ga
         }
     );
     assert!(
-        !requested(&link).await,
-        "foreign events still advance the shared cursor"
+        requested(&link).await,
+        "a selected persisted change requests a real snapshot"
     );
+    for (epoch, seq) in [(1, 4), (2, 1)] {
+        let line = serde_json::json!({"family":"ship","type":"task_started",
+            "task_id":"wrong","execution_key":"other","epoch":epoch,"seq":seq});
+        stream
+            .write_all(format!("{line}\n").as_bytes())
+            .await
+            .unwrap();
+        assert_eq!(
+            next(&mut rx).await,
+            EngineEvent::Refresh,
+            "a gap or new owner invalidates selected observations without foreign task data"
+        );
+        assert!(requested(&link).await);
+    }
+    task.abort();
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn duplicates_and_phase_output_do_not_request_reads_but_a_gap_does() {
+    use tokio::io::AsyncWriteExt;
+    use tokio::net::UnixListener;
+    let temp = tempfile::tempdir().unwrap();
+    let socket = temp.path().join("events.sock");
+    let listener = UnixListener::bind(&socket).unwrap();
+    let (inbox, mut events) = Inbox::channel();
+    let link = FeedLink::new();
+    let task = spawn_feed(socket, "selected".into(), inbox, link.clone());
+    let (mut stream, _) = listener.accept().await.unwrap();
+    next(&mut events).await;
+    next(&mut events).await;
+    assert!(requested(&link).await);
+    stream.write_all(&chunk_line("one", 1, 1)).await.unwrap();
+    next(&mut events).await;
+    assert!(requested(&link).await);
+    stream.write_all(&chunk_line("one", 1, 1)).await.unwrap();
+    assert!(matches!(
+        next(&mut events).await,
+        EngineEvent::Event {
+            delivery: Delivery::Duplicate,
+            ..
+        }
+    ));
+    assert!(!requested(&link).await);
+    for (seq, expected) in [(2, false), (4, true)] {
+        let frame = serde_json::json!({"family":"magistr","type":"phase_set",
+            "phase":"executing","execution_key":"selected","epoch":1,"seq":seq});
+        stream
+            .write_all(format!("{frame}\n").as_bytes())
+            .await
+            .unwrap();
+        next(&mut events).await;
+        assert_eq!(requested(&link).await, expected);
+    }
     task.abort();
 }

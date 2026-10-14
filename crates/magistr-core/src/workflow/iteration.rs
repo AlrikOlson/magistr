@@ -298,14 +298,20 @@ impl IterationLoop {
         )?;
         // Retain an unfinished item only while it can actually be continued.
         // A blocked or deferred target belongs to the ended request, not this one.
-        fresh.state.native_chunk_id = recovered.state.native_chunk_id.clone().filter(|id| {
-            recovered.native.as_ref().is_some_and(|engines| {
-                engines.roadmap_chunk(id).is_some_and(|chunk| {
+        fresh.state.native_chunk_id = match (
+            recovered.state.native_chunk_id.as_ref(),
+            recovered.native.as_ref(),
+        ) {
+            (Some(id), Some(engines)) => engines
+                .roadmap_chunk(id)
+                .map_err(MagistrError::Workflow)?
+                .filter(|chunk| {
                     chunk.status == magistr_engine::native::ChunkStatus::InProgress
                         && chunk.blocked_by.is_none()
                 })
-            })
-        });
+                .map(|chunk| chunk.id),
+            _ => None,
+        };
         // Encode the opaque identity rather than treating it as a path.
         let key: String = recovered
             .state

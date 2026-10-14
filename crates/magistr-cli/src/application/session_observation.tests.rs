@@ -533,3 +533,100 @@ fn submission_outcome_survives_history_pruning_without_retaining_attachment_byte
         matches!(&refused.messages.last().unwrap().message, Msg::Agent(AgentEvent::Notice(error)) if error == "Try again")
     );
 }
+
+#[test]
+fn workflow_snapshots_survive_separately_without_evicting_conversation_or_drafts() {
+    use magistr_cockpit::{engine::EngineEvent, harness::fixtures};
+    use magistr_engine::{ReadError, ReadErrorKind, ReadState};
+    let owner = std::sync::Arc::new(SessionObservation::new(address()));
+    owner.draft("unsent message".into());
+    owner.send(Msg::Agent(AgentEvent::UserText("earlier question".into())));
+    owner.send(Msg::Agent(AgentEvent::PermissionRequest {
+        detail: String::new(),
+        id: 7,
+        title: "Read".into(),
+        choices: Vec::new(),
+        edit: false,
+        risk: magistr_domain::policy::RiskTier::Low,
+        plan: None,
+    }));
+    let before = owner.snapshot();
+    let mut chunk = fixtures::chunk("selected-record");
+    chunk.description = "x".repeat(MAX_BYTES + 1);
+    let snapshot = fixtures::snapshot(vec![chunk], Vec::new());
+    owner.send(Msg::Engine(EngineEvent::Seed(snapshot.clone())));
+    let failed = snapshot.failed(ReadError::new(
+        ReadErrorKind::Io,
+        "Cannot read work records.",
+    ));
+    owner.send(Msg::Engine(EngineEvent::Seed(failed.clone())));
+    let after = owner.snapshot();
+    assert_eq!(after.address, before.address);
+    assert_eq!(after.messages, before.messages);
+    assert_eq!(after.pending, before.pending);
+    assert_eq!(after.dropped, before.dropped);
+    assert_eq!(after.seed.draft.as_deref(), Some("unsent message"));
+    assert_eq!(after.seed.snapshot, failed);
+    assert!(matches!(
+        after.seed.snapshot.roadmap,
+        ReadState::Stale { .. }
+    ));
+    assert_eq!(
+        after
+            .seed
+            .snapshot
+            .roadmap
+            .last_successful()
+            .unwrap()
+            .value
+            .chunks[0]
+            .id,
+        "selected-record"
+    );
+    assert!(
+        !after
+            .replay()
+            .iter()
+            .any(|message| matches!(message, Msg::Engine(_)))
+    );
+}
+
+#[tokio::test]
+async fn duplicate_events_do_not_advance_sequence_or_freshness_and_close_refresh_returns() {
+    use magistr_cockpit::{engine::EngineEvent, harness::fixtures};
+    use magistr_engine::{Delivery, NativeConfig, NativeEvent, NativeReader, RoadmapFrame};
+    let temp = tempfile::tempdir().unwrap();
+    let config = NativeConfig::from_lookup(temp.path().to_owned(), |_| None)
+        .with_data_dir(temp.path().join("data"));
+    let reads = super::super::workflow_client::SnapshotReads::new(NativeReader::open_for_project(
+        &config,
+        "observed".into(),
+    ));
+    let owner = std::sync::Arc::new(SessionObservation::new(address()));
+    owner.set_reader(reads, super::super::workflow_client::FeedLink::new());
+    owner.send(Msg::Engine(EngineEvent::Seed(fixtures::snapshot(
+        vec![fixtures::chunk("selected")],
+        vec![],
+    ))));
+    let event = NativeEvent::Roadmap(RoadmapFrame::ChunkChanged {
+        chunk: fixtures::chunk("other"),
+    });
+    owner.send(Msg::Engine(EngineEvent::Event {
+        event: event.clone(),
+        delivery: Delivery::InOrder,
+    }));
+    let before = owner.snapshot();
+    owner.send(Msg::Engine(EngineEvent::Event {
+        event,
+        delivery: Delivery::Duplicate,
+    }));
+    assert_eq!(owner.snapshot(), before);
+    owner.stop();
+    let mut subscription = owner.subscribe();
+    let snapshot = tokio::time::timeout(std::time::Duration::from_secs(1), subscription.refresh())
+        .await
+        .unwrap()
+        .unwrap();
+    assert!(snapshot.closed);
+    assert!(snapshot.seed.snapshot.roadmap.current().is_err());
+}

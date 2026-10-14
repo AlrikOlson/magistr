@@ -72,29 +72,32 @@ fn linked_worktrees_share_authority_but_not_execution_selection() {
             magistr_workflow::ship::domain::objective::VerificationMode::Focused,
         )
         .expect("linked objective");
-    assert_eq!(writer.ship_objective().expect("main").scope, "chunk:main");
     assert_eq!(
-        other.ship_objective().expect("linked").scope,
+        writer.ship_objective().unwrap().expect("main").scope,
+        "chunk:main"
+    );
+    assert_eq!(
+        other.ship_objective().unwrap().expect("linked").scope,
         "chunk:linked"
     );
     let again = writer
         .for_working_copy(&linked, "default")
         .expect("same context");
     assert_eq!(
-        again.ship_objective().expect("retained").scope,
+        again.ship_objective().unwrap().expect("retained").scope,
         "chunk:linked"
     );
     let parallel = writer
         .for_working_copy(&linked, "second")
         .expect("second execution");
-    assert!(parallel.ship_objective().is_none());
+    assert!(parallel.ship_objective().unwrap().is_none());
     assert_eq!(
-        other.ship_objective().expect("unchanged").scope,
+        other.ship_objective().unwrap().expect("unchanged").scope,
         "chunk:linked"
     );
     let reader = super::super::NativeReader::open(&linked_config);
     assert_eq!(
-        reader.ship_objective().expect("persisted").scope,
+        reader.ship_objective().unwrap().expect("persisted").scope,
         "chunk:linked"
     );
 }

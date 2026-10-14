@@ -71,7 +71,7 @@ fn an_accepted_reprioritize_moves_the_chunk_and_the_frame_takes_the_card() {
     );
 
     // The store moved…
-    let after = engines.roadmap_chunk("auth").expect("the chunk");
+    let after = engines.roadmap_chunk("auth").unwrap().expect("the chunk");
     assert_eq!(after.priority, 100, "the suggestion was applied");
     assert!(after.reprioritize.is_none(), "and the proposal is disposed");
     // …and the event the answer came back as is what takes the card.
@@ -98,7 +98,7 @@ fn a_rejected_reprioritize_disposes_the_proposal_and_leaves_the_priority() {
             accept: false,
         },
     );
-    let after = engines.roadmap_chunk("auth").expect("the chunk");
+    let after = engines.roadmap_chunk("auth").unwrap().expect("the chunk");
     assert_eq!(after.priority, 200, "a rejection applies nothing");
     assert!(after.reprioritize.is_none(), "and clears the proposal");
     assert!(matches!(
@@ -130,6 +130,7 @@ fn a_cleared_blocker_lifts_blocked_by_and_the_frame_takes_the_card() {
     assert!(
         engines
             .roadmap_chunk("auth")
+            .unwrap()
             .expect("the chunk")
             .blocked_by
             .is_none(),

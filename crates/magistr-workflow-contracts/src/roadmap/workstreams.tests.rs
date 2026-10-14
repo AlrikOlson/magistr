@@ -319,36 +319,64 @@ fn current_resolution_reports_ambiguity_without_offering_terminal_only_names() {
 
 #[test]
 fn snapshot_projection_recomputes_after_completion_regrouping_and_reopening() {
-    let mut snapshot = crate::NativeSnapshot {
-        chunks: vec![chunk("work", ChunkStatus::Pending, Some("Delivery"))],
+    let mut chunks = vec![chunk("work", ChunkStatus::Pending, Some("Delivery"))];
+    let snapshot = |chunks: &[Chunk]| crate::NativeSnapshot {
+        roadmap: crate::ReadState::Current(crate::Observed {
+            value: crate::RoadmapData {
+                chunks: chunks.to_vec(),
+                ..Default::default()
+            },
+            source: crate::ReadSource::Memory,
+        }),
         ..Default::default()
     };
-    assert_eq!(snapshot.workstreams().current_names(), ["Delivery"]);
-    snapshot.chunks[0].status = ChunkStatus::Done;
-    assert!(snapshot.workstreams().current.is_empty());
     assert_eq!(
-        workstream_history(&snapshot.chunks, Some("Delivery")).chunk_ids,
+        snapshot(&chunks)
+            .workstreams()
+            .current()
+            .unwrap()
+            .value
+            .current_names(),
+        ["Delivery"]
+    );
+    chunks[0].status = ChunkStatus::Done;
+    assert!(
+        snapshot(&chunks)
+            .workstreams()
+            .current()
+            .unwrap()
+            .value
+            .current
+            .is_empty()
+    );
+    assert_eq!(
+        workstream_history(&chunks, Some("Delivery")).chunk_ids,
         ["work"]
     );
-    snapshot.chunks[0].group = Some("Archive".into());
+    chunks[0].group = Some("Archive".into());
     assert_eq!(
-        snapshot.workstreams().focus_state(Some("Delivery")),
+        snapshot(&chunks)
+            .workstreams()
+            .current()
+            .unwrap()
+            .value
+            .focus_state(Some("Delivery")),
         FocusState::Missing {
             group: "Delivery".into()
         }
     );
-    snapshot.chunks[0].status = ChunkStatus::InProgress;
-    let catalog = snapshot.workstreams();
+    chunks[0].status = ChunkStatus::InProgress;
+    let observation = snapshot(&chunks).workstreams();
+    let catalog = &observation.current().unwrap().value;
     assert_eq!(catalog.current_names(), ["Archive"]);
     assert!(catalog.history.is_empty());
     assert_eq!(
-        serde_json::from_value::<WorkstreamCatalog>(serde_json::to_value(&catalog).unwrap())
+        serde_json::from_value::<WorkstreamCatalog>(serde_json::to_value(catalog).unwrap())
             .unwrap(),
-        catalog
+        *catalog
     );
-    let focus = catalog.focus_state(Some("Archive"));
     assert_eq!(
-        serde_json::to_value(focus).unwrap(),
+        serde_json::to_value(catalog.focus_state(Some("Archive"))).unwrap(),
         serde_json::json!({"state": "current", "group": "Archive"})
     );
 }

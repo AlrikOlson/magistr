@@ -153,7 +153,7 @@ fn a_restore_cannot_rewind_attempts_already_consumed_by_the_live_loop() {
         error.contains("rewind known run stopping evidence"),
         "{error}"
     );
-    assert_eq!(engine.capture().iteration.iteration, 4);
+    assert_eq!(engine.capture().unwrap().iteration.iteration, 4);
     assert_eq!(engine.phase(), WorkflowPhase::Verifying);
     assert_eq!(engine.session_id(), "sess-spine");
     assert_eq!(engine.session_status(), SessionStatus::InProgress);
@@ -347,4 +347,33 @@ fn a_fork_path_is_a_sibling_named_for_the_branch() {
         Path::new("/work/project-try-other-way"),
         "never inside the tree being preserved, and never a slash"
     );
+}
+
+#[test]
+fn failed_workflow_read_refuses_checkpoint_without_appending_to_spine() {
+    use magistr_engine::{NativeConfig, NativeReader};
+    use magistr_workflow::infra::{Domain, Persistence};
+    let temp = tempfile::tempdir().unwrap();
+    let config = NativeConfig::from_lookup(temp.path().to_owned(), |_| None)
+        .with_data_dir(temp.path().join("data"));
+    let path =
+        Persistence::new(&config.persistence_config(), Domain::Roadmap).path_for("checkpoint-read");
+    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    std::fs::write(&path, "invalid").unwrap();
+    let engine = engine().with_native(NativeReader::open_for_project(
+        &config,
+        "checkpoint-read".into(),
+    ));
+    let mut checkpoints = Checkpoints::new(engine, Arc::new(FakeRepo::none()));
+    assert!(
+        checkpoints
+            .save("refused", CheckpointReason::Manual, "unreadable")
+            .is_err()
+    );
+    assert_eq!(checkpoints.spine().len(), 0);
+    std::fs::remove_file(&path).unwrap();
+    checkpoints
+        .save("recovered", CheckpointReason::Manual, "current empty")
+        .unwrap();
+    assert_eq!(checkpoints.spine().len(), 1);
 }

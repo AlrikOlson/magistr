@@ -67,7 +67,7 @@ impl RoadmapUseCases {
 
     /// The engine, current: every query and mutation observes the store
     /// before it answers or acts, so two roles on one store answer one
-    /// state without a reload; an unchanged store costs a `stat`.
+    /// state through a validated read of the selected store.
     pub(super) fn lock(&self) -> Result<MutexGuard<'_, RoadmapEngine>, RoadmapError> {
         let mut engine = self.engine.lock().map_err(|_| RoadmapError::Poisoned)?;
         engine.refresh_if_stale().map_err(RoadmapError::Store)?;

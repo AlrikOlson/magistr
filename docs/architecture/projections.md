@@ -1,190 +1,180 @@
 # Projections
 
-A projection is what a surface shows of the native think-and-ship store: the
-cockpit's rail, roadmap, trace and dock, the loop driver's view of a running
-iteration, the guard that decides whether a phase may be entered. Projections
-read stored and live facts; they are not another workflow authority. This
-document names the one producer of those facts, the typed shapes it produces,
-the identities that travel with them, and what a consumer may conclude from
-each.
+Workflow projections describe authored records and the evidence available for a
+read. They do not grant permission to change those records. The workflow engines
+own persistence, `NativeReader` reads through those owners, and the application
+retains the resulting observations for its consumers.
+
+The current desktop renders conversations, session controls and project setup.
+It does not yet render a workflow browser. Its application seam is
+`NativeReader` → `ProjectSeed` / workflow reseeding → `SessionObservation`.
+Adding work views must consume that seam rather than introduce another store.
 
 ## Canonical values
 
-`magistr-workflow-contracts` owns the records, family frame enums and pure
-projection values consumed by surfaces. The workflow and engine crates currently
-re-export these exact types; those aliases may be removed with their callers.
-No conversion or duplicate model
-sits between the producer and the view. The contracts crate has no store, process,
-provider, workspace-client or async-runtime dependency and no feature-selected
-storage facade. It parses supplied wire bytes and timestamps without reading a
-clock. Native readers, broadcasters, report-file parsing and owner-lock generation
-allocation remain with their effectful owners.
+`magistr-workflow-contracts` owns authored records, family frame enums and pure
+projection values. It has no store, process, provider, workspace-client or async
+runtime dependency. Filesystem reads, broadcasters, report-file parsing and
+owner-generation allocation remain with their effectful owners.
 
-Roadmap readiness is a pure policy in `magistr-workflow-contracts::roadmap`.
-It assesses pending work, recorded blockers and dependencies against one complete
-snapshot; only a completed dependency satisfies a requirement. Workflow queries,
-group reports and new-work admission consume the same assessment as the cockpit's
-cached ready set, work labels, Status sorting and selected explanations. Lowest priority wins,
-with equal priorities retaining canonical insertion order. A saved view grants no
-authority: the writer assesses current records when Start or a start-status
-proposal reaches it. Revoking completion of an existing session remains distinct
-from scheduling a new start, and owner-generation/freshness fences remain in the
-admitted command path.
+Roadmap readiness is a pure policy over one complete set of chunks. Only a
+completed dependency satisfies a requirement. Workflow queries, workstream
+reports and new-work admission use that policy. Lower numeric priorities come
+first, with ties retaining canonical insertion order. A saved view grants no
+authority: the writer checks current records when it admits a start.
 
-Current workstream discovery is another pure projection over those same chunks.
 `WorkstreamCatalog` separates unfinished groups from completed and obsolete
 history counts, retaining a distinct ungrouped bucket. Historical chunk IDs
-are returned only by an explicit named history inspection. Each current group
-reports lifecycle counts, ready/waiting/blocked counts and its exact next candidate.
-`WorkstreamFrontier` assesses every item against the complete roadmap, including
-dependencies outside that group. Neither projection is stored, and closing or
-moving the last unfinished item does not delete or relocate any history.
+are returned only by explicit history inspection. Each current group reports
+lifecycle counts, readiness counts and its next candidate.
+`WorkstreamFrontier` assesses each item against the complete roadmap, including
+dependencies outside its group. These values are derived, never stored; closing
+or moving the last unfinished item does not delete or relocate history.
 
-Saved focus names are exact identities. A read reports `current`, `closed` or
-`missing` for the saved name, or `unset` when that caller has no focus. It never
-resolves a stale saved name into a similarly named group or writes while reading.
-Explicit new selection accepts an unambiguous current-name fragment; an exact
-closed name remains closed, including a case-insensitive exact match.
-`roadmap_focus_get` returns the typed current/history catalog. Its default
-`view: "current"` inspects unfinished work; `view: "history"` returns completed
-and obsolete chunk IDs for the named or saved group, including groups that also
-have current work. Neither inspection changes focus. The existing full-record
-read remains available for the returned chunk IDs.
-Current-work selection propagates roadmap read failures and does not choose work
-from an unsuccessfully refreshed cache.
+Saved focus names are exact identities. A read reports `current`, `closed`,
+`missing` or `unset` without changing focus. Explicit selection accepts an
+unambiguous current-name fragment; an exact closed name remains closed,
+including a case-insensitive exact match. `roadmap_focus_get` defaults to
+`view: "current"`; `view: "history"` returns completed and obsolete chunk IDs
+for the named or saved group, including a group that also has current work.
+The full-record read remains available for those IDs.
 
-The cockpit's `DisplayPhase` is an inference used for presentation. It cannot
-advance an objective or grant workflow authority. Application session events and
-permission policy remain in `magistr-application::sessions`.
+## Validated family reads
 
-## One producer
+`NativeSnapshot` contains four independent `ReadState` values:
 
-`magistr_engine::native` is the only producer of workflow facts for every
-surface. It offers two reads of the same store:
-
-| Read | Type | Source | When |
-| --- | --- | --- | --- |
-| Snapshot | `NativeSnapshot` | `NativeReader::snapshot()` — each family read whole under its own engine lock | before the feed speaks, on the re-seed timer while no feed is attached, and whenever the feed asks for one |
-| Live feed | `NativeEvent` with an optional `EventCursor` | the owner's NDJSON broadcast socket, decoded by `NativeFrame::decode` | every mutation the owning writer makes, as it makes it |
-
-Both are built from the same typed records (`Chunk`, `Signal`, `ThinkStep`,
-`Objective`, `Task`, `Action`, `Check`) and the same family frame enums
-(`RoadmapFrame`, `SignalFrame`, `ThinkFrame`, `ShipFrame`). A fifth family,
-`MagistrFrame`, carries the facts no store family records: a running gate's
-pty output and the phase the agent announced through `magistr_set_phase`.
-
-`NativeFrame` is the wire line. It is parsed and decoded at the transport edge
-(the cockpit feed task, the remote relay) and nowhere else: no view, model,
-guard or host reads a `family` or `type` string, digs a JSON payload, or infers
-a phase from the words of a recorded action. The phase travels typed as
-`MagistrFrame::PhaseSet { phase: WorkflowPhase }`; the action the MCP service
-also records on the ship trace is narrative.
-
-A process's own mutations return through its engine port as the typed event the
-owner would have announced, delivered `Delivery::Local`, so a rail, dock or
-roadmap folds a local answer through the same path as a remote frame.
-
-## Identities
-
-Five identities travel with projected facts. They are distinct, and no type
-combines them.
-
-| Identity | Type | Stamped by | Meaning | Changes when |
-| --- | --- | --- | --- | --- |
-| Schema version | `schema_version: u32` in the think history file (`SCHEMA_VERSION = 1`) | the think persistence layer | the on-disk shape of a family's file | the file format changes; a history at another version is skipped, never merged |
-| Owner epoch | `epoch: u64` on every feed line (`OwnerGeneration`) | the project owner's lease | which admitted writer emitted the frame | a new project writer is admitted |
-| Aggregate revision | `updated_at` on `Chunk` and `Signal`; timestamps on ship actions and checks | the family engine at the write | the last write to one record | that record is written |
-| Event sequence | `seq: u64` on every feed line | the publisher's broadcaster, one counter shared by all its family handles | the position of one frame in one owner's emission order | every emitted frame, whatever its family |
-| Snapshot cursor | `SnapshotCursor { modified, length }` | the store's on-disk stamp, read before the families | where a whole read stood | any family file is written |
-
-Per-family guarantees:
-
-- **think**: the history file carries the schema version; steps are numbered
-  per project and the archive may trail the live engine by one unflushed step.
-- **ship**: the objective and its tasks are one file; a task and the checks on
-  it agree within a snapshot. Actions and checks carry ids and timestamps; there
-  is no file-level version.
-- **roadmap**: chunks carry `created_at`/`updated_at`; the file carries no
-  version and no global revision.
-- **signal**: signals carry `created_at`/`updated_at`; the file carries no
-  version.
-- **across families**: none. Four files, four locks. A snapshot is coherent
-  within each family and may straddle a write between two of them; the cursor
-  taken before the read moves on such a write and the next re-read catches it.
-  No global revision is fabricated over the four.
-
-The workspace generation, source revision and mutation receipt revision of the
-[application identity map](application.md#identity-map) are unrelated to these
-and stay in their own table.
-
-## Delivery and freshness
-
-The feed classifies every sequenced frame against the cursor it last folded:
-
-| `Delivery` | Rule | Consumer's move |
+| Family | Value | Persistence owner |
 | --- | --- | --- |
-| `Local` | the process's own writer answered | fold |
-| `Unsequenced` | the publisher stamped no cursor | fold; nothing to order against |
-| `First` | no cursor held yet | fold; baseline |
-| `InOrder` | `seq == last + 1`, same epoch | fold |
-| `Duplicate` | `seq <= last`, same epoch | skip; the record is already applied |
-| `Gap { missed }` | `seq > last + 1`, same epoch | fold, mark stale, request a snapshot |
-| `NewEpoch` | the epoch changed | fold, mark stale, request a snapshot |
+| Roadmap | `RoadmapData`: chunks and progress from the same read | `RoadmapEngine` |
+| Execution | `ShipData`: objective and tasks from the same read | `ShipEngine` |
+| Signals | `Vec<Signal>` | `SignalEngine` |
+| Reasoning | `ThinkData`: selected session, steps and branches | `ReasoningServer` |
 
-The cursor is kept across reconnects on purpose: the socket buffers nothing, so
-the frames emitted while a subscriber was detached are revealed only by the
-first frame after reattaching, as a gap against the cursor kept from before. A
-fresh cursor would read it as an innocent first frame.
+Each observation preserves both its value and its provenance:
 
-A consumer never blocks on a gap. It records what it saw, marks itself stale and
-asks for a snapshot through the `FeedLink` shared with the re-seed task; the
-re-seed reads at once, attached or not, and answers one of two ways. When the
-snapshot cursor moved past the one the model was seeded with, it posts a seed
-and the model folds it whole. When the cursor did not move, it posts
-`EngineEvent::Confirmed { cursor }` — a bookmark, not a read: the store stands
-where the last seed left it, so the projection returns to current and no view
-is touched (the open detail, the rail and the trace stay as painted, no frame
-is counted, nothing is announced). Either answer restores current; ordinary
-in-order frames never do, so a gap is concealed by nothing but the store's own
-word. Every (re)connect requests a snapshot the same way, so an observer
-cockpit that attached late — or one that reattached over an unchanged store —
-is covered without a command of its own. The re-seed's baseline is the cursor
-of the snapshot the model was seeded with, handed to it by the entry point, so
-a confirmation is always relative to what the model actually holds.
+| State | Meaning | Consumer behavior |
+| --- | --- | --- |
+| `Unobserved` | No read has completed | Do not infer absence; request a read |
+| `Current(Observed<T>)` | The latest read succeeded | Use the value and its source |
+| `Stale { last, error }` | A read failed after an earlier success | Retain the earlier value and expose the failure |
+| `Unavailable(error)` | A read failed without an earlier success | Expose the failure; do not manufacture empty records |
 
-`Projection` on the cockpit model holds the resulting freshness:
+A successful observation has a `ReadSource`: `Memory` when persistence is
+disabled, `Missing` when the owner's file is absent, or `File(StoreStamp)` for
+validated bytes from an opened file. An absent file and a successfully decoded
+empty file can both yield empty records, but their sources remain distinct.
+I/O, decoding, schema and identity failures are errors, never successful absence.
+Public failures contain recovery text; detailed paths and parser diagnostics
+belong in logs.
 
-| `Freshness` | Meaning |
+The persistence owner opens its actual configured file and reads metadata from
+that descriptor along with the bytes it decodes. It checks metadata before and
+after reading and refuses an observed in-place change. It does not pair bytes
+from one open with a pathname stamp from another. Atomic replacement may leave
+an already opened descriptor on the preceding file; the next read opens the
+replacement. The execution owner reads the file selected by its canonical
+working copy and execution identity, not a guessed project-wide ship path.
+
+Reasoning reads use the active session of a shared owner, or the captured
+configured session of a detached owner. `ThinkData::session_id` names that
+scope; `None` names the one default project archive. A retained value keeps its
+original session identity after a failed read of another session. These reads
+do not claim to discover every reasoning session in the project.
+
+An observation returns validated durable data without certifying unsaved writer
+memory or erasing it. A writer refresh adopts only a successfully validated
+value. Reading does not repair old identities, adopt other projects or rewrite
+old formats. Failed validation remains retryable even if file metadata is
+unchanged.
+
+`NativeReader` holds each family's owner lock through its read and the update
+to a transient, clone-shared snapshot. Its retained successful value advances
+only after that family's successful read. One family can be current while
+another is stale or unavailable; there is no global file revision or
+cross-family transaction. Derived workstream
+views preserve the roadmap's read state and source.
+
+Attaching a native reader does not read workflow files or prevent an ordinary
+conversation from opening. Direct decision readers require a current successful
+read and return errors otherwise. Work selection, status decisions and
+checkpoint capture cannot interpret retained stale records as current or
+failures as an empty roadmap.
+Checkpoint progress and roadmap identity come from the same validated
+observation. Receipt-ledger reconciliation reads its own ledger independently
+of whether the execution aggregate can be read.
+
+## Feed and reseeding
+
+The owner's NDJSON feed supplies typed family events. `NativeFrame::decode`
+parses wire values at the transport boundary; views do not infer phases from
+narrative text or inspect arbitrary JSON fields. `MagistrFrame` carries phase
+announcements and running gate output. Those observations are distinct from
+persisted family snapshots.
+
+An `EventCursor` contains the admitted owner's epoch and the publisher's event
+sequence. Sequence numbers order emissions from that owner, not file writes or
+records. The subscriber retains its cursor across reconnects so a later frame
+can reveal a gap.
+
+| Delivery | Meaning |
 | --- | --- |
-| `Unavailable` | no snapshot and no feed yet |
-| `Current` | the last seed, confirmation or in-order frame is what the store holds |
-| `Stale` | a gap, a new epoch or a hangup was seen and neither a snapshot nor a confirmation has landed since |
+| `Local` | The local owner returned a typed event |
+| `Unsequenced` | No event cursor was supplied |
+| `First` | The subscriber has no prior event cursor |
+| `InOrder` | The next sequence arrived in the same epoch |
+| `Duplicate` | That sequence or a later one was already observed |
+| `Gap` | One or more events were missed |
+| `NewEpoch` | A different owner generation published the event |
 
-A rebuild is deterministic: folding the same seed then the same in-order frames
-yields the same model, and folding a duplicate changes nothing.
+A duplicate does not update records or clear a read failure. Meaningful new
+family events request a coalesced validated snapshot. Gaps, new owners and
+reconnections also request a read. An event is evidence that something changed;
+it cannot certify that a file read succeeded. In particular, execution events
+on the project feed may belong to another execution, so consumers reread their
+own configured execution rather than fold that event into its records.
 
-## Offline fallback
+One `SnapshotReads` coordinator in the CLI serializes each read through
+comparison and publication. The engine client, timer and explicit session
+refresh share it, so a slow earlier success cannot arrive after a later failure
+and clear that failure. A transient scheduling generation fences invalidations
+that arrive during a read; an overtaken result is suppressed and the coalesced
+request supplies another read. This generation is not file provenance. Explicit
+refresh awaits that same publication path.
 
-With no feed attached the re-seed timer reads the store on its interval and
-posts a seed only when the cursor moved; an unchanged store on a timer wake
-posts nothing — not a seed, not a confirmation — so an idle cockpit stays idle
-and paints nothing. A surface therefore always shows the last coherent read; it
-does not synthesize events from timestamps or guess a phase from action
-descriptions. The loop driver seeds each iteration from a
-fresh snapshot and observes completions as typed roadmap events.
+The reseed task reads on its interval even while a feed is attached. It also
+reads immediately when requested. Every attempt validates the owner sources
+before comparing observations. A timer suppresses unchanged notifications only
+after that validation; it never skips a read because a timestamp stayed the
+same. Unless a later invalidation supersedes it, a requested read publishes a
+validated seed even when the values are unchanged. There is no cursor-only
+freshness confirmation. Failed blocking reads remain visible and retain earlier
+successful values.
+
+## Session retention and identity
+
+`SessionObservation` keeps workflow observations in its existing `ProjectSeed`,
+separately from the bounded conversation transcript. A large workflow snapshot
+does not consume the message budget or evict a reply. Refreshing workflow state
+does not reset the conversation, draft, permissions or retained message IDs.
+A failed family read cannot advance a successful baseline for that family.
+
+Authored record identity, execution identity, file provenance and event ordering
+are separate concepts. A new read does not renumber records. The workspace
+generation, source revision and mutation receipt revision described in the
+[application identity map](application.md#identity-map) remain independent too.
 
 ## Verification
 
-Companion suites pin the contract: ordering, duplicates, gaps, reconnect and
-re-snapshot on the feed cursor and the feed task; the snapshot's per-family
-coherence and cursor on the reader; deterministic rebuild, duplicate folding
-and the three freshness states on the projection, with the confirmation that
-restores current after a hangup, a gap or a new owner and the in-order frames
-that do not; the offline re-seed, the feed's snapshot request and its
-confirmation over an unchanged store measured against the seeded cursor on the
-re-seed task; the reconnect-with-unchanged-store and owner-epoch-change folds
-on the model, with their selection untouched; a live broadcaster round trip
-through `NativeFrame::decode`; and, in the CLI, that gate output, phase
-announcements and chunk completions reach hosts typed. A structural check
-keeps `payload[` digs and phase-from-description parsing out of production
-cockpit code.
+Focused owner and consumer tests cover initial failures, retained values after
+failure, recovery, absent and empty stores, wrong identity and malformed data,
+execution-specific changes and deletion, unchanged-metadata retries, feed
+ordering, gaps, duplicates, reconnects and reads while attached. Checkpoint and
+selection tests require current reads. Retention tests verify that workflow
+snapshots preserve conversation records and identity. The isolated native MCP
+fixture corrupts persisted roadmap and execution files while connected, requires
+repeated read refusals, restores the exact bytes and verifies recovery with
+unchanged authored records.
+
+These checks exercise the existing application seam. They do not establish
+workflow-browser visuals or accessibility; those require verification when the
+desktop exposes those views.

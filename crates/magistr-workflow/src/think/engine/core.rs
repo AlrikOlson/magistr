@@ -1,5 +1,7 @@
 //! Core reasoning-step engine. Owns the `ReasoningServer` struct and its sibling impl blocks.
 
+use magistr_workflow_contracts::{Observed, ReadError, ReadSource};
+
 use std::collections::{HashMap, HashSet};
 use std::time::Instant;
 
@@ -7,24 +9,12 @@ use chrono::Utc;
 
 use crate::cloud::client::CloudClient;
 use crate::think::broadcast::Broadcaster;
-use crate::think::config::{ThinkConfig, resolve_project_id};
+use crate::think::config::{ThinkConfig, namespace_session_id, resolve_project_id};
 use crate::think::domain::{
     Branch, HistoryMetadata, NextAction, SessionEntry, ThinkHistory, ThinkStep,
 };
 use crate::think::formatter::Formatter;
 use crate::think::persistence::Persistence;
-
-#[derive(Debug, Clone)]
-pub struct ProcessOk {
-    pub text: String,
-}
-
-#[derive(Debug, Clone)]
-pub struct ProcessErr {
-    pub text: String,
-}
-
-pub type ProcessResult = Result<ProcessOk, ProcessErr>;
 
 pub struct ReasoningServer {
     // Fields are `pub(crate)` so sibling modules under `engine::*` can
@@ -176,11 +166,32 @@ impl ReasoningServer {
         let formatter = Formatter::new(config.display.color_output);
         let persistence = Persistence::for_project(&config.persistence, &project_id);
 
-        // Rehydrate from disk if persistence is enabled. The default history
-        // takes precedence over a freshly constructed empty one; named
-        // sessions populate the sessions map.
-        let mut history = persistence.load_default().unwrap_or_else(Self::new_history);
-        let persisted_sessions = persistence.load_sessions();
+        let active_session = config.features.enable_sessions.then(|| {
+            namespace_session_id(
+                &project_id,
+                config
+                    .features
+                    .default_session_id
+                    .as_deref()
+                    .unwrap_or(&project_id),
+            )
+        });
+        let selected = match active_session.as_deref() {
+            Some(session) => persistence.load_session(session),
+            None => persistence.load_default(),
+        };
+        let selected_stored = selected.as_ref().is_ok_and(|read| read.value.is_some());
+        let mut history = match selected {
+            Ok(read) => read.value.unwrap_or_else(Self::new_history),
+            Err(error) => {
+                tracing::warn!(%error, "The reasoning archive could not be loaded");
+                Self::new_history()
+            }
+        };
+        let persisted_sessions = persistence.load_sessions().unwrap_or_else(|error| {
+            tracing::warn!(%error, "Reasoning sessions could not be loaded");
+            HashMap::new()
+        });
 
         let mut sessions: HashMap<String, SessionEntry> = persisted_sessions
             .into_iter()
@@ -195,48 +206,23 @@ impl ReasoningServer {
             })
             .collect();
 
+        if let Some(session) = &active_session {
+            history.session_id = (session != &project_id).then(|| session.clone());
+            if selected_stored {
+                sessions.insert(
+                    session.clone(),
+                    SessionEntry {
+                        history: history.clone(),
+                        last_accessed: Self::now_ms(),
+                    },
+                );
+            }
+        }
+
         let cwd = std::env::current_dir()
             .ok()
             .map(|p| p.canonicalize().unwrap_or(p))
             .map(|p| p.display().to_string());
-
-        // Concurrent writers with divergent numberings (a one-shot CLI that
-        // renumbered while a long-running server kept the old numbers in
-        // memory) leave renumbered clones of the same step in the trace.
-        // Drop them BEFORE the uniqueness renumber so clones don't get
-        // legitimized with fresh numbers (cli-renumber-duplication).
-        super::numbering::dedupe_project_clones(
-            &mut history,
-            &mut sessions,
-            &project_id,
-            &persistence,
-            false,
-        );
-
-        // Step numbers must be unique across every session that belongs to
-        // this project. Old persistence layouts (per-session numbering) had
-        // step #1 in every session — a stitched cross-session view would
-        // show duplicates. Walk this project's sessions in created_at order
-        // and reassign 1..N globally, rewriting every reference field so
-        // revises_step / branch_from / dependencies stay correct.
-        super::numbering::renumber_project_for_uniqueness(
-            &mut history,
-            &mut sessions,
-            &project_id,
-            &persistence,
-        );
-
-        // Backfill stable record ids on legacy steps (think-step-stable-id).
-        // Deterministic (content-key sha), so every machine converges on the
-        // same id without persisting or coordinating.
-        for step in history.steps.iter_mut() {
-            step.ensure_record_id();
-        }
-        for entry in sessions.values_mut() {
-            for step in entry.history.steps.iter_mut() {
-                step.ensure_record_id();
-            }
-        }
 
         let mut step_index: HashMap<u32, usize> = HashMap::new();
         let mut step_numbers: HashSet<u32> = HashSet::new();
@@ -284,7 +270,7 @@ impl ReasoningServer {
             branch_depth_cache: HashMap::new(),
             steps_since_cleanup: 0,
             branches_seq: 0,
-            active_session: None,
+            active_session,
             broadcaster,
             cwd,
             project_id,
@@ -328,7 +314,7 @@ impl ReasoningServer {
         }
 
         let formatter = Formatter::new(false);
-        let persistence = Persistence::new(&config.persistence);
+        let persistence = Persistence::for_project(&config.persistence, "analysis");
 
         Self {
             history,
@@ -375,8 +361,41 @@ impl ReasoningServer {
                 branches_created: Some(0),
                 tools_used: Some(Vec::new()),
                 project_id: None,
-                legacy_default_migrated: None,
             }),
+        }
+    }
+
+    /// Read the selected session's archive without changing this writer's memory.
+    pub fn observe_archive(&self) -> Result<Observed<ThinkHistory>, ReadError> {
+        if !self.persistence.enabled() {
+            return Ok(Observed {
+                value: self.history_with_branches(),
+                source: ReadSource::Memory,
+            });
+        }
+        let read = self.read_active_archive()?;
+        let value = read.value.unwrap_or_else(|| ThinkHistory {
+            steps: Vec::new(),
+            branches: None,
+            completed: false,
+            session_id: self
+                .active_session
+                .clone()
+                .filter(|id| id != &self.project_id),
+            created_at: None,
+            updated_at: None,
+            metadata: None,
+        });
+        Ok(Observed {
+            value,
+            source: read.source,
+        })
+    }
+
+    fn read_active_archive(&self) -> Result<Observed<Option<ThinkHistory>>, ReadError> {
+        match self.active_session.as_deref() {
+            Some(session) => self.persistence.load_session(session),
+            None => self.persistence.load_default(),
         }
     }
 
@@ -446,7 +465,14 @@ impl ReasoningServer {
         let mut known_ids: std::collections::HashSet<String> = std::collections::HashSet::new();
         let mut known_numbers: HashSet<u32> = HashSet::new();
         if self.persistence.enabled() {
-            if let Some(archive) = self.persistence.load_default() {
+            let archive = match self.read_active_archive() {
+                Ok(read) => read.value,
+                Err(error) => {
+                    tracing::warn!(%error, "Reasoning adoption refused because the archive could not be read");
+                    return 0;
+                }
+            };
+            if let Some(archive) = archive {
                 for step in &archive.steps {
                     if let Some(k) = step.content_key() {
                         seen.insert(k);
@@ -498,6 +524,10 @@ impl ReasoningServer {
         self.history = crate::think::persistence::merge_histories(&self.history, incoming);
         let adopted = self.history.steps.len() - before;
         if adopted > 0 {
+            self.history
+                .metadata
+                .get_or_insert_with(Default::default)
+                .project_id = Some(self.project_id.clone());
             self.persist_active();
         }
         adopted

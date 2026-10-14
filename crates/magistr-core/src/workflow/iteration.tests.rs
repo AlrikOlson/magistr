@@ -941,7 +941,7 @@ fn explicit_new_request_keeps_the_admitted_native_roadmap() {
         "ready"
     );
     assert_eq!(
-        engines.roadmap_chunk("ready").unwrap().status,
+        engines.roadmap_chunk("ready").unwrap().unwrap().status,
         magistr_engine::native::ChunkStatus::Pending
     );
 }
@@ -1045,8 +1045,8 @@ fn cancelled_native_run_resumes_its_saved_item_and_preserves_the_plan() {
         )
         .unwrap();
     engines.ship_start_task("build").unwrap();
-    let objective = engines.ship_objective();
-    let plan = engines.ship_tasks();
+    let objective = engines.ship_objective().unwrap();
+    let plan = engines.ship_tasks().unwrap();
     first.stop(StopReason::Cancelled);
     first.persist().unwrap();
     drop(first);
@@ -1072,8 +1072,8 @@ fn cancelled_native_run_resumes_its_saved_item_and_preserves_the_plan() {
         !prompt.contains("Chunk urgent") && !prompt.contains("Chunk other"),
         "{prompt}"
     );
-    assert_eq!(engines.ship_objective(), objective);
-    assert_eq!(engines.ship_tasks(), plan);
+    assert_eq!(engines.ship_objective().unwrap(), objective);
+    assert_eq!(engines.ship_tasks().unwrap(), plan);
 }
 
 #[test]
@@ -1134,7 +1134,7 @@ fn interrupted_native_item_does_not_bypass_a_live_or_unknown_dispatch() {
             PreCheckResult::Unreconciled(_)
         ));
         assert_eq!(
-            engines.roadmap_chunk("unfinished").unwrap().status,
+            engines.roadmap_chunk("unfinished").unwrap().unwrap().status,
             magistr_engine::native::ChunkStatus::InProgress
         );
         assert_eq!(resumed.operations().records().len(), 2);
@@ -1265,7 +1265,7 @@ fn track_loop_keeps_its_scope_after_recovery_and_refuses_a_closed_workstream() {
         checkpoint
     );
     assert_eq!(
-        engines.roadmap_chunk("elsewhere").unwrap().status,
+        engines.roadmap_chunk("elsewhere").unwrap().unwrap().status,
         magistr_engine::native::ChunkStatus::Pending
     );
 }
@@ -1311,7 +1311,7 @@ fn track_loop_refuses_a_moved_saved_name_without_replacing_the_checkpoint() {
     );
     assert_eq!(recovered.track(), Some("Surface"));
     assert_eq!(
-        engines.roadmap_chunk("elsewhere").unwrap().status,
+        engines.roadmap_chunk("elsewhere").unwrap().unwrap().status,
         magistr_engine::native::ChunkStatus::Pending
     );
 }
@@ -1369,4 +1369,31 @@ fn track_loop_never_runs_a_dependency_from_another_track_or_a_blocked_pending_it
         run.pre_iteration_check().unwrap(),
         PreCheckResult::NoReadyChunk
     );
+}
+
+#[test]
+fn a_new_run_cannot_archive_the_previous_checkpoint_during_a_read_refusal() {
+    let (dir, spec) = setup_project("- [ ] item\n");
+    let engines = native_engines(&dir);
+    add_native_chunk(&engines, "work", 1, &[]);
+    let mut previous = IterationLoop::open(dir.path(), &spec, 3, Some(engines.reader())).unwrap();
+    previous.pre_iteration_check().unwrap();
+    previous.stop(StopReason::Cancelled);
+    previous.persist().unwrap();
+    let checkpoint = std::fs::read(loop_state_path(dir.path())).unwrap();
+    let path = dir
+        .path()
+        .join("tas-data/roadmap/sessions/iteration-native.json");
+    let valid = std::fs::read(&path).unwrap();
+    std::fs::write(&path, b"{ unreadable roadmap").unwrap();
+    assert!(IterationLoop::start_or_recover(dir.path(), &spec, 5, Some(engines.reader())).is_err());
+    assert_eq!(
+        std::fs::read(loop_state_path(dir.path())).unwrap(),
+        checkpoint
+    );
+    assert!(!dir.path().join(".magistr/loop-history").exists());
+    std::fs::write(path, valid).unwrap();
+    let next =
+        IterationLoop::start_or_recover(dir.path(), &spec, 5, Some(engines.reader())).unwrap();
+    assert_ne!(next.state().run_id, previous.state().run_id);
 }

@@ -1387,7 +1387,7 @@ fn the_driver_runs_gates_only_through_jobs_and_spawns_nothing_itself() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn a_native_iteration_re_seeds_the_signals_the_agent_captured() {
+async fn a_native_iteration_requests_a_coordinated_workflow_read() {
     let dir = project("true", "true", "true");
     let config = NativeConfig::from_lookup(dir.path().to_path_buf(), |_| None)
         .with_data_dir(dir.path().join("tas-data"));
@@ -1411,7 +1411,7 @@ async fn a_native_iteration_re_seeds_the_signals_the_agent_captured() {
     // engines were opened, with no broadcast feed attached — so only the
     // iteration's own re-seed can put it in front of the cockpit.
     let server = agent_side(&engines);
-    let captured = server
+    server
         .signal_capture(SignalKind::Idea, "alice".to_owned(), "faster".to_owned())
         .expect("capture");
 
@@ -1427,7 +1427,10 @@ async fn a_native_iteration_re_seeds_the_signals_the_agent_captured() {
     )
     .await;
     assert_eq!(report.iterations(), 1);
-    assert!(model.iter().any(|event|matches!(event,Msg::Engine(magistr_cockpit::engine::EngineEvent::Seed(snapshot)) if snapshot.signals.iter().any(|signal| signal.id==captured.id))));
+    assert!(model.iter().any(|event| matches!(
+        event,
+        Msg::Engine(magistr_cockpit::engine::EngineEvent::Refresh)
+    )));
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -1576,7 +1579,7 @@ async fn a_target_the_agent_blocked_is_not_sent_to_the_judge() {
         "a blocked chunk is not a question for the judge: {:?}",
         judge.asked()
     );
-    let chunk = engines.roadmap_chunk("work").expect("the chunk");
+    let chunk = engines.roadmap_chunk("work").unwrap().expect("the chunk");
     assert!(
         chunk.blocked_by.is_some(),
         "the driver re-read the store the agent wrote: {chunk:?}"
@@ -1629,7 +1632,11 @@ async fn an_ok_verdict_over_green_gates_completes_the_chunk_through_the_engines(
         report.metrics()[0]
     );
     assert_eq!(
-        engines.roadmap_chunk("work").expect("the chunk").status,
+        engines
+            .roadmap_chunk("work")
+            .unwrap()
+            .expect("the chunk")
+            .status,
         ChunkStatus::Done,
         "the chunk the agent never even started is started and completed"
     );
@@ -1650,7 +1657,11 @@ async fn an_ok_verdict_over_green_gates_completes_the_chunk_through_the_engines(
     // A completion always names the task its evidence sits on: the one
     // the loop's gates were recorded on.
     assert_eq!(
-        engines.roadmap_chunk("work").expect("the chunk").cross_refs,
+        engines
+            .roadmap_chunk("work")
+            .unwrap()
+            .expect("the chunk")
+            .cross_refs,
         vec!["task:impl".to_owned()]
     );
 }
@@ -1676,18 +1687,19 @@ async fn a_judged_completion_names_the_task_its_gates_were_recorded_on() {
     )
     .await;
     assert_eq!(report.iterations(), 1);
-    engines.reload_ship();
+
     let checks = recorded(&engines);
     assert_eq!(checks.len(), 3, "check, test, lint: {checks:?}");
     assert!(
         engines
             .ship_tasks()
+            .unwrap()
             .iter()
             .find(|t| t.id == "impl")
             .is_some_and(|t| t.checks.len() == 3),
         "every gate landed on the named task"
     );
-    let done = engines.roadmap_chunk("work").expect("the chunk");
+    let done = engines.roadmap_chunk("work").unwrap().expect("the chunk");
     assert_eq!(done.status, ChunkStatus::Done);
     assert_eq!(done.cross_refs, vec!["task:impl".to_owned()]);
 }
@@ -1714,7 +1726,7 @@ async fn a_two_archetype_project_completes_through_the_loops_own_receipts() {
     )
     .await;
     assert_eq!(report.iterations(), 1);
-    engines.reload_ship();
+
     let checks = recorded(&engines);
     let names: Vec<&str> = checks.iter().map(|c| c.name.as_str()).collect();
     assert_eq!(
@@ -1736,8 +1748,7 @@ async fn a_two_archetype_project_completes_through_the_loops_own_receipts() {
         "the archetype's command carries its directory, as the contract spells it"
     );
 
-    engines.reload_roadmap();
-    let done = engines.roadmap_chunk("work").expect("the chunk");
+    let done = engines.roadmap_chunk("work").unwrap().expect("the chunk");
     assert_eq!(
         done.status,
         ChunkStatus::Done,
@@ -1768,9 +1779,13 @@ async fn a_red_required_custom_gate_refuses_the_judged_completion() {
         Some(judge),
     )
     .await;
-    engines.reload_roadmap();
+
     assert_ne!(
-        engines.roadmap_chunk("work").expect("the chunk").status,
+        engines
+            .roadmap_chunk("work")
+            .unwrap()
+            .expect("the chunk")
+            .status,
         ChunkStatus::Done,
         "a red required custom gate cannot be judged green"
     );
@@ -1779,7 +1794,7 @@ async fn a_red_required_custom_gate_refuses_the_judged_completion() {
         stage.contains("but the gates disagree: smoke failed — the chunk stays in progress"),
         "{stage}"
     );
-    engines.reload_ship();
+
     let smoke = recorded(&engines)
         .into_iter()
         .find(|c| c.name == "smoke")
@@ -1849,9 +1864,6 @@ async fn a_required_archetype_gate_cannot_disappear_behind_a_green_top_level_com
     )
     .await;
 
-    engines.reload_roadmap();
-
-    engines.reload_ship();
     let web = recorded(&engines)
         .into_iter()
         .find(|c| c.name == "test:web")
@@ -1884,7 +1896,11 @@ async fn an_ok_verdict_over_a_red_gate_is_a_disagreement_and_the_chunk_stays() {
     .await;
     assert_eq!(report.end(), &LoopEnd::MaxIterations(1), "the loop goes on");
     assert_ne!(
-        engines.roadmap_chunk("work").expect("the chunk").status,
+        engines
+            .roadmap_chunk("work")
+            .unwrap()
+            .expect("the chunk")
+            .status,
         ChunkStatus::Done,
         "a red gate cannot be judged green"
     );
@@ -1924,7 +1940,7 @@ async fn an_impossible_verdict_blocks_the_chunk_on_a_human_and_ends_the_loop() {
         report.to_string().lines().next(),
         Some("loop: 1 iteration · Your input is needed: the two criteria contradict each other")
     );
-    let chunk = engines.roadmap_chunk("work").expect("the chunk");
+    let chunk = engines.roadmap_chunk("work").unwrap().expect("the chunk");
     let blocker = chunk.blocked_by.expect("blocked on a human");
     assert_eq!(blocker.kind, BlockerKind::AwaitingHuman);
     assert!(
@@ -2316,6 +2332,7 @@ fn engines_with_active_task(dir: &Path) -> NativeEngines {
 fn recorded(engines: &NativeEngines) -> Vec<magistr_workflow::ship::domain::check::Check> {
     engines
         .ship_tasks()
+        .unwrap()
         .into_iter()
         .flat_map(|t| t.checks)
         .collect()
@@ -2341,7 +2358,6 @@ async fn every_gate_the_loop_runs_reaches_the_trace_as_a_verified_check() {
     )
     .await;
 
-    engines.reload_ship();
     let checks = recorded(&engines);
     let names: Vec<&str> = checks.iter().map(|c| c.name.as_str()).collect();
     assert_eq!(names, ["check", "test", "lint"], "{names:?}");
@@ -2386,7 +2402,6 @@ async fn a_flake_is_recorded_as_passed_with_both_exit_codes_on_the_record() {
     )
     .await;
 
-    engines.reload_ship();
     let checks = recorded(&engines);
     assert_eq!(checks.len(), 3, "one record per gate, not per attempt");
     let test = checks.iter().find(|c| c.name == "test").expect("test");
@@ -2423,7 +2438,6 @@ async fn a_passing_gate_does_not_persist_its_whole_output_and_a_red_one_does() {
     )
     .await;
 
-    engines.reload_ship();
     let checks = recorded(&engines);
     let green = checks.iter().find(|c| c.name == "test").expect("test");
     let red = checks.iter().find(|c| c.name == "lint").expect("lint");
@@ -2487,7 +2501,6 @@ async fn a_store_with_no_active_task_says_why_the_gates_were_not_recorded() {
     )
     .await;
 
-    engines.reload_ship();
     assert!(recorded(&engines).is_empty());
     let notes = notes(&model);
     let said: Vec<&String> = notes
@@ -2539,9 +2552,12 @@ async fn a_red_gate_reopens_the_chunk_the_agent_completed_itself() {
     )
     .await;
 
-    engines.reload_roadmap();
     assert_eq!(
-        engines.roadmap_chunk("work").expect("the chunk").status,
+        engines
+            .roadmap_chunk("work")
+            .unwrap()
+            .expect("the chunk")
+            .status,
         ChunkStatus::InProgress,
         "the chunk does not stay done over a red gate"
     );
@@ -2587,9 +2603,12 @@ async fn green_gates_leave_a_self_completed_chunk_done() {
     )
     .await;
 
-    engines.reload_roadmap();
     assert_eq!(
-        engines.roadmap_chunk("work").expect("the chunk").status,
+        engines
+            .roadmap_chunk("work")
+            .unwrap()
+            .expect("the chunk")
+            .status,
         ChunkStatus::Done
     );
     assert!(
@@ -2736,7 +2755,7 @@ async fn recorded_verification_survives_finalization_without_running_unrelated_g
                 "{case}: {stage}"
             );
             assert_eq!(
-                engines.roadmap_chunk("work").unwrap().status,
+                engines.roadmap_chunk("work").unwrap().unwrap().status,
                 ChunkStatus::Done,
                 "{case}"
             );
@@ -2757,7 +2776,7 @@ async fn recorded_verification_survives_finalization_without_running_unrelated_g
                     judge.asked().is_empty(),
                     "{case}: completed work is not judged twice"
                 );
-                assert!(engines.ship_active_task_id().is_none(), "{case}");
+                assert!(engines.ship_active_task_id().unwrap().is_none(), "{case}");
             }
         } else {
             assert!(
@@ -2769,7 +2788,7 @@ async fn recorded_verification_survives_finalization_without_running_unrelated_g
                 "{case}: missing evidence never reaches the judge"
             );
             assert_ne!(
-                engines.roadmap_chunk("work").unwrap().status,
+                engines.roadmap_chunk("work").unwrap().unwrap().status,
                 ChunkStatus::Done,
                 "{case}"
             );
@@ -2885,13 +2904,13 @@ async fn an_item_the_agent_split_is_verified_by_the_part_it_completed() {
     );
     assert!(!stage.contains("belong to different work"), "{stage}");
     assert!(!dir.path().join("unexpected-gate").exists());
-    engines.reload_roadmap();
+
     assert_eq!(
-        engines.roadmap_chunk("work-part").unwrap().status,
+        engines.roadmap_chunk("work-part").unwrap().unwrap().status,
         ChunkStatus::Done
     );
     assert_ne!(
-        engines.roadmap_chunk("work").unwrap().status,
+        engines.roadmap_chunk("work").unwrap().unwrap().status,
         ChunkStatus::Done,
         "the rest of the item is still to do"
     );
@@ -2934,9 +2953,12 @@ async fn a_flake_never_reopens_a_chunk() {
     )
     .await;
 
-    engines.reload_roadmap();
     assert_eq!(
-        engines.roadmap_chunk("work").expect("the chunk").status,
+        engines
+            .roadmap_chunk("work")
+            .unwrap()
+            .expect("the chunk")
+            .status,
         ChunkStatus::Done,
         "a flake is not a reason to reopen"
     );
@@ -3050,9 +3072,13 @@ async fn a_self_completed_chunk_over_a_red_gate_reaches_the_authority_rule() {
         notes.iter().any(|n| n.contains("the gates disagree")),
         "met over a red gate is a disagreement, never a completion: {notes:?}"
     );
-    engines.reload_roadmap();
+
     assert_eq!(
-        engines.roadmap_chunk("work").expect("the chunk").status,
+        engines
+            .roadmap_chunk("work")
+            .unwrap()
+            .expect("the chunk")
+            .status,
         ChunkStatus::InProgress,
         "and the chunk stays in progress"
     );
@@ -3356,7 +3382,7 @@ async fn quitting_native_work_and_restarting_resumes_it_before_any_pending_item(
                 )
         );
         assert_eq!(
-            engines.roadmap_chunk("work").unwrap().status,
+            engines.roadmap_chunk("work").unwrap().unwrap().status,
             ChunkStatus::InProgress
         );
         if add_pending {
@@ -3431,12 +3457,12 @@ async fn quitting_native_work_and_restarting_resumes_it_before_any_pending_item(
         );
 
         assert_eq!(
-            engines.roadmap_chunk("work").unwrap().status,
+            engines.roadmap_chunk("work").unwrap().unwrap().status,
             ChunkStatus::InProgress
         );
         if add_pending {
             assert_eq!(
-                engines.roadmap_chunk("new-work").unwrap().status,
+                engines.roadmap_chunk("new-work").unwrap().unwrap().status,
                 ChunkStatus::Pending
             );
         }
@@ -3760,9 +3786,13 @@ async fn a_start_in_a_hosted_session_runs_a_judged_iteration_and_returns_to_conv
         1,
         "the shared judge was asked: {ended}"
     );
-    engines.reload_roadmap();
+
     assert_eq!(
-        engines.roadmap_chunk("work").expect("the chunk").status,
+        engines
+            .roadmap_chunk("work")
+            .unwrap()
+            .expect("the chunk")
+            .status,
         ChunkStatus::Done
     );
     let state = checkpoint(dir.path());

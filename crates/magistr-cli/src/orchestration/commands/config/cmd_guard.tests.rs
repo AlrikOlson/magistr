@@ -1,5 +1,26 @@
 use super::*;
+use magistr_cockpit::harness::fixtures;
+use magistr_engine::{ChunkStatus, ShipData};
 use serde_json::json;
+
+fn ship(
+    scope: &str,
+    status: magistr_workflow::ship::domain::objective::ObjectiveStatus,
+) -> ShipData {
+    let mut objective = fixtures::objective("work");
+    objective.scope = scope.into();
+    objective.status = status;
+    ShipData {
+        objective: Some(objective),
+        tasks: Vec::new(),
+    }
+}
+
+fn chunk(id: &str, status: ChunkStatus) -> magistr_workflow::roadmap::domain::Chunk {
+    let mut chunk = fixtures::chunk(id);
+    chunk.status = status;
+    chunk
+}
 
 #[test]
 fn hook_fields_read_stop_hook_active_and_the_bash_command() {
@@ -25,45 +46,45 @@ fn hook_fields_are_inert_on_null_or_foreign_json() {
 }
 
 #[test]
-fn apply_engine_state_reads_the_ship_and_roadmap_documents() {
-    let ship = json!({
-        "objective": {"status": "completed", "description": "x", "scope": "chunk:b"},
-        "tasks": {"total": 4, "completed": 4},
-        "checks": [
-            {"name": "cargo check", "passed": true, "required": true, "verified": true},
-            {"name": "svelte-check", "passed": false, "required": false, "verified": true},
-            {"name": "manual", "passed": true, "required": true}
-        ]
-    });
-    let roadmap = json!({"chunks": [
-        {"id": "a", "status": "done"},
-        {"id": "b", "status": "in_progress"}
-    ]});
+fn apply_engine_state_reads_validated_typed_records() {
+    use magistr_workflow::ship::domain::objective::ObjectiveStatus;
+    let mut ship = ship("chunk:b", ObjectiveStatus::Completed);
+    ship.tasks = (0..4)
+        .map(|id| fixtures::task(&id.to_string(), "work"))
+        .collect();
+    ship.tasks[0].checks = vec![
+        fixtures::check("cargo check", true),
+        fixtures::check("svelte-check", false),
+        fixtures::check("manual", true),
+    ];
+    ship.tasks[0].checks[1].required = false;
+    ship.tasks[0].checks[2].verified = false;
     let mut input = GuardInput::default();
-    apply_engine_state(&mut input, &ship, &roadmap);
+    apply_engine_state(
+        &mut input,
+        &ship,
+        &[
+            chunk("a", ChunkStatus::Done),
+            chunk("b", ChunkStatus::InProgress),
+        ],
+    );
     assert_eq!(input.objective_status.as_deref(), Some("completed"));
     assert_eq!(input.tasks_total, 4);
     assert_eq!(
-        input.checks,
-        vec![
-            CheckSummary {
-                name: "cargo check".into(),
-                required: true,
-                passed: true,
-                verified: true
-            },
-            CheckSummary {
-                name: "svelte-check".into(),
-                required: false,
-                passed: false,
-                verified: true
-            },
-            CheckSummary {
-                name: "manual".into(),
-                required: true,
-                passed: true,
-                verified: false
-            },
+        input
+            .checks
+            .iter()
+            .map(|check| (
+                check.name.as_str(),
+                check.required,
+                check.passed,
+                check.verified
+            ))
+            .collect::<Vec<_>>(),
+        [
+            ("cargo check", true, true, true),
+            ("svelte-check", false, false, true),
+            ("manual", true, true, false)
         ]
     );
     assert!(input.chunk_in_progress);
@@ -72,11 +93,7 @@ fn apply_engine_state_reads_the_ship_and_roadmap_documents() {
 #[test]
 fn apply_engine_state_with_no_objective_and_no_chunks() {
     let mut input = GuardInput::default();
-    apply_engine_state(
-        &mut input,
-        &json!({"objective": null, "tasks": {"total": 0}, "checks": []}),
-        &json!({"chunks": []}),
-    );
+    apply_engine_state(&mut input, &ShipData::default(), &[]);
     assert_eq!(input.objective_status, None);
     assert_eq!(input.tasks_total, 0);
     assert!(input.checks.is_empty());
@@ -89,11 +106,14 @@ fn stop_ignores_other_chunks_and_unscoped_objectives() {
         let mut input = GuardInput::default();
         apply_engine_state(
             &mut input,
-            &json!({"objective": {"status": "completed", "scope": scope}}),
-            &json!({"chunks": [
-                {"id": "finished", "status": "done"},
-                {"id": "ongoing", "status": "in_progress"}
-            ]}),
+            &ship(
+                scope,
+                magistr_workflow::ship::domain::objective::ObjectiveStatus::Completed,
+            ),
+            &[
+                chunk("finished", ChunkStatus::Done),
+                chunk("ongoing", ChunkStatus::InProgress),
+            ],
         );
         assert_eq!(
             evaluate(GuardEvent::Stop, &input),
@@ -134,8 +154,11 @@ fn stop_preserves_preexisting_and_untracked_files_after_completion() {
     let mut input = GuardInput::default();
     apply_engine_state(
         &mut input,
-        &json!({"objective": {"status": "completed", "scope": "chunk:work"}}),
-        &json!({"chunks": [{"id": "work", "status": "done"}]}),
+        &ship(
+            "chunk:work",
+            magistr_workflow::ship::domain::objective::ObjectiveStatus::Completed,
+        ),
+        &[chunk("work", ChunkStatus::Done)],
     );
     assert_eq!(
         evaluate(GuardEvent::Stop, &input),
@@ -295,15 +318,38 @@ fn workbench_declared_reads_the_mcp_declaration() {
 
 #[test]
 fn apply_engine_state_reads_the_objective_scope() {
-    let ship = json!({
-        "objective": {"status": "active", "scope": "chunk:gui2-0-freeze-tauri — legacy-gui freeze"},
-        "tasks": {"total": 1},
-        "checks": []
-    });
+    let ship = ship(
+        "chunk:gui2-0-freeze-tauri — legacy-gui freeze",
+        magistr_workflow::ship::domain::objective::ObjectiveStatus::Active,
+    );
     let mut input = GuardInput::default();
-    apply_engine_state(&mut input, &ship, &json!({"chunks": []}));
+    apply_engine_state(&mut input, &ship, &[]);
     assert_eq!(
         input.objective_scope.as_deref(),
         Some("chunk:gui2-0-freeze-tauri — legacy-gui freeze")
     );
+}
+
+#[test]
+fn unreadable_required_owner_refuses_guard_state_and_repair_recovers() {
+    use magistr_engine::{NativeConfig, NativeReader};
+    use magistr_workflow::infra::{Domain, Persistence};
+    let temp = tempfile::tempdir().unwrap();
+    let config = NativeConfig::from_lookup(temp.path().to_owned(), |_| None)
+        .with_data_dir(temp.path().join("data"));
+    let reader = NativeReader::open_for_project(&config, "guard-read".into());
+    let mut input = GuardInput::default();
+    read_engine_state(&mut input, &reader).unwrap();
+    let path =
+        Persistence::new(&config.persistence_config(), Domain::Roadmap).path_for("guard-read");
+    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    std::fs::write(&path, "broken records").unwrap();
+    assert!(read_engine_state(&mut input, &reader).is_err());
+    assert!(
+        read_engine_state(&mut input, &reader).is_err(),
+        "unchanged bad file still refuses"
+    );
+    std::fs::remove_file(path).unwrap();
+    read_engine_state(&mut input, &reader).unwrap();
+    assert_eq!(input, GuardInput::default());
 }

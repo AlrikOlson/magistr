@@ -23,6 +23,10 @@ pub enum EngineError {
     /// A required field or precondition was missing.
     #[error("precondition failed: {0}")]
     Precondition(String),
+
+    /// Current workflow records could not be observed.
+    #[error("{0}")]
+    WorkflowRead(String),
 }
 
 impl EngineError {

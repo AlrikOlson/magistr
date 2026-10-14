@@ -24,13 +24,6 @@ pub struct HistoryMetadata {
     /// refuse cross-project writes.
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub project_id: Option<String>,
-    /// Set once this project's steps have been adopted from the legacy
-    /// global `_default.json` (think-trace-durability errata). Adoption is
-    /// keyed on this marker — NOT on the project file's existence, because a
-    /// May-era bare-project session file can pre-exist under the same name.
-    /// Also written by wipe so a restart can't resurrect legacy steps.
-    #[serde(skip_serializing_if = "Option::is_none", default)]
-    pub legacy_default_migrated: Option<bool>,
 }
 
 /// One session's worth of reasoning — the canonical persistence shape.

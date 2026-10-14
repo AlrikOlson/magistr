@@ -99,7 +99,7 @@ fn native_project_admits_one_host_and_readers_on_the_configured_store() {
         .expect("valid settings")
         .expect("native reader");
     assert_eq!(again.project_id(), engines.project_id());
-    assert!(again.roadmap_chunk("one").is_some());
+    assert!(again.roadmap_chunk("one").unwrap().is_some());
     assert!(
         tmp.path().join("data").exists(),
         "store lives under the injected data dir"

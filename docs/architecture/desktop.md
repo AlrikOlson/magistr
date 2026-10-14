@@ -55,7 +55,11 @@ are suppressed until a real role/content boundary, so no arbitrary source suffix
 is presented as a complete reply.
 Tool input/output/text also retain the application's existing 64 KiB tool-record
 cap and its original-size notice. Current status, model, usage, names,
-configuration, requests and drafts survive transcript pruning.
+configuration, requests and drafts survive transcript pruning. Workflow reads
+remain in the application's existing project seed, outside this message budget.
+Each family retains its latest successful records and any subsequent read failure;
+refreshing those records does not reset conversation identity or draft state.
+See [projections](projections.md) for the read and retry contract.
 
 Incremental frames replace changed records by identity and carry the owner's
 complete retained-id order. A cursor outside retention causes an owner refresh

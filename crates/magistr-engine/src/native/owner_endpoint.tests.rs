@@ -56,6 +56,7 @@ async fn project_attachment_uses_the_same_captured_identity_as_its_owner() {
     assert!(
         NativeReader::open(&cfg)
             .roadmap_chunk("captured-attachment")
+            .unwrap()
             .is_some()
     );
 }

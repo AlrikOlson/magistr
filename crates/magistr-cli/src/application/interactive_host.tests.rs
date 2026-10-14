@@ -229,6 +229,59 @@ async fn dropping_a_host_closes_its_session_before_releasing_the_project() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+async fn unreadable_work_records_are_reported_without_preventing_chat_startup() {
+    use magistr_engine::{ReadErrorKind, ReadState};
+    use magistr_workflow::infra::{Domain, Persistence};
+
+    let (_dir, config, native, resources) = fixture().await;
+    let path = Persistence::new(&native.persistence_config(), Domain::Roadmap)
+        .path_for(resources.engines.reader().project_id());
+    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    std::fs::write(&path, b"not valid records").unwrap();
+    let probe = Probe::default();
+    let (tx, rx) = mpsc::unbounded_channel();
+    let session = Session {
+        probe: probe.clone(),
+        _source: resources.admitted.workspace.source_route(),
+        tx,
+        rx,
+    };
+    let spec = resolved(&config);
+    let (inbox, mut events) = Inbox::channel();
+    let (sender, commands) = Commands::channel();
+    let (host, seed) = InteractiveHost::connect(
+        config,
+        resources,
+        spec,
+        inbox,
+        commands,
+        |_| async { Ok(Box::new(session) as Box<dyn SessionHandle>) },
+        Connector::live,
+    )
+    .await
+    .unwrap();
+    assert!(matches!(seed.snapshot.roadmap, ReadState::Unavailable(_)));
+    assert_eq!(
+        seed.snapshot.roadmap.current().unwrap_err().kind,
+        ReadErrorKind::Decode
+    );
+    assert!(seed.snapshot.ship.current().is_ok());
+    sender.send(Cmd::Prompt("Chat still works".into())).unwrap();
+    tokio::time::timeout(Duration::from_secs(2), async {
+        loop {
+            let event = events.recv().await.expect("session remains open");
+            if matches!(event, Msg::Agent(AgentEvent::Text(text)) if text == "Chat still works") {
+                break;
+            }
+        }
+    })
+    .await
+    .unwrap();
+    probe.finish.notify_one();
+    host.shutdown().await.unwrap();
+}
+
+#[tokio::test(flavor = "multi_thread")]
 async fn explicit_shutdown_works_while_the_surface_keeps_its_sender() {
     let (_dir, config, native, resources) = fixture().await;
     let probe = Probe::default();
@@ -322,8 +375,14 @@ async fn same_copy_sessions_share_source_owner_and_keep_separate_workflow_execut
     second
         .ship_set_objective("Second".into(), vec![], vec![], "chunk:second".into())
         .unwrap();
-    assert_eq!(first.ship_status()["objective"]["scope"], "chunk:first");
-    assert_eq!(second.ship_status()["objective"]["scope"], "chunk:second");
+    assert_eq!(
+        first.ship_objective().unwrap().unwrap().scope,
+        "chunk:first"
+    );
+    assert_eq!(
+        second.ship_objective().unwrap().unwrap().scope,
+        "chunk:second"
+    );
     let first_resources = resources.fork(EngineClient::attach(first));
     let second_resources = resources.fork(EngineClient::attach(second));
     assert!(Arc::ptr_eq(

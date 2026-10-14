@@ -4,10 +4,11 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
-use crate::infra::{MergedWrite, StoreStamp};
+use crate::infra::{MergedWrite, StoreStamp, read_json, store_stamp};
 use crate::ship::domain::execution_identity::ExecutionIdentity;
 use crate::ship::domain::objective::Objective;
 use crate::ship::domain::task::Task;
+use magistr_workflow_contracts::{Observed, ReadError, ReadErrorKind, ReadSource};
 
 use super::saved_cycle::SavedCycle;
 
@@ -161,48 +162,49 @@ pub struct Persistence {
 }
 
 impl Persistence {
-    /// The persisted cycle with the stamp of the file it was read from,
-    /// taken before the read so a write landing in between costs one
-    /// spurious re-read later and never a missed one.
+    /// Validate the selected execution file and retain its exact source.
     pub(crate) fn current_stamped(
         &self,
         project_id: &str,
-    ) -> std::io::Result<(Option<PersistedState>, Option<StoreStamp>)> {
-        let path = self.sessions_dir.join(format!("{project_id}.json"));
-        let stamp = StoreStamp::of(&path)?;
-        let bytes = match fs::read(&path) {
-            Ok(bytes) => bytes,
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok((None, None)),
-            Err(error) => return Err(error),
-        };
-        let state: PersistedState = serde_json::from_slice(&bytes).map_err(|error| {
-            tracing::warn!(path = %path.display(), %error, "Cannot read saved work");
-            std::io::Error::new(
-                std::io::ErrorKind::InvalidData,
-                "The saved work is incomplete or invalid.",
-            )
-        })?;
-        if state.schema_version != SCHEMA_VERSION || state.project_id != project_id {
-            return Err(std::io::Error::other(
-                "Ship state schema or project identity does not match",
-            ));
-        }
-        if !state.is_complete() {
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::InvalidData,
-                "The saved work is incomplete or invalid.",
-            ));
-        }
-        Ok((Some(state), stamp))
-    }
-
-    /// The stamp of the persisted cycle as it stands: `None` when
-    /// persistence is off or there is no file. A `stat`, never a read.
-    pub(crate) fn stamp(&self, project_id: &str) -> std::io::Result<Option<StoreStamp>> {
+    ) -> Result<Observed<Option<PersistedState>>, ReadError> {
         if !self.enabled {
-            return Ok(None);
+            return Ok(Observed {
+                value: None,
+                source: ReadSource::Memory,
+            });
         }
-        StoreStamp::of(&self.sessions_dir.join(format!("{project_id}.json")))
+        let path = self.path_for(project_id);
+        let read: Observed<Option<PersistedState>> = read_json(&path)?;
+        if let Some(state) = &read.value {
+            if state.schema_version != SCHEMA_VERSION {
+                return Err(ReadError::new(
+                    ReadErrorKind::Schema,
+                    "The saved work uses an unsupported format.",
+                ));
+            }
+            if state.project_id != project_id
+                || state
+                    .objective
+                    .as_ref()
+                    .is_some_and(|objective| objective.project_id != project_id)
+                || state
+                    .saved_cycles
+                    .iter()
+                    .any(|cycle| cycle.objective.project_id != project_id)
+            {
+                return Err(ReadError::new(
+                    ReadErrorKind::Identity,
+                    "The saved work could not be matched to this project.",
+                ));
+            }
+            if !state.is_complete() {
+                return Err(ReadError::new(
+                    ReadErrorKind::Identity,
+                    "The saved work contains incomplete or duplicate tasks.",
+                ));
+            }
+        }
+        Ok(read)
     }
 
     fn locked<T>(
@@ -233,7 +235,14 @@ impl Persistence {
         check: &crate::ship::domain::check::Check,
     ) -> std::io::Result<(Option<PersistedState>, bool, Option<StoreStamp>)> {
         self.locked(&target.project_id, || {
-            let (current, stamp) = self.current_stamped(&target.project_id)?;
+            let read = self
+                .current_stamped(&target.project_id)
+                .map_err(std::io::Error::other)?;
+            let current = read.value;
+            let stamp = match read.source {
+                ReadSource::File(stamp) => Some(stamp),
+                ReadSource::Memory | ReadSource::Missing => None,
+            };
             let Some(mut state) = current else {
                 return Ok((None, false, None));
             };
@@ -263,7 +272,7 @@ impl Persistence {
                 serde_json::to_vec(&state).map_err(std::io::Error::other)?,
             )?;
             fs::rename(temporary, &path)?;
-            let stamp = StoreStamp::of(&path).ok().flatten();
+            let stamp = store_stamp::of(&path).ok().flatten();
             Ok((Some(state), true, stamp))
         })
     }
@@ -298,6 +307,11 @@ impl Persistence {
         self
     }
 
+    /// The file selected by this persistence owner for one project's execution.
+    pub fn path_for(&self, project_id: &str) -> PathBuf {
+        self.sessions_dir.join(format!("{project_id}.json"))
+    }
+
     pub fn enabled(&self) -> bool {
         self.enabled
     }
@@ -326,7 +340,10 @@ impl Persistence {
         retained: impl FnOnce() -> Result<std::collections::BTreeSet<String>, String>,
     ) -> std::io::Result<crate::ship::receipt_compaction::ReceiptCompaction> {
         self.locked(project_id, || {
-            let (current, _) = self.current_stamped(project_id)?;
+            let current = self
+                .current_stamped(project_id)
+                .map_err(std::io::Error::other)?
+                .value;
             let state = current.filter(|s| s.objective.is_some()).ok_or_else(|| {
                 std::io::Error::other("Set an objective before clearing old check history.")
             })?;
@@ -417,41 +434,6 @@ impl Persistence {
                 None
             }
         }
-    }
-
-    pub fn load(&self, project_id: &str) -> Option<(Option<Objective>, Vec<Task>, u32)> {
-        self.load_with_identity(project_id)
-            .map(|(objective, tasks, next_id, _)| (objective, tasks, next_id))
-    }
-
-    pub(crate) fn load_with_identity(
-        &self,
-        project_id: &str,
-    ) -> Option<(Option<Objective>, Vec<Task>, u32, ExecutionIdentity)> {
-        if !self.enabled {
-            return None;
-        }
-        let path = self.sessions_dir.join(format!("{project_id}.json"));
-        let data = fs::read_to_string(&path).ok()?;
-        let state: PersistedState = serde_json::from_str(&data).ok()?;
-        if state.schema_version != SCHEMA_VERSION {
-            tracing::warn!(
-                "ship: skipping {} (schema v{}, expected v{SCHEMA_VERSION})",
-                path.display(),
-                state.schema_version
-            );
-            return None;
-        }
-        if state.project_id != project_id || !state.is_complete() {
-            return None;
-        }
-        let execution = state.execution;
-        Some((
-            state.objective,
-            state.tasks,
-            state.next_action_id,
-            execution,
-        ))
     }
 
     pub fn clear(&self, project_id: &str) {

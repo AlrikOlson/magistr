@@ -35,7 +35,7 @@ impl SignalUseCases {
 
     /// The engine, current: every query and mutation observes the store
     /// before it answers or acts, so two roles on one store answer one
-    /// state without a reload; an unchanged store costs a `stat`.
+    /// state through a validated read of the selected store.
     pub(super) fn lock(&self) -> Result<MutexGuard<'_, SignalEngine>, SignalError> {
         let mut engine = self.engine.lock().map_err(|_| SignalError::Poisoned)?;
         engine.refresh_if_stale().map_err(SignalError::Store)?;
@@ -66,7 +66,7 @@ impl SignalUseCases {
     }
 
     pub fn status(&self) -> Result<SignalInbox, SignalError> {
-        Ok(SignalInbox::from(&*self.lock()?))
+        Ok(SignalInbox::from(self.lock()?.signals()))
     }
 
     pub fn link(&self, id: &str, cross_ref: &str) -> Result<Signal, SignalError> {

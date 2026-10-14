@@ -267,7 +267,7 @@ workflow writer; HostedWork supplies its writer explicitly to LoopDriver.
 | Attempt | loop operation ledger | domain `AttemptId` (command plus attempt number) | each retry of one command |
 | Workflow owner generation | project lease (`ProjectAuthority`) | `OwnerGeneration`; `epoch` on every feed line | a new project writer is admitted |
 | Workflow event sequence | the owner's broadcaster | `seq` on every feed line, `EventCursor { epoch, sequence }` decoded | every frame that owner emits, whatever its family |
-| Workflow snapshot cursor | the store's on-disk stamp | `SnapshotCursor { modified, length }` | any family file is written |
+| Workflow read provenance | the opened family persistence owner | `ReadSource::File(StoreStamp { inode, modified, length })`, `Missing` or `Memory` within a successful observation | that family's source is observed; it does not certify another family |
 | Workflow record stamp | the family engine | `updated_at` on chunks and signals; ids and timestamps on ship actions and checks | that record is written |
 | Workflow schema version | the think history file | `schema_version` (1) | the file format changes; roadmap, signal and ship files carry none |
 | Workspace | admitted `WorkspaceService` | `WorkspaceIdentity { root, generation }` | the canonical root never; the generation on every owner admission |

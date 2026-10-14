@@ -3,8 +3,7 @@ use std::collections::BTreeMap;
 use serde::Serialize;
 
 use super::SignalSummary;
-use crate::signal::domain::SignalStatus;
-use crate::signal::engine::SignalEngine;
+use crate::signal::domain::{SignalStatus, Signals};
 
 /// Counts and bounded recent records for the native signal inbox.
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -15,10 +14,9 @@ pub struct SignalInbox {
     pub omitted: usize,
 }
 
-impl From<&SignalEngine> for SignalInbox {
-    fn from(engine: &SignalEngine) -> Self {
+impl From<&Signals> for SignalInbox {
+    fn from(store: &Signals) -> Self {
         const LIST_CAP: usize = 60;
-        let store = engine.signals();
         let counts = [
             ("new", SignalStatus::New),
             ("triaged", SignalStatus::Triaged),
@@ -39,7 +37,7 @@ impl From<&SignalEngine> for SignalInbox {
         let mut recent: Vec<_> = store.signals.iter().collect();
         recent.sort_by(|a, b| b.created.cmp(&a.created));
         Self {
-            project_id: engine.project_id().to_owned(),
+            project_id: store.project_id.clone(),
             counts,
             signals: recent
                 .into_iter()

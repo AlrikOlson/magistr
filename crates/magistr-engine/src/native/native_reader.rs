@@ -3,44 +3,41 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use magistr_workflow::roadmap::RoadmapEngine;
 use magistr_workflow::roadmap::domain::{
-    Chunk, FocusState, WorkstreamCatalog, WorkstreamFrontier, WorkstreamResolution,
+    Chunk, FocusState, Roadmap, WorkstreamCatalog, WorkstreamFrontier, WorkstreamResolution,
+    next_ready, workstream_catalog, workstream_frontier,
 };
 use magistr_workflow::ship::domain::check_receipt::CheckReceipt;
 use magistr_workflow::ship::domain::objective::Objective;
 use magistr_workflow::ship::domain::task::Task;
 use magistr_workflow::ship::engine::ShipEngine;
 use magistr_workflow::signal::SignalEngine;
-use magistr_workflow::signal::domain::Signal;
-use magistr_workflow::think::domain::ThinkStep;
+use magistr_workflow::signal::domain::{Signal, Signals};
+use magistr_workflow::think::domain::{ThinkHistory, ThinkStep};
 use magistr_workflow::think::engine::ReasoningServer;
 
 use super::native_config::NativeConfig;
-use super::native_snapshot::NativeSnapshot;
 use super::open_engines::open_engines;
 use super::snapshot::NativeRoadmapSnapshot;
-use super::snapshot_cursor::SnapshotCursor;
 use crate::roadmap::RoadmapProgress;
+use magistr_workflow_contracts::{
+    NativeSnapshot, Observed, ReadError, RoadmapData, ShipData, ThinkData,
+};
 
-/// The read capability over the four think-and-ship engines: queries,
-/// reloads and the store stamp. It needs no admission — the store is the
-/// library's locked merge-on-save file, and every query observes it
-/// first: a `stat` of the family's file against the stamp the engine last
-/// read or wrote, and a re-read only when it moved — so a `magistr roadmap
-/// status`, a desktop projection or the cockpit's re-seed timer runs
-/// beside any admitted writer and answers what that writer persisted.
-///
-/// Cheap to clone (every engine sits behind an `Arc<Mutex<_>>`); `Send +
-/// Sync`. Each query takes the one lock it needs and releases it before
-/// returning. The write capability, [`super::NativeEngines`], derefs to this.
+/// Validated queries over the four workflow owners.
+/// Every observation reads the owner's actual selected source. Clones share
+/// the most recent successful family values for explicitly stale snapshots;
+/// direct queries never return those retained values after a failed read.
 #[derive(Clone)]
 pub struct NativeReader {
     project_id: String,
-    /// The store these engines were opened on — what a reload re-reads.
+    /// Captured configuration used to open these owners; each observation
+    /// obtains its source from the owner that performed the read.
     config: NativeConfig,
     roadmap: Arc<Mutex<RoadmapEngine>>,
     think: Arc<Mutex<ReasoningServer>>,
     ship: Arc<Mutex<ShipEngine>>,
     signal: Arc<Mutex<SignalEngine>>,
+    observations: Arc<Mutex<NativeSnapshot>>,
 }
 
 fn require_current_track(catalog: &WorkstreamCatalog, track: &str) -> Result<(), String> {
@@ -122,6 +119,7 @@ impl NativeReader {
             think,
             ship,
             signal,
+            observations: Arc::new(Mutex::new(NativeSnapshot::default())),
         }
     }
 
@@ -137,340 +135,273 @@ impl NativeReader {
         &self.config
     }
 
-    /// Re-read the roadmap from the store whatever its stamp says. Every
-    /// query already observes the store, so this is for a caller that
-    /// wants the read to happen now — the loop at an iteration boundary,
-    /// the cockpit's re-seed. Silent: the engine keeps its wiring and
-    /// re-reads its file, nothing is re-opened and no load banner prints.
-    pub fn reload_roadmap(&self) {
-        if let Err(error) = lock(&self.roadmap).reload_from_store() {
-            tracing::warn!("magistr: roadmap store not re-read: {error}");
-        }
+    /// Observe and update the retained family state while holding its owner
+    /// lock. A racing clone therefore cannot replace a newer observation with
+    /// an older result after the owner lock has been released.
+    fn observe_roadmap(&self) -> Result<Observed<Roadmap>, ReadError> {
+        let engine = lock(&self.roadmap);
+        let result = engine.observe();
+        let view = result.as_ref().map(|observed| Observed {
+            value: RoadmapData {
+                chunks: observed.value.chunks.clone(),
+                progress: super::progress::progress_from_chunks(&observed.value.chunks),
+            },
+            source: observed.source,
+        });
+        lock(&self.observations)
+            .roadmap
+            .record(view.map_err(Clone::clone));
+        result
     }
 
-    /// Re-read the execution trace from the store; see
-    /// [`Self::reload_roadmap`]. Silent as well.
-    pub fn reload_ship(&self) {
-        if let Err(error) = lock(&self.ship).reload_from_store() {
-            tracing::warn!("magistr: ship store not re-read: {error}");
-        }
+    fn observe_ship(&self) -> Result<Observed<ShipData>, ReadError> {
+        let engine = lock(&self.ship);
+        let result = engine.observe();
+        lock(&self.observations).ship.record(result.clone());
+        result
     }
 
-    /// Re-read the signal inbox from the store; see
-    /// [`Self::reload_roadmap`]. Silent as well.
-    pub fn reload_signal(&self) {
-        if let Err(error) = lock(&self.signal).reload_from_store() {
-            tracing::warn!("magistr: signal store not re-read: {error}");
-        }
+    fn observe_signal(&self) -> Result<Observed<Signals>, ReadError> {
+        let engine = lock(&self.signal);
+        let result = engine.observe();
+        let view = result.as_ref().map(|observed| Observed {
+            value: observed.value.signals.clone(),
+            source: observed.source,
+        });
+        lock(&self.observations)
+            .signals
+            .record(view.map_err(Clone::clone));
+        result
     }
 
-    /// The roadmap engine, observed: re-read when its file's stamp moved
-    /// since it was last read or written, else as it stands. A store that
-    /// cannot be observed is logged and the engine answers what it holds —
-    /// a query has no refusal to give.
-    fn current_roadmap(&self) -> MutexGuard<'_, RoadmapEngine> {
-        self.observed_roadmap()
-            .unwrap_or_else(|_| lock(&self.roadmap))
+    fn observe_think(&self) -> Result<Observed<ThinkHistory>, ReadError> {
+        let engine = lock(&self.think);
+        let result = engine.observe_archive();
+        let view = result.as_ref().map(|observed| Observed {
+            value: ThinkData {
+                session_id: observed.value.session_id.clone(),
+                steps: observed.value.steps.clone(),
+                branches: observed
+                    .value
+                    .branches
+                    .iter()
+                    .flatten()
+                    .map(super::ThinkBranch::from)
+                    .collect(),
+            },
+            source: observed.source,
+        });
+        lock(&self.observations)
+            .think
+            .record(view.map_err(Clone::clone));
+        result
     }
 
-    /// One refresh policy for roadmap reads. Selection propagates a refusal;
-    /// retained broad projections still use the documented cached read above.
-    fn observed_roadmap(&self) -> Result<MutexGuard<'_, RoadmapEngine>, String> {
-        let mut engine = lock(&self.roadmap);
-        engine.refresh_if_stale().map_err(|error| {
-            tracing::warn!(%error, "roadmap store could not be read");
-            "The roadmap could not be read. Restore access to it and try again.".to_owned()
-        })?;
-        Ok(engine)
-    }
-
-    /// The ship engine, observed; see [`Self::current_roadmap`].
-    fn current_ship(&self) -> MutexGuard<'_, ShipEngine> {
-        let mut engine = lock(&self.ship);
-        if let Err(error) = engine.refresh_if_stale() {
-            tracing::warn!("magistr: ship store not observed: {error}");
-        }
-        engine
-    }
-
-    /// The signal engine, observed; see [`Self::current_roadmap`].
-    fn current_signal(&self) -> MutexGuard<'_, SignalEngine> {
-        let mut engine = lock(&self.signal);
-        if let Err(error) = engine.refresh_if_stale() {
-            tracing::warn!("magistr: signal store not observed: {error}");
-        }
-        engine
-    }
-
-    /// Where the store stands on disk: the newest modification time across
-    /// the persisted domains and their total length. `None` with
-    /// persistence off, and while nothing has been written yet.
-    ///
-    /// A cheap "did anyone else touch this?" for a host that re-reads the
-    /// store on a timer (the cockpit's re-seed while no feed is attached):
-    /// a reload is not free (and [`Self::reload_ship`] is not silent), so a
-    /// caller compares cursors and reloads only when one moved. See
-    /// [`SnapshotCursor`] for what it is not.
-    #[must_use]
-    pub fn snapshot_cursor(&self) -> Option<SnapshotCursor> {
-        use magistr_workflow::infra::{Domain, Persistence};
-
-        let persist = self.config.persistence_config();
-        if !persist.enabled {
-            return None;
-        }
-        let mut files: Vec<std::path::PathBuf> = [Domain::Roadmap, Domain::Ship, Domain::Signal]
-            .into_iter()
-            .map(|domain| Persistence::new(&persist, domain).path_for(&self.project_id))
-            .collect();
-        files.push(
-            magistr_workflow::think::persistence::Persistence::for_project(
-                &persist,
-                &self.project_id,
-            )
-            .default_store_path(),
-        );
-        files
-            .iter()
-            .filter_map(|path| std::fs::metadata(path).ok())
-            .filter_map(|meta| {
-                Some(SnapshotCursor {
-                    modified: meta.modified().ok()?,
-                    length: meta.len(),
-                })
-            })
-            .reduce(|newest, next| SnapshotCursor {
-                modified: newest.modified.max(next.modified),
-                length: newest.length.saturating_add(next.length),
-            })
-    }
-
-    /// The store read whole, family by family, as [`NativeSnapshot`]
-    /// documents it: the cursor first, then the ship objective and tasks,
-    /// the roadmap's chunks and progress, the signals, and the persisted
-    /// reasoning steps and branch metadata — each family observed and read
-    /// under its own lock, none of them under a shared one.
+    /// Read every family independently. Failures are part of the returned
+    /// state, retaining only successfully observed records from this reader.
     #[must_use]
     pub fn snapshot(&self) -> NativeSnapshot {
-        let cursor = self.snapshot_cursor();
-        let (objective, tasks) = {
-            let ship = self.current_ship();
-            (ship.objective.clone(), ship.tasks.clone())
-        };
-        let (chunks, progress) = {
-            let roadmap = self.current_roadmap();
-            (
-                roadmap.roadmap().chunks.clone(),
-                super::progress::progress_from_chunks(&roadmap.roadmap().chunks),
-            )
-        };
-        let signals = self.current_signal().signals().signals.clone();
-        let (steps, branches) = self.think_history_from_store().map_or_else(
-            || (Vec::new(), Vec::new()),
-            |history| {
-                let branches = history
-                    .branches
-                    .as_deref()
-                    .unwrap_or_default()
-                    .iter()
-                    .map(super::ThinkBranch::from)
-                    .collect();
-                (history.steps, branches)
-            },
-        );
-        NativeSnapshot {
-            cursor,
-            objective,
-            tasks,
-            progress,
-            chunks,
-            signals,
-            steps,
-            branches,
-        }
+        let _ = self.observe_roadmap();
+        let _ = self.observe_ship();
+        let _ = self.observe_signal();
+        let _ = self.observe_think();
+        lock(&self.observations).clone()
     }
 
-    /// The reasoning steps as the store holds them right now, read silently
-    /// from the archive another process (the agent's `magistr mcp-serve`) is
-    /// writing. The reasoning server is deliberately not re-opened: its load
-    /// path can print (legacy-history adoption), which a raw-mode terminal
-    /// must never see. Empty when persistence is off.
-    #[must_use]
-    pub fn think_steps_from_store(&self) -> Vec<ThinkStep> {
-        self.think_history_from_store()
-            .map(|history| history.steps)
-            .unwrap_or_default()
+    /// Reasoning steps from the owner's selected session, or live memory when
+    /// storage is disabled. A failed read is a refusal, never an empty trace.
+    pub fn think_steps_from_store(&self) -> Result<Vec<ThinkStep>, String> {
+        Ok(self
+            .observe_think()
+            .map_err(|error| error.to_string())?
+            .value
+            .steps)
     }
 
-    fn think_history_from_store(&self) -> Option<magistr_workflow::think::domain::ThinkHistory> {
-        use magistr_workflow::think::persistence::{Persistence, read_history};
-        let persist = self.config.persistence_config();
-        if !persist.enabled {
-            return None;
-        }
-        let store = Persistence::for_project(&persist, &self.project_id);
-        read_history(&store.default_store_path())
-    }
-
-    /// The pinned reasoning steps of the live trace, in step order.
-    #[must_use]
-    pub fn think_pinned_steps(&self) -> Vec<serde_json::Value> {
-        lock(&self.think).pinned_steps()
-    }
-
-    /// One step of the live trace by number.
-    #[must_use]
-    pub fn think_step(&self, step_number: u32) -> Option<ThinkStep> {
-        lock(&self.think).step_by_number(step_number)
+    /// One recorded step by its number within the owner's selected session.
+    pub fn think_step(&self, step_number: u32) -> Result<Option<ThinkStep>, String> {
+        Ok(self
+            .think_steps_from_store()?
+            .into_iter()
+            .find(|step| step.step_number == step_number))
     }
 
     // ── Roadmap ────────────────────────────────────────────────────────
 
     /// Counts, next ready chunk, current workstreams, history and progress.
-    #[must_use]
-    pub fn roadmap_snapshot(&self) -> NativeRoadmapSnapshot {
-        let engine = self.current_roadmap();
-        NativeRoadmapSnapshot::from_chunks(&self.project_id, &engine.roadmap().chunks)
+    pub fn roadmap_snapshot(&self) -> Result<NativeRoadmapSnapshot, String> {
+        let observed = self.observe_roadmap().map_err(|error| error.to_string())?;
+        Ok(NativeRoadmapSnapshot::from_chunks(
+            &self.project_id,
+            &observed.value.chunks,
+        ))
     }
 
-    /// The engine's progress view of the roadmap.
-    #[must_use]
-    pub fn roadmap_progress(&self) -> RoadmapProgress {
-        super::progress::progress_from_chunks(&self.current_roadmap().roadmap().chunks)
+    /// The progress derived from one validated roadmap observation.
+    pub fn roadmap_progress(&self) -> Result<RoadmapProgress, String> {
+        let observed = self.observe_roadmap().map_err(|error| error.to_string())?;
+        Ok(super::progress::progress_from_chunks(
+            &observed.value.chunks,
+        ))
     }
 
-    /// The next ready chunk, including ungrouped work. An unreadable store
-    /// refuses selection instead of returning a cached candidate.
+    /// The next ready chunk, including ungrouped work.
     pub fn roadmap_next(&self) -> Result<Option<Chunk>, String> {
-        Ok(self.observed_roadmap()?.next().cloned())
+        let observed = self.observe_roadmap().map_err(|error| error.to_string())?;
+        let chunks = &observed.value.chunks;
+        Ok(next_ready(
+            chunks,
+            |chunk| {
+                chunk
+                    .readiness(|id| {
+                        chunks
+                            .iter()
+                            .find(|candidate| candidate.id == id)
+                            .map(|candidate| candidate.status)
+                    })
+                    .is_ready()
+            },
+            |chunk| chunk.priority,
+        )
+        .cloned())
     }
 
     /// The next ready chunk in an exactly named current workstream.
     /// Closed or missing saved names never select similarly named work.
     pub fn roadmap_next_in_track(&self, track: &str) -> Result<Option<Chunk>, String> {
-        let engine = self.observed_roadmap()?;
-        require_current_track(&engine.workstreams(), track)?;
-        Ok(engine.next_in_group(track).cloned())
+        let observed = self.observe_roadmap().map_err(|error| error.to_string())?;
+        let chunks = &observed.value.chunks;
+        require_current_track(&workstream_catalog(chunks), track)?;
+        Ok(next_ready(
+            chunks,
+            |chunk| {
+                chunk.group.as_deref() == Some(track)
+                    && chunk
+                        .readiness(|id| {
+                            chunks
+                                .iter()
+                                .find(|candidate| candidate.id == id)
+                                .map(|candidate| candidate.status)
+                        })
+                        .is_ready()
+            },
+            |chunk| chunk.priority,
+        )
+        .cloned())
     }
 
     /// Current workstreams, authored history and ungrouped work from one read.
     pub fn roadmap_workstreams(&self) -> Result<WorkstreamCatalog, String> {
-        Ok(self.observed_roadmap()?.workstreams())
+        let observed = self.observe_roadmap().map_err(|error| error.to_string())?;
+        Ok(workstream_catalog(&observed.value.chunks))
     }
 
-    /// The current work in an exact workstream; None selects ungrouped work.
+    /// Current work in an exact workstream; None selects ungrouped work.
     pub fn roadmap_frontier(&self, group: Option<&str>) -> Result<WorkstreamFrontier, String> {
-        let engine = self.observed_roadmap()?;
+        let observed = self.observe_roadmap().map_err(|error| error.to_string())?;
+        let chunks = &observed.value.chunks;
         if let Some(group) = group {
-            require_current_track(&engine.workstreams(), group)?;
+            require_current_track(&workstream_catalog(chunks), group)?;
         }
-        Ok(engine.workstream_frontier(group))
+        Ok(workstream_frontier(chunks, group))
     }
 
     /// Resolve an explicit current name or unambiguous fragment without writing.
     /// An exact authored closed name is a refusal before fragment matching.
     pub fn roadmap_resolve_track(&self, query: &str) -> Result<String, String> {
-        match self
-            .observed_roadmap()?
-            .workstreams()
-            .resolve_current(query)
-        {
+        match self.roadmap_workstreams()?.resolve_current(query) {
             WorkstreamResolution::Current { group } => Ok(group),
             refusal => Err(refusal.explain(query)),
         }
     }
 
-    /// One chunk by id.
-    #[must_use]
-    pub fn roadmap_chunk(&self, id: &str) -> Option<Chunk> {
-        self.current_roadmap()
-            .roadmap()
-            .chunks
-            .iter()
-            .find(|c| c.id == id)
-            .cloned()
+    /// One current chunk by id.
+    pub fn roadmap_chunk(&self, id: &str) -> Result<Option<Chunk>, String> {
+        Ok(self
+            .roadmap_chunks()?
+            .into_iter()
+            .find(|chunk| chunk.id == id))
     }
 
-    /// Every chunk in stored order, only after the store was successfully observed.
+    /// Every chunk in stored order, after a successful observation.
     pub fn roadmap_chunks(&self) -> Result<Vec<Chunk>, String> {
-        Ok(self.observed_roadmap()?.roadmap().chunks.clone())
+        Ok(self
+            .observe_roadmap()
+            .map_err(|error| error.to_string())?
+            .value
+            .chunks)
     }
 
-    /// The same bounded JSON `roadmap_status` answers over MCP.
-    #[must_use]
-    pub fn roadmap_status(&self) -> serde_json::Value {
-        self.current_roadmap().status()
+    /// The owner's bounded status projection of validated records.
+    pub fn roadmap_status(&self) -> Result<serde_json::Value, String> {
+        let observed = self.observe_roadmap().map_err(|error| error.to_string())?;
+        Ok(RoadmapEngine::status_of(&observed.value))
     }
 
-    /// The markdown (or json) projection `roadmap_export` produces.
-    #[must_use]
-    pub fn roadmap_export(&self, format: &str) -> String {
-        self.current_roadmap().export(format)
+    /// The owner's markdown or JSON projection of validated records.
+    pub fn roadmap_export(&self, format: &str) -> Result<String, String> {
+        let observed = self.observe_roadmap().map_err(|error| error.to_string())?;
+        Ok(RoadmapEngine::export_of(&observed.value, format))
     }
 
     // ── Ship ───────────────────────────────────────────────────────────
 
-    /// The full execution-state snapshot.
-    #[must_use]
-    pub fn ship_status(&self) -> serde_json::Value {
-        self.current_ship().status()
+    /// The objective and complete plan from one successful owner read.
+    pub fn ship_snapshot(&self) -> Result<ShipData, String> {
+        Ok(self
+            .observe_ship()
+            .map_err(|error| error.to_string())?
+            .value)
     }
 
-    /// The ship objective, once one is set.
-    #[must_use]
-    pub fn ship_objective(&self) -> Option<Objective> {
-        self.current_ship().objective.clone()
+    pub fn ship_objective(&self) -> Result<Option<Objective>, String> {
+        Ok(self.ship_snapshot()?.objective)
     }
 
-    /// The task a record with no explicit task would land on — the one
-    /// started and not yet closed — so a caller can name it rather than
-    /// rely on "whichever is active" at write time.
-    #[must_use]
-    pub fn ship_active_task_id(&self) -> Option<String> {
-        self.current_ship().active_task_id()
+    pub fn ship_active_task_id(&self) -> Result<Option<String>, String> {
+        Ok(self
+            .ship_snapshot()?
+            .active_task()
+            .map(|task| task.id.clone()))
     }
 
-    /// One durable check receipt by its id, as the ship ledger holds it
-    /// now — the exact admission (run, task instance, attempt, gate) and,
-    /// once settled, how the command ended and whether the workflow
-    /// applied the result or kept it stale. `Ok(None)` for an id the
-    /// ledger never saw; `Err` when the ledger cannot be read.
-    ///
-    /// # Errors
-    /// The receipt store cannot be read.
+    /// Read the exact durable receipt through its own ledger. Its authority
+    /// does not depend on whether the separate execution summary is readable.
     pub fn ship_receipt(&self, id: &str) -> Result<Option<CheckReceipt>, String> {
-        let ledger = self.current_ship().receipts().clone();
+        let ledger = lock(&self.ship).receipts().clone();
         ledger.get(id)
     }
 
-    /// Every task in the execution trace, in plan order, with its actions
-    /// and checks whole — what [`Self::ship_status`] cannot give: its
-    /// `recent_actions` is capped at five and drops the task each action
-    /// belongs to, and its `checks` drop the exit code and the duration.
-    /// The interface's trace seed reads the timeline off this.
-    #[must_use]
-    pub fn ship_tasks(&self) -> Vec<Task> {
-        self.current_ship().tasks.clone()
+    pub fn ship_tasks(&self) -> Result<Vec<Task>, String> {
+        Ok(self.ship_snapshot()?.tasks)
     }
 
     // ── Signal ─────────────────────────────────────────────────────────
 
-    /// Signal status counts.
-    #[must_use]
-    pub fn signal_status(&self) -> serde_json::Value {
-        self.current_signal().status()
+    /// The owner's bounded inbox projection of validated records.
+    pub fn signal_status(&self) -> Result<serde_json::Value, String> {
+        let observed = self.observe_signal().map_err(|error| error.to_string())?;
+        Ok(
+            serde_json::to_value(magistr_workflow::signal::application::SignalInbox::from(
+                &observed.value,
+            ))
+            .expect("signal inbox contains serializable domain fields"),
+        )
     }
 
-    /// One signal by id.
-    #[must_use]
-    pub fn signal(&self, id: &str) -> Option<Signal> {
-        self.current_signal().get(id).ok().cloned()
+    pub fn signal(&self, id: &str) -> Result<Option<Signal>, String> {
+        Ok(self
+            .signal_list()?
+            .into_iter()
+            .find(|signal| signal.id == id))
     }
 
-    /// Every signal in the store, capture order.
-    #[must_use]
-    pub fn signal_list(&self) -> Vec<Signal> {
-        self.current_signal().signals().signals.clone()
+    pub fn signal_list(&self) -> Result<Vec<Signal>, String> {
+        Ok(self
+            .observe_signal()
+            .map_err(|error| error.to_string())?
+            .value
+            .signals)
     }
 }
 

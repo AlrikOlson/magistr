@@ -47,10 +47,10 @@ pub(crate) struct CheckSummary {
 /// the hook JSON; built by hand in tests.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub(crate) struct GuardInput {
-    /// `ship_status().objective.status`, lowercase (`defined` / `active` /
+    /// Validated objective status, lowercase (`defined` / `active` /
     /// `completed` / `abandoned`); `None` when no objective exists.
     pub(crate) objective_status: Option<String>,
-    /// `ship_status().tasks.total`.
+    /// Number of tasks in the validated execution plan.
     pub(crate) tasks_total: usize,
     /// Every recorded check on the objective.
     pub(crate) checks: Vec<CheckSummary>,
@@ -60,7 +60,7 @@ pub(crate) struct GuardInput {
     pub(crate) stop_hook_active: bool,
     /// `tool_input.command` of a PreToolUse(Bash) hook.
     pub(crate) command: Option<String>,
-    /// `ship_status().objective.scope`; `None` when no objective exists.
+    /// Validated objective scope; `None` when no objective exists.
     pub(crate) objective_scope: Option<String>,
     /// The tree the project declares frozen; `None` when it declares none.
     pub(crate) frozen: Option<FrozenTree>,

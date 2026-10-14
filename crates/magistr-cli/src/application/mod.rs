@@ -60,6 +60,7 @@ mod session_catalog;
 mod session_drafts;
 pub use session_drafts::{DraftStatus, SavedDraft, saved_draft};
 mod session_observation;
+mod session_workflow;
 pub use retained_observation::RetainedObservation;
 pub use session_catalog::{CatalogSubscription, SessionCatalog, SessionSummary, WaitingRequest};
 mod saved_conversations;

@@ -16,10 +16,13 @@ fn think_and_ship_persistence_live_in_disjoint_subdirs() {
     let tmp = TempDir::new().unwrap();
     let data_dir: PathBuf = tmp.path().to_path_buf();
 
-    let think = ThinkPersistence::new(&ThinkPersistenceConfig {
-        enabled: true,
-        data_dir: data_dir.clone(),
-    });
+    let think = ThinkPersistence::for_project(
+        &ThinkPersistenceConfig {
+            enabled: true,
+            data_dir: data_dir.clone(),
+        },
+        "project",
+    );
     let ship = ShipPersistence::new(&ShipPersistenceConfig {
         enabled: true,
         data_dir: data_dir.clone(),

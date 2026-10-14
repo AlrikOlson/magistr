@@ -176,13 +176,18 @@ impl IterationLoop {
 /// `verb:chunk[:argument]` against the chunk as the store holds it now.
 fn native_mutation_outcome(engines: &NativeReader, target: &str) -> Option<OperationOutcome> {
     use magistr_engine::native::ChunkStatus;
-    engines.reload_roadmap();
     let (verb, rest) = target.split_once(':')?;
     let (id, argument) = match rest.split_once(':') {
         Some((id, argument)) => (id, Some(argument)),
         None => (rest, None),
     };
-    let chunk = engines.roadmap_chunk(id);
+    let chunk = match engines.roadmap_chunk(id) {
+        Ok(chunk) => chunk,
+        Err(error) => {
+            tracing::warn!(%error, "native mutation outcome could not be observed");
+            return None;
+        }
+    };
     let applied = match verb {
         "start_chunk" => chunk.is_some_and(|chunk| {
             matches!(chunk.status, ChunkStatus::InProgress | ChunkStatus::Done)
@@ -225,7 +230,6 @@ fn receipt_outcome(engines: &NativeReader, record: &OperationRecord) -> Option<O
     else {
         return Some(OperationOutcome::Failed);
     };
-    engines.reload_ship();
     let Some(receipt) = engines.ship_receipt(id).ok()? else {
         return Some(OperationOutcome::Failed);
     };
