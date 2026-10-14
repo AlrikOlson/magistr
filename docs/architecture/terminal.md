@@ -13,6 +13,11 @@ execution emits tool updates and results as separate protocol records. Workflow
 commands drain one turn; the loop owns continuation, while interactive `run`
 alone asks for follow-up input.
 
+`next-loop` holds the loop lease for its checkpoint and uses `NativeReader`
+for roadmap progress and recovery. It can run beside Codex's background MCP
+service without taking workflow ownership. The agent's MCP tools attach to the
+project owner or admit one when needed; the loop publishes no workflow endpoint.
+
 Workflow libraries return facts through native records and tool replies.
 Routine retention, findings and capability diagnostics use opt-in debug tracing;
 genuine failures retain their warning severity. They never print directly into

@@ -16,7 +16,7 @@ pub use magistr_domain::workflow::{
     OperationRecord,
 };
 use magistr_domain::workflow::{RunMode, RunState, StopReason};
-use magistr_engine::NativeEngines;
+use magistr_engine::NativeReader;
 use serde::{Deserialize, Serialize};
 
 use crate::error::{MagistrError, Result};
@@ -167,10 +167,9 @@ pub struct IterationLoop {
     recovered: bool,
     /// What recovery established about attempts left in flight.
     reconciliation: Reconciliation,
-    /// The in-process think-and-ship engines when the project runs the
-    /// native roadmap: the next chunk comes from `roadmap_next` and progress
-    /// from the roadmap, not from the spec file.
-    native: Option<NativeEngines>,
+    /// Read-only native workflow progress. The caller owns any mutation
+    /// capability; tracking iterations never admits a workflow writer.
+    native: Option<NativeReader>,
 }
 
 /// Default max iterations when `MAGISTR_MAX_ITERATIONS` is not set.
@@ -198,16 +197,15 @@ impl IterationLoop {
 
     /// The canonical constructor.
     ///
-    /// `native` carries the admitted think-and-ship writer a caller opened
-    /// BEFORE entering raw mode. With `None`, the backend is resolved from
-    /// `.magistr/project.json` (`roadmap::backend_for`): a native project
-    /// admits this process as its host here and takes its progress from the
-    /// roadmap; a yaml project reads `spec_path` as it always did.
+    /// `native` carries the caller's native workflow reader. With `None`,
+    /// resolve the configured backend: a native project opens a lease-free
+    /// reader; a YAML project reads `spec_path`. Workflow mutations belong
+    /// to the agent's tools or the admitted hosted driver.
     pub fn open(
         project_dir: impl Into<PathBuf>,
         spec_path: impl Into<PathBuf>,
         max_iterations: u32,
-        native: Option<NativeEngines>,
+        native: Option<NativeReader>,
     ) -> Result<Self> {
         let project_dir = project_dir.into();
         let spec_path = spec_path.into();
@@ -253,7 +251,7 @@ impl IterationLoop {
         project_dir: impl Into<PathBuf>,
         spec_path: impl Into<PathBuf>,
         max_iterations: u32,
-        native: Option<NativeEngines>,
+        native: Option<NativeReader>,
     ) -> Result<Self> {
         let project_dir = project_dir.into();
         let spec_path = spec_path.into();
@@ -277,7 +275,7 @@ impl IterationLoop {
         project_dir: impl Into<PathBuf>,
         spec_path: impl Into<PathBuf>,
         max_iterations: u32,
-        native: Option<NativeEngines>,
+        native: Option<NativeReader>,
     ) -> Result<Self> {
         let recovered = Self::open_or_recover(project_dir, spec_path, max_iterations, native)?;
         if recovered.state.run.terminal_reason.is_none()
@@ -343,7 +341,7 @@ impl IterationLoop {
     pub fn recover_with(
         project_dir: impl Into<PathBuf>,
         spec_path: impl Into<PathBuf>,
-        native: Option<NativeEngines>,
+        native: Option<NativeReader>,
     ) -> Result<Self> {
         let project_dir = project_dir.into();
         let spec_path = spec_path.into();
@@ -463,10 +461,9 @@ impl IterationLoop {
         self.state.run.stop(reason);
     }
 
-    /// Drive the loop from the think-and-ship roadmap (`None` keeps the
-    /// spec-file behaviour). Open the engines BEFORE entering raw mode.
+    /// Drive progress from the native reader (`None` keeps spec-file behavior).
     #[must_use]
-    pub fn with_native(mut self, native: Option<NativeEngines>) -> Self {
+    pub fn with_native(mut self, native: Option<NativeReader>) -> Self {
         // A pristine run takes the native project's name; a recovered or
         // started one keeps the identity its records are scoped to.
         if !self.recovered
@@ -485,15 +482,15 @@ impl IterationLoop {
         self.native.is_some()
     }
 
-    /// The native engines, when the loop runs on them.
+    /// The native read capability used for progress and recovery.
     #[must_use]
-    pub fn native(&self) -> Option<&NativeEngines> {
+    pub fn native(&self) -> Option<&NativeReader> {
         self.native.as_ref()
     }
 
     /// The roadmap item to continue, selected from the saved attempt, matching
     /// unfinished plan, or one unambiguous in-progress item before ready work.
-    /// Host admission and operation reconciliation still guard dispatch.
+    /// The caller's loop lease and operation reconciliation guard dispatch.
     pub fn next_native_chunk(&self) -> Result<Option<magistr_engine::native::Chunk>> {
         self.native.as_ref().map_or(Ok(None), |engines| {
             super::native_summary::native_work_chunk(
@@ -804,7 +801,7 @@ mod legacy_iteration_status {
 /// project's own id when there is one, else the directory's name, with a
 /// run key minted here from the clock and this process — the domain
 /// allocates no identities.
-fn mint_run_id(project_dir: &Path, native: Option<&NativeEngines>) -> Result<RunId> {
+fn mint_run_id(project_dir: &Path, native: Option<&NativeReader>) -> Result<RunId> {
     let project = native
         .map(|engines| engines.project_id().to_owned())
         .or_else(|| {
@@ -864,21 +861,13 @@ fn git_head_sha(project_dir: &Path) -> Option<String> {
     }
 }
 
-// ── Tests ───────────────────────────────────────────────────────────────────
-
-/// The admitted host writer for a project whose `project.json` resolves to
-/// think-and-ship (`None` on a yaml or spec-file project). Admits on the
-/// store the environment names — prints load banners, so call it before
-/// raw mode — and refuses loudly when another host holds the project.
-fn auto_native(project_dir: &Path) -> Result<Option<NativeEngines>> {
-    use magistr_engine::{ProjectAuthority, WriterRole};
+/// Read the selected roadmap without acquiring workflow ownership.
+fn auto_native(project_dir: &Path) -> Result<Option<NativeReader>> {
     if !crate::roadmap::backend_for(project_dir)?.is_native() {
         return Ok(None);
     }
-    let config = crate::evidence::writer_config(project_dir, |key| std::env::var(key).ok());
-    ProjectAuthority::admit(&config, WriterRole::Host)
-        .map(|authority| Some(authority.open()))
-        .map_err(|source| MagistrError::io(project_dir, source))
+    let config = magistr_engine::NativeConfig::from_env(project_dir);
+    Ok(Some(NativeReader::open(&config)))
 }
 
 #[cfg(test)]

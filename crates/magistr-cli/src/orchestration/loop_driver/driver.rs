@@ -91,6 +91,8 @@ const LEDGER_SAVE_GRACE: Duration = Duration::from_secs(10);
 /// a disagreement, or blocks the chunk on a human and ends.
 pub struct LoopDriver {
     iter_loop: IterationLoop,
+    /// The host's mutation capability, separate from iteration progress reads.
+    native: Option<NativeEngines>,
     wf: WorkflowConfig,
     backend: Backend,
     inputs: Option<crate::config::inputs::ProjectInputs>,
@@ -270,12 +272,14 @@ type OpenedSession = (
 );
 
 impl LoopDriver {
-    /// A driver over `iter_loop` for the project `wf` describes, running
+    /// A driver over `iter_loop`, with the host's `native` writer for
+    /// mutations and check admission, for the project `wf` describes, running
     /// agents on `backend` through `connector`, reporting on `inbox` and
     /// deciding by `commands`. Persistence and auto-pause are on.
     #[must_use]
     pub fn new(
         iter_loop: IterationLoop,
+        native: Option<NativeEngines>,
         wf: WorkflowConfig,
         backend: Backend,
         inbox: Inbox,
@@ -286,6 +290,7 @@ impl LoopDriver {
         Self {
             jobs: Jobs::new(inbox.clone()),
             iter_loop,
+            native,
             wf,
             backend,
             permission_profile: None,
@@ -629,8 +634,8 @@ impl LoopDriver {
             config,
             self.connector.clone(),
             self.inbox.clone(),
-            self.iter_loop
-                .native()
+            self.native
+                .as_ref()
                 .cloned()
                 .map(crate::application::workflow_client::EngineClient::attach),
             self.checkpoints.as_ref().map(|port| {
@@ -726,7 +731,7 @@ impl LoopDriver {
         }
         self.transcript.clear();
         self.target = None;
-        if let Some(engines) = self.iter_loop.native() {
+        if let Some(engines) = self.native.as_ref() {
             engines.reload_ship();
             engines.reload_signal();
             // The store re-read whole: the rail shows a plan — the Trace
@@ -947,8 +952,8 @@ impl LoopDriver {
         // The engine port acts on the loop's own in-process engines, so a
         // pin or checkpoint from the cockpit works mid-iteration too.
         let engine = self
-            .iter_loop
-            .native()
+            .native
+            .as_ref()
             .map(|engines| Box::new(NativeEnginePort::new(engines.clone())) as _);
         // The loop's cockpit reaches the same workbench the agent does:
         // the project's configured workbench-mcp, over its stdio.
@@ -1045,7 +1050,7 @@ impl LoopDriver {
         started: Instant,
         ticks: &mut Interval,
     ) -> Result<Delegated, String> {
-        let chunk = self.iter_loop.native().and_then(|engines| {
+        let chunk = self.native.as_ref().and_then(|engines| {
             let id = self.target.clone()?;
             engines.roadmap_chunks().into_iter().find(|c| c.id == id)
         });
@@ -1418,7 +1423,7 @@ impl LoopDriver {
         let Some(judge) = self.judge.clone() else {
             return Step::Next;
         };
-        let Some(engines) = self.iter_loop.native().cloned() else {
+        let Some(engines) = self.native.as_ref().cloned() else {
             return Step::Next;
         };
         engines.reload_roadmap();
@@ -1877,7 +1882,7 @@ impl LoopDriver {
         // own `magistr mcp-serve`, in another process; persistence is
         // merge-on-save and never reload-on-read, so this handle cannot see
         // that task until it re-reads. Once per set, not once per gate.
-        let engines = self.iter_loop.native().cloned();
+        let engines = self.native.as_ref().cloned();
         if let Some(engines) = &engines {
             engines.reload_ship();
         }
@@ -2304,7 +2309,7 @@ impl LoopDriver {
             return;
         }
         self.carry = Some(failure_brief(&red));
-        let Some(engines) = self.iter_loop.native().cloned() else {
+        let Some(engines) = self.native.as_ref().cloned() else {
             return;
         };
         engines.reload_roadmap();

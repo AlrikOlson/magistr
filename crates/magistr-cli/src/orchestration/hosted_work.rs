@@ -2,8 +2,8 @@
 //!
 //! A host alternates two phases on one command channel: the conversation
 //! ([`InteractiveSession`]) and, when the reader starts one item or the loop,
-//! the same [`IterationLoop`] and [`LoopDriver`] the terminal's `next` and
-//! `next-loop` run. The host's admitted writer is the loop's writer; a host
+//! progress tracker as the terminal's `next-loop`, with [`LoopDriver`] owning
+//! hosted checks and judging. The driver uses the host's admitted writer; a host
 //! that only attached to another owner, or a project whose loop is already
 //! owned, refuses the start in words. The run is prepared while the
 //! conversation is still open — that is the session's admission question —
@@ -61,6 +61,7 @@ pub(crate) struct HostedWork {
 struct Prepared {
     wf: WorkflowConfig,
     iter_loop: IterationLoop,
+    native: Option<NativeEngines>,
     persist: bool,
     _lease: Option<LoopLease>,
 }
@@ -176,6 +177,7 @@ impl HostedWork {
         let native = prepared.wf.is_native();
         let mut driver = LoopDriver::new(
             prepared.iter_loop,
+            prepared.native,
             prepared.wf,
             self.backend,
             self.inbox.clone(),
@@ -238,21 +240,31 @@ fn prepare(dir: &Path, engines: &EngineClient, action: &LaunchAction) -> Result<
                 return Err("Every roadmap item is complete. There is nothing to start.".into());
             }
             wf.cleanup().map_err(|error| error.to_string())?;
-            let iter_loop = IterationLoop::open(dir, &wf.spec_path, 1, native)
-                .map_err(|error| error.to_string())?
-                .with_run_mode(RunMode::OneChunk);
+            let iter_loop = IterationLoop::open(
+                dir,
+                &wf.spec_path,
+                1,
+                native.as_ref().map(NativeEngines::reader),
+            )
+            .map_err(|error| error.to_string())?
+            .with_run_mode(RunMode::OneChunk);
             Ok(Prepared {
                 wf,
                 iter_loop,
+                native,
                 persist: false,
                 _lease: None,
             })
         }
         LaunchAction::Loop(scope) => {
             let lease = LoopLease::acquire(dir).map_err(|error| error.to_string())?;
-            let mut iter_loop =
-                IterationLoop::start_or_recover(dir, &wf.spec_path, LOOP_ITERATIONS, native)
-                    .map_err(|error| error.to_string())?;
+            let mut iter_loop = IterationLoop::start_or_recover(
+                dir,
+                &wf.spec_path,
+                LOOP_ITERATIONS,
+                native.as_ref().map(NativeEngines::reader),
+            )
+            .map_err(|error| error.to_string())?;
             iter_loop
                 .select_track(scope.track())
                 .map_err(|error| error.to_string())?;
@@ -260,6 +272,7 @@ fn prepare(dir: &Path, engines: &EngineClient, action: &LaunchAction) -> Result<
             Ok(Prepared {
                 wf,
                 iter_loop,
+                native,
                 persist: true,
                 _lease: Some(lease),
             })

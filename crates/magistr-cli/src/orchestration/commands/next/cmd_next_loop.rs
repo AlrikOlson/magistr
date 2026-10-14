@@ -20,13 +20,13 @@ pub async fn cmd_next_loop(
 
     let wf = workflow::WorkflowConfig::load(&dir).suggest()?;
 
-    // Initialize iteration loop (native roadmap engines when the project
+    // Initialize iteration loop (native roadmap reader when the project
     // selects think-and-ship; the spec file otherwise)
     let mut iter_loop = IterationLoop::start_or_recover(
         &dir,
         &wf.spec_path,
         request.max_iterations,
-        crate::roadmap::admit_native_host(&dir)?,
+        crate::roadmap::open_native_reader(&dir)?,
     )
     .suggest()?;
     super::select_loop_track(&mut iter_loop, request.track, true)?;
@@ -35,9 +35,6 @@ pub async fn cmd_next_loop(
     }
     let max_iterations = iter_loop.max_iterations();
     iter_loop.persist().suggest()?;
-    // The host's owner endpoint, for a cockpit opened beside this loop;
-    // it lives for the loop and drops before the writer.
-    let _owner_endpoint = crate::roadmap::serve_owner_endpoint(iter_loop.native()).await?;
     // The workspace this host owns for the loop: every iteration's session
     // writes through it, or is refused when it could not be admitted.
     let workspace =

@@ -150,7 +150,7 @@ admission and settlement inside this module and the writer itself.
 | Consumer | Workflow capability | Workspace capability | Through |
 | --- | --- | --- | --- |
 | `magistr_gate` in `magistr mcp-serve` | `NativeEngines` (Service role, the same writer the MCP session serves) | `WorkspaceEvidence` attached in `MagistrService::new` | `AdmittedCheck::admit` before the pty run, `settle` with the run's `CheckExecution` after; the answer carries the receipt id, source revision and freshness |
-| Loop driver gates (`next`, `next-loop`) | `NativeEngines` (Host role via `writer_config`), one admitted verification task for the set; the set is `required_gates()` of the same capability | the same capability on the host's config | `AdmittedCheck` per gate, refusing a superseded verification target |
+| Hosted loop driver gates | `NativeEngines` (Host role via `writer_config`), one admitted verification task for the set; the set is `required_gates()` of the same capability | the same capability on the host's config | `AdmittedCheck` per gate, refusing a superseded verification target |
 | Native `ship_check` (agent) | `ShipUseCases::admit_check` / `settle_check` inside the workflow crate | the workflow's composed `EvidencePort` | the workflow's own async runner; the stale reply carries the receipt |
 | `roadmap_complete_chunk` (MCP, owner command, cockpit Complete, loop judge) | `RoadmapUseCases` with the ship family as completion authority | `required_gates()` and a fresh observation at completion | `verify_completion` before the transition; refusals name every outstanding gate |
 | Cockpit `run` and the cockpit loops | `NativeEngines` or an attached `OwnerClient` | the [`HostedWorkspace`](#the-hosted-workspace) this process admits for the run — the agent's bridge and the cockpit's port attach to it | engine port; `magistr workspace journal` for the journal model |
@@ -252,7 +252,9 @@ workflow's (see [receipts](project-authority.md#receipts-and-the-evidence-capabi
 and [completion](project-authority.md#completion-is-governed-by-receipts));
 the boundary observes nothing itself and composes the consumer's typed shape
 over what the workflow admitted. `WorkspaceEvidence` and `writer_config` live
-in `magistr_core::evidence` because the loop host is admitted there too.
+in `magistr_core::evidence` as shared composition for the MCP and interactive
+hosts. IterationLoop reads progress and recovery records without admitting a
+workflow writer; HostedWork supplies its writer explicitly to LoopDriver.
 
 ### Identity map
 

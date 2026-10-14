@@ -210,6 +210,7 @@ fn project() -> tempfile::TempDir {
         "format": {"command": "true", "extensions": []},
         "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"},
         "reference_repos": [], "state_prefix": "loop-recovery",
+        "roadmap_backend": "yaml",
         "spec": {"file": "spec.md", "unchecked_pattern": "^\\s*- \\[ \\]"}
     });
     std::fs::write(

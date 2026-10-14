@@ -8,18 +8,20 @@ use crate::workflow::iteration::tests::{
     add_native_chunk, complete_native_chunk, native_engines, setup_project,
 };
 use crate::workflow::iteration::{IterationLoop, PreCheckResult};
+use magistr_engine::NativeEngines;
 use magistr_engine::native::ChunkStatus;
 use magistr_engine::native::TaskType;
 use std::path::Path;
 
 fn recover(dir: &Path, spec: &Path, native: Option<NativeEngines>) -> IterationLoop {
-    IterationLoop::open_or_recover(dir, spec, 5, native).expect("recovery")
+    IterationLoop::open_or_recover(dir, spec, 5, native.as_ref().map(NativeEngines::reader))
+        .expect("recovery")
 }
 
 fn native_loop(dir: &Path, spec: &Path, engines: &NativeEngines) -> IterationLoop {
     let mut il = IterationLoop::with_max(dir, spec, 5)
         .unwrap()
-        .with_native(Some(engines.clone()));
+        .with_native(Some(engines.reader()));
     assert_eq!(il.pre_iteration_check().unwrap(), PreCheckResult::Continue);
     il
 }

@@ -1,8 +1,10 @@
 # Project authority
 
 Every native workflow writer is admitted by `ProjectAuthority` before opening
-state. One project has one workflow owner across interactive hosts, headless
-loops and MCP clients. `WriterRole` describes the host; it grants no separate
+state. One project has one workflow owner across interactive hosts and MCP
+clients. Plain and headless loops read progress through NativeReader; their
+agent's tools use the project owner. Their separate loop lease protects the
+checkpoint, not workflow state. `WriterRole` describes the host; it grants no separate
 lease. A client attaches to that owner or receives an explicit refusal.
 
 The independent [workspace owner](workspace-owner.md) admits source tools per
@@ -104,8 +106,8 @@ the shared project settings,
 and the same gate resolver `magistr_gate all` runs (shared as
 `WorkspaceEvidence::gate_contracts` with a loop that runs without a
 writer). `writer_config` attaches it to the
-`NativeConfig` every production writer is admitted on — the MCP service, the
-loop host and the cockpit host — and the `native-write-path` gate (rule 8)
+`NativeConfig` every production writer is admitted on — the MCP service and
+cockpit host — and the `native-write-path` gate (rule 8)
 refuses a production admission without it; the MCP service and the cockpit
 refuse a writer config that lacks it before taking the lease. Every observation and every
 command runs outside the engine lock, the ledger lock and any workspace

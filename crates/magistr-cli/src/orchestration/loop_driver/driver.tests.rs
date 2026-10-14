@@ -281,8 +281,13 @@ async fn a_finished_loop_keeps_delivering_roadmap_and_conversation_requests() {
         "Before request",
     )
     .unwrap();
-    let iteration =
-        IterationLoop::open(dir.path(), dir.path().join("ROADMAP.md"), 2, Some(engines)).unwrap();
+    let iteration = IterationLoop::open(
+        dir.path(),
+        dir.path().join("ROADMAP.md"),
+        2,
+        Some(engines.reader()),
+    )
+    .unwrap();
     let (inbox, mut events) = Inbox::channel();
     let (commands, receiver) = Commands::channel();
     let (connector, seen) = fake_connector(FakeAcpAgent::new().reply("The plan is updated."));
@@ -295,6 +300,7 @@ async fn a_finished_loop_keeps_delivering_roadmap_and_conversation_requests() {
     });
     let driver = LoopDriver::new(
         iteration,
+        Some(engines),
         WorkflowConfig::load(dir.path()).unwrap(),
         Backend::Acp,
         inbox,
@@ -407,6 +413,7 @@ async fn conversation_messages_during_checks_are_rejected_with_the_original_draf
     let (connector, seen) = fake_connector(FakeAcpAgent::new().reply("Done."));
     let task = LoopDriver::new(
         iteration,
+        None,
         WorkflowConfig::load(dir.path()).unwrap(),
         Backend::Acp,
         inbox,
@@ -456,6 +463,7 @@ async fn roadmap_requests_wait_for_work_verification_and_can_be_cancelled_while_
         let (connector, seen) = fake_connector(FakeAcpAgent::new().reply("Done."));
         let driver = LoopDriver::new(
             iteration,
+            None,
             WorkflowConfig::load(dir.path()).unwrap(),
             Backend::Acp,
             inbox,
@@ -649,7 +657,8 @@ fn project(check: &str, test: &str, lint: &str) -> tempfile::TempDir {
         "spec": {"file": "ROADMAP.md", "unchecked_pattern": "^\\s*- \\[ \\]"},
         "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"},
         "reference_repos": [],
-        "state_prefix": "fixture"
+        "state_prefix": "fixture",
+        "roadmap_backend": "yaml"
     });
     std::fs::write(magistr.join("project.json"), config.to_string()).expect("project.json");
     std::fs::write(dir.path().join("ROADMAP.md"), "- [ ] make it work\n").expect("spec");
@@ -760,13 +769,14 @@ async fn run_delegated(
 ) -> (Vec<Msg>, LoopReport, Vec<Arc<AcpObserved>>) {
     let wf = WorkflowConfig::load(dir).expect("the fixture loads");
     let port = ledger(dir, &native);
-    let iter_loop = IterationLoop::open(dir, dir.join("ROADMAP.md"), max, Some(native))
+    let iter_loop = IterationLoop::open(dir, dir.join("ROADMAP.md"), max, Some(native.reader()))
         .expect("the loop opens");
     let (connector, seen) = fake_connector(agent);
     let mut runtime = ControlHarness::new(script);
     let commands = runtime.commands().expect("the commands, once");
     let driver = LoopDriver::new(
         iter_loop,
+        Some(native),
         wf,
         Backend::Acp,
         runtime.inbox(),
@@ -815,12 +825,18 @@ async fn run_over(
 ) -> (Vec<Msg>, LoopReport, Vec<String>) {
     let wf = WorkflowConfig::load(dir).expect("the fixture loads");
     let port = native.as_ref().map(|engines| ledger(dir, engines));
-    let iter_loop =
-        IterationLoop::open(dir, dir.join("ROADMAP.md"), max, native).expect("the loop opens");
+    let iter_loop = IterationLoop::open(
+        dir,
+        dir.join("ROADMAP.md"),
+        max,
+        native.as_ref().map(NativeEngines::reader),
+    )
+    .expect("the loop opens");
     let mut runtime = ControlHarness::new(script);
     let commands = runtime.commands().expect("the commands, once");
     let mut driver = LoopDriver::new(
         iter_loop,
+        native,
         wf,
         Backend::Acp,
         runtime.inbox(),
@@ -905,6 +921,7 @@ async fn closing_sessions_drains_priced_usage_before_the_next_cost_baseline() {
     let (connector, _) = fake_connector(FakeAcpAgent::new());
     let mut driver = LoopDriver::new(
         iter_loop,
+        None,
         wf,
         Backend::Acp,
         runtime.inbox(),
@@ -970,6 +987,7 @@ async fn cancelled_and_incomplete_turns_cannot_start_verification() {
         let (connector, _) = fake_connector(FakeAcpAgent::new());
         let mut driver = LoopDriver::new(
             iter_loop,
+            None,
             wf,
             Backend::Acp,
             runtime.inbox(),
@@ -3126,6 +3144,7 @@ async fn failures_before_the_first_iteration_are_reported_without_connecting_an_
         let commands = runtime.commands().unwrap();
         let driver = LoopDriver::new(
             iteration,
+            None,
             wf,
             Backend::Acp,
             runtime.inbox(),
@@ -3213,7 +3232,7 @@ async fn quitting_native_work_and_restarting_resumes_it_before_any_pending_item(
         let engines = engines_with_work(dir.path());
         let spec = dir.path().join("ROADMAP.md");
         let previous =
-            IterationLoop::start_or_recover(dir.path(), &spec, 3, Some(engines.clone())).unwrap();
+            IterationLoop::start_or_recover(dir.path(), &spec, 3, Some(engines.reader())).unwrap();
         let previous_run = previous.state().run_id.clone();
         previous.persist().unwrap();
         let (inner, seen) = fake_connector(FakeAcpAgent::new().stalling());
@@ -3228,6 +3247,7 @@ async fn quitting_native_work_and_restarting_resumes_it_before_any_pending_item(
         let commands = runtime.commands().unwrap();
         let driver = LoopDriver::new(
             previous,
+            Some(engines.clone()),
             WorkflowConfig::load(dir.path()).unwrap(),
             Backend::Acp,
             runtime.inbox(),
@@ -3300,7 +3320,7 @@ async fn quitting_native_work_and_restarting_resumes_it_before_any_pending_item(
         }
 
         let requested =
-            IterationLoop::start_or_recover(dir.path(), &spec, 1, Some(engines.clone())).unwrap();
+            IterationLoop::start_or_recover(dir.path(), &spec, 1, Some(engines.reader())).unwrap();
         assert_ne!(requested.state().run_id, previous_run);
         requested.persist().unwrap();
         let (connector, seen) =
@@ -3310,6 +3330,7 @@ async fn quitting_native_work_and_restarting_resumes_it_before_any_pending_item(
         let judge = Scripted::new([Verdict::not_yet("Finish the remaining check.")]);
         let driver = LoopDriver::new(
             requested,
+            Some(engines.clone()),
             WorkflowConfig::load(dir.path()).unwrap(),
             Backend::Acp,
             runtime.inbox(),
@@ -3382,7 +3403,7 @@ async fn the_selected_judge_target_is_not_replaced_by_another_in_progress_item()
         dir.path(),
         dir.path().join("ROADMAP.md"),
         1,
-        Some(engines.clone()),
+        Some(engines.reader()),
     )
     .unwrap();
     let (connector, _) = fake_connector(FakeAcpAgent::new());
@@ -3390,6 +3411,7 @@ async fn the_selected_judge_target_is_not_replaced_by_another_in_progress_item()
     let commands = runtime.commands().unwrap();
     let mut driver = LoopDriver::new(
         iter_loop,
+        Some(engines.clone()),
         WorkflowConfig::load(dir.path()).unwrap(),
         Backend::Acp,
         runtime.inbox(),
@@ -3428,6 +3450,7 @@ async fn a_new_loop_request_after_cancellation_sends_the_opening_prompt() {
     let commands = runtime.commands().unwrap();
     let driver = LoopDriver::new(
         requested,
+        None,
         WorkflowConfig::load(dir.path()).unwrap(),
         Backend::Acp,
         runtime.inbox(),
@@ -3486,6 +3509,7 @@ async fn an_accepted_dispatch_retries_at_two_with_a_durable_marker_before_connec
     let commands = runtime.commands().unwrap();
     let driver = LoopDriver::new(
         recovered,
+        None,
         WorkflowConfig::load(dir.path()).unwrap(),
         Backend::Acp,
         runtime.inbox(),
@@ -3508,6 +3532,7 @@ async fn a_failed_dispatch_checkpoint_never_calls_the_connector() {
     let commands = runtime.commands().unwrap();
     let mut driver = LoopDriver::new(
         il,
+        None,
         WorkflowConfig::load(dir.path()).unwrap(),
         Backend::Acp,
         runtime.inbox(),
@@ -3556,6 +3581,7 @@ async fn an_unreconciled_dispatch_ends_the_loop_without_a_launch_or_a_terminal_r
     let commands = runtime_ui.commands().expect("the commands, once");
     let driver = LoopDriver::new(
         recovered,
+        None,
         wf,
         Backend::Acp,
         runtime_ui.inbox(),
@@ -3739,7 +3765,7 @@ async fn track_choice_waits_inside_the_cockpit_before_preflight_and_provider_wor
         dir.path(),
         dir.path().join("ROADMAP.md"),
         1,
-        Some(engines.clone()),
+        Some(engines.reader()),
     )
     .unwrap();
     iteration.persist().unwrap();
@@ -3754,9 +3780,17 @@ async fn track_choice_waits_inside_the_cockpit_before_preflight_and_provider_wor
         captured.lock().unwrap().push(config);
         async { Err(MagistrError::Workflow("Test provider stopped".into())) }
     });
-    let task = LoopDriver::new(iteration, wf, Backend::Acp, inbox, receiver, connector)
-        .choosing_track(true)
-        .spawn();
+    let task = LoopDriver::new(
+        iteration,
+        Some(engines),
+        wf,
+        Backend::Acp,
+        inbox,
+        receiver,
+        connector,
+    )
+    .choosing_track(true)
+    .spawn();
 
     commands.send(Cmd::Launch(LaunchAction::Next)).unwrap();
     next_matching(&mut events, |event| {
@@ -3792,6 +3826,7 @@ async fn closing_the_track_picker_session_starts_no_work() {
     let (commands, receiver) = Commands::channel();
     let task = LoopDriver::new(
         iteration,
+        None,
         WorkflowConfig::load(dir.path()).unwrap(),
         Backend::Acp,
         inbox,

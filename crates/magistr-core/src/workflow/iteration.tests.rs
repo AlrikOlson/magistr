@@ -1,4 +1,5 @@
 use super::*;
+use magistr_engine::NativeEngines;
 
 /// Create a temp project with a spec file and git repo.
 pub(in crate::workflow) fn setup_project(spec_content: &str) -> (tempfile::TempDir, PathBuf) {
@@ -886,16 +887,50 @@ pub(in crate::workflow) fn add_native_chunk(
 }
 
 #[test]
+fn loop_observes_persisted_owner_changes_without_retaining_its_lease() {
+    let (dir, spec_path) = setup_project("- [x] unused spec\n");
+    let owner = native_engines(&dir);
+    let config = owner.config().clone();
+    let project_id = owner.project_id().to_owned();
+    let reader = NativeReader::open_for_project(&config, project_id.clone());
+    let mut run = IterationLoop::open(dir.path(), &spec_path, 3, Some(reader)).unwrap();
+
+    add_native_chunk(&owner, "first", 100, &[]);
+    assert_eq!(run.pre_iteration_check().unwrap(), PreCheckResult::Continue);
+    assert_eq!(run.state().native_chunk_id.as_deref(), Some("first"));
+    owner.roadmap_start_chunk("first").unwrap();
+    complete_native_chunk(&owner, "first");
+    add_native_chunk(&owner, "second", 200, &[]);
+    run.advance();
+    assert_eq!(run.pre_iteration_check().unwrap(), PreCheckResult::Continue);
+    assert_eq!(run.state().native_chunk_id.as_deref(), Some("second"));
+    assert_eq!((run.state().spec_checked, run.state().spec_total), (1, 2));
+    run.persist().unwrap();
+
+    drop(owner);
+    let new_owner = magistr_engine::ProjectAuthority::admit_for_project(
+        &config,
+        project_id,
+        magistr_engine::WriterRole::Service,
+    )
+    .expect("the loop does not retain workflow ownership")
+    .open();
+    new_owner.roadmap_start_chunk("second").unwrap();
+    complete_native_chunk(&new_owner, "second");
+    assert_eq!(run.spec_summary().unwrap().checked, 2);
+}
+
+#[test]
 fn explicit_new_request_keeps_the_admitted_native_roadmap() {
     let (dir, spec_path) = setup_project("- [x] old file is complete\n");
     let engines = native_engines(&dir);
     add_native_chunk(&engines, "ready", 100, &[]);
     let mut previous =
-        IterationLoop::open(dir.path(), &spec_path, 3, Some(engines.clone())).unwrap();
+        IterationLoop::open(dir.path(), &spec_path, 3, Some(engines.reader())).unwrap();
     previous.stop(StopReason::Cancelled);
     previous.persist().unwrap();
     let mut next =
-        IterationLoop::start_or_recover(dir.path(), &spec_path, 5, Some(engines.clone())).unwrap();
+        IterationLoop::start_or_recover(dir.path(), &spec_path, 5, Some(engines.reader())).unwrap();
     assert!(next.is_native());
     assert_eq!(
         next.pre_iteration_check().unwrap(),
@@ -918,7 +953,7 @@ fn native_loop_advances_on_roadmap_next_and_stops_when_nothing_is_ready() {
 
     let mut il = IterationLoop::with_max(dir.path(), &spec_path, 5)
         .unwrap()
-        .with_native(Some(engines.clone()));
+        .with_native(Some(engines.reader()));
     assert!(il.is_native());
 
     assert_eq!(il.pre_iteration_check().unwrap(), PreCheckResult::Continue);
@@ -970,7 +1005,7 @@ fn native_prompt_names_the_next_chunk() {
     add_native_chunk(&engines, "guards", 100, &[]);
     let il = IterationLoop::with_max(dir.path(), &spec_path, 5)
         .unwrap()
-        .with_native(Some(engines));
+        .with_native(Some(engines.reader()));
     let prompt = il.next_prompt(&project_config()).unwrap();
     assert!(prompt.contains("guards — Chunk guards"), "{prompt}");
     assert!(prompt.contains(magistr_engine::prompt::PromptConfig::REASONING_GUIDANCE));
@@ -984,7 +1019,7 @@ fn cancelled_native_run_resumes_its_saved_item_and_preserves_the_plan() {
     let (dir, spec_path) = setup_project("- [x] Legacy item\n");
     let engines = native_engines(&dir);
     add_native_chunk(&engines, "current", 200, &[]);
-    let mut first = IterationLoop::open(dir.path(), &spec_path, 3, Some(engines.clone())).unwrap();
+    let mut first = IterationLoop::open(dir.path(), &spec_path, 3, Some(engines.reader())).unwrap();
     assert_eq!(
         first.pre_iteration_check().unwrap(),
         PreCheckResult::Continue
@@ -1017,7 +1052,7 @@ fn cancelled_native_run_resumes_its_saved_item_and_preserves_the_plan() {
     add_native_chunk(&engines, "other", 10, &[]);
     engines.roadmap_start_chunk("other").unwrap();
     let mut resumed =
-        IterationLoop::start_or_recover(dir.path(), &spec_path, 5, Some(engines.clone())).unwrap();
+        IterationLoop::start_or_recover(dir.path(), &spec_path, 5, Some(engines.reader())).unwrap();
     assert_eq!(resumed.max_iterations(), 5);
     assert_eq!(resumed.state().native_chunk_id.as_deref(), Some("current"));
     assert_eq!(
@@ -1044,7 +1079,7 @@ fn older_native_checkpoint_resumes_the_only_unfinished_item() {
     let engines = native_engines(&dir);
     add_native_chunk(&engines, "unfinished", 100, &[]);
     engines.roadmap_start_chunk("unfinished").unwrap();
-    let first = IterationLoop::open(dir.path(), &spec_path, 3, Some(engines.clone())).unwrap();
+    let first = IterationLoop::open(dir.path(), &spec_path, 3, Some(engines.reader())).unwrap();
     first.persist().unwrap();
     let path = loop_state_path(dir.path());
     let mut old: serde_json::Value =
@@ -1054,7 +1089,7 @@ fn older_native_checkpoint_resumes_the_only_unfinished_item() {
     drop(first);
 
     let mut resumed =
-        IterationLoop::start_or_recover(dir.path(), &spec_path, 9, Some(engines)).unwrap();
+        IterationLoop::start_or_recover(dir.path(), &spec_path, 9, Some(engines.reader())).unwrap();
     assert_eq!(resumed.max_iterations(), 3);
     assert_eq!(
         resumed.pre_iteration_check().unwrap(),
@@ -1077,7 +1112,7 @@ fn interrupted_native_item_does_not_bypass_a_live_or_unknown_dispatch() {
         let engines = native_engines(&dir);
         add_native_chunk(&engines, "unfinished", 100, &[]);
         let mut first =
-            IterationLoop::open(dir.path(), &spec_path, 3, Some(engines.clone())).unwrap();
+            IterationLoop::open(dir.path(), &spec_path, 3, Some(engines.reader())).unwrap();
         first.pre_iteration_check().unwrap();
         engines.roadmap_start_chunk("unfinished").unwrap();
         let dispatch = first
@@ -1089,7 +1124,7 @@ fn interrupted_native_item_does_not_bypass_a_live_or_unknown_dispatch() {
         drop(first);
 
         let mut resumed =
-            IterationLoop::start_or_recover(dir.path(), &spec_path, 3, Some(engines.clone()))
+            IterationLoop::start_or_recover(dir.path(), &spec_path, 3, Some(engines.reader()))
                 .unwrap();
         assert!(matches!(
             resumed.pre_iteration_check().unwrap(),
@@ -1130,7 +1165,7 @@ fn open_on_a_native_project_needs_no_spec_file() {
     let spec_path = dir.path().join("ROADMAP.md");
     assert!(!spec_path.exists());
     // The canonical constructor takes the engines and never opens the spec file.
-    let mut il = IterationLoop::open(dir.path(), &spec_path, 5, Some(engines)).unwrap();
+    let mut il = IterationLoop::open(dir.path(), &spec_path, 5, Some(engines.reader())).unwrap();
     assert!(il.is_native());
     assert_eq!(il.state().spec_total, 1);
     assert_eq!(il.state().spec_checked, 0);
@@ -1165,7 +1200,7 @@ fn new_loop_does_not_inherit_a_blocked_item_from_an_ended_run() {
     add_native_chunk(&engines, "previous", 1, &[]);
     add_native_chunk(&engines, "ready", 2, &[]);
     let mut previous =
-        IterationLoop::open(dir.path(), &spec_path, 1, Some(engines.clone())).unwrap();
+        IterationLoop::open(dir.path(), &spec_path, 1, Some(engines.reader())).unwrap();
     previous.pre_iteration_check().unwrap();
     engines
         .roadmap_set_status("previous", magistr_engine::native::ChunkStatus::Blocked)
@@ -1175,7 +1210,7 @@ fn new_loop_does_not_inherit_a_blocked_item_from_an_ended_run() {
     let before = engines.snapshot();
 
     let mut next =
-        IterationLoop::start_or_recover(dir.path(), &spec_path, 3, Some(engines.clone())).unwrap();
+        IterationLoop::start_or_recover(dir.path(), &spec_path, 3, Some(engines.reader())).unwrap();
     assert_eq!(
         next.pre_iteration_check().unwrap(),
         PreCheckResult::Continue
@@ -1196,7 +1231,7 @@ fn track_loop_keeps_its_scope_after_recovery_and_stops_when_it_is_empty() {
     engines
         .roadmap_set_group("elsewhere", Some("Other work".into()))
         .unwrap();
-    let mut first = IterationLoop::open(dir.path(), &spec_path, 3, Some(engines.clone())).unwrap();
+    let mut first = IterationLoop::open(dir.path(), &spec_path, 3, Some(engines.reader())).unwrap();
     first.select_track(Some("surface")).unwrap();
     assert_eq!(first.track(), Some("Surface work"));
     assert_eq!(
@@ -1207,7 +1242,7 @@ fn track_loop_keeps_its_scope_after_recovery_and_stops_when_it_is_empty() {
     first.persist().unwrap();
 
     let mut recovered =
-        IterationLoop::recover_with(dir.path(), &spec_path, Some(engines.clone())).unwrap();
+        IterationLoop::recover_with(dir.path(), &spec_path, Some(engines.reader())).unwrap();
     recovered.select_track(Some("Surface work")).unwrap();
     let before = recovered.state().clone();
     assert!(recovered.select_track(Some("Other work")).is_err());
@@ -1242,7 +1277,7 @@ fn track_loop_ignores_unrelated_blocked_and_in_progress_items() {
         .roadmap_set_status("blocked", magistr_engine::native::ChunkStatus::Blocked)
         .unwrap();
     let before = engines.snapshot();
-    let mut run = IterationLoop::open(dir.path(), &spec_path, 3, Some(engines.clone())).unwrap();
+    let mut run = IterationLoop::open(dir.path(), &spec_path, 3, Some(engines.reader())).unwrap();
     run.select_track(Some("Chosen")).unwrap();
     assert_eq!(run.pre_iteration_check().unwrap(), PreCheckResult::Continue);
     assert_eq!(run.state().native_chunk_id.as_deref(), Some("ready"));
@@ -1269,7 +1304,7 @@ fn track_loop_never_runs_a_dependency_from_another_track_or_a_blocked_pending_it
             None,
         )
         .unwrap();
-    let mut run = IterationLoop::open(dir.path(), &spec_path, 3, Some(engines.clone())).unwrap();
+    let mut run = IterationLoop::open(dir.path(), &spec_path, 3, Some(engines.reader())).unwrap();
     let before = run.state().clone();
     assert!(run.select_track(Some("Missing")).is_err());
     assert_eq!(run.state(), &before);
