@@ -22,8 +22,12 @@
 <main>
   <header class="work-header">
     <div class="work-heading"><p id="project-name">Magistr</p><h1 id="view-title">Your workspace</h1></div>
-    <div class="header-actions"><p id="status" role="status" aria-live="polite">Ready</p><button id="toggle-details" aria-controls="session-detail" aria-expanded="false" hidden>Details</button></div>
+    <div class="header-actions"><p id="status" role="status" aria-live="polite">Ready</p><button id="toggle-details" aria-controls="session-detail" aria-expanded="false" hidden>Details</button><details id="conversation-actions" class="header-menu" hidden><summary id="conversation-menu-trigger" aria-label="Conversation actions">···</summary><div class="header-menu-actions"><button id="rename-conversation">Rename conversation</button><button id="copy" disabled>Copy conversation</button><button id="reconnect" disabled hidden>Reconnect</button><button id="close-session" class="destructive" disabled>Close conversation</button></div></details></div>
   </header>
+  <nav id="conversation-toolbar" class="conversation-toolbar" aria-label="Conversation controls" hidden>
+    <button id="copy-summary" aria-controls="session-detail" title="Choose a working copy"></button>
+    <div class="context-actions"><button id="review-requests" aria-controls="requests" hidden></button><button id="work-summary" aria-controls="work">Planned work</button></div>
+  </nav>
   <p id="error" class="error" role="alert" hidden></p>
   <section id="welcome" class="welcome" aria-label="Open a project">
     <p class="eyebrow">Your workspace</p><h2>What are we working on?</h2><p>Pick up a project or start somewhere new.<br>Your conversations and work stay together.</p>
@@ -58,10 +62,10 @@
       </form>
     </section>
     <aside id="session-detail" class="detail" aria-label="Session details">
-      <div class="detail-title"><h2 id="detail-title" tabindex="-1">Conversation details</h2></div>
+      <div class="detail-title"><h2 id="detail-title" tabindex="-1">Conversation details</h2><button id="close-details" aria-label="Close Details">×</button></div>
       <section id="requests" aria-label="Requests waiting for you"></section>
       <section id="work" aria-label="Planned work">
-        <h2>Planned work</h2>
+        <h2 id="work-title" tabindex="-1">Planned work</h2>
         <p id="work-status" role="status" aria-live="polite">No work is running.</p>
         <p id="work-detail"></p><p id="work-error" class="error" role="alert" hidden></p>
         <div class="work-actions">
@@ -71,19 +75,25 @@
         </div>
       </section>
       <section class="detail-section" aria-label="Agent settings">
-        <h2>Agent</h2><p id="agent-provider"></p><div id="agent-configuration"></div><p id="model">Model information is unavailable.</p><p id="usage"></p><p id="queue"></p><p id="capabilities"></p>
+        <h2>Agent</h2><p id="agent-provider"></p><div id="agent-configuration"></div><p id="model">Model information is unavailable.</p>
+        <div class="usage-summary"><meter id="context-meter" aria-label="Context used" min="0" max="1" value="0" hidden></meter><p id="usage"></p></div>
+        <p id="queue"></p><details class="agent-features"><summary>Agent capabilities</summary><p id="capabilities"></p></details>
       </section>
       <section class="detail-section" aria-label="Working copy">
         <label for="working-copy">Working copy</label><select id="working-copy"></select><p id="workspace-path" class="path"></p>
       </section>
-      <section class="detail-section" aria-label="Conversation settings">
-        <form id="name-form"><label for="conversation-name">Conversation name</label><input id="conversation-name" maxlength="120" required><button id="save-name" type="submit">Save name</button></form>
-        <div class="session-actions"><button id="reconnect" disabled>Reconnect</button><button id="copy" disabled>Copy conversation</button><button id="close-session" disabled>Close session</button></div>
-      </section>
+
     </aside>
   </div>
 </main>
 </div>
+<dialog id="rename-picker" aria-labelledby="rename-title">
+  <form id="name-form"><h2 id="rename-title">Rename conversation</h2><p>Give this conversation a name you’ll recognize later.</p>
+    <label for="conversation-name">Conversation name</label><input id="conversation-name" maxlength="120" required>
+    <p id="rename-error" class="error" role="alert" hidden></p><p id="rename-status" role="status" hidden></p>
+    <div class="dialog-actions"><button id="rename-cancel" type="button">Cancel</button><button id="save-name" type="submit">Save name</button></div>
+  </form>
+</dialog>
 <dialog id="settings" aria-labelledby="settings-title">
   <div class="settings-heading"><h2 id="settings-title">Settings</h2><p>Make this workspace comfortable for you.</p></div>
   <section class="settings-section" aria-label="Appearance and motion">

@@ -53,9 +53,10 @@ function install(seed) {
     name:seed.projects.find(p=>p.directory===f.address.workspace)?.name??"Project",conversation:f.conversation,status:f.status,closed:f.closed,
     pending:f.pending.map(({id,title})=>({id,title})),activity:f.activity,usage:f.usage,model:f.model,work:f.work}));
   const emit=()=>{if(subscription){const f=frames.get(subscription.session);subscription.channel.onmessage({...structuredClone(f),stream:subscription.stream,sequence:++f.sequence});}};
-  window.__fixture={calls,frames,publish(session,patch){Object.assign(frames.get(session),patch);if(subscription?.session===session)emit();catalog?.onmessage({stream:1,sequence:++stream,sessions:sessions()});}};
+  window.__fixture={calls,frames,handlers:{},publish(session,patch){Object.assign(frames.get(session),patch);if(subscription?.session===session)emit();catalog?.onmessage({stream:1,sequence:++stream,sessions:sessions()});}};
   window.__TAURI__={core:{Channel:class{},async invoke(command,args={}) {
     calls.push({command,args:JSON.parse(JSON.stringify(args))});
+    if(window.__fixture.handlers[command])return window.__fixture.handlers[command](args);
     switch(command) {
       case "overview":return {directory:null,reduce_motion:false,sessions:sessions(),projects:seed.projects,attachment_limits:{file_bytes:8388608}};
       case "subscribe_catalog":catalog=args.channel;catalog.onmessage({stream:1,sequence:++stream,sessions:sessions()});return 1;
