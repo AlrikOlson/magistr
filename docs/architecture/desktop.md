@@ -117,7 +117,7 @@ The document view keeps article, disclosure and unchanged block nodes stable.
 A native selection freezes intersecting message subtrees while other records
 continue updating. Clearing selection applies the latest retained revision.
 The first visible block anchors scrolling; selection or reading above the end
-suspends following. Latest clears selection, flushes held revisions and scrolls
+suspends following. The view retains at most 64 recent conversation bookmarks: semantic block/offset anchors, selected-text coordinates and fingerprints, open tool IDs and editor revision/caret/scroll. It retains no message or draft bytes and no extra subscriptions. Returning first renders the current owner snapshot; missing or changed selected source is not restored. Editor coordinates apply only to the same current revision and text fingerprint. Catalog claims remove closed-owner bookmarks, and resize or a temporarily hidden conversation uses the same saved reading anchor. Latest clears selection, flushes held revisions and scrolls
 to the current end; scrolling to the end also resumes following. If an owner
 bound removes selected source, the selection clears and the gap stays visible.
 

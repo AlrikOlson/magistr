@@ -1,4 +1,5 @@
-import { addressKey } from "./context.mjs";
+import { targetKey } from "./context.mjs";
+import { remember, captureSelection, restoreSelection } from "./reading.mjs";
 // Native selection and reading position belong to this semantic document view.
 import { AttachmentList } from "./attachments.mjs";
 const tags=new Set(["p","h1","h2","h3","h4","h5","h6","blockquote","pre","ol","ul","li","em","strong","s","a","span","code","hr","br"]);
@@ -47,23 +48,58 @@ export class Transcript {
   constructor(root,latest,{copy,openLink}) {
     this.root=root;this.latest=latest;this.document=root.ownerDocument;this.copy=copy;this.openLink=openLink;
     this.rows=new Map();this.address="";this.view=null;this.pending=false;this.following=true;
+    this.places=new Map();this.selectedPlace=null;this.readingAnchor=null;this.size=null;
     this.gap=element(this.document,"p","Some earlier messages are unavailable.");this.gap.className="gap";this.gap.setAttribute("role","status");
     this.empty=element(this.document,"div");this.empty.className="empty";
     this.empty.append(element(this.document,"h2","What would you like to work on?"),element(this.document,"p","Send a message to start a conversation in this working copy."));
     this.document.addEventListener("selectionchange",()=>{
-      if(selectedWithin(this.document.getSelection(),this.root))this.following=false;
+      if(selectedWithin(this.document.getSelection(),this.root)){this.following=false;this.selectedPlace=captureSelection(root);}
+      else if(root.contains(this.document.activeElement))this.selectedPlace=null;
       if(this.pending&&!selectedWithin(this.document.getSelection(),this.root)) {
         this.pending=false;this.render(this.view);
       }
     });
-    root.addEventListener("scroll",()=>{this.following=nearBottom(root)&&!selectedWithin(this.document.getSelection(),root);latest.hidden=nearBottom(root);},{passive:true});
+    root.addEventListener("pointerdown",()=>{this.selectedPlace=null;});
+    root.addEventListener("scroll",()=>{
+      if(!root.clientHeight||this.size!==this.dimensions())return;
+      this.following=nearBottom(root)&&!selectedWithin(this.document.getSelection(),root);
+      this.readingAnchor=this.anchor();latest.hidden=nearBottom(root);
+    },{passive:true});
+    this.resize=new ResizeObserver(()=>{
+      if(this.resizeFrame)return;
+      this.resizeFrame=requestAnimationFrame(()=>{
+        this.resizeFrame=null;
+        if(!root.clientHeight||!root.clientWidth||!this.view||this.size===this.dimensions())return;
+        if(this.selectedPlace&&!selectedWithin(this.document.getSelection(),root))this.selectedPlace=restoreSelection(root,this.selectedPlace)?this.selectedPlace:null;
+        this.restoreAnchor(this.following?null:this.readingAnchor,this.following);
+        this.size=this.dimensions();this.readingAnchor=this.anchor();latest.hidden=nearBottom(root);
+      });
+    });
+    this.resize.observe(root);
     latest.onclick=()=>this.resumeLatest();
   }
   resumeLatest() {
-    this.document.getSelection()?.removeAllRanges();this.pending=false;this.following=true;
+    this.document.getSelection()?.removeAllRanges();this.selectedPlace=null;this.pending=false;this.following=true;
     this.render(this.view);this.root.scrollTop=this.root.scrollHeight;this.latest.hidden=true;
   }
-  clear() {this.rows.clear();this.root.replaceChildren();this.address="";this.view=null;this.pending=false;this.following=true;}
+  dimensions(){return this.root.clientWidth+":"+this.root.clientHeight;}
+  remember() {
+    if(!this.address||(this.targets&&!this.targets.has(this.address)))return;
+    remember(this.places,this.address,{anchor:this.root.clientHeight?this.anchor():this.readingAnchor,following:this.following,
+      selection:captureSelection(this.root)??this.selectedPlace,open:[...this.rows].filter(([,row])=>row.details?.open).map(([id])=>id)});
+  }
+  clear() {
+    this.remember();
+    if(selectedWithin(this.document.getSelection(),this.root))this.document.getSelection().removeAllRanges();
+    this.rows.clear();this.root.replaceChildren();this.address="";this.view=null;this.pending=false;this.following=true;
+    this.selectedPlace=null;this.readingAnchor=null;this.size=null;
+  }
+  retain(targets){this.targets=targets;for(const key of this.places.keys())if(!targets.has(key))this.places.delete(key);}
+  restoreAnchor(anchor,following=false,previousTop=this.root.scrollTop) {
+    if(following){this.root.scrollTop=this.root.scrollHeight;return;}
+    const node=anchor&&[...this.root.querySelectorAll("[data-reading]")].find(node=>node.dataset.reading===anchor.key);
+    this.root.scrollTop=node?this.root.scrollTop+node.getBoundingClientRect().top-this.root.getBoundingClientRect().top-anchor.offset:previousTop;
+  }
   anchor() {
     const top=this.root.getBoundingClientRect().top;
     const candidates=[...this.root.querySelectorAll("article [data-reading]"),...this.root.querySelectorAll("article[data-reading]")];
@@ -72,13 +108,16 @@ export class Transcript {
   }
   render(view) {
     if(!view)return;
-    const address=JSON.stringify([addressKey(view.address),view.target?.conversation]),fresh=address!==this.address;
+    const address=targetKey(view.target),fresh=address!==this.address;
     if(fresh) {this.clear();this.address=address;}
+    const saved=fresh?this.places.get(address):null;
+    if(saved)this.following=saved.following;
     this.view=view;
     const selection=this.document.getSelection(),selected=selectedWithin(selection,this.root);
     if(selected)this.following=false;
-    const follow=(fresh||this.following&&nearBottom(this.root))&&!selected;
-    const anchor=follow?null:this.anchor(),previousTop=this.root.scrollTop;
+    const visible=this.root.clientHeight>0;
+    const follow=(fresh?!saved||saved.following:this.following&&(!visible||nearBottom(this.root)))&&!selected;
+    const anchor=follow?null:saved?.anchor??(visible?this.anchor():this.readingAnchor),previousTop=this.root.scrollTop;
     const children=view.dropped?[this.gap]:[];
     if(!view.messages.length&&!view.dropped)children.push(this.empty);
     const retained=new Set(view.messages.map(message=>message.id));
@@ -97,11 +136,13 @@ export class Transcript {
       children.push(row.article);
     }
     place(this.root,children);
-    if(follow)this.root.scrollTop=this.root.scrollHeight;
-    else {
-      const node=anchor&&[...this.root.querySelectorAll("[data-reading]")].find(node=>node.dataset.reading===anchor.key);
-      this.root.scrollTop=node?this.root.scrollTop+node.getBoundingClientRect().top-this.root.getBoundingClientRect().top-anchor.offset:previousTop;
+    if(saved) {
+      for(const id of saved.open){const row=this.rows.get(id);if(row?.details)row.details.open=true;}
+      this.selectedPlace=!visible||restoreSelection(this.root,saved.selection)?saved.selection:null;
+      if(this.selectedPlace)this.following=false;
     }
+    if(visible){this.restoreAnchor(anchor,follow,previousTop);this.size=this.dimensions();this.readingAnchor=this.anchor();}
+    else{this.readingAnchor=anchor;this.size=null;this.following=follow;}
     this.latest.hidden=nearBottom(this.root);
   }
   create(message) {

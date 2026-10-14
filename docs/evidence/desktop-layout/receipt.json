@@ -1,7 +1,7 @@
 {
   "renderer": "headless WebKit",
   "version": "27.2",
-  "captured_at": "2026-10-14T22:50:09.564Z",
+  "captured_at": "2026-10-14T22:55:05.495Z",
   "scope": "Production desktop HTML, CSS and JavaScript with isolated observation fixtures; no native OS input or Rust owner integration.",
   "checks": {
     "selected conversation and saved draft are visible": true,
@@ -15,7 +15,7 @@
     "new conversation exposes destination, agents and optional model choice": true
   },
   "source_hashes": {
-    "crates/magistr-desktop/ui/app.mjs": "60bb9c7b99353c134e42deb8ac8fa2e34c46d052c60315212ca33940d6ec22ef",
+    "crates/magistr-desktop/ui/app.mjs": "23260c439678de53b76dd819edea537801318f865e18526b3813a73ea6acd879",
     "crates/magistr-desktop/ui/attachments.mjs": "c598ca322b4a2c1b22b9f378ddc35ce7ec89a7e93c81673de978b3269a28ce63",
     "crates/magistr-desktop/ui/composer.mjs": "9accf554a6a2f6e7c029f4972fa4221e40d755546693c8343cbd528ef2a00bc0",
     "crates/magistr-desktop/ui/context.mjs": "9476a17db8e8c3032bd081dbdcd6088e9338ca2c41f9b455278243f5c98e4bcd",
@@ -31,12 +31,13 @@
     "crates/magistr-desktop/ui/preferences.mjs": "119dfd44c2fbdf82da45e0973c6a12bbf3a284ffabf416f766e1315a47cad2d5",
     "crates/magistr-desktop/ui/project_picker.mjs": "96b883870f3a648b33e02396f93cd10471fc3dd5be20008e603a2fc9be4f5ad4",
     "crates/magistr-desktop/ui/projects.mjs": "e19f9be0696a2e21d082561403a2188e1b55cedb898539a7a5ae7280b8807031",
+    "crates/magistr-desktop/ui/reading.mjs": "4cb834867d9354bf47a12fdc0a34048612e3e8ef77c1fb1bf04999dcb7a1be9f",
     "crates/magistr-desktop/ui/saved_drafts.mjs": "a0bfc036bfe1f48fa005fb42da66ea31fd608f656df57a8501ee504b59779ca0",
     "crates/magistr-desktop/ui/selection.mjs": "fd844d9e146a9c5e1fb9ab6e2fc72c0273da66d4f59a70ce639877a87aff05fc",
     "crates/magistr-desktop/ui/session_controls.mjs": "738386755be2b65fd03899ae28e1b357b4313258d67b3edfaf72fe3fe37ff123",
     "crates/magistr-desktop/ui/style.css": "25dd4430ba613836755035d92b28fcd27cdb525ed5dec371376d880b7261ba50",
     "crates/magistr-desktop/ui/supervision.mjs": "032a49085ae6738687065e58e06950cf7229f4fa7f7e0e64ed7390edf3629d12",
-    "crates/magistr-desktop/ui/transcript.mjs": "1e22dc70fe457e303b2d1e3edca61491f86d882406825cb5afe6bda9eff9d6ae",
+    "crates/magistr-desktop/ui/transcript.mjs": "52e2a7ec6b2f0e05d538f8c274f3a3653d0e40f88f0b3cad2ffb415a8893c452",
     "crates/magistr-desktop/ui/work.mjs": "a171d4c39c35bb7118c74a2a9691d106a4a062480a9afad13069cfe6021529af",
     "crates/magistr-desktop/playwright.config.mjs": "e97c1f9951b494fa8049e323eae8fc372a2d1c2de74fd8edd9de706be82e0634",
     "crates/magistr-desktop/tests/browser/fixture.mjs": "6f6be897d7881cebdab1977a3b4e0a49992d2442517e8b03aa33da2ddafd2eaf",
