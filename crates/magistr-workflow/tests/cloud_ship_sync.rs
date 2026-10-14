@@ -24,8 +24,12 @@ async fn a_ship_action_pushes_to_the_cloud() {
     let mut engine =
         ShipEngine::new("dogfood".into()).with_cloud(CloudClient::new(server.uri(), "tok"));
     // The objective/task frames are id-only and don't push; only the action does.
-    engine.set_objective("o".into(), vec![], vec![], "s".into());
-    engine.add_task("t1".into(), "Task".into(), TaskType::Implement, None, None);
+    engine
+        .set_objective("o".into(), vec![], vec![], "s".into())
+        .unwrap();
+    engine
+        .add_task("t1".into(), "Task".into(), TaskType::Implement, None, None)
+        .unwrap();
     engine.start_task("t1").expect("start");
     engine
         .record_action(

@@ -177,7 +177,10 @@ async fn scoped_ship_only_and_signal_changes_reach_the_snapshot() {
         .signal_capture(SignalKind::Idea, "alice".into(), "faster".into())
         .unwrap();
     let seed = next_seed(&mut rx, Duration::from_secs(5)).await.unwrap();
-    assert_eq!(seed.signals.current().unwrap().value[0].id, captured.id);
+    assert_eq!(
+        seed.signals.current().unwrap().value[0].id,
+        captured.value.id
+    );
     task.abort();
 }
 

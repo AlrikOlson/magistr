@@ -1,18 +1,9 @@
-//! Session lifecycle — switch the active session, expire idle ones, the
-//! tiny clock helpers (`now_ms`, `session_timeout_ms`) that both rely
-//! on.
-//!
-//! Sessions only exist when `config.features.enable_sessions` is true.
-//! `Self::switch_to_session` saves the current history into the
-//! previously-active session entry before loading the requested one, so
-//! the indexes (`step_index`, `step_numbers`, `step_to_branch`,
-//! `tools_used`, `branch_depth_cache`) get rebuilt against the
-//! freshly-loaded history.
+//! Session validation and expiration of derived session views.
 
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::think::constants::SESSION_CLEANUP_INTERVAL;
-use crate::think::domain::{SessionEntry, ThinkStep};
+use crate::think::domain::ThinkStep;
 
 use super::core::ReasoningServer;
 
@@ -59,91 +50,6 @@ impl ReasoningServer {
             .duration_since(UNIX_EPOCH)
             .map(|d| d.as_millis())
             .unwrap_or(0)
-    }
-
-    /// Save current `self.history` into the active session entry (if any)
-    /// and load `session_id`'s history. Rebuilds the per-history indexes.
-    pub(crate) fn switch_to_session(&mut self, session_id: &str) {
-        if self.active_session.as_deref() == Some(session_id) {
-            let now = Self::now_ms();
-            let snapshot = self.history_with_branches();
-            self.sessions
-                .entry(session_id.to_owned())
-                .and_modify(|entry| entry.last_accessed = now)
-                .or_insert(SessionEntry {
-                    history: snapshot,
-                    last_accessed: now,
-                });
-            return;
-        }
-
-        if let Some(prev) = self.active_session.clone() {
-            let now = Self::now_ms();
-            let snapshot = self.history_with_branches();
-            if let Some(entry) = self.sessions.get_mut(&prev) {
-                entry.history = snapshot;
-                entry.last_accessed = now;
-            }
-        }
-
-        let now = Self::now_ms();
-        let entry = self
-            .sessions
-            .entry(session_id.to_string())
-            .or_insert_with(|| SessionEntry {
-                history: Self::new_history(),
-                last_accessed: now,
-            });
-        entry.last_accessed = now;
-        // Cross-project guard: refuse to load a session whose stamped
-        // project id disagrees with this server's project. Prevents
-        // silent merges (e.g. mounting a session file from one repo
-        // into a server running in another). Persisted histories have already
-        // passed project validation; fresh empty sessions acquire their project
-        // when their first step is recorded.
-        if !self.project_id.is_empty() {
-            if let Some(stamped) = entry
-                .history
-                .metadata
-                .as_ref()
-                .and_then(|m| m.project_id.as_deref())
-                && stamped != self.project_id
-            {
-                tracing::warn!(
-                    "Refusing to switch into session '{session_id}': stamped \
-                     project_id={stamped:?} differs from server's project_id={:?}. \
-                     This usually means the sessions directory contains a file \
-                     from another project. Leaving previous session active.",
-                    self.project_id
-                );
-                return;
-            }
-        }
-        self.history = entry.history.clone();
-        self.history.session_id = (session_id != self.project_id).then(|| session_id.to_owned());
-        self.branches = Self::restored_branches(&self.history);
-        self.active_session = Some(session_id.to_string());
-
-        self.step_index.clear();
-        self.step_numbers.clear();
-        self.tools_used.clear();
-        self.step_to_branch.clear();
-        self.branch_depth_cache.clear();
-        for (idx, existing) in self.history.steps.iter().enumerate() {
-            self.step_index.insert(existing.step_number, idx);
-            self.step_numbers.insert(existing.step_number);
-            if let Some(bid) = &existing.branch_id {
-                self.step_to_branch
-                    .insert(existing.step_number, bid.clone());
-            }
-        }
-        if let Some(meta) = &self.history.metadata {
-            if let Some(tools) = &meta.tools_used {
-                for t in tools {
-                    self.tools_used.insert(t.clone());
-                }
-            }
-        }
     }
 
     /// Drop session entries that haven't been accessed within the

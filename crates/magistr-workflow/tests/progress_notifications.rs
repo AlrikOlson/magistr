@@ -199,9 +199,7 @@ async fn a_slow_ship_check_emits_progress_against_the_callers_token() {
     };
     let structured = result.structured_content.expect("structured result");
     assert_eq!(
-        structured
-            .pointer("/result/passed")
-            .or_else(|| structured.pointer("/passed")),
+        structured.pointer("/check/value/passed"),
         Some(&json!(true)),
         "the gate's real outcome must survive being narrated: {structured}"
     );

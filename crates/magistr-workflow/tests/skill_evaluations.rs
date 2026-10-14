@@ -307,7 +307,7 @@ fn switching_focus_changes_no_chunk_status() {
     e.focus_set("lane", "Authentication", FocusMode::Build)
         .unwrap();
     e.focus_set("lane", "Billing", FocusMode::Shape).unwrap();
-    e.focus_clear("lane");
+    e.focus_clear("lane").unwrap();
     assert_eq!(e.roadmap().chunks, before);
 }
 

@@ -75,7 +75,7 @@ use super::engine::ShipEngine;
 pub struct ShipUseCases {
     engine: Arc<Mutex<ShipEngine>>,
     evidence: Option<Arc<dyn EvidencePort>>,
-    witnesses: Arc<Mutex<BTreeMap<String, Box<dyn SourceWitness>>>>,
+    witnesses: Arc<Mutex<BTreeMap<String, Arc<dyn SourceWitness>>>>,
 }
 
 impl ShipUseCases {
@@ -101,7 +101,7 @@ impl ShipUseCases {
         self.evidence.as_ref()
     }
 
-    fn lock(&self) -> Result<MutexGuard<'_, ShipEngine>, String> {
+    fn lock(&self) -> Result<MutexGuard<'_, ShipEngine>, ShipError> {
         let mut engine = self
             .engine
             .lock()

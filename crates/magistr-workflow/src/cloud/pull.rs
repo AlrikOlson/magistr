@@ -1,22 +1,6 @@
-//! Read-side reconcile: pull the tenant's records from the cloud and merge them
-//! into the local engines. The cloud is the system-of-record the
-//! cache converges TOWARD, but per record the merge is NEWEST-wins (chunks:
-//! `updated_at`; signals: lifecycle progress) — a stale cloud copy must never
-//! clobber a fresher local mutation, the race a concurrent refresh would
-//! make live (the reconcile recency guard). Local-only records are preserved.
-//! The merge is SILENT (the engine's `upsert_*` does not re-emit), so a pull
-//! never loops back into a push.
-//!
-//! Split into an async **fetch** (no engine access) and a sync **apply**
-//! (`&mut Engine`, no awaits) so a caller that shares an engine behind a
-//! `std::sync::Mutex` never holds the guard across an await. The
-//! `reconcile_*` wrappers preserve the original one-call shape for
-//! exclusive-engine callers and tests.
-//!
-//! This slice covers the think + roadmap + signal families (think joined in
-//! sync-think-reconcile, which also added [`reconcile_all`] — the one-shot
-//! boot hydrate). The ship family is `sync-ship-full`; offline write-queueing
-//! is `sync-offline-queue`.
+//! Fetch cloud records without holding engine locks, then apply each record
+//! through its local persistence owner. Acknowledgements count committed
+//! changes only; failures preserve the count already saved and typed write cause.
 
 use std::sync::{Arc, Mutex};
 
@@ -62,269 +46,188 @@ pub fn max_watermark(envelopes: &[serde_json::Value]) -> Option<String> {
         .map(str::to_owned)
 }
 
-/// Does this envelope's record belong to `project_id`? (sync-project-scope)
-///
-/// The backend adopts the TOKEN's tenant, so with an org-scoped token every
-/// project in the org shares one cloud namespace — `tenant_id` cannot tell
-/// records apart. Push stamps `record.project_id` (envelope::owner); this is
-/// the matching read-side guard. An UNSTAMPED record (pushed by a pre-stamp
-/// binary) is treated as foreign: its origin is unknowable, and merging it is
-/// exactly the cross-project bleed this exists to stop. Re-stamping the cloud
-/// is one idempotent `sync push` per project.
+/// Tenant membership is insufficient: only the record's project owns it.
 fn record_is_local(envelope: &serde_json::Value, project_id: &str) -> bool {
     envelope
         .get("record")
-        .and_then(|r| r.get("project_id"))
-        .and_then(|v| v.as_str())
+        .and_then(|record| record.get("project_id"))
+        .and_then(serde_json::Value::as_str)
         == Some(project_id)
 }
 
-/// Read the tracker sidecar out of a chunk `record` and merge it in.
-///
-/// Silent when absent, which is the common case and also what every envelope
-/// written before the sidecar existed looks like. Both halves are decoded
-/// independently so a malformed opt-in cannot cost us the links.
-fn adopt_tracker_sidecar(engine: &mut RoadmapEngine, record: &serde_json::Value) {
-    let Some(sidecar) = record.get(crate::cloud::build::TRACKER_SIDECAR) else {
-        return;
-    };
-    let links = sidecar
-        .get("links")
-        .and_then(|v| serde_json::from_value::<Vec<TrackerLink>>(v.clone()).ok())
-        .unwrap_or_default();
-    let opt_ins = sidecar
-        .get("opt_ins")
-        .and_then(|v| serde_json::from_value::<Vec<TrackerOptIn>>(v.clone()).ok())
-        .unwrap_or_default();
-    if links.is_empty() && opt_ins.is_empty() {
-        return;
+fn invalid_record(error: impl std::fmt::Display) -> CloudError {
+    CloudError::Local {
+        saved: 0,
+        message: error.to_string(),
+        store: None,
     }
-    engine.adopt_tracker_state(links, opt_ins);
 }
 
-/// Merge fetched roadmap envelopes into `engine` (newest-wins by id; local-only
-/// chunks preserved). Records from OTHER projects in the tenant — or unstamped
-/// records of unknowable origin — are skipped (sync-project-scope). Returns the
-/// number of chunks merged. A record that doesn't deserialize is logged and
-/// skipped — one bad record never fails the whole reconcile. Synchronous:
-/// never awaits.
-pub fn apply_roadmap_records(engine: &mut RoadmapEngine, envelopes: &[serde_json::Value]) -> usize {
-    let mut merged = 0;
-    let mut foreign = 0;
-    for envelope in envelopes {
-        let Some(record) = envelope.get("record") else {
-            continue;
-        };
-        if !record_is_local(envelope, engine.project_id()) {
-            foreign += 1;
-            continue;
-        }
-        match serde_json::from_value::<Chunk>(record.clone()) {
-            Ok(mut chunk) => {
-                // The wire stamped `record.project_id`; keep it on the chunk we
-                // store. Dropping it here is what left the local store with no
-                // record-intrinsic origin, so the 2026-06 bleed could only be
-                // cleaned up by guessing from id prefixes.
-                if chunk.project_id.is_none() {
-                    chunk.project_id = record
-                        .get("project_id")
-                        .and_then(|v| v.as_str())
-                        .map(str::to_owned);
+/// Decode the whole input before committing any local record.
+fn local_records<T: serde::de::DeserializeOwned>(
+    envelopes: &[serde_json::Value],
+    project_id: &str,
+) -> Result<Vec<(T, serde_json::Value)>, CloudError> {
+    envelopes
+        .iter()
+        .filter(|envelope| record_is_local(envelope, project_id))
+        .map(|envelope| {
+            let record = envelope["record"].clone();
+            let value = serde_json::from_value(record.clone()).map_err(invalid_record)?;
+            Ok((value, record))
+        })
+        .collect()
+}
+
+#[derive(serde::Deserialize, Default)]
+struct TrackerSidecar {
+    #[serde(default)]
+    links: Vec<TrackerLink>,
+    #[serde(default)]
+    opt_ins: Vec<TrackerOptIn>,
+}
+
+/// Commit each chunk with its tracker state in one owner transaction.
+pub fn apply_roadmap_records(
+    engine: &mut RoadmapEngine,
+    envelopes: &[serde_json::Value],
+) -> Result<usize, CloudError> {
+    let records = local_records::<Chunk>(envelopes, engine.project_id())?
+        .into_iter()
+        .map(|(chunk, record)| {
+            let sidecar = record
+                .get(crate::cloud::build::TRACKER_SIDECAR)
+                .map(|value| serde_json::from_value::<TrackerSidecar>(value.clone()))
+                .transpose()
+                .map_err(invalid_record)?
+                .unwrap_or_default();
+            Ok((chunk, sidecar))
+        })
+        .collect::<Result<Vec<_>, CloudError>>()?;
+    let mut saved = 0;
+    for (chunk, sidecar) in records {
+        let observed = engine
+            .upsert_chunk_with_tracker(chunk, sidecar.links, sidecar.opt_ins)
+            .map_err(|error| {
+                let message = error.to_string();
+                let store = match error {
+                    crate::roadmap::engine::RoadmapMutationError::Store(error) => Some(error),
+                    crate::roadmap::engine::RoadmapMutationError::Rejected(_) => None,
+                };
+                CloudError::Local {
+                    saved,
+                    message,
+                    store,
                 }
-                engine.upsert_chunk(chunk);
-                // The tracker sidecar rides `record` alongside the chunk's own
-                // fields; serde ignored it above (Chunk has no such field), so
-                // it is read out explicitly here. Malformed tracker state is
-                // skipped without failing the chunk — the chunk is the record,
-                // the sidecar is an addendum.
-                adopt_tracker_sidecar(engine, record);
-                merged += 1;
+            })?;
+        saved += usize::from(observed.value);
+    }
+    Ok(saved)
+}
+
+/// Commit signal changes, preserving a failure after any earlier saved records.
+pub fn apply_signal_records(
+    engine: &mut SignalEngine,
+    envelopes: &[serde_json::Value],
+) -> Result<usize, CloudError> {
+    let records = local_records::<Signal>(envelopes, engine.project_id())?;
+    let mut saved = 0;
+    for (signal, _) in records {
+        let observed = engine.upsert_signal(signal).map_err(|error| {
+            let message = error.to_string();
+            let store = match error {
+                crate::signal::engine::SignalMutationError::Store(error) => Some(error),
+                crate::signal::engine::SignalMutationError::Rejected(_) => None,
+            };
+            CloudError::Local {
+                saved,
+                message,
+                store,
             }
-            Err(e) => tracing::warn!(
-                target: "magistr_workflow::cloud",
-                "skipping malformed roadmap record on reconcile: {e}"
-            ),
-        }
+        })?;
+        saved += usize::from(observed.value);
     }
-    if foreign > 0 {
-        tracing::debug!(
-            target: "magistr_workflow::cloud",
-            "roadmap reconcile skipped {foreign} record(s) from other projects in the tenant"
-        );
-    }
-    merged
+    Ok(saved)
 }
 
-/// Merge fetched signal envelopes into `engine` (newest-wins by id; local-only
-/// signals preserved; other projects' records skipped, sync-project-scope).
-/// Returns the number merged. Synchronous: never awaits.
-pub fn apply_signal_records(engine: &mut SignalEngine, envelopes: &[serde_json::Value]) -> usize {
-    let mut merged = 0;
-    let mut foreign = 0;
-    for envelope in envelopes {
-        let Some(record) = envelope.get("record") else {
-            continue;
-        };
-        if !record_is_local(envelope, engine.project_id()) {
-            foreign += 1;
-            continue;
-        }
-        match serde_json::from_value::<Signal>(record.clone()) {
-            Ok(signal) => {
-                engine.upsert_signal(signal);
-                merged += 1;
-            }
-            Err(e) => tracing::warn!(
-                target: "magistr_workflow::cloud",
-                "skipping malformed signal record on reconcile: {e}"
-            ),
-        }
-    }
-    if foreign > 0 {
-        tracing::debug!(
-            target: "magistr_workflow::cloud",
-            "signal reconcile skipped {foreign} record(s) from other projects in the tenant"
-        );
-    }
-    merged
+/// Adopt the complete reasoning batch by immutable record identity.
+pub fn apply_think_records(
+    engine: &mut ReasoningServer,
+    envelopes: &[serde_json::Value],
+) -> Result<usize, CloudError> {
+    let steps = local_records::<ThinkStep>(envelopes, engine.project_id())?
+        .into_iter()
+        .map(|(step, _)| step)
+        .collect();
+    engine
+        .adopt_steps(steps)
+        .map(|observed| observed.value)
+        .map_err(|error| CloudError::Local {
+            saved: 0,
+            message: error.error,
+            store: error.store,
+        })
 }
 
-/// Merge fetched think envelopes into `engine` (insert-if-absent by
-/// step_number — an existing local step is never replaced; see
-/// `ReasoningServer::adopt_steps`). Other projects' records are skipped
-/// (sync-project-scope) — CRITICAL here, because step numbers are
-/// project-global: adopting a foreign project's step 1240 silently poisons
-/// this project's numbering. Returns the number ADOPTED (not merely seen —
-/// unlike the other families, an already-known step counts zero).
-/// Synchronous: never awaits.
-pub fn apply_think_records(engine: &mut ReasoningServer, envelopes: &[serde_json::Value]) -> usize {
-    let mut steps = Vec::new();
-    let mut foreign = 0;
-    for envelope in envelopes {
-        let Some(record) = envelope.get("record") else {
-            continue;
-        };
-        if !record_is_local(envelope, engine.project_id()) {
-            foreign += 1;
-            continue;
-        }
-        match serde_json::from_value::<ThinkStep>(record.clone()) {
-            Ok(step) => steps.push(step),
-            Err(e) => tracing::warn!(
-                target: "magistr_workflow::cloud",
-                "skipping malformed think record on reconcile: {e}"
-            ),
-        }
-    }
-    if foreign > 0 {
-        tracing::debug!(
-            target: "magistr_workflow::cloud",
-            "think reconcile skipped {foreign} record(s) from other projects in the tenant"
-        );
-    }
-    engine.adopt_steps(steps)
-}
-
-/// Pull the tenant's think steps from the cloud and merge them into `engine`
-/// (fetch + apply in one call, for callers with exclusive engine access).
 pub async fn reconcile_think(
     client: &CloudClient,
     engine: &mut ReasoningServer,
 ) -> Result<usize, CloudError> {
     let envelopes = fetch_family(client, "think").await?;
-    Ok(apply_think_records(engine, &envelopes))
+    apply_think_records(engine, &envelopes)
 }
 
-/// One-shot reconcile of every pull-able family (think + roadmap + signal)
-/// into the shared engines — the startup hydrate (sync-think-reconcile): a
-/// fresh machine or empty data dir converges to the workspace on boot. Each
-/// family fetches BEFORE locking and applies synchronously (an engine mutex
-/// is never held across an await). A family
-/// that fails to fetch is logged and skipped; the others still reconcile.
-/// Returns (think, roadmap, signal) merge counts.
+/// Attempt each family independently and retain every family's result.
 pub async fn reconcile_all(
     client: &CloudClient,
     think: &Arc<Mutex<ReasoningServer>>,
     roadmap: &Arc<Mutex<RoadmapEngine>>,
     signal: &Arc<Mutex<SignalEngine>>,
-) -> (usize, usize, usize) {
-    let mut counts = (0, 0, 0);
-    match fetch_family(client, "think").await {
-        Ok(envelopes) => {
-            if let Ok(mut engine) = think.lock() {
-                counts.0 = apply_think_records(&mut engine, &envelopes);
-            }
-        }
-        Err(e) => tracing::warn!(
-            target: "magistr_workflow::cloud",
-            "startup think reconcile failed: {e}"
-        ),
-    }
-    match fetch_family(client, "roadmap").await {
-        Ok(envelopes) => {
-            if let Ok(mut engine) = roadmap.lock() {
-                counts.1 = apply_roadmap_records(&mut engine, &envelopes);
-            }
-        }
-        Err(e) => tracing::warn!(
-            target: "magistr_workflow::cloud",
-            "startup roadmap reconcile failed: {e}"
-        ),
-    }
-    match fetch_family(client, "signal").await {
-        Ok(envelopes) => {
-            if let Ok(mut engine) = signal.lock() {
-                counts.2 = apply_signal_records(&mut engine, &envelopes);
-            }
-        }
-        Err(e) => tracing::warn!(
-            target: "magistr_workflow::cloud",
-            "startup signal reconcile failed: {e}"
-        ),
-    }
-    counts
+) -> (
+    Result<usize, CloudError>,
+    Result<usize, CloudError>,
+    Result<usize, CloudError>,
+) {
+    let think_result = match fetch_family(client, "think").await {
+        Ok(envelopes) => think
+            .lock()
+            .map_err(invalid_record)
+            .and_then(|mut engine| apply_think_records(&mut engine, &envelopes)),
+        Err(error) => Err(error),
+    };
+    let roadmap_result = match fetch_family(client, "roadmap").await {
+        Ok(envelopes) => roadmap
+            .lock()
+            .map_err(invalid_record)
+            .and_then(|mut engine| apply_roadmap_records(&mut engine, &envelopes)),
+        Err(error) => Err(error),
+    };
+    let signal_result = match fetch_family(client, "signal").await {
+        Ok(envelopes) => signal
+            .lock()
+            .map_err(invalid_record)
+            .and_then(|mut engine| apply_signal_records(&mut engine, &envelopes)),
+        Err(error) => Err(error),
+    };
+    (think_result, roadmap_result, signal_result)
 }
 
-/// Pull the tenant's roadmap chunks from the cloud and merge them into `engine`
-/// (fetch + apply in one call, for callers with exclusive engine access).
 pub async fn reconcile_roadmap(
     client: &CloudClient,
     engine: &mut RoadmapEngine,
 ) -> Result<usize, CloudError> {
     let envelopes = fetch_family(client, "roadmap").await?;
-    Ok(apply_roadmap_records(engine, &envelopes))
+    apply_roadmap_records(engine, &envelopes)
 }
 
-/// Pull the tenant's signals from the cloud and merge them into `engine`
-/// (fetch + apply in one call, for callers with exclusive engine access).
 pub async fn reconcile_signals(
     client: &CloudClient,
     engine: &mut SignalEngine,
 ) -> Result<usize, CloudError> {
     let envelopes = fetch_family(client, "signal").await?;
-    Ok(apply_signal_records(engine, &envelopes))
+    apply_signal_records(engine, &envelopes)
 }
 
 #[cfg(test)]
-mod watermark_tests {
-    use super::max_watermark;
-    use serde_json::json;
-
-    #[test]
-    fn max_watermark_prefers_updated_and_takes_the_newest() {
-        let envs = vec![
-            json!({"created": "2026-06-01T00:00:00Z"}),
-            json!({"created": "2026-06-01T00:00:00Z", "updated": "2026-06-11T09:00:00Z"}),
-            json!({"updated": "2026-06-10T00:00:00Z"}),
-        ];
-        assert_eq!(
-            max_watermark(&envs).as_deref(),
-            Some("2026-06-11T09:00:00Z")
-        );
-    }
-
-    #[test]
-    fn max_watermark_empty_is_none() {
-        assert_eq!(max_watermark(&[]), None);
-    }
-}
+#[path = "pull.tests.rs"]
+mod tests;

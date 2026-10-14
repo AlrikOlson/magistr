@@ -2,7 +2,8 @@
 
 use std::sync::{Arc, Mutex, PoisonError};
 
-use magistr_engine::native::{Chunk, Signal};
+use magistr_engine::Observed;
+use magistr_engine::native::{Chunk, Signal, SignalPromotion, WorkflowMutationError};
 use magistr_engine::{
     OwnerClient, OwnerCommand, OwnerGeneration, OwnerReply, RoadmapCommand, SignalCommand,
     ThinkCommand,
@@ -46,58 +47,87 @@ impl AttachedEnginePort {
         self.generation
     }
 
-    fn run(&mut self, command: OwnerCommand) -> Result<OwnerReply, String> {
+    fn run(&mut self, command: OwnerCommand) -> Result<OwnerReply, WorkflowMutationError> {
         let mut client = self.client.lock().unwrap_or_else(PoisonError::into_inner);
         if !client.is_attached() {
-            let generation = client.reconnect().map_err(|error| error.to_string())?;
+            let generation = client
+                .reconnect()
+                .map_err(|error| WorkflowMutationError::rejected(error.to_string()))?;
             if generation != self.generation {
                 let previous = self.generation;
                 self.generation = generation;
-                return Err(format!(
-                    "the project's host changed hands (generation {previous} → {generation}); \
-                     the cockpit re-reads the store — ask again"
-                ));
+                return Err(WorkflowMutationError::rejected(format!(
+                    "The project changed while you were working ({previous} → {generation}). Refresh and try again."
+                )));
             }
         }
-        client.command(command).map_err(|error| error.to_string())
+        client.command(command).map_err(|error| match error {
+            magistr_engine::native::AttachError::Engine(error) => *error,
+            magistr_engine::native::AttachError::StaleGeneration { .. }
+            | magistr_engine::native::AttachError::Detached
+            | magistr_engine::native::AttachError::Refused(_) => {
+                WorkflowMutationError::rejected(error.to_string())
+            }
+            error => WorkflowMutationError::uncertain(format!(
+                "The result could not be confirmed: {error}. Read the saved work before retrying."
+            )),
+        })
     }
 
-    fn chunk(&mut self, command: RoadmapCommand) -> Result<Chunk, String> {
+    fn chunk(&mut self, command: RoadmapCommand) -> Result<Observed<Chunk>, WorkflowMutationError> {
         match self.run(OwnerCommand::Roadmap(command))? {
             OwnerReply::Chunk(chunk) => Ok(*chunk),
-            other => Err(format!("the owner answered {other:?} instead of a chunk")),
+            other => Err(WorkflowMutationError::uncertain(format!(
+                "The result could not be confirmed: {other:?}"
+            ))),
         }
     }
 
-    fn signal(&mut self, command: SignalCommand) -> Result<Signal, String> {
+    fn signal(
+        &mut self,
+        command: SignalCommand,
+    ) -> Result<Observed<Signal>, WorkflowMutationError> {
         match self.run(OwnerCommand::Signal(command))? {
             OwnerReply::Signal(signal) => Ok(signal),
-            other => Err(format!("the owner answered {other:?} instead of a signal")),
+            other => Err(WorkflowMutationError::uncertain(format!(
+                "The result could not be confirmed: {other:?}"
+            ))),
         }
     }
 }
 
 impl EnginePort for AttachedEnginePort {
-    fn pin(&mut self, step_number: u32, pinned: bool) -> Result<(), String> {
-        self.run(OwnerCommand::Think(ThinkCommand::PinStep {
+    fn pin(
+        &mut self,
+        step_number: u32,
+        pinned: bool,
+    ) -> Result<Observed<bool>, WorkflowMutationError> {
+        match self.run(OwnerCommand::Think(ThinkCommand::PinStep {
             step_number,
             pinned,
-        }))
-        .map(|_| ())
+        }))? {
+            OwnerReply::Pinned(previous) => Ok(previous),
+            other => Err(WorkflowMutationError::uncertain(format!(
+                "The result could not be confirmed: {other:?}"
+            ))),
+        }
     }
 
     fn checkpoint(&mut self) -> Result<serde_json::Value, String> {
-        match self.run(OwnerCommand::Think(ThinkCommand::Checkpoint))? {
+        match self
+            .run(OwnerCommand::Think(ThinkCommand::Checkpoint))
+            .map_err(|error| error.to_string())?
+        {
             OwnerReply::Report(report) => Ok(report),
             other => Err(format!("the owner answered {other:?} instead of a report")),
         }
     }
 
-    fn start_chunk(&mut self, id: &str) -> Result<Chunk, String> {
+    fn start_chunk(&mut self, id: &str) -> Result<Observed<Chunk>, WorkflowMutationError> {
         self.chunk(RoadmapCommand::StartChunk { id: id.to_owned() })
     }
 
-    fn complete_chunk(&mut self, id: &str) -> Result<Chunk, String> {
+    fn complete_chunk(&mut self, id: &str) -> Result<Observed<Chunk>, WorkflowMutationError> {
         self.chunk(RoadmapCommand::CompleteChunk {
             id: id.to_owned(),
             ship_ref: None,
@@ -109,7 +139,7 @@ impl EnginePort for AttachedEnginePort {
         id: &str,
         kind: ProposalKind,
         accept: bool,
-    ) -> Result<Chunk, String> {
+    ) -> Result<Observed<Chunk>, WorkflowMutationError> {
         let id = id.to_owned();
         self.chunk(match kind {
             ProposalKind::Title => RoadmapCommand::ResolveTitleProposal { id, accept },
@@ -118,19 +148,30 @@ impl EnginePort for AttachedEnginePort {
         })
     }
 
-    fn clear_blocker(&mut self, id: &str) -> Result<Chunk, String> {
+    fn clear_blocker(&mut self, id: &str) -> Result<Observed<Chunk>, WorkflowMutationError> {
         self.chunk(RoadmapCommand::ClearBlockedBy { id: id.to_owned() })
     }
 
-    fn promote_signal(&mut self, id: &str) -> Result<Signal, String> {
-        self.signal(SignalCommand::Promote { id: id.to_owned() })
+    fn promote_signal(&mut self, id: &str) -> Result<SignalPromotion, WorkflowMutationError> {
+        match self.run(OwnerCommand::Signal(SignalCommand::Promote {
+            id: id.to_owned(),
+        }))? {
+            OwnerReply::Promotion(promotion) => Ok(*promotion),
+            other => Err(WorkflowMutationError::uncertain(format!(
+                "The result could not be confirmed: {other:?}"
+            ))),
+        }
     }
 
-    fn ignore_signal(&mut self, id: &str) -> Result<Signal, String> {
+    fn ignore_signal(&mut self, id: &str) -> Result<Observed<Signal>, WorkflowMutationError> {
         self.signal(SignalCommand::Ignore { id: id.to_owned() })
     }
 
-    fn snooze_signal(&mut self, id: &str, minutes: u32) -> Result<Signal, String> {
+    fn snooze_signal(
+        &mut self,
+        id: &str,
+        minutes: u32,
+    ) -> Result<Observed<Signal>, WorkflowMutationError> {
         self.signal(SignalCommand::Snooze {
             id: id.to_owned(),
             minutes: i64::from(minutes),

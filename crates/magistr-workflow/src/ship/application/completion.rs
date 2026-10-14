@@ -42,7 +42,9 @@ impl ShipUseCases {
         let (snapshot, acceptance_revision, ledger) = {
             let engine = self
                 .lock()
-                .map_err(|reason| CompletionRefusal::EvidenceUnavailable { reason })?;
+                .map_err(|reason| CompletionRefusal::EvidenceUnavailable {
+                    reason: reason.to_string(),
+                })?;
             let acceptance = engine
                 .acceptance_revision()
                 .ok_or(CompletionRefusal::NoObjective)?;
@@ -58,9 +60,11 @@ impl ShipUseCases {
                 actual: objective.scope.clone(),
             });
         }
-        let receipts = ledger
-            .for_run(&snapshot.run_id)
-            .map_err(|reason| CompletionRefusal::EvidenceUnavailable { reason })?;
+        let receipts = ledger.for_run(&snapshot.run_id).map_err(|reason| {
+            CompletionRefusal::EvidenceUnavailable {
+                reason: reason.to_string(),
+            }
+        })?;
         let target: TaskAdmission = match task {
             Some(task_id) => snapshot.admit_task(Some(task_id)).map_err(|reason| {
                 CompletionRefusal::TaskNotCurrent {
@@ -78,14 +82,19 @@ impl ShipUseCases {
                 })?,
         };
         let contracts = match objective.verification {
-            VerificationMode::Full => port
-                .required_gates()
-                .map_err(|reason| CompletionRefusal::EvidenceUnavailable { reason })?,
+            VerificationMode::Full => {
+                port.required_gates()
+                    .map_err(|reason| CompletionRefusal::EvidenceUnavailable {
+                        reason: reason.to_string(),
+                    })?
+            }
             VerificationMode::Focused => Vec::new(),
         };
         let current = port
             .observe()
-            .map_err(|reason| CompletionRefusal::EvidenceUnavailable { reason })?
+            .map_err(|reason| CompletionRefusal::EvidenceUnavailable {
+                reason: reason.to_string(),
+            })?
             .observation();
 
         let mut by_gate: BTreeMap<&str, Vec<&CheckReceipt>> = BTreeMap::new();
@@ -199,8 +208,7 @@ fn judge(
                         receipt_id: earlier.id.clone(),
                         attempt: earlier.attempt,
                         outcome: earlier
-                            .execution
-                            .as_ref()
+                            .execution()
                             .map_or_else(|| "unsettled".to_owned(), |e| e.label()),
                     });
                 }
@@ -220,7 +228,7 @@ fn reason_to_refuse(
     current: &SourceObservation,
     acceptance_revision: &str,
 ) -> Option<String> {
-    let execution = match &latest.execution {
+    let execution = match latest.execution() {
         None => {
             return Some(
                 "the latest attempt was admitted but never settled (interrupted or still running)"

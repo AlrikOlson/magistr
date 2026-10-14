@@ -35,6 +35,14 @@ pub struct Branch {
     pub merged_into: Option<u32>,
 }
 
+/// The exact lifecycle metadata acknowledged by the reasoning owner.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BranchStatusChange {
+    pub previous: String,
+    pub current: String,
+    pub merged_into: Option<u32>,
+}
+
 #[cfg(test)]
 #[path = "branch.tests.rs"]
 mod tests;

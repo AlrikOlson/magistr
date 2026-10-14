@@ -79,7 +79,7 @@ async fn native_patch_and_mcp_share_proposal_order_and_validation() {
     assert_eq!(chunk.title, "Final human claim");
     assert!(chunk.title_proposal.is_none());
     assert_eq!(
-        response.structured_content.unwrap(),
+        response.structured_content.unwrap()["value"],
         serde_json::to_value(&chunk).unwrap()
     );
     assert!(Arc::ptr_eq(&service.engine(), &app.engine()));
@@ -104,7 +104,10 @@ fn native_blocker_commands_validate_and_clear_through_the_same_patch() {
         ),
         Err(RoadmapError::InvalidArgs(_))
     ));
-    assert_eq!(app.engine().lock().unwrap().roadmap().chunks[0], original);
+    assert_eq!(
+        app.engine().lock().unwrap().roadmap().chunks[0],
+        original.value
+    );
     let blocked = app
         .update_chunk(
             "feature",
@@ -119,7 +122,7 @@ fn native_blocker_commands_validate_and_clear_through_the_same_patch() {
         )
         .unwrap();
     assert_eq!(
-        blocked.blocked_by.unwrap().evidence.as_deref(),
+        blocked.value.blocked_by.unwrap().evidence.as_deref(),
         Some("think:7")
     );
     assert!(
@@ -131,6 +134,7 @@ fn native_blocker_commands_validate_and_clear_through_the_same_patch() {
             }
         )
         .unwrap()
+        .value
         .blocked_by
         .is_none()
     );
@@ -162,7 +166,7 @@ fn native_queries_include_shared_signals_and_keep_lane_isolation() {
         )
         .unwrap();
     signals
-        .research(&signal.id, "Evidence".into(), 0.9, vec![], None)
+        .research(&signal.value.id, "Evidence".into(), 0.9, vec![], None)
         .unwrap();
     let app = app.with_signal(signals.engine());
     assert_eq!(app.status().unwrap()["pending_signals"], 1);
@@ -282,6 +286,7 @@ fn obsoleting_the_last_open_chunk_keeps_exact_saved_focus_and_other_lanes() {
     } = app
         .focus_set("lane-a", "Delivery", FocusMode::Shape)
         .unwrap()
+        .value
     else {
         panic!("focus set must return the selected frontier");
     };

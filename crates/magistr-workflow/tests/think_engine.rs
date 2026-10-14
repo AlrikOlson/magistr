@@ -168,7 +168,7 @@ fn response_warns_when_step_exceeds_estimate() {
 fn revise_estimate_updates_last_step_in_place() {
     let mut s = ReasoningServer::new(quiet_config());
     let _ = s.process_step_native(step_n(1));
-    let (prev, new) = s.revise_estimate(7).expect("revise should succeed");
+    let (prev, new) = s.revise_estimate(7).expect("revise should succeed").value;
     assert_eq!(prev, 3);
     assert_eq!(new, 7);
     assert_eq!(s.history().steps.last().unwrap().estimated_total, 7);
@@ -403,8 +403,6 @@ fn conflicting_branch_metadata_rejects_without_mutating_records_or_revision_stat
 
 #[test]
 fn branch_lifecycle_is_isolated_and_restored_when_switching_sessions() {
-    use magistr_workflow::think::domain::BranchStatus;
-
     let directory = TempDir::new().unwrap();
     let mut config = quiet_config();
     config.features.enable_sessions = true;
@@ -438,12 +436,18 @@ fn branch_lifecycle_is_isolated_and_restored_when_switching_sessions() {
     let mut back = step_n(0);
     back.session_id = Some("first".into());
     server.process_step_native(back.clone()).unwrap();
-    assert_eq!(server.branches()[&id].status, BranchStatus::Abandoned);
+    assert_eq!(
+        server.branches()[&id].status,
+        magistr_workflow::think::domain::BranchStatus::Abandoned
+    );
     drop(server);
 
     let mut reopened = ReasoningServer::new_for_project(config, "branch-sessions".into());
     reopened.process_step_native(back).unwrap();
-    assert_eq!(reopened.branches()[&id].status, BranchStatus::Abandoned);
+    assert_eq!(
+        reopened.branches()[&id].status,
+        magistr_workflow::think::domain::BranchStatus::Abandoned
+    );
     assert_eq!(
         reopened.branches()[&id].name,
         "Do retry limits survive restart?"
@@ -487,7 +491,6 @@ fn a_rejected_branch_in_another_session_preserves_the_active_session_and_history
 
 #[test]
 fn a_trimmed_branch_origin_does_not_end_the_investigation() {
-    use magistr_workflow::think::domain::BranchStatus;
     let directory = TempDir::new().unwrap();
     let mut config = quiet_config();
     config.system.max_history_size = 3;
@@ -534,7 +537,10 @@ fn a_trimmed_branch_origin_does_not_end_the_investigation() {
 
     let reopened = ReasoningServer::new_for_project(config, "trimmed-branch".into());
     let branch = &reopened.branches()[&id];
-    assert_eq!(branch.status, BranchStatus::Merged);
+    assert_eq!(
+        branch.status,
+        magistr_workflow::think::domain::BranchStatus::Merged
+    );
     assert_eq!(branch.merged_into, Some(6));
     assert_eq!(branch.from_step, 1);
     assert_eq!(
@@ -549,74 +555,51 @@ fn a_trimmed_branch_origin_does_not_end_the_investigation() {
 
 #[test]
 fn reopening_preserves_authored_branch_references_across_sessions() {
-    use magistr_workflow::think::domain::ThinkHistory;
-    use magistr_workflow::think::persistence::Persistence;
-
     let directory = TempDir::new().unwrap();
-    let mut config = quiet_config();
-    config.persistence.enabled = true;
-    config.persistence.data_dir = directory.path().to_path_buf();
+    let mut config = persisting_config(&directory);
     config.features.enable_sessions = true;
-    let persistence = Persistence::for_project(&config.persistence, "authored-branches");
-    for (name, day) in [("first", 1), ("second", 2)] {
-        let mut source_config = quiet_config();
-        source_config.features.enable_sessions = false;
-        let mut source =
-            ReasoningServer::new_for_project(source_config, "authored-branches".into());
-        let mut initial = step_n(1);
-        initial.thought = format!("The {name} investigation begins.");
-        source.process_step_native(initial).unwrap();
-        let mut branch = step_n(2);
+    let mut writer = ReasoningServer::new_for_project(config.clone(), "authored-branches".into());
+    let mut saved = Vec::new();
+    for name in ["first", "second"] {
+        let mut initial = step_n(0);
+        initial.session_id = Some(name.into());
+        let origin = writer.process_step_native(initial).unwrap().step;
+        let mut branch = step_n(0);
+        branch.session_id = Some(name.into());
         branch.branch_id = Some(name.into());
-        branch.branch_from = Some(1);
+        branch.branch_from = Some(origin.step_number);
         branch.branch_name = Some(format!("Question in {name} session"));
-        source.process_step_native(branch).unwrap();
-        source.set_branch_status(name, "merged", Some(2)).unwrap();
-        let mut history: ThinkHistory = serde_json::from_value(source.history_snapshot()).unwrap();
-        let session = namespace_session_id("authored-branches", name);
-        history.session_id = Some(session.clone());
-        for (index, step) in history.steps.iter_mut().enumerate() {
-            step.timestamp = Some(format!("2025-01-0{day}T00:0{index}:00Z"));
-            step.session_id = Some(session.clone());
-        }
-        persistence.save_session(&session, &history);
+        let member = writer.process_step_native(branch).unwrap().step;
+        writer
+            .set_branch_status(name, "merged", Some(member.step_number))
+            .unwrap();
+        saved.push((origin, member));
     }
-
-    let mut server = ReasoningServer::new_for_project(config, "authored-branches".into());
-    let mut back = step_n(0);
-    back.session_id = Some("second".into());
-    server.process_step_native(back).unwrap();
+    drop(writer);
+    config.features.default_session_id = Some("second".into());
+    let server = ReasoningServer::new_for_project(config, "authored-branches".into());
     let branch = &server.branches()["second"];
-    assert_eq!(branch.from_step, 1);
-    assert_eq!(branch.merged_into, Some(2));
+    assert_eq!(branch.from_step, saved[1].0.step_number);
+    assert_eq!(branch.merged_into, Some(saved[1].1.step_number));
     assert_eq!(
-        branch
-            .steps
-            .iter()
-            .map(|step| step.step_number)
-            .collect::<Vec<_>>(),
-        vec![2]
+        branch.status,
+        magistr_workflow::think::domain::BranchStatus::Merged
     );
-    assert_eq!(branch.steps[0].branch_from, Some(1));
+    assert_eq!(branch.steps[0].record_id, saved[1].1.record_id);
+    assert_eq!(saved[0].0.step_number, 1);
+    assert_eq!(saved[1].0.step_number, 3);
 }
 
 #[test]
 fn omitted_revision_number_in_reopened_session_follows_its_authored_records() {
-    use magistr_workflow::think::domain::ThinkHistory;
-    use magistr_workflow::think::persistence::Persistence;
     let directory = TempDir::new().unwrap();
-    let mut config = quiet_config();
+    let mut config = persisting_config(&directory);
     config.features.enable_sessions = true;
-    config.persistence.enabled = true;
-    config.persistence.data_dir = directory.path().to_path_buf();
-    let mut source = ReasoningServer::new_for_project(quiet_config(), "revision-session".into());
-    source.process_step_native(step_n(100)).unwrap();
-    let session = namespace_session_id("revision-session", "review");
-    let mut history: ThinkHistory = serde_json::from_value(source.history_snapshot()).unwrap();
-    history.session_id = Some(session.clone());
-    history.steps[0].session_id = Some(session.clone());
-    Persistence::for_project(&config.persistence, "revision-session")
-        .save_session(&session, &history);
+    let mut source = ReasoningServer::new_for_project(config.clone(), "revision-session".into());
+    let mut original = step_n(100);
+    original.session_id = Some("review".into());
+    let recorded = source.process_step_native(original).unwrap();
+    drop(source);
     let mut server = ReasoningServer::new_for_project(config, "revision-session".into());
     let mut revision = step_n(0);
     revision.session_id = Some("review".into());
@@ -624,7 +607,9 @@ fn omitted_revision_number_in_reopened_session_follows_its_authored_records() {
     revision.revision_reason = Some("The retry evidence changed.".into());
     let result = server.process_step_native(revision).unwrap();
     assert_eq!(result.step.step_number, 101);
-    assert_eq!(server.step_by_number(100).unwrap().revised_by, Some(101));
+    let original = server.step_by_number(100).unwrap();
+    assert_eq!(original.revised_by, Some(101));
+    assert_eq!(original.record_id, recorded.step.record_id);
 }
 
 #[test]
@@ -954,7 +939,7 @@ fn merged_into_round_trips_through_set_branch_status() {
     let _ = s.process_step_native(step_n(3)); // synthesis step
 
     let branch_id = s.branches().keys().next().unwrap().clone();
-    let (_, _) = s
+    let _ = s
         .set_branch_status(&branch_id, "merged", Some(3))
         .expect("merged should succeed");
     assert_eq!(s.branches()[&branch_id].merged_into, Some(3));
@@ -1438,13 +1423,13 @@ fn persistence_writes_atomically_no_tmp_file_left_behind() {
 }
 
 #[test]
-fn persistence_clear_removes_disk_files() {
+fn persistence_clear_commits_empty_project_and_retains_lock() {
     let tmp = TempDir::new().unwrap();
     let mut s = ReasoningServer::new(persisting_config(&tmp));
     let _ = s.process_step_native(step_n(1));
-    s.clear_history();
+    s.clear_history().unwrap();
     let dir = tmp.path().join("think").join("sessions");
-    assert_eq!(std::fs::read_dir(&dir).unwrap().count(), 0);
+    assert_eq!(std::fs::read_dir(&dir).unwrap().count(), 2);
     let reloaded = ReasoningServer::new(persisting_config(&tmp));
     assert!(reloaded.history().steps.is_empty(), "no steps after wipe");
 }
@@ -1456,12 +1441,11 @@ fn persistence_rejects_unsafe_session_ids() {
     cfg.features.enable_sessions = true;
     let mut s = ReasoningServer::new(cfg);
 
-    // Path-traversal attempt: should be silently dropped from disk; the
-    // in-memory step still records (we don't fail the call, just refuse to
-    // persist that unsafe id).
+    // Invalid session identity refuses the whole operation before saving.
     let mut s1 = step_n(1);
     s1.session_id = Some("../escape".into());
-    let _ = s.process_step_native(s1);
+    assert!(s.process_step_native(s1).is_err());
+    assert!(s.history().steps.is_empty());
 
     assert_eq!(std::fs::read_dir(tmp.path()).unwrap().count(), 0);
 }
@@ -1625,11 +1609,12 @@ fn set_branch_status_marks_and_validates() {
         .expect("branch should exist")
         .clone();
 
-    let (prev, new) = s
+    let change = s
         .set_branch_status(&branch_id, "abandoned", None)
-        .expect("should succeed");
-    assert_eq!(prev, "active");
-    assert_eq!(new, "abandoned");
+        .expect("should succeed")
+        .value;
+    assert_eq!(change.previous, "active");
+    assert_eq!(change.current, "abandoned");
 
     // Unknown id is an error, not a panic.
     assert!(
@@ -2276,7 +2261,7 @@ fn clear_history_resets_state() {
     b.branch_from = Some(1);
     b.branch_id = Some("branch-1".into());
     let _ = s.process_step_native(b);
-    s.clear_history();
+    s.clear_history().unwrap();
     assert_eq!(s.history().steps.len(), 0);
     assert!(!s.history().completed);
     assert_eq!(s.branches().len(), 0);
@@ -2635,7 +2620,7 @@ fn adopt_steps_rejects_renumbered_content_clones() {
     for s in clones.iter_mut() {
         s.step_number += 10;
     }
-    let adopted = server.adopt_steps(clones);
+    let adopted = server.adopt_steps(clones).unwrap().value;
     assert_eq!(adopted, 0, "content clones must not be adopted");
     assert_eq!(server.history().steps.len(), 2);
 }
@@ -2676,7 +2661,7 @@ fn adopt_steps_rejects_clones_of_steps_outside_the_memory_window() {
     for s in clones.iter_mut() {
         s.step_number += 100;
     }
-    let adopted = server.adopt_steps(clones);
+    let adopted = server.adopt_steps(clones).unwrap().value;
     assert_eq!(
         adopted, 0,
         "clones of archived steps must be rejected by the archive-aware guard"
@@ -2691,68 +2676,33 @@ fn adopt_steps_rejects_clones_of_steps_outside_the_memory_window() {
 
 #[test]
 fn reopening_preserves_authored_session_numbers_and_record_ids() {
-    // Opening a stored history preserves every authored record identity.
-    use magistr_workflow::think::domain::{HistoryMetadata, ThinkHistory};
-    use magistr_workflow::think::persistence::Persistence;
-
-    let tmp = TempDir::new().unwrap();
-    let project_id = resolve_project_id();
-
-    let mk = |n: u32, ts: &str, rid: &str| {
-        let mut s = step_n(n);
-        s.timestamp = Some(ts.into());
-        s.record_id = Some(rid.into());
-        s
-    };
-    let mk_hist = |suffix: &str, steps: Vec<ThinkStep>, created: &str| ThinkHistory {
-        steps,
-        branches: Some(Vec::new()),
-        completed: false,
-        session_id: Some(format!("{project_id}{PROJECT_SEP}{suffix}")),
-        created_at: Some(created.into()),
-        updated_at: Some(created.into()),
-        metadata: Some(HistoryMetadata {
-            project_id: Some(project_id.clone()),
-            ..HistoryMetadata::default()
-        }),
-    };
-    // Existing session histories are observed without rewriting their numbers.
-    let history_a = mk_hist(
-        "session-a",
-        vec![
-            mk(1, "2025-01-01T00:00:00Z", "rid-a1"),
-            mk(2, "2025-01-01T00:01:00Z", "rid-a2"),
-        ],
-        "2025-01-01T00:00:00Z",
-    );
-    let history_b = mk_hist(
-        "session-b",
-        vec![
-            mk(1, "2025-01-02T00:00:00Z", "rid-b1"),
-            mk(2, "2025-01-02T00:01:00Z", "rid-b2"),
-        ],
-        "2025-01-02T00:00:00Z",
-    );
-    {
-        let pers_cfg = persisting_config(&tmp).persistence;
-        let pers = Persistence::for_project(&pers_cfg, &project_id);
-        pers.save_session(&format!("{project_id}{PROJECT_SEP}session-a"), &history_a);
-        pers.save_session(&format!("{project_id}{PROJECT_SEP}session-b"), &history_b);
+    let directory = TempDir::new().unwrap();
+    let mut config = persisting_config(&directory);
+    config.features.enable_sessions = true;
+    let mut writer = ReasoningServer::new_for_project(config.clone(), "identity-project".into());
+    let mut saved = Vec::new();
+    for name in ["session-a", "session-b"] {
+        for _ in 0..2 {
+            let mut step = step_n(0);
+            step.session_id = Some(name.into());
+            saved.push(writer.process_step_native(step).unwrap().step);
+        }
     }
-
-    let mut cfg = persisting_config(&tmp);
-    cfg.features.enable_sessions = true;
-    let s = ReasoningServer::new(cfg);
-
-    let sb = &s
-        .sessions()
-        .get(&format!("{project_id}{PROJECT_SEP}session-b"))
-        .unwrap()
-        .history;
-    // Loading neither renumbers steps nor mints replacement record ids.
-    assert_eq!(sb.steps[0].step_number, 1);
-    assert_eq!(sb.steps[0].record_id.as_deref(), Some("rid-b1"));
-    assert_eq!(sb.steps[1].record_id.as_deref(), Some("rid-b2"));
+    drop(writer);
+    let reopened = ReasoningServer::new_for_project(config, "identity-project".into());
+    for (index, step) in saved.iter().enumerate() {
+        let session = step.session_id.as_deref().unwrap();
+        let stored = &reopened.sessions()[session].history.steps[index % 2];
+        assert_eq!(stored.step_number, step.step_number);
+        assert_eq!(stored.record_id, step.record_id);
+    }
+    assert_eq!(
+        saved
+            .iter()
+            .map(|step| step.step_number)
+            .collect::<Vec<_>>(),
+        vec![1, 2, 3, 4]
+    );
 }
 
 #[test]
@@ -2766,37 +2716,27 @@ fn new_steps_mint_record_id_and_envelope_uses_it() {
         .expect("record_id minted at creation");
     assert!(rid.len() >= 32, "uuid-shaped id, got {rid}");
 
-    let env = magistr_workflow::cloud::build::from_step("tenant-x", step);
+    let env = magistr_workflow::cloud::build::from_step("tenant-x", step).unwrap();
     assert_eq!(env.id, rid, "cloud envelope id must be the record id");
 }
 
 #[test]
-fn adopt_steps_dedupes_on_record_id_even_when_content_differs() {
-    let mut s = ReasoningServer::new(quiet_config());
-    let _ = s.process_step_native(step_n(1));
-    let mut clone = s.history().steps[0].clone();
-    clone.step_number = 50;
-    clone.thought = "mutated copy of the same record".into();
-    let adopted = s.adopt_steps(vec![clone]);
-    assert_eq!(adopted, 0, "same record_id must not be adopted twice");
+fn adopt_steps_refuses_conflicting_authored_content_for_one_record_id() {
+    let mut server = ReasoningServer::new(quiet_config());
+    server.process_step_native(step_n(1)).unwrap();
+    let before = server.history_snapshot();
+    let mut conflicting = server.history().steps[0].clone();
+    conflicting.step_number = 50;
+    conflicting.thought = "different authored content".into();
+    let error = server.adopt_steps(vec![conflicting]).unwrap_err();
+    assert_eq!(error.effect(), "none");
+    assert_eq!(server.history_snapshot(), before);
 }
-
-// ─── Memory MAINTENANCE ─────────────────────────────────────────────────────
-//
-// The pin bit is the one quantity in this engine that nothing bounds: pinning
-// sets it and nothing ever clears it, so every pin competes for the same
-// pinned budget forever. `maintenance_report` PROPOSES which pins have stopped
-// earning their slot. These tests hold it to the two halves of that contract —
-// it proposes safely, and it never acts.
 
 use magistr_workflow::think::config::PIN_DECAY_LAG;
 use magistr_workflow::think::domain::DepEdge;
 use magistr_workflow::think::engine::maintenance::{MAINTENANCE_CANDIDATE_CAP, PinPressure};
 
-/// LOSSLESS, HALF ONE: the policy computation is pure. `maintenance_report`
-/// and the checkpoint that carries it must leave the trace byte-identical —
-/// a report that quietly unpinned as it counted would still produce a
-/// plausible-looking response.
 #[test]
 fn the_maintenance_report_never_mutates_the_trace() {
     let s = server_with_all_pinned(60);

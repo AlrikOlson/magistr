@@ -6,7 +6,13 @@
 //! Dependency direction: this module depends on `crate::roadmap::domain` (pure)
 //! and `crate::infra` (persistence) — never the reverse (DIP).
 
+mod committed_events;
+mod editing;
+mod mutation_error;
 mod observation;
+mod transaction;
+use magistr_workflow_contracts::Observed;
+pub use mutation_error::RoadmapMutationError;
 mod proposal_resolution;
 mod readiness;
 
@@ -254,43 +260,10 @@ impl RoadmapEngine {
         self
     }
 
-    /// Whether anything written here survives this process.
-    ///
-    /// Reported on every focus answer rather than left implicit, because a
-    /// focus that silently evaporates at restart is worse than no focus at
-    /// all: the caller would keep believing it had one. A person who is told
-    /// "not persistent" can decide to re-focus each session; a person who is
-    /// not told simply loses their place without explanation.
+    /// Whether this engine commits to a file rather than memory.
     #[must_use]
     pub fn persistence_enabled(&self) -> bool {
         self.persistence.as_ref().is_some_and(Persistence::enabled)
-    }
-
-    /// Locked merge-on-save (family-stores-merge-on-save): chunks another
-    /// live process acked are folded in, never clobbered. Merge policy:
-    /// [`crate::roadmap::domain::merge_roadmaps`]. Memory adopts what
-    /// landed — the merge keeps this memory's chunks first, in order, and
-    /// appends the ones another writer acked, so every index a caller
-    /// holds stays valid and now names the merged record — and remembers
-    /// the written file's stamp. Each refresh validates the stored records.
-    fn persist(&mut self) {
-        let Some(p) = &self.persistence else {
-            return;
-        };
-        match p.save_merging(
-            &self.project_id,
-            &self.roadmap,
-            crate::roadmap::domain::merge_roadmaps,
-        ) {
-            Ok(Some(written)) => {
-                if let Some(merged) = written.merged {
-                    self.roadmap = merged;
-                }
-                self.stamp = written.stamp;
-            }
-            Ok(None) => {}
-            Err(e) => tracing::warn!("think-and-ship: roadmap persist failed: {e}"),
-        }
     }
 
     /// Validate the selected file and adopt its records before acting.
@@ -308,14 +281,6 @@ impl RoadmapEngine {
         Utc::now().to_rfc3339()
     }
 
-    fn index_of(&self, id: &str) -> Result<usize, String> {
-        self.roadmap
-            .chunks
-            .iter()
-            .position(|c| c.id == id)
-            .ok_or_else(|| format!("chunk '{id}' not found"))
-    }
-
     /// Read-only access for the wire/family layer.
     pub fn roadmap(&self) -> &Roadmap {
         &self.roadmap
@@ -329,24 +294,21 @@ impl RoadmapEngine {
     /// (reconcile-recency-guard). A SILENT merge — it does NOT
     /// emit a mutation frame or push back to the cloud; a reconcile that
     /// re-emitted would loop the pull straight back into a push. Persists.
-    pub fn upsert_chunk(&mut self, chunk: Chunk) {
-        // The same refusal as `add_chunk_with_content`, at the cloud door: a
-        // record with no id cannot be addressed by anything downstream. The
-        // push lane already skips these (`cloud::backfill`), so accepting one
-        // here would only re-import a defect the other doors now reject.
-        if chunk.id.trim().is_empty() {
-            return;
-        }
-        match self.index_of(&chunk.id) {
-            Ok(idx) => {
-                if !crate::roadmap::domain::chunk_wins(&chunk, &self.roadmap.chunks[idx]) {
-                    return; // local copy is as new or newer — nothing to do
-                }
-                self.roadmap.chunks[idx] = chunk;
-            }
-            Err(_) => self.roadmap.chunks.push(chunk),
-        }
-        self.persist();
+    pub fn upsert_chunk(&mut self, chunk: Chunk) -> Result<Observed<bool>, RoadmapMutationError> {
+        self.upsert_chunk_with_tracker(chunk, Vec::new(), Vec::new())
+    }
+
+    pub fn upsert_chunk_with_tracker(
+        &mut self,
+        chunk: Chunk,
+        links: Vec<TrackerLink>,
+        opt_ins: Vec<TrackerOptIn>,
+    ) -> Result<Observed<bool>, RoadmapMutationError> {
+        self.mutate(|edit| {
+            let adopted = edit.upsert_chunk(chunk)?;
+            let sidecars = edit.adopt_tracker_state(links, opt_ins)?;
+            Ok(adopted || sidecars > 0)
+        })
     }
 
     /// Add a new chunk. Errors on a duplicate id.
@@ -361,20 +323,20 @@ impl RoadmapEngine {
         acceptance: Vec<String>,
         deps: Vec<String>,
         shared: bool,
-    ) -> Result<&Chunk, String> {
-        self.add_chunk_with_content(
-            id,
-            title,
-            String::new(),
-            status,
-            priority,
-            description,
-            acceptance,
-            deps,
-            shared,
-            None,
-            None,
-        )
+    ) -> Result<Observed<Chunk>, RoadmapMutationError> {
+        self.mutate(|edit| {
+            edit.add_chunk(
+                id,
+                title,
+                status,
+                priority,
+                description,
+                acceptance,
+                deps,
+                shared,
+            )
+            .cloned()
+        })
     }
 
     /// [`Self::add_chunk`] carrying the optional structured body — the rich
@@ -394,107 +356,23 @@ impl RoadmapEngine {
         shared: bool,
         content: Option<crate::content::StructuredContent>,
         group: Option<String>,
-    ) -> Result<&Chunk, String> {
-        // The id is the one field every other verb keys on: a chunk without
-        // one cannot be linked, mutated, mirrored, or drawn. Two real stores
-        // held such a record — both admitted here, back when this door only
-        // checked for duplicates. This check is what makes `name::derive`'s
-        // "the engine rejects that id upstream" true.
-        if id.trim().is_empty() {
-            return Err(
-                "a chunk needs an id — it is the field every other verb addresses it by"
-                    .to_string(),
-            );
-        }
-        if self.roadmap.chunks.iter().any(|c| c.id == id) {
-            return Err(format!("chunk '{id}' already exists"));
-        }
-        // "Required or derived, never absent": a caller may omit the name and
-        // get a usable one, but no path exists that creates a nameless chunk.
-        // An over-budget name IS rejected — the whole point of the field is that
-        // a sentence cannot be what a node wears, and accepting one here would
-        // be the leak that reopens the defect.
-        let name = match name.trim() {
-            "" => crate::roadmap::name::derive(&id),
-            given => {
-                if let Some(why) = crate::roadmap::name::why_unfit(given) {
-                    return Err(format!("chunk '{id}': {why}"));
-                }
-                given.to_string()
-            }
-        };
-        // The workstream is validated BEFORE anything is written, and rejected
-        // as a whole call rather than dropped. A chunk born ungrouped because
-        // its group was quietly ignored is invisible to every focused read —
-        // `next_in_group` will not offer it and the frontier will not count
-        // it — and nothing about the created chunk says why. Refusing here is
-        // the only outcome a caller can act on.
-        let group = Self::clean_group(group);
-        if let Some(name) = &group
-            && let Some(why) = self.why_group_unfit(name, Some(&id))
-        {
-            return Err(format!("cannot group chunk '{id}': {why}"));
-        }
-        let now = Self::now();
-        // Captured before `id` moves into the chunk: the inherited opt-in below
-        // needs to name it, and the status decides whether it qualifies.
-        let born = id.clone();
-        let born_active = status.is_active();
-        self.roadmap.chunks.push(Chunk {
-            tier: None,
-            id,
-            title,
-            name,
-            status,
-            priority,
-            description,
-            content,
-            notes: String::new(),
-            group,
-            acceptance,
-            deps,
-            cross_refs: Vec::new(),
-            shared,
-            reprioritize: None,
-            status_proposal: None,
-            title_proposal: None,
-            obsoleted_reason: None,
-            blocked_by: None,
-            // Stamped at birth: this engine is this project, so a chunk it
-            // records is provably ours and every later copy carries the proof.
-            project_id: Some(self.project_id.clone()),
-            created_at: now.clone(),
-            updated_at: now,
-        });
-        self.persist();
-        let snapshot = self.roadmap.chunks.last().unwrap().clone();
-        self.record_event(RoadmapFrame::ChunkAdded { chunk: snapshot });
-
-        // THE INHERITANCE, and the only place it happens
-        // (tracker-optin-never-grows). A project whose owner explicitly ran
-        // `tracker on` should not have to re-consent to every chunk the plan
-        // grows; the argument for reversing the silent-by-default rule, and the
-        // reason it costs nothing, is written at
-        // [`crate::tracker::config::inherited_opt_in`], which is what decides
-        // whether this field is set at all.
-        //
-        // That this is inside `add_chunk` — reachable only by a chunk coming
-        // into existence — is what makes "never a retroactive sweep" structural
-        // rather than a promise: there is no loop here that could reach a chunk
-        // that already exists, so there is nothing to accidentally point at one.
-        if born_active && let Some(provider) = self.inherit_opt_in.clone() {
-            // Ignored deliberately: the chunk exists (we just made it) and the
-            // provider is non-empty (the setter filters), so the only way this
-            // errors is a future refactor, and failing to opt in must never
-            // fail the creation of the chunk itself.
-            let _ = self.set_tracker_opt_in(&born, &provider, true);
-        }
-
-        self.roadmap
-            .chunks
-            .iter()
-            .find(|c| c.id == born)
-            .ok_or_else(|| "chunk vanished after add".to_string())
+    ) -> Result<Observed<Chunk>, RoadmapMutationError> {
+        self.mutate(|edit| {
+            edit.add_chunk_with_content(
+                id,
+                title,
+                name,
+                status,
+                priority,
+                description,
+                acceptance,
+                deps,
+                shared,
+                content,
+                group,
+            )
+            .cloned()
+        })
     }
 
     /// Move a chunk to a new status, validated against the transition table.
@@ -504,29 +382,12 @@ impl RoadmapEngine {
     /// [`Self::propose_status`]). Moving to the suggested status accepts the
     /// suggestion; moving anywhere else supersedes it. Either way the human
     /// acted on the field, which is all a proposal ever asks for.
-    pub fn set_status(&mut self, id: &str, to: ChunkStatus) -> Result<&Chunk, String> {
-        let idx = self.index_of(id)?;
-        let from = self.roadmap.chunks[idx].status;
-        // Starting scheduled work requires readiness. Done -> InProgress is
-        // completion revocation for an existing session, not a new start.
-        if to == ChunkStatus::InProgress
-            && matches!(from, ChunkStatus::Pending | ChunkStatus::Blocked)
-        {
-            self.require_ready(&self.roadmap.chunks[idx])?;
-        }
-        if !from.allows(to) {
-            return Err(format!(
-                "illegal transition for chunk '{id}': {from:?} -> {to:?}"
-            ));
-        }
-        let c = &mut self.roadmap.chunks[idx];
-        c.status = to;
-        c.status_proposal = None;
-        c.updated_at = Self::now();
-        self.persist();
-        let snapshot = self.roadmap.chunks[idx].clone();
-        self.record_event(RoadmapFrame::ChunkChanged { chunk: snapshot });
-        Ok(&self.roadmap.chunks[idx])
+    pub fn set_status(
+        &mut self,
+        id: &str,
+        to: ChunkStatus,
+    ) -> Result<Observed<Chunk>, RoadmapMutationError> {
+        self.mutate(|edit| edit.set_status(id, to).cloned())
     }
 
     /// Patch a chunk's descriptive fields (status is handled by `set_status`).
@@ -542,45 +403,11 @@ impl RoadmapEngine {
         acceptance: Option<Vec<String>>,
         deps: Option<Vec<String>>,
         content: Option<crate::content::StructuredContent>,
-    ) -> Result<&Chunk, String> {
-        let idx = self.index_of(id)?;
-        let c = &mut self.roadmap.chunks[idx];
-        if let Some(t) = title {
-            // An explicit title edit is the human speaking about exactly the
-            // field a title proposal is about, so it disposes the proposal —
-            // otherwise the projector would keep sending the conceded value
-            // and the edit the human just made could never reach the tracker.
-            if c.title != t {
-                c.title_proposal = None;
-            }
-            c.title = t;
-        }
-        if let Some(p) = priority {
-            // Same rule as the title edit above, for the reprioritize sibling:
-            // an explicit priority edit is the human acting on exactly the
-            // field the proposal is about, so it disposes the proposal.
-            if c.priority != p {
-                c.reprioritize = None;
-            }
-            c.priority = p;
-        }
-        if let Some(d) = description {
-            c.description = d;
-        }
-        if let Some(a) = acceptance {
-            c.acceptance = a;
-        }
-        if let Some(d) = deps {
-            c.deps = d;
-        }
-        if let Some(sc) = content {
-            c.content = Some(sc);
-        }
-        c.updated_at = Self::now();
-        self.persist();
-        let snapshot = self.roadmap.chunks[idx].clone();
-        self.record_event(RoadmapFrame::ChunkChanged { chunk: snapshot });
-        Ok(&self.roadmap.chunks[idx])
+    ) -> Result<Observed<Chunk>, RoadmapMutationError> {
+        self.mutate(|edit| {
+            edit.update_chunk(id, title, priority, description, acceptance, deps, content)
+                .cloned()
+        })
     }
 
     /// Put a chunk in a workstream, or take it out of one.
@@ -599,57 +426,13 @@ impl RoadmapEngine {
     /// the only place that can tell a caller at the moment it happens; the
     /// alternative was a red diagnostic hours afterwards with no memory of who
     /// wrote it. The phrase returned is the one [`region::why_unfit`] prints.
-    /// Why `name` cannot be a workstream, or `None` if it can.
-    ///
-    /// THE one place the rule lives, so the two doors into it — naming a
-    /// workstream when a chunk is created, and re-naming one later — cannot
-    /// drift apart. They must agree exactly: a group `add_chunk` accepts and
-    /// `set_group` would reject is a backdoor around the rule, and the caller
-    /// would only discover it the next time they touched the chunk.
-    ///
-    /// `prospective_id` is the id of a chunk that does not exist YET. Passing
-    /// it matters: `region::why_unfit` compares the name against every chunk's
-    /// id prefix, so validating a birth without the newborn's own prefix would
-    /// accept `Billing` for a chunk called `billing-1` — which `set_group`
-    /// refuses, because a region has to name a place rather than repeat a slug.
-    fn why_group_unfit(&self, name: &str, prospective_id: Option<&str>) -> Option<String> {
-        let prefixes: Vec<String> = self
-            .roadmap
-            .chunks
-            .iter()
-            .map(|c| region::id_prefix(&c.id).to_string())
-            .chain(prospective_id.map(|id| region::id_prefix(id).to_string()))
-            .collect();
-        region::why_unfit(name, prefixes.iter().map(String::as_str))
-    }
-
-    /// Trim a caller's group to `None` (ungrouped) or a real name.
-    fn clean_group(group: Option<String>) -> Option<String> {
-        group
-            .map(|g| g.trim().to_string())
-            .filter(|g| !g.is_empty())
-    }
-
-    pub fn set_group(&mut self, id: &str, group: Option<String>) -> Result<&Chunk, String> {
-        let idx = self.index_of(id)?;
-        let cleaned = Self::clean_group(group);
-        if let Some(name) = &cleaned
-            && let Some(why) = self.why_group_unfit(name, None)
-        {
-            return Err(format!("cannot group chunk '{id}': {why}"));
-        }
-        let c = &mut self.roadmap.chunks[idx];
-        if c.group == cleaned {
-            // No-op writes still cost a persist and an event, and a projector
-            // that re-groups every push would churn the tracker for nothing.
-            return Ok(&self.roadmap.chunks[idx]);
-        }
-        c.group = cleaned;
-        c.updated_at = Self::now();
-        self.persist();
-        let snapshot = self.roadmap.chunks[idx].clone();
-        self.record_event(RoadmapFrame::ChunkChanged { chunk: snapshot });
-        Ok(&self.roadmap.chunks[idx])
+    /// Validate and update a chunk’s workstream in its owning transaction.
+    pub fn set_group(
+        &mut self,
+        id: &str,
+        group: Option<String>,
+    ) -> Result<Observed<Chunk>, RoadmapMutationError> {
+        self.mutate(|edit| edit.set_group(id, group).cloned())
     }
 
     /// Rewrite the short label a node wears, leaving the sentence `title`
@@ -662,29 +445,12 @@ impl RoadmapEngine {
     ///
     /// Passing an empty name re-seeds from the id rather than clearing it: a
     /// nameless chunk is exactly what this field exists to make unreachable.
-    pub fn set_name(&mut self, id: &str, name: &str) -> Result<&Chunk, String> {
-        let idx = self.index_of(id)?;
-        let cleaned = match name.trim() {
-            "" => crate::roadmap::name::derive(id),
-            given => {
-                if let Some(why) = crate::roadmap::name::why_unfit(given) {
-                    return Err(format!("chunk '{id}': {why}"));
-                }
-                given.to_string()
-            }
-        };
-        let c = &mut self.roadmap.chunks[idx];
-        if c.name == cleaned {
-            // No-op writes still cost a persist and an event, and the projector
-            // would churn the tracker for nothing — same reasoning as set_group.
-            return Ok(&self.roadmap.chunks[idx]);
-        }
-        c.name = cleaned;
-        c.updated_at = Self::now();
-        self.persist();
-        let snapshot = self.roadmap.chunks[idx].clone();
-        self.record_event(RoadmapFrame::ChunkChanged { chunk: snapshot });
-        Ok(&self.roadmap.chunks[idx])
+    pub fn set_name(
+        &mut self,
+        id: &str,
+        name: &str,
+    ) -> Result<Observed<Chunk>, RoadmapMutationError> {
+        self.mutate(|edit| edit.set_name(id, name).cloned())
     }
 
     /// Every chunk whose name cannot serve as a node label, with the reason.
@@ -730,46 +496,18 @@ impl RoadmapEngine {
     /// so a mistyped switch can never strand a lane somewhere it did not ask to
     /// be. Chunk status is untouched — focus points at work, it does not start
     /// any.
-    pub fn focus_set(&mut self, lane: &str, group: &str, mode: FocusMode) -> Result<Focus, String> {
-        let lane = validate_lane(lane)?;
-        let resolved = match self.workstreams().resolve_current(group) {
-            WorkstreamResolution::Current { group } => group,
-            other => return Err(other.explain(group)),
-        };
-        let now = Self::now();
-        let focus = match self.roadmap.focuses.iter_mut().find(|f| f.lane == lane) {
-            Some(existing) => {
-                existing.group = resolved;
-                existing.mode = mode;
-                existing.updated_at = now;
-                existing.clone()
-            }
-            None => {
-                let focus = Focus {
-                    lane,
-                    group: resolved,
-                    mode,
-                    set_at: now.clone(),
-                    updated_at: now,
-                };
-                self.roadmap.focuses.push(focus.clone());
-                focus
-            }
-        };
-        self.persist();
-        Ok(focus)
+    pub fn focus_set(
+        &mut self,
+        lane: &str,
+        group: &str,
+        mode: FocusMode,
+    ) -> Result<Observed<Focus>, RoadmapMutationError> {
+        self.mutate(|edit| edit.focus_set(lane, group, mode))
     }
 
     /// Drop `lane`'s focus. `true` when there was one to drop.
-    pub fn focus_clear(&mut self, lane: &str) -> bool {
-        let lane = lane.trim();
-        let before = self.roadmap.focuses.len();
-        self.roadmap.focuses.retain(|f| f.lane != lane);
-        let removed = self.roadmap.focuses.len() != before;
-        if removed {
-            self.persist();
-        }
-        removed
+    pub fn focus_clear(&mut self, lane: &str) -> Result<Observed<bool>, RoadmapMutationError> {
+        self.mutate(|edit| edit.focus_clear(lane))
     }
 
     /// The next ready chunk INSIDE `group` — same three readiness conditions as
@@ -834,24 +572,12 @@ impl RoadmapEngine {
     }
 
     /// Mark a chunk obsoleted with a reason. Kept for history, never `next()`-ed.
-    pub fn obsolete_chunk(&mut self, id: &str, reason: String) -> Result<&Chunk, String> {
-        let idx = self.index_of(id)?;
-        let from = self.roadmap.chunks[idx].status;
-        if !from.allows(ChunkStatus::Obsoleted) {
-            return Err(format!("cannot obsolete chunk '{id}' from status {from:?}"));
-        }
-        let c = &mut self.roadmap.chunks[idx];
-        c.status = ChunkStatus::Obsoleted;
-        // The one status write outside `set_status`, so the field-scoped
-        // disposal rule applies here too: obsoleting is the strongest possible
-        // human statement about the status field.
-        c.status_proposal = None;
-        c.obsoleted_reason = Some(reason);
-        c.updated_at = Self::now();
-        self.persist();
-        let snapshot = self.roadmap.chunks[idx].clone();
-        self.record_event(RoadmapFrame::ChunkObsoleted { chunk: snapshot });
-        Ok(&self.roadmap.chunks[idx])
+    pub fn obsolete_chunk(
+        &mut self,
+        id: &str,
+        reason: String,
+    ) -> Result<Observed<Chunk>, RoadmapMutationError> {
+        self.mutate(|edit| edit.obsolete_chunk(id, reason).cloned())
     }
 
     // ── Proposals, and what disposes them ──────────────────────────────────
@@ -898,30 +624,11 @@ impl RoadmapEngine {
         suggested_status: ChunkStatus,
         reason: String,
         source: String,
-    ) -> Result<&Chunk, String> {
-        let idx = self.index_of(id)?;
-        let unchanged = self.roadmap.chunks[idx]
-            .status_proposal
-            .as_ref()
-            .is_some_and(|p| {
-                p.suggested_status == suggested_status && p.reason == reason && p.source == source
-            });
-        if unchanged {
-            return Ok(&self.roadmap.chunks[idx]);
-        }
-
-        let c = &mut self.roadmap.chunks[idx];
-        c.status_proposal = Some(crate::roadmap::domain::StatusProposal {
-            suggested_status,
-            reason,
-            proposed_at: Self::now(),
-            source,
-        });
-        c.updated_at = Self::now();
-        self.persist();
-        let snapshot = self.roadmap.chunks[idx].clone();
-        self.record_event(RoadmapFrame::ChunkChanged { chunk: snapshot });
-        Ok(&self.roadmap.chunks[idx])
+    ) -> Result<Observed<Chunk>, RoadmapMutationError> {
+        self.mutate(|edit| {
+            edit.propose_status(id, suggested_status, reason, source)
+                .cloned()
+        })
     }
 
     /// Record a conceded contested TITLE. Never changes the chunk's real
@@ -941,30 +648,11 @@ impl RoadmapEngine {
         suggested_title: String,
         reason: String,
         source: String,
-    ) -> Result<&Chunk, String> {
-        let idx = self.index_of(id)?;
-        let unchanged = self.roadmap.chunks[idx]
-            .title_proposal
-            .as_ref()
-            .is_some_and(|p| {
-                p.suggested_title == suggested_title && p.reason == reason && p.source == source
-            });
-        if unchanged {
-            return Ok(&self.roadmap.chunks[idx]);
-        }
-
-        let c = &mut self.roadmap.chunks[idx];
-        c.title_proposal = Some(crate::roadmap::domain::TitleProposal {
-            suggested_title,
-            reason,
-            proposed_at: Self::now(),
-            source,
-        });
-        c.updated_at = Self::now();
-        self.persist();
-        let snapshot = self.roadmap.chunks[idx].clone();
-        self.record_event(RoadmapFrame::ChunkChanged { chunk: snapshot });
-        Ok(&self.roadmap.chunks[idx])
+    ) -> Result<Observed<Chunk>, RoadmapMutationError> {
+        self.mutate(|edit| {
+            edit.propose_title(id, suggested_title, reason, source)
+                .cloned()
+        })
     }
 
     /// Resolve an open title proposal — the human act with both outcomes.
@@ -973,20 +661,12 @@ impl RoadmapEngine {
     /// proposal; `accept: false` clears it so the plan's title flows again on
     /// the next projection. Erring on a chunk with no open proposal is loud
     /// rather than a silent no-op: "resolved" must mean something happened.
-    pub fn resolve_title_proposal(&mut self, id: &str, accept: bool) -> Result<&Chunk, String> {
-        let idx = self.index_of(id)?;
-        let Some(proposal) = self.roadmap.chunks[idx].title_proposal.take() else {
-            return Err(format!("chunk '{id}' has no open title proposal"));
-        };
-        let c = &mut self.roadmap.chunks[idx];
-        if accept {
-            c.title = proposal.suggested_title;
-        }
-        c.updated_at = Self::now();
-        self.persist();
-        let snapshot = self.roadmap.chunks[idx].clone();
-        self.record_event(RoadmapFrame::ChunkChanged { chunk: snapshot });
-        Ok(&self.roadmap.chunks[idx])
+    pub fn resolve_title_proposal(
+        &mut self,
+        id: &str,
+        accept: bool,
+    ) -> Result<Observed<Chunk>, RoadmapMutationError> {
+        self.mutate(|edit| edit.resolve_title_proposal(id, accept).cloned())
     }
 
     /// Record a re-prioritization *proposal*. This never changes the chunk's
@@ -1003,27 +683,11 @@ impl RoadmapEngine {
         id: &str,
         suggested_priority: u32,
         reason: String,
-    ) -> Result<&Chunk, String> {
-        let idx = self.index_of(id)?;
-        let unchanged = self.roadmap.chunks[idx]
-            .reprioritize
-            .as_ref()
-            .is_some_and(|p| p.suggested_priority == suggested_priority && p.reason == reason);
-        if unchanged {
-            return Ok(&self.roadmap.chunks[idx]);
-        }
-
-        let c = &mut self.roadmap.chunks[idx];
-        c.reprioritize = Some(ReprioritizeProposal {
-            suggested_priority,
-            reason,
-            proposed_at: Self::now(),
-        });
-        c.updated_at = Self::now();
-        self.persist();
-        let snapshot = self.roadmap.chunks[idx].clone();
-        self.record_event(RoadmapFrame::ChunkChanged { chunk: snapshot });
-        Ok(&self.roadmap.chunks[idx])
+    ) -> Result<Observed<Chunk>, RoadmapMutationError> {
+        self.mutate(|edit| {
+            edit.propose_reprioritize(id, suggested_priority, reason)
+                .cloned()
+        })
     }
 
     // ── Cross-family integration ────────────────────────────────────────────
@@ -1035,38 +699,29 @@ impl RoadmapEngine {
     /// Start eligible pending work; recheck its current blockers and dependencies. Returns the
     /// chunk; the caller derives the `chunk:<id>` backref to pass to
     /// `ship_set_objective` / a think `execution_ref`.
-    pub fn start_chunk(&mut self, id: &str) -> Result<&Chunk, String> {
-        let idx = self.index_of(id)?;
-        self.require_ready(&self.roadmap.chunks[idx])?;
-        self.set_status(id, ChunkStatus::InProgress)
+    pub fn start_chunk(&mut self, id: &str) -> Result<Observed<Chunk>, RoadmapMutationError> {
+        self.mutate(|edit| edit.start_chunk(id).cloned())
     }
 
     /// Mark a chunk done, optionally attaching the proof-of-ship cross-ref
     /// (e.g. `task:<id>` or `check:<name>`). The ref is validated and stored
     /// in normalized form.
-    pub fn complete_chunk(&mut self, id: &str, ship_ref: Option<&str>) -> Result<&Chunk, String> {
-        if let Some(raw) = ship_ref {
-            // Validate before transitioning so a bad ref doesn't half-apply.
-            self.normalize_ref(raw)?;
-        }
-        self.set_status(id, ChunkStatus::Done)?;
-        if let Some(raw) = ship_ref {
-            self.push_cross_ref(id, raw)?;
-        }
-        let idx = self.index_of(id)?;
-        let snapshot = self.roadmap.chunks[idx].clone();
-        self.record_event(RoadmapFrame::ChunkCompleted { chunk: snapshot });
-        Ok(&self.roadmap.chunks[idx])
+    pub fn complete_chunk(
+        &mut self,
+        id: &str,
+        ship_ref: Option<&str>,
+    ) -> Result<Observed<Chunk>, RoadmapMutationError> {
+        self.mutate(|edit| edit.complete_chunk(id, ship_ref).cloned())
     }
 
     /// Attach any validated cross-reference (`think:N`, `task:X`, `action:N`,
     /// `check:X`, `chunk:X`) to a chunk. Duplicates are ignored.
-    pub fn link_chunk(&mut self, id: &str, cross_ref: &str) -> Result<&Chunk, String> {
-        self.push_cross_ref(id, cross_ref)?;
-        let idx = self.index_of(id)?;
-        let snapshot = self.roadmap.chunks[idx].clone();
-        self.record_event(RoadmapFrame::ChunkChanged { chunk: snapshot });
-        Ok(&self.roadmap.chunks[idx])
+    pub fn link_chunk(
+        &mut self,
+        id: &str,
+        cross_ref: &str,
+    ) -> Result<Observed<Chunk>, RoadmapMutationError> {
+        self.mutate(|edit| edit.link_chunk(id, cross_ref).cloned())
     }
 
     /// Bind a chunk to its twin in an external tracker, or update the binding
@@ -1087,54 +742,11 @@ impl RoadmapEngine {
         external_id: &str,
         content_hash: &str,
         version: Option<&str>,
-    ) -> Result<&TrackerLink, String> {
-        // Validate the chunk exists before mutating anything.
-        self.index_of(chunk_id)?;
-        let provider = provider.trim().to_ascii_lowercase();
-        let external_id = external_id.trim().to_string();
-        if provider.is_empty() || external_id.is_empty() {
-            return Err("tracker link needs a provider and an external id".to_string());
-        }
-        let now = Self::now();
-
-        match self
-            .roadmap
-            .links
-            .iter_mut()
-            .find(|l| l.chunk_id == chunk_id && l.provider == provider)
-        {
-            Some(link) => {
-                link.external_id = external_id.clone();
-                link.our_last_write_hash = content_hash.to_string();
-                link.last_seen_version = version.map(str::to_string);
-                link.updated_at = now;
-            }
-            None => self.roadmap.links.push(TrackerLink {
-                chunk_id: chunk_id.to_string(),
-                provider: provider.clone(),
-                external_id: external_id.clone(),
-                our_last_write_hash: content_hash.to_string(),
-                last_seen_version: version.map(str::to_string),
-                our_last_relations_hash: None,
-                our_last_authored_hash: None,
-                created_at: now.clone(),
-                updated_at: now,
-            }),
-        }
-
-        // Idempotent: push_cross_ref dedupes, so re-linking the same twin does
-        // not accumulate refs.
-        let wire = CrossRef::external(&provider, &external_id).to_wire();
-        self.push_cross_ref(chunk_id, &wire)?;
-        self.touch_chunk_for_link(chunk_id)?;
-        self.persist();
-
-        let idx = self.index_of(chunk_id)?;
-        let snapshot = self.roadmap.chunks[idx].clone();
-        self.record_event(RoadmapFrame::ChunkChanged { chunk: snapshot });
-
-        self.tracker_link(chunk_id, &provider)
-            .ok_or_else(|| "tracker link vanished after write".to_string())
+    ) -> Result<Observed<TrackerLink>, RoadmapMutationError> {
+        self.mutate(|edit| {
+            edit.record_tracker_link(chunk_id, provider, external_id, content_hash, version)
+                .cloned()
+        })
     }
 
     /// Bind a container (group or roof) to its upstream twin, or refresh the
@@ -1151,37 +763,10 @@ impl RoadmapEngine {
         provider: &str,
         external_id: &str,
         created_by_us: bool,
-    ) -> Result<(), String> {
-        let provider = provider.trim().to_ascii_lowercase();
-        let external_id = external_id.trim().to_string();
-        if name.trim().is_empty() || provider.is_empty() || external_id.is_empty() {
-            return Err("container link needs a name, a provider and an external id".to_string());
-        }
-        let now = Self::now();
-
-        match self
-            .roadmap
-            .container_links
-            .iter_mut()
-            .find(|c| c.kind == kind && c.name == name && c.provider == provider)
-        {
-            Some(link) => {
-                link.external_id = external_id;
-                link.created_by_us = link.created_by_us || created_by_us;
-                link.updated_at = now;
-            }
-            None => self.roadmap.container_links.push(ContainerLink {
-                kind,
-                name: name.to_string(),
-                provider,
-                external_id,
-                created_by_us,
-                created_at: now.clone(),
-                updated_at: now,
-            }),
-        }
-        self.persist();
-        Ok(())
+    ) -> Result<Observed<()>, RoadmapMutationError> {
+        self.mutate(|edit| {
+            edit.record_container_link(kind, name, provider, external_id, created_by_us)
+        })
     }
 
     /// The container's upstream binding, if one was ever recorded.
@@ -1238,22 +823,6 @@ impl RoadmapEngine {
             .collect()
     }
 
-    /// Bump the chunk's `updated_at` because one of its tracker records changed.
-    ///
-    /// Links and opt-ins travel to other machines inside the chunk's cloud
-    /// envelope, and both the disk merge and the cloud reconcile resolve chunks
-    /// by strict `updated_at` recency. A link write that left the stamp alone
-    /// would produce an envelope the peer declines as not-newer, so the binding
-    /// would never propagate and each machine would mint its own twin — the
-    /// exact duplicate-ticket failure the link record exists to prevent.
-    /// [`Self::push_cross_ref`] stamps only when the ref is genuinely new, so it
-    /// cannot carry this on a re-projection.
-    fn touch_chunk_for_link(&mut self, chunk_id: &str) -> Result<(), String> {
-        let idx = self.index_of(chunk_id)?;
-        self.roadmap.chunks[idx].updated_at = Self::now();
-        Ok(())
-    }
-
     /// Record the fingerprint of the blocking-link set last declared for this
     /// chunk on `provider`. Kept apart from [`Self::record_tracker_link`] so the
     /// content fence and the relation fence move independently: a projection can
@@ -1266,34 +835,11 @@ impl RoadmapEngine {
         chunk_id: &str,
         provider: &str,
         relations_hash: &str,
-    ) -> Result<&TrackerLink, String> {
-        self.index_of(chunk_id)?;
-        let provider = provider.trim().to_ascii_lowercase();
-        let now = Self::now();
-
-        let Some(link) = self
-            .roadmap
-            .links
-            .iter_mut()
-            .find(|l| l.chunk_id == chunk_id && l.provider == provider)
-        else {
-            return Err(format!(
-                "no tracker link for chunk '{chunk_id}' on provider '{provider}' — \
-                 relations are declared between items that already exist"
-            ));
-        };
-        link.our_last_relations_hash = Some(relations_hash.to_string());
-        link.updated_at = now;
-
-        self.touch_chunk_for_link(chunk_id)?;
-        self.persist();
-
-        let idx = self.index_of(chunk_id)?;
-        let snapshot = self.roadmap.chunks[idx].clone();
-        self.record_event(RoadmapFrame::ChunkChanged { chunk: snapshot });
-
-        self.tracker_link(chunk_id, &provider)
-            .ok_or_else(|| "tracker link vanished after write".to_string())
+    ) -> Result<Observed<TrackerLink>, RoadmapMutationError> {
+        self.mutate(|edit| {
+            edit.record_tracker_relations(chunk_id, provider, relations_hash)
+                .cloned()
+        })
     }
 
     /// Record the digest of just the fields we AUTHORED in the write that
@@ -1313,34 +859,11 @@ impl RoadmapEngine {
         chunk_id: &str,
         provider: &str,
         authored_hash: &str,
-    ) -> Result<&TrackerLink, String> {
-        self.index_of(chunk_id)?;
-        let provider = provider.trim().to_ascii_lowercase();
-        let now = Self::now();
-
-        let Some(link) = self
-            .roadmap
-            .links
-            .iter_mut()
-            .find(|l| l.chunk_id == chunk_id && l.provider == provider)
-        else {
-            return Err(format!(
-                "no tracker link for chunk '{chunk_id}' on provider '{provider}' — \
-                 the authored digest describes a write, which creates the link first"
-            ));
-        };
-        link.our_last_authored_hash = Some(authored_hash.to_string());
-        link.updated_at = now;
-
-        self.touch_chunk_for_link(chunk_id)?;
-        self.persist();
-
-        let idx = self.index_of(chunk_id)?;
-        let snapshot = self.roadmap.chunks[idx].clone();
-        self.record_event(RoadmapFrame::ChunkChanged { chunk: snapshot });
-
-        self.tracker_link(chunk_id, &provider)
-            .ok_or_else(|| "tracker link vanished after write".to_string())
+    ) -> Result<Observed<TrackerLink>, RoadmapMutationError> {
+        self.mutate(|edit| {
+            edit.record_tracker_authored(chunk_id, provider, authored_hash)
+                .cloned()
+        })
     }
 
     /// Opt a chunk in or out of projection into `provider`. Opting out is
@@ -1351,41 +874,11 @@ impl RoadmapEngine {
         chunk_id: &str,
         provider: &str,
         enabled: bool,
-    ) -> Result<&TrackerOptIn, String> {
-        self.index_of(chunk_id)?;
-        let provider = provider.trim().to_ascii_lowercase();
-        if provider.is_empty() {
-            return Err("tracker opt-in needs a provider".to_string());
-        }
-        let now = Self::now();
-
-        match self
-            .roadmap
-            .tracker_opt_ins
-            .iter_mut()
-            .find(|o| o.chunk_id == chunk_id && o.provider == provider)
-        {
-            Some(opt_in) => {
-                opt_in.enabled = enabled;
-                opt_in.updated_at = now;
-            }
-            None => self.roadmap.tracker_opt_ins.push(TrackerOptIn {
-                chunk_id: chunk_id.to_string(),
-                provider: provider.clone(),
-                enabled,
-                updated_at: now,
-            }),
-        }
-
-        self.touch_chunk_for_link(chunk_id)?;
-        self.persist();
-
-        let idx = self.index_of(chunk_id)?;
-        let snapshot = self.roadmap.chunks[idx].clone();
-        self.record_event(RoadmapFrame::ChunkChanged { chunk: snapshot });
-
-        self.tracker_opt_in(chunk_id, &provider)
-            .ok_or_else(|| "tracker opt-in vanished after write".to_string())
+    ) -> Result<Observed<TrackerOptIn>, RoadmapMutationError> {
+        self.mutate(|edit| {
+            edit.set_tracker_opt_in(chunk_id, provider, enabled)
+                .cloned()
+        })
     }
 
     /// Whether this chunk has explicitly consented to `provider`. Absent means
@@ -1411,54 +904,8 @@ impl RoadmapEngine {
         &mut self,
         links: Vec<TrackerLink>,
         opt_ins: Vec<TrackerOptIn>,
-    ) -> usize {
-        let mut adopted = 0;
-        for link in links {
-            match self
-                .roadmap
-                .links
-                .iter_mut()
-                .find(|l| l.key() == link.key())
-            {
-                Some(existing) => {
-                    if crate::roadmap::domain::rfc3339_newer(&link.updated_at, &existing.updated_at)
-                    {
-                        *existing = link;
-                        adopted += 1;
-                    }
-                }
-                None => {
-                    self.roadmap.links.push(link);
-                    adopted += 1;
-                }
-            }
-        }
-        for opt_in in opt_ins {
-            match self
-                .roadmap
-                .tracker_opt_ins
-                .iter_mut()
-                .find(|o| o.key() == opt_in.key())
-            {
-                Some(existing) => {
-                    if crate::roadmap::domain::rfc3339_newer(
-                        &opt_in.updated_at,
-                        &existing.updated_at,
-                    ) {
-                        *existing = opt_in;
-                        adopted += 1;
-                    }
-                }
-                None => {
-                    self.roadmap.tracker_opt_ins.push(opt_in);
-                    adopted += 1;
-                }
-            }
-        }
-        if adopted > 0 {
-            self.persist();
-        }
-        adopted
+    ) -> Result<Observed<usize>, RoadmapMutationError> {
+        self.mutate(|edit| edit.adopt_tracker_state(links, opt_ins))
     }
 
     /// The chunk ids opted in to `provider`, in roadmap order so a projection
@@ -1510,18 +957,12 @@ impl RoadmapEngine {
 
     /// Append a datestamped refresh note recording a roadmap mutation and the
     /// think step ids that motivated it. Returns the new note count.
-    pub fn record_refresh(&mut self, summary: String, think_steps: Vec<u32>) -> usize {
-        self.roadmap.refreshes.push(RefreshNote {
-            at: Self::now(),
-            summary: summary.clone(),
-            think_steps: think_steps.clone(),
-        });
-        self.persist();
-        self.record_event(RoadmapFrame::RefreshRecorded {
-            summary,
-            think_steps,
-        });
-        self.roadmap.refreshes.len()
+    pub fn record_refresh(
+        &mut self,
+        summary: String,
+        think_steps: Vec<u32>,
+    ) -> Result<Observed<usize>, RoadmapMutationError> {
+        self.mutate(|edit| edit.record_refresh(summary, think_steps))
     }
 
     /// Validate + normalize a wire cross-ref string via [`CrossRef`].
@@ -1586,15 +1027,12 @@ impl RoadmapEngine {
     /// refuted, an external wait becomes a wait on a person — and making the
     /// re-statement of a blocker require a clear first would put a gesture
     /// between a human and the truth, which is how records go stale.
-    pub fn set_blocked_by(&mut self, id: &str, blocked_by: BlockedBy) -> Result<&Chunk, String> {
-        let idx = self.index_of(id)?;
-        let c = &mut self.roadmap.chunks[idx];
-        c.blocked_by = Some(blocked_by);
-        c.updated_at = Self::now();
-        self.persist();
-        let snapshot = self.roadmap.chunks[idx].clone();
-        self.record_event(RoadmapFrame::ChunkChanged { chunk: snapshot });
-        Ok(&self.roadmap.chunks[idx])
+    pub fn set_blocked_by(
+        &mut self,
+        id: &str,
+        blocked_by: BlockedBy,
+    ) -> Result<Observed<Chunk>, RoadmapMutationError> {
+        self.mutate(|edit| edit.set_blocked_by(id, blocked_by).cloned())
     }
 
     /// Retract a chunk's blocker — the half that decides whether the other half
@@ -1615,31 +1053,8 @@ impl RoadmapEngine {
     /// [`Self::resolve_title_proposal`]: "cleared" has to mean something
     /// happened, and a caller who believes there is a blocker to retract when
     /// there is none is working from a stale picture worth interrupting.
-    pub fn clear_blocked_by(&mut self, id: &str) -> Result<&Chunk, String> {
-        let idx = self.index_of(id)?;
-        if self.roadmap.chunks[idx].blocked_by.take().is_none() {
-            return Err(format!("chunk '{id}' has no blocker to clear"));
-        }
-        let c = &mut self.roadmap.chunks[idx];
-        c.updated_at = Self::now();
-        self.persist();
-        let snapshot = self.roadmap.chunks[idx].clone();
-        self.record_event(RoadmapFrame::ChunkChanged { chunk: snapshot });
-        Ok(&self.roadmap.chunks[idx])
-    }
-
-    /// Validate `raw`, then push the normalized form onto the chunk's
-    /// `cross_refs` unless already present.
-    fn push_cross_ref(&mut self, id: &str, raw: &str) -> Result<(), String> {
-        let normalized = self.normalize_ref(raw)?;
-        let idx = self.index_of(id)?;
-        let chunk = &mut self.roadmap.chunks[idx];
-        if !chunk.cross_refs.contains(&normalized) {
-            chunk.cross_refs.push(normalized);
-            chunk.updated_at = Self::now();
-            self.persist();
-        }
-        Ok(())
+    pub fn clear_blocked_by(&mut self, id: &str) -> Result<Observed<Chunk>, RoadmapMutationError> {
+        self.mutate(|edit| edit.clear_blocked_by(id).cloned())
     }
 
     /// The next chunk to work: the lowest-`priority` `Pending` chunk that
@@ -1902,131 +1317,19 @@ impl RoadmapEngine {
     pub fn merge_from_import(
         &mut self,
         imported: crate::roadmap::import::ImportedRoadmap,
-    ) -> (usize, usize) {
-        if self.roadmap.preamble.is_empty() && !imported.preamble.is_empty() {
-            self.roadmap.preamble = imported.preamble;
-        }
-        let existing_notes: std::collections::HashSet<String> = self
-            .roadmap
-            .notes
-            .iter()
-            .map(|n| n.heading.to_ascii_lowercase())
-            .collect();
-        for n in imported.notes {
-            if !existing_notes.contains(&n.heading.to_ascii_lowercase()) {
-                self.roadmap.notes.push(n);
-            }
-        }
-        let now = Self::now();
-        let (mut added, mut updated) = (0, 0);
-        for c in imported.chunks {
-            if let Some(existing) = self.roadmap.chunks.iter_mut().find(|x| x.id == c.id) {
-                let mut changed = false;
-                if existing.notes.is_empty() && !c.notes.is_empty() {
-                    existing.notes = c.notes;
-                    changed = true;
-                }
-                if existing.description.is_empty() && !c.description.is_empty() {
-                    existing.description = c.description;
-                    changed = true;
-                }
-                for a in c.acceptance {
-                    if !existing.acceptance.contains(&a) {
-                        existing.acceptance.push(a);
-                        changed = true;
-                    }
-                }
-                if changed {
-                    existing.updated_at = now.clone();
-                    updated += 1;
-                }
-            } else {
-                let name = c.resolved_name();
-                self.roadmap.chunks.push(Chunk {
-                    tier: None,
-                    id: c.id,
-                    title: c.title,
-                    name,
-                    status: c.status,
-                    priority: c.priority,
-                    description: c.description,
-                    content: None,
-                    notes: c.notes,
-                    group: None,
-                    acceptance: c.acceptance,
-                    deps: c.deps,
-                    cross_refs: Vec::new(),
-                    shared: false,
-                    reprioritize: None,
-                    status_proposal: None,
-                    title_proposal: None,
-                    obsoleted_reason: None,
-                    blocked_by: None,
-                    project_id: Some(self.project_id.clone()),
-                    created_at: now.clone(),
-                    updated_at: now.clone(),
-                });
-                added += 1;
-            }
-        }
-        self.persist();
-        (added, updated)
+    ) -> Result<Observed<(usize, usize)>, RoadmapMutationError> {
+        self.mutate(|edit| edit.merge_from_import(imported))
     }
 
     /// Seed the roadmap from an imported source (Phase: richer-export). Sets the
     /// `preamble` if empty, appends new note sections (dedup by heading), and
     /// adds chunks whose id is new — carrying their `notes`. Persists once.
     /// Returns the number of chunks added.
-    pub fn seed_from_import(&mut self, imported: crate::roadmap::import::ImportedRoadmap) -> usize {
-        if self.roadmap.preamble.is_empty() && !imported.preamble.is_empty() {
-            self.roadmap.preamble = imported.preamble;
-        }
-        let existing_notes: std::collections::HashSet<String> = self
-            .roadmap
-            .notes
-            .iter()
-            .map(|n| n.heading.to_ascii_lowercase())
-            .collect();
-        for n in imported.notes {
-            if !existing_notes.contains(&n.heading.to_ascii_lowercase()) {
-                self.roadmap.notes.push(n);
-            }
-        }
-        let now = Self::now();
-        let mut added = 0;
-        for c in imported.chunks {
-            if self.roadmap.chunks.iter().any(|x| x.id == c.id) {
-                continue;
-            }
-            let name = c.resolved_name();
-            self.roadmap.chunks.push(Chunk {
-                tier: None,
-                id: c.id,
-                title: c.title,
-                name,
-                status: c.status,
-                priority: c.priority,
-                description: c.description,
-                content: None,
-                notes: c.notes,
-                group: None,
-                acceptance: c.acceptance,
-                deps: c.deps,
-                cross_refs: Vec::new(),
-                shared: false,
-                reprioritize: None,
-                status_proposal: None,
-                title_proposal: None,
-                obsoleted_reason: None,
-                blocked_by: None,
-                project_id: Some(self.project_id.clone()),
-                created_at: now.clone(),
-                updated_at: now.clone(),
-            });
-            added += 1;
-        }
-        self.persist();
-        added
+    pub fn seed_from_import(
+        &mut self,
+        imported: crate::roadmap::import::ImportedRoadmap,
+    ) -> Result<Observed<usize>, RoadmapMutationError> {
+        self.mutate(|edit| edit.seed_from_import(imported))
     }
 
     /// The most ids [`Self::get`] will answer in one call.
@@ -2235,7 +1538,7 @@ mod tests {
             .set_group("berth-allocation-races", Some("berth".into()))
             .expect_err("a slug is not a place");
         assert!(
-            err.contains("berth"),
+            err.to_string().contains("berth"),
             "the caller must be told which: {err}"
         );
         assert!(
@@ -2268,7 +1571,7 @@ mod tests {
         e.set_group("berth-draft-limits", Some("Quayside".into()))
             .unwrap();
         let cleared = e.set_group("berth-draft-limits", None).unwrap();
-        assert!(cleared.group.is_none());
+        assert!(cleared.value.group.is_none());
     }
 
     /// The seeder's replacement: it groups and it does not name, and nothing it
@@ -2311,7 +1614,7 @@ mod tests {
                 false,
             )
             .unwrap_err();
-        assert!(err.contains("already exists"));
+        assert!(err.to_string().contains("already exists"));
     }
 
     #[test]
@@ -2322,7 +1625,7 @@ mod tests {
         e.set_status("a", ChunkStatus::Done).unwrap();
         // Done -> Obsoleted is forbidden.
         let err = e.set_status("a", ChunkStatus::Obsoleted).unwrap_err();
-        assert!(err.contains("illegal transition"));
+        assert!(err.to_string().contains("illegal transition"));
     }
 
     #[test]
@@ -2617,12 +1920,7 @@ mod tests {
     /// would be testing region naming instead of focus.
     fn grouped(e: &mut RoadmapEngine, id: &str, priority: u32, group: &str) {
         add(e, id, priority, vec![]);
-        e.roadmap
-            .chunks
-            .iter_mut()
-            .find(|c| c.id == id)
-            .expect("just added")
-            .group = Some(group.to_string());
+        e.set_group(id, Some(group.to_owned())).unwrap();
     }
 
     /// THE concurrency property, and the reason focus is a vector rather than a
@@ -2755,7 +2053,7 @@ mod tests {
             )
             .expect_err("an unusable group must refuse");
         assert!(
-            err.contains("billing"),
+            err.to_string().contains("billing"),
             "the error must name the clash: {err}"
         );
         assert!(
@@ -2769,8 +2067,8 @@ mod tests {
             .set_group("billing-1", Some("Billing".into()))
             .expect_err("set_group refuses it too");
         assert_eq!(
-            err.trim_end_matches('.'),
-            err2.trim_end_matches('.'),
+            err.to_string().trim_end_matches('.'),
+            err2.to_string().trim_end_matches('.'),
             "the two doors must give the same refusal, or one is a backdoor"
         );
     }
@@ -2797,9 +2095,12 @@ mod tests {
             let err = e
                 .focus_set(blank, "Authentication", FocusMode::Build)
                 .expect_err("a blank lane must be refused");
-            assert!(err.contains("a lane is required"), "unhelpful error: {err}");
             assert!(
-                err.contains("worktree") && err.contains("session"),
+                err.to_string().contains("a lane is required"),
+                "unhelpful error: {err}"
+            );
+            assert!(
+                err.to_string().contains("worktree") && err.to_string().contains("session"),
                 "the refusal must say how to produce a real lane: {err}"
             );
         }
@@ -2839,8 +2140,8 @@ mod tests {
         let err = e
             .focus_set("lane", "Payments", FocusMode::Build)
             .expect_err("unknown group must refuse");
-        assert!(err.contains("Authentication") && err.contains("Billing"));
-        assert!(err.contains("Focus is unchanged"));
+        assert!(err.to_string().contains("Authentication") && err.to_string().contains("Billing"));
+        assert!(err.to_string().contains("Focus is unchanged"));
         // The prior focus survived the failed switch untouched.
         let f = e.focus_get("lane").unwrap();
         assert_eq!(
@@ -2867,7 +2168,7 @@ mod tests {
         let err = e
             .focus_set("lane", "billing", FocusMode::Build)
             .expect_err("ambiguous group must refuse");
-        assert!(err.contains("ambiguous"));
+        assert!(err.to_string().contains("ambiguous"));
         assert!(e.roadmap().focuses.is_empty());
     }
 
@@ -2896,7 +2197,7 @@ mod tests {
         );
         // The resolved value is the STORED spelling, not what was typed.
         let f = e.focus_set("lane", "identity", FocusMode::Shape).unwrap();
-        assert_eq!(f.group, "Authentication and identity");
+        assert_eq!(f.value.group, "Authentication and identity");
     }
 
     /// Focusing is not starting. Nothing about any chunk moves.
@@ -2909,7 +2210,7 @@ mod tests {
             .unwrap();
         e.focus_set("lane", "Authentication", FocusMode::Listen)
             .unwrap();
-        e.focus_clear("lane");
+        e.focus_clear("lane").unwrap();
         assert_eq!(e.roadmap().chunks, before, "focus must not touch chunks");
     }
 
@@ -3068,7 +2369,7 @@ mod tests {
         let mut e = engine();
         add(&mut e, "a", 1, vec![]);
         let c = e.start_chunk("a").unwrap();
-        assert_eq!(c.status, ChunkStatus::InProgress);
+        assert_eq!(c.value.status, ChunkStatus::InProgress);
         // The agent's backref is derived from the chunk id.
         assert_eq!(
             crate::infra::CrossRef::RoadmapChunk("a".into()).to_wire(),
@@ -3089,7 +2390,7 @@ mod tests {
         );
         // A malformed ref is rejected.
         let err = e.link_chunk("a", "not-a-ref").unwrap_err();
-        assert!(err.contains("invalid cross-ref"));
+        assert!(err.to_string().contains("invalid cross-ref"));
     }
 
     #[test]
@@ -3098,8 +2399,8 @@ mod tests {
         add(&mut e, "a", 1, vec![]);
         e.start_chunk("a").unwrap();
         let c = e.complete_chunk("a", Some("task:build-it")).unwrap();
-        assert_eq!(c.status, ChunkStatus::Done);
-        assert!(c.cross_refs.contains(&"task:build-it".to_string()));
+        assert_eq!(c.value.status, ChunkStatus::Done);
+        assert!(c.value.cross_refs.contains(&"task:build-it".to_string()));
     }
 
     #[test]
@@ -3108,7 +2409,7 @@ mod tests {
         add(&mut e, "a", 1, vec![]);
         e.start_chunk("a").unwrap();
         let err = e.complete_chunk("a", Some("bogus")).unwrap_err();
-        assert!(err.contains("invalid cross-ref"));
+        assert!(err.to_string().contains("invalid cross-ref"));
         // The status must NOT have advanced (validation happens first).
         assert_eq!(e.roadmap().chunks[0].status, ChunkStatus::InProgress);
     }
@@ -3116,7 +2417,10 @@ mod tests {
     #[test]
     fn record_refresh_appends_a_note() {
         let mut e = engine();
-        let n = e.record_refresh("revisited priorities".into(), vec![1, 2, 3]);
+        let n = e
+            .record_refresh("revisited priorities".into(), vec![1, 2, 3])
+            .unwrap()
+            .value;
         assert_eq!(n, 1);
         let note = &e.roadmap().refreshes[0];
         assert_eq!(note.summary, "revisited priorities");
@@ -3316,7 +2620,7 @@ mod tests {
             ],
         };
 
-        let (added, updated) = e.merge_from_import(imported);
+        let (added, updated) = e.merge_from_import(imported).unwrap().value;
         assert_eq!((added, updated), (1, 1));
         let p1 = e.roadmap().chunks.iter().find(|c| c.id == "p1").unwrap();
         assert_eq!(p1.status, ChunkStatus::Done, "status must NOT revert");
@@ -3383,7 +2687,7 @@ mod tests {
                 None,
             )
             .unwrap_err();
-        assert!(err.contains("over the"), "{err}");
+        assert!(err.to_string().contains("over the"), "{err}");
         assert!(
             !e.roadmap().chunks.iter().any(|c| c.id == "c1"),
             "a rejected name creates no chunk"
@@ -3435,7 +2739,10 @@ mod tests {
                     false,
                 )
                 .unwrap_err();
-            assert!(err.contains("id"), "the refusal must name the id: {err}");
+            assert!(
+                err.to_string().contains("id"),
+                "the refusal must name the id: {err}"
+            );
         }
         assert!(e.roadmap().chunks.is_empty());
     }
@@ -3450,7 +2757,10 @@ mod tests {
             "created_at": "2026-06-08T00:00:00Z", "updated_at": "2026-06-08T00:00:00Z"
         }))
         .unwrap();
-        e.upsert_chunk(ghost);
+        assert!(
+            e.upsert_chunk(ghost).is_err(),
+            "an unowned record is refused"
+        );
         assert!(e.roadmap().chunks.is_empty());
     }
 
@@ -3515,7 +2825,7 @@ mod tests {
                 0,
             )],
         };
-        assert_eq!(e.seed_from_import(imported), 1);
+        assert_eq!(e.seed_from_import(imported).unwrap().value, 1);
         assert_eq!(
             got(&e, "payroll-export-breaks-on-leap-day").name,
             "Payroll export breaks"
@@ -4278,7 +3588,7 @@ mod tracker_state_tests {
             created_at: "2020-01-01T00:00:00+00:00".into(),
             updated_at: "2020-01-01T00:00:00+00:00".into(),
         };
-        assert_eq!(e.adopt_tracker_state(vec![stale], vec![]), 0);
+        assert_eq!(e.adopt_tracker_state(vec![stale], vec![]).unwrap().value, 0);
         assert_eq!(
             e.tracker_link("c1", "github").expect("link").external_id,
             "local",
@@ -4290,7 +3600,7 @@ mod tracker_state_tests {
             updated_at: "2099-01-01T00:00:00+00:00".into(),
             ..e.tracker_link("c1", "github").expect("link").clone()
         };
-        assert_eq!(e.adopt_tracker_state(vec![fresh], vec![]), 1);
+        assert_eq!(e.adopt_tracker_state(vec![fresh], vec![]).unwrap().value, 1);
         assert_eq!(
             e.tracker_link("c1", "github").expect("link").external_id,
             "peer"

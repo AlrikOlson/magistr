@@ -49,8 +49,8 @@ impl Default for ConsentState {
 /// Consent persistence error.
 #[derive(Debug, thiserror::Error)]
 pub enum ConsentError {
-    #[error("consent io: {0}")]
-    Io(#[from] std::io::Error),
+    #[error("{0}")]
+    Store(#[from] magistr_workflow_contracts::WriteError),
 }
 
 fn consent_path(data_dir: &Path) -> PathBuf {
@@ -75,14 +75,14 @@ pub fn set(data_dir: &Path, enabled: bool, now: &str) -> Result<ConsentState, Co
         decided_at: Some(now.to_string()),
         source: ConsentSource::Explicit,
     };
-    locked_merge_write(&consent_path(data_dir), &state, |ours, disk| {
+    let committed = locked_merge_write(&consent_path(data_dir), &state, |ours, disk| {
         if disk.decided_at.as_deref() > ours.decided_at.as_deref() {
             disk
         } else {
             ours.clone()
         }
     })?;
-    Ok(load(data_dir))
+    Ok(committed.value)
 }
 
 /// The egress predicate (consumed by 31h-c): send only when a telemetry

@@ -32,21 +32,36 @@ fn add(engine: &mut RoadmapEngine, id: &str) {
 }
 
 #[test]
-fn observation_reads_durable_data_without_erasing_unsaved_writer_memory() {
+fn failed_mutation_keeps_memory_and_durable_data_at_the_last_commit() {
     let (_dir, mut engine, path) = setup();
     add(&mut engine, "saved");
     let lock = path.with_extension("json.lock");
     std::fs::remove_file(&lock).unwrap();
     std::fs::create_dir(&lock).unwrap();
-    add(&mut engine, "unsaved");
-    assert_eq!(engine.roadmap().chunks.len(), 2);
+    let refused = engine
+        .add_chunk(
+            "unsaved".into(),
+            "Refused change".into(),
+            ChunkStatus::Pending,
+            2,
+            String::new(),
+            vec![],
+            vec![],
+            false,
+        )
+        .unwrap_err();
+    assert!(matches!(
+        refused,
+        super::super::RoadmapMutationError::Store(_)
+    ));
+    assert_eq!(engine.roadmap().chunks.len(), 1);
     let observed = engine.observe().unwrap();
     assert_eq!(observed.value.chunks.len(), 1);
     assert_eq!(observed.value.chunks[0].id, "saved");
     assert_eq!(
         engine.roadmap().chunks.len(),
-        2,
-        "a read preserves live writer state"
+        1,
+        "a refused change was never installed"
     );
 }
 

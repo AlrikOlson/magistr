@@ -158,6 +158,7 @@ pub fn action(id: u32, description: &str) -> Action {
 #[must_use]
 pub fn check(name: &str, passed: bool) -> Check {
     Check {
+        receipt_id: None,
         check_type: CheckType::Test,
         name: name.to_owned(),
         passed,

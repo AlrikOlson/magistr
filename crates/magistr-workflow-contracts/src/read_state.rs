@@ -3,12 +3,13 @@
 
 use std::fmt;
 
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::StoreStamp;
 
 /// The source of a successful observation of one workflow family.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", content = "stamp", rename_all = "snake_case")]
 pub enum ReadSource {
     Memory,
@@ -17,7 +18,7 @@ pub enum ReadSource {
 }
 
 /// Validated data and the exact source that supplied it.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct Observed<T> {
     pub value: T,
     pub source: ReadSource,
@@ -34,7 +35,7 @@ impl<T> Observed<T> {
 }
 
 /// The kind of refusal, separate from its plain recovery message.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ReadErrorKind {
     Io,
@@ -47,7 +48,7 @@ pub enum ReadErrorKind {
 }
 
 /// Public read failure. Detailed paths and parser diagnostics belong in logs.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct ReadError {
     pub kind: ReadErrorKind,
     pub message: String,
@@ -72,7 +73,7 @@ impl fmt::Display for ReadError {
 impl std::error::Error for ReadError {}
 
 /// A failed observation retains evidence without certifying it as current.
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "state", content = "data", rename_all = "snake_case")]
 pub enum ReadState<T> {
     #[default]

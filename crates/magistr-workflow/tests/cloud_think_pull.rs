@@ -1,10 +1,4 @@
-//! sync-think-reconcile (31d-a) — think pull/reconcile + the startup hydrate.
-//!
-//! The think trace merges by the ONE rule the disk merge already uses
-//! (`merge_histories`): insert-if-absent by `step_number`, the local copy
-//! NEVER replaced — so a stale cloud copy cannot clobber local reasoning
-//! (the think twin of the reconcile-recency-guard race). `reconcile_all` is
-//! the one-shot boot hydrate across think + roadmap + signal.
+//! Cloud reasoning import preserves authored identities and exposes local commit failures.
 
 use std::sync::{Arc, Mutex};
 
@@ -55,18 +49,18 @@ fn step(n: u32, thought: &str) -> ThinkStep {
         pinned: None,
         cwd: None,
         execution_ref: None,
-        record_id: None,
+        record_id: Some(format!("record-{n}")),
     }
 }
 
 fn envelope_for(n: u32, thought: &str) -> Value {
-    serde_json::to_value(from_step("t", &step(n, thought))).unwrap()
+    serde_json::to_value(from_step("t", &step(n, thought)).unwrap()).unwrap()
 }
 
 #[test]
 fn adopts_absent_steps_and_sorts_the_trace() {
     let mut engine = quiet_server();
-    engine.adopt_steps(vec![step(5, "local five")]);
+    engine.adopt_steps(vec![step(5, "local five")]).unwrap();
 
     let adopted = apply_think_records(
         &mut engine,
@@ -75,7 +69,7 @@ fn adopts_absent_steps_and_sorts_the_trace() {
             envelope_for(7, "cloud seven"),
         ],
     );
-    assert_eq!(adopted, 2);
+    assert_eq!(adopted.unwrap(), 2);
 
     let numbers: Vec<u32> = engine
         .history()
@@ -92,17 +86,22 @@ fn adopts_absent_steps_and_sorts_the_trace() {
 #[test]
 fn an_existing_local_step_is_never_replaced_by_a_cloud_copy() {
     let mut engine = quiet_server();
-    engine.adopt_steps(vec![step(42, "local, freshly revised reasoning")]);
+    engine
+        .adopt_steps(vec![step(42, "local, freshly revised reasoning")])
+        .unwrap();
 
     let adopted = apply_think_records(&mut engine, &[envelope_for(42, "stale cloud copy")]);
-    assert_eq!(adopted, 0, "an already-known step adopts nothing");
+    assert!(
+        adopted.is_err(),
+        "conflicting authored content must be reported"
+    );
 
     let s = &engine.history().steps[0];
     assert_eq!(s.thought, "local, freshly revised reasoning");
 }
 
 #[test]
-fn malformed_records_are_skipped_not_fatal() {
+fn malformed_local_records_refuse_the_batch_before_any_commit() {
     let mut engine = quiet_server();
     let adopted = apply_think_records(
         &mut engine,
@@ -113,7 +112,11 @@ fn malformed_records_are_skipped_not_fatal() {
             envelope_for(1, "good"),
         ],
     );
-    assert_eq!(adopted, 1);
+    assert!(matches!(
+        adopted,
+        Err(magistr_workflow::cloud::client::CloudError::Local { saved: 0, .. })
+    ));
+    assert!(engine.history().steps.is_empty());
 }
 
 /// sync-project-scope: an org tenant holds EVERY project's records; a step
@@ -124,7 +127,8 @@ fn malformed_records_are_skipped_not_fatal() {
 #[test]
 fn foreign_and_unstamped_records_never_merge() {
     let mut engine = quiet_server();
-    let foreign = serde_json::to_value(from_step("other-project", &step(9, "theirs"))).unwrap();
+    let foreign =
+        serde_json::to_value(from_step("other-project", &step(9, "theirs")).unwrap()).unwrap();
     let mut unstamped = envelope_for(11, "pre-stamp legacy");
     unstamped["record"]
         .as_object_mut()
@@ -132,7 +136,11 @@ fn foreign_and_unstamped_records_never_merge() {
         .remove("project_id");
 
     let adopted = apply_think_records(&mut engine, &[foreign, unstamped, envelope_for(2, "ours")]);
-    assert_eq!(adopted, 1, "only this project's stamped record merges");
+    assert_eq!(
+        adopted.unwrap(),
+        1,
+        "only this project's stamped record merges"
+    );
     let numbers: Vec<u32> = engine
         .history()
         .steps
@@ -205,7 +213,111 @@ async fn reconcile_all_hydrates_every_family_and_tolerates_one_failing() {
     let signal = Arc::new(Mutex::new(SignalEngine::new("t".into())));
 
     let (t, r, s) = reconcile_all(&client, &think, &roadmap, &signal).await;
-    assert_eq!((t, r, s), (1, 1, 0));
+    assert_eq!((t.unwrap(), r.unwrap()), (1, 1));
+    assert!(s.is_err());
     assert_eq!(think.lock().unwrap().history().steps.len(), 1);
     assert_eq!(roadmap.lock().unwrap().roadmap().chunks.len(), 1);
+}
+
+#[test]
+fn distinct_equal_number_and_prose_records_are_both_retained() {
+    let mut engine = quiet_server();
+    let first = step(1, "same authored words");
+    let mut second = first.clone();
+    second.record_id = Some("different-record".into());
+    assert_eq!(engine.adopt_steps(vec![first, second]).unwrap().value, 2);
+    let history = engine.history();
+    assert_eq!(history.steps.len(), 2);
+    assert_ne!(history.steps[0].record_id, history.steps[1].record_id);
+    assert_ne!(history.steps[0].step_number, history.steps[1].step_number);
+}
+
+#[test]
+fn colliding_import_numbers_remap_their_own_references() {
+    use magistr_workflow::think::domain::DepEdge;
+    let mut engine = quiet_server();
+    engine.adopt_steps(vec![step(1, "local")]).unwrap();
+    let mut origin = step(1, "remote origin");
+    origin.record_id = Some("remote-origin".into());
+    let mut dependent = step(2, "remote continuation");
+    dependent.record_id = Some("remote-dependent".into());
+    dependent.dependencies = Some(vec![DepEdge::Bare(1)]);
+    engine.adopt_steps(vec![origin, dependent]).unwrap();
+    let origin = engine
+        .history()
+        .steps
+        .iter()
+        .find(|step| step.record_id.as_deref() == Some("remote-origin"))
+        .unwrap();
+    let dependent = engine
+        .history()
+        .steps
+        .iter()
+        .find(|step| step.record_id.as_deref() == Some("remote-dependent"))
+        .unwrap();
+    assert_ne!(origin.step_number, 1);
+    assert_eq!(
+        dependent.dependencies.as_ref().unwrap()[0].step(),
+        origin.step_number
+    );
+}
+
+#[test]
+fn ambiguous_import_references_refuse_the_entire_batch() {
+    use magistr_workflow::think::domain::DepEdge;
+    let mut engine = quiet_server();
+    let first = step(1, "first origin");
+    let mut other = step(1, "another origin");
+    other.record_id = Some("another-origin".into());
+    let mut dependent = step(2, "which origin");
+    dependent.dependencies = Some(vec![DepEdge::Bare(1)]);
+    assert!(engine.adopt_steps(vec![first, other, dependent]).is_err());
+    assert!(engine.history().steps.is_empty());
+}
+
+#[test]
+fn known_identity_cannot_hide_a_changed_authored_reference() {
+    use magistr_workflow::think::domain::DepEdge;
+    let mut engine = quiet_server();
+    let first = step(1, "origin");
+    let second = step(2, "other");
+    let mut dependent = step(3, "dependent");
+    dependent.dependencies = Some(vec![DepEdge::Bare(1)]);
+    engine
+        .adopt_steps(vec![first, second, dependent.clone()])
+        .unwrap();
+    dependent.dependencies = Some(vec![DepEdge::Bare(2)]);
+    assert!(engine.adopt_steps(vec![dependent]).is_err());
+    assert_eq!(
+        engine.history().steps[2].dependencies.as_ref().unwrap()[0].step(),
+        1
+    );
+}
+
+#[test]
+fn local_commit_failure_does_not_count_imported_records() {
+    let directory = tempfile::tempdir().unwrap();
+    let mut config = ThinkConfig::default();
+    config.persistence.enabled = true;
+    config.persistence.data_dir = directory.path().to_path_buf();
+    let persistence =
+        magistr_workflow::think::persistence::Persistence::for_project(&config.persistence, "t");
+    let mut engine = ReasoningServer::new_for_project(config, "t".into());
+    engine.adopt_steps(vec![step(1, "existing")]).unwrap();
+    let path = persistence.store_path().unwrap();
+    let bytes = std::fs::read(&path).unwrap();
+    let lock = path.with_extension("json.lock");
+    std::fs::remove_file(&lock).unwrap();
+    std::fs::create_dir(&lock).unwrap();
+    let error = apply_think_records(&mut engine, &[envelope_for(2, "incoming")]).unwrap_err();
+    assert!(matches!(
+        error,
+        magistr_workflow::cloud::client::CloudError::Local {
+            saved: 0,
+            store: Some(_),
+            ..
+        }
+    ));
+    assert_eq!(engine.history().steps.len(), 1);
+    assert_eq!(std::fs::read(path).unwrap(), bytes);
 }

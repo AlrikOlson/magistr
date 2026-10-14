@@ -65,8 +65,8 @@ impl ProposeConsent {
 /// Persistence error.
 #[derive(Debug, thiserror::Error)]
 pub enum ProposeConsentError {
-    #[error("propose consent io: {0}")]
-    Io(#[from] std::io::Error),
+    #[error("{0}")]
+    Store(#[from] magistr_workflow_contracts::WriteError),
 }
 
 fn consent_path(data_dir: &Path) -> PathBuf {
@@ -95,14 +95,14 @@ pub fn record(
         decided_at: Some(now.to_string()),
         source: ProposeConsentSource::Human,
     };
-    locked_merge_write(&consent_path(data_dir), &state, |ours, disk| {
+    let committed = locked_merge_write(&consent_path(data_dir), &state, |ours, disk| {
         if disk.decided_at.as_deref() > ours.decided_at.as_deref() {
             disk
         } else {
             ours.clone()
         }
     })?;
-    Ok(load(data_dir))
+    Ok(committed.value)
 }
 
 /// The two-source resolution, as a pure function so the DECISION is testable

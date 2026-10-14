@@ -29,7 +29,7 @@ pub enum AttachError {
         current: OwnerGeneration,
     },
     /// The owner's writer refused the command, in the engine's own words.
-    Engine(String),
+    Engine(Box<super::WorkflowMutationError>),
     /// The other end sent something that is not the protocol.
     Wire(String),
     /// The client is not attached; reconnect first.

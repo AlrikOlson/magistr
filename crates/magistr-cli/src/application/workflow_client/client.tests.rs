@@ -176,7 +176,10 @@ async fn a_second_cockpit_attaches_to_the_running_host_and_acts_through_it() {
     assert_eq!(second.attached_generation(), Some(endpoint.generation()));
     let mut port = second.port().expect("an attached port");
     let started = port.start_chunk("c1").expect("acts through the host");
-    assert_eq!(started.status, magistr_engine::ChunkStatus::InProgress);
+    assert_eq!(
+        started.value.status,
+        magistr_engine::ChunkStatus::InProgress
+    );
     assert_eq!(
         host.reader()
             .roadmap_chunk("c1")
@@ -188,6 +191,7 @@ async fn a_second_cockpit_attaches_to_the_running_host_and_acts_through_it() {
     assert!(
         port.start_chunk("missing")
             .expect_err("refused")
+            .to_string()
             .contains("missing"),
         "the engine's refusal comes back in its own words"
     );
@@ -251,9 +255,9 @@ async fn an_attached_port_reports_a_gone_owner_and_opens_nothing() {
     drop(endpoint);
     drop(host);
     let gone = port.start_chunk("c1").expect_err("hung up");
-    assert!(gone.contains("gone"), "{gone}");
+    assert!(gone.to_string().contains("gone"), "{gone}");
     let nobody = port.start_chunk("c1").expect_err("nothing to reconnect to");
-    assert!(nobody.contains("no owner endpoint"), "{nobody}");
+    assert!(nobody.to_string().contains("no owner endpoint"), "{nobody}");
     assert!(second.writer().is_none(), "never a writer of its own");
     EngineClient::with_config(attachable(&root, &data))
         .expect("the role is free: the attached cockpit held nothing");

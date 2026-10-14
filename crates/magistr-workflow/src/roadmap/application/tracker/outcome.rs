@@ -11,4 +11,5 @@ pub struct SetupOutcome {
     pub mirroring_enabled: bool,
     pub included: Vec<String>,
     pub already_included: usize,
+    pub roadmap_source: Option<magistr_workflow_contracts::ReadSource>,
 }

@@ -22,7 +22,9 @@ async fn a_signal_capture_pushes_to_the_cloud() {
 
     let mut engine =
         SignalEngine::new("dogfood".into()).with_cloud(CloudClient::new(server.uri(), "tok"));
-    engine.capture(SignalKind::Bug, "dana".into(), "it crashes on save".into());
+    engine
+        .capture(SignalKind::Bug, "dana".into(), "it crashes on save".into())
+        .unwrap();
 
     // The push is fire-and-forget on a detached task, so this waits on the
     // request ACTUALLY ARRIVING rather than on a duration guessed against it.

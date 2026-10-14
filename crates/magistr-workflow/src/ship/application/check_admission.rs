@@ -7,7 +7,7 @@ use super::{CheckRequest, SourceObservation, TaskAdmission};
 /// acceptance revision then current and the source observed at that moment.
 /// Plain data: a late result carried through another process settles
 /// against the same receipt id.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct CheckAdmission {
     pub target: TaskAdmission,
     pub request: CheckRequest,

@@ -70,9 +70,4 @@ impl ShipSnapshot {
             task_instance,
         })
     }
-
-    pub(crate) fn contains(&self, target: &TaskAdmission) -> bool {
-        self.admit_task(Some(&target.task_id))
-            .is_ok_and(|current| current == *target)
-    }
 }

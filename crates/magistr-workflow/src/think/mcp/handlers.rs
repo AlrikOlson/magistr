@@ -62,31 +62,7 @@ impl ThinkService {
     ) -> Result<CallToolResult, ErrorData> {
         match self.use_cases().record_step(step) {
             Ok(recorded) => Ok(CallToolResult::structured(recorded.report)),
-            Err(error) if error.error == "engine mutex poisoned" => Err(Self::poisoned()),
-            Err(error) => {
-                // Keep the native diagnostic intact alongside the wire recovery contract.
-                let mut result = crate::infra::tool_failure::ToolFailure::uncertain(
-                    "step_rejected",
-                    &error.error,
-                );
-                if let Some(body) = result
-                    .structured_content
-                    .as_mut()
-                    .and_then(serde_json::Value::as_object_mut)
-                {
-                    body.insert("error".into(), serde_json::json!(error.error));
-                    body.insert("status".into(), serde_json::json!(error.status));
-                    body.insert("hint".into(), serde_json::json!(error.hint));
-                }
-                result.content = vec![ContentBlock::text(
-                    result
-                        .structured_content
-                        .as_ref()
-                        .expect("structured failure")
-                        .to_string(),
-                )];
-                Ok(result)
-            }
+            Err(error) => Self::step_failure(error, "step_rejected"),
         }
     }
 
@@ -219,7 +195,7 @@ impl ThinkService {
 
     #[tool(
         name = "think_pin_step",
-        description = "Pin a step so it stays in recent_steps rollups even after the chronological window moves past it. Use for the original problem statement, confirmed root causes, anchoring conclusions. Pass pinned=false to unpin.\n\nInputs: see inputSchema. Required: `step_number`. Optional: `pinned` (defaults to true).\n\nReturns: structuredContent shaped by outputSchema (PinStepOutput) — step_number, was_pinned, now_pinned.\n\nPitfalls: pinning is local to the trace; pinned status persists with the session file when persistence is enabled.",
+        description = "Pin a step so it stays in recent_steps rollups even after the chronological window moves past it. Use for the original problem statement, confirmed root causes, anchoring conclusions. Pass pinned=false to unpin.\n\nInputs: see inputSchema. Required: `step_number`. Optional: `pinned` (defaults to true).\n\nReturns: structuredContent shaped by outputSchema (PinStepOutput) — step_number, was_pinned, now_pinned.\n\nPitfalls: pinning is local to the trace; pinned status is saved with the history when persistence is enabled.",
         annotations(
             title = "Pin/unpin step",
             read_only_hint = false,
@@ -236,12 +212,13 @@ impl ThinkService {
         let result = self
             .use_cases()
             .pin_step(args.step_number, pinned)
-            .map(|previous| PinStepOutput {
+            .map(|committed| PinStepOutput {
                 step_number: args.step_number,
-                was_pinned: previous,
+                was_pinned: committed.value,
                 now_pinned: pinned,
+                source: committed.source,
             });
-        Self::native_result(result, "step_not_found")
+        Self::mutation_result(result, "step_not_found")
     }
 
     #[tool(
@@ -259,19 +236,21 @@ impl ThinkService {
         &self,
         Parameters(args): Parameters<ReviseEstimateArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        let result = self.use_cases().revise_estimate(args.estimated_total).map(
-            |(previous, new_estimate)| ReviseEstimateOutput {
-                previous,
-                new_estimate,
+        let result = self
+            .use_cases()
+            .revise_estimate(args.estimated_total)
+            .map(|committed| ReviseEstimateOutput {
+                previous: committed.value.0,
+                new_estimate: committed.value.1,
+                source: committed.source,
                 reason: args
                     .reason
                     .as_deref()
                     .map(str::trim)
                     .filter(|s| !s.is_empty())
                     .map(str::to_owned),
-            },
-        );
-        Self::native_result(result, "no_steps")
+            });
+        Self::mutation_result(result, "no_steps")
     }
 
     #[tool(
@@ -292,17 +271,14 @@ impl ThinkService {
         let result = self
             .use_cases()
             .set_branch_status(&args.branch_id, &args.status, args.merged_into)
-            .map(|(previous, new)| SetBranchStatusOutput {
+            .map(|committed| SetBranchStatusOutput {
                 branch_id: args.branch_id,
-                previous_status: previous.to_string(),
-                new_status: new.to_string(),
-                merged_into: if args.status.trim().eq_ignore_ascii_case("merged") {
-                    args.merged_into
-                } else {
-                    None
-                },
+                previous_status: committed.value.previous,
+                new_status: committed.value.current,
+                source: committed.source,
+                merged_into: committed.value.merged_into,
             });
-        Self::native_result(result, "unknown_branch")
+        Self::mutation_result(result, "unknown_branch")
     }
 
     #[tool(
@@ -325,7 +301,7 @@ impl ThinkService {
 
     #[tool(
         name = "think_wipe_trace",
-        description = "Wipe the trace: steps, branches, sessions, active-session pointer, and persisted files. DESTRUCTIVE — there is no undo, and on-disk session files are deleted too.\n\nInputs: none.\n\nReturns: structuredContent shaped by outputSchema (WipeTraceOutput) — { cleared: true }.\n\nPitfalls: this is intentionally a separate, destructively-named tool. Do not call to \"start fresh\" on a session — use a new session_id instead, which leaves the old trace recoverable.",
+        description = "Wipe the trace: steps, branches, sessions, active-session pointer, and saved histories. DESTRUCTIVE — there is no undo.\n\nInputs: none.\n\nReturns: structuredContent shaped by outputSchema (WipeTraceOutput) — { cleared: true }.\n\nPitfalls: this is intentionally a separate, destructively-named tool. Do not call to \"start fresh\" on a session — use a new session_id instead, which leaves the old trace recoverable.",
         annotations(
             title = "Wipe trace",
             read_only_hint = false,
@@ -338,7 +314,10 @@ impl ThinkService {
         &self,
         Parameters(_): Parameters<NoArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        self.use_cases().wipe().map_err(|_| Self::poisoned())?;
-        Self::native_result(Ok(WipeTraceOutput { cleared: true }), "engine_unavailable")
+        let result = self.use_cases().wipe().map(|committed| WipeTraceOutput {
+            cleared: true,
+            source: committed.source,
+        });
+        Self::mutation_result(result, "engine_unavailable")
     }
 }

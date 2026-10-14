@@ -55,15 +55,23 @@ fn chunk_at(id: &str, status: ChunkStatus, updated_at: &str) -> Chunk {
     }
 }
 
+fn upsert(engine: &mut RoadmapEngine, mut chunk: Chunk) {
+    chunk.project_id = Some("t".into());
+    engine.upsert_chunk(chunk).unwrap();
+}
+
 #[test]
 fn upsert_chunk_replaces_by_id_or_inserts() {
     let mut engine = RoadmapEngine::new("t".into());
-    engine.upsert_chunk(chunk("a", ChunkStatus::Backlog));
-    engine.upsert_chunk(chunk("b", ChunkStatus::Backlog));
+    upsert(&mut engine, chunk("a", ChunkStatus::Backlog));
+    upsert(&mut engine, chunk("b", ChunkStatus::Backlog));
     assert_eq!(engine.roadmap().chunks.len(), 2);
 
     // A NEWER cloud copy replaces 'a' — no duplicate, status updated.
-    engine.upsert_chunk(chunk_at("a", ChunkStatus::Done, "2026-06-08T01:00:00Z"));
+    upsert(
+        &mut engine,
+        chunk_at("a", ChunkStatus::Done, "2026-06-08T01:00:00Z"),
+    );
     assert_eq!(engine.roadmap().chunks.len(), 2);
     let a = engine
         .roadmap()
@@ -84,14 +92,13 @@ fn upsert_chunk_keeps_a_newer_local_mutation_over_a_stale_cloud_copy() {
     // The local chunk, freshly mutated (a cross-ref attached at T2).
     let mut local = chunk_at("a", ChunkStatus::InProgress, "2026-06-08T02:00:00Z");
     local.cross_refs = vec!["task:verify".into()];
-    engine.upsert_chunk(local);
+    upsert(&mut engine, local);
 
     // The reconcile delivers the cloud copy from T1 — before the push landed.
-    engine.upsert_chunk(chunk_at(
-        "a",
-        ChunkStatus::InProgress,
-        "2026-06-08T01:00:00Z",
-    ));
+    upsert(
+        &mut engine,
+        chunk_at("a", ChunkStatus::InProgress, "2026-06-08T01:00:00Z"),
+    );
 
     let a = engine
         .roadmap()
@@ -114,9 +121,12 @@ fn upsert_chunk_keeps_local_on_equal_stamps() {
     let mut engine = RoadmapEngine::new("t".into());
     let mut local = chunk_at("a", ChunkStatus::Pending, "2026-06-08T01:00:00Z");
     local.notes = "local copy".into();
-    engine.upsert_chunk(local);
+    upsert(&mut engine, local);
 
-    engine.upsert_chunk(chunk_at("a", ChunkStatus::Pending, "2026-06-08T01:00:00Z"));
+    upsert(
+        &mut engine,
+        chunk_at("a", ChunkStatus::Pending, "2026-06-08T01:00:00Z"),
+    );
     assert_eq!(engine.roadmap().chunks[0].notes, "local copy");
 }
 
@@ -149,8 +159,8 @@ async fn reconcile_roadmap_pulls_cloud_chunks_into_the_local_engine() {
     assert_eq!(merged, 2);
     assert_eq!(engine.roadmap().chunks.len(), 2);
 
-    // Re-pull is idempotent (cloud-wins replace, not duplicate).
-    assert_eq!(reconcile_roadmap(&client, &mut engine).await.unwrap(), 2);
+    // Re-pull acknowledges no new records.
+    assert_eq!(reconcile_roadmap(&client, &mut engine).await.unwrap(), 0);
     assert_eq!(engine.roadmap().chunks.len(), 2);
 }
 
@@ -242,7 +252,8 @@ fn a_push_cannot_launder_an_unprovable_chunk_into_ownership() {
 
     // The half that actually protects anyone: it must not merge back as ours.
     let mut engine = RoadmapEngine::new("project-c59cfc".into());
-    let merged = magistr_workflow::cloud::pull::apply_roadmap_records(&mut engine, &[envelope]);
+    let merged =
+        magistr_workflow::cloud::pull::apply_roadmap_records(&mut engine, &[envelope]).unwrap();
     assert_eq!(
         merged, 0,
         "the pusher got its own unprovable record back as provably its own — this \
@@ -266,13 +277,15 @@ fn a_provable_chunk_still_round_trips_and_keeps_its_own_origin() {
     );
 
     let mut engine = RoadmapEngine::new("project-c59cfc".into());
-    let merged = magistr_workflow::cloud::pull::apply_roadmap_records(&mut engine, &[envelope]);
+    let merged =
+        magistr_workflow::cloud::pull::apply_roadmap_records(&mut engine, &[envelope]).unwrap();
     assert_eq!(merged, 1, "a provable record must still sync");
 
     // And a foreign one, pushed by its own project, stays foreign to us.
     let theirs = owned_chunk("theirs", ChunkStatus::Backlog, "think-and-ship-676f38");
     let foreign =
         serde_json::to_value(from_chunk("think-and-ship-676f38", &theirs, &[], &[])).unwrap();
-    let merged = magistr_workflow::cloud::pull::apply_roadmap_records(&mut engine, &[foreign]);
+    let merged =
+        magistr_workflow::cloud::pull::apply_roadmap_records(&mut engine, &[foreign]).unwrap();
     assert_eq!(merged, 0, "another project's stamped record never merges");
 }

@@ -1,3 +1,6 @@
+use crate::roadmap::engine::RoadmapMutationError;
+use magistr_workflow_contracts::WriteError;
+
 /// A native roadmap failure with stable client-facing classification.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum RoadmapError {
@@ -13,11 +16,8 @@ pub enum RoadmapError {
     ExportFailed(String),
     #[error("roadmap engine mutex poisoned")]
     Poisoned,
-    /// The store could not be observed before the call: a `stat` or a
-    /// re-read of the roadmap file failed, so neither a query nor a
-    /// mutation answers from a copy it cannot vouch for.
-    #[error("roadmap store unavailable: {0}")]
-    Store(String),
+    #[error("{0}")]
+    Store(WriteError),
 }
 
 impl RoadmapError {
@@ -29,6 +29,34 @@ impl RoadmapError {
             Self::ExportFailed(_) => "export_failed",
             Self::Poisoned => "internal_error",
             Self::Store(_) => "store_unavailable",
+        }
+    }
+
+    pub fn store_error(&self) -> Option<&WriteError> {
+        match self {
+            Self::Store(error) => Some(error),
+            _ => None,
+        }
+    }
+
+    pub fn effect(&self) -> &'static str {
+        match self {
+            Self::Store(error) => error.effect(),
+            _ => "none",
+        }
+    }
+
+    pub(crate) fn invalid_args(error: RoadmapMutationError) -> Self {
+        match error {
+            RoadmapMutationError::Rejected(message) => Self::InvalidArgs(message),
+            RoadmapMutationError::Store(error) => Self::Store(error),
+        }
+    }
+
+    pub(crate) fn invalid_state(error: RoadmapMutationError) -> Self {
+        match error {
+            RoadmapMutationError::Rejected(message) => Self::InvalidState(message),
+            RoadmapMutationError::Store(error) => Self::Store(error),
         }
     }
 }

@@ -369,7 +369,7 @@ impl NativeReader {
     /// does not depend on whether the separate execution summary is readable.
     pub fn ship_receipt(&self, id: &str) -> Result<Option<CheckReceipt>, String> {
         let ledger = lock(&self.ship).receipts().clone();
-        ledger.get(id)
+        ledger.get(id).map_err(|error| error.to_string())
     }
 
     pub fn ship_tasks(&self) -> Result<Vec<Task>, String> {

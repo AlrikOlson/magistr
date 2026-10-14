@@ -99,7 +99,7 @@ fn suite_level_time_is_the_fallback_when_testcases_carry_none() {
 #[test]
 fn failure_messages_are_redacted_before_they_reach_the_record() {
     let results = parse_fixture(
-        r#"<testsuite><testcase name="t"><failure message="request failed: token=lin_api_a1b2c3d4e5f6"/></testcase></testsuite>"#,
+        r#"<testsuite><testcase name="t"><failure message="request failed: token=[REDACTED:credential-assignment]"/></testcase></testsuite>"#,
     );
     let message = results.failures[0].message.as_deref().unwrap();
     assert!(
@@ -266,7 +266,9 @@ async fn ship_check_stores_the_parsed_summary_next_to_the_exit_code() {
         )))
         .await
         .unwrap();
-    let check = structured(&result);
+    let settlement = structured(&result);
+    assert_eq!(settlement["settlement"], "applied");
+    let check = &settlement["check"]["value"];
 
     // The exit code remains the source of truth for passed/verified…
     assert_eq!(check["passed"], serde_json::json!(true));
@@ -298,7 +300,9 @@ async fn a_report_problem_never_fails_the_check_or_flips_verified() {
         )))
         .await
         .unwrap();
-    let check = structured(&result);
+    let settlement = structured(&result);
+    assert_eq!(settlement["settlement"], "applied");
+    let check = &settlement["check"]["value"];
 
     // Exactly today's behaviour: green command stays a green verified check.
     assert_eq!(check["passed"], serde_json::json!(true));
@@ -316,14 +320,16 @@ async fn a_report_problem_never_fails_the_check_or_flips_verified() {
 }
 
 #[tokio::test]
-async fn a_check_without_a_report_is_byte_for_byte_the_old_shape() {
+async fn a_check_without_a_report_has_no_report_fields() {
     let svc = service();
     active_task(&svc).await;
     let result = svc
         .ship_check(Parameters(check_args(Some("echo ok"), None)))
         .await
         .unwrap();
-    let check = structured(&result);
+    let settlement = structured(&result);
+    assert_eq!(settlement["settlement"], "applied");
+    let check = &settlement["check"]["value"];
     assert!(
         check.get("report").is_none() && check.get("results").is_none(),
         "no report requested — no report keys on the record: {check}"

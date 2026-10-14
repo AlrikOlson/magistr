@@ -1,6 +1,7 @@
 //! What the cockpit asks of the native workflow engines.
 
-use magistr_workflow_contracts::{Chunk, Signal};
+use magistr_workflow_contracts::signal::SignalPromotion;
+use magistr_workflow_contracts::{Chunk, Observed, Signal, WorkflowMutationError};
 
 use crate::cockpit::ProposalKind;
 
@@ -11,7 +12,7 @@ use crate::cockpit::ProposalKind;
 /// [`EngineEvent`](super::EngineEvent) built from the port's return —
 /// mutations come back as the updated record, which
 /// [`apply`](super::apply) folds into the typed event the engines would
-/// have announced. Errors are words for the stage, not codes. `Send +
+/// have announced. Mutation outcomes retain source and effect until presentation. `Send +
 /// Sync` because the session task holds the port across its awaits.
 pub trait EnginePort: Send + Sync {
     /// Pin or unpin the step.
@@ -19,7 +20,11 @@ pub trait EnginePort: Send + Sync {
     /// # Errors
     /// The engine's reason the step was not marked — an unknown step
     /// number included.
-    fn pin(&mut self, step_number: u32, pinned: bool) -> Result<(), String>;
+    fn pin(
+        &mut self,
+        step_number: u32,
+        pinned: bool,
+    ) -> Result<Observed<bool>, WorkflowMutationError>;
 
     /// The trace-wide metacognitive checkpoint report, as the engine
     /// renders it.
@@ -32,13 +37,13 @@ pub trait EnginePort: Send + Sync {
     ///
     /// # Errors
     /// The engine's reason — an unknown id or an illegal transition.
-    fn start_chunk(&mut self, id: &str) -> Result<Chunk, String>;
+    fn start_chunk(&mut self, id: &str) -> Result<Observed<Chunk>, WorkflowMutationError>;
 
     /// Mark the chunk done; the updated chunk comes back.
     ///
     /// # Errors
     /// The engine's reason — an unknown id or an illegal transition.
-    fn complete_chunk(&mut self, id: &str) -> Result<Chunk, String>;
+    fn complete_chunk(&mut self, id: &str) -> Result<Observed<Chunk>, WorkflowMutationError>;
 
     /// Resolve the chunk's open proposal of `kind`: accept takes the
     /// suggestion, reject clears it. The updated chunk comes back.
@@ -50,7 +55,7 @@ pub trait EnginePort: Send + Sync {
         id: &str,
         kind: ProposalKind,
         accept: bool,
-    ) -> Result<Chunk, String>;
+    ) -> Result<Observed<Chunk>, WorkflowMutationError>;
 
     /// Lift the chunk's blocker; the updated chunk comes back.
     ///
@@ -58,23 +63,27 @@ pub trait EnginePort: Send + Sync {
     /// The engine's reason — an unknown id, or a chunk with no blocker
     /// to clear, which the engines refuse loudly rather than answer as
     /// a no-op.
-    fn clear_blocker(&mut self, id: &str) -> Result<Chunk, String>;
+    fn clear_blocker(&mut self, id: &str) -> Result<Observed<Chunk>, WorkflowMutationError>;
 
     /// Promote the signal to the roadmap; the updated signal comes back.
     ///
     /// # Errors
     /// The engine's reason — a signal not yet researched included.
-    fn promote_signal(&mut self, id: &str) -> Result<Signal, String>;
+    fn promote_signal(&mut self, id: &str) -> Result<SignalPromotion, WorkflowMutationError>;
 
     /// Dismiss the signal; the updated signal comes back.
     ///
     /// # Errors
     /// The engine's reason — an unknown id or a terminal signal.
-    fn ignore_signal(&mut self, id: &str) -> Result<Signal, String>;
+    fn ignore_signal(&mut self, id: &str) -> Result<Observed<Signal>, WorkflowMutationError>;
 
     /// Snooze the signal for `minutes`; the updated signal comes back.
     ///
     /// # Errors
     /// The engine's reason — an unknown id.
-    fn snooze_signal(&mut self, id: &str, minutes: u32) -> Result<Signal, String>;
+    fn snooze_signal(
+        &mut self,
+        id: &str,
+        minutes: u32,
+    ) -> Result<Observed<Signal>, WorkflowMutationError>;
 }

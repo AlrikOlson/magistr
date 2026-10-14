@@ -252,7 +252,7 @@ impl ShipService {
         &self,
         Parameters(args): Parameters<SetObjectiveArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        Self::application_result(self.use_cases.set_objective_with_verification(
+        Self::typed_result(self.use_cases.set_objective_with_verification(
             args.description,
             args.acceptance_criteria,
             args.constraints,
@@ -310,10 +310,10 @@ impl ShipService {
         &self,
         Parameters(args): Parameters<StartArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        Self::application_result(
+        Self::typed_result(
             self.use_cases
                 .start_task(&args.task_id)
-                .map(TaskResult::from),
+                .map(|observed| observed.map(TaskResult::from)),
         )
     }
 
@@ -332,7 +332,7 @@ impl ShipService {
         &self,
         Parameters(args): Parameters<RecordArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        Self::application_result(self.use_cases.record_action(
+        Self::typed_result(self.use_cases.record_action(
             args.task_id.as_deref(),
             args.action_type,
             args.description,
@@ -359,10 +359,10 @@ impl ShipService {
         Parameters(args): Parameters<CompleteArgs>,
     ) -> Result<CallToolResult, ErrorData> {
         let artifacts = args.artifacts.into_iter().map(Artifact::from).collect();
-        Self::application_result(
+        Self::typed_result(
             self.use_cases
                 .complete_task(&args.task_id, artifacts)
-                .map(TaskResult::from),
+                .map(|observed| observed.map(TaskResult::from)),
         )
     }
 
@@ -381,10 +381,10 @@ impl ShipService {
         &self,
         Parameters(args): Parameters<BlockArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        Self::application_result(
+        Self::typed_result(
             self.use_cases
                 .block_task(&args.task_id, args.reason)
-                .map(TaskResult::from),
+                .map(|observed| observed.map(TaskResult::from)),
         )
     }
 
@@ -403,7 +403,7 @@ impl ShipService {
         &self,
         Parameters(args): Parameters<CheckArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        use crate::ship::application::{CheckRequest, CheckSettlement, ShipUseCases};
+        use crate::ship::application::{CheckRequest, ShipUseCases};
         let request = CheckRequest {
             task_id: args.task_id,
             check_type: args.check_type,
@@ -415,23 +415,11 @@ impl ShipService {
             report: args.report.map(|report| (report.format, report.path)),
         };
         let admission = match self.use_cases.admit_check(request) {
-            Ok(admission) => admission,
+            Ok(admission) => admission.value,
             Err(error) => return Self::typed_result::<()>(Err(error)),
         };
         let outcome = ShipUseCases::execute_check(&admission).await;
-        match self.use_cases.settle_check(admission, outcome) {
-            Ok(CheckSettlement::Applied { check, .. }) => Self::application_result(Ok(check)),
-            Ok(CheckSettlement::Stale {
-                admission,
-                outcome,
-                receipt,
-            }) => Ok(Self::ok_structured(serde_json::json!({
-                "ok": false, "error_kind": "stale_result",
-                "message": "The admitted project/run/task changed while the check ran; its result was not reassigned. Admission, outcome and the settled receipt are returned for recovery.",
-                "admission": admission, "outcome": outcome, "receipt": receipt,
-            }))),
-            Err(error) => Self::application_result::<()>(Err(error)),
-        }
+        Self::typed_result(self.use_cases.settle_check(admission, outcome))
     }
 
     #[tool(
@@ -450,7 +438,7 @@ impl ShipService {
         Parameters(args): Parameters<ShipArgs>,
     ) -> Result<CallToolResult, ErrorData> {
         let artifacts = args.artifacts.into_iter().map(Artifact::from).collect();
-        Self::application_result(self.use_cases.finalize(artifacts, args.summary))
+        Self::typed_result(self.use_cases.finalize(artifacts, args.summary))
     }
 
     #[tool(
@@ -532,7 +520,7 @@ impl ShipService {
         &self,
         Parameters(_): Parameters<NoArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        Self::application_result(self.use_cases.compact_receipts())
+        Self::typed_result(self.use_cases.compact_receipts())
     }
     #[tool(
         name = "ship_status",
@@ -549,7 +537,7 @@ impl ShipService {
         &self,
         Parameters(_): Parameters<NoArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        Self::application_result(self.use_cases.status())
+        Self::typed_result(self.use_cases.status())
     }
 
     #[tool(
@@ -567,7 +555,7 @@ impl ShipService {
         &self,
         Parameters(args): Parameters<ExportArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        Self::application_result(
+        Self::typed_result(
             self.use_cases
                 .export(&args.format)
                 .map(|trace| serde_json::json!({ "format": args.format, "trace": trace })),
@@ -589,10 +577,10 @@ impl ShipService {
         &self,
         Parameters(_): Parameters<NoArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        Self::application_result(
+        Self::typed_result(
             self.use_cases
                 .reset()
-                .map(|()| serde_json::json!({ "status": "cleared" })),
+                .map(|observed| observed.map(|()| serde_json::json!({ "status": "cleared" }))),
         )
     }
 }

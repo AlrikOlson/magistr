@@ -19,7 +19,7 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
-use crate::infra::persistence::locked_merge_write;
+use crate::infra::transaction::{TransactionError, TransactionTarget, transact};
 
 /// How the current setting came to be.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -124,8 +124,8 @@ impl Default for TrackerConfig {
 /// Tracker configuration persistence error.
 #[derive(Debug, thiserror::Error)]
 pub enum TrackerConfigError {
-    #[error("tracker config io: {0}")]
-    Io(#[from] std::io::Error),
+    #[error("{0}")]
+    Store(#[from] magistr_workflow_contracts::WriteError),
     #[error("{0}")]
     Invalid(String),
 }
@@ -157,32 +157,17 @@ pub fn enable(
 ) -> Result<TrackerConfig, TrackerConfigError> {
     let provider = provider.trim().to_ascii_lowercase();
     let target = target.trim().to_string();
-    if provider.is_empty() {
+    if provider.is_empty() || target.is_empty() {
         return Err(TrackerConfigError::Invalid(
-            "enabling projection needs a provider".to_string(),
+            "Choose a tracker and a destination.".into(),
         ));
     }
-    if target.is_empty() {
-        return Err(TrackerConfigError::Invalid(
-            "enabling projection needs a destination for the provider to write to".to_string(),
-        ));
-    }
-    // Carry the fields this decision is NOT about — a re-setup must not
-    // silently discard an initiative name a human chose, the courtesy
-    // `disable` already extends to provider and target.
-    let prior = load(data_dir, project_id);
-    write(
-        data_dir,
-        project_id,
-        TrackerConfig {
-            enabled: true,
-            provider: Some(provider),
-            target: Some(target),
-            decided_at: Some(now.to_string()),
-            source: ConfigSource::Explicit,
-            ..prior
-        },
-    )
+    mutate(data_dir, project_id, now, move |state| {
+        state.enabled = true;
+        state.provider = Some(provider);
+        state.target = Some(target);
+        Ok(())
+    })
 }
 
 /// Name the initiative roof, or leave it alone.
@@ -200,20 +185,12 @@ pub fn set_initiative(
     now: &str,
 ) -> Result<TrackerConfig, TrackerConfigError> {
     let name = name.trim();
-    let prior = load(data_dir, project_id);
-    if name.is_empty() {
-        return Ok(prior);
-    }
-    write(
-        data_dir,
-        project_id,
-        TrackerConfig {
-            initiative: Some(name.to_string()),
-            decided_at: Some(now.to_string()),
-            source: ConfigSource::Explicit,
-            ..prior
-        },
-    )
+    mutate(data_dir, project_id, now, |state| {
+        if !name.is_empty() {
+            state.initiative = Some(name.to_owned());
+        }
+        Ok(())
+    })
 }
 
 /// Name the companion lane, or clear it.
@@ -232,33 +209,20 @@ pub fn set_companion(
     now: &str,
 ) -> Result<TrackerConfig, TrackerConfigError> {
     let provider = provider.trim().to_ascii_lowercase();
-    let target = target.trim().to_string();
-    let prior = load(data_dir, project_id);
-    let companion = if provider.is_empty() {
-        None
-    } else {
-        if target.is_empty() {
-            return Err(TrackerConfigError::Invalid(
-                "a companion lane needs a destination of its own — a board is addressed by \
-                 project URL, not by the primary provider's target"
-                    .to_string(),
-            ));
-        }
-        if prior.provider.as_deref() == Some(provider.as_str()) {
-            return Err(TrackerConfigError::Invalid(same_key_refusal(&provider)));
-        }
-        Some(CompanionLane { provider, target })
-    };
-    write(
-        data_dir,
-        project_id,
-        TrackerConfig {
-            companion,
-            decided_at: Some(now.to_string()),
-            source: ConfigSource::Explicit,
-            ..prior
-        },
-    )
+    let target = target.trim().to_owned();
+    mutate(data_dir, project_id, now, move |state| {
+        state.companion = if provider.is_empty() {
+            None
+        } else {
+            if target.is_empty() {
+                return Err(TrackerConfigError::Invalid(
+                    "Choose a destination for the companion tracker.".into(),
+                ));
+            }
+            Some(CompanionLane { provider, target })
+        };
+        Ok(())
+    })
 }
 
 /// The ONE message for a lane that names the primary provider, so the refusal
@@ -299,32 +263,42 @@ pub fn disable(
     project_id: &str,
     now: &str,
 ) -> Result<TrackerConfig, TrackerConfigError> {
-    let prior = load(data_dir, project_id);
-    write(
-        data_dir,
-        project_id,
-        TrackerConfig {
-            enabled: false,
-            decided_at: Some(now.to_string()),
-            source: ConfigSource::Explicit,
-            ..prior
-        },
-    )
+    mutate(data_dir, project_id, now, |state| {
+        state.enabled = false;
+        Ok(())
+    })
 }
 
-fn write(
+fn mutate(
     data_dir: &Path,
     project_id: &str,
-    state: TrackerConfig,
+    now: &str,
+    apply: impl FnOnce(&mut TrackerConfig) -> Result<(), TrackerConfigError>,
 ) -> Result<TrackerConfig, TrackerConfigError> {
-    locked_merge_write(&config_path(data_dir, project_id), &state, |ours, disk| {
-        if disk.decided_at.as_deref() > ours.decided_at.as_deref() {
-            disk
-        } else {
-            ours.clone()
-        }
+    let path = config_path(data_dir, project_id);
+    let lock_path = path.with_extension("json.lock");
+    let committed = transact(
+        TransactionTarget::File {
+            path: &path,
+            lock_path: &lock_path,
+        },
+        TrackerConfig::default,
+        |_| Ok(()),
+        |state| {
+            if state.decided_at.as_deref().is_none_or(|prior| prior <= now) {
+                apply(state)?;
+                companion_lane(state).map_err(TrackerConfigError::Invalid)?;
+                state.decided_at = Some(now.to_owned());
+                state.source = ConfigSource::Explicit;
+            }
+            Ok(())
+        },
+    )
+    .map_err(|error| match error {
+        TransactionError::Rejected(error) => error,
+        TransactionError::Store(error) => TrackerConfigError::Store(error),
     })?;
-    Ok(load(data_dir, project_id))
+    Ok(committed.state)
 }
 
 /// THE egress predicate: nothing leaves unless a human explicitly enabled this
@@ -654,6 +628,47 @@ mod tests {
     }
 
     /// Corrupt state must fail closed — silence, not a panic and not egress.
+    #[test]
+    fn independent_configuration_choices_survive_concurrent_writers() {
+        let dir = TempDir::new().unwrap();
+        let barrier = std::sync::Barrier::new(2);
+        std::thread::scope(|scope| {
+            scope.spawn(|| {
+                barrier.wait();
+                enable(
+                    dir.path(),
+                    "proj",
+                    "github",
+                    "owner/repo",
+                    "2026-10-14T10:00:00Z",
+                )
+                .unwrap();
+            });
+            scope.spawn(|| {
+                barrier.wait();
+                set_initiative(dir.path(), "proj", "Product", "2026-10-14T10:00:00Z").unwrap();
+            });
+        });
+        let saved = load(dir.path(), "proj");
+        assert_eq!(saved.initiative.as_deref(), Some("Product"));
+        assert_eq!(saved.target.as_deref(), Some("owner/repo"));
+        assert!(saved.enabled);
+    }
+
+    #[test]
+    fn configuration_mutation_refuses_unreadable_state_without_enabling_egress() {
+        let dir = TempDir::new().unwrap();
+        let path = config_path(dir.path(), "proj");
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(&path, "{").unwrap();
+        assert!(matches!(
+            enable(dir.path(), "proj", "github", "owner/repo", "now"),
+            Err(TrackerConfigError::Store(_))
+        ));
+        assert_eq!(std::fs::read(&path).unwrap(), b"{");
+        assert!(!should_project(&load(dir.path(), "proj")));
+    }
+
     #[test]
     fn a_corrupt_file_loads_as_disabled() {
         let dir = TempDir::new().expect("tempdir");

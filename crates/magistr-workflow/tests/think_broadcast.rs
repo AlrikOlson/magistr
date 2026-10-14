@@ -113,7 +113,7 @@ async fn broadcast_emits_step_appended_and_revised() {
         .expect("step 2 / revision");
 
     engine.pin_step(2, true).expect("pin");
-    engine.clear_history();
+    engine.clear_history().unwrap();
 
     let frames = read_frames(stream, 5, Duration::from_secs(2)).await;
 
@@ -172,4 +172,46 @@ async fn broadcast_bind_failure_does_not_block_step() {
         result.is_ok(),
         "process_step succeeded without a broadcaster"
     );
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn failed_save_publishes_nothing_and_retry_frame_names_the_saved_record() {
+    let directory = tempdir().unwrap();
+    let socket = directory.path().join("events.sock");
+    let mut config = quiet_config_with_broadcast(socket.clone());
+    config.persistence.enabled = true;
+    config.persistence.data_dir = directory.path().to_path_buf();
+    let persistence = magistr_workflow::think::persistence::Persistence::for_project(
+        &config.persistence,
+        "publish",
+    );
+    let mut engine = ReasoningServer::new_for_project(config, "publish".into());
+    engine.process_step_native(step(1)).unwrap();
+    let stream = UnixStream::connect(&socket).await.unwrap();
+    assert!(
+        engine
+            .broadcaster()
+            .unwrap()
+            .wait_for_subscribers(1, Duration::from_secs(10))
+            .await
+    );
+    let path = persistence.store_path().unwrap();
+    let lock = path.with_extension("json.lock");
+    std::fs::remove_file(&lock).unwrap();
+    std::fs::create_dir(&lock).unwrap();
+    assert!(engine.process_step_native(step(2)).is_err());
+    assert!(engine.pin_step(1, true).is_err());
+    assert!(engine.clear_history().is_err());
+    std::fs::remove_dir(&lock).unwrap();
+    let recorded = engine.process_step_native(step(2)).unwrap();
+    let frames = read_frames(stream, 2, Duration::from_millis(200)).await;
+    assert_eq!(frames.len(), 1, "only the committed retry publishes");
+    assert_eq!(frames[0]["type"], "step_appended");
+    assert_eq!(
+        frames[0]["step"]["record_id"],
+        serde_json::json!(recorded.step.record_id)
+    );
+    let saved = persistence.load_default().unwrap().value.unwrap();
+    assert_eq!(saved.steps.len(), 2);
+    assert_eq!(saved.steps[1].record_id, recorded.step.record_id);
 }

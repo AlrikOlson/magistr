@@ -408,7 +408,7 @@ async fn command_loop(
             engines.apply(*command).map_err(CommandRefusal::Engine)
         } else {
             Err(CommandRefusal::Engine(
-                "this owner serves no typed commands".to_owned(),
+                super::WorkflowMutationError::rejected("This owner cannot apply changes."),
             ))
         };
         drop(owner);

@@ -21,19 +21,23 @@ async fn completion_broadcast_keeps_artifacts_and_completion_time() {
     );
     let mut engine =
         ShipEngine::new("test".into()).with_broadcaster(ShipBroadcaster::from_engine(broadcaster));
-    engine.set_objective(
-        "Read the completed record".into(),
-        vec![],
-        vec![],
-        String::new(),
-    );
-    engine.add_task(
-        "task".into(),
-        "Save results".into(),
-        TaskType::Implement,
-        None,
-        None,
-    );
+    engine
+        .set_objective(
+            "Read the completed record".into(),
+            vec![],
+            vec![],
+            String::new(),
+        )
+        .unwrap();
+    engine
+        .add_task(
+            "task".into(),
+            "Save results".into(),
+            TaskType::Implement,
+            None,
+            None,
+        )
+        .unwrap();
     engine.start_task("task").unwrap();
     let task = engine
         .complete_task(
@@ -45,6 +49,7 @@ async fn completion_broadcast_keeps_artifacts_and_completion_time() {
             }],
         )
         .unwrap()
+        .value
         .clone();
     let mut lines = BufReader::new(stream).lines();
     for _ in 0..4 {

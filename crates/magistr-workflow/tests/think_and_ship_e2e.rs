@@ -253,8 +253,8 @@ async fn roadmap_cross_family_linkage_over_the_wire() {
     s.insert("id".to_string(), Value::String("phase-1".to_string()));
     let started = call("roadmap_start_chunk", s).await;
     let sc = started.structured_content.expect("start structured");
-    assert_eq!(sc["backref"], "chunk:phase-1");
-    assert_eq!(sc["chunk"]["status"], "in_progress");
+    assert_eq!(sc["value"]["backref"], "chunk:phase-1");
+    assert_eq!(sc["value"]["chunk"]["status"], "in_progress");
 
     // link a think step to the chunk.
     let mut l = serde_json::Map::new();
@@ -315,8 +315,8 @@ async fn roadmap_cross_family_linkage_over_the_wire() {
     // complete with the verification task as its proof-of-ship ref.
     let done = call("roadmap_complete_chunk", c).await;
     let dc = done.structured_content.expect("complete structured");
-    assert_eq!(dc["status"], "done");
-    let refs = dc["cross_refs"].as_array().unwrap();
+    assert_eq!(dc["value"]["status"], "done");
+    let refs = dc["value"]["cross_refs"].as_array().unwrap();
     assert!(refs.iter().any(|r| r == "think:1"));
     assert!(refs.iter().any(|r| r == "task:wire-it"));
 
@@ -332,7 +332,7 @@ async fn roadmap_cross_family_linkage_over_the_wire() {
     );
     let refreshed = call("roadmap_record_refresh", r).await;
     let rc = refreshed.structured_content.expect("refresh structured");
-    assert_eq!(rc["total_refreshes"], 1);
+    assert_eq!(rc["value"]["total_refreshes"], 1);
 
     let _ = client_service.cancel().await;
     server_handle.abort();

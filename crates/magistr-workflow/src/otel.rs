@@ -425,7 +425,7 @@ mod tests {
             }],
             "checks": [{
                 "type": "test", "name": "cargo test", "passed": false,
-                "details": "1 failed", "required": true,
+                "details": "1 failed", "required": true, "verified": false,
                 "timestamp": "2026-06-10T10:55:00Z"
             }],
         }))

@@ -181,7 +181,7 @@ fn family_failures_retain_exact_records_across_clones_and_recover_independently(
                 &persistence,
                 "workstream-read",
             )
-            .default_store_path()
+            .store_path()
             .unwrap(),
         ),
     ];
@@ -327,7 +327,7 @@ fn failed_session_reads_retain_the_previous_sessions_identity_until_recovery() {
 
     writer.think_record_step(step(2, "beta")).unwrap();
     let persistence = Persistence::for_project(&config.persistence_config(), "session-read");
-    let path = persistence.session_store_path(&beta).unwrap();
+    let path = persistence.store_path().unwrap();
     let saved = std::fs::read(&path).unwrap();
     std::fs::write(&path, b"{ unreadable reasoning").unwrap();
     for _ in 0..2 {
@@ -338,19 +338,13 @@ fn failed_session_reads_retain_the_previous_sessions_identity_until_recovery() {
         assert!(observer.think_step(1).is_err());
     }
 
-    // A detached reader keeps its captured selection, even while the writer
-    // has explicitly switched to another session.
+    // All reasoning sessions share the canonical project document. A new
+    // reader cannot certify any session while that document is unreadable.
     let detached = NativeReader::open_for_project(&config, "session-read".into());
-    assert_eq!(
-        detached
-            .snapshot()
-            .think
-            .current()
-            .unwrap()
-            .value
-            .session_id,
-        Some(alpha)
-    );
+    assert!(matches!(
+        detached.snapshot().think,
+        ReadState::Unavailable(_)
+    ));
 
     std::fs::write(path, saved).unwrap();
     let recovered = observer.snapshot().think.current().unwrap().clone();

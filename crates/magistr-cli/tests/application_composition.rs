@@ -157,6 +157,7 @@ fn refusal(engines: &NativeEngines, ship_ref: Option<&str>) -> String {
     engines
         .roadmap_complete_chunk(CHUNK, ship_ref)
         .expect_err("completion refused")
+        .to_string()
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -255,7 +256,7 @@ async fn a_check_admitted_with_source_observes_the_owners_write_and_lands_on_its
     let done = engines
         .roadmap_complete_chunk(CHUNK, Some("task:verify"))
         .expect("every required gate is current");
-    assert_eq!(done.status, ChunkStatus::Done);
+    assert_eq!(done.value.status, ChunkStatus::Done);
     service.shutdown().await.expect("clean shutdown");
 }
 
@@ -305,6 +306,7 @@ async fn completion_refuses_after_a_source_config_or_acceptance_change_until_the
         engines
             .roadmap_complete_chunk(CHUNK, None)
             .expect("current again")
+            .value
             .status,
         ChunkStatus::Done
     );
@@ -352,14 +354,15 @@ async fn a_rolled_over_objective_leaves_the_result_stale_and_a_reused_name_has_n
                     .task_instance
             );
             assert!(outcome.passed);
-            assert_eq!(receipt.id, receipt_id);
-            assert_eq!(receipt.target.run_id, original.run_id);
+            assert_eq!(receipt.value.id, receipt_id);
+            assert_eq!(receipt.value.target.run_id, original.run_id);
             assert!(matches!(
-                receipt.settlement,
+                receipt.value.settlement,
                 Some(ReceiptSettlement::Stale { .. })
             ));
             assert!(
                 !receipt
+                    .value
                     .freshness
                     .as_ref()
                     .expect("validated")
@@ -408,7 +411,10 @@ async fn the_cockpit_complete_action_names_the_verification_task_and_refuses_wit
 
     // No objective yet: the button is refused in words the stage can show.
     let refused = port.complete_chunk(CHUNK).expect_err("no evidence");
-    assert!(refused.contains("no ship objective"), "{refused}");
+    assert!(
+        refused.to_string().contains("no ship objective"),
+        "{refused}"
+    );
 
     objective(&engines, "verify");
     // A failed gate, then a passing one: recovered, not outstanding.
@@ -418,29 +424,32 @@ async fn the_cockpit_complete_action_names_the_verification_task_and_refuses_wit
     ));
     let refused = port.complete_chunk(CHUNK).expect_err("red gate");
     assert!(
-        refused.contains("test: the latest attempt did not pass (exit 1)"),
+        refused
+            .to_string()
+            .contains("test: the latest attempt did not pass (exit 1)"),
         "{refused}"
     );
     all_gates(&engines, service.root());
 
     let done = port.complete_chunk(CHUNK).expect("current evidence");
-    assert_eq!(done.status, magistr_engine::ChunkStatus::Done);
+    assert_eq!(done.value.status, magistr_engine::ChunkStatus::Done);
     assert!(
-        done.cross_refs.iter().any(|r| r == "task:verify"),
+        done.value.cross_refs.iter().any(|r| r == "task:verify"),
         "the completion names the verification task it was decided on: {done:?}"
     );
     // The final summary tells the recovered failure apart from an
     // outstanding one.
     let report = engines.ship_finalize(vec![], None).expect("report");
-    assert_eq!(report.recovered_failures, vec!["test (task: verify)"]);
-    assert!(report.outstanding_failures.is_empty());
+    assert_eq!(report.value.recovered_failures, vec!["test (task: verify)"]);
+    assert!(report.value.outstanding_failures.is_empty());
     assert!(
         !report
+            .value
             .warnings
             .iter()
             .any(|w| w.starts_with("required checks failed:")),
         "{:?}",
-        report.warnings
+        report.value.warnings
     );
     service.shutdown().await.expect("clean shutdown");
 }
@@ -454,7 +463,10 @@ async fn the_plain_status_route_and_a_foreign_scope_are_refused() {
     let refused = engines
         .roadmap_set_status(CHUNK, ChunkStatus::Done)
         .expect_err("no direct done");
-    assert!(refused.contains("roadmap_complete_chunk"), "{refused}");
+    assert!(
+        refused.to_string().contains("roadmap_complete_chunk"),
+        "{refused}"
+    );
 
     engines
         .ship_set_objective("Other".into(), vec![], vec![], "chunk:other".into())

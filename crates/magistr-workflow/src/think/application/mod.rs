@@ -1,5 +1,6 @@
 //! Synchronous reasoning use cases over the admitted native engine.
 pub use crate::think::domain::{RecordedStep, StepError};
+use magistr_workflow_contracts::Observed;
 
 use crate::think::config::OutputFormat;
 use crate::think::domain::ThinkStep;
@@ -32,16 +33,12 @@ impl ThinkUseCases {
 
     pub fn record_step(&self, step: ThinkStep) -> Result<RecordedStep, StepError> {
         self.lock()
-            .map_err(|error| StepError {
-                error,
-                status: "failed",
-                hint: "The admitted reasoning owner is unavailable.".to_owned(),
-            })?
+            .map_err(StepError::from)?
             .process_step_native(step)
     }
 
-    pub fn pin_step(&self, step: u32, pinned: bool) -> Result<bool, String> {
-        self.lock()?.pin_step(step, pinned)
+    pub fn pin_step(&self, step: u32, pinned: bool) -> Result<Observed<bool>, StepError> {
+        self.lock().map_err(StepError::from)?.pin_step(step, pinned)
     }
 
     pub fn get_step(&self, step: u32, latest: bool) -> Result<Option<ThinkStep>, String> {
@@ -69,8 +66,10 @@ impl ThinkUseCases {
         Ok(self.lock()?.checkpoint_snapshot())
     }
 
-    pub fn revise_estimate(&self, estimate: u32) -> Result<(u32, u32), String> {
-        self.lock()?.revise_estimate(estimate)
+    pub fn revise_estimate(&self, estimate: u32) -> Result<Observed<(u32, u32)>, StepError> {
+        self.lock()
+            .map_err(StepError::from)?
+            .revise_estimate(estimate)
     }
 
     pub fn set_branch_status(
@@ -78,8 +77,10 @@ impl ThinkUseCases {
         id: &str,
         status: &str,
         merged_into: Option<u32>,
-    ) -> Result<(&'static str, &'static str), String> {
-        self.lock()?.set_branch_status(id, status, merged_into)
+    ) -> Result<Observed<crate::think::domain::BranchStatusChange>, StepError> {
+        self.lock()
+            .map_err(StepError::from)?
+            .set_branch_status(id, status, merged_into)
     }
 
     pub fn export(&self, format: &str) -> Result<String, String> {
@@ -95,8 +96,7 @@ impl ThinkUseCases {
         }
     }
 
-    pub fn wipe(&self) -> Result<(), String> {
-        self.lock()?.clear_history();
-        Ok(())
+    pub fn wipe(&self) -> Result<Observed<()>, StepError> {
+        self.lock().map_err(StepError::from)?.clear_history()
     }
 }

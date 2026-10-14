@@ -1,123 +1,101 @@
-use std::sync::{Mutex, MutexGuard};
-
-use crate::roadmap::domain::{Chunk, ChunkStatus};
-use crate::roadmap::engine::RoadmapEngine;
-use crate::signal::domain::{Signal, SignalKind, SignalStatus};
-
 use super::{SignalError, SignalUseCases};
+use crate::roadmap::domain::ChunkStatus;
+use crate::roadmap::engine::RoadmapMutationError;
+#[cfg(test)]
+use crate::signal::domain::Signal;
+use crate::signal::domain::{SignalKind, SignalStatus};
 
-/// The native result of promotion, including the current signal on retries.
-#[derive(Debug, Clone)]
-pub struct SignalPromotion {
-    pub signal_id: String,
-    pub chunk_id: String,
-    pub created: bool,
-    pub signal: Signal,
-    pub chunk: Option<Chunk>,
-}
+pub use magistr_workflow_contracts::signal::SignalPromotion;
 
 impl SignalUseCases {
-    /// Promote once, retaining a durable reciprocal link on both records.
-    /// Signal and roadmap locks are scoped separately; the shared operation
-    /// lock serializes concurrent promotions through clones of this service.
+    /// Retry safely using the same work item and reciprocal links.
     pub fn promote(&self, id: &str) -> Result<SignalPromotion, SignalError> {
         let roadmap = self.roadmap.as_ref().ok_or(SignalError::NotWired)?;
         let _operation = self.promotion.lock().map_err(|_| SignalError::Poisoned)?;
         let signal = self.get(id)?;
-        if let Some(chunk_id) = signal
+        if !matches!(
+            signal.status,
+            SignalStatus::Researched | SignalStatus::Surfaced | SignalStatus::Promoted
+        ) {
+            return Err(SignalError::InvalidState(
+                "signal must be researched or surfaced before it can be promoted".into(),
+            ));
+        }
+        let chunk_id = signal
             .cross_refs
             .iter()
             .find_map(|reference| reference.strip_prefix("chunk:"))
             .map(str::to_owned)
-        {
-            let chunk = current_roadmap(roadmap)?
-                .roadmap()
-                .chunks
-                .iter()
-                .find(|chunk| chunk.id == chunk_id)
-                .cloned();
-            return Ok(SignalPromotion {
-                signal_id: id.to_owned(),
-                chunk_id,
-                created: false,
-                signal,
-                chunk,
+            .unwrap_or_else(|| chunk_id_for(id));
+        let chunk = roadmap
+            .lock()
+            .map_err(|_| SignalError::Poisoned)?
+            .mutate(|edit| {
+                let created = !edit
+                    .roadmap()
+                    .chunks
+                    .iter()
+                    .any(|chunk| chunk.id == chunk_id);
+                if created {
+                    edit.add_chunk(
+                        chunk_id.clone(),
+                        promoted_title(signal.kind, &signal.body),
+                        ChunkStatus::Backlog,
+                        0,
+                        format!(
+                            "Promoted from signal {}. Original: {}",
+                            signal.id, signal.body
+                        ),
+                        Vec::new(),
+                        Vec::new(),
+                        false,
+                    )?;
+                }
+                let chunk = edit.link_chunk(&chunk_id, &format!("signal:{id}"))?.clone();
+                Ok((created, chunk))
+            })
+            .map_err(|error| match error {
+                RoadmapMutationError::Rejected(message) => SignalError::InvalidState(message),
+                RoadmapMutationError::Store(error) => SignalError::Store(error),
+            })?;
+        let created = chunk.value.0;
+        let chunk = chunk.map(|(_, chunk)| chunk);
+        let signal_result = self
+            .engine
+            .lock()
+            .map_err(|_| SignalError::Poisoned)
+            .and_then(|mut engine| {
+                engine
+                    .mutate(|edit| {
+                        let current = edit.get(id)?;
+                        if current
+                            .cross_refs
+                            .iter()
+                            .filter_map(|reference| reference.strip_prefix("chunk:"))
+                            .any(|linked| linked != chunk_id)
+                        {
+                            return Err("The signal is already linked to another work item.".into());
+                        }
+                        if current.status != SignalStatus::Promoted {
+                            edit.promote(id)?;
+                        }
+                        edit.link(id, &format!("chunk:{chunk_id}")).cloned()
+                    })
+                    .map_err(SignalError::invalid_state)
             });
-        }
-
-        let chunk_id = chunk_id_for(id);
-        {
-            let mut roadmap = current_roadmap(roadmap)?;
-            let recovery = signal.status == SignalStatus::Promoted
-                && roadmap.roadmap().chunks.iter().any(|chunk| {
-                    chunk.id == chunk_id && chunk.cross_refs.contains(&format!("signal:{id}"))
-                });
-            if !recovery
-                && !matches!(
-                    signal.status,
-                    SignalStatus::Researched | SignalStatus::Surfaced
-                )
-            {
-                return Err(SignalError::InvalidState(
-                    "signal must be researched or surfaced before it can be promoted".into(),
-                ));
-            }
-            ensure_chunk(&mut roadmap, &signal, &chunk_id)?;
-        }
-        let signal = {
-            let mut engine = self.lock()?;
-            if engine.get(id).map_err(SignalError::NotFound)?.status != SignalStatus::Promoted {
-                engine.promote(id).map_err(SignalError::InvalidState)?;
-            }
-            engine
-                .link(id, &format!("chunk:{chunk_id}"))
-                .cloned()
-                .map_err(SignalError::InvalidState)?
-        };
+        let signal = signal_result.map_err(|cause| SignalError::PartialPromotion {
+            chunk_id: chunk_id.clone(),
+            committed_source: chunk.source,
+            cause: Box::new(cause),
+        })?;
         Ok(SignalPromotion {
             signal_id: id.to_owned(),
             chunk_id,
-            created: true,
+            created,
             signal,
-            chunk: None,
+            chunk,
         })
     }
-}
-
-/// The roadmap engine, observed before promotion reads or writes it: the
-/// chunk another role promoted is seen, never created twice.
-fn current_roadmap(
-    roadmap: &Mutex<RoadmapEngine>,
-) -> Result<MutexGuard<'_, RoadmapEngine>, SignalError> {
-    let mut engine = roadmap.lock().map_err(|_| SignalError::Poisoned)?;
-    engine.refresh_if_stale().map_err(SignalError::Store)?;
-    Ok(engine)
-}
-
-fn ensure_chunk(roadmap: &mut RoadmapEngine, signal: &Signal, id: &str) -> Result<(), SignalError> {
-    // Retry a partial promotion by keeping the existing chunk and reasserting
-    // its back-reference, rather than creating another chunk or losing work.
-    if !roadmap.roadmap().chunks.iter().any(|chunk| chunk.id == id) {
-        roadmap
-            .add_chunk(
-                id.to_owned(),
-                promoted_title(signal.kind, &signal.body),
-                ChunkStatus::Backlog,
-                0,
-                format!(
-                    "Promoted from signal {}. Original: {}",
-                    signal.id, signal.body
-                ),
-                Vec::new(),
-                Vec::new(),
-                false,
-            )
-            .map_err(SignalError::InvalidState)?;
-    }
-    roadmap
-        .link_chunk(id, &format!("signal:{}", signal.id))
-        .map_err(SignalError::InvalidState)?;
-    Ok(())
 }
 
 fn chunk_id_for(signal_id: &str) -> String {

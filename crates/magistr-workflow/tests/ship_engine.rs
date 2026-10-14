@@ -17,9 +17,10 @@ fn set_objective() {
     e.set_objective(
         "Build auth".into(),
         vec!["JWT works".into()],
-        vec!["No breaking changes".into()],
+        vec!["Validate every protected request".into()],
         "src/auth/".into(),
-    );
+    )
+    .unwrap();
     let obj = e.objective.as_ref().unwrap();
     assert_eq!(obj.description, "Build auth");
     assert_eq!(obj.acceptance_criteria, vec!["JWT works"]);
@@ -30,18 +31,25 @@ fn set_objective() {
 #[test]
 fn set_objective_overwrites() {
     let mut e = engine();
-    e.set_objective("First".into(), vec![], vec![], String::new());
-    e.set_objective("Second".into(), vec![], vec![], String::new());
+    e.set_objective("First".into(), vec![], vec![], String::new())
+        .unwrap();
+    e.set_objective("Second".into(), vec![], vec![], String::new())
+        .unwrap();
     assert_eq!(e.objective.as_ref().unwrap().description, "Second");
 }
 
 #[test]
 fn overwriting_an_in_flight_objective_preserves_tasks() {
     let mut e = engine();
-    e.set_objective("First".into(), vec![], vec![], String::new());
-    e.add_task("t1".into(), "T".into(), TaskType::Implement, None, None);
+    e.set_objective("First".into(), vec![], vec![], String::new())
+        .unwrap();
+    e.add_task("t1".into(), "T".into(), TaskType::Implement, None, None)
+        .unwrap();
     // Objective is still Active (not shipped) — tasks are kept, nothing cleared.
-    let cleared = e.set_objective("Second".into(), vec![], vec![], String::new());
+    let cleared = e
+        .set_objective("Second".into(), vec![], vec![], String::new())
+        .unwrap()
+        .value;
     assert_eq!(cleared, 0);
     assert_eq!(e.tasks.len(), 1);
 }
@@ -49,10 +57,13 @@ fn overwriting_an_in_flight_objective_preserves_tasks() {
 #[test]
 fn a_new_objective_after_shipping_starts_a_clean_cycle() {
     let mut e = engine();
-    e.set_objective("Cycle one".into(), vec![], vec![], String::new());
-    e.add_task("explore".into(), "E".into(), TaskType::Research, None, None);
-    e.add_task("verify".into(), "V".into(), TaskType::Review, None, None);
-    e.ship(vec![], Some("done".into())); // objective → Completed
+    e.set_objective("Cycle one".into(), vec![], vec![], String::new())
+        .unwrap();
+    e.add_task("explore".into(), "E".into(), TaskType::Research, None, None)
+        .unwrap();
+    e.add_task("verify".into(), "V".into(), TaskType::Review, None, None)
+        .unwrap();
+    serde_json::to_value(e.finalize(vec![], Some("done".into())).unwrap().value).unwrap(); // objective → Completed
     assert_eq!(
         e.objective.as_ref().unwrap().status,
         ObjectiveStatus::Completed
@@ -61,7 +72,10 @@ fn a_new_objective_after_shipping_starts_a_clean_cycle() {
     // The next chunk's objective must NOT inherit the finished cycle's tasks —
     // the bleed that let a real session pile explore/implement/verify onto a
     // completed objective and then collide on reused ids.
-    let cleared = e.set_objective("Cycle two".into(), vec![], vec![], String::new());
+    let cleared = e
+        .set_objective("Cycle two".into(), vec![], vec![], String::new())
+        .unwrap()
+        .value;
     assert_eq!(cleared, 2);
     assert!(e.tasks.is_empty());
     // And the fresh objective can reuse the same task ids without collision.
@@ -71,7 +85,8 @@ fn a_new_objective_after_shipping_starts_a_clean_cycle() {
         TaskType::Research,
         None,
         None,
-    );
+    )
+    .unwrap();
     assert_eq!(e.tasks.len(), 1);
 }
 
@@ -80,14 +95,16 @@ fn a_new_objective_after_shipping_starts_a_clean_cycle() {
 #[test]
 fn add_task() {
     let mut e = engine();
-    e.set_objective("Goal".into(), vec![], vec![], String::new());
+    e.set_objective("Goal".into(), vec![], vec![], String::new())
+        .unwrap();
     e.add_task(
         "t1".into(),
         "First task".into(),
         TaskType::Implement,
         Some("small".into()),
         None,
-    );
+    )
+    .unwrap();
     assert_eq!(e.tasks.len(), 1);
     assert_eq!(e.tasks[0].id, "t1");
     assert_eq!(e.tasks[0].status, TaskStatus::Planned);
@@ -100,22 +117,26 @@ fn add_task() {
 #[test]
 fn add_task_with_think_branch() {
     let mut e = engine();
-    e.set_objective("Goal".into(), vec![], vec![], String::new());
+    e.set_objective("Goal".into(), vec![], vec![], String::new())
+        .unwrap();
     e.add_task(
         "t1".into(),
         "Task".into(),
         TaskType::Implement,
         None,
         Some("alt-approach".into()),
-    );
+    )
+    .unwrap();
     assert_eq!(e.tasks[0].think_branch, Some("alt-approach".into()));
 }
 
 #[test]
 fn remove_planned_task() {
     let mut e = engine();
-    e.set_objective("Goal".into(), vec![], vec![], String::new());
-    e.add_task("t1".into(), "Task".into(), TaskType::Implement, None, None);
+    e.set_objective("Goal".into(), vec![], vec![], String::new())
+        .unwrap();
+    e.add_task("t1".into(), "Task".into(), TaskType::Implement, None, None)
+        .unwrap();
     e.remove_task("t1").unwrap();
     assert!(e.tasks.is_empty());
 }
@@ -123,8 +144,10 @@ fn remove_planned_task() {
 #[test]
 fn remove_active_task_fails() {
     let mut e = engine();
-    e.set_objective("Goal".into(), vec![], vec![], String::new());
-    e.add_task("t1".into(), "Task".into(), TaskType::Implement, None, None);
+    e.set_objective("Goal".into(), vec![], vec![], String::new())
+        .unwrap();
+    e.add_task("t1".into(), "Task".into(), TaskType::Implement, None, None)
+        .unwrap();
     e.start_task("t1").unwrap();
     assert!(e.remove_task("t1").is_err());
 }
@@ -138,10 +161,14 @@ fn remove_nonexistent_task_fails() {
 #[test]
 fn reorder_task() {
     let mut e = engine();
-    e.set_objective("Goal".into(), vec![], vec![], String::new());
-    e.add_task("a".into(), "A".into(), TaskType::Implement, None, None);
-    e.add_task("b".into(), "B".into(), TaskType::Test, None, None);
-    e.add_task("c".into(), "C".into(), TaskType::Review, None, None);
+    e.set_objective("Goal".into(), vec![], vec![], String::new())
+        .unwrap();
+    e.add_task("a".into(), "A".into(), TaskType::Implement, None, None)
+        .unwrap();
+    e.add_task("b".into(), "B".into(), TaskType::Test, None, None)
+        .unwrap();
+    e.add_task("c".into(), "C".into(), TaskType::Review, None, None)
+        .unwrap();
     e.reorder_task("c", Some("a")).unwrap();
     let ids: Vec<&str> = e.tasks.iter().map(|t| t.id.as_str()).collect();
     assert_eq!(ids, vec!["a", "c", "b"]);
@@ -150,9 +177,12 @@ fn reorder_task() {
 #[test]
 fn reorder_to_front() {
     let mut e = engine();
-    e.set_objective("Goal".into(), vec![], vec![], String::new());
-    e.add_task("a".into(), "A".into(), TaskType::Implement, None, None);
-    e.add_task("b".into(), "B".into(), TaskType::Test, None, None);
+    e.set_objective("Goal".into(), vec![], vec![], String::new())
+        .unwrap();
+    e.add_task("a".into(), "A".into(), TaskType::Implement, None, None)
+        .unwrap();
+    e.add_task("b".into(), "B".into(), TaskType::Test, None, None)
+        .unwrap();
     e.reorder_task("b", None).unwrap();
     let ids: Vec<&str> = e.tasks.iter().map(|t| t.id.as_str()).collect();
     assert_eq!(ids, vec!["b", "a"]);
@@ -163,9 +193,11 @@ fn reorder_to_front() {
 #[test]
 fn start_task() {
     let mut e = engine();
-    e.set_objective("Goal".into(), vec![], vec![], String::new());
-    e.add_task("t1".into(), "Task".into(), TaskType::Implement, None, None);
-    let task = e.start_task("t1").unwrap();
+    e.set_objective("Goal".into(), vec![], vec![], String::new())
+        .unwrap();
+    e.add_task("t1".into(), "Task".into(), TaskType::Implement, None, None)
+        .unwrap();
+    let task = e.start_task("t1").unwrap().value;
     assert_eq!(task.status, TaskStatus::Active);
     assert!(task.started_at.is_some());
 }
@@ -173,9 +205,12 @@ fn start_task() {
 #[test]
 fn start_second_task_fails() {
     let mut e = engine();
-    e.set_objective("Goal".into(), vec![], vec![], String::new());
-    e.add_task("t1".into(), "A".into(), TaskType::Implement, None, None);
-    e.add_task("t2".into(), "B".into(), TaskType::Test, None, None);
+    e.set_objective("Goal".into(), vec![], vec![], String::new())
+        .unwrap();
+    e.add_task("t1".into(), "A".into(), TaskType::Implement, None, None)
+        .unwrap();
+    e.add_task("t2".into(), "B".into(), TaskType::Test, None, None)
+        .unwrap();
     e.start_task("t1").unwrap();
     assert!(e.start_task("t2").is_err());
 }
@@ -183,15 +218,17 @@ fn start_second_task_fails() {
 #[test]
 fn complete_task() {
     let mut e = engine();
-    e.set_objective("Goal".into(), vec![], vec![], String::new());
-    e.add_task("t1".into(), "Task".into(), TaskType::Implement, None, None);
+    e.set_objective("Goal".into(), vec![], vec![], String::new())
+        .unwrap();
+    e.add_task("t1".into(), "Task".into(), TaskType::Implement, None, None)
+        .unwrap();
     e.start_task("t1").unwrap();
     let artifacts = vec![Artifact {
         artifact_type: ArtifactType::Commit,
         reference: "abc123".into(),
         description: "initial commit".into(),
     }];
-    let task = e.complete_task("t1", artifacts).unwrap();
+    let task = e.complete_task("t1", artifacts).unwrap().value;
     assert_eq!(task.status, TaskStatus::Completed);
     assert!(task.completed_at.is_some());
     assert_eq!(task.artifacts.len(), 1);
@@ -200,18 +237,25 @@ fn complete_task() {
 #[test]
 fn complete_planned_task_fails() {
     let mut e = engine();
-    e.set_objective("Goal".into(), vec![], vec![], String::new());
-    e.add_task("t1".into(), "Task".into(), TaskType::Implement, None, None);
+    e.set_objective("Goal".into(), vec![], vec![], String::new())
+        .unwrap();
+    e.add_task("t1".into(), "Task".into(), TaskType::Implement, None, None)
+        .unwrap();
     assert!(e.complete_task("t1", vec![]).is_err());
 }
 
 #[test]
 fn block_task() {
     let mut e = engine();
-    e.set_objective("Goal".into(), vec![], vec![], String::new());
-    e.add_task("t1".into(), "Task".into(), TaskType::Implement, None, None);
+    e.set_objective("Goal".into(), vec![], vec![], String::new())
+        .unwrap();
+    e.add_task("t1".into(), "Task".into(), TaskType::Implement, None, None)
+        .unwrap();
     e.start_task("t1").unwrap();
-    let task = e.block_task("t1", "waiting on API key".into()).unwrap();
+    let task = e
+        .block_task("t1", "waiting on API key".into())
+        .unwrap()
+        .value;
     assert_eq!(task.status, TaskStatus::Blocked);
     assert_eq!(task.blocked_reason, Some("waiting on API key".into()));
 }
@@ -219,11 +263,13 @@ fn block_task() {
 #[test]
 fn restart_blocked_task() {
     let mut e = engine();
-    e.set_objective("Goal".into(), vec![], vec![], String::new());
-    e.add_task("t1".into(), "Task".into(), TaskType::Implement, None, None);
+    e.set_objective("Goal".into(), vec![], vec![], String::new())
+        .unwrap();
+    e.add_task("t1".into(), "Task".into(), TaskType::Implement, None, None)
+        .unwrap();
     e.start_task("t1").unwrap();
     e.block_task("t1", "blocked".into()).unwrap();
-    let task = e.start_task("t1").unwrap();
+    let task = e.start_task("t1").unwrap().value;
     assert_eq!(task.status, TaskStatus::Active);
     assert_eq!(task.blocked_reason, None);
 }
@@ -231,11 +277,13 @@ fn restart_blocked_task() {
 #[test]
 fn complete_blocked_task() {
     let mut e = engine();
-    e.set_objective("Goal".into(), vec![], vec![], String::new());
-    e.add_task("t1".into(), "Task".into(), TaskType::Implement, None, None);
+    e.set_objective("Goal".into(), vec![], vec![], String::new())
+        .unwrap();
+    e.add_task("t1".into(), "Task".into(), TaskType::Implement, None, None)
+        .unwrap();
     e.start_task("t1").unwrap();
     e.block_task("t1", "blocked".into()).unwrap();
-    let task = e.complete_task("t1", vec![]).unwrap();
+    let task = e.complete_task("t1", vec![]).unwrap().value;
     assert_eq!(task.status, TaskStatus::Completed);
 }
 
@@ -244,8 +292,10 @@ fn complete_blocked_task() {
 #[test]
 fn record_action_on_active_task() {
     let mut e = engine();
-    e.set_objective("Goal".into(), vec![], vec![], String::new());
-    e.add_task("t1".into(), "Task".into(), TaskType::Implement, None, None);
+    e.set_objective("Goal".into(), vec![], vec![], String::new())
+        .unwrap();
+    e.add_task("t1".into(), "Task".into(), TaskType::Implement, None, None)
+        .unwrap();
     e.start_task("t1").unwrap();
     let action = e
         .record_action(
@@ -257,7 +307,8 @@ fn record_action_on_active_task() {
             "compiles".into(),
             Some(42),
         )
-        .unwrap();
+        .unwrap()
+        .value;
     assert_eq!(action.id, 1);
     assert_eq!(action.think_step, Some(42));
     assert_eq!(action.task_id, "t1");
@@ -266,8 +317,10 @@ fn record_action_on_active_task() {
 #[test]
 fn record_action_explicit_task_id() {
     let mut e = engine();
-    e.set_objective("Goal".into(), vec![], vec![], String::new());
-    e.add_task("t1".into(), "Task".into(), TaskType::Implement, None, None);
+    e.set_objective("Goal".into(), vec![], vec![], String::new())
+        .unwrap();
+    e.add_task("t1".into(), "Task".into(), TaskType::Implement, None, None)
+        .unwrap();
     e.start_task("t1").unwrap();
     let action = e
         .record_action(
@@ -279,7 +332,8 @@ fn record_action_explicit_task_id() {
             "pass".into(),
             None,
         )
-        .unwrap();
+        .unwrap()
+        .value;
     assert_eq!(action.action_type, ActionType::Test);
     assert_eq!(action.think_step, None);
 }
@@ -287,8 +341,10 @@ fn record_action_explicit_task_id() {
 #[test]
 fn record_action_no_active_task_fails() {
     let mut e = engine();
-    e.set_objective("Goal".into(), vec![], vec![], String::new());
-    e.add_task("t1".into(), "Task".into(), TaskType::Implement, None, None);
+    e.set_objective("Goal".into(), vec![], vec![], String::new())
+        .unwrap();
+    e.add_task("t1".into(), "Task".into(), TaskType::Implement, None, None)
+        .unwrap();
     assert!(
         e.record_action(
             None,
@@ -306,8 +362,10 @@ fn record_action_no_active_task_fails() {
 #[test]
 fn action_ids_are_monotonic() {
     let mut e = engine();
-    e.set_objective("Goal".into(), vec![], vec![], String::new());
-    e.add_task("t1".into(), "Task".into(), TaskType::Implement, None, None);
+    e.set_objective("Goal".into(), vec![], vec![], String::new())
+        .unwrap();
+    e.add_task("t1".into(), "Task".into(), TaskType::Implement, None, None)
+        .unwrap();
     e.start_task("t1").unwrap();
     let a1 = e
         .record_action(
@@ -319,7 +377,8 @@ fn action_ids_are_monotonic() {
             "".into(),
             None,
         )
-        .unwrap();
+        .unwrap()
+        .value;
     let id1 = a1.id;
     let a2 = e
         .record_action(
@@ -331,7 +390,8 @@ fn action_ids_are_monotonic() {
             "".into(),
             None,
         )
-        .unwrap();
+        .unwrap()
+        .value;
     let id2 = a2.id;
     assert_eq!(id1, 1);
     assert_eq!(id2, 2);
@@ -342,8 +402,10 @@ fn action_ids_are_monotonic() {
 #[test]
 fn record_check() {
     let mut e = engine();
-    e.set_objective("Goal".into(), vec![], vec![], String::new());
-    e.add_task("t1".into(), "Task".into(), TaskType::Implement, None, None);
+    e.set_objective("Goal".into(), vec![], vec![], String::new())
+        .unwrap();
+    e.add_task("t1".into(), "Task".into(), TaskType::Implement, None, None)
+        .unwrap();
     e.start_task("t1").unwrap();
     let check = e
         .record_check(
@@ -354,7 +416,8 @@ fn record_check() {
             "42 passed".into(),
             true,
         )
-        .unwrap();
+        .unwrap()
+        .value;
     assert!(check.passed);
     assert!(check.required);
 }
@@ -362,8 +425,10 @@ fn record_check() {
 #[test]
 fn record_check_explicit_task() {
     let mut e = engine();
-    e.set_objective("Goal".into(), vec![], vec![], String::new());
-    e.add_task("t1".into(), "Task".into(), TaskType::Implement, None, None);
+    e.set_objective("Goal".into(), vec![], vec![], String::new())
+        .unwrap();
+    e.add_task("t1".into(), "Task".into(), TaskType::Implement, None, None)
+        .unwrap();
     e.start_task("t1").unwrap();
     let check = e
         .record_check(
@@ -374,7 +439,8 @@ fn record_check_explicit_task() {
             "3 errors".into(),
             false,
         )
-        .unwrap();
+        .unwrap()
+        .value;
     assert!(!check.passed);
     assert!(!check.required);
 }
@@ -382,8 +448,10 @@ fn record_check_explicit_task() {
 #[test]
 fn verified_check_records_command_and_exit_code() {
     let mut e = engine();
-    e.set_objective("Goal".into(), vec![], vec![], String::new());
-    e.add_task("t1".into(), "Task".into(), TaskType::Implement, None, None);
+    e.set_objective("Goal".into(), vec![], vec![], String::new())
+        .unwrap();
+    e.add_task("t1".into(), "Task".into(), TaskType::Implement, None, None)
+        .unwrap();
     e.start_task("t1").unwrap();
     let check = e
         .record_check_full(
@@ -399,7 +467,8 @@ fn verified_check_records_command_and_exit_code() {
             None,
             None,
         )
-        .unwrap();
+        .unwrap()
+        .value;
     assert!(check.verified);
     assert_eq!(check.exit_code, Some(0));
     assert_eq!(check.command.as_deref(), Some("cargo test"));
@@ -408,8 +477,10 @@ fn verified_check_records_command_and_exit_code() {
 #[test]
 fn ship_warns_about_self_reported_required_checks() {
     let mut e = engine();
-    e.set_objective("Goal".into(), vec![], vec![], String::new());
-    e.add_task("t1".into(), "Task".into(), TaskType::Implement, None, None);
+    e.set_objective("Goal".into(), vec![], vec![], String::new())
+        .unwrap();
+    e.add_task("t1".into(), "Task".into(), TaskType::Implement, None, None)
+        .unwrap();
     e.start_task("t1").unwrap();
     // A self-reported (unverified) required pass — exactly the fabricated-green
     // case. ship() must flag it rather than treat it as a real gate.
@@ -423,7 +494,7 @@ fn ship_warns_about_self_reported_required_checks() {
     )
     .unwrap();
     e.complete_task("t1", vec![]).unwrap();
-    let report = e.ship(vec![], None);
+    let report = serde_json::to_value(e.finalize(vec![], None).unwrap().value).unwrap();
     let warnings = report["warnings"].as_array().unwrap();
     assert!(
         warnings
@@ -443,8 +514,10 @@ fn ship_all_complete() {
         vec!["it works".into()],
         vec![],
         String::new(),
-    );
-    e.add_task("t1".into(), "Task".into(), TaskType::Implement, None, None);
+    )
+    .unwrap();
+    e.add_task("t1".into(), "Task".into(), TaskType::Implement, None, None)
+        .unwrap();
     e.start_task("t1").unwrap();
     e.record_check_full(
         None,
@@ -461,7 +534,8 @@ fn ship_all_complete() {
     )
     .unwrap();
     e.complete_task("t1", vec![]).unwrap();
-    let report = e.ship(vec![], Some("done".into()));
+    let report =
+        serde_json::to_value(e.finalize(vec![], Some("done".into())).unwrap().value).unwrap();
     assert_eq!(report["status"], "shipped");
     assert_eq!(report["warnings"].as_array().unwrap().len(), 0);
     assert_eq!(
@@ -473,9 +547,11 @@ fn ship_all_complete() {
 #[test]
 fn ship_warns_on_incomplete_tasks() {
     let mut e = engine();
-    e.set_objective("Goal".into(), vec![], vec![], String::new());
-    e.add_task("t1".into(), "Task".into(), TaskType::Implement, None, None);
-    let report = e.ship(vec![], None);
+    e.set_objective("Goal".into(), vec![], vec![], String::new())
+        .unwrap();
+    e.add_task("t1".into(), "Task".into(), TaskType::Implement, None, None)
+        .unwrap();
+    let report = serde_json::to_value(e.finalize(vec![], None).unwrap().value).unwrap();
     let warnings = report["warnings"].as_array().unwrap();
     assert_eq!(warnings.len(), 1);
     assert!(warnings[0].as_str().unwrap().contains("not completed"));
@@ -484,8 +560,10 @@ fn ship_warns_on_incomplete_tasks() {
 #[test]
 fn ship_warns_on_failed_required_checks() {
     let mut e = engine();
-    e.set_objective("Goal".into(), vec![], vec![], String::new());
-    e.add_task("t1".into(), "Task".into(), TaskType::Implement, None, None);
+    e.set_objective("Goal".into(), vec![], vec![], String::new())
+        .unwrap();
+    e.add_task("t1".into(), "Task".into(), TaskType::Implement, None, None)
+        .unwrap();
     e.start_task("t1").unwrap();
     e.record_check(
         None,
@@ -497,7 +575,7 @@ fn ship_warns_on_failed_required_checks() {
     )
     .unwrap();
     e.complete_task("t1", vec![]).unwrap();
-    let report = e.ship(vec![], None);
+    let report = serde_json::to_value(e.finalize(vec![], None).unwrap().value).unwrap();
     let warnings = report["warnings"].as_array().unwrap();
     assert!(
         warnings
@@ -519,14 +597,16 @@ fn status_empty() {
 #[test]
 fn status_with_think_refs() {
     let mut e = engine();
-    e.set_objective("Goal".into(), vec![], vec![], String::new());
+    e.set_objective("Goal".into(), vec![], vec![], String::new())
+        .unwrap();
     e.add_task(
         "t1".into(),
         "Task".into(),
         TaskType::Implement,
         None,
         Some("branch-x".into()),
-    );
+    )
+    .unwrap();
     e.start_task("t1").unwrap();
     e.record_action(
         None,
@@ -568,14 +648,16 @@ fn export_markdown() {
         vec!["works".into()],
         vec![],
         String::new(),
-    );
+    )
+    .unwrap();
     e.add_task(
         "t1".into(),
         "Do thing".into(),
         TaskType::Implement,
         None,
         None,
-    );
+    )
+    .unwrap();
     e.start_task("t1").unwrap();
     e.record_action(
         None,
@@ -606,7 +688,8 @@ fn export_markdown() {
 #[test]
 fn export_json() {
     let mut e = engine();
-    e.set_objective("Goal".into(), vec![], vec![], String::new());
+    e.set_objective("Goal".into(), vec![], vec![], String::new())
+        .unwrap();
     let json_str = e.export("json");
     let v: serde_json::Value = serde_json::from_str(&json_str).unwrap();
     assert!(v["objective"].is_object());
@@ -617,8 +700,10 @@ fn export_json() {
 #[test]
 fn reset_clears_everything() {
     let mut e = engine();
-    e.set_objective("Goal".into(), vec![], vec![], String::new());
-    e.add_task("t1".into(), "Task".into(), TaskType::Implement, None, None);
+    e.set_objective("Goal".into(), vec![], vec![], String::new())
+        .unwrap();
+    e.add_task("t1".into(), "Task".into(), TaskType::Implement, None, None)
+        .unwrap();
     e.start_task("t1").unwrap();
     e.record_action(
         None,
@@ -630,7 +715,7 @@ fn reset_clears_everything() {
         None,
     )
     .unwrap();
-    e.reset();
+    e.reset().unwrap();
     assert!(e.objective.is_none());
     assert!(e.tasks.is_empty());
     let s = e.status();
@@ -639,8 +724,7 @@ fn reset_clears_everything() {
 
 // ── Full SDLC flow ─────────────────────────────────────────────────
 
-#[test]
-fn full_sdlc_flow() {
+fn planned_sdlc() -> ShipEngine {
     let mut e = engine();
 
     e.set_objective(
@@ -648,7 +732,8 @@ fn full_sdlc_flow() {
         vec!["JWT validation works".into(), "All tests pass".into()],
         vec!["No breaking changes".into()],
         "src/middleware/".into(),
-    );
+    )
+    .unwrap();
 
     e.add_task(
         "research".into(),
@@ -656,28 +741,39 @@ fn full_sdlc_flow() {
         TaskType::Research,
         Some("small".into()),
         None,
-    );
+    )
+    .unwrap();
     e.add_task(
         "impl".into(),
         "Implement middleware".into(),
         TaskType::Implement,
         Some("medium".into()),
         Some("jwt-approach".into()),
-    );
+    )
+    .unwrap();
     e.add_task(
         "test".into(),
         "Write tests".into(),
         TaskType::Test,
         Some("small".into()),
         None,
-    );
+    )
+    .unwrap();
     e.add_task(
         "review".into(),
         "Self-review".into(),
         TaskType::Review,
         Some("trivial".into()),
         None,
-    );
+    )
+    .unwrap();
+
+    e
+}
+
+#[test]
+fn full_sdlc_flow() {
+    let mut e = planned_sdlc();
 
     e.start_task("research").unwrap();
     e.record_action(
@@ -786,14 +882,19 @@ fn full_sdlc_flow() {
     .unwrap();
     e.complete_task("review", vec![]).unwrap();
 
-    let report = e.ship(
-        vec![Artifact {
-            artifact_type: ArtifactType::Commit,
-            reference: "abc1234".into(),
-            description: "feat: add JWT auth middleware".into(),
-        }],
-        Some("JWT auth middleware shipped".into()),
-    );
+    let report = serde_json::to_value(
+        e.finalize(
+            vec![Artifact {
+                artifact_type: ArtifactType::Commit,
+                reference: "abc1234".into(),
+                description: "feat: add JWT auth middleware".into(),
+            }],
+            Some("JWT auth middleware shipped".into()),
+        )
+        .unwrap()
+        .value,
+    )
+    .unwrap();
 
     assert_eq!(report["status"], "shipped");
     assert_eq!(report["tasks"]["completed"], 4);

@@ -44,15 +44,20 @@ fn signal_at(id: &str, status: SignalStatus) -> Signal {
     }
 }
 
+fn upsert(engine: &mut SignalEngine, mut signal: Signal) {
+    signal.project_id = Some("t".into());
+    engine.upsert_signal(signal).unwrap();
+}
+
 #[test]
 fn upsert_signal_replaces_by_id_or_inserts() {
     let mut engine = SignalEngine::new("t".into());
-    engine.upsert_signal(signal("a"));
-    engine.upsert_signal(signal("b"));
+    upsert(&mut engine, signal("a"));
+    upsert(&mut engine, signal("b"));
     assert_eq!(engine.signals().signals.len(), 2);
 
     // A PROGRESSED cloud copy replaces 'a' — no duplicate.
-    engine.upsert_signal(signal_at("a", SignalStatus::Triaged));
+    upsert(&mut engine, signal_at("a", SignalStatus::Triaged));
     assert_eq!(engine.signals().signals.len(), 2);
     let a = engine
         .signals()
@@ -68,10 +73,10 @@ fn upsert_signal_replaces_by_id_or_inserts() {
 #[test]
 fn upsert_signal_keeps_newer_local_lifecycle_progress() {
     let mut engine = SignalEngine::new("t".into());
-    engine.upsert_signal(signal_at("a", SignalStatus::Triaged));
+    upsert(&mut engine, signal_at("a", SignalStatus::Triaged));
 
     // Reconcile delivers the cloud copy from before the transition's push landed.
-    engine.upsert_signal(signal_at("a", SignalStatus::New));
+    upsert(&mut engine, signal_at("a", SignalStatus::New));
 
     let a = engine
         .signals()
@@ -112,7 +117,7 @@ fn foreign_and_unstamped_signals_never_merge() {
     let ours = serde_json::to_value(from_signal("ours", &owned_signal("mine", "ours")))
         .expect("our envelope");
 
-    let merged = apply_signal_records(&mut engine, &[foreign, unstamped, ours]);
+    let merged = apply_signal_records(&mut engine, &[foreign, unstamped, ours]).unwrap();
 
     // Load-bearing first: which signals actually landed. An earlier count
     // assertion would fail under the same deliberate breakage and hide which
@@ -151,7 +156,7 @@ async fn reconcile_signals_pulls_cloud_signals_into_the_local_engine() {
     assert_eq!(reconcile_signals(&client, &mut engine).await.unwrap(), 2);
     assert_eq!(engine.signals().signals.len(), 2);
 
-    // Re-pull is idempotent (cloud-wins replace, not duplicate).
-    assert_eq!(reconcile_signals(&client, &mut engine).await.unwrap(), 2);
+    // Re-pull acknowledges no new records.
+    assert_eq!(reconcile_signals(&client, &mut engine).await.unwrap(), 0);
     assert_eq!(engine.signals().signals.len(), 2);
 }

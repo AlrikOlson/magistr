@@ -61,7 +61,7 @@ fn one_execution_shares_selection_and_other_projects_keep_their_scopes() {
     let refusal = shared
         .ship_start_task("second-verify")
         .expect_err("another task is already active in this project");
-    assert!(refusal.contains("first-verify"), "{refusal}");
+    assert!(refusal.to_string().contains("first-verify"), "{refusal}");
     assert_eq!(
         shared.ship_active_task_id().unwrap().unwrap(),
         "first-verify"
@@ -71,7 +71,8 @@ fn one_execution_shares_selection_and_other_projects_keep_their_scopes() {
     assert_eq!(
         shared
             .ship_set_objective("Replacement".into(), vec![], vec![], "chunk:second".into())
-            .expect("objective"),
+            .expect("objective")
+            .value,
         0
     );
     assert_eq!(
@@ -166,13 +167,18 @@ fn native_completion_refuses_without_evidence_while_phase_admission_and_finaliza
         .roadmap_complete_chunk("fixture", None)
         .expect_err("no capability certifies the gates");
     assert!(
-        refused.contains("no verification evidence capability is composed"),
+        refused
+            .to_string()
+            .contains("no verification evidence capability is composed"),
         "{refused}"
     );
     let refused = engines
         .roadmap_set_status("fixture", ChunkStatus::Done)
         .expect_err("done is never set by name");
-    assert!(refused.contains("roadmap_complete_chunk"), "{refused}");
+    assert!(
+        refused.to_string().contains("roadmap_complete_chunk"),
+        "{refused}"
+    );
     let chunk = engines.roadmap_chunk("fixture").unwrap().expect("chunk");
     assert_eq!(chunk.status, ChunkStatus::InProgress);
     assert!(chunk.cross_refs.is_empty());
@@ -207,9 +213,9 @@ fn native_completion_refuses_without_evidence_while_phase_admission_and_finaliza
             None,
         )
         .expect("record the failed command");
-    assert!(check.required && check.verified);
-    assert!(!check.passed);
-    assert_eq!(check.exit_code, Some(exit_code));
+    assert!(check.value.required && check.value.verified);
+    assert!(!check.value.passed);
+    assert_eq!(check.value.exit_code, Some(exit_code));
     let guard = ShipGuardState::from_ship(
         engines.ship_objective().unwrap().as_ref(),
         &engines.ship_tasks().unwrap(),
@@ -223,9 +229,9 @@ fn native_completion_refuses_without_evidence_while_phase_admission_and_finaliza
     let report = engines
         .ship_finalize(vec![], Some("Characterization only".into()))
         .expect("finalize");
-    assert_eq!(report.status, "shipped");
+    assert_eq!(report.value.status, "shipped");
     assert!(
-        report.warnings.iter().any(|warning| {
+        report.value.warnings.iter().any(|warning| {
             warning.contains("required checks failed") && warning.contains("fixture-verify")
         }),
         "{report:?}"

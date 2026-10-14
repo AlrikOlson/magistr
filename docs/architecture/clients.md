@@ -89,15 +89,15 @@ receipt's revision stay three facts (see the
 
 ## Limits
 
-The audit is of Magistr's own binaries: an older binary, a direct edit of
-a store file or a deleted lock file are outside admission, and an in-place
-rewrite of a store file inside one timestamp tick at the same length is
-invisible to the stamp. Read-through is per family: there is no
-transaction across the roadmap, ship, signal and think files, and a
-mutation is not serialized against a concurrent writer of the same record
-— the merge rule decides. [Projections](projections.md) made what a client
-reads typed and freshness-aware; the stamp decides when the engines behind
-them re-read. The consistency tables describe one machine and one user. Workflow command
+The audit is of Magistr's current binaries. A direct edit of a store file or a
+deleted lock file is outside admission. Read-through is per family: there is no
+transaction across roadmap, execution, signal and reasoning owners. Each owning
+mutation locks and validates current data before applying its change, then
+acknowledges its committed source. Cross-family promotion explicitly reports a
+partial commit and resumes by the existing record identity. [Projections](projections.md)
+defines the typed read and mutation contracts, including uncertain writes.
+Every read validates the selected file; equal metadata does not skip validation.
+The consistency tables describe one machine and one user. Workflow command
 and MCP attachment still require Unix sockets. Workspace attachment also has
 an authenticated Windows named-pipe path. Off Unix the store stamp carries
 no inode. See [the Claude adapter](claude-mod.md) for the difference between

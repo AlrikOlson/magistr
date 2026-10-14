@@ -1,6 +1,7 @@
 use super::*;
 use crate::native::{OwnerReply, ThinkCommand};
 use magistr_workflow::ship::domain::task::TaskType;
+use magistr_workflow_contracts::{Observed, ReadSource};
 
 fn round_trip(command: &OwnerCommand) -> OwnerCommand {
     let json = serde_json::to_string(command).expect("serialize");
@@ -46,11 +47,28 @@ fn every_family_survives_the_wire() {
 #[test]
 fn replies_that_carry_primitives_survive_the_wire() {
     for reply in [
-        OwnerReply::Step(Err("refused".into())),
-        OwnerReply::Pinned(true),
-        OwnerReply::Cleared(2),
+        OwnerReply::Step(Box::new(magistr_workflow_contracts::think::RecordedStep {
+            project_id: "project".into(),
+            step: serde_json::from_value(serde_json::json!({
+                "step_number": 1, "record_id": "record-1", "purpose": "investigation"
+            }))
+            .unwrap(),
+            source: ReadSource::Memory,
+            report: serde_json::json!({}),
+        })),
+        OwnerReply::Pinned(Observed {
+            value: true,
+            source: ReadSource::Memory,
+        }),
+        OwnerReply::Cleared(Observed {
+            value: 2,
+            source: ReadSource::Memory,
+        }),
         OwnerReply::Report(serde_json::json!({"open": 1})),
-        OwnerReply::Done,
+        OwnerReply::Done(Observed {
+            value: (),
+            source: ReadSource::Memory,
+        }),
     ] {
         let json = serde_json::to_string(&reply).expect("serialize");
         let back: OwnerReply = serde_json::from_str(&json).expect("deserialize");

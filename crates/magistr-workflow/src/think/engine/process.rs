@@ -30,14 +30,14 @@ use crate::think::config::namespace_session_id;
 use crate::think::constants::{
     COMPLETION_PHRASES, LOW_CONFIDENCE_THRESHOLD, VALID_PREFIXES, VALID_PURPOSES,
 };
-use crate::think::domain::ThinkStep;
+use crate::think::domain::{ThinkHistory, ThinkStep};
 use crate::think::util::text::truncate_excerpt;
 
 use super::core::ReasoningServer;
 use crate::think::domain::{RecordedStep, StepError};
 
 impl ReasoningServer {
-    fn trim_history(&mut self) {
+    pub(crate) fn trim_history(&mut self) {
         let max = self.config.system.max_history_size;
         if self.history.steps.len() <= max {
             return;
@@ -78,6 +78,57 @@ impl ReasoningServer {
     }
 
     pub fn process_step_native(&mut self, mut step: ThinkStep) -> Result<RecordedStep, StepError> {
+        let selected = if self.config.features.enable_sessions {
+            let raw = step
+                .session_id
+                .as_deref()
+                .filter(|id| !id.trim().is_empty())
+                .or(self.config.features.default_session_id.as_deref())
+                .unwrap_or(&self.project_id);
+            let id = namespace_session_id(&self.project_id, raw);
+            self.persistence.validate_session_id(&id).map_err(|error| {
+                StepError::rejected(error.to_string(), "Choose a valid session name.")
+            })?;
+            step.session_id = Some(id.clone());
+            Some(id)
+        } else {
+            None
+        };
+        let record_id = uuid::Uuid::new_v4().to_string();
+        step.record_id = Some(record_id.clone());
+        let committed = self
+            .transact_history(selected, |candidate| candidate.append_step(step))
+            .map_err(|mut error| {
+                error.record_id = Some(record_id);
+                error
+            })?;
+        let mut recorded = committed.value;
+        recorded.source = committed.source;
+        recorded.report["source"] = json!(committed.source);
+        recorded.report["record_id"] = json!(recorded.step.record_id);
+        self.cleanup_expired_sessions(false);
+        if let Some(broadcaster) = &self.broadcaster {
+            broadcaster.emit(BroadcastFrame::StepAppended {
+                session_id: self.active_session.clone(),
+                step: Box::new(recorded.step.clone()),
+            });
+            if let Some(revised_step) = recorded.step.revises_step {
+                broadcaster.emit(BroadcastFrame::StepRevised {
+                    session_id: self.active_session.clone(),
+                    revised_step,
+                    by_step: recorded.step.step_number,
+                });
+            }
+        }
+        self.mirror_step_to_repo(&recorded.step);
+        self.cloud_push_step(&recorded.step);
+        Ok(recorded)
+    }
+
+    fn append_step(
+        &mut self,
+        mut step: ThinkStep,
+    ) -> Result<(RecordedStep, ThinkHistory), StepError> {
         let step_start = Instant::now();
 
         // Try to recover from XML-injection corruption BEFORE validating.
@@ -93,7 +144,10 @@ impl ReasoningServer {
         let mut auto_numbered: Option<u32> = None;
         if step.step_number == 0 || self.step_number_taken_in_project(step.step_number) {
             let requested = step.step_number;
-            step.step_number = self.max_step_number_in_project().saturating_add(1);
+            step.step_number = self
+                .max_step_number_in_project()
+                .checked_add(1)
+                .ok_or_else(|| self.make_error("There are no unused reasoning numbers left."))?;
             auto_numbered = Some(requested);
         }
 
@@ -126,8 +180,6 @@ impl ReasoningServer {
         }
 
         step.timestamp = Some(Utc::now().to_rfc3339());
-        // Immutable wire identity, minted exactly once with the authored step.
-        step.record_id = Some(uuid::Uuid::new_v4().to_string());
         // Stamp project root so the step carries its provenance to
         // disk. Cached at server-construction time — one syscall per
         // server, not per step.
@@ -154,27 +206,6 @@ impl ReasoningServer {
         if let Err(e) = self.validate_session_step(&mut step) {
             return Err(self.make_error(&e));
         }
-        if let (Some(session_id), true) = (
-            step.session_id.clone(),
-            self.config.features.enable_sessions,
-        ) {
-            self.switch_to_session(&session_id);
-            self.cleanup_expired_sessions(false);
-        }
-
-        // Backstop for project-wide step_number uniqueness. The top-of-function
-        // pass already bumped omitted/colliding new-step numbers, but switching
-        // to the target session above can surface steps that weren't visible
-        // then (a lazily-loaded sibling session). If a new-step number is still
-        // taken, auto-bump again rather than hard-fail — same forgiving policy.
-        if self.step_number_taken_in_project(step.step_number) {
-            let requested = step.step_number;
-            step.step_number = self.max_step_number_in_project().saturating_add(1);
-            // Preserve the originally-requested number if the top pass already
-            // recorded one; otherwise record this collision.
-            auto_numbered.get_or_insert(requested);
-        }
-
         let completed = step.is_final_step.unwrap_or(false) || {
             let lower = step.thought.to_ascii_lowercase();
             COMPLETION_PHRASES.iter().any(|p| lower.contains(p))
@@ -245,51 +276,8 @@ impl ReasoningServer {
         self.step_index.insert(step_number, idx);
         self.step_numbers.insert(step_number);
 
+        let archive = self.history_with_branches();
         self.trim_history();
-
-        // Mirror updated history back into the active session entry.
-        if let Some(session_id) = self.active_session.clone() {
-            let snapshot = self.history_with_branches();
-            if let Some(entry) = self.sessions.get_mut(&session_id) {
-                entry.history = snapshot;
-                entry.last_accessed = Self::now_ms();
-            }
-        }
-
-        // Persist after every successful step. The active session (or default
-        // history) is written atomically; failures are logged but don't fail
-        // the step.
-        self.persist_active();
-
-        // Broadcast the append — and, when this step was itself a
-        // revision, the back-pointer update on its target — so any live
-        // observer sees the trace grow in real time. Fire-and-forget; no
-        // observer = no work.
-        if let Some(b) = &self.broadcaster {
-            let session_id = self.active_session.clone();
-            if let Some(stored) = self.history.steps.last() {
-                b.emit(BroadcastFrame::StepAppended {
-                    session_id: session_id.clone(),
-                    step: Box::new(stored.clone()),
-                });
-            }
-            if let Some(target) = revises_step {
-                b.emit(BroadcastFrame::StepRevised {
-                    session_id,
-                    revised_step: target,
-                    by_step: step_number,
-                });
-            }
-        }
-
-        // Mirror the step into the git-native trace when a repo
-        // sink is attached. Fire-and-forget, exactly like the broadcaster:
-        // any error is logged and dropped so the tool path never fails.
-        self.mirror_step_to_repo();
-
-        // Cloud sync: push the appended step to the cloud backend,
-        // independent of the broadcaster — sync works with no viewer socket.
-        self.cloud_push_last_step();
 
         // Response is intentionally tight — the caller already has the step
         // it sent in its own context, so we don't echo `next_action`,
@@ -422,11 +410,15 @@ impl ReasoningServer {
             response.insert("branches_summary".into(), Value::Array(branches_summary));
         }
 
-        Ok(RecordedStep {
-            project_id: self.project_id.clone(),
-            step: recorded_step,
-            report: Value::Object(response),
-        })
+        Ok((
+            RecordedStep {
+                project_id: self.project_id.clone(),
+                step: recorded_step,
+                source: Self::memory_source(),
+                report: Value::Object(response),
+            },
+            archive,
+        ))
     }
 
     /// Mirror the most-recently-recorded step into the git-native trace
@@ -435,11 +427,8 @@ impl ReasoningServer {
     /// dropped so the `process_step_native` path is never affected. The session is
     /// committed when the step closes the trace (`is_final_step`) and records
     /// are `shared`.
-    fn mirror_step_to_repo(&self) {
+    fn mirror_step_to_repo(&self, stored: &ThinkStep) {
         let Some(mirror) = &self.mirror else {
-            return;
-        };
-        let Some(stored) = self.history.steps.last() else {
             return;
         };
         // One JSONL file per session; fall back to the project id when no
@@ -555,97 +544,10 @@ impl ReasoningServer {
         } else {
             "Check that all required fields are provided."
         };
-        StepError {
-            error: msg.to_owned(),
-            status: "failed",
-            hint: hint.to_owned(),
-        }
+        StepError::rejected(msg, hint)
     }
 }
 
 #[cfg(test)]
-mod auto_numbering_tests {
-    use super::ReasoningServer;
-    use crate::think::config::ThinkConfig;
-    use crate::think::domain::ThinkStep;
-    use serde_json::{Value, json};
-
-    fn quiet_config() -> ThinkConfig {
-        let mut c = ThinkConfig::default();
-        c.display.color_output = false;
-        c.persistence.enabled = false;
-        c
-    }
-
-    /// Build a valid new step, optionally omitting step_number (None → field
-    /// absent, which deserializes to the serde default 0).
-    fn step(step_number: Option<u32>) -> ThinkStep {
-        let mut body = json!({
-            "estimated_total": 10,
-            "purpose": "analysis",
-            "context": "ctx",
-            "thought": "some reasoning",
-            "outcome": "did a thing",
-            "next_action": "next",
-            "rationale": "because",
-        });
-        if let Some(n) = step_number {
-            body["step_number"] = json!(n);
-        }
-        serde_json::from_value(body).expect("valid step json")
-    }
-
-    fn ok_json(server: &mut ReasoningServer, s: ThinkStep) -> Value {
-        server
-            .process_step_native(s)
-            .expect("step should be accepted")
-            .report
-    }
-
-    fn has_auto_warning(v: &Value) -> bool {
-        v["warnings"]
-            .as_array()
-            .map(|w| {
-                w.iter().any(|x| {
-                    x.as_str()
-                        .is_some_and(|s| s.contains("Auto-assigned step_number"))
-                })
-            })
-            .unwrap_or(false)
-    }
-
-    #[test]
-    fn omitted_step_number_is_auto_assigned() {
-        let mut server = ReasoningServer::new(quiet_config());
-        let first = ok_json(&mut server, step(None));
-        assert_eq!(first["step_number"], 1, "first omitted step → 1");
-        assert!(has_auto_warning(&first));
-
-        let second = ok_json(&mut server, step(None));
-        assert_eq!(second["step_number"], 2, "second omitted step → 2");
-    }
-
-    #[test]
-    fn colliding_step_number_is_auto_bumped_not_rejected() {
-        let mut server = ReasoningServer::new(quiet_config());
-        let first = ok_json(&mut server, step(Some(1)));
-        assert_eq!(first["step_number"], 1);
-
-        // A fresh-chat-style retry of step 1 must NOT hard-fail — it bumps.
-        let bumped = ok_json(&mut server, step(Some(1)));
-        assert_eq!(
-            bumped["step_number"], 2,
-            "collision auto-bumps to next free"
-        );
-        assert!(has_auto_warning(&bumped));
-    }
-
-    #[test]
-    fn explicit_unique_step_number_is_respected() {
-        let mut server = ReasoningServer::new(quiet_config());
-        let out = ok_json(&mut server, step(Some(1)));
-        assert_eq!(out["step_number"], 1);
-        // No auto-numbering warning when the caller's number is fine.
-        assert!(!has_auto_warning(&out));
-    }
-}
+#[path = "process.tests.rs"]
+mod tests;

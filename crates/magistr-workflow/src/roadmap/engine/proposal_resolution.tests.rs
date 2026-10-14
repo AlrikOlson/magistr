@@ -33,8 +33,8 @@ fn priority_resolution_handles_rejection_same_value_and_integer_boundary() {
     ] {
         let mut engine = proposed(current, suggested);
         let chunk = engine.resolve_reprioritize("feature", accept).unwrap();
-        assert_eq!(chunk.priority, expected);
-        assert!(chunk.reprioritize.is_none());
+        assert_eq!(chunk.value.priority, expected);
+        assert!(chunk.value.reprioritize.is_none());
         assert!(engine.resolve_reprioritize("feature", accept).is_err());
         assert_eq!(engine.roadmap().chunks[0].priority, expected);
     }
@@ -54,8 +54,8 @@ fn status_resolution_rejects_without_a_racy_read_or_illegal_transition() {
     assert!(engine.resolve_status_proposal("feature", true).is_err());
     assert!(engine.roadmap().chunks[0].status_proposal.is_some());
     let chunk = engine.resolve_status_proposal("feature", false).unwrap();
-    assert_eq!(chunk.status, ChunkStatus::Pending);
-    assert!(chunk.status_proposal.is_none());
+    assert_eq!(chunk.value.status, ChunkStatus::Pending);
+    assert!(chunk.value.status_proposal.is_none());
 }
 
 #[cfg(unix)]

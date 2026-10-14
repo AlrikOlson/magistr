@@ -154,7 +154,7 @@ async fn an_occupied_host_is_reached_through_its_endpoint_and_takes_no_second_le
     let OwnerReply::Chunk(chunk) = reply else {
         panic!("a chunk comes back, got {reply:?}");
     };
-    assert_eq!(chunk.id, "via-client");
+    assert_eq!(chunk.value.id, "via-client");
     assert_eq!(chunk_ids(&cfg), vec!["via-client".to_owned()]);
     // The owner's own verbs refuse the same way over the wire.
     let refused = attached

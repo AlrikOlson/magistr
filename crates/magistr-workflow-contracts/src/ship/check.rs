@@ -14,8 +14,11 @@ pub enum CheckType {
     Manual,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct Check {
+    /// The canonical admitted receipt, when this check came from an admitted run.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub receipt_id: Option<String>,
     #[serde(rename = "type")]
     pub check_type: CheckType,
     pub name: String,
@@ -27,7 +30,6 @@ pub struct Check {
     /// observed failure mode: a non-compiling change once shipped with a
     /// self-reported "24 tests pass" — is
     /// impossible for a verified check.
-    #[serde(default)]
     pub verified: bool,
     /// The command the server executed for a verified check, if any.
     #[serde(default, skip_serializing_if = "Option::is_none")]

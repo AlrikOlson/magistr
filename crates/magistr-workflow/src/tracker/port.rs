@@ -75,6 +75,11 @@ pub enum TrackerError {
     /// a human, not something a retry can fix.
     #[error("unsupported by provider: {0}")]
     Unsupported(String),
+    #[error("{message}")]
+    Local {
+        message: String,
+        store: Option<magistr_workflow_contracts::WriteError>,
+    },
 }
 
 impl TrackerError {
@@ -90,7 +95,7 @@ impl TrackerError {
         match self {
             Self::Transport(_) | Self::RateLimited { .. } => true,
             Self::Status { status, .. } => *status >= 500,
-            Self::NotFound(_) | Self::Unsupported(_) => false,
+            Self::NotFound(_) | Self::Unsupported(_) | Self::Local { .. } => false,
         }
     }
 }

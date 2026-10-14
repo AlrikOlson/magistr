@@ -44,13 +44,13 @@ impl RoadmapUseCases {
     ) -> Result<TrackerSetupReport, TrackerSetupError> {
         let project_id = self
             .lock()
-            .map_err(|e| TrackerSetupError::new("internal_error", e))?
+            .map_err(TrackerSetupError::roadmap)?
             .project_id()
             .to_owned();
         let display = req.name.as_deref().unwrap_or(req.into.trim());
         let phase = setup_probe(port, display, create_missing && !req.dry_run)
             .await
-            .map_err(|e| TrackerSetupError::new("tracker_error", e))?;
+            .map_err(|error| TrackerSetupError::new("tracker_error", error).partial())?;
         if phase == TargetPhase::MissingAndNotCreated && !req.dry_run {
             return Err(TrackerSetupError::new(
                 "target_missing",
@@ -62,11 +62,21 @@ impl RoadmapUseCases {
             ));
         }
         let outcome = {
-            let mut engine = self
-                .lock()
-                .map_err(|e| TrackerSetupError::new("internal_error", e))?;
-            setup_local(&mut engine, req, data_dir, &project_id)
-                .map_err(|e| TrackerSetupError::new("setup_failed", e))?
+            let mut engine = self.lock().map_err(|error| {
+                let error = TrackerSetupError::roadmap(error);
+                if phase == TargetPhase::Created {
+                    error.partial()
+                } else {
+                    error
+                }
+            })?;
+            setup_local(&mut engine, req, data_dir, &project_id).map_err(|error| {
+                if phase == TargetPhase::Created {
+                    error.partial()
+                } else {
+                    error
+                }
+            })?
         };
         Ok(TrackerSetupReport {
             project_id,

@@ -33,6 +33,9 @@ fn promotable() -> (SignalService, Arc<Mutex<RoadmapEngine>>, String) {
     let mut engine = SignalEngine::new("proj".into());
     let id = engine
         .capture(SignalKind::Idea, "dana".into(), "add a dark theme".into())
+        .as_ref()
+        .unwrap()
+        .value
         .id
         .clone();
     engine.set_status(&id, SignalStatus::Triaged).unwrap();
@@ -98,6 +101,9 @@ async fn promote_rejects_unresearched_signal() {
     let mut engine = SignalEngine::new("proj".into());
     let id = engine
         .capture(SignalKind::Bug, "x".into(), "boom".into())
+        .as_ref()
+        .unwrap()
+        .value
         .id
         .clone(); // status New
     let svc = SignalService::new(engine).with_roadmap(Arc::clone(&roadmap));
@@ -118,6 +124,9 @@ async fn link_attaches_validated_crossref() {
     let mut engine = SignalEngine::new("proj".into());
     let id = engine
         .capture(SignalKind::Question, "x".into(), "why?".into())
+        .as_ref()
+        .unwrap()
+        .value
         .id
         .clone();
     let svc = SignalService::new(engine); // no roadmap needed for link

@@ -8,12 +8,10 @@ pub enum FocusChange {
         lane: String,
         focus: Focus,
         frontier: WorkstreamFrontier,
-        persistent: bool,
     },
     Cleared {
         lane: String,
         focus: Option<Focus>,
         released: bool,
-        persistent: bool,
     },
 }

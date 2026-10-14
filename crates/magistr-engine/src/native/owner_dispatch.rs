@@ -1,5 +1,6 @@
 //! Carrying an owner command out on the writer.
 
+use super::WorkflowMutationError;
 use super::native_engines::NativeEngines;
 use super::owner_command::OwnerCommand;
 use super::owner_reply::OwnerReply;
@@ -15,7 +16,7 @@ impl NativeEngines {
     ///
     /// # Errors
     /// The verb's own refusal, in the engine's words.
-    pub fn apply(&self, command: OwnerCommand) -> Result<OwnerReply, String> {
+    pub fn apply(&self, command: OwnerCommand) -> Result<OwnerReply, WorkflowMutationError> {
         match command {
             OwnerCommand::Roadmap(command) => self.apply_roadmap(command),
             OwnerCommand::Think(command) => self.apply_think(command),
@@ -24,7 +25,7 @@ impl NativeEngines {
         }
     }
 
-    fn apply_roadmap(&self, command: RoadmapCommand) -> Result<OwnerReply, String> {
+    fn apply_roadmap(&self, command: RoadmapCommand) -> Result<OwnerReply, WorkflowMutationError> {
         let chunk = match command {
             RoadmapCommand::StartChunk { id } => self.roadmap_start_chunk(&id),
             RoadmapCommand::CompleteChunk { id, ship_ref } => {
@@ -113,25 +114,27 @@ impl NativeEngines {
         Ok(OwnerReply::Chunk(Box::new(chunk)))
     }
 
-    fn apply_think(&self, command: ThinkCommand) -> Result<OwnerReply, String> {
+    fn apply_think(&self, command: ThinkCommand) -> Result<OwnerReply, WorkflowMutationError> {
         Ok(match command {
-            ThinkCommand::RecordStep { step } => OwnerReply::Step(
-                self.think_record_step(*step)
-                    .map(|ok| ok.report.to_string())
-                    .map_err(|err| serde_json::to_string(&err).unwrap_or_else(|_| err.to_string())),
-            ),
+            ThinkCommand::RecordStep { step } => {
+                OwnerReply::Step(Box::new(self.think_record_step(*step)?))
+            }
             ThinkCommand::PinStep {
                 step_number,
                 pinned,
             } => OwnerReply::Pinned(self.think_pin_step(step_number, pinned)?),
-            ThinkCommand::Checkpoint => OwnerReply::Report(self.think_checkpoint()?),
+            ThinkCommand::Checkpoint => OwnerReply::Report(
+                self.think_checkpoint()
+                    .map_err(WorkflowMutationError::rejected)?,
+            ),
         })
     }
 
-    fn apply_ship(&self, command: ShipCommand) -> Result<OwnerReply, String> {
+    fn apply_ship(&self, command: ShipCommand) -> Result<OwnerReply, WorkflowMutationError> {
         Ok(match command {
             ShipCommand::CompactReceipts => OwnerReply::Report(
-                serde_json::to_value(self.ship_compact_receipts()?).map_err(|e| e.to_string())?,
+                serde_json::to_value(self.ship_compact_receipts()?)
+                    .map_err(|error| WorkflowMutationError::uncertain(error.to_string()))?,
             ),
             ShipCommand::SetObjective {
                 description,
@@ -149,10 +152,7 @@ impl NativeEngines {
                 title,
                 task_type,
                 estimate,
-            } => {
-                self.ship_add_task(id, title, task_type, estimate)?;
-                OwnerReply::Done
-            }
+            } => OwnerReply::Done(self.ship_add_task(id, title, task_type, estimate)?),
             ShipCommand::StartTask { task_id } => OwnerReply::Task(self.ship_start_task(&task_id)?),
             ShipCommand::RecordAction {
                 task_id,
@@ -195,12 +195,12 @@ impl NativeEngines {
             }
             ShipCommand::Finalize { artifacts, summary } => OwnerReply::Report(
                 serde_json::to_value(self.ship_finalize(artifacts, summary)?)
-                    .map_err(|error| error.to_string())?,
+                    .map_err(|error| WorkflowMutationError::uncertain(error.to_string()))?,
             ),
         })
     }
 
-    fn apply_signal(&self, command: SignalCommand) -> Result<OwnerReply, String> {
+    fn apply_signal(&self, command: SignalCommand) -> Result<OwnerReply, WorkflowMutationError> {
         let signal = match command {
             SignalCommand::Capture { kind, from, body } => self.signal_capture(kind, from, body),
             SignalCommand::Research {
@@ -210,7 +210,9 @@ impl NativeEngines {
                 sources,
                 think_step,
             } => self.signal_research(&id, summary, confidence, sources, think_step),
-            SignalCommand::Promote { id } => self.signal_promote(&id),
+            SignalCommand::Promote { id } => {
+                return Ok(OwnerReply::Promotion(Box::new(self.signal_promote(&id)?)));
+            }
             SignalCommand::Ignore { id } => self.signal_ignore(&id),
             SignalCommand::Snooze { id, minutes } => self.signal_snooze(&id, minutes),
         }?;

@@ -6,7 +6,7 @@ pub mod checked_tool_result;
 pub mod coerce;
 pub mod cross_ref;
 pub mod epoch_key;
-pub mod merged_write;
+mod mutation_error;
 pub mod persistence;
 pub mod project_id;
 pub mod repo_sync;
@@ -20,6 +20,7 @@ pub(crate) mod store_stamp;
 pub mod tool_failure;
 pub mod tool_input;
 pub mod tool_result;
+pub mod transaction;
 
 pub use broadcast::{Broadcaster, EmitError, Family};
 pub use cross_ref::{
@@ -27,7 +28,6 @@ pub use cross_ref::{
 };
 pub use epoch_key::EPOCH_KEY;
 pub use magistr_workflow_contracts::StoreStamp;
-pub use merged_write::MergedWrite;
 pub use persistence::{Domain, Persistence, PersistenceConfig};
 pub use project_id::{
     IdSource, PROJECT_DIR, PROJECT_FILE, PROJECT_SEP, ProjectIdentity, declared_identity_in,

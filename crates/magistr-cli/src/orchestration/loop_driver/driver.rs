@@ -1701,8 +1701,8 @@ impl LoopDriver {
         });
         match completed {
             Ok(Some(done)) => {
-                self.completed.push(done.id.clone());
-                self.post_chunk_event(RoadmapFrame::ChunkCompleted { chunk: done });
+                self.completed.push(done.value.id.clone());
+                self.post_chunk_event(RoadmapFrame::ChunkCompleted { chunk: done.value });
                 self.note(format!("judge: met — {reason}; {} completed", chunk.id));
             }
             Ok(None) => self.note(format!(
@@ -1720,26 +1720,24 @@ impl LoopDriver {
     /// asked and its outcome settled by their answer. `Ok(None)` when the
     /// mutation is already established for this attempt and not redone;
     /// an intent that cannot be written is not dispatched.
-    fn mutate<T>(
+    fn mutate<T, E: Into<magistr_engine::native::WorkflowMutationError>>(
         &mut self,
         target: &str,
-        apply: impl FnOnce() -> Result<T, String>,
+        apply: impl FnOnce() -> Result<T, E>,
     ) -> Result<Option<T>, String> {
         let attempt = match self.intend(OperationKind::NativeMutation, target) {
             Intent::Attempt(attempt) => attempt,
             Intent::Established => return Ok(None),
             Intent::Unrecorded(why) => return Err(format!("not applied: {why}")),
         };
-        let applied = apply();
-        self.settled(
-            &attempt,
-            if applied.is_ok() {
-                OperationOutcome::Completed
-            } else {
-                OperationOutcome::Failed
-            },
-        );
-        applied.map(Some)
+        let applied = apply().map_err(Into::into);
+        let outcome = match &applied {
+            Ok(_) => OperationOutcome::Completed,
+            Err(error) if error.effect() == "unknown" => OperationOutcome::Indeterminate,
+            Err(_) => OperationOutcome::Failed,
+        };
+        self.settled(&attempt, outcome);
+        applied.map(Some).map_err(|error| error.to_string())
     }
 
     /// Write an operation's intent for this attempt, durably when the
@@ -1800,9 +1798,9 @@ impl LoopDriver {
             )
         });
         match blocked {
-            Ok(Some(blocked)) => {
-                self.post_chunk_event(RoadmapFrame::ChunkChanged { chunk: blocked })
-            }
+            Ok(Some(blocked)) => self.post_chunk_event(RoadmapFrame::ChunkChanged {
+                chunk: blocked.value,
+            }),
             Ok(None) => {}
             Err(e) => self.post(LoopEvent::Failed(format!(
                 "could not block {} on a human: {e}",
@@ -1988,7 +1986,11 @@ impl LoopDriver {
         let verification = engines
             .as_ref()
             .ok_or_else(|| "no think-and-ship engines".to_owned())
-            .and_then(|engines| engines.ship_admit_task(None));
+            .and_then(|engines| {
+                engines
+                    .ship_admit_task(None)
+                    .map_err(|error| error.to_string())
+            });
         self.verification_task = verification
             .as_ref()
             .ok()
@@ -2396,7 +2398,7 @@ impl LoopDriver {
             match reopened {
                 Ok(Some(chunk)) => {
                     self.note(format!("{id} reopened: {names} is red"));
-                    self.post_chunk_event(RoadmapFrame::ChunkChanged { chunk });
+                    self.post_chunk_event(RoadmapFrame::ChunkChanged { chunk: chunk.value });
                 }
                 Ok(None) => {}
                 Err(e) => self.note(format!("could not reopen {id}: {e}")),

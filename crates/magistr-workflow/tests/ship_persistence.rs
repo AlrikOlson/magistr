@@ -20,19 +20,23 @@ fn round_trip_objective_and_tasks() {
 
     {
         let mut engine = ShipEngine::new(project_id.clone()).with_persistence(persistence.clone());
-        engine.set_objective(
-            "Build auth".into(),
-            vec!["JWT works".into()],
-            vec![],
-            "src/".into(),
-        );
-        engine.add_task(
-            "t1".into(),
-            "Implement".into(),
-            TaskType::Implement,
-            Some("medium".into()),
-            Some("alt-1".into()),
-        );
+        engine
+            .set_objective(
+                "Build auth".into(),
+                vec!["JWT works".into()],
+                vec![],
+                "src/".into(),
+            )
+            .unwrap();
+        engine
+            .add_task(
+                "t1".into(),
+                "Implement".into(),
+                TaskType::Implement,
+                Some("medium".into()),
+                Some("alt-1".into()),
+            )
+            .unwrap();
         engine.start_task("t1").unwrap();
         engine
             .record_action(
@@ -69,7 +73,9 @@ fn persistence_disabled_writes_nothing() {
     let persistence = Persistence::new(&cfg);
 
     let mut engine = ShipEngine::new("test".into()).with_persistence(persistence.clone());
-    engine.set_objective("Goal".into(), vec![], vec![], String::new());
+    engine
+        .set_objective("Goal".into(), vec![], vec![], String::new())
+        .unwrap();
 
     let sessions_dir = tmp.path().join("ship").join("sessions");
     assert!(
@@ -82,12 +88,14 @@ fn persistence_disabled_writes_nothing() {
 }
 
 #[test]
-fn reset_removes_disk_file() {
+fn reset_commits_an_empty_execution() {
     let (_tmp, persistence) = tmp_persistence();
     let project_id = "test-reset-abc".to_string();
 
     let mut engine = ShipEngine::new(project_id.clone()).with_persistence(persistence.clone());
-    engine.set_objective("Goal".into(), vec![], vec![], String::new());
+    engine
+        .set_objective("Goal".into(), vec![], vec![], String::new())
+        .unwrap();
 
     let path = _tmp
         .path()
@@ -96,8 +104,11 @@ fn reset_removes_disk_file() {
         .join(format!("{project_id}.json"));
     assert!(path.exists(), "file should exist after set_objective");
 
-    engine.reset();
-    assert!(!path.exists(), "file should be removed after reset");
+    engine.reset().unwrap();
+    assert!(
+        path.exists(),
+        "reset keeps a durable empty execution identity"
+    );
 }
 
 #[test]
@@ -107,8 +118,12 @@ fn action_ids_survive_restart() {
 
     {
         let mut engine = ShipEngine::new(project_id.clone()).with_persistence(persistence.clone());
-        engine.set_objective("Goal".into(), vec![], vec![], String::new());
-        engine.add_task("t1".into(), "Task".into(), TaskType::Implement, None, None);
+        engine
+            .set_objective("Goal".into(), vec![], vec![], String::new())
+            .unwrap();
+        engine
+            .add_task("t1".into(), "Task".into(), TaskType::Implement, None, None)
+            .unwrap();
         engine.start_task("t1").unwrap();
         engine
             .record_action(
@@ -145,7 +160,8 @@ fn action_ids_survive_restart() {
             "".into(),
             None,
         )
-        .unwrap();
+        .unwrap()
+        .value;
     assert_eq!(
         action.id, 3,
         "action id should continue from where it left off"

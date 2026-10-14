@@ -1,15 +1,15 @@
-use chrono::Utc;
 mod admission;
+#[cfg(test)]
+#[path = "durability.tests.rs"]
+mod durability_tests;
+mod mutations;
+mod transaction;
 
 use crate::cloud::client::CloudClient;
-use crate::infra::StoreStamp;
 use crate::ship::broadcast::{BroadcastFrame, Broadcaster};
-use crate::ship::domain::action::{Action, ActionType};
-use crate::ship::domain::artifact::Artifact;
-use crate::ship::domain::check::{Check, CheckType};
 use crate::ship::domain::execution_identity::ExecutionIdentity;
-use crate::ship::domain::objective::{Objective, ObjectiveStatus, VerificationMode};
-use crate::ship::domain::task::{Task, TaskStatus, TaskType};
+use crate::ship::domain::objective::Objective;
+use crate::ship::domain::task::{Task, TaskStatus};
 use crate::ship::persistence::Persistence;
 use crate::ship::receipt_ledger::ReceiptLedger;
 use crate::ship::saved_cycle::SavedCycle;
@@ -27,7 +27,7 @@ pub struct ShipEngine {
     persistence: Option<Persistence>,
     /// Source of the last acknowledged save or adopted read. Observations
     /// validate the selected file independently of this writer's memory.
-    stamp: Option<StoreStamp>,
+    observation: magistr_workflow_contracts::ReadState<()>,
     /// Durable check receipts for this project, outliving the cycle.
     receipts: ReceiptLedger,
     broadcaster: Option<Broadcaster>,
@@ -58,7 +58,10 @@ impl ShipEngine {
             saved_cycles: Vec::new(),
             selection_revision: 0,
             persistence: None,
-            stamp: None,
+            observation: magistr_workflow_contracts::ReadState::Current(Observed {
+                value: (),
+                source: ReadSource::Memory,
+            }),
             receipts: ReceiptLedger::in_memory(),
             broadcaster: None,
             mirror: None,
@@ -302,6 +305,7 @@ impl ShipEngine {
     pub fn with_persistence(mut self, persistence: Persistence) -> Self {
         self.receipts = persistence.receipt_ledger(&self.project_id);
         self.persistence = Some(persistence);
+        self.observation = magistr_workflow_contracts::ReadState::Unobserved;
         if let Err(error) = self.reload_from_store() {
             tracing::warn!(%error, "The saved work could not be loaded");
         }
@@ -341,13 +345,18 @@ impl ShipEngine {
     pub(crate) fn compact_receipts(
         &self,
         retained: impl FnOnce() -> Result<std::collections::BTreeSet<String>, String>,
-    ) -> Result<crate::ship::receipt_compaction::ReceiptCompaction, String> {
+    ) -> Result<
+        crate::ship::receipt_compaction::ReceiptCompaction,
+        crate::ship::application::ShipError,
+    > {
         if let Some(persistence) = &self.persistence
             && persistence.enabled()
         {
-            return persistence
-                .compact_receipts(&self.project_id, retained)
-                .map_err(|e| e.to_string());
+            return persistence.compact_receipts(
+                &self.project_id,
+                &self.execution.run_id,
+                retained,
+            );
         }
         if self.objective.is_none() {
             return Err("Set an objective before clearing old check history.".into());
@@ -374,528 +383,7 @@ impl ShipEngine {
         self.objective.as_ref().map(Objective::acceptance_revision)
     }
 
-    /// Persist the cycle under the locked merge-on-save discipline and
-    /// adopt what landed: within one cycle the merged tasks are this
-    /// memory's tasks first, then the ones another writer acked, so every
-    /// index a caller holds stays valid and now names the merged record. A
-    /// newer cycle on disk wins the file outright; memory keeps its copy
-    /// for the caller's reply and forgets the stamp, so the next refresh
-    /// reads the winning cycle.
-    fn persist(&mut self) {
-        let Some(p) = &self.persistence else {
-            return;
-        };
-        let Some(written) = p.save_with_identity(
-            &self.project_id,
-            &self.objective,
-            &self.tasks,
-            self.next_action_id,
-            &self.execution,
-            &self.saved_cycles,
-            self.selection_revision,
-        ) else {
-            return;
-        };
-        match written.merged {
-            Some(merged)
-                if merged.cycle_stamp() == self.cycle_stamp()
-                    && merged.selection_revision == self.selection_revision =>
-            {
-                self.adopt_current(Some(merged));
-                self.stamp = written.stamp;
-            }
-            Some(_) => self.stamp = None,
-            None => self.stamp = written.stamp,
-        }
-    }
-
-    /// The identity of the cycle this memory holds: the objective's
-    /// `created_at`, as the merge keys cycles.
-    fn cycle_stamp(&self) -> Option<&str> {
-        self.objective
-            .as_ref()
-            .and_then(|objective| objective.created_at.as_deref())
-    }
-
-    fn advance_selection(&mut self) {
-        self.selection_revision = self
-            .selection_revision
-            .saturating_add(1)
-            .max(Utc::now().timestamp_micros() as u64);
-    }
-
-    /// Define the objective for a development cycle. Returns the number of
-    /// stale tasks cleared.
-    ///
-    /// If the *previous* objective was already finished (`Completed` /
-    /// `Abandoned`), this is a brand-new cycle: its tasks are wiped so a fresh
-    /// objective never inherits the prior cycle's `explore`/`implement`/`verify`
-    /// tasks. That bleed corrupted a real run once — a new
-    /// objective piled tasks onto a completed objective, and
-    /// reused task ids then collided. Updating the current scope preserves
-    /// its tasks; choosing another scope saves the unfinished plan and restores
-    /// that scope's saved objective and plan unchanged, or starts a new one.
-    /// Supplied details seed a new scope or update the current scope.
-    pub fn set_objective(
-        &mut self,
-        description: String,
-        acceptance_criteria: Vec<String>,
-        constraints: Vec<String>,
-        scope: String,
-    ) -> usize {
-        self.set_objective_with_verification(
-            description,
-            acceptance_criteria,
-            constraints,
-            scope,
-            VerificationMode::Full,
-        )
-    }
-
-    pub fn set_objective_with_verification(
-        &mut self,
-        description: String,
-        acceptance_criteria: Vec<String>,
-        constraints: Vec<String>,
-        scope: String,
-        verification: VerificationMode,
-    ) -> usize {
-        let mut cleared = 0;
-        if self.objective.is_none() {
-            self.advance_selection();
-        }
-        let switching = self
-            .objective
-            .as_ref()
-            .is_some_and(|objective| objective.scope != scope);
-        if switching {
-            if let Some(objective) = self.objective.take() {
-                let tasks = std::mem::take(&mut self.tasks);
-                if matches!(
-                    objective.status,
-                    ObjectiveStatus::Defined | ObjectiveStatus::Active
-                ) {
-                    self.saved_cycles.push(SavedCycle {
-                        objective,
-                        tasks,
-                        next_action_id: self.next_action_id,
-                        execution: self.execution.clone(),
-                    });
-                } else {
-                    cleared = tasks.len();
-                }
-            }
-            self.advance_selection();
-            if let Some(index) = self.saved_cycles.iter().position(|cycle| {
-                cycle.objective.scope == scope
-                    && matches!(
-                        cycle.objective.status,
-                        ObjectiveStatus::Defined | ObjectiveStatus::Active
-                    )
-            }) {
-                let saved = self.saved_cycles.remove(index);
-                self.objective = Some(saved.objective);
-                self.tasks = saved.tasks;
-                self.next_action_id = saved.next_action_id;
-                self.execution = saved.execution;
-                self.publish_objective();
-                return cleared;
-            } else {
-                self.next_action_id = 1;
-                self.execution = ExecutionIdentity::fresh();
-            }
-        }
-        let prior_finished = matches!(
-            self.objective.as_ref().map(|o| &o.status),
-            Some(ObjectiveStatus::Completed) | Some(ObjectiveStatus::Abandoned)
-        );
-        if prior_finished {
-            cleared = self.tasks.len();
-            self.selection_revision += 1;
-            self.next_action_id = 1;
-            self.tasks.clear();
-            self.execution = ExecutionIdentity::fresh();
-        }
-        let created_at = self
-            .objective
-            .as_ref()
-            .filter(|_| !prior_finished)
-            .and_then(|objective| objective.created_at.clone())
-            .unwrap_or_else(|| Utc::now().to_rfc3339());
-        self.objective = Some(Objective {
-            description,
-            acceptance_criteria,
-            constraints,
-            scope,
-            verification,
-            status: self
-                .objective
-                .as_ref()
-                .filter(|_| !prior_finished)
-                .map_or(ObjectiveStatus::Defined, |objective| objective.status),
-            project_id: self.project_id.clone(),
-            created_at: Some(created_at),
-            completed_at: None,
-        });
-        self.publish_objective();
-        cleared
-    }
-
-    fn publish_objective(&mut self) {
-        self.persist();
-        if let Some(objective) = &self.objective {
-            self.broadcast(BroadcastFrame::ObjectiveSet {
-                objective: objective.clone(),
-            });
-        }
-    }
-
-    pub fn add_task(
-        &mut self,
-        id: String,
-        title: String,
-        task_type: TaskType,
-        estimate: Option<String>,
-        think_branch: Option<String>,
-    ) {
-        if let Some(obj) = &mut self.objective
-            && obj.status == ObjectiveStatus::Defined
-        {
-            obj.status = ObjectiveStatus::Active;
-        }
-        self.execution.add_task(&id);
-        self.tasks.push(Task {
-            id,
-            title,
-            task_type,
-            status: TaskStatus::Planned,
-            estimate,
-            started_at: None,
-            completed_at: None,
-            artifacts: Vec::new(),
-            checks: Vec::new(),
-            actions: Vec::new(),
-            blocked_reason: None,
-            think_branch,
-        });
-        self.persist();
-        let t = self.tasks.last().unwrap();
-        self.broadcast(BroadcastFrame::TaskAdded {
-            task_id: t.id.clone(),
-            title: t.title.clone(),
-        });
-    }
-
-    pub fn remove_task(&mut self, task_id: &str) -> Result<(), String> {
-        let idx = self.task_index(task_id)?;
-        let status = &self.tasks[idx].status;
-        if *status == TaskStatus::Active || *status == TaskStatus::Completed {
-            return Err(format!(
-                "cannot remove task '{task_id}' with status {status:?}"
-            ));
-        }
-        self.tasks.remove(idx);
-        self.execution.remove_task(task_id);
-        self.persist();
-        Ok(())
-    }
-
-    pub fn reorder_task(&mut self, task_id: &str, after: Option<&str>) -> Result<(), String> {
-        let idx = self.task_index(task_id)?;
-        let task = self.tasks.remove(idx);
-        let insert_at = match after {
-            Some(after_id) => {
-                let after_idx = self
-                    .tasks
-                    .iter()
-                    .position(|t| t.id == after_id)
-                    .ok_or_else(|| format!("task '{after_id}' not found"))?;
-                after_idx + 1
-            }
-            None => 0,
-        };
-        self.tasks.insert(insert_at, task);
-        self.persist();
-        Ok(())
-    }
-
-    pub fn start_task(&mut self, task_id: &str) -> Result<&Task, String> {
-        if let Some(active) = self.tasks.iter().find(|t| t.status == TaskStatus::Active) {
-            return Err(format!(
-                "task '{}' is already active — complete or block it first",
-                active.id
-            ));
-        }
-        let idx = self.task_index(task_id)?;
-        let task = &mut self.tasks[idx];
-        if task.status != TaskStatus::Planned && task.status != TaskStatus::Blocked {
-            return Err(format!(
-                "task '{task_id}' has status {:?}, cannot start",
-                task.status
-            ));
-        }
-        task.status = TaskStatus::Active;
-        task.started_at = Some(Utc::now().to_rfc3339());
-        task.blocked_reason = None;
-        self.persist();
-        self.broadcast(BroadcastFrame::TaskStarted {
-            task_id: self.tasks[idx].id.clone(),
-        });
-        Ok(&self.tasks[idx])
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    pub fn record_action(
-        &mut self,
-        task_id: Option<&str>,
-        action_type: ActionType,
-        description: String,
-        files_touched: Vec<String>,
-        tools_used: Vec<String>,
-        result: String,
-        think_step: Option<u32>,
-    ) -> Result<&Action, String> {
-        let tid = self.resolve_task_id(task_id)?;
-        let idx = self.task_index(&tid)?;
-        let action_id = self.next_action_id;
-        self.next_action_id += 1;
-        let action = Action {
-            id: action_id,
-            task_id: tid,
-            timestamp: Utc::now().to_rfc3339(),
-            action_type,
-            description,
-            files_touched,
-            tools_used,
-            result,
-            think_step,
-        };
-        self.tasks[idx].actions.push(action);
-        self.persist();
-        let recorded = self.tasks[idx].actions.last().unwrap();
-        self.broadcast(BroadcastFrame::ActionRecorded {
-            task_id: recorded.task_id.clone(),
-            action: recorded.clone(),
-        });
-        Ok(self.tasks[idx].actions.last().unwrap())
-    }
-
-    pub fn complete_task(
-        &mut self,
-        task_id: &str,
-        artifacts: Vec<Artifact>,
-    ) -> Result<&Task, String> {
-        let idx = self.task_index(task_id)?;
-        let task = &mut self.tasks[idx];
-        if task.status != TaskStatus::Active && task.status != TaskStatus::Blocked {
-            return Err(format!(
-                "task '{task_id}' has status {:?}, cannot complete",
-                task.status
-            ));
-        }
-        task.status = TaskStatus::Completed;
-        task.completed_at = Some(Utc::now().to_rfc3339());
-        task.blocked_reason = None;
-        task.artifacts.extend(artifacts);
-        self.persist();
-        self.broadcast(BroadcastFrame::TaskCompleted {
-            task: self.tasks[idx].clone(),
-        });
-        Ok(&self.tasks[idx])
-    }
-
-    pub fn block_task(&mut self, task_id: &str, reason: String) -> Result<&Task, String> {
-        let idx = self.task_index(task_id)?;
-        let task = &mut self.tasks[idx];
-        if task.status != TaskStatus::Active {
-            return Err(format!(
-                "task '{task_id}' has status {:?}, only active tasks can be blocked",
-                task.status
-            ));
-        }
-        task.status = TaskStatus::Blocked;
-        let reason_clone = reason.clone();
-        task.blocked_reason = Some(reason);
-        self.persist();
-        self.broadcast(BroadcastFrame::TaskBlocked {
-            task_id: self.tasks[idx].id.clone(),
-            reason: reason_clone,
-        });
-        Ok(&self.tasks[idx])
-    }
-
-    /// Self-reported check (no command run). Thin wrapper over
-    /// [`Self::record_check_full`] used by tests and manual gates.
-    pub fn record_check(
-        &mut self,
-        task_id: Option<&str>,
-        check_type: CheckType,
-        name: String,
-        passed: bool,
-        details: String,
-        required: bool,
-    ) -> Result<&Check, String> {
-        self.record_check_full(
-            task_id, check_type, name, passed, details, required, false, None, None, None, None,
-        )
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    pub fn record_check_full(
-        &mut self,
-        task_id: Option<&str>,
-        check_type: CheckType,
-        name: String,
-        passed: bool,
-        details: String,
-        required: bool,
-        verified: bool,
-        command: Option<String>,
-        exit_code: Option<i32>,
-        report: Option<crate::ship::report::ReportRecord>,
-        results: Option<crate::ship::report::TestResults>,
-    ) -> Result<&Check, String> {
-        let tid = self.resolve_task_id(task_id)?;
-        let idx = self.task_index(&tid)?;
-        let check = Check {
-            check_type,
-            name,
-            passed,
-            details,
-            required,
-            verified,
-            command,
-            exit_code,
-            report,
-            results,
-            timestamp: Utc::now().to_rfc3339(),
-        };
-        self.tasks[idx].checks.push(check);
-        self.persist();
-        let recorded = self.tasks[idx].checks.last().unwrap();
-        self.broadcast(BroadcastFrame::CheckRecorded {
-            task_id: self.tasks[idx].id.clone(),
-            check: recorded.clone(),
-        });
-        Ok(self.tasks[idx].checks.last().unwrap())
-    }
-
-    pub fn ship(&mut self, artifacts: Vec<Artifact>, summary: Option<String>) -> serde_json::Value {
-        serde_json::to_value(self.finalize(artifacts, summary)).expect("serializable ship report")
-    }
-
-    pub fn finalize(
-        &mut self,
-        artifacts: Vec<Artifact>,
-        summary: Option<String>,
-    ) -> crate::ship::application::ShipReport {
-        let mut warnings: Vec<String> = Vec::new();
-
-        let total_tasks = self.tasks.len();
-        let completed = self
-            .tasks
-            .iter()
-            .filter(|t| t.status == TaskStatus::Completed)
-            .count();
-        let incomplete: Vec<&str> = self
-            .tasks
-            .iter()
-            .filter(|t| t.status != TaskStatus::Completed && t.status != TaskStatus::Skipped)
-            .map(|t| t.id.as_str())
-            .collect();
-
-        if !incomplete.is_empty() {
-            warnings.push(format!(
-                "{} task(s) not completed: {}",
-                incomplete.len(),
-                incomplete.join(", ")
-            ));
-        }
-
-        // Required checks in recording order, latest per name last: a
-        // failure a later record of the same name passed over is
-        // recovered, one nothing passed over is outstanding.
-        let mut latest_by_name: std::collections::BTreeMap<&str, (&Task, &Check)> =
-            std::collections::BTreeMap::new();
-        let mut required_in_order: Vec<(&Task, &Check)> = Vec::new();
-        let mut unverified_required: Vec<String> = Vec::new();
-        for task in &self.tasks {
-            for check in &task.checks {
-                if !check.required {
-                    continue;
-                }
-                required_in_order.push((task, check));
-                latest_by_name.insert(check.name.as_str(), (task, check));
-                if check.passed && !check.verified {
-                    unverified_required.push(format!("{} (task: {})", check.name, task.id));
-                }
-            }
-        }
-        let outstanding_failures: Vec<String> = latest_by_name
-            .values()
-            .filter(|(_, check)| !check.passed)
-            .map(|(task, check)| format!("{} (task: {})", check.name, task.id))
-            .collect();
-        let recovered_failures: Vec<String> = required_in_order
-            .iter()
-            .filter(|(_, check)| !check.passed)
-            .filter(|(_, check)| {
-                latest_by_name
-                    .get(check.name.as_str())
-                    .is_some_and(|(_, latest)| latest.passed)
-            })
-            .map(|(task, check)| format!("{} (task: {})", check.name, task.id))
-            .collect();
-        if !outstanding_failures.is_empty() {
-            warnings.push(format!(
-                "required checks failed: {}",
-                outstanding_failures.join(", ")
-            ));
-        }
-        if !recovered_failures.is_empty() {
-            warnings.push(format!(
-                "required checks failed and later passed under the same name (recovered): {}",
-                recovered_failures.join(", ")
-            ));
-        }
-        if !unverified_required.is_empty() {
-            // Self-reported green gates are exactly how a non-compiling phase
-            // shipped with "tests pass". Surface them so a reviewer can tell a
-            // run command apart from an agent's claim.
-            warnings.push(format!(
-                "required checks passed but were self-reported (not verified by running a command): {}",
-                unverified_required.join(", ")
-            ));
-        }
-
-        if let Some(obj) = &mut self.objective {
-            obj.status = ObjectiveStatus::Completed;
-            obj.completed_at = Some(Utc::now().to_rfc3339());
-        }
-        self.persist();
-        self.broadcast(BroadcastFrame::ObjectiveShipped {
-            warnings: warnings.clone(),
-        });
-
-        let all_artifacts: Vec<&Artifact> = self
-            .tasks
-            .iter()
-            .flat_map(|t| &t.artifacts)
-            .chain(artifacts.iter())
-            .collect();
-
-        crate::ship::application::ShipReport::new(
-            total_tasks,
-            completed,
-            all_artifacts.len(),
-            artifacts,
-            summary,
-            warnings,
-        )
-        .with_failures(recovered_failures, outstanding_failures)
-    }
-
-    /// Compatibility JSON view; application callers use the typed snapshot.
+    /// JSON status for export clients.
     pub fn status(&self) -> serde_json::Value {
         serde_json::to_value(self.snapshot().status()).expect("serializable ship status")
     }
@@ -911,20 +399,6 @@ impl ShipEngine {
         }
     }
 
-    pub fn reset(&mut self) {
-        if let Some(p) = &self.persistence {
-            p.clear(&self.project_id);
-        }
-        self.stamp = None;
-        self.objective = None;
-        self.tasks.clear();
-        self.saved_cycles.clear();
-        self.selection_revision = 0;
-        self.next_action_id = 1;
-        self.execution = ExecutionIdentity::fresh();
-        self.broadcast(BroadcastFrame::Cleared);
-    }
-
     pub fn plan_summary(&self) -> serde_json::Value {
         serde_json::json!({
             "tasks": self.tasks.iter().map(|t| serde_json::json!({
@@ -936,24 +410,6 @@ impl ShipEngine {
             })).collect::<Vec<_>>(),
             "total": self.tasks.len(),
         })
-    }
-
-    fn task_index(&self, task_id: &str) -> Result<usize, String> {
-        self.tasks
-            .iter()
-            .position(|t| t.id == task_id)
-            .ok_or_else(|| format!("task '{task_id}' not found"))
-    }
-
-    fn resolve_task_id(&self, explicit: Option<&str>) -> Result<String, String> {
-        if let Some(id) = explicit {
-            return Ok(id.to_string());
-        }
-        self.tasks
-            .iter()
-            .find(|t| t.status == TaskStatus::Active)
-            .map(|t| t.id.clone())
-            .ok_or_else(|| "no task_id provided and no active task".to_string())
     }
 
     fn export_markdown(&self) -> String {
@@ -1015,6 +471,7 @@ impl ShipEngine {
 #[cfg(test)]
 mod wire_id_tests {
     use super::*;
+    use crate::ship::domain::task::TaskType;
 
     /// The gate edge must carry the cycle-scoped form a check edge uses —
     /// a bare local id like `verify` recurs across cycles and resolves to
@@ -1022,14 +479,18 @@ mod wire_id_tests {
     #[test]
     fn active_task_wire_id_is_cycle_scoped() {
         let mut engine = ShipEngine::new("think-and-ship-test".into());
-        engine.set_objective("chunk:x — test".into(), vec![], vec![], String::new());
-        engine.add_task(
-            "verify".into(),
-            "Verify".into(),
-            TaskType::Review,
-            None,
-            None,
-        );
+        engine
+            .set_objective("chunk:x — test".into(), vec![], vec![], String::new())
+            .unwrap();
+        engine
+            .add_task(
+                "verify".into(),
+                "Verify".into(),
+                TaskType::Review,
+                None,
+                None,
+            )
+            .unwrap();
         engine.start_task("verify").expect("task starts");
 
         let wire = engine
@@ -1050,7 +511,9 @@ mod wire_id_tests {
     #[test]
     fn no_active_task_means_no_wire_id() {
         let mut engine = ShipEngine::new("think-and-ship-test".into());
-        engine.set_objective("chunk:x — test".into(), vec![], vec![], String::new());
+        engine
+            .set_objective("chunk:x — test".into(), vec![], vec![], String::new())
+            .unwrap();
         assert_eq!(engine.active_task_wire_id(), None);
     }
 }

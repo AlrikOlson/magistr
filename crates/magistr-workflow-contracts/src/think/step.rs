@@ -170,65 +170,11 @@ pub struct ThinkStep {
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub execution_ref: Option<String>,
 
-    /// Immutable record identity, minted once when the step is recorded and
-    /// never rewritten — unlike `step_number`, which the startup renumber may
-    /// reassign. This is the step's cloud wire id (think-step-stable-id).
-    /// Server-set; legacy steps without one get a deterministic backfill
-    /// derived from their content key at load.
+    /// Immutable identity minted once by the recording owner. Every persisted
+    /// or imported record must carry it. Unrecorded input has no identity yet.
     #[serde(skip_serializing_if = "Option::is_none", default)]
     #[schemars(skip)]
     pub record_id: Option<String>,
-}
-
-impl ThinkStep {
-    /// Content identity of a step, independent of its `step_number`. Two
-    /// copies of the trace can hold the same step under different numbers
-    /// (the startup renumber rewrites numbers but never prose or the
-    /// server-set timestamp), so (timestamp, purpose, thought) identifies a
-    /// step across divergent numberings. Returns `None` when the step has no
-    /// timestamp or no prose to identify it by — such steps fall back to
-    /// step_number-only identity.
-    pub fn content_key(&self) -> Option<(String, String, String)> {
-        let ts = self.timestamp.clone()?;
-        if self.purpose.trim().is_empty() && self.thought.trim().is_empty() {
-            return None;
-        }
-        Some((ts, self.purpose.clone(), self.thought.clone()))
-    }
-
-    /// Deterministic record id for a legacy step that predates minting:
-    /// sha256 of the content key, truncated and prefixed so backfilled ids
-    /// are distinguishable from minted uuids. Deterministic on purpose — two
-    /// machines backfilling the same step independently converge on the same
-    /// wire id. `None` when the step has no content key; such steps stay
-    /// step_number-identified on the wire.
-    pub fn backfilled_record_id(&self) -> Option<String> {
-        use sha2::{Digest, Sha256};
-        let (ts, purpose, thought) = self.content_key()?;
-        let mut hasher = Sha256::new();
-        hasher.update(ts.as_bytes());
-        hasher.update([0x1f]);
-        hasher.update(purpose.as_bytes());
-        hasher.update([0x1f]);
-        hasher.update(thought.as_bytes());
-        let hex = format!("{:x}", hasher.finalize());
-        Some(format!("bf-{}", &hex[..32]))
-    }
-
-    /// Set `record_id` if absent, using the deterministic backfill. Returns
-    /// true when the step was changed.
-    pub fn ensure_record_id(&mut self) -> bool {
-        if self.record_id.is_some() {
-            return false;
-        }
-        match self.backfilled_record_id() {
-            Some(id) => {
-                self.record_id = Some(id);
-                true
-            }
-            None => false,
-        }
-    }
 }
 
 #[cfg(test)]

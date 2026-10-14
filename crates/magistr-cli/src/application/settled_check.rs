@@ -17,7 +17,7 @@ impl SettledCheck {
     #[must_use]
     pub fn check(&self) -> Option<&Check> {
         match &self.settlement {
-            CheckSettlement::Applied { check, .. } => Some(check),
+            CheckSettlement::Applied { check, .. } => Some(&check.value),
             CheckSettlement::Stale { .. } => None,
         }
     }
@@ -25,7 +25,7 @@ impl SettledCheck {
     /// The receipt, applied or stale.
     #[must_use]
     pub fn receipt(&self) -> &CheckReceipt {
-        self.settlement.receipt()
+        &self.settlement.receipt().value
     }
 
     /// Whether the workspace still held the admitted bytes at settlement.

@@ -432,12 +432,15 @@ impl CallCounter {
         // Held across the write on purpose: the lock is what makes "flush then
         // clear" atomic, so a concurrent caller can neither double-count a
         // flushed increment nor drop an unflushed one.
-        if self
-            .store
-            .save_merging(&self.project, &delta, merge_counts)
-            .is_ok()
-        {
-            *pending = CallCounts::default();
+        match self.store.save_merging(&self.project, &delta, merge_counts) {
+            Ok(_) => *pending = CallCounts::default(),
+            Err(error) if error.kind == magistr_workflow_contracts::WriteErrorKind::Uncertain => {
+                // The increment may already be visible. These optional counters
+                // may under-report, but replaying this delta could double-count it.
+                *pending = CallCounts::default();
+                tracing::warn!("Usage count durability could not be confirmed: {error}");
+            }
+            Err(_) => {}
         }
     }
 

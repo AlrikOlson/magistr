@@ -17,20 +17,16 @@ use super::ObservationDrift;
 /// they were taken under and `config_digest` the policy that applied
 /// outside the tree. A later comparison ([`Self::drift_to`]) judges each
 /// one and never treats a new owner generation as a change of source.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct SourceObservation {
     pub workspace_root: String,
     pub workspace_generation: Option<u64>,
     pub scheme: String,
     pub policy_digest: String,
     pub revision: String,
-    /// The selected bytes under the policy, content-addressed; empty on a
-    /// receipt recorded before source digests were bound.
-    #[serde(default)]
+    /// The selected bytes under the policy, content-addressed.
     pub source_digest: String,
-    /// The applicable external configuration layers, by content; empty on
-    /// a receipt recorded before configuration evidence was bound.
-    #[serde(default)]
+    /// The applicable external configuration layers, by content.
     pub config_digest: String,
     pub consistency: String,
     pub captured_at_ms: u64,

@@ -9,6 +9,8 @@ use crate::think::domain::DepEdge;
 /// the `response` map built at the end of `ReasoningServer::process_step`.
 #[derive(Debug, Clone, Serialize, JsonSchema)]
 pub struct RecordStepOutput {
+    pub source: magistr_workflow_contracts::ReadSource,
+    pub record_id: String,
     pub step_number: u32,
     pub estimated_total: u32,
     pub total_steps: u32,

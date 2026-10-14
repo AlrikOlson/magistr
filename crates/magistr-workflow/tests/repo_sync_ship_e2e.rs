@@ -49,19 +49,23 @@ fn ship_lifecycle_mirrors_records_and_commits_on_ship() {
         .with_repo_sink(RepoSink::new(tmp.path()), true /* shared */);
 
     // Full lifecycle: objective → plan → start → record(code) → check → ship.
-    engine.set_objective(
-        "Build it".into(),
-        vec!["works".into()],
-        vec![],
-        "src/".into(),
-    );
-    engine.add_task(
-        "impl".into(),
-        "Implement".into(),
-        TaskType::Implement,
-        None,
-        None,
-    );
+    engine
+        .set_objective(
+            "Build it".into(),
+            vec!["works".into()],
+            vec![],
+            "src/".into(),
+        )
+        .unwrap();
+    engine
+        .add_task(
+            "impl".into(),
+            "Implement".into(),
+            TaskType::Implement,
+            None,
+            None,
+        )
+        .unwrap();
     engine.start_task("impl").unwrap();
     engine
         .record_action(
@@ -84,7 +88,7 @@ fn ship_lifecycle_mirrors_records_and_commits_on_ship() {
             true,
         )
         .unwrap();
-    engine.ship(vec![], Some("done".into())); // closes the session
+    serde_json::to_value(engine.finalize(vec![], Some("done".into())).unwrap().value).unwrap(); // closes the session
     // The mirror is asynchronous; wait for the worker to drain before asserting.
     engine.flush_mirror();
 
@@ -142,8 +146,10 @@ fn ship_local_default_writes_but_never_commits() {
 
     let mut engine =
         ShipEngine::new("proj-abc".to_string()).with_repo_sink(RepoSink::new(tmp.path()), false);
-    engine.set_objective("g".into(), vec![], vec![], String::new());
-    engine.ship(vec![], None);
+    engine
+        .set_objective("g".into(), vec![], vec![], String::new())
+        .unwrap();
+    serde_json::to_value(engine.finalize(vec![], None).unwrap().value).unwrap();
     engine.flush_mirror();
 
     let local = tmp.path().join(".think-and-ship/local");
@@ -156,9 +162,13 @@ fn ship_local_default_writes_but_never_commits() {
 #[test]
 fn ship_no_sink_preserves_behaviour() {
     let mut engine = ShipEngine::new("proj-abc".to_string());
-    engine.set_objective("g".into(), vec![], vec![], String::new());
-    engine.add_task("t".into(), "T".into(), TaskType::Implement, None, None);
+    engine
+        .set_objective("g".into(), vec![], vec![], String::new())
+        .unwrap();
+    engine
+        .add_task("t".into(), "T".into(), TaskType::Implement, None, None)
+        .unwrap();
     // No panic, no repo touched — works exactly as before.
-    let report = engine.ship(vec![], None);
+    let report = serde_json::to_value(engine.finalize(vec![], None).unwrap().value).unwrap();
     assert!(report.is_object());
 }

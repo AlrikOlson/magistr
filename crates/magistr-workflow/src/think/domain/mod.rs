@@ -15,7 +15,7 @@ pub mod history;
 pub mod session;
 pub mod step;
 
-pub use branch::{Branch, BranchStatus};
+pub use branch::{Branch, BranchStatus, BranchStatusChange};
 pub use dep_edge::DepEdge;
 pub use history::{HistoryMetadata, ThinkHistory};
 pub use session::SessionEntry;

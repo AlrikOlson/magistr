@@ -22,6 +22,27 @@ impl ToolFailure {
         )
     }
 
+    pub fn store(code: &str, error: &magistr_workflow_contracts::WriteError) -> CallToolResult {
+        let recovery = if error.effect() == "unknown" {
+            json!({
+                "action": "read_back",
+                "instruction": "Read the affected object's status or operation receipt before retrying. Saving may have completed."
+            })
+        } else {
+            json!({
+                "action": "restore_access",
+                "instruction": "Resolve the saved-work error, read the affected object, then retry the change."
+            })
+        };
+        Self::build(
+            code,
+            error.message.clone(),
+            vec![json!({"write_failure": error.kind})],
+            error.effect(),
+            recovery,
+        )
+    }
+
     pub fn uncertain(code: &str, message: impl Into<String>) -> CallToolResult {
         Self::build(
             code,

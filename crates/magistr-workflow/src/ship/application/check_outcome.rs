@@ -6,7 +6,7 @@ use super::CheckExecution;
 
 /// Execution data supplied to settlement: how the command ended, what it
 /// said, and any report the runner was asked for.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct CheckOutcome {
     pub passed: bool,
     pub details: String,

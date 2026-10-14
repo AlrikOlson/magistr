@@ -37,7 +37,8 @@ fn start_and_status_admission_reject_waiting_work_without_changing_records() {
         .start_chunk("waiting")
         .expect_err("dependencies must be completed");
     assert!(
-        error.to_lowercase().contains("foundation") && error.contains("unavailable"),
+        error.to_string().to_lowercase().contains("foundation")
+            && error.to_string().contains("unavailable"),
         "{error}"
     );
     assert_eq!(engine.roadmap(), &before);
@@ -159,7 +160,10 @@ fn completed_work_closes_saved_focus_without_redirecting_or_mutating_it() {
         let error = engine
             .focus_set("lane", query, FocusMode::Shape)
             .unwrap_err();
-        assert!(error.contains("no unfinished work") && error.contains("Rust desktop"));
+        assert!(
+            error.to_string().contains("no unfinished work")
+                && error.to_string().contains("Rust desktop")
+        );
         assert_eq!(engine.roadmap(), &before);
     }
 

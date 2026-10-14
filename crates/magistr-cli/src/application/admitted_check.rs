@@ -22,7 +22,7 @@ use crate::utils::gate::nextest_junit_report_path;
 /// command's end as possible, before the workflow lock is touched.
 #[derive(Clone, Debug)]
 pub struct AdmittedCheck {
-    admission: CheckAdmission,
+    admission: magistr_engine::Observed<CheckAdmission>,
     root: PathBuf,
 }
 
@@ -56,33 +56,36 @@ impl AdmittedCheck {
     /// The workflow identity the result will be settled against.
     #[must_use]
     pub fn target(&self) -> &TaskAdmission {
-        &self.admission.target
+        &self.admission.value.target
     }
 
     /// The full admission: target, request, receipt id, acceptance
     /// revision and the source observed.
     #[must_use]
     pub fn admission(&self) -> &CheckAdmission {
-        &self.admission
+        &self.admission.value
     }
 
     /// The durable receipt this check runs under.
     #[must_use]
     pub fn receipt_id(&self) -> &str {
-        &self.admission.receipt_id
+        &self.admission.value.receipt_id
     }
 
     /// The source observed at admission, when the writer carries the
     /// evidence capability.
     #[must_use]
     pub fn source(&self) -> Option<&SourceObservation> {
-        self.admission.source.as_ref()
+        self.admission.value.source.as_ref()
     }
 
     /// Both identities, side by side and never combined.
     #[must_use]
     pub fn identities(&self) -> CheckIdentities {
-        CheckIdentities::new(&self.admission.target, self.admission.source.as_ref())
+        CheckIdentities::new(
+            &self.admission.value.target,
+            self.admission.value.source.as_ref(),
+        )
     }
 
     /// Settle the finished command under its captured identity. A `cargo
@@ -102,6 +105,7 @@ impl AdmittedCheck {
     ) -> Result<SettledCheck, CheckEvidenceError> {
         let report = self
             .admission
+            .value
             .request
             .command
             .as_deref()
@@ -109,7 +113,7 @@ impl AdmittedCheck {
             .map(|relative| self.root.join(relative).to_string_lossy().into_owned());
         let settlement = engines
             .ship_settle_gate(
-                self.admission,
+                self.admission.value,
                 execution,
                 details,
                 report.as_deref().map(|path| ("junit", path)),

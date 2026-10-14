@@ -22,18 +22,9 @@ use super::owner_identity::OwnerIdentity;
 #[cfg(any(unix, windows))]
 use super::owner_reply::OwnerReply;
 
-/// The protocol this binary speaks. Exact match only — during development
-/// every change to the frames is a new version, and an older or newer
-/// client is refused rather than guessed at. The owner reads this field
-/// before the rest of the `Hello`, so a client of another version is
-/// answered with [`AttachRefusal::Protocol`] whatever else its frame
-/// carries; that refusal has kept the same shape since version 3.
-///
-/// History: 3 carried the package version as the build; 4 carries a
-/// [`BuildIdentity`] and refuses on it exactly; 5 adds the `probe`
-/// attachment, answered with a welcome and one
-/// [`OwnerReport`](super::OwnerReport) line before the owner closes.
-pub const OWNER_PROTOCOL_VERSION: u32 = 6;
+/// Exact protocol version required by the owner. Mutation replies carry the
+/// committed value and source; failures carry their effect and recovery identity.
+pub const OWNER_PROTOCOL_VERSION: u32 = 7;
 
 /// The first line a client sends.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -104,7 +95,7 @@ pub(crate) enum ClientFrame {
 #[serde(rename_all = "snake_case")]
 pub(crate) enum CommandRefusal {
     StaleGeneration { current: OwnerGeneration },
-    Engine(String),
+    Engine(super::WorkflowMutationError),
 }
 
 /// The owner's answer to one command.

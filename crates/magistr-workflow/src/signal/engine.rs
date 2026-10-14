@@ -11,8 +11,12 @@
 //! Dependency direction: depends on `crate::signal::domain` (pure) and
 //! `crate::infra` (persistence) — never the reverse (DIP).
 
+mod editing;
+mod mutation_error;
+mod transaction;
+pub use mutation_error::SignalMutationError;
+
 use chrono::Utc;
-use uuid::Uuid;
 
 use crate::cloud::client::CloudClient;
 use crate::infra::{Persistence, StoreStamp};
@@ -119,33 +123,6 @@ impl SignalEngine {
         self
     }
 
-    /// Locked merge-on-save (family-stores-merge-on-save): signals another
-    /// live process acked are folded in, never clobbered. Merge policy:
-    /// [`crate::signal::domain::merge_signal_stores`]. Memory adopts what
-    /// landed — the merge keeps this memory's signals first, in order, and
-    /// appends the ones another writer acked, so every index a caller
-    /// holds stays valid and now names the merged record — and remembers
-    /// the written file's stamp. Every later refresh validates the stored records.
-    fn persist(&mut self) {
-        let Some(p) = &self.persistence else {
-            return;
-        };
-        match p.save_merging(
-            &self.project_id,
-            &self.signals,
-            crate::signal::domain::merge_signal_stores,
-        ) {
-            Ok(Some(written)) => {
-                if let Some(merged) = written.merged {
-                    self.signals = merged;
-                }
-                self.stamp = written.stamp;
-            }
-            Ok(None) => {}
-            Err(e) => tracing::warn!("think-and-ship: signal persist failed: {e}"),
-        }
-    }
-
     /// Read validated stored signals without changing this writer's memory.
     pub fn observe(&self) -> Result<Observed<Signals>, ReadError> {
         let Some(persistence) = self.persistence.as_ref().filter(|p| p.enabled()) else {
@@ -159,28 +136,7 @@ impl SignalEngine {
             project_id: self.project_id.clone(),
             signals: Vec::new(),
         });
-        if value.project_id != self.project_id
-            || value
-                .signals
-                .iter()
-                .any(|signal| signal.project_id.as_deref() != Some(self.project_id.as_str()))
-        {
-            return Err(ReadError::new(
-                ReadErrorKind::Identity,
-                "The saved signals could not be matched to this project.",
-            ));
-        }
-        let mut ids = std::collections::HashSet::new();
-        if value
-            .signals
-            .iter()
-            .any(|signal| signal.id.trim().is_empty() || !ids.insert(&signal.id))
-        {
-            return Err(ReadError::new(
-                ReadErrorKind::Identity,
-                "The saved signals contain incomplete or duplicate items.",
-            ));
-        }
+        validate(&value, &self.project_id)?;
         Ok(Observed {
             value,
             source: read.source,
@@ -194,7 +150,17 @@ impl SignalEngine {
 
     /// Validate and adopt the stored inbox, keeping live wiring intact.
     pub fn reload_from_store(&mut self) -> Result<bool, String> {
-        let read = self.observe().map_err(|error| error.to_string())?;
+        self.refresh_observed().map_err(|error| error.to_string())
+    }
+
+    pub(crate) fn refresh_observed(&mut self) -> Result<bool, ReadError> {
+        let read = match self.observe() {
+            Ok(read) => read,
+            Err(error) => {
+                self.stamp = None;
+                return Err(error);
+            }
+        };
         let stamp = match read.source {
             ReadSource::Memory => return Ok(false),
             ReadSource::Missing => None,
@@ -204,10 +170,6 @@ impl SignalEngine {
         self.signals = read.value;
         self.stamp = stamp;
         Ok(changed)
-    }
-
-    fn now() -> String {
-        Utc::now().to_rfc3339()
     }
 
     /// Read-only access for the wire layer.
@@ -222,17 +184,8 @@ impl SignalEngine {
     /// transition (reconcile-recency-guard). A SILENT merge — it
     /// does NOT emit a mutation frame or push back to the cloud; a reconcile
     /// that re-emitted would loop the pull straight back into a push. Persists.
-    pub fn upsert_signal(&mut self, signal: Signal) {
-        match self.index_of(&signal.id) {
-            Ok(idx) => {
-                if !crate::signal::domain::signal_wins(&signal, &self.signals.signals[idx]) {
-                    return; // local copy is as far or further along — nothing to do
-                }
-                self.signals.signals[idx] = signal;
-            }
-            Err(_) => self.signals.signals.push(signal),
-        }
-        self.persist();
+    pub fn upsert_signal(&mut self, signal: Signal) -> Result<Observed<bool>, SignalMutationError> {
+        self.mutate(|edit| edit.upsert_signal(signal))
     }
 
     fn index_of(&self, id: &str) -> Result<usize, String> {
@@ -246,41 +199,46 @@ impl SignalEngine {
     /// Capture a new signal. Mints a UUIDv4 id and an RFC-3339 `created` stamp,
     /// starts it in `New`, and persists. (Cloud write-through happens via the
     /// attached cloud client, when one is wired.)
-    pub fn capture(&mut self, kind: SignalKind, from: String, body: String) -> &Signal {
-        self.capture_with_content(kind, from, body, None)
+    pub fn capture(
+        &mut self,
+        kind: SignalKind,
+        from: String,
+        body: String,
+    ) -> Result<Observed<Signal>, SignalMutationError> {
+        self.capture_linked(kind, from, body, Vec::new())
     }
 
     /// [`Self::capture`] carrying the optional structured body — the rich
     /// rendering sidecar the MCP seam steers writers toward. Validated by the
     /// caller; `None` is every legacy writer.
+    /// Capture the signal and its links as one authored record.
+    pub fn capture_linked(
+        &mut self,
+        kind: SignalKind,
+        from: String,
+        body: String,
+        cross_refs: Vec<String>,
+    ) -> Result<Observed<Signal>, SignalMutationError> {
+        self.mutate(|edit| {
+            let id = edit.capture(kind, from, body)?.id.clone();
+            for reference in cross_refs {
+                edit.link(&id, &reference)?;
+            }
+            edit.get(&id).cloned()
+        })
+    }
+
     pub fn capture_with_content(
         &mut self,
         kind: SignalKind,
         from: String,
         body: String,
         content: Option<crate::content::StructuredContent>,
-    ) -> &Signal {
-        let now = Self::now();
-        self.signals.signals.push(Signal {
-            id: Uuid::new_v4().to_string(),
-            kind,
-            from,
-            body,
-            content,
-            created: now,
-            status: SignalStatus::New,
-            enrichment: Vec::new(),
-            cross_refs: Vec::new(),
-            surfaced_at: None,
-            snooze_until: None,
-            // Stamp origin at the record, so a later prune can prove ownership
-            // rather than guess it (store-prune-think-signal).
-            project_id: Some(self.project_id.clone()),
-        });
-        self.persist();
-        let snapshot = self.signals.signals.last().unwrap().clone();
-        self.record_event(SignalFrame::SignalCaptured { signal: snapshot });
-        self.signals.signals.last().unwrap()
+    ) -> Result<Observed<Signal>, SignalMutationError> {
+        self.mutate(|edit| {
+            edit.capture_with_content(kind, from, body, content)
+                .cloned()
+        })
     }
 
     /// Fetch a signal by id.
@@ -290,26 +248,22 @@ impl SignalEngine {
     }
 
     /// Move a signal to a new status, validated against the transition table.
-    pub fn set_status(&mut self, id: &str, to: SignalStatus) -> Result<&Signal, String> {
-        let idx = self.index_of(id)?;
-        let from = self.signals.signals[idx].status;
-        if !from.allows(to) {
-            return Err(format!(
-                "illegal transition for signal '{id}': {from:?} -> {to:?}"
-            ));
-        }
-        self.signals.signals[idx].status = to;
-        self.persist();
-        Ok(&self.signals.signals[idx])
+    pub fn set_status(
+        &mut self,
+        id: &str,
+        to: SignalStatus,
+    ) -> Result<Observed<Signal>, SignalMutationError> {
+        self.mutate(|edit| edit.set_status(id, to).cloned())
     }
 
     /// Append an enrichment record. Does not change status on its own — the
     /// status-advancing churn op is [`Self::research`].
-    pub fn enrich(&mut self, id: &str, enrichment: Enrichment) -> Result<&Signal, String> {
-        let idx = self.index_of(id)?;
-        self.signals.signals[idx].enrichment.push(enrichment);
-        self.persist();
-        Ok(&self.signals.signals[idx])
+    pub fn enrich(
+        &mut self,
+        id: &str,
+        enrichment: Enrichment,
+    ) -> Result<Observed<Signal>, SignalMutationError> {
+        self.mutate(|edit| edit.enrich(id, enrichment).cloned())
     }
 
     /// Record one round of the agent "churning" on a signal: append
@@ -330,41 +284,11 @@ impl SignalEngine {
         confidence: f64,
         sources: Vec<String>,
         think_step: Option<u32>,
-    ) -> Result<&Signal, String> {
-        let idx = self.index_of(id)?;
-        let from = self.signals.signals[idx].status;
-        if matches!(from, SignalStatus::Promoted | SignalStatus::Dismissed) {
-            return Err(format!(
-                "signal '{id}' cannot be researched from {from:?} (terminal state)"
-            ));
-        }
-
-        // Append the enrichment, time-stamped by the engine.
-        self.signals.signals[idx].enrichment.push(Enrichment {
-            think_step,
-            sources,
-            summary,
-            confidence: confidence.clamp(0.0, 1.0),
-            at: Self::now(),
-        });
-
-        // Advance toward Researched without ever moving backward.
-        if matches!(from, SignalStatus::New | SignalStatus::Triaged) {
-            self.signals.signals[idx].status = SignalStatus::Researched;
-        }
-
-        // Cross-ref the motivating think step (deduped, validated wire form).
-        if let Some(n) = think_step {
-            let wire = crate::infra::CrossRef::ThinkStep(n).to_wire();
-            if !self.signals.signals[idx].cross_refs.contains(&wire) {
-                self.signals.signals[idx].cross_refs.push(wire);
-            }
-        }
-
-        self.persist();
-        let snapshot = self.signals.signals[idx].clone();
-        self.record_event(SignalFrame::SignalChanged { signal: snapshot });
-        Ok(&self.signals.signals[idx])
+    ) -> Result<Observed<Signal>, SignalMutationError> {
+        self.mutate(|edit| {
+            edit.research(id, summary, confidence, sources, think_step)
+                .cloned()
+        })
     }
 
     /// Attach a validated cross-ref to a signal (deduped). Powers `signal_link`
@@ -377,18 +301,12 @@ impl SignalEngine {
     /// follow it for several phases — the behaviour was always right, because
     /// validation delegates, but the comment said otherwise. It is what a
     /// tracker divergence concern uses to name the ticket it is about.
-    pub fn link(&mut self, id: &str, cross_ref: &str) -> Result<&Signal, String> {
-        let normalized = crate::infra::CrossRef::from_wire(cross_ref)
-            .map(|r| r.to_wire())
-            .map_err(|e| format!("invalid cross-ref '{cross_ref}': {e}"))?;
-        let idx = self.index_of(id)?;
-        if !self.signals.signals[idx].cross_refs.contains(&normalized) {
-            self.signals.signals[idx].cross_refs.push(normalized);
-            self.persist();
-            let snapshot = self.signals.signals[idx].clone();
-            self.record_event(SignalFrame::SignalChanged { signal: snapshot });
-        }
-        Ok(&self.signals.signals[idx])
+    pub fn link(
+        &mut self,
+        id: &str,
+        cross_ref: &str,
+    ) -> Result<Observed<Signal>, SignalMutationError> {
+        self.mutate(|edit| edit.link(id, cross_ref).cloned())
     }
 
     /// Mark a signal `Promoted`. Only a `Researched` or `Surfaced` signal can be
@@ -397,19 +315,8 @@ impl SignalEngine {
     /// (it may skip `Surfaced`); the bidirectional cross-ref wiring lives at the
     /// service layer. Idempotency (don't re-promote) is enforced there via the
     /// existing `chunk:` cross-ref.
-    pub fn promote(&mut self, id: &str) -> Result<&Signal, String> {
-        let idx = self.index_of(id)?;
-        let from = self.signals.signals[idx].status;
-        if !matches!(from, SignalStatus::Researched | SignalStatus::Surfaced) {
-            return Err(format!(
-                "signal '{id}' cannot be promoted from {from:?} (must be researched or surfaced)"
-            ));
-        }
-        self.signals.signals[idx].status = SignalStatus::Promoted;
-        self.persist();
-        let snapshot = self.signals.signals[idx].clone();
-        self.record_event(SignalFrame::SignalChanged { signal: snapshot });
-        Ok(&self.signals.signals[idx])
+    pub fn promote(&mut self, id: &str) -> Result<Observed<Signal>, SignalMutationError> {
+        self.mutate(|edit| edit.promote(id).cloned())
     }
 
     // ── Organic surfacing ───────────────────────────────────────────────────
@@ -484,41 +391,23 @@ impl SignalEngine {
 
     /// Mark a signal as surfaced (raised to the human): `Researched → Surfaced`
     /// and stamp `surfaced_at`, so `pending` won't re-raise it.
-    pub fn surface(&mut self, id: &str) -> Result<&Signal, String> {
-        let idx = self.index_of(id)?;
-        let from = self.signals.signals[idx].status;
-        if from != SignalStatus::Researched {
-            return Err(format!(
-                "signal '{id}' cannot be surfaced from {from:?} (must be researched)"
-            ));
-        }
-        self.signals.signals[idx].status = SignalStatus::Surfaced;
-        self.signals.signals[idx].surfaced_at = Some(Self::now());
-        self.persist();
-        let snapshot = self.signals.signals[idx].clone();
-        self.record_event(SignalFrame::SignalChanged { signal: snapshot });
-        Ok(&self.signals.signals[idx])
+    pub fn surface(&mut self, id: &str) -> Result<Observed<Signal>, SignalMutationError> {
+        self.mutate(|edit| edit.surface(id).cloned())
     }
 
     /// Snooze a signal: suppress it from `pending` for `minutes`
     /// (`snooze_until = now + minutes`). Status is unchanged.
-    pub fn snooze(&mut self, id: &str, minutes: i64) -> Result<&Signal, String> {
-        let idx = self.index_of(id)?;
-        let until = Utc::now() + chrono::Duration::minutes(minutes.max(0));
-        self.signals.signals[idx].snooze_until = Some(until.to_rfc3339());
-        self.persist();
-        let snapshot = self.signals.signals[idx].clone();
-        self.record_event(SignalFrame::SignalChanged { signal: snapshot });
-        Ok(&self.signals.signals[idx])
+    pub fn snooze(
+        &mut self,
+        id: &str,
+        minutes: i64,
+    ) -> Result<Observed<Signal>, SignalMutationError> {
+        self.mutate(|edit| edit.snooze(id, minutes).cloned())
     }
 
     /// Ignore a signal: dismiss it (validated terminal transition).
-    pub fn ignore(&mut self, id: &str) -> Result<&Signal, String> {
-        self.set_status(id, SignalStatus::Dismissed)?;
-        let idx = self.index_of(id)?;
-        let snapshot = self.signals.signals[idx].clone();
-        self.record_event(SignalFrame::SignalDismissed { signal: snapshot });
-        Ok(&self.signals.signals[idx])
+    pub fn ignore(&mut self, id: &str) -> Result<Observed<Signal>, SignalMutationError> {
+        self.mutate(|edit| edit.ignore(id).cloned())
     }
 
     /// A bounded JSON snapshot: counts by status + a capped, newest-first list
@@ -530,6 +419,33 @@ impl SignalEngine {
         ))
         .expect("signal inbox contains serializable domain fields")
     }
+}
+
+fn validate(value: &Signals, project_id: &str) -> Result<(), ReadError> {
+    if value.project_id != project_id
+        || value
+            .signals
+            .iter()
+            .any(|signal| signal.project_id.as_deref() != Some(project_id))
+    {
+        return Err(ReadError::new(
+            ReadErrorKind::Identity,
+            "The saved signals could not be matched to this project.",
+        ));
+    }
+    let mut ids = std::collections::HashSet::new();
+    if value
+        .signals
+        .iter()
+        .any(|signal| signal.id.trim().is_empty() || !ids.insert(&signal.id))
+    {
+        return Err(ReadError::new(
+            ReadErrorKind::Identity,
+            "The saved signals contain incomplete or duplicate items.",
+        ));
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -546,10 +462,10 @@ mod tests {
     fn capture_mints_id_and_starts_new() {
         let mut e = engine();
         let s = e.capture(SignalKind::Bug, "dana".into(), "it crashes".into());
-        assert_eq!(s.status, SignalStatus::New);
-        assert!(!s.id.is_empty());
-        assert!(!s.created.is_empty());
-        assert_eq!(s.kind, SignalKind::Bug);
+        assert_eq!(s.as_ref().unwrap().value.status, SignalStatus::New);
+        assert!(!s.as_ref().unwrap().value.id.is_empty());
+        assert!(!s.as_ref().unwrap().value.created.is_empty());
+        assert_eq!(s.as_ref().unwrap().value.kind, SignalKind::Bug);
     }
 
     #[test]
@@ -557,6 +473,9 @@ mod tests {
         let mut e = engine();
         let id = e
             .capture(SignalKind::Idea, "x".into(), "do the thing".into())
+            .as_ref()
+            .unwrap()
+            .value
             .id
             .clone();
         assert_eq!(e.get(&id).unwrap().body, "do the thing");
@@ -568,21 +487,28 @@ mod tests {
         let mut e = engine();
         let id = e
             .capture(SignalKind::Concern, "x".into(), "hmm".into())
+            .as_ref()
+            .unwrap()
+            .value
             .id
             .clone();
         e.set_status(&id, SignalStatus::Triaged).unwrap();
         e.set_status(&id, SignalStatus::Researched).unwrap();
         // researched -> new is illegal.
         let err = e.set_status(&id, SignalStatus::New).unwrap_err();
-        assert!(err.contains("illegal transition"));
+        assert!(err.to_string().contains("illegal transition"));
     }
 
     #[test]
     fn status_counts_by_lifecycle_state() {
         let mut e = engine();
-        e.capture(SignalKind::Bug, "a".into(), "one".into());
+        e.capture(SignalKind::Bug, "a".into(), "one".into())
+            .unwrap();
         let id = e
             .capture(SignalKind::Idea, "b".into(), "two".into())
+            .as_ref()
+            .unwrap()
+            .value
             .id
             .clone();
         e.set_status(&id, SignalStatus::Triaged).unwrap();
@@ -598,6 +524,9 @@ mod tests {
         let mut e = engine();
         let id = e
             .capture(SignalKind::Concern, "dana".into(), "perf is bad".into())
+            .as_ref()
+            .unwrap()
+            .value
             .id
             .clone(); // New
         let s = e
@@ -610,15 +539,18 @@ mod tests {
             )
             .unwrap();
         // Advanced New -> Researched.
-        assert_eq!(s.status, SignalStatus::Researched);
+        assert_eq!(s.value.status, SignalStatus::Researched);
         // Enrichment recorded with stamped fields.
-        assert_eq!(s.enrichment.len(), 1);
-        assert_eq!(s.enrichment[0].summary, "profiled it; the export is O(n^2)");
-        assert_eq!(s.enrichment[0].confidence, 0.8);
-        assert_eq!(s.enrichment[0].think_step, Some(69));
-        assert!(!s.enrichment[0].at.is_empty());
+        assert_eq!(s.value.enrichment.len(), 1);
+        assert_eq!(
+            s.value.enrichment[0].summary,
+            "profiled it; the export is O(n^2)"
+        );
+        assert_eq!(s.value.enrichment[0].confidence, 0.8);
+        assert_eq!(s.value.enrichment[0].think_step, Some(69));
+        assert!(!s.value.enrichment[0].at.is_empty());
         // The motivating think step is cross-ref'd onto the signal.
-        assert!(s.cross_refs.contains(&"think:69".to_string()));
+        assert!(s.value.cross_refs.contains(&"think:69".to_string()));
     }
 
     #[test]
@@ -626,6 +558,9 @@ mod tests {
         let mut e = engine();
         let id = e
             .capture(SignalKind::Idea, "x".into(), "dark mode".into())
+            .as_ref()
+            .unwrap()
+            .value
             .id
             .clone();
         e.research(&id, "round one".into(), 0.5, vec![], None)
@@ -634,8 +569,8 @@ mod tests {
             .research(&id, "round two".into(), 0.9, vec![], None)
             .unwrap();
         // Status stays Researched; both enrichments are kept.
-        assert_eq!(s.status, SignalStatus::Researched);
-        assert_eq!(s.enrichment.len(), 2);
+        assert_eq!(s.value.status, SignalStatus::Researched);
+        assert_eq!(s.value.enrichment.len(), 2);
     }
 
     #[test]
@@ -643,19 +578,22 @@ mod tests {
         let mut e = engine();
         let id = e
             .capture(SignalKind::Bug, "x".into(), "boom".into())
+            .as_ref()
+            .unwrap()
+            .value
             .id
             .clone();
         // Confidence above 1.0 is clamped.
         let s = e
             .research(&id, "found it".into(), 5.0, vec![], None)
             .unwrap();
-        assert_eq!(s.enrichment[0].confidence, 1.0);
+        assert_eq!(s.value.enrichment[0].confidence, 1.0);
         // Dismiss it (terminal), then research must be rejected.
         e.set_status(&id, SignalStatus::Dismissed).unwrap();
         let err = e
             .research(&id, "too late".into(), 0.5, vec![], None)
             .unwrap_err();
-        assert!(err.contains("terminal"));
+        assert!(err.to_string().contains("terminal"));
     }
 
     #[test]
@@ -669,6 +607,9 @@ mod tests {
                 .with_persistence(Persistence::new(&cfg, Domain::Signal));
             let id = e
                 .capture(SignalKind::Feedback, "x".into(), "nice".into())
+                .as_ref()
+                .unwrap()
+                .value
                 .id
                 .clone();
             e.research(&id, "grounded it".into(), 0.7, vec!["url".into()], Some(42))
@@ -689,6 +630,9 @@ mod tests {
     fn researched(e: &mut SignalEngine, body: &str, confidence: f64) -> String {
         let id = e
             .capture(SignalKind::Idea, "x".into(), body.into())
+            .as_ref()
+            .unwrap()
+            .value
             .id
             .clone();
         e.research(&id, "looked into it".into(), confidence, vec![], None)
@@ -699,7 +643,8 @@ mod tests {
     #[test]
     fn pending_returns_only_researched_above_threshold() {
         let mut e = engine();
-        e.capture(SignalKind::Bug, "x".into(), "raw, unresearched".into()); // New
+        e.capture(SignalKind::Bug, "x".into(), "raw, unresearched".into())
+            .unwrap(); // New
         researched(&mut e, "low confidence", 0.2); // below threshold
         let hi = researched(&mut e, "high confidence", 0.9);
         let pending = e.pending(0.6, &[], 20);
@@ -723,8 +668,8 @@ mod tests {
         let id = researched(&mut e, "surface me", 0.9);
         assert_eq!(e.pending(0.6, &[], 20).len(), 1);
         let s = e.surface(&id).unwrap();
-        assert_eq!(s.status, SignalStatus::Surfaced);
-        assert!(s.surfaced_at.is_some());
+        assert_eq!(s.value.status, SignalStatus::Surfaced);
+        assert!(s.value.surfaced_at.is_some());
         assert!(
             e.pending(0.6, &[], 20).is_empty(),
             "a surfaced signal is not re-raised"
@@ -732,6 +677,9 @@ mod tests {
         // A non-researched signal cannot be surfaced.
         let raw = e
             .capture(SignalKind::Bug, "x".into(), "raw".into())
+            .as_ref()
+            .unwrap()
+            .value
             .id
             .clone();
         assert!(e.surface(&raw).is_err());
@@ -760,7 +708,7 @@ mod tests {
         let mut e = engine();
         let id = researched(&mut e, "ignore me", 0.9);
         let s = e.ignore(&id).unwrap();
-        assert_eq!(s.status, SignalStatus::Dismissed);
+        assert_eq!(s.value.status, SignalStatus::Dismissed);
         assert!(e.pending(0.6, &[], 20).is_empty());
     }
 
@@ -770,7 +718,8 @@ mod tests {
         researched(&mut e, "ready one", 0.9);
         researched(&mut e, "ready two", 0.7);
         researched(&mut e, "too low", 0.2); // below threshold
-        e.capture(SignalKind::Bug, "x".into(), "raw".into()); // un-researched
+        e.capture(SignalKind::Bug, "x".into(), "raw".into())
+            .unwrap(); // un-researched
         assert_eq!(e.pending_count(0.6), 2);
     }
 
@@ -786,6 +735,9 @@ mod tests {
                 .with_persistence(Persistence::new(&cfg, Domain::Signal));
             let id = e
                 .capture(SignalKind::Feedback, "dana".into(), "nice".into())
+                .as_ref()
+                .unwrap()
+                .value
                 .id
                 .clone();
             e.set_status(&id, SignalStatus::Triaged).unwrap();

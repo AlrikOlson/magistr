@@ -105,13 +105,13 @@ pub fn record(
     project_id: &str,
     provider: &str,
     run_start: &str,
-) -> std::io::Result<Watermarks> {
+) -> Result<Watermarks, magistr_workflow_contracts::WriteError> {
     let mut state = load(data_dir, project_id);
     state
         .by_provider
         .insert(provider.to_string(), run_start.to_string());
 
-    crate::infra::persistence::locked_merge_write(
+    let committed = crate::infra::persistence::locked_merge_write(
         &watermark_path(data_dir, project_id),
         &state,
         |ours: &Watermarks, disk: Watermarks| {
@@ -136,7 +136,7 @@ pub fn record(
             merged
         },
     )?;
-    Ok(load(data_dir, project_id))
+    Ok(committed.value)
 }
 
 /// What one sweep found, split by what the echo fence made of it.

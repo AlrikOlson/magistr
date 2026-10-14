@@ -1,22 +1,24 @@
-use super::*;
+use super::ThinkStep;
+use serde_json::json;
+
 #[test]
-fn legacy_record_identity_survives_renumbering_and_existing_ids() {
-    let mut step: ThinkStep = serde_json::from_value(serde_json::json!({
-        "step_number":1,"timestamp":"then","purpose":"Check","thought":"Evidence",
-        "next_action":{"action":"Verify","expectedOutput":"Result"}
+fn recorded_identity_round_trips_without_deriving_it_from_prose_or_number() {
+    let mut step: ThinkStep = serde_json::from_value(json!({
+        "step_number": 3, "purpose": "analysis", "thought": "same words",
+        "timestamp": "2026-10-14T00:00:00Z", "record_id": "authored-id"
     }))
     .unwrap();
-    assert_eq!(step.outcome, "");
-    let original = step.backfilled_record_id().unwrap();
     step.step_number = 900;
-    assert_eq!(
-        step.backfilled_record_id().as_deref(),
-        Some(original.as_str())
-    );
-    assert!(step.ensure_record_id());
-    assert!(!step.ensure_record_id());
-    assert_eq!(
-        serde_json::to_value(step).unwrap()["next_action"]["expectedOutput"],
-        "Result"
-    );
+    let copy: ThinkStep = serde_json::from_value(serde_json::to_value(&step).unwrap()).unwrap();
+    assert_eq!(copy.record_id.as_deref(), Some("authored-id"));
+    assert_eq!(copy.step_number, 900);
+}
+
+#[test]
+fn unrecorded_input_has_no_manufactured_identity() {
+    let step: ThinkStep = serde_json::from_value(json!({
+        "purpose": "analysis", "thought": "same words"
+    }))
+    .unwrap();
+    assert_eq!(step.record_id, None);
 }
