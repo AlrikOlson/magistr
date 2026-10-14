@@ -40,3 +40,55 @@ fn reported_zero_context_and_unknown_spending_stay_distinct() {
     assert_eq!(usage["size"], 100);
     assert!(usage["cost_cents"].is_null());
 }
+#[test]
+fn catalog_frames_preserve_full_ownership_and_omit_transcript_and_request_details() {
+    let summary = magistr::application::SessionSummary {
+        address: SessionAddress {
+            project: "project".into(),
+            workspace: "copy".into(),
+            session: "resident".into(),
+        },
+        name: "Project".into(),
+        status: magistr::application::SessionStatus::Working,
+        closed: false,
+        model: None,
+        usage: Some(Msg::Agent(AgentEvent::Usage {
+            context: None,
+            cost_cents: Some(0),
+            elapsed_secs: None,
+        })),
+        requests: vec![magistr::application::WaitingRequest {
+            id: 7,
+            title: "Read".into(),
+        }],
+        activity: Some(magistr_application::sessions::SessionActivity {
+            active: true,
+            queued_turns: 2,
+            cancellation_requested: false,
+            can_resume: Some(false),
+            can_send_images: None,
+        }),
+    };
+    let frame = CatalogFrame::from_catalog(
+        9,
+        &SessionCatalog {
+            sequence: 42,
+            sessions: vec![summary],
+        },
+    );
+    let json = serde_json::to_value(frame).unwrap();
+    assert_eq!(json["stream"], 9);
+    assert_eq!(json["sequence"], 42);
+    let session = &json["sessions"][0];
+    assert_eq!(session["address"]["project"], "project");
+    assert_eq!(session["address"]["workspace"], "copy");
+    assert_eq!(session["address"]["session"], "resident");
+    assert_eq!(session["status"], "Waiting for you");
+    assert_eq!(session["pending"][0]["id"], 7);
+    assert!(session["pending"][0].get("detail").is_none());
+    assert!(session.get("events").is_none());
+    assert_eq!(session["usage"]["cost_cents"], 0);
+    assert!(session["usage"]["used"].is_null());
+    assert_eq!(session["activity"]["can_resume"], false);
+    assert!(session["activity"]["can_send_images"].is_null());
+}

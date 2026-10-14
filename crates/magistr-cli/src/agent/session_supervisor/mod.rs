@@ -59,6 +59,7 @@ struct Inner {
     control_busy: bool,
     goal_turn: Option<u64>,
     capabilities: Option<AgentCapabilities>,
+    last_activity: Option<magistr_application::sessions::SessionActivity>,
     messages: Option<ObservationSender<Result<AgentMessage>>>,
     cockpit_events: Option<ObservationSender<AgentEvent>>,
 }
@@ -84,6 +85,34 @@ impl Inner {
         }
     }
 
+    fn publish_activity(&mut self) {
+        let activity = magistr_application::sessions::SessionActivity {
+            active: self.snapshot.active_turn.is_some(),
+            queued_turns: self.snapshot.queued_turns,
+            cancellation_requested: self.snapshot.cancellation_requested,
+            can_resume: self
+                .capabilities
+                .as_ref()
+                .map(|capabilities| capabilities.load_session),
+            can_send_images: self
+                .capabilities
+                .as_ref()
+                .map(|capabilities| capabilities.prompt_capabilities.image),
+        };
+        if self.last_activity.as_ref() == Some(&activity) {
+            return;
+        }
+        self.last_activity = Some(activity.clone());
+        if self
+            .cockpit_events
+            .as_ref()
+            .is_some_and(|sender| sender.send(AgentEvent::Activity(activity)).is_err())
+        {
+            self.cockpit_events = None;
+            self.snapshot.client_attached = false;
+        }
+    }
+
     fn emit_cockpit(&mut self, mut event: AgentEvent) {
         let initialized = matches!(event, AgentEvent::Initialized { .. });
         if let AgentEvent::Usage { cost_cents, .. } = &mut event {
@@ -100,6 +129,7 @@ impl Inner {
             self.cockpit_events = None;
             self.snapshot.client_attached = false;
         }
+        self.publish_activity();
         if initialized && let Some(cost) = self.history.reported_cost_usd() {
             self.emit_cockpit(AgentEvent::Usage {
                 context: None,
@@ -136,6 +166,7 @@ impl Inner {
         self.closing = true;
         self.control_busy = false;
         self.goal_turn = None;
+        self.publish_activity();
     }
 
     fn check_admission(&self) -> Result<()> {
@@ -295,6 +326,7 @@ impl SessionSupervisor {
             control_busy: false,
             goal_turn: None,
             capabilities: None,
+            last_activity: None,
             messages: Some(messages),
             cockpit_events: None,
         }));
@@ -385,6 +417,7 @@ impl SessionSupervisor {
             control_busy: true,
             goal_turn: None,
             capabilities: None,
+            last_activity: None,
             messages: None,
             cockpit_events: Some(cockpit_events),
         }));
@@ -455,6 +488,7 @@ impl SessionSupervisor {
         inner.next_turn += 1;
         inner.queue.push_back((id, content.to_owned()));
         inner.snapshot.queued_turns = inner.queue.len();
+        inner.publish_activity();
         if self.commands.send(Command::Wake).is_err() {
             inner.finish(
                 SessionResidency::Failed,
@@ -480,6 +514,7 @@ impl SessionSupervisor {
         inner.snapshot.cancellation_requested = turn_id.is_some();
         inner.legacy_cancel |= legacy;
         inner.discard_queue("turn cancellation requested");
+        inner.publish_activity();
         self.commands
             .send(Command::Cancel { turn_id })
             .map_err(|_| acp_error("Session owner is no longer available"))

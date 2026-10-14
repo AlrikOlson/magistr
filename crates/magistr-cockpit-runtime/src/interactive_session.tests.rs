@@ -1,5 +1,76 @@
 use super::*;
 
+#[tokio::test]
+async fn explicit_reconnect_restores_the_same_identity_without_sending_a_prompt() {
+    let (inbox, mut events) = Inbox::channel();
+    let (commands, receiver) = Commands::channel();
+    let (opened, mut connections) = mpsc::unbounded_channel();
+    let (handle, opening) = controlled(SessionPurpose::Conversation);
+    let task = InteractiveSession::new(
+        move |purpose, resume| {
+            let (handle, observed) = controlled(purpose);
+            opened.send((resume, observed)).unwrap();
+            async { Ok(handle) }
+        },
+        inbox,
+        None,
+        None,
+        None,
+    )
+    .connected(handle, false)
+    .spawn(receiver);
+    opening
+        .events
+        .send(AgentEvent::Initialized {
+            session_id: "same-provider".into(),
+            model: None,
+        })
+        .unwrap();
+    next_observation(&mut events).await;
+    opening
+        .events
+        .send(AgentEvent::Activity(
+            magistr_application::sessions::SessionActivity {
+                active: false,
+                queued_turns: 0,
+                cancellation_requested: false,
+                can_resume: Some(true),
+                can_send_images: Some(false),
+            },
+        ))
+        .unwrap();
+    next_observation(&mut events).await;
+    opening
+        .events
+        .send(AgentEvent::Error("lost".into()))
+        .unwrap();
+    next_observation(&mut events).await;
+    commands.send(Cmd::Reconnect).unwrap();
+    let (resume, mut restored) = next(&mut connections).await;
+    assert_eq!(resume.as_deref(), Some("same-provider"));
+    assert!(
+        restored.prompts.try_recv().is_err(),
+        "reconnect never manufactures a prompt"
+    );
+    restored
+        .events
+        .send(AgentEvent::Text("replayed".into()))
+        .unwrap();
+    restored
+        .events
+        .send(AgentEvent::Initialized {
+            session_id: "same-provider".into(),
+            model: None,
+        })
+        .unwrap();
+    assert!(matches!(
+        next_observation(&mut events).await,
+        Msg::Agent(AgentEvent::Initialized { .. })
+    ));
+    commands.send(Cmd::Quit).unwrap();
+    task.await.unwrap().unwrap();
+}
+
 use magistr_application::sessions::TurnEnd;
 use tokio::sync::mpsc;
 

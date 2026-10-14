@@ -26,7 +26,7 @@ through the same admission path.
 | `SessionObservation` | Retained messages, current status/model/usage, requests and drafts |
 | `ProjectFolder`, `ProjectSetup`, `ScaffoldPipeline` and `AdminService` | Read-only readiness, detected setup plan, exact approved writes, ownership and per-path receipts |
 | Desktop commands | Typed translation from window actions to the application client; ephemeral single-use setup review handles |
-| Desktop streams | One window subscription, batching and acknowledgement credit |
+| Desktop streams | Independent conversation and catalog subscriptions, batching and acknowledgement credit |
 | WebView | Native editing, accessible controls, focus, layout and bounded conversation presentation |
 
 The UI never launches a provider or writes a second session registry. Every
@@ -48,7 +48,24 @@ usage, requests and drafts survive pruning.
 
 ## Interface
 
-The left rail lists known projects and resident sessions. The conversation uses
+The left rail lists known projects and resident sessions. A summary-only catalog
+updates every resident agent's status, queued messages and waiting requests.
+Only changed supervision facts publish a catalog update; transcript tokens and
+drafts stay on the selected conversation's stream. Each stream allows one
+unacknowledged frame, and catalog delivery coalesces at 100 ms. Rail nodes stay
+stable as statuses change, preserving keyboard focus; expired row labels are
+removed with their session. Attention stays visible as the rail scrolls. One polite announcement
+reports waiting requests and disconnected agents without announcing tokens.
+
+Needs your attention opens the exact project, working copy, session and request.
+Answers use the shared permission owner; accepted reservations, expired and
+cancelled requests cannot be reapplied. Stop, Reconnect and Close in the rail
+address the owning session while preserving the selected draft and other agents.
+Reconnect restores that owner's provider identity when the provider supports it;
+it never sends a prompt or opens a new conversation. Closing remains visible
+until the addressed owner settles. Current queue, cancellation and negotiated
+image/resume support come from the supervisor. Unknown usage and spending stay
+explicit, and reported zero remains distinct from missing information. The conversation uses
 native editable text and selectable messages; the contextual panel shows the
 working copy, model, usage and permission requests. Open project, New session,
 Send, Stop, Allow/Deny, Copy conversation and Close session call real owners.
@@ -68,8 +85,7 @@ Folders without Git open as the project's sole source directory; Git-only workin
 
 The desktop opens conversations and prepares projects. The CLI retains
 headless runs, initialization, validation and administrative commands; MCP
-roles serve workflow and source tools. Roadmap editing, supervision, detailed
-file review and settings remain later desktop work.
+roles serve workflow and source tools. Roadmap editing, detailed file review and settings remain later desktop work.
 
 ## Verification
 
@@ -84,7 +100,8 @@ binary. It uses native keyboard, pointer and accessibility input with a controll
 ACP peer, isolated projects and state. The fixture preserves the real macOS home for WebKit and isolates application state with XDG and Magistr paths. It exercises independent sessions and
 working copies, clean and explicit launch, native folder selection,
 reviewed setup (declined, refused and partial), invalid paths/settings,
-unavailable agents, streamed replies, permissions, cancellation, drafts, native
+unavailable agents, streamed replies, concurrent background attention, exact-request
+navigation, owner reconnect/stop/close, permissions, cancellation, drafts, native
 clipboard, light/dark/narrow views and orderly Quit. It retains screenshots,
 an accessibility tree and a receipt tied to source hashes.
 Run it after rebuilding the desktop:

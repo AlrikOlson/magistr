@@ -99,3 +99,5 @@ desktop workspace. Companion Rust tests live beside their owners.
 - `crates/magistr-desktop/ui/composer.mjs`
 - `crates/magistr-desktop/ui/conversation.mjs`
 - `crates/magistr-desktop/ui/selection.mjs`
+- `crates/magistr-desktop/ui/supervision.mjs`
+- `crates/magistr-desktop/tests/supervision.mjs`

@@ -5,6 +5,7 @@
 <aside class="rail" aria-label="Projects and sessions">
   <header class="brand"><img class="mark" src="icon.png" alt=""><strong>Magistr</strong></header>
   <button id="open-project">Open project<span aria-hidden="true">⌘ O</span></button>
+  <section class="attention-dock" aria-label="Needs your attention"><h2>Needs your attention</h2><p id="attention-count" role="status" aria-live="polite">0 requests waiting</p><nav id="attention" aria-label="Requests across sessions"></nav></section>
   <h2>Projects</h2><nav id="projects" aria-label="Projects"></nav>
   <h2>Sessions</h2><nav id="sessions" aria-label="Sessions"></nav>
   <button id="new-session" disabled>New session</button>
@@ -28,9 +29,9 @@
     </section>
     <aside class="detail" aria-label="Session details">
       <h2>Working copy</h2><p id="workspace-path" class="path"></p><label for="working-copy">Working copy</label><select id="working-copy"></select>
-      <h2>Agent</h2><p id="model">Model information is unavailable.</p><p id="usage"></p>
+      <h2>Agent</h2><p id="model">Model information is unavailable.</p><p id="usage"></p><p id="queue"></p><p id="capabilities"></p>
       <section id="requests" aria-label="Requests waiting for you"></section>
-      <div class="session-actions"><button id="copy" disabled>Copy conversation</button><button id="close-session" disabled>Close session</button></div>
+      <div class="session-actions"><button id="reconnect" disabled>Reconnect</button><button id="copy" disabled>Copy conversation</button><button id="close-session" disabled>Close session</button></div>
     </aside>
   </div>
 </main>

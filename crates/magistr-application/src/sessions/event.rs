@@ -16,6 +16,8 @@ use super::turn_end::TurnEnd;
 /// One observation from the resident session, shared by hosts and interfaces.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum AgentEvent {
+    /// Current admission, cancellation and negotiated provider facts.
+    Activity(super::SessionActivity),
     /// The handshake completed and a session exists.
     Initialized {
         /// The session's id.

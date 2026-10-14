@@ -123,7 +123,9 @@ async fn goal_reply_is_observed_after_text_on_both_sides_of_its_echo() {
         // must already be queued. Waiting here could hide an early reply.
         let mut transcript = Vec::new();
         while let Ok(event) = fixture.events.try_recv() {
-            transcript.push(event);
+            if !matches!(event, AgentEvent::Activity(_)) {
+                transcript.push(event);
+            }
         }
         assert_eq!(
             transcript,
@@ -242,7 +244,9 @@ async fn rejected_goal_extension_never_emits_a_successful_terminal() {
     let transcript = tokio::time::timeout(DEADLINE, async {
         let mut transcript = Vec::new();
         while let Some(event) = fixture.events.recv().await {
-            transcript.push(event);
+            if !matches!(event, AgentEvent::Activity(_)) {
+                transcript.push(event);
+            }
         }
         transcript
     })

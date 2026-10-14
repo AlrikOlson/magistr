@@ -362,6 +362,7 @@ fn drain(transport: &AcpTransport, permissions: &mut Permissions, state: &Mutex<
         return true;
     }
     inner.snapshot.cancellation_requested = true;
+    inner.publish_activity();
     permissions.drain();
     if let Err(error) = transport.cancel() {
         fail(&mut inner, format!("Provider cancellation failed: {error}"));
@@ -396,6 +397,7 @@ fn start_next(
         inner.snapshot.queued_turns = inner.queue.len();
         inner.snapshot.active_turn = Some(id);
         inner.history.begin_turn();
+        inner.publish_activity();
         if let Err(error) = transport.prompt(&prompt) {
             fail(&mut inner, format!("Failed to send follow-up: {error}"));
             return false;

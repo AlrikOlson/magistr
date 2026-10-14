@@ -35,6 +35,17 @@ def project(path, name):
     run("git","-C",path,"-c","user.name=Native Journey","-c","user.email=journey@example.invalid","commit","-m","fixture")
 def source_hashes():
     files = sorted([*SOURCE.glob("src/*.rs"),*SOURCE.glob("ui/*"),SOURCE/"Cargo.toml",SOURCE/"Cargo.lock",SOURCE/"build.rs",SOURCE/"tauri.conf.json"])
+    files.extend(ROOT/path for path in (
+        "crates/magistr-application/src/sessions/event.rs",
+        "crates/magistr-application/src/sessions/session_activity.rs",
+        "crates/magistr-cli/src/application/session_catalog.rs",
+        "crates/magistr-cli/src/application/session_observation.rs",
+        "crates/magistr-cli/src/application/session_registry.rs",
+        "crates/magistr-cli/src/agent/session_supervisor/mod.rs",
+        "crates/magistr-cli/src/agent/session_supervisor/owner.rs",
+        "crates/magistr-cli/src/agent/session_supervisor/control.rs",
+        "crates/magistr-cockpit-runtime/src/interactive_session.rs",
+    ))
     return {str(path.relative_to(ROOT)):hashlib.sha256(path.read_bytes()).hexdigest() for path in files if path.is_file() and not path.name.endswith(".tests.rs")}
 
 def main():
@@ -105,6 +116,10 @@ def main():
             try:run("sample",pid,1,1,"-file",evidence/"failure-sample.txt",timeout=5)
             except (subprocess.CalledProcessError,subprocess.TimeoutExpired):pass
             raise AssertionError(label+"; see failure-ax.json, failure.png and launch.log")
+        def enabled(label, expected=True):
+            return lambda tree:any(r.get("AXRole")=="AXButton" and (r.get("AXTitle")==label or r.get("AXDescription")==label) and r.get("enabled")==expected for r in tree)
+        def exact_draft(value):
+            return lambda tree:any(r.get("AXRole")=="AXTextArea" and r.get("AXValue")==value for r in tree)
         def draft(value):
             call("focus",pid,"Message the agent");call("key",pid,0,1048576);call("paste",pid,value)
         def send(value,method="key"):
@@ -212,6 +227,50 @@ def main():
             copied=call("copy-button",pid,"Copy conversation")["text"]
             assert "[scripted-fast] echo: second project response" in copied,copied
             results["checks"]["Copy conversation uses native clipboard"]=True
+            # Supervision uses only the existing native controls and real peers.
+            peer_count=len(list(peers.glob("*.json")))
+            call("press",pid,"First project session 3")
+            send("permission background")
+            wait("background request started",text_has("Allow once"))
+            draft("First supervision draft")
+            call("press",pid,"Second project session 6")
+            draft("Second supervision draft")
+            wait("background attention updates without changing selection",lambda tree:text_has("1 request waiting")(tree) and exact_draft("Second supervision draft")(tree))
+            attention="First project session 3: Bash"
+            wait("waiting request names its exact session",text_has(attention))
+            assert len(list(peers.glob("*.json")))==peer_count,"Supervision must not launch another provider"
+            results["checks"]["catalog subscription launches no providers"]=True
+            send("hang concurrent")
+            wait("another session works while the first waits",lambda tree:enabled("Stop Second project session 6")(tree) and text_has("1 request waiting")(tree))
+            draft("Second supervision draft")
+            call("screenshot",pid,evidence/"supervision.png")
+            call("press",pid,attention)
+            wait("attention navigates to the owning copy and preserves its draft",lambda tree:text_has(str(first))(tree) and exact_draft("First supervision draft")(tree))
+            wait("attention focuses the exact pending request",lambda tree:any(r.get("focused") and r.get("AXDescription")=="Request: Bash" for r in tree))
+            call("press",pid,"Allow once")
+            wait("accepted request leaves global attention",text_has("0 requests waiting"))
+            call("press",pid,"Stop Second project session 6")
+            wait("background stop settles only the addressed agent",lambda tree:enabled("Stop Second project session 6",False)(tree) and exact_draft("First supervision draft")(tree))
+            send("fail supervision")
+            wait("failure exposes reconnect for its owning agent",enabled("Reconnect First project session 3"))
+            call("press",pid,"Second project session 6")
+            wait("background failure preserves the selected draft",exact_draft("Second supervision draft"))
+            call("press",pid,"Reconnect First project session 3")
+            wait("background reconnect restores the owner without selecting it",lambda tree:enabled("Reconnect First project session 3",False)(tree) and exact_draft("Second supervision draft")(tree))
+            wait("reconnect creates precisely one replacement peer",lambda tree:len(list(peers.glob("*.json")))==peer_count+1)
+            call("press",pid,"First project session 3")
+            send("after reconnect")
+            wait("reconnected conversation accepts another turn",text_has("[scripted-fast] echo: after reconnect"))
+            send("permission cancel background")
+            wait("another request offered",text_has("Allow once"))
+            call("press",pid,"Second project session 6")
+            wait("second background request updates attention",text_has("1 request waiting"))
+            call("press",pid,"Stop First project session 3")
+            wait("cancelled request leaves attention and cannot be answered",lambda tree:text_has("0 requests waiting")(tree) and not text_has(attention)(tree) and exact_draft("Second supervision draft")(tree))
+            call("press",pid,"Close First project session 4")
+            wait("background close preserves another session and draft",lambda tree:not enabled("Close First project session 4")(tree) and exact_draft("Second supervision draft")(tree))
+            send("supervised sessions remain independent")
+            wait("selected session remains usable after background close",text_has("[scripted-fast] echo: supervised sessions remain independent"))
             choose_theme("dark",1);choose_theme("light",2)
             call("resize",pid,800,680);call("screenshot",pid,evidence/"narrow.png")
             call("ax",pid,evidence/"accessibility.json")

@@ -1,10 +1,14 @@
 import { attachComposer } from "./composer.mjs";
 import { Selection } from "./selection.mjs";
 import { ProjectOpening } from "./projects.mjs";
+import { Catalog, usageText, capabilityText } from "./supervision.mjs";
 const {invoke,Channel}=window.__TAURI__.core;
 const $=id=>document.getElementById(id);
 let selected=null,view=null,sessions=[],projects=[],sending=false;
 const selection=new Selection();
+const catalog=new Catalog();
+const railNodes=new Map(),attentionNodes=new Map();
+let announcementKey="";
 const messageNodes=new WeakMap();
 let requestsKey="",railKey="";
 const labels=new Map();let issuedLabel=0;
@@ -14,25 +18,78 @@ const button=(label,click)=>{const element=document.createElement("button");elem
 const text=(tag,value)=>{const element=document.createElement(tag);element.textContent=value;return element;};
 
 async function refresh() {
-  const info=await invoke("overview");sessions=info.sessions;projects=info.projects;
+  const info=await invoke("overview");if(catalog.sequence<0)sessions=info.sessions;projects=info.projects;
   for(const session of sessions)if(!labels.has(session.address.session))labels.set(session.address.session,++issuedLabel);
   renderRail();return info;
 }
 function renderRail() {
   const signature=JSON.stringify([projects,sessions,selected]);if(signature===railKey)return;railKey=signature;
   $("projects").replaceChildren(...projects.map(project=>button(project.name,()=>openDirectory(project.directory))));
-  $("sessions").replaceChildren(...sessions.map(session=>{const index=labels.get(session.address.session)-1;
-    const item=button(session.name+" · "+(index+1),()=>select(session.address).catch(showError));
-    item.append(text("small",session.status));
-    item.setAttribute("aria-current",String(selected?.session===session.address.session));
-    item.setAttribute("aria-label",session.name+" session "+(index+1));return item;
-  }));
+  const rows=sessions.map(session=>{
+    const id=session.address.session,index=labels.get(id),name=session.name+" session "+index;
+    let row=railNodes.get(id);
+    if(!row) {
+      row=document.createElement("div");row.className="session-row";
+      const item=button("",()=>select(session.address).catch(showError));item.append(text("span",""),text("small",""));
+      const path=text("small","Working copy: "+session.address.workspace.split(/[\\/]/).filter(Boolean).at(-1));path.className="path";path.title=session.address.workspace;path.setAttribute("aria-label","Working copy "+session.address.workspace);
+      const actions=document.createElement("div");actions.className="rail-actions";
+      actions.append(button("Stop",()=>act(session.address,"cancel")),button("Reconnect",()=>act(session.address,"reconnect")),button("Close",()=>closeAddress(session.address)));
+      row.append(item,path,actions);railNodes.set(id,row);
+    }
+    const item=row.children[0];item.children[0].textContent=session.name+" · "+index;
+    const status=session.status+(session.pending.length?" · "+session.pending.length+" waiting":"")+(session.activity?.queued_turns?" · "+session.activity.queued_turns+" queued":"");
+    if(item.children[1].textContent!==status)item.children[1].textContent=status;
+    item.setAttribute("aria-current",String(selected?.session===id));item.setAttribute("aria-label",name);
+    const [stop,reconnect,close]=row.children[2].children;
+    stop.disabled=session.closed||session.activity?.cancellation_requested||!["Working","Waiting for you"].includes(session.status);
+    reconnect.disabled=session.closed||session.status!=="Connection lost"||session.activity?.can_resume!==true;
+    close.disabled=session.closed;
+    stop.setAttribute("aria-label","Stop "+name);reconnect.setAttribute("aria-label","Reconnect "+name);close.setAttribute("aria-label","Close "+name);
+    return row;
+  });
+  placeChildren($("sessions"),rows);
+  for(const id of railNodes.keys())if(!sessions.some(session=>session.address.session===id))railNodes.delete(id);
+  for(const id of labels.keys())if(!sessions.some(session=>session.address.session===id))labels.delete(id);
+  const waiting=sessions.flatMap(session=>session.pending.map(request=>({session,request})));
+  const waitingRows=waiting.map(({session,request})=>{
+    const key=JSON.stringify([session.address,request.id]);
+    let item=attentionNodes.get(key);
+    if(!item){item=button("",()=>select(session.address,request.id).catch(showError));attentionNodes.set(key,item);}
+    item.textContent=session.name+" session "+labels.get(session.address.session)+": "+request.title;
+    return item;
+  });
+  placeChildren($("attention"),waitingRows);
+  for(const [key,item] of attentionNodes)if(!waitingRows.includes(item))attentionNodes.delete(key);
+  const failed=sessions.filter(session=>session.status==="Connection lost").length;
+  const announcement=waiting.length+(waiting.length===1?" request waiting":" requests waiting")+(failed?" · "+failed+(failed===1?" agent disconnected":" agents disconnected"):"");
+  if(announcement!==announcementKey){$("attention-count").textContent=announcement;announcementKey=announcement;}
+}
+function placeChildren(parent,children) {
+  children.forEach((element,index)=>{if(parent.children[index]!==element)parent.insertBefore(element,parent.children[index]??null);});
+  while(parent.children.length>children.length)parent.lastChild.remove();
+}
+async function act(address,action) {
+  try{await invoke("session_action",{address,action:{action}});}catch(error){showError(error);}
+}
+async function connectCatalog() {
+  const channel=new Channel();let early=null,ready=false;
+  const receive=frame=>{
+    if(!catalog.apply(frame))return;
+    sessions=catalog.sessions;
+    for(const session of sessions)if(!labels.has(session.address.session))labels.set(session.address.session,++issuedLabel);
+    renderRail();
+    invoke("acknowledge",{stream:frame.stream,sequence:frame.sequence}).catch(showError);
+  };
+  channel.onmessage=frame=>ready?receive(frame):early=frame;
+  catalog.open(await invoke("subscribe_catalog",{channel}));ready=true;
+  if(early)receive(early);
+
 }
 async function saveDraft(address=selected,value=$("draft").value) {
   if(!address)return;
   await invoke("save_draft",{address,text:value});
 }
-async function select(address) {
+async function select(address,requestId=null) {
   const previous=selected,value=$("draft").value;
   const accepted=await selection.open(address,{
     save:()=>previous?saveDraft(previous,value):Promise.resolve(),
@@ -41,7 +98,7 @@ async function select(address) {
       return invoke("subscribe_session",{address,channel,selection:intent});
     },
     commit:(candidate,initial)=>{
-      selected=address;view=candidate;requestsKey="";railKey="";
+      selected=address;view=candidate;candidate.requestId=requestId;requestsKey="";railKey="";
       $("welcome").hidden=true;$("workspace").hidden=false;$("view-title").textContent="Conversation";
       $("draft").value="";
       $("draft").disabled=true;$("send").disabled=true;
@@ -87,17 +144,20 @@ function render(frame) {
   while(transcript.children.length>elements.length)transcript.lastChild.remove();
   if(follow) transcript.scrollTop=transcript.scrollHeight;
   $("latest").hidden=follow;
-  $("status").textContent=frame.status;
+  if($("status").textContent!==frame.status)$("status").textContent=frame.status;
   $("stop").disabled=!["Working","Waiting for you"].includes(frame.status);
   $("send").disabled=sending || frame.closed;
   $("draft").disabled=frame.closed;
   $("new-session").disabled=frame.closed;$("close-session").disabled=frame.closed;
   $("copy").disabled=view.messages.length===0;
   $("model").textContent=frame.model??"Model information is unavailable.";
-  $("usage").textContent=frame.usage?(frame.usage.size?frame.usage.used.toLocaleString()+" / "+frame.usage.size.toLocaleString()+" context tokens":"")+(frame.usage.cost_cents===null?"":" · $"+(frame.usage.cost_cents/100).toFixed(2)):"";
+  $("usage").textContent=usageText(frame.usage);
+  $("capabilities").textContent=capabilityText(frame.activity);
+  $("queue").textContent=frame.activity?frame.activity.queued_turns+" messages queued"+(frame.activity.cancellation_requested?" · Waiting for the agent to stop.":""):"Queue information is unavailable.";
+  $("reconnect").disabled=frame.closed||frame.status!=="Connection lost"||frame.activity?.can_resume!==true;
   const pendingKey=JSON.stringify([frame.address,view.pending]);
   if(pendingKey!==requestsKey) {$("requests").replaceChildren(...view.pending.map(request=>{
-    const section=document.createElement("section");section.className="request";
+    const section=document.createElement("section");section.className="request";section.dataset.request=String(request.id);section.tabIndex=-1;section.setAttribute("aria-label","Request: "+request.title);
     section.append(text("h2","Waiting for you"),text("h3",request.title));
     if(request.detail)section.append(text("pre",request.detail));
     for(const choice of request.choices) section.append(button(choice.label,async event=>{
@@ -108,8 +168,12 @@ function render(frame) {
     }));
     return section;
   }));requestsKey=pendingKey;}
-  const session=sessions.find(session=>session.address.session===frame.address.session);
-  if(session){session.status=frame.status;renderRail();}
+  if(view.requestId!==null) {
+    const target=$("requests").querySelector('[data-request="'+view.requestId+'"]');
+    if(target)target.focus();
+    else if(frame.reseed)showError("This request is no longer waiting for an answer.");
+    view.requestId=null;
+  }
 }
 async function openSession(directory,fresh=false) {
   const resident=!fresh&&sessions.find(session=>session.address.workspace===directory);
@@ -133,7 +197,7 @@ function showWelcome(note="") {
   $("workspace").hidden=true;$("welcome").hidden=false;
   $("project-name").textContent="Magistr";$("view-title").textContent="Projects";$("status").textContent="Ready";
   $("draft").value="";$("requests").replaceChildren();$("transcript").replaceChildren();
-  for(const id of ["draft","send","stop","new-session","close-session","copy"])$(id).disabled=true;
+  for(const id of ["draft","send","stop","new-session","close-session","copy","reconnect"])$(id).disabled=true;
   $("welcome-note").textContent=note;$("welcome-note").hidden=!note;
   renderRail();
 }
@@ -203,7 +267,8 @@ $("composer").onsubmit=async event=>{
   } catch(error){showError(error);}
   finally {sending=false;$("send").disabled=false;}
 };
-$("stop").onclick=async()=>{try{await invoke("session_action",{address:selected,action:{action:"cancel"}});}catch(error){showError(error);}};
+$("stop").onclick=()=>selected&&act(selected,"cancel");
+$("reconnect").onclick=()=>selected&&act(selected,"reconnect");
 $("draft").onblur=()=>saveDraft().catch(showError);
 $("latest").onclick=()=>{$("transcript").scrollTop=$("transcript").scrollHeight;$("latest").hidden=true;};
 $("new-session").onclick=()=>selected&&openKnownWorkspace(selected.workspace,true);
@@ -240,21 +305,22 @@ $("copy").onclick=async()=>{
   const value=view?.messages.map(message=>message.role+"\n"+message.text).join("\n\n")??"";
   try{await navigator.clipboard.writeText(value);}catch(error){showError("Could not copy the conversation. "+error);}
 };
-$("close-session").onclick=async()=>{
-  if(!selected)return;
-  const address=selected;
-  try{
-    await invoke("close_session",{address});labels.delete(address.session);await refresh();
-    const next=sessions[0];
+async function closeAddress(address) {
+  try {
+    await invoke("close_session",{address});
+    const info=await refresh();await connectCatalog();sessions=info.sessions;renderRail();
+    if(selected?.session!==address.session)return;
+    const next=sessions.find(session=>!session.closed);
     if(next)await select(next.address);
     else showWelcome("Your session has closed. Open a project to start another.");
   }catch(error){showError(error);}
-};
+}
+$("close-session").onclick=()=>selected&&closeAddress(selected);
 document.addEventListener("keydown",event=>{
   if((event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==="o"){event.preventDefault();$("open-project").click();}
 });
 try {
-  const info=await refresh();
+  const info=await refresh();await connectCatalog();
   document.documentElement.dataset.reducedMotion=String(info.reduce_motion||matchMedia("(prefers-reduced-motion: reduce)").matches);
   if(info.directory){showPicker(info.directory);await projectOpening.choose(info.directory);}
   else {showWelcome();$("welcome-open").focus();}

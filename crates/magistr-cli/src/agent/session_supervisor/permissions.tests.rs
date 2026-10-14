@@ -23,6 +23,7 @@ fn state() -> Mutex<Inner> {
         control_busy: false,
         goal_turn: None,
         capabilities: None,
+        last_activity: None,
         messages: None,
         cockpit_events: None,
     })
