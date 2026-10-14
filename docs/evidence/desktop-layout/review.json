@@ -1,5 +1,5 @@
 {
-  "receipt": "088c44f07faaea7b4340cf1bc4392b864331fb91b0232f0483b3f997a32ba73d",
+  "receipt": "d532a9d7b2597743193bb6d212f2d354c3bfcfc3e0c2662a8a84993c5d8cfb85",
   "images": {
     "welcome-dark.png": "79e72cd80fd09260941e65f9850b18d1c4de3f60197b90867bc2e01735e49de0",
     "workspace-dark.png": "83923e7816c24b594be689a56230b83e88b303c6ff55f43c5d9ac051bca4cd1b",
@@ -21,6 +21,7 @@
   "findings": [
     "Reviewed fifteen captures. The thirteen prior workspace/history/setup captures retain their reviewed hashes; inspected both new-conversation captures at full size, including the revised whole-choice keyboard focus.",
     "New conversation clearly names the project and working copy, uses native radio choices for detected agents and keeps optional model discovery separate. Narrow light layout preserves the model and visible Start/Cancel actions; short-window coverage passed at 800×560.",
+    "All fifteen images are unchanged after adding transient reading/editor bookmarks. Focused WebKit journeys verify restored paragraph offsets, valid selected text, tool disclosures and draft caret/scroll, current background replies, hidden Details updates, changed/pruned source and Latest. A resize feedback loop found during the hidden-view test was corrected and the affected checks pass.",
     "Background journeys cover detection unavailable versus empty, stale model failure, admission refusal, pending controls, preserved choices and navigation retry after successful admission without starting a second agent. The actual desktop rebuilt.",
     "Production UI with isolated observations only. Native OS input, IME, OS dialogs, VoiceOver and other-platform checks remain unrun; prior native receipts retain their source versions."
   ]

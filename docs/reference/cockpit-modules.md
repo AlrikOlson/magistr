@@ -96,6 +96,9 @@ desktop workspace. Companion Rust tests live beside their owners.
 - `crates/magistr-desktop/src/content.rs`
 - `crates/magistr-desktop/src/document.rs`
 - `crates/magistr-desktop/src/links.rs`
+- `crates/magistr-desktop/tests/reading.mjs` — finite view-coordinate retention and closed-owner cleanup.
+- `crates/magistr-desktop/ui/reading.mjs` — bounded semantic reading and native editor position bookmarks; no durable content cache.
+- `crates/magistr-desktop/tests/browser/reading.spec.mjs` — background switching, resize, tool disclosure, selection and editor continuity.
 - `crates/magistr-desktop/ui/transcript.mjs`
 - `crates/magistr-desktop/tests/transcript.mjs`
 - `crates/magistr-desktop/src/conversations.rs`

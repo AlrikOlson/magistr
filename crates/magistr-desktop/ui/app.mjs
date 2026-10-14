@@ -1,3 +1,4 @@
+import { EditorPlaces } from "./reading.mjs";
 import { ConversationPicker } from "./conversation_picker.mjs";
 import { HistoryBrowser } from "./history.mjs";
 import { ConversationName } from "./conversation_actions.mjs";
@@ -32,6 +33,7 @@ const systemMotion=matchMedia("(prefers-reduced-motion: reduce)");
 const preferences=new Preferences(invoke,()=>renderPreferences());
 systemMotion.addEventListener("change",()=>renderPreferences());
 const selection=new Selection();
+const editorPlaces=new EditorPlaces($("draft"));
 const layout=new WorkspaceLayout({root:$("workspace"),conversation:$("conversation"),detail:$("session-detail"),toggle:$("toggle-details"),heading:$("detail-title"),compact:matchMedia("(max-width:1100px)")});
 const catalog=new Catalog();
 const attentionNodes=new Map();
@@ -129,6 +131,8 @@ async function connectCatalog() {
   const receive=frame=>{
     if(!catalog.apply(frame))return;
     sessions=catalog.sessions;
+    const targets=new Set(sessions.filter(session=>!session.closed).flatMap(session=>session.owned_conversations.map(conversation=>targetKey({address:session.address,conversation}))));
+    transcriptView.retain(targets);editorPlaces.retain(targets);
     for(const session of sessions)if(!labels.has(session.address.session))labels.set(session.address.session,++issuedLabel);
     renderRail();savedDraftEditor.render();history.update();
     invoke("acknowledge",{stream:frame.stream,sequence:frame.sequence}).catch(showError);
@@ -241,6 +245,9 @@ async function select(address,requestId=null,requestTarget=null) {
       return invoke("subscribe_session",{address,channel,selection:intent});
     },
     commit:(candidate,initial)=>{
+      const previous=currentTarget();
+      if(previous)editorPlaces.capture(previous,drafts.status(previous).revision);
+      transcriptView.clear();
       selected=address;view=candidate;candidate.requestId=requestId;candidate.requestTarget=requestTarget;requestsKey="";railKey="";configurationKey="";
       $("welcome").hidden=true;$("workspace").hidden=false;$("view-title").textContent="Conversation";
       layout.enable(true);if(layout.compact.matches)layout.show(false);
@@ -271,6 +278,8 @@ async function select(address,requestId=null,requestTarget=null) {
 }
 function receiveFrame(candidate,frame) {
   const previousSequence=candidate.sequence,previousTarget=candidate.target;
+  const changing=previousSequence<0||targetKey(previousTarget)!==targetKey(frame.target);
+  if(changing&&currentTarget())editorPlaces.capture(currentTarget(),drafts.status(currentTarget()).revision);
   if(candidate.apply(frame)) {
     drafts.observe(frame);
     if(previousSequence<0||targetKey(previousTarget)!==targetKey(frame.target)) {
@@ -282,6 +291,7 @@ function receiveFrame(candidate,frame) {
     const draft=reconcileDraft(frame,attachmentList.input($("draft").value),accepted,previousSequence);
     if(draft!==$("draft").value)$("draft").value=draft;
     render(frame);
+    if(changing)editorPlaces.restore(frame.target,drafts.status(frame.target).revision);
   }
   invoke("acknowledge",{stream:frame.stream,sequence:frame.sequence}).catch(()=>{});
 }
