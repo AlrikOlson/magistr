@@ -2,6 +2,7 @@
 #![deny(dead_code, unused)]
 
 mod args;
+mod attachments;
 mod commands;
 mod content;
 mod conversations;

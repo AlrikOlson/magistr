@@ -97,7 +97,7 @@ pub async fn cmd_init_interactive(
         if std::io::stdin().read_line(&mut input).is_err() || input.trim().is_empty() {
             break;
         }
-        session.send_followup(input.trim())?;
+        session.send_followup(&input.trim().into())?;
     }
     drop(session);
     if let Err(err) = workspace.shutdown().await {

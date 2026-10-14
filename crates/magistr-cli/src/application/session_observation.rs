@@ -1,7 +1,7 @@
 //! Bounded resident-session observations and subscription cursors change together.
 //! The application retains the projection; hiding or disconnecting a reader does
 //! not close the provider. Gaps require a retained-state reseed, never invented deltas.
-use magistr_application::sessions::AgentEvent;
+use magistr_application::sessions::{AgentEvent, PromptInput, PromptReceipt};
 use magistr_cockpit::cockpit::{Msg, ProjectSeed};
 use magistr_cockpit_runtime::channel::ObservationSink;
 use magistr_domain::identity::SessionAddress;
@@ -43,6 +43,15 @@ impl SessionStatus {
     }
 }
 
+/// Current submission outcome. It survives transcript pruning and is written
+/// only after the shared input owner accepts or refuses the exact prompt.
+#[derive(Clone, Debug, PartialEq)]
+pub struct SubmissionAdmission {
+    pub sequence: u64,
+    pub input: PromptReceipt,
+    pub accepted: bool,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct SessionSnapshot {
     pub address: SessionAddress,
@@ -56,6 +65,8 @@ pub struct SessionSnapshot {
     pub model: Option<String>,
     pub conversation: Option<magistr_application::sessions::Conversation>,
     pub configuration: Vec<magistr_application::sessions::SessionConfig>,
+    pub attachments: Vec<super::StagedAttachment>,
+    pub admission: Option<SubmissionAdmission>,
     pub activity: Option<magistr_application::sessions::SessionActivity>,
     bytes: usize,
     retained_from: u64,
@@ -130,11 +141,32 @@ impl SessionSnapshot {
 
     fn record(&mut self, message: Msg) {
         self.sequence = self.sequence.saturating_add(1);
+        let admission = match &message {
+            Msg::InputAccepted(input) => Some((input.clone(), true)),
+            Msg::Agent(AgentEvent::PromptRejected { input, .. })
+            | Msg::CommandFailed {
+                cmd:
+                    magistr_cockpit::cockpit::Cmd::Prompt(input)
+                    | magistr_cockpit::cockpit::Cmd::RoadmapPrompt(input),
+                ..
+            } => Some((input.receipt(), false)),
+            _ => None,
+        };
+        if let Some((input, accepted)) = admission {
+            self.admission = Some(SubmissionAdmission {
+                sequence: self.sequence,
+                input,
+                accepted,
+            });
+        }
         match &message {
-            Msg::InputAccepted(text) => {
+            Msg::InputAccepted(input) => {
                 self.status = SessionStatus::Working;
-                if self.seed.draft.as_ref() == Some(text) {
+                if self.seed.draft.as_ref() == Some(&input.text)
+                    && super::session_attachments::matches_receipt(&self.attachments, input)
+                {
                     self.seed.draft = Some(String::new());
+                    self.attachments.clear();
                 }
             }
             Msg::PromptReplace(text) => self.seed.draft = Some(text.clone()),
@@ -166,14 +198,22 @@ impl SessionSnapshot {
                 }
             }
             Msg::Agent(AgentEvent::Error(_)) => self.status = SessionStatus::Failed,
-            Msg::Agent(AgentEvent::PromptRejected { text, .. })
+            Msg::Agent(AgentEvent::PromptRejected { input, .. })
             | Msg::CommandFailed {
                 cmd:
-                    magistr_cockpit::cockpit::Cmd::Prompt(text)
-                    | magistr_cockpit::cockpit::Cmd::RoadmapPrompt(text),
+                    magistr_cockpit::cockpit::Cmd::Prompt(input)
+                    | magistr_cockpit::cockpit::Cmd::RoadmapPrompt(input),
                 ..
-            } if self.seed.draft.as_ref().is_none_or(String::is_empty) => {
-                self.seed.draft = Some(text.clone());
+            } if self.seed.draft.as_ref().is_none_or(String::is_empty)
+                && self.attachments.is_empty() =>
+            {
+                self.seed.draft = Some(input.text.clone());
+                self.attachments = input
+                    .attachments
+                    .iter()
+                    .cloned()
+                    .map(super::StagedAttachment::sent)
+                    .collect();
             }
             Msg::Agent(AgentEvent::Usage { .. }) => self.usage = Some(message.clone()),
             Msg::Agent(AgentEvent::PermissionRequest { id, .. }) => {
@@ -282,6 +322,7 @@ pub(super) struct SessionObservation {
     closed: AtomicBool,
     closing: Notify,
     reader: std::sync::OnceLock<magistr_engine::NativeReader>,
+    source: std::sync::OnceLock<std::sync::Weak<magistr_workspace::service::WorkspaceService>>,
     wake: std::sync::OnceLock<std::sync::Arc<Notify>>,
 }
 
@@ -300,6 +341,8 @@ impl SessionObservation {
                 model: None,
                 conversation: None,
                 configuration: Vec::new(),
+                attachments: Vec::new(),
+                admission: None,
                 activity: None,
                 bytes: 0,
                 retained_from: 1,
@@ -312,6 +355,7 @@ impl SessionObservation {
             closed: AtomicBool::new(false),
             closing: Notify::new(),
             reader: std::sync::OnceLock::new(),
+            source: std::sync::OnceLock::new(),
             wake: std::sync::OnceLock::new(),
         }
     }
@@ -326,6 +370,73 @@ impl SessionObservation {
                 state.record(Msg::PromptReplace(text));
             }
         });
+    }
+    pub(super) fn add_attachments(
+        &self,
+        attachments: Vec<super::StagedAttachment>,
+    ) -> Result<(), String> {
+        let mut result = Ok(());
+        self.state.send_if_modified(|state| {
+            if state.closed {
+                result = Err("This session is no longer open.".into());
+                return false;
+            }
+            let input = PromptInput {
+                text: state.seed.draft.clone().unwrap_or_default(),
+                attachments: state
+                    .attachments
+                    .iter()
+                    .chain(&attachments)
+                    .map(|attachment| attachment.content().clone())
+                    .collect(),
+            };
+            if let Err(error) = input.validate(true) {
+                result = Err(error);
+                return false;
+            }
+            if attachments.is_empty() {
+                return false;
+            }
+            state.attachments.extend(attachments);
+            state.sequence = state.sequence.saturating_add(1);
+            true
+        });
+        result
+    }
+    pub(super) fn remove_attachment(&self, id: &str) -> Result<(), String> {
+        let mut found = false;
+        self.state.send_if_modified(|state| {
+            if state.closed {
+                return false;
+            }
+            let Some(at) = state
+                .attachments
+                .iter()
+                .position(|attachment| attachment.id() == id)
+            else {
+                return false;
+            };
+            state.attachments.remove(at);
+            state.sequence = state.sequence.saturating_add(1);
+            found = true;
+            true
+        });
+        if found {
+            Ok(())
+        } else {
+            Err("This attachment is no longer in the message.".into())
+        }
+    }
+    pub(super) fn set_source(
+        &self,
+        source: std::sync::Weak<magistr_workspace::service::WorkspaceService>,
+    ) {
+        let _ = self.source.set(source);
+    }
+    pub(super) fn source(
+        &self,
+    ) -> Option<std::sync::Arc<magistr_workspace::service::WorkspaceService>> {
+        self.source.get()?.upgrade()
     }
     pub(super) fn snapshot(&self) -> SessionSnapshot {
         self.state.borrow().clone()

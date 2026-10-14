@@ -46,12 +46,12 @@ impl<'a> Sessions<'a> {
             .await
     }
 
-    /// Submit text for a turn; acceptance is not terminal success.
+    /// Submit exact prompt content; acceptance is not terminal success.
     pub async fn prompt(
         &mut self,
         context: &CommandContext,
         turn: TurnId,
-        content: String,
+        content: super::PromptInput,
     ) -> Result<SessionResponse, ApplicationError> {
         self.execute(context, SessionCommand::Prompt { turn, content })
             .await

@@ -29,7 +29,7 @@ async fn actual_completion_reopens_with_usage_summary_and_one_identity_across_re
     let history = SessionHistory::new();
     let mut first = start("priced", &inputs, &history).await;
     first.next_terminal().await.unwrap();
-    first.supervisor.send_followup("second").unwrap();
+    first.supervisor.send_followup(&"second".into()).unwrap();
     first.next_terminal().await.unwrap();
     first.close().await;
     first.supervisor.terminate_session().await.unwrap();

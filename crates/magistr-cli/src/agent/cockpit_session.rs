@@ -23,7 +23,7 @@ impl CockpitSession {
     pub async fn start(spec: ResolvedSessionSpec) -> Result<Self> {
         let transport = spec.connect_transport().await?;
         let options = SessionOptions {
-            opening_prompt: (!spec.prompt().trim().is_empty()).then(|| spec.prompt().to_owned()),
+            opening_prompt: (!spec.prompt().trim().is_empty()).then(|| spec.prompt().into()),
             // Resolved transport setup has already validated model selection.
             model: None,
             max_turns: spec.max_turns(),
@@ -94,9 +94,12 @@ impl CockpitSession {
 }
 
 impl SessionHandle for CockpitSession {
-    fn submit_turn(&mut self, text: &str) -> std::result::Result<(), String> {
+    fn submit_turn(
+        &mut self,
+        input: &magistr_application::sessions::PromptInput,
+    ) -> std::result::Result<(), String> {
         self.supervisor
-            .send_followup(text)
+            .send_followup(input)
             .map_err(|error| error.to_string())
     }
     fn rename(&mut self, name: &str) -> std::result::Result<(), String> {

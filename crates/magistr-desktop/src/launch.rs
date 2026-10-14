@@ -24,6 +24,19 @@ pub(crate) async fn run(cli: Desktop) -> eyre::Result<()> {
                 .open_js_links_on_click(false)
                 .build(),
         )
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::DragDrop(tauri::DragDropEvent::Drop { paths, .. }) = event {
+                use tauri::Manager as _;
+                let state = window.state::<DesktopState>();
+                let target = state.streams.selected();
+                tracing::debug!(
+                    count = paths.len(),
+                    stream = ?target.as_ref().map(|(stream, _)| stream),
+                    "native file drop received"
+                );
+                state.attachments.dropped(target, paths.clone());
+            }
+        })
         .setup(|app| {
             let window = &app.config().app.windows[0];
             let use_https = window.use_https_scheme;
@@ -69,6 +82,7 @@ pub(crate) async fn run(cli: Desktop) -> eyre::Result<()> {
         .manage(DesktopState {
             client,
             streams: Streams::default(),
+            attachments: crate::attachments::NativeAttachments::default(),
             directory,
             projects: std::sync::Arc::default(),
             inputs,
@@ -76,6 +90,11 @@ pub(crate) async fn run(cli: Desktop) -> eyre::Result<()> {
         })
         .invoke_handler(tauri::generate_handler![
             crate::commands::overview,
+            crate::attachments::subscribe_file_drops,
+            crate::attachments::pick_attachments,
+            crate::attachments::attach_dropped_files,
+            crate::attachments::attach_clipboard_file,
+            crate::attachments::remove_attachment,
             crate::links::open_link,
             crate::conversations::agent_choices,
             crate::conversations::model_choices,

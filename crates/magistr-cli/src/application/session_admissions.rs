@@ -148,6 +148,9 @@ impl SessionRegistry {
                 opening
                     .observation
                     .set_reader(resources.engines.reader().clone());
+                if let Some(source) = resources.source_reader() {
+                    opening.observation.set_source(source);
+                }
                 let opened = InteractiveHost::open_admitted(
                     config,
                     resources,

@@ -50,6 +50,8 @@ pub use project_catalog::{RecentProject, recent_projects};
 pub use project_setup::{ProjectFolder, ProjectSetup, SetupResult};
 mod retained_observation;
 mod session_admissions;
+mod session_attachments;
+pub use session_attachments::StagedAttachment;
 mod session_catalog;
 mod session_observation;
 pub use retained_observation::RetainedObservation;
@@ -58,7 +60,9 @@ mod saved_conversations;
 mod session_opening;
 mod session_registry;
 pub use saved_conversations::saved_conversations;
-pub use session_observation::{SessionSnapshot, SessionStatus, SessionSubscription};
+pub use session_observation::{
+    SessionSnapshot, SessionStatus, SessionSubscription, SubmissionAdmission,
+};
 pub use session_opening::SessionOpening;
 pub use session_registry::{SessionClient, SessionRegistry};
 mod settled_check;

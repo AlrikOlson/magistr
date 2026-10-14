@@ -153,18 +153,20 @@ impl Session {
                 match self.handle.submit_turn(&text) {
                     Ok(()) => {
                         self.input_origin = InputOrigin::Application;
-                        self.inbox.send(Msg::InputAccepted(text));
+                        self.inbox.send(Msg::InputAccepted(text.receipt()));
                     }
                     Err(error) => {
-                        self.inbox
-                            .send(Msg::Agent(AgentEvent::PromptRejected { text, error }));
+                        self.inbox.send(Msg::Agent(AgentEvent::PromptRejected {
+                            input: text,
+                            error,
+                        }));
                     }
                 }
                 return;
             }
             Cmd::RoadmapPrompt(text) => {
                 self.inbox.send(Msg::Agent(AgentEvent::PromptRejected {
-                    text,
+                    input: text,
                     error:
                         "This session cannot update the roadmap. Open a new session to try again."
                             .into(),

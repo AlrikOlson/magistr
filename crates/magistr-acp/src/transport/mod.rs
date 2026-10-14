@@ -407,6 +407,8 @@ impl AcpTransport {
             Arc::clone(&self.ready),
             cmd_tx.clone(),
             self.effects.clone(),
+            self.agent_capabilities()
+                .is_some_and(|capabilities| capabilities.prompt_capabilities.image),
         ))
     }
 
@@ -425,8 +427,14 @@ impl AcpTransport {
 
     /// Send one user turn. The turn's updates and its `PromptResponse` arrive
     /// on the event channel.
-    pub fn prompt(&self, text: &str) -> Result<()> {
-        self.send("prompt", AcpCommand::Prompt(text.to_string()))
+    pub fn prompt(&self, input: &magistr_application::sessions::PromptInput) -> Result<()> {
+        input
+            .validate(
+                self.agent_capabilities()
+                    .is_some_and(|capabilities| capabilities.prompt_capabilities.image),
+            )
+            .map_err(AcpError::transport)?;
+        self.send("prompt", AcpCommand::Prompt(input.clone()))
     }
 
     /// Ask the agent to stop the turn in flight. It finishes its current tool

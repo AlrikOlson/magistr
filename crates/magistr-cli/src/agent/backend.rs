@@ -51,7 +51,10 @@ impl AcpBackend {
     }
 
     /// Send a follow-up; busy sessions retain it in FIFO order.
-    pub fn send_followup(&self, content: &str) -> Result<()> {
+    pub fn send_followup(
+        &self,
+        content: &magistr_application::sessions::PromptInput,
+    ) -> Result<()> {
         self.supervisor.send_followup(content)
     }
 

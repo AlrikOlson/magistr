@@ -3,8 +3,8 @@ use super::{CheckpointCmd, EngineCmd, KillCmd, LaunchAction, LoopCmd, WorkbenchC
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Cmd {
     Quit,
-    Prompt(String),
-    RoadmapPrompt(String),
+    Prompt(magistr_application::sessions::PromptInput),
+    RoadmapPrompt(magistr_application::sessions::PromptInput),
     CancelRoadmapPrompt,
     Cancel,
     Permission { id: u64, option_id: String },

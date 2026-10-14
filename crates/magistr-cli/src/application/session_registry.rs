@@ -1,10 +1,12 @@
 //! Application session admission, addressed controls and orderly settlement form
 //! one ownership contract. Views hold subscriptions; this registry holds hosts.
+use super::session_attachments::{AttachmentSelection, matches_ids, prepare_send};
 use super::{
     InteractiveHost, SessionOpening,
     interactive_host::combine,
     session_observation::{SessionObservation, SessionSnapshot, SessionSubscription},
 };
+use magistr_application::sessions::{MAX_PROMPT_BYTES, PromptInput};
 use magistr_cockpit::cockpit::{Cmd, ProjectSeed};
 use magistr_cockpit_runtime::channel::{Commands, Inbox};
 use magistr_domain::identity::SessionAddress;
@@ -25,7 +27,7 @@ use tokio::{
 };
 
 const CAPACITY: usize = 32;
-const MAX_INPUT_BYTES: usize = 1024 * 1024;
+const MAX_INPUT_BYTES: usize = MAX_PROMPT_BYTES;
 const MAX_SESSIONS: usize = 64;
 const CLOSE_GRACE: Duration = Duration::from_secs(8);
 static INSTANCE: AtomicU64 = AtomicU64::new(1);
@@ -74,6 +76,22 @@ enum Request {
         text: String,
         reply: oneshot::Sender<Result<(), String>>,
     },
+    Attach {
+        address: SessionAddress,
+        selection: AttachmentSelection,
+        reply: oneshot::Sender<Result<(), String>>,
+    },
+    RemoveAttachment {
+        address: SessionAddress,
+        id: String,
+        reply: oneshot::Sender<Result<(), String>>,
+    },
+    Send {
+        address: SessionAddress,
+        text: String,
+        ids: Vec<String>,
+        reply: oneshot::Sender<Result<(), String>>,
+    },
     Close {
         address: SessionAddress,
         reply: oneshot::Sender<Result<(), String>>,
@@ -118,11 +136,11 @@ impl SessionClient {
     }
 
     pub async fn command(&self, address: &SessionAddress, command: Cmd) -> Result<(), String> {
-        if let Cmd::Prompt(text) = &command {
-            if text.trim().is_empty() {
-                return Err("Write a message before sending.".into());
+        if let Cmd::Prompt(input) | Cmd::RoadmapPrompt(input) = &command {
+            input.validate(true)?;
+            if input.is_empty() {
+                return Err("Write a message or attach a file before sending.".into());
             }
-            check_input(text)?;
         }
         let (reply, result) = oneshot::channel();
         self.post(Request::Command {
@@ -174,6 +192,82 @@ impl SessionClient {
         self.post(Request::Draft {
             address: address.clone(),
             text,
+            reply,
+        })?;
+        result
+            .await
+            .map_err(|_| "The application connection closed.".to_owned())?
+    }
+
+    /// Stage native file selections only through this session's admitted workspace.
+    pub async fn attach_files(
+        &self,
+        address: &SessionAddress,
+        paths: &[PathBuf],
+    ) -> Result<(), String> {
+        self.attach(address, AttachmentSelection::Files(paths.to_vec()))
+            .await
+    }
+
+    /// Paste user-provided bytes; this carries no filesystem path or read capability.
+    pub async fn attach_bytes(
+        &self,
+        address: &SessionAddress,
+        name: String,
+        bytes: Vec<u8>,
+    ) -> Result<(), String> {
+        if bytes.len() > magistr_application::sessions::MAX_ATTACHMENT_BYTES {
+            return Err("Choose a file of 1 MiB or less.".into());
+        }
+        self.attach(address, AttachmentSelection::Bytes { name, bytes })
+            .await
+    }
+
+    async fn attach(
+        &self,
+        address: &SessionAddress,
+        selection: AttachmentSelection,
+    ) -> Result<(), String> {
+        let (reply, result) = oneshot::channel();
+        self.post(Request::Attach {
+            address: address.clone(),
+            selection,
+            reply,
+        })?;
+        result
+            .await
+            .map_err(|_| "The application connection closed.".to_owned())?
+    }
+
+    pub async fn remove_attachment(
+        &self,
+        address: &SessionAddress,
+        id: String,
+    ) -> Result<(), String> {
+        let (reply, result) = oneshot::channel();
+        self.post(Request::RemoveAttachment {
+            address: address.clone(),
+            id,
+            reply,
+        })?;
+        result
+            .await
+            .map_err(|_| "The application connection closed.".to_owned())?
+    }
+
+    /// Validate selected source revisions, then queue the exact immutable message.
+    pub async fn send(
+        &self,
+        address: &SessionAddress,
+        text: String,
+        attachment_ids: Vec<String>,
+    ) -> Result<(), String> {
+        check_input(&text)?;
+        let (reply, result) = oneshot::channel();
+        self.post(Request::Send {
+            address: address.clone(),
+            text,
+            ids: attachment_ids,
             reply,
         })?;
         result
@@ -275,8 +369,22 @@ struct Resident<H> {
     host: H,
     commands: mpsc::Sender<Cmd>,
     observation: Arc<SessionObservation>,
+    send_generation: u64,
+    preparing: bool,
 }
 enum Completed<H> {
+    Attached {
+        address: SessionAddress,
+        result: Result<Vec<super::StagedAttachment>, String>,
+        reply: oneshot::Sender<Result<(), String>>,
+    },
+    Prepared {
+        address: SessionAddress,
+        generation: u64,
+        ids: Vec<String>,
+        input: Result<PromptInput, String>,
+        reply: oneshot::Sender<Result<(), String>>,
+    },
     Opened {
         address: SessionAddress,
         observation: Arc<SessionObservation>,
@@ -513,6 +621,25 @@ impl<H: Settle> Serving<H> {
                     .ok_or_else(gone);
                 let _ = reply.send(result);
             }
+            Request::Attach {
+                address,
+                selection,
+                reply,
+            } => self.attach(address, selection, reply),
+            Request::RemoveAttachment { address, id, reply } => {
+                let result = self
+                    .sessions
+                    .get(&address)
+                    .ok_or_else(gone)
+                    .and_then(|resident| resident.observation.remove_attachment(&id));
+                let _ = reply.send(result);
+            }
+            Request::Send {
+                address,
+                text,
+                ids,
+                reply,
+            } => self.prepare_submission(address, text, ids, reply),
             Request::Close { address, reply } => match self.sessions.remove(&address) {
                 Some(resident) => {
                     resident.observation.stop();
@@ -535,11 +662,125 @@ impl<H: Settle> Serving<H> {
         }
     }
 
-    fn command(&self, address: &SessionAddress, command: Cmd) -> Result<(), String> {
+    fn attach(
+        &mut self,
+        address: SessionAddress,
+        selection: AttachmentSelection,
+        reply: oneshot::Sender<Result<(), String>>,
+    ) {
+        let Some(resident) = self.sessions.get(&address) else {
+            let _ = reply.send(Err(gone()));
+            return;
+        };
+        if self.pending.len() >= CAPACITY {
+            let _ = reply.send(Err("The application is busy. Try the action again.".into()));
+            return;
+        }
+        let source = resident.observation.source();
+        self.pending.spawn(async move {
+            let result = tokio::task::spawn_blocking(move || selection.prepare(source.as_deref()))
+                .await
+                .map_err(|error| format!("The files could not be read: {error}"))
+                .and_then(|result| result);
+            Completed::Attached {
+                address,
+                result,
+                reply,
+            }
+        });
+    }
+
+    fn prepare_submission(
+        &mut self,
+        address: SessionAddress,
+        text: String,
+        ids: Vec<String>,
+        reply: oneshot::Sender<Result<(), String>>,
+    ) {
+        let Some(resident) = self.sessions.get_mut(&address) else {
+            let _ = reply.send(Err(gone()));
+            return;
+        };
+        if resident.preparing {
+            let _ = reply.send(Err(
+                "Your message is still being checked. Wait before sending again.".into(),
+            ));
+            return;
+        }
+        let snapshot = resident.observation.snapshot();
+        if !matches_ids(&snapshot.attachments, &ids) {
+            let _ = reply.send(Err(
+                "The attachments changed. Review the message and send again.".into(),
+            ));
+            return;
+        }
+        if self.pending.len() >= CAPACITY {
+            let _ = reply.send(Err("The application is busy. Try the action again.".into()));
+            return;
+        }
+        resident.observation.draft(text.clone());
+        resident.send_generation += 1;
+        resident.preparing = true;
+        let generation = resident.send_generation;
+        let source = resident.observation.source();
+        self.pending.spawn(async move {
+            let input = tokio::task::spawn_blocking(move || {
+                prepare_send(text, &snapshot.attachments, source.as_deref())
+            })
+            .await
+            .map_err(|error| format!("The files could not be checked: {error}"))
+            .and_then(|result| result);
+            Completed::Prepared {
+                address,
+                generation,
+                ids,
+                input,
+                reply,
+            }
+        });
+    }
+
+    fn admit_prepared(
+        &mut self,
+        address: &SessionAddress,
+        generation: u64,
+        ids: &[String],
+        input: Result<PromptInput, String>,
+    ) -> Result<(), String> {
+        let resident = self.sessions.get_mut(address).ok_or_else(gone)?;
+        if resident.send_generation != generation || !resident.preparing {
+            return Err("This send was stopped. Your draft is still available.".into());
+        }
+        resident.preparing = false;
+        let input = input?;
+        let snapshot = resident.observation.snapshot();
+        if !matches_ids(&snapshot.attachments, ids) {
+            return Err("The attachments changed. Review the message and send again.".into());
+        }
+        input.validate(
+            snapshot
+                .activity
+                .as_ref()
+                .is_some_and(|activity| activity.can_send_images == Some(true)),
+        )?;
+        self.command(address, Cmd::Prompt(input))
+    }
+
+    fn command(&mut self, address: &SessionAddress, command: Cmd) -> Result<(), String> {
+        if let Cmd::Prompt(input) | Cmd::RoadmapPrompt(input) = &command {
+            input.validate(true)?;
+            if input.is_empty() {
+                return Err("Write a message or attach a file before sending.".into());
+            }
+        }
         if matches!(command, Cmd::Quit) {
             return Err("Choose a session action or close the addressed session.".into());
         }
-        let resident = self.sessions.get(address).ok_or_else(gone)?;
+        let resident = self.sessions.get_mut(address).ok_or_else(gone)?;
+        if resident.preparing && matches!(command, Cmd::Prompt(_) | Cmd::RoadmapPrompt(_)) {
+            return Err("Your message is still being checked. Wait before sending again.".into());
+        }
+        let cancel = matches!(command, Cmd::Cancel);
         if let Cmd::Permission { id, ref option_id } = command {
             if resident.observation.is_answered(id) {
                 return Err("This request has already been answered.".into());
@@ -582,11 +823,46 @@ impl<H: Settle> Serving<H> {
         if let Some(id) = answered {
             resident.observation.permission_answered(id);
         }
+        if cancel {
+            resident.send_generation += 1;
+            resident.preparing = false;
+        }
         Ok(())
     }
 
     fn completed(&mut self, result: Result<Completed<H>, tokio::task::JoinError>, quitting: bool) {
         match result {
+            Ok(Completed::Attached {
+                address,
+                result,
+                reply,
+            }) => {
+                let result = result.and_then(|attachments| {
+                    if quitting {
+                        return Err("The application is closing.".into());
+                    }
+                    self.sessions
+                        .get(&address)
+                        .ok_or_else(gone)?
+                        .observation
+                        .add_attachments(attachments)
+                });
+                let _ = reply.send(result);
+            }
+            Ok(Completed::Prepared {
+                address,
+                generation,
+                ids,
+                input,
+                reply,
+            }) => {
+                let result = if quitting {
+                    Err("The application is closing.".into())
+                } else {
+                    self.admit_prepared(&address, generation, &ids, input)
+                };
+                let _ = reply.send(result);
+            }
             Ok(Completed::Opened {
                 address,
                 observation,
@@ -615,6 +891,8 @@ impl<H: Settle> Serving<H> {
                                     host,
                                     commands,
                                     observation,
+                                    send_generation: 0,
+                                    preparing: false,
                                 },
                             );
                             let _ = reply.send(Ok(address));

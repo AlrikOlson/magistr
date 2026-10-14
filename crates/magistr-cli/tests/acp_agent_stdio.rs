@@ -107,7 +107,9 @@ async fn the_rust_client_completes_a_turn_and_a_cancel_against_the_in_binary_age
     }
 
     // A full turn.
-    transport.prompt("hello over stdio").expect("prompt");
+    transport
+        .prompt(&"hello over stdio".into())
+        .expect("prompt");
     let mut text = String::new();
     loop {
         let event = next(&mut events).await;
@@ -122,7 +124,7 @@ async fn the_rust_client_completes_a_turn_and_a_cancel_against_the_in_binary_age
     assert_eq!(text, "[scripted-fast] echo: hello over stdio");
 
     // A cancel mid-turn.
-    transport.prompt("hang").expect("prompt");
+    transport.prompt(&"hang".into()).expect("prompt");
     next_matching(&mut events, |e| {
         message_text(e).is_some_and(|t| t.contains("hanging"))
     })

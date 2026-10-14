@@ -15,10 +15,11 @@ desktop workspace. Companion Rust tests live beside their owners.
 | Names, configuration, stable source revisions, accepted input, status, requests and drafts | `crates/magistr-cli/src/application/session_observation.rs` and its companion suite |
 | Canonical source identity, stream coalescing and complete tool updates | `crates/magistr-cli/src/application/retained_observation.rs` and the session observation companion suite |
 | Safe rich documents, copy, native selection and reading position | `crates/magistr-desktop/src/content.rs`, `crates/magistr-desktop/src/document.rs`, `crates/magistr-desktop/src/links.rs` and `crates/magistr-desktop/ui/transcript.mjs` |
-| Provider and project resources | `crates/magistr-cli/src/application/interactive_host.rs` and `crates/magistr-cli/src/application/project_resources.rs` |
+| Provider and project resources | `crates/magistr-cli/src/application/interactive_host.rs` and `crates/magistr-cli/src/application/session_admissions.rs` |
 | One workflow and source authority | `crates/magistr-cli/src/application/workflow_client` and `crates/magistr-cli/src/application/workspace_client` |
 | Protocol-only child roles, no retired dependencies | `crates/magistr-desktop/tests/process.rs` and `crates/magistr-cli/tests/host_clients.rs` |
 | Rich source, native held selection, concurrent updates and reading position | `crates/magistr-desktop/tests/rich_conversation_fixture.py`, `crates/magistr-desktop/tests/rich_conversation_journey.py` and `crates/magistr-desktop/tests/rich_conversation.swift` |
+| Immutable attachment input, addressed staging and native selection | `crates/magistr-application/src/sessions/prompt_input.rs`, `crates/magistr-cli/src/application/session_attachments.rs`, `crates/magistr-desktop/src/attachments.rs`, `crates/magistr-desktop/ui/attachments.mjs` and `crates/magistr-desktop/tests/attachment_journey.py` |
 | Native window, keyboard, pointer, clipboard, requests and Quit | `crates/magistr-desktop/tests/native_window.py` and its Swift driver |
 | Source/index fitness, contrast, icon and current captures | `scripts/interface-index-gate.py`, `scripts/desktop-visual-gate.py` |
 
@@ -81,6 +82,12 @@ desktop workspace. Companion Rust tests live beside their owners.
 - `crates/magistr-cockpit/src/workbench/port.rs`
 - `crates/magistr-cockpit/src/workbench/run_row.rs`
 - `crates/magistr-desktop/src/args.rs`
+- `crates/magistr-desktop/src/attachments.rs`
+- `crates/magistr-desktop/tests/attachment.swift`
+- `crates/magistr-desktop/tests/attachment_fixture.py`
+- `crates/magistr-desktop/tests/attachment_journey.py`
+- `crates/magistr-desktop/tests/attachments.mjs`
+- `crates/magistr-desktop/ui/attachments.mjs`
 - `crates/magistr-desktop/src/commands.rs`
 - `crates/magistr-desktop/src/content.rs`
 - `crates/magistr-desktop/src/document.rs`

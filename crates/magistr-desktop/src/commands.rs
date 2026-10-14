@@ -17,6 +17,7 @@ use tauri::{State, ipc::Channel};
 pub(crate) struct DesktopState {
     pub(crate) client: SessionClient,
     pub(crate) streams: Streams,
+    pub(crate) attachments: crate::attachments::NativeAttachments,
     pub(crate) directory: Option<PathBuf>,
     pub(crate) projects: std::sync::Arc<ProjectReviews>,
     pub(crate) inputs: ProjectInputs,
@@ -26,18 +27,30 @@ pub(crate) struct DesktopState {
 pub(crate) struct Overview {
     directory: Option<PathBuf>,
     reduce_motion: bool,
+    attachment_limits: crate::attachments::Limits,
     sessions: Vec<SessionInfo>,
     projects: Vec<RecentProject>,
 }
 #[derive(Deserialize)]
 #[serde(tag = "action", rename_all = "snake_case")]
 pub(crate) enum Action {
-    Send { text: String },
+    Send {
+        text: String,
+        attachment_ids: Vec<String>,
+    },
     Cancel,
     Reconnect,
-    Rename { name: String },
-    Configure { id: String, value: String },
-    Answer { id: u64, option_id: String },
+    Rename {
+        name: String,
+    },
+    Configure {
+        id: String,
+        value: String,
+    },
+    Answer {
+        id: u64,
+        option_id: String,
+    },
 }
 
 #[tauri::command]
@@ -58,6 +71,7 @@ pub(crate) async fn overview(state: State<'_, DesktopState>) -> Result<Overview,
     Ok(Overview {
         directory: state.directory.clone(),
         reduce_motion: state.reduce_motion,
+        attachment_limits: crate::attachments::Limits::default(),
         sessions,
         projects,
     })
@@ -162,7 +176,12 @@ pub(crate) async fn session_action(
     state: State<'_, DesktopState>,
 ) -> Result<(), String> {
     let command = match action {
-        Action::Send { text } => Cmd::Prompt(text),
+        Action::Send {
+            text,
+            attachment_ids,
+        } => {
+            return state.client.send(&address, text, attachment_ids).await;
+        }
         Action::Rename { name } => Cmd::Rename(name),
         Action::Configure { id, value } => Cmd::Configure { id, value },
         Action::Cancel => Cmd::Cancel,

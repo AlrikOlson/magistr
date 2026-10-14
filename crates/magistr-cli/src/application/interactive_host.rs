@@ -253,6 +253,14 @@ impl Resources {
     pub(super) fn is_admitted(&self) -> bool {
         self.admitted.workspace.hosted().is_some()
     }
+    pub(super) fn source_reader(
+        &self,
+    ) -> Option<std::sync::Weak<magistr_workspace::service::WorkspaceService>> {
+        self.admitted
+            .workspace
+            .hosted()
+            .map(|workspace| std::sync::Arc::downgrade(workspace.service()))
+    }
     pub(super) fn source_report(&self) -> String {
         self.admitted.workspace.report()
     }

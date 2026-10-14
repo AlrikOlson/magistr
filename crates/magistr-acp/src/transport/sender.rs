@@ -20,6 +20,7 @@ pub struct AcpSender {
     ready: Arc<AtomicBool>,
     cmd_tx: mpsc::UnboundedSender<AcpCommand>,
     effects: Option<Arc<EffectBridge>>,
+    images: bool,
 }
 
 impl AcpSender {
@@ -27,11 +28,13 @@ impl AcpSender {
         ready: Arc<AtomicBool>,
         cmd_tx: mpsc::UnboundedSender<AcpCommand>,
         effects: Option<Arc<EffectBridge>>,
+        images: bool,
     ) -> Self {
         Self {
             ready,
             cmd_tx,
             effects,
+            images,
         }
     }
 
@@ -59,8 +62,9 @@ impl AcpSender {
 
     /// Send one user turn. The turn's updates and its `PromptResponse`
     /// arrive on the transport's event channel.
-    pub fn prompt(&self, text: &str) -> Result<()> {
-        self.send("prompt", AcpCommand::Prompt(text.to_string()))
+    pub fn prompt(&self, input: &magistr_application::sessions::PromptInput) -> Result<()> {
+        input.validate(self.images).map_err(AcpError::transport)?;
+        self.send("prompt", AcpCommand::Prompt(input.clone()))
     }
 
     /// Ask the agent to stop the turn in flight (`session/cancel`).

@@ -366,6 +366,7 @@
     "draft survived cancellation": true,
     "available agent choices open without a provider": true,
     "initial model choices come from the selected agent": true,
+    "native initial model picker commits before admission": true,
     "second resident session": true,
     "session switch restores draft": true,
     "working copy opened": true,
@@ -415,6 +416,59 @@
     "refused resume stays recoverable beside the saved summary": true,
     "saved conversation resumes its exact provider context": true,
     "saved model and name remain with resumed conversation": true,
+    "attachment chooser is a native modal": true,
+    "cancelling native file selection preserves the draft": true,
+    "native attachment picker cancellation sends nothing and preserves the draft": true,
+    "native attachment picker opens for preview.png": true,
+    "selected attachment appears: preview.png": true,
+    "native attachment picker opens for reading-note.txt": true,
+    "selected attachment appears: reading-note.txt": true,
+    "the selected image exposes an accessible preview": true,
+    "the selected text exposes its native disclosure": true,
+    "the text attachment preview closes through its native control": true,
+    "native text attachment disclosure opens and closes": true,
+    "another session has no files from the selected conversation": true,
+    "switching back restores the addressed draft and its attachments": true,
+    "native session switching keeps attachments with their owning draft": true,
+    "the ACP peer receives files": true,
+    "accepted input clears only its submitted files: files": true,
+    "native picker sends original PNG and complete CRLF Unicode text bytes to ACP": true,
+    "native attachment picker opens for changed-note.txt": true,
+    "selected attachment appears: changed-note.txt": true,
+    "attachment refusal explains changed": true,
+    "attachment refusal retains the draft and files: changed": true,
+    "attachment removal settles: changed-note.txt": true,
+    "native attachment picker opens for missing-note.txt": true,
+    "selected attachment appears: missing-note.txt": true,
+    "attachment refusal explains missing": true,
+    "attachment refusal retains the draft and files: missing": true,
+    "attachment removal settles: missing-note.txt": true,
+    "native send refuses changed and missing selected files without losing input": true,
+    "native attachment picker opens for too-large.txt": true,
+    "native selection explains too-large.txt": true,
+    "native attachment picker opens for binary.bin": true,
+    "native selection explains binary.bin": true,
+    "native picker refuses oversized and non-image binary files without truncation": true,
+    "native PNG clipboard paste stages one image": true,
+    "the ACP peer receives clipboard": true,
+    "accepted input clears only its submitted files: clipboard": true,
+    "native PNG clipboard paste reaches ACP as the original image bytes": true,
+    "native file-url drag stages the selected source file": true,
+    "the ACP peer receives drop": true,
+    "accepted input clears only its submitted files: drop": true,
+    "native file drop routes through source admission and preserves exact bytes": true,
+    "work remains cancellable while the next attachment is staged": true,
+    "native Stop keeps the unsent attachment with its draft": true,
+    "attachment removal settles: preview.png": true,
+    "native cancellation preserves unsent attachment drafts": true,
+    "the existing session exposes real reconnect after provider failure": true,
+    "reconnect negotiates unsupported image capability": true,
+    "attachment refusal explains unsupported": true,
+    "attachment refusal retains the draft and files: unsupported": true,
+    "unsupported images are refused before ACP and retain text plus selected files": true,
+    "the ACP peer receives unsupported": true,
+    "accepted input clears only its submitted files: unsupported": true,
+    "removing an unsupported image lets the retained text attachment send": true,
     "long rich reply arrives through the real owner": true,
     "tool failure is visible": true,
     "native keyboard expands tool error details": true,
@@ -449,9 +503,69 @@
     "unavailable provider keeps the window usable returns to chooser": true,
     "rejected launches preserve settings and create no session history": true
   },
-  "launch_to_window_ms": 391.50345800226205,
+  "launch_to_window_ms": 537.7881669992348,
   "latency": {
-    "native_event_to_accessible_reply_ms": 71.97341666687862
+    "native_event_to_accessible_reply_ms": 76.25204166106414
+  },
+  "initial_model_picker": {
+    "after": {
+      "actions": [
+        "AXPress",
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription": "",
+      "AXHelp": "",
+      "AXRole": "AXPopUpButton",
+      "AXTitle": "Initial model",
+      "AXValue": "Scripted (fast)",
+      "enabled": true,
+      "focused": true,
+      "rect": [
+        551,
+        659,
+        626,
+        22
+      ]
+    },
+    "before": {
+      "actions": [
+        "AXPress",
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription": "",
+      "AXHelp": "",
+      "AXRole": "AXPopUpButton",
+      "AXTitle": "Initial model",
+      "AXValue": "Scripted (fast)",
+      "enabled": true,
+      "focused": true,
+      "rect": [
+        551,
+        659,
+        626,
+        22
+      ]
+    },
+    "menu_observation_attempts": 1,
+    "menu_option": {
+      "actions": [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole": "AXMenuItem",
+      "AXTitle": "Scripted (fast)",
+      "enabled": true,
+      "focused": false,
+      "rect": [
+        538,
+        658,
+        626,
+        24
+      ]
+    }
   },
   "provider_picker": {
     "after": {
@@ -513,6 +627,375 @@
       ]
     }
   },
+  "attachments": {
+    "picker": [
+      {
+        "panel": {
+          "actions": [
+            "AXRaise"
+          ],
+          "AXDescription": "open",
+          "AXRole": "AXSheet",
+          "focused": false,
+          "rect": [
+            424,
+            351,
+            880,
+            448
+          ]
+        },
+        "selected": "preview.png"
+      },
+      {
+        "panel": {
+          "actions": [
+            "AXRaise"
+          ],
+          "AXDescription": "open",
+          "AXRole": "AXSheet",
+          "focused": false,
+          "rect": [
+            424,
+            351,
+            880,
+            448
+          ]
+        },
+        "selected": "reading-note.txt"
+      },
+      {
+        "panel": {
+          "actions": [
+            "AXRaise"
+          ],
+          "AXDescription": "open",
+          "AXRole": "AXSheet",
+          "focused": false,
+          "rect": [
+            424,
+            351,
+            880,
+            448
+          ]
+        },
+        "selected": "changed-note.txt"
+      },
+      {
+        "panel": {
+          "actions": [
+            "AXRaise"
+          ],
+          "AXDescription": "open",
+          "AXRole": "AXSheet",
+          "focused": false,
+          "rect": [
+            424,
+            351,
+            880,
+            448
+          ]
+        },
+        "selected": "missing-note.txt"
+      },
+      {
+        "panel": {
+          "actions": [
+            "AXRaise"
+          ],
+          "AXDescription": "open",
+          "AXRole": "AXSheet",
+          "focused": false,
+          "rect": [
+            424,
+            351,
+            880,
+            448
+          ]
+        },
+        "selected": "too-large.txt"
+      },
+      {
+        "panel": {
+          "actions": [
+            "AXRaise"
+          ],
+          "AXDescription": "open",
+          "AXRole": "AXSheet",
+          "focused": false,
+          "rect": [
+            424,
+            351,
+            880,
+            448
+          ]
+        },
+        "selected": "binary.bin"
+      },
+      {
+        "panel": {
+          "actions": [
+            "AXRaise"
+          ],
+          "AXDescription": "open",
+          "AXRole": "AXSheet",
+          "focused": false,
+          "rect": [
+            424,
+            351,
+            880,
+            448
+          ]
+        },
+        "selected": "preview.png"
+      },
+      {
+        "panel": {
+          "actions": [
+            "AXRaise"
+          ],
+          "AXDescription": "open",
+          "AXRole": "AXSheet",
+          "focused": false,
+          "rect": [
+            424,
+            351,
+            880,
+            448
+          ]
+        },
+        "selected": "preview.png"
+      },
+      {
+        "panel": {
+          "actions": [
+            "AXRaise"
+          ],
+          "AXDescription": "open",
+          "AXRole": "AXSheet",
+          "focused": false,
+          "rect": [
+            424,
+            351,
+            880,
+            448
+          ]
+        },
+        "selected": "reading-note.txt"
+      }
+    ],
+    "delivered": {
+      "files": {
+        "text_files": {
+          "reading-note.txt": {
+            "bytes": 85216,
+            "sha256": "f470bd6d08f84f446679c06a748ebea651c852f9f00d84e4aa8489daadb0c1b5"
+          }
+        },
+        "images": [
+          {
+            "bytes": 12499,
+            "sha256": "cf133f92ffb620a92a6e9a294e10e7d92e2b3379255b27b746516b759114118c"
+          }
+        ],
+        "wire_blocks": 4
+      },
+      "clipboard": {
+        "text_files": {},
+        "images": [
+          {
+            "bytes": 12499,
+            "sha256": "cf133f92ffb620a92a6e9a294e10e7d92e2b3379255b27b746516b759114118c"
+          }
+        ],
+        "wire_blocks": 3
+      },
+      "drop": {
+        "text_files": {
+          "drop-note.txt": {
+            "bytes": 33,
+            "sha256": "66432609122aa7f1941b87d6c4a410cb49f9b7522bd6d2b0444e22974b4d2f94"
+          }
+        },
+        "images": [],
+        "wire_blocks": 2
+      },
+      "unsupported": {
+        "text_files": {
+          "reading-note.txt": {
+            "bytes": 85216,
+            "sha256": "f470bd6d08f84f446679c06a748ebea651c852f9f00d84e4aa8489daadb0c1b5"
+          }
+        },
+        "images": [],
+        "wire_blocks": 2
+      }
+    },
+    "refused": [
+      {
+        "case": "changed",
+        "files": [
+          "changed-note.txt"
+        ],
+        "peer_prompts": 0
+      },
+      {
+        "case": "missing",
+        "files": [
+          "missing-note.txt"
+        ],
+        "peer_prompts": 0
+      },
+      {
+        "case": "unsupported",
+        "files": [
+          "preview.png",
+          "reading-note.txt"
+        ],
+        "peer_prompts": 0
+      }
+    ],
+    "cancel": {
+      "cancelled": true,
+      "panel": {
+        "actions": [
+          "AXRaise"
+        ],
+        "AXDescription": "open",
+        "AXRole": "AXSheet",
+        "focused": false,
+        "rect": [
+          424,
+          351,
+          880,
+          448
+        ]
+      }
+    },
+    "text_preview": {
+      "before": {
+        "summary": {
+          "actions": [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription": "Preview reading-note.txt",
+          "AXHelp": "",
+          "AXRole": "AXDisclosureTriangle",
+          "AXSubrole": "AXSummary",
+          "AXTitle": "Preview reading-note.txt",
+          "enabled": true,
+          "focused": false,
+          "rect": [
+            487,
+            871,
+            619,
+            16
+          ]
+        },
+        "excerpt_visible": false,
+        "excerpt_sample": ""
+      },
+      "opened": {
+        "summary": {
+          "actions": [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription": "Preview reading-note.txt",
+          "AXHelp": "",
+          "AXRole": "AXDisclosureTriangle",
+          "AXSubrole": "AXSummary",
+          "AXTitle": "Preview reading-note.txt",
+          "enabled": true,
+          "focused": true,
+          "rect": [
+            487,
+            823,
+            619,
+            16
+          ]
+        },
+        "excerpt_visible": true,
+        "excerpt_sample": "Native attachment reading note\r\ncafé · 日本語 · 👩🏽‍💻\r\nNative attachment reading note\r\ncafé · 日本語 · 👩🏽‍💻\r\nNative attachment reading note\r\ncafé · 日本語 · 👩🏽‍💻\r\nNative "
+      },
+      "closed": {
+        "summary": {
+          "actions": [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription": "Preview reading-note.txt",
+          "AXHelp": "",
+          "AXRole": "AXDisclosureTriangle",
+          "AXSubrole": "AXSummary",
+          "AXTitle": "Preview reading-note.txt",
+          "enabled": true,
+          "focused": true,
+          "rect": [
+            487,
+            871,
+            619,
+            16
+          ]
+        },
+        "excerpt_visible": false,
+        "excerpt_sample": ""
+      }
+    },
+    "clipboard": {
+      "png_bytes": 12499,
+      "types": [
+        "public.png",
+        "Apple PNG pasteboard type",
+        "public.tiff",
+        "NeXT TIFF v4.0 pasteboard type"
+      ],
+      "staged_name": "image.png"
+    },
+    "drop": {
+      "destination": {
+        "actions": [
+          "AXPress",
+          "AXShowMenu",
+          "AXScrollToVisible"
+        ],
+        "AXDescription": "",
+        "AXHelp": "",
+        "AXRole": "AXTextArea",
+        "AXSelectedText": "",
+        "AXTitle": "Message the agent",
+        "AXValue": "Attachment check: drop",
+        "enabled": true,
+        "focused": true,
+        "rect": [
+          474,
+          693,
+          714,
+          110
+        ]
+      },
+      "drag_started": true,
+      "native_drag_moves": 21,
+      "native_mouse_down": true,
+      "native_mouse_down_window": 3834,
+      "operation": 1,
+      "pasteboard_file_url": "file:///var/folders/ml/51b226t50rxf09jwljnq7tn00000gn/T/magistr-desktop-journey-86mz5dsa/second/drop-note.txt",
+      "pasteboard_types": [
+        "public.file-url",
+        "CorePasteboardFlavorType 0x6675726C",
+        "dyn.ah62d4rv4gu8y6y4grf0gn5xbrzw1gydcr7u1e3cytf2gn",
+        "NSFilenamesPboardType",
+        "dyn.ah62d4rv4gu8yc6durvwwaznwmuuha2pxsvw0e55bsmwca7d3sbwu",
+        "Apple URL pasteboard type"
+      ],
+      "source": "drop-note.txt",
+      "source_window": 3834,
+      "source_window_hit_test": true
+    },
+    "native_accessibility_sha256": "8b89ba94a9a5169c7dd3ff813e69081ef9db9efe6c94f8bdf7c019009993fe3e"
+  },
+  "attachment_observation_sha256": "ad446324417a48a0b83aeef190e5d8b0466fb7a69adb42020a3ba2b88b18126a",
+  "attachment_prompts_sha256": "3e705948b77b44b29031a7c2f318ed680d40123ad588baf01cd81503f932f247",
   "rich_conversation": {
     "tool_keyboard": {
       "activation": "native keyboard",
@@ -530,7 +1013,7 @@
         "focused": true,
         "rect": [
           491,
-          513,
+          502,
           680,
           21
         ]
@@ -709,8 +1192,8 @@
         "enabled": true,
         "focused": true,
         "rect": [
-          1073,
-          747,
+          1081,
+          686,
           115,
           39
         ]
@@ -728,13 +1211,13 @@
         "AXHelp": "",
         "AXRole": "AXStaticText",
         "AXTitle": "",
-        "AXValue": "Reading progress 0060: new result café 日本語 👩🏽‍💻.",
+        "AXValue": "Reading progress 0061: new result café 日本語 👩🏽‍💻.",
         "enabled": true,
         "focused": false,
         "rect": [
           474,
-          697,
-          331,
+          674,
+          329,
           17
         ]
       },
@@ -754,7 +1237,7 @@
           448,
           282,
           766,
-          484
+          461
         ]
       }
     },
@@ -770,13 +1253,13 @@
         "AXHelp": "",
         "AXRole": "AXStaticText",
         "AXTitle": "",
-        "AXValue": "Reading progress 0086: new result café 日本語 👩🏽‍💻.",
+        "AXValue": "Reading progress 0087: new result café 日本語 👩🏽‍💻.",
         "enabled": true,
         "focused": false,
         "rect": [
           474,
-          697,
-          331,
+          674,
+          330,
           17
         ]
       },
@@ -796,7 +1279,7 @@
           448,
           282,
           766,
-          484
+          461
         ]
       }
     },
@@ -920,7 +1403,9 @@
         "Reading progress 0094: new result café 日本語 👩🏽‍💻.",
         "Reading progress 0095: new result café 日本語 👩🏽‍💻.",
         "Reading progress 0096: new result café 日本語 👩🏽‍💻.",
-        "Reading progress 0097: new result café 日本語 👩🏽‍💻."
+        "Reading progress 0097: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0098: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0099: new result café 日本語 👩🏽‍💻."
       ],
       "tool_values": [
         "Review local build · Running",
@@ -1072,7 +1557,10 @@
         "Reading progress 0119: new result café 日本語 👩🏽‍💻.",
         "Reading progress 0120: new result café 日本語 👩🏽‍💻.",
         "Reading progress 0121: new result café 日本語 👩🏽‍💻.",
-        "Reading progress 0122: new result café 日本語 👩🏽‍💻."
+        "Reading progress 0122: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0123: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0124: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0125: new result café 日本語 👩🏽‍💻."
       ],
       "tool_values": [
         "Review local build · Running",
@@ -1081,15 +1569,15 @@
     },
     "stream": {
       "stage": "finished",
-      "chunks": 126,
-      "elapsed": 12.845336708000001,
+      "chunks": 128,
+      "elapsed": 13.131278875,
       "stop_reason": "end_turn"
     },
     "canonical": {
       "reply_bytes": 11321,
-      "reply_sha256": "9e48faca39bc556dfbd887bc22c61c32c322c043b36610f5d1e573f9a6357ec1",
-      "conversation_bytes": 20697,
-      "conversation_sha256": "14c5499c376360ddb282def53f99db0ed58ef95aafa2af5277097a9874fdf73c"
+      "reply_sha256": "82f574ad5d5c5beaf22a84dc0bdd1de82836668059e82535c904a62abeb8d743",
+      "conversation_bytes": 21524,
+      "conversation_sha256": "e00efadcd852c386780c41537b7a563869839bb3319b19de1137c2977a40100a"
     },
     "link": {
       "activated": true,
@@ -1114,7 +1602,7 @@
             "AXScrollToVisible"
           ],
           "AXDescription": "",
-          "AXHelp": "http://127.0.0.1:50268/rich-link/1791946372075040000",
+          "AXHelp": "http://127.0.0.1:52636/rich-link/1791951930347414000",
           "AXRole": "AXLink",
           "AXTitle": "Open the local reading note",
           "AXValue": "",
@@ -1131,7 +1619,7 @@
       "request_observed": true
     }
   },
-  "rich_observation_sha256": "2650721f6437b1d857d4421a19debc93c493744f54512f082fceebcaf6b9e520",
+  "rich_observation_sha256": "0cbf8aea7ce23ad8ea7ffa71f891a5a946485d6f651ded4968efccb5faf41ef0",
   "ime": {
     "source": "com.apple.inputmethod.Kotoeri.KanaTyping.Japanese",
     "committed": [
@@ -1162,7 +1650,7 @@
     },
     {
       "workspace": "second",
-      "turns": 8,
+      "turns": 13,
       "outcome": "completed"
     },
     {
@@ -1177,86 +1665,103 @@
     }
   ],
   "source_hashes": {
-    "crates/magistr-desktop/Cargo.lock": "8b9bd1a3049fc0fea4f2efc49d80def1432ef3dff4239323e0d983143d5fc287",
-    "crates/magistr-desktop/Cargo.toml": "0c874b99c0510a2d9b4c571d39a349d09c61accb20dae2a7f359acb839542623",
+    "crates/magistr-desktop/Cargo.lock": "eb9e130b53596f0aef49733489dc1cce323026a1c8be09ba8fbc49b5d653f3e2",
+    "crates/magistr-desktop/Cargo.toml": "cb83f4ed20137b0ea04192234eba7d0bc591dcfb407f52c25691f8c3302a41bf",
     "crates/magistr-desktop/build.rs": "6aeeab41bc35efde4e3c2b644a6248f7fc06d24ae30b75c0d33491cbb0c1fa31",
     "crates/magistr-desktop/src/args.rs": "c9c9e1abe0416cca1323a5070c67e1514ac3380aea4a510bf36975395210f086",
     "crates/magistr-desktop/src/args.tests.rs": "eafc431bd605a6ff13a35713fdba7620c07f291cda41bd96d5cf7fa982a8f0cc",
     "crates/magistr-desktop/src/args_history.tests.rs": "349697d16afe728cb08d64b73f60c6d5b149318e57cfd8424cee64d7cab8695f",
-    "crates/magistr-desktop/src/commands.rs": "cf1bd737283c1e5634d0cfc15fb8d0a306a19f293b7c2ec76ef7d526975ca947",
-    "crates/magistr-desktop/src/content.rs": "762d4108021cc02348ef186e2963b94b845bb94491645f9b391b70d3e5a16071",
-    "crates/magistr-desktop/src/content.tests.rs": "1b50f3fedfebffd0d19b570969c4c7ab40dc24ce52060ab2e3887b7b9c079a4f",
+    "crates/magistr-desktop/src/attachments.rs": "0ccd2ec6f5bca777b1569d8c5b107927dfd63b0db2fa97cc41af3a54717502f1",
+    "crates/magistr-desktop/src/attachments.tests.rs": "b52fbc2b0163705a86c916a801dcfae7b97bad5bbcdae96e049c9bab7afcc6f1",
+    "crates/magistr-desktop/src/commands.rs": "aa50babf5a322685addd48bb6b3d984dfb8ed2605f4003142ad07766187b3de0",
+    "crates/magistr-desktop/src/content.rs": "d91ca67d09b9ad33675404118aa441f7478ea489f374f27d493bd2ed54d7ed79",
+    "crates/magistr-desktop/src/content.tests.rs": "6fa126a3da57be231b120efdab97e20a3502771cece57b2f91ef57ea9719a314",
     "crates/magistr-desktop/src/conversations.rs": "985a017dd92d478e5f89ea39a9f54009435e3b2a8420361649ed2cf030772f9f",
     "crates/magistr-desktop/src/conversations.tests.rs": "263c08edbd3e01482b8ec236faef202f05efb521a1b9222bfa0040da6e273e24",
     "crates/magistr-desktop/src/credit.rs": "f6eef88941d7965449d236cdefd1d0100cb34015f1d1260a23d93a37911e9932",
     "crates/magistr-desktop/src/credit.tests.rs": "6d2ffbcd1730ea06420052faf261d9604d4e5c66aca9a24e6fee437e78825c21",
     "crates/magistr-desktop/src/document.rs": "93edd7e0944d968e1776966d54037befd7cf77d96aea2e350389a18ee5398237",
     "crates/magistr-desktop/src/document.tests.rs": "cb58753b0ae2d770c33d8756628de4b16d05c258440d568fdec1ea53160a1999",
-    "crates/magistr-desktop/src/launch.rs": "2ca77b981b2588c053cd27a5fa4c0d08e1de147e422c9e698c90851f63e66e69",
-    "crates/magistr-desktop/src/launch.tests.rs": "662b7134b59179209794f696f8e71c0e0f7fa564688a1fc27e7628f1afc59d13",
+    "crates/magistr-desktop/src/launch.rs": "fcd9f89cb70349b469fb32d99b97afb578ce40116f09024bca7196e15448f38c",
+    "crates/magistr-desktop/src/launch.tests.rs": "c3c00bf5cd05fdf6cb15299c92af33894a47a3cefa9e4cb660818d2e425a4ad3",
     "crates/magistr-desktop/src/links.rs": "7b10947b582b1f0090ca518e519cc9773560cec0108565546b2ce580415490fd",
     "crates/magistr-desktop/src/links.tests.rs": "37b90ae520628a92289528665c41603dbe464e0b9e58003cce16b94283cf0875",
-    "crates/magistr-desktop/src/main.rs": "a5bfa1c0d02e7c884f47a4d05823e32a6b41aec9ffe1b590e96b0cc43d3417a6",
+    "crates/magistr-desktop/src/main.rs": "98c6ba4d445416e69dd73e56d584fae4675129207e57824b814f575e766788cd",
     "crates/magistr-desktop/src/projects.rs": "bae44c4ace2504d2eadffddf123ae694d97393864c4b6f839c6a3709951032cd",
     "crates/magistr-desktop/src/projects.tests.rs": "af45a85ce0979a67fd97b6a2269b8ed9e635a85e0576903547acec0f60e3b44c",
-    "crates/magistr-desktop/src/streams.rs": "c5638b6071ca8a79760eaf79fafe0099b05381891aabaf5cc6d0620f71a58aaa",
-    "crates/magistr-desktop/src/wire.rs": "0c159d07475466c3008ff714c6ff2b4d1fd675a374f96f2e4d5a7889a38755d1",
-    "crates/magistr-desktop/src/wire.tests.rs": "6629ba642ce3f5dddd50712e68969acd2f7fa94a26ea79bb930b20d9b9cfa828",
+    "crates/magistr-desktop/src/streams.rs": "c0cb5fb5d7d23973292f7613043a2ce643a5c12b70a842c978305c90d41dae9b",
+    "crates/magistr-desktop/src/wire.rs": "4393905691e352243467d35e1a224e77d8ce86dd6d64562c3177f07aa20d4a7b",
+    "crates/magistr-desktop/src/wire.tests.rs": "7bf9af4aa1ce53f6dbe9fb57a1bd2587d27a09036b5bdd517b31e680ed35cbcb",
     "crates/magistr-desktop/tauri.conf.json": "1e08f8503ceb7385ee3ecb7a020e51cc1cd431dd4f14333de6591d89ae199706",
-    "crates/magistr-desktop/tests/native_window.py": "68cbd1db7afa8786fa70971a04e4c202a0855fe2b8661bd3876e5a848d1ff281",
-    "crates/magistr-desktop/tests/native_window.swift": "cc66e92703f98d6a6a92f7f7a79fb83b3805d0ed30e3ea32f2bea4ae58610248",
+    "crates/magistr-desktop/tests/attachment.swift": "8c576478c14c2c3af04366295c4e159095e331f2fc8a2eba0480bbf78a6f29ce",
+    "crates/magistr-desktop/tests/attachment_fixture.py": "21513d328e2e6a99ff12d576eb61f6cb313030c6667cb5c251b59c11484319e3",
+    "crates/magistr-desktop/tests/attachment_journey.py": "c97f3e57e484784cfa3c99df87839365df146a62760a36926941d2b5a4055a1b",
+    "crates/magistr-desktop/tests/attachments.mjs": "e761ba21b9d05ffa8e07532ac6bd6543c9f6820c6ffedc1f60afe76688c81f66",
+    "crates/magistr-desktop/tests/native_window.py": "c5a09f8d7ffb7af0c24e796d2ad6b3b13817d078952c1285b48e4bc65f452068",
+    "crates/magistr-desktop/tests/native_window.swift": "3a082c819b10c6e2ce82aa43a1a65d079c67d07aac93a9af39b7913cabaf0010",
     "crates/magistr-desktop/tests/rich_conversation.swift": "6c6362c38438d71087c91b0707dfe7bf3946f69c400bd8f6d3f7ebf249001f2f",
-    "crates/magistr-desktop/tests/rich_conversation_fixture.py": "c8842a5fe25616fa9e3bac230a1dbede5f65fce9d0f4615b80561606438f0806",
+    "crates/magistr-desktop/tests/rich_conversation_fixture.py": "b97fa784f12fbcb9e478e3bc409651b7b7080f2cc62e25e4ef504bf828e7c146",
     "crates/magistr-desktop/tests/rich_conversation_journey.py": "1d44fcfea1d0afa56c5ca612d34c04c2c9a7a84819a60e7997f5b8d6fb0d2400",
     "crates/magistr-desktop/tests/session_controls_fixture.py": "9c7ca60ce147938b1775d3eaed1e369e96a3534cb23b28831ef8043e8bd08aac",
-    "crates/magistr-desktop/ui/app.mjs": "901660513c538d3de174f1dd203ba72df5ef45cfba7a3ff78b30cd2834eb7602",
+    "crates/magistr-desktop/ui/app.mjs": "c9c8a033a08b8b662fad28406d8c88dc7d98af12f0f0a7c04e32619bb80ee8d5",
+    "crates/magistr-desktop/ui/attachments.mjs": "c598ca322b4a2c1b22b9f378ddc35ce7ec89a7e93c81673de978b3269a28ce63",
     "crates/magistr-desktop/ui/composer.mjs": "9accf554a6a2f6e7c029f4972fa4221e40d755546693c8343cbd528ef2a00bc0",
     "crates/magistr-desktop/ui/conversation.mjs": "f49f4fc53aa9c29169012c9fc306bb127f5adf33de58ffca631479a0b01e783e",
     "crates/magistr-desktop/ui/icon.png": "392002a92fdd8dc81923944cd5abd170d0867fe8eb3701d71d4df4aea083dd10",
-    "crates/magistr-desktop/ui/index.html": "116259f4ad26cf2408a55d2d6a237ee0df47f353729ea9ddae20caf7069c6178",
+    "crates/magistr-desktop/ui/index.html": "8621f9f348a6ec1b18c16bc0edc6c573a568df67d7d910a0ce732efbd342de52",
     "crates/magistr-desktop/ui/projects.mjs": "e19f9be0696a2e21d082561403a2188e1b55cedb898539a7a5ae7280b8807031",
     "crates/magistr-desktop/ui/selection.mjs": "fd844d9e146a9c5e1fb9ab6e2fc72c0273da66d4f59a70ce639877a87aff05fc",
-    "crates/magistr-desktop/ui/session_controls.mjs": "509c49226870957628627ab088e8b3f5344fafb8f3f290b7c04d039f43f5b7ab",
-    "crates/magistr-desktop/ui/style.css": "6ae1a45c1d4c2efdc274d2e85fe224fce8b0a8a54afa217e6ae1c06bd6a531d1",
+    "crates/magistr-desktop/ui/session_controls.mjs": "2ffde88166b0bebf5e36f540345d352472bebfe3b5a7284906efaeebcca44131",
+    "crates/magistr-desktop/ui/style.css": "dfa734980c2bac593e1554b6e3a0650ef3044f691629a59a5f713757454ed742",
     "crates/magistr-desktop/ui/supervision.mjs": "032a49085ae6738687065e58e06950cf7229f4fa7f7e0e64ed7390edf3629d12",
-    "crates/magistr-desktop/ui/transcript.mjs": "97bfe410914cd6ff000cd4ffeda624a67daa15db729c3fb2c5cb6d3dde702038",
-    "crates/magistr-application/src/sessions/event.rs": "8b2b7a80dae86ebcde6467f1073e3299f019e4378ef1e2a5548064b2ac5ee8eb",
+    "crates/magistr-desktop/ui/transcript.mjs": "4fe8b18e7bebbc387d9e8a0af9d241b6b9ac0630d7740e6c7121207b7448c6bf",
+    "crates/magistr-application/src/sessions/event.rs": "e78dd678e8919eb319b1b3b3dc02cb7eb72bc89bbd7cdebbe3454ed4fada2c5a",
     "crates/magistr-application/src/sessions/session_activity.rs": "b256dcdcf623bcd399f3ccdfd94f8f43c31c7ea08e263404b09dd97787bf048d",
     "crates/magistr-application/src/sessions/session_policy.rs": "1d792140503efbdd7449510b2a9eece1888ff26a8e71cd64815d85f4333a0854",
     "crates/magistr-cli/src/agent/session_supervisor/permissions.rs": "b5679a0c014ef6bf60d41aad51cecb9f7805bda88d2d05226c023c48f9ee7590",
-    "crates/magistr-cli/src/agent/session_supervisor/opening.rs": "533e71cfeeb1cd7f17c9a24597cfa4b9f41c4d5d558035d0958fcaae7624faac",
-    "crates/magistr-cli/src/agent/cockpit_session.rs": "5440ee79d57cce70b958c126531cbaf696ed329ef92e2c1cebd3c8486f5f1209",
+    "crates/magistr-cli/src/agent/session_supervisor/opening.rs": "0001ba595a1ec9b03b0911266e2449137b53fb5075058f02754729d6fca46d69",
+    "crates/magistr-cli/src/agent/cockpit_session.rs": "fc1863320a5f609e0315fe9c0dbe28605a6c79117ca91a1591a4ac8f4b8baeb5",
     "crates/magistr-cli/src/orchestration/roadmap_request.rs": "ed0b5288c6c19350ba598bfb085ede32ef6ce056cb749bb1a170a117a8b5f1e4",
-    "crates/magistr-cli/src/application/mod.rs": "34ca4d24412a42ef513dd1ba4b64f126d9faaee49c401a2d3d9777589719f0cb",
+    "crates/magistr-cli/src/application/mod.rs": "84c0231ee5267521739246cf426b46895c3a5e1a29f71d160a837f3b8fe13c5a",
     "crates/magistr-cli/src/application/session_catalog.rs": "af13feef58544305f873a02c42a6bf54e26a6ada00058e30ac7e79cb1ba17971",
-    "crates/magistr-cli/src/application/session_observation.rs": "3196e7282741dcc9c6f9b3cefd44b6e6340e9b61b52004fde78a6b6bd46ade9d",
-    "crates/magistr-cli/src/application/session_observation.tests.rs": "9adb8f0ee219d0181b215c18c44d39cb8de58925690b0029b27aeec5f3604ce1",
-    "crates/magistr-cli/src/application/retained_observation.rs": "1b3ebad003ed28c2079a2a8d0aec18f05640a32f83b8b3b28317428fa066032c",
+    "crates/magistr-cli/src/application/session_observation.rs": "fe83f270126a5ccae97b931b4715c479661f884bb29ee63ef1610dca921a15c0",
+    "crates/magistr-cli/src/application/session_observation.tests.rs": "e7c002d4cb757320322354ea0ac0463a6d1c1dcdc698b66de85aff28ad014b9d",
+    "crates/magistr-cli/src/application/retained_observation.rs": "845f91b953e6da2c16b552f428d55e6a107b20070677a977f7f42daeec2028df",
     "crates/magistr-cli/src/application/retained_observation.tests.rs": "470ba5cd2ecc99a28e327443cce836b822b9f7cbdf46ce3ba71345a84acb7a6a",
     "crates/magistr-application/src/sessions/tool_record.rs": "ad3ff4f7c4ea7bf243c569ec37afc3643e22e92d9208f1571ce3d2f6b9a468af",
-    "scripts/desktop-visual-gate.py": "d871e09b0f0543a2540b640c8400dae112a6209a7b0fe451e89c33f509e976f9",
-    "crates/magistr-cli/src/application/session_registry.rs": "371005bff95910aadfe74731cb2891ca485c59cf841cdba5d68e332eddd51dd2",
-    "crates/magistr-cli/src/agent/session_supervisor/mod.rs": "ccd70ccb7376aaf5af487f2676c334b9211df1904a999b6d2018cf287b1190f3",
-    "crates/magistr-cli/src/agent/session_supervisor/owner.rs": "39b2fdbe84828366a08b197529e2b5230a6090ce3271eb5690b435cd2e5bdafb",
+    "scripts/desktop-visual-gate.py": "297eded01307d446b3ce58165a930e7c6ceef647b0a38a0a4d5f4a0c2dfe711a",
+    "crates/magistr-cli/src/application/session_registry.rs": "d11f91945e74954377511d04850f51e81cdd51af77932ead09bb8df8b6eb24c8",
+    "crates/magistr-cli/src/agent/session_supervisor/mod.rs": "92adbfb93877668a56d171babb4bd5d3171a39d78c5c449d8d2e8e0e41a3647d",
+    "crates/magistr-cli/src/agent/session_supervisor/owner.rs": "949cd8b7950ba866553f0aa47d328099b4684159cf6a21b57926afe8fc077ecc",
     "crates/magistr-cli/src/agent/session_supervisor/control.rs": "a1aef468a8a7802da54919ef2bc430bdb46d9879440649079452ab366b803b3c",
-    "crates/magistr-cockpit-runtime/src/interactive_session.rs": "74f1c5c8721d2f59f653985961ac7e3806f46a3cb978a582e4e08ea97bec3154",
-    "crates/magistr-cockpit-runtime/src/session.rs": "9e1b744894c75cc1f5a5ef16159d0233e1468b5fd96669c4d4ccdc9008786580",
-    "crates/magistr-application/src/sessions/session_handle.rs": "7ba63c791e7af40404cc921bc4acdaa17b644926d6dbcaab0f1ea65ffefdfa69",
+    "crates/magistr-cockpit-runtime/src/interactive_session.rs": "c0294e431e2af50d2f9b6a373d1c1769817612fe598588cc28e3f4570b246257",
+    "crates/magistr-cockpit-runtime/src/session.rs": "db926188217672ef3fd896844490204e29f6246b72d26a5b54d1bab7357b8b1e",
+    "crates/magistr-application/src/sessions/session_handle.rs": "10f906970523e8edc1a29ce49274747098f5d86efd0a163bcafefb843a412462",
     "crates/magistr-application/src/sessions/conversation.rs": "6342c03145561cf13db48b82ed7a8715d92c688da18908ff8862bc4701d97638",
     "crates/magistr-application/src/sessions/session_config.rs": "752c42bcac3c3c29ac9216693be64b454562995fad27f4c2851d1a189fee8e78",
     "crates/magistr-cli/src/application/session_opening.rs": "a95cf41c57c0a6913a0eb5828e1f45b59a56bf648c3d71db431c5c272664a7f7",
     "crates/magistr-cli/src/application/saved_conversations.rs": "771db9377f1a69a6f264c7bd5e83989b3d80e0eab6b2218832399ce2dbb124a0",
-    "crates/magistr-cli/src/application/session_admissions.rs": "060eec54b47e6b1fa22b75037ee501f825a90cc3622609f6d1f592efda6bb283",
+    "crates/magistr-cli/src/application/session_admissions.rs": "171ef4c95608ed8771285529486793e0c4bb728438655ff2e5db6d6a909b6447",
     "crates/magistr-cli/src/agent/runtime.rs": "22c6a533078d693195d5f3e60ce6feb8a5e6860205dd9350fb4cfe058d438bab",
     "crates/magistr-cli/src/agent/resolved_session_spec.rs": "1d9c93b52c89255cddfbbf074efdc89f8c9a74ad8f6d856d9b7f4ba5bce6fba7",
     "crates/magistr-acp/src/transport/handshake.rs": "41a9cf2d983bc42c1580a94cfc915c06f3ef6cff948bc8b3db6d5bb9a31714e2",
     "crates/magistr-cli/src/agent/probe.rs": "b5529de9e5d65474fc91fdde778ae95d111091ec36f511f391a9bd85b686d341",
     "crates/magistr-cli/src/orchestration/interactive_session.rs": "9ddf7e221a34d24e10c83e7f2844f74562b847d8a354d4830cf7f24d4f643da8",
     "crates/magistr-cli/src/permissions/session_permission_policy.rs": "e3a86e124e8f32d15f5acf44bf004694d597b79d1da2e5c1c54b25769a0019d3",
-    "crates/magistr-cli/src/agent/translate.rs": "8f7e658fdf37ca8653cab2772615c6c60c2eef29f7628b66634d45235ed6387f",
+    "crates/magistr-cli/src/agent/translate.rs": "4482e63eae2f35d8403c1083a0792913212e8b9d2d503c604e3f3d260642728b",
     "crates/magistr-cli/src/agent/persistence/history.rs": "37f953877d88b083f4422b2db074d427f041e34be63e89a27e9ba50eabaebe2a",
     "crates/magistr-cli/src/agent/persistence/storage.rs": "6be0f4752bf64426ba1e8d48aa90cbd2ac0b25f6aa3793a6c9e2ad7a41dfdb69",
     "crates/magistr-cli/src/agent/persistence/session_record.rs": "27b655fc4a3169b393774b0af4257a80f6b2cafb90b308584841e13b8a2497f9",
-    "crates/magistr-core/src/config/inputs/project_inputs.rs": "80be63f907010a4d7e0ff70f06cfc2c3f57f3a3cb0e331d1136bd29ebba3f857"
+    "crates/magistr-core/src/config/inputs/project_inputs.rs": "80be63f907010a4d7e0ff70f06cfc2c3f57f3a3cb0e331d1136bd29ebba3f857",
+    "crates/magistr-application/src/sessions/prompt_input.rs": "00350a40e5961e8acf20e89c3d55a9c35319ea1fff17d7ffecab3b007a0f0090",
+    "crates/magistr-cli/src/application/session_attachments.rs": "0645a3295913c6e5eab93ce13c72c91df780da484f8291c2c96b362ece92ae54",
+    "crates/magistr-acp/src/transport/prompt_content.rs": "97a68677e2b4b40329c8e357e5ca62519f21fda3f5fab1378601d45f70362376",
+    "crates/magistr-acp/src/transport/command.rs": "90a5b025a2c22f3a2e8d8d5d9be9eadbc28c3eb273413cb7efda61e8ea6bf9e4",
+    "crates/magistr-acp/src/transport/command_loop.rs": "39905d384740dfe5d1ec93b78cbad2451e247e887b896c2464a2570582450f18",
+    "crates/magistr-acp/src/transport/sender.rs": "acac3fc39e453e3a482594981866ad726ae55a72776af60734407fb15ebb1042",
+    "crates/magistr-acp/src/transport/mod.rs": "d6c0ea1575b6165272936bc420e949298836438b2dc32327c40bcb6d20d2b1cc",
+    "crates/magistr-workspace/src/query/source_access.rs": "a0f0071f385ee432152840eeb07446ac9ac88fbbcb1f2ff9de5859d5e3478eda",
+    "crates/magistr-workspace/src/query/source_observation.rs": "1ea56c3d85458476326f32309a66b1848167347e054e3fa35838c0e6318092e6",
+    "crates/magistr-workspace/src/service/workspace_service.rs": "1e6da5dd0eb5c759f854a9a72db7740dc269acdb6c0ff0e05418c38f49091f03"
   }
 }

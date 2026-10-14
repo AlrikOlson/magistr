@@ -16,11 +16,37 @@ import tempfile
 import time
 from session_controls_fixture import start_api, peer_script
 from rich_conversation_journey import exercise_rich_conversation
+from attachment_journey import exercise_attachments
 
 ROOT = Path(__file__).resolve().parents[3]
 SOURCE = ROOT / "crates/magistr-desktop"
 def run(*args, **kwargs):
     return subprocess.run(list(map(str,args)), check=True, capture_output=True, text=True, timeout=kwargs.pop("timeout",30), **kwargs)
+def finish_fixture(process, log, log_path, call, front):
+    primary_error=sys.exc_info()[1]
+    errors=[]
+    try:
+        if process.poll() is None:
+            call("quit",process.pid,failure_prefix="cleanup" if primary_error else "failure")
+        code=process.wait(timeout=12)
+        assert code==0,("Native Quit exit",code,log_path.read_text()[-3000:])
+    except Exception as error:
+        errors.append(error)
+        try:
+            if process.poll() is None:process.terminate()
+            try:process.wait(timeout=12)
+            except subprocess.TimeoutExpired:
+                process.kill();process.wait(timeout=5)
+        except Exception as settlement:
+            errors.append(settlement)
+    finally:
+        log.close()
+        try:call("restore-front",front)
+        except Exception as error:errors.append(error)
+    if errors:
+        if primary_error is None:raise errors[0]
+        print("Native cleanup after failure:",repr(errors),file=sys.stderr)
+
 def project(path, name):
     (path/".magistr").mkdir(parents=True)
     (path/".magistr/project.json").write_text(json.dumps({
@@ -36,7 +62,7 @@ def project(path, name):
     run("git","-C",path,"add",".")
     run("git","-C",path,"-c","user.name=Native Journey","-c","user.email=journey@example.invalid","commit","-m","fixture")
 def source_hashes():
-    files = sorted([*SOURCE.glob("src/*.rs"),*SOURCE.glob("ui/*"),*SOURCE.glob("tests/rich_conversation*"),SOURCE/"Cargo.toml",SOURCE/"Cargo.lock",SOURCE/"build.rs",SOURCE/"tauri.conf.json",SOURCE/"tests/native_window.py",SOURCE/"tests/native_window.swift",SOURCE/"tests/session_controls_fixture.py"])
+    files = sorted([*SOURCE.glob("src/*.rs"),*SOURCE.glob("ui/*"),*SOURCE.glob("tests/rich_conversation*"),*SOURCE.glob("tests/attachment*"),SOURCE/"Cargo.toml",SOURCE/"Cargo.lock",SOURCE/"build.rs",SOURCE/"tauri.conf.json",SOURCE/"tests/native_window.py",SOURCE/"tests/native_window.swift",SOURCE/"tests/session_controls_fixture.py"])
     files.extend(ROOT/path for path in (
         "crates/magistr-application/src/sessions/event.rs",
         "crates/magistr-application/src/sessions/session_activity.rs",
@@ -76,6 +102,16 @@ def source_hashes():
         "crates/magistr-cli/src/agent/persistence/storage.rs",
         "crates/magistr-cli/src/agent/persistence/session_record.rs",
         "crates/magistr-core/src/config/inputs/project_inputs.rs",
+        "crates/magistr-application/src/sessions/prompt_input.rs",
+        "crates/magistr-cli/src/application/session_attachments.rs",
+        "crates/magistr-acp/src/transport/prompt_content.rs",
+        "crates/magistr-acp/src/transport/command.rs",
+        "crates/magistr-acp/src/transport/command_loop.rs",
+        "crates/magistr-acp/src/transport/sender.rs",
+        "crates/magistr-acp/src/transport/mod.rs",
+        "crates/magistr-workspace/src/query/source_access.rs",
+        "crates/magistr-workspace/src/query/source_observation.rs",
+        "crates/magistr-workspace/src/service/workspace_service.rs",
     ))
     return {str(path.relative_to(ROOT)):hashlib.sha256(path.read_bytes()).hexdigest() for path in files if path.is_file()}
 
@@ -87,21 +123,38 @@ def main():
     binary=args.binary.resolve()
     evidence=args.evidence.resolve();evidence.mkdir(parents=True,exist_ok=True)
     driver=evidence/"driver"
-    try:run("swiftc","-parse-as-library",SOURCE/"tests/native_window.swift",SOURCE/"tests/rich_conversation.swift","-o",driver,timeout=60)
+    try:run("swiftc","-parse-as-library",SOURCE/"tests/native_window.swift",SOURCE/"tests/rich_conversation.swift",SOURCE/"tests/attachment.swift","-o",driver,timeout=60)
     except subprocess.CalledProcessError as error:
         print(error.stderr,file=sys.stderr);raise
-    def call(mode,*values):
-        try:result=run(driver,mode,*values)
+    def call(mode,*values,failure_prefix="failure"):
+        command=list(map(str,(driver,mode,*values)))
+        process=subprocess.Popen(command,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
+        stamp=str(time.time_ns());samples={}
+        try:
+            try:output,diagnostic=process.communicate(timeout=30)
+            except subprocess.TimeoutExpired:
+                # Sample both sides before terminating the observer: AX calls may
+                # be waiting on the app or traversing a native menu themselves.
+                if values and mode not in ("environment","restore-front"):
+                    for label,target in (("observer",process.pid),("app",values[0])):
+                        path=evidence/(stamp+"-"+failure_prefix+"-"+label+"-sample.txt")
+                        try:run("sample",target,1,1,"-file",path,timeout=5);samples[label]=path.name
+                        except (subprocess.CalledProcessError,subprocess.TimeoutExpired) as error:samples[label]=str(error)
+                process.kill();output,diagnostic=process.communicate()
+                raise subprocess.TimeoutExpired(command,30,output=output,stderr=diagnostic)
+            if process.returncode:
+                raise subprocess.CalledProcessError(process.returncode,command,output=output,stderr=diagnostic)
+            result=subprocess.CompletedProcess(command,process.returncode,output,diagnostic)
         except (subprocess.CalledProcessError,subprocess.TimeoutExpired) as error:
             print(error.stderr,file=sys.stderr)
             if values and mode not in ("environment","restore-front"):
-                stamp=str(time.time_ns());failure={"timestamp_ns":stamp,"mode":mode,"pid":str(values[0]),"error":str(error.stderr)}
-                for operation,name in (("ax","failure-ax.json"),("screenshot","failure.png")):
+                failure={"timestamp_ns":stamp,"mode":mode,"pid":str(values[0]),"error":str(error),"stderr":error.stderr,"samples":samples}
+                for operation,name in (("ax",failure_prefix+"-ax.json"),("screenshot",failure_prefix+".png")):
                     try:
                         run(driver,operation,values[0],evidence/name,timeout=10)
                         shutil.copy2(evidence/name,evidence/(stamp+"-"+name))
                     except (subprocess.CalledProcessError,subprocess.TimeoutExpired) as capture:failure[operation]=str(capture)
-                (evidence/"failure-driver.json").write_text(json.dumps(failure,indent=2))
+                (evidence/(failure_prefix+"-driver.json")).write_text(json.dumps(failure,indent=2))
             if mode=="activate" and values:
                 try:run("sample",values[0],1,1,"-file",evidence/"startup-failure-sample.txt",timeout=5)
                 except (subprocess.CalledProcessError,subprocess.TimeoutExpired):pass
@@ -132,11 +185,12 @@ def main():
         refuse_load=parent/"refuse-load"
         api=start_api()
         rich=parent/"rich";rich.mkdir()
+        attachments=parent/"attachments";attachments.mkdir()
         rich_link=f"http://127.0.0.1:{api.server_port}/rich-link/{time.time_ns()}"
         # WebKit requires the real macOS home for its GPU process. Isolate the
         # application's settings/history through their supported XDG/Magistr roots.
         env=dict(os.environ,PATH=str(tools)+os.pathsep+os.environ["PATH"],XDG_DATA_HOME=str(parent/"data"),XDG_CONFIG_HOME=str(parent/"config"),MAGISTR_HOME=str(parent/"state"),MAGISTR_WORKSPACE_NETWORK="0",JOURNEY_PEERS=str(peers),JOURNEY_REFUSE_LOAD=str(refuse_load),OPENAI_API_KEY="native-fixture",OPENAI_BASE_URL="http://127.0.0.1:"+str(api.server_port),RUST_LOG="info")
-        env.update(JOURNEY_RICH=str(rich),JOURNEY_RICH_LINK=rich_link)
+        env.update(JOURNEY_RICH=str(rich),JOURNEY_RICH_LINK=rich_link,JOURNEY_ATTACHMENTS=str(attachments))
         started=time.monotonic()
         log_path=evidence/"launch.log"
         log=log_path.open("w")
@@ -262,7 +316,8 @@ def main():
             call("screenshot",pid,evidence/"agent-choice.png")
             call("press",pid,"Choose model…")
             wait("initial model choices come from the selected agent",text_has("Initial model"))
-            call("press",pid,"Initial model");call("press",pid,"Scripted (fast)")
+            results["initial_model_picker"]=call("choose-option",pid,"New conversation","Initial model","Scripted (fast)")
+            wait("native initial model picker commits before admission",lambda tree:any(r.get("AXRole")=="AXPopUpButton" and r.get("AXTitle")=="Initial model" and r.get("AXValue")=="Scripted (fast)" for r in tree))
             call("press",pid,"Start conversation")
             wait("second resident session",text_has("First project session 4"))
             draft("Second draft")
@@ -380,6 +435,7 @@ def main():
             wait("saved conversation resumes its exact provider context",lambda tree:text_has("Release review")(tree) and text_has("resumed ")(tree) and any(r.get("AXRole")=="AXTextArea" and r.get("enabled") for r in tree))
             send("after saved reopen")
             wait("saved model and name remain with resumed conversation",lambda tree:text_has("[scripted-slow] echo: after saved reopen")(tree) and text_has("Release review")(tree))
+            exercise_attachments(call=call,pid=pid,evidence=evidence,results=results,send=send,draft=draft,wait=wait,text_has=text_has,rows=rows,directory=second,control=attachments)
             exercise_rich_conversation(call=call,pid=pid,evidence=evidence,results=results,send=send,wait=wait,text_has=text_has,rows=rows,directory=second,control=rich,link=rich_link,api=api)
             choose_theme("dark",1);choose_theme("light",2)
             call("resize",pid,800,680);call("screenshot",pid,evidence/"narrow.png")
@@ -405,18 +461,7 @@ def main():
             wait("closed session returns to another resident",text_has("Conversation"))
             assert len(list(peers.glob("*.json")))>=5
         finally:
-            if process.poll() is None:
-                try:call("quit",pid)
-                except subprocess.CalledProcessError:process.terminate()
-            code=process.wait(timeout=12);log.close()
-            assert code==0,("Native Quit exit",code,log_path.read_text()[-3000:])
-            deadline=time.monotonic()+12
-            while time.monotonic()<deadline:
-                try:os.kill(pid,0)
-                except ProcessLookupError:break
-                time.sleep(.1)
-            else:raise AssertionError("Desktop did not settle after Quit")
-            call("restore-front",front)
+            finish_fixture(process,log,log_path,call,front)
         for path in peers.glob("*.json"):
             child=json.loads(path.read_text())["pid"]
             try:os.kill(child,0)
@@ -462,9 +507,7 @@ def main():
                 call("press",pid,"Cancel")
                 wait(label+" returns to chooser",text_has("Choose a folder…"))
             finally:
-                if process.poll() is None:call("quit",pid)
-                assert process.wait(timeout=12)==0,log_path.read_text()[-3000:]
-                log.close()
+                finish_fixture(process,log,log_path,call,front)
         assert not (launch_new/".magistr").exists(),"Explicit new launch is a read-only preview"
         assert (invalid_settings/".magistr/project.json").read_text()=="invalid"
         with sqlite3.connect(database) as history:

@@ -31,6 +31,13 @@ pub struct RetainedObservation {
 impl RetainedObservation {
     pub(super) fn new(sequence: u64, message: Msg) -> Self {
         let message = match message {
+            Msg::Agent(AgentEvent::PromptRejected { error, .. })
+            | Msg::CommandFailed {
+                cmd:
+                    magistr_cockpit::cockpit::Cmd::Prompt(_)
+                    | magistr_cockpit::cockpit::Cmd::RoadmapPrompt(_),
+                error,
+            } => Msg::Agent(AgentEvent::Notice(error)),
             Msg::Agent(AgentEvent::ToolCall {
                 id,
                 title,

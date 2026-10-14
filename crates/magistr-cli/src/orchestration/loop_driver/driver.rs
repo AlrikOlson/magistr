@@ -106,7 +106,7 @@ pub struct LoopDriver {
     keep_open: bool,
     choosing_track: bool,
     session_active: bool,
-    roadmap_request: Option<String>,
+    roadmap_request: Option<magistr_application::sessions::PromptInput>,
     goal: GoalMode,
     goal_note: Option<String>,
     judge: Option<Arc<dyn Judge>>,
@@ -1266,7 +1266,9 @@ impl LoopDriver {
             Delivery::Command { name } => {
                 let turn = AgentGoal::command_turn(name, objective);
                 self.note(format!("goal → {turn}"));
-                session.send(Cmd::Prompt(turn)).map_err(|e| e.to_string())?;
+                session
+                    .send(Cmd::Prompt(turn.into()))
+                    .map_err(|e| e.to_string())?;
             }
         }
         let echo_deadline = tokio::time::Instant::now() + self.echo_timeout;
@@ -1402,7 +1404,7 @@ impl LoopDriver {
                         }
                     }
                 }
-                let _ = session.send(Cmd::Prompt(AgentGoal::command_clear_turn(name)));
+                let _ = session.send(Cmd::Prompt(AgentGoal::command_clear_turn(name).into()));
             }
         }
         tokio::time::sleep(CLEAR_GRACE).await;
@@ -2404,7 +2406,7 @@ impl LoopDriver {
             Wake::Cmd(Cmd::Quit) => Wake::Closed,
             Wake::Cmd(Cmd::Prompt(text)) if !self.session_active => {
                 let rejection = Msg::Agent(AgentEvent::PromptRejected {
-                    text,
+                    input: text,
                     error: "No agent is ready for a message right now. Your draft is kept."
                         .to_owned(),
                 });
@@ -2417,7 +2419,7 @@ impl LoopDriver {
                     self.inbox.send(Msg::RoadmapRequestQueued);
                 } else {
                     self.inbox.send(Msg::Agent(AgentEvent::PromptRejected {
-                        text,
+                        input: text,
                         error: "A roadmap request is already waiting. Cancel it before sending another.".to_owned(),
                     }));
                 }

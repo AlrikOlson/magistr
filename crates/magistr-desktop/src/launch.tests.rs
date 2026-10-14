@@ -8,7 +8,13 @@ fn the_bundled_page_contains_the_chooser_and_its_modules() {
         .get(&"index.html".into())
         .expect("bundled page");
     assert!(String::from_utf8_lossy(&page).contains("Choose a folder"));
-    for path in ["app.mjs", "projects.mjs", "selection.mjs", "style.css"] {
+    for path in [
+        "app.mjs",
+        "attachments.mjs",
+        "projects.mjs",
+        "selection.mjs",
+        "style.css",
+    ] {
         assert!(
             context.assets().get(&path.into()).is_some(),
             "missing bundled {path}"

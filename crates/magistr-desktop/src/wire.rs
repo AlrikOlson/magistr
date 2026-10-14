@@ -1,5 +1,6 @@
 //! The desktop's bounded, typed view of application observations and their identity.
 use crate::content::{Observation, observation};
+use base64::Engine as _;
 use magistr::application::{SessionCatalog, SessionSnapshot, SessionSummary};
 use magistr_application::sessions::{AgentEvent, PermissionKind};
 use magistr_cockpit::cockpit::Msg;
@@ -17,6 +18,7 @@ pub(crate) struct Frame {
     pub(crate) retained: Vec<u64>,
     pub(crate) pending: Vec<Request>,
     pub(crate) draft: String,
+    pub(crate) attachments: Vec<Attachment>,
     pub(crate) status: String,
     pub(crate) model: Option<String>,
     pub(crate) usage: Option<Usage>,
@@ -65,23 +67,79 @@ impl From<&magistr_application::sessions::SessionConfig> for Configuration {
 pub(crate) struct Admission {
     sequence: u64,
     text: String,
+    attachments: Vec<AttachmentIdentity>,
     accepted: bool,
 }
-fn admission(sequence: u64, message: &Msg) -> Option<Admission> {
-    let (text, accepted) = match message {
-        Msg::InputAccepted(text) => (text, true),
-        Msg::Agent(AgentEvent::PromptRejected { text, .. })
-        | Msg::CommandFailed {
-            cmd: magistr_cockpit::cockpit::Cmd::Prompt(text),
-            ..
-        } => (text, false),
-        _ => return None,
-    };
-    Some(Admission {
-        sequence,
-        text: text.clone(),
-        accepted,
-    })
+
+#[derive(Serialize)]
+struct AttachmentIdentity {
+    id: String,
+    name: String,
+    content_hash: String,
+}
+
+#[derive(Serialize)]
+pub(crate) struct Attachment {
+    pub(crate) id: String,
+    name: String,
+    content_hash: String,
+    path: Option<String>,
+    size: usize,
+    mime_type: Option<&'static str>,
+    preview: Option<String>,
+    excerpt: Option<String>,
+}
+
+impl Attachment {
+    fn from_staged(file: &magistr::application::StagedAttachment, seen: &[String]) -> Self {
+        Self::from_content(file.content(), file.path(), seen)
+    }
+
+    fn from_content(
+        content: &magistr_application::sessions::PromptAttachment,
+        path: Option<&str>,
+        seen: &[String],
+    ) -> Self {
+        let id = content.id();
+        let fresh = !seen.iter().any(|seen| seen == id);
+        Self {
+            id: id.into(),
+            name: content.name().into(),
+            content_hash: content.content_hash().into(),
+            path: path.map(str::to_owned),
+            size: content.bytes().len(),
+            mime_type: content.mime_type(),
+            preview: content.mime_type().filter(|_| fresh).map(|mime| {
+                format!(
+                    "data:{mime};base64,{}",
+                    base64::engine::general_purpose::STANDARD.encode(content.bytes())
+                )
+            }),
+            excerpt: content
+                .text()
+                .filter(|_| fresh)
+                .map(|text| text.chars().take(240).collect()),
+        }
+    }
+}
+impl From<&magistr::application::SubmissionAdmission> for Admission {
+    fn from(admission: &magistr::application::SubmissionAdmission) -> Self {
+        Self {
+            sequence: admission.sequence,
+            text: admission.input.text.clone(),
+            attachments: admission
+                .input
+                .attachments
+                .iter()
+                .map(|file| AttachmentIdentity {
+                    id: file.id.clone(),
+                    name: file.name.clone(),
+                    content_hash: file.content_hash.clone(),
+                })
+                .collect(),
+            accepted: admission.accepted,
+        }
+    }
 }
 #[derive(Serialize)]
 pub(crate) struct Request {
@@ -205,6 +263,7 @@ impl Frame {
         stream: u64,
         snapshot: &SessionSnapshot,
         seen: Option<u64>,
+        attachments_seen: &[String],
     ) -> Self {
         let incremental = seen.and_then(|at| snapshot.since(at));
         let reseed = incremental.is_none();
@@ -227,6 +286,11 @@ impl Frame {
             retained: snapshot.messages.iter().map(|record| record.id).collect(),
             pending,
             draft: snapshot.seed.draft.clone().unwrap_or_default(),
+            attachments: snapshot
+                .attachments
+                .iter()
+                .map(|file| Attachment::from_staged(file, attachments_seen))
+                .collect(),
             status,
             model,
             usage,
@@ -239,10 +303,11 @@ impl Frame {
                 .map(Configuration::from)
                 .collect(),
             admissions: snapshot
-                .messages
-                .iter()
-                .filter(|record| record.sequence > seen.unwrap_or(0))
-                .filter_map(|record| admission(record.sequence, &record.message))
+                .admission
+                .as_ref()
+                .filter(|admission| admission.sequence > seen.unwrap_or(0))
+                .map(Admission::from)
+                .into_iter()
                 .collect(),
         }
     }

@@ -1,4 +1,5 @@
 // Native selection and reading position belong to this semantic document view.
+import { AttachmentList } from "./attachments.mjs";
 const tags=new Set(["p","h1","h2","h3","h4","h5","h6","blockquote","pre","ol","ul","li","em","strong","s","a","span","code","hr","br"]);
 const element=(document,tag,value="")=>{const node=document.createElement(tag);node.textContent=value;return node;};
 export function selectedWithin(selection,node) {
@@ -113,10 +114,15 @@ export class Transcript {
     if(message.tool) {
       row.details=element(this.document,"details");row.summary=element(this.document,"summary");row.body=element(this.document,"div");row.body.className="tool-body";
       row.details.append(row.summary,row.body);article.append(row.details);
-    } else {row.body=element(this.document,"div");row.body.className="message-body";article.append(row.body);}
+    } else {
+      row.body=element(this.document,"div");row.body.className="message-body";article.append(row.body);
+      const files=element(this.document,"div");files.className="attachments";files.setAttribute("role","list");files.setAttribute("aria-label","Attached files");article.append(files);
+      row.attachments=new AttachmentList(files);
+    }
     return row;
   }
   update(row,message) {
+    row.copy.disabled=!message.text;
     if(message.tool) {
       const tool=message.tool;
       row.summary.textContent=tool.title+" · "+tool.status;
@@ -138,6 +144,7 @@ export class Transcript {
       if(tool.duration_ms!==null)row.body.append(element(this.document,"p","Duration: "+(tool.duration_ms/1000).toLocaleString(undefined,{maximumFractionDigits:2})+" seconds."));
       if(tool.image_count)row.body.append(element(this.document,"p",tool.image_count+" image"+(tool.image_count===1?"":"s")+" attached."));
     } else {
+      row.attachments.apply(message.attachments??[]);
       const nodes=message.document?.nodes??[{tag:"p",text:message.text,children:[],start:0}];
       renderDocument(row.body,nodes,this.openLink);
       for(const block of row.body.children)block.dataset.reading=message.id+":"+block.dataset.source;

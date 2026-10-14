@@ -26,6 +26,15 @@ unsafe links stay text and remote Markdown images make no request. The rich
 accessibility and observation records retain those measurements alongside the
 light, dark and narrow captures.
 
+The attachment journey selects real project files in the native picker, cancels
+selection, pastes an image from the native clipboard and drops a native file URL.
+It checks exact PNG bytes and complete CRLF/Unicode text at the ACP peer,
+revalidates changed and missing files, refuses oversized or unsupported content,
+and preserves pending files through switching, Stop and negotiated image refusal.
+The file list exposes previews and removal in light, dark and narrow windows.
+Selection IDs distinguish an identical file chosen again from an earlier request;
+source preparation participates in the addressed session's cancellation.
+
 The attention capture shows concurrent waiting and working agents with the
 selected draft. Light, dark and narrow conversation screenshots, chooser appearances, setup review, partial results, unavailable-agent guidance, agent/model selection, named conversation controls, saved summaries and refused resume are reviewed
 against their hashes in `review.json`. The receipt names interface and shared session-owner and observer source hashes.

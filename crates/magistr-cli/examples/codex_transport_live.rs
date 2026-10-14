@@ -113,7 +113,7 @@ async fn exercise(transport: &mut AcpTransport, cwd: &Path) -> eyre::Result<()> 
         .await?;
     transport.prompt(&format!(
         "In the current directory run exactly this shell command once: {COMMAND}.          Use your command execution tool. Do not use apply_patch or any other tool.          Do not inspect other files or call MCP servers. Then reply with exactly: verified"
-    ))?;
+    ).into())?;
     let mut approved_tool: Option<String> = None;
     let mut completed_tool = false;
     let mut streamed = false;
