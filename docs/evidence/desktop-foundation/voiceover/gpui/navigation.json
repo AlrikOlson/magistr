@@ -1,0 +1,60 @@
+{
+  "steps" : [
+    {
+      "caption" : "× Source review • Review branch, button",
+      "flags" : 786432,
+      "image" : "navigation-0.png",
+      "key" : 124,
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "× Source review • Review branch, button",
+      "flags" : 786432,
+      "image" : "navigation-1.png",
+      "key" : 49,
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "× Out of Projects and sessions, group",
+      "flags" : 917504,
+      "image" : "navigation-2.png",
+      "key" : 126,
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "× Start work, button",
+      "flags" : 786432,
+      "image" : "navigation-3.png",
+      "key" : 124,
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "X Interact with the title of button",
+      "flags" : 917504,
+      "image" : "navigation-4.png",
+      "key" : 125,
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "X Start",
+      "flags" : 786432,
+      "image" : "navigation-5.png",
+      "key" : 124,
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "X Start",
+      "flags" : 786432,
+      "image" : "navigation-6.png",
+      "key" : 49,
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "voiceover_pid" : 98278
+    }
+  ]
+}

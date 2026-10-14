@@ -133,6 +133,7 @@ impl OwnerConnections {
                 OwnerConnectionRecord {
                     attach: hello.attach,
                     caller: hello.caller.clone(),
+                    context: hello.context.clone(),
                 },
             ));
         }
@@ -210,7 +211,11 @@ impl OwnerConnections {
         Ok(())
     }
 
-    fn admit(&self, stream: &LocalStream, hello: &Hello) -> Result<(), AttachRefusal> {
+    fn admit(
+        &self,
+        stream: &LocalStream,
+        hello: &Hello,
+    ) -> Result<Option<NativeEngines>, AttachRefusal> {
         self.admit_peer(stream)?;
         // The protocol version was decided when the line was parsed
         // (`Hello::parse`); a `Hello` that reaches here speaks this one.
@@ -222,6 +227,26 @@ impl OwnerConnections {
             self.build.admits(&hello.build)?;
         }
         self.identity.admit(&hello.identity)?;
+        if let Some(authority) = &self._authority
+            && hello.attach != AttachKind::Probe
+        {
+            let context = hello.context.as_ref().ok_or_else(|| {
+                AttachRefusal::Caller("Choose the working copy for this work.".into())
+            })?;
+            let location = super::ProjectLocation::resolve(&context.working_copy)
+                .map_err(|e| AttachRefusal::Caller(e.to_string()))?;
+            let owner = super::ProjectLocation::resolve(authority.config().project_root())
+                .map_err(|e| AttachRefusal::Caller(e.to_string()))?;
+            if location.authority_root != owner.authority_root
+                || context.working_copy != location.working_copy
+            {
+                return Err(AttachRefusal::Caller(
+                    "This working copy belongs to another project.".into(),
+                ));
+            }
+            super::ExecutionContext::new(&context.working_copy, &context.execution_id)
+                .map_err(|e| AttachRefusal::Caller(e.to_string()))?;
+        }
         let offered = match hello.attach {
             AttachKind::Mcp => self.mcp.is_some(),
             AttachKind::Commands => self.engines.is_some(),
@@ -230,7 +255,20 @@ impl OwnerConnections {
         if !offered {
             return Err(AttachRefusal::Unsupported(hello.attach));
         }
-        Ok(())
+        if hello.attach == AttachKind::Probe {
+            return Ok(None);
+        }
+        self.engines
+            .as_ref()
+            .map(|engines| {
+                let context = hello.context.as_ref().ok_or_else(|| {
+                    AttachRefusal::Caller("Choose the working copy for this work.".into())
+                })?;
+                engines
+                    .for_working_copy(&context.working_copy, &context.execution_id)
+                    .map_err(|error| AttachRefusal::Caller(error.to_string()))
+            })
+            .transpose()
     }
 }
 
@@ -252,13 +290,17 @@ async fn serve_connection(
     // A well-formed line of another protocol version is answered, not
     // dropped: the client learns which version is served. Anything that is
     // not a `Hello` at all gets no greeting.
+    let mut engines = None;
     let (hello, greeting) = match Hello::parse(&line) {
         Ok(hello) => {
             let greeting = match owner.admit(&stream, &hello) {
-                Ok(()) => Greeting::Welcome {
-                    generation: owner.generation,
-                    owner_pid: std::process::id(),
-                },
+                Ok(bound) => {
+                    engines = bound;
+                    Greeting::Welcome {
+                        generation: owner.generation,
+                        owner_pid: std::process::id(),
+                    }
+                }
                 Err(refusal) => Greeting::Refused(refusal),
             };
             (Some(hello), greeting)
@@ -290,7 +332,7 @@ async fn serve_connection(
             let acceptor = owner.mcp.clone();
             drop(owner);
             if let Some(acceptor) = acceptor {
-                acceptor(stream, stop).await;
+                acceptor(stream, stop, engines).await;
             }
             drop(session);
         }
@@ -299,7 +341,7 @@ async fn serve_connection(
             drop(owner);
             tokio::select! {
                 _ = stop.cancelled() => {},
-                _ = command_loop(stream, shared) => {},
+                _ = command_loop(stream, shared, engines) => {},
             }
             drop(session);
         }
@@ -337,7 +379,11 @@ async fn write_line<T: serde::Serialize>(
     writer.flush().await
 }
 
-async fn command_loop(stream: LocalStream, shared: Weak<OwnerConnections>) -> io::Result<()> {
+async fn command_loop(
+    stream: LocalStream,
+    shared: Weak<OwnerConnections>,
+    engines: Option<NativeEngines>,
+) -> io::Result<()> {
     let (read, mut write) = tokio::io::split(stream);
     let mut lines = BufReader::new(read).lines();
     while let Some(line) = lines.next_line().await? {
@@ -358,7 +404,7 @@ async fn command_loop(stream: LocalStream, shared: Weak<OwnerConnections>) -> io
             Err(CommandRefusal::StaleGeneration {
                 current: owner.generation,
             })
-        } else if let Some(engines) = &owner.engines {
+        } else if let Some(engines) = &engines {
             engines.apply(*command).map_err(CommandRefusal::Engine)
         } else {
             Err(CommandRefusal::Engine(

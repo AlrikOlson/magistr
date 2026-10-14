@@ -13,7 +13,7 @@ use crate::types::ProjectConfig;
 ///
 /// Returns `None` if no `.magistr/project.json` exists or it can't be parsed.
 pub fn build_system_prompt(project_dir: &Path) -> Option<String> {
-    let config_path = crate::paths::project_json(project_dir);
+    let config_path = crate::paths::project_json(project_dir).ok()?;
     let content = std::fs::read_to_string(&config_path).ok()?;
     let config: ProjectConfig = serde_json::from_str(&content).ok()?;
 

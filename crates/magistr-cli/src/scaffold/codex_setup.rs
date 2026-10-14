@@ -107,7 +107,7 @@ impl CodexSetup {
     }
 
     pub(super) fn native_only(dir: &Path) -> Result<bool> {
-        let path = crate::paths::project_json(dir);
+        let path = crate::paths::project_json(dir)?;
         let content = match std::fs::read_to_string(&path) {
             Ok(s) => s,
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(false),
@@ -319,7 +319,7 @@ impl CodexSetup {
 
     /// Refuse symlinks and nonregular targets, including ancestor directories.
     pub(super) fn read(dir: &Path, relative: &str) -> Result<Option<String>> {
-        let mut path = dir.to_path_buf();
+        let mut path = super::target_root::target_root(dir, relative)?;
         let mut parts = Path::new(relative).components().peekable();
         while let Some(part) = parts.next() {
             let Component::Normal(name) = part else {

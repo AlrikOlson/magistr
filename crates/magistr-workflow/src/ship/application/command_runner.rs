@@ -1,5 +1,6 @@
 //! Asynchronous command execution outside the native state lock.
 
+use std::path::Path;
 use std::time::Duration;
 
 use magistr_process::{Launch, OwnedProcess, ProcessSpec, Termination};
@@ -29,18 +30,19 @@ pub(crate) const CHECK_TIMEOUT_SECS: u64 = 900;
 /// How long the group gets after `SIGTERM` before `SIGKILL` on a timeout.
 const KILL_GRACE: Duration = Duration::from_secs(5);
 
-/// Run a check command in the server's working directory (the project dir),
+/// Run a check command in its admitted workspace, when source was observed,
 /// capturing exit code + a tail of combined stdout/stderr. The command is the
 /// caller's own string and runs through the platform shell so `&&`, pipes,
 /// and args work as written — Magistr's owned-process mechanism supplies the
 /// group, the cap and the kill; it never grants the line the workspace's
 /// declared-command admission. Dropping the future mid-run kills the child.
-pub(crate) async fn run_check_command(cmd: &str) -> CommandOutcome {
-    let spec = ProcessSpec::new(
+pub(crate) async fn run_check_command(cmd: &str, cwd: Option<&Path>) -> CommandOutcome {
+    let mut spec = ProcessSpec::new(
         Launch::Shell(cmd.to_owned()),
         Duration::from_secs(CHECK_TIMEOUT_SECS),
     )
     .with_termination(Termination::Graceful { grace: KILL_GRACE });
+    spec.cwd = cwd.map(Path::to_path_buf);
     let process = match OwnedProcess::spawn(spec) {
         Ok(process) => process,
         Err(error) => return launch_failed(cmd, &error.to_string()),
@@ -101,9 +103,13 @@ pub(crate) fn tail_chars(s: &str) -> String {
 impl ShipUseCases {
     pub async fn execute_check(admission: &CheckAdmission) -> CheckOutcome {
         let request = &admission.request;
+        let cwd = admission
+            .source
+            .as_ref()
+            .map(|source| Path::new(&source.workspace_root));
         let (passed, details, verified, command, exit_code, execution) = match &request.command {
             Some(command) => {
-                let outcome = run_check_command(command).await;
+                let outcome = run_check_command(command, cwd).await;
                 let details = if request.details.is_empty() {
                     outcome.output_tail
                 } else {
@@ -129,7 +135,10 @@ impl ShipUseCases {
         };
         let (report, results) = match &request.report {
             Some((format, path)) => {
-                let (record, results) = crate::ship::report::read_report(format, path);
+                let path =
+                    cwd.map_or_else(|| Path::new(path).to_path_buf(), |root| root.join(path));
+                let (record, results) =
+                    crate::ship::report::read_report(format, &path.to_string_lossy());
                 (Some(record), results)
             }
             None => (None, None),
@@ -146,3 +155,7 @@ impl ShipUseCases {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "command_runner.tests.rs"]
+mod tests;

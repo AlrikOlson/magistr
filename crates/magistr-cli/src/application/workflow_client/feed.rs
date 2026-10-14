@@ -36,19 +36,24 @@ const RETRY: std::time::Duration = std::time::Duration::from_millis(300);
 /// the feed posts `Waiting` once and stays that way until the loop is
 /// gone — the same absent-feed mode a bind failure leaves behind, so
 /// the cockpit runs on its periodic re-seed alone.
-pub fn spawn_feed(socket: PathBuf, inbox: Inbox, link: FeedLink) -> JoinHandle<()> {
-    tokio::spawn(feed(socket, inbox, link))
+pub fn spawn_feed(
+    socket: PathBuf,
+    execution_key: String,
+    inbox: Inbox,
+    link: FeedLink,
+) -> JoinHandle<()> {
+    tokio::spawn(feed(socket, execution_key, inbox, link))
 }
 
 #[cfg(not(unix))]
-async fn feed(_socket: PathBuf, inbox: Inbox, _link: FeedLink) {
+async fn feed(_socket: PathBuf, _execution_key: String, inbox: Inbox, _link: FeedLink) {
     if post(&inbox, FeedStatus::Waiting) {
         inbox.closed().await;
     }
 }
 
 #[cfg(unix)]
-async fn feed(socket: PathBuf, inbox: Inbox, link: FeedLink) {
+async fn feed(socket: PathBuf, execution_key: String, inbox: Inbox, link: FeedLink) {
     use magistr_engine::FeedCursor;
     use tokio::net::UnixStream;
 
@@ -67,7 +72,8 @@ async fn feed(socket: PathBuf, inbox: Inbox, link: FeedLink) {
             // Whatever was emitted before this client was registered is
             // gone; the store has it.
             link.request_snapshot();
-            let held = post(&inbox, status) && relay(stream, &inbox, &link, &mut cursor).await;
+            let held = post(&inbox, status)
+                && relay(stream, &execution_key, &inbox, &link, &mut cursor).await;
             link.set(false);
             if !held {
                 return;
@@ -92,6 +98,7 @@ fn post(inbox: &Inbox, status: FeedStatus) -> bool {
 #[cfg(unix)]
 async fn relay(
     stream: tokio::net::UnixStream,
+    execution_key: &str,
     inbox: &Inbox,
     link: &FeedLink,
     cursor: &mut magistr_engine::FeedCursor,
@@ -108,14 +115,18 @@ async fn relay(
         let Ok(Some(line)) = next else {
             return true;
         };
-        let Some((event, at)) = NativeFrame::parse_line(&line).and_then(NativeFrame::decode) else {
+        let Some(frame) = NativeFrame::parse_line(&line) else {
+            continue;
+        };
+        let selected = frame.is_for_execution(execution_key);
+        let Some((event, at)) = frame.decode() else {
             continue;
         };
         let delivery = cursor.accept(at);
         if delivery.needs_snapshot() {
             link.request_snapshot();
         }
-        if !inbox.send(Msg::Engine(EngineEvent::Event { event, delivery })) {
+        if selected && !inbox.send(Msg::Engine(EngineEvent::Event { event, delivery })) {
             return false;
         }
     }

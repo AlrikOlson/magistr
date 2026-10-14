@@ -14,6 +14,9 @@ pub async fn cmd_workspace(
     inputs: &crate::config::inputs::ProjectInputs,
 ) -> eyre::Result<()> {
     match action {
+        WorkspaceAction::WorkingCopy { dir, action } => {
+            workspace_cli::run_working_copy(&dir, action)
+        }
         WorkspaceAction::Serve { dir, config } => {
             crate::workspace_mcp::run_workspace_stdio_server(&inputs.for_project(dir), &config)
                 .await

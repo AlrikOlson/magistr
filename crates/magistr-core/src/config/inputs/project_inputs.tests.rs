@@ -106,8 +106,14 @@ fn user_config_distinguishes_absent_loaded_and_unreadable() {
 fn project_config_distinguishes_absent_loaded_and_invalid() {
     let dir = tempfile::TempDir::new().unwrap();
     let inputs = ProjectInputs::from_lookup(dir.path(), lookup(vec![]));
-    let path = inputs.project_json();
-    assert_eq!(path, dir.path().join(".magistr/project.json"));
+    let path = inputs.project_json().unwrap();
+    assert_eq!(
+        path,
+        dir.path()
+            .canonicalize()
+            .unwrap()
+            .join(".magistr/project.json")
+    );
 
     let absent = inputs.project_config().unwrap();
     assert_eq!(absent.origin, InputOrigin::Absent(path.clone()));
@@ -252,9 +258,9 @@ fn for_project_rebinds_the_root_and_keeps_user_inputs() {
     let inputs = ProjectInputs::from_lookup("/proj", lookup(vec![("HOME", "/home/u")]));
     let other = inputs.for_project("/other");
     assert_eq!(other.project_root(), Path::new("/other"));
-    assert_eq!(
-        other.project_json(),
-        PathBuf::from("/other/.magistr/project.json")
+    assert!(
+        other.project_json().is_err(),
+        "unavailable roots cannot select a settings file"
     );
     assert_eq!(
         other.project_preset_dir(),

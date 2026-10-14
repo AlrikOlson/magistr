@@ -314,7 +314,10 @@ fn prepared(dir: &Path) -> Result<PathBuf, String> {
         .ok()
         .filter(|root| root.is_dir())
         .ok_or_else(|| format!("{} is not a directory.", dir.display()))?;
-    if !crate::paths::project_json(&root).is_file() {
+    if !crate::paths::project_json(&root)
+        .map_err(|error| error.to_string())?
+        .is_file()
+    {
         return Err(format!(
             "{} has no Magistr setup yet. Run `magistr init` there, then open it again.",
             root.display()

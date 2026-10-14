@@ -11,7 +11,7 @@ use crate::mcp_tools::protocol_cap::ProtocolCap;
 pub(crate) async fn serve(service: Arc<WorkspaceService>) -> io::Result<OwnerEndpoint> {
     let root = service.root().to_owned();
     let generation = service.generation().get();
-    let acceptor: McpAcceptor = Arc::new(move |stream, cancel| {
+    let acceptor: McpAcceptor = Arc::new(move |stream, cancel, _context| {
         let service = Arc::clone(&service);
         Box::pin(async move {
             // Construct, never clone, a connection handler: automatic identities

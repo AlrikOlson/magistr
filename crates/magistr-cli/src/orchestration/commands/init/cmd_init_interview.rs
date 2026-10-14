@@ -125,7 +125,7 @@ pub async fn cmd_init_interview(
     .with_agents(agents);
 
     eprintln!("{}", fmt::info("Scaffolding agent configuration..."));
-    let is_new_config = !crate::paths::project_json(&dir).exists();
+    let is_new_config = !crate::paths::project_json(&dir)?.exists();
     let written = pipeline.generate(&dir).suggest()?;
     for path in &written {
         eprintln!("{}", fmt::success(path));
@@ -160,7 +160,9 @@ pub async fn cmd_init_interview(
 
 /// Remove the lifecycle hooks `generate()` wrote into project.json.
 fn strip_lifecycle_hooks(dir: &std::path::Path) {
-    let config_path = crate::paths::project_json(dir);
+    let Ok(config_path) = crate::paths::project_json(dir) else {
+        return;
+    };
     let Ok(content) = std::fs::read_to_string(&config_path) else {
         return;
     };

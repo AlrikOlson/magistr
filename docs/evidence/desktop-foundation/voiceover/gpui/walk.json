@@ -1,0 +1,705 @@
+{
+  "activated_start" : false,
+  "steps" : [
+    {
+      "caption" : "X You are currently on a group, inside of a group. To interact with items in this group, press Control-Option-Shift-Down Arrow. To exit this group, press Control-Option-Shift-Up",
+      "focused" : [
+        {
+          "actions" : [
+            "AXRaise"
+          ],
+          "AXRole" : "AXWindow",
+          "AXSubrole" : "AXStandardWindow",
+          "AXTitle" : "Magistr",
+          "focused" : true,
+          "rect" : [
+            247,
+            175,
+            1280,
+            832
+          ]
+        }
+      ],
+      "image" : "walk-0.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 0,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "X You are currently on a group, inside of a group. To interact with items in this group, press Control-Option-Shift-Down Arrow. To exit this group, press Control-Option-Shift-Up",
+      "focused" : [
+        {
+          "actions" : [
+            "AXRaise"
+          ],
+          "AXRole" : "AXWindow",
+          "AXSubrole" : "AXStandardWindow",
+          "AXTitle" : "Magistr",
+          "focused" : true,
+          "rect" : [
+            247,
+            175,
+            1280,
+            832
+          ]
+        }
+      ],
+      "image" : "walk-1.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 1,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "X You are currently on a group, inside of a group. To interact with items in this group, press Control-Option-Shift-Down Arrow. To exit this group, press Control-Option-Shift-Up",
+      "focused" : [
+        {
+          "actions" : [
+            "AXRaise"
+          ],
+          "AXRole" : "AXWindow",
+          "AXSubrole" : "AXStandardWindow",
+          "AXTitle" : "Magistr",
+          "focused" : true,
+          "rect" : [
+            247,
+            175,
+            1280,
+            832
+          ]
+        }
+      ],
+      "image" : "walk-2.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 2,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "X You are currently on a group, inside of a group. To interact with items in this group, press Control-Option-Shift-Down Arrow. To exit this group, press Control-Option-Shift-Up",
+      "focused" : [
+        {
+          "actions" : [
+            "AXRaise"
+          ],
+          "AXRole" : "AXWindow",
+          "AXSubrole" : "AXStandardWindow",
+          "AXTitle" : "Magistr",
+          "focused" : true,
+          "rect" : [
+            247,
+            175,
+            1280,
+            832
+          ]
+        }
+      ],
+      "image" : "walk-3.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 3,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "X You are currently on a group, inside of a group. To interact with items in this group, press Control-Option-Shift-Down Arrow. To exit this group, press Control-Option-Shift-Up",
+      "focused" : [
+        {
+          "actions" : [
+            "AXRaise"
+          ],
+          "AXRole" : "AXWindow",
+          "AXSubrole" : "AXStandardWindow",
+          "AXTitle" : "Magistr",
+          "focused" : true,
+          "rect" : [
+            247,
+            175,
+            1280,
+            832
+          ]
+        }
+      ],
+      "image" : "walk-4.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 4,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "X You are currently on a group, inside of a group. To interact with items in this group, press Control-Option-Shift-Down Arrow. To exit this group, press Control-Option-Shift-Up",
+      "focused" : [
+        {
+          "actions" : [
+            "AXRaise"
+          ],
+          "AXRole" : "AXWindow",
+          "AXSubrole" : "AXStandardWindow",
+          "AXTitle" : "Magistr",
+          "focused" : true,
+          "rect" : [
+            247,
+            175,
+            1280,
+            832
+          ]
+        }
+      ],
+      "image" : "walk-5.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 5,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "X You are currently on a group, inside of a group. To interact with items in this group, press Control-Option-Shift-Down Arrow. To exit this group, press Control-Option-Shift-Up",
+      "focused" : [
+        {
+          "actions" : [
+            "AXRaise"
+          ],
+          "AXRole" : "AXWindow",
+          "AXSubrole" : "AXStandardWindow",
+          "AXTitle" : "Magistr",
+          "focused" : true,
+          "rect" : [
+            247,
+            175,
+            1280,
+            832
+          ]
+        }
+      ],
+      "image" : "walk-6.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 6,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "X You are currently on a group, inside of a group. To interact with items in this group, press Control-Option-Shift-Down Arrow. To exit this group, press Control-Option-Shift-Up",
+      "focused" : [
+        {
+          "actions" : [
+            "AXRaise"
+          ],
+          "AXRole" : "AXWindow",
+          "AXSubrole" : "AXStandardWindow",
+          "AXTitle" : "Magistr",
+          "focused" : true,
+          "rect" : [
+            247,
+            175,
+            1280,
+            832
+          ]
+        }
+      ],
+      "image" : "walk-7.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 7,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "X You are currently on a group, inside of a group. To interact with items in this group, press Control-Option-Shift-Down Arrow. To exit this group, press Control-Option-Shift-Up",
+      "focused" : [
+        {
+          "actions" : [
+            "AXRaise"
+          ],
+          "AXRole" : "AXWindow",
+          "AXSubrole" : "AXStandardWindow",
+          "AXTitle" : "Magistr",
+          "focused" : true,
+          "rect" : [
+            247,
+            175,
+            1280,
+            832
+          ]
+        }
+      ],
+      "image" : "walk-8.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 8,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "X You are currently on a group, inside of a group. To interact with items in this group, press Control-Option-Shift-Down Arrow. To exit this group, press Control-Option-Shift-Up",
+      "focused" : [
+        {
+          "actions" : [
+            "AXRaise"
+          ],
+          "AXRole" : "AXWindow",
+          "AXSubrole" : "AXStandardWindow",
+          "AXTitle" : "Magistr",
+          "focused" : true,
+          "rect" : [
+            247,
+            175,
+            1280,
+            832
+          ]
+        }
+      ],
+      "image" : "walk-9.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 9,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "X You are currently on a group, inside of a group. To interact with items in this group, press Control-Option-Shift-Down Arrow. To exit this group, press Control-Option-Shift-Up",
+      "focused" : [
+        {
+          "actions" : [
+            "AXRaise"
+          ],
+          "AXRole" : "AXWindow",
+          "AXSubrole" : "AXStandardWindow",
+          "AXTitle" : "Magistr",
+          "focused" : true,
+          "rect" : [
+            247,
+            175,
+            1280,
+            832
+          ]
+        }
+      ],
+      "image" : "walk-10.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 10,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "X You are currently on a group, inside of a group. To interact with items in this group, press Control-Option-Shift-Down Arrow. To exit this group, press Control-Option-Shift-Up",
+      "focused" : [
+        {
+          "actions" : [
+            "AXRaise"
+          ],
+          "AXRole" : "AXWindow",
+          "AXSubrole" : "AXStandardWindow",
+          "AXTitle" : "Magistr",
+          "focused" : true,
+          "rect" : [
+            247,
+            175,
+            1280,
+            832
+          ]
+        }
+      ],
+      "image" : "walk-11.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 11,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "X You are currently on a group, inside of a group. To interact with items in this group, press Control-Option-Shift-Down Arrow. To exit this group, press Control-Option-Shift-Up",
+      "focused" : [
+        {
+          "actions" : [
+            "AXRaise"
+          ],
+          "AXRole" : "AXWindow",
+          "AXSubrole" : "AXStandardWindow",
+          "AXTitle" : "Magistr",
+          "focused" : true,
+          "rect" : [
+            247,
+            175,
+            1280,
+            832
+          ]
+        }
+      ],
+      "image" : "walk-12.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 12,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "X You are currently on a group, inside of a group. To interact with items in this group, press Control-Option-Shift-Down Arrow. To exit this group, press Control-Option-Shift-Up",
+      "focused" : [
+        {
+          "actions" : [
+            "AXRaise"
+          ],
+          "AXRole" : "AXWindow",
+          "AXSubrole" : "AXStandardWindow",
+          "AXTitle" : "Magistr",
+          "focused" : true,
+          "rect" : [
+            247,
+            175,
+            1280,
+            832
+          ]
+        }
+      ],
+      "image" : "walk-13.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 13,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "X You are currently on a group, inside of a group. To interact with items in this group, press Control-Option-Shift-Down Arrow. To exit this group, press Control-Option-Shift-Up",
+      "focused" : [
+        {
+          "actions" : [
+            "AXRaise"
+          ],
+          "AXRole" : "AXWindow",
+          "AXSubrole" : "AXStandardWindow",
+          "AXTitle" : "Magistr",
+          "focused" : true,
+          "rect" : [
+            247,
+            175,
+            1280,
+            832
+          ]
+        }
+      ],
+      "image" : "walk-14.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 14,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "X You are currently on a group, inside of a group. To interact with items in this group, press Control-Option-Shift-Down Arrow. To exit this group, press Control-Option-Shift-Up",
+      "focused" : [
+        {
+          "actions" : [
+            "AXRaise"
+          ],
+          "AXRole" : "AXWindow",
+          "AXSubrole" : "AXStandardWindow",
+          "AXTitle" : "Magistr",
+          "focused" : true,
+          "rect" : [
+            247,
+            175,
+            1280,
+            832
+          ]
+        }
+      ],
+      "image" : "walk-15.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 15,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "X You are currently on a group, inside of a group. To interact with items in this group, press Control-Option-Shift-Down Arrow. To exit this group, press Control-Option-Shift-Up",
+      "focused" : [
+        {
+          "actions" : [
+            "AXRaise"
+          ],
+          "AXRole" : "AXWindow",
+          "AXSubrole" : "AXStandardWindow",
+          "AXTitle" : "Magistr",
+          "focused" : true,
+          "rect" : [
+            247,
+            175,
+            1280,
+            832
+          ]
+        }
+      ],
+      "image" : "walk-16.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 16,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "X You are currently on a group, inside of a group. To interact with items in this group, press Control-Option-Shift-Down Arrow. To exit this group, press Control-Option-Shift-Up",
+      "focused" : [
+        {
+          "actions" : [
+            "AXRaise"
+          ],
+          "AXRole" : "AXWindow",
+          "AXSubrole" : "AXStandardWindow",
+          "AXTitle" : "Magistr",
+          "focused" : true,
+          "rect" : [
+            247,
+            175,
+            1280,
+            832
+          ]
+        }
+      ],
+      "image" : "walk-17.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 17,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "X You are currently on a group, inside of a group. To interact with items in this group, press Control-Option-Shift-Down Arrow. To exit this group, press Control-Option-Shift-Up",
+      "focused" : [
+        {
+          "actions" : [
+            "AXRaise"
+          ],
+          "AXRole" : "AXWindow",
+          "AXSubrole" : "AXStandardWindow",
+          "AXTitle" : "Magistr",
+          "focused" : true,
+          "rect" : [
+            247,
+            175,
+            1280,
+            832
+          ]
+        }
+      ],
+      "image" : "walk-18.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 18,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "X You are currently on a group, inside of a group. To interact with items in this group, press Control-Option-Shift-Down Arrow. To exit this group, press Control-Option-Shift-Up",
+      "focused" : [
+        {
+          "actions" : [
+            "AXRaise"
+          ],
+          "AXRole" : "AXWindow",
+          "AXSubrole" : "AXStandardWindow",
+          "AXTitle" : "Magistr",
+          "focused" : true,
+          "rect" : [
+            247,
+            175,
+            1280,
+            832
+          ]
+        }
+      ],
+      "image" : "walk-19.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 19,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "X You are currently on a group, inside of a group. To interact with items in this group, press Control-Option-Shift-Down Arrow. To exit this group, press Control-Option-Shift-Up",
+      "focused" : [
+        {
+          "actions" : [
+            "AXRaise"
+          ],
+          "AXRole" : "AXWindow",
+          "AXSubrole" : "AXStandardWindow",
+          "AXTitle" : "Magistr",
+          "focused" : true,
+          "rect" : [
+            247,
+            175,
+            1280,
+            832
+          ]
+        }
+      ],
+      "image" : "walk-20.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 20,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "X You are currently on a group, inside of a group. To interact with items in this group, press Control-Option-Shift-Down Arrow. To exit this group, press Control-Option-Shift-Up",
+      "focused" : [
+        {
+          "actions" : [
+            "AXRaise"
+          ],
+          "AXRole" : "AXWindow",
+          "AXSubrole" : "AXStandardWindow",
+          "AXTitle" : "Magistr",
+          "focused" : true,
+          "rect" : [
+            247,
+            175,
+            1280,
+            832
+          ]
+        }
+      ],
+      "image" : "walk-21.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 21,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "X You are currently on a group, inside of a group. To interact with items in this group, press Control-Option-Shift-Down Arrow. To exit this group, press Control-Option-Shift-Up",
+      "focused" : [
+        {
+          "actions" : [
+            "AXRaise"
+          ],
+          "AXRole" : "AXWindow",
+          "AXSubrole" : "AXStandardWindow",
+          "AXTitle" : "Magistr",
+          "focused" : true,
+          "rect" : [
+            247,
+            175,
+            1280,
+            832
+          ]
+        }
+      ],
+      "image" : "walk-22.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 22,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "X You are currently on a group, inside of a group. To interact with items in this group, press Control-Option-Shift-Down Arrow. To exit this group, press Control-Option-Shift-Up",
+      "focused" : [
+        {
+          "actions" : [
+            "AXRaise"
+          ],
+          "AXRole" : "AXWindow",
+          "AXSubrole" : "AXStandardWindow",
+          "AXTitle" : "Magistr",
+          "focused" : true,
+          "rect" : [
+            247,
+            175,
+            1280,
+            832
+          ]
+        }
+      ],
+      "image" : "walk-23.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 23,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "X You are currently on a group, inside of a group. To interact with items in this group, press Control-Option-Shift-Down Arrow. To exit this group, press Control-Option-Shift-Up",
+      "focused" : [
+        {
+          "actions" : [
+            "AXRaise"
+          ],
+          "AXRole" : "AXWindow",
+          "AXSubrole" : "AXStandardWindow",
+          "AXTitle" : "Magistr",
+          "focused" : true,
+          "rect" : [
+            247,
+            175,
+            1280,
+            832
+          ]
+        }
+      ],
+      "image" : "walk-24.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 24,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "X You are currently on a group, inside of a group. To interact with items in this group, press Control-Option-Shift-Down Arrow. To exit this group, press Control-Option-Shift-Up",
+      "focused" : [
+        {
+          "actions" : [
+            "AXRaise"
+          ],
+          "AXRole" : "AXWindow",
+          "AXSubrole" : "AXStandardWindow",
+          "AXTitle" : "Magistr",
+          "focused" : true,
+          "rect" : [
+            247,
+            175,
+            1280,
+            832
+          ]
+        }
+      ],
+      "image" : "walk-25.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 25,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "X You are currently on a group, inside of a group. To interact with items in this group, press Control-Option-Shift-Down Arrow. To exit this group, press Control-Option-Shift-Up",
+      "focused" : [
+        {
+          "actions" : [
+            "AXRaise"
+          ],
+          "AXRole" : "AXWindow",
+          "AXSubrole" : "AXStandardWindow",
+          "AXTitle" : "Magistr",
+          "focused" : true,
+          "rect" : [
+            247,
+            175,
+            1280,
+            832
+          ]
+        }
+      ],
+      "image" : "walk-26.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 26,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "X You are currently on a group, inside of a group. To interact with items in this group, press Control-Option-Shift-Down Arrow. To exit this group, press Control-Option-Shift-Up",
+      "focused" : [
+        {
+          "actions" : [
+            "AXRaise"
+          ],
+          "AXRole" : "AXWindow",
+          "AXSubrole" : "AXStandardWindow",
+          "AXTitle" : "Magistr",
+          "focused" : true,
+          "rect" : [
+            247,
+            175,
+            1280,
+            832
+          ]
+        }
+      ],
+      "image" : "walk-27.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 27,
+      "voiceover_pid" : 98278
+    }
+  ]
+}

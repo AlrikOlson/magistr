@@ -1,0 +1,6 @@
+{
+  "caption" : "X You are currently on a group, inside of a group. To interact with items in this group, press Control-Option-Shift-Down Arrow. To exit this group, press Control-Option-Shift-Up",
+  "image" : "walk-2.png",
+  "observation" : "OCR of the actual VoiceOver caption panel",
+  "voiceover_pid" : 98278
+}

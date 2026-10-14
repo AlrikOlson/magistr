@@ -638,6 +638,14 @@ pub enum Command {
 /// Actions for the `magistr workspace` subcommand.
 #[derive(Debug, Subcommand)]
 pub enum WorkspaceAction {
+    /// Start, inspect, reopen or archive separate task working copies
+    WorkingCopy {
+        /// Project directory
+        #[arg(long, default_value = ".")]
+        dir: PathBuf,
+        #[command(subcommand)]
+        action: crate::working_copy_action::WorkingCopyAction,
+    },
     /// Serve MCP over stdio for the workspace at DIR. One live server per
     /// workspace: a second is refused with exit 75 while the first runs.
     Serve {

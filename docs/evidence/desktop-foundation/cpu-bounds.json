@@ -1,0 +1,114 @@
+{
+  "method": "Add each late helper's entire lifetime CPU counter divided by the producer duration. The original streaming start snapshot was not retained; the helper may already have been included.",
+  "idle": "All idle interval PID sets are stable; no birth correction.",
+  "rows": [
+    {
+      "source": "docs/evidence/desktop-foundation/performance/gpui/run-0/results.json",
+      "backend": "gpui",
+      "recorded_percent_one_core": 37.94939338488506,
+      "conservative_upper_percent_one_core": 40.016773955808475,
+      "late_helpers": [
+        {
+          "pid": 3134,
+          "name": "ThemeWidgetControlViewService",
+          "rss_bytes": 35848192,
+          "cpu_ns": 206624750.0,
+          "coalition": [
+            250789,
+            250790
+          ]
+        }
+      ]
+    },
+    {
+      "source": "docs/evidence/desktop-foundation/performance/gpui/run-1/results.json",
+      "backend": "gpui",
+      "recorded_percent_one_core": 38.004163591826526,
+      "conservative_upper_percent_one_core": 40.063619873071325,
+      "late_helpers": [
+        {
+          "pid": 3441,
+          "name": "ThemeWidgetControlViewService",
+          "rss_bytes": 35897344,
+          "cpu_ns": 205973750.0,
+          "coalition": [
+            250793,
+            250794
+          ]
+        }
+      ]
+    },
+    {
+      "source": "docs/evidence/desktop-foundation/performance/gpui/run-2/results.json",
+      "backend": "gpui",
+      "recorded_percent_one_core": 38.32134208230652,
+      "conservative_upper_percent_one_core": 40.40619118286084,
+      "late_helpers": [
+        {
+          "pid": 3743,
+          "name": "ThemeWidgetControlViewService",
+          "rss_bytes": 35913728,
+          "cpu_ns": 208605041.66666666,
+          "coalition": [
+            250797,
+            250798
+          ]
+        }
+      ]
+    },
+    {
+      "source": "docs/evidence/desktop-foundation/performance/tauri/run-0/results.json",
+      "backend": "tauri",
+      "recorded_percent_one_core": 52.463315499414165,
+      "conservative_upper_percent_one_core": 54.43593692323319,
+      "late_helpers": [
+        {
+          "pid": 2978,
+          "name": "ThemeWidgetControlViewService",
+          "rss_bytes": 35880960,
+          "cpu_ns": 197656666.66666666,
+          "coalition": [
+            250787,
+            250788
+          ]
+        }
+      ]
+    },
+    {
+      "source": "docs/evidence/desktop-foundation/performance/tauri/run-1/results.json",
+      "backend": "tauri",
+      "recorded_percent_one_core": 52.00481066151366,
+      "conservative_upper_percent_one_core": 53.92578909229926,
+      "late_helpers": [
+        {
+          "pid": 3296,
+          "name": "ThemeWidgetControlViewService",
+          "rss_bytes": 35815424,
+          "cpu_ns": 192520458.3333333,
+          "coalition": [
+            250791,
+            250792
+          ]
+        }
+      ]
+    },
+    {
+      "source": "docs/evidence/desktop-foundation/performance/tauri/run-2/results.json",
+      "backend": "tauri",
+      "recorded_percent_one_core": 52.16934864150642,
+      "conservative_upper_percent_one_core": 54.10473557893781,
+      "late_helpers": [
+        {
+          "pid": 3598,
+          "name": "ThemeWidgetControlViewService",
+          "rss_bytes": 35880960,
+          "cpu_ns": 193945125.0,
+          "coalition": [
+            250795,
+            250796
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -233,7 +233,9 @@ async fn a_check_admitted_with_source_observes_the_owners_write_and_lands_on_its
     assert_eq!(checks[0]["verified"], true);
     let published = config
         .data_dir()
-        .join("ship/receipts")
+        .join("ship/executions")
+        .join(config.execution_context().key())
+        .join("receipts")
         .join(PROJECT)
         .join(format!("{}.json", receipt.id));
     assert!(published.is_file(), "{}", published.display());

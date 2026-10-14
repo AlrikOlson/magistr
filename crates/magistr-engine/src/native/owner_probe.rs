@@ -68,6 +68,7 @@ impl OwnerProbe {
             build: BuildIdentity::this_build(),
             identity,
             attach: AttachKind::Probe,
+            context: None,
             caller,
         };
         let liveness = match super::owner_client::probe_line(path, &hello, deadline) {

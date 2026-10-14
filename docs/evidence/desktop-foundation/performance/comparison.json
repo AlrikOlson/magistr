@@ -1,0 +1,272 @@
+{
+  "launches": {
+    "tauri": [
+      632.6637919992208,
+      455.74429095722735,
+      415.4520829906687,
+      428.7082499358803,
+      420.4440839821473
+    ],
+    "gpui": [
+      397.5858750054613,
+      267.6919170189649,
+      265.3090840904042,
+      273.14750000368804,
+      291.2047079298645
+    ]
+  },
+  "runs": [
+    {
+      "backend": "tauri",
+      "launch_ms": [
+        632.6637919992208,
+        455.74429095722735,
+        415.4520829906687,
+        428.7082499358803,
+        420.4440839821473
+      ],
+      "launch_p95_ms": 632.6637919992208,
+      "idle_cpu_percent_one_core": 2.4004244575384757,
+      "idle_rss_mib": 263.578125,
+      "peak_rss_mib": 385.796875,
+      "input_visible_p95_ms": 19.30083311162889,
+      "stream_cpu_percent_one_core": 52.463315499414165,
+      "capture_callback_p95_ms": 28.346458333544433,
+      "workspace_switch_p95_ms": 27.64124982059002,
+      "motion": {
+        "scroll": {
+          "samples": 106,
+          "visible_interval_p95_ms": 18.54733331128955
+        },
+        "resize": {
+          "samples": 99,
+          "visible_interval_p95_ms": 26.085999910719693
+        }
+      },
+      "events_per_second": 998.0039920159685,
+      "render_ack_p95_ms": 32.213,
+      "cpu_calibration": {
+        "cpu_seconds": 0.249582375,
+        "getrusage_seconds": 0.24954999999999994,
+        "ratio": 1.0001297335203367,
+        "mach_numer": 125,
+        "mach_denom": 3
+      },
+      "load_average": [
+        11.6328125,
+        7.2197265625,
+        5.75537109375
+      ]
+    },
+    {
+      "backend": "gpui",
+      "launch_ms": [
+        397.5858750054613,
+        267.6919170189649,
+        265.3090840904042,
+        273.14750000368804,
+        291.2047079298645
+      ],
+      "launch_p95_ms": 397.5858750054613,
+      "idle_cpu_percent_one_core": 0.8492519951231647,
+      "idle_rss_mib": 145.828125,
+      "peak_rss_mib": 196.140625,
+      "input_visible_p95_ms": 24.32424994185567,
+      "stream_cpu_percent_one_core": 37.94939338488506,
+      "capture_callback_p95_ms": 21.540083340369165,
+      "workspace_switch_p95_ms": 21.31645812187344,
+      "motion": {
+        "scroll": {
+          "samples": 110,
+          "visible_interval_p95_ms": 17.867083428427577
+        },
+        "resize": {
+          "samples": 64,
+          "visible_interval_p95_ms": 35.12975003104657
+        }
+      },
+      "events_per_second": 1000.5483713463225,
+      "render_ack_p95_ms": 19.173,
+      "cpu_calibration": {
+        "cpu_seconds": 0.249701125,
+        "getrusage_seconds": 0.24967300000000003,
+        "ratio": 1.0001126473427242,
+        "mach_numer": 125,
+        "mach_denom": 3
+      },
+      "load_average": [
+        9.125,
+        7.0244140625,
+        5.73388671875
+      ]
+    },
+    {
+      "backend": "tauri",
+      "launch_ms": [
+        632.6637919992208,
+        455.74429095722735,
+        415.4520829906687,
+        428.7082499358803,
+        420.4440839821473
+      ],
+      "launch_p95_ms": 632.6637919992208,
+      "idle_cpu_percent_one_core": 2.321148549698719,
+      "idle_rss_mib": 264.140625,
+      "peak_rss_mib": 386.375,
+      "input_visible_p95_ms": 20.19045816268772,
+      "stream_cpu_percent_one_core": 52.00481066151366,
+      "capture_callback_p95_ms": 30.48154164571315,
+      "workspace_switch_p95_ms": 30.21366649772972,
+      "motion": {
+        "scroll": {
+          "samples": 103,
+          "visible_interval_p95_ms": 18.626416567713022
+        },
+        "resize": {
+          "samples": 87,
+          "visible_interval_p95_ms": 25.758291594684124
+        }
+      },
+      "events_per_second": 997.8048293753742,
+      "render_ack_p95_ms": 31.261,
+      "cpu_calibration": {
+        "cpu_seconds": 0.24987375,
+        "getrusage_seconds": 0.24984800000000007,
+        "ratio": 1.0001030626620984,
+        "mach_numer": 125,
+        "mach_denom": 3
+      },
+      "load_average": [
+        7.89306640625,
+        6.91259765625,
+        5.73681640625
+      ]
+    },
+    {
+      "backend": "gpui",
+      "launch_ms": [
+        397.5858750054613,
+        267.6919170189649,
+        265.3090840904042,
+        273.14750000368804,
+        291.2047079298645
+      ],
+      "launch_p95_ms": 397.5858750054613,
+      "idle_cpu_percent_one_core": 0.8625013000732876,
+      "idle_rss_mib": 145.71875,
+      "peak_rss_mib": 195.671875,
+      "input_visible_p95_ms": 20.08099982049316,
+      "stream_cpu_percent_one_core": 38.004163591826526,
+      "capture_callback_p95_ms": 22.084333351813257,
+      "workspace_switch_p95_ms": 21.776374778710306,
+      "motion": {
+        "scroll": {
+          "samples": 115,
+          "visible_interval_p95_ms": 18.035541637800634
+        },
+        "resize": {
+          "samples": 60,
+          "visible_interval_p95_ms": 28.384416596964
+        }
+      },
+      "events_per_second": 999.8634686433567,
+      "render_ack_p95_ms": 18.681,
+      "cpu_calibration": {
+        "cpu_seconds": 0.2499085,
+        "getrusage_seconds": 0.24988199999999994,
+        "ratio": 1.0001060500556265,
+        "mach_numer": 125,
+        "mach_denom": 3
+      },
+      "load_average": [
+        6.53857421875,
+        6.6796875,
+        5.69287109375
+      ]
+    },
+    {
+      "backend": "tauri",
+      "launch_ms": [
+        632.6637919992208,
+        455.74429095722735,
+        415.4520829906687,
+        428.7082499358803,
+        420.4440839821473
+      ],
+      "launch_p95_ms": 632.6637919992208,
+      "idle_cpu_percent_one_core": 2.1962126087357867,
+      "idle_rss_mib": 263.65625,
+      "peak_rss_mib": 369.671875,
+      "input_visible_p95_ms": 20.396833191625774,
+      "stream_cpu_percent_one_core": 52.16934864150642,
+      "capture_callback_p95_ms": 26.81216667406261,
+      "workspace_switch_p95_ms": 26.56329143792391,
+      "motion": {
+        "scroll": {
+          "samples": 107,
+          "visible_interval_p95_ms": 17.87954173050821
+        },
+        "resize": {
+          "samples": 93,
+          "visible_interval_p95_ms": 26.39737504068762
+        }
+      },
+      "events_per_second": 997.9044007584073,
+      "render_ack_p95_ms": 31.229,
+      "cpu_calibration": {
+        "cpu_seconds": 0.2498288333333333,
+        "getrusage_seconds": 0.2497999999999998,
+        "ratio": 1.0001154256738731,
+        "mach_numer": 125,
+        "mach_denom": 3
+      },
+      "load_average": [
+        5.99658203125,
+        6.53369140625,
+        5.67236328125
+      ]
+    },
+    {
+      "backend": "gpui",
+      "launch_ms": [
+        397.5858750054613,
+        267.6919170189649,
+        265.3090840904042,
+        273.14750000368804,
+        291.2047079298645
+      ],
+      "launch_p95_ms": 397.5858750054613,
+      "idle_cpu_percent_one_core": 0.8505510718701114,
+      "idle_rss_mib": 145.578125,
+      "peak_rss_mib": 195.484375,
+      "input_visible_p95_ms": 21.095416508615017,
+      "stream_cpu_percent_one_core": 38.32134208230652,
+      "capture_callback_p95_ms": 24.897708324715495,
+      "workspace_switch_p95_ms": 24.612166453152895,
+      "motion": {
+        "scroll": {
+          "samples": 110,
+          "visible_interval_p95_ms": 17.753833439201117
+        },
+        "resize": {
+          "samples": 62,
+          "visible_interval_p95_ms": 34.245958435349166
+        }
+      },
+      "events_per_second": 999.4241193296407,
+      "render_ack_p95_ms": 18.681,
+      "cpu_calibration": {
+        "cpu_seconds": 0.24983945833333332,
+        "getrusage_seconds": 0.2498100000000001,
+        "ratio": 1.0001179229547785,
+        "mach_numer": 125,
+        "mach_denom": 3
+      },
+      "load_average": [
+        6.5908203125,
+        6.6376953125,
+        5.7392578125
+      ]
+    }
+  ]
+}

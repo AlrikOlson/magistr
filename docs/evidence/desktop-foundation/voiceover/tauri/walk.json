@@ -1,0 +1,1857 @@
+{
+  "activated_start" : true,
+  "steps" : [
+    {
+      "caption" : "× Send, button",
+      "focused" : [
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXScrollArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "Magistr",
+          "AXHelp" : "",
+          "AXRole" : "AXWebArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXPress",
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXButton",
+          "AXTitle" : "Send",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            976,
+            918,
+            54,
+            30
+          ]
+        }
+      ],
+      "image" : "walk-0.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 0,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "× Changes, button, Review, navigation",
+      "focused" : [
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXScrollArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "Magistr",
+          "AXHelp" : "",
+          "AXRole" : "AXWebArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXPress",
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXButton",
+          "AXTitle" : "Changes",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            1064,
+            260,
+            73,
+            29
+          ]
+        }
+      ],
+      "image" : "walk-1.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 1,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "× Roadmap, button",
+      "focused" : [
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXScrollArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "Magistr",
+          "AXHelp" : "",
+          "AXRole" : "AXWebArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXPress",
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXButton",
+          "AXTitle" : "Roadmap",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            1142,
+            260,
+            76,
+            29
+          ]
+        }
+      ],
+      "image" : "walk-2.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 2,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "× Changes and evidence, region, Source changes, group",
+      "focused" : [
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXScrollArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "Magistr",
+          "AXHelp" : "",
+          "AXRole" : "AXWebArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "Source changes",
+          "AXHelp" : "",
+          "AXRole" : "AXGroup",
+          "AXTitle" : "Source changes",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            1050,
+            342,
+            454,
+            622
+          ]
+        }
+      ],
+      "image" : "walk-3.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 3,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "× Changes and evidence, region, Source changes, group",
+      "focused" : [
+
+      ],
+      "image" : "walk-4.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 4,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "x Open workspace, button, Projects and sessions, complementary",
+      "focused" : [
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXScrollArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "Magistr",
+          "AXHelp" : "",
+          "AXRole" : "AXWebArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXPress",
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "Open workspace",
+          "AXHelp" : "",
+          "AXRole" : "AXButton",
+          "AXTitle" : "Open workspace",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            400,
+            268,
+            28,
+            23
+          ]
+        }
+      ],
+      "image" : "walk-5.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 5,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "× Magistr Main branch, button",
+      "focused" : [
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXScrollArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "Magistr",
+          "AXHelp" : "",
+          "AXRole" : "AXWebArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXPress",
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXButton",
+          "AXTitle" : "Magistr Main branch",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            236,
+            303,
+            199,
+            58
+          ]
+        }
+      ],
+      "image" : "walk-6.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 6,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "× Source review Review branch, button",
+      "focused" : [
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXScrollArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "Magistr",
+          "AXHelp" : "",
+          "AXRole" : "AXWebArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXPress",
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXButton",
+          "AXTitle" : "Source review Review branch",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            236,
+            367,
+            199,
+            58
+          ]
+        }
+      ],
+      "image" : "walk-7.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 7,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "× Agent 1 • Ready • 0, button",
+      "focused" : [
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXScrollArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "Magistr",
+          "AXHelp" : "",
+          "AXRole" : "AXWebArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXPress",
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXButton",
+          "AXTitle" : "Agent 1 · Ready · 0",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            236,
+            470,
+            199,
+            35
+          ]
+        }
+      ],
+      "image" : "walk-8.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 8,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "× Agent 2 • Ready • 0, button",
+      "focused" : [
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXScrollArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "Magistr",
+          "AXHelp" : "",
+          "AXRole" : "AXWebArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXPress",
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXButton",
+          "AXTitle" : "Agent 2 · Ready · 0",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            236,
+            508,
+            199,
+            35
+          ]
+        }
+      ],
+      "image" : "walk-9.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 9,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "× Agent 3 • Waiting for you • 0, button",
+      "focused" : [
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXScrollArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "Magistr",
+          "AXHelp" : "",
+          "AXRole" : "AXWebArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXPress",
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXButton",
+          "AXTitle" : "Agent 3 · Waiting for you · 0",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            236,
+            546,
+            199,
+            35
+          ]
+        }
+      ],
+      "image" : "walk-10.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 10,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "× Agent 4 • Ready • 0, button",
+      "focused" : [
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXScrollArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "Magistr",
+          "AXHelp" : "",
+          "AXRole" : "AXWebArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXPress",
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXButton",
+          "AXTitle" : "Agent 4 · Ready · 0",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            236,
+            584,
+            199,
+            35
+          ]
+        }
+      ],
+      "image" : "walk-11.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 11,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "× Agent 5 • Ready • 0, button",
+      "focused" : [
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXScrollArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "Magistr",
+          "AXHelp" : "",
+          "AXRole" : "AXWebArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXPress",
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXButton",
+          "AXTitle" : "Agent 5 · Ready · 0",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            236,
+            622,
+            199,
+            35
+          ]
+        }
+      ],
+      "image" : "walk-12.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 12,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "× Agent 6 • Ready • 0, button",
+      "focused" : [
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXScrollArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "Magistr",
+          "AXHelp" : "",
+          "AXRole" : "AXWebArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXPress",
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXButton",
+          "AXTitle" : "Agent 6 · Ready · 0",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            236,
+            660,
+            199,
+            35
+          ]
+        }
+      ],
+      "image" : "walk-13.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 13,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "× Agent 7 • Ready • 0, button",
+      "focused" : [
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXScrollArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "Magistr",
+          "AXHelp" : "",
+          "AXRole" : "AXWebArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXPress",
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXButton",
+          "AXTitle" : "Agent 7 · Ready · 0",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            236,
+            698,
+            199,
+            35
+          ]
+        }
+      ],
+      "image" : "walk-14.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 14,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "× Agent 8 • Ready • 0, button",
+      "focused" : [
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXScrollArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "Magistr",
+          "AXHelp" : "",
+          "AXRole" : "AXWebArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXPress",
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXButton",
+          "AXTitle" : "Agent 8 · Ready · 0",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            236,
+            736,
+            199,
+            35
+          ]
+        }
+      ],
+      "image" : "walk-15.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 15,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "× Change theme, button",
+      "focused" : [
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXScrollArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "Magistr",
+          "AXHelp" : "",
+          "AXRole" : "AXWebArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXPress",
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXButton",
+          "AXTitle" : "Change theme",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            236,
+            907,
+            199,
+            30
+          ]
+        }
+      ],
+      "image" : "walk-16.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 16,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "× Reduce motion, selected, toggle button",
+      "focused" : [
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXScrollArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "Magistr",
+          "AXHelp" : "",
+          "AXRole" : "AXWebArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXPress",
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXCheckBox",
+          "AXSubrole" : "AXToggle",
+          "AXTitle" : "Reduce motion",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            236,
+            945,
+            199,
+            30
+          ]
+        }
+      ],
+      "image" : "walk-17.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 17,
+      "voiceover_pid" : 98278
+    },
+    {
+      "activation" : {
+        "caption" : "× Start work, button, main",
+        "image" : "walk-activation.png",
+        "observation" : "OCR of the actual VoiceOver caption panel",
+        "voiceover_pid" : 98278
+      },
+      "caption" : "× Start work, button, main",
+      "focused" : [
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXScrollArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "Magistr",
+          "AXHelp" : "",
+          "AXRole" : "AXWebArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXPress",
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXButton",
+          "AXTitle" : "Start work",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            1309,
+            204,
+            85,
+            30
+          ]
+        }
+      ],
+      "image" : "walk-18.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 18,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "x Open workspace, button, Projects and sessions, complementary",
+      "focused" : [
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXScrollArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "Magistr",
+          "AXHelp" : "",
+          "AXRole" : "AXWebArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXPress",
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "Open workspace",
+          "AXHelp" : "",
+          "AXRole" : "AXButton",
+          "AXTitle" : "Open workspace",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            400,
+            268,
+            28,
+            23
+          ]
+        }
+      ],
+      "image" : "walk-19.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 19,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "× Magistr Main branch, button",
+      "focused" : [
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXScrollArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "Magistr",
+          "AXHelp" : "",
+          "AXRole" : "AXWebArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXPress",
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXButton",
+          "AXTitle" : "Magistr Main branch",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            236,
+            303,
+            199,
+            58
+          ]
+        }
+      ],
+      "image" : "walk-20.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 20,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "× Source review Review branch, button",
+      "focused" : [
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXScrollArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "Magistr",
+          "AXHelp" : "",
+          "AXRole" : "AXWebArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXPress",
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXButton",
+          "AXTitle" : "Source review Review branch",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            236,
+            367,
+            199,
+            58
+          ]
+        }
+      ],
+      "image" : "walk-21.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 21,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "× Agent 1 • Working • 236, button",
+      "focused" : [
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXScrollArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "Magistr",
+          "AXHelp" : "",
+          "AXRole" : "AXWebArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXPress",
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXButton",
+          "AXTitle" : "Agent 1 · Working · 292",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            236,
+            470,
+            199,
+            35
+          ]
+        }
+      ],
+      "image" : "walk-22.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 22,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "× Agent 2 • Working • 294, button",
+      "focused" : [
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXScrollArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "Magistr",
+          "AXHelp" : "",
+          "AXRole" : "AXWebArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXPress",
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXButton",
+          "AXTitle" : "Agent 2 · Working · 353",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            236,
+            508,
+            199,
+            35
+          ]
+        }
+      ],
+      "image" : "walk-23.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 23,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "× Agent 3 • Working • 355, button",
+      "focused" : [
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXScrollArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "Magistr",
+          "AXHelp" : "",
+          "AXRole" : "AXWebArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXPress",
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXButton",
+          "AXTitle" : "Agent 3 · Working · 411",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            236,
+            546,
+            199,
+            35
+          ]
+        }
+      ],
+      "image" : "walk-24.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 24,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "× Agent 4 • Working • 413, button",
+      "focused" : [
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXScrollArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "Magistr",
+          "AXHelp" : "",
+          "AXRole" : "AXWebArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXPress",
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXButton",
+          "AXTitle" : "Agent 4 · Working · 469",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            236,
+            584,
+            199,
+            35
+          ]
+        }
+      ],
+      "image" : "walk-25.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 25,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "× Agent 5 • Working • 473, button",
+      "focused" : [
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXScrollArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "Magistr",
+          "AXHelp" : "",
+          "AXRole" : "AXWebArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXPress",
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXButton",
+          "AXTitle" : "Agent 5 · Working · 530",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            236,
+            622,
+            199,
+            35
+          ]
+        }
+      ],
+      "image" : "walk-26.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 26,
+      "voiceover_pid" : 98278
+    },
+    {
+      "caption" : "× Agent 6 • Working • 532, button",
+      "focused" : [
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXScrollArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "Magistr",
+          "AXHelp" : "",
+          "AXRole" : "AXWebArea",
+          "AXTitle" : "",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            224,
+            191,
+            1280,
+            800
+          ]
+        },
+        {
+          "actions" : [
+            "AXPress",
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription" : "",
+          "AXHelp" : "",
+          "AXRole" : "AXButton",
+          "AXTitle" : "Agent 6 · Working · 592",
+          "AXValue" : "",
+          "enabled" : true,
+          "focused" : true,
+          "rect" : [
+            236,
+            660,
+            199,
+            35
+          ]
+        }
+      ],
+      "image" : "walk-27.png",
+      "key" : "Tab",
+      "observation" : "OCR of the actual VoiceOver caption panel",
+      "step" : 27,
+      "voiceover_pid" : 98278
+    }
+  ]
+}

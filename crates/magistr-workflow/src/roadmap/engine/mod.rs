@@ -178,8 +178,13 @@ impl RoadmapEngine {
     }
 
     pub fn with_broadcaster(mut self, broadcaster: Broadcaster) -> Self {
-        self.broadcaster = Some(broadcaster);
+        self.set_broadcaster(broadcaster);
         self
+    }
+
+    /// Attach the admitted owner's publisher to an already-open engine.
+    pub fn set_broadcaster(&mut self, broadcaster: Broadcaster) {
+        self.broadcaster = Some(broadcaster);
     }
 
     /// Attach a cloud client so every mutation fire-and-forget pushes the chunk

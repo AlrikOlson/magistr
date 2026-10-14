@@ -1,43 +1,24 @@
 # Project authority
 
-Every native workflow writer in Magistr is admitted by a `ProjectAuthority` before it
-can open the think-and-ship engines. The type lives in `magistr-engine`
-(`native::ProjectAuthority`), not in the MCP transport: the MCP service, the
-cockpit, the loops and one-shot commands all admit through it. It owns the
-project's native identity, the writer lease for one role, the owner
-generation that lease mints, the live feed when this writer publishes one,
-and — once, by consuming itself — the opening of the engines.
+Every native workflow writer is admitted by `ProjectAuthority` before opening
+state. One project has one workflow owner across interactive hosts, headless
+loops and MCP clients. `WriterRole` describes the host; it grants no separate
+lease. A client attaches to that owner or receives an explicit refusal.
 
-A surface that finds its role already held does not open a second writer. It
-attaches to the running owner's endpoint through a local application client
-and acts through that owner's writer, or it fails closed. Attachment is local:
-one user, one machine, Unix domain sockets.
-
-The [workspace owner](workspace-owner.md) uses the same local endpoint and
-handshake implementation with a distinct canonical-root identity. It owns
-`WorkspaceService`, not a workflow writer role or workflow store.
-
-The [configuration capture boundary](configuration.md) supplies the store,
-identity override and think settings for every open. Engine construction and
-owner attachment use those captured inputs instead of reloading ambient settings.
+The independent [workspace owner](workspace-owner.md) admits source tools per
+canonical working-copy root. Its generation, journal sessions and approvals
+remain separate from workflow runs and workflow owner generations.
+The [configuration boundary](configuration.md) captures store, project and
+execution inputs once.
 
 ## Capabilities
 
-The read and write capabilities are separate types; the attached client is a
-third, holding neither.
-
-| Capability | Type | Admission | Holds |
-| --- | --- | --- | --- |
-| Read | `NativeReader` | None. `NativeReader::open` reads the store's locked merge-on-save files; every query observes its family's file and re-reads it when the store stamp moved. | Queries, reloads, the store stamp, the reasoning archive. |
-| Write | `NativeEngines` | Only `ProjectAuthority::open`. Every clone carries the lease; the role's lock is released with the last writer, never with a reader. | Typed verbs over the reader (`Deref`), carried out by native workflow use cases (see [One write path](#one-write-path)); `apply` dispatches the versioned `OwnerCommand` to the same implementation. |
-| Transport | `UnifiedService` | Only `ProjectAuthority::serve`, which hands the same four family services the writer acts through to the wire, and the writer beside them. | The MCP verbs; the service keeps the writer and the authority beside them. |
-| Attached | `OwnerClient` | A welcomed handshake on the owner's endpoint. No lease, no engine. | One connection, one command in flight, the owner's generation. |
-
-No raw engine, mutable callback or independent constructor is reachable from
-outside `magistr-engine`. The escape hatches `with_roadmap`, `with_think`,
-`with_ship` and `with_signal` are gone; the verbs their callers needed
-(`signal_research`, `roadmap_propose_title`, `roadmap_propose_status`) are typed
-commands.
+| Capability | Admission and lifetime |
+| --- | --- |
+| `NativeReader` | Lease-free queries over persisted records, scoped to its configured execution. |
+| `NativeEngines` | Constructed by `ProjectAuthority::open` or `serve`. Clones retain the project lease. `for_working_copy` binds a view through that writer's execution registry. |
+| `UnifiedService` | The same family use cases exposed through MCP; the CLI retains its admitted writer beside them. |
+| `OwnerClient` | A welcomed local connection; no independent engines or lease. Typed commands carry the admitted owner generation. |
 
 ## One write path
 
@@ -72,13 +53,12 @@ limited to `magistr-engine` and `magistr-cli`.
 
 ### Identities and check settlement
 
-Native workflow state now carries additive execution identity: an objective run
-and a task instance within that run. Existing stores without this metadata
-remain readable through deterministic legacy identities; new objectives and
-task instances receive fresh identities. Duplicate plan task IDs are refused.
-Removed instances are fenced so a stale merge cannot resurrect them.
+Each admitted workflow execution carries an objective run and task instances
+within that run. New runs and task instances receive fresh identities.
+Duplicate plan task IDs are refused. Removed instances are fenced so a stale
+merge cannot resurrect them.
 
-`TaskAdmission` names the project, run, task ID, and task instance.
+`TaskAdmission` names the execution binding, project, run, task ID, and task instance.
 `CheckAdmission` binds that target to the check request before an effect
 begins — together with the durable receipt it was admitted under, the
 acceptance revision then current, and the source the workflow observed at
@@ -92,7 +72,7 @@ objective cannot collect an earlier command's result.
 ### Receipts and the evidence capability
 
 Every admitted check writes a durable `CheckReceipt` before its command
-runs (`ship/receipts/<project>/<id>.json` beside the session record, one
+runs (`ship/executions/<context-key>/receipts/<project>/<id>.json` beside the session record, one
 file per receipt, published by temp → fsync → rename → fsync-directory;
 in memory when persistence is off). The receipt names the run, task
 instance and per-gate attempt, the gate contract as requested (name, type,
@@ -102,7 +82,7 @@ of description, acceptance criteria, constraints and scope — an in-flight
 writer carries the evidence capability, a `SourceObservation`: which
 workspace and owner generation, under which scheme and selection policy,
 the content-addressed revision of the selected bytes, the digest of those
-bytes alone, the digest of the applicable external configuration layers
+bytes alone, the digest of applicable policies and shared project settings
 ([configuration evidence](configuration.md#configuration-evidence)) and
 what that observation may claim. Settlement rewrites the same receipt once with how
 the command ended (`CheckExecution`: exited with a code, timed out,
@@ -111,12 +91,16 @@ still matched (`SourceFreshness`) and how the workflow settled it.
 
 The evidence capability is the workflow's `EvidencePort`: `observe()`
 answers a `SourceWitness` — held in the admitting process until the check
-settles, consumed once to validate — and `required_gates()` answers the
+settles, consumed once to validate. Each admission captures anew; re-running
+a named gate allocates a new receipt and attempt over the current selected
+bytes. Direct workflow commands use that observation's workspace as their
+working directory and resolve relative reports there. `required_gates()` answers the
 `GateContract`s the project requires now. Magistr composes exactly one
 implementation, `magistr_core::evidence::WorkspaceEvidence`, from the
 workspace's lock-free `SourceSnapshot` under its default selection policy
 (which hashes `.magistr/project.json` as a config input), the workspace's
-`ConfigDigest` over the external layers the captured project inputs name,
+`ConfigDigest` over the external layers the captured project inputs name and
+the shared project settings,
 and the same gate resolver `magistr_gate all` runs (shared as
 `WorkspaceEvidence::gate_contracts` with a loop that runs without a
 writer). `writer_config` attaches it to the
@@ -152,11 +136,11 @@ groups as `retained_current`, `retained_unsettled`, and `retained_referenced`,
 alongside `removed`. There is no age threshold, automatic pruning, or archive.
 A missing current objective refuses compaction.
 
-The canonical payload stays `ship/receipts/<project>/<id>.json`. A derived
+The canonical payload stays `ship/executions/<context-key>/receipts/<project>/<id>.json`. A derived
 `runs-v1/<sha256(run_id)>/<id>.ref` membership index makes completion and
 attempt allocation read only that run's receipts; exact-ID reads and settlement
-open just that payload. Existing stores build the index once under the ledger
-lock before publishing its ready marker. An interrupted build is retried.
+open just that payload. The derived index is built under the ledger lock
+before publishing its ready marker. An interrupted build is retried.
 Steady-state reads do not enumerate or decode lifetime receipt history; the
 first index build and explicit compaction still do. Work within one long-lived
 run grows with that run's receipts, all of which must be kept.
@@ -165,9 +149,8 @@ Membership and its directories are synced before an atomic payload publication.
 Readers, admissions, settlements and compaction share the ledger lock, held only
 for storage work. An interrupted admission may leave an empty membership with no
 payload; it is not evidence and never advances an attempt. An acknowledged
-receipt cannot be omitted from its run's index. All concurrent writers must
-support this index; do not run an older, unindexed writer against an indexed
-store. Payloads stay readable in their original format.
+receipt cannot be omitted from its run's index. The admitted project writer
+owns this index and every contextual receipt partition.
 
 Compaction holds the persisted cycle lock before the ledger lock, so an objective
 rollover cannot change which run is protected during deletion. Under the ledger
@@ -231,303 +214,154 @@ thing that prevents a permissive completion. A chunk born `done` (an import,
 a tracker pull, a historical record) is a record, not a completion, and is
 preserved.
 
+
 ## Roles
 
-A lease belongs to a `WriterRole`, and one writer of each role is admitted per
-project and store:
+`Host` and `Service` describe how the owner was launched. Both contend on
+`<data_dir>/roadmap/sessions/<project_id>.project-owner.lock`, or the
+authority directory's `.magistr/project-owner.lock` when persistence is off.
+An additional stable `.magistr/workflow-owner.lock` in the authority directory
+prevents switching data directories from admitting two owners for one project.
 
-| Role | Who | Lock |
-| --- | --- | --- |
-| `Service` | `magistr mcp-serve`: the agent's tools, and the only publisher of the live feed. | `<data_dir>/roadmap/sessions/<project_id>.mcp-owner.lock`, or `<project_root>/.magistr/mcp-owner.lock` without persistence. |
-| `Host` | The cockpit's `run`, `next` and `next-loop`, the plain and headless loops. | `<data_dir>/roadmap/sessions/<project_id>.host-owner.lock`, or `<project_root>/.magistr/host-owner.lock` without persistence. |
+## Working-copy identity
 
-The two roles coexist by design: a cockpit and the `magistr mcp-serve` its
-agent starts are the normal pair of writers on one store. A second writer of
-the same role is refused with `WouldBlock` before any engine opens; what
-happens next depends on the surface (see [Attachment](#attachment)). The
-cockpit loop attaches to the loop driver's admitted writer in-process rather
-than opening a second one. The bare cockpit, the launcher and `magistr roadmap
-show|next|status|export` are observers: they open a reader and run beside any
-host.
+`ProjectLocation` resolves canonical source paths and Git's registered linked
+worktree backlink and common directory. An ordinary project owns its
+directory. A linked worktree uses the corresponding main working-copy project
+directory for workflow identity and admission; its source directory remains
+independent. Nested project paths preserve their relative directory.
+
+Project-name overrides and pinned identity are resolved through the authority
+directory. Copying a project pin cannot admit a second writer on its shared
+store. A copied directory that is not a registered linked worktree cannot
+attach as a working copy of the running project. Missing or malformed Git
+links are refused at write admission. Linked worktrees whose common directory
+does not identify a main working copy are explicitly unsupported.
+
+`ExecutionContext` is a canonical working-copy root plus `MAGISTR_EXECUTION_ID`
+(`default` when unspecified). Use a distinct execution id for independent work
+in one directory. The authority owns a weak registry of live context services;
+identical contexts reuse their engine handles, idle entries are pruned, and
+admission refuses more than 128 live contexts. Every contextual view retains
+an active working-copy lease.
+
+Roadmap, reasoning and signals belong to the shared project. Ship's selected
+scope, objectives, plans and receipts belong to the execution context, under
+`ship/executions/<context-key>/sessions` and its receipt partition. Selecting
+another context never replaces the first context's selected scope. Reopening
+the same context restores its cycle. Its evidence capability observes that
+context's source directory, the shared project's settings and the owner's
+captured external policy layers. Settings load and write paths resolve through
+`ProjectLocation` to the corresponding main project directory. Creating a copy
+does not create another settings file; edits to the shared settings change
+configuration evidence in every copy.
+
+`ExecutionBinding` on task and check admissions names the root, execution id
+and workflow owner generation. Settling an admission through a different
+binding is refused before any check can be attached. Durable receipts also
+retain workflow run and task-instance identity and the independent source
+observation. Source editing remains useful without a workflow task: source
+sessions and confirmation tokens are governed by the source owner, while
+check receipts establish the relationship to an admitted workflow task.
+
+## Working-copy lifecycle
+
+The CLI's `application::WorkingCopies` is the application service for
+create, list, open and archive. It uses `GitRepo` operations and Git's worktree
+registry; presentation stores no parallel list.
+
+```sh
+magistr workspace working-copy --dir . create ../task-copy --branch task-copy
+magistr workspace working-copy --dir . list
+magistr workspace working-copy --dir . archive ../task-copy
+magistr workspace working-copy --dir . open ../task-copy
+```
+
+Archive closes a clean, idle linked copy by locking its Git registry entry
+with the reason `Archived by Magistr`. It preserves the directory, branch,
+journal and execution history. Reopen unlocks that entry. External Git locks
+retain their reason and are refused. The main copy cannot archive.
+Dirty source changes, merge conflicts, active workflow or source owners, and
+unavailable paths produce distinct outcomes. Unavailable entries remain listed;
+nothing prunes or recreates them automatically. Owned runtime coordination and
+journal files are excluded from source status; project configuration is included.
+
+Archiving holds an exclusive lease at the physical Git working-copy root and
+the workspace's existing `ServerLock`. Workflow views and source owners retain
+shared leases there, including projects rooted in subdirectories.
+The CLI supplies the lifecycle lock path to `WorkspaceService`, which retains
+it until the source service closes. Both admissions recheck archive state after
+taking their locks, preventing a new owner from racing an archive.
 
 ## Lock identity and generation
 
-The lock path comes from the native persistence identity, so copied project
-identities using one store contend, distinct project/store pairs are
-independent, and filesystem aliases contend on the same inode.
-
-Lock files are never truncated, removed, or replaced. The operating system
-releases the lock when its last handle closes or the process exits. A leftover
-file is normal; deleting it while an owner runs can allow a second inode and
-defeat exclusion.
-
-Each admission mints an `OwnerGeneration`: a fixed-width counter at the head of
-the role's lock file, read and advanced in place under the held lock, so it is
-monotonic across processes and restarts without a clock and never shortens the
-file. The generation changes when ownership changes, never on a state write.
-Every command an attached client sends carries the generation it was welcomed
-under; the owner refuses any other with `StaleGeneration`, so a client that
-outlived one owner cannot act on the next until it reconnects and re-reads.
+Stable lock inodes are never removed on release. OS-held locks are released
+with the last writer or process exit. The counter at the shared project root mints a higher
+`OwnerGeneration` on each successful admission, including a change of store location. This fences typed commands
+and in-flight check settlement; it is neither a source revision nor a run id.
 
 ## Attachment
 
-### Endpoint discovery
+The project endpoint is derived from the shared project lock path, with a
+short hashed runtime path when the local socket name is too long.
+It serves typed commands and the host's MCP adapter through `serve_with`.
+Workspace endpoints use the same local protocol with a separate root identity.
 
-An admitted writer serves an `OwnerEndpoint` on a Unix socket derived from the
-same three facts the lease is keyed by — store, project identity and role —
-so every process computes the rendezvous and nothing announces it. The socket
-sits beside the role's lock file (`<lock>.sock`) when that fits the kernel's
-`sun_path`; a store rooted too deep for it gets
-`<runtime_dir>/magistr-<digest>.<role>.sock` (the digest is the lock path's,
-`runtime_dir` is `XDG_RUNTIME_DIR`, else `TMPDIR`, else `/tmp`), and a runtime
-directory that is itself too deep falls back to `/tmp`. A copied project
-identity on one store finds the same owner; a different store finds none. The
-socket file is mode `0600`, and a live listener at the path refuses a second
-endpoint while a socket file nothing answers on is reclaimed.
+A hello names protocol version, build, project, caller and execution context.
+Peer credentials must match the owner's user. Typed commands and probes
+require the exact `BuildIdentity`; opaque MCP sessions use the owner's tool
+definitions. Protocol mismatches are refused. The owner validates membership
+and constructs the contextual view before welcoming a workflow client.
+The MCP acceptor receives that admitted view, not an unbound service.
 
-### Handshake and identity
-
-Both ways the wire is one JSON object per line. The client opens with a
-`Hello` naming protocol version 5 (`OWNER_PROTOCOL_VERSION`, exact match
-only), its `BuildIdentity`, an `OwnerIdentity`, the kind of attachment it
-wants (`commands`, `mcp` or `probe`) and its `CallerIdentity` (pid and
-surface).
-Workflow identity names the project and writer role; workspace identity
-names the canonical root without a workflow role. The owner reads the
-protocol field before anything else in the line, so a well-formed `Hello`
-of another version is answered with `Refused(Protocol { served, offered })`
-whatever else it carries — that refusal has had the same shape since
-version 3 — while a line that is no `Hello` at all gets no greeting. It then
-checks the peer credential of the socket — the connecting process must be
-the owner's own user, which the socket's file mode also enforces — and then
-the native build for typed commands/probes, identity and offered kind, answering `Welcome` with its
-generation and pid or `Refused` with the reason. The caller identity is
-kept for diagnostics — it is what the owner's report names for each live
-session — and the credential is the proof.
-
-A `probe` attachment is the diagnostic handshake, offered by every owner:
-after the welcome the owner writes one `OwnerReport` line — its generation,
-pid, build, identity and every `mcp` or `commands` session it has welcomed
-and not yet seen end, each with the caller it declared — and closes. The
-probe is answered from the same admission checks as any attachment (a
-probe from another build is refused with both identities, which is itself
-evidence of a live owner), holds no session, is not counted among the
-sessions it is told about and is never retained by the owner.
-`OwnerProbe::{workspace, at}` is the client: one connect, hello, greeting
-and report under one deadline, typed as `OwnerLiveness` — `Live(report)`,
-`Refused(refusal)`, `Silent` (accepted, never greeted), `Absent` (no
-endpoint) or `Unanswered` (an endpoint file nothing answered on). Only the
-first two come from an owner process; a socket file, a durable generation
-counter or a lock record is a record of a past admission and never certifies
-a live owner. `magistr workspace doctor` reports through it, see the
-[workspace guide](workspace-owner.md#ownership-diagnostics). Version 5
-added the probe; version 4 introduced the build identity.
-
-#### Build identity
-
-A `BuildIdentity` is fixed when the binary is compiled and is independent of
-the package version alone, of any workspace source snapshot and of the owner
-generation an admission mints. It has four fields:
-
-| Field | Value |
-| --- | --- |
-| `package` | `CARGO_PKG_VERSION` |
-| `contract` | Sixteen hex digits of a SHA-256 the engine's build script takes over the shipped source of `magistr-engine` and its transitive path dependencies (`magistr-workflow`, `magistr-domain`, `magistr-process`: each manifest and its `src/` tree less `*.tests.rs`, hidden entries and generated state) plus the workspace `Cargo.lock` — the crates that define every type crossing the socket |
-| `profile` | `debug` or `release` |
-| `target` | The target triple |
-
-Typed command and probe attachments require all four fields to be equal
-(`BuildIdentity::admits`), because those clients decode native records using
-their compiled types. A refusal names both identities.
-
-MCP attachments carry opaque JSON-RPC frames. The owner supplies the complete
-tool definitions and executes every handler; a proxy opens no engine and
-does not interpret native command or reply records. Its source digest and
-build profile therefore do not govern MCP attachment. Protocol, peer-user,
-project/root identity and offered attachment checks still apply. Rebuilding
-or reinstalling Magistr does not require existing agent sessions to close.
-There is one admitted owner and one served implementation at a time; no
-old-API adaptation or second writer is introduced.
-
-### What an owner serves
-
-| Owner | Endpoint | Attached surface |
-| --- | --- | --- |
-| Cockpit `run`, cockpit `next` / `next-loop`, plain and headless `next-loop` (Host) | `OwnerEndpoint::serve` over the writer: typed `OwnerCommand`s — every `NativeEngines` verb, carried out by `NativeEngines::apply` on the host's own writer. | A second `magistr run` on the project: `EngineClient::admit_or_attach` attaches when the host lease is held and its `AttachedEnginePort` sends each cockpit verb to the running host. Reads still come from the attached cockpit's own `NativeReader`, the feed and the re-seed timer. |
-| `magistr mcp-serve` (Service) | `OwnerEndpoint::serve_mcp` over the bare admission: an rmcp session of the same `MagistrService`, under the same protocol cap, on every welcomed socket. Typed commands are refused at the handshake. | A second `magistr mcp-serve` on the project: refused the Service lease, it attaches as `mcp` and proxies its stdio to the owner's session, so a second agent session in one project gets the full tool set through the one admitted writer. |
-
-Both workflow and workspace MCP invocations use the shared CLI `mcp_bridge`
-for client lifetime, JSON-RPC request tracking and initialize-only replay.
-Each surface supplies its own admission, shutdown and refusal presentation.
-A bridge outlives an attached owner: it answers in-flight calls exactly once
-with a refusal naming unknown effects, retains discovery, and reconnects —
-attaching or admitting — on its next request. It never replays a tool call.
-A successful reconnect emits `notifications/tools/list_changed` when the
-negotiated tools capability supports it, so clients discover the new owner's
-current tools. The workspace's policy is described in the [workspace guide](workspace-owner.md).
-
-`next` and `next-loop` on a held host stay refused: execution cycles are
-serialized per project by design, and a loop that cannot be the host is not
-started as a client.
-
-### Typed attachment on the Service owner (retired)
-
-`arch-11b-service-owner-commands` asked the Service owner to serve typed
-`OwnerCommand`s so that a one-shot CLI write could attach to a running
-`magistr mcp-serve`. Its premise was that `ProjectAuthority::serve` composed
-the family services without a writer over the same engines; that has not
-been true since the one write path: `serve` returns the `UnifiedService` and
-the `NativeEngines` over the very same family services, and `MagistrService`
-holds that writer for its own gate and phase records. Its consumer never
-existed either: every Host admission in the binary is a loop or the cockpit,
-and `magistr roadmap show|next|status|export` are readers. `arch-14f` therefore
-retired the requirement rather than manufacture a command or a second
-protocol. The Service endpoint keeps refusing `commands` at the handshake; a
-real one-shot writer, if one is ever added, attaches through the existing
-`OwnerEndpoint::serve` path the Host already uses.
-
-### Process lifetime
-
-The owner is an embedded host, alive for its CLI or session invocation — not a
-daemon. The endpoint lives exactly as long as the value that serves it: the
-cockpit run, the loop, the stdio MCP session. It is dropped after the runtime
-and before the writer, so the owner stops taking clients, hangs up every
-attached connection, unlinks its socket, and only then releases the project.
-Nothing an attached client does keeps the owner alive, and the owner never
-waits for a client. Attached surfaces see EOF: the attached cockpit's port
-reports the owner gone and reconnects on its next verb (to whoever owns the
-project next, refusing once when the generation changed); the attached
-`mcp-serve` bridge keeps the client's stdio connection open, answers any
-interrupted request with a read-back refusal, and attaches or admits on the
-next request. The client's initialize is the only replayed request.
-
-### Detach
-
-A client detaches by sending `Detach` and closing, or simply by closing. The
-owner cancels nothing on a detach: its own surface and every other attached
-client continue, and a detached client can attach again. Detaching a viewer is
-not cancelling a turn and not terminating a session; those stay the session
-supervisor's explicit operations.
-
-### Command deadlines
-
-The client is synchronous — the cockpit's engine port runs inside its session
-task, and a local round trip is bounded, not awaited — and every round trip has
-a deadline (`OwnerClient::DEADLINE`, five seconds by default). A deadline or a
-hang-up spends the connection: a late answer could no longer be told from the
-next command's, so the client is detached until an explicit `reconnect`, whose
-answer says whether the owner is still the one it was reading from.
-
-### Read-only fallback and fail-closed behavior
-
-Attachment never widens into ownership. A surface whose role is held and whose
-owner endpoint does not take it fails closed: `EngineError::Occupied` for the
-cockpit (carrying the lease's refusal and the attachment's), the lease's
-refusal plus the endpoint's for `mcp-serve`. Neither opens a writer. Read-only
-is an explicit choice the user makes — the observer cockpit (bare `magistr`,
-`magistr roadmap`) and the one-shot roadmap reads open a `NativeReader` and
-run beside any owner — never a silent downgrade of a surface that asked to
-write.
+Connections are capped at 128, handshakes at five seconds, and native command
+clients use deadlines. Endpoint shutdown stops admission, cancels sessions,
+joins MCP cleanup and releases its writer references. A disconnect never
+replays a possibly applied mutation. A surviving bridge can reconnect on its
+next request and restore its own persisted execution.
 
 ## Event sockets
 
-`ProjectAuthority::publish` locks `<socket>.mcp-owner.lock` beside the project
-lock, so different stores cannot race on one publisher path. A bounded
-connection probe keeps a live listener intact. Only a missing or
-connection-refused endpoint proceeds to binding; a probe timeout, another
-connection error or a bind failure refuses startup and releases the lease. A
-stale socket is reclaimed without deleting its lock file.
-
-Unix CLI startup requests the project feed by default. Explicit configurations
-can omit broadcasting. Non-Unix startup keeps a no-feed default, and an explicit
-Unix-socket request returns an unsupported error.
+One project publisher supplies the shared sequence and owner epoch. A host can
+start it after opening its engines; publication binds all existing execution
+views before the host serves clients. Ship
+events and Magistr phase/gate-output events also carry `execution_key`.
+The CLI feed delivers those events only to the matching context while
+advancing the cursor for every decoded frame. Shared roadmap, reasoning and
+signal events reach every context. Snapshot readers use the same contextual
+ship persistence partition. Long and short feed paths resolve through the
+authority directory in every linked copy.
 
 ## Cached state and the store stamp
 
-Native engines hold state in memory and observe the store before they
-answer or act: each family's engine remembers the stamp (inode,
-modification time, length) of the file it last read or wrote, `stat`s the
-file on every query and mutation, and re-reads it only when the stamp
-moved. A persistence merge hands the merged file back to the writer's
-memory with the written stamp, so an own write leaves memory equal to
-disk. Reload methods on the reader force the same read; the cockpit
-re-seeds when its detached-feed timer observes a changed store cursor
-(and confirms an unchanged one only when the feed asked, so a projection
-marked stale by a hangup comes back without a write), and the loop
-reloads the roadmap at every iteration boundary — both keep their cost. An attached mutation is carried out on the owner's engines, so
-the owner's own views are current; the attached surface reads it on its
-next query and repaints on the feed or its next seed. Within one process
-the use cases and reader share the same engines. Admitted settlement
-compares and appends under the file lock. Two writers of one record inside
-one family's read-to-save window resolve by the family's merge rule; this
-is not a transactional multi-writer store, and no revision spans the four
-families. A settled `magistr_gate` record is visible to every server's
-`ship_status`.
-
-Observing the store is separate from command authority. It neither admits
-a second writer nor authenticates a client. What each family observes,
-per surface pair, and how a conflicting pair of writes resolves, is stated
-in the [consistency model](clients.md#workflow-consistency-model).
+Each family observes its persisted file's inode, modification time and length
+before answering or acting. Changed stamps trigger a read; unchanged stamps
+reuse memory. Writes are atomic and adopt the written stamp. Contexts share
+the project's planning engines and have their own ship handles. Queries across
+families are not one transaction. Readers never grant mutation authority;
+source revisions and owner generations remain distinct.
 
 ## Limits
 
-Admission is cooperative among Magistr binaries that take the lease. Older
-binaries, standalone think-and-ship and direct edits of the store or its lock
-files do not participate. Advisory locks do not protect against deliberate
-modification, and the generation fences attached clients of an owner, not
-arbitrary writers of the store.
-
-Attachment is local and unauthenticated beyond the peer credential: there is
-no remote endpoint, no daemon that outlives its invocation, no upgrade path
-across protocol versions (a mismatch is refused), and no shared writer
-routing. The lease must not be described as a distributed authority or a
-governed peer runtime; a `Revision` is still comparable only within one
-authority's history, and admission is not what makes reads coherent across
-the two roles — the store stamp is, per family. Workflow command and MCP attachment require Unix sockets and report
-`Unsupported` elsewhere. Workspace MCP attachment has a separate authenticated
-Windows named-pipe path under the same owner protocol; it does not provide
-workflow attachment.
-
-The event publisher can outlive a dropped service inside a running async
-runtime. Admission continues to refuse a still-live endpoint; releasing an
-owner lease alone does not establish that its publisher has shut down. Stop the
-owning runtime or process normally before reconnecting.
+Admission coordinates participating Magistr processes on one local machine.
+Direct edits of native state and deliberate lock-file modification bypass it.
+It is not distributed coordination. Git worktree operations also follow Git's
+own refusal rules. This change introduces no desktop presentation or provider
+session restoration; the application services are usable by current CLI and MCP
+hosts and future desktop callers.
 
 ## Verification
 
-Engine unit tests (`native::native_engines::tests`) cover the one write path:
-promotion from the in-process writer creating the backlog chunk and linking
-both ways, idempotently; the handlers' refusals — an empty body, a blank
-summary, an illegal transition, an unknown task — reaching the caller in the
-native error messages; and a fresh objective reporting how many stale tasks
-it cleared. Imported family use-case tests cover native/MCP valid and invalid
-behavior, reciprocal changes, tracker probe concurrency, legacy execution
-identity, peer rollover, reused task IDs, and stale settlement. CLI process
-tests hold commands across objective rollover and prove that both gate adapters
-leave the newer task untouched.
-`native::project_authority::tests` cover role coexistence,
-same-role refusal, the lease living with the last writer clone while readers
-hold nothing, the stateless lock under the project root, lock I/O failure
-before any engine opens, and the publisher probe.
-`native::owner_endpoint::tests` cover an occupied host reached through its
-endpoint with no second lease, a stale generation refused until the client
-reconnects, a detach that cancels nothing for the owner or another client, a
-silent owner tripping the command deadline, the handshake refusing another
-protocol, project, role or kind, owner shutdown leaving the client without a
-writer and the role free, the MCP hand-off after the welcome, an MCP-only owner
-refusing typed commands, a live endpoint refused and a stale socket reclaimed,
-and generations growing per role; `native::owner_generation::tests` and
-`native::owner_socket::tests` cover the counter and the derived path. The
-host's `application::workflow_client::client::tests` cover a refused second host, an attached
-writer, an observer beside it, a second cockpit acting through the running
-host, a held host without an endpoint failing closed, and an attached port
-reporting a gone owner without opening anything. The CLI integrations
-`mcp_service_owner` and `mcp_project_owner` cover lock lifetime, contention,
-aliases, independent stores, stale sockets, process exit, a host admitted
-beside a live service, a real `magistr roadmap status` process answering beside
-a running stdio owner without a lease, and a real second `magistr mcp-serve`
-attaching to the owner, writing through it, and ending when the owner is
-killed. `mcp_serve_integration` covers a green `magistr_gate(all)` leaving
-one verified check per gate on the named task and opening `done`, and a gate
-running exactly once with or without a task; the loop driver's tests cover a
-judged completion naming the task its gates were recorded on.
+Engine suites cover cross-role exclusion, copied identity and store contention,
+canonical aliases, independent executions, foreign-root refusal, generation
+fencing and endpoint cleanup. Workflow suites cover admission and receipt
+settlement, persistence and source freshness. CLI lifecycle tests cover create,
+archive, reopen, dirty/conflicted/active/unavailable copies and runtime files.
+
+`mcp_project_owner::linked_worktrees_share_one_workflow_owner_and_keep_source_checks_and_recovery_separate`
+uses real Git worktrees and real `magistr` processes. It proves one workflow
+owner, distinct source edits, cross-tree approval refusal, correct check roots,
+run/task binding, no foreign receipt delivery, source freshness, owner exit
+and higher-generation recovery with bounded client cleanup.
+`workflow_client::feed::tests` proves other executions cannot replace the
+selected task or create false sequence gaps.

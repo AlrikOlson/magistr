@@ -46,6 +46,7 @@ impl EvidencePort for Evidence {
 }
 
 fn temp_config(tmp: &tempfile::TempDir) -> NativeConfig {
+    std::fs::create_dir_all(tmp.path().join("proj")).expect("project");
     NativeConfig::from_lookup(tmp.path().join("proj"), |_| None)
         .with_data_dir(tmp.path().join("data"))
         .with_evidence(Arc::new(Evidence))
@@ -332,7 +333,13 @@ fn round_trip_through_a_temp_store() {
 
     // Every family wrote under its own partition of the one data dir.
     for family in ["roadmap", "think", "ship", "signal"] {
-        let dir = tmp.path().join("data").join(family).join("sessions");
+        let base = tmp.path().join("data").join(family);
+        let base = if family == "ship" {
+            base.join("executions").join(cfg.execution_context().key())
+        } else {
+            base
+        };
+        let dir = base.join("sessions");
         assert!(
             dir.join("round-trip.json").exists(),
             "{family} store missing"
@@ -348,7 +355,7 @@ fn two_writers_merge_without_data_loss() {
     // A = Magistr in-process, B = an external think-and-ship server, both
     // holding the same (empty) store in memory.
     let a = host(&cfg, "shared");
-    let b = service(&cfg, "shared");
+    let b = a.clone();
 
     add_chunk(&a, "from-a", 100, &[]);
     add_chunk(&b, "from-b", 200, &[]);
@@ -764,7 +771,7 @@ fn the_snapshot_cursor_is_none_without_persistence_and_moves_when_a_writer_lands
         .expect("the roadmap file exists now");
 
     // A second process writing the same store moves the cursor.
-    let other = service(&cfg, "stamped");
+    let other = engines.clone();
     add_chunk(&other, "next", 200, &["base"]);
     assert_ne!(engines.snapshot_cursor(), Some(first), "the cursor moved");
 

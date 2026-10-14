@@ -33,9 +33,7 @@ fn project_root(dir: &Path) -> eyre::Result<PathBuf> {
         eyre::bail!("MCP workspace is not a directory: {}", start.display());
     }
     for candidate in start.ancestors() {
-        if candidate.join(".magistr/project.json").is_file()
-            || candidate.join(".jig/project.json").is_file()
-        {
+        if crate::paths::project_json(candidate)?.is_file() {
             return Ok(candidate.to_path_buf());
         }
         if candidate.join(".git").exists() {

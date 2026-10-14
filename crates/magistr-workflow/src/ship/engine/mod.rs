@@ -15,6 +15,7 @@ use crate::ship::receipt_ledger::ReceiptLedger;
 use crate::ship::saved_cycle::SavedCycle;
 
 pub struct ShipEngine {
+    pub(crate) binding: Option<crate::ship::application::ExecutionBinding>,
     pub objective: Option<Objective>,
     pub tasks: Vec<Task>,
     pub project_id: String,
@@ -49,6 +50,7 @@ pub struct ShipEngine {
 impl ShipEngine {
     pub fn new(project_id: String) -> Self {
         Self {
+            binding: None,
             objective: None,
             tasks: Vec::new(),
             project_id,
@@ -66,9 +68,23 @@ impl ShipEngine {
         }
     }
 
-    pub fn with_broadcaster(mut self, broadcaster: Broadcaster) -> Self {
-        self.broadcaster = Some(broadcaster);
+    #[must_use]
+    pub fn with_execution_binding(
+        mut self,
+        binding: crate::ship::application::ExecutionBinding,
+    ) -> Self {
+        self.binding = Some(binding);
         self
+    }
+
+    pub fn with_broadcaster(mut self, broadcaster: Broadcaster) -> Self {
+        self.set_broadcaster(broadcaster);
+        self
+    }
+
+    /// Attach the admitted owner's publisher to an already-open engine.
+    pub fn set_broadcaster(&mut self, broadcaster: Broadcaster) {
+        self.broadcaster = Some(broadcaster);
     }
 
     /// Attach a cloud client so an `ActionRecorded` mutation fire-and-forget

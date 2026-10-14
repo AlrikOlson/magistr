@@ -12,18 +12,18 @@ fn the_socket_sits_beside_the_lock_when_the_path_is_short() {
     let host = owner_socket_path(&cfg, "lease", WriterRole::Host);
     assert_eq!(
         host,
-        PathBuf::from("/d/roadmap/sessions/lease.host-owner.lock.sock")
+        PathBuf::from("/d/roadmap/sessions/lease.project-owner.lock.sock")
     );
     let service = owner_socket_path(&cfg, "lease", WriterRole::Service);
     assert_eq!(
         service,
-        PathBuf::from("/d/roadmap/sessions/lease.mcp-owner.lock.sock")
+        PathBuf::from("/d/roadmap/sessions/lease.project-owner.lock.sock")
     );
     // A stateless store keys the endpoint under the project root.
     let stateless = cfg.persist(false);
     assert_eq!(
         owner_socket_path(&stateless, "lease", WriterRole::Host),
-        PathBuf::from("/p/.magistr/host-owner.lock.sock")
+        PathBuf::from("/p/.magistr/project-owner.lock.sock")
     );
 }
 
@@ -36,11 +36,11 @@ fn a_deep_store_falls_back_to_the_runtime_directory_and_stays_stable() {
     assert_eq!(first.parent(), Some(tmp.path().join("run").as_path()));
     let name = first.file_name().expect("name").to_string_lossy();
     assert!(
-        name.starts_with("magistr-") && name.ends_with(".host.sock"),
+        name.starts_with("magistr-") && name.ends_with(".workflow.sock"),
         "{name}"
     );
     assert_eq!(first, owner_socket_path(&cfg, "lease", WriterRole::Host));
     // Another project on the same deep store gets its own rendezvous.
     assert_ne!(first, owner_socket_path(&cfg, "other", WriterRole::Host));
-    assert_ne!(first, owner_socket_path(&cfg, "lease", WriterRole::Service));
+    assert_eq!(first, owner_socket_path(&cfg, "lease", WriterRole::Service));
 }

@@ -27,11 +27,11 @@ identity table with types and change rules is the
 
 | Object | What it is | Owner (the only writer) | Identity | Guide |
 | --- | --- | --- | --- | --- |
-| Project | One native workflow store and its configuration | `ProjectAuthority` admission per `WriterRole` | `project_id` | [project authority](project-authority.md) |
-| Writer role | `Host` (cockpit, loops, desktop) or `Service` (the agent's MCP server); the two coexist, a second of either is refused | the OS lock the role's lease holds | `OwnerGeneration` (feed `epoch`) | [roles](project-authority.md#roles) |
-| Native writer | `NativeEngines`: every roadmap, ship, think and signal mutation, by calling the library's own tool handler | constructed only by `ProjectAuthority::open`/`serve` | the role's generation | [one write path](project-authority.md#one-write-path) |
+| Project | One native workflow store and its configuration | one `ProjectAuthority` across host kinds and linked copies | `project_id` | [project authority](project-authority.md) |
+| Writer role | `Host` (cockpit, loops, desktop) or `Service` (the agent's MCP server); descriptive identity sharing one project lease | the project's OS-held lease | `OwnerGeneration` (feed `epoch`) | [capabilities](project-authority.md#capabilities) |
+| Native writer | `NativeEngines`: every roadmap, ship, think and signal mutation, by calling the library's own tool handler | constructed only by `ProjectAuthority::open`/`serve` | the project generation and execution context | [one write path](project-authority.md#one-write-path) |
 | Reader | `NativeReader`: lease-free, cannot mutate | anyone | none | [capabilities](project-authority.md#capabilities) |
-| Owner endpoint / attached client | A Unix socket an admitted owner serves; `OwnerClient` acts through the owner instead of opening a second writer | the admitted owner's invocation | protocol version, peer credential, exact build identity, project, role, generation | [attachment](project-authority.md#attachment) |
+| Owner endpoint / attached client | A Unix socket an admitted owner serves; `OwnerClient` acts through the owner instead of opening a second writer | the admitted owner's invocation | protocol version, peer credential, exact build identity for typed commands/probes, project, execution context, generation | [attachment](project-authority.md#attachment) |
 | Chunk, signal, reasoning step, objective, task | Native workflow records | the four family engines behind the native writer | record ids; `run_id`, `task_id`, `task_instance` | [clients](clients.md#workflow-consistency-model) |
 | Run and attempt | One loop execution and one retry of one command in it | `IterationLoop` with the domain `RunState` and operation ledger, in `.magistr/loop-state.json` | run id; `AttemptId` | [durability](durability.md) |
 | Operation record | Intent written before an effect and settled after it | the loop checkpoint | command plus attempt number | [records and outcomes](durability.md#records-and-outcomes) |
@@ -75,6 +75,12 @@ and `application_boundary` suites, the `workflow-source`, `workspace-source`,
 Regenerate the root rows with `cargo metadata --format-version 1 --no-deps
 --locked` (normal dependencies whose name starts with `magistr`); the two
 desktop rows come from their own manifests.
+
+The [desktop foundation decision](desktop-foundation.md), added 12 October 2026,
+selects a Tauri Rust host and OS WebView using a separate bounded native fixture.
+These dependency/runtime rows continue to describe the delivered components.
+The target reuses their admitted application, session, workflow and source ports;
+the decision identifies the owner repairs required before the renderer cutover.
 
 Rules the view carries: `magistr-domain` has no effectful dependency;
 `magistr-gui2` never depends on `magistr-tui`; the desktop launcher reaches the
@@ -196,9 +202,14 @@ capability at initialize. There is no direct file write in the ACP host
 
 `magistr_gate` or `ship_check` (agent) and the loop driver's gate set (host) →
 `AdmittedCheck::admit` names the task and captures a lock-free
-`SourceSnapshot` → the command runs once on the pty runner → settlement
-records exit code, identities and a durable receipt on that task, or `Stale`
-when the objective rolled over or the source moved. The loop's set is
+`SourceSnapshot` → the command runs once through `OwnedProcess` (a pty for
+named gates, pipes for direct workflow checks) in the observed project →
+settlement records exit code, identities and a durable receipt on that task,
+or `Stale` when the admitted run or task was superseded. Source changes retain
+the execution result with changed freshness and refuse completion. Re-running
+a gate captures the current source and allocates a new attempt; direct
+workflow checks also resolve relative reports in that admitted workspace.
+The loop's set is
 `WorkspaceEvidence::required_gates` for the project root. `magistr validate`
 runs the same commands and records nothing. Guides:
 [receipts](project-authority.md#receipts-and-the-evidence-capability),

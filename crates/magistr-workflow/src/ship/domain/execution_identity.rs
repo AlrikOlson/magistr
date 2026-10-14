@@ -1,15 +1,13 @@
 use std::collections::{BTreeMap, BTreeSet};
 
+use super::task::Task;
 use serde::{Deserialize, Serialize};
 
-use super::{objective::Objective, task::Task};
-
-/// Additive identity metadata in the existing native Ship persistence record.
+/// The recorded run and task instances in the current Ship persistence record.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct ExecutionIdentity {
     pub run_id: String,
     pub tasks: BTreeMap<String, String>,
-    #[serde(default)]
     pub removed_instances: BTreeSet<String>,
 }
 
@@ -22,22 +20,16 @@ impl ExecutionIdentity {
         }
     }
 
-    pub(crate) fn legacy(project: &str, objective: &Option<Objective>, tasks: &[Task]) -> Self {
-        let stamp = objective
-            .as_ref()
-            .and_then(|o| o.created_at.as_deref())
-            .unwrap_or("unscoped");
-        let run_id = format!("legacy:{project}:{stamp}");
-        let tasks = tasks
-            .iter()
-            .enumerate()
-            .map(|(index, task)| (task.id.clone(), format!("legacy:{index}:{}", task.id)))
-            .collect();
-        Self {
-            run_id,
-            tasks,
-            removed_instances: BTreeSet::new(),
-        }
+    pub(crate) fn has_task_instances(&self, tasks: &[Task]) -> bool {
+        let ids: BTreeSet<_> = tasks.iter().map(|task| task.id.as_str()).collect();
+        !self.run_id.is_empty()
+            && ids.len() == tasks.len()
+            && self.tasks.len() == tasks.len()
+            && tasks.iter().all(|task| {
+                self.tasks.get(&task.id).is_some_and(|instance| {
+                    !instance.is_empty() && !self.removed_instances.contains(instance)
+                })
+            })
     }
 
     pub(crate) fn add_task(&mut self, id: &str) {

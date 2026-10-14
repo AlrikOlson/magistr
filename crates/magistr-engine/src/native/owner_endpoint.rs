@@ -66,14 +66,6 @@ impl OwnerEndpoint {
         Self::serve_workflow(engines.shared_authority(), Some(engines), mcp).await
     }
 
-    /// Serve an MCP session over a bare workflow admission.
-    ///
-    /// # Errors
-    /// As [`Self::serve_with`].
-    pub async fn serve_mcp(authority: Arc<ProjectAuthority>, mcp: McpAcceptor) -> io::Result<Self> {
-        Self::serve_workflow(authority, None, Some(mcp)).await
-    }
-
     /// Serve the MCP adapter for an already admitted workspace owner.
     /// The caller retains its OS-held workspace service until this endpoint's
     /// [`Self::shutdown`] completes. This method takes no workflow lease and

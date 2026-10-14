@@ -70,7 +70,7 @@ combines them.
 | Identity | Type | Stamped by | Meaning | Changes when |
 | --- | --- | --- | --- | --- |
 | Schema version | `schema_version: u32` in the think history file (`SCHEMA_VERSION = 1`) | the think persistence layer | the on-disk shape of a family's file | the file format changes; a history at another version is skipped, never merged |
-| Owner epoch | `epoch: u64` on every feed line (`OwnerGeneration`) | the publishing owner's role lease | which admitted writer emitted the frame | a new writer of that role is admitted |
+| Owner epoch | `epoch: u64` on every feed line (`OwnerGeneration`) | the project owner's lease | which admitted writer emitted the frame | a new project writer is admitted |
 | Aggregate revision | `updated_at` on `Chunk` and `Signal`; timestamps on ship actions and checks | the family engine at the write | the last write to one record | that record is written |
 | Event sequence | `seq: u64` on every feed line | the publisher's broadcaster, one counter shared by all its family handles | the position of one frame in one owner's emission order | every emitted frame, whatever its family |
 | Snapshot cursor | `SnapshotCursor { modified, length }` | the store's on-disk stamp, read before the families | where a whole read stood | any family file is written |

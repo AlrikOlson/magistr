@@ -14,6 +14,7 @@ use super::{ShipStatus, TaskAdmission};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ShipSnapshot {
     pub project_id: String,
+    pub execution: Option<super::ExecutionBinding>,
     pub run_id: String,
     pub objective: Option<Objective>,
     pub tasks: Vec<Task>,
@@ -24,6 +25,7 @@ impl ShipSnapshot {
     pub(crate) fn from_engine(engine: &ShipEngine) -> Self {
         Self {
             project_id: engine.project_id.clone(),
+            execution: engine.binding.clone(),
             run_id: engine.execution.run_id.clone(),
             objective: engine.objective.clone(),
             tasks: engine.tasks.clone(),
@@ -62,6 +64,7 @@ impl ShipSnapshot {
             .clone();
         Ok(TaskAdmission {
             project_id: self.project_id.clone(),
+            execution: self.execution.clone(),
             run_id: self.run_id.clone(),
             task_id,
             task_instance,

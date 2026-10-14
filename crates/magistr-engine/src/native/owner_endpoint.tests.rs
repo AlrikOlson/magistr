@@ -335,18 +335,16 @@ async fn the_handshake_is_validated_before_anything_is_served() {
             offered: Box::new(other_version),
         }
     );
+    let mut service_hello = hello("lease", "service", "commands", served);
+    service_hello["context"] = serde_json::to_value(cfg.execution_context()).expect("context");
+    assert!(matches!(
+        raw_greeting(path, service_hello),
+        Greeting::Welcome { .. }
+    ));
+    let mut unsupported = hello("lease", "host", "mcp", served);
+    unsupported["context"] = serde_json::to_value(cfg.execution_context()).expect("context");
     assert_eq!(
-        refused(raw_greeting(
-            path,
-            hello("lease", "service", "commands", served)
-        )),
-        AttachRefusal::Role {
-            expected: WriterRole::Host,
-            offered: WriterRole::Service
-        }
-    );
-    assert_eq!(
-        refused(raw_greeting(path, hello("lease", "host", "mcp", served))),
+        refused(raw_greeting(path, unsupported)),
         AttachRefusal::Unsupported(AttachKind::Mcp)
     );
     // A different project id derives a different socket: nothing answers.
@@ -423,7 +421,11 @@ async fn equal_package_versions_from_other_builds_are_refused_with_both_identiti
     );
     assert!(
         matches!(
-            raw_greeting(path, hello_from(&copied)),
+            raw_greeting(path, {
+                let mut hello = hello_from(&copied);
+                hello["context"] = serde_json::to_value(cfg.execution_context()).expect("context");
+                hello
+            }),
             Greeting::Welcome { .. }
         ),
         "an equal build attaches"
@@ -432,25 +434,24 @@ async fn equal_package_versions_from_other_builds_are_refused_with_both_identiti
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn a_protocol_3_hello_is_answered_with_an_explicit_protocol_refusal() {
+async fn a_mismatched_protocol_is_refused_before_reading_its_payload() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = config(&tmp);
     let owner = host(&cfg);
     let endpoint = OwnerEndpoint::serve(owner.clone()).await.expect("endpoint");
-    // Exactly what a protocol-3 binary sends: the build is a bare package
-    // version string, which is not a `BuildIdentity`.
-    let version_3 = serde_json::json!({
-        "protocol": 3,
-        "build": env!("CARGO_PKG_VERSION"),
+    let offered = OWNER_PROTOCOL_VERSION + 1;
+    let mismatched = serde_json::json!({
+        "protocol": offered,
+        "build": BuildIdentity::this_build(),
         "identity": { "kind": "workflow", "project_id": "lease", "role": "host" },
         "attach": "commands",
         "caller": {"pid": std::process::id(), "surface": "test"},
     });
     assert_eq!(
-        raw_greeting(endpoint.path(), version_3),
+        raw_greeting(endpoint.path(), mismatched),
         Greeting::Refused(AttachRefusal::Protocol {
             served: OWNER_PROTOCOL_VERSION,
-            offered: 3,
+            offered,
         })
     );
     // A line that is not a `Hello` of any version gets no greeting at all.
@@ -501,7 +502,7 @@ async fn an_mcp_attachment_hands_the_socket_to_the_acceptor_after_the_welcome() 
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = config(&tmp);
     let owner = host(&cfg);
-    let acceptor: McpAcceptor = Arc::new(|stream: tokio::net::UnixStream, cancel| {
+    let acceptor: McpAcceptor = Arc::new(|stream: tokio::net::UnixStream, cancel, _context| {
         Box::pin(async move {
             tokio::select! {
                 _ = cancel.cancelled() => {},
@@ -569,7 +570,7 @@ async fn a_live_endpoint_is_refused_and_a_stale_socket_is_reclaimed() {
 }
 
 #[test]
-fn generations_grow_with_each_admission_of_a_role_and_roles_count_separately() {
+fn generations_grow_across_host_and_service_admissions() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = config(&tmp);
     let first = admit_host(&cfg).expect("first");
@@ -581,52 +582,18 @@ fn generations_grow_with_each_admission_of_a_role_and_roles_count_separately() {
     drop(first);
     let second = admit_host(&cfg).expect("second");
     assert_eq!(second.generation().get(), g1.get() + 1);
+    drop(second);
     let service = ProjectAuthority::admit_for_project(&cfg, "lease".into(), WriterRole::Service)
-        .expect("service");
-    assert_eq!(service.generation().get(), 1, "its own counter");
-    // The lock inode is the same file the counter lives in.
-    let lock = cfg.data_dir.join("roadmap/sessions/lease.host-owner.lock");
-    let text = std::fs::read_to_string(lock).expect("lock text");
-    assert_eq!(text.trim().parse::<u64>().expect("counter"), g1.get() + 1);
-}
-
-#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn an_mcp_only_owner_refuses_typed_commands_at_the_handshake() {
-    let tmp = tempfile::tempdir().expect("tempdir");
-    let cfg = config(&tmp);
-    let authority = Arc::new(admit_host(&cfg).expect("admitted"));
-    // An acceptor that holds the session open until the client leaves.
-    let acceptor: McpAcceptor = Arc::new(|stream: tokio::net::UnixStream, cancel| {
-        Box::pin(async move {
-            tokio::select! {
-                _ = cancel.cancelled() => {},
-                _ = async move {
-            let mut sink = tokio::io::sink();
-            let _ = tokio::io::copy(&mut tokio::io::BufReader::new(stream), &mut sink).await;
-                } => {},
-            }
-        })
-    });
-    let endpoint = OwnerEndpoint::serve_mcp(Arc::clone(&authority), acceptor)
-        .await
-        .expect("mcp endpoint");
-    assert_eq!(endpoint.generation(), authority.generation());
-    let refused = client(&cfg).expect_err("no writer to command");
-    assert!(
-        matches!(
-            refused,
-            AttachError::Refused(AttachRefusal::Unsupported(AttachKind::Commands))
-        ),
-        "{refused}"
+        .expect("service after host");
+    assert_eq!(
+        service.generation().get(),
+        g1.get() + 2,
+        "one project counter"
     );
-    OwnerClient::attach_mcp(
-        &cfg,
-        "lease".into(),
-        WriterRole::Host,
-        CallerIdentity::this_process("test"),
-        DEADLINE,
-    )
-    .expect("mcp is what it offers");
+    // The lock inode is the same file the counter lives in.
+    let lock = cfg.workflow_root().join(".magistr/workflow-owner.lock");
+    let text = std::fs::read_to_string(lock).expect("lock text");
+    assert_eq!(text.trim().parse::<u64>().expect("counter"), g1.get() + 2);
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]

@@ -19,6 +19,7 @@ mod journal_view;
 mod key;
 mod migrate;
 mod snapshot;
+mod working_copy;
 
 use std::path::{Path, PathBuf};
 
@@ -32,6 +33,7 @@ pub use journal_view::JournalView;
 pub use key::run_key_rotate;
 pub use migrate::run_migrate;
 pub use snapshot::run_snapshot;
+pub use working_copy::run_working_copy;
 
 /// The absolute workspace root, or the retained exit 66.
 pub(crate) fn admitted_root(dir: &Path) -> PathBuf {

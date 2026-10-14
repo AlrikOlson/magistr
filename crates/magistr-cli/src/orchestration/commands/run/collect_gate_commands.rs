@@ -1,6 +1,8 @@
 /// Collect quality gate commands from the selected project's config.
 pub fn collect_gate_commands(project_dir: &std::path::Path) -> Vec<String> {
-    let config_path = project_dir.join(".magistr/project.json");
+    let Ok(config_path) = crate::paths::project_json(project_dir) else {
+        return Vec::new();
+    };
     if let Ok(content) = std::fs::read_to_string(&config_path)
         && let Ok(config) = serde_json::from_str::<crate::types::ProjectConfig>(&content)
     {

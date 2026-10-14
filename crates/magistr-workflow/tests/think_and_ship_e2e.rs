@@ -37,12 +37,12 @@ impl ClientHandler for TestClient {}
 /// A source that never moves and a project that configures no gates: the
 /// evidence capability a host composes, at its simplest, so a check the
 /// server runs over the wire certifies a source and a chunk can complete.
-struct Fixed;
+struct Fixed(String);
 
 impl SourceWitness for Fixed {
     fn observation(&self) -> SourceObservation {
         SourceObservation {
-            workspace_root: "/w".into(),
+            workspace_root: self.0.clone(),
             workspace_generation: None,
             scheme: "fake/1".into(),
             policy_digest: "p".into(),
@@ -58,11 +58,13 @@ impl SourceWitness for Fixed {
     }
 }
 
-struct Evidence;
+struct Evidence(tempfile::TempDir);
 
 impl EvidencePort for Evidence {
     fn observe(&self) -> Result<Box<dyn SourceWitness>, String> {
-        Ok(Box::new(Fixed))
+        Ok(Box::new(Fixed(
+            self.0.path().to_string_lossy().into_owned(),
+        )))
     }
     fn required_gates(&self) -> Result<Vec<GateContract>, String> {
         Ok(Vec::new())
@@ -76,7 +78,9 @@ fn build_unified() -> UnifiedService {
     let ship = ShipService::from_use_cases(
         ShipService::new(ShipEngine::new("test-abc123".into()))
             .use_cases()
-            .with_evidence(Arc::new(Evidence)),
+            .with_evidence(Arc::new(Evidence(
+                tempfile::tempdir().expect("evidence workspace"),
+            ))),
     );
     let roadmap = RoadmapService::new(RoadmapEngine::new("test-abc123".into()), ship.use_cases());
     let signal = SignalService::new(SignalEngine::new("test-abc123".into()));

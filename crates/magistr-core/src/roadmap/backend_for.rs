@@ -13,7 +13,7 @@ use magistr_engine::native::RoadmapBackend;
 /// The backend `.magistr/project.json` declares, if it declares one.
 #[must_use]
 pub fn declared_backend(project_dir: &Path) -> Option<RoadmapBackend> {
-    let raw = std::fs::read_to_string(crate::paths::project_json(project_dir)).ok()?;
+    let raw = std::fs::read_to_string(crate::paths::project_json(project_dir).ok()?).ok()?;
     let value: serde_json::Value = serde_json::from_str(&raw).ok()?;
     serde_json::from_value(value.get("roadmap_backend")?.clone()).ok()
 }
@@ -40,7 +40,9 @@ pub fn backend_for_declared(
     if let Some(declared) = declared {
         return declared;
     }
-    let config_path = crate::paths::project_json(project_dir);
+    let Ok(config_path) = crate::paths::project_json(project_dir) else {
+        return RoadmapBackend::default();
+    };
     if !config_path.exists() {
         return RoadmapBackend::Yaml;
     }
