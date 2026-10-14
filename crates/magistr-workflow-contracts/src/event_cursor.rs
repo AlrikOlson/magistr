@@ -10,8 +10,8 @@ use super::owner_generation::OwnerGeneration;
 /// Ordered within one epoch only: sequences of different epochs are
 /// different publishers' counters and compare as a change of owner, never
 /// as earlier or later. Neither field is a revision of any record in the
-/// store — the store keeps per-record stamps of its own, a snapshot has a
-/// [`SnapshotCursor`](super::SnapshotCursor), and nothing combines them.
+/// store. Each successful family observation carries its own
+/// [`ReadSource`](super::ReadSource); no aggregate file or event revision combines them.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct EventCursor {
     /// The publishing owner's generation.

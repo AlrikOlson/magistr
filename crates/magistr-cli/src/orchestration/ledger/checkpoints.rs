@@ -65,7 +65,7 @@ impl Checkpoints {
         reason: CheckpointReason,
         label: impl Into<String>,
     ) -> Result<&Checkpoint, String> {
-        let mut snapshot = self.engine.capture();
+        let mut snapshot = self.engine.capture().map_err(|error| error.to_string())?;
         if let Some(state) = self.repo.state() {
             snapshot = snapshot.in_repo(state);
         }

@@ -1,6 +1,6 @@
-//! `process_step` and its tightly-coupled helpers.
+//! `process_step_native` and its tightly-coupled helpers.
 //!
-//! `process_step` is the biggest single method on `ReasoningServer` —
+//! `process_step_native` is the biggest single method on `ReasoningServer` —
 //! it's the load-bearing entry point for `think_record_step`.
 //! Recovery, validation, session lifecycle, branching, revisions, and
 //! response enrichment all flow through it. The supporting helpers
@@ -8,10 +8,10 @@
 //!
 //! * `Self::compute_step_warnings` — soft advisories surfaced in the
 //!   step's response.
-//! * `Self::make_error` — JSON-formatted `ProcessErr` builder.
+//! * `Self::make_error` — typed `StepError` builder.
 //! * `Self::trim_history` — bounded-history sliding window.
 //!
-//! These four methods are kept together because they share private
+//! These methods are kept together because they share private
 //! mutable state and a lot of internal coupling. The rest of the
 //! engine's methods live in concern-focused sibling modules
 //! ([`super::validation`], [`super::branching`], [`super::sessions`],
@@ -33,7 +33,7 @@ use crate::think::constants::{
 use crate::think::domain::ThinkStep;
 use crate::think::util::text::truncate_excerpt;
 
-use super::core::{ProcessErr, ProcessOk, ProcessResult, ReasoningServer};
+use super::core::ReasoningServer;
 use crate::think::domain::{RecordedStep, StepError};
 
 impl ReasoningServer {
@@ -75,17 +75,6 @@ impl ReasoningServer {
             max,
             removed_step_numbers.len()
         );
-    }
-
-    /// Compatibility text adapter for older library clients.
-    pub fn process_step(&mut self, step: ThinkStep) -> ProcessResult {
-        self.process_step_native(step)
-            .map(|ok| ProcessOk {
-                text: serde_json::to_string_pretty(&ok.report).unwrap_or_else(|_| "{}".into()),
-            })
-            .map_err(|err| ProcessErr {
-                text: serde_json::to_string_pretty(&err).unwrap_or_else(|_| "{}".into()),
-            })
     }
 
     pub fn process_step_native(&mut self, mut step: ThinkStep) -> Result<RecordedStep, StepError> {
@@ -137,8 +126,7 @@ impl ReasoningServer {
         }
 
         step.timestamp = Some(Utc::now().to_rfc3339());
-        // Immutable wire identity, minted exactly once — the renumber may
-        // rewrite step_number later, but never this (think-step-stable-id).
+        // Immutable wire identity, minted exactly once with the authored step.
         step.record_id = Some(uuid::Uuid::new_v4().to_string());
         // Stamp project root so the step carries its provenance to
         // disk. Cached at server-construction time — one syscall per
@@ -151,7 +139,7 @@ impl ReasoningServer {
         // gets auto-prefixed with the project namespace so agents can't
         // accidentally write outside their project's bucket — see
         // config::namespace_session_id. When sessions aren't enabled
-        // we leave session_id alone (legacy single-history mode).
+        // we leave session_id as supplied and write the default archive.
         if self.config.features.enable_sessions && !self.project_id.is_empty() {
             let raw = step
                 .session_id
@@ -444,7 +432,7 @@ impl ReasoningServer {
     /// Mirror the most-recently-recorded step into the git-native trace
     /// as an Agent Trace JSONL record. No-op when no `repo_sink`
     /// is attached. Fire-and-forget: every failure is logged at WARN and
-    /// dropped so the `process_step` path is never affected. The session is
+    /// dropped so the `process_step_native` path is never affected. The session is
     /// committed when the step closes the trace (`is_final_step`) and records
     /// are `shared`.
     fn mirror_step_to_repo(&self) {
@@ -608,8 +596,10 @@ mod auto_numbering_tests {
     }
 
     fn ok_json(server: &mut ReasoningServer, s: ThinkStep) -> Value {
-        let ok = server.process_step(s).expect("step should be accepted");
-        serde_json::from_str(&ok.text).expect("ok payload is json")
+        server
+            .process_step_native(s)
+            .expect("step should be accepted")
+            .report
     }
 
     fn has_auto_warning(v: &Value) -> bool {

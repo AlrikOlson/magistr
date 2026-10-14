@@ -47,7 +47,7 @@ fn setup_project(spec_content: &str) -> (tempfile::TempDir, PathBuf) {
 fn context_includes_spec_counts() {
     let (dir, spec_path) = setup_project("- [x] Done\n- [x] Also done\n- [ ] Todo\n");
     let builder = ContextBuilder::new(dir.path(), &spec_path);
-    let context = builder.build();
+    let context = builder.build().unwrap();
 
     assert!(context.contains("2/3 items complete"), "context: {context}");
     assert!(context.contains("1 items"), "context: {context}");
@@ -63,7 +63,7 @@ fn native_context_keeps_in_progress_work_in_remaining_counts() {
     add_native_chunk(&engines, "unfinished", 100, &[]);
     engines.roadmap_start_chunk("unfinished").unwrap();
     let builder = ContextBuilder::new(dir.path(), &spec_path).with_native(Some(engines.reader()));
-    let context = builder.gather();
+    let context = builder.gather().unwrap();
     assert_eq!(
         (
             context.spec_total,
@@ -72,9 +72,9 @@ fn native_context_keeps_in_progress_work_in_remaining_counts() {
         ),
         (1, 0, 1)
     );
-    assert!(builder.build().contains("1 items"));
+    assert!(builder.build().unwrap().contains("1 items"));
     complete_native_chunk(&engines, "unfinished");
-    let context = builder.gather();
+    let context = builder.gather().unwrap();
     assert_eq!(
         (
             context.spec_total,
@@ -89,7 +89,7 @@ fn native_context_keeps_in_progress_work_in_remaining_counts() {
 fn context_includes_git_log() {
     let (dir, spec_path) = setup_project("- [ ] Todo\n");
     let builder = ContextBuilder::new(dir.path(), &spec_path);
-    let context = builder.build();
+    let context = builder.build().unwrap();
 
     assert!(context.contains("Recent Commits"));
     assert!(context.contains("init: initial commit"));
@@ -103,7 +103,7 @@ fn context_includes_dirty_files() {
     fs::write(dir.path().join("dirty.rs"), "fn main() {}").unwrap();
 
     let builder = ContextBuilder::new(dir.path(), &spec_path);
-    let context = builder.build();
+    let context = builder.build().unwrap();
 
     assert!(context.contains("Uncommitted Changes"));
     assert!(context.contains("dirty.rs"));
@@ -116,7 +116,7 @@ fn context_includes_active_plan() {
     fs::write(&plan_path, "# My Plan\n\nDo stuff\n").unwrap();
 
     let builder = ContextBuilder::new(dir.path(), &spec_path);
-    let context = builder.build();
+    let context = builder.build().unwrap();
 
     assert!(context.contains("Active Plan"));
     assert!(context.contains("Do stuff"));
@@ -129,7 +129,7 @@ fn context_includes_active_task() {
     fs::write(&task_path, "Implement widget\n").unwrap();
 
     let builder = ContextBuilder::new(dir.path(), &spec_path);
-    let context = builder.build();
+    let context = builder.build().unwrap();
 
     assert!(context.contains("Active Task"));
     assert!(context.contains("Implement widget"));
@@ -155,8 +155,8 @@ fn compaction_recovery_is_shorter() {
     fs::write(dir.path().join("file3.rs"), "code").unwrap();
 
     let builder = ContextBuilder::new(dir.path(), &spec_path);
-    let full = builder.build();
-    let recovery = builder.build_compaction_recovery();
+    let full = builder.build().unwrap();
+    let recovery = builder.build_compaction_recovery().unwrap();
 
     assert!(
         recovery.len() < full.len(),
@@ -172,7 +172,7 @@ fn compaction_recovery_is_shorter() {
 fn context_is_plain_text() {
     let (dir, spec_path) = setup_project("- [ ] Todo\n");
     let builder = ContextBuilder::new(dir.path(), &spec_path);
-    let context = builder.build();
+    let context = builder.build().unwrap();
 
     // Should not contain JSON markers
     assert!(!context.contains('{'));
@@ -190,7 +190,7 @@ fn works_without_git_repo() {
     fs::write(&spec_path, "- [ ] Todo\n").unwrap();
 
     let builder = ContextBuilder::new(dir.path(), &spec_path);
-    let context = builder.build();
+    let context = builder.build().unwrap();
 
     // Should still include spec info
     assert!(context.contains("Remaining:"), "context: {context}");
@@ -223,7 +223,7 @@ fn max_commits_limits_output() {
     }
 
     let builder = ContextBuilder::new(dir.path(), &spec_path).max_commits(2);
-    let ctx = builder.gather();
+    let ctx = builder.gather().unwrap();
 
     assert_eq!(ctx.recent_commits.len(), 2);
 }
@@ -232,7 +232,7 @@ fn max_commits_limits_output() {
 fn gather_populates_all_fields() {
     let (dir, spec_path) = setup_project("- [x] Done\n- [ ] Remaining\n");
     let builder = ContextBuilder::new(dir.path(), &spec_path);
-    let ctx = builder.gather();
+    let ctx = builder.gather().unwrap();
 
     // Commits from setup
     assert!(!ctx.recent_commits.is_empty());
@@ -246,7 +246,9 @@ fn gather_populates_all_fields() {
 #[test]
 fn gathered_context_is_accepted_by_the_engine_without_conversion() {
     let (dir, spec_path) = setup_project("- [x] Done\n- [ ] Remaining\n");
-    let core_context = ContextBuilder::new(dir.path(), &spec_path).gather();
+    let core_context = ContextBuilder::new(dir.path(), &spec_path)
+        .gather()
+        .unwrap();
     let engine_context: magistr_engine::ProjectContext = core_context.clone();
     let handle = magistr_engine::EngineHandle::new(
         "context-compatibility",
@@ -281,7 +283,7 @@ fn recovery_includes_last_commit_only() {
         .unwrap();
 
     let builder = ContextBuilder::new(dir.path(), &spec_path);
-    let recovery = builder.build_compaction_recovery();
+    let recovery = builder.build_compaction_recovery().unwrap();
 
     assert!(recovery.contains("second commit"));
     // Should say "Last commit" not "Recent Commits"
@@ -296,7 +298,28 @@ fn recovery_includes_dirty_file_count() {
     fs::write(dir.path().join("b.rs"), "b").unwrap();
 
     let builder = ContextBuilder::new(dir.path(), &spec_path);
-    let recovery = builder.build_compaction_recovery();
+    let recovery = builder.build_compaction_recovery().unwrap();
 
     assert!(recovery.contains("Uncommitted files: 2"));
+}
+
+#[test]
+fn unavailable_native_progress_is_not_replaced_with_empty_or_file_context() {
+    use crate::workflow::iteration::tests::{add_native_chunk, native_engines};
+
+    let (dir, spec) = setup_project("- [x] File item\n");
+    let engines = native_engines(&dir);
+    add_native_chunk(&engines, "work", 1, &[]);
+    let builder = ContextBuilder::new(dir.path(), &spec).with_native(Some(engines.reader()));
+    assert_eq!(builder.gather().unwrap().spec_unchecked, 1);
+    let path = dir
+        .path()
+        .join("tas-data/roadmap/sessions/iteration-native.json");
+    let valid = fs::read(&path).unwrap();
+    fs::write(&path, b"{ unreadable roadmap").unwrap();
+    assert!(builder.gather().is_err());
+    assert!(builder.build().is_err());
+    assert!(builder.build_compaction_recovery().is_err());
+    fs::write(path, valid).unwrap();
+    assert_eq!(builder.gather().unwrap().spec_unchecked, 1);
 }

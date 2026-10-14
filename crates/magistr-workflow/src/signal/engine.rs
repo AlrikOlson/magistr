@@ -18,15 +18,14 @@ use crate::cloud::client::CloudClient;
 use crate::infra::{Persistence, StoreStamp};
 use crate::signal::broadcast::{Broadcaster, SignalFrame};
 use crate::signal::domain::{Enrichment, Signal, SignalKind, SignalStatus, Signals};
+use magistr_workflow_contracts::{Observed, ReadError, ReadErrorKind, ReadSource};
 
 pub struct SignalEngine {
     signals: Signals,
     project_id: String,
     persistence: Option<Persistence>,
-    /// The stamp of the store file this memory was last read from or
-    /// written to; `None` while there is no file or after a failed write.
-    /// Compared against the file on every refresh so an unchanged store
-    /// costs a `stat`, never a parse.
+    /// Source of the last acknowledged save or adopted read. Observations
+    /// validate the stored records independently of this writer's memory.
     stamp: Option<StoreStamp>,
     broadcaster: Option<Broadcaster>,
     /// Optional cloud sync client. When set, every mutation
@@ -113,19 +112,10 @@ impl SignalEngine {
     /// Attach a persistence handle, loading any prior signal cache for this
     /// project off disk first (so state accumulates across conversations).
     pub fn with_persistence(mut self, persistence: Persistence) -> Self {
-        match persistence.load_stamped::<Signals>(&self.project_id) {
-            Ok((Some(loaded), stamp)) => {
-                tracing::debug!(
-                    "think-and-ship: loaded {} signal(s) from disk",
-                    loaded.signals.len()
-                );
-                self.signals = loaded;
-                self.stamp = stamp;
-            }
-            Ok((None, _)) => {}
-            Err(e) => tracing::warn!("think-and-ship: signal load failed: {e}"),
-        }
         self.persistence = Some(persistence);
+        if let Err(error) = self.reload_from_store() {
+            tracing::warn!(%error, "The signal inbox could not be loaded");
+        }
         self
     }
 
@@ -135,7 +125,7 @@ impl SignalEngine {
     /// landed — the merge keeps this memory's signals first, in order, and
     /// appends the ones another writer acked, so every index a caller
     /// holds stays valid and now names the merged record — and remembers
-    /// the written file's stamp, so the next refresh is a `stat`.
+    /// the written file's stamp. Every later refresh validates the stored records.
     fn persist(&mut self) {
         let Some(p) = &self.persistence else {
             return;
@@ -156,39 +146,64 @@ impl SignalEngine {
         }
     }
 
-    /// Observe the store before answering or acting: another process may
-    /// have written since this memory was read. A `stat` compares the
-    /// file's stamp with the one this memory was read from or written to;
-    /// only a moved stamp re-reads the file, which then replaces memory
-    /// whole — every mutation persists at once, so the file is the merged
-    /// truth of everything acknowledged, and a missing file is the empty
-    /// inbox. Answers whether it re-read.
-    pub fn refresh_if_stale(&mut self) -> Result<bool, String> {
-        let Some(p) = &self.persistence else {
-            return Ok(false);
+    /// Read validated stored signals without changing this writer's memory.
+    pub fn observe(&self) -> Result<Observed<Signals>, ReadError> {
+        let Some(persistence) = self.persistence.as_ref().filter(|p| p.enabled()) else {
+            return Ok(Observed {
+                value: self.signals.clone(),
+                source: ReadSource::Memory,
+            });
         };
-        let on_disk = p.stamp(&self.project_id).map_err(|e| e.to_string())?;
-        if on_disk == self.stamp {
-            return Ok(false);
-        }
-        self.reload_from_store()
-    }
-
-    /// Re-read the store whatever the stamp says; the engine's wiring
-    /// (broadcaster, cloud) stays. Answers `true` when persistence is on.
-    pub fn reload_from_store(&mut self) -> Result<bool, String> {
-        let Some(p) = &self.persistence else {
-            return Ok(false);
-        };
-        let (loaded, stamp) = p
-            .load_stamped::<Signals>(&self.project_id)
-            .map_err(|e| e.to_string())?;
-        self.signals = loaded.unwrap_or_else(|| Signals {
+        let read = persistence.load_stamped::<Signals>(&self.project_id)?;
+        let value = read.value.unwrap_or_else(|| Signals {
             project_id: self.project_id.clone(),
             signals: Vec::new(),
         });
+        if value.project_id != self.project_id
+            || value
+                .signals
+                .iter()
+                .any(|signal| signal.project_id.as_deref() != Some(self.project_id.as_str()))
+        {
+            return Err(ReadError::new(
+                ReadErrorKind::Identity,
+                "The saved signals could not be matched to this project.",
+            ));
+        }
+        let mut ids = std::collections::HashSet::new();
+        if value
+            .signals
+            .iter()
+            .any(|signal| signal.id.trim().is_empty() || !ids.insert(&signal.id))
+        {
+            return Err(ReadError::new(
+                ReadErrorKind::Identity,
+                "The saved signals contain incomplete or duplicate items.",
+            ));
+        }
+        Ok(Observed {
+            value,
+            source: read.source,
+        })
+    }
+
+    /// Validate this inbox's stored records before answering or acting.
+    pub fn refresh_if_stale(&mut self) -> Result<bool, String> {
+        self.reload_from_store()
+    }
+
+    /// Validate and adopt the stored inbox, keeping live wiring intact.
+    pub fn reload_from_store(&mut self) -> Result<bool, String> {
+        let read = self.observe().map_err(|error| error.to_string())?;
+        let stamp = match read.source {
+            ReadSource::Memory => return Ok(false),
+            ReadSource::Missing => None,
+            ReadSource::File(stamp) => Some(stamp),
+        };
+        let changed = self.stamp != stamp;
+        self.signals = read.value;
         self.stamp = stamp;
-        Ok(true)
+        Ok(changed)
     }
 
     fn now() -> String {
@@ -510,8 +525,10 @@ impl SignalEngine {
     /// of signal summaries. Mirrors `RoadmapEngine::status`'s "never blow the
     /// MCP output limit" discipline.
     pub fn status(&self) -> serde_json::Value {
-        serde_json::to_value(crate::signal::application::SignalInbox::from(self))
-            .expect("signal inbox contains serializable domain fields")
+        serde_json::to_value(crate::signal::application::SignalInbox::from(
+            self.signals(),
+        ))
+        .expect("signal inbox contains serializable domain fields")
     }
 }
 

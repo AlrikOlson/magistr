@@ -62,7 +62,10 @@ fn one_execution_shares_selection_and_other_projects_keep_their_scopes() {
         .ship_start_task("second-verify")
         .expect_err("another task is already active in this project");
     assert!(refusal.contains("first-verify"), "{refusal}");
-    assert_eq!(shared.ship_status()["active_task"]["id"], "first-verify");
+    assert_eq!(
+        shared.ship_active_task_id().unwrap().unwrap(),
+        "first-verify"
+    );
 
     // Selecting another scope saves the first plan and selects its own tasks.
     assert_eq!(
@@ -71,9 +74,12 @@ fn one_execution_shares_selection_and_other_projects_keep_their_scopes() {
             .expect("objective"),
         0
     );
-    assert_eq!(owner.ship_status()["objective"]["scope"], "chunk:second");
-    assert!(owner.ship_status()["active_task"].is_null());
-    assert!(owner.ship_tasks().is_empty());
+    assert_eq!(
+        owner.ship_objective().unwrap().unwrap().scope,
+        "chunk:second"
+    );
+    assert!(owner.ship_active_task_id().unwrap().is_none());
+    assert!(owner.ship_tasks().unwrap().is_empty());
 
     // Other clients reuse the admitted writer. A second writer role still
     // cannot acquire this project's authority while its owner is alive.
@@ -84,31 +90,40 @@ fn one_execution_shares_selection_and_other_projects_keep_their_scopes() {
         std::io::ErrorKind::WouldBlock
     );
     let reopened = owner.clone();
-    assert_eq!(reopened.ship_status()["objective"]["scope"], "chunk:second");
+    assert_eq!(
+        reopened.ship_objective().unwrap().unwrap().scope,
+        "chunk:second"
+    );
     assert!(reopened.ship_start_task("second-verify").is_err());
     objective_with_task(&reopened, "chunk:second", "second-scope-verify");
     assert_eq!(
-        owner.ship_status()["active_task"]["id"],
+        owner.ship_active_task_id().unwrap().unwrap(),
         "second-scope-verify"
     );
     owner
         .ship_set_objective("First plan".into(), vec![], vec![], "chunk:first".into())
         .expect("restore first scope");
-    assert_eq!(reopened.ship_status()["active_task"]["id"], "first-verify");
-    assert_eq!(reopened.ship_tasks().len(), 2);
+    assert_eq!(
+        reopened.ship_active_task_id().unwrap().unwrap(),
+        "first-verify"
+    );
+    assert_eq!(reopened.ship_tasks().unwrap().len(), 2);
 
     let independent_root = tmp.path().join("project-b");
     std::fs::create_dir(&independent_root).expect("independent project");
     let independent_config = NativeConfig::from_lookup(independent_root, |_| None)
         .with_data_dir(tmp.path().join("native-store"));
     let independent = host(&independent_config, "project-b");
-    assert!(independent.ship_status()["objective"].is_null());
+    assert!(independent.ship_objective().unwrap().is_none());
     objective_with_task(&independent, "chunk:independent", "independent-verify");
     assert_eq!(
-        independent.ship_status()["active_task"]["id"],
+        independent.ship_active_task_id().unwrap().unwrap(),
         "independent-verify"
     );
-    assert_eq!(owner.ship_status()["active_task"]["id"], "first-verify");
+    assert_eq!(
+        owner.ship_active_task_id().unwrap().unwrap(),
+        "first-verify"
+    );
 }
 
 /// A writer admitted on a configuration that carries no evidence capability
@@ -138,8 +153,10 @@ fn native_completion_refuses_without_evidence_while_phase_admission_and_finaliza
         .expect("add chunk");
     engines.roadmap_start_chunk("fixture").expect("start chunk");
     objective_with_task(&engines, "chunk:fixture", "fixture-verify");
-    let before =
-        ShipGuardState::from_ship(engines.ship_objective().as_ref(), &engines.ship_tasks());
+    let before = ShipGuardState::from_ship(
+        engines.ship_objective().unwrap().as_ref(),
+        &engines.ship_tasks().unwrap(),
+    );
     assert!(before.phase_block("verify").is_none());
     assert!(before.phase_block("done").is_some());
 
@@ -156,13 +173,16 @@ fn native_completion_refuses_without_evidence_while_phase_admission_and_finaliza
         .roadmap_set_status("fixture", ChunkStatus::Done)
         .expect_err("done is never set by name");
     assert!(refused.contains("roadmap_complete_chunk"), "{refused}");
-    let chunk = engines.roadmap_chunk("fixture").expect("chunk");
+    let chunk = engines.roadmap_chunk("fixture").unwrap().expect("chunk");
     assert_eq!(chunk.status, ChunkStatus::InProgress);
     assert!(chunk.cross_refs.is_empty());
     assert!(
-        ShipGuardState::from_ship(engines.ship_objective().as_ref(), &engines.ship_tasks())
-            .phase_block("done")
-            .is_some()
+        ShipGuardState::from_ship(
+            engines.ship_objective().unwrap().as_ref(),
+            &engines.ship_tasks().unwrap()
+        )
+        .phase_block("done")
+        .is_some()
     );
 
     // Record an actual failing process result through the host-facing facade.
@@ -190,7 +210,10 @@ fn native_completion_refuses_without_evidence_while_phase_admission_and_finaliza
     assert!(check.required && check.verified);
     assert!(!check.passed);
     assert_eq!(check.exit_code, Some(exit_code));
-    let guard = ShipGuardState::from_ship(engines.ship_objective().as_ref(), &engines.ship_tasks());
+    let guard = ShipGuardState::from_ship(
+        engines.ship_objective().unwrap().as_ref(),
+        &engines.ship_tasks().unwrap(),
+    );
     assert_eq!(guard.checks_recorded, 1);
     assert!(guard.phase_block("done").is_none());
 
@@ -209,9 +232,15 @@ fn native_completion_refuses_without_evidence_while_phase_admission_and_finaliza
     );
 
     let reopened = NativeReader::open_for_project(&config, "completion".into());
-    assert_eq!(reopened.ship_status()["objective"]["status"], "completed");
-    assert_eq!(reopened.ship_status()["checks"][0]["passed"], false);
-    let chunk = reopened.roadmap_chunk("fixture").expect("persisted chunk");
+    assert_eq!(
+        reopened.ship_objective().unwrap().unwrap().status,
+        magistr_workflow::ship::domain::objective::ObjectiveStatus::Completed
+    );
+    assert!(!reopened.ship_tasks().unwrap()[0].checks[0].passed);
+    let chunk = reopened
+        .roadmap_chunk("fixture")
+        .unwrap()
+        .expect("persisted chunk");
     assert_eq!(chunk.status, ChunkStatus::InProgress);
     assert!(chunk.cross_refs.is_empty());
 }

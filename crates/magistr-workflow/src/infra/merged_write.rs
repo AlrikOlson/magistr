@@ -1,6 +1,6 @@
 //! What a locked merge-on-save left on disk.
 
-use super::store_stamp::StoreStamp;
+use magistr_workflow_contracts::StoreStamp;
 
 /// The outcome of one locked merge-on-save: the merged state when the file
 /// already held one — what actually landed, for the writer's memory to

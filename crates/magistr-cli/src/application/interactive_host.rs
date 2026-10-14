@@ -128,13 +128,13 @@ impl InteractiveHost {
             }
         };
         let opening = !config.prompt.trim().is_empty();
-        let seed = resources.engines.reader().snapshot();
+        let seed = resources.engines.snapshot_reads().read(None, true).await;
         let workspace_files = crate::commands::workspace_files::workspace_files(&config.cwd);
         // The feed is tapped for the work this host may be asked to start:
         // the loop driver counts completed chunks from it while it runs.
         let (feed_tap, tapped) = tokio::sync::mpsc::unbounded_channel();
         let feed = OwnedTask(resources.engines.subscribe(inbox.tap(feed_tap)));
-        let reseed = OwnedTask(resources.engines.reseed(inbox.clone(), seed.cursor));
+        let reseed = OwnedTask(resources.engines.reseed(inbox.clone()));
         let history_feed = OwnedTask(super::history_feed::follow(
             config.cwd.clone(),
             config.inputs().as_ref().clone(),

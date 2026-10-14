@@ -1,8 +1,6 @@
 //! What the feed — or the cockpit's own engine port — reports.
 
-use magistr_workflow_contracts::{
-    Delivery, FeedStatus, NativeEvent, NativeSnapshot, SnapshotCursor,
-};
+use magistr_workflow_contracts::{Delivery, FeedStatus, NativeEvent, NativeSnapshot};
 
 use crate::cockpit::EngineCmd;
 
@@ -13,9 +11,9 @@ use crate::cockpit::EngineCmd;
 /// [`EnginePort`](super::EnginePort) — the in-process engines broadcast
 /// nothing, so a cockpit-made pin or checkpoint comes back this way
 /// rather than on the socket.
-// `Event` carries a whole record (see `NativeEvent`): it is folded the
-// moment it leaves the inbox and never kept in bulk, so boxing it would
-// buy an allocation per frame and no memory.
+// `Event` carries a whole record (see `NativeEvent`), consumed as an
+// invalidation when it leaves the inbox. Only validated owner reads are
+// retained, so boxing the transient event would add an allocation per frame.
 #[allow(clippy::large_enum_variant)]
 #[derive(Clone, Debug, PartialEq)]
 pub enum EngineEvent {
@@ -30,20 +28,11 @@ pub enum EngineEvent {
         /// owner, or from this process's own writer.
         delivery: Delivery,
     },
-    /// The store read whole: what the loop driver posts at each iteration
-    /// start and what the re-seed posts on its timer or when the feed asks
-    /// for one, for state recorded while no frame carried it.
+    /// The read coordinator's independent observations from all four owners.
     Seed(NativeSnapshot),
-    /// The store, looked at because the feed asked for a snapshot, stands
-    /// where the last seed left it: a bookmark rather than a read, so a
-    /// projection marked stale by a hangup, a gap or a new owner can come
-    /// back to current without a store mutation and without re-seeding a
-    /// view. Only a request earns one — the re-seed's own timer posts
-    /// nothing over an unchanged store.
-    Confirmed {
-        /// Where the store stood, as the seed it confirms named it.
-        cursor: Option<SnapshotCursor>,
-    },
+    /// Invalidate retained work records and ask the session's read coordinator
+    /// to validate and publish all owners.
+    Refresh,
     /// The port marked the step at the cockpit's ask.
     Pinned {
         /// The step that was marked.

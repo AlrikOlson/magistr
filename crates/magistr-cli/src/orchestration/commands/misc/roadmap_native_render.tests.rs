@@ -35,7 +35,7 @@ fn show_lists_counts_workstreams_next_and_pending_in_priority_order() {
     add(&e, "side", 200, &[], None);
     e.roadmap_start_chunk("side").expect("start");
 
-    let text = render_show(&e.roadmap_snapshot(), &e.roadmap_chunks().unwrap());
+    let text = render_show(&e.roadmap_snapshot().unwrap(), &e.roadmap_chunks().unwrap());
     assert!(text.contains("render-test"), "{text}");
     assert!(text.contains("0/3 chunks done (0%)"), "{text}");
     assert!(text.contains("pending 2 · in progress 1"), "{text}");
@@ -100,7 +100,7 @@ fn show_reports_when_nothing_is_ready() {
     add(&e, "base", 100, &[], None);
     add(&e, "later", 300, &["base"], None);
     e.roadmap_start_chunk("base").expect("start");
-    let text = render_show(&e.roadmap_snapshot(), &e.roadmap_chunks().unwrap());
+    let text = render_show(&e.roadmap_snapshot().unwrap(), &e.roadmap_chunks().unwrap());
     assert!(text.contains("Next ready: none"), "{text}");
 }
 
@@ -116,7 +116,7 @@ fn next_renders_the_chunk_or_explains_the_empty_frontier() {
     assert!(text.starts_with("dep — Chunk dep\n"), "{text}");
     assert!(text.contains("workstream: Core"), "{text}");
     assert!(text.contains("- dep works"), "{text}");
-    let base = e.roadmap_chunk("base").expect("base");
+    let base = e.roadmap_chunk("base").unwrap().expect("base");
     assert!(render_next(Some(&base)).contains("deps: dep"));
 }
 
@@ -126,7 +126,7 @@ fn show_json_carries_the_snapshot_and_sorted_pending() {
     let e = engines(&tmp);
     add(&e, "b", 300, &[], None);
     add(&e, "a", 100, &[], None);
-    let json = show_json(&e.roadmap_snapshot(), &e.roadmap_chunks().unwrap());
+    let json = show_json(&e.roadmap_snapshot().unwrap(), &e.roadmap_chunks().unwrap());
     assert_eq!(json["backend"], "think-and-ship");
     assert_eq!(json["counts"]["pending"], 2);
     assert_eq!(json["next_ready"], "a");

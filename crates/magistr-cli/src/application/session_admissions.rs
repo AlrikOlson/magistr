@@ -145,9 +145,10 @@ impl SessionRegistry {
                     .session(&config, &opening.address)
                     .await
                     .map_err(|error| format!("{error:#}"))?;
-                opening
-                    .observation
-                    .set_reader(resources.engines.reader().clone());
+                opening.observation.set_reader(
+                    resources.engines.snapshot_reads(),
+                    resources.engines.snapshot_requests(),
+                );
                 if let Some(source) = resources.source_reader() {
                     opening.observation.set_source(source);
                 }

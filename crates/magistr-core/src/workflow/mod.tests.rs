@@ -87,7 +87,7 @@ fn native_project_loads_without_a_spec_file_and_reads_chunks() {
         "{resumed}"
     );
     assert_eq!(
-        engines.roadmap_chunk("one").unwrap().status,
+        engines.roadmap_chunk("one").unwrap().unwrap().status,
         ChunkStatus::InProgress
     );
 }

@@ -193,7 +193,7 @@ fn a_native_mutation_is_reconciled_against_the_store() {
     assert_eq!(retry.command(), lost.command());
     assert_eq!(retry.number().get(), 2);
     assert_eq!(
-        engines.roadmap_chunk("c2").unwrap().status,
+        engines.roadmap_chunk("c2").unwrap().unwrap().status,
         ChunkStatus::Pending
     );
 }
@@ -753,4 +753,91 @@ fn a_native_run_is_named_after_the_native_project() {
     let il = native_loop(dir.path(), &spec, &engines);
     assert_eq!(il.state().run_id.project().as_str(), engines.project_id());
     assert!(il.state().run_id.local().starts_with("run-"));
+}
+
+#[test]
+fn unreadable_native_outcomes_remain_indeterminate_until_the_store_recovers() {
+    let (dir, spec) = setup_project("- [ ] item\n");
+    let engines = native_engines(&dir);
+    add_native_chunk(&engines, "work", 1, &[]);
+    let mut run = native_loop(dir.path(), &spec, &engines);
+    let attempt = run
+        .begin_operation(
+            OperationKind::NativeMutation,
+            "start:work",
+            "start_chunk:work",
+        )
+        .unwrap()
+        .unwrap();
+    run.start_operation(&attempt, None).unwrap();
+    run.persist().unwrap();
+    engines.roadmap_start_chunk("work").unwrap();
+    let path = dir
+        .path()
+        .join("tas-data/roadmap/sessions/iteration-native.json");
+    let valid = std::fs::read(&path).unwrap();
+    std::fs::write(&path, b"{ unreadable roadmap").unwrap();
+    drop(run);
+    for _ in 0..2 {
+        let mut recovered = recover(dir.path(), &spec, Some(engines.clone()));
+        assert_eq!(
+            outcome_of(&recovered, &attempt),
+            OperationOutcome::Indeterminate
+        );
+        assert_eq!(recovered.reconciliation().open.len(), 1);
+        assert!(matches!(
+            recovered.pre_iteration_check().unwrap(),
+            PreCheckResult::Unreconciled(_)
+        ));
+        recovered.persist().unwrap();
+    }
+    std::fs::write(path, valid).unwrap();
+    let recovered = recover(dir.path(), &spec, Some(engines));
+    assert_eq!(
+        outcome_of(&recovered, &attempt),
+        OperationOutcome::Completed
+    );
+    assert!(recovered.reconciliation().open.is_empty());
+}
+
+#[test]
+fn receipt_recovery_uses_its_ledger_when_the_execution_summary_is_unreadable() {
+    use magistr_engine::native::CheckExecution;
+    let (dir, spec) = setup_project("- [ ] item\n");
+    let engines = engines_with_verify_task(&dir);
+    let mut run = native_loop(dir.path(), &spec, &engines);
+    let (attempt, admission) = admit_receipt(&mut run, &engines, "test");
+    run.persist().unwrap();
+    let receipt_id = admission.receipt_id.clone();
+    engines
+        .ship_settle_gate(
+            admission,
+            CheckExecution::Exited { code: 0 },
+            "Passed".into(),
+            None,
+        )
+        .unwrap();
+    drop(run);
+
+    let reader = engines.reader();
+    let config = reader.config();
+    let path = config
+        .persistence_config()
+        .data_dir
+        .join("ship")
+        .join("executions")
+        .join(config.execution_context().key())
+        .join("sessions")
+        .join(format!("{}.json", reader.project_id()));
+    std::fs::write(&path, b"{ unreadable plan").unwrap();
+    assert!(reader.ship_snapshot().is_err());
+    assert!(reader.ship_receipt(&receipt_id).unwrap().is_some());
+
+    let recovered = recover(dir.path(), &spec, Some(engines));
+    assert_eq!(
+        outcome_of(&recovered, &attempt),
+        OperationOutcome::Completed
+    );
+    assert!(recovered.reconciliation().is_clean());
+    assert_eq!(std::fs::read(path).unwrap(), b"{ unreadable plan");
 }

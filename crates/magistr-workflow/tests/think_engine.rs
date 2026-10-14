@@ -3,8 +3,10 @@
 use magistr_workflow::think::config::{
     OutputFormat, PROJECT_SEP, ThinkConfig, namespace_session_id, resolve_project_id,
 };
-use magistr_workflow::think::domain::{NextAction, StructuredAction, ThinkStep};
-use magistr_workflow::think::engine::core::{ProcessResult, ReasoningServer};
+use magistr_workflow::think::domain::{
+    NextAction, RecordedStep, StepError, StructuredAction, ThinkStep,
+};
+use magistr_workflow::think::engine::core::ReasoningServer;
 use tempfile::TempDir;
 
 /// Convenience: the namespaced form of `raw` under the current project.
@@ -64,15 +66,14 @@ fn step_n(n: u32) -> ThinkStep {
     s
 }
 
-fn parse_response(result: ProcessResult) -> serde_json::Value {
-    let text = match result {
-        Ok(ok) => ok.text,
-        Err(err) => err.text,
-    };
-    serde_json::from_str(&text).expect("response should be JSON")
+fn parse_response(result: Result<RecordedStep, StepError>) -> serde_json::Value {
+    match result {
+        Ok(ok) => ok.report,
+        Err(error) => serde_json::to_value(error).expect("error serializes"),
+    }
 }
 
-fn is_error(result: &ProcessResult) -> bool {
+fn is_error(result: &Result<RecordedStep, StepError>) -> bool {
     result.is_err()
 }
 
@@ -89,7 +90,7 @@ fn response_echoes_thought_and_outcome_excerpts() {
     let mut step = base_step();
     step.thought = "Test thought that has more than a tiny bit of body to be excerpted".into();
     step.outcome = "Outcome describing what was learned".into();
-    let v = parse_response(s.process_step(step));
+    let v = parse_response(s.process_step_native(step));
     assert!(
         v.get("thought_excerpt").is_some(),
         "missing thought_excerpt"
@@ -103,8 +104,8 @@ fn response_echoes_thought_and_outcome_excerpts() {
 #[test]
 fn response_includes_recent_steps_after_second_step() {
     let mut s = ReasoningServer::new(quiet_config());
-    let _ = s.process_step(step_n(1));
-    let v = parse_response(s.process_step(step_n(2)));
+    let _ = s.process_step_native(step_n(1));
+    let v = parse_response(s.process_step_native(step_n(2)));
     let recent = v.get("recent_steps").expect("recent_steps missing");
     let arr = recent.as_array().expect("recent_steps not an array");
     assert_eq!(arr.len(), 1, "should reference only prior step");
@@ -116,8 +117,8 @@ fn recent_steps_carries_rationale_excerpt() {
     let mut s = ReasoningServer::new(quiet_config());
     let mut s1 = step_n(1);
     s1.rationale = "To confirm the asymmetry is real before designing a fix".into();
-    let _ = s.process_step(s1);
-    let v = parse_response(s.process_step(step_n(2)));
+    let _ = s.process_step_native(s1);
+    let v = parse_response(s.process_step_native(step_n(2)));
     let recent = v["recent_steps"].as_array().unwrap();
     let excerpt = recent[0]
         .get("rationale_excerpt")
@@ -131,10 +132,10 @@ fn response_warns_on_low_confidence_dependency() {
     let mut s = ReasoningServer::new(quiet_config());
     let mut s1 = step_n(1);
     s1.confidence = Some(0.2);
-    let _ = s.process_step(s1);
+    let _ = s.process_step_native(s1);
     let mut s2 = step_n(2);
     s2.dependencies = Some(vec![1u32.into()]);
-    let v = parse_response(s.process_step(s2));
+    let v = parse_response(s.process_step_native(s2));
     let warns = v.get("warnings").expect("warnings missing");
     let arr = warns.as_array().unwrap();
     assert!(
@@ -148,13 +149,13 @@ fn response_warns_when_step_exceeds_estimate() {
     let mut s = ReasoningServer::new(quiet_config());
     let mut s1 = step_n(1);
     s1.estimated_total = 2;
-    let _ = s.process_step(s1);
+    let _ = s.process_step_native(s1);
     let mut s2 = step_n(2);
     s2.estimated_total = 2;
-    let _ = s.process_step(s2);
+    let _ = s.process_step_native(s2);
     let mut s3 = step_n(3);
     s3.estimated_total = 2;
-    let v = parse_response(s.process_step(s3));
+    let v = parse_response(s.process_step_native(s3));
     let warns = v.get("warnings").expect("warnings missing");
     let arr = warns.as_array().unwrap();
     assert!(
@@ -166,7 +167,7 @@ fn response_warns_when_step_exceeds_estimate() {
 #[test]
 fn revise_estimate_updates_last_step_in_place() {
     let mut s = ReasoningServer::new(quiet_config());
-    let _ = s.process_step(step_n(1));
+    let _ = s.process_step_native(step_n(1));
     let (prev, new) = s.revise_estimate(7).expect("revise should succeed");
     assert_eq!(prev, 3);
     assert_eq!(new, 7);
@@ -181,7 +182,7 @@ fn revise_estimate_rejects_zero_and_empty_history() {
         s.revise_estimate(5).is_err(),
         "should error on empty history"
     );
-    let _ = s.process_step(step_n(1));
+    let _ = s.process_step_native(step_n(1));
     assert!(
         s.revise_estimate(0).is_err(),
         "should error on zero estimate"
@@ -191,12 +192,12 @@ fn revise_estimate_rejects_zero_and_empty_history() {
 #[test]
 fn step_by_number_finds_main_and_branch_steps() {
     let mut s = ReasoningServer::new(quiet_config());
-    let _ = s.process_step(step_n(1));
-    let _ = s.process_step(step_n(2));
+    let _ = s.process_step_native(step_n(1));
+    let _ = s.process_step_native(step_n(2));
     let mut b3 = step_n(3);
     b3.branch_from = Some(1);
     b3.branch_name = Some("alt".into());
-    let _ = s.process_step(b3);
+    let _ = s.process_step_native(b3);
 
     assert_eq!(s.step_by_number(1).map(|x| x.step_number), Some(1));
     assert_eq!(s.step_by_number(2).map(|x| x.step_number), Some(2));
@@ -207,12 +208,12 @@ fn step_by_number_finds_main_and_branch_steps() {
 #[test]
 fn branches_summary_lists_each_active_branch() {
     let mut s = ReasoningServer::new(quiet_config());
-    let _ = s.process_step(step_n(1));
-    let _ = s.process_step(step_n(2));
+    let _ = s.process_step_native(step_n(1));
+    let _ = s.process_step_native(step_n(2));
     let mut b3 = step_n(3);
     b3.branch_from = Some(1);
     b3.branch_name = Some("explore-alt".into());
-    let _ = s.process_step(b3);
+    let _ = s.process_step_native(b3);
 
     let summary = s.branches_summary();
     assert_eq!(summary.len(), 1);
@@ -237,7 +238,7 @@ fn sessions_snapshot_marks_active_session() {
     let mut s = ReasoningServer::new(c);
     let mut s1 = step_n(1);
     s1.session_id = Some("sess-alpha".into());
-    let _ = s.process_step(s1);
+    let _ = s.process_step_native(s1);
 
     let snap = s.sessions_snapshot();
     assert_eq!(snap.len(), 1);
@@ -261,8 +262,8 @@ fn default_session_id_is_applied_when_caller_omits_one() {
     c.features.default_session_id = Some("auto-test".into());
 
     let mut s = ReasoningServer::new(c);
-    let _ = s.process_step(step_n(1));
-    let _ = s.process_step(step_n(2));
+    let _ = s.process_step_native(step_n(1));
+    let _ = s.process_step_native(step_n(2));
 
     let snap = s.sessions_snapshot();
     assert_eq!(snap.len(), 1, "exactly one named session should exist");
@@ -290,8 +291,8 @@ fn explicit_session_id_beats_default() {
     let mut s = ReasoningServer::new(c);
     let mut a = step_n(1);
     a.session_id = Some("explicit".into());
-    let _ = s.process_step(a);
-    let _ = s.process_step(step_n(2)); // falls back to auto-fallback
+    let _ = s.process_step_native(a);
+    let _ = s.process_step_native(step_n(2)); // falls back to auto-fallback
 
     let snap = s.sessions_snapshot();
     let mut got: Vec<String> = snap
@@ -317,15 +318,15 @@ fn duplicate_step_number_in_persistent_session_is_auto_bumped() {
     // and tells the agent — via a warning — which number it actually got, so
     // back-references stay correct. (Was: returns_actionable_error.)
     let mut s = ReasoningServer::new(quiet_config());
-    let _ = s.process_step(step_n(1));
+    let _ = s.process_step_native(step_n(1));
 
     // Second step #1 with no revises_step / branch_from — collision.
-    let result = s.process_step(step_n(1));
+    let result = s.process_step_native(step_n(1));
     let ok = match result {
-        Ok(ok) => ok.text,
-        Err(e) => panic!("expected auto-bump success, got error: {}", e.text),
+        Ok(ok) => ok.report,
+        Err(e) => panic!("expected auto-bump success, got error: {}", e.error),
     };
-    let v: serde_json::Value = serde_json::from_str(&ok).unwrap();
+    let v = &ok;
     assert_eq!(
         v["step_number"], 2,
         "collision auto-bumps to the next free number"
@@ -343,7 +344,7 @@ fn duplicate_step_number_in_persistent_session_is_auto_bumped() {
 fn revision_allocates_a_new_number_and_preserves_the_original_record() {
     // A revision is a new record; revises_step links its earlier target.
     let mut s = ReasoningServer::new(quiet_config());
-    let _ = s.process_step(step_n(1));
+    let _ = s.process_step_native(step_n(1));
 
     let mut revision = step_n(1);
     revision.revises_step = Some(1);
@@ -547,7 +548,7 @@ fn a_trimmed_branch_origin_does_not_end_the_investigation() {
 }
 
 #[test]
-fn restored_branch_members_use_canonical_numbers_after_cross_session_repair() {
+fn reopening_preserves_authored_branch_references_across_sessions() {
     use magistr_workflow::think::domain::ThinkHistory;
     use magistr_workflow::think::persistence::Persistence;
 
@@ -556,11 +557,12 @@ fn restored_branch_members_use_canonical_numbers_after_cross_session_repair() {
     config.persistence.enabled = true;
     config.persistence.data_dir = directory.path().to_path_buf();
     config.features.enable_sessions = true;
-    let persistence = Persistence::for_project(&config.persistence, "repair-branches");
+    let persistence = Persistence::for_project(&config.persistence, "authored-branches");
     for (name, day) in [("first", 1), ("second", 2)] {
         let mut source_config = quiet_config();
         source_config.features.enable_sessions = false;
-        let mut source = ReasoningServer::new_for_project(source_config, "repair-branches".into());
+        let mut source =
+            ReasoningServer::new_for_project(source_config, "authored-branches".into());
         let mut initial = step_n(1);
         initial.thought = format!("The {name} investigation begins.");
         source.process_step_native(initial).unwrap();
@@ -571,7 +573,7 @@ fn restored_branch_members_use_canonical_numbers_after_cross_session_repair() {
         source.process_step_native(branch).unwrap();
         source.set_branch_status(name, "merged", Some(2)).unwrap();
         let mut history: ThinkHistory = serde_json::from_value(source.history_snapshot()).unwrap();
-        let session = namespace_session_id("repair-branches", name);
+        let session = namespace_session_id("authored-branches", name);
         history.session_id = Some(session.clone());
         for (index, step) in history.steps.iter_mut().enumerate() {
             step.timestamp = Some(format!("2025-01-0{day}T00:0{index}:00Z"));
@@ -580,26 +582,26 @@ fn restored_branch_members_use_canonical_numbers_after_cross_session_repair() {
         persistence.save_session(&session, &history);
     }
 
-    let mut server = ReasoningServer::new_for_project(config, "repair-branches".into());
+    let mut server = ReasoningServer::new_for_project(config, "authored-branches".into());
     let mut back = step_n(0);
     back.session_id = Some("second".into());
     server.process_step_native(back).unwrap();
     let branch = &server.branches()["second"];
-    assert_eq!(branch.from_step, 3);
-    assert_eq!(branch.merged_into, Some(4));
+    assert_eq!(branch.from_step, 1);
+    assert_eq!(branch.merged_into, Some(2));
     assert_eq!(
         branch
             .steps
             .iter()
             .map(|step| step.step_number)
             .collect::<Vec<_>>(),
-        vec![4]
+        vec![2]
     );
-    assert_eq!(branch.steps[0].branch_from, Some(3));
+    assert_eq!(branch.steps[0].branch_from, Some(1));
 }
 
 #[test]
-fn omitted_revision_number_in_legacy_session_allocates_after_its_existing_records() {
+fn omitted_revision_number_in_reopened_session_follows_its_authored_records() {
     use magistr_workflow::think::domain::ThinkHistory;
     use magistr_workflow::think::persistence::Persistence;
     let directory = TempDir::new().unwrap();
@@ -607,21 +609,17 @@ fn omitted_revision_number_in_legacy_session_allocates_after_its_existing_record
     config.features.enable_sessions = true;
     config.persistence.enabled = true;
     config.persistence.data_dir = directory.path().to_path_buf();
-    let session = namespace_session_id("legacy-branch-number", "old");
-    let history = ThinkHistory {
-        steps: vec![step_n(100)],
-        branches: None,
-        completed: false,
-        session_id: Some(session.clone()),
-        created_at: None,
-        updated_at: None,
-        metadata: None,
-    };
-    Persistence::for_project(&config.persistence, "legacy-branch-number")
+    let mut source = ReasoningServer::new_for_project(quiet_config(), "revision-session".into());
+    source.process_step_native(step_n(100)).unwrap();
+    let session = namespace_session_id("revision-session", "review");
+    let mut history: ThinkHistory = serde_json::from_value(source.history_snapshot()).unwrap();
+    history.session_id = Some(session.clone());
+    history.steps[0].session_id = Some(session.clone());
+    Persistence::for_project(&config.persistence, "revision-session")
         .save_session(&session, &history);
-    let mut server = ReasoningServer::new_for_project(config, "legacy-branch-number".into());
+    let mut server = ReasoningServer::new_for_project(config, "revision-session".into());
     let mut revision = step_n(0);
-    revision.session_id = Some("old".into());
+    revision.session_id = Some("review".into());
     revision.revises_step = Some(100);
     revision.revision_reason = Some("The retry evidence changed.".into());
     let result = server.process_step_native(revision).unwrap();
@@ -649,10 +647,10 @@ fn xml_injection_in_thought_auto_recovers_missing_fields() {
     step.rationale = String::new();
     step.next_action = NextAction::Text(String::new());
 
-    let result = s.process_step(step);
+    let result = s.process_step_native(step);
     let ok = match result {
         Ok(ok) => ok,
-        Err(err) => panic!("expected auto-recovery success, got error: {}", err.text),
+        Err(err) => panic!("expected auto-recovery success, got error: {}", err.error),
     };
 
     // The recovered step should now be in the history with the
@@ -677,7 +675,7 @@ fn xml_injection_in_thought_auto_recovers_missing_fields() {
     );
 
     // The response carries a warning naming what was recovered.
-    let response: serde_json::Value = serde_json::from_str(&ok.text).unwrap();
+    let response: serde_json::Value = ok.report;
     let warnings = response["warnings"].as_array().expect("warnings array");
     let first = warnings[0].as_str().unwrap_or_default();
     assert!(
@@ -697,7 +695,7 @@ fn xml_injection_recovery_only_fills_empty_fields() {
         "thought text </parameter><parameter name=\"outcome\">recovered version</parameter>",
     );
 
-    let _ = s.process_step(step);
+    let _ = s.process_step_native(step);
     let stored = s.step_by_number(1).expect("step 1 stored");
     assert_eq!(
         stored.outcome, "explicit outcome",
@@ -721,17 +719,15 @@ fn partial_xml_injection_recovery_errors_only_on_still_missing_fields() {
     step.next_action = NextAction::Text("".into());
     step.rationale = "".into();
 
-    let result = s.process_step(step);
+    let result = s.process_step_native(step);
     let err = match result {
-        Err(e) => e.text,
+        Err(e) => e.error,
         Ok(_) => panic!("expected partial-recovery still-missing-fields error"),
     };
     // outcome was recovered → must NOT be in the missing-fields list at
     // the head of the error message. The diagnostic body may mention
     // `<outcome>` as an example pattern, which is fine.
-    let parsed: serde_json::Value = serde_json::from_str(&err).expect("error body is JSON");
-    let error_text = parsed.get("error").and_then(|v| v.as_str()).unwrap_or("");
-    let head = error_text.lines().next().unwrap_or("");
+    let head = err.lines().next().unwrap_or("");
     assert!(
         head.starts_with("Missing or invalid required fields:"),
         "head should be the missing-fields summary; got: {head}"
@@ -763,9 +759,9 @@ fn xml_injection_marker_without_recoverable_payload_still_diagnoses() {
     step.rationale = "".into();
     step.next_action = NextAction::Text("".into());
 
-    let result = s.process_step(step);
+    let result = s.process_step_native(step);
     let err = match result {
-        Err(e) => e.text,
+        Err(e) => e.error,
         Ok(_) => panic!("expected error"),
     };
     assert!(
@@ -782,10 +778,10 @@ fn empty_required_fields_without_xml_injection_gets_plain_error() {
     let mut s = ReasoningServer::new(quiet_config());
     let mut step = base_step();
     step.outcome = "".into();
-    let result = s.process_step(step);
+    let result = s.process_step_native(step);
     let err = match result {
-        Err(e) => e.text,
-        Ok(ok) => panic!("expected validation error, got: {}", ok.text),
+        Err(e) => e.error,
+        Ok(ok) => panic!("expected validation error, got: {}", ok.report),
     };
     assert!(err.contains("outcome"), "got: {err}");
     assert!(
@@ -799,15 +795,15 @@ fn search_finds_matches_across_text_fields() {
     let mut s = ReasoningServer::new(quiet_config());
     let mut a = step_n(1);
     a.thought = "Investigating a quorum-write retry storm".into();
-    let _ = s.process_step(a);
+    let _ = s.process_step_native(a);
 
     let mut b = step_n(2);
     b.outcome = "Quorum writes appear normal".into();
-    let _ = s.process_step(b);
+    let _ = s.process_step_native(b);
 
     let mut c = step_n(3);
     c.context = "Unrelated note about caching".into();
-    let _ = s.process_step(c);
+    let _ = s.process_step_native(c);
 
     let hits = s.search_steps("quorum", 10);
     assert_eq!(hits.len(), 2);
@@ -831,7 +827,7 @@ fn persisting_config(tmp: &TempDir) -> ThinkConfig {
 fn pin_marks_step_and_recent_steps_promotes_it() {
     let mut s = ReasoningServer::new(quiet_config());
     for n in 1..=5 {
-        let _ = s.process_step(step_n(n));
+        let _ = s.process_step_native(step_n(n));
     }
     // With limit=3 and no pin, step 1 is no longer in recent_steps after step 5.
     let recent = s.recent_steps_rollup(3, Some(5));
@@ -897,18 +893,18 @@ fn tagged_dep_with_relation_round_trips() {
 fn refuted_dep_warning_fires() {
     use magistr_workflow::think::domain::DepEdge;
     let mut s = ReasoningServer::new(quiet_config());
-    let _ = s.process_step(step_n(1)); // hypothesis target
+    let _ = s.process_step_native(step_n(1)); // hypothesis target
     let mut s2 = step_n(2);
     s2.dependencies = Some(vec![DepEdge::Tagged {
         step: 1,
         relation: Some("refutes".into()),
     }]);
-    let _ = s.process_step(s2);
+    let _ = s.process_step_native(s2);
 
     // Step 3 builds on step 1 unlabeled — should warn about the refutation.
     let mut s3 = step_n(3);
     s3.dependencies = Some(vec![1u32.into()]);
-    let v = parse_response(s.process_step(s3));
+    let v = parse_response(s.process_step_native(s3));
     let warns = v["warnings"].as_array().unwrap();
     assert!(
         warns
@@ -924,14 +920,14 @@ fn refuting_step_does_not_get_low_confidence_warning() {
     let mut s = ReasoningServer::new(quiet_config());
     let mut s1 = step_n(1);
     s1.confidence = Some(0.2);
-    let _ = s.process_step(s1);
+    let _ = s.process_step_native(s1);
 
     let mut s2 = step_n(2);
     s2.dependencies = Some(vec![DepEdge::Tagged {
         step: 1,
         relation: Some("refutes".into()),
     }]);
-    let v = parse_response(s.process_step(s2));
+    let v = parse_response(s.process_step_native(s2));
     let warns = v
         .get("warnings")
         .and_then(|x| x.as_array())
@@ -950,12 +946,12 @@ fn refuting_step_does_not_get_low_confidence_warning() {
 #[test]
 fn merged_into_round_trips_through_set_branch_status() {
     let mut s = ReasoningServer::new(quiet_config());
-    let _ = s.process_step(step_n(1));
+    let _ = s.process_step_native(step_n(1));
     let mut b2 = step_n(2);
     b2.branch_from = Some(1);
     b2.branch_name = Some("alt".into());
-    let _ = s.process_step(b2);
-    let _ = s.process_step(step_n(3)); // synthesis step
+    let _ = s.process_step_native(b2);
+    let _ = s.process_step_native(step_n(3)); // synthesis step
 
     let branch_id = s.branches().keys().next().unwrap().clone();
     let (_, _) = s
@@ -977,10 +973,10 @@ fn merged_into_round_trips_through_set_branch_status() {
 #[test]
 fn merged_into_rejects_unknown_step() {
     let mut s = ReasoningServer::new(quiet_config());
-    let _ = s.process_step(step_n(1));
+    let _ = s.process_step_native(step_n(1));
     let mut b2 = step_n(2);
     b2.branch_from = Some(1);
-    let _ = s.process_step(b2);
+    let _ = s.process_step_native(b2);
     let branch_id = s.branches().keys().next().unwrap().clone();
     assert!(
         s.set_branch_status(&branch_id, "merged", Some(999))
@@ -998,18 +994,18 @@ fn checkpoint_snapshot_flags_open_hypothesis_and_stale_branch() {
     // Step 1: hypothesis with no validation downstream.
     let mut s1 = step_n(1);
     s1.purpose = "hypothesis".into();
-    let _ = s.process_step(s1);
+    let _ = s.process_step_native(s1);
 
     // Step 2: branched off step 1 (active).
     let mut s2 = step_n(2);
     s2.branch_from = Some(1);
     s2.branch_name = Some("explore".into());
-    let _ = s.process_step(s2);
+    let _ = s.process_step_native(s2);
 
     // Steps 3, 4, 5: pile on so the branch becomes stale.
-    let _ = s.process_step(step_n(3));
-    let _ = s.process_step(step_n(4));
-    let _ = s.process_step(step_n(5));
+    let _ = s.process_step_native(step_n(3));
+    let _ = s.process_step_native(step_n(4));
+    let _ = s.process_step_native(step_n(5));
 
     let snap = s.checkpoint_snapshot();
     let open = snap["open_hypotheses"].as_array().unwrap();
@@ -1028,10 +1024,10 @@ fn checkpoint_snapshot_flags_open_hypothesis_and_stale_branch() {
         step: 1,
         relation: Some("refutes".into()),
     }]);
-    let _ = s.process_step(s6);
+    let _ = s.process_step_native(s6);
     let mut s7 = step_n(7);
     s7.dependencies = Some(vec![1u32.into()]); // builds unlabeled on refuted step 1
-    let _ = s.process_step(s7);
+    let _ = s.process_step_native(s7);
 
     let snap = s.checkpoint_snapshot();
     let alerts = snap["refuted_chain_alerts"].as_array().unwrap();
@@ -1042,22 +1038,22 @@ fn checkpoint_snapshot_flags_open_hypothesis_and_stale_branch() {
 fn impact_partitions_downstream_by_relation() {
     use magistr_workflow::think::domain::DepEdge;
     let mut s = ReasoningServer::new(quiet_config());
-    let _ = s.process_step(step_n(1));
+    let _ = s.process_step_native(step_n(1));
     let mut s2 = step_n(2);
     s2.dependencies = Some(vec![DepEdge::Tagged {
         step: 1,
         relation: Some("supports".into()),
     }]);
-    let _ = s.process_step(s2);
+    let _ = s.process_step_native(s2);
     let mut s3 = step_n(3);
     s3.dependencies = Some(vec![DepEdge::Tagged {
         step: 1,
         relation: Some("refutes".into()),
     }]);
-    let _ = s.process_step(s3);
+    let _ = s.process_step_native(s3);
     let mut s4 = step_n(4);
     s4.dependencies = Some(vec![1u32.into()]); // unlabeled
-    let _ = s.process_step(s4);
+    let _ = s.process_step_native(s4);
 
     let impact = s.impact_of(1).unwrap();
     let by_rel = &impact["downstream"]["by_relation"];
@@ -1069,15 +1065,15 @@ fn impact_partitions_downstream_by_relation() {
 #[test]
 fn latest_revision_walks_full_chain() {
     let mut s = ReasoningServer::new(quiet_config());
-    let _ = s.process_step(step_n(1));
-    let _ = s.process_step(step_n(2));
+    let _ = s.process_step_native(step_n(1));
+    let _ = s.process_step_native(step_n(2));
     // Step 3 revises 2; step 4 revises 3.
     let mut s3 = step_n(3);
     s3.revises_step = Some(2);
-    let _ = s.process_step(s3);
+    let _ = s.process_step_native(s3);
     let mut s4 = step_n(4);
     s4.revises_step = Some(3);
-    let _ = s.process_step(s4);
+    let _ = s.process_step_native(s4);
 
     assert_eq!(s.latest_revision_of(2).map(|x| x.step_number), Some(4));
     assert_eq!(s.latest_revision_of(3).map(|x| x.step_number), Some(4));
@@ -1094,7 +1090,7 @@ fn status_verbose_includes_pinned_and_sessions() {
     let mut s = ReasoningServer::new(cfg);
     let mut s1 = step_n(1);
     s1.session_id = Some("alpha".into());
-    let _ = s.process_step(s1);
+    let _ = s.process_step_native(s1);
     s.pin_step(1, true).unwrap();
 
     // Compact mode hides the arrays.
@@ -1114,7 +1110,7 @@ fn status_verbose_includes_pinned_and_sessions() {
 fn pinned_steps_lists_in_step_order() {
     let mut s = ReasoningServer::new(quiet_config());
     for n in 1..=4 {
-        let _ = s.process_step(step_n(n));
+        let _ = s.process_step_native(step_n(n));
     }
     s.pin_step(3, true).unwrap();
     s.pin_step(1, true).unwrap();
@@ -1131,8 +1127,8 @@ fn status_snapshot_reflects_engine_state() {
     let mut cfg = persisting_config(&tmp);
     cfg.system.recent_steps_limit = 7;
     let mut s = ReasoningServer::new(cfg);
-    let _ = s.process_step(step_n(1));
-    let _ = s.process_step(step_n(2));
+    let _ = s.process_step_native(step_n(1));
+    let _ = s.process_step_native(step_n(2));
     s.pin_step(1, true).unwrap();
 
     let snap = s.status_snapshot(false);
@@ -1158,7 +1154,7 @@ fn server_with_all_pinned(n: u32) -> ReasoningServer {
     for i in 1..=n {
         let mut step = step_n(i);
         step.pinned = Some(true);
-        let _ = s.process_step(step);
+        let _ = s.process_step_native(step);
     }
     s
 }
@@ -1175,7 +1171,7 @@ fn rollup_stays_under_its_byte_ceiling_with_300_pinned_steps() {
 
     let mut next = step_n(321);
     next.pinned = Some(true);
-    let response = parse_response(s.process_step(next));
+    let response = parse_response(s.process_step_native(next));
 
     // Asserted BEFORE the entry count, deliberately: bytes are the quantity
     // that actually lands in the agent's context, and asserting them first
@@ -1208,7 +1204,7 @@ fn a_hostile_ceiling_cannot_cut_below_the_pinned_floor() {
     for i in 1..=60u32 {
         let mut step = step_n(i);
         step.pinned = Some(true);
-        let _ = s.process_step(step);
+        let _ = s.process_step_native(step);
     }
 
     let rollup = s.recent_steps_rollup(3, None);
@@ -1250,7 +1246,7 @@ fn the_response_names_the_pinned_steps_it_withheld() {
 
     let mut next = step_n(61);
     next.pinned = Some(true);
-    let response = parse_response(s.process_step(next));
+    let response = parse_response(s.process_step_native(next));
 
     let omitted = &response["recent_steps_omitted"];
     let withheld = omitted["pinned_withheld"]
@@ -1274,7 +1270,7 @@ fn a_rollup_that_fits_reports_nothing_withheld() {
 
     let mut next = step_n(4);
     next.pinned = Some(true);
-    let response = parse_response(s.process_step(next));
+    let response = parse_response(s.process_step_native(next));
 
     assert!(
         response.get("recent_steps_omitted").is_none(),
@@ -1292,7 +1288,7 @@ fn a_rollup_that_fits_reports_nothing_withheld() {
 fn next_step_number_is_the_head_plus_one_not_the_count() {
     let mut s = ReasoningServer::new(quiet_config());
     for n in [1u32, 5, 900] {
-        let _ = s.process_step(step_n(n));
+        let _ = s.process_step_native(step_n(n));
     }
 
     let snap = s.status_snapshot(false);
@@ -1316,7 +1312,7 @@ fn next_step_number_is_the_head_plus_one_not_the_count() {
 fn next_step_number_equals_what_an_omitted_number_actually_gets() {
     let mut s = ReasoningServer::new(quiet_config());
     for n in [1u32, 5, 900] {
-        let _ = s.process_step(step_n(n));
+        let _ = s.process_step_native(step_n(n));
     }
 
     let published = s.status_snapshot(false)["next_step_number"]
@@ -1326,7 +1322,7 @@ fn next_step_number_equals_what_an_omitted_number_actually_gets() {
     // step_number 0 == the serde default for an omitted field.
     let mut omitted = base_step();
     omitted.step_number = 0;
-    let assigned = parse_response(s.process_step(omitted))["step_number"]
+    let assigned = parse_response(s.process_step_native(omitted))["step_number"]
         .as_u64()
         .expect("recorded step must report its number");
 
@@ -1346,7 +1342,7 @@ fn next_step_number_does_not_go_backwards_across_a_trim() {
     let mut s = ReasoningServer::new(c);
 
     for n in 1..=5u32 {
-        let _ = s.process_step(step_n(n));
+        let _ = s.process_step_native(step_n(n));
     }
 
     let snap = s.status_snapshot(false);
@@ -1367,7 +1363,7 @@ fn session_id_with_sessions_disabled_emits_warning() {
     let mut s = ReasoningServer::new(quiet_config());
     let mut s1 = step_n(1);
     s1.session_id = Some("alpha".into());
-    let v = parse_response(s.process_step(s1));
+    let v = parse_response(s.process_step_native(s1));
     let warns = v.get("warnings").expect("warnings missing");
     let arr = warns.as_array().unwrap();
     assert!(
@@ -1390,7 +1386,7 @@ fn persistence_disabled_writes_nothing() {
     cfg.persistence.enabled = false;
     cfg.persistence.data_dir = tmp.path().to_path_buf();
     let mut s = ReasoningServer::new(cfg);
-    let _ = s.process_step(step_n(1));
+    let _ = s.process_step_native(step_n(1));
 
     let dir = tmp.path().join("think").join("sessions");
     assert!(
@@ -1409,8 +1405,8 @@ fn persistence_round_trip_default_history() {
         let mut s = ReasoningServer::new(persisting_config(&tmp));
         let mut s1 = step_n(1);
         s1.thought = "Persisted-needle-A".into();
-        let _ = s.process_step(s1);
-        let _ = s.process_step(step_n(2));
+        let _ = s.process_step_native(s1);
+        let _ = s.process_step_native(step_n(2));
     }
     // A fresh server with the same data_dir must reload both steps.
     let s = ReasoningServer::new(persisting_config(&tmp));
@@ -1422,7 +1418,7 @@ fn persistence_round_trip_default_history() {
 fn persistence_writes_atomically_no_tmp_file_left_behind() {
     let tmp = TempDir::new().unwrap();
     let mut s = ReasoningServer::new(persisting_config(&tmp));
-    let _ = s.process_step(step_n(1));
+    let _ = s.process_step_native(step_n(1));
 
     let dir = tmp.path().join("think").join("sessions");
     let mut entries: Vec<String> = std::fs::read_dir(&dir)
@@ -1445,24 +1441,10 @@ fn persistence_writes_atomically_no_tmp_file_left_behind() {
 fn persistence_clear_removes_disk_files() {
     let tmp = TempDir::new().unwrap();
     let mut s = ReasoningServer::new(persisting_config(&tmp));
-    let _ = s.process_step(step_n(1));
+    let _ = s.process_step_native(step_n(1));
     s.clear_history();
-    // The wipe leaves exactly one artifact: an empty, migration-marked
-    // tombstone (plus its lock sibling) so a restart can't re-adopt steps
-    // from the legacy _default.json. No steps may survive a reload.
     let dir = tmp.path().join("think").join("sessions");
-    let mut entries: Vec<String> = std::fs::read_dir(&dir)
-        .unwrap()
-        .filter_map(|e| e.ok())
-        .filter_map(|e| e.file_name().into_string().ok())
-        .collect();
-    entries.sort();
-    let project = resolve_project_id();
-    assert_eq!(
-        entries,
-        vec![format!("{project}.json"), format!("{project}.json.lock")],
-        "clear_history should leave only the tombstone"
-    );
+    assert_eq!(std::fs::read_dir(&dir).unwrap().count(), 0);
     let reloaded = ReasoningServer::new(persisting_config(&tmp));
     assert!(reloaded.history().steps.is_empty(), "no steps after wipe");
 }
@@ -1479,20 +1461,9 @@ fn persistence_rejects_unsafe_session_ids() {
     // persist that unsafe id).
     let mut s1 = step_n(1);
     s1.session_id = Some("../escape".into());
-    let _ = s.process_step(s1);
+    let _ = s.process_step_native(s1);
 
-    // Look for any file outside `think/sessions/` — there must be none.
-    // Walk into the `think/` partition and assert only `sessions/` lives there.
-    let think_partition = tmp.path().join("think");
-    let sessions_dir = think_partition.join("sessions");
-    for entry in std::fs::read_dir(&think_partition).unwrap().flatten() {
-        let p = entry.path();
-        assert!(
-            p == sessions_dir,
-            "no unexpected files outside sessions/: {}",
-            p.display()
-        );
-    }
+    assert_eq!(std::fs::read_dir(tmp.path()).unwrap().count(), 0);
 }
 
 #[test]
@@ -1501,7 +1472,7 @@ fn recent_steps_limit_is_configurable() {
     cfg.system.recent_steps_limit = 5;
     let mut s = ReasoningServer::new(cfg);
     for n in 1..=7 {
-        let _ = s.process_step(step_n(n));
+        let _ = s.process_step_native(step_n(n));
     }
     let recent = s.recent_steps_rollup(5, Some(7));
     assert_eq!(recent.len(), 5);
@@ -1512,12 +1483,12 @@ fn search_does_not_duplicate_branch_steps() {
     // Branch steps are stored in both `history.steps` and `branch.steps` —
     // search must not return them twice.
     let mut s = ReasoningServer::new(quiet_config());
-    let _ = s.process_step(step_n(1));
+    let _ = s.process_step_native(step_n(1));
     let mut s2 = step_n(2);
     s2.branch_from = Some(1);
     s2.branch_name = Some("alt".into());
     s2.thought = "Distinctive needle ABCXYZ in branch step".into();
-    let _ = s.process_step(s2);
+    let _ = s.process_step_native(s2);
 
     let hits = s.search_steps("ABCXYZ", 10);
     assert_eq!(
@@ -1532,7 +1503,7 @@ fn search_is_case_insensitive_and_returns_empty_for_no_query() {
     let mut s = ReasoningServer::new(quiet_config());
     let mut a = step_n(1);
     a.thought = "CamelCase HTTP failures".into();
-    let _ = s.process_step(a);
+    let _ = s.process_step_native(a);
 
     assert_eq!(s.search_steps("camelcase", 10).len(), 1);
     assert_eq!(s.search_steps("HTTP", 10).len(), 1);
@@ -1545,7 +1516,7 @@ fn execution_ref_stored_and_searchable() {
     let mut s = ReasoningServer::new(quiet_config());
     let mut step = step_n(1);
     step.execution_ref = Some("task:auth-refactor".into());
-    let _ = s.process_step(step);
+    let _ = s.process_step_native(step);
 
     let stored = s
         .history()
@@ -1563,7 +1534,7 @@ fn execution_ref_stored_and_searchable() {
 #[test]
 fn execution_ref_absent_when_not_set() {
     let mut s = ReasoningServer::new(quiet_config());
-    let _ = s.process_step(step_n(1));
+    let _ = s.process_step_native(step_n(1));
     let stored = s
         .history()
         .steps
@@ -1576,16 +1547,16 @@ fn execution_ref_absent_when_not_set() {
 #[test]
 fn impact_reports_upstream_downstream_and_revision_chain() {
     let mut s = ReasoningServer::new(quiet_config());
-    let _ = s.process_step(step_n(1));
+    let _ = s.process_step_native(step_n(1));
     let mut s2 = step_n(2);
     s2.dependencies = Some(vec![1u32.into()]);
-    let _ = s.process_step(s2);
+    let _ = s.process_step_native(s2);
     let mut s3 = step_n(3);
     s3.dependencies = Some(vec![2u32.into()]);
-    let _ = s.process_step(s3);
+    let _ = s.process_step_native(s3);
     let mut s4 = step_n(4);
     s4.revises_step = Some(2);
-    let _ = s.process_step(s4);
+    let _ = s.process_step_native(s4);
 
     let v = s.impact_of(2).expect("impact should succeed");
     assert_eq!(v.get("step_number").and_then(|x| x.as_u64()), Some(2));
@@ -1626,7 +1597,7 @@ fn impact_reports_upstream_downstream_and_revision_chain() {
 #[test]
 fn impact_returns_empty_revision_chain_when_not_revised() {
     let mut s = ReasoningServer::new(quiet_config());
-    let _ = s.process_step(step_n(1));
+    let _ = s.process_step_native(step_n(1));
     let v = s.impact_of(1).unwrap();
     let chain = v.get("revision_chain").unwrap().as_array().unwrap();
     assert!(chain.is_empty(), "chain should be empty when no revisions");
@@ -1641,11 +1612,11 @@ fn impact_errors_on_missing_step() {
 #[test]
 fn set_branch_status_marks_and_validates() {
     let mut s = ReasoningServer::new(quiet_config());
-    let _ = s.process_step(step_n(1));
+    let _ = s.process_step_native(step_n(1));
     let mut b2 = step_n(2);
     b2.branch_from = Some(1);
     b2.branch_name = Some("alt".into());
-    let _ = s.process_step(b2);
+    let _ = s.process_step_native(b2);
 
     let branch_id = s
         .branches()
@@ -1672,12 +1643,12 @@ fn set_branch_status_marks_and_validates() {
 #[test]
 fn branches_summary_response_field_appears_after_branching() {
     let mut s = ReasoningServer::new(quiet_config());
-    let _ = s.process_step(step_n(1));
-    let _ = s.process_step(step_n(2));
+    let _ = s.process_step_native(step_n(1));
+    let _ = s.process_step_native(step_n(2));
     let mut b3 = step_n(3);
     b3.branch_from = Some(1);
     b3.branch_name = Some("alt".into());
-    let v = parse_response(s.process_step(b3));
+    let v = parse_response(s.process_step_native(b3));
     assert!(
         v.get("branches_summary").is_some(),
         "branches_summary should appear once a branch exists"
@@ -1810,7 +1781,7 @@ fn extract_tools_empty_when_none() {
 #[test]
 fn process_valid_step() {
     let mut s = ReasoningServer::new(quiet_config());
-    let result = s.process_step(base_step());
+    let result = s.process_step_native(base_step());
     assert!(!is_error(&result));
     let r = parse_response(result);
     assert_eq!(r["step_number"], 1);
@@ -1825,7 +1796,7 @@ fn reject_missing_required_fields() {
     let mut s = ReasoningServer::new(quiet_config());
     let mut step = base_step();
     step.context = String::new();
-    let result = s.process_step(step);
+    let result = s.process_step_native(step);
     assert!(is_error(&result));
     let r = parse_response(result);
     assert!(
@@ -1844,7 +1815,7 @@ fn strict_mode_rejects_invalid_thought() {
     let mut step = base_step();
     step.thought = "Invalid thought".into();
     step.rationale = "To do something".into();
-    let result = s.process_step(step);
+    let result = s.process_step_native(step);
     assert!(is_error(&result));
     let r = parse_response(result);
     assert!(r["error"].as_str().unwrap().contains("strict mode"));
@@ -1855,7 +1826,7 @@ fn completion_via_is_final_step() {
     let mut s = ReasoningServer::new(quiet_config());
     let mut step = base_step();
     step.is_final_step = Some(true);
-    let _ = s.process_step(step);
+    let _ = s.process_step_native(step);
     assert!(s.history().completed);
 }
 
@@ -1864,7 +1835,7 @@ fn completion_via_phrase_detection() {
     let mut s = ReasoningServer::new(quiet_config());
     let mut step = base_step();
     step.thought = "I have completed the analysis and found the solution".into();
-    let _ = s.process_step(step);
+    let _ = s.process_step_native(step);
     assert!(s.history().completed);
 }
 
@@ -1876,8 +1847,8 @@ fn confidence_surfaces_in_recent_steps_not_top_level() {
     let mut s = ReasoningServer::new(quiet_config());
     let mut s1 = base_step();
     s1.confidence = Some(0.85);
-    let _ = s.process_step(s1);
-    let r = parse_response(s.process_step(step_n(2)));
+    let _ = s.process_step_native(s1);
+    let r = parse_response(s.process_step_native(step_n(2)));
     assert!(
         r.get("confidence").is_none(),
         "no top-level confidence echo"
@@ -1891,7 +1862,7 @@ fn reject_confidence_above_1() {
     let mut s = ReasoningServer::new(quiet_config());
     let mut step = base_step();
     step.confidence = Some(1.5);
-    let result = s.process_step(step);
+    let result = s.process_step_native(step);
     assert!(is_error(&result));
     let r = parse_response(result);
     assert!(r["error"].as_str().unwrap().contains("out of bounds"));
@@ -1902,7 +1873,7 @@ fn reject_confidence_below_0() {
     let mut s = ReasoningServer::new(quiet_config());
     let mut step = base_step();
     step.confidence = Some(-0.5);
-    let result = s.process_step(step);
+    let result = s.process_step_native(step);
     assert!(is_error(&result));
     let r = parse_response(result);
     assert!(r["error"].as_str().unwrap().contains("out of bounds"));
@@ -1913,10 +1884,10 @@ fn accept_confidence_at_boundaries() {
     let mut s = ReasoningServer::new(quiet_config());
     let mut a = step_n(1);
     a.confidence = Some(0.0);
-    assert!(!is_error(&s.process_step(a)));
+    assert!(!is_error(&s.process_step_native(a)));
     let mut b = step_n(2);
     b.confidence = Some(1.0);
-    assert!(!is_error(&s.process_step(b)));
+    assert!(!is_error(&s.process_step_native(b)));
 }
 
 #[test]
@@ -1924,7 +1895,7 @@ fn reject_whitespace_only_field() {
     let mut s = ReasoningServer::new(quiet_config());
     let mut step = base_step();
     step.context = "   ".into();
-    let result = s.process_step(step);
+    let result = s.process_step_native(step);
     assert!(is_error(&result));
     let r = parse_response(result);
     assert!(r["error"].as_str().unwrap().contains("context"));
@@ -1938,7 +1909,7 @@ fn omitted_step_number_zero_is_auto_assigned() {
     let mut s = ReasoningServer::new(quiet_config());
     let mut step = base_step();
     step.step_number = 0;
-    let result = s.process_step(step);
+    let result = s.process_step_native(step);
     assert!(!is_error(&result), "0 should auto-assign, not error");
     let r = parse_response(result);
     assert_eq!(r["step_number"], 1, "first step auto-assigns to 1");
@@ -1950,7 +1921,7 @@ fn history_trimmed_when_exceeding_max() {
     c.system.max_history_size = 3;
     let mut s = ReasoningServer::new(c);
     for i in 1..=5 {
-        let _ = s.process_step(step_n(i));
+        let _ = s.process_step_native(step_n(i));
     }
     assert_eq!(s.history().steps.len(), 3);
     assert_eq!(s.history().steps[0].step_number, 3);
@@ -1959,11 +1930,11 @@ fn history_trimmed_when_exceeding_max() {
 #[test]
 fn revision_marks_original() {
     let mut s = ReasoningServer::new(quiet_config());
-    let _ = s.process_step(step_n(1));
+    let _ = s.process_step_native(step_n(1));
     let mut s2 = step_n(2);
     s2.revises_step = Some(1);
     s2.revision_reason = Some("Found error".into());
-    let _ = s.process_step(s2);
+    let _ = s.process_step_native(s2);
     let original = s
         .history()
         .steps
@@ -1978,12 +1949,12 @@ fn revision_marks_original() {
 #[test]
 fn revision_of_missing_step_is_warning_not_error() {
     let mut s = ReasoningServer::new(quiet_config());
-    let _ = s.process_step(step_n(1));
+    let _ = s.process_step_native(step_n(1));
     let mut s2 = step_n(2);
     // Step 0 doesn't exist but is "earlier" than step 2 — should warn, not fail.
     // (Note: we use step 0 for the test because revises_step must be < step_number.)
     s2.revises_step = Some(0);
-    let r = s.process_step(s2);
+    let r = s.process_step_native(s2);
     // Even though revises_step==0 is a "missing" step, the engine warns and continues.
     // It only fails when revises_step >= step.step_number.
     // Here 0 < 2, so it proceeds.
@@ -1996,7 +1967,7 @@ fn revision_of_future_step_rejected() {
     let mut s = ReasoningServer::new(quiet_config());
     let mut step = step_n(1);
     step.revises_step = Some(999);
-    let result = s.process_step(step);
+    let result = s.process_step_native(step);
     assert!(is_error(&result));
     let r = parse_response(result);
     assert!(
@@ -2012,10 +1983,10 @@ fn revisions_skipped_when_feature_disabled() {
     let mut c = quiet_config();
     c.features.enable_revisions = false;
     let mut s = ReasoningServer::new(c);
-    let _ = s.process_step(step_n(1));
+    let _ = s.process_step_native(step_n(1));
     let mut s2 = step_n(2);
     s2.revises_step = Some(1);
-    let _ = s.process_step(s2);
+    let _ = s.process_step_native(s2);
     let original = s
         .history()
         .steps
@@ -2028,12 +1999,12 @@ fn revisions_skipped_when_feature_disabled() {
 #[test]
 fn branch_created_from_existing_step() {
     let mut s = ReasoningServer::new(quiet_config());
-    let _ = s.process_step(step_n(1));
+    let _ = s.process_step_native(step_n(1));
     let mut s2 = step_n(2);
     s2.branch_from = Some(1);
     s2.branch_id = Some("alt-1".into());
     s2.branch_name = Some("Alternative approach".into());
-    let _ = s.process_step(s2);
+    let _ = s.process_step_native(s2);
     let branches = s.branches();
     assert_eq!(branches.len(), 1);
     let b = branches.get("alt-1").unwrap();
@@ -2044,10 +2015,10 @@ fn branch_created_from_existing_step() {
 #[test]
 fn branch_auto_generates_id_and_name() {
     let mut s = ReasoningServer::new(quiet_config());
-    let _ = s.process_step(step_n(1));
+    let _ = s.process_step_native(step_n(1));
     let mut s2 = step_n(2);
     s2.branch_from = Some(1);
-    let _ = s.process_step(s2);
+    let _ = s.process_step_native(s2);
     assert_eq!(s.branches().len(), 1);
     let (id, b) = s.branches().iter().next().unwrap();
     assert!(
@@ -2062,10 +2033,10 @@ fn branch_disabled_creates_no_branch() {
     let mut c = quiet_config();
     c.features.enable_branching = false;
     let mut s = ReasoningServer::new(c);
-    let _ = s.process_step(step_n(1));
+    let _ = s.process_step_native(step_n(1));
     let mut s2 = step_n(2);
     s2.branch_from = Some(1);
-    let _ = s.process_step(s2);
+    let _ = s.process_step_native(s2);
     assert_eq!(s.branches().len(), 0);
 }
 
@@ -2074,7 +2045,7 @@ fn branch_from_nonexistent_step_rejected() {
     let mut s = ReasoningServer::new(quiet_config());
     let mut step = step_n(2);
     step.branch_from = Some(999);
-    let result = s.process_step(step);
+    let result = s.process_step_native(step);
     assert!(is_error(&result));
     let r = parse_response(result);
     assert!(r["error"].as_str().unwrap().contains("does not exist"));
@@ -2083,11 +2054,11 @@ fn branch_from_nonexistent_step_rejected() {
 #[test]
 fn branch_from_self_rejected() {
     let mut s = ReasoningServer::new(quiet_config());
-    let _ = s.process_step(step_n(1));
+    let _ = s.process_step_native(step_n(1));
     let mut step = step_n(2);
     step.branch_from = Some(2);
     step.branch_name = Some("Self-branch".into());
-    let result = s.process_step(step);
+    let result = s.process_step_native(step);
     assert!(is_error(&result));
     let r = parse_response(result);
     assert!(
@@ -2111,7 +2082,7 @@ fn dependencies_missing_warns_but_continues() {
     let mut s = ReasoningServer::new(quiet_config());
     let mut step = step_n(10);
     step.dependencies = Some(vec![1u32.into(), 2u32.into(), 3u32.into()]);
-    let result = s.process_step(step);
+    let result = s.process_step_native(step);
     // Missing dependencies are a warning, not a failure.
     assert!(!is_error(&result), "expected non-error, got: {result:?}");
 }
@@ -2121,7 +2092,7 @@ fn dependencies_self_is_circular_error() {
     let mut s = ReasoningServer::new(quiet_config());
     let mut step = step_n(1);
     step.dependencies = Some(vec![1u32.into()]);
-    let result = s.process_step(step);
+    let result = s.process_step_native(step);
     assert!(is_error(&result));
     let r = parse_response(result);
     assert!(r["error"].as_str().unwrap().contains("Circular"));
@@ -2132,7 +2103,7 @@ fn dependencies_future_is_invalid_error() {
     let mut s = ReasoningServer::new(quiet_config());
     let mut step = step_n(1);
     step.dependencies = Some(vec![5u32.into(), 10u32.into()]);
-    let result = s.process_step(step);
+    let result = s.process_step_native(step);
     assert!(is_error(&result));
     let r = parse_response(result);
     assert!(
@@ -2146,11 +2117,11 @@ fn dependencies_future_is_invalid_error() {
 #[test]
 fn dependencies_satisfied_when_steps_exist() {
     let mut s = ReasoningServer::new(quiet_config());
-    let _ = s.process_step(step_n(1));
-    let _ = s.process_step(step_n(2));
+    let _ = s.process_step_native(step_n(1));
+    let _ = s.process_step_native(step_n(2));
     let mut step = step_n(3);
     step.dependencies = Some(vec![1u32.into(), 2u32.into()]);
-    assert!(!is_error(&s.process_step(step)));
+    assert!(!is_error(&s.process_step_native(step)));
 }
 
 #[test]
@@ -2160,7 +2131,7 @@ fn session_created_when_id_provided() {
     let mut s = ReasoningServer::new(c);
     let mut step = step_n(1);
     step.session_id = Some("test-session".into());
-    let _ = s.process_step(step);
+    let _ = s.process_step_native(step);
     assert!(s.sessions().contains_key(&ns("test-session")));
 }
 
@@ -2176,15 +2147,15 @@ fn step_numbers_unique_across_sessions_in_project() {
 
     let mut a = step_n(1);
     a.session_id = Some("session-1".into());
-    assert!(s.process_step(a).is_ok());
+    assert!(s.process_step_native(a).is_ok());
 
     let mut b = step_n(1);
     b.session_id = Some("session-2".into());
-    let ok = match s.process_step(b) {
-        Ok(ok) => ok.text,
-        Err(e) => panic!("expected project-wide auto-bump, got error: {}", e.text),
+    let ok = match s.process_step_native(b) {
+        Ok(ok) => ok.report,
+        Err(e) => panic!("expected project-wide auto-bump, got error: {}", e.error),
     };
-    let v: serde_json::Value = serde_json::from_str(&ok).unwrap();
+    let v = &ok;
     assert_eq!(
         v["step_number"], 2,
         "cross-session collision auto-bumps to the next project-wide number"
@@ -2220,7 +2191,7 @@ fn step_numbers_unique_across_sessions_in_project() {
     // holds the auto-bumped step 2, so this brings it to 2 steps total.
     let mut b2 = step_n(3);
     b2.session_id = Some("session-2".into());
-    assert!(s.process_step(b2).is_ok());
+    assert!(s.process_step_native(b2).is_ok());
     assert_eq!(
         s.sessions()
             .get(&ns("session-2"))
@@ -2233,188 +2204,6 @@ fn step_numbers_unique_across_sessions_in_project() {
 }
 
 #[test]
-fn renumber_on_load_resolves_cross_session_duplicates() {
-    // Plant two legacy session files that each used per-session step
-    // numbering (1, 2). Server construction must renumber them to a single
-    // ascending sequence (1, 2, 3, 4) and rewrite any in-session
-    // references so they still point at the right steps.
-    use magistr_workflow::think::domain::{DepEdge, HistoryMetadata, ThinkHistory};
-    use magistr_workflow::think::persistence::Persistence;
-
-    let tmp = TempDir::new().unwrap();
-    let project_id = resolve_project_id();
-
-    let make_step = |n: u32, ts: &str, revises: Option<u32>, deps: Option<Vec<u32>>| {
-        let mut s = step_n(n);
-        s.timestamp = Some(ts.into());
-        if let Some(r) = revises {
-            s.revises_step = Some(r);
-            s.revision_reason = Some("clarification".into());
-        }
-        if let Some(ds) = deps {
-            s.dependencies = Some(ds.into_iter().map(DepEdge::Bare).collect());
-        }
-        s
-    };
-
-    // session-a created first, holds steps #1 (revised by #2) and #2.
-    let history_a = ThinkHistory {
-        steps: vec![
-            make_step(1, "2025-01-01T00:00:00Z", None, None),
-            make_step(2, "2025-01-01T00:01:00Z", Some(1), Some(vec![1])),
-        ],
-        branches: Some(Vec::new()),
-        completed: false,
-        session_id: Some(format!("{project_id}{PROJECT_SEP}session-a")),
-        created_at: Some("2025-01-01T00:00:00Z".into()),
-        updated_at: Some("2025-01-01T00:01:00Z".into()),
-        metadata: Some(HistoryMetadata {
-            project_id: Some(project_id.clone()),
-            ..HistoryMetadata::default()
-        }),
-    };
-    // session-b created second, also starting at #1 — the collision.
-    let history_b = ThinkHistory {
-        steps: vec![
-            make_step(1, "2025-01-02T00:00:00Z", None, None),
-            make_step(2, "2025-01-02T00:01:00Z", None, Some(vec![1])),
-        ],
-        branches: Some(Vec::new()),
-        completed: false,
-        session_id: Some(format!("{project_id}{PROJECT_SEP}session-b")),
-        created_at: Some("2025-01-02T00:00:00Z".into()),
-        updated_at: Some("2025-01-02T00:01:00Z".into()),
-        metadata: Some(HistoryMetadata {
-            project_id: Some(project_id.clone()),
-            ..HistoryMetadata::default()
-        }),
-    };
-
-    {
-        let pers_cfg = persisting_config(&tmp).persistence;
-        let pers = Persistence::new(&pers_cfg);
-        let sid_a = format!("{project_id}{PROJECT_SEP}session-a");
-        let sid_b = format!("{project_id}{PROJECT_SEP}session-b");
-        pers.save_session(&sid_a, &history_a);
-        pers.save_session(&sid_b, &history_b);
-    }
-
-    // Server construction triggers the renumber.
-    let mut cfg = persisting_config(&tmp);
-    cfg.features.enable_sessions = true;
-    let s = ReasoningServer::new(cfg);
-
-    let sid_a = format!("{project_id}{PROJECT_SEP}session-a");
-    let sid_b = format!("{project_id}{PROJECT_SEP}session-b");
-    let sa = &s.sessions().get(&sid_a).unwrap().history;
-    let sb = &s.sessions().get(&sid_b).unwrap().history;
-
-    // Every step in the project now has a unique step_number.
-    let mut all_nums: Vec<u32> = sa
-        .steps
-        .iter()
-        .chain(sb.steps.iter())
-        .map(|st| st.step_number)
-        .collect();
-    all_nums.sort();
-    assert_eq!(
-        all_nums,
-        vec![1, 2, 3, 4],
-        "step_numbers must be globally unique 1..N"
-    );
-
-    // session-a came first (earlier created_at) so it gets 1..2.
-    assert_eq!(sa.steps[0].step_number, 1);
-    assert_eq!(sa.steps[1].step_number, 2);
-    // session-b inherits 3..4.
-    assert_eq!(sb.steps[0].step_number, 3);
-    assert_eq!(sb.steps[1].step_number, 4);
-
-    // Reference rewriting: session-a step #2 originally said `revises_step: 1`
-    // and `dependencies: [1]`. After renumbering, the target (originally
-    // step #1 in session-a, now step #1 globally) still resolves.
-    assert_eq!(sa.steps[1].revises_step, Some(1));
-    let deps_a = sa.steps[1].dependencies.as_ref().unwrap();
-    assert_eq!(deps_a[0].step(), 1);
-
-    // session-b step #4 originally said `dependencies: [1]` (its own session-b step
-    // #1). After renumbering, that maps to global step #3.
-    let deps_b = sb.steps[1].dependencies.as_ref().unwrap();
-    assert_eq!(deps_b[0].step(), 3);
-}
-
-#[test]
-fn renumber_on_load_is_idempotent_when_no_duplicates() {
-    // Plant two sessions whose step_numbers are already globally unique
-    // — server construction must leave them untouched.
-    use magistr_workflow::think::domain::{HistoryMetadata, ThinkHistory};
-    use magistr_workflow::think::persistence::Persistence;
-
-    let tmp = TempDir::new().unwrap();
-    let project_id = resolve_project_id();
-
-    let mk = |n: u32, ts: &str| {
-        let mut s = step_n(n);
-        s.timestamp = Some(ts.into());
-        s
-    };
-    let history_a = ThinkHistory {
-        steps: vec![mk(1, "2025-01-01T00:00:00Z"), mk(2, "2025-01-01T00:01:00Z")],
-        branches: Some(Vec::new()),
-        completed: false,
-        session_id: Some(format!("{project_id}{PROJECT_SEP}session-a")),
-        created_at: Some("2025-01-01T00:00:00Z".into()),
-        updated_at: Some("2025-01-01T00:01:00Z".into()),
-        metadata: Some(HistoryMetadata {
-            project_id: Some(project_id.clone()),
-            ..HistoryMetadata::default()
-        }),
-    };
-    let history_b = ThinkHistory {
-        steps: vec![mk(3, "2025-01-02T00:00:00Z"), mk(4, "2025-01-02T00:01:00Z")],
-        branches: Some(Vec::new()),
-        completed: false,
-        session_id: Some(format!("{project_id}{PROJECT_SEP}session-b")),
-        created_at: Some("2025-01-02T00:00:00Z".into()),
-        updated_at: Some("2025-01-02T00:01:00Z".into()),
-        metadata: Some(HistoryMetadata {
-            project_id: Some(project_id.clone()),
-            ..HistoryMetadata::default()
-        }),
-    };
-
-    {
-        let pers_cfg = persisting_config(&tmp).persistence;
-        let pers = Persistence::new(&pers_cfg);
-        pers.save_session(&format!("{project_id}{PROJECT_SEP}session-a"), &history_a);
-        pers.save_session(&format!("{project_id}{PROJECT_SEP}session-b"), &history_b);
-    }
-
-    let mut cfg = persisting_config(&tmp);
-    cfg.features.enable_sessions = true;
-    let s = ReasoningServer::new(cfg);
-
-    let sa = &s
-        .sessions()
-        .get(&format!("{project_id}{PROJECT_SEP}session-a"))
-        .unwrap()
-        .history;
-    let sb = &s
-        .sessions()
-        .get(&format!("{project_id}{PROJECT_SEP}session-b"))
-        .unwrap()
-        .history;
-    assert_eq!(
-        sa.steps.iter().map(|s| s.step_number).collect::<Vec<_>>(),
-        vec![1, 2]
-    );
-    assert_eq!(
-        sb.steps.iter().map(|s| s.step_number).collect::<Vec<_>>(),
-        vec![3, 4]
-    );
-}
-
-#[test]
 fn expired_sessions_cleaned_up_on_force() {
     let mut c = quiet_config();
     c.features.enable_sessions = true;
@@ -2423,7 +2212,7 @@ fn expired_sessions_cleaned_up_on_force() {
 
     let mut step = step_n(1);
     step.session_id = Some("old-session".into());
-    let _ = s.process_step(step);
+    let _ = s.process_step_native(step);
 
     // Manually expire the session by hacking its last_accessed back.
     // We use the public API in spirit: write a fresh value that's old enough.
@@ -2452,7 +2241,7 @@ fn sessions_off_creates_no_sessions() {
     let mut s = ReasoningServer::new(c);
     let mut step = step_n(1);
     step.session_id = Some("test".into());
-    let _ = s.process_step(step);
+    let _ = s.process_step_native(step);
     assert_eq!(s.sessions().len(), 0);
 }
 
@@ -2461,10 +2250,10 @@ fn tools_tracked_in_metadata() {
     let mut s = ReasoningServer::new(quiet_config());
     let mut a = step_n(1);
     a.tools_used = Some(vec!["Read".into(), "Grep".into()]);
-    let _ = s.process_step(a);
+    let _ = s.process_step_native(a);
     let mut b = step_n(2);
     b.tools_used = Some(vec!["Edit".into(), "Read".into()]);
-    let _ = s.process_step(b);
+    let _ = s.process_step_native(b);
     let tools = s
         .history()
         .metadata
@@ -2482,11 +2271,11 @@ fn tools_tracked_in_metadata() {
 #[test]
 fn clear_history_resets_state() {
     let mut s = ReasoningServer::new(quiet_config());
-    let _ = s.process_step(step_n(1));
+    let _ = s.process_step_native(step_n(1));
     let mut b = step_n(2);
     b.branch_from = Some(1);
     b.branch_id = Some("branch-1".into());
-    let _ = s.process_step(b);
+    let _ = s.process_step_native(b);
     s.clear_history();
     assert_eq!(s.history().steps.len(), 0);
     assert!(!s.history().completed);
@@ -2496,7 +2285,7 @@ fn clear_history_resets_state() {
 #[test]
 fn export_json_default() {
     let mut s = ReasoningServer::new(quiet_config());
-    let _ = s.process_step(base_step());
+    let _ = s.process_step_native(base_step());
     let exported = s.export_history(OutputFormat::Json);
     let parsed: serde_json::Value = serde_json::from_str(&exported).unwrap();
     assert_eq!(parsed["steps"].as_array().unwrap().len(), 1);
@@ -2506,7 +2295,7 @@ fn export_json_default() {
 #[test]
 fn export_markdown() {
     let mut s = ReasoningServer::new(quiet_config());
-    let _ = s.process_step(base_step());
+    let _ = s.process_step_native(base_step());
     let exported = s.export_history(OutputFormat::Markdown);
     assert!(exported.contains("### Step 1/3"));
     assert!(exported.contains("**Context:**"));
@@ -2515,7 +2304,7 @@ fn export_markdown() {
 #[test]
 fn export_console_text() {
     let mut s = ReasoningServer::new(quiet_config());
-    let _ = s.process_step(base_step());
+    let _ = s.process_step_native(base_step());
     let exported = s.export_history(OutputFormat::Console);
     assert!(exported.contains("[Step 1/3]"));
     assert!(exported.contains("Context:"));
@@ -2530,18 +2319,18 @@ fn session_indexes_rebuilt_on_switch_back() {
     for i in 1..=3 {
         let mut step = step_n(i);
         step.session_id = Some("session-a".into());
-        let _ = s.process_step(step);
+        let _ = s.process_step_native(step);
     }
     // Switch to session-b
     let mut sb1 = step_n(1);
     sb1.session_id = Some("session-b".into());
-    let _ = s.process_step(sb1);
+    let _ = s.process_step_native(sb1);
 
     // Return to session-a and add step 4 depending on step 2
     let mut sa4 = step_n(4);
     sa4.session_id = Some("session-a".into());
     sa4.dependencies = Some(vec![2u32.into()]);
-    let result = s.process_step(sa4);
+    let result = s.process_step_native(sa4);
     assert!(!is_error(&result));
 
     assert_eq!(
@@ -2560,7 +2349,7 @@ fn confidence_infinity_rejected() {
     let mut s = ReasoningServer::new(quiet_config());
     let mut step = step_n(1);
     step.confidence = Some(f64::INFINITY);
-    let result = s.process_step(step);
+    let result = s.process_step_native(step);
     assert!(is_error(&result));
     let r = parse_response(result);
     assert!(r["error"].as_str().unwrap().contains("finite number"));
@@ -2571,7 +2360,7 @@ fn confidence_neg_infinity_rejected() {
     let mut s = ReasoningServer::new(quiet_config());
     let mut step = step_n(1);
     step.confidence = Some(f64::NEG_INFINITY);
-    let result = s.process_step(step);
+    let result = s.process_step_native(step);
     assert!(is_error(&result));
     let r = parse_response(result);
     assert!(r["error"].as_str().unwrap().contains("finite number"));
@@ -2582,7 +2371,7 @@ fn confidence_nan_rejected() {
     let mut s = ReasoningServer::new(quiet_config());
     let mut step = step_n(1);
     step.confidence = Some(f64::NAN);
-    let result = s.process_step(step);
+    let result = s.process_step_native(step);
     assert!(is_error(&result));
     let r = parse_response(result);
     assert!(r["error"].as_str().unwrap().contains("finite number"));
@@ -2592,7 +2381,7 @@ fn confidence_nan_rejected() {
 fn complex_multi_feature_step() {
     let mut s = ReasoningServer::new(quiet_config());
     for i in 1..=3 {
-        let _ = s.process_step(step_n(i));
+        let _ = s.process_step_native(step_n(i));
     }
     let mut step = step_n(4);
     step.branch_from = Some(2);
@@ -2602,7 +2391,7 @@ fn complex_multi_feature_step() {
     step.confidence = Some(0.85);
     step.dependencies = Some(vec![3u32.into()]);
     step.tools_used = Some(vec!["Read".into(), "Grep".into(), "Edit".into()]);
-    let result = s.process_step(step);
+    let result = s.process_step_native(step);
     assert!(!is_error(&result));
     let r = parse_response(result);
     assert_eq!(r["step_number"], 4);
@@ -2633,7 +2422,7 @@ fn caller_session_id_gets_namespaced_under_project() {
     let mut s = ReasoningServer::new(c);
     let mut step = step_n(1);
     step.session_id = Some("phase3-chunk1".into());
-    let _ = s.process_step(step);
+    let _ = s.process_step_native(step);
 
     let expected = format!("{}{}phase3-chunk1", resolve_project_id(), PROJECT_SEP);
     assert!(
@@ -2657,7 +2446,7 @@ fn already_namespaced_session_id_is_not_double_prefixed() {
     let qualified = format!("{}{}phase3-chunk1", resolve_project_id(), PROJECT_SEP);
     let mut step = step_n(1);
     step.session_id = Some(qualified.clone());
-    let _ = s.process_step(step);
+    let _ = s.process_step_native(step);
 
     assert!(s.sessions().contains_key(&qualified));
     assert_eq!(s.sessions().len(), 1);
@@ -2673,7 +2462,7 @@ fn session_metadata_stamps_project_id() {
     let mut s = ReasoningServer::new(c);
     let mut step = step_n(1);
     step.session_id = Some("alpha-demo".into());
-    let _ = s.process_step(step);
+    let _ = s.process_step_native(step);
 
     let key = ns("alpha-demo");
     let entry = s.sessions().get(&key).expect("session should exist");
@@ -2720,15 +2509,15 @@ fn xml_injection_bare_tag_form_recovers_from_thought() {
     step.rationale = String::new();
     step.next_action = NextAction::Text(String::new());
 
-    let ok = match s.process_step(step) {
+    let ok = match s.process_step_native(step) {
         Ok(ok) => ok,
         Err(err) => panic!(
             "recovery should fill missing fields and let the step through; got: {}",
-            err.text
+            err.error
         ),
     };
 
-    let response: serde_json::Value = serde_json::from_str(&ok.text).expect("response is JSON");
+    let response: serde_json::Value = ok.report;
     let warnings = response
         .get("warnings")
         .and_then(|v| v.as_array())
@@ -2785,7 +2574,8 @@ fn xml_injection_bare_tag_form_recovers_from_thought() {
 fn xml_injection_bare_tag_recovers_dependencies_and_branch_fields() {
     let mut s = ReasoningServer::new(quiet_config());
     // Plant step 1 so step 2's "depends on [1]" doesn't fail validation.
-    s.process_step(base_step()).expect("step 1 records cleanly");
+    s.process_step_native(base_step())
+        .expect("step 1 records cleanly");
 
     let mut step = base_step();
     step.step_number = 2;
@@ -2804,11 +2594,11 @@ fn xml_injection_bare_tag_recovers_dependencies_and_branch_fields() {
     step.rationale = String::new();
     step.next_action = NextAction::Text(String::new());
 
-    let ok = match s.process_step(step) {
+    let ok = match s.process_step_native(step) {
         Ok(ok) => ok,
-        Err(err) => panic!("recovery should let step through; got: {}", err.text),
+        Err(err) => panic!("recovery should let step through; got: {}", err.error),
     };
-    let response: serde_json::Value = serde_json::from_str(&ok.text).unwrap();
+    let response: serde_json::Value = ok.report;
     let warnings = response.get("warnings").and_then(|v| v.as_array()).unwrap();
     let warn_text = warnings
         .iter()
@@ -2833,54 +2623,13 @@ fn xml_injection_bare_tag_recovers_dependencies_and_branch_fields() {
 // one extracted pair, even with malformed close tags.)
 
 #[test]
-fn concurrent_renumber_does_not_duplicate_steps_on_merge_save() {
-    // The cli-renumber-duplication race: a long-running server holds the
-    // trace in memory under numbering A while a one-shot CLI invocation
-    // renumbers the on-disk copy to numbering B (save_default_replacing).
-    // The server's next merge-on-save must recognize the disk steps as the
-    // SAME steps by content identity — not adopt them as new numbers.
-    use magistr_workflow::think::persistence::Persistence;
-
-    let tmp = TempDir::new().unwrap();
-    let project_id = resolve_project_id();
-    let cfg = persisting_config(&tmp);
-
-    let mut server = ReasoningServer::new(cfg.clone());
-    assert!(server.process_step(step_n(1)).is_ok());
-    assert!(server.process_step(step_n(2)).is_ok());
-
-    // Simulate the concurrent CLI writer: load the persisted default
-    // history, shift every step_number (a different renumbering of the
-    // same content), and write it back with Replace.
-    let pers = Persistence::for_project(&cfg.persistence, &project_id);
-    let mut disk = pers.load_default().expect("default history persisted");
-    assert_eq!(disk.steps.len(), 2);
-    for s in disk.steps.iter_mut() {
-        s.step_number += 10;
-    }
-    pers.save_default_replacing(&disk);
-
-    // The server (still on numbering A) records another step — its
-    // write-through save merges with the renumbered disk file.
-    assert!(server.process_step(step_n(3)).is_ok());
-
-    let merged = pers.load_default().expect("default history persisted");
-    let titles: Vec<u32> = merged.steps.iter().map(|s| s.step_number).collect();
-    assert_eq!(
-        merged.steps.len(),
-        3,
-        "renumbered disk copies of in-memory steps must not be re-adopted as duplicates; got step_numbers {titles:?}"
-    );
-}
-
-#[test]
 fn adopt_steps_rejects_renumbered_content_clones() {
     // Cloud reconcile goes through the same merge rule: a pulled step whose
     // content is already present locally under a different step_number is a
     // renumbered clone, not new reasoning.
     let mut server = ReasoningServer::new(quiet_config());
-    assert!(server.process_step(step_n(1)).is_ok());
-    assert!(server.process_step(step_n(2)).is_ok());
+    assert!(server.process_step_native(step_n(1)).is_ok());
+    assert!(server.process_step_native(step_n(2)).is_ok());
 
     let mut clones: Vec<ThinkStep> = server.history().steps.clone();
     for s in clones.iter_mut() {
@@ -2889,82 +2638,6 @@ fn adopt_steps_rejects_renumbered_content_clones() {
     let adopted = server.adopt_steps(clones);
     assert_eq!(adopted, 0, "content clones must not be adopted");
     assert_eq!(server.history().steps.len(), 2);
-}
-
-#[test]
-fn load_dedupes_renumbered_clones_preserving_pins_and_refs() {
-    // A trace that already accumulated renumbered clones (the live-store
-    // damage cli-renumber-duplication describes) is repaired at load: the
-    // earliest copy survives, a pin on a clone moves to the keeper, and
-    // dependency edges pointing at dropped numbers are rewritten.
-    use magistr_workflow::think::domain::{DepEdge, HistoryMetadata, ThinkHistory};
-    use magistr_workflow::think::persistence::Persistence;
-
-    let tmp = TempDir::new().unwrap();
-    let project_id = resolve_project_id();
-    let cfg = persisting_config(&tmp);
-
-    let mk = |n: u32, ts: &str, purpose: &str| {
-        let mut s = step_n(n);
-        s.timestamp = Some(ts.into());
-        s.purpose = purpose.into();
-        s
-    };
-    // Steps 1,2 are originals. Steps 11,12 are renumbered clones of them
-    // (identical timestamp+purpose+thought); the clone of step 1 is pinned.
-    // Step 13 is real and depends on the clone number 12.
-    let mut clone_of_1 = mk(11, "2025-01-01T00:00:00Z", "open phase");
-    clone_of_1.pinned = Some(true);
-    let mut real_13 = mk(13, "2025-01-03T00:00:00Z", "close phase");
-    real_13.dependencies = Some(vec![DepEdge::Bare(12)]);
-    let history = ThinkHistory {
-        steps: vec![
-            mk(1, "2025-01-01T00:00:00Z", "open phase"),
-            mk(2, "2025-01-02T00:00:00Z", "mid phase"),
-            clone_of_1,
-            mk(12, "2025-01-02T00:00:00Z", "mid phase"),
-            real_13,
-        ],
-        branches: Some(Vec::new()),
-        completed: false,
-        session_id: None,
-        created_at: Some("2025-01-01T00:00:00Z".into()),
-        updated_at: Some("2025-01-03T00:00:00Z".into()),
-        metadata: Some(HistoryMetadata {
-            project_id: Some(project_id.clone()),
-            ..HistoryMetadata::default()
-        }),
-    };
-    {
-        let pers = Persistence::for_project(&cfg.persistence, &project_id);
-        pers.save_default_replacing(&history);
-    }
-
-    // Construction auto-repairs.
-    let s = ReasoningServer::new(cfg.clone());
-    let steps = &s.history().steps;
-    let nums: Vec<u32> = steps.iter().map(|st| st.step_number).collect();
-    assert_eq!(nums, vec![1, 2, 13], "clones dropped, originals kept");
-    assert_eq!(
-        steps[0].pinned,
-        Some(true),
-        "pin on the dropped clone must move to the keeper"
-    );
-    let deps = steps[2].dependencies.as_ref().unwrap();
-    assert_eq!(
-        deps[0].step(),
-        2,
-        "dependency on a dropped clone number must be rewritten to the keeper"
-    );
-
-    // The repair persisted: a second load finds nothing to drop.
-    let pers = Persistence::for_project(&cfg.persistence, &project_id);
-    let on_disk = pers.load_default().unwrap();
-    assert_eq!(
-        on_disk.steps.len(),
-        3,
-        "repair must be written back to disk"
-    );
 }
 
 #[test]
@@ -2982,7 +2655,7 @@ fn adopt_steps_rejects_clones_of_steps_outside_the_memory_window() {
 
     let mut server = ReasoningServer::new(cfg.clone());
     for n in 1..=8 {
-        assert!(server.process_step(step_n(n)).is_ok());
+        assert!(server.process_step_native(step_n(n)).is_ok());
     }
     // The in-memory window dropped the oldest steps; the disk archive has all 8.
     assert!(
@@ -2990,7 +2663,11 @@ fn adopt_steps_rejects_clones_of_steps_outside_the_memory_window() {
         "trim should have kicked in"
     );
     let pers = Persistence::for_project(&cfg.persistence, &project_id);
-    let archive = pers.load_default().expect("archive persisted");
+    let archive = pers
+        .load_default()
+        .expect("archive persisted")
+        .value
+        .expect("history exists");
     assert_eq!(archive.steps.len(), 8, "disk keeps the full archive");
 
     // Cloud clones of the two OLDEST steps (outside the memory window),
@@ -3004,15 +2681,17 @@ fn adopt_steps_rejects_clones_of_steps_outside_the_memory_window() {
         adopted, 0,
         "clones of archived steps must be rejected by the archive-aware guard"
     );
-    let after = pers.load_default().expect("archive persisted");
+    let after = pers
+        .load_default()
+        .expect("archive persisted")
+        .value
+        .expect("history exists");
     assert_eq!(after.steps.len(), 8, "disk must not gain clone steps");
 }
 
 #[test]
-fn record_id_minted_at_creation_and_survives_renumber() {
-    // think-step-stable-id: the wire identity is minted once and never
-    // rewritten — the startup renumber may reassign step_numbers but must
-    // leave record_id untouched.
+fn reopening_preserves_authored_session_numbers_and_record_ids() {
+    // Opening a stored history preserves every authored record identity.
     use magistr_workflow::think::domain::{HistoryMetadata, ThinkHistory};
     use magistr_workflow::think::persistence::Persistence;
 
@@ -3037,7 +2716,7 @@ fn record_id_minted_at_creation_and_survives_renumber() {
             ..HistoryMetadata::default()
         }),
     };
-    // Both sessions start at #1 — the collision forces a renumber on load.
+    // Existing session histories are observed without rewriting their numbers.
     let history_a = mk_hist(
         "session-a",
         vec![
@@ -3056,7 +2735,7 @@ fn record_id_minted_at_creation_and_survives_renumber() {
     );
     {
         let pers_cfg = persisting_config(&tmp).persistence;
-        let pers = Persistence::new(&pers_cfg);
+        let pers = Persistence::for_project(&pers_cfg, &project_id);
         pers.save_session(&format!("{project_id}{PROJECT_SEP}session-a"), &history_a);
         pers.save_session(&format!("{project_id}{PROJECT_SEP}session-b"), &history_b);
     }
@@ -3070,8 +2749,8 @@ fn record_id_minted_at_creation_and_survives_renumber() {
         .get(&format!("{project_id}{PROJECT_SEP}session-b"))
         .unwrap()
         .history;
-    // Renumber happened (session-b now 3..4) but record ids are untouched.
-    assert_eq!(sb.steps[0].step_number, 3);
+    // Loading neither renumbers steps nor mints replacement record ids.
+    assert_eq!(sb.steps[0].step_number, 1);
     assert_eq!(sb.steps[0].record_id.as_deref(), Some("rid-b1"));
     assert_eq!(sb.steps[1].record_id.as_deref(), Some("rid-b2"));
 }
@@ -3079,7 +2758,7 @@ fn record_id_minted_at_creation_and_survives_renumber() {
 #[test]
 fn new_steps_mint_record_id_and_envelope_uses_it() {
     let mut s = ReasoningServer::new(quiet_config());
-    let _ = s.process_step(step_n(1));
+    let _ = s.process_step_native(step_n(1));
     let step = &s.history().steps[0];
     let rid = step
         .record_id
@@ -3094,39 +2773,12 @@ fn new_steps_mint_record_id_and_envelope_uses_it() {
 #[test]
 fn adopt_steps_dedupes_on_record_id_even_when_content_differs() {
     let mut s = ReasoningServer::new(quiet_config());
-    let _ = s.process_step(step_n(1));
+    let _ = s.process_step_native(step_n(1));
     let mut clone = s.history().steps[0].clone();
     clone.step_number = 50;
     clone.thought = "mutated copy of the same record".into();
     let adopted = s.adopt_steps(vec![clone]);
     assert_eq!(adopted, 0, "same record_id must not be adopted twice");
-}
-
-#[test]
-fn legacy_steps_backfill_deterministic_record_id_on_load() {
-    use magistr_workflow::think::persistence::Persistence;
-
-    let tmp = TempDir::new().unwrap();
-    let project_id = resolve_project_id();
-    let cfg = persisting_config(&tmp);
-
-    // Persist a legacy step with NO record_id (predates minting).
-    let mut server = ReasoningServer::new(cfg.clone());
-    let _ = server.process_step(step_n(1));
-    let pers = Persistence::for_project(&cfg.persistence, &project_id);
-    let mut legacy = pers.load_default().unwrap();
-    for st in legacy.steps.iter_mut() {
-        st.record_id = None;
-    }
-    pers.save_default_replacing(&legacy);
-
-    // Two independent loads converge on the same backfilled id.
-    let a = ReasoningServer::new(cfg.clone());
-    let b = ReasoningServer::new(cfg.clone());
-    let ida = a.history().steps[0].record_id.clone().expect("backfilled");
-    let idb = b.history().steps[0].record_id.clone().expect("backfilled");
-    assert_eq!(ida, idb, "backfill must be deterministic");
-    assert!(ida.starts_with("bf-"), "backfilled ids are marked: {ida}");
 }
 
 // ─── Memory MAINTENANCE ─────────────────────────────────────────────────────
@@ -3250,7 +2902,7 @@ fn a_pin_something_still_depends_on_is_never_proposed() {
 
     let mut citing = step_n(21);
     citing.dependencies = Some(vec![DepEdge::Bare(head_candidate)]);
-    assert!(s.process_step(citing).is_ok());
+    assert!(s.process_step_native(citing).is_ok());
 
     let report = s.maintenance_report();
     assert!(
@@ -3275,7 +2927,7 @@ fn a_pin_on_either_side_of_a_revision_is_never_proposed() {
     correction.revises_step = Some(head_candidate);
     correction.revision_reason = Some("the earlier form was wrong".into());
     correction.pinned = Some(true);
-    assert!(s.process_step(correction).is_ok());
+    assert!(s.process_step_native(correction).is_ok());
 
     let report = s.maintenance_report();
     assert!(
@@ -3340,11 +2992,11 @@ fn a_10k_step_trace_still_answers_a_rollup_and_a_search() {
     let mut needle = step_n(1);
     needle.thought = "the ZZQNEEDLE claim, recorded first and pinned".into();
     needle.pinned = Some(true);
-    let _ = s.process_step(needle);
+    let _ = s.process_step_native(needle);
     for i in 2..=10_000u32 {
         let mut step = step_n(i);
         step.pinned = Some(true);
-        let _ = s.process_step(step);
+        let _ = s.process_step_native(step);
     }
     assert_eq!(s.history().steps.len(), 10_000, "the window held all 10k");
 

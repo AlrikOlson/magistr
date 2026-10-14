@@ -77,7 +77,6 @@ pub struct SessionSnapshot {
     // An evicted active source keeps its kind/id so its tail cannot become a new reply.
     continuation: Option<(u64, super::retained_observation::StreamKind)>,
     answered: std::collections::BTreeSet<u64>,
-    seed_at: u64,
     usage: Option<Msg>,
 }
 
@@ -124,11 +123,10 @@ impl SessionSnapshot {
                 .iter()
                 .filter(|record| {
                     let msg = &record.message;
-                    let at = record.sequence;
                     !matches!(
                         msg,
                         Msg::Agent(AgentEvent::PermissionRequest { .. } | AgentEvent::Usage { .. })
-                    ) && (!matches!(msg, Msg::Engine(_)) || at > self.seed_at)
+                    )
                 })
                 .map(|record| record.message.clone()),
         );
@@ -351,7 +349,8 @@ pub(super) struct SessionObservation {
     closed: AtomicBool,
     draft_writer: std::sync::OnceLock<std::sync::Arc<super::session_drafts::DraftWriter>>,
     closing: Notify,
-    reader: std::sync::OnceLock<magistr_engine::NativeReader>,
+    reader: std::sync::OnceLock<super::workflow_client::SnapshotReads>,
+    snapshot_requests: std::sync::OnceLock<super::workflow_client::FeedLink>,
     source: std::sync::OnceLock<std::sync::Weak<magistr_workspace::service::WorkspaceService>>,
     wake: std::sync::OnceLock<std::sync::Arc<Notify>>,
 }
@@ -382,7 +381,6 @@ impl SessionObservation {
                 retained_from: 1,
                 continuation: None,
                 answered: std::collections::BTreeSet::new(),
-                seed_at: 0,
                 usage: None,
             })
             .0,
@@ -390,6 +388,7 @@ impl SessionObservation {
             draft_writer: std::sync::OnceLock::new(),
             closing: Notify::new(),
             reader: std::sync::OnceLock::new(),
+            snapshot_requests: std::sync::OnceLock::new(),
             source: std::sync::OnceLock::new(),
             wake: std::sync::OnceLock::new(),
         }
@@ -398,7 +397,11 @@ impl SessionObservation {
     pub(super) fn seed(&self, seed: ProjectSeed) {
         self.state.send_modify(|state| {
             let draft = state.seed.draft.take();
+            let observed = std::mem::take(&mut state.seed.snapshot);
             state.seed = seed;
+            if observed != magistr_engine::NativeSnapshot::default() {
+                state.seed.snapshot = observed;
+            }
             if draft.is_some() {
                 state.seed.draft = draft;
             }
@@ -571,8 +574,13 @@ impl SessionObservation {
     pub(super) fn summary(&self) -> super::session_catalog::SessionSummary {
         super::session_catalog::SessionSummary::from_snapshot(&self.state.borrow())
     }
-    pub(super) fn set_reader(&self, reader: magistr_engine::NativeReader) {
+    pub(super) fn set_reader(
+        &self,
+        reader: super::workflow_client::SnapshotReads,
+        requests: super::workflow_client::FeedLink,
+    ) {
         let _ = self.reader.set(reader);
+        let _ = self.snapshot_requests.set(requests);
     }
     pub(super) fn subscribe(self: &std::sync::Arc<Self>) -> SessionSubscription {
         SessionSubscription {
@@ -608,6 +616,34 @@ impl ObservationSink for SessionObservation {
     fn send(&self, message: Msg) -> bool {
         if self.is_closed() {
             return false;
+        }
+        if let Msg::Engine(event) = message {
+            let publishing = matches!(&event, magistr_cockpit::engine::EngineEvent::Seed(_));
+            let apply = || {
+                let mut requested = false;
+                self.state.send_if_modified(|state| {
+                    if state.closed {
+                        return false;
+                    }
+                    let before = state.seed.snapshot.clone();
+                    requested = super::session_workflow::observe(&mut state.seed.snapshot, event);
+                    if before == state.seed.snapshot {
+                        return false;
+                    }
+                    state.sequence = state.sequence.saturating_add(1);
+                    true
+                });
+                requested
+            };
+            let requested = if !publishing && let Some(reader) = self.reader.get() {
+                reader.invalidate(apply)
+            } else {
+                apply()
+            };
+            if requested && let Some(link) = self.snapshot_requests.get() {
+                link.request_snapshot();
+            }
+            return true;
         }
         let mut overloaded = false;
         let mut catalog_changed = false;
@@ -674,14 +710,11 @@ impl SessionSubscription {
     /// Re-read workflow state through its owning reader before a retained-state reseed.
     pub async fn refresh(&mut self) -> Result<SessionSnapshot, String> {
         if let Some(reader) = self.observation.reader.get().cloned() {
-            let at = self.receiver.borrow().sequence;
-            let native = tokio::task::spawn_blocking(move || reader.snapshot())
-                .await
-                .map_err(|error| error.to_string())?;
-            self.observation.state.send_modify(|state| {
-                state.seed.snapshot = native;
-                state.seed_at = at;
-            });
+            let inbox = magistr_cockpit_runtime::channel::Inbox::observed(self.observation.clone());
+            tokio::select! {
+                () = inbox.closed() => {},
+                _ = reader.read(Some(&inbox), true) => {},
+            }
         }
         Ok(self.snapshot())
     }

@@ -731,15 +731,8 @@ impl LoopDriver {
         }
         self.transcript.clear();
         self.target = None;
-        if let Some(engines) = self.native.as_ref() {
-            engines.reload_ship();
-            engines.reload_signal();
-            // The store re-read whole: the rail shows a plan — the Trace
-            // tab the steps and gates, and the Roadmap tab's inbox the
-            // signals — recorded while no feed was attached, without
-            // waiting for a frame.
-            self.inbox
-                .send(Msg::Engine(EngineEvent::Seed(engines.snapshot())));
+        if self.native.is_some() {
+            self.inbox.send(Msg::Engine(EngineEvent::Refresh));
         }
         // Prompt, delegated goal and judge share the resumable selection.
         let target = self
@@ -1581,13 +1574,21 @@ impl LoopDriver {
     /// names, when the roadmap already reads it done on that task's evidence.
     /// `None` for an item still open, one completed with no task behind it,
     /// or a task with nothing passing: those are judged the ordinary way.
-    fn completed_on_record(engines: &NativeEngines, scope: &str) -> Option<(String, Vec<String>)> {
-        let chunk = engines.roadmap_chunk(scope.strip_prefix("chunk:")?)?;
+    fn completed_on_record(
+        engines: &NativeEngines,
+        scope: &str,
+    ) -> Result<Option<(String, Vec<String>)>, String> {
+        let Some(id) = scope.strip_prefix("chunk:") else {
+            return Ok(None);
+        };
+        let Some(chunk) = engines.roadmap_chunk(id)? else {
+            return Ok(None);
+        };
         if chunk.status != ChunkStatus::Done {
-            return None;
+            return Ok(None);
         }
-        let tasks = engines.ship_tasks();
-        chunk
+        let tasks = engines.ship_tasks()?;
+        Ok(chunk
             .cross_refs
             .iter()
             .filter_map(|reference| reference.strip_prefix("task:"))
@@ -1608,7 +1609,7 @@ impl LoopDriver {
                             .any(|later| later.name == check.name && later.passed)
                 });
                 (!passed.is_empty() && !failing).then(|| (task.id.clone(), passed))
-            })
+            }))
     }
 
     /// Whether `objective` is the work this iteration did. The agent owns
@@ -1624,24 +1625,29 @@ impl LoopDriver {
         &self,
         engines: &NativeEngines,
         objective: &magistr_workflow::ship::domain::objective::Objective,
-    ) -> bool {
+    ) -> Result<bool, String> {
         let named = objective.scope.strip_prefix("chunk:");
         if named.is_some() && named == self.target.as_deref() {
-            return true;
+            return Ok(true);
         }
         if named.is_some_and(|id| self.completed.iter().any(|done| done == id)) {
-            return true;
+            return Ok(true);
         }
         let set_at = objective
             .created_at
             .as_deref()
             .and_then(|at| chrono::DateTime::parse_from_rfc3339(at).ok());
         let worked = named
-            .and_then(|id| engines.roadmap_chunk(id))
+            .map(|id| engines.roadmap_chunk(id))
+            .transpose()?
+            .flatten()
             .is_some_and(|chunk| {
                 matches!(chunk.status, ChunkStatus::Done | ChunkStatus::InProgress)
             });
-        worked && matches!((set_at, self.began), (Some(set_at), Some(began)) if set_at >= began)
+        Ok(
+            worked
+                && matches!((set_at, self.began), (Some(set_at), Some(began)) if set_at >= began),
+        )
     }
 
     /// Judge the work selected for this iteration, even if another item is
@@ -1886,27 +1892,39 @@ impl LoopDriver {
         // in its place.
         self.post(LoopEvent::Stage(LoopStage::Gates));
         let cancel = CancellationToken::new();
-        // The trace the gates are recorded into was written by the agent's
-        // own `magistr mcp-serve`, in another process; persistence is
-        // merge-on-save and never reload-on-read, so this handle cannot see
-        // that task until it re-reads. Once per set, not once per gate.
+        // Validate the selected execution before deciding which checks may run.
         let engines = self.native.as_ref().cloned();
-        if let Some(engines) = &engines {
-            engines.reload_ship();
-        }
+        let objective = match engines
+            .as_ref()
+            .map(|engines| engines.ship_objective())
+            .transpose()
+        {
+            Ok(objective) => objective.flatten(),
+            Err(error) => {
+                self.gates_unresolved = Some(format!("Work records could not be read: {error}"));
+                return Some(Vec::new());
+            }
+        };
         // Focused work owns its chosen checks. A finalized objective has
         // already closed its recording task. In both cases validate the
         // existing receipts through the same authority as completion;
         // never expand to the whole suite or run checks without a task.
         if let Some(engines) = &engines
-            && let Some(objective) = engines.ship_objective()
+            && let Some(objective) = objective
             && (objective.verification
                 == magistr_workflow::ship::domain::objective::VerificationMode::Focused
                 || objective.status
                     == magistr_workflow::ship::domain::objective::ObjectiveStatus::Completed)
         {
-            engines.reload_roadmap();
-            if !self.is_iteration_work(engines, &objective) {
+            let belongs = match self.is_iteration_work(engines, &objective) {
+                Ok(belongs) => belongs,
+                Err(error) => {
+                    self.gates_unresolved =
+                        Some(format!("Work records could not be read: {error}"));
+                    return Some(Vec::new());
+                }
+            };
+            if !belongs {
                 self.gates_unresolved = Some(
                     "The recorded checks belong to different work. Restore this item's verification task before continuing.".to_owned(),
                 );
@@ -1916,7 +1934,15 @@ impl LoopDriver {
             // the completion authority accepted its evidence as current. What
             // the tree did afterwards — the commit, and whatever the project's
             // commit hooks regenerate — is not a second trial of finished work.
-            if let Some((task, checks)) = Self::completed_on_record(engines, &objective.scope) {
+            let completed = match Self::completed_on_record(engines, &objective.scope) {
+                Ok(completed) => completed,
+                Err(error) => {
+                    self.gates_unresolved =
+                        Some(format!("Work records could not be read: {error}"));
+                    return Some(Vec::new());
+                }
+            };
+            if let Some((task, checks)) = completed {
                 self.split_part = objective
                     .scope
                     .strip_prefix("chunk:")
@@ -2320,7 +2346,19 @@ impl LoopDriver {
         let Some(engines) = self.native.as_ref().cloned() else {
             return;
         };
-        engines.reload_roadmap();
+        let chunks = match engines.roadmap_chunks() {
+            Ok(chunks) => chunks,
+            Err(error) => {
+                self.note(format!(
+                    "Work records could not be read; completed work was not changed: {error}"
+                ));
+                self.paused = true;
+                self.post(LoopEvent::Paused(
+                    "Work records could not be read. Retry after restoring access.".into(),
+                ));
+                return;
+            }
+        };
         // Two witnesses to the same fact, because either can be the only
         // one present. The feed's `chunk_completed` frames are what the
         // driver saw this iteration; the chunk the prompt was built for,
@@ -2337,7 +2375,10 @@ impl LoopDriver {
         for id in ids {
             // Only a chunk that is actually done gets reopened: nothing
             // here may move a chunk that was merely started.
-            if engines.roadmap_chunk(&id).map(|chunk| chunk.status) != Some(ChunkStatus::Done) {
+            if !chunks
+                .iter()
+                .any(|chunk| chunk.id == id && chunk.status == ChunkStatus::Done)
+            {
                 continue;
             }
             let reopened = self.mutate(&format!("set_status:{id}:in_progress"), || {

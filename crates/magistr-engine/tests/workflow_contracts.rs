@@ -1,4 +1,4 @@
-//! Compatibility paths must refer to the canonical records, never mirrored structs.
+//! Producers and current adapters share canonical records and observation contracts.
 use magistr_workflow_contracts as contracts;
 use std::any::TypeId;
 
@@ -21,8 +21,14 @@ fn producers_and_surfaces_share_the_same_record_definitions() {
 }
 
 #[test]
-fn old_projection_and_broadcast_paths_keep_canonical_type_identity() {
+fn projections_observations_and_broadcasts_share_canonical_type_identity() {
     same_type::<contracts::NativeSnapshot, magistr_engine::NativeSnapshot>();
+    same_type::<
+        contracts::ReadState<contracts::ShipData>,
+        magistr_engine::native::ReadState<magistr_engine::native::ShipData>,
+    >();
+    same_type::<contracts::ReadSource, magistr_engine::native::ReadSource>();
+    same_type::<contracts::StoreStamp, magistr_workflow::infra::StoreStamp>();
     same_type::<contracts::NativeEvent, magistr_engine::NativeEvent>();
     same_type::<contracts::NativeFrame, magistr_engine::NativeFrame>();
     same_type::<contracts::Delivery, magistr_engine::Delivery>();

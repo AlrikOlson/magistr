@@ -176,9 +176,19 @@ pub fn check(name: &str, passed: bool) -> Check {
 /// roadmap scene seeds from.
 #[must_use]
 pub fn snapshot(chunks: Vec<Chunk>, signals: Vec<Signal>) -> NativeSnapshot {
+    use magistr_workflow_contracts::{Observed, ReadSource, ReadState, RoadmapData};
     NativeSnapshot {
-        chunks,
-        signals,
+        roadmap: ReadState::Current(Observed {
+            value: RoadmapData {
+                chunks,
+                ..RoadmapData::default()
+            },
+            source: ReadSource::Memory,
+        }),
+        signals: ReadState::Current(Observed {
+            value: signals,
+            source: ReadSource::Memory,
+        }),
         ..NativeSnapshot::default()
     }
 }

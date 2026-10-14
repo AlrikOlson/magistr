@@ -149,19 +149,7 @@ impl ReasoningServer {
         self.steps_since_cleanup = 0;
         self.start_time = Instant::now();
         self.active_session = None;
-        // Clear disk too — otherwise a restart would resurrect the wiped trace
-        // (and the merge-on-save discipline would union the old steps back in).
-        // Scoped to THIS project's files so a wipe never destroys other
-        // projects' traces in the shared data dir. The tombstone (an empty,
-        // migration-marked default) keeps a restart from re-adopting steps out
-        // of the legacy _default.json; the in-memory marker keeps later saves
-        // carrying it forward.
         self.persistence.delete_project_files();
-        self.persistence.save_default_tombstone();
-        self.history
-            .metadata
-            .get_or_insert_with(Default::default)
-            .legacy_default_migrated = Some(true);
         if let Some(b) = &self.broadcaster {
             b.emit(BroadcastFrame::Cleared);
         }

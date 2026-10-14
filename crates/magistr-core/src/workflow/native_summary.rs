@@ -70,22 +70,24 @@ fn select_work_chunk(
             return Err(MagistrError::Workflow(refusal.explain(track)));
         }
     }
-    engines.reload_ship();
     let in_track = |chunk: &&Chunk| track.is_none_or(|track| chunk.group.as_deref() == Some(track));
-    let objective = engines.ship_objective().filter(|objective| {
-        let settled_chunk = objective
-            .scope
-            .trim()
-            .strip_prefix("chunk:")
-            .and_then(|id| chunks.iter().find(|chunk| chunk.id == id.trim()))
-            .is_some_and(|chunk| {
-                matches!(chunk.status, ChunkStatus::Done | ChunkStatus::Obsoleted)
-            });
-        matches!(
-            objective.status,
-            ObjectiveStatus::Defined | ObjectiveStatus::Active
-        ) && !settled_chunk
-    });
+    let objective = engines
+        .ship_objective()
+        .map_err(MagistrError::Workflow)?
+        .filter(|objective| {
+            let settled_chunk = objective
+                .scope
+                .trim()
+                .strip_prefix("chunk:")
+                .and_then(|id| chunks.iter().find(|chunk| chunk.id == id.trim()))
+                .is_some_and(|chunk| {
+                    matches!(chunk.status, ChunkStatus::Done | ChunkStatus::Obsoleted)
+                });
+            matches!(
+                objective.status,
+                ObjectiveStatus::Defined | ObjectiveStatus::Active
+            ) && !settled_chunk
+        });
     let saved = preferred.and_then(|id| chunks.iter().find(|chunk| chunk.id == id));
     if preferred.is_some() && saved.is_none() {
         return Err(MagistrError::Workflow(

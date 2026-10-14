@@ -2,18 +2,6 @@ use std::time::Duration;
 
 use super::*;
 
-#[test]
-fn a_fresh_link_reads_detached_and_every_clone_sees_the_same_bit() {
-    let link = FeedLink::new();
-    assert!(!link.is_attached());
-
-    let other = link.clone();
-    link.set(true);
-    assert!(other.is_attached(), "the clone shares the bit");
-    other.set(false);
-    assert!(!link.is_attached());
-}
-
 #[tokio::test]
 async fn a_request_made_before_anyone_waits_is_kept_and_several_collapse_into_one() {
     let link = FeedLink::new();

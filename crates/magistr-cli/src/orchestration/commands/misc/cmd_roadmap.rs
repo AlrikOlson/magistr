@@ -91,7 +91,10 @@ fn cmd_roadmap_status(dir: &std::path::Path, renderer: &dyn OutputRenderer) -> e
     };
     if renderer.is_machine_readable() {
         renderer
-            .json(&mut std::io::stdout(), &engines.roadmap_status())
+            .json(
+                &mut std::io::stdout(),
+                &engines.roadmap_status().map_err(eyre::Error::msg)?,
+            )
             .map_err(|e| error::MagistrError::Serialize(e.to_string()))?;
         return Ok(());
     }
@@ -185,12 +188,14 @@ fn cmd_roadmap_export(dir: &std::path::Path) -> eyre::Result<()> {
     magistr_core::roadmap::ensure_file_export_allowed(&dir)?;
     if let Some(engines) = crate::roadmap::open_native_reader(&dir)? {
         let md_path = dir.join("ROADMAP.md");
-        let markdown = engines.roadmap_export("markdown");
+        let markdown = engines
+            .roadmap_export("markdown")
+            .map_err(eyre::Error::msg)?;
+        let snapshot = engines.roadmap_snapshot().map_err(eyre::Error::msg)?;
         magistr_core::roadmap::ensure_file_export_allowed(&dir)?;
         std::fs::write(&md_path, markdown)
             .map_err(|e| error::MagistrError::io(&md_path, e))
             .suggest()?;
-        let snapshot = engines.roadmap_snapshot();
         eprintln!(
             "{}",
             fmt::success(&format!(

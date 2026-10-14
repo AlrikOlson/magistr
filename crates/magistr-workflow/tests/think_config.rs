@@ -392,15 +392,6 @@ fn namespace_session_id_is_idempotent_on_namespaced_input() {
 }
 
 #[test]
-fn namespace_session_id_passes_legacy_rotation_through() {
-    let _g = EnvGuard::new();
-    let p = resolve_project_id();
-    // Legacy auto-rotation files look like `<project>-YYYYMMDD-HHMMSS-XXXX`.
-    let legacy = format!("{p}-20260520-035214-lega");
-    assert_eq!(namespace_session_id(&p, &legacy), legacy);
-}
-
-#[test]
 fn namespace_session_id_prefixes_bare_custom_name() {
     let _g = EnvGuard::new();
     let p = resolve_project_id();

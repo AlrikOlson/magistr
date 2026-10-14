@@ -223,14 +223,13 @@ async fn a_check_admitted_with_source_observes_the_owners_write_and_lands_on_its
     // agent's own ship_check would leave it, visible to an unadmitted
     // reader, and the receipt is durable beside it.
     let reader = NativeReader::open_for_project(&config, PROJECT.into());
-    let checks = reader.ship_status()["checks"]
-        .as_array()
-        .cloned()
-        .expect("checks");
+    let tasks = reader.ship_tasks().unwrap();
+    assert_eq!(tasks.len(), 1);
+    assert_eq!(tasks[0].id, "verify");
+    let checks = &tasks[0].checks;
     assert_eq!(checks.len(), 1, "{checks:?}");
-    assert_eq!(checks[0]["name"], "test");
-    assert_eq!(checks[0]["task_id"], "verify");
-    assert_eq!(checks[0]["verified"], true);
+    assert_eq!(checks[0].name, "test");
+    assert!(checks[0].verified);
     let published = config
         .data_dir()
         .join("ship/executions")
@@ -370,17 +369,21 @@ async fn a_rolled_over_objective_leaves_the_result_stale_and_a_reused_name_has_n
         CheckSettlement::Applied { .. } => panic!("a reused task name must not collect it"),
     }
     assert!(
-        engines.ship_status()["checks"]
-            .as_array()
-            .is_some_and(Vec::is_empty)
+        engines
+            .ship_tasks()
+            .unwrap()
+            .iter()
+            .all(|task| task.checks.is_empty())
     );
     // The late receipt is durable under its own run; the new run's
     // `verify` cannot complete on it.
     let reader = NativeReader::open_for_project(&config, PROJECT.into());
     assert!(
-        reader.ship_status()["checks"]
-            .as_array()
-            .is_some_and(Vec::is_empty)
+        reader
+            .ship_tasks()
+            .unwrap()
+            .iter()
+            .all(|task| task.checks.is_empty())
     );
     let refused = refusal(&engines, Some("task:verify"));
     assert!(

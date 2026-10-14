@@ -70,7 +70,10 @@ fn admission_binds_the_task_and_the_source_before_the_run_and_settles_both() {
             paths: vec!["notes.txt (Modified)".into()]
         })
     );
-    assert_eq!(engines.ship_active_task_id().as_deref(), Some("verify"));
+    assert_eq!(
+        engines.ship_active_task_id().unwrap().as_deref(),
+        Some("verify")
+    );
 }
 
 #[test]
@@ -135,9 +138,11 @@ fn a_superseded_objective_settles_stale_with_the_outcome_and_receipt_intact() {
     }
     assert_eq!(settled.freshness(), Some(&SourceFreshness::Unchanged));
     assert!(
-        engines.ship_status()["checks"]
-            .as_array()
-            .is_some_and(Vec::is_empty),
+        engines
+            .ship_tasks()
+            .unwrap()
+            .iter()
+            .all(|task| task.checks.is_empty()),
         "nothing lands on the new instance"
     );
 }
@@ -179,9 +184,11 @@ fn an_unobservable_root_is_a_source_refusal_at_admission() {
         "{refused}"
     );
     assert!(
-        engines.ship_status()["checks"]
-            .as_array()
-            .is_some_and(Vec::is_empty),
+        engines
+            .ship_tasks()
+            .unwrap()
+            .iter()
+            .all(|task| task.checks.is_empty()),
         "nothing was recorded"
     );
 }

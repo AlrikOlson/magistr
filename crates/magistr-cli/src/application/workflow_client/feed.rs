@@ -26,10 +26,9 @@ const RETRY: std::time::Duration = std::time::Duration::from_millis(300);
 /// gone; abort the handle to end it sooner.
 ///
 /// `link` carries what the re-seed needs without going through the model:
-/// the attachment bit it stands down on, and a snapshot request on every
-/// attachment (frames emitted before this client registered are gone),
-/// on a gap in the sequence and on a new owner — the cases where what the
-/// cockpit holds may be incomplete and only the store can say. The cursor
+/// a snapshot request on every attachment, selected change, gap, and new
+/// owner. Events identify changes; only an owner read establishes current
+/// records. The cursor
 /// is kept across reconnects so the gap a hangup opened is seen as one.
 ///
 /// The socket is a Unix domain socket. Where there are none (Windows)
@@ -68,13 +67,11 @@ async fn feed(socket: PathBuf, execution_key: String, inbox: Inbox, link: FeedLi
                 reconnect: attached_before,
             };
             attached_before = true;
-            link.set(true);
             // Whatever was emitted before this client was registered is
             // gone; the store has it.
             link.request_snapshot();
             let held = post(&inbox, status)
                 && relay(stream, &execution_key, &inbox, &link, &mut cursor).await;
-            link.set(false);
             if !held {
                 return;
             }
@@ -123,11 +120,19 @@ async fn relay(
             continue;
         };
         let delivery = cursor.accept(at);
-        if delivery.needs_snapshot() {
-            link.request_snapshot();
-        }
-        if selected && !inbox.send(Msg::Engine(EngineEvent::Event { event, delivery })) {
+        let requires_read = delivery.needs_snapshot()
+            || (selected
+                && !delivery.is_duplicate()
+                && !matches!(event, magistr_engine::NativeEvent::Magistr(_)));
+        if selected {
+            if !inbox.send(Msg::Engine(EngineEvent::Event { event, delivery })) {
+                return false;
+            }
+        } else if delivery.needs_snapshot() && !inbox.send(Msg::Engine(EngineEvent::Refresh)) {
             return false;
+        }
+        if requires_read {
+            link.request_snapshot();
         }
     }
 }

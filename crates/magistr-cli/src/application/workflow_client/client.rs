@@ -1,4 +1,4 @@
-//! The engines, opened before the terminal is taken over.
+//! Host-owned workflow readers, admitted writers and ordered session observations.
 
 use std::io;
 use std::path::{Path, PathBuf};
@@ -7,7 +7,7 @@ use std::time::Duration;
 
 use magistr_engine::{
     CallerIdentity, NativeConfig, NativeEngines, NativeReader, OwnerClient, OwnerEndpoint,
-    OwnerGeneration, ProjectAuthority, SnapshotCursor, WriterRole,
+    OwnerGeneration, ProjectAuthority, WriterRole,
 };
 use tokio::task::JoinHandle;
 
@@ -16,6 +16,7 @@ use super::error::EngineError;
 use super::feed::spawn_feed;
 use super::feed_link::FeedLink;
 use super::native_port::NativeEnginePort;
+use super::read_snapshot::SnapshotReads;
 use super::reseed::spawn_reseed;
 use magistr_cockpit::engine::EnginePort;
 use magistr_cockpit_runtime::channel::Inbox;
@@ -23,9 +24,8 @@ use magistr_cockpit_runtime::channel::Inbox;
 /// The project's think-and-ship engines, in-process, and the socket their
 /// live feed attaches to.
 ///
-/// Open it before the terminal is taken over (magistr-desktop's `RealTerminal::stdio`):
-/// opening reads the store and may fail, and that must happen on a normal
-/// terminal, never inside the alternate screen. [`EngineClient::with_config`]
+/// Opening validates host admission before an interface starts using the client.
+/// [`EngineClient::with_config`]
 /// admits this process as the project's host and holds the writer — one
 /// project writer across cockpit, loop and MCP hosts — while [`EngineClient::observe`]
 /// holds a reader only, so a viewer never contends with a running host.
@@ -36,6 +36,7 @@ use magistr_cockpit_runtime::channel::Inbox;
 #[derive(Clone, Debug)]
 pub struct EngineClient {
     reader: NativeReader,
+    reads: SnapshotReads,
     /// The admitted writer, when this client was opened or attached as a
     /// host rather than as an observer.
     writer: Option<NativeEngines>,
@@ -44,8 +45,7 @@ pub struct EngineClient {
     /// speaks on it one verb at a time.
     attached: Option<Arc<Mutex<OwnerClient>>>,
     socket: PathBuf,
-    /// What the feed tells the re-seed: attached or not, and a snapshot
-    /// request when frames may have been missed.
+    /// Coalesced requests to read the owning stores after changes or missed frames.
     link: FeedLink,
 }
 
@@ -111,13 +111,17 @@ impl EngineClient {
             WriterRole::Host,
             CallerIdentity::this_process("cockpit"),
         ) {
-            Ok(client) => Ok(Self {
-                socket: config.feed_socket_path(),
-                reader: NativeReader::open(&config),
-                writer: None,
-                attached: Some(Arc::new(Mutex::new(client))),
-                link: FeedLink::new(),
-            }),
+            Ok(client) => {
+                let reader = NativeReader::open(&config);
+                Ok(Self {
+                    socket: config.feed_socket_path(),
+                    reads: SnapshotReads::new(reader.clone()),
+                    reader,
+                    writer: None,
+                    attached: Some(Arc::new(Mutex::new(client))),
+                    link: FeedLink::new(),
+                })
+            }
             Err(attach) => Err(EngineError::Occupied {
                 root,
                 lease,
@@ -146,9 +150,11 @@ impl EngineClient {
     /// As [`Self::observe`].
     pub fn observe_config(config: NativeConfig) -> Result<Self, EngineError> {
         Self::store_ready(&config)?;
+        let reader = NativeReader::open(&config);
         Ok(Self {
             socket: config.feed_socket_path(),
-            reader: NativeReader::open(&config),
+            reads: SnapshotReads::new(reader.clone()),
+            reader,
             writer: None,
             attached: None,
             link: FeedLink::new(),
@@ -160,9 +166,11 @@ impl EngineClient {
     /// writer on the store.
     #[must_use]
     pub fn attach(engines: NativeEngines) -> Self {
+        let reader = engines.reader();
         Self {
             socket: engines.config().feed_socket_path(),
-            reader: engines.reader(),
+            reads: SnapshotReads::new(reader.clone()),
+            reader,
             writer: Some(engines),
             attached: None,
             link: FeedLink::new(),
@@ -264,29 +272,22 @@ impl EngineClient {
         )
     }
 
-    /// How often a cockpit with no feed attached re-reads the store.
-    /// Slow on purpose: it is a safety net under the broadcast socket,
-    /// not a substitute for it, and the read is neither free nor silent.
+    pub(crate) fn snapshot_reads(&self) -> SnapshotReads {
+        self.reads.clone()
+    }
+
+    /// Coalesced read requests shared with the session observation.
+    pub(crate) fn snapshot_requests(&self) -> FeedLink {
+        self.link.clone()
+    }
+
+    /// Validate all owning stores periodically, including while a feed is attached.
     pub const RESEED: Duration = Duration::from_secs(15);
 
-    /// Re-read the store every [`EngineClient::RESEED`] while the feed
-    /// is not attached, and whenever the feed asks for a snapshot, posting
-    /// each changed read on `inbox` as `Msg::Engine` — how a cockpit opened
-    /// without the loop driver sees what another process wrote, and how
-    /// one that missed frames catches up — and confirming an unchanged
-    /// store when the feed asked, so a projection the feed marked stale
-    /// comes back without a write. `seeded` is the cursor of the snapshot
-    /// the model was seeded with, the baseline the re-reads are measured
-    /// against. Abort the handle to stop it early; see [`spawn_reseed`]
-    /// for what it declines to do.
-    pub fn reseed(&self, inbox: Inbox, seeded: Option<SnapshotCursor>) -> JoinHandle<()> {
-        spawn_reseed(
-            self.reader.clone(),
-            self.link.clone(),
-            inbox,
-            Self::RESEED,
-            seeded,
-        )
+    /// Publish changed observations and requested reads unless newer changes supersede them.
+    /// The baseline includes each family's successful data or read failure.
+    pub fn reseed(&self, inbox: Inbox) -> JoinHandle<()> {
+        spawn_reseed(self.reads.clone(), self.link.clone(), inbox, Self::RESEED)
     }
 }
 

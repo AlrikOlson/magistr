@@ -13,6 +13,7 @@ use crate::ship::domain::task::{Task, TaskStatus, TaskType};
 use crate::ship::persistence::Persistence;
 use crate::ship::receipt_ledger::ReceiptLedger;
 use crate::ship::saved_cycle::SavedCycle;
+use magistr_workflow_contracts::{Observed, ReadError, ReadSource, ShipData};
 
 pub struct ShipEngine {
     pub(crate) binding: Option<crate::ship::application::ExecutionBinding>,
@@ -24,10 +25,8 @@ pub struct ShipEngine {
     saved_cycles: Vec<SavedCycle>,
     selection_revision: u64,
     persistence: Option<Persistence>,
-    /// The stamp of the store file this memory was last read from or
-    /// written to; `None` while there is no file or after a failed write.
-    /// Compared against the file on every refresh so an unchanged store
-    /// costs a `stat`, never a parse.
+    /// Source of the last acknowledged save or adopted read. Observations
+    /// validate the selected file independently of this writer's memory.
     stamp: Option<StoreStamp>,
     /// Durable check receipts for this project, outliving the cycle.
     receipts: ReceiptLedger,
@@ -301,16 +300,34 @@ impl ShipEngine {
     }
 
     pub fn with_persistence(mut self, persistence: Persistence) -> Self {
-        // The stamp before the read, so a write landing between the two
-        // costs one spurious re-read later and never a missed one.
-        self.stamp = persistence.stamp(&self.project_id).ok().flatten();
-        if let Ok((Some(state), _)) = persistence.current_stamped(&self.project_id) {
-            self.adopt_current(Some(state));
-            tracing::debug!("ship: loaded {} task(s) from disk", self.tasks.len());
-        }
         self.receipts = persistence.receipt_ledger(&self.project_id);
         self.persistence = Some(persistence);
+        if let Err(error) = self.reload_from_store() {
+            tracing::warn!(%error, "The saved work could not be loaded");
+        }
         self
+    }
+
+    /// Read this execution's stored records without changing live writer state.
+    pub fn observe(&self) -> Result<Observed<ShipData>, ReadError> {
+        let Some(persistence) = self.persistence.as_ref().filter(|p| p.enabled()) else {
+            return Ok(Observed {
+                value: ShipData {
+                    objective: self.objective.clone(),
+                    tasks: self.tasks.clone(),
+                },
+                source: ReadSource::Memory,
+            });
+        };
+        let read = persistence.current_stamped(&self.project_id)?;
+        let value = read.value.map_or_else(ShipData::default, |state| ShipData {
+            objective: state.objective,
+            tasks: state.tasks,
+        });
+        Ok(Observed {
+            value,
+            source: read.source,
+        })
     }
 
     /// The durable receipt ledger this engine settles checks into. Cloned

@@ -113,7 +113,10 @@ fn multiple_active_items_need_a_saved_target_or_matching_unfinished_objective() 
     )
     .unwrap();
     e.ship_start_task("resume").unwrap();
-    assert_eq!(e.ship_objective().unwrap().status, ObjectiveStatus::Active);
+    assert_eq!(
+        e.ship_objective().unwrap().unwrap().status,
+        ObjectiveStatus::Active
+    );
     assert_eq!(
         native_work_chunk(&e, None, None).unwrap().unwrap().id,
         "second"
@@ -293,7 +296,7 @@ fn active_dependencies_are_checked_again_and_missing_work_is_not_invented() {
         "recovery"
     );
 
-    let mut missing = e.roadmap_chunk("recovery").unwrap();
+    let mut missing = e.roadmap_chunk("recovery").unwrap().unwrap();
     missing.deps = vec!["private-missing-identifier".into()];
     let error = ensure_available(&missing, &e.roadmap_chunks().unwrap())
         .unwrap_err()
@@ -363,4 +366,40 @@ fn unfinished_work_is_not_reported_as_complete_when_nothing_is_ready() {
     assert_eq!((s.total, s.checked, s.unchecked), (1, 0, 1));
     assert!(s.unchecked_items.is_empty());
     assert!(!s.all_done());
+}
+
+#[test]
+fn selecting_work_refuses_an_unreadable_execution_plan_until_recovery() {
+    let tmp = tempfile::tempdir().unwrap();
+    let e = engines(&tmp);
+    add(&e, "work", 100, &[]);
+    e.ship_set_objective(
+        "Continue this work".into(),
+        vec![],
+        vec![],
+        "chunk:work".into(),
+    )
+    .unwrap();
+    assert_eq!(
+        native_work_chunk(&e, None, None).unwrap().unwrap().id,
+        "work"
+    );
+    let path = e
+        .config()
+        .persistence_config()
+        .data_dir
+        .join("ship")
+        .join("executions")
+        .join(e.config().execution_context().key())
+        .join("sessions")
+        .join(format!("{}.json", e.project_id()));
+    let valid = std::fs::read(&path).unwrap();
+    std::fs::write(&path, b"{ unreadable plan").unwrap();
+    assert!(native_work_chunk(&e, None, None).is_err());
+    assert!(native_work_summary(&e, Some("work"), None).is_err());
+    std::fs::write(path, valid).unwrap();
+    assert_eq!(
+        native_work_chunk(&e, None, None).unwrap().unwrap().id,
+        "work"
+    );
 }

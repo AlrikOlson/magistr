@@ -47,7 +47,6 @@ pub mod native_config;
 pub mod native_engines;
 pub mod native_event;
 pub mod native_reader;
-pub mod native_snapshot;
 mod open_engines;
 pub mod owner_client;
 pub mod owner_command;
@@ -81,7 +80,6 @@ pub mod roadmap_command;
 pub mod ship_command;
 pub mod signal_command;
 pub mod snapshot;
-pub mod snapshot_cursor;
 pub mod think_branch;
 pub mod think_command;
 #[cfg(windows)]
@@ -106,12 +104,15 @@ pub use identity::identity_declaration;
 pub use local_stream::LocalStream;
 pub use magistr_frame::MagistrFrame;
 pub use magistr_workflow::think::ConfigSource;
+pub use magistr_workflow_contracts::{
+    NativeSnapshot, Observed, ReadError, ReadErrorKind, ReadSource, ReadState, RoadmapData,
+    ShipData, StoreStamp, ThinkData,
+};
 pub use mcp_acceptor::McpAcceptor;
 pub use native_config::NativeConfig;
 pub use native_engines::NativeEngines;
 pub use native_event::NativeEvent;
 pub use native_reader::NativeReader;
-pub use native_snapshot::NativeSnapshot;
 pub use owner_client::OwnerClient;
 pub use owner_command::OwnerCommand;
 pub use owner_connection_record::OwnerConnectionRecord;
@@ -132,7 +133,6 @@ pub use roadmap_command::RoadmapCommand;
 pub use ship_command::ShipCommand;
 pub use signal_command::SignalCommand;
 pub use snapshot::NativeRoadmapSnapshot;
-pub use snapshot_cursor::SnapshotCursor;
 pub use think_branch::ThinkBranch;
 pub use think_command::ThinkCommand;
 pub use workspace_socket_path::workspace_socket_path;
