@@ -1,6 +1,6 @@
 //! The supervision rail's construction-time seed, as data.
 
-use super::{Budget, CharterOffer, CharterRule, Model};
+use super::{Budget, CharterOffer, CharterRule};
 
 /// What a host derived for the supervision rail before the session starts:
 /// the charter rows, the delegation offers, the budget and the mode word.
@@ -17,20 +17,3 @@ pub struct SupervisionSeed {
     /// The mode word the agent block names after the model.
     pub mode: String,
 }
-
-impl SupervisionSeed {
-    /// Give `model`'s rail this seed.
-    #[must_use]
-    pub fn seed(self, mut model: Model) -> Model {
-        let rail = model.rail_mut();
-        rail.set_charter(self.charter);
-        rail.set_offers(self.offers);
-        rail.set_budget(self.budget);
-        rail.set_mode(self.mode);
-        model
-    }
-}
-
-#[cfg(test)]
-#[path = "supervision_seed.tests.rs"]
-mod tests;

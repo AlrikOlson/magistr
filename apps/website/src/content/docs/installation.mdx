@@ -6,7 +6,7 @@ order: 1
 
 # Installation
 
-Magistr has not been publicly released. The current development version is v0.1.0, and interfaces and stored formats can change without backward compatibility. It builds from the [repository](https://github.com/AlrikOlson/magistr); there is no registry package yet. Use the terminal interface or command line; the desktop interface is experimental.
+Magistr has not been publicly released. The current development version is v0.1.0, and interfaces and stored formats can change without backward compatibility. It builds from the [repository](https://github.com/AlrikOlson/magistr); there is no registry package yet. Use the desktop for conversations and the command line or connected agent for roadmap work.
 
 > **Permission and privacy boundary**
 >
@@ -32,10 +32,19 @@ Run initialization in the project you want to work on. It detects the stack and 
 ```sh
 cd ~/src/my-project
 magistr init .
-magistr
+magistr --help
 ```
 
-`magistr` with no arguments opens the terminal interface: your conversation, roadmap, recorded reasoning and checks.
+The command line lists commands with `magistr --help`. To open the desktop from
+the repository, install the [WebView prerequisites](https://v2.tauri.app/start/prerequisites/)
+and run:
+
+```sh
+cargo run --manifest-path crates/magistr-desktop/Cargo.toml --locked -- --dir /path/to/project
+```
+
+The desktop opens projects, working copies and separate conversations. Send a
+message, answer permission requests or stop work while keeping your draft.
 
 ## The project file
 

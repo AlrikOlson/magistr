@@ -59,18 +59,24 @@ that is a shared slot wearing a per-caller name.
 ## Procedure
 
 1. **Load state.** Call `roadmap_focus_get` with your lane. It is read-only and
-   safe to call before you know whether a focus exists. If your harness defers
-   MCP tool schemas, load the roadmap tools first.
+   safe to call before you know whether a focus exists. Use `focus_state` to
+   distinguish a current, closed, missing or unset focus. Current choices come
+   from `workstreams.current`; completed and obsolete totals appear in
+   `workstreams.history`. To inspect those records by ID,
+   pass `view: "history"` and a group, or omit the group to inspect the exact
+   saved focus. This also works for groups with current work and never changes
+   focus. If your harness defers MCP tool schemas, load the roadmap tools first.
 2. **No arguments given?** Report the current focus and **stop**. Do not
    helpfully pick a workstream — see [Report only](#example-report-only).
 3. **Resolve the workstream.** Pass what the user said to `roadmap_focus_set`
-   as `group`. It accepts an exact name, a case-insensitive match, or an
-   unambiguous fragment. Do not pre-guess or "correct" the user's wording; let
-   the server resolve it so ambiguity is caught rather than papered over.
+   as `group`. New selection accepts an exact current name, a case-insensitive
+   match, or an unambiguous current-name fragment. An exact closed name is
+   refused, even if it also matches a current name's fragment. Never resolve a
+   saved focus as a new query. Let the server resolve explicit user input.
 4. **Resolve the mode.** One of `shape` | `build` | `listen`. If the user did
    not say, ask — do not assume `build` because a repository looks ready.
-5. **Handle refusal.** Unknown or ambiguous workstreams change nothing and come
-   back with the exact candidates. Relay those candidates verbatim and stop.
+5. **Handle refusal.** Unknown, closed or ambiguous workstreams change nothing
+   and return current choices. Relay the reported state and candidates and stop.
    Never retry with a guess.
 6. **Report.** Emit the report below, every field, every time.
 
@@ -84,12 +90,20 @@ Lane: <lane>
 Workstream: <group>
 Mode: <shape|build|listen>
 Ready: <count>
+Waiting: <count>
 Blocked: <count>
 Next: <chunk id, or none>
 Persistent: <yes|no>
 ```
 
+Read the three counts from the current frontier's `activity.readiness` and
+`Next` from `activity.next_ready`. Waiting counts unmet dependencies; blocked
+counts recorded blockers or an explicitly blocked lifecycle state.
+
 The first line is `Focus switched`, `Focus unchanged` or `Focus not set`.
+For a closed or missing saved focus, preserve its exact name in the report,
+explain that it has no unfinished work or is no longer on the roadmap, and
+list current choices. Do not present its history as current work.
 `Persistent: no` means the server has persistence disabled and this focus dies
 with the process — say so rather than letting the user discover it later.
 
@@ -121,6 +135,7 @@ Lane: /Users/dev/code/acme
 Workstream: Authentication
 Mode: build
 Ready: 3
+Waiting: 0
 Blocked: 1
 Next: auth-session-rotation
 Persistent: yes
@@ -139,6 +154,7 @@ Lane: /Users/dev/code/acme
 Workstream: Billing and invoicing
 Mode: shape
 Ready: 2
+Waiting: 0
 Blocked: 0
 Next: billing-proration-rules
 Persistent: yes
@@ -156,6 +172,7 @@ Lane: /Users/dev/code/acme
 Workstream: Authentication
 Mode: build
 Ready: 3
+Waiting: 0
 Blocked: 1
 Next: auth-session-rotation
 Persistent: yes
@@ -195,6 +212,7 @@ Lane: /Users/dev/code/acme
 Workstream: Platform
 Mode: build
 Ready: 0
+Waiting: 0
 Blocked: 4
 Next: none
 Persistent: yes
@@ -203,23 +221,15 @@ Persistent: yes
 All four are blocked. Say so, name what they are waiting on, and do **not**
 switch the user to a different workstream to find them something to do.
 
-### No work — an empty workstream
+### Finished work — a closed workstream
 
 > **User:** focus platform for listening
 
-```
-Focus switched
-Lane: /Users/dev/code/acme
-Workstream: Platform
-Mode: listen
-Ready: 0
-Blocked: 0
-Next: none
-Persistent: yes
-```
-
-An empty workstream is a real answer. `advance-work` will return an honest
-no-work receipt; it will not go looking elsewhere.
+Platform has only completed or obsolete records, so the selection changes
+nothing. Report that Platform has no unfinished work and list the current
+choices returned by the server. Its history remains readable with a named
+`roadmap_focus_get` request with `view: "history"`; inspecting it never changes
+the saved focus.
 
 ### Not this skill
 
@@ -238,7 +248,8 @@ Stop and report — never work around it — when:
 
 - **No lane can be derived.** Say so and ask for one. Do not substitute a
   constant.
-- **The workstream is unknown or ambiguous.** Relay the candidates. Do not retry.
+- **The workstream is unknown, closed or ambiguous.** Relay its state and current
+  candidates. Do not retry.
 - **The mode is missing or not one of the three.** Ask. `implement`, `code` and
   `plan` are not synonyms for anything.
 - **The roadmap tools are unavailable.** Report that focus cannot be set, and do

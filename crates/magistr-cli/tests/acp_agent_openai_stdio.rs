@@ -109,7 +109,9 @@ async fn the_cockpits_transport_runs_a_turn_on_the_openai_provider() {
         other => panic!("expected Initialized, got {other:?}"),
     };
 
-    transport.prompt("why is the sky blue").expect("prompt");
+    transport
+        .prompt(&"why is the sky blue".into())
+        .expect("prompt");
     let mut text = String::new();
     let mut cost = None;
     loop {
@@ -159,5 +161,9 @@ async fn the_cockpits_transport_runs_a_turn_on_the_openai_provider() {
     assert!(error.to_string().contains("does not support"), "{error}");
     assert!(error.to_string().contains(&session_id), "{error}");
     assert!(!resumed.is_ready());
-    assert!(resumed.prompt("do not start empty history").is_err());
+    assert!(
+        resumed
+            .prompt(&"do not start empty history".into())
+            .is_err()
+    );
 }

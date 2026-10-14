@@ -36,6 +36,8 @@ pub const FABLE: &str = "claude-fable-5[1m]";
 pub struct Script {
     /// Advertise `loadSession` and accept `session/load`.
     pub supports_load: bool,
+    /// Accept inline image content negotiated during initialization.
+    pub supports_images: bool,
     /// Return the old selection despite acknowledging a config request.
     pub ignore_config_changes: bool,
     /// Ask for permission for a tool call before finishing the turn.
@@ -97,6 +99,7 @@ pub struct Observed {
     pub loaded_session: Mutex<Option<String>>,
     pub config_sets: Mutex<Vec<(String, String)>>,
     pub cancels: AtomicUsize,
+    pub prompts: Mutex<Vec<PromptRequest>>,
     /// Every `_session/goal` call, as `(action, objective)`.
     pub goals: Mutex<Vec<(String, Option<String>)>>,
 }
@@ -128,6 +131,7 @@ pub fn spawn(script: Script) -> (Channel, Arc<Observed>, JoinHandle<Result<(), E
     let task = tokio::spawn({
         let observed = Arc::clone(&observed);
         let supports_load = script.supports_load;
+        let supports_images = script.supports_images;
         let ignore_config_changes = script.ignore_config_changes;
         let goal_extension = script.goal_extension;
         let goal_text = script.goal_text;
@@ -143,7 +147,13 @@ pub fn spawn(script: Script) -> (Channel, Arc<Observed>, JoinHandle<Result<(), E
                             Some(req.client_capabilities);
                         let mut response = InitializeResponse::new(ProtocolVersion::V1)
                             .agent_capabilities(
-                                AgentCapabilities::new().load_session(supports_load),
+                                AgentCapabilities::new()
+                                    .load_session(supports_load)
+                                    .prompt_capabilities(
+                                        agent_client_protocol::schema::v1::PromptCapabilities::new(
+                                        )
+                                        .image(supports_images),
+                                    ),
                             );
                         if goal_extension {
                             response = response.meta(goal_meta());
@@ -272,6 +282,7 @@ pub fn spawn(script: Script) -> (Channel, Arc<Observed>, JoinHandle<Result<(), E
                     let (observed, pending, script) =
                         (Arc::clone(&observed), Arc::clone(&pending), script.clone());
                     async move |req: PromptRequest, responder, cx| {
+                        observed.prompts.lock().expect("lock").push(req.clone());
                         let (observed, pending, script) =
                             (Arc::clone(&observed), Arc::clone(&pending), script.clone());
                         let cx2 = cx.clone();

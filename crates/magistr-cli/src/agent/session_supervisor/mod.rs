@@ -2,7 +2,7 @@
 //!
 //! The supervisor serializes turn admission, permission replies and cancellation.
 //! Its task owns the transport across turns; detaching observation never changes
-//! provider execution. Both legacy headless facades delegate lifecycle here.
+//! provider execution. Interactive and headless facades delegate lifecycle here.
 
 mod command;
 mod control;
@@ -21,7 +21,7 @@ use agent_client_protocol::schema::v1::{
     AgentCapabilities, SessionConfigOption, SessionConfigOptionValue, SessionInfo, StopReason,
 };
 use magistr_acp::AcpTransport;
-use magistr_application::sessions::{AgentEvent, SessionOptions, SessionPolicy};
+use magistr_application::sessions::{AgentEvent, PromptInput, SessionOptions, SessionPolicy};
 use magistr_core::AcpSessionState;
 use tokio::sync::{mpsc, oneshot};
 use tokio::task::JoinHandle;
@@ -45,7 +45,9 @@ type Policy = (
 
 struct Inner {
     snapshot: SessionSupervisorSnapshot,
-    queue: VecDeque<(u64, String)>,
+    history: super::persistence::SessionHistory,
+    policy: Option<permissions::PolicyAuthority>,
+    queue: VecDeque<(u64, PromptInput)>,
     next_turn: u64,
     completed_turns: u32,
     /// Host-owned turn budget; provider inference is never started past it.
@@ -58,12 +60,20 @@ struct Inner {
     control_busy: bool,
     goal_turn: Option<u64>,
     capabilities: Option<AgentCapabilities>,
+    config_options: Vec<SessionConfigOption>,
+    last_activity: Option<magistr_application::sessions::SessionActivity>,
     messages: Option<ObservationSender<Result<AgentMessage>>>,
     cockpit_events: Option<ObservationSender<AgentEvent>>,
 }
 
 impl Inner {
-    fn emit(&mut self, message: Result<AgentMessage>) {
+    fn emit(&mut self, mut message: Result<AgentMessage>) {
+        let cost = self.history.reported_cost_usd();
+        match &mut message {
+            Ok(AgentMessage::Result { total_cost_usd, .. }) => *total_cost_usd = cost,
+            Ok(AgentMessage::UsageUpdate { cost_usd, .. }) => *cost_usd = cost,
+            _ => {}
+        }
         if let Err(error) = &message {
             self.emit_cockpit(AgentEvent::Error(error.to_string()));
         }
@@ -77,7 +87,62 @@ impl Inner {
         }
     }
 
-    fn emit_cockpit(&mut self, event: AgentEvent) {
+    fn publish_activity(&mut self) {
+        let activity = magistr_application::sessions::SessionActivity {
+            active: self.snapshot.active_turn.is_some(),
+            queued_turns: self.snapshot.queued_turns,
+            configuration_in_progress: self.control_busy,
+            cancellation_requested: self.snapshot.cancellation_requested,
+            can_resume: self
+                .capabilities
+                .as_ref()
+                .map(|capabilities| capabilities.load_session),
+            can_send_images: self
+                .capabilities
+                .as_ref()
+                .map(|capabilities| capabilities.prompt_capabilities.image),
+        };
+        if self.last_activity.as_ref() == Some(&activity) {
+            return;
+        }
+        self.last_activity = Some(activity.clone());
+        if self
+            .cockpit_events
+            .as_ref()
+            .is_some_and(|sender| sender.send(AgentEvent::Activity(activity)).is_err())
+        {
+            self.cockpit_events = None;
+            self.snapshot.client_attached = false;
+        }
+    }
+
+    fn configuration_event(&self) -> AgentEvent {
+        let mut event = super::translate::configuration(&self.config_options);
+        if let Some(authority) = &self.policy {
+            let mut policy = authority.lock().expect("session policy lock poisoned");
+            if let AgentEvent::Configuration { options, model } = &mut event {
+                policy.model_changed(model.clone());
+                for option in options {
+                    if self.config_options.iter().any(|original| original.id.to_string() == option.id && original.category == Some(agent_client_protocol::schema::v1::SessionConfigOptionCategory::Model)) {
+                        option.values.retain(|(value, _)| policy.can_use_model(value));
+                    }
+                }
+            }
+        }
+        event
+    }
+
+    fn emit_cockpit(&mut self, mut event: AgentEvent) {
+        if matches!(event, AgentEvent::Configuration { .. }) {
+            event = self.configuration_event();
+        }
+        let initialized = matches!(event, AgentEvent::Initialized { .. });
+        if let AgentEvent::Usage { cost_cents, .. } = &mut event {
+            *cost_cents = self
+                .history
+                .reported_cost_usd()
+                .map(super::translate::usd_cents);
+        }
         if self
             .cockpit_events
             .as_ref()
@@ -85,6 +150,20 @@ impl Inner {
         {
             self.cockpit_events = None;
             self.snapshot.client_attached = false;
+        }
+        self.publish_activity();
+        if initialized {
+            if let Some(conversation) = self.history.conversation() {
+                self.emit_cockpit(AgentEvent::Conversation(conversation));
+            }
+            self.emit_cockpit(super::translate::configuration(&self.config_options));
+        }
+        if initialized && let Some(cost) = self.history.reported_cost_usd() {
+            self.emit_cockpit(AgentEvent::Usage {
+                context: None,
+                cost_cents: Some(super::translate::usd_cents(cost)),
+                elapsed_secs: None,
+            });
         }
     }
 
@@ -94,6 +173,14 @@ impl Inner {
         self.queue.clear();
         self.snapshot.queued_turns = 0;
         if count > 0 {
+            self.emit_cockpit(AgentEvent::Notice(format!(
+                "{count} queued {} not sent.",
+                if count == 1 {
+                    "message was"
+                } else {
+                    "messages were"
+                }
+            )));
             self.emit(Ok(AgentMessage::System {
                 subtype: "turns_discarded".into(),
                 data: serde_json::json!({"count": count, "turn_ids": turn_ids, "reason": reason}),
@@ -115,6 +202,7 @@ impl Inner {
         self.closing = true;
         self.control_busy = false;
         self.goal_turn = None;
+        self.publish_activity();
     }
 
     fn check_admission(&self) -> Result<()> {
@@ -174,6 +262,7 @@ impl SessionSupervisor {
         before_spawn: impl FnOnce() -> Result<()>,
     ) -> Result<(Self, Messages)> {
         let max_turns = spec.max_turns();
+        let history = spec.history();
         let transport = spec.connect_transport_checkpointed(before_spawn).await?;
         let prompt = spec.prompt().to_owned();
         let (policy, handling) = spec.into_permission_policy();
@@ -183,11 +272,13 @@ impl SessionSupervisor {
             Some((Box::new(policy), handling)),
             ObservationCapacity::DEFAULT,
             max_turns,
+            Some(history),
         )
         .await
     }
 
     /// Adopt an already connected transport without resolving settings again.
+    #[cfg(test)]
     pub(crate) async fn start_connected(
         prompt: &str,
         transport: AcpTransport,
@@ -196,15 +287,34 @@ impl SessionSupervisor {
         Self::start_connected_bounded(prompt, transport, policy, ObservationCapacity::DEFAULT).await
     }
 
+    pub(crate) async fn start_connected_history(
+        prompt: &str,
+        transport: AcpTransport,
+        policy: Option<Policy>,
+        history: super::persistence::SessionHistory,
+    ) -> Result<(Self, Messages)> {
+        Self::start_connected_bounded_with_limit(
+            prompt,
+            transport,
+            policy,
+            ObservationCapacity::DEFAULT,
+            None,
+            Some(history),
+        )
+        .await
+    }
+
     /// [`SessionSupervisor::start_connected`] under an explicit observation
     /// bound — the production default, or a fixture's.
+    #[cfg(test)]
     pub(crate) async fn start_connected_bounded(
         prompt: &str,
         transport: AcpTransport,
         policy: Option<Policy>,
         capacity: ObservationCapacity,
     ) -> Result<(Self, Messages)> {
-        Self::start_connected_bounded_with_limit(prompt, transport, policy, capacity, None).await
+        Self::start_connected_bounded_with_limit(prompt, transport, policy, capacity, None, None)
+            .await
     }
 
     async fn start_connected_bounded_with_limit(
@@ -213,6 +323,7 @@ impl SessionSupervisor {
         policy: Option<Policy>,
         capacity: ObservationCapacity,
         max_turns: Option<u32>,
+        history: Option<super::persistence::SessionHistory>,
     ) -> Result<(Self, Messages)> {
         let provider_pid = u32::try_from(transport.child_pgid())
             .ok()
@@ -222,9 +333,15 @@ impl SessionSupervisor {
             .ok_or_else(|| acp_error("ACP event channel not available"))?;
         let permissions = Permissions::new(transport.take_permission_rx(), policy);
         let opening = !prompt.trim().is_empty();
+        let history = history.unwrap_or_else(super::persistence::SessionHistory::new);
+        history.bind_transport(&transport);
+        let config_options = transport
+            .session_config_options()
+            .unwrap_or_default()
+            .to_vec();
         if opening {
             transport
-                .prompt(prompt)
+                .prompt(&prompt.into())
                 .map_err(|error| acp_error(format!("Failed to send initial prompt: {error}")))?;
         }
         let (messages, receiver) = super::observation::channel(capacity);
@@ -242,12 +359,16 @@ impl SessionSupervisor {
             next_turn: if opening { 2 } else { 1 },
             completed_turns: 0,
             max_turns,
+            policy: permissions.authority(),
+            history,
             closing: false,
             draining: false,
             legacy_cancel: false,
             control_busy: false,
             goal_turn: None,
             capabilities: None,
+            config_options,
+            last_activity: None,
             messages: Some(messages),
             cockpit_events: None,
         }));
@@ -278,7 +399,13 @@ impl SessionSupervisor {
         options: SessionOptions,
         policy: Box<dyn SessionPolicy>,
     ) -> Result<(Self, ObservationReceiver<AgentEvent>)> {
-        Self::start_interactive_bounded(transport, options, policy, ObservationCapacity::DEFAULT)
+        Self::start_interactive_bounded(
+            transport,
+            options,
+            policy,
+            ObservationCapacity::DEFAULT,
+            None,
+        )
     }
 
     /// [`SessionSupervisor::start_interactive`] under an explicit observation
@@ -288,6 +415,7 @@ impl SessionSupervisor {
         options: SessionOptions,
         policy: Box<dyn SessionPolicy>,
         capacity: ObservationCapacity,
+        history: Option<super::persistence::SessionHistory>,
     ) -> Result<(Self, ObservationReceiver<AgentEvent>)> {
         let provider_pid = u32::try_from(transport.child_pgid())
             .ok()
@@ -302,10 +430,25 @@ impl SessionSupervisor {
             cockpit_events.clone(),
         );
         let (commands, command_rx) = mpsc::unbounded_channel();
+        let history = history.unwrap_or_else(super::persistence::SessionHistory::new);
+        history.bind_transport(&transport);
+        let config_options = transport
+            .session_config_options()
+            .unwrap_or_default()
+            .to_vec();
         let opening = options
             .opening_prompt
             .as_ref()
-            .filter(|prompt| !prompt.trim().is_empty());
+            .filter(|prompt| !prompt.is_empty());
+        if let Some(prompt) = opening {
+            prompt
+                .validate(
+                    transport
+                        .agent_capabilities()
+                        .is_some_and(|capabilities| capabilities.prompt_capabilities.image),
+                )
+                .map_err(acp_error)?;
+        }
         let inner = Arc::new(Mutex::new(Inner {
             snapshot: SessionSupervisorSnapshot {
                 active_turn: None,
@@ -322,12 +465,16 @@ impl SessionSupervisor {
             next_turn: if opening.is_some() { 2 } else { 1 },
             completed_turns: 0,
             max_turns: options.max_turns,
+            policy: permissions.authority(),
+            history,
             closing: false,
             draining: false,
             legacy_cancel: false,
             control_busy: true,
             goal_turn: None,
             capabilities: None,
+            config_options,
+            last_activity: None,
             messages: None,
             cockpit_events: Some(cockpit_events),
         }));
@@ -385,9 +532,22 @@ impl SessionSupervisor {
     /// Admit a follow-up in FIFO order. At most one prompt reaches the
     /// provider, and at most [`SessionSupervisor::QUEUED_TURN_CAPACITY`]
     /// wait behind it; one more is refused with the reason.
-    pub fn send_followup(&self, content: &str) -> Result<()> {
+    pub fn send_followup(&self, content: &PromptInput) -> Result<()> {
         let mut inner = self.inner.lock().expect("supervisor state lock poisoned");
         inner.check_admission()?;
+        content
+            .validate(
+                inner
+                    .capabilities
+                    .as_ref()
+                    .is_some_and(|capabilities| capabilities.prompt_capabilities.image),
+            )
+            .map_err(acp_error)?;
+        if content.is_empty() {
+            return Err(acp_error(
+                "Write a message or attach a file before sending.",
+            ));
+        }
         if inner.queue.len() >= Self::QUEUED_TURN_CAPACITY {
             return Err(acp_error(format!(
                 "Turn queue is full: {} follow-ups are already waiting behind the active turn; wait for one to end",
@@ -396,8 +556,9 @@ impl SessionSupervisor {
         }
         let id = inner.next_turn;
         inner.next_turn += 1;
-        inner.queue.push_back((id, content.to_owned()));
+        inner.queue.push_back((id, content.clone()));
         inner.snapshot.queued_turns = inner.queue.len();
+        inner.publish_activity();
         if self.commands.send(Command::Wake).is_err() {
             inner.finish(
                 SessionResidency::Failed,
@@ -423,6 +584,7 @@ impl SessionSupervisor {
         inner.snapshot.cancellation_requested = turn_id.is_some();
         inner.legacy_cancel |= legacy;
         inner.discard_queue("turn cancellation requested");
+        inner.publish_activity();
         self.commands
             .send(Command::Cancel { turn_id })
             .map_err(|_| acp_error("Session owner is no longer available"))
@@ -582,6 +744,7 @@ impl SessionSupervisor {
             ));
         }
         inner.control_busy = true;
+        inner.publish_activity();
         Ok(())
     }
 
@@ -595,12 +758,62 @@ impl SessionSupervisor {
             .map_err(|_| acp_error("list_sessions response channel dropped"))?
     }
 
+    pub fn rename(&self, name: &str) -> Result<()> {
+        let mut inner = self.inner.lock().expect("supervisor state lock poisoned");
+        if inner.closing || inner.snapshot.residency != SessionResidency::Resident {
+            return Err(acp_error("This session has closed."));
+        }
+        inner.history.rename(name)?;
+        if let Some(conversation) = inner.history.conversation() {
+            inner.emit_cockpit(AgentEvent::Conversation(conversation));
+        }
+        Ok(())
+    }
+
+    fn validate_config(&self, config_id: &str, value_id: &str) -> Result<()> {
+        let inner = self.inner.lock().expect("supervisor state lock poisoned");
+        let available = super::types::config_options_from_acp(&inner.config_options);
+        if let Some(authority) = &inner.policy
+            && inner.config_options.iter().any(|option| {
+                option.id.to_string() == config_id
+                    && option.category
+                        == Some(
+                            agent_client_protocol::schema::v1::SessionConfigOptionCategory::Model,
+                        )
+            })
+            && !authority
+                .lock()
+                .expect("session policy lock poisoned")
+                .can_use_model(value_id)
+        {
+            return Err(acp_error(
+                "This model is not allowed by the project's settings.",
+            ));
+        }
+        if !available.iter().any(|option| {
+            option.id == config_id
+                && option
+                    .options
+                    .iter()
+                    .any(|value| value.value_id == value_id)
+        }) {
+            return Err(acp_error(
+                "This choice is no longer available. Choose from the agent's current options.",
+            ));
+        }
+        Ok(())
+    }
+
     /// Apply a configuration change only while the session is idle.
     pub async fn set_config_option(
         &self,
         config_id: String,
         value: SessionConfigOptionValue,
     ) -> Result<Vec<SessionConfigOption>> {
+        let SessionConfigOptionValue::ValueId { value: choice } = &value else {
+            return Err(acp_error("This agent choice is unavailable."));
+        };
+        self.validate_config(&config_id, &choice.0)?;
         self.reserve_control()?;
         let (reply, response) = oneshot::channel();
         self.send_command(Command::Config {
@@ -615,6 +828,7 @@ impl SessionSupervisor {
 
     /// Queue an idle configuration change; asynchronous refusal is emitted on the message stream.
     pub fn send_config_change(&self, config_id: String, value_id: String) -> Result<()> {
+        self.validate_config(&config_id, &value_id)?;
         self.reserve_control()?;
         self.send_command(Command::Config {
             config_id,

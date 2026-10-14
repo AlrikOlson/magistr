@@ -1,7 +1,7 @@
 //! Domain state — the frontend-agnostic core of application state.
 //!
 //! `DomainState` holds all agent/engine-related state that any frontend
-//! (TUI, GUI, remote attach) needs: session identity, workflow tracking,
+//! (desktop, CLI, remote attach) needs: session identity, workflow tracking,
 //! budget, agent plan/tools/tasks, file tree, and messages.
 //!
 //! Presentation-only state (layout, effects, overlays, input, scroll positions,
@@ -21,7 +21,7 @@ use super::workflow_state::WorkflowState;
 /// Domain state: everything the engine owns, frontend-agnostic.
 ///
 /// Frontend implementations compose this struct and add presentation-specific
-/// fields. For example, the TUI adds `FileTree` (ratatui rendering),
+/// fields. For example, the interface adds `FileTree` (ratatui rendering),
 /// `GitStatusProvider` (process management), and `Instant`-based timers.
 #[derive(Debug, Clone, Default)]
 pub struct DomainState {

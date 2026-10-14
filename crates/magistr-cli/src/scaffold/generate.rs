@@ -155,46 +155,8 @@ fn generate_with_receipt(
             .selected = true;
     }
     let receipt = service.finish();
-    let mut result = GenerateResult::from_receipt(&receipt);
-    write_generated_roadmap(dir, generated_overrides, &mut result);
+    let result = GenerateResult::from_receipt(&receipt);
     Ok((result, receipt))
-}
-
-/// If the AI generated a roadmap.yaml, write it ONLY if one doesn't already
-/// exist. An existing roadmap.yaml is user/tool-created data — never
-/// overwrite it. A think-and-ship project (the scaffolded default) keeps its
-/// roadmap in the engines — Generate mode authors chunks there — so no YAML
-/// is written.
-fn write_generated_roadmap(
-    dir: &Path,
-    generated_overrides: &HashMap<String, String>,
-    result: &mut GenerateResult,
-) {
-    if crate::roadmap::backend_for(dir).is_native() {
-        return;
-    }
-    let Some(yaml_content) = generated_overrides.get(".magistr/roadmap.yaml") else {
-        return;
-    };
-    let yaml_path = crate::roadmap::yaml_path(dir);
-    if yaml_path.exists() {
-        return;
-    }
-    if let Some(parent) = yaml_path.parent() {
-        std::fs::create_dir_all(parent).ok();
-    }
-    if std::fs::write(&yaml_path, yaml_content).is_ok() {
-        result.created.push(".magistr/roadmap.yaml".to_string());
-        if let Ok(mut store) = crate::roadmap::YamlStore::load(&yaml_path) {
-            // save() regenerates ROADMAP.md from the YAML source
-            let _ = store.save();
-            if !result.created.contains(&"ROADMAP.md".to_string())
-                && !result.updated.contains(&"ROADMAP.md".to_string())
-            {
-                result.updated.push("ROADMAP.md".to_string());
-            }
-        }
-    }
 }
 
 #[cfg(test)]

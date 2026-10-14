@@ -14,6 +14,29 @@ captured object, the admitted project ID and native persistence. It does not
 call the workflow's ambient loader again. The native publisher owns the
 socket, so the think engine receives no broadcast path.
 
+## Current project settings
+
+Core's `config::read_project_settings` reads the full current
+`ProjectConfig` at the path resolved by `paths::project_json`. Linked Git
+working copies use the main project's declaration, including its backend,
+commands and export policy. Validation, captured project inputs, CLI settings
+views and setup preflight use that reader. Reading never runs stack detection
+or writes settings; setup is responsible for detecting and declaring the stack.
+
+An explicit `roadmap_backend` selects `think-and-ship` or `yaml`. An omitted
+field, or an absent settings file when only a backend is requested, selects
+`think-and-ship`. Other files and `spec.file` do not select a backend.
+Commands that require configured projects still refuse missing settings.
+Existing settings must satisfy the current typed contract: malformed JSON,
+invalid values, unreadable files and invalid Git membership refuse with the
+settings path or link error. Setup checks these before writing scaffold files.
+
+Configuration and roadmap format migrations are absent. YAML reads use
+`.magistr-roadmap.yml`; creation starts an empty roadmap instead of converting
+surrounding files. Setup generates project and host configuration through its
+administrative plan; it does not author a roadmap through an extra file write.
+The default project template selects the native roadmap and omits a spec file.
+
 ## Current input precedence
 
 These names and on-disk locations describe the current resolver. The
@@ -183,6 +206,47 @@ the test runner's process environment. The
 [Rust 2024 environment guidance](https://doc.rust-lang.org/stable/edition-guide/rust-2024/newly-unsafe-functions.html)
 explains why process-wide mutation is unsuitable for concurrent tests.
 
+## Personal appearance settings
+
+Desktop appearance uses the user's captured `config.toml` location. The same
+[UserConfigDocument](../../crates/magistr-core/src/config/user_config_document.rs)
+reads settings for `ProjectInputs`, saves desktop choices and saves personal
+agent preferences from `magistr config set`. A read creates no directories or
+files. A missing file uses defaults; unreadable files, directories in the file's
+place and invalid TOML produce an error.
+
+```toml
+[theme]
+default = "system"
+
+[accessibility]
+reduce_motion = false
+```
+
+`theme.default` accepts `system`, `light` or `dark`. The default is `system`,
+which follows the operating system's appearance. Unsupported values are errors.
+`accessibility.reduce_motion` defaults to `false`. Reduced motion is enabled
+when any of these requests it: the explicit `--reduce-motion` flag, the saved
+preference, or the operating system. Saving `false` cannot cancel an active
+command-line or operating-system request.
+
+[DesktopPreferencesService](../../crates/magistr-cli/src/application/desktop_preferences.rs)
+captures the settings path from `ProjectInputs` and performs filesystem work on
+a blocking worker. Each successful load or save returns the accepted choices
+and a new service revision. A save must name the displayed revision; rejected
+writes retain the previous accepted state, so the interface can keep the user's
+edits available for retry.
+
+The configuration writer preserves TOML comments and unrelated settings.
+All personal preference writes share a stable sibling file lock. While holding
+that lock, the writer checks the exact file bytes against the observed document,
+validates the updated document and replaces the file through the core
+[durable writer](../../crates/magistr-core/src/durable_write.rs), retaining the
+existing file permissions. A changed file
+requires a fresh load before saving; a busy writer or failed write reports an
+error. The operating system releases the lock when the writer exits, and the
+lock file remains in place for later writers.
+
 ## Administrative change plan
 
 Project administration — setup and re-initialization, presets and import,
@@ -272,7 +336,7 @@ agent session's source writes never reach it, because they take the
 admitted workspace's [source route](clients.md) or are refused, and the
 `native-write-path` gate (rule 13) keeps every other file under the scaffold
 module from writing the filesystem at all. Human-owned `workbench.toml`
-`[commands]` tables, source policy, the legacy `.magistr`/`.jig` state
+`[commands]` tables, source policy, the `.magistr` state
 namespaces and the roadmap export denials are outside every plan and stay
 untouched.
 

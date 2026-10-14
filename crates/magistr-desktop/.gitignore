@@ -1,2 +1,4 @@
 /target/
+/gen/
+/tests/__pycache__/
 

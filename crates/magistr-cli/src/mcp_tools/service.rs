@@ -165,14 +165,21 @@ impl MagistrService {
                 let Some(phase) = args.get("phase").and_then(Value::as_str) else {
                     return self.invoke(&name, args).await;
                 };
-                if let Some(reason) = self.ship_phase_block(phase) {
+                let ship = self
+                    .engines
+                    .ship_snapshot()
+                    .map_err(|error| ErrorData::internal_error(error, None))?;
+                if let Some(reason) =
+                    ShipGuardState::from_ship(ship.objective.as_ref(), &ship.tasks)
+                        .phase_block(phase)
+                {
                     return Ok(to_call_tool_result(ToolResult::error(reason)));
                 }
                 let result = self.invoke(&name, args.clone()).await?;
                 if result.is_error != Some(true)
                     && let Some(phase) = WorkflowPhase::from_name(phase)
                 {
-                    self.record_phase(phase);
+                    self.record_phase(phase, &ship);
                 }
                 Ok(result)
             }
@@ -187,16 +194,20 @@ impl MagistrService {
             .map_err(|e| ErrorData::internal_error(e.to_string(), None))?;
         let choices = super::view_context::check_choices(&config)
             .map_err(|e| ErrorData::internal_error(e, None))?;
-        let cycle = self.engines.ship_objective().and_then(|o| o.created_at);
-        let task = self.engines.ship_active_task_id();
+        let ship = self
+            .engines
+            .ship_snapshot()
+            .map_err(|error| ErrorData::internal_error(error, None))?;
+        let cycle = ship.objective.as_ref().and_then(|o| o.created_at.clone());
+        let task = ship.active_task().map(|task| task.id.clone());
         let detail = args
             .get("task_id")
             .and_then(Value::as_str)
             .map(|id| {
-                self.engines
-                    .ship_tasks()
-                    .into_iter()
+                ship.tasks
+                    .iter()
                     .find(|t| t.id == id)
+                    .cloned()
                     .ok_or_else(|| {
                         ErrorData::invalid_params("That task is no longer available.", None)
                     })
@@ -384,28 +395,16 @@ impl MagistrService {
         result
     }
 
-    /// The plan guard on `magistr_set_phase`: why `phase` may not be entered
-    /// given this server's ship state, or `None` when it may. Reads the
-    /// same engines' records `ship_status` is answered from, so the guard
-    /// and the agent never disagree on the state.
-    fn ship_phase_block(&self, phase: &str) -> Option<String> {
-        ShipGuardState::from_ship(
-            self.engines.ship_objective().as_ref(),
-            &self.engines.ship_tasks(),
-        )
-        .phase_block(phase)
-    }
-
     /// `magistr_set_phase` side effects: the phase announced typed on the
     /// feed's `magistr` family — what the cockpit reads the phase from —
     /// and, when a task is active, a `ship_record` action on it naming the
     /// transition as trace narrative. Both are best effort: a feed nobody
     /// listens to drops the frame, and without an active task there is
     /// nothing to record on.
-    fn record_phase(&self, phase: WorkflowPhase) {
+    fn record_phase(&self, phase: WorkflowPhase, ship: &magistr_engine::ShipData) {
         self.context.observe(
-            self.engines.ship_objective().and_then(|o| o.created_at),
-            self.engines.ship_active_task_id(),
+            ship.objective.as_ref().and_then(|o| o.created_at.clone()),
+            ship.active_task().map(|task| task.id.clone()),
             phase,
         );
         if let Some(feed) = self.authority.feed() {
@@ -414,11 +413,11 @@ impl MagistrService {
                 .with_execution(self.engines.config().execution_context().key())
                 .emit(Family::Magistr, &MagistrFrame::PhaseSet { phase });
         }
-        let Some(task) = self.engines.ship_active_task_id() else {
+        let Some(task) = ship.active_task() else {
             return;
         };
         let _ = self.engines.ship_record_action(
-            Some(&task),
+            Some(&task.id),
             ActionType::Config,
             format!("workflow phase → {}", phase.label()),
             Vec::new(),

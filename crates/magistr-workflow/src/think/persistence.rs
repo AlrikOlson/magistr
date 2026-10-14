@@ -1,47 +1,18 @@
-//! On-disk persistence for deliberation history.
-//!
-//! When enabled, the engine writes the default history and every named
-//! session as a JSON file under the `think` partition of the shared data root.
-//!
-//! **This module holds policy, not mechanism.** The advisory lock, the
-//! read-merge-write order, the atomic rename and the partition path all come
-//! from [`crate::infra::persistence`], which every family shares. What lives
-//! here is what is true of a reasoning trace in particular:
-//!
-//! 1. **Per-project default file.** The default history persists to
-//!    `<project_id>.json`, not a shared global file, so processes from
-//!    different projects never contend on the same bytes. The legacy global
-//!    `_default.json` is migrated from (cwd-attributed) on first load and
-//!    left in place for other projects' migrations.
-//! 2. **Union by step identity.** On save, the on-disk copy is folded in by
-//!    `merge_histories` (crate-private, so this is deliberately not a doc
-//!    link): steps are known by number, by record id or by
-//!    content, so a stale process can never erase steps a concurrent process
-//!    already persisted — the bug that lost steps 1037–1072 on 2026-06-09 —
-//!    and a renumbering writer is not mistaken for a source of new ones. The
-//!    disk file is the durable archive and may grow beyond the in-memory
-//!    `max_history_size` window.
-//! 3. **A versioned envelope.** The history is stored inside a
-//!    `schema_version` wrapper, and a file written under a version this build
-//!    does not know is neither read nor merged.
+//! Project-scoped reasoning archives with validated reads and merge-on-save writes.
 
 use std::collections::{HashMap, HashSet};
-use std::fs;
-use std::io;
-use std::path::{Path, PathBuf};
+use std::{
+    fs, io,
+    path::{Path, PathBuf},
+};
 
+use magistr_workflow_contracts::{Observed, ReadError, ReadErrorKind, ReadSource};
 use serde::{Deserialize, Serialize};
 
-use crate::infra::PersistenceConfig;
-use crate::infra::project_id_for_path;
-use crate::think::domain::{HistoryMetadata, ThinkHistory};
+use crate::infra::{PersistenceConfig, read_json};
+use crate::think::domain::ThinkHistory;
 
-/// Bump when the on-disk shape changes. Files with mismatched versions are
-/// skipped on load (with a stderr warning) so they don't abort startup.
 const SCHEMA_VERSION: u32 = 1;
-
-/// Special filename stem used for the "no session_id" default history.
-const DEFAULT_STEM: &str = "_default";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct PersistedHistory {
@@ -53,43 +24,16 @@ struct PersistedHistory {
 pub struct Persistence {
     enabled: bool,
     sessions_dir: PathBuf,
-    /// Filename stem of the default history: the project id when known
-    /// (engine path), the legacy `_default` otherwise (viewer, raw handles).
     stem: String,
 }
 
 impl Persistence {
-    /// Build a persistence handle from config. When persistence is enabled,
-    /// the sessions directory is created on demand. The default history uses
-    /// the legacy global stem — engine code should prefer [`Self::for_project`].
-    pub fn new(cfg: &PersistenceConfig) -> Self {
-        Self::for_project(cfg, DEFAULT_STEM)
-    }
-
-    /// Build a persistence handle whose default history is scoped to
-    /// `project_id` (`<project_id>.json`), so concurrent servers in other
-    /// projects never write the same default file.
+    /// Select this project's archive without opening another project's history.
     pub fn for_project(cfg: &PersistenceConfig, project_id: &str) -> Self {
-        // The partition path — and its creation — comes from the shared
-        // handle under `Domain::Think`, so this family cannot drift onto a
-        // directory the rest of the server does not look in.
-        let sessions_dir = crate::infra::Persistence::new(cfg, crate::infra::Domain::Think)
-            .sessions_dir()
-            .to_path_buf();
-        let stem = if is_safe_session_id(project_id) {
-            project_id.to_string()
-        } else {
-            if project_id != DEFAULT_STEM {
-                tracing::warn!(
-                    "Project id \"{project_id}\" is not filename-safe; falling back to the {DEFAULT_STEM} history"
-                );
-            }
-            DEFAULT_STEM.to_string()
-        };
         Self {
             enabled: cfg.enabled,
-            sessions_dir,
-            stem,
+            sessions_dir: cfg.data_dir.join("think").join("sessions"),
+            stem: project_id.to_owned(),
         }
     }
 
@@ -101,215 +45,124 @@ impl Persistence {
         &self.sessions_dir
     }
 
-    /// Load the default history if it was previously persisted. Returns
-    /// `None` when persistence is off, the file doesn't exist, or the file's
-    /// schema version doesn't match. Project-scoped handles additionally run
-    /// a one-time adoption of this project's steps from the legacy global
-    /// `_default.json`, guarded by `metadata.legacy_default_migrated` — NOT
-    /// by the project file's existence, because a May-era bare-project
-    /// session file can pre-exist under exactly this filename (errata). The
-    /// legacy file is left in place for other projects to migrate from.
-    pub fn load_default(&self) -> Option<ThinkHistory> {
+    /// Observe the project archive, preserving absence and read refusals.
+    pub fn load_default(&self) -> Result<Observed<Option<ThinkHistory>>, ReadError> {
         if !self.enabled {
-            return None;
+            return Ok(Observed {
+                value: None,
+                source: ReadSource::Memory,
+            });
         }
-        let loaded = read_history(&self.path_for(&self.stem));
-        if self.stem == DEFAULT_STEM {
-            return loaded;
-        }
-        let already_migrated = loaded
-            .as_ref()
-            .and_then(|h| h.metadata.as_ref())
-            .and_then(|m| m.legacy_default_migrated)
-            .unwrap_or(false);
-        if already_migrated {
-            return loaded;
-        }
-        self.adopt_from_legacy_default(loaded)
+        self.read_project_history(&self.default_store_path()?, None)
     }
 
-    /// One-time adoption of this project's steps from the legacy global
-    /// `_default.json` (which mixed every project under one file). A step
-    /// belongs to this project when the cwd it recorded resolves to this
-    /// project id; adopted steps are UNIONED into whatever already sits in
-    /// the project file (a stale bare-project session, an earlier partial
-    /// state) — existing steps win on step_number conflict. Persists the
-    /// migration marker so the adoption never re-runs.
-    fn adopt_from_legacy_default(&self, loaded: Option<ThinkHistory>) -> Option<ThinkHistory> {
-        let legacy_steps: Vec<_> = read_history(&self.path_for(DEFAULT_STEM))
-            .map(|h| {
-                h.steps
-                    .into_iter()
-                    .filter(|s| {
-                        s.cwd
-                            .as_deref()
-                            .map(|cwd| project_id_for_path(Path::new(cwd)) == self.stem)
-                            .unwrap_or(false)
-                    })
-                    .collect()
-            })
-            .unwrap_or_default();
-        if legacy_steps.is_empty() {
-            // Nothing to adopt (yet) — don't write a marker, so steps that a
-            // still-running legacy-binary writer lands later are adopted on
-            // a future startup.
-            return loaded;
+    /// Observe one named session through this project's selected persistence owner.
+    pub fn load_session(
+        &self,
+        session_id: &str,
+    ) -> Result<Observed<Option<ThinkHistory>>, ReadError> {
+        if session_id == self.stem {
+            return self.load_default();
         }
-        let mut merged = loaded.unwrap_or_else(|| ThinkHistory {
-            steps: Vec::new(),
-            branches: None,
-            completed: false,
-            session_id: None,
-            created_at: None,
-            updated_at: None,
-            metadata: None,
-        });
-        let adopted_count = legacy_steps.len();
-        merged = merge_histories(
-            &merged,
-            ThinkHistory {
-                steps: legacy_steps,
-                branches: None,
-                completed: false,
-                session_id: None,
-                created_at: None,
-                updated_at: None,
-                metadata: None,
-            },
-        );
-        merged
-            .metadata
-            .get_or_insert_with(HistoryMetadata::default)
-            .legacy_default_migrated = Some(true);
-        let path = self.path_for(&self.stem);
-        if let Err(e) = locked_write(&path, &merged, MergeMode::Merge) {
-            tracing::warn!("Failed to adopt legacy default history: {e}");
-        } else {
-            eprintln!(
-                "think-and-ship: adopted {adopted_count} step(s) for {} from the legacy _default history",
-                self.stem
-            );
-        }
-        Some(merged)
-    }
-
-    /// Persist an empty, migration-marked default history. Called by wipe
-    /// after deleting this project's files so a later restart can't
-    /// re-adopt steps from the legacy `_default.json`.
-    pub fn save_default_tombstone(&self) {
-        if !self.enabled || self.stem == DEFAULT_STEM {
-            return;
-        }
-        let tombstone = ThinkHistory {
-            steps: Vec::new(),
-            branches: None,
-            completed: false,
-            session_id: None,
-            created_at: None,
-            updated_at: None,
-            metadata: Some(HistoryMetadata {
-                legacy_default_migrated: Some(true),
-                ..HistoryMetadata::default()
-            }),
-        };
-        let path = self.path_for(&self.stem);
-        if let Err(e) = locked_write(&path, &tombstone, MergeMode::Replace) {
-            tracing::warn!("Failed to persist wipe tombstone: {e}");
-        }
-    }
-
-    /// Filename stem used for the default (no-session-id) history file.
-    pub fn default_stem() -> &'static str {
-        DEFAULT_STEM
-    }
-
-    /// Load every session file in `sessions_dir`, keyed by session id.
-    /// Silently skips files whose schema is out of date.
-    pub fn load_sessions(&self) -> HashMap<String, ThinkHistory> {
-        let mut out: HashMap<String, ThinkHistory> = HashMap::new();
+        let path = self.session_store_path(session_id)?;
         if !self.enabled {
-            return out;
+            return Ok(Observed {
+                value: None,
+                source: ReadSource::Memory,
+            });
         }
-        let entries = match fs::read_dir(&self.sessions_dir) {
-            Ok(e) => e,
-            Err(e) if e.kind() == io::ErrorKind::NotFound => return out,
-            Err(e) => {
-                tracing::warn!(
-                    "Failed to read sessions dir {}: {e}",
-                    self.sessions_dir.display()
-                );
-                return out;
+        self.read_project_history(&path, Some(session_id))
+    }
+
+    fn read_project_history(
+        &self,
+        path: &Path,
+        session_id: Option<&str>,
+    ) -> Result<Observed<Option<ThinkHistory>>, ReadError> {
+        let read = read_history(path)?;
+        if let Some(history) = &read.value {
+            let owner = history
+                .metadata
+                .as_ref()
+                .and_then(|meta| meta.project_id.as_deref());
+            if owner.is_some_and(|id| id != self.stem)
+                || (!history.steps.is_empty() && owner != Some(self.stem.as_str()))
+            {
+                return Err(ReadError::new(
+                    ReadErrorKind::Identity,
+                    "The saved reasoning could not be matched to this project.",
+                ));
             }
+            if history.session_id.as_deref() != session_id {
+                tracing::warn!(expected = ?session_id, stored = ?history.session_id, "Reasoning session does not match its selected file");
+                return Err(ReadError::new(
+                    ReadErrorKind::Identity,
+                    "The saved reasoning could not be matched to this session.",
+                ));
+            }
+        }
+        Ok(read)
+    }
+
+    /// Load this project's explicitly named sessions; a refused file is an error.
+    pub fn load_sessions(&self) -> Result<HashMap<String, ThinkHistory>, ReadError> {
+        let mut out = HashMap::new();
+        if !self.enabled {
+            return Ok(out);
+        }
+        self.default_store_path()?;
+        let entries = match fs::read_dir(&self.sessions_dir) {
+            Ok(entries) => entries,
+            Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(out),
+            Err(error) => return Err(read_error(error)),
         };
-        for entry in entries.flatten() {
-            let path = entry.path();
-            let Some(stem) = path
-                .file_stem()
-                .and_then(|s| s.to_str())
-                .map(str::to_string)
-            else {
+        let prefix = format!("{}{}", self.stem, crate::infra::PROJECT_SEP);
+        for entry in entries {
+            let path = entry.map_err(read_error)?.path();
+            let Some(stem) = path.file_stem().and_then(|s| s.to_str()) else {
                 continue;
             };
-            // Skip the legacy global default and this handle's own default
-            // file — the latter is the main history, not a named session.
-            if stem == DEFAULT_STEM || stem == self.stem {
+            if !stem.starts_with(&prefix)
+                || path.extension().and_then(|s| s.to_str()) != Some("json")
+            {
                 continue;
             }
-            if path.extension().and_then(|s| s.to_str()) != Some("json") {
-                continue;
-            }
-            if let Some(history) = read_history(&path) {
-                out.insert(stem, history);
+            if let Some(history) = self.load_session(stem)?.value {
+                out.insert(stem.to_owned(), history);
             }
         }
-        out
+        Ok(out)
     }
 
     pub fn save_default(&self, history: &ThinkHistory) {
         if !self.enabled {
             return;
         }
-        let path = self.path_for(&self.stem);
-        if let Err(e) = locked_write(&path, history, MergeMode::Merge) {
-            tracing::warn!("Failed to persist default history: {e}");
-        }
-    }
-
-    /// Save the default history WITHOUT merging in on-disk steps. Only for
-    /// callers that just rewrote step identities (startup renumbering) —
-    /// merging there would resurrect the old-numbered steps as duplicates.
-    pub fn save_default_replacing(&self, history: &ThinkHistory) {
-        if !self.enabled {
-            return;
-        }
-        let path = self.path_for(&self.stem);
-        if let Err(e) = locked_write(&path, history, MergeMode::Replace) {
-            tracing::warn!("Failed to persist default history: {e}");
+        let path = match self.default_store_path() {
+            Ok(path) => path,
+            Err(error) => {
+                tracing::warn!(%error, "Reasoning could not be saved");
+                return;
+            }
+        };
+        if let Err(error) = locked_write(&path, history) {
+            tracing::warn!(%error, "Reasoning could not be saved");
         }
     }
 
     pub fn save_session(&self, session_id: &str, history: &ThinkHistory) {
-        self.save_session_inner(session_id, history, MergeMode::Merge);
-    }
-
-    /// Session-file variant of [`Self::save_default_replacing`].
-    pub fn save_session_replacing(&self, session_id: &str, history: &ThinkHistory) {
-        self.save_session_inner(session_id, history, MergeMode::Replace);
-    }
-
-    fn save_session_inner(&self, session_id: &str, history: &ThinkHistory, mode: MergeMode) {
         if !self.enabled {
             return;
         }
-        if !is_safe_session_id(session_id) {
-            tracing::warn!(
-                "Refusing to persist session with unsafe id \"{session_id}\" — use [A-Za-z0-9_.-] only"
-            );
-            return;
-        }
-        let path = self.path_for(session_id);
-        if let Err(e) = locked_write(&path, history, mode) {
-            tracing::warn!("Failed to persist session {session_id}: {e}");
+        let path = match self.session_store_path(session_id) {
+            Ok(path) => path,
+            Err(error) => {
+                tracing::warn!(%error, "Reasoning session could not be saved");
+                return;
+            }
+        };
+        if let Err(error) = locked_write(&path, history) {
+            tracing::warn!(%error, "Reasoning session could not be saved");
         }
     }
 
@@ -360,101 +213,112 @@ impl Persistence {
         self.sessions_dir.join(format!("{stem}.json"))
     }
 
-    /// On-disk path of this project's default history. Exposed so `prune` can
-    /// back the file up before rewriting it.
-    pub fn default_store_path(&self) -> PathBuf {
-        self.path_for(&self.stem)
+    /// Select a session file only within this project's namespace.
+    pub fn session_store_path(&self, session_id: &str) -> Result<PathBuf, ReadError> {
+        let default = self.default_store_path()?;
+        if session_id == self.stem {
+            return Ok(default);
+        }
+        let prefix = format!("{}{}", self.stem, crate::infra::PROJECT_SEP);
+        if !is_safe_session_id(session_id) || !session_id.starts_with(&prefix) {
+            return Err(ReadError::new(
+                ReadErrorKind::Identity,
+                "The reasoning session could not be matched to this project.",
+            ));
+        }
+        Ok(self.path_for(session_id))
+    }
+
+    /// The selected archive path; invalid project identity is refused.
+    pub fn default_store_path(&self) -> Result<PathBuf, ReadError> {
+        if !is_safe_session_id(&self.stem) {
+            return Err(ReadError::new(
+                ReadErrorKind::Identity,
+                "The project could not be matched to a saved reasoning file.",
+            ));
+        }
+        Ok(self.path_for(&self.stem))
     }
 }
 
-/// Parse a single session file from disk, returning `None` for missing
-/// files, unreadable files, malformed JSON, or schema-version mismatches.
-/// Exposed so a passive viewer (e.g. the Tauri desktop GUI) can load the
-/// same files the server writes without re-implementing the validation.
-pub fn read_history(path: &Path) -> Option<ThinkHistory> {
-    let raw = match fs::read_to_string(path) {
-        Ok(s) => s,
-        Err(e) if e.kind() == io::ErrorKind::NotFound => return None,
-        Err(e) => {
-            tracing::warn!("Failed to read {}: {e}", path.display());
-            return None;
+fn read_history(path: &Path) -> Result<Observed<Option<ThinkHistory>>, ReadError> {
+    let read: Observed<Option<PersistedHistory>> = read_json(path)?;
+    let value = match read.value {
+        None => None,
+        Some(saved) => {
+            if saved.schema_version != SCHEMA_VERSION {
+                return Err(ReadError::new(
+                    ReadErrorKind::Schema,
+                    "The saved reasoning uses an unsupported format.",
+                ));
+            }
+            validate_history(&saved.history)?;
+            Some(saved.history)
         }
     };
-    let parsed: PersistedHistory = match serde_json::from_str(&raw) {
-        Ok(p) => p,
-        Err(e) => {
-            tracing::warn!("Failed to parse {}: {e}", path.display());
-            return None;
+    Ok(Observed {
+        value,
+        source: read.source,
+    })
+}
+
+fn validate_history(history: &ThinkHistory) -> Result<(), ReadError> {
+    let mut numbers = HashSet::new();
+    let mut ids = HashSet::new();
+    for step in &history.steps {
+        let Some(id) = step.record_id.as_deref().filter(|id| !id.trim().is_empty()) else {
+            return Err(ReadError::new(
+                ReadErrorKind::Identity,
+                "The saved reasoning contains an incomplete item.",
+            ));
+        };
+        if step.step_number == 0 || !numbers.insert(step.step_number) || !ids.insert(id) {
+            return Err(ReadError::new(
+                ReadErrorKind::Identity,
+                "The saved reasoning contains incomplete or duplicate items.",
+            ));
         }
-    };
-    if parsed.schema_version != SCHEMA_VERSION {
-        tracing::warn!(
-            "Skipping {} — schema version {} != {SCHEMA_VERSION}",
-            path.display(),
-            parsed.schema_version
-        );
-        return None;
     }
-    Some(parsed.history)
+    let mut branches = HashSet::new();
+    if history
+        .branches
+        .iter()
+        .flatten()
+        .any(|branch| branch.id.trim().is_empty() || !branches.insert(&branch.id))
+    {
+        return Err(ReadError::new(
+            ReadErrorKind::Identity,
+            "The saved reasoning contains incomplete or duplicate branches.",
+        ));
+    }
+    Ok(())
 }
 
-/// Whether a save unions in steps already on disk (the durability default)
-/// or replaces the file outright (startup renumbering, which rewrites step
-/// identities and must not resurrect the old-numbered copies).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum MergeMode {
-    Merge,
-    Replace,
+fn read_error(error: io::Error) -> ReadError {
+    tracing::warn!(%error, "Reasoning sessions could not be read");
+    ReadError::new(
+        ReadErrorKind::Io,
+        "The saved reasoning could not be read. Restore access and try again.",
+    )
 }
 
-/// Serialize `history` to `path` under the shared locked merge-on-save
-/// discipline in [`crate::infra::persistence`]. The advisory lock, the
-/// read-merge-write order and the atomic rename are that one implementation;
-/// what is family-specific — and all that is passed in here — is the policy
-/// deciding what the on-disk copy contributes.
-fn locked_write(path: &Path, history: &ThinkHistory, mode: MergeMode) -> io::Result<()> {
+fn locked_write(path: &Path, history: &ThinkHistory) -> io::Result<()> {
     let state = PersistedHistory {
         schema_version: SCHEMA_VERSION,
         history: history.clone(),
     };
-    crate::infra::persistence::locked_merge_write(path, &state, |memory, disk| match mode {
-        // Renumbering rewrote step identities before this save, so folding the
-        // on-disk copy back in would resurrect the old-numbered steps as
-        // duplicates. The lock is still taken — this replaces the file, it
-        // does not race for it.
-        MergeMode::Replace => memory.clone(),
-        // A file written under a schema this build does not know is not
-        // interpreted, matching `read_history`'s refusal to parse one.
-        MergeMode::Merge if disk.schema_version != SCHEMA_VERSION => {
-            tracing::warn!(
-                "Not merging a history at schema version {} != {SCHEMA_VERSION}",
-                disk.schema_version
-            );
-            memory.clone()
+    crate::infra::persistence::locked_merge_write(path, &state, |memory, disk| {
+        if disk.schema_version != SCHEMA_VERSION {
+            return memory.clone();
         }
-        MergeMode::Merge => PersistedHistory {
+        PersistedHistory {
             schema_version: SCHEMA_VERSION,
             history: merge_histories(&memory.history, disk.history),
-        },
+        }
     })
 }
 
-/// Union `disk` into a copy of `memory`: steps are keyed by `step_number`
-/// (memory wins on conflict — pin/revise mutations must stick), branches by
-/// id. Disk-only steps surviving the union is the anti-clobber property; it
-/// also makes the file a durable archive that outlives the in-memory
-/// `max_history_size` trim window.
-/// THE one conflict rule for two copies of the think trace: union steps by
-/// `step_number` (existing/memory always wins — a step is never replaced) and
-/// branches by id. Shared by the disk merge and the cloud reconcile
-/// (`ReasoningServer::adopt_steps`), so the system has exactly one
-/// implementation of the think merge (sync-think-reconcile).
-///
-/// A step is "known" by number OR by content identity: when a concurrent
-/// writer renumbers the trace (the startup renumber rewrites step_numbers but
-/// never prose or the server-set timestamp), the other copy must recognize the
-/// renumbered steps as the SAME steps, not adopt them as new ones — otherwise
-/// every renumber+merge round duplicates the trace (cli-renumber-duplication).
+/// Union stored step and branch identities; existing records keep their authored identity.
 pub(crate) fn merge_histories(memory: &ThinkHistory, disk: ThinkHistory) -> ThinkHistory {
     let mut merged = memory.clone();
     let known: HashSet<u32> = merged.steps.iter().map(|s| s.step_number).collect();
@@ -519,3 +383,7 @@ fn is_safe_session_id(id: &str) -> bool {
         && id != "."
         && id != ".."
 }
+
+#[cfg(test)]
+#[path = "persistence.tests.rs"]
+mod tests;

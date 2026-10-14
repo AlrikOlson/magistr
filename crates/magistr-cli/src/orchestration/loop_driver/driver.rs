@@ -69,10 +69,6 @@ const ECHO_TIMEOUT: Duration = Duration::from_secs(5);
 /// session is dropped.
 const CLEAR_GRACE: Duration = Duration::from_millis(300);
 
-/// How long the cockpit gets to ask for the boundary checkpoint it was
-/// told to mint — one fold and one command back, normally milliseconds.
-const LEDGER_ASK_GRACE: Duration = Duration::from_secs(2);
-
 /// How long a boundary checkpoint gets to land before the loop goes on
 /// without waiting — one `git status` on a large tree, not a hung one.
 const LEDGER_SAVE_GRACE: Duration = Duration::from_secs(10);
@@ -95,6 +91,8 @@ const LEDGER_SAVE_GRACE: Duration = Duration::from_secs(10);
 /// a disagreement, or blocks the chunk on a human and ends.
 pub struct LoopDriver {
     iter_loop: IterationLoop,
+    /// The host's mutation capability, separate from iteration progress reads.
+    native: Option<NativeEngines>,
     wf: WorkflowConfig,
     backend: Backend,
     inputs: Option<crate::config::inputs::ProjectInputs>,
@@ -108,7 +106,7 @@ pub struct LoopDriver {
     keep_open: bool,
     choosing_track: bool,
     session_active: bool,
-    roadmap_request: Option<String>,
+    roadmap_request: Option<magistr_application::sessions::PromptInput>,
     goal: GoalMode,
     goal_note: Option<String>,
     judge: Option<Arc<dyn Judge>>,
@@ -274,12 +272,14 @@ type OpenedSession = (
 );
 
 impl LoopDriver {
-    /// A driver over `iter_loop` for the project `wf` describes, running
+    /// A driver over `iter_loop`, with the host's `native` writer for
+    /// mutations and check admission, for the project `wf` describes, running
     /// agents on `backend` through `connector`, reporting on `inbox` and
     /// deciding by `commands`. Persistence and auto-pause are on.
     #[must_use]
     pub fn new(
         iter_loop: IterationLoop,
+        native: Option<NativeEngines>,
         wf: WorkflowConfig,
         backend: Backend,
         inbox: Inbox,
@@ -290,6 +290,7 @@ impl LoopDriver {
         Self {
             jobs: Jobs::new(inbox.clone()),
             iter_loop,
+            native,
             wf,
             backend,
             permission_profile: None,
@@ -606,7 +607,11 @@ impl LoopDriver {
             self.post(LoopEvent::Failed(why.clone()));
         }
         if end != LoopEnd::CockpitClosed {
-            self.post(LoopEvent::Ended(end.to_string()));
+            self.post(LoopEvent::Ended(if matches!(end, LoopEnd::Failed(_)) {
+                String::new()
+            } else {
+                end.to_string()
+            }));
         }
         let retain = self.keep_open
             && end != LoopEnd::CockpitClosed
@@ -629,8 +634,8 @@ impl LoopDriver {
             config,
             self.connector.clone(),
             self.inbox.clone(),
-            self.iter_loop
-                .native()
+            self.native
+                .as_ref()
                 .cloned()
                 .map(crate::application::workflow_client::EngineClient::attach),
             self.checkpoints.as_ref().map(|port| {
@@ -726,15 +731,8 @@ impl LoopDriver {
         }
         self.transcript.clear();
         self.target = None;
-        if let Some(engines) = self.iter_loop.native() {
-            engines.reload_ship();
-            engines.reload_signal();
-            // The store re-read whole: the rail shows a plan — the Trace
-            // tab the steps and gates, and the Roadmap tab's inbox the
-            // signals — recorded while no feed was attached, without
-            // waiting for a frame.
-            self.inbox
-                .send(Msg::Engine(EngineEvent::Seed(engines.snapshot())));
+        if self.native.is_some() {
+            self.inbox.send(Msg::Engine(EngineEvent::Refresh));
         }
         // Prompt, delegated goal and judge share the resumable selection.
         let target = self
@@ -947,8 +945,8 @@ impl LoopDriver {
         // The engine port acts on the loop's own in-process engines, so a
         // pin or checkpoint from the cockpit works mid-iteration too.
         let engine = self
-            .iter_loop
-            .native()
+            .native
+            .as_ref()
             .map(|engines| Box::new(NativeEnginePort::new(engines.clone())) as _);
         // The loop's cockpit reaches the same workbench the agent does:
         // the project's configured workbench-mcp, over its stdio.
@@ -957,8 +955,9 @@ impl LoopDriver {
         if send_opening {
             options = options.opening_prompt(spec.prompt());
         }
+        let history = spec.history();
         let (policy, _) = spec.into_permission_policy();
-        let handle = CockpitSession::start_connected(transport, options, Box::new(policy))
+        let handle = CockpitSession::start_owned(transport, options, Box::new(policy), history)
             .map_err(|error| error.to_string())?;
         let control = handle.control();
         let session = spawn_session(
@@ -1009,24 +1008,11 @@ impl LoopDriver {
                 )
                 .collect(),
         });
-        let asked = tokio::time::sleep(LEDGER_ASK_GRACE);
-        tokio::pin!(asked);
-        loop {
-            tokio::select! {
-                wake = self.wake(None, None) => match wake {
-                    Wake::Ledger => break,
-                    Wake::Closed => return false,
-                    Wake::Cmd(Cmd::Loop(cmd)) => self.decide(cmd),
-                    Wake::Tap(_) | Wake::Cmd(_) | Wake::Gate(_) | Wake::GatesGone | Wake::Tick => {}
-                },
-                () = &mut asked => {
-                    self.note(format!(
-                        "checkpoint for iteration {iteration}: the cockpit did not ask for it in time"
-                    ));
-                    return true;
-                }
-            }
-        }
+        self.ledger(CheckpointCmd::Save {
+            id: format!("cp-{iteration}"),
+            reason: magistr_domain::workflow::CheckpointReason::Iteration,
+            label: format!("iteration {iteration}"),
+        });
         if let Some(save) = self.ledger.take()
             && tokio::time::timeout(LEDGER_SAVE_GRACE, save).await.is_err()
         {
@@ -1057,10 +1043,13 @@ impl LoopDriver {
         started: Instant,
         ticks: &mut Interval,
     ) -> Result<Delegated, String> {
-        let chunk = self.iter_loop.native().and_then(|engines| {
-            let id = self.target.clone()?;
-            engines.roadmap_chunks().into_iter().find(|c| c.id == id)
-        });
+        let chunk = match (&self.native, &self.target) {
+            (Some(engines), Some(id)) => engines
+                .roadmap_chunks()?
+                .into_iter()
+                .find(|chunk| chunk.id == *id),
+            _ => None,
+        };
         let objective =
             AgentGoal::compile_objective(chunk.as_ref().map(|c| (c.id.as_str(), c.title.as_str())));
         let picks: Vec<DeliveryKind> = match self.delegated {
@@ -1273,7 +1262,9 @@ impl LoopDriver {
             Delivery::Command { name } => {
                 let turn = AgentGoal::command_turn(name, objective);
                 self.note(format!("goal → {turn}"));
-                session.send(Cmd::Prompt(turn)).map_err(|e| e.to_string())?;
+                session
+                    .send(Cmd::Prompt(turn.into()))
+                    .map_err(|e| e.to_string())?;
             }
         }
         let echo_deadline = tokio::time::Instant::now() + self.echo_timeout;
@@ -1409,7 +1400,7 @@ impl LoopDriver {
                         }
                     }
                 }
-                let _ = session.send(Cmd::Prompt(AgentGoal::command_clear_turn(name)));
+                let _ = session.send(Cmd::Prompt(AgentGoal::command_clear_turn(name).into()));
             }
         }
         tokio::time::sleep(CLEAR_GRACE).await;
@@ -1430,13 +1421,16 @@ impl LoopDriver {
         let Some(judge) = self.judge.clone() else {
             return Step::Next;
         };
-        let Some(engines) = self.iter_loop.native().cloned() else {
+        let Some(engines) = self.native.as_ref().cloned() else {
             return Step::Next;
         };
-        engines.reload_roadmap();
-        let Some(chunk) = self.target_chunk(&engines) else {
-            self.note("judge not asked: no chunk to judge this iteration");
-            return Step::Next;
+        let chunk = match self.target_chunk(&engines) {
+            Ok(Some(chunk)) => chunk,
+            Ok(None) => {
+                self.note("judge not asked: no chunk to judge this iteration");
+                return Step::Next;
+            }
+            Err(error) => return Step::End(LoopEnd::Failed(error)),
         };
         // A chunk the agent finished, blocked or retired during its turn
         // is not a question for the judge: the only verdict on a chunk
@@ -1580,13 +1574,21 @@ impl LoopDriver {
     /// names, when the roadmap already reads it done on that task's evidence.
     /// `None` for an item still open, one completed with no task behind it,
     /// or a task with nothing passing: those are judged the ordinary way.
-    fn completed_on_record(engines: &NativeEngines, scope: &str) -> Option<(String, Vec<String>)> {
-        let chunk = engines.roadmap_chunk(scope.strip_prefix("chunk:")?)?;
+    fn completed_on_record(
+        engines: &NativeEngines,
+        scope: &str,
+    ) -> Result<Option<(String, Vec<String>)>, String> {
+        let Some(id) = scope.strip_prefix("chunk:") else {
+            return Ok(None);
+        };
+        let Some(chunk) = engines.roadmap_chunk(id)? else {
+            return Ok(None);
+        };
         if chunk.status != ChunkStatus::Done {
-            return None;
+            return Ok(None);
         }
-        let tasks = engines.ship_tasks();
-        chunk
+        let tasks = engines.ship_tasks()?;
+        Ok(chunk
             .cross_refs
             .iter()
             .filter_map(|reference| reference.strip_prefix("task:"))
@@ -1607,7 +1609,7 @@ impl LoopDriver {
                             .any(|later| later.name == check.name && later.passed)
                 });
                 (!passed.is_empty() && !failing).then(|| (task.id.clone(), passed))
-            })
+            }))
     }
 
     /// Whether `objective` is the work this iteration did. The agent owns
@@ -1623,38 +1625,43 @@ impl LoopDriver {
         &self,
         engines: &NativeEngines,
         objective: &magistr_workflow::ship::domain::objective::Objective,
-    ) -> bool {
+    ) -> Result<bool, String> {
         let named = objective.scope.strip_prefix("chunk:");
         if named.is_some() && named == self.target.as_deref() {
-            return true;
+            return Ok(true);
         }
         if named.is_some_and(|id| self.completed.iter().any(|done| done == id)) {
-            return true;
+            return Ok(true);
         }
         let set_at = objective
             .created_at
             .as_deref()
             .and_then(|at| chrono::DateTime::parse_from_rfc3339(at).ok());
         let worked = named
-            .and_then(|id| engines.roadmap_chunk(id))
+            .map(|id| engines.roadmap_chunk(id))
+            .transpose()?
+            .flatten()
             .is_some_and(|chunk| {
                 matches!(chunk.status, ChunkStatus::Done | ChunkStatus::InProgress)
             });
-        worked && matches!((set_at, self.began), (Some(set_at), Some(began)) if set_at >= began)
+        Ok(
+            worked
+                && matches!((set_at, self.began), (Some(set_at), Some(began)) if set_at >= began),
+        )
     }
 
     /// Judge the work selected for this iteration, even if another item is
     /// in progress. An unselected legacy iteration may use its single active item.
-    fn target_chunk(&self, engines: &NativeEngines) -> Option<Chunk> {
-        let chunks = engines.roadmap_chunks();
+    fn target_chunk(&self, engines: &NativeEngines) -> Result<Option<Chunk>, String> {
+        let chunks = engines.roadmap_chunks()?;
         if let Some(target) = &self.target {
-            return chunks.into_iter().find(|chunk| &chunk.id == target);
+            return Ok(chunks.into_iter().find(|chunk| &chunk.id == target));
         }
         let mut active = chunks
             .into_iter()
             .filter(|chunk| chunk.status == ChunkStatus::InProgress);
-        let chunk = active.next()?;
-        active.next().is_none().then_some(chunk)
+        let chunk = active.next();
+        Ok(chunk.filter(|_| active.next().is_none()))
     }
 
     /// Complete `chunk` through the engines (starting one the agent
@@ -1885,27 +1892,39 @@ impl LoopDriver {
         // in its place.
         self.post(LoopEvent::Stage(LoopStage::Gates));
         let cancel = CancellationToken::new();
-        // The trace the gates are recorded into was written by the agent's
-        // own `magistr mcp-serve`, in another process; persistence is
-        // merge-on-save and never reload-on-read, so this handle cannot see
-        // that task until it re-reads. Once per set, not once per gate.
-        let engines = self.iter_loop.native().cloned();
-        if let Some(engines) = &engines {
-            engines.reload_ship();
-        }
+        // Validate the selected execution before deciding which checks may run.
+        let engines = self.native.as_ref().cloned();
+        let objective = match engines
+            .as_ref()
+            .map(|engines| engines.ship_objective())
+            .transpose()
+        {
+            Ok(objective) => objective.flatten(),
+            Err(error) => {
+                self.gates_unresolved = Some(format!("Work records could not be read: {error}"));
+                return Some(Vec::new());
+            }
+        };
         // Focused work owns its chosen checks. A finalized objective has
         // already closed its recording task. In both cases validate the
         // existing receipts through the same authority as completion;
         // never expand to the whole suite or run checks without a task.
         if let Some(engines) = &engines
-            && let Some(objective) = engines.ship_objective()
+            && let Some(objective) = objective
             && (objective.verification
                 == magistr_workflow::ship::domain::objective::VerificationMode::Focused
                 || objective.status
                     == magistr_workflow::ship::domain::objective::ObjectiveStatus::Completed)
         {
-            engines.reload_roadmap();
-            if !self.is_iteration_work(engines, &objective) {
+            let belongs = match self.is_iteration_work(engines, &objective) {
+                Ok(belongs) => belongs,
+                Err(error) => {
+                    self.gates_unresolved =
+                        Some(format!("Work records could not be read: {error}"));
+                    return Some(Vec::new());
+                }
+            };
+            if !belongs {
                 self.gates_unresolved = Some(
                     "The recorded checks belong to different work. Restore this item's verification task before continuing.".to_owned(),
                 );
@@ -1915,7 +1934,15 @@ impl LoopDriver {
             // the completion authority accepted its evidence as current. What
             // the tree did afterwards — the commit, and whatever the project's
             // commit hooks regenerate — is not a second trial of finished work.
-            if let Some((task, checks)) = Self::completed_on_record(engines, &objective.scope) {
+            let completed = match Self::completed_on_record(engines, &objective.scope) {
+                Ok(completed) => completed,
+                Err(error) => {
+                    self.gates_unresolved =
+                        Some(format!("Work records could not be read: {error}"));
+                    return Some(Vec::new());
+                }
+            };
+            if let Some((task, checks)) = completed {
                 self.split_part = objective
                     .scope
                     .strip_prefix("chunk:")
@@ -2316,10 +2343,22 @@ impl LoopDriver {
             return;
         }
         self.carry = Some(failure_brief(&red));
-        let Some(engines) = self.iter_loop.native().cloned() else {
+        let Some(engines) = self.native.as_ref().cloned() else {
             return;
         };
-        engines.reload_roadmap();
+        let chunks = match engines.roadmap_chunks() {
+            Ok(chunks) => chunks,
+            Err(error) => {
+                self.note(format!(
+                    "Work records could not be read; completed work was not changed: {error}"
+                ));
+                self.paused = true;
+                self.post(LoopEvent::Paused(
+                    "Work records could not be read. Retry after restoring access.".into(),
+                ));
+                return;
+            }
+        };
         // Two witnesses to the same fact, because either can be the only
         // one present. The feed's `chunk_completed` frames are what the
         // driver saw this iteration; the chunk the prompt was built for,
@@ -2336,7 +2375,10 @@ impl LoopDriver {
         for id in ids {
             // Only a chunk that is actually done gets reopened: nothing
             // here may move a chunk that was merely started.
-            if engines.roadmap_chunk(&id).map(|chunk| chunk.status) != Some(ChunkStatus::Done) {
+            if !chunks
+                .iter()
+                .any(|chunk| chunk.id == id && chunk.status == ChunkStatus::Done)
+            {
                 continue;
             }
             let reopened = self.mutate(&format!("set_status:{id}:in_progress"), || {
@@ -2372,13 +2414,20 @@ impl LoopDriver {
     fn decide(&mut self, cmd: LoopCmd) {
         self.stepping = false;
         match cmd {
-            LoopCmd::Pause => self.paused = true,
+            LoopCmd::Pause => {
+                self.paused = true;
+                self.note("pausing at the end of this iteration");
+            }
             LoopCmd::Resume => self.paused = false,
             LoopCmd::Step => {
                 self.paused = false;
                 self.stepping = true;
+                self.note("stepping one iteration, then pausing");
             }
             LoopCmd::Skip | LoopCmd::Abort => {
+                if cmd == LoopCmd::Abort {
+                    self.note("aborting the loop");
+                }
                 self.paused = false;
                 self.pending = Some(cmd);
             }
@@ -2401,9 +2450,10 @@ impl LoopDriver {
             () = tick(ticks) => Wake::Tick,
         };
         match wake {
+            Wake::Cmd(Cmd::Quit) => Wake::Closed,
             Wake::Cmd(Cmd::Prompt(text)) if !self.session_active => {
                 let rejection = Msg::Agent(AgentEvent::PromptRejected {
-                    text,
+                    input: text,
                     error: "No agent is ready for a message right now. Your draft is kept."
                         .to_owned(),
                 });
@@ -2416,7 +2466,7 @@ impl LoopDriver {
                     self.inbox.send(Msg::RoadmapRequestQueued);
                 } else {
                     self.inbox.send(Msg::Agent(AgentEvent::PromptRejected {
-                        text,
+                        input: text,
                         error: "A roadmap request is already waiting. Cancel it before sending another.".to_owned(),
                     }));
                 }
@@ -2457,13 +2507,17 @@ impl LoopDriver {
             // ACP's `UsageUpdate.used` is the context's level; the
             // highest level of the turn is what the turn put in context.
             Msg::Agent(AgentEvent::Usage {
-                used,
-                size,
+                context,
                 cost_cents,
                 ..
             }) => {
-                tracing::info!(target: "magistr::loop", used, size, "usage");
-                self.tokens_seen = Some(self.tokens_seen.map_or(*used, |seen| seen.max(*used)));
+                if let Some(context) = context {
+                    tracing::info!(target: "magistr::loop", used = context.used, size = context.size, "usage");
+                    self.tokens_seen = Some(
+                        self.tokens_seen
+                            .map_or(context.used, |seen| seen.max(context.used)),
+                    );
+                }
                 if let Some(cents) = cost_cents {
                     self.iter_loop
                         .observe_budget(self.iteration_cost_base + *cents as f64 / 100.0);

@@ -54,10 +54,12 @@ pub struct AcpTransport {
     cli_path: PathBuf,
     cli_args: Vec<String>,
     cwd: Option<PathBuf>,
+    execution_id: Option<String>,
     session_mode: AcpSessionMode,
     mcp_servers: Vec<McpServer>,
     session_meta: Option<Meta>,
     ready: Arc<AtomicBool>,
+    initialization: Option<handshake::AcpHandshake>,
     cmd_tx: Option<mpsc::UnboundedSender<AcpCommand>>,
     event_rx: Option<mpsc::UnboundedReceiver<Result<AcpEvent>>>,
     perm_rx: Option<mpsc::UnboundedReceiver<AcpPermissionRequest>>,
@@ -99,10 +101,12 @@ impl AcpTransport {
             cli_path,
             cli_args,
             cwd,
+            execution_id: None,
             session_mode: AcpSessionMode::New,
             mcp_servers: Vec::new(),
             session_meta: None,
             ready: Arc::new(AtomicBool::new(false)),
+            initialization: None,
             cmd_tx: None,
             event_rx: None,
             perm_rx: None,
@@ -114,6 +118,13 @@ impl AcpTransport {
             local_effects: None,
             effects: None,
         })
+    }
+
+    /// Bind provider and tool children to the admitted application's execution.
+    #[must_use]
+    pub fn execution_id(mut self, execution_id: Option<String>) -> Self {
+        self.execution_id = execution_id;
+        self
     }
 
     /// Configure the application's capability implementation before connecting.
@@ -233,7 +244,12 @@ impl AcpTransport {
             return Ok(());
         }
         self.close_previous_connection().await?;
-        let command = spawn::build_command(&self.cli_path, &self.cli_args, self.cwd.as_deref());
+        let mut command = spawn::build_command(&self.cli_path, &self.cli_args, self.cwd.as_deref());
+        if let Some(execution) = &self.execution_id {
+            command
+                .env("MAGISTR_EXECUTION_ID", execution)
+                .env("WORKBENCH_SESSION_ID", execution);
+        }
         before_spawn()?;
         let spawned = spawn::spawn_agent(command)?;
         self.child_group = spawned.group;
@@ -274,6 +290,7 @@ impl AcpTransport {
         let (perm_tx, perm_rx) = mpsc::unbounded_channel();
         // The handshake outcome travels on its own channel so connect() never
         // drains event_rx — consumers expect the Initialized event there.
+        self.initialization = None;
         let (handshake_tx, handshake_rx) = oneshot::channel();
 
         let cwd = match &self.cwd {
@@ -301,6 +318,7 @@ impl AcpTransport {
         let inputs = ConnectionInputs {
             child,
             cwd,
+
             session_mode: self.session_mode.clone(),
             mcp_servers: self.mcp_servers.clone(),
             session_meta: self.session_meta.clone(),
@@ -319,7 +337,10 @@ impl AcpTransport {
         self.connection = Some(tokio::spawn(connection::run_connection(component, inputs)));
 
         let error = match tokio::time::timeout(HANDSHAKE_TIMEOUT, handshake_rx).await {
-            Ok(Ok(Ok(()))) => None,
+            Ok(Ok(Ok(initialization))) => {
+                self.initialization = Some(initialization);
+                None
+            }
             Ok(Ok(Err(e))) => Some(e),
             Ok(Err(_task_gone)) => Some(AcpError::connection(self.stderr_tail.append_to(
                 "ACP connection task exited before the agent handshake completed".to_string(),
@@ -342,6 +363,30 @@ impl AcpTransport {
         Ok(())
     }
 
+    /// The provider identity accepted by the last successful handshake,
+    /// independent of whether a viewer consumed its initialization event.
+    pub fn session_id(&self) -> Option<&str> {
+        self.initialization
+            .as_ref()
+            .map(|facts| facts.session_id.0.as_ref())
+    }
+
+    /// Capabilities accepted with that provider identity.
+    pub fn agent_capabilities(
+        &self,
+    ) -> Option<&agent_client_protocol::schema::v1::AgentCapabilities> {
+        self.initialization
+            .as_ref()
+            .map(|facts| &facts.agent_capabilities)
+    }
+
+    /// Validated configuration accepted during session setup.
+    pub fn session_config_options(&self) -> Option<&[SessionConfigOption]> {
+        self.initialization
+            .as_ref()
+            .and_then(|facts| facts.config_options.as_deref())
+    }
+
     /// Whether the handshake has completed and the session is live.
     pub fn is_ready(&self) -> bool {
         self.ready.load(Ordering::SeqCst)
@@ -362,6 +407,8 @@ impl AcpTransport {
             Arc::clone(&self.ready),
             cmd_tx.clone(),
             self.effects.clone(),
+            self.agent_capabilities()
+                .is_some_and(|capabilities| capabilities.prompt_capabilities.image),
         ))
     }
 
@@ -380,8 +427,14 @@ impl AcpTransport {
 
     /// Send one user turn. The turn's updates and its `PromptResponse` arrive
     /// on the event channel.
-    pub fn prompt(&self, text: &str) -> Result<()> {
-        self.send("prompt", AcpCommand::Prompt(text.to_string()))
+    pub fn prompt(&self, input: &magistr_application::sessions::PromptInput) -> Result<()> {
+        input
+            .validate(
+                self.agent_capabilities()
+                    .is_some_and(|capabilities| capabilities.prompt_capabilities.image),
+            )
+            .map_err(AcpError::transport)?;
+        self.send("prompt", AcpCommand::Prompt(input.clone()))
     }
 
     /// Ask the agent to stop the turn in flight. It finishes its current tool

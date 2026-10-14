@@ -72,9 +72,12 @@ The loop judge uses an explicit override or the common provider default; it no
 longer silently chooses a different model after startup.
 
 A request to continue an unspecified last conversation is rejected with guidance
-to provide a runtime-owned resume ID. An unsupported load is an error; it never
-opens a new empty conversation as a fallback. The legacy options now have an
-explicit contract:
+to choose a saved conversation with `--resume`. That flag names the Magistr ID
+listed by `magistr sessions`; admission resolves its recorded provider, working
+copy and provider conversation ID. An unsupported load is an error and never
+opens a new conversation. Internal reconnection uses the already observed
+provider ID through `AgentConfig::resume`. The session options have an explicit
+contract:
 
 | AgentConfig option | Execution contract |
 | --- | --- |
@@ -84,6 +87,31 @@ explicit contract:
 
 The ACP agent advertises the supported system prompt session option alongside
 model and effort.
+
+## Prompt ownership
+
+`magistr-application::sessions::PromptInput` carries authored text and ordered
+attachments across the session command, runtime and supervisor contracts.
+`PromptAttachment` holds a selection identity, name, source content hash, validated
+kind and immutable shared bytes. Clones preserve its identity; selecting the same
+bytes again creates a new identity, so an older acceptance cannot clear that
+selection. Files are limited to 1 MiB each, eight files and 8 MiB per message;
+authored text has its own 1 MiB limit. Names and source hashes are also bounded.
+
+The application session owner reads and revalidates selected workspace files
+through the workspace source owner before admission. The supervisor checks the
+whole typed input, including negotiated image support, before accepting it into
+the bounded turn queue. A queued turn owns the admitted bytes even if the draft
+or source file changes later. Cancellation clears queued turns and their files.
+
+ACP only encodes that admitted content: authored text and labeled UTF-8 file
+blocks preserve exact text bodies; PNG, JPEG and WebP files use labeled image
+blocks with exact base64 bytes when the agent advertises image support.
+The adapter never interprets `@path` text or opens attachment paths. A refusal
+retains the full input for the application owner to restore. Successful runtime
+admission emits a `PromptReceipt` containing authored text and ordered file
+identity metadata, so observations acknowledge the draft without retaining
+file payloads.
 
 ## Capability guarantees
 
@@ -256,17 +284,13 @@ runtime alive through cleanup. Startup failure releases source references
 before closing the workspace, and failed command forwarding returns the
 undelivered action to the surface.
 
-The `magistr-cli` package exposes the `magistr` host library with
-`default-features = false`. Its normal dependency graph then excludes
-`magistr-tui`; the default `terminal` feature enables terminal commands and
-the CLI binary. Provider and workspace implementations remain in the host,
-not the neutral runtime or desktop renderer. Test harnesses may still depend
-on the terminal crate.
+The `magistr-cli` package exposes the `magistr` host library and plain CLI
+without a terminal-renderer feature or dependency. Provider and workspace
+implementations remain in the host, independent of desktop presentation.
 
 A new executable must also supply the host's existing process entry roles:
 provider startup can invoke the executable's ACP-agent command, and workspace
-workers invoke its private worker role. Disabling terminal features alone does
-not provide that dispatch. The separate `magistr-desktop` executable provides
+workers invoke its private worker role. The separate `magistr-desktop` executable provides
 these roles and both native MCP launch targets, preserving the renderer's
 dependency boundary. Its main thread runs the native window and awaits this
 host's shutdown on every returned window outcome. See the desktop guide for
@@ -450,3 +474,44 @@ API sessions send their accumulated conversation history to the configured
 service. External runtimes use their own authentication and storage. Local
 records can contain prompts, paths, and outputs; see
 [running agents](../development.md#running-agents).
+
+## Saved session history
+
+The resident `SessionSupervisor` is the writer for interactive sessions,
+headless runs, loop attempts and judges. It gathers facts directly from the
+ordered provider stream and saves after transport cleanup. Its forced-close guard
+schedules the same writer; ordinary shutdown awaits it while the runtime lives.
+This does not promise recovery after killing the application or a machine crash.
+
+One Magistr conversation ID survives reconnection. Separate conversation/planning
+contexts and loop attempts receive separate IDs. Canonical project authority and
+working-copy directories are retained, alongside the optional provider ID,
+negotiated loading capability, selected model, local attribution, terminal outcome,
+observed turns, reported USD cost and bounded last-response summary. Missing price
+or model stays absent. Retries update one row without overwriting tags or a handoff.
+
+ACP prices are cumulative conversation snapshots. The shared session context keeps
+its latest valid reported USD amount across turns, reconnects and saved resumes;
+unpriced usage and terminal responses cannot clear it. A reported zero stays known.
+The owner publishes this same fact through live usage and completion observations,
+including restored spending before a new turn. Context token counts remain absent
+until the provider reports them, independently of the known spending amount.
+After cleanup, the shared settlement writer also updates the existing cost ledger by Magistr conversation ID. Success,
+failure and forced close use that writer; drains only read observations. Unreported
+ledger prices and aggregate totals remain unknown, and estimates exclude unpriced
+samples.
+
+The current SQLite schema is initialized atomically. Unsupported formats are
+refused directly; there are no older-format migrations or invented provider IDs.
+Storage failure is a separate diagnostic, preserving terminal outcome and process
+cleanup. Native project projections observe database commits through SQLite data
+versions away from the UI thread, coalesce to the latest value and retry refused
+delivery. CLI history and handoff read this same store. Resume admission resolves
+the saved ID to its original provider and working copy, then the transport checks
+that provider's current loading capability.
+
+Evidence: the persistence and supervisor history companion suites,
+`application/history_feed.tests.rs`, the home/desktop saved-resume tests and
+`tests/resident_session_process.py`. The process fixture reopens history after
+three actual resident providers, then checks successful and failed headless runs
+and refuses an unsupported saved resume without another inference request.

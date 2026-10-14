@@ -14,7 +14,7 @@
 //! `tokio::spawn`ed. The command loop that sends `PromptRequest`s lives in the
 //! `connect_with` foreground closure, which runs *outside* the dispatch loop —
 //! so it may `block_task()` on responses. Handlers that have to wait (a
-//! permission prompt in the TUI, a terminal's exit) `cx.spawn` and respond from
+//! permission prompt in the interface, a terminal's exit) `cx.spawn` and respond from
 //! the task, because a handler holds the dispatch loop while it runs.
 //!
 //! ```text
@@ -47,6 +47,9 @@ mod permission;
 mod result;
 mod session_mode;
 mod stderr_tail;
+/// Scripted protocol peers for cross-crate session tests.
+#[cfg(any(test, feature = "test-support"))]
+pub mod test_support;
 mod transport;
 
 pub use error::AcpError;

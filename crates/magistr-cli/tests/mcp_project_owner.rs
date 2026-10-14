@@ -182,6 +182,71 @@ fn native_project(root: &Path) {
 }
 
 #[tokio::test]
+async fn next_loop_reads_progress_beside_a_live_mcp_owner() {
+    let tmp = tempfile::tempdir().unwrap();
+    let root = tmp.path();
+    identity(root);
+    native_project(root);
+    let data = root.join("data");
+    let mut owner = Server::spawn(root, &data, &root.join("feed.sock")).await;
+    assert!(owner.response().await.is_some());
+    owner.initialized().await;
+    let before = owner.call("magistr_context", json!({})).await;
+
+    for headless in [false, true] {
+        owner
+            .call(
+                "roadmap_add_chunk",
+                json!({
+                    "id": if headless { "later-two" } else { "later-one" },
+                    "title": "Work saved for later", "status": "backlog"
+                }),
+            )
+            .await;
+        let mut command = Command::from(magistr_command::magistr_command());
+        command
+            .args(["next-loop", "--agent", "codex", "--trust", "yolo"])
+            .current_dir(root)
+            .env("HOME", root)
+            .env("XDG_CONFIG_HOME", root.join("config"))
+            .env("THINK_AND_SHIP_DATA_DIR", &data)
+            .env("THINK_AND_SHIP_PERSIST", "true")
+            .env("MAGISTR_EXECUTION_ID", "default")
+            .stdin(std::process::Stdio::null())
+            .kill_on_drop(true);
+        if headless {
+            command.args(["--headless", "--format", "json"]);
+        }
+        let output = timeout(Duration::from_secs(30), command.output())
+            .await
+            .expect("loop startup finishes without dispatch")
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "headless={headless}: {}\n{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let saved = magistr_core::workflow::iteration::IterationState::read(root)
+            .unwrap()
+            .unwrap();
+        assert_eq!(saved.spec_total, if headless { 2 } else { 1 });
+        assert_eq!(
+            saved.run.terminal_reason,
+            Some(magistr_engine::workflow::StopReason::NoReadyChunk)
+        );
+        assert!(
+            saved.operations.records().is_empty(),
+            "no provider launched"
+        );
+        assert!(owner.child.try_wait().unwrap().is_none());
+        let after = owner.call("magistr_context", json!({})).await;
+        assert_eq!(after["owner_epoch"], before["owner_epoch"]);
+    }
+    owner.disconnect().await;
+}
+
+#[tokio::test]
 async fn simultaneous_stdio_start_has_one_owner_and_kill_allows_fresh_restart() {
     let tmp = tempfile::tempdir().expect("tempdir");
     identity(tmp.path());

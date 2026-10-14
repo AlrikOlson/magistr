@@ -2,7 +2,7 @@
 //!
 //! Defines which agent backend to use for a session and what features
 //! each backend supports. These types are frontend-agnostic — both the
-//! TUI and GUI use them to display backend info and capabilities.
+//! desktop and command-line consumers use them to display backend info and capabilities.
 
 /// Which agent backend to use for a session.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]

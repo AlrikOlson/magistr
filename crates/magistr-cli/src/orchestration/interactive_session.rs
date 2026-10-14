@@ -35,6 +35,7 @@ pub(crate) fn session_with_checkpoints(
     engines: Option<EngineClient>,
     checkpoints: Option<Box<dyn CheckpointPort>>,
 ) -> InteractiveSession {
+    let roadmap_history = crate::agent::persistence::SessionHistory::new();
     let workbench = super::commands::workbench_port::workbench_port(&config.cwd);
     InteractiveSession::new(
         move |purpose, resume| {
@@ -50,19 +51,27 @@ pub(crate) fn session_with_checkpoints(
             };
             // The coordinator owns one observed identity per purpose. Restore it
             // through the normal provider loader, which refuses unsupported loads.
+            if resume.is_some() && purpose == SessionPurpose::Conversation {
+                config.model = config.history.current_model();
+                config.effort = None;
+            }
             config.resume = resume;
+            if purpose == SessionPurpose::Roadmap {
+                config.history = roadmap_history.clone();
+            }
             let connector = connector.clone();
             async move {
                 let (transport, spec) = connector
                     .connect(config)
                     .await
                     .map_err(|error| error.to_string())?;
+                let history = spec.history();
                 let (policy, _) = spec.into_permission_policy();
                 let policy: Box<dyn SessionPolicy> = match purpose {
                     SessionPurpose::Roadmap => Box::new(RoadmapPolicy::new(policy)),
                     SessionPurpose::Conversation => Box::new(policy),
                 };
-                CockpitSession::start_connected(transport, SessionOptions::new(), policy)
+                CockpitSession::start_owned(transport, SessionOptions::new(), policy, history)
                     .map(|handle| Box::new(handle) as Box<dyn SessionHandle>)
                     .map_err(|error| error.to_string())
             }

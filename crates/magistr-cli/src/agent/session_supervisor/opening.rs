@@ -35,7 +35,13 @@ pub(super) async fn initialize(
                             },
                         )
                         .await
-                        .map(|_| model.to_owned())
+                        .map(|accepted| {
+                            let selected = crate::agent::translate::current_model(Some(&accepted));
+                            let mut inner = state.lock().expect("supervisor state lock poisoned");
+                            inner.config_options = accepted;
+                            inner.history.observe_configuration(&inner.config_options);
+                            selected
+                        })
                         .map_err(|error| error.to_string())
                 } else {
                     Err(format!(
@@ -46,7 +52,7 @@ pub(super) async fn initialize(
             _ => unreachable!("initialization runs only for the handshake event"),
         };
         match result {
-            Ok(model) => Some(model),
+            Ok(model) => model,
             Err(error) => {
                 let mut inner = state.lock().expect("supervisor state lock poisoned");
                 let error = format!("Failed to select session model: {error}");
@@ -67,12 +73,11 @@ pub(super) async fn initialize(
         *model = Some(selected);
     }
     inner.emit_cockpit(translated);
-    if let Some(prompt) = options
-        .opening_prompt
-        .filter(|prompt| !prompt.trim().is_empty())
+    if let Some(prompt) = options.opening_prompt.filter(|prompt| !prompt.is_empty())
         && inner.queue.front().is_some_and(|(id, _)| *id == 1)
     {
-        inner.emit_cockpit(AgentEvent::UserText(format!("{prompt}\n")));
+        inner.emit_cockpit(AgentEvent::UserText(format!("{}\n", prompt.text)));
     }
     inner.control_busy = false;
+    inner.publish_activity();
 }

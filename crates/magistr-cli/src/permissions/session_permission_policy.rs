@@ -415,6 +415,17 @@ impl SessionPermissionPolicy {
 }
 
 impl SessionPolicy for SessionPermissionPolicy {
+    fn can_use_model(&self, model: &str) -> bool {
+        !self
+            .governance
+            .evaluate(&PolicyRequest::new().with_model(model))
+            .effect
+            .is_violation()
+    }
+    fn model_changed(&mut self, model: Option<String>) {
+        self.model = model;
+    }
+
     fn decide(&mut self, request: &SessionPolicyRequest) -> PolicyDecision {
         let Ok(request) = RequestData::decode(request) else {
             return PolicyDecision::Deny;
@@ -619,14 +630,14 @@ fn is_shell_command(req: &RequestData) -> bool {
 /// Check if a shell command is safe enough to auto-approve outside
 /// workflow mode.
 fn is_safe_shell_command(tool_input: &serde_json::Value) -> bool {
-    let command = tool_input
+    let Some(command) = tool_input
         .get("command")
-        .and_then(|v| v.as_str())
-        .unwrap_or("");
-
-    if command.is_empty() {
-        return true;
-    }
+        .and_then(serde_json::Value::as_str)
+        .filter(|command| !command.trim().is_empty())
+    else {
+        // No command details means no evidence for a safe-operation allowance.
+        return false;
+    };
 
     let effective_cmd = strip_cd_prefix(command);
 

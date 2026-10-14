@@ -21,5 +21,8 @@ for pkg in meta["packages"]:
         print(pkg["manifest_path"])
 ' "$SKIP")"
 
+manifests="$manifests
+$PROJECT_ROOT/crates/magistr-desktop/Cargo.toml"
+
 # shellcheck disable=SC2086 # one manifest path per word
 (cd "$PROJECT_ROOT" && cargo machete $manifests)

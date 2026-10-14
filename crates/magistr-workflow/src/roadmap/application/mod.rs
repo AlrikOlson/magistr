@@ -18,6 +18,8 @@ mod proposals;
 mod queries;
 pub mod tracker;
 mod use_cases;
+mod workstream_inspection;
+mod workstream_view;
 
 pub use blocker_draft::BlockerDraft;
 pub use chunk_draft::ChunkDraft;
@@ -32,3 +34,5 @@ pub use focus_change::FocusChange;
 pub use focus_read::FocusRead;
 pub use group_proposal::GroupProposal;
 pub use use_cases::RoadmapUseCases;
+pub use workstream_inspection::WorkstreamInspection;
+pub use workstream_view::WorkstreamView;

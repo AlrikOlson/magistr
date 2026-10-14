@@ -11,7 +11,7 @@ pub use magistr_core::{
 /// Category of tool being invoked (mirrors ACP `ToolKind`).
 ///
 /// Re-exported from `magistr_core::ToolKind` — the canonical definition
-/// lives in the core crate so both TUI and GUI frontends share it.
+/// lives in the core crate so both desktop and command-line consumers frontends share it.
 pub type ToolUseKind = magistr_core::ToolKind;
 
 // Re-exported from magistr-core. Canonical definitions live there.

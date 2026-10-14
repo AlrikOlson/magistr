@@ -1,50 +1,84 @@
-//! The store, read whole.
+//! Each workflow family's records and observation state form one view.
+//! Reads are coherent within a family, never a transaction across families.
 
-use crate::roadmap::Chunk;
-use crate::ship::Objective;
-use crate::ship::Task;
+use serde::{Deserialize, Serialize};
+
+use crate::roadmap::{Chunk, WorkstreamCatalog, workstream_catalog};
+use crate::ship::{Objective, Task, TaskStatus};
 use crate::signal::Signal;
 use crate::think::ThinkStep;
+use crate::{ReadError, ReadState, RoadmapProgress, ThinkBranch};
 
-use super::snapshot_cursor::SnapshotCursor;
-use crate::RoadmapProgress;
-
-/// Everything a surface shows before the feed speaks, read off the
-/// engines by the host's native snapshot reader:
-/// the ship objective and its tasks with their actions and checks whole,
-/// the roadmap's chunks and progress, every signal, and the persisted
-/// reasoning steps with their branch metadata.
-///
-/// What it guarantees, and what it does not. Each family is read whole
-/// under its own engine lock, so within a family the snapshot is one
-/// consistent state — a task and the checks on it agree. Across families
-/// there is no such guarantee: the four families are four files with four
-/// locks, and a write landing between two reads is visible in one and not
-/// the other. The [`SnapshotCursor`] is taken *before* the families are
-/// read, so a write that lands during the read moves the next cursor and
-/// the timer re-reads. No global revision is fabricated over the four:
-/// the store has none, and a projection that claimed one would be lying.
-/// The reasoning steps and branch metadata come from one persisted archive
-/// read rather than the live engine (the live load path can print, which
-/// a raw-mode terminal must never see), so they may trail the trace by
-/// one unflushed step.
-#[derive(Debug, Clone, Default, PartialEq)]
-pub struct NativeSnapshot {
-    /// The store stamp read before the families; `None` when the store is
-    /// not persisted or has no files yet.
-    pub cursor: Option<SnapshotCursor>,
-    /// The ship objective, once one is set.
-    pub objective: Option<Objective>,
-    /// The planned tasks in plan order, actions and checks included.
-    pub tasks: Vec<Task>,
-    /// The roadmap's progress as the engine counts it.
-    pub progress: RoadmapProgress,
-    /// Every chunk, in stored order.
+/// Roadmap records and progress derived from the same validated observation.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct RoadmapData {
     pub chunks: Vec<Chunk>,
-    /// Every signal, in capture order.
-    pub signals: Vec<Signal>,
-    /// The persisted reasoning steps, in stored order.
-    pub steps: Vec<ThinkStep>,
-    /// Branch names, origins, statuses and explicit merge destinations from the same archive.
-    pub branches: Vec<super::ThinkBranch>,
+    pub progress: RoadmapProgress,
 }
+
+/// The execution plan as it was observed, without inventing a missing run.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct ShipData {
+    pub objective: Option<Objective>,
+    pub tasks: Vec<Task>,
+}
+
+impl ShipData {
+    #[must_use]
+    pub fn active_task(&self) -> Option<&Task> {
+        self.tasks
+            .iter()
+            .find(|task| task.status == TaskStatus::Active)
+    }
+}
+
+/// Reasoning steps and branch metadata from the owner's selected session.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct ThinkData {
+    /// The selected session; None only when reading the unscoped default archive.
+    pub session_id: Option<String>,
+    pub steps: Vec<ThinkStep>,
+    pub branches: Vec<ThinkBranch>,
+}
+
+/// Independent observations from the four workflow owners.
+/// A failed family retains its last successful data explicitly as stale.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct NativeSnapshot {
+    pub roadmap: ReadState<RoadmapData>,
+    pub ship: ReadState<ShipData>,
+    pub signals: ReadState<Vec<Signal>>,
+    pub think: ReadState<ThinkData>,
+}
+
+impl NativeSnapshot {
+    /// Derivation preserves the roadmap's read state and provenance.
+    #[must_use]
+    pub fn workstreams(&self) -> ReadState<WorkstreamCatalog> {
+        self.roadmap
+            .map(|roadmap| workstream_catalog(&roadmap.chunks))
+    }
+
+    #[must_use]
+    pub fn needs_retry(&self) -> bool {
+        self.roadmap.needs_retry()
+            || self.ship.needs_retry()
+            || self.signals.needs_retry()
+            || self.think.needs_retry()
+    }
+
+    /// A worker failed before it could report individual family observations.
+    /// Successful values remain visible as stale; unread families stay unavailable.
+    #[must_use]
+    pub fn failed(mut self, error: ReadError) -> Self {
+        self.roadmap.record(Err(error.clone()));
+        self.ship.record(Err(error.clone()));
+        self.signals.record(Err(error.clone()));
+        self.think.record(Err(error));
+        self
+    }
+}
+
+#[cfg(test)]
+#[path = "native_snapshot.tests.rs"]
+mod tests;

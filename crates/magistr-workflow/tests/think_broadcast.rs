@@ -103,12 +103,14 @@ async fn broadcast_emits_step_appended_and_revised() {
 
     // Drive two appends — the second revises the first — plus a pin and a
     // clear. That covers four of the six frame variants in one test.
-    engine.process_step(step(1)).expect("step 1");
+    engine.process_step_native(step(1)).expect("step 1");
 
     let mut revision = step(2);
     revision.revises_step = Some(1);
     revision.revision_reason = Some("typo".into());
-    engine.process_step(revision).expect("step 2 / revision");
+    engine
+        .process_step_native(revision)
+        .expect("step 2 / revision");
 
     engine.pin_step(2, true).expect("pin");
     engine.clear_history();
@@ -165,7 +167,7 @@ async fn broadcast_bind_failure_does_not_block_step() {
 
     let mut engine = ReasoningServer::new(quiet_config_with_broadcast(path));
     // No panic, no error — the engine just runs unobserved.
-    let result = engine.process_step(step(1));
+    let result = engine.process_step_native(step(1));
     assert!(
         result.is_ok(),
         "process_step succeeded without a broadcaster"

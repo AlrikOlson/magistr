@@ -253,7 +253,7 @@ impl CostTracker {
             session_id: session_id.to_string(),
             project: project.to_string(),
             timestamp: Utc::now(),
-            cost_usd: self.accumulated_cost,
+            cost_usd: Some(self.accumulated_cost),
             tokens: self.accumulated_tokens.clone(),
             turns: self.total_turns,
             duration_ms: self.total_duration_ms,
@@ -267,6 +267,10 @@ impl CostTracker {
         crate::utils::typography::format_cost(self.accumulated_cost)
     }
 }
+
+#[cfg(test)]
+#[path = "reported_spending.tests.rs"]
+mod reported_spending_tests;
 
 #[cfg(test)]
 #[path = "mod.tests.rs"]

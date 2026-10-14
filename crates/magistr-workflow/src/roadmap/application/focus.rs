@@ -1,29 +1,49 @@
-use crate::roadmap::domain::{FocusMode, validate_lane};
-use crate::roadmap::engine::GroupResolution;
+use crate::roadmap::domain::{
+    FocusMode, FocusState, WorkstreamCatalog, WorkstreamResolution, validate_lane,
+};
+use crate::roadmap::engine::RoadmapEngine;
 
-use super::{FocusChange, FocusRead, GroupProposal, RoadmapError, RoadmapUseCases};
+use super::{
+    FocusChange, FocusRead, GroupProposal, RoadmapError, RoadmapUseCases, WorkstreamInspection,
+    WorkstreamView,
+};
 
 impl RoadmapUseCases {
-    pub fn focus_get(&self, lane: &str, group: Option<&str>) -> Result<FocusRead, RoadmapError> {
+    pub fn focus_get(
+        &self,
+        lane: &str,
+        group: Option<&str>,
+        view: WorkstreamView,
+    ) -> Result<FocusRead, RoadmapError> {
         let engine = self.lock()?;
+        let workstreams = engine.workstreams();
         let focus = engine.focus_get(lane).cloned();
-        let subject = group
-            .map(str::trim)
-            .filter(|group| !group.is_empty())
-            .map(str::to_owned)
-            .or_else(|| focus.as_ref().map(|focus| focus.group.clone()));
-        let frontier = match subject {
-            Some(group) => match engine.resolve_group(&group) {
-                GroupResolution::Exact(name) => engine.group_status(&name),
-                other => serde_json::json!({"error": other.explain(&group)}),
+        let focus_state = workstreams.focus_state(focus.as_ref().map(|focus| focus.group.as_str()));
+        let frontier = match group.map(str::trim).filter(|group| !group.is_empty()) {
+            Some(query) => match workstreams.resolve_current(query) {
+                WorkstreamResolution::Current { group }
+                | WorkstreamResolution::Closed { group, .. } => inspect_exact(
+                    &engine,
+                    &workstreams,
+                    &workstreams.focus_state(Some(&group)),
+                    view,
+                ),
+                WorkstreamResolution::Unknown { .. } => WorkstreamInspection::Missing {
+                    query: query.to_owned(),
+                },
+                WorkstreamResolution::Ambiguous { matches } => WorkstreamInspection::Ambiguous {
+                    query: query.to_owned(),
+                    matches,
+                },
             },
-            None => serde_json::Value::Null,
+            None => inspect_exact(&engine, &workstreams, &focus_state, view),
         };
         Ok(FocusRead {
             lane: lane.to_owned(),
             focus,
+            focus_state,
             frontier,
-            groups: engine.groups(),
+            workstreams,
             persistent: engine.persistence_enabled(),
         })
     }
@@ -38,7 +58,7 @@ impl RoadmapUseCases {
         let focus = engine
             .focus_set(lane, group, mode)
             .map_err(RoadmapError::InvalidArgs)?;
-        let frontier = engine.group_status(&focus.group);
+        let frontier = engine.workstream_frontier(Some(&focus.group));
         Ok(FocusChange::Set {
             lane: focus.lane.clone(),
             focus,
@@ -64,8 +84,41 @@ impl RoadmapUseCases {
         Ok(GroupProposal {
             clusters: engine.propose_groups_from_ids(min_shared),
             min_shared,
-            groups: engine.groups(),
+            authored_names: engine.workstreams().authored_names(),
             placed: 0,
         })
+    }
+}
+
+fn inspect_exact(
+    engine: &RoadmapEngine,
+    workstreams: &WorkstreamCatalog,
+    focus_state: &FocusState,
+    view: WorkstreamView,
+) -> WorkstreamInspection {
+    match focus_state {
+        FocusState::Unset => WorkstreamInspection::Unset,
+        FocusState::Current { group } | FocusState::Closed { group }
+            if view == WorkstreamView::History =>
+        {
+            WorkstreamInspection::History {
+                group: group.clone(),
+                history: engine.workstream_history(Some(group)),
+            }
+        }
+        FocusState::Current { group } => WorkstreamInspection::Current {
+            frontier: engine.workstream_frontier(Some(group)),
+        },
+        FocusState::Closed { group } => WorkstreamInspection::Closed {
+            group: group.clone(),
+            history: workstreams
+                .history
+                .get(group)
+                .expect("closed workstream was classified from this catalog")
+                .clone(),
+        },
+        FocusState::Missing { group } => WorkstreamInspection::Missing {
+            query: group.clone(),
+        },
     }
 }

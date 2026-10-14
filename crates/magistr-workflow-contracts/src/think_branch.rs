@@ -1,9 +1,11 @@
 //! Persisted branch metadata without duplicating its reasoning steps.
 
+use serde::{Deserialize, Serialize};
+
 use crate::think::{Branch, BranchStatus};
 
 /// A question's recorded identity, origin and lifecycle in a native snapshot.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ThinkBranch {
     pub id: String,
     pub name: String,

@@ -6,7 +6,7 @@ use tokio::sync::{mpsc, oneshot};
 
 use super::*;
 
-use magistr_application::sessions::{ToolRecord, TurnEnd};
+use magistr_application::sessions::{PromptAttachment, PromptInput, ToolRecord, TurnEnd};
 use magistr_cockpit::cockpit::{WorkbenchCmd, WorkbenchEvent};
 use magistr_cockpit::harness::FakeWorkbench;
 
@@ -18,7 +18,11 @@ struct FakeSession {
 }
 
 impl SessionHandle for FakeSession {
-    fn submit_turn(&mut self, text: &str) -> Result<(), String> {
+    fn submit_turn(
+        &mut self,
+        input: &magistr_application::sessions::PromptInput,
+    ) -> Result<(), String> {
+        let text = &input.text;
         self.calls
             .send(format!("prompt {text}"))
             .expect("call observer");
@@ -29,6 +33,12 @@ impl SessionHandle for FakeSession {
         }
     }
 
+    fn rename(&mut self, _: &str) -> Result<(), String> {
+        Err("Naming is unavailable in this session.".into())
+    }
+    fn configure(&mut self, _: &str, _: &str) -> Result<(), String> {
+        Err("Agent choices are unavailable in this session.".into())
+    }
     fn cancel_turn(&mut self) -> Result<(), String> {
         self.calls.send("cancel".to_owned()).expect("call observer");
         Ok(())
@@ -115,7 +125,7 @@ async fn next<T>(receiver: &mut mpsc::UnboundedReceiver<T>) -> T {
 }
 
 #[tokio::test]
-async fn forwards_session_events_without_echoing_prompts_or_owning_permission_ids() {
+async fn publishes_accepted_input_once_and_preserves_provider_history_and_permission_ids() {
     let (handle, events, mut calls) = fake();
     let (inbox, mut messages) = Inbox::channel();
     let (commands_tx, commands) = Commands::channel();
@@ -136,13 +146,30 @@ async fn forwards_session_events_without_echoing_prompts_or_owning_permission_id
     for event in reported {
         assert!(matches!(next(&mut messages).await, Msg::Agent(actual) if actual == event));
     }
+    let submitted = PromptInput {
+        text: "follow-up".into(),
+        attachments: vec![
+            PromptAttachment::from_bytes(
+                "context.txt",
+                "accepted-hash",
+                b"exact\r\ncontext".to_vec(),
+            )
+            .unwrap(),
+        ],
+    };
     commands_tx
-        .send(Cmd::Prompt("follow-up".to_owned()))
+        .send(Cmd::Prompt(submitted.clone()))
         .expect("command sent");
     assert_eq!(next(&mut calls).await, "prompt follow-up");
     assert!(
-        messages.try_recv().is_err(),
-        "the model already echoed this prompt"
+        matches!(next(&mut messages).await, Msg::InputAccepted(receipt) if receipt == submitted.receipt())
+    );
+    events
+        .send(AgentEvent::UserText("follow-up\n".into()))
+        .unwrap();
+    events.send(AgentEvent::Text("next reply".into())).unwrap();
+    assert!(
+        matches!(next(&mut messages).await, Msg::Agent(AgentEvent::Text(text)) if text == "next reply")
     );
     drop(commands_tx);
     task.await
@@ -156,6 +183,17 @@ async fn routes_commands_to_the_owner_and_reports_admission_errors() {
     let (inbox, mut messages) = Inbox::channel();
     let (commands_tx, commands) = Commands::channel();
     let task = spawn_session(Box::new(handle), inbox, commands, None, None, None);
+    let submitted = PromptInput {
+        text: "refused".into(),
+        attachments: vec![
+            PromptAttachment::from_bytes(
+                "context.txt",
+                "refused-hash",
+                "exact\r\n日本語".as_bytes().to_vec(),
+            )
+            .unwrap(),
+        ],
+    };
     for cmd in [
         Cmd::Constraint {
             id: 8,
@@ -168,7 +206,7 @@ async fn routes_commands_to_the_owner_and_reports_admission_errors() {
         Cmd::Delegate("read".to_owned()),
         Cmd::Kill(KillCmd::Terminal("terminal-2".to_owned())),
         Cmd::Cancel,
-        Cmd::Prompt("refused".to_owned()),
+        Cmd::Prompt(submitted.clone()),
     ] {
         commands_tx.send(cmd).expect("command sent");
     }
@@ -183,7 +221,7 @@ async fn routes_commands_to_the_owner_and_reports_admission_errors() {
         assert_eq!(next(&mut calls).await, expected);
     }
     assert!(
-        matches!(next(&mut messages).await, Msg::Agent(AgentEvent::PromptRejected { text, error }) if text == "refused" && error == "turn admission refused")
+        matches!(next(&mut messages).await, Msg::Agent(AgentEvent::PromptRejected { input, error }) if input == submitted && error == "turn admission refused")
     );
     drop(commands_tx);
     task.await
@@ -198,11 +236,11 @@ async fn unrouted_roadmap_requests_fail_visibly_without_implementation_submissio
     let (commands_tx, commands) = Commands::channel();
     let task = spawn_session(Box::new(handle), inbox, commands, None, None, None);
     commands_tx
-        .send(Cmd::RoadmapPrompt("Add checks".to_owned()))
+        .send(Cmd::RoadmapPrompt("Add checks".into()))
         .expect("command sent");
     assert!(matches!(next(&mut messages).await,
-        Msg::Agent(AgentEvent::PromptRejected { text, error })
-        if text == "Add checks" && error.contains("cannot update the roadmap")));
+        Msg::Agent(AgentEvent::PromptRejected { input, error })
+        if input.text == "Add checks" && error.contains("cannot update the roadmap")));
     assert!(calls.try_recv().is_err());
     commands_tx
         .send(Cmd::CancelRoadmapPrompt)
@@ -565,6 +603,7 @@ fn the_relay_stamps_elapsed_time_without_changing_other_tool_fields() {
             Instant::now() - Duration::from_secs(3),
         )]),
         started: Instant::now() - Duration::from_secs(9),
+        input_origin: InputOrigin::ProviderHistory,
     };
     let mut event = AgentEvent::ToolCallUpdate {
         id: "tool-1".to_owned(),
@@ -584,13 +623,15 @@ fn the_relay_stamps_elapsed_time_without_changing_other_tool_fields() {
         "a terminal tool update releases its clock"
     );
     let mut usage = AgentEvent::Usage {
-        used: 12,
-        size: 100,
+        context: Some(magistr_application::sessions::ContextUsage {
+            used: 12,
+            size: 100,
+        }),
         cost_cents: Some(4),
         elapsed_secs: None,
     };
     session.stamp(&mut usage);
     assert!(
-        matches!(usage, AgentEvent::Usage { elapsed_secs: Some(secs), used: 12, size: 100, cost_cents: Some(4) } if secs >= 9)
+        matches!(usage, AgentEvent::Usage { elapsed_secs: Some(secs), context: Some(magistr_application::sessions::ContextUsage { used: 12, size: 100 }), cost_cents: Some(4) } if secs >= 9)
     );
 }

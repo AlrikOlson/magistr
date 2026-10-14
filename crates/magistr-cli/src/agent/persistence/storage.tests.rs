@@ -1,6 +1,21 @@
 use super::*;
+use crate::session::session_outcome::SessionOutcome as HistoryOutcome;
 use chrono::TimeZone;
 use tempfile::TempDir;
+
+#[test]
+fn readonly_history_never_creates_or_writes_a_database() {
+    let dir = TempDir::new().unwrap();
+    let missing = dir.path().join("missing/sessions.db");
+    assert!(open_readonly_db(&missing).is_err());
+    assert!(!dir.path().join("missing").exists());
+    let path = dir.path().join("sessions.db");
+    let writer = open_db(&path).unwrap();
+    insert_session(&writer, &sample_record("saved", "project")).unwrap();
+    let reader = open_readonly_db(&path).unwrap();
+    assert_eq!(count_sessions(&reader).unwrap(), 1);
+    assert!(insert_session(&reader, &sample_record("forbidden", "project")).is_err());
+}
 
 fn test_db() -> (TempDir, Connection) {
     let dir = TempDir::new().unwrap();
@@ -12,16 +27,23 @@ fn test_db() -> (TempDir, Connection) {
 fn sample_record(id: &str, project: &str) -> SessionRecord {
     SessionRecord {
         session_id: id.to_string(),
+        name: None,
         project: project.to_string(),
+        workspace: project.to_string(),
+        provider: "scripted".into(),
+        provider_session_id: Some("provider-fixture".into()),
+        resume_supported: true,
+        outcome: Some(HistoryOutcome::Completed),
         started_at: Utc.with_ymd_and_hms(2026, 3, 10, 9, 0, 0).unwrap(),
-        ended_at: Utc.with_ymd_and_hms(2026, 3, 10, 9, 30, 0).unwrap(),
-        cost_usd: 2.50,
-        turns: 5,
+        updated_at: Utc.with_ymd_and_hms(2026, 3, 10, 9, 30, 0).unwrap(),
+        ended_at: Some(Utc.with_ymd_and_hms(2026, 3, 10, 9, 30, 0).unwrap()),
+        cost_usd: Some(2.50),
+        turns: Some(5),
         duration_ms: 1_800_000,
         files_changed: vec!["src/main.rs".into()],
         tags: vec![],
         summary: Some("Fixed the auth bug".into()),
-        model: String::new(),
+        model: None,
         owner: None,
     }
 }
@@ -32,7 +54,7 @@ fn open_creates_db_and_schema() {
     let version: i32 = conn
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .unwrap();
-    assert_eq!(version, 6);
+    assert_eq!(version, SCHEMA_VERSION);
 }
 
 #[test]
@@ -55,25 +77,26 @@ fn insert_and_get_round_trip() {
     let loaded = loaded.unwrap();
     assert_eq!(loaded.session_id, "sess-001");
     assert_eq!(loaded.project, "my-project");
-    assert_eq!(loaded.cost_usd, 2.50);
-    assert_eq!(loaded.turns, 5);
+    assert_eq!(loaded.cost_usd, Some(2.50));
+    assert_eq!(loaded.turns, Some(5));
     assert_eq!(loaded.files_changed, vec!["src/main.rs"]);
     assert_eq!(loaded.summary.as_deref(), Some("Fixed the auth bug"));
 }
 
 #[test]
-fn insert_replaces_on_duplicate() {
+fn newer_settlement_updates_without_duplicate() {
     let (_dir, conn) = test_db();
     let mut record = sample_record("sess-001", "proj");
     insert_session(&conn, &record).unwrap();
 
-    record.cost_usd = 5.00;
-    record.turns = 10;
+    record.updated_at += chrono::Duration::seconds(1);
+    record.cost_usd = Some(5.00);
+    record.turns = Some(10);
     insert_session(&conn, &record).unwrap();
 
     let loaded = get_session(&conn, "sess-001").unwrap().unwrap();
-    assert_eq!(loaded.cost_usd, 5.00);
-    assert_eq!(loaded.turns, 10);
+    assert_eq!(loaded.cost_usd, Some(5.00));
+    assert_eq!(loaded.turns, Some(10));
     assert_eq!(count_sessions(&conn).unwrap(), 1);
 }
 
@@ -113,6 +136,7 @@ fn query_filter_by_since() {
 
     let mut old = sample_record("old", "proj");
     old.started_at = Utc.with_ymd_and_hms(2025, 1, 1, 0, 0, 0).unwrap();
+    old.updated_at = old.started_at + chrono::Duration::hours(1);
     insert_session(&conn, &old).unwrap();
 
     let recent = sample_record("new", "proj");
@@ -148,6 +172,7 @@ fn query_respects_limit() {
     for i in 0..10 {
         let mut r = sample_record(&format!("s-{i}"), "proj");
         r.started_at = Utc.with_ymd_and_hms(2026, 3, 10, 9, i, 0).unwrap();
+        r.updated_at = r.started_at + chrono::Duration::minutes(1);
         insert_session(&conn, &r).unwrap();
     }
 
@@ -164,10 +189,12 @@ fn query_ordered_most_recent_first() {
 
     let mut r1 = sample_record("early", "proj");
     r1.started_at = Utc.with_ymd_and_hms(2026, 1, 1, 0, 0, 0).unwrap();
+    r1.updated_at = r1.started_at + chrono::Duration::hours(1);
     insert_session(&conn, &r1).unwrap();
 
     let mut r2 = sample_record("late", "proj");
     r2.started_at = Utc.with_ymd_and_hms(2026, 6, 1, 0, 0, 0).unwrap();
+    r2.updated_at = r2.started_at + chrono::Duration::hours(1);
     insert_session(&conn, &r2).unwrap();
 
     let results = query_sessions(&conn, &SessionFilter::new()).unwrap();
@@ -195,12 +222,14 @@ fn purge_removes_old_sessions() {
 
     let mut old = sample_record("old", "proj");
     old.started_at = Utc.with_ymd_and_hms(2020, 1, 1, 0, 0, 0).unwrap();
+    old.updated_at = old.started_at + chrono::Duration::hours(1);
     insert_session(&conn, &old).unwrap();
 
     // The shared fixture carries a fixed 2026-03-10 date, which ages past any
     // retention window; a "recent" session must be anchored to now.
     let mut recent = sample_record("recent", "proj");
     recent.started_at = Utc::now();
+    recent.updated_at = Utc::now();
     insert_session(&conn, &recent).unwrap();
 
     let policy = RetentionPolicy { max_age_days: 30 };
@@ -218,6 +247,7 @@ fn purge_keeps_all_recent() {
     for id in ["a", "b"] {
         let mut record = sample_record(id, "p");
         record.started_at = Utc::now();
+        record.updated_at = Utc::now();
         insert_session(&conn, &record).unwrap();
     }
 
@@ -458,43 +488,18 @@ fn set_session_owner_transfers_and_rejects_unknown() {
 }
 
 #[test]
-fn pre_owner_database_migrates_and_reads_owner_none() {
-    let dir = TempDir::new().unwrap();
-    let path = dir.path().join("legacy.db");
-
-    // Build a v1-era database by hand, with a row inserted before the
-    // owner column existed.
-    {
-        let conn = Connection::open(&path).unwrap();
-        conn.execute_batch(
-            "CREATE TABLE sessions (
-                session_id    TEXT PRIMARY KEY,
-                project       TEXT NOT NULL,
-                started_at    TEXT NOT NULL,
-                ended_at      TEXT NOT NULL,
-                cost_usd      REAL NOT NULL,
-                turns         INTEGER NOT NULL,
-                duration_ms   INTEGER NOT NULL,
-                files_changed TEXT NOT NULL DEFAULT '[]',
-                tags          TEXT NOT NULL DEFAULT '[]',
-                summary       TEXT
-            );
-            INSERT INTO sessions VALUES
-                ('legacy', 'proj', '2026-03-10T09:00:00Z', '2026-03-10T09:30:00Z',
-                 1.0, 3, 1800000, '[]', '[]', NULL);
-            PRAGMA user_version = 1;",
-        )
-        .unwrap();
-    }
-
-    let conn = open_db(&path).unwrap();
+fn unsupported_session_schema_is_refused_without_mutation() {
+    let directory = TempDir::new().unwrap();
+    let path = directory.path().join("unsupported.db");
+    let conn = Connection::open(&path).unwrap();
+    conn.execute_batch("PRAGMA user_version = 6;").unwrap();
+    drop(conn);
+    assert!(open_db(&path).is_err());
+    let conn = Connection::open(&path).unwrap();
     let version: i32 = conn
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .unwrap();
     assert_eq!(version, 6);
-
-    let loaded = get_session(&conn, "legacy").unwrap().unwrap();
-    assert_eq!(loaded.owner, None);
 }
 
 #[test]
@@ -562,28 +567,12 @@ fn concurrent_wal_writers_and_checkpointers_leave_the_sessions_store_intact() {
     );
 }
 
-/// Two processes that open an older database at the same moment both get a
-/// migrated database: the upgrade is one exclusive step, never a race in
-/// which the loser fails on a column the winner just added.
+/// Concurrent first openers share one atomic current-schema creation.
 #[test]
-fn concurrent_opens_of_an_older_database_both_succeed() {
+fn concurrent_opens_of_a_new_database_succeed() {
     for _ in 0..20 {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("sessions.db");
-        {
-            let conn = Connection::open(&path).unwrap();
-            conn.execute_batch(
-                "CREATE TABLE sessions (
-                    session_id TEXT PRIMARY KEY, project TEXT NOT NULL,
-                    started_at TEXT NOT NULL, ended_at TEXT NOT NULL,
-                    cost_usd REAL NOT NULL, turns INTEGER NOT NULL,
-                    duration_ms INTEGER NOT NULL,
-                    files_changed TEXT NOT NULL DEFAULT '[]',
-                    tags TEXT NOT NULL DEFAULT '[]', summary TEXT);
-                 PRAGMA user_version = 1;",
-            )
-            .unwrap();
-        }
         let barrier = std::sync::Arc::new(std::sync::Barrier::new(4));
         let opened: Vec<_> = (0..4)
             .map(|_| {
@@ -596,7 +585,43 @@ fn concurrent_opens_of_an_older_database_both_succeed() {
             .collect();
         for handle in opened {
             let count = handle.join().unwrap();
-            assert_eq!(count.expect("every opener gets a migrated database"), 0);
+            assert_eq!(count.expect("every opener gets the current schema"), 0);
         }
     }
+}
+
+#[test]
+fn recent_history_and_since_filter_follow_the_latest_settlement_of_a_resumed_conversation() {
+    let (_directory, conn) = test_db();
+    let mut continued = sample_record("continued", "project");
+    let mut newer = sample_record("newer", "project");
+    continued.started_at = newer.started_at - chrono::Duration::days(30);
+    continued.updated_at = newer.updated_at + chrono::Duration::days(1);
+    newer.updated_at -= chrono::Duration::hours(1);
+    insert_session(&conn, &newer).unwrap();
+    insert_session(&conn, &continued).unwrap();
+    let records = query_sessions(&conn, &SessionFilter::new().with_limit(1)).unwrap();
+    assert_eq!(records[0].session_id, "continued");
+    let records = query_sessions(
+        &conn,
+        &SessionFilter::new().with_since(newer.updated_at + chrono::Duration::minutes(1)),
+    )
+    .unwrap();
+    assert_eq!(records.len(), 1);
+    assert_eq!(records[0].session_id, "continued");
+}
+
+#[test]
+fn a_settlement_cannot_mix_facts_from_another_working_copy_or_provider() {
+    let (_directory, conn) = test_db();
+    let record = sample_record("host", "project");
+    insert_session(&conn, &record).unwrap();
+    let mut unrelated = record.clone();
+    unrelated.updated_at += chrono::Duration::seconds(1);
+    unrelated.workspace = "another-working-copy".into();
+    assert!(insert_session(&conn, &unrelated).is_err());
+    unrelated.workspace = record.workspace.clone();
+    unrelated.provider = "another-agent".into();
+    assert!(insert_session(&conn, &unrelated).is_err());
+    assert_eq!(get_session(&conn, "host").unwrap().unwrap(), record);
 }

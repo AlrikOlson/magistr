@@ -87,7 +87,12 @@ fn add_chunk_command(id: &str) -> OwnerCommand {
 }
 
 fn chunk_ids(reader: &NativeReader) -> Vec<String> {
-    let mut ids: Vec<String> = reader.roadmap_chunks().into_iter().map(|c| c.id).collect();
+    let mut ids: Vec<String> = reader
+        .roadmap_chunks()
+        .unwrap()
+        .into_iter()
+        .map(|c| c.id)
+        .collect();
     ids.sort();
     ids
 }
@@ -95,6 +100,7 @@ fn chunk_ids(reader: &NativeReader) -> Vec<String> {
 fn checks_on(reader: &NativeReader, task: &str) -> Vec<String> {
     reader
         .ship_tasks()
+        .unwrap()
         .into_iter()
         .filter(|t| t.id == task)
         .flat_map(|t| t.checks)
@@ -111,7 +117,10 @@ async fn an_attached_command_is_current_on_every_capability_and_observer() {
     let service = host.clone();
     let observer = reader(&cfg);
     // Both capabilities and the observer opened on an empty store.
-    assert!(service.roadmap_chunks().is_empty() && observer.roadmap_chunks().is_empty());
+    assert!(
+        service.roadmap_chunks().unwrap().is_empty()
+            && observer.roadmap_chunks().unwrap().is_empty()
+    );
 
     // The attached client's command runs on the host's engines: read-your-
     // writes for the owner, and on disk at once.
@@ -124,7 +133,7 @@ async fn an_attached_command_is_current_on_every_capability_and_observer() {
     };
     assert_eq!(chunk.id, "via-attached");
     assert!(
-        host.roadmap_chunk("via-attached").is_some(),
+        host.roadmap_chunk("via-attached").unwrap().is_some(),
         "the owner is current"
     );
     assert_eq!(chunk_ids(&reader(&cfg)), vec!["via-attached".to_owned()]);
@@ -132,7 +141,7 @@ async fn an_attached_command_is_current_on_every_capability_and_observer() {
     // The service view acts through the same writer. Its mutation preserves
     // the acknowledged record and becomes visible to persisted observers.
     assert!(
-        service.roadmap_chunk("via-attached").is_some(),
+        service.roadmap_chunk("via-attached").unwrap().is_some(),
         "a query on the shared capability sees the acknowledged write"
     );
     add_chunk(&service, "via-service");
@@ -151,7 +160,7 @@ async fn an_attached_command_is_current_on_every_capability_and_observer() {
         chunk_ids(&observer),
         vec!["via-attached".to_owned(), "via-service".to_owned()]
     );
-    assert!(host.roadmap_chunk("via-service").is_some());
+    assert!(host.roadmap_chunk("via-service").unwrap().is_some());
     // A transition on the host validates against the current record, so
     // starting the chunk the service just obsoleted is refused with the
     // current status, not carried out on a stale pending copy.
@@ -163,7 +172,9 @@ async fn an_attached_command_is_current_on_every_capability_and_observer() {
         .expect_err("obsoleted on disk");
     assert!(refused.contains("replaced"), "{refused}");
     assert_eq!(
-        host.roadmap_chunk("via-attached").map(|c| c.status),
+        host.roadmap_chunk("via-attached")
+            .unwrap()
+            .map(|c| c.status),
         Some(ChunkStatus::Obsoleted)
     );
 
@@ -199,7 +210,10 @@ fn shared_ship_capabilities_and_observers_retain_a_recorded_gate() {
         )
         .expect("the service sees the host's task");
     assert!(check.verified && check.passed);
-    assert_eq!(service.ship_active_task_id().as_deref(), Some("verify"));
+    assert_eq!(
+        service.ship_active_task_id().unwrap().as_deref(),
+        Some("verify")
+    );
 
     // Completing through another capability preserves the recorded check.
     let completed = host.ship_complete_task("verify", vec![]).expect("complete");
@@ -213,19 +227,55 @@ fn shared_ship_capabilities_and_observers_retain_a_recorded_gate() {
         "the host's verb answered the current task"
     );
     assert_eq!(checks_on(&reader(&cfg), "verify"), vec!["lint".to_owned()]);
-    assert_eq!(host.ship_status()["tasks"]["completed"], 1);
+    assert_eq!(
+        host.ship_tasks()
+            .unwrap()
+            .iter()
+            .filter(
+                |task| task.status == magistr_workflow::ship::domain::task::TaskStatus::Completed
+            )
+            .count(),
+        1
+    );
 
     // Queries read through as well: the service's status answers the
     // completed task the host wrote, and a reader opened on the empty
     // store answers the whole cycle — no reload on either.
     assert_eq!(
-        service.ship_status()["tasks"]["completed"],
+        service
+            .ship_tasks()
+            .unwrap()
+            .iter()
+            .filter(
+                |task| task.status == magistr_workflow::ship::domain::task::TaskStatus::Completed
+            )
+            .count(),
         1,
         "a query on the shared capability observes the current cycle"
     );
     assert_eq!(checks_on(&observer, "verify"), vec!["lint".to_owned()]);
-    assert_eq!(observer.ship_status()["tasks"]["completed"], 1);
-    assert_eq!(observer.snapshot().tasks.len(), 1);
+    assert_eq!(
+        observer
+            .ship_tasks()
+            .unwrap()
+            .iter()
+            .filter(
+                |task| task.status == magistr_workflow::ship::domain::task::TaskStatus::Completed
+            )
+            .count(),
+        1
+    );
+    assert_eq!(
+        observer
+            .snapshot()
+            .ship
+            .current()
+            .unwrap()
+            .value
+            .tasks
+            .len(),
+        1
+    );
 }
 
 #[test]
@@ -235,17 +285,20 @@ fn shared_signal_capabilities_promote_once_and_observers_refresh() {
     let host = writer(&cfg, WriterRole::Host);
     let service = host.clone();
     let observer = reader(&cfg);
-    assert!(host.signal_list().is_empty() && observer.signal_list().is_empty());
+    assert!(host.signal_list().unwrap().is_empty() && observer.signal_list().unwrap().is_empty());
 
     let captured = service
         .signal_capture(SignalKind::Idea, "alice".into(), "read through".into())
         .expect("capture");
     assert_eq!(
-        host.signal(&captured.id).map(|s| s.body).as_deref(),
+        host.signal(&captured.id)
+            .unwrap()
+            .map(|s| s.body)
+            .as_deref(),
         Some("read through"),
         "the host's query observes the service's capture"
     );
-    assert_eq!(observer.signal_status()["counts"]["total"], 1);
+    assert_eq!(observer.signal_status().unwrap()["counts"]["total"], 1);
 
     // A decision through the host capability is visible to the service view.
     host.signal_research(&captured.id, "worth it".into(), 0.9, vec![], None)
@@ -258,14 +311,14 @@ fn shared_signal_capabilities_promote_once_and_observers_refresh() {
         .expect("a chunk back-reference")
         .to_owned();
     assert!(
-        service.roadmap_chunk(&chunk_id).is_some(),
+        service.roadmap_chunk(&chunk_id).unwrap().is_some(),
         "the promoted chunk is current on the shared capability"
     );
     // The service's own promote of the same signal is the same promotion:
     // it observes the promoted record and creates nothing.
     let again = service.signal_promote(&captured.id).expect("idempotent");
     assert_eq!(again.cross_refs, promoted.cross_refs);
-    assert_eq!(observer.roadmap_chunks().len(), 1);
+    assert_eq!(observer.roadmap_chunks().unwrap().len(), 1);
 }
 
 #[test]

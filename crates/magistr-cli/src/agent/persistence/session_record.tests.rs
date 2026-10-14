@@ -1,19 +1,27 @@
 use super::*;
+use crate::session::session_outcome::SessionOutcome as HistoryOutcome;
 use chrono::TimeZone;
 
 fn sample_record(id: &str, project: &str, cost: f64, turns: u32) -> SessionRecord {
     SessionRecord {
         session_id: id.to_string(),
+        name: None,
         project: project.to_string(),
+        workspace: project.to_string(),
+        provider: "scripted".into(),
+        provider_session_id: Some("provider-fixture".into()),
+        resume_supported: true,
+        outcome: Some(HistoryOutcome::Completed),
         started_at: Utc.with_ymd_and_hms(2026, 3, 10, 9, 0, 0).unwrap(),
-        ended_at: Utc.with_ymd_and_hms(2026, 3, 10, 9, 30, 0).unwrap(),
-        cost_usd: cost,
-        turns,
+        updated_at: Utc.with_ymd_and_hms(2026, 3, 10, 9, 30, 0).unwrap(),
+        ended_at: Some(Utc.with_ymd_and_hms(2026, 3, 10, 9, 30, 0).unwrap()),
+        cost_usd: Some(cost),
+        turns: Some(turns),
         duration_ms: 1_800_000,
         files_changed: vec!["src/main.rs".into(), "src/lib.rs".into()],
         tags: vec![],
         summary: None,
-        model: String::new(),
+        model: None,
         owner: None,
     }
 }
@@ -81,4 +89,20 @@ fn session_record_serialization_round_trip() {
     let json = serde_json::to_string(&r).expect("serialize");
     let r2: SessionRecord = serde_json::from_str(&json).expect("deserialize");
     assert_eq!(r, r2);
+}
+
+#[test]
+fn absent_usage_remains_unknown_and_resume_requires_identity_and_capability() {
+    let mut record = sample_record("host", "project", 1.0, 1);
+    record.cost_usd = None;
+    record.turns = None;
+    assert_eq!(record.cost_display(), "unknown");
+    assert_eq!(record.turns_display(), "unknown");
+    record.provider_session_id = None;
+    assert!(!record.can_resume());
+    record.provider_session_id = Some("provider-id".into());
+    record.resume_supported = false;
+    assert!(!record.can_resume());
+    record.resume_supported = true;
+    assert!(record.can_resume());
 }

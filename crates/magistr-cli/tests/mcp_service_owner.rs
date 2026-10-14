@@ -222,10 +222,15 @@ async fn a_host_attaches_to_the_service_owner_and_reads_shared_state() {
         io::ErrorKind::WouldBlock
     );
     let host = EngineClient::admit_or_attach_config(cfg.clone()).expect("attached host");
-    assert!(host.reader().roadmap_chunks().is_empty());
+    assert!(host.reader().roadmap_chunks().unwrap().is_empty());
     drop(host);
     assert_eq!(refused(&root, &cfg).await.kind(), io::ErrorKind::WouldBlock);
-    assert!(NativeReader::open(&cfg).roadmap_chunks().is_empty());
+    assert!(
+        NativeReader::open(&cfg)
+            .roadmap_chunks()
+            .unwrap()
+            .is_empty()
+    );
     endpoint.shutdown().await.expect("bounded cleanup");
     drop(owner);
     ProjectAuthority::admit(&cfg, WriterRole::Host).expect("released project");

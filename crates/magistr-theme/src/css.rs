@@ -1,7 +1,7 @@
 //! CSS custom property generation from palettes.
 //!
 //! Produces CSS custom properties (variables) from a `Palette` or `OwnedPalette`,
-//! enabling the GUI frontend to use the same theme definitions as the TUI.
+//! enabling the GUI frontend to use the same theme definitions as the interface.
 
 use crate::color::ThemeColor;
 use crate::ink::ink;

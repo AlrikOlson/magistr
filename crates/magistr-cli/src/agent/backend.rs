@@ -1,4 +1,4 @@
-//! Compatibility ACP facade backed by the reusable resident session supervisor.
+//! Headless ACP observation backed by the resident session supervisor.
 
 use tracing::instrument;
 
@@ -51,7 +51,10 @@ impl AcpBackend {
     }
 
     /// Send a follow-up; busy sessions retain it in FIFO order.
-    pub fn send_followup(&self, content: &str) -> Result<()> {
+    pub fn send_followup(
+        &self,
+        content: &magistr_application::sessions::PromptInput,
+    ) -> Result<()> {
         self.supervisor.send_followup(content)
     }
 

@@ -1,4 +1,4 @@
-//! Headless & CI mode — run magistr without the TUI.
+//! Headless & CI mode — run magistr without the interface.
 //!
 //! This module provides:
 //! - `OutputFormat` — selects between JSON, plain text, and GitHub Actions output

@@ -149,7 +149,7 @@ edition = "2021"
     );
 
     magistr()
-        .args(["--no-tui", "init", &dir.path().display().to_string()])
+        .args(["init", &dir.path().display().to_string()])
         .assert()
         .success();
 
@@ -173,7 +173,7 @@ edition = "2021"
     );
 
     magistr()
-        .args(["--no-tui", "init", &dir.path().display().to_string()])
+        .args(["init", &dir.path().display().to_string()])
         .assert()
         .success();
 
@@ -191,92 +191,10 @@ fn init_is_idempotent_with_existing_claude_dir() {
 
     // init should succeed even when .claude/ already exists (idempotent update).
     magistr()
-        .args(["--no-tui", "init", &dir.path().display().to_string()])
+        .args(["init", &dir.path().display().to_string()])
         .assert()
         .success()
         .stderr(predicate::str::contains("scaffolded successfully"));
-}
-
-// ── magistr migrate ─────────────────────────────────────────────────────────
-
-#[test]
-fn migrate_no_claude_dir() {
-    let dir = TempDir::new().unwrap();
-
-    magistr()
-        .args(["migrate", &dir.path().display().to_string()])
-        .assert()
-        .success()
-        .stderr(predicate::str::contains("up to date"));
-}
-
-#[test]
-fn migrate_detects_missing_project_json() {
-    let dir = TempDir::new().unwrap();
-    std::fs::create_dir_all(dir.path().join(".claude")).unwrap();
-
-    magistr()
-        .args(["migrate", &dir.path().display().to_string()])
-        .assert()
-        .failure()
-        .stderr(predicate::str::contains("project.json"));
-}
-
-#[test]
-fn migrate_detects_bash_hooks() {
-    let dir = TempDir::new().unwrap();
-    let claude_dir = dir.path().join(".claude");
-    let hooks_dir = claude_dir.join("hooks");
-    std::fs::create_dir_all(&hooks_dir).unwrap();
-    std::fs::write(claude_dir.join("project.json"), "{}").unwrap();
-    std::fs::write(hooks_dir.join("validate.sh"), "#!/bin/bash\ncargo test").unwrap();
-
-    magistr()
-        .args(["migrate", &dir.path().display().to_string()])
-        .assert()
-        .failure()
-        .stderr(predicate::str::contains("bash shebang"));
-}
-
-#[test]
-fn migrate_passes_clean_config() {
-    let dir = TempDir::new().unwrap();
-    let claude_dir = dir.path().join(".claude");
-    let magistr_dir = dir.path().join(".magistr");
-    std::fs::create_dir_all(&claude_dir).unwrap();
-    std::fs::create_dir_all(&magistr_dir).unwrap();
-    // A clean config declares its roadmap backend; one that predates the key
-    // is auto-migrated (see `migrate_writes_a_missing_roadmap_backend`).
-    std::fs::write(
-        magistr_dir.join("project.json"),
-        r#"{"roadmap_backend":"think-and-ship"}"#,
-    )
-    .unwrap();
-
-    magistr()
-        .args(["migrate", &dir.path().display().to_string()])
-        .assert()
-        .success()
-        .stderr(predicate::str::contains("up to date"));
-}
-
-#[test]
-fn migrate_writes_a_missing_roadmap_backend() {
-    let dir = TempDir::new().unwrap();
-    let magistr_dir = dir.path().join(".magistr");
-    std::fs::create_dir_all(&magistr_dir).unwrap();
-    std::fs::write(magistr_dir.join("project.json"), "{}").unwrap();
-
-    magistr()
-        .args(["migrate", &dir.path().display().to_string()])
-        .assert()
-        .success()
-        .stderr(predicate::str::contains("roadmap_backend"));
-    let written = std::fs::read_to_string(magistr_dir.join("project.json")).unwrap();
-    assert!(
-        written.contains("\"roadmap_backend\": \"think-and-ship\""),
-        "{written}"
-    );
 }
 
 // ── magistr help / version ──────────────────────────────────────────────────
@@ -287,7 +205,9 @@ fn help_flag_works() {
         .arg("--help")
         .assert()
         .success()
-        .stdout(predicate::str::contains("AI-powered development toolkit"));
+        .stdout(predicate::str::contains(
+            "Manage coding agents and project workflow",
+        ));
 }
 
 #[test]
@@ -340,7 +260,7 @@ fn export_requires_project_json() {
     let dir = TempDir::new().unwrap();
 
     magistr()
-        .args(["export", "--no-tui", &dir.path().display().to_string()])
+        .args(["export", &dir.path().display().to_string()])
         .assert()
         .failure()
         .stderr(predicate::str::contains("project.json"));
@@ -363,13 +283,13 @@ edition = "2021"
     write_file(dir.path(), "src/main.rs", "fn main() {}");
 
     magistr()
-        .args(["init", "--no-tui", &dir.path().display().to_string()])
+        .args(["init", &dir.path().display().to_string()])
         .assert()
         .success();
 
     // Now export
     magistr()
-        .args(["export", "--no-tui", &dir.path().display().to_string()])
+        .args(["export", &dir.path().display().to_string()])
         .assert()
         .success()
         .stderr(predicate::str::contains("Exported preset"));
@@ -402,7 +322,7 @@ edition = "2021"
 
     // Init source
     magistr()
-        .args(["init", "--no-tui", &src_dir.path().display().to_string()])
+        .args(["init", &src_dir.path().display().to_string()])
         .assert()
         .success();
 
@@ -411,7 +331,6 @@ edition = "2021"
     magistr()
         .args([
             "export",
-            "--no-tui",
             &src_dir.path().display().to_string(),
             "-o",
             &preset_path.display().to_string(),
@@ -423,7 +342,6 @@ edition = "2021"
     magistr()
         .args([
             "import",
-            "--no-tui",
             &preset_path.display().to_string(),
             &dst_dir.path().display().to_string(),
         ])
@@ -454,13 +372,13 @@ edition = "2021"
     write_file(src_dir.path(), "src/main.rs", "fn main() {}");
 
     magistr()
-        .args(["init", "--no-tui", &src_dir.path().display().to_string()])
+        .args(["init", &src_dir.path().display().to_string()])
         .assert()
         .success();
 
     let preset_path = src_dir.path().join(".magistr-preset.toml");
     magistr()
-        .args(["export", "--no-tui", &src_dir.path().display().to_string()])
+        .args(["export", &src_dir.path().display().to_string()])
         .assert()
         .success();
 
@@ -468,7 +386,6 @@ edition = "2021"
     magistr()
         .args([
             "init",
-            "--no-tui",
             "--from",
             &preset_path.display().to_string(),
             &dst_dir.path().display().to_string(),
@@ -678,114 +595,6 @@ fn a_second_sigint_is_the_emergency_exit_and_still_ends_a_term_ignoring_child() 
     }
 }
 
-/// The bare cockpit on a real pty: the first SIGINT closes it through the
-/// runtime's own leave sequence — the alternate screen left, the graceful
-/// request announced in the replayed scrollback, exit 130 well inside the
-/// settle deadline and never the emergency line.
-#[cfg(unix)]
-#[test]
-fn a_sigint_to_the_cockpit_leaves_the_alternate_screen_and_exits_130_gracefully() {
-    use std::io::{Read as _, Write as _};
-    use std::time::{Duration, Instant};
-
-    let dir = interrupt_project("true");
-    let pty = magistr_process::Pty::open(100, 30).expect("a pty pair");
-    let mut child = magistr_command::magistr_command()
-        .arg("roadmap")
-        .current_dir(dir.path())
-        .env("HOME", dir.path())
-        .env("XDG_CONFIG_HOME", dir.path().join("config"))
-        .env("TERM", "xterm-256color")
-        .env_remove("TMUX")
-        .stdin(pty.stdio().expect("stdin on the pty"))
-        .stdout(pty.stdio().expect("stdout on the pty"))
-        .stderr(pty.stdio().expect("stderr on the pty"))
-        .spawn()
-        .expect("failed to spawn the cockpit");
-    // The slave stays open until the master is drained: macOS discards a
-    // slave's unread output when its last descriptor closes.
-    let (master, _slave) = pty.into_parts();
-    let mut master = std::fs::File::from(master);
-    let mut wire = Vec::new();
-    let drain = |master: &mut std::fs::File, wire: &mut Vec<u8>| {
-        let mut buf = [0_u8; 4096];
-        loop {
-            match master.read(&mut buf) {
-                Ok(0) => return,
-                Ok(n) => wire.extend_from_slice(&buf[..n]),
-                Err(err) if err.kind() == std::io::ErrorKind::WouldBlock => return,
-                Err(err) if err.raw_os_error() == Some(5) => return,
-                Err(err) => panic!("reading the pty: {err}"),
-            }
-        }
-    };
-    let contains = |wire: &[u8], needle: &[u8]| wire.windows(needle.len()).any(|w| w == needle);
-
-    // Wait for the cockpit to be on the alternate screen with a frame
-    // painted — the loop is running, the startup window is over.
-    let deadline = Instant::now() + Duration::from_secs(30);
-    let mut answered = false;
-    loop {
-        drain(&mut master, &mut wire);
-        if !answered && contains(&wire, b"\x1b[c") {
-            // Answer DA1 so the startup window closes without its timeout.
-            master.write_all(b"\x1b[?62;4c").expect("answer the probe");
-            answered = true;
-        }
-        if contains(&wire, b"\x1b[?1049h") && contains(&wire, b"\x1b[?2026l") {
-            break;
-        }
-        if let Some(status) = child.try_wait().expect("poll the child") {
-            panic!(
-                "the cockpit exited before it was interrupted: {status}\n{}",
-                String::from_utf8_lossy(&wire)
-            );
-        }
-        assert!(
-            Instant::now() < deadline,
-            "the cockpit never painted a frame on the alternate screen:\n{}",
-            String::from_utf8_lossy(&wire)
-        );
-        std::thread::sleep(Duration::from_millis(20));
-    }
-    let entered = wire.len();
-
-    let interrupted_at = Instant::now();
-    signal(child.id(), "-INT");
-    let status = loop {
-        drain(&mut master, &mut wire);
-        if let Some(status) = child.try_wait().expect("poll the child") {
-            break status;
-        }
-        assert!(
-            interrupted_at.elapsed() < Duration::from_secs(20),
-            "the cockpit never exited after SIGINT:\n{}",
-            String::from_utf8_lossy(&wire)
-        );
-        std::thread::sleep(Duration::from_millis(20));
-    };
-    let took = interrupted_at.elapsed();
-    drain(&mut master, &mut wire);
-    let text = String::from_utf8_lossy(&wire);
-    assert_eq!(status.code(), Some(130), "{text}");
-    assert!(
-        contains(&wire[entered..], b"\x1b[?1049l"),
-        "the alternate screen was left through the runtime's own sequence: {text}"
-    );
-    assert!(
-        !text.contains("emergency exit"),
-        "the graceful path never needs the emergency exit: {text}"
-    );
-    assert!(
-        text.contains("interrupted; settling"),
-        "the graceful request is announced in the replayed scrollback: {text}"
-    );
-    assert!(
-        took < Duration::from_secs(6),
-        "closed well inside the settle deadline, not on it: {took:?}"
-    );
-}
-
 // ── NO_COLOR support ───────────────────────────────────────────────
 
 #[test]
@@ -804,7 +613,7 @@ edition = "2021"
 
     let output = magistr()
         .env("NO_COLOR", "1")
-        .args(["detect", "--no-tui", &dir.path().display().to_string()])
+        .args(["detect", &dir.path().display().to_string()])
         .output()
         .expect("failed to run magistr detect");
 

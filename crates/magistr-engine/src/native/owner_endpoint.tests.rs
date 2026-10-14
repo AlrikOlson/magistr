@@ -56,6 +56,7 @@ async fn project_attachment_uses_the_same_captured_identity_as_its_owner() {
     assert!(
         NativeReader::open(&cfg)
             .roadmap_chunk("captured-attachment")
+            .unwrap()
             .is_some()
     );
 }
@@ -98,6 +99,7 @@ fn add_chunk(id: &str) -> OwnerCommand {
 fn chunk_ids(cfg: &NativeConfig) -> Vec<String> {
     NativeReader::open_for_project(cfg, "lease".into())
         .roadmap_chunks()
+        .unwrap()
         .into_iter()
         .map(|c| c.id)
         .collect()

@@ -43,7 +43,7 @@ async fn force_reinit_preserves_state_config_and_customized_scaffold() {
     let state_files = [
         (".magistr/state.json", "{\"phase\":\"execute\"}"),
         (".magistr/iteration-log.md", "earlier receipt\n"),
-        (".jig/session.json", "{\"legacy\":true}"),
+        (".magistr/session-state.json", "{\"saved\":true}"),
         (".claude/skills/mine/SKILL.md", "custom skill\n"),
         (".claude/rules/conventions.md", "our conventions\n"),
     ];
@@ -111,9 +111,12 @@ async fn force_reinit_preserves_state_config_and_customized_scaffold() {
 fn reinit_preview_and_generation_preserve_existing_project_bytes() {
     let tmp = fixture();
     let dir = tmp.path();
-    let project =
-        "{\n  \"future_setting\": 42, \"quality_gate\": {\"check\":\"custom check\"}\n}\n";
-    write(dir, ".magistr/project.json", project);
+    let mut config: serde_json::Value =
+        serde_json::from_str(&read(dir, ".magistr/project.json")).unwrap();
+    config["future_setting"] = 42.into();
+    config["quality_gate"]["check"] = "custom check".into();
+    let project = format!("{}\n", serde_json::to_string_pretty(&config).unwrap());
+    write(dir, ".magistr/project.json", &project);
     let pipeline = ScaffoldPipeline::headless(detect_stack(dir).unwrap());
     let preview = pipeline.preview(dir).unwrap();
     let file = preview

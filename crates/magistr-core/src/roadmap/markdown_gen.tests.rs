@@ -1,5 +1,4 @@
 use super::*;
-use crate::roadmap::migrate::parse_markdown;
 use crate::roadmap::{PhaseStatus, Task};
 
 fn task(text: &str, checked: bool) -> Task {
@@ -178,90 +177,4 @@ fn render_multiple_phases_separated() {
     };
     let md = render(&roadmap);
     assert!(md.contains("---\n\n## Phase E2:"));
-}
-
-#[test]
-fn round_trip_minimal() {
-    let original = minimal_roadmap();
-    let md = render(&original);
-    let parsed = parse_markdown(&md).unwrap();
-    assert_eq!(parsed.title, original.title);
-    assert_eq!(parsed.phases.len(), original.phases.len());
-    assert_eq!(parsed.phases[0].id, original.phases[0].id);
-    assert_eq!(parsed.phases[0].name, original.phases[0].name);
-    assert_eq!(parsed.phases[0].tasks.len(), original.phases[0].tasks.len());
-    assert_eq!(
-        parsed.phases[0].tasks[0].text,
-        original.phases[0].tasks[0].text
-    );
-    assert_eq!(
-        parsed.phases[0].tasks[0].checked,
-        original.phases[0].tasks[0].checked
-    );
-}
-
-#[test]
-fn round_trip_full() {
-    let roadmap = Roadmap {
-        title: "Test Roadmap".into(),
-        preamble: "Some preamble text here.".into(),
-        vision: "Build amazing things.".into(),
-        principles: vec!["Keep it simple".into(), "Ship fast".into()],
-        phases: vec![
-            {
-                let mut p = phase(
-                    "E0",
-                    "Setup",
-                    vec![
-                        task_with_subs(
-                            "Create project structure",
-                            true,
-                            vec![task("Add Cargo.toml", true), task("Add src/main.rs", true)],
-                        ),
-                        task("Write README", false),
-                    ],
-                );
-                p.tagline = Some("Getting started".into());
-                p.problem = "Nothing exists yet.".into();
-                p.solution = "Scaffold everything.".into();
-                p
-            },
-            {
-                let mut p = phase(
-                    "E1",
-                    "Features",
-                    vec![task("Add feature A", false), task("Add feature B", true)],
-                );
-                p.tagline = Some("The good stuff".into());
-                p.problem = "No features.".into();
-                p
-            },
-        ],
-        epilogue: "Some epilogue text.".into(),
-    };
-
-    let md = render(&roadmap);
-    let parsed = parse_markdown(&md).unwrap();
-
-    assert_eq!(parsed.title, roadmap.title);
-    assert_eq!(parsed.preamble, roadmap.preamble);
-    assert_eq!(parsed.vision, roadmap.vision);
-    assert_eq!(parsed.principles, roadmap.principles);
-    assert_eq!(parsed.epilogue, roadmap.epilogue);
-    assert_eq!(parsed.phases.len(), 2);
-
-    // E0
-    assert_eq!(parsed.phases[0].id, "E0");
-    assert_eq!(parsed.phases[0].name, "Setup");
-    assert_eq!(parsed.phases[0].tagline.as_deref(), Some("Getting started"));
-    assert_eq!(parsed.phases[0].problem, "Nothing exists yet.");
-    assert_eq!(parsed.phases[0].solution, "Scaffold everything.");
-    assert_eq!(parsed.phases[0].tasks.len(), 2);
-    assert!(parsed.phases[0].tasks[0].checked);
-    assert_eq!(parsed.phases[0].tasks[0].subtasks.len(), 2);
-
-    // E1
-    assert_eq!(parsed.phases[1].id, "E1");
-    assert_eq!(parsed.phases[1].tagline.as_deref(), Some("The good stuff"));
-    assert_eq!(parsed.phases[1].tasks.len(), 2);
 }

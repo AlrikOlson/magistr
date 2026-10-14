@@ -4,6 +4,7 @@
 //! Tests cross-module interactions between `session::storage` and `session::types`.
 
 use chrono::{Duration, Utc};
+use magistr::session::session_outcome::SessionOutcome as HistoryOutcome;
 use tempfile::TempDir;
 
 use magistr::session::retention_policy::RetentionPolicy;
@@ -28,16 +29,23 @@ fn make_record(id: &str, project: &str, cost: f64, turns: u32) -> SessionRecord 
     let now = Utc::now();
     SessionRecord {
         session_id: id.into(),
+        name: None,
         project: project.into(),
+        workspace: project.into(),
+        provider: "scripted".into(),
+        provider_session_id: Some("provider-fixture".into()),
+        resume_supported: true,
+        outcome: Some(HistoryOutcome::Completed),
         started_at: now - Duration::hours(1),
-        ended_at: now,
-        cost_usd: cost,
-        turns,
+        updated_at: now,
+        ended_at: Some(now),
+        cost_usd: Some(cost),
+        turns: Some(turns),
         duration_ms: 3_600_000,
         files_changed: vec!["src/main.rs".into(), "src/lib.rs".into()],
         tags: vec![],
         summary: Some(format!("Session {id}")),
-        model: String::new(),
+        model: None,
         owner: None,
     }
 }
@@ -110,16 +118,23 @@ fn purge_removes_old_keeps_recent() {
     let now = Utc::now();
     let old_record = SessionRecord {
         session_id: "old-session".into(),
+        name: None,
         project: "project".into(),
+        workspace: "project".into(),
+        provider: "scripted".into(),
+        provider_session_id: Some("provider-fixture".into()),
+        resume_supported: true,
+        outcome: Some(HistoryOutcome::Completed),
         started_at: now - Duration::days(100),
-        ended_at: now - Duration::days(99),
-        cost_usd: 1.0,
-        turns: 5,
+        updated_at: now - Duration::days(99),
+        ended_at: Some(now - Duration::days(99)),
+        cost_usd: Some(1.0),
+        turns: Some(5),
         duration_ms: 5000,
         files_changed: vec![],
         tags: vec![],
         summary: None,
-        model: String::new(),
+        model: None,
         owner: None,
     };
     let recent_record = make_record("recent-session", "project", 2.0, 10);
@@ -144,22 +159,22 @@ fn purge_removes_old_keeps_recent() {
 // ── Duplicate session replacement ──────────────────────────────────
 
 #[test]
-fn insert_replaces_on_duplicate_id() {
+fn later_settlement_updates_one_conversation_with_immutable_identity() {
     let (_tmp, conn) = test_db();
 
     let mut r1 = make_record("same-id", "project-v1", 1.0, 5);
     insert_session(&conn, &r1).unwrap();
 
     // Update with same ID, different data
-    r1.project = "project-v2".into();
-    r1.cost_usd = 3.0;
-    r1.turns = 15;
+    r1.updated_at += chrono::Duration::seconds(1);
+    r1.cost_usd = Some(3.0);
+    r1.turns = Some(15);
     insert_session(&conn, &r1).unwrap();
 
     assert_eq!(count_sessions(&conn).unwrap(), 1);
     let loaded = get_session(&conn, "same-id").unwrap().unwrap();
-    assert_eq!(loaded.project, "project-v2");
-    assert!((loaded.cost_usd - 3.0).abs() < f64::EPSILON);
+    assert_eq!(loaded.project, "project-v1");
+    assert!((loaded.cost_usd.unwrap() - 3.0).abs() < f64::EPSILON);
 }
 
 // ── Query with limit ───────────────────────────────────────────────

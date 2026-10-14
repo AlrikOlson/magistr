@@ -8,7 +8,7 @@ use clap::ValueEnum;
 /// Output format for headless mode.
 ///
 /// Controls how session events and gate results are rendered when running
-/// without the TUI (e.g., in CI pipelines).
+/// without the interface (e.g., in CI pipelines).
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, ValueEnum)]
 pub enum OutputFormat {
     /// NDJSON event stream (one JSON object per line to stdout)

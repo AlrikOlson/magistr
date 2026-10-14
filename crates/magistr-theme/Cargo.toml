@@ -2,7 +2,7 @@
 name = "magistr-theme"
 version = "0.1.0"
 edition = "2024"
-description = "Rendering-agnostic theme definitions for Magistr — palettes, semantic mappings, TOML parsing, CSS generation. Shared between TUI and GUI frontends."
+description = "Rendering-agnostic theme definitions for Magistr — palettes, semantic mappings, TOML parsing, CSS generation. Shared between desktop and command-line consumers frontends."
 license = "MIT"
 
 [dependencies]

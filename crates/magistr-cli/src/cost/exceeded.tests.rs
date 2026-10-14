@@ -81,7 +81,7 @@ fn from_summary_matches_direct() {
         ..Default::default()
     };
     let summary = CostSummary {
-        total_cost: 7.50,
+        total_cost: Some(7.50),
         total_turns: 5,
         entry_count: 1,
         earliest: None,
@@ -90,7 +90,7 @@ fn from_summary_matches_direct() {
     };
     let turn_costs = vec![1.0, 1.5, 2.0, 1.5, 1.5];
 
-    let screen = BudgetExceededScreen::from_summary(5.0, &summary, &turn_costs);
+    let screen = BudgetExceededScreen::from_summary(5.0, &summary, &turn_costs).unwrap();
     assert!((screen.total_spent - 7.50).abs() < f64::EPSILON);
     assert_eq!(screen.turns_completed, 5);
     assert_eq!(screen.tokens, tokens);

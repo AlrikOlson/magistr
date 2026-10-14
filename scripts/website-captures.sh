@@ -1,50 +1,23 @@
 #!/usr/bin/env bash
-# website-captures.sh — regenerate the website's terminal captures from the
-# synthetic Harbor fixture and rewrite the manifest beside them.
-#
-# The captures are the real terminal renderer's frames of a sample project
-# (apps/website/fixtures/harbor.json); the project's own roadmap is never
-# read. Run this after an intentional change to the terminal interface, then
-# review the eight images and commit them with the manifest.
-#
-# Usage:
-#   ./scripts/website-captures.sh
-
+# Publish the reviewed current native desktop images to local website assets.
 set -euo pipefail
-
-PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-FIXTURE="$PROJECT_ROOT/apps/website/fixtures/harbor.json"
-OUT="$PROJECT_ROOT/apps/website/public/screenshots"
-
-cd "$PROJECT_ROOT"
-cargo run -q -p magistr-tui --example website_capture -- "$FIXTURE" "$OUT"
-
-python3 - "$OUT" "$FIXTURE" <<'PY'
-import hashlib, json, struct, sys, datetime, pathlib
-out, fixture = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
-images = []
-for name in ["terminal-overview-dark.png", "terminal-overview-light.png",
-             "terminal-roadmap-dark.png", "terminal-roadmap-light.png",
-             "terminal-session-dark.png", "terminal-session-light.png",
-             "terminal-turn-dark.png", "terminal-turn-light.png"]:
-    data = (out / name).read_bytes()
-    width, height = struct.unpack(">II", data[16:24])
-    screen = "roadmap" if name.startswith("terminal-roadmap-") else "conversation"
-    images.append({"file": name, "screen": screen,
-                   "sha256": hashlib.sha256(data).hexdigest(),
-                   "width": width, "height": height})
-manifest = {
-    "renderer": "magistr-tui::screenshot::Preview::frame",
-    "surface": "Terminal",
-    "profile": "Kitty",
-    "source_commit": "working-tree",
-    "captured_on": datetime.date.today().isoformat(),
-    "state": f"Rendered from {fixture.relative_to(out.parents[3])}",
-    "columns": 144,
-    "rows": 50,
-    "annotations": False,
-    "images": images,
-}
-(out / "captures.json").write_text(json.dumps(manifest, indent=2) + "\n")
-print("wrote", out / "captures.json")
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT"
+python3 scripts/desktop-visual-gate.py
+python3 - <<'PY'
+import datetime, hashlib, json, pathlib, shutil, struct
+root=pathlib.Path.cwd()
+evidence=root/"docs/evidence/desktop-current"
+out=root/"apps/website/public/screenshots"
+out.mkdir(parents=True,exist_ok=True)
+images=[]
+for theme in ("dark","light"):
+    name=f"desktop-{theme}.png"
+    shutil.copyfile(evidence/f"{theme}.png",out/name)
+    data=(out/name).read_bytes()
+    width,height=struct.unpack(">II",data[16:24])
+    images.append({"file":name,"screen":"conversation","sha256":hashlib.sha256(data).hexdigest(),"width":width,"height":height})
+manifest={"renderer":"magistr-desktop","surface":"Desktop","captured_on":datetime.date.today().isoformat(),"state":"Native desktop journey","annotations":False,"images":images}
+(out/"captures.json").write_text(json.dumps(manifest,indent=2)+"\n")
+print("PASS: local website assets contain the reviewed native desktop")
 PY

@@ -12,6 +12,7 @@ const INSTRUCTIONS: &str = "You are updating the project's roadmap in response t
 pub(crate) fn config(base: &AgentConfig) -> AgentConfig {
     let mut config = base.clone();
     config.prompt.clear();
+    config.history = crate::agent::persistence::SessionHistory::new();
     config.resume = None;
     config.continue_conversation = false;
     config.workflow_permissions = false;
@@ -61,6 +62,13 @@ impl RoadmapPolicy {
 }
 
 impl SessionPolicy for RoadmapPolicy {
+    fn can_use_model(&self, model: &str) -> bool {
+        self.inner.can_use_model(model)
+    }
+    fn model_changed(&mut self, model: Option<String>) {
+        self.inner.model_changed(model);
+    }
+
     fn decide(&mut self, request: &SessionPolicyRequest) -> PolicyDecision {
         if Self::permitted(request) {
             self.inner.decide(request)

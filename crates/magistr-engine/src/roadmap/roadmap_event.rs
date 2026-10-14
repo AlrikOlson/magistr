@@ -56,7 +56,7 @@ pub enum RoadmapEvent {
     /// The native think-and-ship roadmap was re-read (a chunk changed, a
     /// broadcast frame arrived, or a consumer asked for a refresh).
     NativeSnapshot {
-        /// Counts, next ready chunk, regions and progress.
-        snapshot: NativeRoadmapSnapshot,
+        /// Counts, next ready chunk, current workstreams, history and progress.
+        snapshot: Box<NativeRoadmapSnapshot>,
     },
 }

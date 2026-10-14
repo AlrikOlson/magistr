@@ -1,7 +1,7 @@
 //! Quality gate result types.
 //!
 //! Frontend-agnostic representations of quality gate outcomes (check, test,
-//! lint). Used by both TUI and GUI to display gate status, history sparklines,
+//! lint). Used by both desktop and command-line consumers to display gate status, history sparklines,
 //! and transition summaries.
 
 use super::gate_rows::GateFailureRow;

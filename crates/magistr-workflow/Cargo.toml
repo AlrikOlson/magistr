@@ -50,6 +50,9 @@ quick-xml = "0.41"
 
 tempfile = "3"
 
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
 [dev-dependencies]
 pretty_assertions = "1"
 # Validates Rust-built cloud envelopes against the canonical

@@ -13,8 +13,7 @@ pub struct RunRequest<'a> {
 
 impl RunRequest<'_> {
     /// Apply the request's flags to a session configuration.
-    #[must_use]
-    pub fn apply(&self, config: AgentConfig) -> AgentConfig {
+    pub fn apply(&self, config: AgentConfig) -> crate::error::Result<AgentConfig> {
         config.with_run_args(self.model, self.resume, self.continue_conversation)
     }
 }

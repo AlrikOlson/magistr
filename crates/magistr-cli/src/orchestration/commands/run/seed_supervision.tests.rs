@@ -1,14 +1,12 @@
-use magistr_cockpit::cockpit::Size;
 use magistr_engine::cost::{BudgetPeriod, BudgetRule, BudgetScope};
 
 use super::*;
 use crate::team::directory::DirectoryConfig;
 use crate::team::{TeamConfig, TeamRole};
 
-fn rows(model: &Model) -> Vec<(String, RuleMode)> {
+fn rows(model: &SupervisionSeed) -> Vec<(String, RuleMode)> {
     model
-        .rail()
-        .charter()
+        .charter
         .iter()
         .map(|rule| (rule.subject().to_owned(), rule.mode()))
         .collect()
@@ -86,8 +84,7 @@ fn an_unbound_or_equal_cap_is_the_whole_meter_with_no_tick() {
 #[test]
 fn a_project_with_no_rule_seeds_the_profiles_default_rows() {
     let dir = tempfile::tempdir().expect("a temp dir");
-    let model = seed_with(
-        Model::new(Size::new(80, 24)),
+    let model = derive(
         dir.path(),
         Some(&dir.path().join("costs.json")),
         PermissionProfile::Standard,
@@ -104,19 +101,16 @@ fn a_project_with_no_rule_seeds_the_profiles_default_rows() {
         "Standard: reads run free, writes and commands ask"
     );
     assert_eq!(
-        model.rail().budget(),
-        None,
+        model.budget, None,
         "no roster and no limit asked: nothing caps the session"
     );
-    assert_eq!(model.rail().agent(), None, "the handshake binds the agent");
 }
 
 #[test]
 fn the_default_rows_wear_each_profiles_tiers_and_all_auto_under_the_loop() {
     let dir = tempfile::tempdir().expect("a temp dir");
     let modes = |profile, workflow| -> Vec<RuleMode> {
-        rows(&seed_with(
-            Model::new(Size::new(80, 24)),
+        rows(&derive(
             dir.path(),
             Some(&dir.path().join("costs.json")),
             profile,
@@ -152,19 +146,14 @@ fn the_mode_word_is_the_loops_or_the_profiles() {
     );
     assert_eq!(mode_word(PermissionProfile::Trusted, false), "Trusted mode");
     let dir = tempfile::tempdir().expect("a temp dir");
-    let mut model = seed_with(
-        Model::new(Size::new(80, 24)),
+    let model = derive(
         dir.path(),
         Some(&dir.path().join("costs.json")),
         PermissionProfile::Standard,
         true,
         None,
     );
-    model.rail_mut().bind_agent(Some("sonnet"));
-    assert_eq!(
-        model.rail().agent().expect("bound").identity(),
-        "sonnet · Workflow mode"
-    );
+    assert_eq!(model.mode, "Workflow mode");
 }
 
 /// The governed cap without an env var: a roster's session cap binds
@@ -176,15 +165,14 @@ fn a_roster_cap_binds_the_meter_with_no_env_var_and_no_local_limit() {
         dir.path(),
         vec![BudgetRule::new(BudgetScope::Session, BudgetPeriod::Session).limit(2.0)],
     );
-    let model = seed_with(
-        Model::new(Size::new(80, 24)),
+    let model = derive(
         dir.path(),
         Some(&dir.path().join("costs.json")),
         PermissionProfile::Standard,
         false,
         None,
     );
-    let budget = model.rail().budget().expect("the roster's cap binds");
+    let budget = model.budget.expect("the roster's cap binds");
     assert_eq!(budget.readout(), "— / 2.00");
     assert_eq!(
         budget.breaker(),
@@ -202,15 +190,14 @@ fn a_roster_cap_tighter_than_the_requested_limit_draws_the_breaker() {
         dir.path(),
         vec![BudgetRule::new(BudgetScope::Session, BudgetPeriod::Session).limit(2.0)],
     );
-    let model = seed_with(
-        Model::new(Size::new(80, 24)),
+    let model = derive(
         dir.path(),
         Some(&dir.path().join("costs.json")),
         PermissionProfile::Standard,
         false,
         Some(12.0),
     );
-    let budget = model.rail().budget().expect("a cap");
+    let budget = model.budget.expect("a cap");
     assert_eq!(budget.readout(), "— / 12.00");
     assert_eq!(budget.breaker().as_deref(), Some("STOP AT 2.00"));
 }
@@ -219,15 +206,14 @@ fn a_roster_cap_tighter_than_the_requested_limit_draws_the_breaker() {
 #[test]
 fn a_requested_limit_with_no_roster_is_the_whole_meter() {
     let dir = tempfile::tempdir().expect("a temp dir");
-    let model = seed_with(
-        Model::new(Size::new(80, 24)),
+    let model = derive(
         dir.path(),
         Some(&dir.path().join("costs.json")),
         PermissionProfile::Standard,
         false,
         Some(5.0),
     );
-    let budget = model.rail().budget().expect("a cap");
+    let budget = model.budget.expect("a cap");
     assert_eq!(budget.readout(), "— / 5.00");
     assert_eq!(budget.breaker(), None);
 }
@@ -267,8 +253,7 @@ fn the_readers_delegations_seed_rows_and_a_clean_record_seeds_an_offer() {
         .save(&charter)
         .expect("save the charter");
 
-    let model = seed_with(
-        Model::new(Size::new(80, 24)),
+    let model = derive(
         dir.path(),
         Some(&dir.path().join("costs.json")),
         PermissionProfile::Standard,
@@ -286,7 +271,7 @@ fn the_readers_delegations_seed_rows_and_a_clean_record_seeds_an_offer() {
         ],
         "the reader's rules after the profile's, an undescribed one by its id"
     );
-    let offers = model.rail().offers();
+    let offers = &model.offers;
     assert_eq!(offers.len(), 1);
     assert_eq!(offers[0].key(), "bash:cargo");
     assert_eq!(offers[0].subject(), "Bash \u{b7} cargo");

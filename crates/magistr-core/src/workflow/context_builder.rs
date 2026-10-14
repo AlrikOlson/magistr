@@ -10,6 +10,7 @@
 use std::path::PathBuf;
 use std::process::Command;
 
+use crate::error::{MagistrError, Result};
 use crate::workflow::project_context::ProjectContext;
 use crate::workflow::spec;
 
@@ -53,13 +54,13 @@ impl ContextBuilder {
     }
 
     /// Gather all project context.
-    pub fn gather(&self) -> ProjectContext {
-        let summary = self.spec_summary();
+    pub fn gather(&self) -> Result<ProjectContext> {
+        let summary = self.spec_summary()?;
         let (total, checked, unchecked) = match summary {
             Some(s) => (s.total, s.checked, s.unchecked),
             None => (0, 0, 0),
         };
-        ProjectContext {
+        Ok(ProjectContext {
             recent_commits: self.git_log(),
             spec_total: total,
             spec_checked: checked,
@@ -67,24 +68,24 @@ impl ContextBuilder {
             dirty_files: self.dirty_files(),
             active_plan: self.read_plan(),
             active_task: self.read_task(),
-        }
+        })
     }
 
     /// Build full context string for system prompt injection.
     ///
     /// Returns a human-readable plain text summary of the project state.
-    pub fn build(&self) -> String {
-        let ctx = self.gather();
-        self.format_full(&ctx)
+    pub fn build(&self) -> Result<String> {
+        let ctx = self.gather()?;
+        Ok(self.format_full(&ctx))
     }
 
     /// Build a shorter context string for compaction recovery.
     ///
     /// After context compaction, this provides essential state without
     /// the full detail of `build()`.
-    pub fn build_compaction_recovery(&self) -> String {
-        let ctx = self.gather();
-        self.format_recovery(&ctx)
+    pub fn build_compaction_recovery(&self) -> Result<String> {
+        let ctx = self.gather()?;
+        Ok(self.format_recovery(&ctx))
     }
 
     // ── Private helpers ─────────────────────────────────────────────────
@@ -154,20 +155,19 @@ impl ContextBuilder {
         Some(trimmed.to_string())
     }
 
-    fn spec_summary(&self) -> Option<spec::SpecSummary> {
+    fn spec_summary(&self) -> Result<Option<spec::SpecSummary>> {
         if let Some(engines) = &self.native {
-            engines.reload_roadmap();
-            let progress = engines.roadmap_progress();
+            let progress = engines.roadmap_progress().map_err(MagistrError::Workflow)?;
             // Context describes all unfinished work, not just the candidate
             // an execution selector may admit for the next attempt.
-            return Some(spec::SpecSummary {
+            return Ok(Some(spec::SpecSummary {
                 total: progress.total_tasks as usize,
                 checked: progress.checked_tasks as usize,
                 unchecked: progress.total_tasks.saturating_sub(progress.checked_tasks) as usize,
                 unchecked_items: Vec::new(),
-            });
+            }));
         }
-        spec::spec_summary_from_project(&self.project_dir, &self.spec_path).ok()
+        Ok(spec::spec_summary_from_project(&self.project_dir, &self.spec_path).ok())
     }
 
     fn format_full(&self, ctx: &ProjectContext) -> String {

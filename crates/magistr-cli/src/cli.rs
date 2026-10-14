@@ -6,51 +6,18 @@ use tracing::warn;
 #[command(
     name = "magistr",
     version,
-    about = "AI-powered development toolkit for the terminal"
+    about = "Manage coding agents and project workflow"
 )]
 pub struct Cli {
-    /// Disable TUI and use plain text output
-    #[arg(long, global = true)]
-    pub no_tui: bool,
-
-    /// Output machine-readable JSON (implies --no-tui)
+    /// Output machine-readable JSON
     #[arg(long, global = true)]
     pub json: bool,
-
-    /// Cockpit theme override: light or dark (auto-detected from the
-    /// terminal background otherwise)
-    #[arg(long, global = true, env = "MAGISTR_THEME")]
-    pub theme: Option<String>,
-
-    /// Show ASCII art splash screen on startup
-    #[arg(long, global = true)]
-    pub splash: bool,
-
-    /// Disable mouse support in TUI
-    #[arg(long, global = true, env = "MAGISTR_MOUSE")]
-    pub no_mouse: bool,
-
-    /// Disable all decorative motion in the cockpit — fills land, spinners hold,
-    /// transitions cut (also honoured from MAGISTR_MOTION=reduced, REDUCE_MOTION=1 or
-    /// NO_ANIMATIONS=1)
-    #[arg(long, global = true)]
-    pub reduce_motion: bool,
-
-    /// Color vision deficiency mode (deuteranopia, protanopia, tritanopia).
-    #[arg(long, global = true, env = "MAGISTR_CVD")]
-    pub cvd: Option<String>,
-
-    /// Screen-reader mode: the cockpit renders as linear plain text — no box drawing,
-    /// no spinners, no alternate screen and nothing already read redrawn (also honoured
-    /// from MAGISTR_TUI_SCREEN_READER=1)
-    #[arg(long, global = true)]
-    pub screen_reader: bool,
 
     /// Hard spending limit in USD — session stops when exceeded (e.g., --budget 5.00)
     #[arg(long, global = true, env = "MAGISTR_BUDGET")]
     pub budget: Option<f64>,
 
-    /// Warning threshold in USD — toast notification when reached (e.g., --budget-warn 3.00)
+    /// Warning threshold in USD — warn when reached (e.g., --budget-warn 3.00)
     #[arg(long, global = true, env = "MAGISTR_BUDGET_WARN")]
     pub budget_warn: Option<f64>,
 
@@ -144,7 +111,7 @@ pub enum Command {
         #[arg(default_value = ".")]
         dir: PathBuf,
 
-        /// CI mode: no TUI, compact output, proper exit codes for pipelines
+        /// CI mode: compact output and proper exit codes for pipelines
         #[arg(long)]
         ci: bool,
 
@@ -158,7 +125,7 @@ pub enum Command {
         /// The prompt to send to the agent
         prompt: String,
 
-        /// Resume a previous session by ID
+        /// Resume a saved session ID from magistr sessions
         #[arg(long)]
         resume: Option<String>,
 
@@ -173,7 +140,7 @@ pub enum Command {
         #[arg(long, short = 'b', default_value = "auto")]
         backend: BackendFlag,
 
-        /// Run without TUI, stream events to stdout, no interactive prompts
+        /// Stream events to stdout without interactive prompts
         #[arg(long)]
         headless: bool,
 
@@ -199,7 +166,7 @@ pub enum Command {
         #[arg(long, short = 'b', default_value = "auto")]
         backend: BackendFlag,
 
-        /// Run without TUI, stream events to stdout, no interactive prompts
+        /// Stream events to stdout without interactive prompts
         #[arg(long)]
         headless: bool,
 
@@ -231,7 +198,7 @@ pub enum Command {
         #[arg(long, short = 'b', default_value = "auto")]
         backend: BackendFlag,
 
-        /// Run without TUI, stream events to stdout, no interactive prompts
+        /// Stream events to stdout without interactive prompts
         #[arg(long)]
         headless: bool,
 
@@ -269,13 +236,6 @@ pub enum Command {
         confirm_stopped: bool,
     },
 
-    /// Check for and report Bash-era config migration needs
-    Migrate {
-        /// Project directory (defaults to current directory)
-        #[arg(default_value = ".")]
-        dir: PathBuf,
-    },
-
     /// Generate shell completions for bash, zsh, or fish
     Completions {
         /// Shell to generate completions for
@@ -297,7 +257,7 @@ pub enum Command {
     /// Manage configuration: validate, show effective config, migrate
     #[command(subcommand_required = false)]
     Config {
-        /// Config action (opens settings TUI when omitted, or check with --no-tui)
+        /// Config action (validates configuration when omitted)
         #[command(subcommand)]
         action: Option<ConfigAction>,
     },
@@ -931,15 +891,7 @@ pub enum RoadmapAction {
     },
 
     /// Regenerate ROADMAP.md from the roadmap store (think-and-ship export, or the YAML source)
-    #[command(alias = "sync")]
     Export {
-        /// Project directory (defaults to current directory)
-        #[arg(default_value = ".")]
-        dir: PathBuf,
-    },
-
-    /// Migrate an existing ROADMAP.md to YAML-canonical format (.magistr/roadmap.yaml)
-    Migrate {
         /// Project directory (defaults to current directory)
         #[arg(default_value = ".")]
         dir: PathBuf,
@@ -1043,13 +995,6 @@ pub enum ConfigAction {
 
     /// Print effective configuration (all sources merged, defaults applied)
     Show {
-        /// Project directory (defaults to current directory)
-        #[arg(default_value = ".")]
-        dir: PathBuf,
-    },
-
-    /// Auto-upgrade old config formats to current schema
-    Migrate {
         /// Project directory (defaults to current directory)
         #[arg(default_value = ".")]
         dir: PathBuf,

@@ -94,3 +94,21 @@ fn config_show_no_project_json_succeeds() {
         "show should succeed without project.json: {result:?}"
     );
 }
+
+#[test]
+fn current_settings_show_refuses_invalid_project_settings() {
+    let root = tempfile::tempdir().unwrap();
+    std::fs::create_dir(root.path().join(".magistr")).unwrap();
+    std::fs::write(root.path().join(".magistr/project.json"), "{invalid").unwrap();
+    assert!(cmd_config_show(root.path(), &inputs(root.path())).is_err());
+}
+
+#[test]
+fn current_settings_show_refuses_invalid_personal_settings() {
+    let root = tempfile::tempdir().unwrap();
+    let personal = root.path().join("personal");
+    std::fs::create_dir(&personal).unwrap();
+    std::fs::write(personal.join("config.toml"), "not = [toml").unwrap();
+    let inputs = inputs(root.path()).with_config_dir(personal);
+    assert!(cmd_config_show(root.path(), &inputs).is_err());
+}

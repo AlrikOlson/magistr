@@ -9,7 +9,7 @@ use alloc::string::String;
 pub struct SessionOptions {
     /// The prompt to send as soon as the session is initialized — what
     /// `magistr run <prompt>` was given. `None` waits for the user.
-    pub opening_prompt: Option<String>,
+    pub opening_prompt: Option<super::PromptInput>,
     /// The model to select through `session/set_config_option` before
     /// the opening prompt, when the agent advertises a model option.
     pub model: Option<String>,
@@ -26,7 +26,7 @@ impl SessionOptions {
 
     /// Send `prompt` once the session is initialized.
     #[must_use]
-    pub fn opening_prompt(mut self, prompt: impl Into<String>) -> Self {
+    pub fn opening_prompt(mut self, prompt: impl Into<super::PromptInput>) -> Self {
         self.opening_prompt = Some(prompt.into());
         self
     }

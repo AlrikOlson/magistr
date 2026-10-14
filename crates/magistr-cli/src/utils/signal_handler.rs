@@ -36,7 +36,7 @@ pub fn install_signal_handler() {
 /// The way out that settles nothing: restore the terminal, kill the
 /// registered process groups, say so, and exit.
 fn emergency_exit(reason: &str) -> ! {
-    super::panic::emergency_restore_terminal();
+    super::child_guard::kill_all_children();
     eprintln!("magistr: emergency exit ({reason})");
     std::process::exit(Shutdown::EXIT_CODE);
 }

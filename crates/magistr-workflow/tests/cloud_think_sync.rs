@@ -60,7 +60,7 @@ async fn a_think_step_pushes_to_the_cloud() {
 
     let mut engine =
         ReasoningServer::new(quiet_config()).with_cloud(CloudClient::new(server.uri(), "tok"));
-    engine.process_step(step(1)).expect("process_step");
+    engine.process_step_native(step(1)).expect("process_step");
 
     // The push is fire-and-forget on a detached task, so this waits on the
     // request ACTUALLY ARRIVING rather than on a duration guessed against it.

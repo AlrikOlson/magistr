@@ -1,6 +1,16 @@
 use super::*;
 
 #[test]
+fn clean_launch_has_no_implied_project_or_provider() {
+    let cli = Desktop::try_parse_from(["desktop"]).unwrap();
+    assert!(cli.dir.is_none());
+    assert!(cli.provider.is_none());
+}
+
+#[path = "args_history.tests.rs"]
+mod history;
+
+#[test]
 fn worker_role_is_exact_and_never_opens_a_window() {
     let argv = |args: &[&str]| args.iter().map(OsString::from).collect::<Vec<_>>();
     assert!(is_worker(&argv(&["desktop", "--workspace-worker"])));
@@ -59,19 +69,23 @@ fn selected_project_and_session_choices_reach_the_shared_config() {
         "codex",
         "--model",
         "chosen-model",
-        "--resume",
-        "saved-thread",
         "--trust",
         "cautious",
         "hello",
     ])
     .unwrap();
-    let config = cli.config().unwrap();
+    let config = cli
+        .config_for(
+            root.path(),
+            &ProjectInputs::from_lookup(root.path(), |_| None),
+            true,
+        )
+        .unwrap();
     assert_eq!(config.cwd, root.path().canonicalize().unwrap());
     assert_eq!(config.inputs().project_root(), config.cwd);
     assert_eq!(config.provider.as_deref(), Some("codex"));
     assert_eq!(config.model.as_deref(), Some("chosen-model"));
-    assert_eq!(config.resume.as_deref(), Some("saved-thread"));
+    assert_eq!(config.resume, None);
     assert_eq!(config.prompt, "hello");
     assert!(!config.continue_conversation);
     assert_eq!(
@@ -94,14 +108,18 @@ fn a_switched_project_keeps_the_choices_and_drops_the_first_sessions_opening() {
         "codex",
         "--model",
         "chosen-model",
-        "--resume",
-        "saved-thread",
         "--trust",
         "cautious",
         "hello",
     ])
     .unwrap();
-    let config = cli.config_for(other.path()).unwrap();
+    let config = cli
+        .config_for(
+            other.path(),
+            &ProjectInputs::from_lookup(first.path(), |_| None),
+            false,
+        )
+        .unwrap();
     assert_eq!(config.cwd, other.path().canonicalize().unwrap());
     assert_eq!(config.inputs().project_root(), config.cwd);
     assert_eq!(config.provider.as_deref(), Some("codex"));
@@ -113,7 +131,14 @@ fn a_switched_project_keeps_the_choices_and_drops_the_first_sessions_opening() {
         config.permission_profile,
         Some(magistr::permissions::PermissionProfile::Cautious)
     );
-    assert!(cli.config_for(&other.path().join("missing")).is_err());
+    assert!(
+        cli.config_for(
+            &other.path().join("missing"),
+            &ProjectInputs::from_lookup(first.path(), |_| None),
+            false
+        )
+        .is_err()
+    );
 }
 
 #[test]
@@ -123,11 +148,15 @@ fn invalid_project_or_permission_choice_fails_before_admission() {
     std::fs::write(&file, "data").unwrap();
     let cli = Desktop::try_parse_from(["desktop", "--dir", file.to_str().unwrap()]).unwrap();
     assert!(
-        cli.config()
-            .err()
-            .unwrap()
-            .to_string()
-            .contains("not a directory")
+        cli.config_for(
+            &file,
+            &ProjectInputs::from_lookup(root.path(), |_| None),
+            true
+        )
+        .err()
+        .unwrap()
+        .to_string()
+        .contains("not a directory")
     );
     let cli = Desktop::try_parse_from([
         "desktop",
@@ -137,5 +166,12 @@ fn invalid_project_or_permission_choice_fails_before_admission() {
         "typo",
     ])
     .unwrap();
-    assert!(cli.config().is_err());
+    assert!(
+        cli.config_for(
+            root.path(),
+            &ProjectInputs::from_lookup(root.path(), |_| None),
+            true
+        )
+        .is_err()
+    );
 }

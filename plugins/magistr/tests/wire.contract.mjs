@@ -11,7 +11,7 @@ import {
   sameRoot,
 } from '../hooks/wire.js'
 import { pane, band } from '../hooks/view.js'
-import { fixture } from './fixtures.js'
+import { answer, fixture } from './fixtures.js'
 import { elements, flatten, textOf } from './host.mjs'
 
 test('wire decoding accepts canonical MCP and normal tool replies and rejects incompatible data', () => {
@@ -78,6 +78,41 @@ test('wire decoding accepts canonical MCP and normal tool replies and rejects in
     ),
   )
 })
+test('focus replies preserve closed and missing choices without claiming current work', () => {
+  const f = fixture()
+  const base = answer(f, 'magistr', 'roadmap_focus_get', { lane: 'caller' })
+  const focus = { group: 'Finished search', mode: 'build' }
+  assert.doesNotThrow(() => validate('focus', { structuredContent: base }))
+  for (const [state, wording] of [
+    ['closed', /Finished search has no unfinished work/],
+    ['missing', /Finished search is no longer on the roadmap/],
+  ]) {
+    const value = { ...base, focus, focus_state: { state, group: focus.group } }
+    if (state === 'closed') {
+      const history = { done: 1, obsoleted: 0 }
+      value.workstreams = { ...base.workstreams, history: { [focus.group]: history } }
+      value.frontier = { state, group: focus.group, history }
+    } else value.frontier = { state, query: focus.group }
+    const m = initial()
+    m.slots.ship = { value: f.ship }
+    m.slots.roadmap = { value: f.roadmap }
+    m.slots.focus = { value: validate('focus', { structuredContent: value }) }
+    for (const tab of ['current', 'roadmap']) {
+      m.tab = tab
+      const rendered = textOf(pane(elements, m, 40, {}))
+      assert.match(rendered, wording)
+      assert.match(rendered, /Choose another workstream/)
+      assert.doesNotMatch(rendered, /Chosen workstream: Finished search/)
+    }
+  }
+  for (const bad of [
+    { ...base, focus_state: undefined },
+    { ...base, focus_state: { state: 'current', group: 'Search' } },
+    { ...base, focus, focus_state: { state: 'unset' } },
+    { ...base, focus, focus_state: { state: 'current', group: 'Search' } },
+  ]) assert.throws(() => validate('focus', { structuredContent: bad }))
+})
+
 test('phase requires matching work and task; checks distinguish recorded evidence and optional failure', () => {
   const f = fixture()
   assert.equal(phase(f.context, f.ship), 'Planning')

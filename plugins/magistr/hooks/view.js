@@ -16,6 +16,20 @@ const labels = {
   changes: 'Changes',
 }
 const label = (value) => clean(value, 100).replace(/_/g, ' ')
+const focusSummary = (value) => {
+  if (!value?.focus) return null
+  const group = clean(value.focus.group, 160)
+  switch (value.focus_state.state) {
+    case 'current':
+      return 'Chosen workstream: ' + group
+    case 'closed':
+      return group + ' has no unfinished work. Choose another workstream.'
+    case 'missing':
+      return group + ' is no longer on the roadmap. Choose another workstream.'
+    default:
+      return null
+  }
+}
 const filtered = (items, filter) =>
   items.filter((x) =>
     (x.title || x.name || x.purpose || '')
@@ -292,12 +306,8 @@ export function pane(E, m, width, handlers) {
       text('Nothing loaded yet. Refresh to check the existing connections.'),
     )
   } else if (m.tab === 'current') {
-    if (m.slots.focus?.value?.focus)
-      body.push(
-        text(
-          'Chosen workstream: ' + clean(m.slots.focus.value.focus.group, 160),
-        ),
-      )
+    const focus = focusSummary(m.slots.focus?.value)
+    if (focus) body.push(text(focus))
     body.push(
       text(titles(ship), true),
       text(phase(m.slots.context?.value, ship) + ' · ' + verification(ship)),
@@ -328,12 +338,8 @@ export function pane(E, m, width, handlers) {
       body.push(text('More tasks are available. Narrow your search.'))
   } else if (m.tab === 'roadmap') {
     const v = slot.value
-    if (m.slots.focus?.value?.focus)
-      body.push(
-        text(
-          'Chosen workstream: ' + clean(m.slots.focus.value.focus.group, 160),
-        ),
-      )
+    const focus = focusSummary(m.slots.focus?.value)
+    if (focus) body.push(text(focus))
     body.push(
       Input({
         key: 'filter',

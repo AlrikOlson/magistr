@@ -1,7 +1,7 @@
 //! magistr-theme — rendering-agnostic theme definitions for Magistr.
 //!
 //! This crate defines color palettes, semantic mappings, TOML parsing,
-//! and CSS generation shared between the TUI and GUI frontends.
+//! and CSS generation shared between the desktop and command-line consumers frontends.
 //! It has zero rendering dependencies — no ratatui, no web framework.
 //!
 //! # Usage

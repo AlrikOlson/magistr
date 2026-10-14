@@ -7,7 +7,7 @@ use crate::job::JobId;
 
 /// One thing the loop driver said, as [`Msg::Loop`](super::Msg::Loop)
 /// carries it. The driver runs in the entry point's crate and owns every
-/// effect of the loop; the cockpit only folds these in.
+/// effect of the loop; consumers observe these facts.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum LoopEvent {
     /// An iteration started: the stage is cleared for it.
@@ -53,13 +53,9 @@ pub enum LoopEvent {
         /// The judge's reason.
         reason: String,
     },
-    /// An iteration ended: its gates ran, and a boundary checkpoint is
-    /// due. The cockpit mints the row (`cp-N · iter N`, wearing the
-    /// verdicts) and asks the port for it under that name; the driver
-    /// serves the ask on its own thread — *after* the iteration's
-    /// session is gone and *before* the next handshake begins, never at
-    /// [`Started`](Self::Started), where one git read once sat on a
-    /// delegated goal's echo deadline.
+    /// An iteration ended and its gates ran. The loop owner saves the
+    /// verified boundary before the next provider handshake; consumers
+    /// may observe it without issuing another save request.
     Boundary {
         /// The iteration that ended (1-based).
         iteration: u32,

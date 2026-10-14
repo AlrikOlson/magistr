@@ -49,14 +49,14 @@ pub fn classify_risk(tool_name: &str, tool_input: &serde_json::Value) -> RiskLev
 
 /// Classify risk for a Bash tool call based on the command content.
 fn classify_bash_risk(tool_input: &serde_json::Value) -> RiskLevel {
-    let command = tool_input
+    let Some(command) = tool_input
         .get("command")
-        .and_then(|v| v.as_str())
-        .unwrap_or("");
-
-    if command.is_empty() {
-        return RiskLevel::Low;
-    }
+        .and_then(serde_json::Value::as_str)
+        .filter(|command| !command.trim().is_empty())
+    else {
+        // Unknown effects cannot establish read-only or reversible behavior.
+        return RiskLevel::High;
+    };
 
     // Check for high-risk patterns
     for pattern in HIGH_RISK_BASH_PATTERNS {
@@ -120,3 +120,7 @@ fn classify_bash_risk(tool_input: &serde_json::Value) -> RiskLevel {
     // Default: medium risk for unknown bash commands
     RiskLevel::Medium
 }
+
+#[cfg(test)]
+#[path = "classify_risk.tests.rs"]
+mod tests;

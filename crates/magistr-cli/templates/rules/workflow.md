@@ -29,7 +29,7 @@ Use the skill matching the user’s request:
   `ship_set_objective` if another scope is selected; saved objectives and plans
   are restored unchanged. Preserve unrelated unfinished work without resetting it.
 - `/next-loop`: bounded fresh-session handoff; one complete chunk per
-  agent session, then a new session before the next chunk. The native TUI
+  agent session, then a new session before the next chunk. The native CLI
   loop owns automatic chaining.
 - `/validate`: configured gates with accurate results and recording status.
 - `/roadmap-refresh` or `/signals`: research and native state updates within

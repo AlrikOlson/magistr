@@ -172,8 +172,10 @@ fn plans_usage_and_the_turn_end_are_summarised() {
             1_000, 200_000
         )))),
         AgentEvent::Usage {
-            used: 1_000,
-            size: 200_000,
+            context: Some(magistr_application::sessions::ContextUsage {
+                used: 1_000,
+                size: 200_000
+            }),
             cost_cents: None,
             elapsed_secs: None,
         }
@@ -196,8 +198,10 @@ fn the_usage_updates_cost_arrives_in_cents_when_it_is_dollars() {
     assert_eq!(
         translate(&update(SessionUpdate::UsageUpdate(priced))),
         AgentEvent::Usage {
-            used: 1_000,
-            size: 200_000,
+            context: Some(magistr_application::sessions::ContextUsage {
+                used: 1_000,
+                size: 200_000
+            }),
             cost_cents: Some(184),
             elapsed_secs: None,
         }
@@ -208,8 +212,10 @@ fn the_usage_updates_cost_arrives_in_cents_when_it_is_dollars() {
     assert_eq!(
         translate(&update(SessionUpdate::UsageUpdate(foreign))),
         AgentEvent::Usage {
-            used: 1_000,
-            size: 200_000,
+            context: Some(magistr_application::sessions::ContextUsage {
+                used: 1_000,
+                size: 200_000
+            }),
             cost_cents: None,
             elapsed_secs: None,
         }

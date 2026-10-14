@@ -41,9 +41,37 @@
 mod admitted_check;
 mod check_evidence_error;
 mod check_identities;
+mod desktop_preferences;
+pub use desktop_preferences::{
+    DesktopPreferences, DesktopPreferencesService, DesktopPreferencesSnapshot,
+};
+mod history_feed;
 mod hosted_workspace;
 mod interactive_host;
-mod project_window;
+mod project_catalog;
+mod project_setup;
+pub use project_catalog::{RecentProject, recent_projects};
+pub use project_setup::{ProjectFolder, ProjectSetup, SetupResult};
+mod retained_observation;
+mod session_admissions;
+mod session_attachments;
+pub use session_attachments::StagedAttachment;
+mod session_catalog;
+mod session_drafts;
+pub use session_drafts::{DraftStatus, SavedDraft, saved_draft};
+mod session_observation;
+mod session_workflow;
+pub use retained_observation::RetainedObservation;
+pub use session_catalog::{CatalogSubscription, SessionCatalog, SessionSummary, WaitingRequest};
+mod saved_conversations;
+mod session_opening;
+mod session_registry;
+pub use saved_conversations::saved_conversations;
+pub use session_observation::{
+    SessionSnapshot, SessionStatus, SessionSubscription, SubmissionAdmission,
+};
+pub use session_opening::SessionOpening;
+pub use session_registry::{SessionClient, SessionRegistry};
 mod settled_check;
 mod working_copies;
 mod workspace_admission;
@@ -55,7 +83,6 @@ pub use check_evidence_error::CheckEvidenceError;
 pub use check_identities::CheckIdentities;
 pub use hosted_workspace::HostedWorkspace;
 pub use interactive_host::InteractiveHost;
-pub use project_window::ProjectWindow;
 pub use settled_check::SettledCheck;
 pub use workspace_admission::WorkspaceAdmission;
 pub use workspace_source_writer::WorkspaceSourceWriter;

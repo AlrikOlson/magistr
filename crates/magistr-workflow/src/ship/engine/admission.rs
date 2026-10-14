@@ -1,4 +1,5 @@
 use chrono::Utc;
+use magistr_workflow_contracts::ReadSource;
 
 use crate::ship::application::{CheckAdmission, CheckOutcome, CheckSettlement, SourceFreshness};
 use crate::ship::broadcast::BroadcastFrame;
@@ -26,44 +27,27 @@ impl ShipEngine {
         Ok(())
     }
 
-    /// Observe the persisted cycle before answering or acting: another
-    /// admitted role may have advanced the run. A `stat` compares the
-    /// file's stamp with the one this memory was read from or written to;
-    /// only a moved stamp re-reads the file, which then replaces memory
-    /// whole (a missing file is the cleared cycle). Answers whether it
-    /// re-read.
+    /// Validate this execution's store before answering or acting.
     pub fn refresh_if_stale(&mut self) -> Result<bool, String> {
-        let Some(persistence) = &self.persistence else {
-            return Ok(false);
-        };
-        if !persistence.enabled() {
-            return Ok(false);
-        }
-        let on_disk = persistence
-            .stamp(&self.project_id)
-            .map_err(|error| error.to_string())?;
-        if on_disk == self.stamp {
-            return Ok(false);
-        }
         self.reload_from_store()
     }
 
-    /// Re-read the persisted cycle whatever the stamp says; the engine's
-    /// wiring (broadcaster, mirror, cloud, receipts) stays. Answers `true`
-    /// when persistence is on.
+    /// Validate and adopt the persisted cycle, keeping execution wiring intact.
     pub fn reload_from_store(&mut self) -> Result<bool, String> {
-        let Some(persistence) = &self.persistence else {
+        let Some(persistence) = self.persistence.as_ref().filter(|p| p.enabled()) else {
             return Ok(false);
         };
-        if !persistence.enabled() {
-            return Ok(false);
-        }
-        let (state, stamp) = persistence
+        let read = persistence
             .current_stamped(&self.project_id)
             .map_err(|error| error.to_string())?;
-        self.adopt_current(state);
+        let stamp = match read.source {
+            ReadSource::File(stamp) => Some(stamp),
+            ReadSource::Memory | ReadSource::Missing => None,
+        };
+        let changed = self.stamp != stamp;
+        self.adopt_current(read.value);
         self.stamp = stamp;
-        Ok(true)
+        Ok(changed)
     }
 
     /// Settle an admitted check: the result lands on the admitted task

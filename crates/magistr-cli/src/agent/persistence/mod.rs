@@ -8,10 +8,14 @@
 //! Storage location: `~/.local/share/magistr/sessions.db`
 
 pub mod commit_info;
+pub(crate) mod draft;
+mod history;
 pub mod resume;
 pub mod retention_policy;
 pub mod session_filter;
+pub mod session_outcome;
 pub mod session_record;
+pub(crate) use history::{SessionHistory, warn as warn_history};
 pub mod session_summary;
 pub mod session_turn;
 pub mod storage;

@@ -89,9 +89,10 @@ pub struct InteractiveSession {
     connection: Option<Connection>,
     parked: Option<Connection>,
     conversation_id: Option<String>,
+    conversation_can_resume: Option<bool>,
     roadmap_id: Option<String>,
     busy: bool,
-    queued: Option<String>,
+    queued: Option<magistr_application::sessions::PromptInput>,
     closed: bool,
 }
 
@@ -138,6 +139,7 @@ impl InteractiveSession {
             connection: None,
             parked: None,
             conversation_id: None,
+            conversation_can_resume: None,
             roadmap_id: None,
             busy: false,
             queued: None,
@@ -178,12 +180,21 @@ impl InteractiveSession {
 
     async fn submit(
         &mut self,
-        text: String,
+        text: magistr_application::sessions::PromptInput,
         roadmap: bool,
         commands: &mut Commands,
         controls: &mut Vec<LoopCmd>,
     ) {
         if self.busy {
+            if !roadmap
+                && self
+                    .connection
+                    .as_ref()
+                    .is_some_and(|current| !current.roadmap)
+            {
+                self.forward(Cmd::Prompt(text));
+                return;
+            }
             if roadmap && self.queued.is_none() {
                 self.queued = Some(text);
                 self.inbox.send(Msg::RoadmapRequestQueued);
@@ -243,10 +254,12 @@ impl InteractiveSession {
                             return;
                         }
                         Some(Cmd::CancelRoadmapPrompt) if roadmap => {
+                            self.reject(text, "This send was stopped. Your draft is still available.");
                             self.inbox.send(Msg::RoadmapRequestCancelled);
                             return;
                         }
                         Some(Cmd::Cancel) if !roadmap => {
+                            self.reject(text, "This send was stopped. Your draft is still available.");
                             self.inbox.send(Msg::Agent(AgentEvent::TurnEnded(
                                 magistr_application::sessions::TurnEnd::Cancelled,
                             )));
@@ -256,6 +269,7 @@ impl InteractiveSession {
                             let abort = matches!(command, LoopCmd::Abort);
                             controls.push(command);
                             if abort {
+                                self.reject(text, "This send was stopped. Your draft is still available.");
                                 if roadmap {
                                     self.inbox.send(Msg::RoadmapRequestCancelled);
                                 } else {
@@ -298,6 +312,13 @@ impl InteractiveSession {
         let Some(connection) = self.connection.as_mut() else {
             return true;
         };
+        if !connection.roadmap
+            && let Msg::Agent(AgentEvent::Activity(activity)) = event
+        {
+            self.conversation_can_resume = activity.can_resume;
+            self.busy =
+                activity.active || activity.queued_turns > 0 || activity.cancellation_requested;
+        }
         if let Msg::Agent(AgentEvent::Initialized { session_id, .. }) = event {
             let saved = if connection.roadmap {
                 &mut self.roadmap_id
@@ -314,9 +335,61 @@ impl InteractiveSession {
             )
     }
 
-    fn reject(&self, text: String, error: &str) {
+    async fn reconnect(&mut self, commands: &mut Commands) {
+        let refusal = if self.busy {
+            Some("Wait for the current response before reconnecting.")
+        } else if self.connection.is_some() {
+            Some("The agent is already connected.")
+        } else if self.conversation_can_resume != Some(true) {
+            Some("This agent cannot reopen the conversation. Open a new session to continue.")
+        } else {
+            None
+        };
+        if let Some(error) = refusal {
+            self.inbox.send(Msg::CommandFailed {
+                cmd: Cmd::Reconnect,
+                error: error.into(),
+            });
+            return;
+        }
+        let Some(identity) = self.conversation_id.clone() else {
+            return;
+        };
+        let connect = Arc::clone(&self.connect);
+        let connected = tokio::time::timeout(
+            Duration::from_secs(30),
+            connect(SessionPurpose::Conversation, Some(identity)),
+        );
+        tokio::pin!(connected);
+        let result = loop {
+            tokio::select! {
+                result = &mut connected => break result.unwrap_or_else(|_| Err("The agent took too long to reconnect. Try again.".into())),
+                command = commands.next() => match command {
+                    None | Some(Cmd::Quit) => { self.closed = true; return; }
+                    Some(Cmd::Cancel) => {
+                        self.inbox.send(Msg::CommandFailed { cmd: Cmd::Reconnect, error: "Reconnection cancelled.".into() });
+                        return;
+                    }
+                    Some(command) => {
+                        self.inbox.send(Msg::CommandFailed { cmd: command, error: "Wait for the agent to reconnect.".into() });
+                    }
+                }
+            }
+        };
+        match result {
+            Ok(handle) => self.attach(handle, false, true),
+            Err(error) => {
+                self.inbox.send(Msg::CommandFailed {
+                    cmd: Cmd::Reconnect,
+                    error,
+                });
+            }
+        }
+    }
+
+    fn reject(&self, text: magistr_application::sessions::PromptInput, error: &str) {
         self.inbox.send(Msg::Agent(AgentEvent::PromptRejected {
-            text,
+            input: text,
             error: error.to_owned(),
         }));
     }
@@ -428,10 +501,15 @@ impl InteractiveSession {
                 break;
             };
             match command {
+                Cmd::Reconnect => self.reconnect(commands).await,
                 Cmd::Prompt(text) => self.submit(text, false, commands, &mut controls).await,
                 Cmd::RoadmapPrompt(text) => self.submit(text, true, commands, &mut controls).await,
                 Cmd::CancelRoadmapPrompt => {
-                    if self.queued.take().is_some() {
+                    if let Some(input) = self.queued.take() {
+                        self.reject(
+                            input,
+                            "This send was stopped. Your draft is still available.",
+                        );
                         self.inbox.send(Msg::RoadmapRequestCancelled);
                     } else if self
                         .connection

@@ -83,48 +83,6 @@ fn loop_state_path() {
 }
 
 #[test]
-fn migrate_jig_dir_renames() {
-    let tmp = tempfile::tempdir().unwrap();
-    let legacy = tmp.path().join(".jig");
-    std::fs::create_dir_all(&legacy).unwrap();
-    std::fs::write(legacy.join("project.json"), "{}").unwrap();
-
-    assert!(migrate_jig_dir(tmp.path()).unwrap());
-    assert!(!legacy.exists());
-    assert!(tmp.path().join(".magistr").exists());
-    assert!(tmp.path().join(".magistr/project.json").exists());
-}
-
-#[test]
-fn migrate_jig_dir_noop_when_no_legacy() {
-    let tmp = tempfile::tempdir().unwrap();
-    assert!(!migrate_jig_dir(tmp.path()).unwrap());
-}
-
-#[test]
-fn migrate_jig_dir_noop_when_both_exist() {
-    let tmp = tempfile::tempdir().unwrap();
-    std::fs::create_dir_all(tmp.path().join(".jig")).unwrap();
-    std::fs::create_dir_all(tmp.path().join(".magistr")).unwrap();
-    assert!(!migrate_jig_dir(tmp.path()).unwrap());
-}
-
-#[test]
-fn has_legacy_jig_dir_detection() {
-    let tmp = tempfile::tempdir().unwrap();
-    assert!(!has_legacy_jig_dir(tmp.path()));
-
-    std::fs::create_dir_all(tmp.path().join(".jig")).unwrap();
-    assert!(has_legacy_jig_dir(tmp.path()));
-
-    // If .magistr already exists, no migration needed
-    std::fs::create_dir_all(tmp.path().join(".magistr")).unwrap();
-    assert!(!has_legacy_jig_dir(tmp.path()));
-}
-
-// ── New path function tests ─────────────────────────────────────────────────
-
-#[test]
 fn scaffold_manifest_path() {
     let dir = Path::new("/tmp/proj");
     assert_eq!(
@@ -161,17 +119,6 @@ fn roadmap_yaml_at_repo_root() {
 }
 
 #[test]
-fn legacy_roadmap_yaml_in_magistr_dir() {
-    let dir = Path::new("/tmp/proj");
-    assert_eq!(
-        legacy_roadmap_yaml(dir),
-        PathBuf::from("/tmp/proj/.magistr/roadmap.yaml")
-    );
-}
-
-// ── ProjectPaths struct tests ───────────────────────────────────────────────
-
-#[test]
 fn project_paths_root() {
     let paths = ProjectPaths::new("/home/user/project");
     assert_eq!(paths.root(), Path::new("/home/user/project"));
@@ -205,10 +152,6 @@ fn project_paths_all_methods() {
     assert_eq!(
         paths.roadmap_yaml(),
         PathBuf::from("/p/.magistr-roadmap.yml")
-    );
-    assert_eq!(
-        paths.legacy_roadmap_yaml(),
-        PathBuf::from("/p/.magistr/roadmap.yaml")
     );
     assert_eq!(paths.claude_dir(), PathBuf::from("/p/.claude"));
     assert_eq!(paths.rules_dir(), PathBuf::from("/p/.claude/rules"));

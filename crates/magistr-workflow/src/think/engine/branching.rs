@@ -223,7 +223,9 @@ impl ReasoningServer {
             if let Some(meta) = self.history.metadata.as_mut() {
                 meta.branches_created = Some(meta.branches_created.unwrap_or(0) + 1);
             }
-            eprintln!("🌿 Created branch \"{branch_name}\" from step {from} (depth: {depth})");
+            tracing::debug!(
+                "🌿 Created branch \"{branch_name}\" from step {from} (depth: {depth})"
+            );
         }
 
         step.branch_id = Some(branch_id.clone());

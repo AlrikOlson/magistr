@@ -8,13 +8,6 @@ failure-output = "immediate"
 [profile.default.junit]
 path = "junit.xml"
 
-# cargo nextest run -p magistr-tui --release -P perf --run-ignored only
-[profile.perf]
-default-filter = "binary(=perf) | binary(=pixel_perf) | test(=pixel_scroll_samples_between_ticks_and_stops_after_settling) | test(=render::pixel_view::tests::report_graphics_frame_phase_costs)"
-
-[profile.perf.junit]
-path = "junit.xml"
-
 [profile.ci]
 fail-fast = false
 failure-output = "immediate-final"

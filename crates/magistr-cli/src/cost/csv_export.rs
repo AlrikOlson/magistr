@@ -11,13 +11,15 @@ pub fn to_csv(entries: &[CostEntry]) -> String {
     );
     for e in entries {
         out.push_str(&format!(
-            "{},{},{},{},{},{:.6},{},{},{},{},{},{}\n",
+            "{},{},{},{},{},{},{},{},{},{},{},{}\n",
             csv_escape(&e.session_id),
             csv_escape(&e.project),
             csv_escape(e.actor.as_deref().unwrap_or("")),
             csv_escape(e.model.as_deref().unwrap_or("")),
             e.timestamp.to_rfc3339(),
-            e.cost_usd,
+            e.cost_usd
+                .map(|cost| format!("{cost:.6}"))
+                .unwrap_or_default(),
             e.turns,
             e.duration_ms,
             e.tokens.input_tokens,

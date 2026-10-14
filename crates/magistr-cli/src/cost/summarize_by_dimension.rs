@@ -22,17 +22,15 @@ pub fn summarize_by_dimension(entries: &[CostEntry], dimension: CostDimension) -
             .push(entry.clone());
     }
 
-    let total: f64 = entries.iter().map(|e| e.cost_usd).sum();
+    let total = CostSummary::from_entries(entries).total_cost;
 
     let mut groups: Vec<CostGroup> = buckets
         .into_iter()
         .map(|(key, entries)| {
             let summary = CostSummary::from_entries(&entries);
-            let share = if total > 0.0 {
-                summary.total_cost / total
-            } else {
-                0.0
-            };
+            let share = total
+                .zip(summary.total_cost)
+                .map(|(total, cost)| if total > 0.0 { cost / total } else { 0.0 });
             CostGroup {
                 key,
                 summary,
@@ -44,7 +42,8 @@ pub fn summarize_by_dimension(entries: &[CostEntry], dimension: CostDimension) -
     groups.sort_by(|a, b| {
         b.summary
             .total_cost
-            .total_cmp(&a.summary.total_cost)
+            .partial_cmp(&a.summary.total_cost)
+            .unwrap_or(std::cmp::Ordering::Equal)
             .then_with(|| a.key.cmp(&b.key))
     });
     groups

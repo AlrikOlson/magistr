@@ -108,7 +108,7 @@ pub fn cmd_costs(
                 eprintln!(
                     "  {}  {}  {} turns  {}  {}",
                     fmt::dim(&ts.to_string()),
-                    fmt::yellow(&format!("${:.4}", entry.cost_usd)),
+                    fmt::yellow(&reported_money(entry.cost_usd)),
                     entry.turns,
                     duration,
                     fmt::dim(&entry.project)

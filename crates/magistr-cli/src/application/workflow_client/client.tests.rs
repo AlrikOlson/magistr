@@ -106,7 +106,10 @@ fn a_second_host_on_the_same_project_is_refused_until_the_first_is_gone() {
         matches!(err, EngineError::Admission { root: ref refused, .. } if *refused == root),
         "{err}"
     );
-    assert!(err.to_string().contains("project host owner"), "{err}");
+    assert!(
+        matches!(&err, EngineError::Admission { source, .. } if source.kind() == io::ErrorKind::WouldBlock),
+        "{err}"
+    );
     assert!(std::error::Error::source(&err).is_some());
 
     // A cockpit beside a loop attaches to the loop's admitted writer rather
@@ -175,7 +178,10 @@ async fn a_second_cockpit_attaches_to_the_running_host_and_acts_through_it() {
     let started = port.start_chunk("c1").expect("acts through the host");
     assert_eq!(started.status, magistr_engine::ChunkStatus::InProgress);
     assert_eq!(
-        host.reader().roadmap_chunk("c1").map(|chunk| chunk.status),
+        host.reader()
+            .roadmap_chunk("c1")
+            .unwrap()
+            .map(|chunk| chunk.status),
         Some(magistr_engine::ChunkStatus::InProgress),
         "the host's own writer carried it out"
     );

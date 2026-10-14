@@ -15,7 +15,7 @@ Magistr's own workflow uses one ready roadmap item at a time. A typical implemen
 
 Run formatting and the commands in `.magistr/project.json` before opening a pull request. Record the results through Magistr's gate or ship-check workflow when possible. Website changes also require `npm test` from `apps/website`; release changes should run `./scripts/package-release.sh` and verify the matching checksum.
 
-Keep the cockpit independent of terminal protocols and the desktop independent of `magistr-tui`. Read the relevant architecture guide before changing either surface. Preserve reduced-motion behavior, contrast, icon, screenshot, and architecture-index checks.
+Keep shared contracts independent of presentation. Read the desktop and session architecture guides before changing those boundaries. Preserve reduced-motion behavior, contrast, icon, screenshot, and architecture-index checks.
 
 ## Pull requests
 

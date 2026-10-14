@@ -11,6 +11,7 @@ use tokio::sync::mpsc;
 use super::permissions::Permissions;
 use super::{Command, Inner, SessionResidency, TurnOutcome, acp_error};
 use crate::agent::message::AgentMessage;
+use crate::agent::persistence::session_outcome::SessionOutcome;
 use crate::error::Result;
 
 struct OwnerState(Arc<Mutex<Inner>>);
@@ -24,6 +25,7 @@ impl Drop for OwnerState {
                 "Session owner stopped before a provider terminal response",
             );
         }
+        state.history.settle_detached(outcome(&state));
         state.messages = None;
         state.cockpit_events = None;
         state.snapshot.client_attached = false;
@@ -53,6 +55,30 @@ pub(super) async fn run(
         .close()
         .await
         .map_err(|error| acp_error(format!("Session transport cleanup failed: {error}")));
+    let settled = {
+        let inner = state.lock().expect("supervisor state lock poisoned");
+        if result.is_err() {
+            SessionOutcome::Failed
+        } else {
+            outcome(&inner)
+        }
+    };
+    let history = state
+        .lock()
+        .expect("supervisor state lock poisoned")
+        .history
+        .clone();
+    if let Err(error) = history.settle(settled).await {
+        crate::agent::persistence::warn_history(&error);
+        let mut inner = state.lock().expect("supervisor state lock poisoned");
+        inner.emit_cockpit(magistr_application::sessions::AgentEvent::Notice(
+            "The session ended, but its history could not be saved. Check the folder used for saved sessions.".into(),
+        ));
+        inner.emit(Ok(AgentMessage::System {
+            subtype: "history_save_failed".into(),
+            data: serde_json::json!({"error": error.to_string()}),
+        }));
+    }
     let mut inner = state.lock().expect("supervisor state lock poisoned");
     if let Err(error) = &result {
         inner.finish(SessionResidency::Failed, &error.to_string());
@@ -67,6 +93,36 @@ pub(super) async fn run(
     inner.cockpit_events = None;
     inner.snapshot.client_attached = false;
     result
+}
+
+fn outcome(inner: &Inner) -> SessionOutcome {
+    use agent_client_protocol::schema::v1::StopReason;
+    if inner.snapshot.residency == SessionResidency::Failed {
+        SessionOutcome::Failed
+    } else if inner.snapshot.active_turn.is_some() {
+        SessionOutcome::Stopped
+    } else {
+        match inner.snapshot.last_outcome.as_ref() {
+            Some(TurnOutcome {
+                stop_reason: Some(StopReason::EndTurn),
+                ..
+            }) => SessionOutcome::Completed,
+            Some(TurnOutcome {
+                stop_reason: Some(StopReason::Cancelled),
+                ..
+            }) => SessionOutcome::Cancelled,
+            Some(TurnOutcome { error: Some(_), .. })
+                if inner.snapshot.residency != SessionResidency::Terminated =>
+            {
+                SessionOutcome::Failed
+            }
+            Some(TurnOutcome {
+                stop_reason: Some(_),
+                ..
+            }) => SessionOutcome::Failed,
+            _ => SessionOutcome::Stopped,
+        }
+    }
 }
 
 type ControlFuture<'a> = Pin<Box<dyn Future<Output = ()> + Send + 'a>>;
@@ -97,7 +153,7 @@ async fn run_loop(
                     break;
                 }
             }
-            command = commands.recv() => match command {
+            command = commands.recv(), if session_id.is_some() => match command {
                 None | Some(Command::Terminate) => break,
                 Some(Command::Wake) => {},
                 Some(Command::Interrupt) => {
@@ -165,14 +221,20 @@ async fn run_loop(
                         } else {
                             Err(acp_error("Session not initialized — cannot set config option"))
                         };
-                        state.lock().expect("supervisor state lock poisoned").control_busy = false;
+                        let mut inner = state.lock().expect("supervisor state lock poisoned");
+                        inner.control_busy = false;
+                        if let Ok(options) = &result {
+                            inner.config_options.clone_from(options);
+                            inner.history.observe_configuration(options);
+                            inner.emit_cockpit(crate::agent::translate::configuration(options));
+                        }
                         if let Some(reply) = reply {
                             let _ = reply.send(result);
                         } else {
-                            let mut inner = state.lock().expect("supervisor state lock poisoned");
-                            inner.emit(result.map(|options| AgentMessage::ConfigUpdate {
-                                options: crate::agent::types::config_options_from_acp(&options),
-                            }));
+                            match result {
+                                Ok(options) => inner.emit(Ok(AgentMessage::ConfigUpdate { options: crate::agent::types::config_options_from_acp(&options) })),
+                                Err(error) => inner.emit_cockpit(magistr_application::sessions::AgentEvent::Notice(format!("The agent could not apply this choice: {error}"))),
+                            }
                         }
                     }));
                 }
@@ -181,6 +243,7 @@ async fn run_loop(
                 let mut inner = state.lock().expect("supervisor state lock poisoned");
                 match event {
                     Some(Ok(event)) => {
+                        inner.history.observe(&event);
                         if let AcpEvent::ExtensionResponse { request_id, result } = event {
                             permissions.drain();
                             match goal.take() {
@@ -194,43 +257,25 @@ async fn run_loop(
                             }
                             continue;
                         }
-                        if let AcpEvent::Initialized { session_id: id, agent_capabilities, .. } = &event {
+                        if let AcpEvent::Initialized { session_id: id, agent_capabilities, config_options, .. } = &event {
                             session_id = Some(id.clone());
+                            inner.config_options = config_options.clone().unwrap_or_default();
+                            if options.is_none() && inner.snapshot.active_turn.is_some() { inner.history.begin_turn(); }
                             inner.capabilities = Some((**agent_capabilities).clone());
                             if let Some(options) = options.take() {
                                 control = Some(Box::pin(super::opening::initialize(transport, event, options, state)));
                                 continue;
                             }
                         }
+                        if let AcpEvent::SessionUpdate { update, .. } = &event
+                            && let agent_client_protocol::schema::v1::SessionUpdate::ConfigOptionUpdate(update) = &**update {
+                            inner.config_options.clone_from(&update.config_options);
+                        }
                         if let AcpEvent::System { subtype, data } = &event
                             && subtype == "permission_lapsed"
                         {
                             permissions.lapse(data);
                             continue;
-                        }
-                        if let AcpEvent::System { subtype, data } = &event
-                            && subtype == "prompt_rejected"
-                        {
-                            let error = data.get("error").and_then(serde_json::Value::as_str)
-                                .unwrap_or("Your message could not be sent.").to_owned();
-                            if let Some(turn_id) = inner.snapshot.active_turn.take() {
-                                inner.snapshot.last_outcome = Some(TurnOutcome {
-                                    turn_id, stop_reason: None, error: Some(error.clone()),
-                                });
-                            }
-                            inner.snapshot.cancellation_requested = false;
-                            inner.discard_queue(&error);
-                            inner.emit(Ok(AgentMessage::Result {
-                                subtype: "message_not_sent".into(),
-                                duration_ms: 0,
-                                duration_api_ms: 0,
-                                is_error: true,
-                                num_turns: 0,
-                                session_id: crate::agent::message::SessionId::new(session_id.as_deref().unwrap_or_default()),
-                                total_cost_usd: None,
-                                usage: None,
-                                result: Some(error),
-                            }));
                         }
                         if let AcpEvent::PromptResponse { response, .. } = &event {
                             permissions.drain();
@@ -240,6 +285,7 @@ async fn run_loop(
                             }
                             if let Some(turn_id) = inner.snapshot.active_turn.take() {
                                 inner.completed_turns += 1;
+                                inner.history.finished_turn();
                                 inner.snapshot.last_outcome = Some(TurnOutcome {
                                     turn_id, stop_reason: Some(response.stop_reason), error: None,
                                 });
@@ -283,6 +329,7 @@ async fn run_loop(
                 }
             } => {
                 control = None;
+                state.lock().expect("supervisor state lock poisoned").publish_activity();
             }
         }
     }
@@ -303,6 +350,7 @@ fn drain(transport: &AcpTransport, permissions: &mut Permissions, state: &Mutex<
         return true;
     }
     inner.snapshot.cancellation_requested = true;
+    inner.publish_activity();
     permissions.drain();
     if let Err(error) = transport.cancel() {
         fail(&mut inner, format!("Provider cancellation failed: {error}"));
@@ -336,6 +384,8 @@ fn start_next(
         permissions.drain();
         inner.snapshot.queued_turns = inner.queue.len();
         inner.snapshot.active_turn = Some(id);
+        inner.history.begin_turn();
+        inner.publish_activity();
         if let Err(error) = transport.prompt(&prompt) {
             fail(&mut inner, format!("Failed to send follow-up: {error}"));
             return false;

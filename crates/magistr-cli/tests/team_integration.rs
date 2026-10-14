@@ -8,6 +8,7 @@
 #[path = "support/magistr_command.rs"]
 mod magistr_command;
 
+use magistr::session::session_outcome::SessionOutcome as HistoryOutcome;
 use std::path::Path;
 
 use assert_cmd::Command;
@@ -306,16 +307,23 @@ fn seed_session(home: &TempDir, id: &str, owner: &str) {
         &conn,
         &SessionRecord {
             session_id: id.to_string(),
+            name: None,
             project: "acme".to_string(),
+            workspace: "acme".to_string(),
+            provider: "scripted".into(),
+            provider_session_id: Some("provider-fixture".into()),
+            resume_supported: true,
+            outcome: Some(HistoryOutcome::Completed),
             started_at: now - chrono::Duration::hours(1),
-            ended_at: now,
-            cost_usd: 0.5,
-            turns: 2,
+            updated_at: now,
+            ended_at: Some(now),
+            cost_usd: Some(0.5),
+            turns: Some(2),
             duration_ms: 3_600_000,
             files_changed: vec![],
             tags: vec![],
             summary: None,
-            model: String::new(),
+            model: None,
             owner: Some(owner.to_string()),
         },
     )

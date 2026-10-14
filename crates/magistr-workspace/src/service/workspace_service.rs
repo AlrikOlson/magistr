@@ -17,7 +17,7 @@ use crate::{
     },
     config::ResolvedConfig,
     confirmation::ConfirmationSeal,
-    contracts::{WorkspaceError, WorkspaceResponse},
+    contracts::{ErrorKind, Freshness, WorkspaceError, WorkspaceResponse},
     diagnostics::{JournalRow, TraceRecorder},
     execution::{ProcessExecutor, RunInput, RunRow, WorkspaceRun},
     index::{
@@ -26,7 +26,10 @@ use crate::{
     },
     jail::WorkspaceKeyStore,
     journal::{JournalDb, JournalDbOptions, JournalMode},
-    query::{MapInput, MapRow, ReadInput, ReadRow, SearchGroup, SearchInput, WorkspaceQueries},
+    query::{
+        MapInput, MapRow, ReadInput, ReadRow, SearchGroup, SearchInput, SourceObservation,
+        WorkspaceQueries,
+    },
     snapshot::{
         MutationReceipt, SelectionPolicy, SnapshotError, SnapshotValidation, SourceSnapshot,
         WorkspaceIdentity,
@@ -288,6 +291,40 @@ impl WorkspaceService {
             Ok(queries) => self.with_notes(queries.read(input).await),
             Err(error) => self.with_notes(crate::query::budget::failure(error)),
         }
+    }
+
+    /// Read one admitted file as exact bytes, bounded by the live reader's
+    /// 1 MiB ceiling. Freshness describes this observation, independently of
+    /// the derived index. A changed file must be selected again by the caller.
+    pub fn read_source(
+        &self,
+        path: &str,
+        expected_hash: Option<&str>,
+    ) -> Result<SourceObservation, WorkspaceError> {
+        let observation = self.queries(CancellationToken::new())?.snapshot(path)?;
+        if observation.freshness != Freshness::Warm {
+            return Err(WorkspaceError::new(
+                ErrorKind::StaleAnchor {
+                    content_hash: observation.content_hash,
+                },
+                format!(
+                    "{} changed while it was being read; read it again",
+                    observation.path
+                ),
+            ));
+        }
+        if expected_hash.is_some_and(|expected| expected != observation.content_hash) {
+            return Err(WorkspaceError::new(
+                ErrorKind::StaleAnchor {
+                    content_hash: observation.content_hash,
+                },
+                format!(
+                    "{} changed since it was selected; read it again",
+                    observation.path
+                ),
+            ));
+        }
+        Ok(observation)
     }
 
     /// `cancel` is the request's own token: a client cancellation stops the

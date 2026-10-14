@@ -9,8 +9,16 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
 use tokio::sync::{Notify, Semaphore, mpsc};
 
+#[path = "session_supervisor/activity.tests.rs"]
+mod activity;
+#[path = "session_supervisor/attachments.tests.rs"]
+mod attachments;
 #[path = "session_supervisor/goal.tests.rs"]
 mod goals;
+#[path = "session_supervisor/history.tests.rs"]
+mod history;
+#[path = "session_supervisor/spending.tests.rs"]
+mod spending;
 
 const DEADLINE: Duration = Duration::from_secs(3);
 
@@ -19,27 +27,38 @@ async fn rejected_attachment_keeps_session_available_and_reaches_no_provider() {
     let mut fixture = Fixture::start("first").await;
     fixture.next_started().await;
     fixture.next_terminal().await.expect("first done");
-    fixture
+    let input = PromptInput {
+        text: "Review this picture".into(),
+        attachments: vec![
+            magistr_application::sessions::PromptAttachment::from_bytes(
+                "picture.png",
+                "image-hash",
+                b"\x89PNG\r\n\x1a\nimage".to_vec(),
+            )
+            .unwrap(),
+        ],
+    };
+    let retained = input.clone();
+    let error = fixture
         .supervisor
-        .send_followup("Read @missing.rs")
-        .expect("message admitted");
-    assert!(matches!(
-        fixture.next_terminal().await,
-        Ok(AgentMessage::Result { is_error: true, .. })
-    ));
+        .send_followup(&input)
+        .expect_err("unsupported image");
+    assert!(error.to_string().contains("does not accept images"));
+    assert_eq!(input, retained, "refused admission keeps the exact input");
     assert_eq!(
         fixture.supervisor.snapshot().residency,
         SessionResidency::Resident
     );
     assert_eq!(fixture.supervisor.snapshot().active_turn, None);
+    assert_eq!(fixture.supervisor.snapshot().queued_turns, 0);
     assert!(
         fixture.started.try_recv().is_err(),
-        "invalid attachment never reached provider"
+        "unsupported image never reached provider"
     );
     fixture
         .supervisor
-        .send_followup("try again")
-        .expect("same session admits another turn");
+        .send_followup(&"try again".into())
+        .expect("session remains usable");
     assert_eq!(fixture.next_started().await.0, "try again");
     fixture.next_terminal().await.expect("second done");
     fixture.close().await;
@@ -116,7 +135,22 @@ impl Provider for ControlledProvider {
                     () = turn.cancelled() => return Ok(StopReason::Cancelled),
                 }
             }
-            if text == "fail" {
+            {
+                use agent_client_protocol::schema::v1::{Cost, UsageUpdate};
+                let price = match text.as_str() {
+                    "priced" => Some(0.25),
+                    "zero" => Some(0.0),
+                    "higher" => Some(0.75),
+                    "priced fail" => Some(0.5),
+                    _ => None,
+                };
+                if let Some(price) = price {
+                    turn.usage(UsageUpdate::new(4, 100).cost(Cost::new(price, "USD")))?;
+                } else if text == "unpriced usage" {
+                    turn.usage(UsageUpdate::new(8, 100))?;
+                }
+            }
+            if text == "fail" || text == "priced fail" {
                 return Err(AgentError::provider("controlled turn failure"));
             }
             if text == "hold max tokens" {
@@ -168,6 +202,18 @@ impl Fixture {
         capacity: crate::agent::observation::ObservationCapacity,
         max_turns: Option<u32>,
     ) -> Self {
+        Self::start_recording(prompt, capacity, max_turns, None).await
+    }
+
+    async fn start_recording(
+        prompt: &str,
+        capacity: crate::agent::observation::ObservationCapacity,
+        max_turns: Option<u32>,
+        recording: Option<(
+            super::super::persistence::SessionHistory,
+            crate::config::inputs::ProjectInputs,
+        )>,
+    ) -> Self {
         let (client, agent) = agent_client_protocol::Channel::duplex();
         let (started, receiver) = mpsc::unbounded_channel();
         let observed = Arc::new(Observed {
@@ -183,16 +229,36 @@ impl Fixture {
             let _ = magistr_acp_agent::serve(provider, agent).await;
         });
         let directory = tempfile::tempdir().expect("session directory");
+        let root = recording
+            .as_ref()
+            .map(|(_, inputs)| inputs.project_root())
+            .unwrap_or(directory.path());
+        if let Some((history, inputs)) = &recording {
+            history
+                .begin(
+                    inputs,
+                    root,
+                    "supervisor-test",
+                    Some(ScriptedProvider::SLOW),
+                )
+                .await
+                .unwrap();
+        }
         let mut transport = magistr_acp::AcpTransport::new_with_args(
             std::path::PathBuf::from("unused-in-process-agent"),
             Vec::new(),
-            Some(directory.path().to_path_buf()),
+            Some(root.to_path_buf()),
         )
         .expect("transport")
         .session_model(Some(ScriptedProvider::SLOW.into()));
         transport.connect_over(client).await.expect("ACP handshake");
         let (supervisor, messages) = SessionSupervisor::start_connected_bounded_with_limit(
-            prompt, transport, None, capacity, max_turns,
+            prompt,
+            transport,
+            None,
+            capacity,
+            max_turns,
+            recording.map(|(history, _)| history),
         )
         .await
         .expect("supervisor startup");
@@ -254,8 +320,11 @@ async fn selected_model_precedes_initial_prompt_and_queued_turns_are_serial() {
         fixture.next_started().await,
         ("hold first".into(), Some(ScriptedProvider::SLOW.into()))
     );
-    fixture.supervisor.send_followup("hold second").unwrap();
-    fixture.supervisor.send_followup("third").unwrap();
+    fixture
+        .supervisor
+        .send_followup(&"hold second".into())
+        .unwrap();
+    fixture.supervisor.send_followup(&"third".into()).unwrap();
     fixture.observed.finish.add_permits(1);
     assert!(matches!(
         fixture.next_terminal().await,
@@ -295,7 +364,7 @@ async fn cancel_requires_terminal_acknowledgement_before_the_next_turn() {
     assert!(active_turn.is_some());
     fixture
         .supervisor
-        .send_followup("queued before cancellation")
+        .send_followup(&"queued before cancellation".into())
         .unwrap();
     fixture.supervisor.cancel_turn().unwrap();
     tokio::time::timeout(DEADLINE, fixture.observed.cancellation_seen.notified())
@@ -309,7 +378,7 @@ async fn cancel_requires_terminal_acknowledgement_before_the_next_turn() {
     assert!(
         fixture
             .supervisor
-            .send_followup("before acknowledgement")
+            .send_followup(&"before acknowledgement".into())
             .is_err()
     );
     assert_eq!(fixture.supervisor.turn_count(), 0);
@@ -326,7 +395,7 @@ async fn cancel_requires_terminal_acknowledgement_before_the_next_turn() {
     );
     fixture
         .supervisor
-        .send_followup("after cancellation")
+        .send_followup(&"after cancellation".into())
         .unwrap();
     assert_eq!(fixture.next_started().await.0, "after cancellation");
     assert!(matches!(
@@ -363,7 +432,10 @@ async fn busy_configuration_is_refused_and_does_not_change_the_next_turn_model()
     );
     fixture.observed.finish.add_permits(1);
     fixture.next_terminal().await.unwrap();
-    fixture.supervisor.send_followup("model unchanged").unwrap();
+    fixture
+        .supervisor
+        .send_followup(&"model unchanged".into())
+        .unwrap();
     assert_eq!(
         fixture.next_started().await,
         (
@@ -380,11 +452,12 @@ async fn idle_configuration_errors_are_observable_and_completed_requests_release
     let mut fixture = Fixture::start("complete before configuration").await;
     fixture.next_started().await;
     fixture.next_terminal().await.unwrap();
-    fixture
-        .supervisor
-        .send_config_change("missing-config".into(), "missing-value".into())
-        .unwrap();
-    assert!(fixture.next_terminal().await.is_err());
+    assert!(
+        fixture
+            .supervisor
+            .send_config_change("missing-config".into(), "missing-value".into())
+            .is_err()
+    );
     assert_eq!(
         fixture.supervisor.snapshot().residency,
         SessionResidency::Resident
@@ -412,7 +485,7 @@ async fn idle_configuration_errors_are_observable_and_completed_requests_release
     }
     fixture
         .supervisor
-        .send_followup("model after configuration")
+        .send_followup(&"model after configuration".into())
         .unwrap();
     assert_eq!(
         fixture.next_started().await,
@@ -440,7 +513,7 @@ async fn provider_death_during_a_turn_does_not_fabricate_success_or_cancellation
     assert!(
         fixture
             .supervisor
-            .send_followup("must not restart")
+            .send_followup(&"must not restart".into())
             .is_err()
     );
 }
@@ -460,7 +533,7 @@ async fn provider_death_between_turns_preserves_the_last_confirmed_outcome() {
     assert!(
         fixture
             .supervisor
-            .send_followup("must not restart")
+            .send_followup(&"must not restart".into())
             .is_err()
     );
 }
@@ -482,7 +555,7 @@ async fn an_error_terminal_discards_queued_input_and_retains_its_actual_stop_rea
     fixture.next_started().await;
     fixture
         .supervisor
-        .send_followup("queued before token limit")
+        .send_followup(&"queued before token limit".into())
         .unwrap();
     fixture.observed.finish.add_permits(1);
     assert!(matches!(
@@ -502,7 +575,7 @@ async fn an_error_terminal_discards_queued_input_and_retains_its_actual_stop_rea
     assert_eq!(fixture.supervisor.session_state(), AcpSessionState::Failed);
     fixture
         .supervisor
-        .send_followup("explicit fresh turn")
+        .send_followup(&"explicit fresh turn".into())
         .unwrap();
     assert_eq!(fixture.next_started().await.0, "explicit fresh turn");
     assert!(matches!(
@@ -527,7 +600,7 @@ async fn max_turns_refuses_followups_before_provider_inference() {
     assert!(
         fixture
             .supervisor
-            .send_followup("blocked while active")
+            .send_followup(&"blocked while active".into())
             .is_err()
     );
     fixture.observed.finish.add_permits(1);
@@ -541,7 +614,7 @@ async fn max_turns_refuses_followups_before_provider_inference() {
     assert!(
         fixture
             .supervisor
-            .send_followup("blocked after completion")
+            .send_followup(&"blocked after completion".into())
             .is_err()
     );
     fixture.close().await;
@@ -578,7 +651,7 @@ async fn detaching_the_observer_keeps_the_turn_resident_until_explicit_terminati
     assert!(
         fixture
             .supervisor
-            .send_followup("already terminated")
+            .send_followup(&"already terminated".into())
             .is_err()
     );
 }
@@ -629,7 +702,12 @@ async fn termination_releases_an_active_transport_and_refuses_further_admission(
     fixture.next_started().await;
     fixture.close().await;
     assert_eq!(fixture.supervisor.snapshot().active_turn, None);
-    assert!(fixture.supervisor.send_followup("closed session").is_err());
+    assert!(
+        fixture
+            .supervisor
+            .send_followup(&"closed session".into())
+            .is_err()
+    );
     fixture.supervisor.terminate_session().await.unwrap();
 }
 
@@ -831,7 +909,7 @@ async fn late_permission_gets_cancelled_on_the_wire_and_fresh_turn_can_receive_a
     })
     .await
     .unwrap();
-    supervisor.send_followup("second").unwrap();
+    supervisor.send_followup(&"second".into()).unwrap();
     assert_eq!(
         tokio::time::timeout(DEADLINE, starts.recv()).await.unwrap(),
         Some(false)
@@ -959,7 +1037,7 @@ async fn a_lossless_backlog_past_its_bound_ends_observation_explicitly_and_keeps
     );
     fixture
         .supervisor
-        .send_followup("still resident")
+        .send_followup(&"still resident".into())
         .expect("the session admits a turn after its observer overflowed");
     assert_eq!(fixture.next_started().await.0, "still resident");
     fixture.close().await;
@@ -972,12 +1050,12 @@ async fn the_turn_queue_has_an_explicit_capacity_and_refuses_the_next_follow_up(
     for index in 0..SessionSupervisor::QUEUED_TURN_CAPACITY {
         fixture
             .supervisor
-            .send_followup(&format!("queued {index}"))
+            .send_followup(&format!("queued {index}").into())
             .expect("within capacity");
     }
     let refused = fixture
         .supervisor
-        .send_followup("one too many")
+        .send_followup(&"one too many".into())
         .expect_err("the queue is full");
     assert!(
         refused.to_string().contains("Turn queue is full"),
@@ -1000,12 +1078,12 @@ async fn an_interrupt_stops_admission_cancels_the_turn_and_closes_after_the_prov
     fixture.next_started().await;
     fixture
         .supervisor
-        .send_followup("queued before the interrupt")
+        .send_followup(&"queued before the interrupt".into())
         .unwrap();
     fixture.supervisor.interrupt().unwrap();
     let refused = fixture
         .supervisor
-        .send_followup("after the interrupt")
+        .send_followup(&"after the interrupt".into())
         .expect_err("no turn is admitted while draining");
     assert!(refused.to_string().contains("winding down"), "{refused}");
     tokio::time::timeout(DEADLINE, fixture.observed.cancellation_seen.notified())
@@ -1049,7 +1127,12 @@ async fn an_interrupt_on_an_idle_session_closes_it_at_once() {
         fixture.supervisor.snapshot().residency,
         SessionResidency::Terminated
     );
-    assert!(fixture.supervisor.send_followup("too late").is_err());
+    assert!(
+        fixture
+            .supervisor
+            .send_followup(&"too late".into())
+            .is_err()
+    );
 }
 
 #[tokio::test]
@@ -1059,7 +1142,7 @@ async fn empty_opening_keeps_the_resident_session_idle_until_input_arrives() {
     assert_eq!(fixture.supervisor.turn_count(), 0);
     fixture
         .supervisor
-        .send_followup("first explicit turn")
+        .send_followup(&"first explicit turn".into())
         .unwrap();
     assert_eq!(fixture.next_started().await.0, "first explicit turn");
     fixture.next_terminal().await.unwrap();
@@ -1228,7 +1311,7 @@ async fn headless_and_cockpit_attachments_share_policy_decisions_and_terminal_ou
         .unwrap();
         let snapshot = supervisor.snapshot();
         headless.push((wire(outcome), snapshot.last_outcome.unwrap().stop_reason));
-        supervisor.send_followup(prompt).unwrap();
+        supervisor.send_followup(&prompt.into()).unwrap();
     }
     let outcome = tokio::time::timeout(DEADLINE, outcomes.recv())
         .await
@@ -1286,7 +1369,7 @@ async fn headless_and_cockpit_attachments_share_policy_decisions_and_terminal_ou
         .unwrap();
         let snapshot = supervisor.snapshot();
         cockpit.push((wire(outcome), snapshot.last_outcome.unwrap().stop_reason));
-        supervisor.send_followup(prompt).unwrap();
+        supervisor.send_followup(&prompt.into()).unwrap();
     }
     let id = tokio::time::timeout(DEADLINE, async {
         loop {

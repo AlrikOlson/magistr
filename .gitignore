@@ -62,10 +62,10 @@ vendor/
 !docs/assets/**/*.png
 !apps/website/public/**/*.png
 # Versioned screenshots; exclude unreviewed candidates
-!crates/magistr-tui/tests/golden/**/*.png
-crates/magistr-tui/tests/golden/**/*.new.png
-!crates/magistr-cockpit/tests/golden/**/*.png
-crates/magistr-cockpit/tests/golden/**/*.new.png
+!docs/evidence/desktop-current/*.png
+!crates/magistr-desktop/ui/icon.png
+.magistr/desktop-native/
+.magistr/desktop-native-driver
 .magistr-roadmap.yml.lock
 
 

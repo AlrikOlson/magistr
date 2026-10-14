@@ -10,7 +10,11 @@ publish = false
 name = "magistr_acp"
 path = "src/lib.rs"
 
+[features]
+test-support = ["dep:serde"]
+
 [dependencies]
+serde = { version = "1", features = ["derive"], optional = true }
 magistr-application = { path = "../magistr-application" }
 magistr-process = { path = "../magistr-process" }
 agent-client-protocol = "2.0"

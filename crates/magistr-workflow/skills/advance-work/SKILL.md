@@ -27,7 +27,11 @@ Every mode follows the same seven steps. Only step 4 differs.
 
 1. **Load the focus.** `roadmap_focus_get` with your lane — the same lane
    `switch-work` used, normally the worktree root (`git rev-parse --show-toplevel`).
-   No focus → stop, see [No focus](#no-focus-is-an-actionable-stop).
+   Check the returned `focus_state`. Unset means stop, see
+   [No focus](#no-focus-is-an-actionable-stop). Closed means the saved workstream
+   has no unfinished records; missing means it is no longer on the roadmap.
+   Report that exact saved name and current choices from `workstreams.current`,
+   then stop. Never resolve the saved name as a fragment or switch it implicitly.
 2. **Reconstruct state.** Roadmap frontier for the focused workstream, current
    ship objective, reasoning trace head, pending signals, and Spec Kit artifacts
    if this project has them (see [speckit.md](references/speckit.md)).
@@ -59,11 +63,12 @@ Every mode follows the same seven steps. Only step 4 differs.
 | Mode | Eligible unit | Where it comes from |
 |---|---|---|
 | `shape` | One unresolved question, requirement, or plan area | The workstream's backlog, open questions, or a stale plan |
-| `build` | One `pending` chunk in the workstream, unblocked, deps done | The focused frontier's `next` |
+| `build` | One `pending` chunk in the workstream, unblocked, deps done | The current frontier's `activity.next_ready` |
 | `listen` | One unresolved signal relevant to the workstream | Pending signals, relevance established with evidence |
 
-Take the frontier's `next` when there is one. If you deviate, say why in the
-receipt — a deviation nobody records is indistinguishable from a mistake.
+Take the current inspection's `frontier.activity.next_ready` when there is one.
+If you deviate, say why in the receipt — a deviation nobody records is
+indistinguishable from a mistake.
 
 ## Optional tools
 
@@ -181,7 +186,7 @@ Mode: build
 Unit: auth-session-rotation — Rotate session tokens on privilege change
 Result: blocked
 Evidence:
-  - cargo test --workspace: FAILED (exit 101), 2 tests in session::rotate
+  - cargo nextest run -p app --lib -E 'test(session::rotate)': FAILED (exit 101), 2 tests
 Native records:
   - chunk:auth-session-rotation (still in_progress)
   - check:cargo-test (failed, required)

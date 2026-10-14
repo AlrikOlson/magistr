@@ -2,9 +2,9 @@ use serde::{Deserialize, Serialize};
 
 /// Aggregate roadmap progress — a lightweight snapshot of completion state.
 ///
-/// This is the engine's view of roadmap progress. The full roadmap schema
-/// (phases, tasks, subtasks) lives in magistr-cli; the engine only needs
-/// summary statistics for workflow decisions (e.g., "is spec complete?").
+/// Native observations derive these counts from the same canonical chunk
+/// records they carry. Decisions require a current observation before using
+/// the counts to establish completion.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RoadmapProgress {
     /// Total number of tasks (including subtasks).

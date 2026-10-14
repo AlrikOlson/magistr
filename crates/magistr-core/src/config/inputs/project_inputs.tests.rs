@@ -1,5 +1,6 @@
 use super::*;
 use crate::config::inputs::InputOrigin;
+use crate::error::MagistrError;
 
 fn lookup(vars: Vec<(&'static str, &'static str)>) -> impl Fn(&str) -> Option<String> {
     move |key| {
@@ -103,6 +104,18 @@ fn user_config_distinguishes_absent_loaded_and_unreadable() {
 }
 
 #[test]
+fn user_config_does_not_treat_a_directory_as_absent() {
+    let dir = tempfile::tempdir().unwrap();
+    let inputs = ProjectInputs::from_lookup(dir.path(), |_| None).with_config_dir(dir.path());
+    let path = inputs.user_config_path().unwrap();
+    std::fs::create_dir(&path).unwrap();
+    assert!(matches!(
+        inputs.user_config(),
+        Err(UserConfigError::Io(actual, _)) if actual == path
+    ));
+}
+
+#[test]
 fn project_config_distinguishes_absent_loaded_and_invalid() {
     let dir = tempfile::TempDir::new().unwrap();
     let inputs = ProjectInputs::from_lookup(dir.path(), lookup(vec![]));
@@ -123,7 +136,7 @@ fn project_config_distinguishes_absent_loaded_and_invalid() {
     std::fs::write(&path, "{ not json").unwrap();
     assert!(matches!(
         inputs.project_config(),
-        Err(MagistrError::Config(msg)) if msg.contains("invalid project config")
+        Err(MagistrError::Config(msg)) if msg.contains("Invalid project settings")
     ));
 }
 
@@ -589,4 +602,21 @@ fn for_project_keeps_the_machine_inputs() {
     assert!(other.is_ci());
     assert_eq!(other.goal_mode(), Some("off"));
     assert_eq!(other.budget_limit(), Some(3.0));
+}
+#[test]
+fn configured_api_choices_capture_presence_without_retaining_secrets() {
+    let inputs = ProjectInputs::from_lookup("/project", |key| match key {
+        "OPENAI_API_KEY" => Some("test secret".into()),
+        "GOOGLE_API_KEY" => Some("second secret".into()),
+        "OLLAMA_HOST" => Some("http://localhost:11434".into()),
+        _ => None,
+    });
+    assert_eq!(
+        inputs.configured_api_providers(),
+        ["openai", "gemini", "ollama"]
+    );
+    let debug = format!("{inputs:?}");
+    assert!(!debug.contains("test secret"));
+    assert!(!debug.contains("second secret"));
+    assert!(!debug.contains("localhost:11434"));
 }

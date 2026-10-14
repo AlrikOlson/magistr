@@ -3,6 +3,21 @@ use crate::agent::message::{AgentMessage, AssistantContent, ContentBlock, Sessio
 use crate::agent::mock::mock_session;
 use crate::permissions::PermissionProfile;
 
+#[tokio::test]
+async fn workflow_turn_returns_without_reading_followup_or_waiting_for_eof() {
+    let (mut session, tx, followups) =
+        crate::agent::session::AgentSession::from_channel_with_followups();
+    tx.send(Ok(result_msg("workflow", 1, None))).unwrap();
+    tokio::time::timeout(
+        std::time::Duration::from_millis(100),
+        drain_session_plain_turn(&mut session),
+    )
+    .await
+    .expect("the loop owns continuation")
+    .unwrap();
+    assert!(followups.lock().unwrap().is_empty());
+}
+
 fn assistant_msg(text: &str) -> AgentMessage {
     AgentMessage::Assistant {
         parent_tool_use_id: None,
@@ -156,15 +171,7 @@ async fn interactive_drain_propagates_stream_error_and_unacknowledged_eof() {
             .unwrap();
         }
         drop(tx);
-        let dir = tempfile::tempdir().unwrap();
-        let error = drain_session_interactive(
-            &mut session,
-            dir.path(),
-            &crate::config::inputs::ProjectInputs::from_lookup(dir.path(), |_| None),
-            None,
-        )
-        .await
-        .unwrap_err();
+        let error = drain_session_interactive(&mut session).await.unwrap_err();
         assert!(error.to_string().contains(if stream_error {
             "provider died"
         } else {
@@ -181,15 +188,9 @@ async fn interactive_drain_cancellation_settles_a_retained_session() {
         reason: "cancelled".into(),
     }))
     .unwrap();
-    let dir = tempfile::tempdir().unwrap();
     let result = tokio::time::timeout(
         std::time::Duration::from_millis(100),
-        drain_session_interactive(
-            &mut session,
-            dir.path(),
-            &crate::config::inputs::ProjectInputs::from_lookup(dir.path(), |_| None),
-            None,
-        ),
+        drain_session_interactive(&mut session),
     )
     .await
     .expect("cancelled turn must not wait for the retained session to close");

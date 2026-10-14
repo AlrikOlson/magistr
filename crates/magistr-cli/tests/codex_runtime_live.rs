@@ -207,7 +207,7 @@ fn installed_codex_discovers_relocated_project_and_generated_mcp_tools() {
     };
     let mut setup = Command::new(assert_cmd::cargo::cargo_bin!("magistr"));
     setup
-        .args(["--no-tui", "init", "--yes", "--agent", "codex"])
+        .args(["init", "--yes", "--agent", "codex"])
         .arg(&original);
     environment(&mut setup);
     let output = setup.output().expect("generate project");

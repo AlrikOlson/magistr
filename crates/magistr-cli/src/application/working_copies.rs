@@ -10,6 +10,7 @@ use std::path::{Path, PathBuf};
 #[serde(tag = "status", rename_all = "snake_case")]
 pub enum WorkingCopyState {
     Available { dirty: u32, conflicts: u32 },
+    Unversioned,
     Archived,
     Locked { reason: String },
     Unavailable,
@@ -55,7 +56,7 @@ impl std::error::Error for WorkingCopyError {}
 
 /// One application entry point for every current working-copy operation.
 pub struct WorkingCopies {
-    repo: GitRepo,
+    repo: Option<GitRepo>,
     root: PathBuf,
 }
 
@@ -64,17 +65,28 @@ impl WorkingCopies {
         let location = ProjectLocation::resolve(root).map_err(operation)?;
         let root =
             ProjectLocation::working_copy_root(&location.authority_root).map_err(operation)?;
-        Ok(Self {
-            repo: GitRepo::at(&root),
-            root,
-        })
+        let repo = match std::fs::symlink_metadata(root.join(".git")) {
+            Ok(_) => Some(GitRepo::at(&root)),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
+            Err(error) => return Err(operation(error)),
+        };
+        Ok(Self { repo, root })
     }
 
     pub fn list(&self) -> Result<Vec<WorkingCopy>, WorkingCopyError> {
-        let records = self
-            .repo
-            .working_copies()
-            .map_err(WorkingCopyError::Operation)?;
+        let Some(repo) = &self.repo else {
+            return Ok(vec![WorkingCopy {
+                path: self.root.clone(),
+                branch: None,
+                is_main: true,
+                state: if self.root.is_dir() {
+                    WorkingCopyState::Unversioned
+                } else {
+                    WorkingCopyState::Unavailable
+                },
+            }]);
+        };
+        let records = repo.working_copies().map_err(WorkingCopyError::Operation)?;
         let mut copies = Vec::new();
         let mut path = None;
         let mut branch = None;
@@ -117,6 +129,15 @@ impl WorkingCopies {
         Ok(copies)
     }
 
+    fn git(&self) -> Result<&GitRepo, WorkingCopyError> {
+        self.repo.as_ref().ok_or_else(|| {
+            WorkingCopyError::Operation(
+                "This folder does not use Git. Set up Git before creating another working copy."
+                    .into(),
+            )
+        })
+    }
+
     fn copy(&self, path: &Path) -> Result<WorkingCopy, WorkingCopyError> {
         let absolute = std::path::absolute(path).map_err(operation)?;
         let path = absolute
@@ -143,7 +164,7 @@ impl WorkingCopies {
         branch: &str,
         head: &str,
     ) -> Result<WorkingCopy, WorkingCopyError> {
-        self.repo
+        self.git()?
             .create_working_copy(path, branch, head)
             .map_err(WorkingCopyError::Operation)?;
         self.copy(path)
@@ -175,7 +196,7 @@ impl WorkingCopies {
             }
             _ => {}
         }
-        self.repo
+        self.git()?
             .archive_working_copy(&copy.path)
             .map_err(WorkingCopyError::Operation)?;
         self.copy(&copy.path)
@@ -188,7 +209,7 @@ impl WorkingCopies {
             WorkingCopyState::Locked { reason } => Err(WorkingCopyError::Locked(reason.clone())),
             WorkingCopyState::Archived => {
                 let (_work, _source) = freeze(&copy.path)?;
-                self.repo
+                self.git()?
                     .reopen_working_copy(&copy.path)
                     .map_err(WorkingCopyError::Operation)?;
                 self.copy(&copy.path)

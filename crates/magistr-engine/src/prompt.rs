@@ -120,7 +120,7 @@ impl PromptConfig {
 pub(crate) const NEXT_WORKFLOW_INSTRUCTIONS: &str = r#"## Workflow
 
 Follow the Research-Plan-Execute-Verify workflow from the project rules.
-Call `magistr_set_phase` at each phase transition to update the TUI progress indicator.
+Call `magistr_set_phase` at each phase transition to record the current workflow phase.
 
 The roadmap, the plan and the gates live in think-and-ship (served by the `magistr` MCP server):
 
@@ -158,7 +158,7 @@ After quality gates pass (each recorded through `ship_check`), complete these ad
 - After completing the verify phase, you MUST STOP. End your turn. Do not continue.
 - Do NOT invoke `/next` or `/next-loop` yourself. The orchestrator handles iteration chaining.
 - Do NOT start planning or implementing the next chunk. Each iteration runs in a fresh context window.
-- If you keep working past verify, you will accumulate stale context, miss the iteration boundary, and the TUI will not track your progress correctly.
+- If you keep working past verify, you will accumulate stale context, miss the iteration boundary, and the recorded phase will not track your progress correctly.
 - Your job is ONE iteration: Research → Plan → Execute → Verify → STOP.
 
 **Plan Entry Labeling (REQUIRED):**
@@ -169,7 +169,7 @@ Prefix each plan entry with its workflow phase tag:
 - `[Verify]` — quality gate, roadmap update, commit
 
 **Plan Entry Status Updates (REQUIRED):**
-Keep plan entry statuses up to date — the TUI sidebar shows your plan as a live checklist.
+Keep plan entry statuses up to date — the native execution plan retains each task's status.
 
 - Mark entries as `in_progress` when you start working on them
 - Mark entries as `completed` when you finish them

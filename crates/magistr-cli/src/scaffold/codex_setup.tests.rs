@@ -276,8 +276,15 @@ fn native_only_denials_and_disabled_standalone_server_restore_original_user_valu
     for original_denials in ["['custom_guard']", "['custom_guard', 'roadmap_export']"] {
         let tmp = tempfile::tempdir().unwrap();
         let dir = tmp.path();
-        let project = "{\"roadmap_backend\":\"think-and-ship\",\"roadmap_exports\":false}\n";
-        write(dir, ".magistr/project.json", project);
+        let project = serde_json::json!({
+    "project": {"name": "settings-test", "type": "cli"},
+    "stack": {"language": "unknown", "framework": "none", "package_manager": "unknown", "test_framework": "none", "linter": "none", "formatter": "none"},
+    "quality_gate": {"check": "true", "test": "true", "lint": "true"},
+    "format": {"command": "", "extensions": []},
+    "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"},
+    "reference_repos": [], "state_prefix": "settings-test", "roadmap_exports": false
+}).to_string();
+        write(dir, ".magistr/project.json", &project);
         let original = format!(
             "# User settings\nmodel = 'chosen'\n\n[mcp_servers.magistr]\ncommand = 'custom-magistr'\nargs = ['custom-root']\ndisabled_tools = {original_denials} # preserve original denials\n\n[mcp_servers.think-and-ship]\ncommand = 'custom-workflow'\nargs = ['serve', 'custom-root']\nenabled = true # restore this choice on removal\n"
         );

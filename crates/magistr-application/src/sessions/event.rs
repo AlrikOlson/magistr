@@ -16,6 +16,15 @@ use super::turn_end::TurnEnd;
 /// One observation from the resident session, shared by hosts and interfaces.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum AgentEvent {
+    /// Durable identity, chosen name and actual provider of this conversation.
+    Conversation(super::Conversation),
+    /// Complete configuration accepted by the provider.
+    Configuration {
+        options: Vec<super::SessionConfig>,
+        model: Option<String>,
+    },
+    /// Current admission, cancellation and negotiated provider facts.
+    Activity(super::SessionActivity),
     /// The handshake completed and a session exists.
     Initialized {
         /// The session's id.
@@ -95,10 +104,8 @@ pub enum AgentEvent {
     /// Context-window usage — and, when the agent prices its work, the
     /// session's spend so far.
     Usage {
-        /// Tokens in the window.
-        used: u64,
-        /// The window's size.
-        size: u64,
+        /// Current token counts, when the agent has reported its context.
+        context: Option<super::ContextUsage>,
         /// The session's cumulative cost in cents, when the agent put a
         /// dollar figure on the update. This is
         /// the one metering message: the in-binary agent prices it from
@@ -124,6 +131,8 @@ pub enum AgentEvent {
         id: u64,
         /// What the agent wants to run.
         title: String,
+        /// The requested action's input, kept with the owner-correlated request.
+        detail: String,
         /// The options offered.
         choices: Vec<PermissionChoice>,
         /// Whether the tool is an edit — shown as a diff approval.
@@ -189,11 +198,13 @@ pub enum AgentEvent {
     },
     /// The local message could not be sent; the session remains available.
     PromptRejected {
-        /// Original message, restored when no newer draft exists.
-        text: String,
+        /// Original message and files, restored when no newer draft exists.
+        input: super::PromptInput,
         /// The file or validation problem the user can fix.
         error: String,
     },
+    /// A nonfatal session diagnostic; it does not change the run outcome.
+    Notice(String),
     /// The transport failed.
     Error(String),
 }

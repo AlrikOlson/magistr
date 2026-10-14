@@ -7,11 +7,10 @@ use magistr_engine::{BudgetConfig, EngineHandle, NativeReader, WorkflowConfig};
 /// An [`EngineHandle`] for the cockpit session in `root`, attached to a
 /// reader over the project's native workflow engines.
 ///
-/// Capture reads the roadmap cursor from the native store: the chunk in
-/// progress, or the next ready chunk. The cockpit's phase and iteration are
-/// held separately in `Model` and are not synchronized to this handle.
-/// Snapshots therefore contain the repository and roadmap cursor, with
-/// workflow fields at their engine defaults.
+/// Capture validates roadmap progress and the selected chunk at the owner.
+/// The loop driver owns iteration policy independently of this checkpoint handle.
+/// Native attachment performs no read; evidence operations validate their
+/// required owner when requested.
 #[must_use]
 pub fn session_engine(root: &Path, native: NativeReader) -> EngineHandle {
     let id = root.file_name().map_or_else(

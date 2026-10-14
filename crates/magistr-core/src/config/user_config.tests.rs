@@ -1,9 +1,9 @@
 use super::*;
 
 #[test]
-fn default_config_has_no_theme() {
+fn default_config_follows_system_theme() {
     let config = UserConfig::default();
-    assert_eq!(config.theme.default, None);
+    assert_eq!(config.theme.default, ThemePreference::System);
 }
 
 #[test]
@@ -21,31 +21,15 @@ fn save_and_load_round_trip() {
 
     let config = UserConfig {
         theme: ThemeConfig {
-            default: Some("dracula".to_string()),
+            default: ThemePreference::Dark,
         },
         ..Default::default()
     };
 
-    save_to(&config, &path).unwrap();
+    write_config_fixture(&config, &path).unwrap();
     let loaded = load_from(&path).unwrap();
     assert_eq!(loaded, config);
-    assert_eq!(loaded.theme.default.as_deref(), Some("dracula"));
-}
-
-#[test]
-fn save_creates_parent_directories() {
-    let dir = tempfile::TempDir::new().unwrap();
-    let path = dir.path().join("nested").join("deep").join("config.toml");
-
-    let config = UserConfig {
-        theme: ThemeConfig {
-            default: Some("tokyo-night".to_string()),
-        },
-        ..Default::default()
-    };
-
-    save_to(&config, &path).unwrap();
-    assert!(path.is_file());
+    assert_eq!(loaded.theme.default, ThemePreference::Dark);
 }
 
 #[test]
@@ -77,7 +61,7 @@ fn load_partial_config_fills_defaults() {
     std::fs::write(&path, "[theme]\n").unwrap();
 
     let config = load_from(&path).unwrap();
-    assert_eq!(config.theme.default, None);
+    assert_eq!(config.theme.default, ThemePreference::System);
 }
 
 #[test]
@@ -87,14 +71,14 @@ fn save_produces_valid_toml() {
 
     let config = UserConfig {
         theme: ThemeConfig {
-            default: Some("catppuccin-latte".to_string()),
+            default: ThemePreference::Light,
         },
         ..Default::default()
     };
 
-    save_to(&config, &path).unwrap();
+    write_config_fixture(&config, &path).unwrap();
     let content = std::fs::read_to_string(&path).unwrap();
-    assert!(content.contains("catppuccin-latte"));
+    assert!(content.contains("light"));
     assert!(content.contains("[theme]"));
 }
 
@@ -118,7 +102,7 @@ fn budget_defaults_round_trip() {
         ..Default::default()
     };
 
-    save_to(&config, &path).unwrap();
+    write_config_fixture(&config, &path).unwrap();
     let loaded = load_from(&path).unwrap();
     assert_eq!(loaded.budget.limit, Some(10.0));
     assert_eq!(loaded.budget.warn_threshold, Some(7.5));
@@ -139,11 +123,11 @@ fn budget_defaults_partial_config() {
 fn config_without_budget_section_uses_defaults() {
     let dir = tempfile::TempDir::new().unwrap();
     let path = dir.path().join("config.toml");
-    std::fs::write(&path, "[theme]\ndefault = \"dracula\"\n").unwrap();
+    std::fs::write(&path, "[theme]\ndefault = \"dark\"\n").unwrap();
 
     let config = load_from(&path).unwrap();
     assert_eq!(config.budget, BudgetDefaults::default());
-    assert_eq!(config.theme.default.as_deref(), Some("dracula"));
+    assert_eq!(config.theme.default, ThemePreference::Dark);
 }
 
 #[test]
@@ -159,7 +143,7 @@ fn budget_defaults_serializes_to_toml() {
         ..Default::default()
     };
 
-    save_to(&config, &path).unwrap();
+    write_config_fixture(&config, &path).unwrap();
     let content = std::fs::read_to_string(&path).unwrap();
     assert!(content.contains("[budget]"));
     assert!(content.contains("20.0"));
@@ -186,7 +170,7 @@ fn layout_config_round_trip() {
         ..Default::default()
     };
 
-    save_to(&config, &path).unwrap();
+    write_config_fixture(&config, &path).unwrap();
     let loaded = load_from(&path).unwrap();
     assert_eq!(
         loaded.layout.grid.as_deref(),
@@ -198,7 +182,7 @@ fn layout_config_round_trip() {
 fn config_without_layout_section_uses_defaults() {
     let dir = tempfile::TempDir::new().unwrap();
     let path = dir.path().join("config.toml");
-    std::fs::write(&path, "[theme]\ndefault = \"dracula\"\n").unwrap();
+    std::fs::write(&path, "[theme]\ndefault = \"dark\"\n").unwrap();
 
     let config = load_from(&path).unwrap();
     assert_eq!(config.layout, LayoutConfig::default());
@@ -218,7 +202,7 @@ fn layout_config_serializes_to_toml() {
         ..Default::default()
     };
 
-    save_to(&config, &path).unwrap();
+    write_config_fixture(&config, &path).unwrap();
     let content = std::fs::read_to_string(&path).unwrap();
     assert!(content.contains("[layout]"));
     assert!(content.contains("stream | detail"));
@@ -235,8 +219,10 @@ fn error_display_messages() {
     let parse_err = UserConfigError::Parse(PathBuf::from("/tmp/test"), "bad syntax".to_string());
     assert!(parse_err.to_string().contains("parse config"));
 
-    let ser_err = UserConfigError::Serialize("encoding failed".to_string());
-    assert!(ser_err.to_string().contains("serialize config"));
+    let conflict = UserConfigError::Conflict(PathBuf::from("/tmp/test"));
+    assert!(conflict.to_string().contains("Reload settings"));
+    let busy = UserConfigError::Busy(PathBuf::from("/tmp/test"));
+    assert!(busy.to_string().contains("Try again"));
 
     let home_err = UserConfigError::NoHome("no home".to_string());
     assert!(home_err.to_string().contains("no home"));
@@ -269,7 +255,7 @@ fn appearance_config_round_trip() {
         ..Default::default()
     };
 
-    save_to(&config, &path).unwrap();
+    write_config_fixture(&config, &path).unwrap();
     let loaded = load_from(&path).unwrap();
     assert_eq!(loaded.appearance.easing.as_deref(), Some("spring"));
     assert_eq!(loaded.appearance.border_style.as_deref(), Some("sharp"));
@@ -318,7 +304,7 @@ fn controls_config_round_trip() {
         ..Default::default()
     };
 
-    save_to(&config, &path).unwrap();
+    write_config_fixture(&config, &path).unwrap();
     let loaded = load_from(&path).unwrap();
     assert_eq!(loaded.controls.keybinding_preset.as_deref(), Some("vim"));
     assert_eq!(loaded.controls.sound, Some(true));
@@ -328,7 +314,7 @@ fn controls_config_round_trip() {
 fn config_without_controls_section_uses_defaults() {
     let dir = tempfile::TempDir::new().unwrap();
     let path = dir.path().join("config.toml");
-    std::fs::write(&path, "[theme]\ndefault = \"dracula\"\n").unwrap();
+    std::fs::write(&path, "[theme]\ndefault = \"dark\"\n").unwrap();
 
     let config = load_from(&path).unwrap();
     assert_eq!(config.controls, ControlsConfig::default());
@@ -362,7 +348,7 @@ fn accessibility_config_round_trip() {
         ..Default::default()
     };
 
-    save_to(&config, &path).unwrap();
+    write_config_fixture(&config, &path).unwrap();
     let loaded = load_from(&path).unwrap();
     assert_eq!(loaded.accessibility.reduce_motion, Some(true));
     assert_eq!(loaded.accessibility.high_contrast, Some(false));
@@ -377,7 +363,7 @@ fn accessibility_config_round_trip() {
 fn config_without_accessibility_section_uses_defaults() {
     let dir = tempfile::TempDir::new().unwrap();
     let path = dir.path().join("config.toml");
-    std::fs::write(&path, "[theme]\ndefault = \"dracula\"\n").unwrap();
+    std::fs::write(&path, "[theme]\ndefault = \"dark\"\n").unwrap();
 
     let config = load_from(&path).unwrap();
     assert_eq!(config.accessibility, AccessibilityDefaults::default());
@@ -390,7 +376,7 @@ fn full_config_round_trip() {
 
     let config = UserConfig {
         theme: ThemeConfig {
-            default: Some("tokyo-night".to_string()),
+            default: ThemePreference::Dark,
         },
         budget: BudgetDefaults {
             limit: Some(10.0),
@@ -440,7 +426,7 @@ fn full_config_round_trip() {
         efforts: Default::default(),
     };
 
-    save_to(&config, &path).unwrap();
+    write_config_fixture(&config, &path).unwrap();
     let loaded = load_from(&path).unwrap();
     assert_eq!(loaded, config);
 }
@@ -489,7 +475,7 @@ fn session_config_round_trip() {
         ..Default::default()
     };
 
-    save_to(&config, &path).unwrap();
+    write_config_fixture(&config, &path).unwrap();
     let loaded = load_from(&path).unwrap();
     assert_eq!(loaded.session.default_provider.as_deref(), Some("claude"));
     assert_eq!(loaded.session.provider(), Some("claude"));
@@ -532,7 +518,7 @@ fn session_provider_returns_copilot() {
 fn config_without_session_section_uses_defaults() {
     let dir = tempfile::TempDir::new().unwrap();
     let path = dir.path().join("config.toml");
-    std::fs::write(&path, "[theme]\ndefault = \"dracula\"\n").unwrap();
+    std::fs::write(&path, "[theme]\ndefault = \"dark\"\n").unwrap();
 
     let config = load_from(&path).unwrap();
     assert_eq!(config.session, SessionDefaults::default());
@@ -576,7 +562,7 @@ fn general_config_round_trip() {
         ..Default::default()
     };
 
-    save_to(&config, &path).unwrap();
+    write_config_fixture(&config, &path).unwrap();
     let loaded = load_from(&path).unwrap();
     assert_eq!(loaded.general, config.general);
 }
@@ -606,7 +592,7 @@ fn general_config_defaults_helpers() {
 fn config_without_general_section_uses_defaults() {
     let dir = tempfile::TempDir::new().unwrap();
     let path = dir.path().join("config.toml");
-    std::fs::write(&path, "[theme]\ndefault = \"dracula\"\n").unwrap();
+    std::fs::write(&path, "[theme]\ndefault = \"dark\"\n").unwrap();
 
     let config = load_from(&path).unwrap();
     assert_eq!(config.general, GeneralConfig::default());
@@ -637,7 +623,7 @@ fn session_isolation_mode_round_trip() {
         ..Default::default()
     };
 
-    save_to(&config, &path).unwrap();
+    write_config_fixture(&config, &path).unwrap();
     let loaded = load_from(&path).unwrap();
     assert_eq!(loaded.session.isolation_mode.as_deref(), Some("augmented"));
     assert_eq!(loaded.session.isolation_mode_or_default(), "augmented");
@@ -681,7 +667,7 @@ fn session_mcp_servers_round_trip() {
         ..Default::default()
     };
 
-    save_to(&config, &path).unwrap();
+    write_config_fixture(&config, &path).unwrap();
     let loaded = load_from(&path).unwrap();
     let servers = loaded.session.extra_mcp_servers.unwrap();
     assert_eq!(servers.len(), 1);
@@ -697,7 +683,50 @@ fn session_no_mcp_servers_omitted_in_toml() {
     let path = dir.path().join("config.toml");
 
     let config = UserConfig::default();
-    save_to(&config, &path).unwrap();
+    write_config_fixture(&config, &path).unwrap();
     let content = std::fs::read_to_string(&path).unwrap();
     assert!(!content.contains("extra_mcp_servers"));
+}
+
+fn write_config_fixture(
+    config: &UserConfig,
+    path: &Path,
+) -> Result<(), Box<dyn std::error::Error>> {
+    std::fs::create_dir_all(path.parent().unwrap())?;
+    std::fs::write(path, toml::to_string_pretty(config)?)?;
+    Ok(())
+}
+
+#[test]
+fn unsupported_theme_and_invalid_theme_type_are_refused() {
+    for value in ["'unknown'", "'Dark'", "true", "17"] {
+        let input = format!("[theme]\ndefault = {value}\n");
+        assert!(toml::from_str::<UserConfig>(&input).is_err(), "{value}");
+    }
+}
+
+#[test]
+fn supported_theme_choices_round_trip() {
+    for theme in [
+        ThemePreference::System,
+        ThemePreference::Light,
+        ThemePreference::Dark,
+    ] {
+        let mut config = UserConfig::default();
+        config.theme.default = theme;
+        let text = toml::to_string(&config).unwrap();
+        assert_eq!(
+            toml::from_str::<UserConfig>(&text).unwrap().theme.default,
+            theme
+        );
+    }
+}
+
+#[test]
+fn configuration_directory_is_an_error_instead_of_missing_settings() {
+    let dir = tempfile::tempdir().unwrap();
+    assert!(matches!(
+        load_from(dir.path()),
+        Err(UserConfigError::Io(_, _))
+    ));
 }

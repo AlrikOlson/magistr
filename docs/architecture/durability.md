@@ -49,10 +49,16 @@ is per attempt.
 [`persist`](../../crates/magistr-core/src/workflow/iteration.rs) is atomic:
 the state is written to a temporary sibling, fsynced, renamed over the target,
 and the directory is fsynced
-([`durable_write`](../../crates/magistr-core/src/workflow/durable_write.rs)).
+([`durable_write`](../../crates/magistr-core/src/durable_write.rs)).
 A crash at any instant leaves the previous checkpoint or the new one, never a
-torn file; a stray temporary is ignored and reclaimed. The cost ledger's
-whole-file replacement uses the same write. Stop counters, budget observations
+torn file; a stray temporary is ignored. The cost ledger's
+whole-file replacement uses the same write. Each replacement exclusively creates
+its own temporary sibling, so simultaneous callers cannot truncate or rename
+one another's file. The cost writer holds a stable sibling file lock across its
+complete read, merge and replacement; concurrent sessions retain separate ledger
+entries. Existing target permissions are preserved before temporary content is
+written. The standard-library contracts are [exclusive creation](https://doc.rust-lang.org/std/fs/struct.File.html#method.create_new)
+and [file locking](https://doc.rust-lang.org/std/fs/struct.File.html#method.lock). Stop counters, budget observations
 and the ledger are checkpointed together at every record transition and at
 every settlement.
 
@@ -245,7 +251,7 @@ against the binary.
 | --- | --- | --- | --- |
 | Loop run (run state, stop counters, budget, operations) | `.magistr/loop-state.json` | one whole-file atomic replacement | none with any other family; the ledger records the run's side of every effect |
 | Native workflow (roadmap, ship, think, signal) | think-and-ship's own per-family files, written by the library | one family write | none across families; the library does not commit a mutation and its receipt together, so the ledger marks the operation and recovery reads the family back |
-| Cost history | the machine's cost ledger file | one whole-file atomic replacement | none; a session's spend is written after its terminal result and is bookkeeping, never a stop rule |
+| Cost history | the machine's cost ledger file | one whole-file atomic replacement | none; the shared session owner settles its optional cumulative spend after cleanup, replacing that conversation's entry; bookkeeping failures do not change the provider outcome |
 | Cockpit checkpoint spine | in-memory `SessionSnapshot` chain | one snapshot | none; it is the session's own ledger, not run persistence |
 | Peer journal | its own versioned journal | one accepted transition | none; peer reservations, unsettled worker attempts and receipts stay there and are not loop-checkpoint fields |
 | Publication | none | a frame delivered to attached surfaces | none; surfaces reseed |

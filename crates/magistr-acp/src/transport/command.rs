@@ -12,7 +12,7 @@ use crate::Result;
 
 pub(crate) enum AcpCommand {
     /// Send one user turn.
-    Prompt(String),
+    Prompt(magistr_application::sessions::PromptInput),
     /// Ask the agent to stop the turn in flight (`session/cancel`).
     Cancel,
     /// `session/list`.

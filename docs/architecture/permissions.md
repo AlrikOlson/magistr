@@ -36,6 +36,12 @@ The decision order is:
 4. Governance tightens the result. A protected or governed Deny cannot be
    changed into an Ask or an Allow by remembered permission or automatic response settings.
 
+Shell requests need a nonblank string in `command` before the shared policy can
+infer a safe-operation allowance. Missing, blank and non-string command data
+carry High risk because their effects are unknown. The selected profile,
+explicit rules, workflow context, charter and governance retain their decision
+precedence; the supervisor forwards the exact requested input when asking.
+
 Workflow is explicit context. The existing development-tool and project-MCP
 allowances remain available in workflow mode and are capped by protected paths,
 remembered constraints and governance. They are not inferred from headless mode.
@@ -117,6 +123,7 @@ fallbacks retained; this is not a live governance-reload mechanism. Audit and
 charter persistence retain their existing best-effort behavior; an in-memory
 decision does not prove that durable evidence was written.
 
-Run the required formatter and every gate in `.magistr/project.json`, as well as
-focused permission/session tests. No golden regeneration or live-provider opt-in
-is required by this change.
+Run the formatter and focused permission, supervisor, host-effect and architecture
+checks covering the changed behavior and its dependencies. Follow the project's
+[verification policy](../../AGENTS.md#verification) when selecting gates. No golden
+regeneration or live-provider opt-in is required for classification changes.

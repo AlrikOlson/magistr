@@ -53,7 +53,7 @@ magistr next --show-config
 ```
 
 On Windows, `run`, `next`, and `next-loop` use plain text automatically.
-Run the same commands in PowerShell; `--no-tui` is optional. Agent preferences
+Run the same commands in PowerShell; CLI commands stream output. Agent preferences
 and saved loop progress still apply.
 
 `--provider` is an alias for `--agent`; `-m` is short for `--model`.
