@@ -2,7 +2,7 @@
 export class WorkspaceLayout {
   constructor({root, conversation, detail, toggle, heading, compact}) {
     Object.assign(this,{root,conversation,detail,toggle,heading,compact});
-    this.enabled=false;this.wideOpen=true;this.narrowOpen=false;
+    this.enabled=false;this.wideOpen=false;this.narrowOpen=false;
     toggle.onclick=()=>this.show(!this.open,true);
     compact.addEventListener("change",()=>{
       const focus=detail.ownerDocument.activeElement;

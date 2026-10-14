@@ -44,7 +44,7 @@ export function workspaceSeed() {
   second.retained=[1];second.status="Waiting";
   second.pending=[{id:7,title:"Run the focused sync checks",detail:"cargo nextest run -p sync --lib",choices:[{option_id:"allow",label:"Allow once"},{option_id:"deny",label:"Decline"}]}];
   const frames=[first,second,third];
-  return {frames,projects:[{name:"Magistr",directory:"/Projects/magistr"},{name:"Website",directory:"/Projects/website"}]};
+  return {frames,projects:[{id:"magistr",name:"Magistr",directory:"/Projects/magistr"},{id:"website",name:"Website",directory:"/Projects/website"}]};
 }
 function install(seed) {
   const frames=new Map(seed.frames.map(frame=>[frame.address.session,frame])),calls=[];
@@ -59,7 +59,7 @@ function install(seed) {
     switch(command) {
       case "overview":return {directory:null,reduce_motion:false,sessions:sessions(),projects:seed.projects,attachment_limits:{file_bytes:8388608}};
       case "subscribe_catalog":catalog=args.channel;catalog.onmessage({stream:1,sequence:++stream,sessions:sessions()});return 1;
-      case "subscribe_file_drops":case "subscribe_exit":case "acknowledge":return;
+      case "subscribe_file_drops":case "subscribe_exit":case "acknowledge":case "session_action":return;
       case "preferences":return structuredClone(preferences);
       case "save_preferences":preferences={revision:preferences.revision+1,preferences:args.preferences};return structuredClone(preferences);
       case "subscribe_session":subscription={channel:args.channel,session:args.address.session,stream:++stream};emit();return subscription.stream;
@@ -86,7 +86,7 @@ export const test=base.extend({
     });
     await page.addInitScript(install,workspaceSeed());
     await page.goto("http://magistr.test");
-    await expect(page.getByLabel("Appearance",{exact:true})).toBeEnabled();
+    await expect(page.locator("html")).toHaveAttribute("data-theme","dark");
     await use(page);
     expect(errors).toEqual([]);
   },

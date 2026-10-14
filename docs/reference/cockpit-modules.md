@@ -135,6 +135,9 @@ desktop workspace. Companion Rust tests live beside their owners.
 - `crates/magistr-desktop/tests/session_controls.mjs`
 - `crates/magistr-desktop/tests/session_controls_fixture.py`
 - `crates/magistr-desktop/ui/app.mjs`
+- `crates/magistr-desktop/ui/navigation.mjs` — grouped project/conversation presentation and addressed row actions.
+- `crates/magistr-desktop/tests/navigation.mjs` — project identity and linked-copy grouping.
+- `crates/magistr-desktop/tests/browser/navigation.spec.mjs` — background navigation, contextual actions and Settings recovery.
 - `crates/magistr-desktop/ui/layout.mjs` — responsive conversation/details visibility and focus; no session lifetime ownership.
 - `crates/magistr-desktop/ui/composer.mjs`
 - `crates/magistr-desktop/ui/context.mjs`

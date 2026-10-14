@@ -1,15 +1,17 @@
 {
-  "receipt": "e16d9d1cb376647f8e27666be55852dfc3f4e0a89cd5585258861a7df2f85272",
+  "receipt": "06a0293e20465baed5bbafe6e9b16f5d9ae01175a592ed4bf80a706475f917a4",
   "images": {
-    "workspace-dark.png": "51d5ecfa37595d9230a2aae4cd8e3899104077e8e56009ef0c0de15907d1c26c",
-    "workspace-light.png": "81a1cca7a5542cb19fb9e2361ef8f86b0c93fd3247b42143321debfb27e8e1bf",
-    "workspace-narrow.png": "d8139c678610e94f8a1be17b4a6eceb75e7d96eee6e0d2d53d7296e6c9bf19e4",
-    "details-narrow.png": "6430b69c2e17d588cf435a233f77e0fc5a2923991205e86e6e82501c9dcc526f"
+    "welcome-dark.png": "79e72cd80fd09260941e65f9850b18d1c4de3f60197b90867bc2e01735e49de0",
+    "workspace-dark.png": "e5813055d048a9d2aaeaf8f2227e80038726ca90eeb727179a91b070cfbb255e",
+    "settings-light.png": "0bb9ef6d9312d7eff6f26f0a56b93d6873487bc244e1281d5c16ed817db7d7c1",
+    "workspace-light.png": "1b4e630724da345a9d7bb0e0e6bdc30fcdece7ca8750adacf6fd56c734df4e81",
+    "workspace-narrow.png": "196f782c7dc85c969c22e46679fb62ba6a1f9b1489918fde35b71767e40041a9",
+    "details-narrow.png": "615a00dcff6182d6b205bb5ffef282080068a1fa89170cc1b637d165386a9fa8"
   },
   "reviewed_on": "2026-10-14",
   "findings": [
-    "Reviewed the four headless WebKit captures at 1280 × 820 and 800 × 680. The real UI retains consistent light/dark hierarchy, readable conversation content, a fixed composer and independently scrolling navigation.",
-    "Narrow Details replaces the conversation, exposes work controls and returns the exact draft with focus on Details after Escape. Navigation actions remain inside the viewport.",
-    "Fixtures describe plausible work and requests but do not establish Rust owner integration, native keyboard/IME, file pickers, VoiceOver or Windows behavior. Recorded native evidence remains separate."
+    "Reviewed light, dark, narrow conversation, narrow Details, Settings and welcome captures. Project groups and contextual row actions replace the disconnected lists and repeated buttons. The wider conversation canvas and integrated composer establish a clear primary work area.",
+    "Settings is a separate dialog with visible Appearance and Reduce motion controls. Narrow conversation retains more than 500 CSS pixels of editor width; Details and Escape preserve its draft. Footer text was enlarged after review.",
+    "Headless WebKit uses actual desktop UI and isolated observations. The rebuilt desktop compiles, and the project identity owner tests pass. No current native OS-input, file-dialog, IME, VoiceOver or non-macOS claim is made; prior native receipts remain source-bound."
   ]
 }

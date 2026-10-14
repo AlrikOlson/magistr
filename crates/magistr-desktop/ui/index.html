@@ -6,32 +6,29 @@
   <header class="brand"><img class="mark" src="icon.png" alt=""><strong>Magistr</strong></header>
   <div class="rail-primary">
     <button id="open-project">Open project</button>
-    <button id="new-session" disabled>New session</button>
+    <button id="new-session" disabled><span aria-hidden="true">＋</span> New conversation</button>
   </div>
   <p id="attention-count" class="sr-only" role="status" aria-live="polite">0 requests waiting</p>
   <section class="attention-dock" id="attention-dock" aria-label="Needs your attention" hidden><h2>Needs your attention</h2><nav id="attention" aria-label="Requests across sessions"></nav></section>
   <div class="rail-scroll">
-    <h2>Projects</h2><nav id="projects" aria-label="Projects"></nav>
-    <h2>Conversations</h2><nav id="sessions" aria-label="Sessions"></nav>
-    <p id="sessions-empty" class="empty-note">Your open conversations appear here.</p>
+    <h2 class="rail-section-title">Your projects</h2><nav id="projects" aria-label="Projects"></nav>
+    <p id="sessions-empty" class="empty-note">Open a project to keep its conversations here.</p>
   </div>
   <footer>
-    <button id="saved-conversations">Saved conversations</button>
-    <div class="appearance-row"><label for="theme">Appearance</label><select id="theme" disabled><option value="system">System</option><option value="dark">Dark</option><option value="light">Light</option></select></div>
-    <label class="check"><input id="reduce-motion" type="checkbox" disabled>Reduce motion</label>
-    <p id="preferences-note" role="status"></p><button id="retry-preferences" hidden>Retry preferences</button>
+    <button id="saved-conversations"><span aria-hidden="true">↶</span> Saved conversations</button>
+    <button id="open-settings"><span aria-hidden="true">⚙</span> Settings</button>
   </footer>
 </aside>
 <main>
   <header class="work-header">
-    <div class="work-heading"><p id="project-name">Magistr</p><h1 id="view-title">Projects</h1></div>
+    <div class="work-heading"><p id="project-name">Magistr</p><h1 id="view-title">Your workspace</h1></div>
     <div class="header-actions"><p id="status" role="status" aria-live="polite">Ready</p><button id="toggle-details" aria-controls="session-detail" aria-expanded="false" hidden>Details</button></div>
   </header>
   <p id="error" class="error" role="alert" hidden></p>
   <section id="welcome" class="welcome" aria-label="Open a project">
-    <h2>A place for your work.</h2><p>Open a project to work with an agent. Pick up a saved conversation whenever you need it.</p>
+    <p class="eyebrow">Your workspace</p><h2>What are we working on?</h2><p>Pick up a project or start somewhere new.<br>Your conversations and work stay together.</p>
     <div class="welcome-actions"><button id="welcome-open">Choose a folder…</button><button id="welcome-path">Enter a folder path</button></div>
-    <p>If the folder needs setup, you can review every change first.</p>
+    <p class="welcome-hint">You’ll review any setup changes before they’re made.</p><div id="welcome-projects" aria-label="Recent projects"></div>
     <p id="welcome-note" role="status" hidden></p>
   </section>
   <div id="workspace" class="workspace" hidden>
@@ -41,11 +38,23 @@
       </div>
       <button id="latest" hidden>Latest reply ↓</button>
       <form id="composer">
-        <div class="composer-label"><label for="draft">Message the agent</label><div class="draft-state"><p id="draft-status" role="status"></p><button id="retry-draft" type="button" hidden>Retry save</button><button id="discard-draft" type="button" disabled>Discard draft</button></div></div>
-        <textarea id="draft" disabled rows="3" placeholder="Describe the work…" maxlength="1048576"></textarea>
-        <div id="pending-attachments" class="attachments" role="list" aria-label="Files to send" hidden></div>
-        <p id="attachment-note" role="status" aria-live="polite"></p>
-        <div class="composer-actions"><button id="add-files" type="button" title="Add text files or PNG, JPEG and WebP images" disabled>Add files…</button><span>Return to send · Shift Return for a new line</span><button id="stop" type="button" title="Stop the current reply" disabled>Stop</button><button id="send" type="submit" disabled>Send</button></div>
+        <label for="draft" class="sr-only">Message the agent</label>
+        <div class="composer-box">
+          <textarea id="draft" disabled rows="3" placeholder="Ask a question or describe the next step…" maxlength="1048576"></textarea>
+          <div id="pending-attachments" class="attachments" role="list" aria-label="Files to send" hidden></div>
+          <p id="attachment-note" role="status" aria-live="polite"></p>
+          <div class="composer-actions">
+            <button id="add-files" type="button" title="Add text files or PNG, JPEG and WebP images" disabled><span aria-hidden="true">＋</span> Add files</button>
+            <button id="agent-quick-settings" type="button" aria-label="Agent settings" aria-controls="session-detail" disabled></button>
+            <span class="composer-spacer"></span>
+            <button id="stop" type="button" title="Stop the current reply" disabled hidden>Stop</button>
+            <button id="send" type="submit" disabled>Send <span aria-hidden="true">↑</span></button>
+          </div>
+        </div>
+        <div class="composer-footer">
+          <div class="draft-state"><p id="draft-status" role="status"></p><button id="retry-draft" type="button" hidden>Retry save</button><button id="discard-draft" type="button" disabled>Discard draft</button></div>
+          <span class="compose-hint">Return to send · Shift Return for a new line</span>
+        </div>
       </form>
     </section>
     <aside id="session-detail" class="detail" aria-label="Session details">
@@ -75,6 +84,15 @@
   </div>
 </main>
 </div>
+<dialog id="settings" aria-labelledby="settings-title">
+  <div class="settings-heading"><h2 id="settings-title">Settings</h2><p>Make this workspace comfortable for you.</p></div>
+  <section class="settings-section" aria-label="Appearance and motion">
+    <div class="settings-row"><div><label for="theme">Appearance</label><p>Use your system appearance, or choose one.</p></div><select id="theme" disabled><option value="system">System</option><option value="dark">Dark</option><option value="light">Light</option></select></div>
+    <div class="settings-row"><div><label for="reduce-motion">Reduce motion</label><p>Keep movement to a minimum.</p></div><input id="reduce-motion" type="checkbox" disabled></div>
+  </section>
+  <p id="preferences-note" role="status"></p><button id="retry-preferences" hidden>Retry preferences</button>
+  <div class="dialog-actions"><button id="settings-close">Done</button></div>
+</dialog>
 <dialog id="project-picker" aria-labelledby="picker-title">
   <form id="project-form"><div id="picker-content"><h2 id="picker-title">Open a project</h2>
     <p>Choose a folder or enter its path. You can review setup here if it is needed.</p>

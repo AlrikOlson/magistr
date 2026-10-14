@@ -1,3 +1,4 @@
+import { ProjectNavigation } from "./navigation.mjs";
 import { WorkspaceLayout } from "./layout.mjs";
 import { WorkPanel } from "./work.mjs";
 import { addressKey, targetKey, sameTarget } from "./context.mjs";
@@ -25,7 +26,7 @@ systemMotion.addEventListener("change",()=>renderPreferences());
 const selection=new Selection();
 const layout=new WorkspaceLayout({root:$("workspace"),conversation:$("conversation"),detail:$("session-detail"),toggle:$("toggle-details"),heading:$("detail-title"),compact:matchMedia("(max-width:1100px)")});
 const catalog=new Catalog();
-const railNodes=new Map(),attentionNodes=new Map();
+const attentionNodes=new Map();
 let announcementKey="";
 const transcriptView=new Transcript($("transcript"),$("latest"),{
   copy:value=>navigator.clipboard.writeText(value).catch(error=>showError("Could not copy the text. "+error)),
@@ -44,45 +45,31 @@ const attachmentList=new AttachmentList($("pending-attachments"),id=>{
   return changeAttachments(target,()=>invoke("remove_attachment",{target,id}));
 },()=>$("add-files").focus());
 
+const navigation=new ProjectNavigation($("projects"),{
+  select:address=>select(address).catch(showError),open:openDirectory,act,close:closeAddress,
+  label:session=>session.conversation?.name??("Conversation "+labels.get(session.address.session))
+});
+$("open-settings").onclick=()=>{if(!document.querySelector("dialog[open]"))$("settings").showModal();};
+$("settings-close").onclick=()=>$("settings").close();
+$("settings").onclose=()=>$("open-settings").focus();
+$("agent-quick-settings").onclick=()=>{layout.show(true);$("agent-configuration").querySelector("select")?.focus();};
+
 async function refresh() {
   const info=await invoke("overview");if(catalog.sequence<0)sessions=info.sessions;projects=info.projects;
   attachmentLimits=info.attachment_limits;
   for(const session of sessions)if(!labels.has(session.address.session))labels.set(session.address.session,++issuedLabel);
-  renderRail();return info;
+  renderRail();
+  $("welcome-projects").replaceChildren(...projects.slice(0,4).map(project=>{
+    const item=button("",()=>openDirectory(project.directory));
+    item.append(text("strong",project.name),text("span",project.directory),text("small","Open project →"));return item;
+  }));
+  return info;
 }
 function renderRail() {
   const signature=JSON.stringify([projects,sessions,selected]);if(signature===railKey)return;railKey=signature;
-  $("projects").replaceChildren(...projects.map(project=>{
-    const item=button(project.name,()=>openDirectory(project.directory));
-    item.title=project.directory;return item;
-  }));
-  const rows=sessions.map(session=>{
-    const id=session.address.session,index=labels.get(id),name=session.conversation?.name??(session.name+" session "+index);
-    let row=railNodes.get(id);
-    if(!row) {
-      row=document.createElement("div");row.className="session-row";
-      const item=button("",()=>select(session.address).catch(showError));item.append(text("span",""),text("small",""));
-      const path=text("small","Working copy: "+session.address.workspace.split(/[\\/]/).filter(Boolean).at(-1));path.className="path";path.title=session.address.workspace;path.setAttribute("aria-label","Working copy "+session.address.workspace);
-      const actions=document.createElement("div");actions.className="rail-actions";
-      actions.append(button("Stop",null),button("Reconnect",null),button("Close",()=>closeAddress(session.address)));
-      row.append(item,path,actions);railNodes.set(id,row);
-    }
-    const item=row.children[0];item.children[0].textContent=session.conversation?.name??(session.name+" · "+index);
-    const status=session.status+(session.pending.length?" · "+session.pending.length+" waiting":"")+(session.activity?.queued_turns?" · "+session.activity.queued_turns+" queued":"");
-    if(item.children[1].textContent!==status)item.children[1].textContent=status;
-    item.setAttribute("aria-current",String(selected?.session===id));item.setAttribute("aria-label",name);
-    const [stop,reconnect,close]=row.children[2].children;
-    stop.onclick=()=>act(session.target,"cancel");reconnect.onclick=()=>act(session.target,"reconnect");
-    stop.disabled=session.closed||session.activity?.cancellation_requested||!session.activity?.active;
-    reconnect.disabled=session.closed||session.status!=="Connection lost"||session.activity?.can_resume!==true;
-    close.disabled=session.closed;
-    stop.setAttribute("aria-label","Stop "+name);reconnect.setAttribute("aria-label","Reconnect "+name);close.setAttribute("aria-label","Close "+name);
-    return row;
-  });
-  placeChildren($("sessions"),rows);
-  $("sessions-empty").hidden=rows.length>0;
+  navigation.render(projects,sessions,selected);
+  $("sessions-empty").hidden=projects.length>0||sessions.length>0;
   if(selected)$("project-name").textContent=sessions.find(session=>session.address.session===selected.session)?.name??"Project";
-  for(const id of railNodes.keys())if(!sessions.some(session=>session.address.session===id))railNodes.delete(id);
   for(const id of labels.keys())if(!sessions.some(session=>session.address.session===id))labels.delete(id);
   const waiting=sessions.flatMap(session=>session.pending.map(request=>({session,request})));
   const waitingRows=waiting.map(({session,request})=>{
@@ -232,7 +219,7 @@ async function select(address,requestId=null,requestTarget=null) {
       $("draft").disabled=true;$("send").disabled=true;$("add-files").disabled=true;$("attachment-note").textContent="";
       $("workspace-path").textContent=address.workspace;
       $("project-name").textContent=sessions.find(session=>session.address.session===address.session)?.name??"Project";
-      $("status").textContent="Connecting";renderRail();clearError();
+      $("status").textContent="Connecting";renderRail();navigation.reveal(address);clearError();
       if(initial)receiveFrame(candidate,initial);
     },
     receive:receiveFrame
@@ -268,6 +255,9 @@ function render(frame) {
   transcriptView.render(view);
   if($("status").textContent!==frame.status)$("status").textContent=frame.status;
   $("stop").disabled=frame.closed||frame.activity?.cancellation_requested||!frame.activity?.active;
+  $("stop").hidden=!frame.activity?.active;
+  $("agent-quick-settings").disabled=frame.closed;
+  $("agent-quick-settings").textContent=frame.model??frame.conversation?.provider_label??"Agent settings";
   composerFrame=frame;renderComposer();workPanel.render(frame);
   $("new-session").disabled=frame.closed;$("close-session").disabled=frame.closed;
   $("copy").disabled=view.messages.length===0;
@@ -579,7 +569,7 @@ $("history-resume").onclick=async()=>{
   finally{historyResuming=false;renderHistoryResume();}
 };
 document.addEventListener("keydown",event=>{
-  if((event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==="o"){event.preventDefault();$("open-project").click();}
+  if(!event.isComposing&&!document.querySelector("dialog[open]")&&(event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==="o"){event.preventDefault();$("open-project").click();}
 });
 try {
   const info=await refresh();await connectCatalog();await connectFileDrops();

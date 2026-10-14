@@ -11,15 +11,19 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
     const bytes=await app.screenshot({path:resolve(evidence,name),animations:"disabled"});
     images[name]=createHash("sha256").update(bytes).digest("hex");
   };
+  await capture("welcome-dark.png");
   await app.getByRole("button",{name:"Review the release plan",exact:true}).click();
   await expect(app.getByRole("heading",{name:"Review the release plan",exact:true})).toBeVisible();
   await expect(app.getByLabel("Message the agent",{exact:true})).toHaveValue("Keep the project list visible, and let me return to the same paragraph.");
   checks["selected conversation and saved draft are visible"]=true;
   for(const theme of ["dark","light"]) {
+    await app.getByRole("button",{name:"Settings",exact:true}).click();
     await app.getByLabel("Appearance",{exact:true}).selectOption(theme);
     await expect(app.locator("html")).toHaveAttribute("data-theme",theme);
+    if(theme==="light")await capture("settings-light.png");
+    await app.getByRole("button",{name:"Done",exact:true}).click();
     await app.locator("#transcript").evaluate(node=>node.scrollTop=0);
-    for(const name of ["Open project","New session","Saved conversations"]){
+    for(const name of ["Open project","New conversation","Saved conversations"]){
       const bounds=await app.getByRole("button",{name,exact:true}).boundingBox();
       expect(bounds.y).toBeGreaterThanOrEqual(0);
       expect(bounds.y+bounds.height).toBeLessThanOrEqual(820);
