@@ -511,6 +511,26 @@
       "AXShowMenu",
       "AXScrollToVisible"
     ],
+    "AXDescription" : "Needs your attention",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXLandmarkRegion",
+    "AXTitle" : "Needs your attention",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      240,
+      322,
+      191,
+      55
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
     "AXDescription" : "",
     "AXHelp" : "",
     "AXRole" : "AXHeading",
@@ -519,7 +539,7 @@
     "focused" : false,
     "rect" : [
       240,
-      334,
+      401,
       191,
       18
     ]
@@ -557,7 +577,7 @@
     "focused" : false,
     "rect" : [
       240,
-      388,
+      455,
       191,
       18
     ]
@@ -597,7 +617,7 @@
     "focused" : false,
     "rect" : [
       240,
-      430,
+      497,
       191,
       39
     ]
@@ -760,6 +780,64 @@
     ],
     "AXDescription" : "",
     "AXHelp" : "",
+    "AXRole" : "AXHeading",
+    "AXTitle" : "NEEDS YOUR ATTENTION",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      240,
+      332,
+      191,
+      18
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXApplicationStatus",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      240,
+      350,
+      191,
+      16
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "Requests across sessions",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXEmptyGroup",
+    "AXTitle" : "Requests across sessions",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      240,
+      322,
+      191,
+      10
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
     "AXRole" : "AXStaticText",
     "AXTitle" : "",
     "AXValue" : "PROJECTS",
@@ -767,7 +845,7 @@
     "focused" : false,
     "rect" : [
       240,
-      335,
+      402,
       70,
       15
     ]
@@ -786,7 +864,7 @@
     "focused" : false,
     "rect" : [
       240,
-      389,
+      456,
       68,
       15
     ]
@@ -1449,6 +1527,44 @@
     "AXHelp" : "",
     "AXRole" : "AXStaticText",
     "AXTitle" : "",
+    "AXValue" : "NEEDS YOUR ATTENTION",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      240,
+      333,
+      166,
+      15
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "0 requests waiting",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      240,
+      351,
+      97,
+      13
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
     "AXValue" : "Appearance",
     "enabled" : true,
     "focused" : false,
@@ -1729,7 +1845,7 @@
       "AXPick"
     ],
     "AXRole" : "AXMenuItem",
-    "AXTitle" : "ProtonVPN",
+    "AXTitle" : "Realpaint",
     "enabled" : true,
     "focused" : false,
     "rect" : [
@@ -1746,7 +1862,7 @@
       "AXPick"
     ],
     "AXRole" : "AXMenuItem",
-    "AXTitle" : "Show “ProtonVPN” in Finder",
+    "AXTitle" : "Show “Realpaint” in Finder",
     "enabled" : true,
     "focused" : false,
     "rect" : [
@@ -1831,7 +1947,7 @@
       "AXPick"
     ],
     "AXRole" : "AXMenuItem",
-    "AXTitle" : "TSMApplication",
+    "AXTitle" : "Visual Studio Code",
     "enabled" : true,
     "focused" : false,
     "rect" : [
@@ -1848,7 +1964,7 @@
       "AXPick"
     ],
     "AXRole" : "AXMenuItem",
-    "AXTitle" : "Show “TSMApplication” in Finder",
+    "AXTitle" : "Show “Visual Studio Code” in Finder",
     "enabled" : true,
     "focused" : false,
     "rect" : [
@@ -1884,74 +2000,6 @@
     "AXRole" : "AXMenuItem",
     "AXTitle" : "Documents",
     "enabled" : false,
-    "focused" : false,
-    "rect" : [
-      0,
-      1117,
-      0,
-      0
-    ]
-  },
-  {
-    "actions" : [
-      "AXCancel",
-      "AXPress",
-      "AXPick"
-    ],
-    "AXRole" : "AXMenuItem",
-    "AXTitle" : "backup-plan.html",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      0,
-      1117,
-      0,
-      0
-    ]
-  },
-  {
-    "actions" : [
-      "AXCancel",
-      "AXPress",
-      "AXPick"
-    ],
-    "AXRole" : "AXMenuItem",
-    "AXTitle" : "Show “backup-plan.html” in Finder",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      0,
-      1117,
-      0,
-      0
-    ]
-  },
-  {
-    "actions" : [
-      "AXCancel",
-      "AXPress",
-      "AXPick"
-    ],
-    "AXRole" : "AXMenuItem",
-    "AXTitle" : "browser-dark.png",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      0,
-      1117,
-      0,
-      0
-    ]
-  },
-  {
-    "actions" : [
-      "AXCancel",
-      "AXPress",
-      "AXPick"
-    ],
-    "AXRole" : "AXMenuItem",
-    "AXTitle" : "Show “browser-dark.png” in Finder",
-    "enabled" : true,
     "focused" : false,
     "rect" : [
       0,
@@ -2019,6 +2067,74 @@
     ],
     "AXRole" : "AXMenuItem",
     "AXTitle" : "Show “docuwarrant” in Finder",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      0,
+      1117,
+      0,
+      0
+    ]
+  },
+  {
+    "actions" : [
+      "AXCancel",
+      "AXPress",
+      "AXPick"
+    ],
+    "AXRole" : "AXMenuItem",
+    "AXTitle" : "epic-acceptance-research-20260913.md",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      0,
+      1117,
+      0,
+      0
+    ]
+  },
+  {
+    "actions" : [
+      "AXCancel",
+      "AXPress",
+      "AXPick"
+    ],
+    "AXRole" : "AXMenuItem",
+    "AXTitle" : "Show “epic-acceptance-research-20260913.md” in Finder",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      0,
+      1117,
+      0,
+      0
+    ]
+  },
+  {
+    "actions" : [
+      "AXCancel",
+      "AXPress",
+      "AXPick"
+    ],
+    "AXRole" : "AXMenuItem",
+    "AXTitle" : "flora-overhaul-2026-09-06.md",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      0,
+      1117,
+      0,
+      0
+    ]
+  },
+  {
+    "actions" : [
+      "AXCancel",
+      "AXPress",
+      "AXPick"
+    ],
+    "AXRole" : "AXMenuItem",
+    "AXTitle" : "Show “flora-overhaul-2026-09-06.md” in Finder",
     "enabled" : true,
     "focused" : false,
     "rect" : [
@@ -2103,7 +2219,7 @@
       "AXPick"
     ],
     "AXRole" : "AXMenuItem",
-    "AXTitle" : "native-window.png",
+    "AXTitle" : "ON_DECK_SDD.md",
     "enabled" : true,
     "focused" : false,
     "rect" : [
@@ -2120,7 +2236,7 @@
       "AXPick"
     ],
     "AXRole" : "AXMenuItem",
-    "AXTitle" : "Show “native-window.png” in Finder",
+    "AXTitle" : "Show “ON_DECK_SDD.md” in Finder",
     "enabled" : true,
     "focused" : false,
     "rect" : [

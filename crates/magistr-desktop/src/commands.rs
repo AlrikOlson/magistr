@@ -2,7 +2,7 @@
 use crate::{
     projects::{ProjectPreview, ProjectReviews, SetupApplied},
     streams::Streams,
-    wire::Frame,
+    wire::{CatalogFrame, Frame, SessionInfo},
 };
 use magistr::application::{RecentProject, SessionClient, WorkingCopies, WorkingCopy};
 use magistr::config::inputs::ProjectInputs;
@@ -27,38 +27,24 @@ pub(crate) struct Overview {
     sessions: Vec<SessionInfo>,
     projects: Vec<RecentProject>,
 }
-#[derive(Serialize)]
-struct SessionInfo {
-    address: SessionAddress,
-    name: String,
-    status: String,
-}
 #[derive(Deserialize)]
 #[serde(tag = "action", rename_all = "snake_case")]
 pub(crate) enum Action {
     Send { text: String },
     Cancel,
+    Reconnect,
     Answer { id: u64, option_id: String },
 }
 
 #[tauri::command]
 pub(crate) async fn overview(state: State<'_, DesktopState>) -> Result<Overview, String> {
-    let snapshots = state.client.list().await?;
-    let active: Vec<_> = snapshots
+    let catalog = state.client.catalog().snapshot();
+    let active: Vec<_> = catalog
+        .sessions
         .iter()
-        .map(|snapshot| PathBuf::from(&snapshot.address.workspace))
+        .map(|session| PathBuf::from(&session.address.workspace))
         .collect();
-    let sessions = snapshots
-        .iter()
-        .map(|snapshot| {
-            let frame = Frame::from_snapshot(0, snapshot, None);
-            SessionInfo {
-                address: snapshot.address.clone(),
-                name: snapshot.seed.name.clone(),
-                status: frame.status,
-            }
-        })
-        .collect();
+    let sessions = catalog.sessions.iter().map(SessionInfo::from).collect();
     let inputs = state.inputs.clone();
     let projects = tokio::task::spawn_blocking(move || {
         magistr::application::recent_projects(&inputs, &active)
@@ -147,6 +133,16 @@ pub(crate) async fn subscribe_session(
         .await
 }
 #[tauri::command]
+pub(crate) async fn subscribe_catalog(
+    channel: Channel<CatalogFrame>,
+    state: State<'_, DesktopState>,
+) -> Result<u64, String> {
+    state
+        .streams
+        .subscribe_catalog(&state.client, channel)
+        .await
+}
+#[tauri::command]
 pub(crate) async fn acknowledge(
     stream: u64,
     sequence: u64,
@@ -163,6 +159,7 @@ pub(crate) async fn session_action(
     let command = match action {
         Action::Send { text } => Cmd::Prompt(text),
         Action::Cancel => Cmd::Cancel,
+        Action::Reconnect => Cmd::Reconnect,
         Action::Answer { id, option_id } => Cmd::Permission { id, option_id },
     };
     state.client.command(&address, command).await

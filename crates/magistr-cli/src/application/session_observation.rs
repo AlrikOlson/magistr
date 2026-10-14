@@ -54,6 +54,7 @@ pub struct SessionSnapshot {
     pub closed: bool,
     pub status: SessionStatus,
     pub model: Option<String>,
+    pub activity: Option<magistr_application::sessions::SessionActivity>,
     bytes: usize,
     retained_from: u64,
     answered: std::collections::BTreeSet<u64>,
@@ -66,7 +67,14 @@ impl SessionSnapshot {
     pub fn pending_requests(&self) -> impl Iterator<Item = &Msg> {
         self.pending
             .iter()
-            .filter(|(id, _)| !self.answered.contains(id))
+            .filter(|(id, _)| {
+                !self.closed
+                    && !self
+                        .activity
+                        .as_ref()
+                        .is_some_and(|activity| activity.cancellation_requested)
+                    && !self.answered.contains(id)
+            })
             .map(|(_, request)| request)
     }
     #[must_use]
@@ -124,7 +132,11 @@ impl SessionSnapshot {
                 }
             }
             Msg::PromptReplace(text) => self.seed.draft = Some(text.clone()),
-            Msg::Agent(AgentEvent::Initialized { model, .. }) => self.model = model.clone(),
+            Msg::Agent(AgentEvent::Initialized { model, .. }) => {
+                self.model = model.clone();
+                self.status = SessionStatus::Ready;
+            }
+            Msg::Agent(AgentEvent::Activity(activity)) => self.activity = Some(activity.clone()),
             Msg::Agent(
                 AgentEvent::Text(_) | AgentEvent::Thought(_) | AgentEvent::ToolCall { .. },
             ) => self.status = SessionStatus::Working,
@@ -212,6 +224,7 @@ impl SessionObservation {
                 closed: false,
                 status: SessionStatus::Ready,
                 model: None,
+                activity: None,
                 bytes: 0,
                 retained_from: 1,
                 answered: std::collections::BTreeSet::new(),
@@ -228,6 +241,7 @@ impl SessionObservation {
 
     pub(super) fn seed(&self, seed: ProjectSeed) {
         self.state.send_modify(|state| state.seed = seed);
+        self.wake_catalog();
     }
     pub(super) fn draft(&self, text: String) {
         self.state.send_modify(|state| {
@@ -241,6 +255,14 @@ impl SessionObservation {
     }
     pub(super) fn wake_with(&self, wake: std::sync::Arc<Notify>) {
         let _ = self.wake.set(wake);
+    }
+    fn wake_catalog(&self) {
+        if let Some(wake) = self.wake.get() {
+            wake.notify_one();
+        }
+    }
+    pub(super) fn summary(&self) -> super::session_catalog::SessionSummary {
+        super::session_catalog::SessionSummary::from_snapshot(&self.state.borrow())
     }
     pub(super) fn set_reader(&self, reader: magistr_engine::NativeReader) {
         let _ = self.reader.set(reader);
@@ -260,6 +282,7 @@ impl SessionObservation {
                 state.sequence = state.sequence.saturating_add(1);
             }
         });
+        self.wake_catalog();
     }
     pub(super) fn stop(&self) {
         self.closed.store(true, Ordering::Release);
@@ -280,7 +303,11 @@ impl ObservationSink for SessionObservation {
             return false;
         }
         let mut overloaded = false;
+        let mut catalog_changed = false;
         self.state.send_modify(|state| {
+            let streamed_content = matches!(&message, Msg::Agent(AgentEvent::Text(_) | AgentEvent::Thought(_) | AgentEvent::Terminal { .. }));
+            let before = (!streamed_content || state.status != SessionStatus::Working)
+                .then(|| super::session_catalog::SessionSummary::from_snapshot(state));
             if state.closed { return; }
             if let Msg::Agent(AgentEvent::PermissionRequest { id, .. }) = &message {
                 let bytes: usize = state.pending.values().map(weight).sum();
@@ -291,7 +318,11 @@ impl ObservationSink for SessionObservation {
                 }
             }
             state.record(message);
+            catalog_changed = before.is_some_and(|before| before != super::session_catalog::SessionSummary::from_snapshot(state));
         });
+        if catalog_changed {
+            self.wake_catalog();
+        }
         if overloaded {
             self.stop();
         }

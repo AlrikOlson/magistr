@@ -9,6 +9,8 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
 use tokio::sync::{Notify, Semaphore, mpsc};
 
+#[path = "session_supervisor/activity.tests.rs"]
+mod activity;
 #[path = "session_supervisor/goal.tests.rs"]
 mod goals;
 #[path = "session_supervisor/history.tests.rs"]

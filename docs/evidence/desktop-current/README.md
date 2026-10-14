@@ -7,13 +7,18 @@ window; no annotations or simulated terminal rendering are added.
 The receipt records keyboard and pointer actions, accessible controls, Unicode
 and multiline editing, clipboard round trips, permissions with requested action
 details, cancellation, retained drafts, separate sessions and working copies,
-and ordered native Quit. It closes the last session and reopens its project before
+and ordered native Quit. Background supervision exercises a waiting request beside
+another working agent, exact request focus, independent Stop/Reconnect/Close,
+cancellation reservations and retained drafts. Catalog observation launches no
+provider. Reconnect restores one provider identity and creates only one replacement
+process; the same six conversation histories remain. It closes the last session and reopens its project before
 the main conversation journey. The chooser opens without a project or provider; native folder selection, refused and partial setup, cancellation, and recovery all use the actual application owners. Close and Quit must save all six admitted histories,
 release the project owner and leave no provider process. Reopening the source endpoint proves
 its owner can be admitted again.
 
-Light, dark and narrow conversation screenshots, chooser appearances, setup review, partial results, unavailable-agent guidance and accessibility trees are reviewed
-against their hashes in `review.json`. The receipt names interface source hashes.
+The attention capture shows concurrent waiting and working agents with the
+selected draft. Light, dark and narrow conversation screenshots, chooser appearances, setup review, partial results, unavailable-agent guidance and accessibility trees are reviewed
+against their hashes in `review.json`. The receipt names interface and shared supervision-owner source hashes.
 The screenshot gate rejects changed source or images until the native journey
 and review are renewed. It also checks text/control contrast, the selected icon,
 reduced motion and the current module index. This evidence does not establish

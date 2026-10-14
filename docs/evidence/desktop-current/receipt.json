@@ -9,7 +9,7 @@
         "width": 1728
       }
     ],
-    "front_pid": 685,
+    "front_pid": 1940,
     "input_source": "com.apple.keylayout.US",
     "input_sources": [
       "com.apple.keylayout.US",
@@ -372,6 +372,25 @@
     "resident project appears before history settlement": true,
     "second project streams independently": true,
     "Copy conversation uses native clipboard": true,
+    "background request started": true,
+    "background attention updates without changing selection": true,
+    "waiting request names its exact session": true,
+    "catalog subscription launches no providers": true,
+    "another session works while the first waits": true,
+    "attention navigates to the owning copy and preserves its draft": true,
+    "attention focuses the exact pending request": true,
+    "accepted request leaves global attention": true,
+    "background stop settles only the addressed agent": true,
+    "failure exposes reconnect for its owning agent": true,
+    "background failure preserves the selected draft": true,
+    "background reconnect restores the owner without selecting it": true,
+    "reconnect creates precisely one replacement peer": true,
+    "reconnected conversation accepts another turn": true,
+    "another request offered": true,
+    "second background request updates attention": true,
+    "cancelled request leaves attention and cannot be answered": true,
+    "background close preserves another session and draft": true,
+    "selected session remains usable after background close": true,
     "closed session returns to another resident": true,
     "quit settles providers and releases owner": true,
     "session history written by application": true,
@@ -385,14 +404,14 @@
     "unavailable provider keeps the window usable returns to chooser": true,
     "rejected launches preserve settings and create no session history": true
   },
-  "launch_to_window_ms": 496.830415999284,
+  "launch_to_window_ms": 346.81829100009054,
   "latency": {
-    "native_event_to_accessible_reply_ms": 80.52399999905901
+    "native_event_to_accessible_reply_ms": 82.61691666484694
   },
   "ime": {
     "source": "com.apple.inputmethod.Kotoeri.KanaTyping.Japanese",
     "committed": [
-      ""
+      "nihon"
     ],
     "native_composition": false,
     "reason": "The reported Japanese source delivered Latin preedit; conversion automation is unavailable."
@@ -409,19 +428,19 @@
       "outcome": "stopped"
     },
     {
-      "workspace": "second",
-      "turns": 1,
-      "outcome": "completed"
-    },
-    {
       "workspace": "first",
-      "turns": 5,
+      "turns": 8,
       "outcome": "cancelled"
     },
     {
       "workspace": "first",
       "turns": 0,
       "outcome": "stopped"
+    },
+    {
+      "workspace": "second",
+      "turns": 3,
+      "outcome": "completed"
     },
     {
       "workspace": "feature",
@@ -434,21 +453,31 @@
     "crates/magistr-desktop/Cargo.toml": "ab1f41c500d0fc2f197493651873e5411b12c5b3d76d2e0c1b5f489c5aa8c445",
     "crates/magistr-desktop/build.rs": "6aeeab41bc35efde4e3c2b644a6248f7fc06d24ae30b75c0d33491cbb0c1fa31",
     "crates/magistr-desktop/src/args.rs": "c9c9e1abe0416cca1323a5070c67e1514ac3380aea4a510bf36975395210f086",
-    "crates/magistr-desktop/src/commands.rs": "9fb1395ab0d46327ac84d8ffee46ccf886a8077d61f2107a94c671362eeb59f4",
+    "crates/magistr-desktop/src/commands.rs": "1ba2ad380d8dee48b5fcc2674efd59c4717442fb7794c0c72e9b28737c353637",
     "crates/magistr-desktop/src/credit.rs": "f6eef88941d7965449d236cdefd1d0100cb34015f1d1260a23d93a37911e9932",
-    "crates/magistr-desktop/src/launch.rs": "9e920e152864ac36e83c97ce5d921e1ede82330f1720565451462d77cd7afbbe",
+    "crates/magistr-desktop/src/launch.rs": "5dfaeb056927aa07c73153c6d4cddd478feac98e4620775ee7ad1d4e398babac",
     "crates/magistr-desktop/src/main.rs": "412efc2126a77e915b773893a817945b5e1fb31106793663f39fb528ea6e7ddf",
     "crates/magistr-desktop/src/projects.rs": "bae44c4ace2504d2eadffddf123ae694d97393864c4b6f839c6a3709951032cd",
-    "crates/magistr-desktop/src/streams.rs": "54eb9731705ac3b1b4e02f95e10ce68c72be32cfbeb274214427f0633f715f6e",
-    "crates/magistr-desktop/src/wire.rs": "4c31670c0babc18e0a36bcbc7ec4151300540eb8fb35e1b8d8eb09d78b6e329b",
+    "crates/magistr-desktop/src/streams.rs": "c5638b6071ca8a79760eaf79fafe0099b05381891aabaf5cc6d0620f71a58aaa",
+    "crates/magistr-desktop/src/wire.rs": "3c23fa1f386693dd5b49afd0c4beec4371f37fcf04d0beb51703eb36a06b388a",
     "crates/magistr-desktop/tauri.conf.json": "1821dcb23fcae5c08dbed913845b2939539fd8a7d966249b1a0777c1d9d8ff4f",
-    "crates/magistr-desktop/ui/app.mjs": "da6545f288ecfe7072e468b8f9ab07753418c59361b21916c50eca5d531e3277",
+    "crates/magistr-desktop/ui/app.mjs": "7b663651d1d543664d9a6df8213b6415a0770d13b89bfcc3306908a5114364f7",
     "crates/magistr-desktop/ui/composer.mjs": "9accf554a6a2f6e7c029f4972fa4221e40d755546693c8343cbd528ef2a00bc0",
     "crates/magistr-desktop/ui/conversation.mjs": "acb565a6601b7c2d90a99b74dac5f463c06fcc5b19deaa987a39a171b84a83f3",
     "crates/magistr-desktop/ui/icon.png": "392002a92fdd8dc81923944cd5abd170d0867fe8eb3701d71d4df4aea083dd10",
-    "crates/magistr-desktop/ui/index.html": "74dd38b1475012ff34475fbb5e265112959546ffb932a821a30ecf5d15f4d99d",
+    "crates/magistr-desktop/ui/index.html": "3a0374449db54790e28e7b0a6a259d884fe6e34319343e948d2b844fbad8883e",
     "crates/magistr-desktop/ui/projects.mjs": "e19f9be0696a2e21d082561403a2188e1b55cedb898539a7a5ae7280b8807031",
     "crates/magistr-desktop/ui/selection.mjs": "fd844d9e146a9c5e1fb9ab6e2fc72c0273da66d4f59a70ce639877a87aff05fc",
-    "crates/magistr-desktop/ui/style.css": "2a27e21548fe065280ead4b115a098054bf26516dd377002bf209a05916aafc8"
+    "crates/magistr-desktop/ui/style.css": "66a45574767f2f63ffd6ee3b6f25cb550f28f7bb6b324087f2c5beb1e6975504",
+    "crates/magistr-desktop/ui/supervision.mjs": "032a49085ae6738687065e58e06950cf7229f4fa7f7e0e64ed7390edf3629d12",
+    "crates/magistr-application/src/sessions/event.rs": "396775f924d75bdf48fb908872e4b1be2b1ca7e2e0cce7b10d76986bc3103c1b",
+    "crates/magistr-application/src/sessions/session_activity.rs": "75d3078ef7fd471298e6f09595b92f43e9f085bfd4564694ed16ab3ae94498a2",
+    "crates/magistr-cli/src/application/session_catalog.rs": "d98421695a6ca6a718b98d3c51575b1c2262ddb41dce581a428024838805094b",
+    "crates/magistr-cli/src/application/session_observation.rs": "3a136ce6326b18a7a187894651fc50a7c70205dd49343e5b8037350f6d268a07",
+    "crates/magistr-cli/src/application/session_registry.rs": "2c41cc0d0870118953df7e0579c8e1e496468e32c74e2e7a1f5e5c36b9e3f80a",
+    "crates/magistr-cli/src/agent/session_supervisor/mod.rs": "cbe629c6c0983ce3ce042a440bae7355f1988b4ac787c54138cc44d9e46f4f7b",
+    "crates/magistr-cli/src/agent/session_supervisor/owner.rs": "17af963e8de45264243f44c169dd4bf52961a2cfcb1d0a343d6cea7afc93a4ce",
+    "crates/magistr-cli/src/agent/session_supervisor/control.rs": "a1aef468a8a7802da54919ef2bc430bdb46d9879440649079452ab366b803b3c",
+    "crates/magistr-cockpit-runtime/src/interactive_session.rs": "97ec06c0a55e456e2d2fc54511cccf6fca71b27a6434b215731124a4233f91f9"
   }
 }

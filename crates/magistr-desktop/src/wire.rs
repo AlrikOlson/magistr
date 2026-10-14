@@ -1,5 +1,5 @@
 //! The desktop's bounded, typed view of application observations and their identity.
-use magistr::application::SessionSnapshot;
+use magistr::application::{SessionCatalog, SessionSnapshot, SessionSummary};
 use magistr_application::sessions::{AgentEvent, PermissionKind, ToolStatus, TurnEnd};
 use magistr_cockpit::cockpit::Msg;
 use magistr_domain::identity::SessionAddress;
@@ -19,6 +19,7 @@ pub(crate) struct Frame {
     pub(crate) model: Option<String>,
     pub(crate) usage: Option<Usage>,
     pub(crate) closed: bool,
+    pub(crate) activity: Option<Activity>,
 }
 #[derive(Serialize)]
 #[serde(tag = "kind", content = "data", rename_all = "snake_case")]
@@ -42,6 +43,87 @@ pub(crate) struct Request {
 struct Choice {
     option_id: String,
     label: &'static str,
+}
+#[derive(Serialize)]
+pub(crate) struct Activity {
+    active: bool,
+    queued_turns: usize,
+    cancellation_requested: bool,
+    can_resume: Option<bool>,
+    can_send_images: Option<bool>,
+}
+impl From<&magistr_application::sessions::SessionActivity> for Activity {
+    fn from(activity: &magistr_application::sessions::SessionActivity) -> Self {
+        Self {
+            active: activity.active,
+            queued_turns: activity.queued_turns,
+            cancellation_requested: activity.cancellation_requested,
+            can_resume: activity.can_resume,
+            can_send_images: activity.can_send_images,
+        }
+    }
+}
+#[derive(Serialize)]
+pub(crate) struct CatalogFrame {
+    pub(crate) stream: u64,
+    pub(crate) sequence: u64,
+    pub(crate) sessions: Vec<SessionInfo>,
+}
+#[derive(Serialize)]
+pub(crate) struct SessionInfo {
+    address: SessionAddress,
+    name: String,
+    status: String,
+    model: Option<String>,
+    usage: Option<Usage>,
+    activity: Option<Activity>,
+    pending: Vec<Waiting>,
+    closed: bool,
+}
+#[derive(Serialize)]
+struct Waiting {
+    id: u64,
+    title: String,
+}
+impl From<&SessionSummary> for SessionInfo {
+    fn from(summary: &SessionSummary) -> Self {
+        Self {
+            address: summary.address.clone(),
+            name: summary.name.clone(),
+            status: summary.label().into(),
+            model: summary.model.clone(),
+            usage: usage(summary.usage.as_ref()),
+            activity: summary.activity.as_ref().map(Activity::from),
+            pending: summary
+                .requests
+                .iter()
+                .map(|request| Waiting {
+                    id: request.id,
+                    title: request.title.clone(),
+                })
+                .collect(),
+            closed: summary.closed,
+        }
+    }
+}
+impl CatalogFrame {
+    pub(crate) fn from_catalog(stream: u64, catalog: &SessionCatalog) -> Self {
+        Self {
+            stream,
+            sequence: catalog.sequence,
+            sessions: catalog.sessions.iter().map(SessionInfo::from).collect(),
+        }
+    }
+}
+fn usage(message: Option<&Msg>) -> Option<Usage> {
+    match message {
+        Some(Msg::Agent(AgentEvent::Usage {
+            context,
+            cost_cents,
+            ..
+        })) => Some(Usage::from_report(*context, *cost_cents)),
+        _ => None,
+    }
 }
 #[derive(Serialize)]
 pub(crate) struct Usage {
@@ -77,22 +159,9 @@ impl Frame {
             .filter_map(observation)
             .collect();
         let pending = snapshot.pending_requests().filter_map(request).collect();
-        let mut status = snapshot.status.label().to_owned();
+        let status = SessionSummary::from(snapshot).label().to_owned();
         let model = snapshot.model.clone();
-        let usage = match snapshot.latest_usage() {
-            Some(Msg::Agent(AgentEvent::Usage {
-                context,
-                cost_cents,
-                ..
-            })) => Some(Usage::from_report(*context, *cost_cents)),
-            _ => None,
-        };
-        if snapshot.pending_requests().next().is_some() {
-            status = "Waiting for you".into();
-        }
-        if snapshot.closed {
-            status = "Closed".into();
-        }
+        let usage = usage(snapshot.latest_usage());
         Self {
             stream,
             address: snapshot.address.clone(),
@@ -106,6 +175,7 @@ impl Frame {
             model,
             usage,
             closed: snapshot.closed,
+            activity: snapshot.activity.as_ref().map(Activity::from),
         }
     }
 }

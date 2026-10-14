@@ -20,7 +20,7 @@ use std::{
     time::Duration,
 };
 use tokio::{
-    sync::{mpsc, oneshot},
+    sync::{mpsc, oneshot, watch},
     task::{JoinHandle, JoinSet},
 };
 
@@ -82,9 +82,17 @@ enum Request {
 #[derive(Clone)]
 pub struct SessionClient {
     sender: mpsc::Sender<Request>,
+    catalog: watch::Receiver<super::SessionCatalog>,
 }
 
 impl SessionClient {
+    /// Observe every resident session without subscribing to its transcript.
+    #[must_use]
+    pub fn catalog(&self) -> super::CatalogSubscription {
+        super::CatalogSubscription {
+            receiver: self.catalog.clone(),
+        }
+    }
     /// Resolve admission inputs away from the surface, then start an independent session.
     pub async fn open(&self, root: impl AsRef<Path>) -> Result<SessionAddress, String> {
         let root = root.as_ref().to_path_buf();
@@ -194,6 +202,7 @@ pub struct SessionRegistry {
 impl SessionRegistry {
     pub(super) fn start_with<H: Settle>(open: Open<H>, finish: Finish) -> Self {
         let (sender, requests) = mpsc::channel(CAPACITY);
+        let (catalog, catalog_reader) = watch::channel(super::SessionCatalog::default());
         let (stop, stopped) = oneshot::channel();
         let instance = format!(
             "{}-{}-{}",
@@ -208,7 +217,9 @@ impl SessionRegistry {
             Serving {
                 open,
                 finish,
+                catalog,
                 sessions: BTreeMap::new(),
+                closing: BTreeMap::new(),
                 pending: JoinSet::new(),
                 instance,
                 issued: 0,
@@ -219,7 +230,10 @@ impl SessionRegistry {
             .run(requests, stopped),
         );
         Self {
-            client: SessionClient { sender },
+            client: SessionClient {
+                sender,
+                catalog: catalog_reader,
+            },
             stop: Some(stop),
             task,
         }
@@ -262,12 +276,17 @@ enum Completed<H> {
         opened: Box<Result<(H, ProjectSeed), String>>,
         reply: oneshot::Sender<Result<SessionAddress, String>>,
     },
-    Closed(Result<(), String>),
+    Closed {
+        address: SessionAddress,
+        result: Result<(), String>,
+    },
 }
 struct Serving<H> {
+    catalog: watch::Sender<super::SessionCatalog>,
     open: Open<H>,
     finish: Finish,
     sessions: BTreeMap<SessionAddress, Resident<H>>,
+    closing: BTreeMap<SessionAddress, Arc<SessionObservation>>,
     pending: JoinSet<Completed<H>>,
     instance: String,
     issued: u64,
@@ -294,13 +313,18 @@ impl<H: Settle> Serving<H> {
                     None => break,
                 },
             }
+            self.publish_catalog();
         }
         requests.close();
         drop(requests);
-        for (_, resident) in std::mem::take(&mut self.sessions) {
+        for (address, resident) in std::mem::take(&mut self.sessions) {
             resident.observation.stop();
-            self.pending
-                .spawn(async move { Completed::Closed(resident.host.settle().await) });
+            self.pending.spawn(async move {
+                Completed::Closed {
+                    address,
+                    result: resident.host.settle().await,
+                }
+            });
         }
         let drained = tokio::time::timeout(CLOSE_GRACE, async {
             while let Some(result) = self.pending.join_next().await {
@@ -325,6 +349,27 @@ impl<H: Settle> Serving<H> {
         combine(self.failures, cleanup)
     }
 
+    fn publish_catalog(&self) {
+        let sessions = self
+            .sessions
+            .values()
+            .map(|resident| resident.observation.summary())
+            .chain(
+                self.closing
+                    .values()
+                    .map(|observation| observation.summary()),
+            )
+            .collect::<Vec<_>>();
+        self.catalog.send_if_modified(|catalog| {
+            if catalog.sessions == sessions {
+                return false;
+            }
+            catalog.sessions = sessions;
+            catalog.sequence = catalog.sequence.saturating_add(1);
+            true
+        });
+    }
+
     fn retire_closed(&mut self) {
         use magistr_cockpit_runtime::channel::ObservationSink;
         let closed: Vec<_> = self
@@ -335,8 +380,14 @@ impl<H: Settle> Serving<H> {
             .collect();
         for address in closed {
             if let Some(resident) = self.sessions.remove(&address) {
-                self.pending
-                    .spawn(async move { Completed::Closed(resident.host.settle().await) });
+                self.closing
+                    .insert(address.clone(), Arc::clone(&resident.observation));
+                self.pending.spawn(async move {
+                    Completed::Closed {
+                        address,
+                        result: resident.host.settle().await,
+                    }
+                });
             }
         }
     }
@@ -348,7 +399,7 @@ impl<H: Settle> Serving<H> {
                 root,
                 reply,
             } => {
-                if self.sessions.len() + self.opening >= MAX_SESSIONS {
+                if self.sessions.len() + self.closing.len() + self.opening >= MAX_SESSIONS {
                     let _ = reply.send(Err("Close a session before opening more.".into()));
                     return;
                 }
@@ -387,6 +438,7 @@ impl<H: Settle> Serving<H> {
                 let rejected = command.clone();
                 let result = self.command(&address, command);
                 if let Err(error) = &result
+                    && !matches!(rejected, Cmd::Permission { .. })
                     && let Some(resident) = self.sessions.get(&address)
                 {
                     magistr_cockpit_runtime::channel::ObservationSink::send(
@@ -430,6 +482,8 @@ impl<H: Settle> Serving<H> {
             Request::Close { address, reply } => match self.sessions.remove(&address) {
                 Some(resident) => {
                     resident.observation.stop();
+                    self.closing
+                        .insert(address.clone(), Arc::clone(&resident.observation));
                     self.pending.spawn(async move {
                         let result = tokio::time::timeout(CLOSE_GRACE, resident.host.settle())
                             .await
@@ -437,7 +491,7 @@ impl<H: Settle> Serving<H> {
                                 Err("The session took too long to close and was stopped.".into())
                             });
                         let _ = reply.send(result.clone());
-                        Completed::Closed(result)
+                        Completed::Closed { address, result }
                     });
                 }
                 None => {
@@ -457,6 +511,14 @@ impl<H: Settle> Serving<H> {
                 return Err("This request has already been answered.".into());
             }
             let snapshot = resident.observation.snapshot();
+            if snapshot.closed
+                || snapshot
+                    .activity
+                    .as_ref()
+                    .is_some_and(|activity| activity.cancellation_requested)
+            {
+                return Err("This request is no longer waiting for an answer.".into());
+            }
             let Some(magistr_cockpit::cockpit::Msg::Agent(
                 magistr_application::sessions::AgentEvent::PermissionRequest { choices, .. },
             )) = snapshot.pending.get(&id)
@@ -505,8 +567,12 @@ impl<H: Settle> Serving<H> {
                         observation.seed(seed);
                         if quitting {
                             observation.stop();
-                            self.pending
-                                .spawn(async move { Completed::Closed(host.settle().await) });
+                            self.pending.spawn(async move {
+                                Completed::Closed {
+                                    address,
+                                    result: host.settle().await,
+                                }
+                            });
                             let _ = reply.send(Err("The application is closing.".into()));
                         } else {
                             self.sessions.insert(
@@ -526,7 +592,8 @@ impl<H: Settle> Serving<H> {
                     }
                 }
             }
-            Ok(Completed::Closed(result)) => {
+            Ok(Completed::Closed { address, result }) => {
+                self.closing.remove(&address);
                 self.failures = combine(std::mem::replace(&mut self.failures, Ok(())), result);
             }
             Err(error) => {

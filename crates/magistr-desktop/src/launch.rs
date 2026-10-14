@@ -69,6 +69,7 @@ pub(crate) async fn run(cli: Desktop) -> eyre::Result<()> {
             crate::commands::discard_setup,
             crate::commands::open_session,
             crate::commands::subscribe_session,
+            crate::commands::subscribe_catalog,
             crate::commands::acknowledge,
             crate::commands::session_action,
             crate::commands::save_draft,

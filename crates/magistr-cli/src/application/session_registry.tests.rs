@@ -296,7 +296,10 @@ async fn opening_a_provider_does_not_block_controls_for_an_existing_session() {
 #[tokio::test]
 async fn a_full_application_queue_returns_an_explicit_retry_without_losing_input() {
     let (sender, _receiver) = mpsc::channel(1);
-    let client = SessionClient { sender };
+    let client = SessionClient {
+        sender,
+        catalog: watch::channel(super::super::SessionCatalog::default()).1,
+    };
     let (reply, _) = oneshot::channel();
     client.post(Request::List { reply }).unwrap();
     let address = SessionAddress {
@@ -316,7 +319,10 @@ async fn a_full_application_queue_returns_an_explicit_retry_without_losing_input
 #[tokio::test]
 async fn oversized_input_is_refused_before_entering_the_owner_queue() {
     let (sender, mut receiver) = mpsc::channel(1);
-    let client = SessionClient { sender };
+    let client = SessionClient {
+        sender,
+        catalog: watch::channel(super::super::SessionCatalog::default()).1,
+    };
     let address = SessionAddress {
         project: "p".into(),
         workspace: "w".into(),
@@ -347,4 +353,193 @@ async fn oversized_input_is_refused_before_entering_the_owner_queue() {
         receiver.try_recv().is_err(),
         "oversized data must not be retained"
     );
+}
+
+#[tokio::test]
+async fn catalog_tracks_background_attention_without_token_or_draft_notifications() {
+    let tmp = projects();
+    let registry = registry(Log::default());
+    let client = registry.client();
+    let a = client.open(tmp.path().join("first")).await.unwrap();
+    let b = client.open(tmp.path().join("second")).await.unwrap();
+    let mut catalog = client.catalog();
+    assert_eq!(catalog.snapshot().sessions.len(), 2);
+    client.command(&b, Cmd::Prompt("ask".into())).await.unwrap();
+    let update = tokio::time::timeout(Duration::from_secs(3), async {
+        loop {
+            let next = catalog.changed().await.unwrap();
+            if next
+                .sessions
+                .iter()
+                .any(|session| session.address == b && session.requests.len() == 1)
+            {
+                break next;
+            }
+        }
+    })
+    .await
+    .unwrap();
+    assert_eq!(
+        update
+            .sessions
+            .iter()
+            .find(|session| session.address == a)
+            .unwrap()
+            .status,
+        super::super::SessionStatus::Ready
+    );
+    client.draft(&b, "background draft".into()).await.unwrap();
+    for _ in 0..100 {
+        client
+            .command(&b, Cmd::Prompt("token".into()))
+            .await
+            .unwrap();
+    }
+    assert!(
+        tokio::time::timeout(Duration::from_millis(50), catalog.changed())
+            .await
+            .is_err(),
+        "streaming text and drafts must not wake the catalog"
+    );
+    client
+        .command(
+            &b,
+            Cmd::Permission {
+                id: 1,
+                option_id: "allow".into(),
+            },
+        )
+        .await
+        .unwrap();
+    let next = tokio::time::timeout(Duration::from_secs(3), catalog.changed())
+        .await
+        .unwrap()
+        .unwrap();
+    assert!(
+        next.sessions
+            .iter()
+            .find(|session| session.address == b)
+            .unwrap()
+            .requests
+            .is_empty()
+    );
+    assert!(
+        client
+            .command(
+                &b,
+                Cmd::Permission {
+                    id: 1,
+                    option_id: "allow".into()
+                }
+            )
+            .await
+            .is_err()
+    );
+    client.close(&b).await.unwrap();
+    assert_eq!(client.list().await.unwrap().len(), 1);
+    registry.shutdown().await.unwrap();
+}
+
+#[tokio::test]
+async fn refused_duplicate_permission_does_not_release_an_accepted_reservation() {
+    let tmp = projects();
+    let (sent, mut opened) = mpsc::unbounded_channel();
+    struct Held(Opening);
+    impl Settle for Held {
+        fn settle(self) -> Pin<Box<dyn Future<Output = Result<(), String>> + Send>> {
+            Box::pin(async move {
+                drop(self.0);
+                Ok(())
+            })
+        }
+    }
+    let registry = SessionRegistry::start_with(
+        Box::new(move |opening| {
+            sent.send(Arc::clone(&opening.observation)).unwrap();
+            Box::pin(async { Ok((Held(opening), ProjectSeed::default())) })
+        }),
+        Box::new(|| Box::pin(async { Ok(()) })),
+    );
+    let client = registry.client();
+    let address = client.open(tmp.path().join("first")).await.unwrap();
+    let observation = opened.recv().await.unwrap();
+    use magistr_cockpit_runtime::channel::ObservationSink;
+    observation.send(Msg::Agent(AgentEvent::PermissionRequest {
+        id: 1,
+        title: "Read".into(),
+        detail: String::new(),
+        choices: vec![PermissionChoice::new("allow", PermissionKind::AllowOnce)],
+        edit: false,
+        risk: magistr_domain::policy::RiskTier::Low,
+        plan: None,
+    }));
+    let answer = || Cmd::Permission {
+        id: 1,
+        option_id: "allow".into(),
+    };
+    client.command(&address, answer()).await.unwrap();
+    assert!(client.command(&address, answer()).await.is_err());
+    assert!(
+        client.command(&address, answer()).await.is_err(),
+        "a rejected retry cannot reopen an accepted answer"
+    );
+    assert_eq!(observation.snapshot().pending_requests().count(), 0);
+    registry.shutdown().await.unwrap();
+}
+
+#[tokio::test]
+async fn catalog_keeps_closing_visible_until_the_addressed_owner_settles() {
+    let tmp = projects();
+    struct Closing {
+        _opening: Opening,
+        release: Arc<Notify>,
+    }
+    impl Settle for Closing {
+        fn settle(self) -> Pin<Box<dyn Future<Output = Result<(), String>> + Send>> {
+            Box::pin(async move {
+                self.release.notified().await;
+                Ok(())
+            })
+        }
+    }
+    let release = Arc::new(Notify::new());
+    let gate = Arc::clone(&release);
+    let registry = SessionRegistry::start_with(
+        Box::new(move |opening| {
+            let release = Arc::clone(&gate);
+            Box::pin(async move {
+                Ok((
+                    Closing {
+                        _opening: opening,
+                        release,
+                    },
+                    ProjectSeed::default(),
+                ))
+            })
+        }),
+        Box::new(|| Box::pin(async { Ok(()) })),
+    );
+    let client = registry.client();
+    let address = client.open(tmp.path().join("first")).await.unwrap();
+    let mut catalog = client.catalog();
+    catalog.snapshot();
+    let addressed = address.clone();
+    let other = client.clone();
+    let closing = tokio::spawn(async move { other.close(&addressed).await });
+    let snapshot = tokio::time::timeout(Duration::from_secs(3), catalog.changed())
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(snapshot.sessions[0].address, address);
+    assert_eq!(snapshot.sessions[0].label(), "Closing");
+    assert!(!closing.is_finished());
+    assert!(client.command(&address, Cmd::Cancel).await.is_err());
+    release.notify_one();
+    closing.await.unwrap().unwrap();
+    let snapshot = tokio::time::timeout(Duration::from_secs(3), catalog.changed())
+        .await
+        .unwrap()
+        .unwrap();
+    assert!(snapshot.sessions.is_empty());
+    registry.shutdown().await.unwrap();
 }
