@@ -433,11 +433,12 @@ async fn idle_configuration_errors_are_observable_and_completed_requests_release
     let mut fixture = Fixture::start("complete before configuration").await;
     fixture.next_started().await;
     fixture.next_terminal().await.unwrap();
-    fixture
-        .supervisor
-        .send_config_change("missing-config".into(), "missing-value".into())
-        .unwrap();
-    assert!(fixture.next_terminal().await.is_err());
+    assert!(
+        fixture
+            .supervisor
+            .send_config_change("missing-config".into(), "missing-value".into())
+            .is_err()
+    );
     assert_eq!(
         fixture.supervisor.snapshot().residency,
         SessionResidency::Resident

@@ -33,6 +33,7 @@ async fn explicit_reconnect_restores_the_same_identity_without_sending_a_prompt(
             magistr_application::sessions::SessionActivity {
                 active: false,
                 queued_turns: 0,
+                configuration_in_progress: false,
                 cancellation_requested: false,
                 can_resume: Some(true),
                 can_send_images: Some(false),
@@ -81,6 +82,12 @@ struct ControlledSession {
 impl SessionHandle for ControlledSession {
     fn submit_turn(&mut self, text: &str) -> Result<(), String> {
         self.prompts.send(text.into()).map_err(|e| e.to_string())
+    }
+    fn rename(&mut self, _: &str) -> Result<(), String> {
+        Err("Naming is unavailable in this session.".into())
+    }
+    fn configure(&mut self, _: &str, _: &str) -> Result<(), String> {
+        Err("Agent choices are unavailable in this session.".into())
     }
     fn cancel_turn(&mut self) -> Result<(), String> {
         Ok(())
@@ -132,6 +139,31 @@ async fn next<T>(receiver: &mut mpsc::UnboundedReceiver<T>) -> T {
         .await
         .expect("progress")
         .expect("open")
+}
+
+#[tokio::test]
+async fn busy_conversation_followups_reach_the_same_owner_and_are_accepted() {
+    let (inbox, mut events) = Inbox::channel();
+    let (commands, receiver) = Commands::channel();
+    let (handle, mut opening) = controlled(SessionPurpose::Conversation);
+    let task = InteractiveSession::new(
+        |_, _| async { Err("must keep the resident connection".into()) },
+        inbox,
+        None,
+        None,
+        None,
+    )
+    .connected(handle, true)
+    .spawn(receiver);
+    commands
+        .send(Cmd::Prompt("accepted follow-up".into()))
+        .unwrap();
+    assert_eq!(next(&mut opening.prompts).await, "accepted follow-up");
+    assert!(
+        matches!(next(&mut events).await, Msg::InputAccepted(text) if text.trim_end() == "accepted follow-up")
+    );
+    commands.send(Cmd::Quit).unwrap();
+    task.await.unwrap().unwrap();
 }
 
 #[tokio::test]
@@ -572,7 +604,7 @@ async fn aborting_owner_releases_both_contexts_and_fences_a_running_local_job() 
         next_observation(&mut events).await,
         Msg::RoadmapRequestStarted
     ));
-    assert!(matches!(next(&mut events).await, Msg::InputAccepted(text) if text == "Planning\n"));
+    assert!(matches!(next(&mut events).await, Msg::InputAccepted(text) if text == "Planning"));
     commands
         .send(Cmd::Workbench(WorkbenchCmd::Open {
             path: "held.rs".into(),

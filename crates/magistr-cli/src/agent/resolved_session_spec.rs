@@ -335,7 +335,7 @@ impl ResolvedSessionSpec {
                 super::persistence::warn_history(&save_error);
             }
             return Err(MagistrError::Acp(format!(
-                "Failed to connect ACP transport: {error}"
+                "Could not connect to the agent: {error}"
             )));
         }
         Ok(transport)

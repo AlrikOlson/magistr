@@ -16,6 +16,13 @@ use super::turn_end::TurnEnd;
 /// One observation from the resident session, shared by hosts and interfaces.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum AgentEvent {
+    /// Durable identity, chosen name and actual provider of this conversation.
+    Conversation(super::Conversation),
+    /// Complete configuration accepted by the provider.
+    Configuration {
+        options: Vec<super::SessionConfig>,
+        model: Option<String>,
+    },
     /// Current admission, cancellation and negotiated provider facts.
     Activity(super::SessionActivity),
     /// The handshake completed and a session exists.

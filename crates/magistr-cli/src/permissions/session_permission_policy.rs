@@ -415,6 +415,17 @@ impl SessionPermissionPolicy {
 }
 
 impl SessionPolicy for SessionPermissionPolicy {
+    fn can_use_model(&self, model: &str) -> bool {
+        !self
+            .governance
+            .evaluate(&PolicyRequest::new().with_model(model))
+            .effect
+            .is_violation()
+    }
+    fn model_changed(&mut self, model: Option<String>) {
+        self.model = model;
+    }
+
     fn decide(&mut self, request: &SessionPolicyRequest) -> PolicyDecision {
         let Ok(request) = RequestData::decode(request) else {
             return PolicyDecision::Deny;

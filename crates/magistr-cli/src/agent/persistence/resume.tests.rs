@@ -5,6 +5,7 @@ use chrono::TimeZone;
 fn sample_session() -> SessionRecord {
     SessionRecord {
         session_id: "abc12345-6789-abcd-ef01-234567890abc".to_string(),
+        name: None,
         project: "my-project".to_string(),
         workspace: "my-project".to_string(),
         provider: "scripted".into(),

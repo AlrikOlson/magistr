@@ -26,7 +26,9 @@ func attr(_ element: AXUIElement, _ key: String) -> CFTypeRef? {
 }
 func string(_ element: AXUIElement, _ key: String) -> String { attr(element,key) as? String ?? "" }
 func children(_ element: AXUIElement) -> [AXUIElement] {
-    (attr(element,"AXChildren") as? [AXUIElement] ?? []) + (attr(element,"AXWindows") as? [AXUIElement] ?? [])
+    let items = (attr(element,"AXChildren") as? [AXUIElement] ?? []) + (attr(element,"AXWindows") as? [AXUIElement] ?? [])
+    // App menus include global recent documents; window evidence does not need them.
+    return items.filter { string($0,"AXRole") != "AXMenuBar" }
 }
 func nodes(_ root: AXUIElement) -> [AXUIElement] {
     var result: [AXUIElement] = [], queue = [root]
@@ -131,14 +133,21 @@ func click(_ point: CGPoint) {
 }
 func pause(_ seconds: Double) async throws { try await Task.sleep(nanoseconds: UInt64(seconds*1e9)) }
 @MainActor func focus(_ pid: Int32) async throws {
-    try app(pid).activate(options: [.activateAllWindows])
+    let application = try app(pid)
+    var requested = false
+    var accepted = false
     for _ in 0..<40 {
         if NSWorkspace.shared.frontmostApplication?.processIdentifier == pid {
             try await pause(0.15); return
         }
+        // Launch Services can expose the process before AppKit can activate it.
+        if application.isFinishedLaunching && !requested {
+            requested = true
+            accepted = application.activate(options: [.activateAllWindows])
+        }
         try await pause(0.05)
     }
-    throw Failure.message("Disposable desktop app did not become foreground")
+    throw Failure.message("Disposable desktop app did not become foreground: finished=\(application.isFinishedLaunching), policy=\(application.activationPolicy.rawValue), requested=\(requested), accepted=\(accepted), front=\(NSWorkspace.shared.frontmostApplication?.processIdentifier ?? 0)")
 }
 @MainActor func press(_ pid: Int32, _ label: String) async throws {
     let element = try await find(pid,label)

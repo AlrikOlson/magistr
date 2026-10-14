@@ -20,6 +20,9 @@ pub(crate) struct Frame {
     pub(crate) usage: Option<Usage>,
     pub(crate) closed: bool,
     pub(crate) activity: Option<Activity>,
+    pub(crate) conversation: Option<Conversation>,
+    pub(crate) configuration: Vec<Configuration>,
+    pub(crate) admissions: Vec<Admission>,
 }
 #[derive(Serialize)]
 #[serde(tag = "kind", content = "data", rename_all = "snake_case")]
@@ -31,6 +34,63 @@ pub(crate) enum Observation {
     Ended(String),
     Notice(String),
     Error(String),
+}
+#[derive(Serialize)]
+pub(crate) struct Conversation {
+    id: String,
+    name: Option<String>,
+    provider: String,
+    provider_label: String,
+}
+impl From<&magistr_application::sessions::Conversation> for Conversation {
+    fn from(value: &magistr_application::sessions::Conversation) -> Self {
+        Self {
+            id: value.id.clone(),
+            name: value.name.clone(),
+            provider: value.provider.clone(),
+            provider_label: magistr::agent::AgentRuntime::provider_label_for(&value.provider)
+                .to_owned(),
+        }
+    }
+}
+#[derive(Serialize)]
+pub(crate) struct Configuration {
+    id: String,
+    name: String,
+    current_value: String,
+    values: Vec<(String, String)>,
+}
+impl From<&magistr_application::sessions::SessionConfig> for Configuration {
+    fn from(value: &magistr_application::sessions::SessionConfig) -> Self {
+        Self {
+            id: value.id.clone(),
+            name: value.name.clone(),
+            current_value: value.current_value.clone(),
+            values: value.values.clone(),
+        }
+    }
+}
+#[derive(Serialize)]
+pub(crate) struct Admission {
+    sequence: u64,
+    text: String,
+    accepted: bool,
+}
+fn admission(sequence: u64, message: &Msg) -> Option<Admission> {
+    let (text, accepted) = match message {
+        Msg::InputAccepted(text) => (text, true),
+        Msg::Agent(AgentEvent::PromptRejected { text, .. })
+        | Msg::CommandFailed {
+            cmd: magistr_cockpit::cockpit::Cmd::Prompt(text),
+            ..
+        } => (text, false),
+        _ => return None,
+    };
+    Some(Admission {
+        sequence,
+        text: text.clone(),
+        accepted,
+    })
 }
 #[derive(Serialize)]
 pub(crate) struct Request {
@@ -48,6 +108,7 @@ struct Choice {
 pub(crate) struct Activity {
     active: bool,
     queued_turns: usize,
+    configuration_in_progress: bool,
     cancellation_requested: bool,
     can_resume: Option<bool>,
     can_send_images: Option<bool>,
@@ -57,6 +118,7 @@ impl From<&magistr_application::sessions::SessionActivity> for Activity {
         Self {
             active: activity.active,
             queued_turns: activity.queued_turns,
+            configuration_in_progress: activity.configuration_in_progress,
             cancellation_requested: activity.cancellation_requested,
             can_resume: activity.can_resume,
             can_send_images: activity.can_send_images,
@@ -73,6 +135,7 @@ pub(crate) struct CatalogFrame {
 pub(crate) struct SessionInfo {
     address: SessionAddress,
     name: String,
+    conversation: Option<Conversation>,
     status: String,
     model: Option<String>,
     usage: Option<Usage>,
@@ -90,6 +153,7 @@ impl From<&SessionSummary> for SessionInfo {
         Self {
             address: summary.address.clone(),
             name: summary.name.clone(),
+            conversation: summary.conversation.as_ref().map(Conversation::from),
             status: summary.label().into(),
             model: summary.model.clone(),
             usage: usage(summary.usage.as_ref()),
@@ -176,6 +240,18 @@ impl Frame {
             usage,
             closed: snapshot.closed,
             activity: snapshot.activity.as_ref().map(Activity::from),
+            conversation: snapshot.conversation.as_ref().map(Conversation::from),
+            configuration: snapshot
+                .configuration
+                .iter()
+                .map(Configuration::from)
+                .collect(),
+            admissions: snapshot
+                .messages
+                .iter()
+                .filter(|(at, _)| *at > seen.unwrap_or(0))
+                .filter_map(|(at, message)| admission(*at, message))
+                .collect(),
         }
     }
 }

@@ -1,6 +1,6 @@
-//! Zero-turn ACP session probe — extracts provider capabilities without conversation.
+//! Zero-turn ACP session probe — inspect advertised models without sending a prompt.
 //!
-//! Used by the provider settings to discover each provider's available models at launch.
+//! Explicit model previews and the model-list command share this discovery owner.
 //! The probe connects to the agent, receives the `Initialized` event (which carries
 //! `config_options` from `session/new`), then immediately closes — no prompt is sent.
 
@@ -22,54 +22,90 @@ const PROBE_TIMEOUT: Duration = Duration::from_secs(15);
 /// Probe a single agent runtime for its model list.
 ///
 /// Spawns a zero-turn ACP session: `connect → Initialized → close`.
-/// Returns the config options with `Model` category, or an empty vec on failure.
-async fn probe_runtime(runtime: &AgentRuntime) -> Vec<AcpConfigOption> {
-    let cwd = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
-
-    let transport_result =
-        AcpTransport::new_with_args(runtime.path.clone(), runtime.args.clone(), Some(cwd));
-
-    let mut transport = match transport_result {
-        Ok(t) => t.session_mode(AcpSessionMode::New),
-        Err(_) => return vec![],
-    };
-
-    // Connect — this does JSON-RPC initialize + session/new
-    if transport.connect().await.is_err() {
-        return vec![];
-    }
-
-    // Take the event receiver
-    let Some(mut event_rx) = transport.read_events() else {
+/// Returns the config options with `Model` category, or a visible discovery error.
+async fn probe_runtime(
+    runtime: &AgentRuntime,
+    root: &std::path::Path,
+) -> Result<Vec<AcpConfigOption>, String> {
+    let mut transport = AcpTransport::new_with_args(
+        runtime.path.clone(),
+        runtime.args.clone(),
+        Some(root.to_owned()),
+    )
+    .map_err(|error| error.to_string())?
+    .session_mode(AcpSessionMode::New);
+    let connected = timeout(PROBE_TIMEOUT, transport.connect())
+        .await
+        .map_err(|_| "The agent took too long to list its models.".to_owned())
+        .and_then(|result| result.map_err(|error| error.to_string()));
+    if let Err(error) = connected {
         let _ = transport.close().await;
-        return vec![];
-    };
+        return Err(error);
+    }
+    probe_connected(transport).await
+}
 
-    // Wait for the Initialized event (carries config_options)
-    let config_options = timeout(PROBE_TIMEOUT, async {
-        while let Some(event_result) = event_rx.recv().await {
-            if let Ok(AcpEvent::Initialized { config_options, .. }) = event_result {
-                return config_options;
+async fn probe_connected(mut transport: AcpTransport) -> Result<Vec<AcpConfigOption>, String> {
+    let result = match transport.read_events() {
+        Some(mut events) => timeout(PROBE_TIMEOUT, async {
+            while let Some(event) = events.recv().await {
+                match event {
+                    Ok(AcpEvent::Initialized { config_options, .. }) => {
+                        return Ok(config_options.unwrap_or_default());
+                    }
+                    Err(error) => return Err(error.to_string()),
+                    _ => {}
+                }
             }
-        }
-        None
+            Err("The agent closed before listing its models.".into())
+        })
+        .await
+        .map_err(|_| "The agent took too long to list its models.".to_owned())
+        .and_then(|result| result),
+        None => Err("The agent could not list its models.".into()),
+    };
+    let closed = transport.close().await.map_err(|error| error.to_string());
+    let options = result?;
+    closed?;
+    Ok(config_options_from_acp(&options)
+        .into_iter()
+        .filter(|option| option.category == Some(ConfigOptionCategory::Model))
+        .collect())
+}
+
+/// Inspect one selected agent's advertised models without a prompt or history write.
+/// Project policy filters the offered values; admission validates the chosen value again.
+pub async fn probe_models(
+    inputs: &crate::config::inputs::ProjectInputs,
+    provider: &str,
+) -> Result<Vec<ProbeModel>, String> {
+    let captured = inputs.clone();
+    let provider = provider.to_owned();
+    let (runtime, governance, root) = tokio::task::spawn_blocking(move || {
+        let root = captured
+            .project_root()
+            .canonicalize()
+            .map_err(|error| error.to_string())?;
+        let runtime = AgentRuntime::detect_for(&captured, Some(&provider))
+            .map_err(|error| error.to_string())?;
+        let governance = crate::team::TeamConfig::load(&root)
+            .map_err(|error| error.to_string())?
+            .map(|team| team.policy)
+            .unwrap_or_default();
+        Ok::<_, String>((runtime, governance, root))
     })
     .await
-    .unwrap_or(None);
-
-    // Clean shutdown
-    let _ = transport.close().await;
-
-    // Convert to magistr types, filter to Model category
-    match config_options {
-        Some(opts) => {
-            let all = config_options_from_acp(&opts);
-            all.into_iter()
-                .filter(|o| o.category == Some(ConfigOptionCategory::Model))
-                .collect()
-        }
-        None => vec![],
-    }
+    .map_err(|error| error.to_string())??;
+    Ok(probe_runtime(&runtime, &root)
+        .await?
+        .into_iter()
+        .flat_map(|option| option.options)
+        .filter(|value| governance.route_model(&value.value_id) == Some(value.value_id.as_str()))
+        .map(|value| ProbeModel {
+            id: value.value_id,
+            name: value.name,
+        })
+        .collect())
 }
 
 /// Probe all available agent runtimes for their model lists.
@@ -78,8 +114,7 @@ async fn probe_runtime(runtime: &AgentRuntime) -> Vec<AcpConfigOption> {
 /// concurrently with a per-probe timeout. Failed probes return empty model
 /// lists with `probed: false`.
 ///
-/// For Claude Code, model aliases (`default`, `sonnet`, `haiku`) are enriched
-/// with full display names and subscription-aware descriptions via `claude auth status`.
+/// Names and values remain exactly as the agent advertises them.
 pub async fn probe_all_providers(
     inputs: &crate::config::inputs::ProjectInputs,
 ) -> Vec<ProviderModelSet> {
@@ -92,12 +127,15 @@ pub async fn probe_all_providers(
     let mut handles = Vec::new();
     for rt in &runtimes {
         let rt_clone = rt.clone();
-        handles.push(tokio::spawn(async move { probe_runtime(&rt_clone).await }));
+        let root = inputs.project_root().to_owned();
+        handles.push(tokio::spawn(async move {
+            probe_runtime(&rt_clone, &root).await
+        }));
     }
 
     let mut results = Vec::new();
     for (rt, handle) in runtimes.iter().zip(handles) {
-        let config_opts = handle.await.unwrap_or_default();
+        let config_opts = handle.await.ok().and_then(Result::ok).unwrap_or_default();
 
         let models: Vec<ProbeModel> = config_opts
             .iter()

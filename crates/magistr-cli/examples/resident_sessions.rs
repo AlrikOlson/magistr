@@ -52,15 +52,18 @@ async fn exercise(parent: PathBuf) -> eyre::Result<()> {
     let registry = SessionRegistry::start(configuration);
     let client = registry.client();
     let a = client
-        .open(&first)
+        .open(&first, magistr::application::SessionOpening::Launch)
         .await
         .map_err(|error| eyre::eyre!(error))?;
     let b = client
-        .open(parent.join("second"))
+        .open(
+            parent.join("second"),
+            magistr::application::SessionOpening::Launch,
+        )
         .await
         .map_err(|error| eyre::eyre!(error))?;
     let c = client
-        .open(&first)
+        .open(&first, magistr::application::SessionOpening::Launch)
         .await
         .map_err(|error| eyre::eyre!(error))?;
     ensure!(
@@ -105,12 +108,18 @@ async fn exercise(parent: PathBuf) -> eyre::Result<()> {
     );
     ensure!(
         snapshot.replay().iter().any(
-            |message| matches!(message, Msg::InputAccepted(text) if text == "first streaming\n")
+            |message| matches!(message, Msg::InputAccepted(text) if text == "first streaming")
         ),
         "the session owns the accepted user message"
     );
     ensure!(
-        client.open(parent.join("failed")).await.is_err(),
+        client
+            .open(
+                parent.join("failed"),
+                magistr::application::SessionOpening::Launch
+            )
+            .await
+            .is_err(),
         "provider failure must be explicit"
     );
     ensure!(

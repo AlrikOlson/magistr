@@ -15,6 +15,7 @@ pub struct WaitingRequest {
 pub struct SessionSummary {
     pub address: SessionAddress,
     pub name: String,
+    pub conversation: Option<magistr_application::sessions::Conversation>,
     pub status: SessionStatus,
     pub closed: bool,
     pub model: Option<String>,
@@ -27,6 +28,7 @@ impl SessionSummary {
         Self {
             address: snapshot.address.clone(),
             name: snapshot.seed.name.clone(),
+            conversation: snapshot.conversation.clone(),
             status: snapshot.status,
             closed: snapshot.closed,
             model: snapshot.model.clone(),

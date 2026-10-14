@@ -186,6 +186,15 @@ impl InteractiveSession {
         controls: &mut Vec<LoopCmd>,
     ) {
         if self.busy {
+            if !roadmap
+                && self
+                    .connection
+                    .as_ref()
+                    .is_some_and(|current| !current.roadmap)
+            {
+                self.forward(Cmd::Prompt(text));
+                return;
+            }
             if roadmap && self.queued.is_none() {
                 self.queued = Some(text);
                 self.inbox.send(Msg::RoadmapRequestQueued);
@@ -304,6 +313,8 @@ impl InteractiveSession {
             && let Msg::Agent(AgentEvent::Activity(activity)) = event
         {
             self.conversation_can_resume = activity.can_resume;
+            self.busy =
+                activity.active || activity.queued_turns > 0 || activity.cancellation_requested;
         }
         if let Msg::Agent(AgentEvent::Initialized { session_id, .. }) = event {
             let saved = if connection.roadmap {

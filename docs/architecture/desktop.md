@@ -15,7 +15,9 @@ project, database or provider. A requested directory is inspected after the
 window is ready; invalid settings and unavailable agents remain visible there.
 The initial conversation uses the selected provider, model and permission profile. `--resume` and
 `--continue` use application-owned session history. Later conversations open
-through the same admission path.
+through typed launch, new and saved-opening intents in the same admission path.
+A saved conversation has one resident claim until it settles; repeated opens select
+its existing view or receive a refusal.
 
 ## Ownership
 
@@ -23,7 +25,7 @@ through the same admission path.
 | --- | --- |
 | `application::SessionRegistry` | Resident sessions, admission, addressed controls, bounded observation and ordered shutdown |
 | `InteractiveHost` and `ProjectResources` | Provider, workflow attachment, source workspace and their child lifetimes |
-| `SessionObservation` | Retained messages, current status/model/usage, requests and drafts |
+| `SessionObservation` | Retained conversation identity/name, messages, complete configuration, status/usage, requests and drafts |
 | `ProjectFolder`, `ProjectSetup`, `ScaffoldPipeline` and `AdminService` | Read-only readiness, detected setup plan, exact approved writes, ownership and per-path receipts |
 | Desktop commands | Typed translation from window actions to the application client; ephemeral single-use setup review handles |
 | Desktop streams | Independent conversation and catalog subscriptions, batching and acknowledgement credit |
@@ -44,7 +46,7 @@ ends. Late subscriptions and frames cannot replace the selected session.
 The application snapshot is bounded to 512 messages and one MiB of text.
 Sequence gaps cause an owner refresh and an explicit reseed. The conversation
 shows when older messages are unavailable. Application-owned status, model,
-usage, requests and drafts survive pruning.
+usage, conversation names, configuration, requests and drafts survive pruning.
 
 ## Interface
 
@@ -69,6 +71,28 @@ explicit, and reported zero remains distinct from missing information. The conve
 native editable text and selectable messages; the contextual panel shows the
 working copy, model, usage and permission requests. Open project, New session,
 Send, Stop, Allow/Deny, Copy conversation and Close session call real owners.
+New session lists installed or configured agents without opening them. Choose model
+explicitly invokes the existing zero-turn ACP probe in the selected folder; it
+sends no prompt and awaits cleanup, without writing Magistr history. Model values
+and labels come from the provider and are filtered by the project policy. Normal
+admission validates the selection again. Live configuration and permission requests
+share the same policy authority; confirmed model changes update subsequent decisions.
+Configuration controls show the accepted state and disable during owner-reported
+configuration, work or cancellation.
+
+Conversation names use the session owner's history record and settlement writer.
+Reconnect restores the confirmed model from that same context. Saved conversations
+reads the existing database without creating it, presents its bounded last-reply
+summary, and distinguishes reading from the explicit Resume action. Missing agents,
+folders or resume support have specific explanations. A refused provider load keeps
+the saved summary open for retry and never starts a fresh context.
+
+Follow-ups reach the resident supervisor's bounded FIFO. Send clears only the exact
+matching draft after an addressed acceptance with its real observation sequence;
+a rejected send or a newer draft is retained. Cancellation clears the owner's queue
+and reports unsent queued messages. Navigation saves drafts only to live catalog
+owners, so closing the selected conversation can switch to another resident.
+
 Appearance selects System, Light or Dark. Motion is absent; native reduced-motion
 preferences and `--reduce-motion` are honored.
 
@@ -102,7 +126,9 @@ working copies, clean and explicit launch, native folder selection,
 reviewed setup (declined, refused and partial), invalid paths/settings,
 unavailable agents, streamed replies, concurrent background attention, exact-request
 navigation, owner reconnect/stop/close, permissions, cancellation, drafts, native
-clipboard, light/dark/narrow views and orderly Quit. It retains screenshots,
+clipboard, two provider choices, model preview/selection/reconnect, accepted and
+cancelled queues, durable names, summary-only history, refused and retried resume,
+light/dark/narrow views and orderly Quit. It retains screenshots,
 an accessibility tree and a receipt tied to source hashes.
 Run it after rebuilding the desktop:
 

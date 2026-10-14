@@ -5,6 +5,7 @@ use chrono::{Duration, TimeZone};
 fn record(project: &str, started: DateTime<Utc>, cost_usd: f64) -> SessionRecord {
     SessionRecord {
         session_id: format!("{project}-{started}"),
+        name: None,
         project: project.to_owned(),
         workspace: project.to_owned(),
         provider: "scripted".into(),

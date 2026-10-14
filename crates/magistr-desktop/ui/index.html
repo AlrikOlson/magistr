@@ -9,6 +9,7 @@
   <h2>Projects</h2><nav id="projects" aria-label="Projects"></nav>
   <h2>Sessions</h2><nav id="sessions" aria-label="Sessions"></nav>
   <button id="new-session" disabled>New session</button>
+  <button id="saved-conversations">Saved conversations</button>
   <footer><label for="theme">Appearance</label><select id="theme"><option value="auto">System</option><option value="dark">Dark</option><option value="light">Light</option></select></footer>
 </aside>
 <main>
@@ -29,7 +30,8 @@
     </section>
     <aside class="detail" aria-label="Session details">
       <h2>Working copy</h2><p id="workspace-path" class="path"></p><label for="working-copy">Working copy</label><select id="working-copy"></select>
-      <h2>Agent</h2><p id="model">Model information is unavailable.</p><p id="usage"></p><p id="queue"></p><p id="capabilities"></p>
+      <form id="name-form"><label for="conversation-name">Conversation name</label><input id="conversation-name" maxlength="120" required><button id="save-name" type="submit">Save name</button></form>
+      <h2>Agent</h2><p id="agent-provider"></p><div id="agent-configuration"></div><p id="model">Model information is unavailable.</p><p id="usage"></p><p id="queue"></p><p id="capabilities"></p>
       <section id="requests" aria-label="Requests waiting for you"></section>
       <div class="session-actions"><button id="reconnect" disabled>Reconnect</button><button id="copy" disabled>Copy conversation</button><button id="close-session" disabled>Close session</button></div>
     </aside>
@@ -51,6 +53,20 @@
     <section id="setup-result" aria-label="Setup results" hidden><h3 id="setup-result-title"></h3><p id="setup-record"></p><ul id="setup-outcomes"></ul></section>
     </div><div class="dialog-actions"><button id="picker-cancel" type="button">Cancel</button><button id="picker-submit" type="submit">Open</button></div>
   </form>
+</dialog>
+<dialog id="session-picker" aria-labelledby="session-picker-title">
+  <form id="session-form"><h2 id="session-picker-title">New conversation</h2><p>Choose an available agent. Choose a model here if your project requires one. You can change supported settings after opening.</p>
+    <label for="agent-choice">Agent</label><select id="agent-choice" required></select>
+    <button id="choose-initial-model" type="button">Choose model…</button><div id="initial-model-control" hidden><label for="initial-model">Initial model</label><select id="initial-model"></select></div>
+    <p id="session-picker-error" class="error" role="alert" hidden></p>
+    <div class="dialog-actions"><button id="session-picker-cancel" type="button">Cancel</button><button id="session-picker-open" type="submit">Start conversation</button></div>
+  </form>
+</dialog>
+<dialog id="history-picker" aria-labelledby="history-title">
+  <h2 id="history-title">Saved conversations</h2><p>Read a saved summary or resume with its original agent.</p>
+  <p id="history-error" class="error" role="alert" hidden></p>
+  <div class="history-layout"><nav id="history-list" aria-label="Saved conversations"></nav><section id="history-summary" tabindex="0" aria-label="Saved summary" hidden><h3 id="history-name"></h3><p id="history-details"></p><p id="history-text"></p><p id="history-resume-reason"></p><button id="history-resume">Resume conversation</button></section></div>
+  <div class="dialog-actions"><button id="history-close">Close</button></div>
 </dialog>
 <script type="module" src="app.mjs"></script>
 </body></html>

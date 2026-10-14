@@ -54,6 +54,8 @@ pub struct SessionSnapshot {
     pub closed: bool,
     pub status: SessionStatus,
     pub model: Option<String>,
+    pub conversation: Option<magistr_application::sessions::Conversation>,
+    pub configuration: Vec<magistr_application::sessions::SessionConfig>,
     pub activity: Option<magistr_application::sessions::SessionActivity>,
     bytes: usize,
     retained_from: u64,
@@ -135,6 +137,13 @@ impl SessionSnapshot {
             Msg::Agent(AgentEvent::Initialized { model, .. }) => {
                 self.model = model.clone();
                 self.status = SessionStatus::Ready;
+            }
+            Msg::Agent(AgentEvent::Conversation(conversation)) => {
+                self.conversation = Some(conversation.clone())
+            }
+            Msg::Agent(AgentEvent::Configuration { options, model }) => {
+                self.configuration.clone_from(options);
+                self.model.clone_from(model);
             }
             Msg::Agent(AgentEvent::Activity(activity)) => self.activity = Some(activity.clone()),
             Msg::Agent(
@@ -224,6 +233,8 @@ impl SessionObservation {
                 closed: false,
                 status: SessionStatus::Ready,
                 model: None,
+                conversation: None,
+                configuration: Vec::new(),
                 activity: None,
                 bytes: 0,
                 retained_from: 1,

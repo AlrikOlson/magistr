@@ -40,7 +40,7 @@ assert receipt["checks"] and all(receipt["checks"].values()),"Native journey has
 for file,expected in receipt["source_hashes"].items():
     assert sha(ROOT/file)==expected,"Native evidence is stale for "+file
 review=json.loads((EVIDENCE/"review.json").read_text())
-for name in ("dark","light","narrow","chooser-dark","chooser-light","setup-review","setup-partial","provider-unavailable","supervision"):
+for name in ("dark","light","narrow","chooser-dark","chooser-light","setup-review","setup-partial","provider-unavailable","supervision","agent-choice","conversation-controls","resume-unavailable","saved-summary","resume-refused"):
     path=EVIDENCE/(name+".png")
     assert path.read_bytes()[:8]==b"\x89PNG\r\n\x1a\n"
     width,height=struct.unpack(">II",path.read_bytes()[16:24])

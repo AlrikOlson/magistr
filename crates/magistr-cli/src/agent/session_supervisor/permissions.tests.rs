@@ -5,6 +5,7 @@ use crate::permissions::NoninteractivePolicy;
 fn state() -> Mutex<Inner> {
     Mutex::new(Inner {
         history: crate::agent::persistence::SessionHistory::new(),
+        policy: None,
         snapshot: SessionSupervisorSnapshot {
             active_turn: Some(1),
             queued_turns: 0,
@@ -23,6 +24,7 @@ fn state() -> Mutex<Inner> {
         control_busy: false,
         goal_turn: None,
         capabilities: None,
+        config_options: Vec::new(),
         last_activity: None,
         messages: None,
         cockpit_events: None,

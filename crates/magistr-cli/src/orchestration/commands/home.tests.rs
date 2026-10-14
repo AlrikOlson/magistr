@@ -17,6 +17,7 @@ fn a_saved_row_selects_its_own_provider_and_load_id_without_an_opening_prompt() 
         &conn,
         &SessionRecord {
             session_id: "host-id".into(),
+        name: None,
             project: root.display().to_string(),
             workspace: root.display().to_string(),
             provider: "recorded-agent".into(),

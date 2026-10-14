@@ -72,3 +72,21 @@ fn probe_model_names_are_passed_through_verbatim() {
         );
     }
 }
+
+#[tokio::test]
+async fn model_preview_reads_the_real_options_and_settles_without_a_prompt() {
+    let (channel, observed, server) = magistr_acp::test_support::FakeAcpAgent::new().spawn();
+    let folder = tempfile::tempdir().unwrap();
+    let mut transport =
+        AcpTransport::new_with_args("controlled".into(), vec![], Some(folder.path().into()))
+            .unwrap();
+    transport.connect_over(channel).await.unwrap();
+    let models = probe_connected(transport).await.unwrap();
+    assert_eq!(models[0].options[0].name, "Default");
+    assert!(observed.prompts().is_empty());
+    tokio::time::timeout(PROBE_TIMEOUT, server)
+        .await
+        .unwrap()
+        .unwrap()
+        .unwrap();
+}

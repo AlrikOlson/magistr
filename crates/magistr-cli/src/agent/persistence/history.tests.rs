@@ -157,3 +157,35 @@ fn missing_foreign_and_invalid_prices_cannot_erase_a_reported_amount() {
     observe(Some(Cost::new(0.0, "USD")));
     assert_eq!(history.reported_cost_usd(), Some(0.0));
 }
+#[tokio::test]
+async fn a_name_is_saved_by_the_owner_and_survives_reconnect_and_resume() {
+    let directory = tempfile::tempdir().unwrap();
+    let inputs = inputs(&directory);
+    let history = SessionHistory::new();
+    history
+        .begin(&inputs, directory.path(), "scripted", None)
+        .await
+        .unwrap();
+    history.rename("Conversation about café").unwrap();
+    assert!(history.rename(" ").is_err());
+    assert!(history.rename(&"x".repeat(121)).is_err());
+    history.settle(SessionOutcome::Completed).await.unwrap();
+    history
+        .begin(&inputs, directory.path(), "scripted", None)
+        .await
+        .unwrap();
+    assert_eq!(
+        history.conversation().unwrap().name.as_deref(),
+        Some("Conversation about café")
+    );
+    history.rename("Reviewed changes").unwrap();
+    history.settle(SessionOutcome::Cancelled).await.unwrap();
+    let conn = storage::open_db(&storage::sessions_db_path(&inputs).unwrap()).unwrap();
+    let records =
+        storage::query_sessions(&conn, &super::super::session_filter::SessionFilter::new())
+            .unwrap();
+    assert_eq!(records.len(), 1);
+    assert_eq!(records[0].name.as_deref(), Some("Reviewed changes"));
+    let resumed = SessionHistory::from_record(records[0].clone());
+    assert_eq!(resumed.conversation().unwrap().name, records[0].name);
+}

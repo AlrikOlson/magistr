@@ -144,9 +144,27 @@ async fn addressed_sessions_in_two_workspaces_survive_disconnect_and_route_permi
     let log = Log::default();
     let registry = registry(log.clone());
     let client = registry.client();
-    let a = client.open(tmp.path().join("first")).await.unwrap();
-    let b = client.open(tmp.path().join("second")).await.unwrap();
-    let c = client.open(tmp.path().join("first")).await.unwrap();
+    let a = client
+        .open(
+            tmp.path().join("first"),
+            crate::application::SessionOpening::Launch,
+        )
+        .await
+        .unwrap();
+    let b = client
+        .open(
+            tmp.path().join("second"),
+            crate::application::SessionOpening::Launch,
+        )
+        .await
+        .unwrap();
+    let c = client
+        .open(
+            tmp.path().join("first"),
+            crate::application::SessionOpening::Launch,
+        )
+        .await
+        .unwrap();
     assert_ne!(a, c);
     assert_eq!(a.workspace, c.workspace);
     let mut reader = client.subscribe(&a).await.unwrap();
@@ -199,7 +217,10 @@ async fn addressed_sessions_in_two_workspaces_survive_disconnect_and_route_permi
     client.command(&c, Cmd::Cancel).await.unwrap();
     assert!(
         client
-            .open(tmp.path().join("held"))
+            .open(
+                tmp.path().join("held"),
+                crate::application::SessionOpening::Launch
+            )
             .await
             .unwrap_err()
             .contains("provider unavailable")
@@ -236,9 +257,27 @@ async fn cleanup_failure_is_reported_after_every_other_host_is_settled() {
     let log = Log::default();
     let registry = registry(log.clone());
     let client = registry.client();
-    client.open(tmp.path().join("first")).await.unwrap();
-    client.open(tmp.path().join("broken-close")).await.unwrap();
-    client.open(tmp.path().join("second")).await.unwrap();
+    client
+        .open(
+            tmp.path().join("first"),
+            crate::application::SessionOpening::Launch,
+        )
+        .await
+        .unwrap();
+    client
+        .open(
+            tmp.path().join("broken-close"),
+            crate::application::SessionOpening::Launch,
+        )
+        .await
+        .unwrap();
+    client
+        .open(
+            tmp.path().join("second"),
+            crate::application::SessionOpening::Launch,
+        )
+        .await
+        .unwrap();
     assert!(
         registry
             .shutdown()
@@ -277,11 +316,21 @@ async fn opening_a_provider_does_not_block_controls_for_an_existing_session() {
     });
     let registry = SessionRegistry::start_with(open, Box::new(|| Box::pin(async { Ok(()) })));
     let client = registry.client();
-    let a = client.open(tmp.path().join("first")).await.unwrap();
+    let a = client
+        .open(
+            tmp.path().join("first"),
+            crate::application::SessionOpening::Launch,
+        )
+        .await
+        .unwrap();
     let opening = {
         let client = client.clone();
         let root = tmp.path().join("second");
-        tokio::spawn(async move { client.open(root).await })
+        tokio::spawn(async move {
+            client
+                .open(root, crate::application::SessionOpening::Launch)
+                .await
+        })
     };
     tokio::task::yield_now().await;
     tokio::time::timeout(Duration::from_secs(1), client.command(&a, Cmd::Cancel))
@@ -360,8 +409,20 @@ async fn catalog_tracks_background_attention_without_token_or_draft_notification
     let tmp = projects();
     let registry = registry(Log::default());
     let client = registry.client();
-    let a = client.open(tmp.path().join("first")).await.unwrap();
-    let b = client.open(tmp.path().join("second")).await.unwrap();
+    let a = client
+        .open(
+            tmp.path().join("first"),
+            crate::application::SessionOpening::Launch,
+        )
+        .await
+        .unwrap();
+    let b = client
+        .open(
+            tmp.path().join("second"),
+            crate::application::SessionOpening::Launch,
+        )
+        .await
+        .unwrap();
     let mut catalog = client.catalog();
     assert_eq!(catalog.snapshot().sessions.len(), 2);
     client.command(&b, Cmd::Prompt("ask".into())).await.unwrap();
@@ -461,7 +522,13 @@ async fn refused_duplicate_permission_does_not_release_an_accepted_reservation()
         Box::new(|| Box::pin(async { Ok(()) })),
     );
     let client = registry.client();
-    let address = client.open(tmp.path().join("first")).await.unwrap();
+    let address = client
+        .open(
+            tmp.path().join("first"),
+            crate::application::SessionOpening::Launch,
+        )
+        .await
+        .unwrap();
     let observation = opened.recv().await.unwrap();
     use magistr_cockpit_runtime::channel::ObservationSink;
     observation.send(Msg::Agent(AgentEvent::PermissionRequest {
@@ -508,6 +575,13 @@ async fn catalog_keeps_closing_visible_until_the_addressed_owner_settles() {
         Box::new(move |opening| {
             let release = Arc::clone(&gate);
             Box::pin(async move {
+                opening.inbox.send(Msg::Agent(AgentEvent::Conversation(
+                    magistr_application::sessions::Conversation {
+                        id: "fresh-saved-conversation".into(),
+                        name: None,
+                        provider: "copilot".into(),
+                    },
+                )));
                 Ok((
                     Closing {
                         _opening: opening,
@@ -520,7 +594,13 @@ async fn catalog_keeps_closing_visible_until_the_addressed_owner_settles() {
         Box::new(|| Box::pin(async { Ok(()) })),
     );
     let client = registry.client();
-    let address = client.open(tmp.path().join("first")).await.unwrap();
+    let address = client
+        .open(
+            tmp.path().join("first"),
+            crate::application::SessionOpening::Launch,
+        )
+        .await
+        .unwrap();
     let mut catalog = client.catalog();
     catalog.snapshot();
     let addressed = address.clone();
@@ -534,6 +614,15 @@ async fn catalog_keeps_closing_visible_until_the_addressed_owner_settles() {
     assert_eq!(snapshot.sessions[0].label(), "Closing");
     assert!(!closing.is_finished());
     assert!(client.command(&address, Cmd::Cancel).await.is_err());
+    let duplicate = client
+        .open(
+            tmp.path().join("first"),
+            SessionOpening::Resume {
+                id: "fresh-saved-conversation".into(),
+            },
+        )
+        .await;
+    assert!(matches!(duplicate, Err(error) if error.contains("already open")));
     release.notify_one();
     closing.await.unwrap().unwrap();
     let snapshot = tokio::time::timeout(Duration::from_secs(3), catalog.changed())
@@ -541,5 +630,40 @@ async fn catalog_keeps_closing_visible_until_the_addressed_owner_settles() {
         .unwrap()
         .unwrap();
     assert!(snapshot.sessions.is_empty());
+    registry.shutdown().await.unwrap();
+}
+#[tokio::test]
+async fn saved_conversation_claims_are_unique_and_release_after_close_or_refusal() {
+    let tmp = projects();
+    let registry = registry(Log::default());
+    let client = registry.client();
+    let resume = || SessionOpening::Resume { id: "saved".into() };
+    let address = client
+        .open(tmp.path().join("first"), resume())
+        .await
+        .unwrap();
+    assert!(
+        client
+            .open(tmp.path().join("first"), resume())
+            .await
+            .unwrap_err()
+            .contains("already open")
+    );
+    client.close(&address).await.unwrap();
+    let reopened = client
+        .open(tmp.path().join("first"), resume())
+        .await
+        .unwrap();
+    assert_ne!(address, reopened);
+    client.close(&reopened).await.unwrap();
+    for _ in 0..2 {
+        assert_eq!(
+            client
+                .open(tmp.path().join("held"), resume())
+                .await
+                .unwrap_err(),
+            "provider unavailable"
+        );
+    }
     registry.shutdown().await.unwrap();
 }

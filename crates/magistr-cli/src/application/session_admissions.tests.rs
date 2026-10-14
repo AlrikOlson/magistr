@@ -12,14 +12,24 @@ async fn empty_registry_configures_each_path_only_when_opened() {
     let client = registry.client();
     assert!(client.list().await.unwrap().is_empty());
     assert!(calls.lock().unwrap().is_empty());
-    assert!(client.open(tmp.path()).await.is_err());
+    assert!(
+        client
+            .open(tmp.path(), crate::application::SessionOpening::Launch)
+            .await
+            .is_err()
+    );
     assert!(
         calls.lock().unwrap().is_empty(),
         "unprepared paths never configure an agent"
     );
     std::fs::create_dir(tmp.path().join(".magistr")).unwrap();
     std::fs::write(tmp.path().join(".magistr/project.json"), "invalid").unwrap();
-    assert!(client.open(tmp.path()).await.is_err());
+    assert!(
+        client
+            .open(tmp.path(), crate::application::SessionOpening::Launch)
+            .await
+            .is_err()
+    );
     assert!(
         calls.lock().unwrap().is_empty(),
         "invalid settings never configure an agent"
@@ -39,7 +49,7 @@ async fn empty_registry_configures_each_path_only_when_opened() {
     for _ in 0..2 {
         assert!(
             client
-                .open(tmp.path())
+                .open(tmp.path(), crate::application::SessionOpening::Launch)
                 .await
                 .unwrap_err()
                 .contains("Provider unavailable")

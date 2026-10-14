@@ -80,6 +80,12 @@ impl SessionHandle for Session {
         self.tx.send(AgentEvent::Text(text.into())).unwrap();
         Ok(())
     }
+    fn rename(&mut self, _: &str) -> Result<(), String> {
+        Err("Naming is unavailable in this session.".into())
+    }
+    fn configure(&mut self, _: &str, _: &str) -> Result<(), String> {
+        Err("Agent choices are unavailable in this session.".into())
+    }
     fn cancel_turn(&mut self) -> Result<(), String> {
         Ok(())
     }

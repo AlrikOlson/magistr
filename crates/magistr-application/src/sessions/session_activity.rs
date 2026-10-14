@@ -4,6 +4,7 @@
 pub struct SessionActivity {
     pub active: bool,
     pub queued_turns: usize,
+    pub configuration_in_progress: bool,
     pub cancellation_requested: bool,
     /// Unknown until the provider's initialization has been observed.
     pub can_resume: Option<bool>,

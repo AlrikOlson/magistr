@@ -58,6 +58,7 @@ fn cancellation_and_close_take_precedence_over_waiting() {
     owner.send(Msg::Agent(AgentEvent::Activity(SessionActivity {
         active: true,
         queued_turns: 2,
+        configuration_in_progress: false,
         cancellation_requested: true,
         can_resume: None,
         can_send_images: None,

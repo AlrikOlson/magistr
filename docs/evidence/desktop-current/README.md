@@ -1,7 +1,7 @@
 # Current native desktop evidence
 
 The real Tauri window is exercised with disposable Git projects, working copies,
-a signed app bundle and a controlled ACP peer. Application state uses temporary XDG and Magistr directories; the real macOS home is preserved for WebKit's renderer. The screenshots contain the live
+a signed app bundle, a controlled ACP peer and a local streaming API fixture. Application state uses temporary XDG and Magistr directories; the real macOS home is preserved for WebKit's renderer. The screenshots contain the live
 window; no annotations or simulated terminal rendering are added.
 
 The receipt records keyboard and pointer actions, accessible controls, Unicode
@@ -11,14 +11,14 @@ and ordered native Quit. Background supervision exercises a waiting request besi
 another working agent, exact request focus, independent Stop/Reconnect/Close,
 cancellation reservations and retained drafts. Catalog observation launches no
 provider. Reconnect restores one provider identity and creates only one replacement
-process; the same six conversation histories remain. It closes the last session and reopens its project before
-the main conversation journey. The chooser opens without a project or provider; native folder selection, refused and partial setup, cancellation, and recovery all use the actual application owners. Close and Quit must save all six admitted histories,
+process; the same logical conversation remains. Agent selection explicitly previews advertised models without sending a prompt. Confirmed model changes survive a failed turn and reconnect. Accepted follow-ups clear only their matching draft; Stop discards the queued turn and preserves newer unsent text. Conversation names follow their owner through close and exact saved resume. It closes the last session and reopens its project before
+the main conversation journey. The chooser opens without a project or provider; native folder selection, refused and partial setup, cancellation, and recovery all use the actual application owners. Saved history distinguishes resumable conversations from summaries whose agent cannot resume. A provider-refused load stays in the history dialog for retry and never creates a replacement conversation. The journey also starts an OpenAI conversation through the local fixture. Close and Quit must save all seven admitted histories,
 release the project owner and leave no provider process. Reopening the source endpoint proves
 its owner can be admitted again.
 
 The attention capture shows concurrent waiting and working agents with the
-selected draft. Light, dark and narrow conversation screenshots, chooser appearances, setup review, partial results, unavailable-agent guidance and accessibility trees are reviewed
-against their hashes in `review.json`. The receipt names interface and shared supervision-owner source hashes.
+selected draft. Light, dark and narrow conversation screenshots, chooser appearances, setup review, partial results, unavailable-agent guidance, agent/model selection, named conversation controls, saved summaries and refused resume are reviewed
+against their hashes in `review.json`. The receipt names interface and shared session-owner and observer source hashes.
 The screenshot gate rejects changed source or images until the native journey
 and review are renewed. It also checks text/control contrast, the selected icon,
 reduced motion and the current module index. This evidence does not establish

@@ -17,6 +17,8 @@ pub enum Cmd {
     Engine(EngineCmd),
     Checkpoint(CheckpointCmd),
     Reconnect,
+    Rename(String),
+    Configure { id: String, value: String },
 }
 impl Cmd {
     #[must_use]

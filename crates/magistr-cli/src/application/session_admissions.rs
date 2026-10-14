@@ -125,7 +125,8 @@ impl SessionRegistry {
                     let mut configure = configure
                         .lock()
                         .map_err(|_| eyre::eyre!("The session settings could not be read."))?;
-                    configure(&root)
+                    let config = configure(&root)?;
+                    opening.choice.apply(config).map_err(eyre::Report::from)
                 })
                 .await
                 .map_err(|error| error.to_string())?

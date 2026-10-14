@@ -307,6 +307,7 @@ fn seed_session(home: &TempDir, id: &str, owner: &str) {
         &conn,
         &SessionRecord {
             session_id: id.to_string(),
+            name: None,
             project: "acme".to_string(),
             workspace: "acme".to_string(),
             provider: "scripted".into(),

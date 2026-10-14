@@ -591,3 +591,20 @@ fn for_project_keeps_the_machine_inputs() {
     assert_eq!(other.goal_mode(), Some("off"));
     assert_eq!(other.budget_limit(), Some(3.0));
 }
+#[test]
+fn configured_api_choices_capture_presence_without_retaining_secrets() {
+    let inputs = ProjectInputs::from_lookup("/project", |key| match key {
+        "OPENAI_API_KEY" => Some("test secret".into()),
+        "GOOGLE_API_KEY" => Some("second secret".into()),
+        "OLLAMA_HOST" => Some("http://localhost:11434".into()),
+        _ => None,
+    });
+    assert_eq!(
+        inputs.configured_api_providers(),
+        ["openai", "gemini", "ollama"]
+    );
+    let debug = format!("{inputs:?}");
+    assert!(!debug.contains("test secret"));
+    assert!(!debug.contains("second secret"));
+    assert!(!debug.contains("localhost:11434"));
+}

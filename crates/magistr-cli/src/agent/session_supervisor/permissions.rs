@@ -1,7 +1,8 @@
 //! Permission requests and interactive replies belong to the resident owner.
 
 use std::collections::HashMap;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
+pub(super) type PolicyAuthority = Arc<Mutex<Box<dyn SessionPolicy>>>;
 
 use crate::agent::permission_request::{permission_kind, permission_request};
 use magistr_acp::{
@@ -16,7 +17,7 @@ use crate::permissions::NoninteractivePolicy;
 
 pub(super) struct Permissions {
     receiver: Option<mpsc::UnboundedReceiver<AcpPermissionRequest>>,
-    policy: Option<Box<dyn SessionPolicy>>,
+    policy: Option<PolicyAuthority>,
     handling: Option<NoninteractivePolicy>,
     events: Option<ObservationSender<AgentEvent>>,
     pending: HashMap<u64, AcpPermissionRequest>,
@@ -33,7 +34,7 @@ impl Permissions {
         });
         Self {
             receiver,
-            policy,
+            policy: policy.map(|policy| Arc::new(Mutex::new(policy))),
             handling,
             events: None,
             pending: HashMap::new(),
@@ -48,12 +49,16 @@ impl Permissions {
     ) -> Self {
         Self {
             receiver,
-            policy: Some(policy),
+            policy: Some(Arc::new(Mutex::new(policy))),
             handling: None,
             events: Some(events),
             pending: HashMap::new(),
             next_id: 1,
         }
+    }
+
+    pub(super) fn authority(&self) -> Option<PolicyAuthority> {
+        self.policy.clone()
     }
 
     pub(super) async fn recv(&mut self) -> Option<AcpPermissionRequest> {
@@ -79,10 +84,11 @@ impl Permissions {
             let _ = request.response_tx.send(AcpPermissionResponse::Cancelled);
             return;
         }
-        let Some(policy) = self.policy.as_mut() else {
+        let Some(authority) = self.policy.as_ref() else {
             let _ = request.response_tx.send(AcpPermissionResponse::Cancelled);
             return;
         };
+        let mut policy = authority.lock().expect("session policy lock poisoned");
         if let Some(handling) = self.handling {
             let response = super::super::noninteractive_response::noninteractive_response(
                 policy.as_mut(),
@@ -154,8 +160,11 @@ impl Permissions {
             self.emit(AgentEvent::PermissionCancelled { id });
             return;
         };
-        if let Some(policy) = self.policy.as_mut() {
-            policy.answered(&permission_request(&request), kind);
+        if let Some(policy) = self.policy.as_ref() {
+            policy
+                .lock()
+                .expect("session policy lock poisoned")
+                .answered(&permission_request(&request), kind);
         }
         let _ = request
             .response_tx
@@ -168,18 +177,24 @@ impl Permissions {
             && inner.snapshot.client_attached
             && let Some(request) = self.pending.get(&id)
             && !request.response_tx.is_closed()
-            && let Some(policy) = self.policy.as_mut()
+            && let Some(policy) = self.policy.as_ref()
         {
-            policy.constrain(&permission_request(request), condition);
+            policy
+                .lock()
+                .expect("session policy lock poisoned")
+                .constrain(&permission_request(request), condition);
         }
     }
 
     pub(super) fn delegate(&mut self, key: &str, state: &Mutex<Inner>) {
         let inner = state.lock().expect("supervisor state lock poisoned");
         if !inner.closing
-            && let Some(policy) = self.policy.as_mut()
+            && let Some(policy) = self.policy.as_ref()
         {
-            policy.delegate(key);
+            policy
+                .lock()
+                .expect("session policy lock poisoned")
+                .delegate(key);
         }
     }
 

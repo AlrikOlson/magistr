@@ -3,6 +3,7 @@
 
 mod args;
 mod commands;
+mod conversations;
 mod credit;
 mod launch;
 mod projects;

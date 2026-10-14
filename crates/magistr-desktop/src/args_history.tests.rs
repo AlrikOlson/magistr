@@ -15,6 +15,7 @@ fn saved_desktop_resume_uses_the_recorded_agent_and_never_guesses_a_provider_id(
         &conn,
         &SessionRecord {
             session_id: "saved-host".into(),
+            name: None,
             project: root.display().to_string(),
             workspace: root.display().to_string(),
             provider: "recorded-agent".into(),

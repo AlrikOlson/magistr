@@ -10,6 +10,8 @@ use super::session_outcome::SessionOutcome;
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SessionRecord {
     pub session_id: String,
+    /// A name assigned through the owning conversation.
+    pub name: Option<String>,
     /// Canonical project authority directory shared by its working copies.
     pub project: String,
     /// Canonical working directory in which this conversation ran.

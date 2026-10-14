@@ -22,7 +22,7 @@ pub(crate) fn saved_config(
     let path = super::storage::sessions_db_path(config.inputs()).ok_or_else(|| {
         MagistrError::Config("No directory is available for saved sessions.".into())
     })?;
-    let conn = super::storage::open_db(&path)?;
+    let conn = super::storage::open_readonly_db(&path)?;
     let record = super::storage::get_session(&conn, id)?
         .ok_or_else(|| MagistrError::Config(format!("Saved session {id} was not found.")))?;
     let root = config

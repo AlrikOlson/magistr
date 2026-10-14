@@ -25,6 +25,7 @@ fn log_path(dir: &TempDir) -> PathBuf {
 fn seed_session(conn: &rusqlite::Connection, id: &str, owner: Option<&str>) {
     let record = SessionRecord {
         session_id: id.to_string(),
+        name: None,
         project: "proj".to_string(),
         workspace: "proj".to_string(),
         provider: "scripted".into(),
