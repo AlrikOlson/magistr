@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://workbench-mcp.dev/schemas/tools/script.input.schema.json",
   "title": "script",
-  "description": "Typed Code Mode for the long tail — replaces ad-hoc bash pipelines (SDD 9.7). The source runs as a JavaScript function body in a QuickJS-ng-on-WASM guest under the Wasmtime host (SDD 8.1): fuel-metered, memory-capped, no ambient filesystem, network, or shell. The one global is `workspace`: search(args) and read(args) answer the same envelopes as the tools, glob(pattern) lists matching workspace paths — all live and jail-checked — while workspace.edit.queue({file, old, new, occurrence?, expectedHash?}) and workspace.files.queue({op: create|mkdir|delete, ...}) only QUEUE writes. An empty old populates an existing zero-byte file only; expectedHash checks the content before that queued edit. Create missing files in a separate files call before queuing edits. Use `return` for the script's JSON-serializable result value. Queued writes resolve through the 7.5 write engine and are ALWAYS confirm-gated: dryRun:true (the default) returns the value plus every dry-run diff and never applies; dryRun:false answers CONFIRM_REQUIRED with a confirmToken, and re-invoking the identical call with confirm applies. Abuse dies typed: SANDBOX_FUEL_EXCEEDED, SANDBOX_MEMORY_EXCEEDED, SANDBOX_CAP_DENIED.",
+  "description": "Typed Code Mode for the long tail — replaces ad-hoc bash pipelines (SDD 9.7). The source runs as a JavaScript function body in a QuickJS-ng-on-WASM guest under the Wasmtime host (SDD 8.1): fuel-metered, memory-capped, no ambient filesystem, network, or shell. The one global is `workspace`: search(args) and read(args) answer the same envelopes as the tools, glob(pattern) lists matching workspace paths — all live and jail-checked — while workspace.edit.queue({file, old, new, occurrence?, expectedHash?}) and workspace.files.queue({op: create|mkdir|delete, ...}) only QUEUE writes. An empty old populates an existing zero-byte file only; expectedHash checks the content before that queued edit. Create missing files in a separate files call before queuing edits. Use `return` for the script's JSON-serializable result value. Queued writes resolve through the 7.5 write engine : dryRun:true (the default) returns the value plus every dry-run diff and never applies. With dryRun:false, edit.confirm_mode = \"token\" applies the verified batch on the first call unless edit.force_confirm is set. Otherwise CONFIRM_REQUIRED carries a confirmToken, and re-invoking the identical call with confirm applies. Abuse dies typed: SANDBOX_FUEL_EXCEEDED, SANDBOX_MEMORY_EXCEEDED, SANDBOX_CAP_DENIED.",
   "type": "object",
   "properties": {
     "source": {
@@ -22,7 +22,7 @@
     "autoApply": {
       "type": "boolean",
       "default": false,
-      "description": "Trusted-harness bypass of the confirm gate (SDD 9.4). Prefer the confirm-token flow."
+      "description": "Apply an already-authorized operation without an additional confirmation round trip. All path, syntax, staleness and journal checks remain active; dryRun still never applies. Token mode already applies without this flag unless force_confirm is set."
     },
     "fuel": {
       "type": "integer",

@@ -875,18 +875,104 @@ async fn mrtr_elicitation_applies_on_accept_keeps_the_token_on_decline_and_obeys
     assert_eq!(seven_files(dir.path()), (false, false));
     close(client, server, service).await;
 
-    // edit.confirm_mode = token: an MRTR-capable client is never asked.
-    let dir = rewrite_workspace();
-    let service = open(dir.path(), &[("edit.confirm_mode", json!("token"))]).await;
-    let handler = TestClient::answering(true);
-    let (client, server) = serve(&service, handler.clone()).await;
-    let gated = call(&client, "edit", REWRITE()).await;
-    assert_eq!(error_code(&gated), "CONFIRM_REQUIRED");
-    assert!(
-        handler.questions().is_empty(),
-        "token mode never interrupts a human"
+    // Unattended mode applies once; force_confirm restores the token gate
+    // without eliciting a human, even from a client that supports dialogs.
+    for forced in [false, true] {
+        let dir = rewrite_workspace();
+        let service = open(
+            dir.path(),
+            &[
+                ("edit.confirm_mode", json!("token")),
+                ("edit.force_confirm", json!(forced)),
+            ],
+        )
+        .await;
+        let handler = TestClient::answering(true);
+        let (client, server) = serve(&service, handler.clone()).await;
+        let result = call(&client, "edit", REWRITE()).await;
+        if forced {
+            assert_eq!(error_code(&result), "CONFIRM_REQUIRED");
+        } else {
+            assert_eq!(result["ok"], true, "{result}");
+        }
+        assert!(
+            handler.questions().is_empty(),
+            "token mode never interrupts a human"
+        );
+        assert_eq!(seven_files(dir.path()), (!forced, !forced));
+        close(client, server, service).await;
+    }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn unattended_file_overwrite_and_move_apply_once_and_keep_validation() {
+    let dir = workspace(&[
+        ("source.txt", "new"),
+        ("target.txt", "old"),
+        ("src/app.ts", APP_TS),
+    ]);
+    let root = dir.path();
+    let service = open(root, &[("edit.confirm_mode", json!("token"))]).await;
+    let (client, server) = serve(&service, TestClient::plain()).await;
+
+    let args = json!({"op": "copy", "from": "source.txt", "to": "target.txt"});
+    let mut preview = args.clone();
+    preview["dryRun"] = json!(true);
+    let result = call(&client, "files", preview).await;
+    assert_eq!(result["ok"], true, "{result}");
+    assert_eq!(read(root, "target.txt"), "old");
+
+    let mut stale = args.clone();
+    stale["expectedHash"] = json!("stale");
+    assert_eq!(
+        error_code(&call(&client, "files", stale).await),
+        "STALE_ANCHOR"
     );
-    assert_eq!(seven_files(dir.path()), (false, false));
+    let mut forged = args.clone();
+    forged["confirm"] = json!("mgw2.foreign");
+    assert_eq!(
+        error_code(&call(&client, "files", forged).await),
+        "CONFIRM_MISMATCH"
+    );
+    assert_eq!(read(root, "target.txt"), "old");
+
+    let result = call(&client, "files", args).await;
+    assert_eq!(result["ok"], true, "{result}");
+    assert_eq!(read(root, "target.txt"), "new");
+    let undone = call(&client, "undo", json!({})).await;
+    assert_eq!(undone["ok"], true, "{undone}");
+    assert_eq!(read(root, "target.txt"), "old");
+    let moved = call(
+        &client,
+        "files",
+        json!({
+            "op": "move", "from": "source.txt", "to": "moved.txt"
+        }),
+    )
+    .await;
+    assert_eq!(moved["ok"], true, "{moved}");
+    assert!(!root.join("source.txt").exists());
+    assert_eq!(read(root, "moved.txt"), "new");
+
+    let broken = call(
+        &client,
+        "write",
+        json!({
+            "path": "src/app.ts", "content": "export const broken = ;;("
+        }),
+    )
+    .await;
+    assert_eq!(error_code(&broken), "PARSE_REJECTED");
+    assert_eq!(read(root, "src/app.ts"), APP_TS);
+    let protected = call(
+        &client,
+        "write",
+        json!({
+            "path": "workbench.toml", "content": "[edit]\nforce_confirm = false\n"
+        }),
+    )
+    .await;
+    assert_eq!(error_code(&protected), "PROTECTED_PATH");
     close(client, server, service).await;
 }
 

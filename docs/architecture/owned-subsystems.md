@@ -212,11 +212,15 @@ the new owner or admits the workspace itself. Legacy migration refusals never
 attach; `magistr workspace migrate` is the explicit, refusing migration.
 
 `magistr workspace serve <root>` is the thin rmcp adapter over that service:
-the complete retained tool surface with the eight input schemas and the
-envelope output schema byte-identical to the reference tree, the sealed
-envelope as both text and `structuredContent`, per-request envelope
-negotiation and session identity from `_meta`, MRTR form elicitation with
-the token fallback honoring `edit.confirm_mode`, the request's cancellation
+the current native tool schemas, the sealed envelope as both text and
+`structuredContent`, per-request envelope negotiation and session identity
+from `_meta`, and the shared write confirmation policy. In
+`edit.confirm_mode = "token"`, verified edits, file operations and script
+batches apply on the first call. Human mode uses MRTR form elicitation or a
+confirmation token; `edit.force_confirm` restores those gates in unattended
+mode without opening a dialog. Dry runs never write; supplied confirmations,
+path protection, parse checks, staleness and journaling remain enforced.
+The adapter passes the request's cancellation
 token into search and run, the `index/build` task over SEP-2663 `tasks/get`
 and the retained `tasks/list`, one trace span per call and namespaced plugin
 tools after the core names. The initial stdio client and each attached Unix

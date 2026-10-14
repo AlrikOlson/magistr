@@ -1,4 +1,7 @@
 use super::*;
+
+#[path = "confirmation.tests.rs"]
+mod confirmation;
 use crate::{
     commands::{EditOp, FilesOp, UndoScope, WriteAction},
     config::ResolveOptions,
@@ -354,7 +357,7 @@ async fn large_edits_are_confirm_gated_with_the_prepared_token_and_dry_runs_touc
 const TOKEN_MODE: &str = "[edit]\nconfirm_mode = \"token\"\n";
 
 #[tokio::test]
-async fn token_mode_applies_a_large_single_file_edit_and_keeps_multi_file_verbs_gated() {
+async fn token_mode_applies_large_edits_and_multi_file_moves_on_the_first_call() {
     let mut h = Harness::with_config(TOKEN_MODE);
     let big: String = (0..300).map(|i| format!("line {i}\n")).collect();
     h.write("notes/big.txt", &big);
@@ -367,20 +370,23 @@ async fn token_mode_applies_a_large_single_file_edit_and_keeps_multi_file_verbs_
     assert!(h.read("notes/big.txt").unwrap().starts_with(b"row 0\n"));
     assert_eq!(h.journal.list(0).unwrap().len(), 1);
 
-    // The agent confirming its own diff is still asked for the verbs whose
-    // reach is wider than the one file it named.
     h.write("notes/a.txt", "alpha\n");
-    let (kind, _) = refused(
-        h.commands("s")
-            .files(&files(
-                FilesOp::Move,
-                Some("notes/a.txt"),
-                Some("notes/b.txt"),
-            ))
-            .await,
+    let (rows, _) = ok(h
+        .commands("s")
+        .files(&files(
+            FilesOp::Move,
+            Some("notes/a.txt"),
+            Some("notes/b.txt"),
+        ))
+        .await);
+    assert_eq!(rows.len(), 2);
+    assert!(
+        rows.iter()
+            .all(|row| row.applied && row.journal_seq.is_some())
     );
-    assert!(matches!(kind, ErrorKind::ConfirmRequired { .. }));
-    assert_eq!(h.read("notes/a.txt").unwrap(), b"alpha\n");
+    assert!(h.read("notes/a.txt").is_none());
+    assert_eq!(h.read("notes/b.txt").unwrap(), b"alpha\n");
+    assert_eq!(h.journal.list(0).unwrap().len(), 2);
 }
 
 #[tokio::test]
