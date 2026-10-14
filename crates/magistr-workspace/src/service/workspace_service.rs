@@ -235,9 +235,9 @@ impl WorkspaceService {
         }
     }
 
-    /// `edit.confirm_mode = "token"` routes every confirm-gated write through
-    /// the two-call token flow even when the client could answer an
-    /// elicitation: the agent confirms, the human is not interrupted.
+    /// Unattended token mode never elicits a human. Writes normally apply
+    /// immediately; when `edit.force_confirm` restores a gate, its response
+    /// carries the confirmation token instead of opening a dialog.
     #[must_use]
     pub fn elicitation_allowed(&self) -> bool {
         self.policy

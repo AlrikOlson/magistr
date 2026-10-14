@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://magistr.dev/schemas/tools/write.input.schema.json",
   "title": "write",
-  "description": "Whole-file write — replaces the shell heredoc and the touch-then-edit dance. Creates `path` with `content` when it does not exist, replaces its whole content when it does. The bytes land exactly as given (no formatter), through the same write engine as edit: parse-verify, journal, atomic swap, undoable. Confirm gating follows edit's single-file rule: over 200 changed lines answers CONFIRM_REQUIRED, except under edit.confirm_mode = \"token\" where the caller is the confirmer and the write applies on the first call.",
+  "description": "Whole-file write — replaces the shell heredoc and the touch-then-edit dance. Creates `path` with `content` when it does not exist, replaces its whole content when it does. The bytes land exactly as given (no formatter), through the same write engine as edit: parse-verify, journal, atomic swap, undoable. Confirm gating follows edit's single-file rule: over 200 changed lines answers CONFIRM_REQUIRED, except under edit.confirm_mode = \"token\" where the write applies on the first call unless edit.force_confirm is set.",
   "x-workbench-status": "native",
   "type": "object",
   "required": ["path", "content"],
@@ -31,7 +31,7 @@
     "autoApply": {
       "type": "boolean",
       "default": false,
-      "description": "Trusted-harness bypass of the confirm gate. Skips the human-approvable diff entirely."
+      "description": "Apply an already-authorized operation without an additional confirmation round trip. All path, syntax, staleness and journal checks remain active; dryRun still never applies. Token mode already applies without this flag unless force_confirm is set."
     },
     "budget": { "type": "integer", "minimum": 1, "default": 4000 }
   }

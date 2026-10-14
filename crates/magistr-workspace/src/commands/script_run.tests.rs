@@ -28,7 +28,12 @@ struct Harness {
 
 impl Harness {
     fn new() -> Self {
+        Self::with_config("")
+    }
+
+    fn with_config(config: &str) -> Self {
         let root = tempfile::tempdir().unwrap();
+        fs::write(root.path().join("workbench.toml"), config).unwrap();
         fs::create_dir_all(root.path().join(".git")).unwrap();
         let policy = WorkspacePolicy::resolve(&ResolveOptions::new(root.path())).unwrap();
         let worker =
@@ -473,7 +478,41 @@ async fn file_ops_queue_create_mkdir_and_delete_previews_and_refuse_the_rest() {
 }
 
 #[tokio::test]
-async fn applying_is_always_confirm_gated_and_the_token_flow_applies_the_queue() {
+async fn unattended_script_batches_apply_once_and_forced_confirmation_remains() {
+    for forced in [false, true] {
+        let config = format!("[edit]\nconfirm_mode = \"token\"\nforce_confirm = {forced}\n");
+        let mut h = Harness::with_config(&config);
+        let guest = done(
+            json!("queued"),
+            vec![
+                json!({"file": "notes/a.txt", "old": "TODO", "new": "DONE"}),
+                json!({"file": "notes/b.txt", "old": "no marker", "new": "DONE"}),
+            ],
+            vec![],
+        );
+        let mut input = ScriptInput::new("q");
+        let (rows, _) = ok(run(&mut h, input.clone(), &guest).await);
+        assert!(write_rows(&rows).iter().all(|row| !row.applied));
+        assert!(h.journal.list(0).unwrap().is_empty());
+        input.dry_run = false;
+        if forced {
+            let (kind, _, _) = refused(run(&mut h, input.clone(), &guest).await);
+            let ErrorKind::ConfirmRequired { confirm_token } = kind else {
+                panic!("expected confirmation");
+            };
+            assert!(h.journal.list(0).unwrap().is_empty());
+            input.confirm = Some(confirm_token);
+        }
+        let (rows, _) = ok(run(&mut h, input, &guest).await);
+        assert!(write_rows(&rows).iter().all(|row| row.applied));
+        assert_eq!(h.read("notes/a.txt").unwrap(), "one DONE\ntwo DONE\n");
+        assert_eq!(h.read("notes/b.txt").unwrap(), "DONE\n");
+        assert_eq!(h.journal.list(0).unwrap().len(), 1);
+    }
+}
+
+#[tokio::test]
+async fn human_mode_gates_script_writes_and_the_token_flow_applies_the_queue() {
     let mut h = Harness::new();
     let guest = done(
         json!("queued"),

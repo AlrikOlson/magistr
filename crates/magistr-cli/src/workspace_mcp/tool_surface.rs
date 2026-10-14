@@ -46,17 +46,18 @@ read's contentHash passed as expectedHash turns a changed file into STALE_ANCHOR
 hash. Single-file symbol/text edits auto-apply; rewrite, rename and anything touching >1 file or \
 >200 changed lines is confirm-gated: MRTR clients approve the aggregated diff in-call via \
 elicitation, everyone else gets CONFIRM_REQUIRED carrying a confirmToken and re-invokes the \
-identical call with confirm to apply. Under edit.confirm_mode = \"token\" the caller is the \
-confirmer, so the >200-line rule is off for single-file edits (edit.force_confirm puts it back); \
-multi-file verbs stay gated. A stale confirm answers STALE_ANCHOR, a forged or mismatched one \
-CONFIRM_MISMATCH.";
+identical call with confirm to apply. Under edit.confirm_mode = \"token\", all verified writes \
+apply on the first call, including multi-file edits; edit.force_confirm restores the gates. \
+Dry runs never apply. A presented confirmation is still validated; a stale anchor answers \
+STALE_ANCHOR and a forged or mismatched token answers CONFIRM_MISMATCH.";
 
 const FILES: &str = "Typed file operations — replaces mv, cp, mkdir, touch and rm (SDD §9.5). \
 move is import-aware: import specifiers that resolve to the moved file are rewritten across the \
 workspace (typescript, javascript, python, java, c, c++ — specifier-based, name-resolution-free, \
 the notes say exactly what was rewritten) and the moved file's own relative imports are \
-recomputed; inherently multi-file, so always confirm-gated (MRTR elicitation in-call, or \
-CONFIRM_REQUIRED + confirmToken as two calls). delete is a journal-backed move to \
+recomputed. Moves and overwriting copies follow the shared confirmation policy: token mode \
+applies on the first call unless edit.force_confirm is set; human mode uses elicitation or \
+CONFIRM_REQUIRED + confirmToken. delete is a journal-backed move to \
 .workbench/trash/ — recoverable with undo, nothing is unlinked destructively. create is touch \
 (never overwrites); mkdir materializes the directory as a journaled .gitkeep. Every verb runs \
 the §7.5 write engine: dry-run diff, parse-verify, format, journal, atomic swap; read's \
@@ -68,7 +69,8 @@ is how a new file gets its content. The bytes land exactly as given (no formatte
 §7.5 write engine: parse-verify (PARSE_REJECTED on a new syntax error), journal, atomic swap, \
 undoable. Pass read's contentHash as expectedHash when replacing a file you read; a changed file \
 answers STALE_ANCHOR. Gating follows edit's single-file rule: >200 changed lines is \
-confirm-gated, except under edit.confirm_mode = \"token\" where it applies on the first call. \
+confirm-gated, except under edit.confirm_mode = \"token\" where it applies on the first call \
+unless edit.force_confirm is set. \
 Prefer edit for a change to part of an existing file.";
 
 const UNDO: &str = "The journal, read and rewound (SDD §9.8, §7.6). action \"list\" reads the \
@@ -88,9 +90,10 @@ global is `workspace`: search(args) and read(args) answer the same envelopes as 
 glob(pattern) lists matching workspace paths — all live and jail-checked — while \
 workspace.edit.queue({file, old, new, occurrence?, expectedHash?}) and workspace.files.queue({op: \
 create|mkdir|delete, ...}) only QUEUE writes. Use `return` for the JSON-serializable result. \
-Queued writes resolve through the §7.5 write engine and are always confirm-gated: dryRun:true \
-(default) returns the value plus every dry-run diff and never applies; dryRun:false answers \
-CONFIRM_REQUIRED with a confirmToken and re-invoking the identical call with confirm applies. \
+Queued writes resolve through the §7.5 write engine: dryRun:true (default) returns the value \
+plus every dry-run diff and never applies. With dryRun:false, token mode applies the verified \
+batch on the first call unless edit.force_confirm is set. Otherwise CONFIRM_REQUIRED carries \
+a confirmToken and re-invoking the identical call with confirm applies. \
 Abuse dies typed: SANDBOX_FUEL_EXCEEDED, SANDBOX_MEMORY_EXCEEDED, SANDBOX_CAP_DENIED.";
 
 const RUN: &str = "The declared-command escape hatch (SDD §9.6). Executes one command from the \

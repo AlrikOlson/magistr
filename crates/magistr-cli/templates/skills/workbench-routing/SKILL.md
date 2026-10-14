@@ -81,9 +81,9 @@ One row names exactly one tool. `facet:value` picks a selection (`mode`, `op`, `
 | rewriting a whole function body | `edit` `op:replace_body` — replaces the addressed symbol's definition | `file`, `symbol`, `content` |
 | adding code right after a symbol | `edit` `op:insert_after` | `file`, `symbol`, `content` |
 | adding code right before a symbol | `edit` `op:insert_before` | `file`, `symbol`, `content` |
-| renaming a symbol across the repo | `edit` `op:rename` — multi-file, so confirm-gated | `file`, `symbol`, `newName`, `confirm` |
+| renaming a symbol across the repo | `edit` `op:rename` — follows the configured confirmation policy | `file`, `symbol`, `newName`, `confirm` |
 | `sed -i` / `awk` across many files (a codemod) | `edit` `op:rewrite` — an ast-grep pattern → replacement over a glob scope; always dry-run first | `pattern`, `rewritePattern`, `path`, `lang`, `dryRun`, `confirm` |
-| `mv` | `files` `op:move` — import-aware: importer rewrites ride the same diff; always confirm-gated | `from`, `to`, `confirm`, `dryRun` |
+| `mv` | `files` `op:move` — import-aware: importer rewrites ride the same diff; follows the configured confirmation policy | `from`, `to`, `confirm`, `dryRun` |
 | `cp` | `files` `op:copy` | `from`, `to` |
 | `touch`, an empty new file | `files` `op:create` | `to` |
 | creating a file with content, `cat > file`, replacing a whole file | `write` — exact bytes, parse-verified, journaled, undoable | `path`, `content`, `expectedHash` |
@@ -180,19 +180,23 @@ apply → format → journal → atomic swap. A batch that would break syntax ro
   missing file returns `FILE_NOT_FOUND`. Pass the returned `contentHash` as
   `expectedHash`. `workspace.edit.queue` supports the same empty anchor and
   optional `expectedHash`; create missing files in a separate call first.
-- Single-file symbol/text edits auto-apply (parse-verify is the guard) and return the diff.
-  Multi-file ops (`rewrite`, `rename`, `move`) answer `CONFIRM_REQUIRED` with the
-  aggregated diff and a `confirmToken`. Read the diff. If it is right, re-issue the **identical**
-  call with `confirm` set to the token. If your harness supports elicitation the server may ask
-  you in-call instead; answering accept does the same thing.
-- A single-file `edit` or `write` over 200 changed lines is gated the same way when a human
-  confirms (`edit.confirm_mode = "elicit"`, the default). Under `edit.confirm_mode = "token"` you
-  are the confirmer, so it applies on the first call; `edit.force_confirm` puts the gate back.
+- `edit.confirm_mode = "token"` applies verified edits, writes, file operations and script
+  batches on the first call. The caller does not need to echo its own confirmation token.
+  Parse verification, path protection, staleness checks, journaling and undo still apply.
+- Human confirmation mode (`edit.confirm_mode = "elicit"`, the default) and
+  `edit.force_confirm = true` gate multi-file changes, rewrites, renames, moves, overwriting
+  copies, script batches and single-file writes over 200 changed lines. Review the returned
+  diff and re-issue the identical call with `confirm` set to `confirmToken`; elicitation-capable
+  clients can approve in-call. Token mode never opens an elicitation dialog.
+- Existing user authorization carries across calls. Do not ask the user to authorize the same
+  work again because the server returned `CONFIRM_REQUIRED`. For already-authorized work on a
+  running server, use `autoApply: true`; review broad or uncertain effects with `dryRun: true`
+  first. An operation outside the authorized task still needs its own scope decision.
 - `write` is how a new file gets its content and how a whole file is replaced: `path` plus
   `content`, exact bytes, no formatter. Pass `expectedHash` from your `read` when replacing.
   Prefer `edit` when only part of a file changes.
-- `autoApply: true` skips the reviewable diff. Set it only when the human or the project's rules
-  say to; an unattended run with nobody to answer a confirm is the case it exists for.
+- `autoApply: true` skips the additional confirmation round trip for authorized work. It does
+  not skip verification, path protection, staleness checks, journaling or returned applied diffs.
 - `dryRun: true` runs the whole pipeline through re-verify and applies nothing — use it liberally.
 
 ## Files, run, script, undo
@@ -249,7 +253,7 @@ answers `PLUGIN_CRASHED` and the core tools keep working at full fidelity.
 | `SANDBOX_CAP_DENIED` | `escalate` | The guest asked for a capability it does not have (network, ambient filesystem). By design; tell the human if the task truly needs it. |
 | `SANDBOX_MEMORY_EXCEEDED` | `narrow` | Reduce the working set: process fewer files per call, stream instead of accumulating. |
 | `INDEX_UNAVAILABLE` | `retry` | A current outline is unavailable; inspect `notes`. Use lexical search or plain `read` plus anchored `replace_text`. If exposed by the client, poll `tasks/get` for `index/build` at its returned interval; inspect failures and do not loop on an unchanged refusal. |
-| `CONFIRM_REQUIRED` | `confirm` | Review the dry-run diff in the envelope. Re-issue the identical call with `confirm` = `confirmToken` (or accept the elicitation). Use `autoApply` only where the human or the project's rules say to. |
+| `CONFIRM_REQUIRED` | `confirm` | Review the returned diff and continue within existing authorization: use `autoApply: true` for already-authorized work, or re-issue the identical call with `confirm` = `confirmToken`. Do not ask the user to repeat authorization. |
 | `CONFIRM_MISMATCH` | `confirm` | The token is not for this exact call. Redo the dry-run to mint a fresh token; never reuse tokens across calls. |
 | `UNSUPPORTED_VERSION` | `abort` | Envelope or on-disk format mismatch. Do not retry; tell the human to upgrade the client/binary. |
 | `ENGINE_UNAVAILABLE` | `retry` | The engine child is restarting. Retry after a short pause; lexical search still answers meanwhile. |

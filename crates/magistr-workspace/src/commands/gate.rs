@@ -60,7 +60,7 @@ pub(super) async fn run(
         undo_of: Vec::new(),
         format: gate.format,
     };
-    let size_gated = is_size_gated(service.policy);
+    let confirmation_required = requires_confirmation(service.policy);
     let reads = &service.reads;
     let mut transactions = match WorkspaceTransactions::new(
         service.policy,
@@ -95,8 +95,8 @@ pub(super) async fn run(
         .iter()
         .map(|preview| diff::changed_lines(preview.before.as_ref(), preview.after.as_ref()))
         .sum();
-    let gated =
-        always_gated || changed.len() > 1 || (changed_lines > CONFIRM_LINE_LIMIT && size_gated);
+    let gated = confirmation_required
+        && (always_gated || changed.len() > 1 || changed_lines > CONFIRM_LINE_LIMIT);
     if gated && !gate.dry_run && !confirmed && !gate.auto_apply {
         return confirm_required(gate.operation, token, &changed, changed_lines, notes);
     }
@@ -112,12 +112,12 @@ pub(super) async fn run(
     report(reads, outcome, &changes, gate.budget, notes)
 }
 
-/// Whether a single-file write over the line limit asks for confirmation.
-/// Under `edit.confirm_mode = "token"` the caller that wrote the diff is the
-/// one that would confirm it, so the question buys a second call and no
-/// review; parse-verify, the staleness anchor and the journal still guard
-/// the write. `edit.force_confirm` puts the question back.
-fn is_size_gated(policy: &WorkspacePolicy) -> bool {
+/// Whether operation and size gates ask for an additional confirmation.
+/// In token mode the caller would confirm its own prepared write, so the
+/// extra round trip adds no independent review. Every verb uses this policy;
+/// parse verification, staleness checks, journaling and presented-token
+/// verification still apply. `edit.force_confirm` restores the gates.
+fn requires_confirmation(policy: &WorkspacePolicy) -> bool {
     let config = &policy.config().effective;
     let agent_confirms = config.get("edit.confirm_mode").and_then(Value::as_str) == Some("token");
     let forced = config.get("edit.force_confirm").and_then(Value::as_bool) == Some(true);

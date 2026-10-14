@@ -8,23 +8,11 @@ const HEADER: &str = "# Seeded by `magistr init` from .magistr/project.json (and
 manifest detection).\n# Amend by hand: this table is workbench `run`'s allowlist and only a human may change it.\n";
 
 /// The `[edit]` block `magistr init` declares when the project has none.
-///
-/// workbench's default confirm mode is `elicit`: a confirm-gated write —
-/// more than one file, or more than 200 changed lines, which is an ordinary
-/// refactor — asks the *client* to put a dialog in front of a human. Under
-/// `magistr next-loop` there is nobody there to answer it, so a routine edit
-/// stops an autonomous run for a question no one hears; that is exactly the
-/// unintended human intervention this seed exists to prevent.
-///
-/// `token` routes the same gate through workbench's two-call
-/// `CONFIRM_REQUIRED` + `confirmToken` flow: the **agent** confirms and the
-/// aggregated diff still rides the envelope, so the review is not lost — it
-/// is simply not asked of a person. It is deliberately *not* a
-/// security-lattice key in workbench (org policy must not be able to force
-/// dialogs onto a delegated session), which is what makes a workspace
-/// entitled to set it. `edit.force_confirm`, the tighten-only knob that puts
-/// a gate back, is untouched.
-const CONFIRM_MODE: &str = "\n# magistr runs unattended (`magistr next-loop`), so a confirm-gated write\n# takes workbench's token flow — the agent confirms against the diff in the\n# envelope — rather than an elicitation dialog nobody is there to answer.\n[edit]\nconfirm_mode = \"token\"\n";
+/// Token mode applies verified writes without asking the agent to confirm
+/// its own request. The same policy covers text edits, moves, overwriting
+/// copies and script batches. Parse verification, staleness checks and the
+/// journal remain active; `edit.force_confirm` restores confirmation gates.
+const CONFIRM_MODE: &str = "\n# Unattended work applies verified writes without a second confirmation.\n# Set edit.force_confirm to require confirmation for gated operations.\n[edit]\nconfirm_mode = \"token\"\n";
 
 /// The gate commands `magistr init` seeds into `workbench.toml [commands]`.
 ///
