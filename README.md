@@ -39,14 +39,29 @@ resumes or implements one ready work item and stops.
 
 ## Desktop
 
-Install the [OS WebView prerequisites](https://v2.tauri.app/start/prerequisites/),
-then build and open the desktop from this repository:
+Double-click **Launch Magistr.command** on macOS or **Launch Magistr.cmd** on
+Windows in this checkout. Install Rust 1.95+, Node.js 22+ and the
+[platform build prerequisites](https://v2.tauri.app/start/prerequisites/) once.
+The launcher builds the current source and opens Magistr; later builds reuse
+the compiled dependencies.
+
+For daily use without a checkout or build tools, install a native app package:
+
+- **macOS:** open the `.dmg`, drag **Magistr** to **Applications**, then open it
+  from Applications, Spotlight or the Dock.
+- **Windows:** run the `-setup.exe`, then open **Magistr** from the Start menu.
+  Setup installs WebView2 if it is missing.
+
+The [desktop apps workflow](https://github.com/AlrikOlson/magistr/actions/workflows/desktop-apps.yml)
+builds packages for macOS and Windows. Download the artifact for your computer
+from a successful run. These development builds are not publicly signed or notarized.
+To make a package on your own computer, run `node scripts/desktop.mjs package`.
+
+Choose a folder in the window. From a terminal, you can also run:
 
 ```sh
-cargo run --manifest-path crates/magistr-desktop/Cargo.toml --locked
+node scripts/desktop.mjs open --dir /path/to/project
 ```
-
-Choose a folder in the window, or pass `--dir /path/to/project` when launching.
 If the folder needs setup, review each file and apply the changes you select.
 Invalid folders and unavailable agents leave the chooser open so you can recover.
 

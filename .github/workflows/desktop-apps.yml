@@ -1,0 +1,92 @@
+name: desktop apps
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "crates/**"
+      - "Cargo.*"
+      - "scripts/desktop*.mjs"
+      - "Launch Magistr.*"
+      - ".github/workflows/desktop-apps.yml"
+  pull_request:
+    paths:
+      - "crates/**"
+      - "Cargo.*"
+      - "scripts/desktop*.mjs"
+      - "Launch Magistr.*"
+      - ".github/workflows/desktop-apps.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-apps-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  package:
+    name: Installable desktop (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: crates/magistr-desktop/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Select the native target
+        run: echo "DESKTOP_TARGET=$(rustc -vV | awk '/^host:/ { print $2 }')" >> "$GITHUB_ENV"
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: crates/magistr-desktop
+      - name: Check formatting and launcher syntax
+        run: |
+          cargo fmt --manifest-path crates/magistr-desktop/Cargo.toml -- --check
+          node --check scripts/desktop.mjs
+          node --test scripts/desktop-launcher.tests.mjs
+      - name: Build native app and installer
+        run: node scripts/desktop.mjs package --debug
+      - name: Check desktop
+        run: cargo check --manifest-path crates/magistr-desktop/Cargo.toml --all-targets --target "$DESKTOP_TARGET" --features custom-protocol --locked
+      - name: Lint desktop
+        run: cargo clippy --manifest-path crates/magistr-desktop/Cargo.toml --all-targets --target "$DESKTOP_TARGET" --features custom-protocol --locked -- -D warnings
+      - name: Test desktop and process ownership
+        run: |
+          cargo test --manifest-path crates/magistr-desktop/Cargo.toml --target "$DESKTOP_TARGET" --features custom-protocol --locked
+          cargo test -p magistr-process --target "$DESKTOP_TARGET" --locked
+      - name: Verify the Mac app contents and child roles
+        if: runner.os == 'macOS'
+        run: |
+          APP="crates/magistr-desktop/target/$DESKTOP_TARGET/debug/bundle/macos/Magistr.app"
+          codesign --verify --deep --strict "$APP"
+          python crates/magistr-desktop/tests/process_roles.py "$APP/Contents/MacOS/magistr-desktop"
+      - name: Install and open the Windows app
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem "crates/magistr-desktop/target/$env:DESKTOP_TARGET/debug/bundle/nsis/*-setup.exe"
+          if ($installer.Count -ne 1) { throw "Expected one Windows installer." }
+          ./crates/magistr-desktop/tests/installed_windows.ps1 -Installer $installer.FullName
+      - name: Upload app packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: Magistr-${{ runner.os }}-${{ runner.arch }}
+          if-no-files-found: error
+          path: |
+            crates/magistr-desktop/target/*/debug/bundle/dmg/*.dmg
+            crates/magistr-desktop/target/*/debug/bundle/nsis/*-setup.exe

@@ -23,9 +23,14 @@
     }
   },
   "bundle": {
-    "active": false,
+    "active": true,
+    "targets": "all",
+    "category": "DeveloperTool",
+    "shortDescription": "Work with coding agents across your projects",
     "icon": [
-      "ui/icon.png"
+      "ui/icon.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
     ]
   }
 }

@@ -72,10 +72,17 @@ func row(_ element: AXUIElement) -> [String:Any] {
     return result
 }
 func app(_ pid: Int32) throws -> NSRunningApplication {
-    guard let application = NSRunningApplication(processIdentifier: pid),
-          application.bundleIdentifier?.hasPrefix("dev.magistr.desktop.journey.") == true else {
-        throw Failure.message("Input is restricted to the disposable desktop journey apps")
+    guard let application = NSRunningApplication(processIdentifier: pid) else {
+        throw Failure.message("The disposable desktop app is not running")
     }
+    let journey = application.bundleIdentifier?.hasPrefix("dev.magistr.desktop.journey.") == true
+    // Installed-app checks keep the signed production bundle intact. Only the
+    // exact disposable copy explicitly supplied by that harness accepts input.
+    let installedCopy = ProcessInfo.processInfo.environment["MAGISTR_OBSERVER_APP"].map { path in
+        application.bundleIdentifier == "dev.magistr.desktop" &&
+        application.bundleURL?.resolvingSymlinksInPath() == URL(fileURLWithPath: path).resolvingSymlinksInPath()
+    } ?? false
+    try require(journey || installedCopy, "Input is restricted to disposable desktop test apps")
     return application
 }
 @MainActor func find(_ pid: Int32, _ label: String) async throws -> AXUIElement {

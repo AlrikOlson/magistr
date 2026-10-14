@@ -17,6 +17,9 @@ description = "Open projects, review setup and work with agents in Magistr"
 license = "MIT"
 publish = false
 
+[features]
+custom-protocol = ["tauri/custom-protocol"]
+
 [dependencies]
 base64 = "0.22"
 clap = { version = "4", features = ["derive"] }
@@ -41,4 +44,4 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tempfile = "3"
 
 [build-dependencies]
-tauri-build = "2"
+tauri-build = { version = "2", features = [] }

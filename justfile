@@ -36,7 +36,11 @@ run *args:
 # Open a project in the native desktop
 [positional-arguments]
 desktop *args:
-    cargo run --manifest-path crates/magistr-desktop/Cargo.toml --locked -- "$@"
+    node scripts/desktop.mjs open "$@"
+
+# Create a native app package for this computer
+desktop-package:
+    node scripts/desktop.mjs package
 
 # rm + cp, never cp in place: overwriting a running binary SIGKILLs live magistr processes
 # Build the release binary and install it globally on PATH

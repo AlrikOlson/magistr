@@ -35,12 +35,26 @@ magistr init .
 magistr --help
 ```
 
-The command line lists commands with `magistr --help`. To open the desktop from
-the repository, install the [WebView prerequisites](https://v2.tauri.app/start/prerequisites/)
-and run:
+The command line lists commands with `magistr --help`.
+
+## Open the desktop
+
+On macOS, double-click **Launch Magistr.command** in the repository. On Windows,
+double-click **Launch Magistr.cmd**. Building from the checkout requires Rust
+1.95+, Node.js 22+ and the [platform build prerequisites](https://v2.tauri.app/start/prerequisites/).
+The first build takes longer; later launches reuse compiled dependencies.
+
+For an app that opens without build tools, download your platform's artifact
+from a successful [desktop apps workflow](https://github.com/AlrikOlson/magistr/actions/workflows/desktop-apps.yml)
+run. On macOS, open the disk image and drag **Magistr** to **Applications**.
+On Windows, run the setup executable and open **Magistr** from the Start menu.
+These development packages are not publicly signed or notarized.
+
+You can also build a package yourself with `node scripts/desktop.mjs package`,
+or open a particular folder directly:
 
 ```sh
-cargo run --manifest-path crates/magistr-desktop/Cargo.toml --locked -- --dir /path/to/project
+node scripts/desktop.mjs open --dir /path/to/project
 ```
 
 The desktop opens projects, working copies and separate conversations. Send a
