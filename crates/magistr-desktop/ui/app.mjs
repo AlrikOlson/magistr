@@ -12,7 +12,7 @@ import { Submissions, shouldSaveDraft, reconcileDraft, conversationOwner } from 
 import { attachComposer } from "./composer.mjs";
 import { AttachmentList, clipboardFiles, sizeLabel } from "./attachments.mjs";
 import { Selection } from "./selection.mjs";
-import { ProjectOpening } from "./projects.mjs";
+import { ProjectPicker } from "./project_picker.mjs";
 import { Catalog, usageText, capabilityText } from "./supervision.mjs";
 const {invoke,Channel}=window.__TAURI__.core;
 const $=id=>document.getElementById(id);
@@ -355,60 +355,13 @@ function showWelcome(note="") {
   $("welcome-note").textContent=note;$("welcome-note").hidden=!note;
   renderRail();
 }
-function showPicker(directory="") {
-  $("picker-error").hidden=true;
-  if(directory)$("project-folder").value=directory;
-  if(!$("project-picker").open)$("project-picker").showModal();
-  $("project-folder").focus();
-}
-let reviewKey="";
-const projectOpening=new ProjectOpening(invoke,{
+const projectPicker=new ProjectPicker(invoke,$,{
   open:directory=>openSession(directory),
-  opened:async address=>{await refresh();await select(address);$("project-picker").close();$("draft").focus();},
-  changed:renderProjectState
+  opened:async address=>{await refresh();await select(address);},
+  closed:()=>{if(!selected)showWelcome();}
 });
-function renderProjectState(state) {
-  const busy=["reading","applying","opening"].includes(state.stage);
-  for(const id of ["browse-folder","project-folder","picker-submit","picker-cancel","select-files","clear-files"])$(id).disabled=busy;
-  $("picker-error").textContent=state.error??"";$("picker-error").hidden=!state.error;
-  const status={reading:"Reading folder…",applying:"Applying selected files…",opening:"Opening the agent…",partial:"Setup is incomplete. Review it again to finish.",declined:"Setup review closed."}[state.stage]??"";
-  $("picker-status").textContent=status;$("picker-status").hidden=!status;
-  $("picker-submit").textContent=state.stage==="review"?"Apply selected files":["partial","error"].includes(state.stage)&&state.preview?.kind==="setup"&&!state.result?.complete?"Review again":"Open";
-  if(state.directory)$("project-folder").value=state.directory;
-  $("setup-preview").hidden=state.preview?.kind!=="setup"||!!state.result;
-  if(state.preview?.kind==="setup"&&String(state.preview.review)!==reviewKey) {
-    reviewKey=String(state.preview.review);
-    $("setup-root").textContent="Files in "+state.preview.setup_directory;
-    $("setup-files").replaceChildren(...state.preview.files.map((file,index)=>{
-      const row=document.createElement("article");row.className="setup-file";
-      const label=document.createElement("label");
-      if(file.selectable) {const check=document.createElement("input");check.type="checkbox";check.checked=true;check.dataset.index=String(index);check.setAttribute("aria-label",file.path);label.append(check);}
-      label.append(text("span",file.path));row.append(label,text("small",file.action+" · "+file.ownership));
-      if(file.reason)row.append(text("p",file.reason));
-      if(file.selectable) {
-        const details=document.createElement("details");details.append(text("summary","Review "+file.path));
-        if(file.diff)details.append(text("pre",file.diff));
-        else {if(file.before!==null)details.append(text("h4","Current contents"),text("pre",file.before));details.append(text("h4",file.action==="Remove file"?"Contents to remove":"Contents after setup"),text("pre",file.action==="Remove file"?file.before:file.after));}
-        row.append(details);
-      }
-      return row;
-    }));
-  }
-  $("setup-result").hidden=!state.result;
-  if(["review","partial","error"].includes(state.stage))$("picker-content").scrollTop=0;
-  if(state.result) {
-    $("setup-result-title").textContent=state.result.complete?"Setup complete":"Setup is incomplete";
-    $("setup-record").textContent=state.result.setup_record;
-    const outcomes={applied:"Applied",skipped:"Kept",refused:"Cannot change",failed:"Failed"};
-    $("setup-outcomes").replaceChildren(...state.result.files.map(file=>text("li",file.path+" · "+outcomes[file.outcome]+(file.detail?" · "+file.detail:""))));
-  }
-}
-async function browseFolder() {
-  try {
-    const directory=await invoke("pick_folder");
-    if(directory){showPicker(directory);await projectOpening.choose(directory);}
-  }catch(error){showPicker();$("picker-error").textContent=String(error);$("picker-error").hidden=false;}
-}
+const showPicker=directory=>projectPicker.show(directory);
+const projectOpening=projectPicker.flow;
 $("add-files").onclick=()=>{
   const target=currentTarget();
   changeAttachments(target,()=>invoke("pick_attachments",{target}));
@@ -449,31 +402,7 @@ $("new-session").onclick=()=>selected&&chooseAgent(selected.workspace).catch(sho
 $("working-copy").onchange=event=>openKnownWorkspace(event.target.value);
 $("open-project").onclick=()=>showPicker();
 $("welcome-path").onclick=()=>showPicker();
-$("welcome-open").onclick=()=>{showPicker();browseFolder();};
-$("browse-folder").onclick=browseFolder;
-async function closePicker() {
-  await projectOpening.cancel();$("project-picker").close();
-  if(!selected)showWelcome("Open the folder again whenever you want to continue setup.");
-}
-$("picker-cancel").onclick=()=>closePicker().catch(showError);
-$("project-picker").oncancel=event=>{
-  event.preventDefault();
-  if(!["applying","opening"].includes(projectOpening.state.stage))closePicker().catch(showError);
-};
-for(const [id,value] of [["select-files",true],["clear-files",false]])$(id).onclick=()=>{
-  $("setup-files").querySelectorAll("input[type=checkbox]").forEach(input=>{input.checked=value;});
-};
-$("project-form").onsubmit=async event=>{
-  event.preventDefault();
-  const directory=$("project-folder").value,state=projectOpening.state;
-  if(state.stage==="review"&&directory===state.directory) {
-    const approved=Array.from($("setup-files").querySelectorAll("input:checked"),input=>Number(input.dataset.index));
-    await projectOpening.apply(approved);
-  } else {
-    const review=directory===state.directory&&state.preview?.kind==="setup"&&!state.result?.complete;
-    await projectOpening.choose(directory,!!review);
-  }
-};
+$("welcome-open").onclick=()=>{showPicker();projectPicker.browse();};
 $("theme").onchange=$("reduce-motion").onchange=()=>preferences.change({theme:$("theme").value,reduce_motion:$("reduce-motion").checked});
 $("retry-preferences").onclick=()=>preferences.retry();
 $("copy").onclick=async()=>{

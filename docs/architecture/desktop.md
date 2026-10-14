@@ -259,7 +259,7 @@ it settle resident resources. A failed flush restores editing and reports the
 failure. Unexpected process exit restores the latest committed revision; it
 does not claim durability for a write that never committed.
 
-Open project accepts a native folder selection or an entered path. Prepared
+Open project accepts a native folder selection or an entered path. Its chooser keeps the destination and actions visible while a file list and selected change scroll independently. Reading a file is separate from approving it; the count reflects exactly the selected indexes in the retained review. Applying and opening cannot be duplicated or dismissed; cancelling an unfinished read revokes its result. Partial results show each affected path and require a new review. Prepared
 projects use the existing session admission authority. Other folders show the
 actual setup plan: each file's action, ownership, refusal and exact contents or
 diff. Approval applies the retained plan through the administrative writer;

@@ -104,19 +104,17 @@
   <div class="dialog-actions"><button id="settings-close">Done</button></div>
 </dialog>
 <dialog id="project-picker" aria-labelledby="picker-title">
-  <form id="project-form"><div id="picker-content"><h2 id="picker-title">Open a project</h2>
-    <p>Choose a folder or enter its path. You can review setup here if it is needed.</p>
-    <button id="browse-folder" type="button">Choose folder…</button>
-    <label for="project-folder">Project folder</label><input id="project-folder" name="directory" required placeholder="/path/to/project">
-    <p id="picker-status" role="status" aria-live="polite" hidden></p>
-    <p id="picker-error" class="error" role="alert" hidden></p>
-    <section id="setup-preview" aria-label="Project setup" hidden><h3>Review project setup</h3>
-      <p id="setup-root" class="path"></p><p>Select the files you want to change. Your own settings and edited files are kept.</p>
-      <div class="setup-selection"><button id="select-files" type="button">Select all</button><button id="clear-files" type="button">Clear selection</button></div>
-      <div id="setup-files"></div>
+  <form id="project-form">
+    <header class="picker-heading"><h2 id="picker-title" tabindex="-1">Open a project</h2><p id="picker-intro">Choose the folder you want to work in.</p></header>
+    <div id="picker-folder-entry"><label for="project-folder">Project folder</label><div class="folder-input"><input id="project-folder" name="directory" required placeholder="/path/to/project"><button id="browse-folder" type="button">Browse…</button></div><p>If this folder needs setup, you’ll review the changes before anything is written.</p></div>
+    <div id="picker-destination" hidden><p id="setup-root" class="path"></p><button id="change-folder" type="button">Change folder</button></div>
+    <p id="picker-status" role="status" aria-live="polite" hidden></p><p id="picker-error" class="error" role="alert" tabindex="-1" hidden></p>
+    <section id="setup-preview" aria-label="Project setup" hidden>
+      <div class="setup-list"><div class="setup-selection"><h3>Files</h3><button id="select-files" type="button">Select all</button><button id="clear-files" type="button">Clear</button></div><nav id="setup-files" aria-label="Setup files"></nav></div>
+      <section id="setup-change" tabindex="0" aria-label="Selected file change"></section>
     </section>
     <section id="setup-result" aria-label="Setup results" hidden><h3 id="setup-result-title"></h3><p id="setup-record"></p><ul id="setup-outcomes"></ul></section>
-    </div><div class="dialog-actions"><button id="picker-cancel" type="button">Cancel</button><button id="picker-submit" type="submit">Open</button></div>
+    <footer class="picker-footer"><p id="setup-count" role="status" hidden></p><div class="dialog-actions"><button id="picker-cancel" type="button">Cancel</button><button id="picker-submit" type="submit">Open project</button></div></footer>
   </form>
 </dialog>
 <dialog id="session-picker" aria-labelledby="session-picker-title">
