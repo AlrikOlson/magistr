@@ -1,6 +1,7 @@
 //! The desktop's bounded, typed view of application observations and their identity.
+use crate::content::{Observation, observation};
 use magistr::application::{SessionCatalog, SessionSnapshot, SessionSummary};
-use magistr_application::sessions::{AgentEvent, PermissionKind, ToolStatus, TurnEnd};
+use magistr_application::sessions::{AgentEvent, PermissionKind};
 use magistr_cockpit::cockpit::Msg;
 use magistr_domain::identity::SessionAddress;
 use serde::Serialize;
@@ -13,6 +14,7 @@ pub(crate) struct Frame {
     pub(crate) reseed: bool,
     pub(crate) dropped: u64,
     pub(crate) events: Vec<Observation>,
+    pub(crate) retained: Vec<u64>,
     pub(crate) pending: Vec<Request>,
     pub(crate) draft: String,
     pub(crate) status: String,
@@ -23,17 +25,6 @@ pub(crate) struct Frame {
     pub(crate) conversation: Option<Conversation>,
     pub(crate) configuration: Vec<Configuration>,
     pub(crate) admissions: Vec<Admission>,
-}
-#[derive(Serialize)]
-#[serde(tag = "kind", content = "data", rename_all = "snake_case")]
-pub(crate) enum Observation {
-    User(String),
-    Text(String),
-    Thought(String),
-    Tool(String),
-    Ended(String),
-    Notice(String),
-    Error(String),
 }
 #[derive(Serialize)]
 pub(crate) struct Conversation {
@@ -218,7 +209,7 @@ impl Frame {
         let incremental = seen.and_then(|at| snapshot.since(at));
         let reseed = incremental.is_none();
         let events = incremental
-            .unwrap_or_else(|| snapshot.replay())
+            .unwrap_or_else(|| snapshot.messages.clone())
             .iter()
             .filter_map(observation)
             .collect();
@@ -233,6 +224,7 @@ impl Frame {
             reseed,
             dropped: snapshot.dropped,
             events,
+            retained: snapshot.messages.iter().map(|record| record.id).collect(),
             pending,
             draft: snapshot.seed.draft.clone().unwrap_or_default(),
             status,
@@ -249,45 +241,13 @@ impl Frame {
             admissions: snapshot
                 .messages
                 .iter()
-                .filter(|(at, _)| *at > seen.unwrap_or(0))
-                .filter_map(|(at, message)| admission(*at, message))
+                .filter(|record| record.sequence > seen.unwrap_or(0))
+                .filter_map(|record| admission(record.sequence, &record.message))
                 .collect(),
         }
     }
 }
 
-fn observation(message: &Msg) -> Option<Observation> {
-    Some(match message {
-        Msg::InputAccepted(text) => Observation::User(text.clone()),
-        Msg::CommandFailed { error, .. } => Observation::Error(error.clone()),
-        Msg::Agent(event) => match event {
-            AgentEvent::Text(text) => Observation::Text(text.clone()),
-            AgentEvent::Thought(text) => Observation::Thought(text.clone()),
-            AgentEvent::UserText(text) => Observation::User(text.clone()),
-            AgentEvent::ToolCall { title, status, .. } => {
-                Observation::Tool(format!("{title} · {}", tool_status(*status)))
-            }
-            AgentEvent::ToolCallUpdate { title, status, .. } => Observation::Tool(format!(
-                "{} · {}",
-                title.as_deref().unwrap_or("Command"),
-                status.map(tool_status).unwrap_or("Updated")
-            )),
-            AgentEvent::TurnEnded(end) => Observation::Ended(ended(*end).into()),
-            AgentEvent::Notice(text) => Observation::Notice(text.clone()),
-            AgentEvent::Error(text) | AgentEvent::PromptRejected { error: text, .. } => {
-                Observation::Error(text.clone())
-            }
-            AgentEvent::PermissionLapsed { title, .. } => {
-                Observation::Notice(format!("The request expired and was denied: {title}"))
-            }
-            AgentEvent::Lagged { .. } => {
-                Observation::Notice("Some earlier updates are unavailable.".into())
-            }
-            _ => return None,
-        },
-        _ => return None,
-    })
-}
 fn request(message: &Msg) -> Option<Request> {
     let Msg::Agent(AgentEvent::PermissionRequest {
         id,
@@ -317,25 +277,6 @@ fn request(message: &Msg) -> Option<Request> {
             .collect(),
     })
 }
-fn tool_status(status: ToolStatus) -> &'static str {
-    match status {
-        ToolStatus::Pending => "Waiting",
-        ToolStatus::InProgress => "Running",
-        ToolStatus::Completed => "Finished",
-        ToolStatus::Failed => "Failed",
-    }
-}
-fn ended(end: TurnEnd) -> &'static str {
-    match end {
-        TurnEnd::EndTurn => "Finished",
-        TurnEnd::Cancelled => "Stopped",
-        TurnEnd::Refusal => "Declined",
-        TurnEnd::MaxTokens => "Token limit reached",
-        TurnEnd::MaxTurnRequests => "Request limit reached",
-        TurnEnd::Other => "Ended",
-    }
-}
-
 #[cfg(test)]
 #[path = "wire.tests.rs"]
 mod tests;

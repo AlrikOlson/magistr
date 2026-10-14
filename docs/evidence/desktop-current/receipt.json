@@ -404,6 +404,7 @@
     "owner name reaches the rail and conversation": true,
     "closing a named conversation settles its history": true,
     "second provider is offered from configured availability": true,
+    "native provider picker commits OpenAI before admission": true,
     "second provider opens independently": true,
     "configured API provider replies through the real owner": true,
     "second provider has its own name": true,
@@ -414,6 +415,27 @@
     "refused resume stays recoverable beside the saved summary": true,
     "saved conversation resumes its exact provider context": true,
     "saved model and name remain with resumed conversation": true,
+    "long rich reply arrives through the real owner": true,
+    "tool failure is visible": true,
+    "native keyboard expands tool error details": true,
+    "other tool and reply update while native selection is held": true,
+    "sustained streaming remains visible during selection": true,
+    "native held selection preserves exact multilingual clipboard bytes": true,
+    "selected reply remains unchanged while other retained records update": true,
+    "selected reading position remains stable under sustained updates": true,
+    "native Latest clears selection and reveals the owner's pending reply revision": true,
+    "native Latest resumes following new replies": true,
+    "native Latest clears held selection and keeps following later updates": true,
+    "stream continues while the reader stays above the newest reply": true,
+    "native scroll reading position remains stable while replies grow": true,
+    "rich stream settles with its final tool result": true,
+    "Copy reply preserves exact canonical Markdown source": true,
+    "Copy tool details preserves final original fields": true,
+    "Copy conversation preserves every exact source record once": true,
+    "raw HTML and unsafe links remain text and remote images are not fetched": true,
+    "rich reply link accepts native keyboard focus": true,
+    "native keyboard opens the controlled link and closes only its test tab": true,
+    "IME commit keeps unsent draft": true,
     "closed session returns to another resident": true,
     "quit settles providers and releases owner": true,
     "session history written by application": true,
@@ -427,17 +449,695 @@
     "unavailable provider keeps the window usable returns to chooser": true,
     "rejected launches preserve settings and create no session history": true
   },
-  "launch_to_window_ms": 422.1527919980872,
+  "launch_to_window_ms": 391.50345800226205,
   "latency": {
-    "native_event_to_accessible_reply_ms": 133.16033333467203
+    "native_event_to_accessible_reply_ms": 71.97341666687862
   },
+  "provider_picker": {
+    "after": {
+      "actions": [
+        "AXPress",
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription": "",
+      "AXHelp": "",
+      "AXRole": "AXPopUpButton",
+      "AXTitle": "Agent",
+      "AXValue": "OpenAI",
+      "enabled": true,
+      "focused": true,
+      "rect": [
+        551,
+        594,
+        626,
+        23
+      ]
+    },
+    "before": {
+      "actions": [
+        "AXPress",
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription": "",
+      "AXHelp": "",
+      "AXRole": "AXPopUpButton",
+      "AXTitle": "Agent",
+      "AXValue": "GitHub Copilot",
+      "enabled": true,
+      "focused": true,
+      "rect": [
+        551,
+        594,
+        626,
+        23
+      ]
+    },
+    "menu_observation_attempts": 1,
+    "menu_option": {
+      "actions": [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole": "AXMenuItem",
+      "AXTitle": "OpenAI",
+      "enabled": true,
+      "focused": false,
+      "rect": [
+        538,
+        618,
+        626,
+        24
+      ]
+    }
+  },
+  "rich_conversation": {
+    "tool_keyboard": {
+      "activation": "native keyboard",
+      "focused": {
+        "actions": [
+          "AXShowMenu",
+          "AXScrollToVisible"
+        ],
+        "AXDescription": "",
+        "AXHelp": "",
+        "AXRole": "AXDisclosureTriangle",
+        "AXSubrole": "AXSummary",
+        "AXTitle": "Review local build · Failed",
+        "enabled": true,
+        "focused": true,
+        "rect": [
+          491,
+          513,
+          680,
+          21
+        ]
+      }
+    },
+    "selection_before": {
+      "anchor": {
+        "actions": [
+          "AXShowMenu",
+          "AXScrollToVisible"
+        ],
+        "AXDescription": "",
+        "AXHelp": "",
+        "AXRole": "AXStaticText",
+        "AXTitle": "",
+        "AXValue": "Native selection café 日本語 👩🏽‍💻.",
+        "enabled": true,
+        "focused": false,
+        "rect": [
+          474,
+          402,
+          209,
+          17
+        ]
+      },
+      "pending_reply_visible": false,
+      "selected_text": "Native selection café 日本語 👩🏽‍💻.",
+      "selections": [],
+      "stream_values": [],
+      "tool_values": [
+        "Review local build · Failed",
+        "Review local build · Failed"
+      ]
+    },
+    "selection_during": {
+      "anchor": {
+        "actions": [
+          "AXShowMenu",
+          "AXScrollToVisible"
+        ],
+        "AXDescription": "",
+        "AXHelp": "",
+        "AXRole": "AXStaticText",
+        "AXTitle": "",
+        "AXValue": "Native selection café 日本語 👩🏽‍💻.",
+        "enabled": true,
+        "focused": false,
+        "rect": [
+          474,
+          402,
+          209,
+          17
+        ]
+      },
+      "pending_reply_visible": false,
+      "selected_text": "Native selection café 日本語 👩🏽‍💻.",
+      "selections": [],
+      "stream_values": [
+        "Reading progress 0001: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0002: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0003: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0004: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0005: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0006: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0007: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0008: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0009: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0010: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0011: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0012: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0013: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0014: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0015: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0016: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0017: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0018: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0019: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0020: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0021: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0022: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0023: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0024: new result café 日本語 👩🏽‍💻."
+      ],
+      "tool_values": [
+        "Review local build · Running",
+        "Review local build · Running"
+      ]
+    },
+    "selection_after": {
+      "anchor": {
+        "actions": [
+          "AXShowMenu",
+          "AXScrollToVisible"
+        ],
+        "AXDescription": "",
+        "AXHelp": "",
+        "AXRole": "AXStaticText",
+        "AXTitle": "",
+        "AXValue": "Native selection café 日本語 👩🏽‍💻.",
+        "enabled": true,
+        "focused": false,
+        "rect": [
+          474,
+          402,
+          209,
+          17
+        ]
+      },
+      "pending_reply_visible": false,
+      "selected_text": "Native selection café 日本語 👩🏽‍💻.",
+      "selections": [],
+      "stream_values": [
+        "Reading progress 0001: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0002: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0003: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0004: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0005: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0006: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0007: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0008: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0009: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0010: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0011: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0012: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0013: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0014: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0015: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0016: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0017: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0018: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0019: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0020: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0021: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0022: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0023: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0024: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0025: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0026: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0027: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0028: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0029: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0030: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0031: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0032: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0033: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0034: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0035: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0036: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0037: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0038: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0039: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0040: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0041: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0042: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0043: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0044: new result café 日本語 👩🏽‍💻."
+      ],
+      "tool_values": [
+        "Review local build · Running",
+        "Review local build · Running"
+      ]
+    },
+    "latest_keyboard": {
+      "activation": "native keyboard",
+      "focused": {
+        "actions": [
+          "AXPress",
+          "AXShowMenu",
+          "AXScrollToVisible"
+        ],
+        "AXDescription": "",
+        "AXHelp": "",
+        "AXRole": "AXButton",
+        "AXTitle": "Latest reply ↓",
+        "AXValue": "",
+        "enabled": true,
+        "focused": true,
+        "rect": [
+          1073,
+          747,
+          115,
+          39
+        ]
+      }
+    },
+    "latest_before": {
+      "coherent_sample_attempts": 1,
+      "selected_text": "",
+      "tail": {
+        "actions": [
+          "AXShowMenu",
+          "AXScrollToVisible"
+        ],
+        "AXDescription": "",
+        "AXHelp": "",
+        "AXRole": "AXStaticText",
+        "AXTitle": "",
+        "AXValue": "Reading progress 0060: new result café 日本語 👩🏽‍💻.",
+        "enabled": true,
+        "focused": false,
+        "rect": [
+          474,
+          697,
+          331,
+          17
+        ]
+      },
+      "viewport": {
+        "actions": [
+          "AXShowMenu",
+          "AXScrollToVisible"
+        ],
+        "AXDescription": "Messages",
+        "AXHelp": "",
+        "AXRole": "AXGroup",
+        "AXTitle": "Messages",
+        "AXValue": "",
+        "enabled": true,
+        "focused": false,
+        "rect": [
+          448,
+          282,
+          766,
+          484
+        ]
+      }
+    },
+    "latest_after": {
+      "coherent_sample_attempts": 1,
+      "selected_text": "",
+      "tail": {
+        "actions": [
+          "AXShowMenu",
+          "AXScrollToVisible"
+        ],
+        "AXDescription": "",
+        "AXHelp": "",
+        "AXRole": "AXStaticText",
+        "AXTitle": "",
+        "AXValue": "Reading progress 0086: new result café 日本語 👩🏽‍💻.",
+        "enabled": true,
+        "focused": false,
+        "rect": [
+          474,
+          697,
+          331,
+          17
+        ]
+      },
+      "viewport": {
+        "actions": [
+          "AXShowMenu",
+          "AXScrollToVisible"
+        ],
+        "AXDescription": "Messages",
+        "AXHelp": "",
+        "AXRole": "AXGroup",
+        "AXTitle": "Messages",
+        "AXValue": "",
+        "enabled": true,
+        "focused": false,
+        "rect": [
+          448,
+          282,
+          766,
+          484
+        ]
+      }
+    },
+    "reading_before": {
+      "anchor": {
+        "actions": [
+          "AXShowMenu",
+          "AXScrollToVisible"
+        ],
+        "AXDescription": "",
+        "AXHelp": "",
+        "AXRole": "AXStaticText",
+        "AXTitle": "",
+        "AXValue": "Reading section 12",
+        "enabled": true,
+        "focused": false,
+        "rect": [
+          474,
+          402,
+          175,
+          23
+        ]
+      },
+      "pending_reply_visible": true,
+      "selected_text": "",
+      "selections": [],
+      "stream_values": [
+        "Reading progress 0001: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0002: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0003: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0004: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0005: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0006: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0007: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0008: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0009: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0010: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0011: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0012: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0013: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0014: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0015: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0016: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0017: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0018: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0019: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0020: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0021: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0022: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0023: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0024: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0025: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0026: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0027: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0028: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0029: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0030: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0031: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0032: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0033: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0034: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0035: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0036: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0037: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0038: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0039: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0040: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0041: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0042: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0043: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0044: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0045: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0046: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0047: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0048: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0049: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0050: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0051: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0052: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0053: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0054: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0055: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0056: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0057: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0058: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0059: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0060: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0061: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0062: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0063: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0064: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0065: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0066: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0067: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0068: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0069: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0070: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0071: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0072: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0073: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0074: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0075: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0076: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0077: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0078: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0079: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0080: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0081: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0082: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0083: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0084: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0085: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0086: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0087: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0088: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0089: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0090: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0091: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0092: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0093: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0094: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0095: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0096: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0097: new result café 日本語 👩🏽‍💻."
+      ],
+      "tool_values": [
+        "Review local build · Running",
+        "Review local build · Running"
+      ]
+    },
+    "reading_after": {
+      "anchor": {
+        "actions": [
+          "AXShowMenu",
+          "AXScrollToVisible"
+        ],
+        "AXDescription": "",
+        "AXHelp": "",
+        "AXRole": "AXStaticText",
+        "AXTitle": "",
+        "AXValue": "Reading section 12",
+        "enabled": true,
+        "focused": false,
+        "rect": [
+          474,
+          402,
+          175,
+          23
+        ]
+      },
+      "pending_reply_visible": true,
+      "selected_text": "",
+      "selections": [],
+      "stream_values": [
+        "Reading progress 0001: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0002: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0003: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0004: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0005: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0006: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0007: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0008: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0009: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0010: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0011: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0012: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0013: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0014: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0015: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0016: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0017: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0018: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0019: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0020: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0021: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0022: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0023: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0024: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0025: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0026: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0027: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0028: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0029: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0030: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0031: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0032: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0033: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0034: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0035: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0036: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0037: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0038: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0039: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0040: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0041: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0042: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0043: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0044: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0045: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0046: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0047: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0048: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0049: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0050: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0051: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0052: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0053: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0054: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0055: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0056: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0057: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0058: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0059: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0060: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0061: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0062: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0063: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0064: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0065: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0066: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0067: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0068: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0069: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0070: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0071: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0072: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0073: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0074: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0075: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0076: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0077: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0078: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0079: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0080: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0081: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0082: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0083: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0084: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0085: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0086: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0087: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0088: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0089: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0090: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0091: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0092: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0093: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0094: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0095: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0096: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0097: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0098: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0099: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0100: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0101: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0102: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0103: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0104: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0105: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0106: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0107: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0108: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0109: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0110: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0111: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0112: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0113: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0114: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0115: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0116: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0117: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0118: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0119: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0120: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0121: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0122: new result café 日本語 👩🏽‍💻."
+      ],
+      "tool_values": [
+        "Review local build · Running",
+        "Review local build · Running"
+      ]
+    },
+    "stream": {
+      "stage": "finished",
+      "chunks": 126,
+      "elapsed": 12.845336708000001,
+      "stop_reason": "end_turn"
+    },
+    "canonical": {
+      "reply_bytes": 11321,
+      "reply_sha256": "9e48faca39bc556dfbd887bc22c61c32c322c043b36610f5d1e573f9a6357ec1",
+      "conversation_bytes": 20697,
+      "conversation_sha256": "14c5499c376360ddb282def53f99db0ed58ef95aafa2af5277097a9874fdf73c"
+    },
+    "link": {
+      "activated": true,
+      "activation_sent": true,
+      "after_close_observation": {
+        "matches": false,
+        "readable": true
+      },
+      "browser": "org.mozilla.firefox",
+      "closed_controlled_tab": true,
+      "controlled_marker_visible": true,
+      "destination_observation": {
+        "matches": true,
+        "readable": true
+      },
+      "keyboard": {
+        "activation": "native keyboard",
+        "focused": {
+          "actions": [
+            "AXPress",
+            "AXShowMenu",
+            "AXScrollToVisible"
+          ],
+          "AXDescription": "",
+          "AXHelp": "http://127.0.0.1:50268/rich-link/1791946372075040000",
+          "AXRole": "AXLink",
+          "AXTitle": "Open the local reading note",
+          "AXValue": "",
+          "enabled": true,
+          "focused": true,
+          "rect": [
+            474,
+            435,
+            692,
+            38
+          ]
+        }
+      },
+      "request_observed": true
+    }
+  },
+  "rich_observation_sha256": "2650721f6437b1d857d4421a19debc93c493744f54512f082fceebcaf6b9e520",
   "ime": {
     "source": "com.apple.inputmethod.Kotoeri.KanaTyping.Japanese",
     "committed": [
-      "nihon"
+      "ミニくらみ"
     ],
-    "native_composition": false,
-    "reason": "The reported Japanese source delivered Latin preedit; conversion automation is unavailable."
+    "native_composition": true
   },
   "history": [
     {
@@ -462,7 +1162,7 @@
     },
     {
       "workspace": "second",
-      "turns": 7,
+      "turns": 8,
       "outcome": "completed"
     },
     {
@@ -477,32 +1177,49 @@
     }
   ],
   "source_hashes": {
-    "crates/magistr-desktop/Cargo.lock": "4db40e85a99ada4bde8ebed0c773f4fd1265adc6bb3c1dc15d93de009df7bbe8",
-    "crates/magistr-desktop/Cargo.toml": "ab1f41c500d0fc2f197493651873e5411b12c5b3d76d2e0c1b5f489c5aa8c445",
+    "crates/magistr-desktop/Cargo.lock": "8b9bd1a3049fc0fea4f2efc49d80def1432ef3dff4239323e0d983143d5fc287",
+    "crates/magistr-desktop/Cargo.toml": "0c874b99c0510a2d9b4c571d39a349d09c61accb20dae2a7f359acb839542623",
     "crates/magistr-desktop/build.rs": "6aeeab41bc35efde4e3c2b644a6248f7fc06d24ae30b75c0d33491cbb0c1fa31",
     "crates/magistr-desktop/src/args.rs": "c9c9e1abe0416cca1323a5070c67e1514ac3380aea4a510bf36975395210f086",
+    "crates/magistr-desktop/src/args.tests.rs": "eafc431bd605a6ff13a35713fdba7620c07f291cda41bd96d5cf7fa982a8f0cc",
+    "crates/magistr-desktop/src/args_history.tests.rs": "349697d16afe728cb08d64b73f60c6d5b149318e57cfd8424cee64d7cab8695f",
     "crates/magistr-desktop/src/commands.rs": "cf1bd737283c1e5634d0cfc15fb8d0a306a19f293b7c2ec76ef7d526975ca947",
+    "crates/magistr-desktop/src/content.rs": "762d4108021cc02348ef186e2963b94b845bb94491645f9b391b70d3e5a16071",
+    "crates/magistr-desktop/src/content.tests.rs": "1b50f3fedfebffd0d19b570969c4c7ab40dc24ce52060ab2e3887b7b9c079a4f",
     "crates/magistr-desktop/src/conversations.rs": "985a017dd92d478e5f89ea39a9f54009435e3b2a8420361649ed2cf030772f9f",
+    "crates/magistr-desktop/src/conversations.tests.rs": "263c08edbd3e01482b8ec236faef202f05efb521a1b9222bfa0040da6e273e24",
     "crates/magistr-desktop/src/credit.rs": "f6eef88941d7965449d236cdefd1d0100cb34015f1d1260a23d93a37911e9932",
-    "crates/magistr-desktop/src/launch.rs": "1667c84a25ff8ebfbdc8395afe59a307624a77e9fb8dd4d5cbd6dcfa90903966",
-    "crates/magistr-desktop/src/main.rs": "ffcf4b588fd746061d49c768049a4d256c947f8b432a3b19c3e392a9a6951908",
+    "crates/magistr-desktop/src/credit.tests.rs": "6d2ffbcd1730ea06420052faf261d9604d4e5c66aca9a24e6fee437e78825c21",
+    "crates/magistr-desktop/src/document.rs": "93edd7e0944d968e1776966d54037befd7cf77d96aea2e350389a18ee5398237",
+    "crates/magistr-desktop/src/document.tests.rs": "cb58753b0ae2d770c33d8756628de4b16d05c258440d568fdec1ea53160a1999",
+    "crates/magistr-desktop/src/launch.rs": "2ca77b981b2588c053cd27a5fa4c0d08e1de147e422c9e698c90851f63e66e69",
+    "crates/magistr-desktop/src/launch.tests.rs": "662b7134b59179209794f696f8e71c0e0f7fa564688a1fc27e7628f1afc59d13",
+    "crates/magistr-desktop/src/links.rs": "7b10947b582b1f0090ca518e519cc9773560cec0108565546b2ce580415490fd",
+    "crates/magistr-desktop/src/links.tests.rs": "37b90ae520628a92289528665c41603dbe464e0b9e58003cce16b94283cf0875",
+    "crates/magistr-desktop/src/main.rs": "a5bfa1c0d02e7c884f47a4d05823e32a6b41aec9ffe1b590e96b0cc43d3417a6",
     "crates/magistr-desktop/src/projects.rs": "bae44c4ace2504d2eadffddf123ae694d97393864c4b6f839c6a3709951032cd",
+    "crates/magistr-desktop/src/projects.tests.rs": "af45a85ce0979a67fd97b6a2269b8ed9e635a85e0576903547acec0f60e3b44c",
     "crates/magistr-desktop/src/streams.rs": "c5638b6071ca8a79760eaf79fafe0099b05381891aabaf5cc6d0620f71a58aaa",
-    "crates/magistr-desktop/src/wire.rs": "50f55f4edab5ca11cd9984daaf77fa268669e97dd6c33cfa563d1f83cff8d215",
-    "crates/magistr-desktop/tauri.conf.json": "1821dcb23fcae5c08dbed913845b2939539fd8a7d966249b1a0777c1d9d8ff4f",
-    "crates/magistr-desktop/tests/native_window.py": "c6e65f3baf055e4b1fb15359193fa824a7edc32461cdd6bf0ed6d3b221a81d99",
-    "crates/magistr-desktop/tests/native_window.swift": "76954f758f265e20c168c9735a18cf8af37058dfedda1107f5b5bb91b9e2d99b",
-    "crates/magistr-desktop/tests/session_controls_fixture.py": "0724b930a9774c97177e8c84cc723843296b90c33e5cbe8199aa5ea8e2c0c76f",
-    "crates/magistr-desktop/ui/app.mjs": "18222ca9ccb4e7b7dfd05e41408c405d3ce38874eda86921e673d0766c265dc3",
+    "crates/magistr-desktop/src/wire.rs": "0c159d07475466c3008ff714c6ff2b4d1fd675a374f96f2e4d5a7889a38755d1",
+    "crates/magistr-desktop/src/wire.tests.rs": "6629ba642ce3f5dddd50712e68969acd2f7fa94a26ea79bb930b20d9b9cfa828",
+    "crates/magistr-desktop/tauri.conf.json": "1e08f8503ceb7385ee3ecb7a020e51cc1cd431dd4f14333de6591d89ae199706",
+    "crates/magistr-desktop/tests/native_window.py": "68cbd1db7afa8786fa70971a04e4c202a0855fe2b8661bd3876e5a848d1ff281",
+    "crates/magistr-desktop/tests/native_window.swift": "cc66e92703f98d6a6a92f7f7a79fb83b3805d0ed30e3ea32f2bea4ae58610248",
+    "crates/magistr-desktop/tests/rich_conversation.swift": "6c6362c38438d71087c91b0707dfe7bf3946f69c400bd8f6d3f7ebf249001f2f",
+    "crates/magistr-desktop/tests/rich_conversation_fixture.py": "c8842a5fe25616fa9e3bac230a1dbede5f65fce9d0f4615b80561606438f0806",
+    "crates/magistr-desktop/tests/rich_conversation_journey.py": "1d44fcfea1d0afa56c5ca612d34c04c2c9a7a84819a60e7997f5b8d6fb0d2400",
+    "crates/magistr-desktop/tests/session_controls_fixture.py": "9c7ca60ce147938b1775d3eaed1e369e96a3534cb23b28831ef8043e8bd08aac",
+    "crates/magistr-desktop/ui/app.mjs": "901660513c538d3de174f1dd203ba72df5ef45cfba7a3ff78b30cd2834eb7602",
     "crates/magistr-desktop/ui/composer.mjs": "9accf554a6a2f6e7c029f4972fa4221e40d755546693c8343cbd528ef2a00bc0",
-    "crates/magistr-desktop/ui/conversation.mjs": "acb565a6601b7c2d90a99b74dac5f463c06fcc5b19deaa987a39a171b84a83f3",
+    "crates/magistr-desktop/ui/conversation.mjs": "f49f4fc53aa9c29169012c9fc306bb127f5adf33de58ffca631479a0b01e783e",
     "crates/magistr-desktop/ui/icon.png": "392002a92fdd8dc81923944cd5abd170d0867fe8eb3701d71d4df4aea083dd10",
     "crates/magistr-desktop/ui/index.html": "116259f4ad26cf2408a55d2d6a237ee0df47f353729ea9ddae20caf7069c6178",
     "crates/magistr-desktop/ui/projects.mjs": "e19f9be0696a2e21d082561403a2188e1b55cedb898539a7a5ae7280b8807031",
     "crates/magistr-desktop/ui/selection.mjs": "fd844d9e146a9c5e1fb9ab6e2fc72c0273da66d4f59a70ce639877a87aff05fc",
     "crates/magistr-desktop/ui/session_controls.mjs": "509c49226870957628627ab088e8b3f5344fafb8f3f290b7c04d039f43f5b7ab",
-    "crates/magistr-desktop/ui/style.css": "ee503a6fa8cec75842bcbde3530fff357678b1a10582e04838393ef22d6e54b1",
+    "crates/magistr-desktop/ui/style.css": "6ae1a45c1d4c2efdc274d2e85fe224fce8b0a8a54afa217e6ae1c06bd6a531d1",
     "crates/magistr-desktop/ui/supervision.mjs": "032a49085ae6738687065e58e06950cf7229f4fa7f7e0e64ed7390edf3629d12",
+    "crates/magistr-desktop/ui/transcript.mjs": "97bfe410914cd6ff000cd4ffeda624a67daa15db729c3fb2c5cb6d3dde702038",
     "crates/magistr-application/src/sessions/event.rs": "8b2b7a80dae86ebcde6467f1073e3299f019e4378ef1e2a5548064b2ac5ee8eb",
     "crates/magistr-application/src/sessions/session_activity.rs": "b256dcdcf623bcd399f3ccdfd94f8f43c31c7ea08e263404b09dd97787bf048d",
     "crates/magistr-application/src/sessions/session_policy.rs": "1d792140503efbdd7449510b2a9eece1888ff26a8e71cd64815d85f4333a0854",
@@ -510,8 +1227,14 @@
     "crates/magistr-cli/src/agent/session_supervisor/opening.rs": "533e71cfeeb1cd7f17c9a24597cfa4b9f41c4d5d558035d0958fcaae7624faac",
     "crates/magistr-cli/src/agent/cockpit_session.rs": "5440ee79d57cce70b958c126531cbaf696ed329ef92e2c1cebd3c8486f5f1209",
     "crates/magistr-cli/src/orchestration/roadmap_request.rs": "ed0b5288c6c19350ba598bfb085ede32ef6ce056cb749bb1a170a117a8b5f1e4",
+    "crates/magistr-cli/src/application/mod.rs": "34ca4d24412a42ef513dd1ba4b64f126d9faaee49c401a2d3d9777589719f0cb",
     "crates/magistr-cli/src/application/session_catalog.rs": "af13feef58544305f873a02c42a6bf54e26a6ada00058e30ac7e79cb1ba17971",
-    "crates/magistr-cli/src/application/session_observation.rs": "bdac55f99452cbf7cd3c8386f5f2fd80d193bfe960179ef580238ede8319353d",
+    "crates/magistr-cli/src/application/session_observation.rs": "3196e7282741dcc9c6f9b3cefd44b6e6340e9b61b52004fde78a6b6bd46ade9d",
+    "crates/magistr-cli/src/application/session_observation.tests.rs": "9adb8f0ee219d0181b215c18c44d39cb8de58925690b0029b27aeec5f3604ce1",
+    "crates/magistr-cli/src/application/retained_observation.rs": "1b3ebad003ed28c2079a2a8d0aec18f05640a32f83b8b3b28317428fa066032c",
+    "crates/magistr-cli/src/application/retained_observation.tests.rs": "470ba5cd2ecc99a28e327443cce836b822b9f7cbdf46ce3ba71345a84acb7a6a",
+    "crates/magistr-application/src/sessions/tool_record.rs": "ad3ff4f7c4ea7bf243c569ec37afc3643e22e92d9208f1571ce3d2f6b9a468af",
+    "scripts/desktop-visual-gate.py": "d871e09b0f0543a2540b640c8400dae112a6209a7b0fe451e89c33f509e976f9",
     "crates/magistr-cli/src/application/session_registry.rs": "371005bff95910aadfe74731cb2891ca485c59cf841cdba5d68e332eddd51dd2",
     "crates/magistr-cli/src/agent/session_supervisor/mod.rs": "ccd70ccb7376aaf5af487f2676c334b9211df1904a999b6d2018cf287b1190f3",
     "crates/magistr-cli/src/agent/session_supervisor/owner.rs": "39b2fdbe84828366a08b197529e2b5230a6090ce3271eb5690b435cd2e5bdafb",

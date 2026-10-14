@@ -48,7 +48,7 @@ pub struct SessionSnapshot {
     pub address: SessionAddress,
     pub sequence: u64,
     pub seed: ProjectSeed,
-    pub messages: Vec<(u64, Msg)>,
+    pub messages: Vec<super::RetainedObservation>,
     pub pending: BTreeMap<u64, Msg>,
     pub dropped: u64,
     pub closed: bool,
@@ -59,6 +59,8 @@ pub struct SessionSnapshot {
     pub activity: Option<magistr_application::sessions::SessionActivity>,
     bytes: usize,
     retained_from: u64,
+    // An evicted active source keeps its kind/id so its tail cannot become a new reply.
+    continuation: Option<(u64, super::retained_observation::StreamKind)>,
     answered: std::collections::BTreeSet<u64>,
     seed_at: u64,
     usage: Option<Msg>,
@@ -96,13 +98,15 @@ impl SessionSnapshot {
         messages.extend(
             self.messages
                 .iter()
-                .filter(|(at, msg)| {
+                .filter(|record| {
+                    let msg = &record.message;
+                    let at = record.sequence;
                     !matches!(
                         msg,
                         Msg::Agent(AgentEvent::PermissionRequest { .. } | AgentEvent::Usage { .. })
-                    ) && (!matches!(msg, Msg::Engine(_)) || *at > self.seed_at)
+                    ) && (!matches!(msg, Msg::Engine(_)) || at > self.seed_at)
                 })
-                .map(|(_, msg)| msg.clone()),
+                .map(|record| record.message.clone()),
         );
         messages.extend(self.usage.iter().cloned());
         messages.extend(self.pending.values().cloned());
@@ -111,15 +115,15 @@ impl SessionSnapshot {
 
     /// None means the requested cursor fell outside retention: reseed from replay.
     #[must_use]
-    pub fn since(&self, sequence: u64) -> Option<Vec<Msg>> {
+    pub fn since(&self, sequence: u64) -> Option<Vec<super::RetainedObservation>> {
         if sequence > self.sequence || sequence.saturating_add(1) < self.retained_from {
             return None;
         }
         Some(
             self.messages
                 .iter()
-                .filter(|(at, _)| *at > sequence)
-                .map(|(_, msg)| msg.clone())
+                .filter(|record| record.sequence > sequence)
+                .cloned()
                 .collect(),
         )
     }
@@ -190,12 +194,73 @@ impl SessionSnapshot {
             }
             _ => {}
         }
-        self.bytes = self.bytes.saturating_add(weight(&message));
-        self.messages.push((self.sequence, message));
+        self.retain(message);
+    }
+
+    fn retain(&mut self, message: Msg) {
+        let streamed = super::retained_observation::StreamKind::of(&message);
+        if matches!(
+            &message,
+            Msg::InputAccepted(_)
+                | Msg::CommandFailed { .. }
+                | Msg::Agent(
+                    AgentEvent::TurnEnded(_)
+                        | AgentEvent::Notice(_)
+                        | AgentEvent::Error(_)
+                        | AgentEvent::PromptRejected { .. }
+                        | AgentEvent::PermissionLapsed { .. }
+                        | AgentEvent::Lagged { .. }
+                )
+        ) {
+            self.continuation = None;
+        }
+        let mut next = Some(super::RetainedObservation::new(self.sequence, message));
+        if let Some(incoming) = next.as_ref() {
+            if let Some(id) = incoming.tool_id() {
+                if let Some(held) = self
+                    .messages
+                    .iter_mut()
+                    .find(|held| held.tool_id() == Some(id))
+                {
+                    self.bytes = self.bytes.saturating_sub(weight(&held.message));
+                    held.update_tool(
+                        self.sequence,
+                        next.take().expect("incoming record exists").message,
+                    );
+                    self.bytes = self.bytes.saturating_add(weight(&held.message));
+                }
+            } else if let Some(kind) = streamed
+                && let Some((id, active_kind)) = self.continuation
+                && kind == active_kind
+            {
+                if let Some(held) = self.messages.iter_mut().find(|held| held.id == id) {
+                    let before = weight(&held.message);
+                    if held.append(self.sequence, &incoming.message) {
+                        self.bytes = self
+                            .bytes
+                            .saturating_sub(before)
+                            .saturating_add(weight(&held.message));
+                        next = None;
+                    }
+                } else {
+                    next = None;
+                }
+            }
+        }
+        if let Some(next) = next {
+            if next.tool_id().is_some() {
+                self.continuation = None;
+            }
+            if let Some(kind) = streamed {
+                self.continuation = Some((next.id, kind));
+            }
+            self.bytes = self.bytes.saturating_add(weight(&next.message));
+            self.messages.push(next);
+        }
         while self.messages.len() > MAX_MESSAGES || self.bytes > MAX_BYTES {
-            let (sequence, removed) = self.messages.remove(0);
-            self.retained_from = sequence.saturating_add(1);
-            self.bytes = self.bytes.saturating_sub(weight(&removed));
+            let removed = self.messages.remove(0);
+            self.retained_from = self.retained_from.max(removed.sequence.saturating_add(1));
+            self.bytes = self.bytes.saturating_sub(weight(&removed.message));
             self.dropped = self.dropped.saturating_add(1);
         }
     }
@@ -238,6 +303,7 @@ impl SessionObservation {
                 activity: None,
                 bytes: 0,
                 retained_from: 1,
+                continuation: None,
                 answered: std::collections::BTreeSet::new(),
                 seed_at: 0,
                 usage: None,

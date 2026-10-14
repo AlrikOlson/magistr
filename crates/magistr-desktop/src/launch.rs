@@ -19,6 +19,20 @@ pub(crate) async fn run(cli: Desktop) -> eyre::Result<()> {
     let client = registry.client();
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(
+            tauri_plugin_opener::Builder::new()
+                .open_js_links_on_click(false)
+                .build(),
+        )
+        .setup(|app| {
+            let window = &app.config().app.windows[0];
+            let use_https = window.use_https_scheme;
+            tauri::WebviewWindowBuilder::from_config(app, window)?
+                .on_navigation(move |url| crate::links::local_document(url, use_https))
+                .on_new_window(|_, _| tauri::webview::NewWindowResponse::Deny)
+                .build()?;
+            Ok(())
+        })
         .menu(|app| {
             use tauri::menu::{Menu, MenuItem, Submenu};
             let quit = MenuItem::with_id(app, "quit", "Quit Magistr", true, Some("CmdOrCtrl+Q"))?;
@@ -62,6 +76,7 @@ pub(crate) async fn run(cli: Desktop) -> eyre::Result<()> {
         })
         .invoke_handler(tauri::generate_handler![
             crate::commands::overview,
+            crate::links::open_link,
             crate::conversations::agent_choices,
             crate::conversations::model_choices,
             crate::conversations::saved_conversations,

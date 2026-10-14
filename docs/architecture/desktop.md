@@ -43,10 +43,59 @@ A Tauri Channel delivers ordered batches. One batch may be in flight; the next
 waits for acknowledgement of the exact sequence after DOM application. Slow views
 cannot accumulate token payloads. Navigation intentions are monotonic at both
 ends. Late subscriptions and frames cannot replace the selected session.
-The application snapshot is bounded to 512 messages and one MiB of text.
-Sequence gaps cause an owner refresh and an explicit reseed. The conversation
-shows when older messages are unavailable. Application-owned status, model,
-usage, conversation names, configuration, requests and drafts survive pruning.
+The application snapshot retains at most 512 source records within a one MiB
+payload budget. Each record has its first observation identity and latest
+revision. Text chunks amend their original record; tool updates merge by call
+identity into complete tool facts, including the original input and later
+results. Revising an existing tool or receiving ancillary observations does not
+split a streamed reply; a new tool call separates subsequent content. Whole-record
+pruning reports a dropped count, including an oversized record that cannot fit.
+An evicted active stream keeps only its identity and kind; its remaining chunks
+are suppressed until a real role/content boundary, so no arbitrary source suffix
+is presented as a complete reply.
+Tool input/output/text also retain the application's existing 64 KiB tool-record
+cap and its original-size notice. Current status, model, usage, names,
+configuration, requests and drafts survive transcript pruning.
+
+Incremental frames replace changed records by identity and carry the owner's
+complete retained-id order. A cursor outside retention causes an owner refresh
+and explicit reseed; surviving source and DOM identities remain stable. There is
+one canonical source store in the application. The WebView retains only its
+current presentation and removes records when the owner removes them.
+
+Replies are parsed by pulldown-cmark into typed, allowlisted document nodes.
+Headings, lists, code, emphasis and web links are semantic elements. Authored
+HTML is literal text, and Markdown images expose alt text without fetching.
+Parsing is bounded to 4096 events and 64 nesting levels per reply; more extensive
+formatting is shown as complete selectable plain text with an explanation.
+Copy reply and Copy conversation use canonical source strings, preserving
+Markdown, Unicode and line endings; native selection copies the selected
+visible text. Tool disclosures show the original input, output, text and edits,
+with explicit failure and truncation information.
+
+The document view keeps article, disclosure and unchanged block nodes stable.
+A native selection freezes intersecting message subtrees while other records
+continue updating. Clearing selection applies the latest retained revision.
+The first visible block anchors scrolling; selection or reading above the end
+suspends following. Latest clears selection, flushes held revisions and scrolls
+to the current end; scrolling to the end also resumes following. If an owner
+bound removes selected source, the selection clears and the gap stays visible.
+
+Web addresses open through one HTTP(S)-only native command after URL validation.
+Credentials, controls and other schemes are rejected. The privileged WebView
+accepts only its actual platform/configured bundled origin and index document,
+including Tauri's empty root path, and denies popup creation. No opener plugin
+commands receive capabilities, and its automatic JavaScript link handling is
+disabled; no filesystem or arbitrary program opener is exposed. The CSP remains
+local-only.
+
+Dependency audit: pulldown-cmark 0.13.4 has default features disabled, including
+HTML output and SIMD; this configuration forbids unsafe Rust in the parser.
+The maintained Tauri opener 2.7.1 uses the platform's default browser. Its native
+platform implementation includes FFI, while the application's entry point accepts
+only a validated URL and never an application or path. The lockfile adds 21
+packages: parser/unicase, opener/open and platform detection, plus Linux DBus
+and supporting packages. Existing locked versions are unchanged.
 
 ## Interface
 
@@ -130,6 +179,14 @@ clipboard, two provider choices, model preview/selection/reconnect, accepted and
 cancelled queues, durable names, summary-only history, refused and retried resume,
 light/dark/narrow views and orderly Quit. It retains screenshots,
 an accessibility tree and a receipt tied to source hashes.
+
+The rich-conversation fixture and native Swift observer add a long multilingual
+Markdown/code corpus, literal hostile markup, safe links and failed tool details.
+The journey holds native selection while the selected reply, earlier tool and a
+separate reply change; it compares exact clipboard source, selected text and
+reading position, then exercises Latest and disclosure stability. Its dark,
+light and narrow captures and rich observation/accessibility receipts accompany
+the ordinary journey evidence.
 Run it after rebuilding the desktop:
 
 ```sh

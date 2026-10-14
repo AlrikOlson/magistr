@@ -13,18 +13,17 @@
       "AXScrollToVisible"
     ],
     "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXTextArea",
-    "AXSelectedText" : "",
-    "AXTitle" : "Message the agent",
+    "AXHelp" : "http:\/\/127.0.0.1:50268\/rich-link\/1791946372075040000",
+    "AXRole" : "AXLink",
+    "AXTitle" : "Open the local reading note",
     "AXValue" : "",
     "enabled" : true,
     "focused" : true,
     "rect" : [
       422,
-      656,
-      344,
-      110
+      81,
+      179,
+      17
     ]
   },
   {
@@ -35,16 +34,54 @@
     "AXDescription" : "",
     "AXHelp" : "",
     "AXRole" : "AXGroup",
-    "AXSubrole" : "AXLandmarkForm",
     "AXTitle" : "",
     "AXValue" : "",
     "enabled" : true,
     "focused" : false,
     "rect" : [
+      422,
+      37,
+      344,
+      63
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "Agent reply",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXDocumentArticle",
+    "AXTitle" : "Agent reply",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -71,
+      344,
+      5895
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "Messages",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "Messages",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
       404,
-      614,
+      282,
       380,
-      225
+      332
     ]
   },
   {
@@ -174,15 +211,263 @@
     ],
     "AXDescription" : "",
     "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Open the local reading note",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      81,
+      179,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "This reply contains ",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      39,
+      126,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "strong emphasis",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      547,
+      39,
+      116,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : ", ",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      662,
+      39,
+      9,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "quiet emphasis",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      39,
+      281,
+      38
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : ", ",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      483,
+      60,
+      9,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "retired wording",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      491,
+      60,
+      99,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : " and ",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      589,
+      60,
+      32,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXCodeStyleGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      620,
+      60,
+      105,
+      19
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : ". Read",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      725,
+      60,
+      41,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : " when you are ready.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      600,
+      81,
+      134,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXSectionHeader",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -71,
+      344,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXHeading",
+    "AXTitle" : "Release reading note",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -37,
+      344,
+      31
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
     "AXRole" : "AXGroup",
     "AXTitle" : "",
     "AXValue" : "",
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      435,
-      669,
-      318,
+      422,
+      4,
+      344,
       21
     ]
   },
@@ -193,16 +478,189 @@
     ],
     "AXDescription" : "",
     "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      441,
+      114,
+      325,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      441,
+      147,
+      325,
+      42
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXList",
+    "AXSubrole" : "AXContentList",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      203,
+      344,
+      104
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      323,
+      344,
+      42
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXPreformattedStyleGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      377,
+      344,
+      104
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
     "AXRole" : "AXStaticText",
     "AXTitle" : "",
-    "AXValue" : "Message the agent",
+    "AXValue" : "<script>window.location = \"https:\/\/example.invalid\/never\";<\/script>",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      499,
+      260,
+      38
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      539,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXSplitter",
+    "AXSubrole" : "AXContentSeparator",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : false,
+    "focused" : false,
+    "rect" : [
+      422,
+      572,
+      344,
+      2
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXHeading",
+    "AXTitle" : "Reading section 01",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      594,
+      344,
+      27
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
     "enabled" : true,
     "focused" : false,
     "rect" : [
       422,
       631,
       344,
-      18
+      105
     ]
   },
   {
@@ -212,55 +670,1361 @@
     ],
     "AXDescription" : "",
     "AXHelp" : "",
-    "AXRole" : "AXStaticText",
-    "AXTitle" : "",
-    "AXValue" : "Return to send · Shift Return for a new line",
+    "AXRole" : "AXHeading",
+    "AXTitle" : "Reading section 02",
     "enabled" : true,
     "focused" : false,
     "rect" : [
       422,
-      784,
-      168,
-      30
+      756,
+      344,
+      27
     ]
   },
   {
     "actions" : [
-      "AXPress",
       "AXShowMenu",
       "AXScrollToVisible"
     ],
     "AXDescription" : "",
     "AXHelp" : "",
-    "AXRole" : "AXButton",
-    "AXTitle" : "Stop",
-    "AXValue" : "",
-    "enabled" : false,
-    "focused" : false,
-    "rect" : [
-      627,
-      780,
-      55,
-      39
-    ]
-  },
-  {
-    "actions" : [
-      "AXPress",
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXButton",
-    "AXTitle" : "Send",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
     "AXValue" : "",
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      689,
-      780,
-      78,
+      422,
+      793,
+      344,
+      105
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXHeading",
+    "AXTitle" : "Reading section 03",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      918,
+      344,
+      27
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      955,
+      344,
+      105
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXHeading",
+    "AXTitle" : "Reading section 04",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      1080,
+      344,
+      27
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      1117,
+      344,
+      105
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXHeading",
+    "AXTitle" : "Reading section 05",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      1242,
+      344,
+      27
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      1279,
+      344,
+      105
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXHeading",
+    "AXTitle" : "Reading section 06",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      1404,
+      344,
+      27
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      1441,
+      344,
+      105
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXHeading",
+    "AXTitle" : "Reading section 07",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      1566,
+      344,
+      27
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      1603,
+      344,
+      105
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXHeading",
+    "AXTitle" : "Reading section 08",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      1728,
+      344,
+      27
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      1765,
+      344,
+      105
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXHeading",
+    "AXTitle" : "Reading section 09",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      1890,
+      344,
+      27
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      1927,
+      344,
+      105
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXHeading",
+    "AXTitle" : "Reading section 10",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      2052,
+      344,
+      27
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      2089,
+      344,
+      105
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXHeading",
+    "AXTitle" : "Reading section 11",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      2214,
+      344,
+      27
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      2251,
+      344,
+      105
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXHeading",
+    "AXTitle" : "Reading section 12",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      2376,
+      344,
+      27
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      2413,
+      344,
+      105
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXHeading",
+    "AXTitle" : "Reading section 13",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      2538,
+      344,
+      27
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      2575,
+      344,
+      105
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXHeading",
+    "AXTitle" : "Reading section 14",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      2700,
+      344,
+      27
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      2737,
+      344,
+      105
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXHeading",
+    "AXTitle" : "Reading section 15",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      2862,
+      344,
+      27
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      2899,
+      344,
+      105
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXHeading",
+    "AXTitle" : "Reading section 16",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      3024,
+      344,
+      27
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      3061,
+      344,
+      105
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXHeading",
+    "AXTitle" : "Reading section 17",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      3186,
+      344,
+      27
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      3223,
+      344,
+      105
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXHeading",
+    "AXTitle" : "Reading section 18",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      3348,
+      344,
+      27
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      3385,
+      344,
+      105
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXHeading",
+    "AXTitle" : "Reading section 19",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      3510,
+      344,
+      27
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      3547,
+      344,
+      105
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXHeading",
+    "AXTitle" : "Reading section 20",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      3672,
+      344,
+      27
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      3709,
+      344,
+      105
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXHeading",
+    "AXTitle" : "Reading section 21",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      3834,
+      344,
+      27
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      3871,
+      344,
+      105
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXHeading",
+    "AXTitle" : "Reading section 22",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      3996,
+      344,
+      27
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      4033,
+      344,
+      105
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXHeading",
+    "AXTitle" : "Reading section 23",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      4158,
+      344,
+      27
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      4195,
+      344,
+      105
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXHeading",
+    "AXTitle" : "Reading section 24",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      4320,
+      344,
+      27
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      4357,
+      344,
+      105
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXHeading",
+    "AXTitle" : "Reading section 25",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      4482,
+      344,
+      27
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      4519,
+      344,
+      105
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXHeading",
+    "AXTitle" : "Reading section 26",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      4644,
+      344,
+      27
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      4681,
+      344,
+      105
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXHeading",
+    "AXTitle" : "Reading section 27",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      4806,
+      344,
+      27
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      4843,
+      344,
+      105
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXHeading",
+    "AXTitle" : "Reading section 28",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      4968,
+      344,
+      27
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      5005,
+      344,
+      105
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXHeading",
+    "AXTitle" : "Reading section 29",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      5130,
+      344,
+      27
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      5167,
+      344,
+      105
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXHeading",
+    "AXTitle" : "Reading section 30",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      5292,
+      344,
+      27
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      5329,
+      344,
+      105
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXHeading",
+    "AXTitle" : "Reading section 31",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      5454,
+      344,
+      27
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      5491,
+      344,
+      105
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXHeading",
+    "AXTitle" : "Reading section 32",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      5616,
+      344,
+      27
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      5653,
+      344,
+      105
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      5770,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      5803,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "Agent reply",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXDocumentArticle",
+    "AXTitle" : "Agent reply",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -1131,
+      344,
+      76
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "You",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXDocumentArticle",
+    "AXTitle" : "You",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -1031,
+      344,
+      97
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "Thinking",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXDocumentArticle",
+    "AXTitle" : "Thinking",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -910,
+      344,
+      53
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "Agent reply",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXDocumentArticle",
+    "AXTitle" : "Agent reply",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -833,
+      344,
+      55
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "You",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXDocumentArticle",
+    "AXTitle" : "You",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -754,
+      344,
+      97
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "Tool activity",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXDocumentArticle",
+    "AXTitle" : "Tool activity",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -633,
+      344,
+      538
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "Tool activity",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXDocumentArticle",
+    "AXTitle" : "Tool activity",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      5848,
+      344,
+      83
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "Agent reply",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXDocumentArticle",
+    "AXTitle" : "Agent reply",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      5955,
+      344,
+      4180
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXButton",
+    "AXTitle" : "Latest reply ↓",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      643,
+      595,
+      115,
       39
     ]
   },
@@ -269,18 +2033,19 @@
       "AXShowMenu",
       "AXScrollToVisible"
     ],
-    "AXDescription" : "Messages",
+    "AXDescription" : "",
     "AXHelp" : "",
     "AXRole" : "AXGroup",
-    "AXTitle" : "Messages",
+    "AXSubrole" : "AXLandmarkForm",
+    "AXTitle" : "",
     "AXValue" : "",
     "enabled" : true,
     "focused" : false,
     "rect" : [
       404,
-      282,
+      614,
       380,
-      332
+      225
     ]
   },
   {
@@ -415,14 +2180,4188 @@
     "AXHelp" : "",
     "AXRole" : "AXStaticText",
     "AXTitle" : "",
-    "AXValue" : "Describe the work…",
+    "AXValue" : "inline_code()",
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      435,
-      671,
-      129,
+      624,
+      62,
+      98,
+      15
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Agent",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -67,
+      36,
+      15
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXButton",
+    "AXTitle" : "Copy reply",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      693,
+      -71,
+      74,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Release reading note",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -35,
+      222,
+      27
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Native selection café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6,
+      209,
       17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Keep the reading position while new work arrives.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      441,
+      116,
+      319,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Ελληνικά · العربية · हिन्दी · 한국어 · עברית · é · café · 👩🏽‍💻",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      441,
+      149,
+      307,
+      38
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "Review the changed module.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      446,
+      203,
+      320,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "Check the error details.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      446,
+      229,
+      320,
+      78
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "| Language | Example | | --- | --- | | Japanese | 日本語の文章 | | Arabic | مرحباً بالعالم | | Emoji | 👩🏽‍💻 🧭 |",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      325,
+      338,
+      38
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "fn reading_note() -> &'static str {\n    \"café 日本語 👩🏽‍💻\"\n}\n\/\/ A deliberately long source line stays readable by scrolling within the code block: abcdefghijklmnopqrstuvwxyz_0123456789_ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz_0123456789\n",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      438,
+      393,
+      1395,
+      72
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Unavailable action",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      541,
+      118,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Remote image stays text",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      543,
+      541,
+      159,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading section 01",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      596,
+      176,
+      23
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Section 01 preserves the original source. The conversation remains selectable while another reply arrives. 日本語を読み続けます。 Café, naïve, mañana, Ελληνικά and العربية stay intact. A reader can pause here, inspect the result and return to the latest reply.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      633,
+      340,
+      101
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading section 02",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      758,
+      179,
+      23
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Section 02 preserves the original source. The conversation remains selectable while another reply arrives. 日本語を読み続けます。 Café, naïve, mañana, Ελληνικά and العربية stay intact. A reader can pause here, inspect the result and return to the latest reply.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      795,
+      340,
+      101
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading section 03",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      920,
+      179,
+      23
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Section 03 preserves the original source. The conversation remains selectable while another reply arrives. 日本語を読み続けます。 Café, naïve, mañana, Ελληνικά and العربية stay intact. A reader can pause here, inspect the result and return to the latest reply.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      957,
+      340,
+      101
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading section 04",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      1082,
+      180,
+      23
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Section 04 preserves the original source. The conversation remains selectable while another reply arrives. 日本語を読み続けます。 Café, naïve, mañana, Ελληνικά and العربية stay intact. A reader can pause here, inspect the result and return to the latest reply.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      1119,
+      340,
+      101
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading section 05",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      1244,
+      179,
+      23
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Section 05 preserves the original source. The conversation remains selectable while another reply arrives. 日本語を読み続けます。 Café, naïve, mañana, Ελληνικά and العربية stay intact. A reader can pause here, inspect the result and return to the latest reply.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      1281,
+      340,
+      101
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading section 06",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      1406,
+      180,
+      23
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Section 06 preserves the original source. The conversation remains selectable while another reply arrives. 日本語を読み続けます。 Café, naïve, mañana, Ελληνικά and العربية stay intact. A reader can pause here, inspect the result and return to the latest reply.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      1443,
+      340,
+      101
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading section 07",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      1568,
+      178,
+      23
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Section 07 preserves the original source. The conversation remains selectable while another reply arrives. 日本語を読み続けます。 Café, naïve, mañana, Ελληνικά and العربية stay intact. A reader can pause here, inspect the result and return to the latest reply.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      1605,
+      340,
+      101
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading section 08",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      1730,
+      180,
+      23
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Section 08 preserves the original source. The conversation remains selectable while another reply arrives. 日本語を読み続けます。 Café, naïve, mañana, Ελληνικά and العربية stay intact. A reader can pause here, inspect the result and return to the latest reply.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      1767,
+      340,
+      101
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading section 09",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      1892,
+      180,
+      23
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Section 09 preserves the original source. The conversation remains selectable while another reply arrives. 日本語を読み続けます。 Café, naïve, mañana, Ελληνικά and العربية stay intact. A reader can pause here, inspect the result and return to the latest reply.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      1929,
+      340,
+      101
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading section 10",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      2054,
+      176,
+      23
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Section 10 preserves the original source. The conversation remains selectable while another reply arrives. 日本語を読み続けます。 Café, naïve, mañana, Ελληνικά and العربية stay intact. A reader can pause here, inspect the result and return to the latest reply.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      2091,
+      340,
+      101
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading section 11",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      2216,
+      173,
+      23
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Section 11 preserves the original source. The conversation remains selectable while another reply arrives. 日本語を読み続けます。 Café, naïve, mañana, Ελληνικά and العربية stay intact. A reader can pause here, inspect the result and return to the latest reply.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      2253,
+      340,
+      101
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading section 12",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      2378,
+      175,
+      23
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Section 12 preserves the original source. The conversation remains selectable while another reply arrives. 日本語を読み続けます。 Café, naïve, mañana, Ελληνικά and العربية stay intact. A reader can pause here, inspect the result and return to the latest reply.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      2415,
+      340,
+      101
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading section 13",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      2540,
+      176,
+      23
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Section 13 preserves the original source. The conversation remains selectable while another reply arrives. 日本語を読み続けます。 Café, naïve, mañana, Ελληνικά and العربية stay intact. A reader can pause here, inspect the result and return to the latest reply.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      2577,
+      340,
+      101
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading section 14",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      2702,
+      176,
+      23
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Section 14 preserves the original source. The conversation remains selectable while another reply arrives. 日本語を読み続けます。 Café, naïve, mañana, Ελληνικά and العربية stay intact. A reader can pause here, inspect the result and return to the latest reply.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      2739,
+      340,
+      101
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading section 15",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      2864,
+      176,
+      23
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Section 15 preserves the original source. The conversation remains selectable while another reply arrives. 日本語を読み続けます。 Café, naïve, mañana, Ελληνικά and العربية stay intact. A reader can pause here, inspect the result and return to the latest reply.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      2901,
+      340,
+      101
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading section 16",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      3026,
+      176,
+      23
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Section 16 preserves the original source. The conversation remains selectable while another reply arrives. 日本語を読み続けます。 Café, naïve, mañana, Ελληνικά and العربية stay intact. A reader can pause here, inspect the result and return to the latest reply.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      3063,
+      340,
+      101
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading section 17",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      3188,
+      175,
+      23
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Section 17 preserves the original source. The conversation remains selectable while another reply arrives. 日本語を読み続けます。 Café, naïve, mañana, Ελληνικά and العربية stay intact. A reader can pause here, inspect the result and return to the latest reply.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      3225,
+      340,
+      101
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading section 18",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      3350,
+      176,
+      23
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Section 18 preserves the original source. The conversation remains selectable while another reply arrives. 日本語を読み続けます。 Café, naïve, mañana, Ελληνικά and العربية stay intact. A reader can pause here, inspect the result and return to the latest reply.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      3387,
+      340,
+      101
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading section 19",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      3512,
+      176,
+      23
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Section 19 preserves the original source. The conversation remains selectable while another reply arrives. 日本語を読み続けます。 Café, naïve, mañana, Ελληνικά and العربية stay intact. A reader can pause here, inspect the result and return to the latest reply.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      3549,
+      340,
+      101
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading section 20",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      3674,
+      179,
+      23
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Section 20 preserves the original source. The conversation remains selectable while another reply arrives. 日本語を読み続けます。 Café, naïve, mañana, Ελληνικά and العربية stay intact. A reader can pause here, inspect the result and return to the latest reply.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      3711,
+      340,
+      101
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading section 21",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      3836,
+      175,
+      23
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Section 21 preserves the original source. The conversation remains selectable while another reply arrives. 日本語を読み続けます。 Café, naïve, mañana, Ελληνικά and العربية stay intact. A reader can pause here, inspect the result and return to the latest reply.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      3873,
+      340,
+      101
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading section 22",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      3998,
+      178,
+      23
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Section 22 preserves the original source. The conversation remains selectable while another reply arrives. 日本語を読み続けます。 Café, naïve, mañana, Ελληνικά and العربية stay intact. A reader can pause here, inspect the result and return to the latest reply.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      4035,
+      340,
+      101
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading section 23",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      4160,
+      179,
+      23
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Section 23 preserves the original source. The conversation remains selectable while another reply arrives. 日本語を読み続けます。 Café, naïve, mañana, Ελληνικά and العربية stay intact. A reader can pause here, inspect the result and return to the latest reply.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      4197,
+      340,
+      101
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading section 24",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      4322,
+      179,
+      23
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Section 24 preserves the original source. The conversation remains selectable while another reply arrives. 日本語を読み続けます。 Café, naïve, mañana, Ελληνικά and العربية stay intact. A reader can pause here, inspect the result and return to the latest reply.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      4359,
+      340,
+      101
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading section 25",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      4484,
+      178,
+      23
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Section 25 preserves the original source. The conversation remains selectable while another reply arrives. 日本語を読み続けます。 Café, naïve, mañana, Ελληνικά and العربية stay intact. A reader can pause here, inspect the result and return to the latest reply.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      4521,
+      340,
+      101
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading section 26",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      4646,
+      179,
+      23
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Section 26 preserves the original source. The conversation remains selectable while another reply arrives. 日本語を読み続けます。 Café, naïve, mañana, Ελληνικά and العربية stay intact. A reader can pause here, inspect the result and return to the latest reply.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      4683,
+      340,
+      101
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading section 27",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      4808,
+      177,
+      23
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Section 27 preserves the original source. The conversation remains selectable while another reply arrives. 日本語を読み続けます。 Café, naïve, mañana, Ελληνικά and العربية stay intact. A reader can pause here, inspect the result and return to the latest reply.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      4845,
+      340,
+      101
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading section 28",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      4970,
+      179,
+      23
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Section 28 preserves the original source. The conversation remains selectable while another reply arrives. 日本語を読み続けます。 Café, naïve, mañana, Ελληνικά and العربية stay intact. A reader can pause here, inspect the result and return to the latest reply.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      5007,
+      340,
+      101
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading section 29",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      5132,
+      179,
+      23
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Section 29 preserves the original source. The conversation remains selectable while another reply arrives. 日本語を読み続けます。 Café, naïve, mañana, Ελληνικά and العربية stay intact. A reader can pause here, inspect the result and return to the latest reply.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      5169,
+      340,
+      101
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading section 30",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      5294,
+      179,
+      23
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Section 30 preserves the original source. The conversation remains selectable while another reply arrives. 日本語を読み続けます。 Café, naïve, mañana, Ελληνικά and العربية stay intact. A reader can pause here, inspect the result and return to the latest reply.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      5331,
+      340,
+      101
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading section 31",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      5456,
+      176,
+      23
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Section 31 preserves the original source. The conversation remains selectable while another reply arrives. 日本語を読み続けます。 Café, naïve, mañana, Ελληνικά and العربية stay intact. A reader can pause here, inspect the result and return to the latest reply.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      5493,
+      340,
+      101
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading section 32",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      5618,
+      179,
+      23
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Section 32 preserves the original source. The conversation remains selectable while another reply arrives. 日本語を読み続けます。 Café, naïve, mañana, Ελληνικά and العربية stay intact. A reader can pause here, inspect the result and return to the latest reply.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      5655,
+      340,
+      101
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "End of the original reading note.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      5772,
+      207,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Selected reply received an update.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      5805,
+      224,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXSectionHeader",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -1131,
+      344,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -1097,
+      344,
+      42
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXSectionHeader",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -1016,
+      310,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -982,
+      310,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXSectionHeader",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -910,
+      344,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -876,
+      344,
+      19
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXSectionHeader",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -833,
+      344,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -799,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXSectionHeader",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -739,
+      310,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -705,
+      310,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXSectionHeader",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -619,
+      310,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXDetails",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -585,
+      310,
+      476
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXSectionHeader",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      5862,
+      310,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXDetails",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      5896,
+      310,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXSectionHeader",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      5955,
+      344,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      5989,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6022,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6055,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6088,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6121,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6154,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6187,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6220,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6253,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6286,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6319,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6352,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6385,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6418,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6451,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6484,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6517,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6550,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6583,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6616,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6649,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6682,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6715,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6748,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6781,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6814,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6847,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6880,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6913,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6946,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6979,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7012,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7045,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7078,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7111,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7144,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7177,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7210,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7243,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7276,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7309,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7342,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7375,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7408,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7441,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7474,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7507,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7540,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7573,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7606,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7639,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7672,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7705,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7738,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7771,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7804,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7837,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7870,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7903,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7936,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7969,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8002,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8035,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8068,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8101,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8134,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8167,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8200,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8233,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8266,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8299,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8332,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8365,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8398,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8431,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8464,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8497,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8530,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8563,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8596,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8629,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8662,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8695,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8728,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8761,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8794,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8827,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8860,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8893,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8926,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8959,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8992,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9025,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9058,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9091,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9124,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9157,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9190,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9223,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9256,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9289,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9322,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9355,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9388,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9421,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9454,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9487,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9520,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9553,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9586,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9619,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9652,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9685,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9718,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9751,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9784,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9817,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9850,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9883,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9916,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9949,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9982,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      10015,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      10048,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      10081,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      10114,
+      344,
+      21
     ]
   },
   {
@@ -439,9 +6378,30 @@
     "focused" : false,
     "rect" : [
       422,
-      632,
-      108,
-      15
+      631,
+      344,
+      18
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXTextArea",
+    "AXSelectedText" : "",
+    "AXTitle" : "Message the agent",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      656,
+      344,
+      110
     ]
   },
   {
@@ -449,79 +6409,58 @@
       "AXShowMenu",
       "AXScrollToVisible"
     ],
-    "AXDescription" : "AGENT",
+    "AXDescription" : "",
     "AXHelp" : "",
-    "AXRole" : "AXGroup",
-    "AXSubrole" : "AXDocumentArticle",
+    "AXRole" : "AXStaticText",
     "AXTitle" : "",
-    "AXValue" : "",
+    "AXValue" : "Return to send · Shift Return for a new line",
     "enabled" : true,
     "focused" : false,
     "rect" : [
       422,
-      308,
-      344,
-      67
+      784,
+      168,
+      30
     ]
   },
   {
     "actions" : [
+      "AXPress",
       "AXShowMenu",
       "AXScrollToVisible"
     ],
-    "AXDescription" : "YOU",
+    "AXDescription" : "",
     "AXHelp" : "",
-    "AXRole" : "AXGroup",
-    "AXSubrole" : "AXDocumentArticle",
-    "AXTitle" : "",
+    "AXRole" : "AXButton",
+    "AXTitle" : "Stop",
     "AXValue" : "",
-    "enabled" : true,
+    "enabled" : false,
     "focused" : false,
     "rect" : [
-      422,
-      399,
-      344,
-      76
+      627,
+      780,
+      55,
+      39
     ]
   },
   {
     "actions" : [
+      "AXPress",
       "AXShowMenu",
       "AXScrollToVisible"
     ],
-    "AXDescription" : "THINKING",
+    "AXDescription" : "",
     "AXHelp" : "",
-    "AXRole" : "AXGroup",
-    "AXSubrole" : "AXDocumentArticle",
-    "AXTitle" : "",
+    "AXRole" : "AXButton",
+    "AXTitle" : "Send",
     "AXValue" : "",
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      422,
-      499,
-      344,
-      44
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "AGENT",
-    "AXHelp" : "",
-    "AXRole" : "AXGroup",
-    "AXSubrole" : "AXDocumentArticle",
-    "AXTitle" : "",
-    "AXValue" : "",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      422,
-      567,
-      344,
-      46
+      689,
+      780,
+      78,
+      39
     ]
   },
   {
@@ -1105,15 +7044,16 @@
     ],
     "AXDescription" : "",
     "AXHelp" : "",
-    "AXRole" : "AXHeading",
-    "AXTitle" : "AGENT",
+    "AXRole" : "AXListMarker",
+    "AXTitle" : "",
+    "AXValue" : "1",
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      422,
-      308,
-      344,
-      18
+      425,
+      205,
+      18,
+      17
     ]
   },
   {
@@ -1123,16 +7063,74 @@
     ],
     "AXDescription" : "",
     "AXHelp" : "",
-    "AXRole" : "AXGroup",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Review the changed module.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      446,
+      205,
+      186,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXListMarker",
+    "AXTitle" : "",
+    "AXValue" : "2",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      425,
+      231,
+      18,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Check the error details.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      446,
+      231,
+      152,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXList",
+    "AXSubrole" : "AXContentList",
     "AXTitle" : "",
     "AXValue" : "",
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      422,
-      333,
-      344,
-      42
+      446,
+      260,
+      320,
+      47
     ]
   },
   {
@@ -1142,32 +7140,343 @@
     ],
     "AXDescription" : "",
     "AXHelp" : "",
-    "AXRole" : "AXHeading",
-    "AXTitle" : "YOU",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Agent",
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      439,
-      414,
-      310,
-      18
+      422,
+      -1127,
+      36,
+      15
     ]
   },
   {
     "actions" : [
+      "AXPress",
       "AXShowMenu",
       "AXScrollToVisible"
     ],
     "AXDescription" : "",
     "AXHelp" : "",
-    "AXRole" : "AXGroup",
-    "AXTitle" : "",
+    "AXRole" : "AXButton",
+    "AXTitle" : "Copy reply",
     "AXValue" : "",
     "enabled" : true,
     "focused" : false,
     "rect" : [
+      693,
+      -1131,
+      74,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "resumed 08aad22e-a346-41dc-95dd-d13eb40c8951",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -1095,
+      251,
+      38
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "You",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
       439,
+      -1012,
+      23,
+      15
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXButton",
+    "AXTitle" : "Copy message",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      655,
+      -1016,
+      94,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "after saved reopen",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
       439,
+      -980,
+      122,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Thinking",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -906,
+      52,
+      15
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXButton",
+    "AXTitle" : "Copy message",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      672,
+      -910,
+      94,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "considering: after saved reopen",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -875,
+      192,
+      16
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Agent",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -829,
+      36,
+      15
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXButton",
+    "AXTitle" : "Copy reply",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      693,
+      -833,
+      74,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "[scripted-slow] echo: after saved reopen",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      -797,
+      264,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "You",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -735,
+      23,
+      15
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXButton",
+    "AXTitle" : "Copy message",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      655,
+      -739,
+      94,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Show the rich conversation review",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -703,
+      221,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Command",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -615,
+      61,
+      15
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXButton",
+    "AXTitle" : "Copy tool details",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      644,
+      -619,
+      105,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXDisclosureTriangle",
+    "AXSubrole" : "AXSummary",
+    "AXTitle" : "Review local build · Failed",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -585,
       310,
       21
     ]
@@ -1180,13 +7489,13 @@
     "AXDescription" : "",
     "AXHelp" : "",
     "AXRole" : "AXHeading",
-    "AXTitle" : "THINKING",
+    "AXTitle" : "Input",
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      422,
-      499,
-      344,
+      439,
+      -540,
+      310,
       18
     ]
   },
@@ -1198,15 +7507,16 @@
     "AXDescription" : "",
     "AXHelp" : "",
     "AXRole" : "AXGroup",
+    "AXSubrole" : "AXPreformattedStyleGroup",
     "AXTitle" : "",
     "AXValue" : "",
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      422,
-      524,
-      344,
-      19
+      439,
+      -510,
+      310,
+      47
     ]
   },
   {
@@ -1217,14 +7527,110 @@
     "AXDescription" : "",
     "AXHelp" : "",
     "AXRole" : "AXHeading",
-    "AXTitle" : "AGENT",
+    "AXTitle" : "Output",
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      422,
-      567,
-      344,
+      439,
+      -447,
+      310,
       18
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXPreformattedStyleGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -417,
+      310,
+      47
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXHeading",
+    "AXTitle" : "Result",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -354,
+      310,
+      18
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXPreformattedStyleGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -324,
+      310,
+      85
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXHeading",
+    "AXTitle" : "Location",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -223,
+      310,
+      18
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXPreformattedStyleGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -193,
+      310,
+      47
     ]
   },
   {
@@ -1240,9 +7646,2538 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
+      439,
+      -130,
+      310,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Command",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      5866,
+      61,
+      15
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXButton",
+    "AXTitle" : "Copy tool details",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      644,
+      5862,
+      105,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXDisclosureTriangle",
+    "AXSubrole" : "AXSummary",
+    "AXTitle" : "Track reading progress · Finished",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      5896,
+      310,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Agent",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
       422,
-      592,
-      344,
+      5959,
+      36,
+      15
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXButton",
+    "AXTitle" : "Copy reply",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      693,
+      5955,
+      74,
+      24
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0001: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      5991,
+      329,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0002: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6024,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0003: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6057,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0004: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6090,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0005: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6123,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0006: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6156,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0007: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6189,
+      330,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0008: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6222,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0009: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6255,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0010: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6288,
+      329,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0011: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6321,
+      327,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0012: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6354,
+      329,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0013: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6387,
+      329,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0014: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6420,
+      329,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0015: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6453,
+      329,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0016: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6486,
+      329,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0017: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6519,
+      328,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0018: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6552,
+      329,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0019: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6585,
+      329,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0020: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6618,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0021: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6651,
+      329,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0022: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6684,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0023: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6717,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0024: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6750,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0025: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6783,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0026: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6816,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0027: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6849,
+      330,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0028: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6882,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0029: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6915,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0030: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6948,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0031: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      6981,
+      329,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0032: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7014,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0033: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7047,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0034: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7080,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0035: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7113,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0036: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7146,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0037: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7179,
+      330,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0038: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7212,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0039: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7245,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0040: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7278,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0041: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7311,
+      329,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0042: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7344,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0043: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7377,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0044: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7410,
+      332,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0045: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7443,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0046: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7476,
+      332,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0047: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7509,
+      330,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0048: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7542,
+      332,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0049: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7575,
+      332,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0050: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7608,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0051: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7641,
+      329,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0052: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7674,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0053: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7707,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0054: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7740,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0055: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7773,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0056: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7806,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0057: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7839,
+      330,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0058: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7872,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0059: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7905,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0060: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7938,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0061: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      7971,
+      329,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0062: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8004,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0063: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8037,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0064: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8070,
+      332,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0065: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8103,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0066: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8136,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0067: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8169,
+      330,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0068: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8202,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0069: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8235,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0070: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8268,
+      330,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0071: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8301,
+      328,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0072: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8334,
+      330,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0073: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8367,
+      330,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0074: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8400,
+      330,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0075: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8433,
+      330,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0076: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8466,
+      330,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0077: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8499,
+      329,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0078: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8532,
+      330,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0079: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8565,
+      330,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0080: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8598,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0081: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8631,
+      329,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0082: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8664,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0083: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8697,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0084: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8730,
+      332,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0085: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8763,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0086: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8796,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0087: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8829,
+      330,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0088: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8862,
+      332,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0089: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8895,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0090: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8928,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0091: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8961,
+      329,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0092: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      8994,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0093: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9027,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0094: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9060,
+      332,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0095: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9093,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0096: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9126,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0097: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9159,
+      330,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0098: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9192,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0099: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9225,
+      331,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0100: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9258,
+      329,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0101: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9291,
+      327,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0102: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9324,
+      329,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0103: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9357,
+      329,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0104: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9390,
+      329,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0105: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9423,
+      329,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0106: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9456,
+      329,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0107: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9489,
+      327,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0108: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9522,
+      329,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0109: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9555,
+      329,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0110: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9588,
+      327,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0111: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9621,
+      324,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0112: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9654,
+      326,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0113: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9687,
+      327,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0114: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9720,
+      327,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0115: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9753,
+      326,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0116: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9786,
+      327,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0117: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9819,
+      325,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0118: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9852,
+      327,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0119: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9885,
+      327,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0120: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9918,
+      329,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0121: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9951,
+      326,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0122: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      9984,
+      328,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0123: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      10017,
+      329,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0124: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      10050,
+      329,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0125: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      10083,
+      328,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0126: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      10116,
+      329,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Message the agent",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      632,
+      108,
+      15
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      435,
+      669,
+      318,
       21
     ]
   },
@@ -1331,7 +10266,7 @@
     "AXHelp" : "",
     "AXRole" : "AXStaticText",
     "AXTitle" : "",
-    "AXValue" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-1sg03_0s\/second",
+    "AXValue" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-szz_ai16\/second",
     "enabled" : true,
     "focused" : false,
     "rect" : [
@@ -1773,11 +10708,11 @@
       "AXShowMenu",
       "AXScrollToVisible"
     ],
-    "AXDescription" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-1sg03_0s\/feature",
-    "AXHelp" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-1sg03_0s\/feature",
+    "AXDescription" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-szz_ai16\/feature",
+    "AXHelp" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-szz_ai16\/feature",
     "AXRole" : "AXGroup",
     "AXSubrole" : "AXApplicationGroup",
-    "AXTitle" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-1sg03_0s\/feature",
+    "AXTitle" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-szz_ai16\/feature",
     "AXValue" : "",
     "enabled" : true,
     "focused" : false,
@@ -1873,11 +10808,11 @@
       "AXShowMenu",
       "AXScrollToVisible"
     ],
-    "AXDescription" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-1sg03_0s\/first",
-    "AXHelp" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-1sg03_0s\/first",
+    "AXDescription" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-szz_ai16\/first",
+    "AXHelp" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-szz_ai16\/first",
     "AXRole" : "AXGroup",
     "AXSubrole" : "AXApplicationGroup",
-    "AXTitle" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-1sg03_0s\/first",
+    "AXTitle" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-szz_ai16\/first",
     "AXValue" : "",
     "enabled" : true,
     "focused" : false,
@@ -1973,11 +10908,11 @@
       "AXShowMenu",
       "AXScrollToVisible"
     ],
-    "AXDescription" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-1sg03_0s\/second",
-    "AXHelp" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-1sg03_0s\/second",
+    "AXDescription" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-szz_ai16\/second",
+    "AXHelp" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-szz_ai16\/second",
     "AXRole" : "AXGroup",
     "AXSubrole" : "AXApplicationGroup",
-    "AXTitle" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-1sg03_0s\/second",
+    "AXTitle" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-szz_ai16\/second",
     "AXValue" : "",
     "enabled" : true,
     "focused" : false,
@@ -2107,16 +11042,35 @@
     ],
     "AXDescription" : "",
     "AXHelp" : "",
-    "AXRole" : "AXStaticText",
+    "AXRole" : "AXGroup",
     "AXTitle" : "",
-    "AXValue" : "AGENT",
+    "AXValue" : "Keep the original message.",
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      422,
-      309,
-      46,
-      15
+      470,
+      260,
+      296,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "Read the relevant line.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      470,
+      286,
+      296,
+      21
     ]
   },
   {
@@ -2128,51 +11082,13 @@
     "AXHelp" : "",
     "AXRole" : "AXStaticText",
     "AXTitle" : "",
-    "AXValue" : "resumed bd7e8a60-1bc7-423b-a9ad-215b5db92810",
+    "AXValue" : "Review local build · Failed",
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      422,
-      335,
-      249,
-      38
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXStaticText",
-    "AXTitle" : "",
-    "AXValue" : "YOU",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      439,
-      415,
-      29,
-      15
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXStaticText",
-    "AXTitle" : "",
-    "AXValue" : "after saved reopen",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      439,
-      441,
-      122,
+      453,
+      -583,
+      173,
       17
     ]
   },
@@ -2185,13 +11101,13 @@
     "AXHelp" : "",
     "AXRole" : "AXStaticText",
     "AXTitle" : "",
-    "AXValue" : "THINKING",
+    "AXValue" : "Input",
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      422,
-      500,
-      66,
+      439,
+      -539,
+      32,
       15
     ]
   },
@@ -2204,32 +11120,13 @@
     "AXHelp" : "",
     "AXRole" : "AXStaticText",
     "AXTitle" : "",
-    "AXValue" : "considering: after saved reopen",
+    "AXValue" : "{\"command\":\"cargo test --package reading-note\",\"directory\":\".\"}",
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      422,
-      525,
-      192,
-      16
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXStaticText",
-    "AXTitle" : "",
-    "AXValue" : "AGENT",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      422,
-      568,
-      46,
+      455,
+      -494,
+      468,
       15
     ]
   },
@@ -2242,13 +11139,165 @@
     "AXHelp" : "",
     "AXRole" : "AXStaticText",
     "AXTitle" : "",
-    "AXValue" : "[scripted-slow] echo: after saved reopen",
+    "AXValue" : "Output",
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      422,
-      594,
-      264,
+      439,
+      -446,
+      43,
+      15
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "{\"exit_code\":1,\"stderr\":\"error[E0425]: cannot find value `release_name` in this scope\\n日本語: release_name を確認してください。\"}",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      455,
+      -401,
+      921,
+      15
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Result",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -353,
+      39,
+      15
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "error[E0425]: cannot find value `release_name` in this scope\n日本語: release_name を確認してください。\nReview finished with an error.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      455,
+      -308,
+      446,
+      53
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Location",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -222,
+      52,
+      15
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-szz_ai16\/second\/sample.rs:2",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      455,
+      -177,
+      802,
+      15
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Duration: 12.85 seconds.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      439,
+      -128,
+      161,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Track reading progress · Finished",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      453,
+      5898,
+      226,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Describe the work…",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      435,
+      671,
+      129,
       17
     ]
   },
@@ -2401,6 +11450,82 @@
       236,
       1084,
       78,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXListMarker",
+    "AXTitle" : "",
+    "AXValue" : "◦",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      453,
+      262,
+      7,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Keep the original message.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      470,
+      262,
+      175,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXListMarker",
+    "AXTitle" : "",
+    "AXValue" : "◦",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      453,
+      288,
+      7,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Read the relevant line.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      470,
+      288,
+      144,
       17
     ]
   }

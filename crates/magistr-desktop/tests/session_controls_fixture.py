@@ -1,10 +1,19 @@
 """Isolated peers for native session choice and resume-refusal journeys."""
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
+from pathlib import Path
 import threading
 
 def start_api():
     class API(BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.server.visits.append(self.path)
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.end_headers()
+            token=self.path.rsplit("/",1)[-1]
+            marker="Native link reached: "+token
+            self.wfile.write(("<!doctype html><title>"+marker+"</title><h1>"+marker+"</h1>").encode())
         def do_POST(self):
             self.rfile.read(int(self.headers.get("Content-Length", 0)))
             self.send_response(200)
@@ -14,6 +23,7 @@ def start_api():
             self.wfile.write(("data: "+json.dumps(frame)+"\n\ndata: [DONE]\n\n").encode())
         def log_message(self, *_): pass
     server=HTTPServer(("127.0.0.1",0), API)
+    server.visits=[]
     threading.Thread(target=server.serve_forever,daemon=True).start()
     return server
 
@@ -37,5 +47,7 @@ if Path(os.environ['JOURNEY_REFUSE_LOAD']).exists():
             continue
         print(json.dumps(reply),flush=True)
 else:
-    os.execv(EXECUTABLE,[EXECUTABLE,'acp-agent','--provider','scripted'])
-""".replace("EXECUTABLE",repr(str(executable)))
+    sys.path.insert(0,HELPERS)
+    from rich_conversation_fixture import proxy
+    proxy(EXECUTABLE)
+""".replace("EXECUTABLE",repr(str(executable))).replace("HELPERS",repr(str(Path(__file__).resolve().parent)))
