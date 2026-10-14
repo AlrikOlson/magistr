@@ -9,6 +9,10 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
+#[path = "user_config_document.rs"]
+mod document;
+pub use document::UserConfigDocument;
+
 /// User-level configuration persisted across sessions.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct UserConfig {
@@ -56,8 +60,45 @@ pub struct UserConfig {
 /// Theme-related user preferences.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct ThemeConfig {
-    /// Default theme name (e.g. "catppuccin-mocha", "dracula").
-    pub default: Option<String>,
+    /// Follow the system appearance or choose a light or dark appearance.
+    #[serde(default)]
+    pub default: ThemePreference,
+}
+
+/// Supported appearance choices shared by preferences and the desktop.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Default, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum ThemePreference {
+    #[default]
+    System,
+    Light,
+    Dark,
+}
+
+impl ThemePreference {
+    #[must_use]
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::System => "System",
+            Self::Light => "Light",
+            Self::Dark => "Dark",
+        }
+    }
+
+    #[must_use]
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::System => "system",
+            Self::Light => "light",
+            Self::Dark => "dark",
+        }
+    }
+}
+
+impl std::fmt::Display for ThemePreference {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
 }
 
 /// Default budget settings persisted across sessions.
@@ -503,28 +544,7 @@ impl GeneralConfig {
 /// `UserConfig::default()` for a missing file and an error only when the
 /// file exists but cannot be read or parsed.
 pub fn load_from(path: &Path) -> Result<UserConfig, UserConfigError> {
-    if !path.is_file() {
-        return Ok(UserConfig::default());
-    }
-
-    let content =
-        std::fs::read_to_string(path).map_err(|e| UserConfigError::Io(path.to_owned(), e))?;
-    let config: UserConfig = toml::from_str(&content)
-        .map_err(|e| UserConfigError::Parse(path.to_owned(), e.to_string()))?;
-    Ok(config)
-}
-
-/// Save user configuration to an explicit path, creating the parent
-/// directory if it does not exist.
-pub fn save_to(config: &UserConfig, path: &Path) -> Result<(), UserConfigError> {
-    if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| UserConfigError::Io(parent.to_owned(), e))?;
-    }
-
-    let content =
-        toml::to_string_pretty(config).map_err(|e| UserConfigError::Serialize(e.to_string()))?;
-    std::fs::write(path, content).map_err(|e| UserConfigError::Io(path.to_owned(), e))?;
-    Ok(())
+    Ok(UserConfigDocument::load(path)?.config().clone())
 }
 
 /// Errors that can occur when loading or saving user configuration.
@@ -534,8 +554,10 @@ pub enum UserConfigError {
     Io(PathBuf, std::io::Error),
     /// TOML parse error.
     Parse(PathBuf, String),
-    /// TOML serialization error.
-    Serialize(String),
+    /// Another writer changed the configuration since it was read.
+    Conflict(PathBuf),
+    /// Another writer currently owns the configuration.
+    Busy(PathBuf),
     /// Home directory not found.
     NoHome(String),
 }
@@ -547,7 +569,16 @@ impl std::fmt::Display for UserConfigError {
             Self::Parse(path, e) => {
                 write!(f, "failed to parse config '{}': {}", path.display(), e)
             }
-            Self::Serialize(e) => write!(f, "failed to serialize config: {e}"),
+            Self::Conflict(path) => write!(
+                f,
+                "Settings changed in '{}'. Reload settings before saving again.",
+                path.display()
+            ),
+            Self::Busy(path) => write!(
+                f,
+                "Settings in '{}' are being saved. Try again in a moment.",
+                path.display()
+            ),
             Self::NoHome(msg) => write!(f, "{msg}"),
         }
     }

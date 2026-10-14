@@ -173,6 +173,30 @@ impl PromptAttachment {
         })
     }
 
+    /// Restore a saved selection into an explicitly addressed identity. The
+    /// content still passes the same bounds and format checks as a new file.
+    pub fn restore_selection(
+        id: String,
+        name: String,
+        content_hash: String,
+        bytes: Vec<u8>,
+    ) -> Result<Self, String> {
+        if id.is_empty() || id.len() > 256 {
+            return Err(
+                "This saved attachment cannot be identified. Remove it and choose it again.".into(),
+            );
+        }
+        let mut attachment = Self::from_bytes(name, content_hash, bytes)?;
+        if let Some(sequence) = id
+            .strip_prefix("attachment-")
+            .and_then(|value| value.parse::<u64>().ok())
+        {
+            NEXT_ATTACHMENT.fetch_max(sequence.saturating_add(1), Ordering::Relaxed);
+        }
+        attachment.id = id;
+        Ok(attachment)
+    }
+
     /// Identity of this selection, preserved by clones and acceptance receipts.
     #[must_use]
     pub fn id(&self) -> &str {

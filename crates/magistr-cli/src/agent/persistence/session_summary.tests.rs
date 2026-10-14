@@ -12,9 +12,10 @@ fn sample_record(id: &str, project: &str, cost: f64, turns: u32) -> SessionRecor
         provider: "scripted".into(),
         provider_session_id: Some("provider-fixture".into()),
         resume_supported: true,
-        outcome: HistoryOutcome::Completed,
+        outcome: Some(HistoryOutcome::Completed),
         started_at: Utc.with_ymd_and_hms(2026, 3, 10, 9, 0, 0).unwrap(),
-        ended_at: Utc.with_ymd_and_hms(2026, 3, 10, 9, 30, 0).unwrap(),
+        updated_at: Utc.with_ymd_and_hms(2026, 3, 10, 9, 30, 0).unwrap(),
+        ended_at: Some(Utc.with_ymd_and_hms(2026, 3, 10, 9, 30, 0).unwrap()),
         cost_usd: Some(cost),
         turns: Some(turns),
         duration_ms: 1_800_000,
@@ -53,13 +54,13 @@ fn summary_from_records() {
 fn summary_tracks_earliest_latest() {
     let mut r1 = sample_record("a", "proj", 1.0, 1);
     r1.started_at = Utc.with_ymd_and_hms(2026, 1, 1, 0, 0, 0).unwrap();
-    r1.ended_at = Utc.with_ymd_and_hms(2026, 1, 1, 1, 0, 0).unwrap();
+    r1.updated_at = Utc.with_ymd_and_hms(2026, 1, 1, 1, 0, 0).unwrap();
 
     let mut r2 = sample_record("b", "proj", 1.0, 1);
     r2.started_at = Utc.with_ymd_and_hms(2026, 3, 10, 0, 0, 0).unwrap();
-    r2.ended_at = Utc.with_ymd_and_hms(2026, 3, 10, 2, 0, 0).unwrap();
+    r2.updated_at = Utc.with_ymd_and_hms(2026, 3, 10, 2, 0, 0).unwrap();
 
     let s = SessionSummary::from_records(&[r1.clone(), r2.clone()]);
     assert_eq!(s.earliest, Some(r1.started_at));
-    assert_eq!(s.latest, Some(r2.ended_at));
+    assert_eq!(s.latest, Some(r2.updated_at));
 }

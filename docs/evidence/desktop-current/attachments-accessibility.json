@@ -20,7 +20,7 @@
     "focused" : true,
     "rect" : [
       435,
-      727,
+      689,
       249,
       16
     ]
@@ -41,7 +41,7 @@
     "focused" : false,
     "rect" : [
       435,
-      727,
+      689,
       249,
       16
     ]
@@ -60,7 +60,7 @@
     "focused" : false,
     "rect" : [
       425,
-      677,
+      639,
       338,
       76
     ]
@@ -80,7 +80,7 @@
     "focused" : false,
     "rect" : [
       422,
-      594,
+      556,
       344,
       115
     ]
@@ -100,9 +100,9 @@
     "focused" : false,
     "rect" : [
       404,
-      433,
+      395,
       380,
-      406
+      444
     ]
   },
   {
@@ -239,7 +239,7 @@
     "focused" : false,
     "rect" : [
       447,
-      728,
+      690,
       42,
       13
     ]
@@ -258,7 +258,7 @@
     "focused" : false,
     "rect" : [
       435,
-      687,
+      649,
       249,
       18
     ]
@@ -277,7 +277,7 @@
     "focused" : false,
     "rect" : [
       435,
-      708,
+      670,
       127,
       13
     ]
@@ -297,7 +297,7 @@
     "focused" : false,
     "rect" : [
       693,
-      687,
+      649,
       60,
       28
     ]
@@ -316,7 +316,7 @@
     "focused" : false,
     "rect" : [
       425,
-      597,
+      559,
       338,
       72
     ]
@@ -335,7 +335,7 @@
     "focused" : false,
     "rect" : [
       422,
-      444,
+      406,
       344,
       18
     ]
@@ -356,7 +356,7 @@
     "focused" : false,
     "rect" : [
       422,
-      469,
+      431,
       344,
       110
     ]
@@ -376,9 +376,49 @@
     "focused" : false,
     "rect" : [
       422,
-      716,
+      678,
       344,
       16
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXApplicationStatus",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      708,
+      245,
+      18
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXButton",
+    "AXTitle" : "Discard draft",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      674,
+      702,
+      92,
+      30
     ]
   },
   {
@@ -476,7 +516,7 @@
       404,
       282,
       380,
-      151
+      113
     ]
   },
   {
@@ -494,7 +534,7 @@
     "focused" : false,
     "rect" : [
       651,
-      376,
+      338,
       115,
       39
     ]
@@ -636,7 +676,7 @@
     "focused" : false,
     "rect" : [
       435,
-      688,
+      650,
       100,
       15
     ]
@@ -655,7 +695,7 @@
     "focused" : false,
     "rect" : [
       435,
-      607,
+      569,
       52,
       52
     ]
@@ -674,7 +714,7 @@
     "focused" : false,
     "rect" : [
       497,
-      607,
+      569,
       187,
       18
     ]
@@ -693,7 +733,7 @@
     "focused" : false,
     "rect" : [
       497,
-      628,
+      590,
       103,
       13
     ]
@@ -713,7 +753,7 @@
     "focused" : false,
     "rect" : [
       693,
-      607,
+      569,
       60,
       28
     ]
@@ -732,7 +772,7 @@
     "focused" : false,
     "rect" : [
       422,
-      445,
+      407,
       108,
       15
     ]
@@ -751,7 +791,7 @@
     "focused" : false,
     "rect" : [
       435,
-      482,
+      444,
       318,
       21
     ]
@@ -770,9 +810,28 @@
     "focused" : false,
     "rect" : [
       422,
-      717,
+      679,
       319,
       13
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Draft saved",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      709,
+      66,
+      15
     ]
   },
   {
@@ -1235,7 +1294,7 @@
     "focused" : false,
     "rect" : [
       236,
-      157,
+      84,
       155,
       32
     ]
@@ -1255,7 +1314,7 @@
     "focused" : false,
     "rect" : [
       236,
-      215,
+      142,
       155,
       39
     ]
@@ -1275,7 +1334,7 @@
     "focused" : false,
     "rect" : [
       236,
-      266,
+      213,
       155,
       73
     ]
@@ -1293,7 +1352,7 @@
     "focused" : false,
     "rect" : [
       236,
-      363,
+      290,
       155,
       18
     ]
@@ -1313,7 +1372,7 @@
     "focused" : false,
     "rect" : [
       236,
-      393,
+      320,
       155,
       127
     ]
@@ -1331,7 +1390,7 @@
     "focused" : false,
     "rect" : [
       236,
-      544,
+      471,
       155,
       18
     ]
@@ -1351,7 +1410,7 @@
     "focused" : false,
     "rect" : [
       236,
-      574,
+      501,
       155,
       352
     ]
@@ -1371,7 +1430,7 @@
     "focused" : false,
     "rect" : [
       236,
-      938,
+      865,
       155,
       39
     ]
@@ -1391,7 +1450,7 @@
     "focused" : false,
     "rect" : [
       236,
-      989,
+      916,
       155,
       60
     ]
@@ -1411,9 +1470,9 @@
     "focused" : false,
     "rect" : [
       236,
-      1061,
+      988,
       155,
-      72
+      145
     ]
   },
   {
@@ -1443,7 +1502,7 @@
     "focused" : false,
     "rect" : [
       497,
-      608,
+      570,
       74,
       15
     ]
@@ -1462,7 +1521,7 @@
     "focused" : false,
     "rect" : [
       435,
-      484,
+      446,
       221,
       17
     ]
@@ -1708,7 +1767,7 @@
     "AXHelp" : "",
     "AXRole" : "AXStaticText",
     "AXTitle" : "",
-    "AXValue" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-86mz5dsa\/second",
+    "AXValue" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-moa1pdy6\/second",
     "enabled" : true,
     "focused" : false,
     "rect" : [
@@ -1964,7 +2023,7 @@
     "focused" : false,
     "rect" : [
       278,
-      159,
+      86,
       69,
       28
     ]
@@ -1982,7 +2041,7 @@
     "focused" : false,
     "rect" : [
       236,
-      276,
+      223,
       155,
       36
     ]
@@ -2002,7 +2061,7 @@
     "focused" : false,
     "rect" : [
       236,
-      312,
+      259,
       155,
       16
     ]
@@ -2022,7 +2081,7 @@
     "focused" : false,
     "rect" : [
       236,
-      266,
+      213,
       155,
       10
     ]
@@ -2041,7 +2100,7 @@
     "focused" : false,
     "rect" : [
       236,
-      364,
+      291,
       70,
       15
     ]
@@ -2061,7 +2120,7 @@
     "focused" : false,
     "rect" : [
       236,
-      393,
+      320,
       155,
       39
     ]
@@ -2081,7 +2140,7 @@
     "focused" : false,
     "rect" : [
       236,
-      437,
+      364,
       155,
       39
     ]
@@ -2101,7 +2160,7 @@
     "focused" : false,
     "rect" : [
       236,
-      481,
+      408,
       155,
       39
     ]
@@ -2120,7 +2179,7 @@
     "focused" : false,
     "rect" : [
       236,
-      545,
+      472,
       68,
       15
     ]
@@ -2140,7 +2199,7 @@
     "focused" : false,
     "rect" : [
       236,
-      574,
+      501,
       155,
       55
     ]
@@ -2150,17 +2209,17 @@
       "AXShowMenu",
       "AXScrollToVisible"
     ],
-    "AXDescription" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-86mz5dsa\/feature",
-    "AXHelp" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-86mz5dsa\/feature",
+    "AXDescription" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-moa1pdy6\/feature",
+    "AXHelp" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-moa1pdy6\/feature",
     "AXRole" : "AXGroup",
     "AXSubrole" : "AXApplicationGroup",
-    "AXTitle" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-86mz5dsa\/feature",
+    "AXTitle" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-moa1pdy6\/feature",
     "AXValue" : "",
     "enabled" : true,
     "focused" : false,
     "rect" : [
       236,
-      629,
+      556,
       155,
       23
     ]
@@ -2180,7 +2239,7 @@
     "focused" : false,
     "rect" : [
       236,
-      652,
+      579,
       35,
       25
     ]
@@ -2200,7 +2259,7 @@
     "focused" : false,
     "rect" : [
       274,
-      652,
+      579,
       64,
       25
     ]
@@ -2220,7 +2279,7 @@
     "focused" : false,
     "rect" : [
       341,
-      652,
+      579,
       40,
       25
     ]
@@ -2240,7 +2299,7 @@
     "focused" : false,
     "rect" : [
       236,
-      693,
+      620,
       155,
       55
     ]
@@ -2250,17 +2309,17 @@
       "AXShowMenu",
       "AXScrollToVisible"
     ],
-    "AXDescription" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-86mz5dsa\/first",
-    "AXHelp" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-86mz5dsa\/first",
+    "AXDescription" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-moa1pdy6\/first",
+    "AXHelp" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-moa1pdy6\/first",
     "AXRole" : "AXGroup",
     "AXSubrole" : "AXApplicationGroup",
-    "AXTitle" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-86mz5dsa\/first",
+    "AXTitle" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-moa1pdy6\/first",
     "AXValue" : "",
     "enabled" : true,
     "focused" : false,
     "rect" : [
       236,
-      748,
+      675,
       155,
       23
     ]
@@ -2280,7 +2339,7 @@
     "focused" : false,
     "rect" : [
       236,
-      771,
+      698,
       35,
       25
     ]
@@ -2300,7 +2359,7 @@
     "focused" : false,
     "rect" : [
       274,
-      771,
+      698,
       64,
       25
     ]
@@ -2320,7 +2379,7 @@
     "focused" : false,
     "rect" : [
       341,
-      771,
+      698,
       40,
       25
     ]
@@ -2340,7 +2399,7 @@
     "focused" : false,
     "rect" : [
       236,
-      812,
+      739,
       155,
       55
     ]
@@ -2350,17 +2409,17 @@
       "AXShowMenu",
       "AXScrollToVisible"
     ],
-    "AXDescription" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-86mz5dsa\/second",
-    "AXHelp" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-86mz5dsa\/second",
+    "AXDescription" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-moa1pdy6\/second",
+    "AXHelp" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-moa1pdy6\/second",
     "AXRole" : "AXGroup",
     "AXSubrole" : "AXApplicationGroup",
-    "AXTitle" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-86mz5dsa\/second",
+    "AXTitle" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-moa1pdy6\/second",
     "AXValue" : "",
     "enabled" : true,
     "focused" : false,
     "rect" : [
       236,
-      867,
+      794,
       155,
       23
     ]
@@ -2380,7 +2439,7 @@
     "focused" : false,
     "rect" : [
       236,
-      890,
+      817,
       35,
       25
     ]
@@ -2400,7 +2459,7 @@
     "focused" : false,
     "rect" : [
       274,
-      890,
+      817,
       64,
       25
     ]
@@ -2420,7 +2479,7 @@
     "focused" : false,
     "rect" : [
       341,
-      890,
+      817,
       40,
       25
     ]
@@ -2439,7 +2498,7 @@
     "focused" : false,
     "rect" : [
       236,
-      1082,
+      1009,
       155,
       21
     ]
@@ -2459,9 +2518,48 @@
     "focused" : false,
     "rect" : [
       236,
-      1111,
+      1038,
       155,
       22
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      236,
+      1068,
+      155,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXApplicationStatus",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      236,
+      1097,
+      155,
+      36
     ]
   },
   {
@@ -2525,13 +2623,13 @@
     "AXHelp" : "",
     "AXRole" : "AXStaticText",
     "AXTitle" : "",
-    "AXValue" : "resumed 2ecf377a-baad-4177-a029-f1554cf56919",
+    "AXValue" : "resumed e982175f-e392-4031-9ea8-7f6632511011",
     "enabled" : true,
     "focused" : false,
     "rect" : [
       422,
       344,
-      334,
+      336,
       17
     ]
   },
@@ -2742,7 +2840,7 @@
     "focused" : false,
     "rect" : [
       278,
-      162,
+      89,
       70,
       22
     ]
@@ -2761,7 +2859,7 @@
     "focused" : false,
     "rect" : [
       236,
-      277,
+      224,
       86,
       33
     ]
@@ -2780,7 +2878,7 @@
     "focused" : false,
     "rect" : [
       236,
-      313,
+      260,
       97,
       13
     ]
@@ -2799,7 +2897,7 @@
     "focused" : false,
     "rect" : [
       238,
-      634,
+      561,
       143,
       13
     ]
@@ -2818,7 +2916,7 @@
     "focused" : false,
     "rect" : [
       238,
-      753,
+      680,
       130,
       13
     ]
@@ -2837,7 +2935,7 @@
     "focused" : false,
     "rect" : [
       238,
-      872,
+      799,
       136,
       13
     ]
@@ -2856,9 +2954,66 @@
     "focused" : false,
     "rect" : [
       236,
-      1084,
+      1011,
       78,
       17
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXCheckBox",
+    "AXTitle" : "Reduce motion",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      236,
+      1068,
+      155,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reduce motion",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      260,
+      1070,
+      97,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reduced motion is enabled for this launch.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      236,
+      1098,
+      154,
+      33
     ]
   }
 ]

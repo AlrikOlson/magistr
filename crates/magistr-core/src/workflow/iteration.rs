@@ -19,9 +19,9 @@ use magistr_domain::workflow::{RunMode, RunState, StopReason};
 use magistr_engine::NativeReader;
 use serde::{Deserialize, Serialize};
 
+use crate::durable_write::durable_write;
 use crate::error::{MagistrError, Result};
 use crate::types::ProjectConfig;
-use crate::workflow::durable_write::durable_write;
 use crate::workflow::reconciliation::Reconciliation;
 use crate::workflow::spec::{self, SpecSummary};
 

@@ -3093,6 +3093,7 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.20",
  "toml 1.0.6+spec-1.1.0",
+ "toml_edit",
  "tracing",
  "ureq",
  "windows-sys 0.61.2",

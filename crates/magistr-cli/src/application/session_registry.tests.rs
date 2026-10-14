@@ -219,7 +219,7 @@ async fn addressed_sessions_in_two_workspaces_survive_disconnect_and_route_permi
     client.command(&a, Cmd::Prompt("ask".into())).await.unwrap();
     until(&mut reader, |snapshot| snapshot.pending.contains_key(&1)).await;
     drop(reader);
-    client.draft(&a, "unsent first".into()).await.unwrap();
+    client.draft(&a, 0, "unsent first".into()).await.unwrap();
     client
         .command(&b, Cmd::Prompt("other".into()))
         .await
@@ -429,7 +429,7 @@ async fn oversized_input_is_refused_before_entering_the_owner_queue() {
     assert!(
         tokio::time::timeout(
             Duration::from_millis(100),
-            client.draft(&address, text.clone())
+            client.draft(&address, 0, text.clone())
         )
         .await
         .expect("must refuse before posting")
@@ -497,7 +497,10 @@ async fn catalog_tracks_background_attention_without_token_or_draft_notification
             .status,
         super::super::SessionStatus::Ready
     );
-    client.draft(&b, "background draft".into()).await.unwrap();
+    client
+        .draft(&b, 0, "background draft".into())
+        .await
+        .unwrap();
     for _ in 0..100 {
         client
             .command(&b, Cmd::Prompt("token".into()))

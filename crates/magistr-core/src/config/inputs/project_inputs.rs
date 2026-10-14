@@ -612,11 +612,13 @@ impl ProjectInputs {
         let Some(path) = self.user_config_path() else {
             return Ok(CapturedInput::unlocated(UserConfig::default()));
         };
-        if !path.is_file() {
-            return Ok(CapturedInput::absent(UserConfig::default(), path));
-        }
-        let value = user_config::load_from(&path)?;
-        Ok(CapturedInput::loaded(value, path))
+        let document = user_config::UserConfigDocument::load(&path)?;
+        let value = document.config().clone();
+        Ok(if document.is_present() {
+            CapturedInput::loaded(value, path)
+        } else {
+            CapturedInput::absent(value, path)
+        })
     }
 
     /// The current shared project settings, read without changing them.

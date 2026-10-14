@@ -25,7 +25,7 @@ const DB_FILENAME: &str = "sessions.db";
 const BUSY_WAIT: std::time::Duration = std::time::Duration::from_millis(500);
 
 /// Current schema only. Older formats are refused, never migrated.
-const SCHEMA_VERSION: i32 = 8;
+const SCHEMA_VERSION: i32 = 9;
 
 /// The session database, `<data_dir>/sessions.db`, over the captured data
 /// directory — the same directory the cost ledger and the audit log share;
@@ -63,6 +63,8 @@ pub fn open_db(path: &Path) -> Result<Connection> {
     conn.busy_timeout(BUSY_WAIT)
         .map_err(|e| MagistrError::sqlite("set the session database's busy wait", e))?;
 
+    conn.pragma_update(None, "foreign_keys", true)
+        .map_err(|e| MagistrError::sqlite("enable session relationships", e))?;
     write_ahead(&conn)?;
     initialize(&conn)?;
     Ok(conn)
@@ -128,8 +130,8 @@ fn initialize(conn: &Connection) -> Result<()> {
                 provider_session_id TEXT,
                 resume_supported INTEGER NOT NULL,
                 started_at TEXT NOT NULL,
-                ended_at TEXT NOT NULL,
-                outcome TEXT NOT NULL CHECK(outcome IN ('completed','cancelled','failed','stopped')),
+                updated_at TEXT NOT NULL,
+                outcome TEXT CHECK(outcome IN ('completed','cancelled','failed','stopped')),
                 cost_usd REAL,
                 turns INTEGER,
                 duration_ms INTEGER NOT NULL,
@@ -138,7 +140,15 @@ fn initialize(conn: &Connection) -> Result<()> {
                 summary TEXT,
                 model TEXT,
                 owner TEXT,
-                name TEXT
+                name TEXT,
+                ended_at TEXT,
+                CHECK ((ended_at IS NULL) = (outcome IS NULL))
+            );
+            CREATE TABLE session_drafts (
+                session_id TEXT PRIMARY KEY REFERENCES sessions(session_id) ON DELETE CASCADE,
+                revision INTEGER NOT NULL CHECK(revision >= 0),
+                text TEXT NOT NULL,
+                attachments BLOB NOT NULL
             );
             CREATE INDEX idx_sessions_project ON sessions(project);
             CREATE INDEX idx_sessions_workspace ON sessions(workspace);
@@ -155,8 +165,9 @@ fn initialize(conn: &Connection) -> Result<()> {
                 UNIQUE(session_id, turn_index)
             );
             CREATE INDEX idx_turns_session ON session_turns(session_id);
-            PRAGMA user_version = 8;"
-        ).map_err(|e| MagistrError::sqlite("create session schema", e))
+            PRAGMA user_version = 9;",
+        )
+        .map_err(|e| MagistrError::sqlite("create session schema", e))
     })();
     match result {
         Ok(()) => conn
@@ -169,7 +180,7 @@ fn initialize(conn: &Connection) -> Result<()> {
     }
 }
 
-/// Save current settlement facts. A repeated or older settlement is a no-op.
+/// Save current owner facts. A repeated or older checkpoint is a no-op.
 /// User-assigned tags and ownership survive a later continuation.
 pub fn insert_session(conn: &Connection, record: &SessionRecord) -> Result<()> {
     let files = serde_json::to_string(&record.files_changed)
@@ -179,18 +190,19 @@ pub fn insert_session(conn: &Connection, record: &SessionRecord) -> Result<()> {
     let updated = conn
         .execute(
             "INSERT INTO sessions
-            (session_id, project, started_at, ended_at, cost_usd, turns,
+            (session_id, project, started_at, updated_at, cost_usd, turns,
              duration_ms, files_changed, tags, summary, model, owner,
-             workspace, provider, provider_session_id, resume_supported, outcome, name)
+             workspace, provider, provider_session_id, resume_supported, outcome, name, ended_at)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12,
-                 ?13, ?14, ?15, ?16, ?17, ?18)
+                 ?13, ?14, ?15, ?16, ?17, ?18, ?19)
          ON CONFLICT(session_id) DO UPDATE SET
-             ended_at=excluded.ended_at, cost_usd=excluded.cost_usd,
+             updated_at=excluded.updated_at, cost_usd=excluded.cost_usd,
              turns=excluded.turns, duration_ms=excluded.duration_ms,
              files_changed=excluded.files_changed, summary=excluded.summary,
              model=excluded.model, provider_session_id=excluded.provider_session_id,
-             resume_supported=excluded.resume_supported, outcome=excluded.outcome, name=excluded.name
-         WHERE excluded.ended_at > sessions.ended_at
+             resume_supported=excluded.resume_supported, outcome=excluded.outcome, name=excluded.name,
+             ended_at=excluded.ended_at
+         WHERE excluded.updated_at > sessions.updated_at
            AND excluded.project = sessions.project
            AND excluded.workspace = sessions.workspace
            AND excluded.provider = sessions.provider",
@@ -198,7 +210,7 @@ pub fn insert_session(conn: &Connection, record: &SessionRecord) -> Result<()> {
                 record.session_id,
                 record.project,
                 record.started_at.to_rfc3339(),
-                record.ended_at.to_rfc3339(),
+                record.updated_at.to_rfc3339(),
                 record.cost_usd,
                 record.turns,
                 i64::try_from(record.duration_ms)
@@ -212,8 +224,9 @@ pub fn insert_session(conn: &Connection, record: &SessionRecord) -> Result<()> {
                 record.provider,
                 record.provider_session_id,
                 record.resume_supported,
-                record.outcome.as_str(),
+                record.outcome.map(SessionOutcome::as_str),
                 record.name,
+                record.ended_at.map(|time| time.to_rfc3339()),
             ],
         )
         .map_err(|e| MagistrError::sqlite("save session", e))?;
@@ -232,12 +245,12 @@ pub fn insert_session(conn: &Connection, record: &SessionRecord) -> Result<()> {
 
 /// Query sessions with optional filters.
 ///
-/// Returns results sorted by the latest settlement, including resumed conversations.
+/// Returns results sorted by the latest checkpoint, including open conversations.
 pub fn query_sessions(conn: &Connection, filter: &SessionFilter) -> Result<Vec<SessionRecord>> {
     let mut sql = String::from(
-        "SELECT session_id, project, started_at, ended_at, cost_usd, turns,
+        "SELECT session_id, project, started_at, updated_at, cost_usd, turns,
                 duration_ms, files_changed, tags, summary, model, owner,
-                workspace, provider, provider_session_id, resume_supported, outcome, name
+                workspace, provider, provider_session_id, resume_supported, outcome, name, ended_at
          FROM sessions WHERE 1=1",
     );
     let mut param_values: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
@@ -253,7 +266,7 @@ pub fn query_sessions(conn: &Connection, filter: &SessionFilter) -> Result<Vec<S
     }
 
     if let Some(since) = filter.since {
-        sql.push_str(" AND ended_at >= ?");
+        sql.push_str(" AND updated_at >= ?");
         param_values.push(Box::new(since.to_rfc3339()));
     }
 
@@ -268,7 +281,7 @@ pub fn query_sessions(conn: &Connection, filter: &SessionFilter) -> Result<Vec<S
         param_values.push(Box::new(format!("%{owner}%")));
     }
 
-    sql.push_str(" ORDER BY ended_at DESC, session_id LIMIT ?");
+    sql.push_str(" ORDER BY updated_at DESC, session_id LIMIT ?");
     param_values.push(Box::new(filter.limit as i64));
 
     let params_ref: Vec<&dyn rusqlite::types::ToSql> =
@@ -295,9 +308,9 @@ pub fn query_sessions(conn: &Connection, filter: &SessionFilter) -> Result<Vec<S
 pub fn get_session(conn: &Connection, session_id: &str) -> Result<Option<SessionRecord>> {
     let mut stmt = conn
         .prepare(
-            "SELECT session_id, project, started_at, ended_at, cost_usd, turns,
+            "SELECT session_id, project, started_at, updated_at, cost_usd, turns,
                     duration_ms, files_changed, tags, summary, model, owner,
-                workspace, provider, provider_session_id, resume_supported, outcome, name
+                workspace, provider, provider_session_id, resume_supported, outcome, name, ended_at
              FROM sessions WHERE session_id = ?1",
         )
         .map_err(|e| MagistrError::sqlite("prepare session query", e))?;
@@ -323,7 +336,7 @@ pub fn purge_old_sessions(conn: &Connection, policy: &RetentionPolicy) -> Result
 
     let deleted = conn
         .execute(
-            "DELETE FROM sessions WHERE ended_at < ?1",
+            "DELETE FROM sessions WHERE updated_at < ?1",
             params![cutoff.to_rfc3339()],
         )
         .map_err(|e| MagistrError::sqlite("purge old sessions", e))?;
@@ -504,21 +517,40 @@ fn row_to_turn(row: &rusqlite::Row<'_>) -> rusqlite::Result<SessionTurn> {
 }
 
 fn row_to_record(row: &rusqlite::Row<'_>) -> rusqlite::Result<SessionRecord> {
-    let outcome: String = row.get(16)?;
-    let outcome = serde_json::from_value::<SessionOutcome>(serde_json::Value::String(outcome))
-        .map_err(|error| {
-            rusqlite::Error::FromSqlConversionFailure(
-                16,
-                rusqlite::types::Type::Text,
-                Box::new(error),
+    let outcome: Option<String> = row.get(16)?;
+    let outcome = outcome
+        .map(|value| {
+            serde_json::from_value::<SessionOutcome>(serde_json::Value::String(value)).map_err(
+                |error| {
+                    rusqlite::Error::FromSqlConversionFailure(
+                        16,
+                        rusqlite::types::Type::Text,
+                        Box::new(error),
+                    )
+                },
             )
-        })?;
+        })
+        .transpose()?;
     Ok(SessionRecord {
         session_id: row.get(0)?,
         name: row.get(17)?,
         project: row.get(1)?,
         started_at: timestamp(row, 2)?,
-        ended_at: timestamp(row, 3)?,
+        updated_at: timestamp(row, 3)?,
+        ended_at: row
+            .get::<_, Option<String>>(18)?
+            .map(|value| {
+                DateTime::parse_from_rfc3339(&value)
+                    .map(|time| time.with_timezone(&Utc))
+                    .map_err(|error| {
+                        rusqlite::Error::FromSqlConversionFailure(
+                            18,
+                            rusqlite::types::Type::Text,
+                            Box::new(error),
+                        )
+                    })
+            })
+            .transpose()?,
         cost_usd: row.get(4)?,
         turns: row.get(5)?,
         duration_ms: u64::try_from(row.get::<_, i64>(6)?).map_err(|error| {

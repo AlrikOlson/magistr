@@ -22,6 +22,8 @@ pub(crate) struct DesktopState {
     pub(crate) projects: std::sync::Arc<ProjectReviews>,
     pub(crate) inputs: ProjectInputs,
     pub(crate) reduce_motion: bool,
+    pub(crate) preferences: magistr::application::DesktopPreferencesService,
+    pub(crate) exit: crate::exit::Exit,
 }
 #[derive(Serialize)]
 pub(crate) struct Overview {
@@ -194,9 +196,10 @@ pub(crate) async fn session_action(
 pub(crate) async fn save_draft(
     address: SessionAddress,
     text: String,
+    expected_revision: u64,
     state: State<'_, DesktopState>,
-) -> Result<(), String> {
-    state.client.draft(&address, text).await
+) -> Result<magistr::application::DraftStatus, String> {
+    state.client.draft(&address, expected_revision, text).await
 }
 #[tauri::command]
 pub(crate) async fn close_session(

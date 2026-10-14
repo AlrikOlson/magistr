@@ -66,6 +66,10 @@ pub struct SessionSnapshot {
     pub conversation: Option<magistr_application::sessions::Conversation>,
     pub configuration: Vec<magistr_application::sessions::SessionConfig>,
     pub attachments: Vec<super::StagedAttachment>,
+    pub draft_revision: u64,
+    pub draft_saved_revision: u64,
+    pub draft_save_attempt: u64,
+    pub draft_save_error: Option<String>,
     pub admission: Option<SubmissionAdmission>,
     pub activity: Option<magistr_application::sessions::SessionActivity>,
     bytes: usize,
@@ -78,6 +82,15 @@ pub struct SessionSnapshot {
 }
 
 impl SessionSnapshot {
+    #[must_use]
+    pub fn draft_status(&self) -> super::DraftStatus {
+        super::DraftStatus {
+            revision: self.draft_revision,
+            saved_revision: self.draft_saved_revision,
+            save_attempt: self.draft_save_attempt,
+            error: self.draft_save_error.clone(),
+        }
+    }
     /// Offered requests exclude accepted answers until a failed delivery restores them.
     pub fn pending_requests(&self) -> impl Iterator<Item = &Msg> {
         self.pending
@@ -140,6 +153,18 @@ impl SessionSnapshot {
     }
 
     fn record(&mut self, message: Msg) {
+        let edits_draft = matches!(
+            &message,
+            Msg::InputAccepted(_)
+                | Msg::PromptReplace(_)
+                | Msg::Agent(AgentEvent::PromptRejected { .. })
+                | Msg::CommandFailed {
+                    cmd: magistr_cockpit::cockpit::Cmd::Prompt(_)
+                        | magistr_cockpit::cockpit::Cmd::RoadmapPrompt(_),
+                    ..
+                }
+        );
+        let before = edits_draft.then(|| (self.seed.draft.clone(), self.attachments.clone()));
         self.sequence = self.sequence.saturating_add(1);
         let admission = match &message {
             Msg::InputAccepted(input) => Some((input.clone(), true)),
@@ -234,6 +259,10 @@ impl SessionSnapshot {
             }
             _ => {}
         }
+        if before.is_some_and(|(text, files)| text != self.seed.draft || files != self.attachments)
+        {
+            self.draft_revision = self.draft_revision.saturating_add(1);
+        }
         self.retain(message);
     }
 
@@ -320,6 +349,7 @@ fn weight(message: &Msg) -> usize {
 pub(super) struct SessionObservation {
     state: watch::Sender<SessionSnapshot>,
     closed: AtomicBool,
+    draft_writer: std::sync::OnceLock<std::sync::Arc<super::session_drafts::DraftWriter>>,
     closing: Notify,
     reader: std::sync::OnceLock<magistr_engine::NativeReader>,
     source: std::sync::OnceLock<std::sync::Weak<magistr_workspace::service::WorkspaceService>>,
@@ -342,6 +372,10 @@ impl SessionObservation {
                 conversation: None,
                 configuration: Vec::new(),
                 attachments: Vec::new(),
+                draft_revision: 0,
+                draft_saved_revision: 0,
+                draft_save_attempt: 0,
+                draft_save_error: None,
                 admission: None,
                 activity: None,
                 bytes: 0,
@@ -353,6 +387,7 @@ impl SessionObservation {
             })
             .0,
             closed: AtomicBool::new(false),
+            draft_writer: std::sync::OnceLock::new(),
             closing: Notify::new(),
             reader: std::sync::OnceLock::new(),
             source: std::sync::OnceLock::new(),
@@ -361,7 +396,13 @@ impl SessionObservation {
     }
 
     pub(super) fn seed(&self, seed: ProjectSeed) {
-        self.state.send_modify(|state| state.seed = seed);
+        self.state.send_modify(|state| {
+            let draft = state.seed.draft.take();
+            state.seed = seed;
+            if draft.is_some() {
+                state.seed.draft = draft;
+            }
+        });
         self.wake_catalog();
     }
     pub(super) fn draft(&self, text: String) {
@@ -370,6 +411,78 @@ impl SessionObservation {
                 state.record(Msg::PromptReplace(text));
             }
         });
+        self.persist_draft();
+    }
+
+    pub(super) async fn attach_history(
+        &self,
+        history: crate::agent::persistence::SessionHistory,
+    ) -> Result<(), String> {
+        let saved = history.load_draft().await?;
+        self.state.send_modify(|state| {
+            if state.draft_revision == 0 {
+                state.seed.draft = Some(saved.text);
+                state.attachments = saved.attachments;
+                state.draft_revision = saved.status.revision;
+                state.draft_saved_revision = saved.status.saved_revision;
+                state.draft_save_attempt = saved.status.save_attempt;
+            }
+        });
+        let writer = super::session_drafts::DraftWriter::start(history, self.state.clone());
+        self.draft_writer
+            .set(writer)
+            .map_err(|_| "This conversation already has a draft owner.".to_owned())?;
+        self.persist_draft();
+        Ok(())
+    }
+
+    pub(super) fn edit_draft(
+        &self,
+        expected: u64,
+        text: String,
+        discard: bool,
+    ) -> Result<u64, String> {
+        let mut result = Ok(expected);
+        self.state.send_if_modified(|state| {
+            if state.closed {
+                result = Err("This session is no longer open.".into());
+                return false;
+            }
+            if state.draft_revision != expected {
+                result = Err(crate::agent::persistence::draft::STALE.into());
+                return false;
+            }
+            let changed = state.seed.draft.as_ref() != Some(&text)
+                || (discard && !state.attachments.is_empty());
+            if !changed {
+                return false;
+            }
+            state.seed.draft = Some(text);
+            if discard {
+                state.attachments.clear();
+            }
+            state.draft_revision = state.draft_revision.saturating_add(1);
+            result = Ok(state.draft_revision);
+            state.sequence = state.sequence.saturating_add(1);
+            true
+        });
+        if result.is_ok() {
+            self.persist_draft();
+        }
+        result
+    }
+
+    fn persist_draft(&self) {
+        if let Some(writer) = self.draft_writer.get() {
+            writer.save(super::SavedDraft::from_snapshot(&self.state.borrow()));
+        }
+    }
+
+    pub(super) async fn flush_draft(&self) -> super::DraftStatus {
+        match self.draft_writer.get() {
+            Some(writer) => writer.flush().await,
+            None => self.state.borrow().draft_status(),
+        }
     }
     pub(super) fn add_attachments(
         &self,
@@ -398,9 +511,13 @@ impl SessionObservation {
                 return false;
             }
             state.attachments.extend(attachments);
+            state.draft_revision = state.draft_revision.saturating_add(1);
             state.sequence = state.sequence.saturating_add(1);
             true
         });
+        if result.is_ok() {
+            self.persist_draft();
+        }
         result
     }
     pub(super) fn remove_attachment(&self, id: &str) -> Result<(), String> {
@@ -417,11 +534,13 @@ impl SessionObservation {
                 return false;
             };
             state.attachments.remove(at);
+            state.draft_revision = state.draft_revision.saturating_add(1);
             state.sequence = state.sequence.saturating_add(1);
             found = true;
             true
         });
         if found {
+            self.persist_draft();
             Ok(())
         } else {
             Err("This attachment is no longer in the message.".into())
@@ -492,6 +611,7 @@ impl ObservationSink for SessionObservation {
         }
         let mut overloaded = false;
         let mut catalog_changed = false;
+        let mut draft_changed = false;
         self.state.send_modify(|state| {
             let streamed_content = matches!(&message, Msg::Agent(AgentEvent::Text(_) | AgentEvent::Thought(_) | AgentEvent::Terminal { .. }));
             let before = (!streamed_content || state.status != SessionStatus::Working)
@@ -505,9 +625,15 @@ impl ObservationSink for SessionObservation {
                     return;
                 }
             }
+            let revision = state.draft_revision;
+            let configuration = matches!(&message, Msg::Agent(AgentEvent::Conversation(_) | AgentEvent::Configuration { .. }));
             state.record(message);
+            draft_changed = configuration || state.draft_revision != revision;
             catalog_changed = before.is_some_and(|before| before != super::session_catalog::SessionSummary::from_snapshot(state));
         });
+        if draft_changed {
+            self.persist_draft();
+        }
         if catalog_changed {
             self.wake_catalog();
         }

@@ -73,8 +73,17 @@ enum Request {
     },
     Draft {
         address: SessionAddress,
+        expected_revision: u64,
         text: String,
-        reply: oneshot::Sender<Result<(), String>>,
+        discard: bool,
+        reply: oneshot::Sender<Result<super::DraftStatus, String>>,
+    },
+    SavedDraft {
+        inputs: Box<crate::config::inputs::ProjectInputs>,
+        id: String,
+        expected_revision: u64,
+        edit: crate::agent::persistence::draft::SavedEdit,
+        reply: oneshot::Sender<Result<super::DraftStatus, String>>,
     },
     Attach {
         address: SessionAddress,
@@ -186,12 +195,107 @@ impl SessionClient {
             .map_err(|_| "The application connection closed.".to_owned())?
     }
 
-    pub async fn draft(&self, address: &SessionAddress, text: String) -> Result<(), String> {
+    pub async fn draft(
+        &self,
+        address: &SessionAddress,
+        expected_revision: u64,
+        text: String,
+    ) -> Result<super::DraftStatus, String> {
         check_input(&text)?;
+        self.edit_draft(address, expected_revision, text, false)
+            .await
+    }
+
+    pub async fn discard_draft(
+        &self,
+        address: &SessionAddress,
+        expected_revision: u64,
+    ) -> Result<super::DraftStatus, String> {
+        self.edit_draft(address, expected_revision, String::new(), true)
+            .await
+    }
+
+    async fn edit_draft(
+        &self,
+        address: &SessionAddress,
+        expected_revision: u64,
+        text: String,
+        discard: bool,
+    ) -> Result<super::DraftStatus, String> {
         let (reply, result) = oneshot::channel();
         self.post(Request::Draft {
             address: address.clone(),
+            expected_revision,
             text,
+            discard,
+            reply,
+        })?;
+        result
+            .await
+            .map_err(|_| "The application connection closed.".to_owned())?
+    }
+
+    pub async fn save_saved_draft(
+        &self,
+        inputs: crate::config::inputs::ProjectInputs,
+        id: String,
+        expected_revision: u64,
+        text: String,
+    ) -> Result<super::DraftStatus, String> {
+        check_input(&text)?;
+        self.edit_saved_draft(
+            inputs,
+            id,
+            expected_revision,
+            crate::agent::persistence::draft::SavedEdit::Text(text),
+        )
+        .await
+    }
+
+    pub async fn discard_saved_draft(
+        &self,
+        inputs: crate::config::inputs::ProjectInputs,
+        id: String,
+        expected_revision: u64,
+    ) -> Result<super::DraftStatus, String> {
+        self.edit_saved_draft(
+            inputs,
+            id,
+            expected_revision,
+            crate::agent::persistence::draft::SavedEdit::Discard,
+        )
+        .await
+    }
+
+    pub async fn remove_saved_attachment(
+        &self,
+        inputs: crate::config::inputs::ProjectInputs,
+        id: String,
+        expected_revision: u64,
+        attachment_id: String,
+    ) -> Result<super::DraftStatus, String> {
+        self.edit_saved_draft(
+            inputs,
+            id,
+            expected_revision,
+            crate::agent::persistence::draft::SavedEdit::Remove(attachment_id),
+        )
+        .await
+    }
+
+    async fn edit_saved_draft(
+        &self,
+        inputs: crate::config::inputs::ProjectInputs,
+        id: String,
+        expected_revision: u64,
+        edit: crate::agent::persistence::draft::SavedEdit,
+    ) -> Result<super::DraftStatus, String> {
+        let (reply, result) = oneshot::channel();
+        self.post(Request::SavedDraft {
+            inputs: Box::new(inputs),
+            id,
+            expected_revision,
+            edit,
             reply,
         })?;
         result
@@ -324,6 +428,7 @@ impl SessionRegistry {
                 pending: JoinSet::new(),
                 instance,
                 resume_claims: BTreeMap::new(),
+                saved_writes: std::collections::BTreeSet::new(),
                 issued: 0,
                 opening: 0,
                 failures: Ok(()),
@@ -373,6 +478,15 @@ struct Resident<H> {
     preparing: bool,
 }
 enum Completed<H> {
+    DraftSaved {
+        id: Option<String>,
+        result: Result<super::DraftStatus, String>,
+        reply: oneshot::Sender<Result<super::DraftStatus, String>>,
+    },
+    MutationSaved {
+        result: Result<(), String>,
+        reply: oneshot::Sender<Result<(), String>>,
+    },
     Attached {
         address: SessionAddress,
         result: Result<Vec<super::StagedAttachment>, String>,
@@ -406,6 +520,7 @@ struct Serving<H> {
     pending: JoinSet<Completed<H>>,
     instance: String,
     resume_claims: BTreeMap<SessionAddress, String>,
+    saved_writes: std::collections::BTreeSet<String>,
     issued: u64,
     opening: usize,
     failures: Result<(), String>,
@@ -439,7 +554,7 @@ impl<H: Settle> Serving<H> {
             self.pending.spawn(async move {
                 Completed::Closed {
                     address,
-                    result: resident.host.settle().await,
+                    result: settle_resident(resident).await,
                 }
             });
         }
@@ -502,7 +617,7 @@ impl<H: Settle> Serving<H> {
                 self.pending.spawn(async move {
                     Completed::Closed {
                         address,
-                        result: resident.host.settle().await,
+                        result: settle_resident(resident).await,
                     }
                 });
             }
@@ -522,7 +637,8 @@ impl<H: Settle> Serving<H> {
                     return;
                 }
                 if let SessionOpening::Resume { id } = &choice
-                    && (self.resume_claims.values().any(|claimed| claimed == id)
+                    && (self.saved_writes.contains(id)
+                        || self.resume_claims.values().any(|claimed| claimed == id)
                         || self
                             .sessions
                             .values()
@@ -611,28 +727,25 @@ impl<H: Settle> Serving<H> {
             }
             Request::Draft {
                 address,
+                expected_revision,
                 text,
+                discard,
                 reply,
-            } => {
-                let result = self
-                    .sessions
-                    .get(&address)
-                    .map(|resident| resident.observation.draft(text))
-                    .ok_or_else(gone);
-                let _ = reply.send(result);
-            }
+            } => self.edit_resident_draft(address, expected_revision, text, discard, reply),
+            Request::SavedDraft {
+                inputs,
+                id,
+                expected_revision,
+                edit,
+                reply,
+            } => self.edit_saved_draft(*inputs, id, expected_revision, edit, reply),
             Request::Attach {
                 address,
                 selection,
                 reply,
             } => self.attach(address, selection, reply),
             Request::RemoveAttachment { address, id, reply } => {
-                let result = self
-                    .sessions
-                    .get(&address)
-                    .ok_or_else(gone)
-                    .and_then(|resident| resident.observation.remove_attachment(&id));
-                let _ = reply.send(result);
+                self.remove_pending_attachment(address, id, reply)
             }
             Request::Send {
                 address,
@@ -646,7 +759,7 @@ impl<H: Settle> Serving<H> {
                     self.closing
                         .insert(address.clone(), Arc::clone(&resident.observation));
                     self.pending.spawn(async move {
-                        let result = tokio::time::timeout(CLOSE_GRACE, resident.host.settle())
+                        let result = tokio::time::timeout(CLOSE_GRACE, settle_resident(resident))
                             .await
                             .unwrap_or_else(|_| {
                                 Err("The session took too long to close and was stopped.".into())
@@ -660,6 +773,133 @@ impl<H: Settle> Serving<H> {
                 }
             },
         }
+    }
+
+    fn edit_resident_draft(
+        &mut self,
+        address: SessionAddress,
+        expected_revision: u64,
+        text: String,
+        discard: bool,
+        reply: oneshot::Sender<Result<super::DraftStatus, String>>,
+    ) {
+        if self.pending.len() >= CAPACITY {
+            let _ = reply.send(Err(
+                "The application is busy. Try saving your message again.".into(),
+            ));
+            return;
+        }
+        let observation = self
+            .sessions
+            .get(&address)
+            .map(|resident| Arc::clone(&resident.observation))
+            .ok_or_else(gone);
+        match observation.and_then(|observation| {
+            let revision = observation.edit_draft(expected_revision, text, discard)?;
+            Ok((observation, revision))
+        }) {
+            Ok((observation, revision)) => {
+                self.pending.spawn(async move {
+                    let mut status = observation.flush_draft().await;
+                    status.revision = revision;
+                    Completed::DraftSaved {
+                        id: None,
+                        result: Ok(status),
+                        reply,
+                    }
+                });
+            }
+            Err(error) => {
+                let _ = reply.send(Err(error));
+            }
+        }
+    }
+
+    fn edit_saved_draft(
+        &mut self,
+        inputs: crate::config::inputs::ProjectInputs,
+        id: String,
+        expected_revision: u64,
+        edit: crate::agent::persistence::draft::SavedEdit,
+        reply: oneshot::Sender<Result<super::DraftStatus, String>>,
+    ) {
+        let resident = self.resume_claims.values().any(|claimed| claimed == &id)
+            || self
+                .sessions
+                .values()
+                .map(|resident| &resident.observation)
+                .chain(self.closing.values())
+                .any(|observation| {
+                    observation
+                        .snapshot()
+                        .conversation
+                        .as_ref()
+                        .is_some_and(|conversation| conversation.id == id)
+                });
+        if self.pending.len() >= CAPACITY {
+            let _ = reply.send(Err(
+                "The application is busy. Try saving your message again.".into(),
+            ));
+        } else if resident || self.saved_writes.contains(&id) {
+            let _ = reply.send(Err("This conversation is open or still saving. Use its open message, or wait before editing the saved message.".into()));
+        } else {
+            self.saved_writes.insert(id.clone());
+            self.pending.spawn(async move {
+                let saved_id = id.clone();
+                let result = tokio::task::spawn_blocking(move || {
+                    crate::agent::persistence::draft::edit_saved(
+                        &inputs,
+                        &id,
+                        expected_revision,
+                        edit,
+                    )
+                })
+                .await
+                .map_err(crate::agent::persistence::draft::save_failure)
+                .and_then(|result| result);
+                Completed::DraftSaved {
+                    id: Some(saved_id),
+                    result,
+                    reply,
+                }
+            });
+        }
+    }
+
+    fn remove_pending_attachment(
+        &mut self,
+        address: SessionAddress,
+        id: String,
+        reply: oneshot::Sender<Result<(), String>>,
+    ) {
+        let observation = self
+            .sessions
+            .get(&address)
+            .map(|resident| Arc::clone(&resident.observation))
+            .ok_or_else(gone);
+        match observation.and_then(|observation| {
+            observation.remove_attachment(&id)?;
+            Ok(observation)
+        }) {
+            Ok(observation) => self.await_mutation(observation, reply),
+            Err(error) => {
+                let _ = reply.send(Err(error));
+            }
+        }
+    }
+
+    fn await_mutation(
+        &mut self,
+        observation: Arc<SessionObservation>,
+        reply: oneshot::Sender<Result<(), String>>,
+    ) {
+        self.pending.spawn(async move {
+            let status = observation.flush_draft().await;
+            Completed::MutationSaved {
+                result: status.error.map_or(Ok(()), Err),
+                reply,
+            }
+        });
     }
 
     fn attach(
@@ -832,6 +1072,15 @@ impl<H: Settle> Serving<H> {
 
     fn completed(&mut self, result: Result<Completed<H>, tokio::task::JoinError>, quitting: bool) {
         match result {
+            Ok(Completed::DraftSaved { id, result, reply }) => {
+                if let Some(id) = id {
+                    self.saved_writes.remove(&id);
+                }
+                let _ = reply.send(result);
+            }
+            Ok(Completed::MutationSaved { result, reply }) => {
+                let _ = reply.send(result);
+            }
             Ok(Completed::Attached {
                 address,
                 result,
@@ -841,13 +1090,17 @@ impl<H: Settle> Serving<H> {
                     if quitting {
                         return Err("The application is closing.".into());
                     }
-                    self.sessions
-                        .get(&address)
-                        .ok_or_else(gone)?
-                        .observation
-                        .add_attachments(attachments)
+                    let observation =
+                        Arc::clone(&self.sessions.get(&address).ok_or_else(gone)?.observation);
+                    observation.add_attachments(attachments)?;
+                    Ok(observation)
                 });
-                let _ = reply.send(result);
+                match result {
+                    Ok(observation) => self.await_mutation(observation, reply),
+                    Err(error) => {
+                        let _ = reply.send(Err(error));
+                    }
+                }
             }
             Ok(Completed::Prepared {
                 address,
@@ -880,7 +1133,7 @@ impl<H: Settle> Serving<H> {
                             self.pending.spawn(async move {
                                 Completed::Closed {
                                     address,
-                                    result: host.settle().await,
+                                    result: settle_host(host, observation).await,
                                 }
                             });
                             let _ = reply.send(Err("The application is closing.".into()));
@@ -919,6 +1172,18 @@ impl<H: Settle> Serving<H> {
         }
     }
 }
+async fn settle_resident<H: Settle>(resident: Resident<H>) -> Result<(), String> {
+    settle_host(resident.host, resident.observation).await
+}
+
+async fn settle_host<H: Settle>(
+    host: H,
+    observation: Arc<SessionObservation>,
+) -> Result<(), String> {
+    let draft = observation.flush_draft().await;
+    combine(draft.error.map_or(Ok(()), Err), host.settle().await)
+}
+
 fn gone() -> String {
     "This session is no longer open. Select an open session and try again.".into()
 }

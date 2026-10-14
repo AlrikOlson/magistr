@@ -174,7 +174,7 @@ async fn goal_reply_is_observed_after_text_on_both_sides_of_its_echo() {
     );
     assert_eq!(
         record.outcome,
-        crate::session::session_outcome::SessionOutcome::Completed
+        Some(crate::session::session_outcome::SessionOutcome::Completed)
     );
     assert_eq!(record.turns, Some(2));
     assert_eq!(
@@ -283,7 +283,7 @@ async fn rejected_goal_extension_never_emits_a_successful_terminal() {
     assert_eq!(records.len(), 1);
     assert_eq!(
         records[0].outcome,
-        crate::session::session_outcome::SessionOutcome::Failed
+        Some(crate::session::session_outcome::SessionOutcome::Failed)
     );
     assert_eq!(records[0].turns, Some(0));
     assert_eq!(records[0].cost_usd, None);

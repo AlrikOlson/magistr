@@ -18,6 +18,10 @@ pub(crate) struct Frame {
     pub(crate) retained: Vec<u64>,
     pub(crate) pending: Vec<Request>,
     pub(crate) draft: String,
+    pub(crate) draft_revision: u64,
+    pub(crate) draft_saved_revision: u64,
+    pub(crate) draft_save_attempt: u64,
+    pub(crate) draft_save_error: Option<String>,
     pub(crate) attachments: Vec<Attachment>,
     pub(crate) status: String,
     pub(crate) model: Option<String>,
@@ -91,7 +95,10 @@ pub(crate) struct Attachment {
 }
 
 impl Attachment {
-    fn from_staged(file: &magistr::application::StagedAttachment, seen: &[String]) -> Self {
+    pub(crate) fn from_staged(
+        file: &magistr::application::StagedAttachment,
+        seen: &[String],
+    ) -> Self {
         Self::from_content(file.content(), file.path(), seen)
     }
 
@@ -286,6 +293,10 @@ impl Frame {
             retained: snapshot.messages.iter().map(|record| record.id).collect(),
             pending,
             draft: snapshot.seed.draft.clone().unwrap_or_default(),
+            draft_revision: snapshot.draft_revision,
+            draft_saved_revision: snapshot.draft_saved_revision,
+            draft_save_attempt: snapshot.draft_save_attempt,
+            draft_save_error: snapshot.draft_save_error.clone(),
             attachments: snapshot
                 .attachments
                 .iter()

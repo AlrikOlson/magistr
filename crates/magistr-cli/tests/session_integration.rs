@@ -35,9 +35,10 @@ fn make_record(id: &str, project: &str, cost: f64, turns: u32) -> SessionRecord 
         provider: "scripted".into(),
         provider_session_id: Some("provider-fixture".into()),
         resume_supported: true,
-        outcome: HistoryOutcome::Completed,
+        outcome: Some(HistoryOutcome::Completed),
         started_at: now - Duration::hours(1),
-        ended_at: now,
+        updated_at: now,
+        ended_at: Some(now),
         cost_usd: Some(cost),
         turns: Some(turns),
         duration_ms: 3_600_000,
@@ -123,9 +124,10 @@ fn purge_removes_old_keeps_recent() {
         provider: "scripted".into(),
         provider_session_id: Some("provider-fixture".into()),
         resume_supported: true,
-        outcome: HistoryOutcome::Completed,
+        outcome: Some(HistoryOutcome::Completed),
         started_at: now - Duration::days(100),
-        ended_at: now - Duration::days(99),
+        updated_at: now - Duration::days(99),
+        ended_at: Some(now - Duration::days(99)),
         cost_usd: Some(1.0),
         turns: Some(5),
         duration_ms: 5000,
@@ -164,7 +166,7 @@ fn later_settlement_updates_one_conversation_with_immutable_identity() {
     insert_session(&conn, &r1).unwrap();
 
     // Update with same ID, different data
-    r1.ended_at += chrono::Duration::seconds(1);
+    r1.updated_at += chrono::Duration::seconds(1);
     r1.cost_usd = Some(3.0);
     r1.turns = Some(15);
     insert_session(&conn, &r1).unwrap();

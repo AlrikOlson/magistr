@@ -41,6 +41,10 @@
 mod admitted_check;
 mod check_evidence_error;
 mod check_identities;
+mod desktop_preferences;
+pub use desktop_preferences::{
+    DesktopPreferences, DesktopPreferencesService, DesktopPreferencesSnapshot,
+};
 mod history_feed;
 mod hosted_workspace;
 mod interactive_host;
@@ -53,6 +57,8 @@ mod session_admissions;
 mod session_attachments;
 pub use session_attachments::StagedAttachment;
 mod session_catalog;
+mod session_drafts;
+pub use session_drafts::{DraftStatus, SavedDraft, saved_draft};
 mod session_observation;
 pub use retained_observation::RetainedObservation;
 pub use session_catalog::{CatalogSubscription, SessionCatalog, SessionSummary, WaitingRequest};

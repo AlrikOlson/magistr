@@ -297,6 +297,7 @@ func configuration(_ window: SCWindow) -> SCStreamConfiguration {
     if mode=="activate" {return}
     if try await richOperation(mode,pid,args) {return}
     if try await attachmentOperation(mode,pid,args) {return}
+    if try await draftOperation(mode,pid,args) {return}
     if mode=="press" {try await press(pid,args[2]);return}
     if mode=="choose-option" {try emit(try await chooseOption(pid,args[2],args[3],args[4]));return}
     if mode=="click" {

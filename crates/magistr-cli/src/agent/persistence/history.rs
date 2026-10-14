@@ -113,8 +113,9 @@ impl SessionHistory {
                 provider_session_id: None,
                 resume_supported: false,
                 started_at: Utc::now(),
-                ended_at: Utc::now(),
-                outcome: SessionOutcome::Stopped,
+                updated_at: Utc::now(),
+                ended_at: None,
+                outcome: None,
                 cost_usd: None,
                 turns: Some(0),
                 duration_ms: 0,
@@ -124,6 +125,10 @@ impl SessionHistory {
                 model: model.map(str::to_owned),
                 owner: Some(owner),
             });
+        }
+        if let Some(record) = &mut state.record {
+            record.ended_at = None;
+            record.outcome = None;
         }
         state.path = path;
         state.inputs = Some(captured_inputs);
@@ -287,13 +292,67 @@ impl SessionHistory {
         let cost = state.reported_cost_usd;
         keep_summary(&mut state);
         let record = state.record.as_mut()?;
-        record.ended_at = Utc::now();
+        record.updated_at = Utc::now();
+        record.ended_at = Some(record.updated_at);
         record.cost_usd = cost;
         record.duration_ms = record
             .duration_ms
             .saturating_add(u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX));
-        record.outcome = outcome;
+        record.outcome = Some(outcome);
         Some((path, record.clone(), inputs))
+    }
+
+    /// Restore only this conversation's draft, without creating storage.
+    pub(crate) async fn load_draft(
+        &self,
+    ) -> std::result::Result<crate::application::SavedDraft, String> {
+        let (path, id) = {
+            let state = self.0.lock().expect("history state lock poisoned");
+            (state.path.clone(), state.id.clone())
+        };
+        tokio::task::spawn_blocking(move || {
+            let path =
+                path.ok_or_else(|| "No folder is available for saved conversations.".to_owned())?;
+            if !path.exists() {
+                return Ok(crate::application::SavedDraft::default());
+            }
+            let conn = storage::open_readonly_db(&path).map_err(super::draft::read_failure)?;
+            super::draft::load(&conn, &id)
+        })
+        .await
+        .map_err(super::draft::read_failure)?
+    }
+
+    /// The draft worker serializes checkpoints for this history owner. Its
+    /// expected durable revision prevents another writer's edit being replaced.
+    pub(crate) async fn save_draft(
+        &self,
+        draft: crate::application::SavedDraft,
+        expected: u64,
+    ) -> std::result::Result<(), String> {
+        let checkpoint = {
+            let state = self.0.lock().expect("history state lock poisoned");
+            let mut record = state.record.clone().ok_or_else(|| {
+                "Wait for the conversation to open before saving a message.".to_owned()
+            })?;
+            record.updated_at = Utc::now();
+            record.cost_usd = state.reported_cost_usd;
+            if let Some(started) = state.started {
+                record.duration_ms = record.duration_ms.saturating_add(
+                    u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX),
+                );
+            }
+            (state.path.clone(), record)
+        };
+        tokio::task::spawn_blocking(move || {
+            let path = checkpoint
+                .0
+                .ok_or_else(|| "No folder is available for saved conversations.".to_owned())?;
+            let conn = storage::open_db(&path).map_err(super::draft::save_failure)?;
+            super::draft::write(&conn, &checkpoint.1, &draft, expected)
+        })
+        .await
+        .map_err(super::draft::save_failure)?
     }
 
     pub(crate) async fn settle(&self, outcome: SessionOutcome) -> Result<()> {

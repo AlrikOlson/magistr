@@ -177,8 +177,44 @@ late outcomes leave newer edits intact. Rejection can restore exact bytes into
 an empty pending draft. The desktop allows one outstanding send per addressed
 session and never infers acceptance from an empty editor.
 
-Appearance selects System, Light or Dark. Motion is absent; native reduced-motion
-preferences and `--reduce-motion` are honored.
+Appearance selects System, Light or Dark and saves through
+`DesktopPreferencesService` to the captured user settings path. System follows
+the operating system; an explicit Light or Dark overrides that appearance.
+Reduced motion is enabled when any of the saved preference, operating-system
+preference or `--reduce-motion` requests it. The user setting cannot disable a
+stronger request. There are no animations or transitions.
+
+The core `UserConfigDocument` is the shared settings writer for CLI and desktop.
+A revision is the exact original file state, including absence. The writer holds
+a sibling lock, rereads and compares the file, edits supported TOML keys without
+dropping comments or unrelated settings, and durably replaces it. Unreadable,
+invalid or concurrently changed settings produce a recoverable error; only an
+absent file uses defaults. Loading and saving run away from the async event loop.
+
+Unsent text and attachment selections belong to the existing conversation
+history record. `SessionHistory` checkpoints a live record before its first turn
+and stores each draft as a child row with a durable revision. Live records have
+an update time and no fabricated end time or outcome. A watch-based writer
+coalesces edits while one SQLite transaction compares the prior saved revision
+and commits the next draft. Views observe editable and saved revisions
+separately; a failure retains the newest text and exposes Retry save. Each
+completed write also publishes its monotonically increasing attempt, including
+same-text retries, so a delayed observation or RPC cannot restore an older
+failure. Saved-only edits use the durable revision while no resident writer exists.
+
+Admission restores by canonical project, working copy and logical conversation
+identity, then maps to a new resident address. Saved conversations can read and
+edit a draft without starting a provider. Text and file selections share one
+revision. Files retain immutable bytes, their selection identity and any source
+path; source files are checked again before Send, so changed or missing files
+can be removed without losing the message. Explicit discard writes an empty
+revision. Old saves cannot resurrect it.
+
+Native Quit first freezes the current editors, including open modal dialogs,
+and awaits pending file preparation, text and preference writes. Only then does
+it settle resident resources. A failed flush restores editing and reports the
+failure. Unexpected process exit restores the latest committed revision; it
+does not claim durability for a write that never committed.
 
 Open project accepts a native folder selection or an entered path. Prepared
 projects use the existing session admission authority. Other folders show the
@@ -193,7 +229,7 @@ Folders without Git open as the project's sole source directory; Git-only workin
 
 The desktop opens conversations and prepares projects. The CLI retains
 headless runs, initialization, validation and administrative commands; MCP
-roles serve workflow and source tools. Roadmap editing, detailed file review and settings remain later desktop work.
+roles serve workflow and source tools. Roadmap editing and detailed file review remain later desktop work.
 
 ## Verification
 
@@ -227,6 +263,12 @@ Run it after rebuilding the desktop:
 ```sh
 python3 crates/magistr-desktop/tests/native_window.py crates/magistr-desktop/target/debug/magistr-desktop
 ```
+
+The separate `tests/draft_persistence_journey.py` uses the same native observer
+to reopen multiple conversations and working copies, recover files and text,
+verify immediate edit-to-Quit, interrupt a process after a durable rapid edit,
+force a SQLite write failure and retry, and confirm explicit discard and saved
+appearance. It records its own source-bound receipt and reviewed captures.
 
 See [current evidence](../evidence/desktop-current/README.md). Screenshot checks
 verify current capture hashes, contrast, the selected icon and source freshness.
