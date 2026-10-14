@@ -12,10 +12,10 @@ use super::types::TokenBreakdown;
 /// [`record_session`]: super::record_session::record_session
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct SessionSpend {
-    /// The agent's session id.
+    /// The logical Magistr conversation ID.
     pub session_id: String,
     /// Total cost the agent reported, in USD.
-    pub cost_usd: f64,
+    pub cost_usd: Option<f64>,
     /// Token usage, as far as the agent reported it.
     pub tokens: TokenBreakdown,
     /// Turns the session ran.
@@ -29,7 +29,7 @@ pub struct SessionSpend {
 impl SessionSpend {
     /// A record of a session that cost `cost_usd`.
     #[must_use]
-    pub fn new(session_id: impl Into<String>, cost_usd: f64) -> Self {
+    pub fn new(session_id: impl Into<String>, cost_usd: Option<f64>) -> Self {
         Self {
             session_id: session_id.into(),
             cost_usd,
@@ -81,14 +81,14 @@ impl SessionSpend {
         }
     }
 
-    /// Whether this session is worth writing down.
-    ///
-    /// A session that cost nothing and moved no tokens produces a
-    /// ledger row that contributes zero to every scope's spend — noise
-    /// in a file whose whole job is being summed.
+    /// Whether there is no session identity or reported measurement.
     #[must_use]
     pub fn is_empty(&self) -> bool {
-        self.cost_usd <= 0.0 && self.tokens.total() == 0
+        self.session_id.is_empty()
+            && self.cost_usd.is_none()
+            && self.tokens.total() == 0
+            && self.turns == 0
+            && self.duration_ms == 0
     }
 }
 

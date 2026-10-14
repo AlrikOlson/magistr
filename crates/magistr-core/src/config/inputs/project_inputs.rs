@@ -8,7 +8,7 @@ use crate::config::preset_full::LayerOptions;
 use crate::config::project_preset::{PROJECT_PRESET_DIR, PresetInfo, list_presets_in_dir};
 use crate::config::user_config::{self, UserConfig, UserConfigError};
 use crate::config::user_preset::load_user_override_from_dir;
-use crate::error::{MagistrError, Result};
+use crate::error::Result;
 use crate::types::{Language, PresetOverride, ProjectConfig};
 
 const XDG_CONFIG_HOME: &str = "XDG_CONFIG_HOME";
@@ -94,6 +94,7 @@ pub struct ProjectInputs {
     agent_backend: Option<String>,
     session_selection: Option<crate::config::session_selection::SessionSelection>,
     claude_api_key: bool,
+    configured_api_providers: Vec<String>,
     plugin_index_url: Option<String>,
     workspace_env: BTreeMap<String, String>,
     workspace_network_override: Option<String>,
@@ -234,6 +235,19 @@ impl ProjectInputs {
             "provider.claude_api_key",
             Self::source_for(claude_api_key, CLAUDE_API_KEY),
         );
+        let configured_api_providers = [
+            ("openai", vec!["OPENAI_API_KEY"]),
+            ("gemini", vec!["GEMINI_API_KEY", "GOOGLE_API_KEY"]),
+            ("ollama", vec!["OLLAMA_HOST"]),
+        ]
+        .into_iter()
+        .filter_map(|(provider, keys)| {
+            keys.iter()
+                .any(|key| value(key).is_some())
+                .then(|| provider.to_owned())
+        })
+        .collect();
+
         let plugin_index_url = value(PLUGIN_INDEX_URL);
         sources.insert(
             "plugin.index_url",
@@ -277,6 +291,7 @@ impl ProjectInputs {
             agent_backend,
             session_selection: None,
             claude_api_key,
+            configured_api_providers,
             plugin_index_url,
             workspace_env,
             workspace_network_override,
@@ -495,6 +510,13 @@ impl ProjectInputs {
         self.claude_api_key
     }
 
+    /// API providers with credentials or a local endpoint configured at capture.
+    /// Contains provider names only, never keys or endpoint values.
+    #[must_use]
+    pub fn configured_api_providers(&self) -> &[String] {
+        &self.configured_api_providers
+    }
+
     /// `MAGISTR_PLUGIN_INDEX_URL`, trimmed and nonblank.
     #[must_use]
     pub fn plugin_index_url(&self) -> Option<&str> {
@@ -590,26 +612,23 @@ impl ProjectInputs {
         let Some(path) = self.user_config_path() else {
             return Ok(CapturedInput::unlocated(UserConfig::default()));
         };
-        if !path.is_file() {
-            return Ok(CapturedInput::absent(UserConfig::default(), path));
-        }
-        let value = user_config::load_from(&path)?;
-        Ok(CapturedInput::loaded(value, path))
+        let document = user_config::UserConfigDocument::load(&path)?;
+        let value = document.config().clone();
+        Ok(if document.is_present() {
+            CapturedInput::loaded(value, path)
+        } else {
+            CapturedInput::absent(value, path)
+        })
     }
 
-    /// The project's `.magistr/project.json` as written, without the
-    /// detection-driven rewrite `validate::load_project_config` performs.
+    /// The current shared project settings, read without changing them.
     /// `None` when the file is absent; an unreadable or invalid file is an error.
     pub fn project_config(&self) -> Result<CapturedInput<Option<ProjectConfig>>> {
         let path = self.project_json()?;
-        if !path.is_file() {
-            return Ok(CapturedInput::absent(None, path));
+        match crate::config::read_project_settings(&path)? {
+            Some(config) => Ok(CapturedInput::loaded(Some(config), path)),
+            None => Ok(CapturedInput::absent(None, path)),
         }
-        let content = std::fs::read_to_string(&path).map_err(|e| MagistrError::io(&path, e))?;
-        let config = serde_json::from_str(&content).map_err(|e| {
-            MagistrError::Config(format!("invalid project config at {}: {e}", path.display()))
-        })?;
-        Ok(CapturedInput::loaded(Some(config), path))
     }
 
     /// The user's override for `lang`, when the preset directory is located

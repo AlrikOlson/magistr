@@ -20,6 +20,7 @@ use crate::{AcpError, AcpSessionMode, Result};
 const REAP_GRACE: Duration = Duration::from_millis(200);
 
 /// What the handshake yields once the agent has accepted a session.
+#[derive(Clone)]
 pub(crate) struct AcpHandshake {
     pub session_id: SessionId,
     pub agent_capabilities: AgentCapabilities,
@@ -83,7 +84,9 @@ pub(crate) async fn acp_handshake(
                     )
                     .block_task()
                     .await
-                    .map_err(|e| AcpError::connection(format!("ACP session/load failed: {e}")))?;
+                    .map_err(|e| {
+                        AcpError::connection(format!("Could not reopen the conversation: {e}"))
+                    })?;
                 // session/load does not echo the id — it is the one we asked for.
                 (sid, response.config_options)
             }

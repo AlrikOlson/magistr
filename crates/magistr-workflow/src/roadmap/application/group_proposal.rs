@@ -5,6 +5,7 @@ use crate::roadmap::region::Cluster;
 pub struct GroupProposal {
     pub clusters: Vec<Cluster>,
     pub min_shared: usize,
-    pub groups: Vec<String>,
+    /// All authored names, including history, for avoiding naming collisions.
+    pub authored_names: Vec<String>,
     pub placed: usize,
 }

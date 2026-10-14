@@ -42,20 +42,6 @@ pub fn translate(event: &magistr_acp::Result<AcpEvent>) -> AgentEvent {
             terminal_id: terminal_id.clone(),
             bytes: bytes.clone(),
         },
-        AcpEvent::System { subtype, data } if subtype == "prompt_rejected" => {
-            AgentEvent::PromptRejected {
-                text: data
-                    .get("text")
-                    .and_then(serde_json::Value::as_str)
-                    .unwrap_or_default()
-                    .to_owned(),
-                error: data
-                    .get("error")
-                    .and_then(serde_json::Value::as_str)
-                    .unwrap_or("Your message could not be sent.")
-                    .to_owned(),
-            }
-        }
         AcpEvent::System { subtype, .. } => AgentEvent::System {
             subtype: subtype.clone(),
         },
@@ -117,17 +103,39 @@ fn session_update(update: &SessionUpdate) -> AgentEvent {
                 .count(),
         },
         SessionUpdate::UsageUpdate(usage) => AgentEvent::Usage {
-            used: usage.used,
-            size: usage.size,
+            context: Some(magistr_application::sessions::ContextUsage {
+                used: usage.used,
+                size: usage.size,
+            }),
             cost_cents: usage.cost.as_ref().and_then(cost_cents),
             // The wire carries no clock; the session stamps its own.
             elapsed_secs: None,
         },
         SessionUpdate::AvailableCommandsUpdate(_) => system("available_commands"),
         SessionUpdate::CurrentModeUpdate(_) => system("current_mode"),
-        SessionUpdate::ConfigOptionUpdate(_) => system("config_options"),
+        SessionUpdate::ConfigOptionUpdate(update) => configuration(&update.config_options),
         SessionUpdate::SessionInfoUpdate(_) => system("session_info"),
         _ => system("session_update"),
+    }
+}
+
+pub(super) fn configuration(options: &[SessionConfigOption]) -> AgentEvent {
+    AgentEvent::Configuration {
+        options: super::types::config_options_from_acp(options)
+            .into_iter()
+            .filter(|option| !option.options.is_empty())
+            .map(|option| magistr_application::sessions::SessionConfig {
+                id: option.id,
+                name: option.name,
+                current_value: option.current_value,
+                values: option
+                    .options
+                    .into_iter()
+                    .map(|value| (value.value_id, value.name))
+                    .collect(),
+            })
+            .collect(),
+        model: current_model(Some(options)),
     }
 }
 
@@ -135,7 +143,7 @@ fn session_update(update: &SessionUpdate) -> AgentEvent {
 /// the current value of the `Model`-category select among the
 /// session's config options. `None` when the agent advertises no
 /// model option, or one that is not a select.
-fn current_model(options: Option<&[SessionConfigOption]>) -> Option<String> {
+pub(super) fn current_model(options: Option<&[SessionConfigOption]>) -> Option<String> {
     options?
         .iter()
         .find(|option| option.category == Some(SessionConfigOptionCategory::Model))
@@ -236,9 +244,16 @@ fn image_block(block: &ContentBlock) -> Option<ImageBlock> {
 /// keeps, so two frames of one spend can never differ by a float's
 /// residue. Only dollars count: the cap is in USD, and a figure in any
 /// other currency would fill the meter in the wrong unit.
+pub(super) fn reported_usd(cost: &Cost) -> Option<f64> {
+    (cost.currency == "USD" && cost.amount.is_finite() && cost.amount >= 0.0).then_some(cost.amount)
+}
+
 fn cost_cents(cost: &Cost) -> Option<u64> {
-    (cost.currency == "USD" && cost.amount.is_finite() && cost.amount >= 0.0)
-        .then(|| (cost.amount * 100.0).round() as u64)
+    reported_usd(cost).map(usd_cents)
+}
+
+pub(super) fn usd_cents(amount: f64) -> u64 {
+    (amount * 100.0).round() as u64
 }
 
 fn system(subtype: &str) -> AgentEvent {

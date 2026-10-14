@@ -1036,7 +1036,6 @@ fn magistr_dir_gitignore_in_scaffold_files() {
         content.lines().any(|line| line == "!agents.toml"),
         "whitelists agent preferences"
     );
-    assert!(content.contains("!roadmap.yaml"), "whitelists roadmap.yaml");
 }
 
 #[test]

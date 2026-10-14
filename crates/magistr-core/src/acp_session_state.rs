@@ -1,7 +1,7 @@
 //! ACP session lifecycle state.
 //!
 //! Represents the formal lifecycle states defined by the Agent Client Protocol.
-//! Both TUI and GUI frontends use this to display session status.
+//! Both desktop and command-line consumers frontends use this to display session status.
 
 /// ACP session lifecycle state.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

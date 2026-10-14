@@ -3,30 +3,38 @@
 //! context) reads chunks on a native project and never opens `spec.file`.
 
 use magistr_engine::NativeReader;
-use magistr_engine::native::{Chunk, ChunkStatus, ObjectiveStatus};
+use magistr_engine::native::{
+    Chunk, ChunkStatus, FocusState, ObjectiveStatus, Readiness, WorkstreamResolution,
+    assess_readiness, next_ready, progress_from_chunks, workstream_catalog,
+};
 
 use super::spec::SpecSummary;
 use crate::error::{MagistrError, Result};
 
-/// Chunk progress as a spec summary: `total`/`checked` count chunks, and the
-/// single unchecked item is the chunk `roadmap_next` would hand an agent —
-/// so `all_done()` means "no ready chunk". Re-reads the roadmap first: the
-/// agent's `magistr mcp-serve` writes it between turns.
-#[must_use]
-pub fn native_spec_summary(engines: &NativeReader) -> SpecSummary {
-    engines.reload_roadmap();
-    let progress = engines.roadmap_progress();
-    let unchecked_items: Vec<String> = engines
-        .roadmap_next()
-        .map(|c| vec![format!("{} — {}", c.id, c.title)])
-        .unwrap_or_default();
-    let unchecked = unchecked_items.len();
-    SpecSummary {
+/// Progress counts all unfinished chunks; the item list selects the next
+/// ready chunk for the prompt. Availability never means completion.
+/// Re-reads the roadmap because the admitted writer may update it between turns.
+pub fn native_spec_summary(engines: &NativeReader) -> Result<SpecSummary> {
+    let chunks = engines.roadmap_chunks().map_err(MagistrError::Workflow)?;
+    let progress = progress_from_chunks(&chunks);
+    let unchecked_items: Vec<String> = next_ready(
+        &chunks,
+        |chunk| {
+            chunk
+                .readiness(|id| chunks.iter().find(|c| c.id == id).map(|c| c.status))
+                .is_ready()
+        },
+        |chunk| chunk.priority,
+    )
+    .map(|c| vec![format!("{} — {}", c.id, c.title)])
+    .unwrap_or_default();
+    let unchecked = progress.total_tasks.saturating_sub(progress.checked_tasks) as usize;
+    Ok(SpecSummary {
         total: progress.total_tasks as usize,
         checked: progress.checked_tasks as usize,
         unchecked,
         unchecked_items,
-    }
+    })
 }
 
 /// Select work for an admitted loop without changing roadmap or objective state.
@@ -36,24 +44,50 @@ pub(crate) fn native_work_chunk(
     preferred: Option<&str>,
     track: Option<&str>,
 ) -> Result<Option<Chunk>> {
-    engines.reload_roadmap();
-    engines.reload_ship();
-    let chunks = engines.roadmap_chunks();
+    let chunks = engines.roadmap_chunks().map_err(MagistrError::Workflow)?;
+    select_work_chunk(engines, preferred, track, &chunks)
+}
+
+fn select_work_chunk(
+    engines: &NativeReader,
+    preferred: Option<&str>,
+    track: Option<&str>,
+    chunks: &[Chunk],
+) -> Result<Option<Chunk>> {
+    if let Some(track) = track {
+        let catalog = workstream_catalog(chunks);
+        let refusal = match catalog.focus_state(Some(track)) {
+            FocusState::Current { .. } => None,
+            FocusState::Closed { group } => Some(WorkstreamResolution::Closed {
+                group,
+                choices: catalog.current_names(),
+            }),
+            FocusState::Missing { .. } | FocusState::Unset => Some(WorkstreamResolution::Unknown {
+                choices: catalog.current_names(),
+            }),
+        };
+        if let Some(refusal) = refusal {
+            return Err(MagistrError::Workflow(refusal.explain(track)));
+        }
+    }
     let in_track = |chunk: &&Chunk| track.is_none_or(|track| chunk.group.as_deref() == Some(track));
-    let objective = engines.ship_objective().filter(|objective| {
-        let settled_chunk = objective
-            .scope
-            .trim()
-            .strip_prefix("chunk:")
-            .and_then(|id| chunks.iter().find(|chunk| chunk.id == id.trim()))
-            .is_some_and(|chunk| {
-                matches!(chunk.status, ChunkStatus::Done | ChunkStatus::Obsoleted)
-            });
-        matches!(
-            objective.status,
-            ObjectiveStatus::Defined | ObjectiveStatus::Active
-        ) && !settled_chunk
-    });
+    let objective = engines
+        .ship_objective()
+        .map_err(MagistrError::Workflow)?
+        .filter(|objective| {
+            let settled_chunk = objective
+                .scope
+                .trim()
+                .strip_prefix("chunk:")
+                .and_then(|id| chunks.iter().find(|chunk| chunk.id == id.trim()))
+                .is_some_and(|chunk| {
+                    matches!(chunk.status, ChunkStatus::Done | ChunkStatus::Obsoleted)
+                });
+            matches!(
+                objective.status,
+                ObjectiveStatus::Defined | ObjectiveStatus::Active
+            ) && !settled_chunk
+        });
     let saved = preferred.and_then(|id| chunks.iter().find(|chunk| chunk.id == id));
     if preferred.is_some() && saved.is_none() {
         return Err(MagistrError::Workflow(
@@ -99,10 +133,16 @@ pub(crate) fn native_work_chunk(
                 .filter(in_track)
                 .collect();
             match active.as_slice() {
-                [] => match track {
-                    Some(track) => engines.roadmap_next_in_track(track),
-                    None => engines.roadmap_next(),
-                },
+                [] => next_ready(
+                    chunks.iter().filter(in_track),
+                    |chunk| {
+                        chunk
+                            .readiness(|id| chunks.iter().find(|c| c.id == id).map(|c| c.status))
+                            .is_ready()
+                    },
+                    |chunk| chunk.priority,
+                )
+                .cloned(),
                 [chunk] => Some((*chunk).clone()),
                 _ => {
                     return Err(MagistrError::Workflow(format!(
@@ -120,37 +160,51 @@ pub(crate) fn native_work_chunk(
     let Some(chunk) = selected else {
         return Ok(None);
     };
-    ensure_available(&chunk, &chunks)?;
+    ensure_available(&chunk, chunks)?;
     Ok(Some(chunk))
 }
 
 fn ensure_available(chunk: &Chunk, chunks: &[Chunk]) -> Result<()> {
-    if let Some(blocker) = &chunk.blocked_by {
-        return Err(MagistrError::Workflow(format!(
-            "Cannot resume “{}”: {}",
+    // The caller has selected pending or in-progress work. Resuming either
+    // requires the same current blockers and dependencies as scheduling it.
+    match assess_readiness(
+        ChunkStatus::Pending,
+        chunk
+            .blocked_by
+            .as_ref()
+            .map(|blocker| blocker.reason.as_str()),
+        &chunk.deps,
+        |id| {
+            chunks
+                .iter()
+                .find(|candidate| candidate.id == id)
+                .map(|candidate| candidate.status)
+        },
+    ) {
+        Readiness::Blocked(reason) => Err(MagistrError::Workflow(format!(
+            "Cannot resume “{}”: {reason}",
             work_name(chunk),
-            blocker.reason,
-        )));
-    }
-    for dependency in &chunk.deps {
-        match chunks.iter().find(|candidate| candidate.id == *dependency) {
-            Some(dependency) if dependency.status == ChunkStatus::Done => {}
-            Some(dependency) => {
-                return Err(MagistrError::Workflow(format!(
+        ))),
+        Readiness::Waiting(dependencies) => {
+            let dependency = dependencies.first().and_then(|dependency| {
+                chunks
+                    .iter()
+                    .find(|candidate| candidate.id == dependency.id)
+            });
+            Err(MagistrError::Workflow(match dependency {
+                Some(dependency) => format!(
                     "Cannot resume “{}” until “{}” is complete.",
                     work_name(chunk),
                     work_name(dependency),
-                )));
-            }
-            None => {
-                return Err(MagistrError::Workflow(format!(
+                ),
+                None => format!(
                     "Cannot resume “{}”: a required work item is missing from the roadmap.",
                     work_name(chunk),
-                )));
-            }
+                ),
+            }))
         }
+        Readiness::Ready | Readiness::Inactive(_) => Ok(()),
     }
-    Ok(())
 }
 
 fn work_name(chunk: &Chunk) -> &str {
@@ -169,8 +223,9 @@ pub(crate) fn native_work_summary(
     preferred: Option<&str>,
     track: Option<&str>,
 ) -> Result<SpecSummary> {
-    let chunk = native_work_chunk(engines, preferred, track)?;
-    let progress = engines.roadmap_progress();
+    let chunks = engines.roadmap_chunks().map_err(MagistrError::Workflow)?;
+    let chunk = select_work_chunk(engines, preferred, track, &chunks)?;
+    let progress = progress_from_chunks(&chunks);
     let unchecked_items: Vec<_> = chunk
         .into_iter()
         .map(|chunk| {
@@ -185,7 +240,7 @@ pub(crate) fn native_work_summary(
     Ok(SpecSummary {
         total: progress.total_tasks as usize,
         checked: progress.checked_tasks as usize,
-        unchecked: unchecked_items.len(),
+        unchecked: progress.total_tasks.saturating_sub(progress.checked_tasks) as usize,
         unchecked_items,
     })
 }

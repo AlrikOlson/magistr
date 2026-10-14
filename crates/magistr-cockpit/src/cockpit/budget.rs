@@ -1,7 +1,5 @@
 //! The session's spending picture, as the rail shows it.
 
-use crate::cockpit::copy::Copy;
-
 /// The bound budget on the native rail: what the session has spent,
 /// the cap the meter runs to, and the breaker it stops at — all in
 /// cents, so the rail's state stays `Eq` and two frames of one budget
@@ -103,7 +101,7 @@ impl Budget {
     /// `184` cents as `1.84` — the copy law's own spelling, spelled
     /// once in [`Copy::amount`].
     fn amount(cents: u64) -> String {
-        Copy::amount(cents)
+        format!("{}.{:02}", cents / 100, cents % 100)
     }
 }
 

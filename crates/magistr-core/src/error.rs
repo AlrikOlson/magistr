@@ -43,7 +43,7 @@ pub enum MagistrError {
         cause: String,
     },
 
-    #[error("ACP protocol error: {0}")]
+    #[error("Agent error: {0}")]
     Acp(String),
 
     #[error("sync lock error: {0}")]

@@ -97,7 +97,7 @@ fn one_project_writer_is_admitted_across_host_and_service_roles() {
     let host = host.open();
     add_chunk(&host, "from-host");
     let observer = NativeReader::open_for_project(&cfg, "lease".into());
-    assert_eq!(observer.roadmap_chunks().len(), 1);
+    assert_eq!(observer.roadmap_chunks().unwrap().len(), 1);
     drop(host);
     ProjectAuthority::admit_for_project(&cfg, "lease".into(), WriterRole::Service)
         .expect("service succeeds after host exits");
@@ -121,7 +121,7 @@ fn the_lease_lives_with_the_last_writer_clone_and_readers_never_hold_it() {
     );
     drop(clone);
     // Only the reader remains, and it holds no lock: the role is free again.
-    assert_eq!(reader.roadmap_chunks().len(), 1);
+    assert_eq!(reader.roadmap_chunks().unwrap().len(), 1);
     let reopened = ProjectAuthority::admit_for_project(&cfg, "lease".into(), WriterRole::Host)
         .expect("released with the last writer");
     drop(reopened);

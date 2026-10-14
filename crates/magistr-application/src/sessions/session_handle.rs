@@ -13,7 +13,11 @@ use core::{future::Future, pin::Pin};
 /// owning handle also releases those resources, including pending decisions.
 pub trait SessionHandle: Send {
     /// Admit input in FIFO order after any active turn.
-    fn submit_turn(&mut self, text: &str) -> Result<(), String>;
+    fn submit_turn(&mut self, input: &super::PromptInput) -> Result<(), String>;
+    /// Assign the conversation's name through its history owner.
+    fn rename(&mut self, name: &str) -> Result<(), String>;
+    /// Request a value from the provider's currently advertised select options.
+    fn configure(&mut self, id: &str, value: &str) -> Result<(), String>;
     /// Cancel active and queued input while retaining session residency.
     fn cancel_turn(&mut self) -> Result<(), String>;
     /// Answer a pending request using an option that request actually offered.

@@ -46,42 +46,6 @@ fn settings_json_path() {
     );
 }
 
-// ── Migration ───────────────────────────────────────────────────────────────
-
-#[test]
-fn migrate_jig_dir_when_no_legacy() {
-    let tmp = TempDir::new().unwrap();
-    let result = migrate_jig_dir(tmp.path()).unwrap();
-    assert!(!result, "should return false when no .jig dir exists");
-}
-
-#[test]
-fn migrate_jig_dir_when_legacy_exists() {
-    let tmp = TempDir::new().unwrap();
-    std::fs::create_dir(tmp.path().join(LEGACY_JIG_DIR)).unwrap();
-    std::fs::write(tmp.path().join(LEGACY_JIG_DIR).join("project.json"), "{}").unwrap();
-
-    let result = migrate_jig_dir(tmp.path()).unwrap();
-    assert!(result, "should return true when .jig dir migrated");
-    assert!(
-        tmp.path().join(MAGISTR_DIR).exists(),
-        ".magistr dir should exist after migration"
-    );
-    assert!(
-        !tmp.path().join(LEGACY_JIG_DIR).exists(),
-        ".jig dir should be gone after migration"
-    );
-}
-
-#[test]
-fn has_legacy_jig_dir_detection() {
-    let tmp = TempDir::new().unwrap();
-    assert!(!has_legacy_jig_dir(tmp.path()));
-
-    std::fs::create_dir(tmp.path().join(LEGACY_JIG_DIR)).unwrap();
-    assert!(has_legacy_jig_dir(tmp.path()));
-}
-
 #[test]
 fn loop_state_path() {
     let path = loop_state("my-project");
@@ -137,21 +101,4 @@ fn no_path_contains_traversal() {
         let s = p.to_string_lossy();
         assert!(!s.contains(".."), "path {:?} should not contain '..'", p);
     }
-}
-
-#[test]
-fn migrate_does_not_overwrite_existing_magistr_dir() {
-    let tmp = TempDir::new().unwrap();
-    // Create both .jig and .magistr
-    std::fs::create_dir(tmp.path().join(LEGACY_JIG_DIR)).unwrap();
-    std::fs::create_dir(tmp.path().join(MAGISTR_DIR)).unwrap();
-    std::fs::write(tmp.path().join(MAGISTR_DIR).join("existing.json"), "{}").unwrap();
-
-    // Migration should not overwrite existing .magistr
-    let result = migrate_jig_dir(tmp.path()).unwrap();
-    assert!(!result, "should not migrate when .magistr already exists");
-    assert!(
-        tmp.path().join(MAGISTR_DIR).join("existing.json").exists(),
-        "existing .magistr content should be preserved"
-    );
 }

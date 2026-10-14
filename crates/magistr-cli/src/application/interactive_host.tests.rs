@@ -1,7 +1,7 @@
 use super::*;
 use magistr_application::effects::SourceRoute;
 use magistr_application::sessions::AgentEvent;
-use magistr_cockpit::cockpit::{Msg, Size};
+use magistr_cockpit::cockpit::Msg;
 use magistr_engine::NativeConfig;
 use magistr_workspace::service::WorkspaceOpenOptions;
 use std::pin::Pin;
@@ -33,8 +33,10 @@ async fn fixture() -> (tempfile::TempDir, AgentConfig, NativeConfig, Resources) 
         config,
         native,
         Resources {
-            endpoint,
-            workspace,
+            admitted: Arc::new(AdmittedResources {
+                endpoint,
+                workspace,
+            }),
             engines,
         },
     )
@@ -74,9 +76,18 @@ impl Drop for Session {
 }
 
 impl SessionHandle for Session {
-    fn submit_turn(&mut self, text: &str) -> Result<(), String> {
-        self.tx.send(AgentEvent::Text(text.into())).unwrap();
+    fn submit_turn(
+        &mut self,
+        input: &magistr_application::sessions::PromptInput,
+    ) -> Result<(), String> {
+        self.tx.send(AgentEvent::Text(input.text.clone())).unwrap();
         Ok(())
+    }
+    fn rename(&mut self, _: &str) -> Result<(), String> {
+        Err("Naming is unavailable in this session.".into())
+    }
+    fn configure(&mut self, _: &str, _: &str) -> Result<(), String> {
+        Err("Agent choices are unavailable in this session.".into())
     }
     fn cancel_turn(&mut self) -> Result<(), String> {
         Ok(())
@@ -120,7 +131,7 @@ async fn started(
     let (tx, rx) = mpsc::unbounded_channel();
     let session = Session {
         probe,
-        _source: resources.workspace.source_route(),
+        _source: resources.admitted.workspace.source_route(),
         tx,
         rx,
     };
@@ -139,18 +150,8 @@ async fn started(
     )
     .await
     .unwrap();
-    let model = seed.seed(Model::new(Size::new(80, 24)));
-    assert!(
-        model.hosts_work(),
-        "the host runs started work in place, so the model offers the starts"
-    );
-    assert_eq!(model.galaxy().home(), Some(0));
-    assert_eq!(model.galaxy().projects()[0].name, "project");
-    assert_eq!(
-        model.galaxy().projects()[0].dir.as_deref(),
-        Some(root.as_str())
-    );
-    assert!(model.galaxy().data().is_none(), "discovery has not run");
+    assert_eq!(seed.name, "project");
+    assert_eq!(seed.dir, root);
     (host, sender, events)
 }
 
@@ -228,6 +229,59 @@ async fn dropping_a_host_closes_its_session_before_releasing_the_project() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+async fn unreadable_work_records_are_reported_without_preventing_chat_startup() {
+    use magistr_engine::{ReadErrorKind, ReadState};
+    use magistr_workflow::infra::{Domain, Persistence};
+
+    let (_dir, config, native, resources) = fixture().await;
+    let path = Persistence::new(&native.persistence_config(), Domain::Roadmap)
+        .path_for(resources.engines.reader().project_id());
+    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    std::fs::write(&path, b"not valid records").unwrap();
+    let probe = Probe::default();
+    let (tx, rx) = mpsc::unbounded_channel();
+    let session = Session {
+        probe: probe.clone(),
+        _source: resources.admitted.workspace.source_route(),
+        tx,
+        rx,
+    };
+    let spec = resolved(&config);
+    let (inbox, mut events) = Inbox::channel();
+    let (sender, commands) = Commands::channel();
+    let (host, seed) = InteractiveHost::connect(
+        config,
+        resources,
+        spec,
+        inbox,
+        commands,
+        |_| async { Ok(Box::new(session) as Box<dyn SessionHandle>) },
+        Connector::live,
+    )
+    .await
+    .unwrap();
+    assert!(matches!(seed.snapshot.roadmap, ReadState::Unavailable(_)));
+    assert_eq!(
+        seed.snapshot.roadmap.current().unwrap_err().kind,
+        ReadErrorKind::Decode
+    );
+    assert!(seed.snapshot.ship.current().is_ok());
+    sender.send(Cmd::Prompt("Chat still works".into())).unwrap();
+    tokio::time::timeout(Duration::from_secs(2), async {
+        loop {
+            let event = events.recv().await.expect("session remains open");
+            if matches!(event, Msg::Agent(AgentEvent::Text(text)) if text == "Chat still works") {
+                break;
+            }
+        }
+    })
+    .await
+    .unwrap();
+    probe.finish.notify_one();
+    host.shutdown().await.unwrap();
+}
+
+#[tokio::test(flavor = "multi_thread")]
 async fn explicit_shutdown_works_while_the_surface_keeps_its_sender() {
     let (_dir, config, native, resources) = fixture().await;
     let probe = Probe::default();
@@ -246,14 +300,14 @@ async fn a_second_host_attaches_workflow_and_refuses_source_without_replacing_ow
     assert!(second.writer().is_none());
     assert!(second.attached_generation().is_some());
     let resources = Resources::open(second, config.inputs()).await.unwrap();
-    assert!(resources.endpoint.is_none());
+    assert!(resources.admitted.endpoint.is_none());
     assert!(matches!(
-        resources.workspace.source_route(),
+        resources.admitted.workspace.source_route(),
         SourceRoute::Refused(magistr_application::effects::SourceRefusal::OwnerElsewhere)
     ));
     resources.close().await.unwrap();
     assert!(EngineClient::with_config(native.clone()).is_err());
-    assert!(first.workspace.hosted().is_some());
+    assert!(first.admitted.workspace.hosted().is_some());
     first.close().await.unwrap();
     EngineClient::with_config(native).unwrap();
 }
@@ -273,7 +327,7 @@ async fn close_deadline_aborts_and_joins_an_unresponsive_relay() {
         std::future::pending::<Result<(), String>>().await
     }));
     let (_sender, commands) = Commands::channel();
-    let (forward, _receiver) = Commands::channel();
+    let (forward, _receiver) = Commands::bounded(32);
     let (stop, stopped) = oneshot::channel();
     stop.send(()).unwrap();
     let (inbox, _events) = Inbox::channel();
@@ -293,7 +347,7 @@ async fn a_closed_relay_returns_the_undelivered_command_to_the_surface() {
         Ok(())
     }));
     let (sender, commands) = Commands::channel();
-    let (forward, receiver) = Commands::channel();
+    let (forward, receiver) = Commands::bounded(32);
     drop(receiver);
     let (_stop, stopped) = oneshot::channel();
     let (inbox, mut events) = Inbox::channel();
@@ -304,8 +358,60 @@ async fn a_closed_relay_returns_the_undelivered_command_to_the_surface() {
         .unwrap();
     assert!(
         matches!(event, Some(Msg::CommandFailed { cmd: Cmd::Prompt(text), error })
-        if text == "Keep this draft" && error.contains("closed"))
+        if text.text == "Keep this draft" && error.contains("closed"))
     );
     finish.notify_one();
     task.await.unwrap().unwrap();
+}
+#[tokio::test(flavor = "multi_thread")]
+async fn same_copy_sessions_share_source_owner_and_keep_separate_workflow_executions() {
+    let (_dir, config, native, resources) = fixture().await;
+    let writer = resources.engines.writer().unwrap();
+    let first = writer.for_working_copy(&config.cwd, "first").unwrap();
+    let second = writer.for_working_copy(&config.cwd, "second").unwrap();
+    first
+        .ship_set_objective("First".into(), vec![], vec![], "chunk:first".into())
+        .unwrap();
+    second
+        .ship_set_objective("Second".into(), vec![], vec![], "chunk:second".into())
+        .unwrap();
+    assert_eq!(
+        first.ship_objective().unwrap().unwrap().scope,
+        "chunk:first"
+    );
+    assert_eq!(
+        second.ship_objective().unwrap().unwrap().scope,
+        "chunk:second"
+    );
+    let first_resources = resources.fork(EngineClient::attach(first));
+    let second_resources = resources.fork(EngineClient::attach(second));
+    assert!(Arc::ptr_eq(
+        &first_resources.admitted,
+        &second_resources.admitted
+    ));
+    let SourceRoute::Admitted(first_source) = first_resources.admitted.workspace.source_route()
+    else {
+        panic!("first source");
+    };
+    let SourceRoute::Admitted(second_source) = second_resources.admitted.workspace.source_route()
+    else {
+        panic!("second source");
+    };
+    let root = config.cwd.canonicalize().unwrap();
+    let first_path = root.join("first.txt").display().to_string();
+    let second_path = root.join("second.txt").display().to_string();
+    first_source.write_text(&first_path, "first").await.unwrap();
+    second_source
+        .write_text(&second_path, "second")
+        .await
+        .unwrap();
+    assert_eq!(std::fs::read_to_string(&first_path).unwrap(), "first");
+    assert_eq!(std::fs::read_to_string(&second_path).unwrap(), "second");
+    drop(first_source);
+    drop(second_source);
+    first_resources.close().await.unwrap();
+    assert!(resources.admitted.workspace.hosted().is_some());
+    second_resources.close().await.unwrap();
+    resources.close_last().await.unwrap();
+    EngineClient::with_config(native).unwrap();
 }

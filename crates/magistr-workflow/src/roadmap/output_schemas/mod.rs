@@ -250,9 +250,8 @@ pub struct ProposeGroupsOutput {
     /// The threshold that was applied: a cluster needed at least this many
     /// ungrouped chunks to be worth naming.
     pub min_shared: usize,
-    /// The groups already in play, so a caller can reuse a region rather than
-    /// mint one — the map level draws at most 20 marks.
-    pub groups: Value,
+    /// Current and historical names for avoiding collisions, not current choices.
+    pub authored_names: Vec<String>,
     /// Said in the response rather than left to `doctor`: this call places
     /// nothing, because no name derived from an id prefix can pass the region
     /// check.

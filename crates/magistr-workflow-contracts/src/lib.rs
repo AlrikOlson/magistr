@@ -24,8 +24,9 @@ mod magistr_frame;
 mod native_event;
 mod native_snapshot;
 mod owner_generation;
+mod read_state;
 mod roadmap_progress;
-mod snapshot_cursor;
+mod store_stamp;
 mod think_branch;
 
 pub use broadcast_frame::NativeFrame;
@@ -36,10 +37,11 @@ pub use feed_status::FeedStatus;
 pub use gate_output::GateOutput;
 pub use magistr_frame::MagistrFrame;
 pub use native_event::NativeEvent;
-pub use native_snapshot::NativeSnapshot;
+pub use native_snapshot::{NativeSnapshot, RoadmapData, ShipData, ThinkData};
 pub use owner_generation::OwnerGeneration;
+pub use read_state::{Observed, ReadError, ReadErrorKind, ReadSource, ReadState};
 pub use roadmap_progress::RoadmapProgress;
-pub use snapshot_cursor::SnapshotCursor;
+pub use store_stamp::StoreStamp;
 pub use think_branch::ThinkBranch;
 
 pub use roadmap::{

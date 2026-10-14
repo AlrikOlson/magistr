@@ -3,9 +3,8 @@ use serde::{Deserialize, Serialize};
 /// Which store backs the project roadmap.
 ///
 /// `ThinkAndShip` (the default since ts5a) reads chunks from the native
-/// engines in [`crate::native`]; `Yaml` is the legacy `.magistr-roadmap.yml` format,
-/// still selectable and inferred for projects that predate the key (see
-/// `magistr_core::roadmap::backend_for`). Wire form is the project.json value:
+/// engines in [`crate::native`]; `Yaml` explicitly selects `.magistr-roadmap.yml`.
+/// An omitted project setting uses the native default. Wire form:
 /// `"roadmap_backend": "yaml" | "think-and-ship"`.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]

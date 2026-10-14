@@ -5,14 +5,15 @@ project's real gates. Then stop.
 
 ## Select the chunk
 
-Take the focused frontier's `next`. It is the most urgent `pending` chunk (smallest `priority` number) in
-this workstream that carries no blocker and whose dependencies are all done.
+Require a current focus and take its inspection's `frontier.activity.next_ready`.
+It is the most urgent eligible pending chunk in that exact workstream. Unmet
+dependencies and recorded blockers remain separate reasons it cannot start.
 
-If `next` is empty, emit a `no-ready-work` receipt. **Do not** take a chunk from
+If `next_ready` is empty, emit a `no-ready-work` receipt. **Do not** take a chunk from
 another workstream, and do not promote a backlog chunk to manufacture work —
 promotion is a planning decision, which is shape's job or a human's.
 
-If you deviate from `next`, name the reason in the receipt.
+If you deviate from `next_ready`, name the reason in the receipt.
 
 ## The sequence
 
@@ -20,7 +21,8 @@ If you deviate from `next`, name the reason in the receipt.
 2. **Set a ship objective** from the chunk's **real acceptance criteria** —
    the ones stored on the chunk, plus any requirement ids from the spec. Do not
    paraphrase them into something easier to satisfy; the objective is what the
-   final report is audited against.
+   final report is audited against. Explicitly select `verification: "focused"`
+   for bounded changes, including code.
 3. **Open the reasoning trace.** Mandatory, before implementing. Record the
    sub-plan and what you expect to be hard. Cross-reference it to the chunk.
 4. **Ground in the existing implementation.** Find the code this touches and
@@ -39,8 +41,12 @@ If you deviate from `next`, name the reason in the receipt.
 
 ## Verify
 
-Run the project's **real** commands — the ones its CI runs, exactly as written.
-Not a subset you believe is equivalent, and not a faster proxy.
+Choose checks for the changed behavior, affected dependencies and acceptance
+criteria. Run formatting, the relevant crate and interface tests, and the
+applicable architecture and visual gates. Use `verification: "full"` and the
+`all` gate only for an explicit full-suite request or a concrete cross-cutting
+risk; state that reason before starting. A chunk alone does not justify a
+workspace-wide test, reference comparison or release packaging check.
 
 Prefer recording each check by handing the server the command to run, so the
 real exit code is captured. A check whose result you typed in yourself is
@@ -84,8 +90,8 @@ Mode: build
 Unit: auth-session-rotation — Rotate session tokens on privilege change
 Result: completed
 Evidence:
-  - cargo test --workspace --all-targets: exit 0
-  - cargo clippy --workspace --all-targets -- -D warnings: exit 0
+  - cargo nextest run -p app --lib -E 'test(session::rotate)': exit 0
+  - cargo clippy -p app --all-targets -- -D warnings: exit 0
   - cargo fmt --all -- --check: exit 0
   - quickstart scenario 3 (privilege escalation re-issues the session): passed
 Native records:

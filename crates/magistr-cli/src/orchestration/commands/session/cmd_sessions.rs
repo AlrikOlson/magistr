@@ -140,7 +140,7 @@ pub fn cmd_sessions(
                     "  {}  {}  {} turns  {}  {} files  {}{owner_str}{tags_str}{summary_str}",
                     fmt::dim(&ts.to_string()),
                     fmt::yellow(&record.cost_display()),
-                    record.turns,
+                    record.turns_display(),
                     record.duration_display(),
                     record.file_count(),
                     fmt::dim(&record.project),
@@ -149,12 +149,18 @@ pub fn cmd_sessions(
 
             eprintln!();
             eprintln!(
-                "  {} ${:.2} across {} sessions, {} turns",
+                "  {} ${:.2} reported across {} sessions, {} known turns",
                 fmt::bold("Total:"),
                 summary.total_cost,
                 summary.count,
                 summary.total_turns
             );
+            if summary.unknown_cost_sessions > 0 || summary.unknown_turn_sessions > 0 {
+                eprintln!(
+                    "  Cost unknown for {} sessions; turn count unknown for {} sessions.",
+                    summary.unknown_cost_sessions, summary.unknown_turn_sessions
+                );
+            }
         }
     }
 

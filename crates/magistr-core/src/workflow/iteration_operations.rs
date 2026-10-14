@@ -7,7 +7,7 @@ use magistr_domain::workflow::{
     DispatchPhase, OperationAdmission, OperationKind, OperationLedger, OperationOutcome,
     OperationRecord,
 };
-use magistr_engine::NativeEngines;
+use magistr_engine::NativeReader;
 
 use super::{IterationLoop, git_head_advanced_from, git_head_sha};
 use crate::error::{MagistrError, Result};
@@ -174,15 +174,20 @@ impl IterationLoop {
 }
 
 /// `verb:chunk[:argument]` against the chunk as the store holds it now.
-fn native_mutation_outcome(engines: &NativeEngines, target: &str) -> Option<OperationOutcome> {
+fn native_mutation_outcome(engines: &NativeReader, target: &str) -> Option<OperationOutcome> {
     use magistr_engine::native::ChunkStatus;
-    engines.reload_roadmap();
     let (verb, rest) = target.split_once(':')?;
     let (id, argument) = match rest.split_once(':') {
         Some((id, argument)) => (id, Some(argument)),
         None => (rest, None),
     };
-    let chunk = engines.roadmap_chunk(id);
+    let chunk = match engines.roadmap_chunk(id) {
+        Ok(chunk) => chunk,
+        Err(error) => {
+            tracing::warn!(%error, "native mutation outcome could not be observed");
+            return None;
+        }
+    };
     let applied = match verb {
         "start_chunk" => chunk.is_some_and(|chunk| {
             matches!(chunk.status, ChunkStatus::InProgress | ChunkStatus::Done)
@@ -215,7 +220,7 @@ fn native_mutation_outcome(engines: &NativeEngines, target: &str) -> Option<Oper
 /// attempt. A settlement kept stale was not applied either. A receipt that
 /// names another gate or task than the record does is not this record's,
 /// and the record stays open.
-fn receipt_outcome(engines: &NativeEngines, record: &OperationRecord) -> Option<OperationOutcome> {
+fn receipt_outcome(engines: &NativeReader, record: &OperationRecord) -> Option<OperationOutcome> {
     use magistr_engine::native::ReceiptSettlement;
     let (gate, task) = record.target.strip_prefix("gate:")?.split_once("@task:")?;
     let Some(id) = record
@@ -225,7 +230,6 @@ fn receipt_outcome(engines: &NativeEngines, record: &OperationRecord) -> Option<
     else {
         return Some(OperationOutcome::Failed);
     };
-    engines.reload_ship();
     let Some(receipt) = engines.ship_receipt(id).ok()? else {
         return Some(OperationOutcome::Failed);
     };

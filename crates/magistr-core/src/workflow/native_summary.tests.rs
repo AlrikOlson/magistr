@@ -27,14 +27,14 @@ fn counts_chunks_and_names_the_next_ready_one() {
     add(&e, "first", 100, &[]);
     add(&e, "second", 200, &["first"]);
 
-    let s = native_spec_summary(&e);
-    assert_eq!((s.total, s.checked, s.unchecked), (2, 0, 1));
+    let s = native_spec_summary(&e).unwrap();
+    assert_eq!((s.total, s.checked, s.unchecked), (2, 0, 2));
     assert_eq!(s.unchecked_items, vec!["first — Chunk first".to_string()]);
     assert!(!s.all_done());
 
     e.roadmap_start_chunk("first").unwrap();
     complete_native_chunk(&e, "first");
-    let s = native_spec_summary(&e);
+    let s = native_spec_summary(&e).unwrap();
     assert_eq!((s.total, s.checked), (2, 1));
     assert_eq!(s.unchecked_items, vec!["second — Chunk second".to_string()]);
 }
@@ -50,7 +50,7 @@ fn resumes_one_active_item_before_higher_priority_pending_work_without_writes() 
     let summary = native_work_summary(&e, None, None).unwrap();
     assert_eq!(
         (summary.total, summary.checked, summary.unchecked),
-        (2, 0, 1)
+        (2, 0, 2)
     );
     assert_eq!(
         summary.unchecked_items,
@@ -66,7 +66,7 @@ fn resumes_one_active_item_before_higher_priority_pending_work_without_writes() 
         "selection must not rewrite any native state"
     );
     assert_eq!(
-        native_spec_summary(&e).unchecked_items,
+        native_spec_summary(&e).unwrap().unchecked_items,
         ["urgent — Chunk urgent"]
     );
 }
@@ -113,7 +113,10 @@ fn multiple_active_items_need_a_saved_target_or_matching_unfinished_objective() 
     )
     .unwrap();
     e.ship_start_task("resume").unwrap();
-    assert_eq!(e.ship_objective().unwrap().status, ObjectiveStatus::Active);
+    assert_eq!(
+        e.ship_objective().unwrap().unwrap().status,
+        ObjectiveStatus::Active
+    );
     assert_eq!(
         native_work_chunk(&e, None, None).unwrap().unwrap().id,
         "second"
@@ -266,8 +269,19 @@ fn active_dependencies_are_checked_again_and_missing_work_is_not_invented() {
     let tmp = tempfile::tempdir().unwrap();
     let e = engines(&tmp);
     add(&e, "storage", 100, &[]);
-    add(&e, "recovery", 200, &["storage"]);
+    add(&e, "recovery", 200, &[]);
     e.roadmap_start_chunk("recovery").unwrap();
+    // An authored dependency can change after work has started.
+    e.roadmap_update_chunk(
+        "recovery",
+        None,
+        None,
+        None,
+        None,
+        Some(vec!["storage".into()]),
+        None,
+    )
+    .unwrap();
     let before = e.snapshot();
     let error = native_work_chunk(&e, None, None).unwrap_err().to_string();
     assert!(
@@ -282,9 +296,9 @@ fn active_dependencies_are_checked_again_and_missing_work_is_not_invented() {
         "recovery"
     );
 
-    let mut missing = e.roadmap_chunk("recovery").unwrap();
+    let mut missing = e.roadmap_chunk("recovery").unwrap().unwrap();
     missing.deps = vec!["private-missing-identifier".into()];
-    let error = ensure_available(&missing, &e.roadmap_chunks())
+    let error = ensure_available(&missing, &e.roadmap_chunks().unwrap())
         .unwrap_err()
         .to_string();
     assert!(error.contains("required work item is missing"), "{error}");
@@ -342,13 +356,50 @@ fn empty_and_non_actionable_roadmaps_return_no_work() {
 }
 
 #[test]
-fn nothing_ready_reads_as_all_done() {
+fn unfinished_work_is_not_reported_as_complete_when_nothing_is_ready() {
     let tmp = tempfile::tempdir().unwrap();
     let e = engines(&tmp);
     add(&e, "only", 100, &[]);
     e.roadmap_start_chunk("only").unwrap();
-    // In progress, not done: no chunk is ready, so the loop must stop.
-    let s = native_spec_summary(&e);
-    assert_eq!((s.total, s.checked, s.unchecked), (1, 0, 0));
-    assert!(s.all_done());
+    // Availability and completion are independent facts.
+    let s = native_spec_summary(&e).unwrap();
+    assert_eq!((s.total, s.checked, s.unchecked), (1, 0, 1));
+    assert!(s.unchecked_items.is_empty());
+    assert!(!s.all_done());
+}
+
+#[test]
+fn selecting_work_refuses_an_unreadable_execution_plan_until_recovery() {
+    let tmp = tempfile::tempdir().unwrap();
+    let e = engines(&tmp);
+    add(&e, "work", 100, &[]);
+    e.ship_set_objective(
+        "Continue this work".into(),
+        vec![],
+        vec![],
+        "chunk:work".into(),
+    )
+    .unwrap();
+    assert_eq!(
+        native_work_chunk(&e, None, None).unwrap().unwrap().id,
+        "work"
+    );
+    let path = e
+        .config()
+        .persistence_config()
+        .data_dir
+        .join("ship")
+        .join("executions")
+        .join(e.config().execution_context().key())
+        .join("sessions")
+        .join(format!("{}.json", e.project_id()));
+    let valid = std::fs::read(&path).unwrap();
+    std::fs::write(&path, b"{ unreadable plan").unwrap();
+    assert!(native_work_chunk(&e, None, None).is_err());
+    assert!(native_work_summary(&e, Some("work"), None).is_err());
+    std::fs::write(path, valid).unwrap();
+    assert_eq!(
+        native_work_chunk(&e, None, None).unwrap().unwrap().id,
+        "work"
+    );
 }

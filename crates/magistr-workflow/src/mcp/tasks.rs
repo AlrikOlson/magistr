@@ -146,15 +146,10 @@ impl Eligibility {
         if !wants_task(tool, arguments) {
             return None;
         }
-        // PERMANENT operator observability, not debug scaffolding. Whether a
-        // client declares this extension is invisible from inside the server
-        // otherwise — the host's own MCP log records what the client saw of US,
-        // never what it declared about itself. Fires only on a long gate, which
-        // is a handful of calls per session, and it is the difference between
-        // "tasks are working" and "tasks ship correct and entirely dormant".
-        // Same standing pattern as `elicit.rs`'s capability line.
+        // Capability negotiation is routine diagnostic data. Expose it through
+        // opt-in tracing; the caller's tool lifecycle reports actual progress.
         let declared = client_declared_tasks(context);
-        eprintln!(
+        tracing::debug!(
             "think-and-ship: {tool} is a long gate; client {} the tasks extension \
              ({}) — SEP-2663",
             if declared {

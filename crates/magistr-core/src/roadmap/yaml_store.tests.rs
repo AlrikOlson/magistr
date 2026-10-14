@@ -216,63 +216,6 @@ fn export_markdown_creates_file() {
 }
 
 #[test]
-fn load_or_migrate_loads_existing_yaml() {
-    let (_dir, yaml) = setup();
-    let mut store = YamlStore::from_roadmap(&yaml, sample_roadmap()).unwrap();
-    store.save().unwrap();
-
-    let loaded = YamlStore::load_or_migrate(&yaml).unwrap();
-    assert_eq!(loaded.index().title(), "Test Roadmap");
-}
-
-#[test]
-fn load_or_migrate_migrates_from_markdown() {
-    let dir = TempDir::new().unwrap();
-    let md_path = dir.path().join("ROADMAP.md");
-    std::fs::write(
-        &md_path,
-        "# Migrated Project\n\n## E1: Setup\n\n### Tasks\n\n- [ ] First task\n- [x] Done task\n",
-    )
-    .unwrap();
-
-    let yaml_path = dir.path().join(".magistr-roadmap.yml");
-    assert!(!yaml_path.exists());
-
-    let store = YamlStore::load_or_migrate(&yaml_path).unwrap();
-    assert_eq!(store.index().title(), "Migrated Project");
-    assert_eq!(store.index().stats().total_tasks, 2);
-    assert_eq!(store.index().stats().checked_tasks, 1);
-    // YAML file should now exist
-    assert!(yaml_path.exists());
-}
-
-#[test]
-fn load_or_migrate_migrates_from_legacy_yaml_path() {
-    let dir = TempDir::new().unwrap();
-    // Create legacy .magistr/roadmap.yaml
-    let legacy_dir = dir.path().join(".magistr");
-    std::fs::create_dir_all(&legacy_dir).unwrap();
-    let legacy_yaml = legacy_dir.join("roadmap.yaml");
-    let mut store = YamlStore::from_roadmap(&legacy_yaml, sample_roadmap()).unwrap();
-    store.save().unwrap();
-
-    // Load from new path — should auto-migrate
-    let new_yaml = dir.path().join(".magistr-roadmap.yml");
-    assert!(!new_yaml.exists());
-
-    let loaded = YamlStore::load_or_migrate(&new_yaml).unwrap();
-    assert_eq!(loaded.index().title(), "Test Roadmap");
-    assert!(new_yaml.exists());
-}
-
-#[test]
-fn load_or_migrate_no_files_returns_error() {
-    let dir = TempDir::new().unwrap();
-    let yaml_path = dir.path().join(".magistr-roadmap.yml");
-    assert!(YamlStore::load_or_migrate(&yaml_path).is_err());
-}
-
-#[test]
 fn load_or_create_bootstraps_empty() {
     let dir = TempDir::new().unwrap();
     let yaml_path = dir.path().join(".magistr-roadmap.yml");
@@ -295,18 +238,22 @@ fn load_or_create_loads_existing() {
 }
 
 #[test]
-fn load_or_create_migrates_from_legacy_path() {
+fn current_yaml_creation_uses_only_the_current_file() {
     let dir = TempDir::new().unwrap();
-    // Create legacy .magistr/roadmap.yaml
-    let legacy_dir = dir.path().join(".magistr");
-    std::fs::create_dir_all(&legacy_dir).unwrap();
-    let legacy_yaml = legacy_dir.join("roadmap.yaml");
-    let mut store = YamlStore::from_roadmap(&legacy_yaml, sample_roadmap()).unwrap();
-    store.save().unwrap();
-
-    // load_or_create from new path — should auto-migrate
-    let new_yaml = dir.path().join(".magistr-roadmap.yml");
-    let loaded = YamlStore::load_or_create(&new_yaml, "Ignored").unwrap();
-    assert_eq!(loaded.index().title(), "Test Roadmap");
-    assert!(new_yaml.exists());
+    std::fs::create_dir(dir.path().join(".magistr")).unwrap();
+    std::fs::write(
+        dir.path().join(".magistr/roadmap.yaml"),
+        "invalid unrelated YAML",
+    )
+    .unwrap();
+    std::fs::write(dir.path().join("ROADMAP.md"), "- [ ] unrelated task").unwrap();
+    let path = dir.path().join(".magistr-roadmap.yml");
+    assert!(YamlStore::load(&path).is_err());
+    let store = YamlStore::load_or_create(&path, "Current Project").unwrap();
+    assert_eq!(store.index().title(), "Current Project");
+    assert_eq!(store.index().stats().total_tasks, 0);
+    assert_eq!(
+        std::fs::read_to_string(dir.path().join("ROADMAP.md")).unwrap(),
+        "- [ ] unrelated task"
+    );
 }

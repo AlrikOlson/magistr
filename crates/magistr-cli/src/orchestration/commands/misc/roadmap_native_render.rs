@@ -9,7 +9,7 @@ pub(crate) const NATIVE_REQUIRED: &str = "This project's roadmap backend is `yam
      \"roadmap_backend\": \"think-and-ship\" in .magistr/project.json to read the \
      think-and-ship roadmap (`magistr roadmap show` and `export` keep working on YAML).";
 
-/// The human `show` view: counts, regions, the next ready chunk, and the
+/// The human `show` view: current workstreams, history, the next ready chunk, and the
 /// pending chunks in priority order.
 pub(crate) fn render_show(snapshot: &NativeRoadmapSnapshot, chunks: &[Chunk]) -> String {
     let mut out = String::new();
@@ -28,15 +28,46 @@ pub(crate) fn render_show(snapshot: &NativeRoadmapSnapshot, chunks: &[Chunk]) ->
         snapshot.count("obsoleted"),
     ));
 
-    if !snapshot.regions.is_empty() {
-        out.push_str("\n  Regions:\n");
-        for (name, r) in &snapshot.regions {
-            let flag = if r.is_complete() { "✓" } else { "○" };
-            out.push_str(&format!("    {flag} {name}  {}/{}", r.done, r.total));
-            if r.in_progress > 0 {
-                out.push_str(&format!("  ({} in progress)", r.in_progress));
-            }
-            out.push('\n');
+    if !snapshot.workstreams.current.is_empty() {
+        out.push_str("\n  Current workstreams:\n");
+        for (name, work) in &snapshot.workstreams.current {
+            out.push_str(&format!(
+                "    {name}: {} unfinished · {} ready · {} waiting · {} blocked\n",
+                work.counts.total,
+                work.readiness.ready,
+                work.readiness.waiting,
+                work.readiness.blocked,
+            ));
+        }
+    }
+    let ungrouped = &snapshot.workstreams.ungrouped;
+    if ungrouped.counts.total > 0 {
+        out.push_str(&format!(
+            "\n  Ungrouped work: {} unfinished · {} ready · {} waiting · {} blocked\n",
+            ungrouped.counts.total,
+            ungrouped.readiness.ready,
+            ungrouped.readiness.waiting,
+            ungrouped.readiness.blocked,
+        ));
+    }
+    if !snapshot.workstreams.history.is_empty()
+        || snapshot.workstreams.ungrouped_history.done
+            + snapshot.workstreams.ungrouped_history.obsoleted
+            > 0
+    {
+        out.push_str("\n  History:\n");
+        for (name, history) in &snapshot.workstreams.history {
+            out.push_str(&format!(
+                "    {name}: {} done · {} obsoleted\n",
+                history.done, history.obsoleted,
+            ));
+        }
+        let history = &snapshot.workstreams.ungrouped_history;
+        if history.done + history.obsoleted > 0 {
+            out.push_str(&format!(
+                "    Ungrouped: {} done · {} obsoleted\n",
+                history.done, history.obsoleted,
+            ));
         }
     }
 
@@ -88,7 +119,7 @@ pub(crate) fn render_next(next: Option<&Chunk>) -> String {
     };
     let mut out = format!("{} — {}\n", c.id, c.title);
     if let Some(group) = &c.group {
-        out.push_str(&format!("  region: {group}\n"));
+        out.push_str(&format!("  workstream: {group}\n"));
     }
     out.push_str(&format!("  priority: {}\n", c.priority));
     if !c.deps.is_empty() {
@@ -131,7 +162,7 @@ pub(crate) fn show_json(snapshot: &NativeRoadmapSnapshot, chunks: &[Chunk]) -> s
         "backend": "think-and-ship",
         "project_id": snapshot.project_id,
         "counts": snapshot.counts,
-        "regions": snapshot.regions,
+        "workstreams": snapshot.workstreams,
         "next_ready": snapshot.next_ready,
         "in_progress": snapshot.in_progress,
         "progress": snapshot.progress,

@@ -212,7 +212,8 @@ impl TurnTranslator {
             .or_else(|| result.model_usage.values().map(|u| u.context_window).max())
             .filter(|w| *w > 0)
             .unwrap_or(Self::DEFAULT_WINDOW);
-        let usage = UsageUpdate::new(used, size).cost(Cost::new(result.total_cost_usd, "USD"));
+        let usage = UsageUpdate::new(used, size)
+            .cost(result.total_cost_usd.map(|amount| Cost::new(amount, "USD")));
         let end = if self.interrupted {
             TurnEnd::Stop(StopReason::Cancelled)
         } else if result.subtype == "success" {

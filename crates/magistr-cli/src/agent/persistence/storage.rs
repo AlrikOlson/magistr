@@ -13,6 +13,7 @@ use crate::error::{MagistrError, Result};
 
 use super::retention_policy::RetentionPolicy;
 use super::session_filter::SessionFilter;
+use super::session_outcome::SessionOutcome;
 use super::session_record::SessionRecord;
 use super::session_turn::{SessionTurn, TurnRole};
 
@@ -20,14 +21,11 @@ use super::session_turn::{SessionTurn, TurnRole};
 const DB_FILENAME: &str = "sessions.db";
 
 /// How long an opener waits for another process's write lock.
-const BUSY_WAIT: std::time::Duration = std::time::Duration::from_secs(5);
+// History writes must report contention within the host's close deadline.
+const BUSY_WAIT: std::time::Duration = std::time::Duration::from_millis(500);
 
-/// Current schema version (for future migrations).
-///
-/// Must stay in lock-step with the GUI's copy of these migrations
-/// (`crates/magistr-gui/src-tauri/src/session_tracker.rs`) — both binaries
-/// migrate the same shared `sessions.db`.
-const SCHEMA_VERSION: i32 = 6;
+/// Current schema only. Older formats are refused, never migrated.
+const SCHEMA_VERSION: i32 = 9;
 
 /// The session database, `<data_dir>/sessions.db`, over the captured data
 /// directory — the same directory the cost ledger and the audit log share;
@@ -37,9 +35,21 @@ pub fn sessions_db_path(inputs: &ProjectInputs) -> Option<PathBuf> {
     inputs.data_dir().map(|dir| dir.join(DB_FILENAME))
 }
 
-/// Open (or create) the session database at the given path.
-///
-/// Creates parent directories and initializes the schema if needed.
+/// Open existing session history without creating or updating its schema.
+pub fn open_readonly_db(path: &Path) -> Result<Connection> {
+    let conn = Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)
+        .map_err(|error| MagistrError::sqlite("read session history", error))?;
+    let version: i32 = conn
+        .pragma_query_value(None, "user_version", |row| row.get(0))
+        .map_err(|error| MagistrError::sqlite("read saved conversations", error))?;
+    if version != SCHEMA_VERSION {
+        return Err(MagistrError::Config(
+            "Saved conversations in this folder cannot be read by this version of Magistr.".into(),
+        ));
+    }
+    Ok(conn)
+}
+/// Open or create the session database, including its parent directories and schema.
 pub fn open_db(path: &Path) -> Result<Connection> {
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent).map_err(|e| MagistrError::io(parent, e))?;
@@ -53,8 +63,10 @@ pub fn open_db(path: &Path) -> Result<Connection> {
     conn.busy_timeout(BUSY_WAIT)
         .map_err(|e| MagistrError::sqlite("set the session database's busy wait", e))?;
 
+    conn.pragma_update(None, "foreign_keys", true)
+        .map_err(|e| MagistrError::sqlite("enable session relationships", e))?;
     write_ahead(&conn)?;
-    upgrade(&conn)?;
+    initialize(&conn)?;
     Ok(conn)
 }
 
@@ -87,158 +99,158 @@ fn write_ahead(conn: &Connection) -> Result<()> {
     }
 }
 
-/// Bring the schema up to date as one exclusive step. The version is read
-/// under the write lock, so of two processes opening an older database at
-/// once the second finds the first's work done rather than repeating it and
-/// failing on a column that now exists; a failed step leaves the database as
-/// it was.
-fn upgrade(conn: &Connection) -> Result<()> {
+/// Create the current schema atomically, or refuse an unsupported format.
+fn initialize(conn: &Connection) -> Result<()> {
+    let version: i32 = conn
+        .pragma_query_value(None, "user_version", |row| row.get(0))
+        .map_err(|e| MagistrError::sqlite("read session schema", e))?;
+    if version == SCHEMA_VERSION {
+        return Ok(());
+    }
     conn.execute_batch("BEGIN IMMEDIATE;")
         .map_err(|e| MagistrError::sqlite("lock the session database for its schema", e))?;
-    match migrate(conn) {
+    let result = (|| {
+        let version: i32 = conn
+            .pragma_query_value(None, "user_version", |row| row.get(0))
+            .map_err(|e| MagistrError::sqlite("read session schema", e))?;
+        if version == SCHEMA_VERSION {
+            return Ok(());
+        }
+        if version != 0 {
+            return Err(MagistrError::Config(
+                "The saved session database has an unsupported format. Choose an empty data directory.".into(),
+            ));
+        }
+        conn.execute_batch(
+            "CREATE TABLE sessions (
+                session_id TEXT PRIMARY KEY,
+                project TEXT NOT NULL,
+                workspace TEXT NOT NULL,
+                provider TEXT NOT NULL,
+                provider_session_id TEXT,
+                resume_supported INTEGER NOT NULL,
+                started_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                outcome TEXT CHECK(outcome IN ('completed','cancelled','failed','stopped')),
+                cost_usd REAL,
+                turns INTEGER,
+                duration_ms INTEGER NOT NULL,
+                files_changed TEXT NOT NULL,
+                tags TEXT NOT NULL,
+                summary TEXT,
+                model TEXT,
+                owner TEXT,
+                name TEXT,
+                ended_at TEXT,
+                CHECK ((ended_at IS NULL) = (outcome IS NULL))
+            );
+            CREATE TABLE session_drafts (
+                session_id TEXT PRIMARY KEY REFERENCES sessions(session_id) ON DELETE CASCADE,
+                revision INTEGER NOT NULL CHECK(revision >= 0),
+                text TEXT NOT NULL,
+                attachments BLOB NOT NULL
+            );
+            CREATE INDEX idx_sessions_project ON sessions(project);
+            CREATE INDEX idx_sessions_workspace ON sessions(workspace);
+            CREATE INDEX idx_sessions_started ON sessions(started_at);
+            CREATE TABLE session_turns (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT NOT NULL,
+                turn_index INTEGER NOT NULL,
+                role TEXT NOT NULL,
+                content TEXT NOT NULL,
+                tool_name TEXT,
+                tool_id TEXT,
+                timestamp TEXT NOT NULL,
+                UNIQUE(session_id, turn_index)
+            );
+            CREATE INDEX idx_turns_session ON session_turns(session_id);
+            PRAGMA user_version = 9;",
+        )
+        .map_err(|e| MagistrError::sqlite("create session schema", e))
+    })();
+    match result {
         Ok(()) => conn
             .execute_batch("COMMIT;")
-            .map_err(|e| MagistrError::sqlite("commit the session schema", e)),
+            .map_err(|e| MagistrError::sqlite("commit session schema", e)),
         Err(error) => {
-            // The original failure is the one worth reporting.
             let _ = conn.execute_batch("ROLLBACK;");
             Err(error)
         }
     }
 }
 
-/// Run schema migrations based on PRAGMA user_version.
-fn migrate(conn: &Connection) -> Result<()> {
-    let version: i32 = conn
-        .pragma_query_value(None, "user_version", |row| row.get(0))
-        .map_err(|e| MagistrError::sqlite("read schema version", e))?;
-
-    if version < 1 {
-        conn.execute_batch(
-            "CREATE TABLE IF NOT EXISTS sessions (
-                session_id    TEXT PRIMARY KEY,
-                project       TEXT NOT NULL,
-                started_at    TEXT NOT NULL,
-                ended_at      TEXT NOT NULL,
-                cost_usd      REAL NOT NULL,
-                turns         INTEGER NOT NULL,
-                duration_ms   INTEGER NOT NULL,
-                files_changed TEXT NOT NULL DEFAULT '[]',
-                tags          TEXT NOT NULL DEFAULT '[]',
-                summary       TEXT
-            );
-
-            CREATE INDEX IF NOT EXISTS idx_sessions_project ON sessions(project);
-            CREATE INDEX IF NOT EXISTS idx_sessions_started ON sessions(started_at);
-
-            PRAGMA user_version = 1;",
-        )
-        .map_err(|e| MagistrError::sqlite("create sessions table", e))?;
-    }
-
-    if version < 2 {
-        conn.execute_batch(
-            "ALTER TABLE sessions ADD COLUMN model TEXT NOT NULL DEFAULT '';
-             PRAGMA user_version = 2;",
-        )
-        .map_err(|e| MagistrError::sqlite("migrate sessions v2 (add model column)", e))?;
-    }
-
-    if version < 3 {
-        conn.execute_batch(
-            "CREATE TABLE IF NOT EXISTS session_turns (
-                id            INTEGER PRIMARY KEY AUTOINCREMENT,
-                session_id    TEXT NOT NULL,
-                turn_index    INTEGER NOT NULL,
-                role          TEXT NOT NULL,
-                content       TEXT NOT NULL,
-                tool_name     TEXT,
-                tool_id       TEXT,
-                timestamp     TEXT NOT NULL,
-                UNIQUE(session_id, turn_index)
-            );
-
-            CREATE INDEX IF NOT EXISTS idx_turns_session ON session_turns(session_id);
-
-            PRAGMA user_version = 3;",
-        )
-        .map_err(|e| MagistrError::sqlite("migrate sessions v3 (add session_turns table)", e))?;
-    }
-
-    // v4 and v5 originated in the GUI's session tracker; mirrored here so a
-    // CLI-first database carries the same columns the GUI's INSERT names.
-    if version < 4 {
-        conn.execute_batch(
-            "ALTER TABLE sessions ADD COLUMN kind TEXT NOT NULL DEFAULT 'agent';
-             CREATE INDEX IF NOT EXISTS idx_sessions_kind ON sessions(kind);
-             PRAGMA user_version = 4;",
-        )
-        .map_err(|e| MagistrError::sqlite("migrate sessions v4 (add kind column)", e))?;
-    }
-
-    if version < 5 {
-        conn.execute_batch(
-            "ALTER TABLE sessions ADD COLUMN input_tokens INTEGER NOT NULL DEFAULT 0;
-             ALTER TABLE sessions ADD COLUMN output_tokens INTEGER NOT NULL DEFAULT 0;
-             PRAGMA user_version = 5;",
-        )
-        .map_err(|e| MagistrError::sqlite("migrate sessions v5 (add token columns)", e))?;
-    }
-
-    if version < 6 {
-        conn.execute_batch(
-            "ALTER TABLE sessions ADD COLUMN owner TEXT;
-             PRAGMA user_version = 6;",
-        )
-        .map_err(|e| MagistrError::sqlite("migrate sessions v6 (add owner column)", e))?;
-    }
-
-    let _ = SCHEMA_VERSION; // suppress unused warning
-
-    Ok(())
-}
-
-/// Insert a session record into the database.
-///
-/// If a record with the same session_id already exists, it is replaced.
+/// Save current owner facts. A repeated or older checkpoint is a no-op.
+/// User-assigned tags and ownership survive a later continuation.
 pub fn insert_session(conn: &Connection, record: &SessionRecord) -> Result<()> {
-    let files_json = serde_json::to_string(&record.files_changed)
+    let files = serde_json::to_string(&record.files_changed)
         .map_err(|e| MagistrError::parse("JSON", "serialize session files", e))?;
-    let tags_json = serde_json::to_string(&record.tags)
+    let tags = serde_json::to_string(&record.tags)
         .map_err(|e| MagistrError::parse("JSON", "serialize session tags", e))?;
-
-    conn.execute(
-        "INSERT OR REPLACE INTO sessions
-            (session_id, project, started_at, ended_at, cost_usd, turns,
-             duration_ms, files_changed, tags, summary, model, owner)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
-        params![
-            record.session_id,
-            record.project,
-            record.started_at.to_rfc3339(),
-            record.ended_at.to_rfc3339(),
-            record.cost_usd,
-            record.turns,
-            record.duration_ms as i64,
-            files_json,
-            tags_json,
-            record.summary,
-            record.model,
-            record.owner,
-        ],
-    )
-    .map_err(|e| MagistrError::sqlite("insert session", e))?;
-
+    let updated = conn
+        .execute(
+            "INSERT INTO sessions
+            (session_id, project, started_at, updated_at, cost_usd, turns,
+             duration_ms, files_changed, tags, summary, model, owner,
+             workspace, provider, provider_session_id, resume_supported, outcome, name, ended_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12,
+                 ?13, ?14, ?15, ?16, ?17, ?18, ?19)
+         ON CONFLICT(session_id) DO UPDATE SET
+             updated_at=excluded.updated_at, cost_usd=excluded.cost_usd,
+             turns=excluded.turns, duration_ms=excluded.duration_ms,
+             files_changed=excluded.files_changed, summary=excluded.summary,
+             model=excluded.model, provider_session_id=excluded.provider_session_id,
+             resume_supported=excluded.resume_supported, outcome=excluded.outcome, name=excluded.name,
+             ended_at=excluded.ended_at
+         WHERE excluded.updated_at > sessions.updated_at
+           AND excluded.project = sessions.project
+           AND excluded.workspace = sessions.workspace
+           AND excluded.provider = sessions.provider",
+            params![
+                record.session_id,
+                record.project,
+                record.started_at.to_rfc3339(),
+                record.updated_at.to_rfc3339(),
+                record.cost_usd,
+                record.turns,
+                i64::try_from(record.duration_ms)
+                    .map_err(|e| MagistrError::sqlite("session duration", e))?,
+                files,
+                tags,
+                record.summary,
+                record.model,
+                record.owner,
+                record.workspace,
+                record.provider,
+                record.provider_session_id,
+                record.resume_supported,
+                record.outcome.map(SessionOutcome::as_str),
+                record.name,
+                record.ended_at.map(|time| time.to_rfc3339()),
+            ],
+        )
+        .map_err(|e| MagistrError::sqlite("save session", e))?;
+    if updated == 0
+        && let Some(existing) = get_session(conn, &record.session_id)?
+        && (existing.project != record.project
+            || existing.workspace != record.workspace
+            || existing.provider != record.provider)
+    {
+        return Err(MagistrError::Config(
+            "A saved conversation cannot be reassigned to another project or agent.".into(),
+        ));
+    }
     Ok(())
 }
 
 /// Query sessions with optional filters.
 ///
-/// Returns results sorted by started_at descending (most recent first).
+/// Returns results sorted by the latest checkpoint, including open conversations.
 pub fn query_sessions(conn: &Connection, filter: &SessionFilter) -> Result<Vec<SessionRecord>> {
     let mut sql = String::from(
-        "SELECT session_id, project, started_at, ended_at, cost_usd, turns,
-                duration_ms, files_changed, tags, summary, model, owner
+        "SELECT session_id, project, started_at, updated_at, cost_usd, turns,
+                duration_ms, files_changed, tags, summary, model, owner,
+                workspace, provider, provider_session_id, resume_supported, outcome, name, ended_at
          FROM sessions WHERE 1=1",
     );
     let mut param_values: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
@@ -248,8 +260,13 @@ pub fn query_sessions(conn: &Connection, filter: &SessionFilter) -> Result<Vec<S
         param_values.push(Box::new(format!("%{project}%")));
     }
 
+    if let Some(workspace) = &filter.workspace {
+        sql.push_str(" AND workspace = ?");
+        param_values.push(Box::new(workspace.clone()));
+    }
+
     if let Some(since) = filter.since {
-        sql.push_str(" AND started_at >= ?");
+        sql.push_str(" AND updated_at >= ?");
         param_values.push(Box::new(since.to_rfc3339()));
     }
 
@@ -264,7 +281,7 @@ pub fn query_sessions(conn: &Connection, filter: &SessionFilter) -> Result<Vec<S
         param_values.push(Box::new(format!("%{owner}%")));
     }
 
-    sql.push_str(" ORDER BY started_at DESC LIMIT ?");
+    sql.push_str(" ORDER BY updated_at DESC, session_id LIMIT ?");
     param_values.push(Box::new(filter.limit as i64));
 
     let params_ref: Vec<&dyn rusqlite::types::ToSql> =
@@ -291,8 +308,9 @@ pub fn query_sessions(conn: &Connection, filter: &SessionFilter) -> Result<Vec<S
 pub fn get_session(conn: &Connection, session_id: &str) -> Result<Option<SessionRecord>> {
     let mut stmt = conn
         .prepare(
-            "SELECT session_id, project, started_at, ended_at, cost_usd, turns,
-                    duration_ms, files_changed, tags, summary, model, owner
+            "SELECT session_id, project, started_at, updated_at, cost_usd, turns,
+                    duration_ms, files_changed, tags, summary, model, owner,
+                workspace, provider, provider_session_id, resume_supported, outcome, name, ended_at
              FROM sessions WHERE session_id = ?1",
         )
         .map_err(|e| MagistrError::sqlite("prepare session query", e))?;
@@ -318,7 +336,7 @@ pub fn purge_old_sessions(conn: &Connection, policy: &RetentionPolicy) -> Result
 
     let deleted = conn
         .execute(
-            "DELETE FROM sessions WHERE started_at < ?1",
+            "DELETE FROM sessions WHERE updated_at < ?1",
             params![cutoff.to_rfc3339()],
         )
         .map_err(|e| MagistrError::sqlite("purge old sessions", e))?;
@@ -452,61 +470,106 @@ pub fn count_turns(conn: &Connection, session_id: &str) -> Result<u32> {
     Ok(count as u32)
 }
 
-/// Convert a database row to a SessionTurn.
+fn decode<T: serde::de::DeserializeOwned>(
+    row: &rusqlite::Row<'_>,
+    column: usize,
+) -> rusqlite::Result<T> {
+    let text: String = row.get(column)?;
+    serde_json::from_str(&text).map_err(|error| {
+        rusqlite::Error::FromSqlConversionFailure(
+            column,
+            rusqlite::types::Type::Text,
+            Box::new(error),
+        )
+    })
+}
+
+fn timestamp(row: &rusqlite::Row<'_>, column: usize) -> rusqlite::Result<DateTime<Utc>> {
+    let text: String = row.get(column)?;
+    DateTime::parse_from_rfc3339(&text)
+        .map(|date| date.with_timezone(&Utc))
+        .map_err(|error| {
+            rusqlite::Error::FromSqlConversionFailure(
+                column,
+                rusqlite::types::Type::Text,
+                Box::new(error),
+            )
+        })
+}
+
 fn row_to_turn(row: &rusqlite::Row<'_>) -> rusqlite::Result<SessionTurn> {
-    let turn_index: i64 = row.get(0)?;
-    let role_str: String = row.get(1)?;
-    let timestamp_str: String = row.get(5)?;
-
-    let role = TurnRole::parse_role(&role_str).unwrap_or(TurnRole::Assistant);
-    let timestamp = DateTime::parse_from_rfc3339(&timestamp_str)
-        .map(|dt| dt.with_timezone(&Utc))
-        .unwrap_or_else(|_| Utc::now());
-
+    let role: String = row.get(1)?;
+    let role = TurnRole::parse_role(&role).ok_or_else(|| {
+        rusqlite::Error::FromSqlConversionFailure(
+            1,
+            rusqlite::types::Type::Text,
+            Box::new(std::io::Error::other("Unknown conversation role")),
+        )
+    })?;
     Ok(SessionTurn {
-        turn_index: turn_index as u32,
+        turn_index: row.get(0)?,
         role,
         content: row.get(2)?,
         tool_name: row.get(3)?,
         tool_id: row.get(4)?,
-        timestamp,
+        timestamp: timestamp(row, 5)?,
     })
 }
 
-/// Convert a database row to a SessionRecord.
 fn row_to_record(row: &rusqlite::Row<'_>) -> rusqlite::Result<SessionRecord> {
-    let started_str: String = row.get(2)?;
-    let ended_str: String = row.get(3)?;
-    let files_json: String = row.get(7)?;
-    let tags_json: String = row.get(8)?;
-    let duration_ms: i64 = row.get(6)?;
-
-    let started_at = DateTime::parse_from_rfc3339(&started_str)
-        .map(|dt| dt.with_timezone(&Utc))
-        .unwrap_or_else(|_| Utc::now());
-    let ended_at = DateTime::parse_from_rfc3339(&ended_str)
-        .map(|dt| dt.with_timezone(&Utc))
-        .unwrap_or_else(|_| Utc::now());
-
-    let files_changed: Vec<String> = serde_json::from_str(&files_json).unwrap_or_default();
-    let tags: Vec<String> = serde_json::from_str(&tags_json).unwrap_or_default();
-
-    let model: String = row.get(10).unwrap_or_default();
-    let owner: Option<String> = row.get(11).unwrap_or_default();
-
+    let outcome: Option<String> = row.get(16)?;
+    let outcome = outcome
+        .map(|value| {
+            serde_json::from_value::<SessionOutcome>(serde_json::Value::String(value)).map_err(
+                |error| {
+                    rusqlite::Error::FromSqlConversionFailure(
+                        16,
+                        rusqlite::types::Type::Text,
+                        Box::new(error),
+                    )
+                },
+            )
+        })
+        .transpose()?;
     Ok(SessionRecord {
         session_id: row.get(0)?,
+        name: row.get(17)?,
         project: row.get(1)?,
-        started_at,
-        ended_at,
+        started_at: timestamp(row, 2)?,
+        updated_at: timestamp(row, 3)?,
+        ended_at: row
+            .get::<_, Option<String>>(18)?
+            .map(|value| {
+                DateTime::parse_from_rfc3339(&value)
+                    .map(|time| time.with_timezone(&Utc))
+                    .map_err(|error| {
+                        rusqlite::Error::FromSqlConversionFailure(
+                            18,
+                            rusqlite::types::Type::Text,
+                            Box::new(error),
+                        )
+                    })
+            })
+            .transpose()?,
         cost_usd: row.get(4)?,
         turns: row.get(5)?,
-        duration_ms: duration_ms as u64,
-        files_changed,
-        tags,
+        duration_ms: u64::try_from(row.get::<_, i64>(6)?).map_err(|error| {
+            rusqlite::Error::FromSqlConversionFailure(
+                6,
+                rusqlite::types::Type::Integer,
+                Box::new(error),
+            )
+        })?,
+        files_changed: decode(row, 7)?,
+        tags: decode(row, 8)?,
         summary: row.get(9)?,
-        model,
-        owner,
+        model: row.get(10)?,
+        owner: row.get(11)?,
+        workspace: row.get(12)?,
+        provider: row.get(13)?,
+        provider_session_id: row.get(14)?,
+        resume_supported: row.get(15)?,
+        outcome,
     })
 }
 

@@ -108,7 +108,7 @@ async fn the_in_binary_claude_agent_advertises_fable_runs_a_tool_turn_and_cancel
 
     // 2. A real turn streams and ends.
     transport
-        .prompt("Reply with exactly the word: pong")
+        .prompt(&"Reply with exactly the word: pong".into())
         .expect("prompt");
     let mut saw_chunk = false;
     let stop = tokio::time::timeout(TURN_TIMEOUT, async {
@@ -133,8 +133,9 @@ async fn the_in_binary_claude_agent_advertises_fable_runs_a_tool_turn_and_cancel
     //    tool under the direct CLI, and the call round-trips permission.
     transport
         .prompt(
-            "Call the mcp__magistr__magistr_list tool on the current directory (path \".\"), \
-             then reply with exactly the word: listed",
+            &"Call the mcp__magistr__magistr_list tool on the current directory (path \".\"), \
+             then reply with exactly the word: listed"
+                .into(),
         )
         .expect("prompt");
     let mut magistr_call = false;
@@ -165,7 +166,7 @@ async fn the_in_binary_claude_agent_advertises_fable_runs_a_tool_turn_and_cancel
 
     // 4. Cancel mid-turn is honoured.
     transport
-        .prompt("Count slowly from 1 to 200, one number per line.")
+        .prompt(&"Count slowly from 1 to 200, one number per line.".into())
         .expect("third prompt");
     tokio::time::sleep(Duration::from_secs(3)).await;
     transport.cancel().expect("cancel");
@@ -184,7 +185,7 @@ async fn the_in_binary_claude_agent_advertises_fable_runs_a_tool_turn_and_cancel
 
     // 5. A turn after the cancel runs fresh.
     transport
-        .prompt("Reply with exactly the word: again")
+        .prompt(&"Reply with exactly the word: again".into())
         .expect("fourth prompt");
     let stop = tokio::time::timeout(TURN_TIMEOUT, async {
         loop {

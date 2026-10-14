@@ -10,6 +10,7 @@ pub mod child_guard;
 pub mod confidence;
 pub mod config;
 pub mod detection;
+pub mod durable_write;
 pub mod env;
 pub mod error;
 pub mod evidence;

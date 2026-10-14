@@ -10,7 +10,7 @@ fn entry(day: u32, actor: &str, cost: f64) -> CostEntry {
             .with_ymd_and_hms(2026, 8, day, 12, 0, 0)
             .single()
             .expect("valid timestamp"),
-        cost_usd: cost,
+        cost_usd: Some(cost),
         tokens: TokenBreakdown {
             input_tokens: 10,
             output_tokens: 5,
@@ -43,7 +43,7 @@ fn a_monthly_report_folds_the_days_together() {
     let rows = chargeback(&entries, CostDimension::Actor, TimePeriod::Monthly);
     assert_eq!(rows.len(), 1);
     assert_eq!(rows[0].period, "2026-08");
-    assert_eq!(rows[0].cost_usd, 5.0);
+    assert_eq!(rows[0].cost_usd, Some(5.0));
     assert_eq!(rows[0].sessions, 2);
 }
 
@@ -58,10 +58,10 @@ fn share_is_of_the_period_not_the_whole_ledger() {
     let rows = chargeback(&entries, CostDimension::Actor, TimePeriod::Daily);
     let day1: Vec<&ChargebackRow> = rows.iter().filter(|r| r.period == "2026-08-01").collect();
     assert_eq!(day1.len(), 2);
-    assert!((day1[0].share - 0.75).abs() < 1e-9);
-    assert!((day1[1].share - 0.25).abs() < 1e-9);
+    assert!((day1[0].share.unwrap() - 0.75).abs() < 1e-9);
+    assert!((day1[1].share.unwrap() - 0.25).abs() < 1e-9);
     let day2: Vec<&ChargebackRow> = rows.iter().filter(|r| r.period == "2026-08-02").collect();
-    assert!((day2[0].share - 1.0).abs() < 1e-9);
+    assert!((day2[0].share.unwrap() - 1.0).abs() < 1e-9);
 }
 
 #[test]

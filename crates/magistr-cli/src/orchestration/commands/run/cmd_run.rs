@@ -13,7 +13,7 @@ pub async fn cmd_run(
     let cwd = inputs.project_root().to_path_buf();
     let prompt = request.prompt;
     let config = request
-        .apply(agent::AgentConfig::new(prompt, &cwd).with_inputs(inputs))
+        .apply(agent::AgentConfig::new(prompt, &cwd).with_inputs(inputs))?
         .backend(backend)
         .permission_profile(profile)
         .with_project_context(&cwd);
@@ -41,8 +41,7 @@ pub async fn cmd_run(
     }
     eprintln!();
 
-    let outcome =
-        drain_session_interactive(&mut session, &cwd, inputs, model_name.as_deref()).await;
+    let outcome = drain_session_interactive(&mut session).await;
     let cleanup = session.terminate_session().await.suggest();
     drop(session);
     if let Err(err) = workspace.shutdown().await {

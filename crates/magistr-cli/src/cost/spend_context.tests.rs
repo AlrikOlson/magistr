@@ -8,7 +8,7 @@ fn entry(project: &str, actor: Option<&str>) -> CostEntry {
         session_id: "s1".into(),
         project: project.into(),
         timestamp: Utc::now(),
-        cost_usd: 1.0,
+        cost_usd: Some(1.0),
         tokens: TokenBreakdown::default(),
         turns: 1,
         duration_ms: 1,

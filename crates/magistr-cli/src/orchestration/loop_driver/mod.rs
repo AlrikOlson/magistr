@@ -1,4 +1,4 @@
-//! The iteration loop on the cockpit (`crates/magistr-tui`): `run_loop`'s
+//! The iteration loop on the cockpit (`crates/magistr-desktop`): `run_loop`'s
 //! control flow ported off the frozen legacy tree.
 //!
 //! [`LoopDriver`] is a task beside the cockpit's runtime. It owns the

@@ -1,44 +1,51 @@
-//! A single session record stored in SQLite.
+//! Durable facts for one host-owned agent conversation.
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
-/// A single session record stored in SQLite.
+use super::session_outcome::SessionOutcome;
+
+/// One conversation checkpoint, identified by Magistr independently of its provider.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SessionRecord {
-    /// Claude Agent SDK session ID.
     pub session_id: String,
-    /// Project name or directory path.
+    /// A name assigned through the owning conversation.
+    pub name: Option<String>,
+    /// Canonical project authority directory shared by its working copies.
     pub project: String,
-    /// When the session started.
+    /// Canonical working directory in which this conversation ran.
+    pub workspace: String,
+    pub provider: String,
+    pub provider_session_id: Option<String>,
+    /// The negotiated provider supports loading this conversation.
+    pub resume_supported: bool,
     pub started_at: DateTime<Utc>,
-    /// When the session ended.
-    pub ended_at: DateTime<Utc>,
-    /// Total cost in USD.
-    pub cost_usd: f64,
-    /// Number of agent turns.
-    pub turns: u32,
-    /// Total duration in milliseconds.
+    /// The latest durable owner checkpoint.
+    pub updated_at: DateTime<Utc>,
+    /// Present only after the owner actually settles.
+    pub ended_at: Option<DateTime<Utc>>,
+    pub outcome: Option<SessionOutcome>,
+    /// Reported cumulative USD cost; absent when the provider did not price it.
+    pub cost_usd: Option<f64>,
+    /// Terminal responses observed by the owner; absent when not recorded.
+    pub turns: Option<u32>,
     pub duration_ms: u64,
-    /// Files changed during the session (relative paths).
     pub files_changed: Vec<String>,
-    /// User-assigned tags for categorization.
     pub tags: Vec<String>,
-    /// Brief summary of what was done (last assistant message or user-provided).
+    /// Bounded text from the latest assistant response.
     pub summary: Option<String>,
-    /// Model used for this session (e.g., "Claude Opus", "Claude Sonnet").
-    #[serde(default)]
-    pub model: String,
-    /// Who started (or was handed) the session — the resolved team
-    /// identity id (self-asserted attribution, not authentication).
-    /// Absent in older rows.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub model: Option<String>,
+    /// Resolved local attribution, or the person this session was handed to.
     pub owner: Option<String>,
 }
 
 impl SessionRecord {
-    /// Human-readable duration string.
+    #[must_use]
+    pub fn can_resume(&self) -> bool {
+        self.resume_supported && self.provider_session_id.is_some()
+    }
+
     pub fn duration_display(&self) -> String {
         let secs = self.duration_ms / 1000;
         if secs < 60 {
@@ -50,12 +57,18 @@ impl SessionRecord {
         }
     }
 
-    /// Human-readable cost string.
     pub fn cost_display(&self) -> String {
-        crate::utils::typography::format_cost(self.cost_usd)
+        self.cost_usd
+            .map(crate::utils::typography::format_cost)
+            .unwrap_or_else(|| "unknown".into())
     }
 
-    /// Number of files changed.
+    pub fn turns_display(&self) -> String {
+        self.turns
+            .map(|turns| turns.to_string())
+            .unwrap_or_else(|| "unknown".into())
+    }
+
     pub fn file_count(&self) -> usize {
         self.files_changed.len()
     }
@@ -63,13 +76,13 @@ impl SessionRecord {
 
 impl fmt::Display for SessionRecord {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let id: String = self.session_id.chars().take(8).collect();
         write!(
             f,
-            "{} | {} | {} | {} turns | {} files",
-            &self.session_id[..8.min(self.session_id.len())],
-            self.project,
+            "{id} | {} | {} | {} turns | {} files",
+            self.workspace,
             self.cost_display(),
-            self.turns,
+            self.turns_display(),
             self.file_count(),
         )
     }

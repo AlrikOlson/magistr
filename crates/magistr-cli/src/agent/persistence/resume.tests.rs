@@ -1,19 +1,27 @@
 use super::*;
+use crate::session::session_outcome::SessionOutcome as HistoryOutcome;
 use chrono::TimeZone;
 
 fn sample_session() -> SessionRecord {
     SessionRecord {
         session_id: "abc12345-6789-abcd-ef01-234567890abc".to_string(),
+        name: None,
         project: "my-project".to_string(),
+        workspace: "my-project".to_string(),
+        provider: "scripted".into(),
+        provider_session_id: Some("provider-fixture".into()),
+        resume_supported: true,
+        outcome: Some(HistoryOutcome::Completed),
         started_at: Utc.with_ymd_and_hms(2026, 3, 10, 10, 0, 0).unwrap(),
-        ended_at: Utc.with_ymd_and_hms(2026, 3, 10, 11, 30, 0).unwrap(),
-        cost_usd: 2.50,
-        turns: 15,
+        updated_at: Utc.with_ymd_and_hms(2026, 3, 10, 11, 30, 0).unwrap(),
+        ended_at: Some(Utc.with_ymd_and_hms(2026, 3, 10, 11, 30, 0).unwrap()),
+        cost_usd: Some(2.50),
+        turns: Some(15),
         duration_ms: 5_400_000,
         files_changed: vec!["src/main.rs".into(), "src/lib.rs".into()],
         tags: vec!["auth-refactor".into()],
         summary: Some("Refactored auth module".into()),
-        model: String::new(),
+        model: None,
         owner: None,
     }
 }
@@ -151,4 +159,39 @@ fn commit_info_fields() {
     };
     assert_eq!(info.sha, "abc1234");
     assert_eq!(info.subject, "fix: something");
+}
+
+#[test]
+fn saved_resume_refuses_wrong_agent_working_copy_and_missing_load_capability() {
+    let directory = tempfile::tempdir().unwrap();
+    let root = directory.path().canonicalize().unwrap();
+    let inputs = crate::config::inputs::ProjectInputs::from_lookup(&root, |key| {
+        (key == "XDG_DATA_HOME").then(|| directory.path().join("data").display().to_string())
+    });
+    let conn =
+        super::super::storage::open_db(&super::super::storage::sessions_db_path(&inputs).unwrap())
+            .unwrap();
+    let mut record = sample_session();
+    record.workspace = root.display().to_string();
+    record.provider = "recorded".into();
+    record.resume_supported = false;
+    super::super::storage::insert_session(&conn, &record).unwrap();
+    let config = || crate::agent::AgentConfig::new("", &root).with_inputs(&inputs);
+    assert!(saved_config(config(), &record.session_id).is_err());
+    record.updated_at += chrono::Duration::seconds(1);
+    record.resume_supported = true;
+    super::super::storage::insert_session(&conn, &record).unwrap();
+    assert!(saved_config(config().provider("another-agent"), &record.session_id).is_err());
+    let other = tempfile::tempdir().unwrap();
+    assert!(
+        saved_config(
+            crate::agent::AgentConfig::new("", other.path()).with_inputs(&inputs),
+            &record.session_id
+        )
+        .is_err()
+    );
+    record.updated_at += chrono::Duration::seconds(1);
+    record.provider_session_id = None;
+    super::super::storage::insert_session(&conn, &record).unwrap();
+    assert!(saved_config(config(), &record.session_id).is_err());
 }

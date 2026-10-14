@@ -1,7 +1,7 @@
 //! Budget exceeded screen — session summary and extension options.
 //!
 //! Provides a data structure for rendering a "budget exceeded" screen
-//! in the TUI, including session cost breakdown, turn history, and
+//! in the interface, including session cost breakdown, turn history, and
 //! instructions for extending the budget.
 
 use super::cost_summary::CostSummary;
@@ -9,7 +9,7 @@ use super::types::TokenBreakdown;
 
 /// Data for the "budget exceeded" screen shown when a session hits its budget limit.
 ///
-/// This is a pure data struct — rendering is handled by the TUI module.
+/// This is a pure data struct — rendering is handled by the interface module.
 #[derive(Debug, Clone, PartialEq)]
 pub struct BudgetExceededScreen {
     /// The budget limit that was exceeded (USD).
@@ -101,14 +101,16 @@ impl BudgetExceededScreen {
     }
 
     /// Build from a `CostSummary` and budget limit (convenience for post-session reports).
-    pub fn from_summary(limit: f64, summary: &CostSummary, turn_costs: &[f64]) -> Self {
-        Self::new(
-            limit,
-            summary.total_cost,
-            summary.total_turns,
-            &summary.total_tokens,
-            turn_costs,
-        )
+    pub fn from_summary(limit: f64, summary: &CostSummary, turn_costs: &[f64]) -> Option<Self> {
+        summary.total_cost.map(|cost| {
+            Self::new(
+                limit,
+                cost,
+                summary.total_turns,
+                &summary.total_tokens,
+                turn_costs,
+            )
+        })
     }
 }
 

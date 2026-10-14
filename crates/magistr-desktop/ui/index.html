@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Magistr</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<div class="shell">
+<aside class="rail" aria-label="Projects and sessions">
+  <header class="brand"><img class="mark" src="icon.png" alt=""><strong>Magistr</strong></header>
+  <button id="open-project">Open project<span aria-hidden="true">⌘ O</span></button>
+  <section class="attention-dock" aria-label="Needs your attention"><h2>Needs your attention</h2><p id="attention-count" role="status" aria-live="polite">0 requests waiting</p><nav id="attention" aria-label="Requests across sessions"></nav></section>
+  <h2>Projects</h2><nav id="projects" aria-label="Projects"></nav>
+  <h2>Sessions</h2><nav id="sessions" aria-label="Sessions"></nav>
+  <button id="new-session" disabled>New session</button>
+  <button id="saved-conversations">Saved conversations</button>
+  <footer><label for="theme">Appearance</label><select id="theme" disabled><option value="system">System</option><option value="dark">Dark</option><option value="light">Light</option></select><label class="check"><input id="reduce-motion" type="checkbox" disabled>Reduce motion</label><p id="preferences-note" role="status"></p><button id="retry-preferences" hidden>Retry preferences</button></footer>
+</aside>
+<main>
+  <header class="work-header"><div><p id="project-name">Magistr</p><h1 id="view-title">Projects</h1></div><p id="status" role="status" aria-live="polite">Ready</p></header>
+  <p id="error" class="error" role="alert" hidden></p>
+  <section id="welcome" class="welcome" aria-label="Open a project">
+    <h2>Open a project</h2><p>Choose a folder to start working. If it needs Magistr setup, you can review the files before making changes.</p>
+    <div class="welcome-actions"><button id="welcome-open">Choose a folder…</button><button id="welcome-path">Enter a folder path</button></div>
+    <p id="welcome-note" role="status" hidden></p>
+  </section>
+  <div id="workspace" class="workspace" hidden>
+    <section class="conversation" aria-label="Conversation">
+      <div id="transcript" class="transcript" tabindex="0" aria-label="Messages">
+        <div class="empty"><h2>What would you like to work on?</h2><p>Send a message to start a conversation in this working copy.</p></div>
+      </div>
+      <button id="latest" hidden>Latest reply ↓</button>
+      <form id="composer"><label for="draft">Message the agent</label><textarea id="draft" disabled rows="4" placeholder="Describe the work…" maxlength="1048576"></textarea><div id="pending-attachments" class="attachments" role="list" aria-label="Files to send" hidden></div><p id="attachment-note" role="status" aria-live="polite"></p><div class="draft-state"><p id="draft-status" role="status"></p><button id="retry-draft" type="button" hidden>Retry save</button><button id="discard-draft" type="button" disabled>Discard draft</button></div><div class="composer-actions"><button id="add-files" type="button" disabled>Add files…</button><span>Return to send · Shift Return for a new line</span><button id="stop" type="button" disabled>Stop</button><button id="send" type="submit" disabled>Send</button></div></form>
+    </section>
+    <aside class="detail" aria-label="Session details">
+      <h2>Working copy</h2><p id="workspace-path" class="path"></p><label for="working-copy">Working copy</label><select id="working-copy"></select>
+      <form id="name-form"><label for="conversation-name">Conversation name</label><input id="conversation-name" maxlength="120" required><button id="save-name" type="submit">Save name</button></form>
+      <h2>Agent</h2><p id="agent-provider"></p><div id="agent-configuration"></div><p id="model">Model information is unavailable.</p><p id="usage"></p><p id="queue"></p><p id="capabilities"></p>
+      <section id="requests" aria-label="Requests waiting for you"></section>
+      <div class="session-actions"><button id="reconnect" disabled>Reconnect</button><button id="copy" disabled>Copy conversation</button><button id="close-session" disabled>Close session</button></div>
+    </aside>
+  </div>
+</main>
+</div>
+<dialog id="project-picker" aria-labelledby="picker-title">
+  <form id="project-form"><div id="picker-content"><h2 id="picker-title">Open a project</h2>
+    <p>Choose a folder or enter its path. You can review setup here if it is needed.</p>
+    <button id="browse-folder" type="button">Choose folder…</button>
+    <label for="project-folder">Project folder</label><input id="project-folder" name="directory" required placeholder="/path/to/project">
+    <p id="picker-status" role="status" aria-live="polite" hidden></p>
+    <p id="picker-error" class="error" role="alert" hidden></p>
+    <section id="setup-preview" aria-label="Project setup" hidden><h3>Review project setup</h3>
+      <p id="setup-root" class="path"></p><p>Select the files you want to change. Your own settings and edited files are kept.</p>
+      <div class="setup-selection"><button id="select-files" type="button">Select all</button><button id="clear-files" type="button">Clear selection</button></div>
+      <div id="setup-files"></div>
+    </section>
+    <section id="setup-result" aria-label="Setup results" hidden><h3 id="setup-result-title"></h3><p id="setup-record"></p><ul id="setup-outcomes"></ul></section>
+    </div><div class="dialog-actions"><button id="picker-cancel" type="button">Cancel</button><button id="picker-submit" type="submit">Open</button></div>
+  </form>
+</dialog>
+<dialog id="session-picker" aria-labelledby="session-picker-title">
+  <form id="session-form"><h2 id="session-picker-title">New conversation</h2><p>Choose an available agent. Choose a model here if your project requires one. You can change supported settings after opening.</p>
+    <label for="agent-choice">Agent</label><select id="agent-choice" required></select>
+    <button id="choose-initial-model" type="button">Choose model…</button><div id="initial-model-control" hidden><label for="initial-model">Initial model</label><select id="initial-model"></select></div>
+    <p id="session-picker-error" class="error" role="alert" hidden></p>
+    <div class="dialog-actions"><button id="session-picker-cancel" type="button">Cancel</button><button id="session-picker-open" type="submit">Start conversation</button></div>
+  </form>
+</dialog>
+<dialog id="history-picker" aria-labelledby="history-title">
+  <div id="history-content"><h2 id="history-title">Saved conversations</h2><p>Read a saved summary, recover an unsent message or resume with its original agent.</p>
+  <p id="history-error" class="error" role="alert" hidden></p>
+  <div class="history-layout"><nav id="history-list" aria-label="Saved conversations"></nav><section id="history-summary" tabindex="0" aria-label="Saved summary" hidden><h3 id="history-name"></h3><p id="history-details"></p><p id="history-text"></p><p id="history-resume-reason"></p><button id="history-resume">Resume conversation</button><section id="saved-draft" hidden><h4>Unsent message</h4><label for="saved-message">Saved message</label><textarea id="saved-message" rows="4" maxlength="1048576"></textarea><div id="saved-attachments" class="attachments" role="list" aria-label="Saved files" hidden></div><p id="saved-draft-status" role="status"></p><div class="saved-draft-actions"><button id="save-saved-message">Save message</button><button id="discard-saved-draft">Discard saved draft</button></div></section></section></div>
+  </div><div class="dialog-actions"><button id="history-close">Close</button></div>
+</dialog>
+<script type="module" src="app.mjs"></script>
+</body></html>

@@ -15,7 +15,10 @@ pub enum SessionCommand {
     /// restoration is supported; the adapter must verify that capability.
     Resume { binding: ProviderSessionBinding },
     /// Submit a prompt for a fresh turn within an existing session.
-    Prompt { turn: TurnId, content: String },
+    Prompt {
+        turn: TurnId,
+        content: super::PromptInput,
+    },
     /// Request cancellation of this turn, without closing its session.
     CancelTurn { turn: TurnId },
     /// Terminate the live session and release its resources.

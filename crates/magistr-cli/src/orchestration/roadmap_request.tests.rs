@@ -94,3 +94,17 @@ fn roadmap_purpose_is_a_ceiling_even_under_yolo() {
         );
     }
 }
+#[test]
+fn planning_keeps_the_project_model_policy() {
+    let governance = magistr_engine::policy::GovernancePolicy {
+        approved_models: vec!["approved".into()],
+        ..Default::default()
+    };
+    let inner =
+        SessionPermissionPolicy::new(PermissionProfile::Standard, vec![], vec![], vec![], false)
+            .governed_by(governance.compile());
+    let mut policy = RoadmapPolicy::new(inner);
+    assert!(!policy.can_use_model("unapproved"));
+    policy.model_changed(Some("approved".into()));
+    assert!(policy.can_use_model("approved"));
+}

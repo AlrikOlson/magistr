@@ -2,8 +2,8 @@ use crate::agent::Backend;
 
 /// The model list Claude Code 2.1 actually advertises: a mix of bare
 /// aliases and one concrete id carrying a context-window suffix.
-fn probed_claude() -> crate::agent::probe::ProviderModelSet {
-    use crate::agent::probe::{ProbeModel, ProviderModelSet};
+fn probed_claude() -> crate::agent::provider_model_set::ProviderModelSet {
+    use crate::agent::{probe_model::ProbeModel, provider_model_set::ProviderModelSet};
     ProviderModelSet {
         provider_id: "claude".into(),
         label: "Claude Code".into(),
@@ -86,7 +86,7 @@ fn pricing_reference_is_reported_separately_from_availability() {
 
 #[test]
 fn an_unprobed_provider_is_reported_as_unavailable() {
-    use crate::agent::probe::ProviderModelSet;
+    use crate::agent::provider_model_set::ProviderModelSet;
     let registry = crate::models::ModelRegistry::defaults();
     let payload = super::cmd_models::build_models_json(
         &registry,

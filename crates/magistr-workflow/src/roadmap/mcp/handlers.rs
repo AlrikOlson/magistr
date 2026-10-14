@@ -7,7 +7,7 @@ use serde::Deserialize;
 use super::service::RoadmapService;
 use crate::infra::CrossRef;
 use crate::roadmap::application::{
-    BlockerDraft, ChunkDraft, ChunkPatch, ExportRequest, RoadmapError,
+    BlockerDraft, ChunkDraft, ChunkPatch, ExportRequest, RoadmapError, WorkstreamView,
 };
 use crate::roadmap::domain::ChunkStatus;
 
@@ -342,9 +342,12 @@ pub struct FocusGetArgs {
     #[serde(default)]
     #[schemars(required, !default)]
     pub lane: String,
-    /// Peek at this workstream instead of the focused one. Changes nothing.
+    /// Inspect this group without changing focus.
     #[serde(default)]
     pub group: Option<String>,
+    /// current (default) or history.
+    #[serde(default)]
+    pub view: WorkstreamView,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -353,7 +356,7 @@ pub struct FocusSetArgs {
     #[serde(default)]
     #[schemars(required, !default)]
     pub lane: String,
-    /// Exact workstream name, or an unambiguous fragment.
+    /// Current workstream name, or an unambiguous current fragment.
     #[serde(default)]
     pub group: String,
     /// shape | build | listen.
@@ -728,7 +731,7 @@ impl RoadmapService {
 
     #[tool(
         name = "roadmap_focus_get",
-        description = "What one LANE is working on, and what is ready inside it. READ-ONLY — never sets, changes or clears a focus.\n\nInputs: lane (required — focus is per-caller; pass a stable identity you already have: your worktree's absolute path, your session id, or your task id); group (optional — peek at THAT workstream's frontier without focusing it).\n\nReturns: { lane, focus (null if this lane never focused), frontier, groups, persistent }. `frontier` = counts, ready list, every blocked chunk with its reason or unmet deps, and the next candidate — scoped to one workstream and unable to name a chunk outside it. `persistent` says whether the focus survives a restart.\n\nPitfalls: an unfocused or unknown lane is ANSWERED (focus:null plus the workstream list), not refused — you cannot read another lane's focus by guessing, only learn yours is unset.",
+        description = "Read a lane's exact saved focus and inspect current work or history. Never changes focus.\n\nInputs: lane (required stable caller identity); group (optional current name/unique fragment or exact historical name); view (current default | history). No group inspects the saved name exactly.\n\nReturns: lane, focus, focus_state (unset|current|closed|missing), frontier, workstreams, persistent. frontier state: unset; current with frontier {group,activity:{counts,readiness,next_ready},items}; closed with group/history counts; history with group/history {done,obsoleted,chunk_ids}; missing with query; ambiguous with query/matches. workstreams holds current groups, history counts, ungrouped activity and ungrouped_history counts. Only view:history includes historical IDs, for mixed or closed groups.\n\nPitfalls: peeks leave focus_state unchanged. Closed/missing saved names never redirect. Unknown lanes return unset plus catalog. persistent says whether focus survives restart.",
         annotations(
             title = "Read a lane's focus",
             read_only_hint = true,
@@ -743,13 +746,13 @@ impl RoadmapService {
     ) -> Result<CallToolResult, ErrorData> {
         Self::present(
             self.application
-                .focus_get(&args.lane, args.group.as_deref()),
+                .focus_get(&args.lane, args.group.as_deref(), args.view),
         )
     }
 
     #[tool(
         name = "roadmap_focus_set",
-        description = "Point one LANE at a workstream and a mode, or release it. The ONLY tool that changes a focus, and it changes nothing else — no chunk status moves, no ordering is touched, no work is started.\n\nInputs: lane (required, never defaulted), group (exact workstream name or unambiguous fragment), mode ('shape' | 'build' | 'listen'), clear (releases this lane's focus; group/mode ignored).\n\nReturns: { lane, focus, frontier, persistent }.\n\nPitfalls: an UNKNOWN or AMBIGUOUS group writes NOTHING and returns the exact candidates — a failed switch cannot strand a lane somewhere it never asked to be, and a focus it already held survives untouched. A blank lane is refused, not collapsed into a shared default: a shared default would let a second agent silently re-point the first. No synonyms — 'implement' is not read as 'build'.",
+        description = "Select a current workstream and mode for one lane, or release its focus. No chunk status, order or work changes.\n\nInputs: lane (required stable caller identity), group (current name/unique fragment), mode (shape|build|listen), clear (release; group/mode ignored).\n\nReturns: lane, focus, frontier {group,activity:{counts,readiness,next_ready},items}, persistent. Clear returns focus:null and released.\n\nPitfalls: closed, unknown or ambiguous names write nothing and report current choices; prior focus survives. Blank lanes are refused. Modes accept no synonyms; implement is not build.",
         annotations(
             title = "Set a lane's focus",
             read_only_hint = false,
@@ -773,7 +776,7 @@ impl RoadmapService {
 
     #[tool(
         name = "roadmap_propose_groups",
-        description = "Which UNGROUPED chunks belong together, for YOU to name. Clusters them by shared id prefix where at least `min_shared` chunks share one (default 4).\n\nThis places nothing, and cannot. A region name that is contained in a chunk id prefix names a slug rather than a place, and a prefix is contained in itself — so every group this could guess would be rejected. It reports the grouping, which is the part a machine can honestly see, and leaves the naming to you.\n\nReturns: clusters (each with the shared prefix, the ungrouped chunk ids, and why that prefix cannot be the name), the groups already in play, and min_shared. Pick a real place name for each cluster and apply it with roadmap_set_group — which will refuse the prefix if you pass it back.",
+        description = "Find clusters of unfinished, ungrouped chunks to name. Shared id prefixes require min_shared chunks (default 4).\n\nReturns: clusters (prefix, chunk IDs, naming restriction), min_shared, authored_names (current and historical names to avoid collisions), placed:0. authored_names is not current choices.\n\nPitfalls: this places nothing. Choose a workstream name and apply it with roadmap_set_group. Using the cluster's prefix as its name is refused.",
         annotations(
             title = "Propose workstreams from chunk ids",
             read_only_hint = true,
@@ -1318,8 +1321,8 @@ mod tests {
             r#"{"lane":"/w/a","group":"Authentication","mode":"build"}"#,
         )
         .await;
-        assert_eq!(focused["frontier"]["next"], "auth-1");
-        assert_eq!(focused["frontier"]["ready_count"], 1);
+        assert_eq!(focused["frontier"]["activity"]["next_ready"], "auth-1");
+        assert_eq!(focused["frontier"]["activity"]["readiness"]["ready"], 1);
     }
 
     /// Omitting `group` is unchanged behaviour — every existing caller keeps
@@ -1389,12 +1392,17 @@ mod tests {
         assert_eq!(set["focus"]["mode"], "build");
         // The frontier is the FOCUSED workstream's, not the roadmap's: bill-1
         // has the best priority overall and must not appear.
-        assert_eq!(set["frontier"]["next"], "auth-1");
-        assert_eq!(set["frontier"]["ready_count"], 2);
+        assert_eq!(set["frontier"]["activity"]["next_ready"], "auth-1");
+        assert_eq!(set["frontier"]["activity"]["readiness"]["ready"], 2);
 
         let got = focus_get(&svc, r#"{"lane":"/w/a"}"#).await;
         assert_eq!(got["focus"]["group"], "Authentication");
-        assert_eq!(got["frontier"]["next"], "auth-1");
+        assert_eq!(got["focus_state"]["state"], "current");
+        assert_eq!(got["frontier"]["state"], "current");
+        assert_eq!(
+            got["frontier"]["frontier"]["activity"]["next_ready"],
+            "auth-1"
+        );
     }
 
     /// A read is a read. `roadmap_focus_get` must not create a focus as a side
@@ -1404,12 +1412,10 @@ mod tests {
         let svc = svc_with_workstreams();
         let got = focus_get(&svc, r#"{"lane":"/w/never-focused"}"#).await;
         assert_eq!(got["focus"], serde_json::Value::Null);
-        assert!(
-            got["groups"]
-                .as_array()
-                .unwrap()
-                .contains(&"Billing".into())
-        );
+        assert_eq!(got["focus_state"]["state"], "unset");
+        assert_eq!(got["frontier"]["state"], "unset");
+        assert!(got["workstreams"]["current"].get("Billing").is_some());
+        assert_eq!(got["workstreams"]["ungrouped"]["counts"]["total"], 1);
         // Still nothing stored, so a second read agrees with the first.
         assert_eq!(
             focus_get(&svc, r#"{"lane":"/w/never-focused"}"#).await["focus"],
@@ -1427,10 +1433,16 @@ mod tests {
         )
         .await;
         let peek = focus_get(&svc, r#"{"lane":"/w/a","group":"Billing"}"#).await;
-        assert_eq!(peek["frontier"]["group"], "Billing");
+        assert_eq!(peek["frontier"]["frontier"]["group"], "Billing");
         // The focus itself did not move.
         assert_eq!(peek["focus"]["group"], "Authentication");
         assert_eq!(peek["focus"]["mode"], "shape");
+        assert_eq!(
+            peek["focus_state"],
+            serde_json::json!({
+                "state": "current", "group": "Authentication",
+            })
+        );
     }
 
     /// An unknown workstream is a soft error carrying the candidates, and it

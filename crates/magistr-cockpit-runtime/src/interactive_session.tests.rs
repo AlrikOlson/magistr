@@ -1,5 +1,77 @@
 use super::*;
 
+#[tokio::test]
+async fn explicit_reconnect_restores_the_same_identity_without_sending_a_prompt() {
+    let (inbox, mut events) = Inbox::channel();
+    let (commands, receiver) = Commands::channel();
+    let (opened, mut connections) = mpsc::unbounded_channel();
+    let (handle, opening) = controlled(SessionPurpose::Conversation);
+    let task = InteractiveSession::new(
+        move |purpose, resume| {
+            let (handle, observed) = controlled(purpose);
+            opened.send((resume, observed)).unwrap();
+            async { Ok(handle) }
+        },
+        inbox,
+        None,
+        None,
+        None,
+    )
+    .connected(handle, false)
+    .spawn(receiver);
+    opening
+        .events
+        .send(AgentEvent::Initialized {
+            session_id: "same-provider".into(),
+            model: None,
+        })
+        .unwrap();
+    next_observation(&mut events).await;
+    opening
+        .events
+        .send(AgentEvent::Activity(
+            magistr_application::sessions::SessionActivity {
+                active: false,
+                queued_turns: 0,
+                configuration_in_progress: false,
+                cancellation_requested: false,
+                can_resume: Some(true),
+                can_send_images: Some(false),
+            },
+        ))
+        .unwrap();
+    next_observation(&mut events).await;
+    opening
+        .events
+        .send(AgentEvent::Error("lost".into()))
+        .unwrap();
+    next_observation(&mut events).await;
+    commands.send(Cmd::Reconnect).unwrap();
+    let (resume, mut restored) = next(&mut connections).await;
+    assert_eq!(resume.as_deref(), Some("same-provider"));
+    assert!(
+        restored.prompts.try_recv().is_err(),
+        "reconnect never manufactures a prompt"
+    );
+    restored
+        .events
+        .send(AgentEvent::Text("replayed".into()))
+        .unwrap();
+    restored
+        .events
+        .send(AgentEvent::Initialized {
+            session_id: "same-provider".into(),
+            model: None,
+        })
+        .unwrap();
+    assert!(matches!(
+        next_observation(&mut events).await,
+        Msg::Agent(AgentEvent::Initialized { .. })
+    ));
+    commands.send(Cmd::Quit).unwrap();
+    task.await.unwrap().unwrap();
+}
+
 use magistr_application::sessions::TurnEnd;
 use tokio::sync::mpsc;
 
@@ -8,8 +80,19 @@ struct ControlledSession {
     prompts: mpsc::UnboundedSender<String>,
 }
 impl SessionHandle for ControlledSession {
-    fn submit_turn(&mut self, text: &str) -> Result<(), String> {
-        self.prompts.send(text.into()).map_err(|e| e.to_string())
+    fn submit_turn(
+        &mut self,
+        input: &magistr_application::sessions::PromptInput,
+    ) -> Result<(), String> {
+        self.prompts
+            .send(input.text.clone())
+            .map_err(|e| e.to_string())
+    }
+    fn rename(&mut self, _: &str) -> Result<(), String> {
+        Err("Naming is unavailable in this session.".into())
+    }
+    fn configure(&mut self, _: &str, _: &str) -> Result<(), String> {
+        Err("Agent choices are unavailable in this session.".into())
     }
     fn cancel_turn(&mut self) -> Result<(), String> {
         Ok(())
@@ -64,6 +147,31 @@ async fn next<T>(receiver: &mut mpsc::UnboundedReceiver<T>) -> T {
 }
 
 #[tokio::test]
+async fn busy_conversation_followups_reach_the_same_owner_and_are_accepted() {
+    let (inbox, mut events) = Inbox::channel();
+    let (commands, receiver) = Commands::channel();
+    let (handle, mut opening) = controlled(SessionPurpose::Conversation);
+    let task = InteractiveSession::new(
+        |_, _| async { Err("must keep the resident connection".into()) },
+        inbox,
+        None,
+        None,
+        None,
+    )
+    .connected(handle, true)
+    .spawn(receiver);
+    commands
+        .send(Cmd::Prompt("accepted follow-up".into()))
+        .unwrap();
+    assert_eq!(next(&mut opening.prompts).await, "accepted follow-up");
+    assert!(
+        matches!(next(&mut events).await, Msg::InputAccepted(text) if text.text.trim_end() == "accepted follow-up")
+    );
+    commands.send(Cmd::Quit).unwrap();
+    task.await.unwrap().unwrap();
+}
+
+#[tokio::test]
 async fn reconnect_restores_each_purpose_and_omits_replayed_history() {
     let (inbox, mut events) = Inbox::channel();
     let (commands, receiver) = Commands::channel();
@@ -88,7 +196,7 @@ async fn reconnect_restores_each_purpose_and_omits_replayed_history() {
         .send(AgentEvent::Text("Opening history".into()))
         .unwrap();
     assert!(
-        matches!(next(&mut events).await, Msg::Agent(AgentEvent::Text(text)) if text == "Opening history")
+        matches!(next_observation(&mut events).await, Msg::Agent(AgentEvent::Text(text)) if text == "Opening history")
     );
     opening
         .events
@@ -98,7 +206,7 @@ async fn reconnect_restores_each_purpose_and_omits_replayed_history() {
         })
         .unwrap();
     assert!(matches!(
-        next(&mut events).await,
+        next_observation(&mut events).await,
         Msg::Agent(AgentEvent::Initialized { .. })
     ));
     // Park the conversation while planning acquires its own identity.
@@ -110,7 +218,7 @@ async fn reconnect_restores_each_purpose_and_omits_replayed_history() {
     assert_eq!(planning.purpose, SessionPurpose::Roadmap);
     assert_eq!(next(&mut planning.prompts).await, "First plan");
     assert!(matches!(
-        next(&mut events).await,
+        next_observation(&mut events).await,
         Msg::RoadmapRequestStarted
     ));
     planning
@@ -121,7 +229,7 @@ async fn reconnect_restores_each_purpose_and_omits_replayed_history() {
         })
         .unwrap();
     assert!(matches!(
-        next(&mut events).await,
+        next_observation(&mut events).await,
         Msg::Agent(AgentEvent::Initialized { .. })
     ));
     planning
@@ -129,7 +237,7 @@ async fn reconnect_restores_each_purpose_and_omits_replayed_history() {
         .send(AgentEvent::TurnEnded(TurnEnd::EndTurn))
         .unwrap();
     assert!(matches!(
-        next(&mut events).await,
+        next_observation(&mut events).await,
         Msg::Agent(AgentEvent::TurnEnded(_))
     ));
     commands
@@ -161,13 +269,13 @@ async fn reconnect_restores_each_purpose_and_omits_replayed_history() {
                 .send(Cmd::RoadmapPrompt("Select planning".into()))
                 .unwrap();
             assert!(matches!(
-                next(&mut events).await,
+                next_observation(&mut events).await,
                 Msg::RoadmapRequestStarted
             ));
             assert_eq!(next(&mut current.prompts).await, "Select planning");
         }
         assert!(matches!(
-            next(&mut events).await,
+            next_observation(&mut events).await,
             Msg::Agent(AgentEvent::Error(_))
         ));
         commands.send(command).unwrap();
@@ -177,7 +285,7 @@ async fn reconnect_restores_each_purpose_and_omits_replayed_history() {
         assert!(next(&mut restored.prompts).await.starts_with("Retry"));
         if purpose == SessionPurpose::Roadmap {
             assert!(matches!(
-                next(&mut events).await,
+                next_observation(&mut events).await,
                 Msg::RoadmapRequestStarted
             ));
         }
@@ -198,7 +306,7 @@ async fn reconnect_restores_each_purpose_and_omits_replayed_history() {
             .unwrap();
         // The first displayed event must be the new connection, not replay.
         assert!(matches!(
-            next(&mut events).await,
+            next_observation(&mut events).await,
             Msg::Agent(AgentEvent::Initialized { .. })
         ));
         restored
@@ -206,14 +314,14 @@ async fn reconnect_restores_each_purpose_and_omits_replayed_history() {
             .send(AgentEvent::Text("New response".into()))
             .unwrap();
         assert!(
-            matches!(next(&mut events).await, Msg::Agent(AgentEvent::Text(text)) if text == "New response")
+            matches!(next_observation(&mut events).await, Msg::Agent(AgentEvent::Text(text)) if text == "New response")
         );
         restored
             .events
             .send(AgentEvent::TurnEnded(TurnEnd::EndTurn))
             .unwrap();
         assert!(matches!(
-            next(&mut events).await,
+            next_observation(&mut events).await,
             Msg::Agent(AgentEvent::TurnEnded(_))
         ));
         // Keep the connection alive while the other purpose is selected.
@@ -249,7 +357,7 @@ async fn failed_restoration_keeps_the_identity_and_rejects_the_unsent_request() 
         })
         .unwrap();
     assert!(matches!(
-        next(&mut events).await,
+        next_observation(&mut events).await,
         Msg::Agent(AgentEvent::Initialized { .. })
     ));
     opening
@@ -258,7 +366,7 @@ async fn failed_restoration_keeps_the_identity_and_rejects_the_unsent_request() 
         .unwrap();
     drop(opening.events);
     assert!(matches!(
-        next(&mut events).await,
+        next_observation(&mut events).await,
         Msg::Agent(AgentEvent::Error(_))
     ));
     for prompt in ["Keep this request", "Try again"] {
@@ -267,9 +375,9 @@ async fn failed_restoration_keeps_the_identity_and_rejects_the_unsent_request() 
             next(&mut attempts).await,
             (SessionPurpose::Conversation, Some("retained".into()))
         );
-        assert!(matches!(next(&mut events).await,
-            Msg::Agent(AgentEvent::PromptRejected { text, error })
-                if text == prompt && error.contains("cannot restore")));
+        assert!(matches!(next_observation(&mut events).await,
+            Msg::Agent(AgentEvent::PromptRejected { input, error })
+                if input.text == prompt && error.contains("cannot restore")));
     }
     drop(commands);
     task.await.unwrap().unwrap();
@@ -297,18 +405,40 @@ async fn planning_waits_for_the_turn_and_keeps_a_separate_reusable_context() {
     assert_eq!(conversation.purpose, SessionPurpose::Conversation);
     assert_eq!(next(&mut conversation.prompts).await, "Implement");
 
+    let discarded = magistr_application::sessions::PromptInput {
+        text: "Discard this request".into(),
+        attachments: vec![
+            magistr_application::sessions::PromptAttachment::from_bytes(
+                "queued.txt",
+                "selected-hash",
+                b"unsent attachment".to_vec(),
+            )
+            .unwrap(),
+        ],
+    };
     commands
-        .send(Cmd::RoadmapPrompt("Discard this request".into()))
+        .send(Cmd::RoadmapPrompt(discarded.clone()))
         .unwrap();
-    assert!(matches!(next(&mut events).await, Msg::RoadmapRequestQueued));
+    assert!(matches!(
+        next_observation(&mut events).await,
+        Msg::RoadmapRequestQueued
+    ));
     commands.send(Cmd::CancelRoadmapPrompt).unwrap();
     assert!(matches!(
         next(&mut events).await,
+        Msg::Agent(AgentEvent::PromptRejected { input, error })
+            if input == discarded && error == "This send was stopped. Your draft is still available."
+    ));
+    assert!(matches!(
+        next_observation(&mut events).await,
         Msg::RoadmapRequestCancelled
     ));
     assert!(connections.try_recv().is_err());
     commands.send(Cmd::RoadmapPrompt("Plan".into())).unwrap();
-    assert!(matches!(next(&mut events).await, Msg::RoadmapRequestQueued));
+    assert!(matches!(
+        next_observation(&mut events).await,
+        Msg::RoadmapRequestQueued
+    ));
     assert!(
         connections.try_recv().is_err(),
         "planning cannot start during the turn"
@@ -318,11 +448,11 @@ async fn planning_waits_for_the_turn_and_keeps_a_separate_reusable_context() {
         .send(AgentEvent::TurnEnded(TurnEnd::EndTurn))
         .unwrap();
     assert!(matches!(
-        next(&mut events).await,
+        next_observation(&mut events).await,
         Msg::Agent(AgentEvent::TurnEnded(_))
     ));
     assert!(matches!(
-        next(&mut events).await,
+        next_observation(&mut events).await,
         Msg::RoadmapRequestStarted
     ));
     let mut planning = next(&mut connections).await;
@@ -334,14 +464,14 @@ async fn planning_waits_for_the_turn_and_keeps_a_separate_reusable_context() {
         .send(AgentEvent::Text("Planning reply".into()))
         .unwrap();
     assert!(
-        matches!(next(&mut events).await, Msg::Agent(AgentEvent::Text(text)) if text == "Planning reply")
+        matches!(next_observation(&mut events).await, Msg::Agent(AgentEvent::Text(text)) if text == "Planning reply")
     );
     planning
         .events
         .send(AgentEvent::TurnEnded(TurnEnd::EndTurn))
         .unwrap();
     assert!(matches!(
-        next(&mut events).await,
+        next_observation(&mut events).await,
         Msg::Agent(AgentEvent::TurnEnded(_))
     ));
     commands.send(Cmd::Prompt("Continue".into())).unwrap();
@@ -355,12 +485,12 @@ async fn planning_waits_for_the_turn_and_keeps_a_separate_reusable_context() {
         .send(AgentEvent::TurnEnded(TurnEnd::EndTurn))
         .unwrap();
     assert!(matches!(
-        next(&mut events).await,
+        next_observation(&mut events).await,
         Msg::Agent(AgentEvent::TurnEnded(_))
     ));
     commands.send(Cmd::RoadmapPrompt("Refine".into())).unwrap();
     assert!(matches!(
-        next(&mut events).await,
+        next_observation(&mut events).await,
         Msg::RoadmapRequestStarted
     ));
     assert_eq!(next(&mut planning.prompts).await, "Refine");
@@ -371,6 +501,111 @@ async fn planning_waits_for_the_turn_and_keeps_a_separate_reusable_context() {
     drop(commands);
     task.await.unwrap().unwrap();
     assert!(conversation.events.is_closed() && planning.events.is_closed());
+}
+
+#[tokio::test]
+async fn cancelling_a_pending_connection_rejects_exact_input_and_allows_retry() {
+    use magistr_application::sessions::{PromptAttachment, PromptInput};
+    for (roadmap, abort) in [(false, false), (true, false), (false, true), (true, true)] {
+        let (inbox, mut events) = Inbox::channel();
+        let (commands, receiver) = Commands::channel();
+        let (opened, mut connections) = mpsc::unbounded_channel();
+        let task = InteractiveSession::new(
+            move |purpose, _resume| {
+                let (handle, observed) = controlled(purpose);
+                let (release, wait) = tokio::sync::oneshot::channel();
+                opened.send((observed, release)).unwrap();
+                async move {
+                    wait.await
+                        .map_err(|_| "The connection was cancelled.".to_owned())?;
+                    Ok(handle)
+                }
+            },
+            inbox,
+            None,
+            None,
+            None,
+        )
+        .spawn(receiver);
+        let input = PromptInput {
+            text: "Keep this request".into(),
+            attachments: vec![
+                PromptAttachment::from_bytes(
+                    "note.txt",
+                    "selected-hash",
+                    "exact\r\n😀\n".as_bytes().to_vec(),
+                )
+                .unwrap(),
+            ],
+        };
+        let prompt = if roadmap {
+            Cmd::RoadmapPrompt(input.clone())
+        } else {
+            Cmd::Prompt(input.clone())
+        };
+        commands.send(prompt.clone()).unwrap();
+        let (mut cancelled, release) = next(&mut connections).await;
+        let cancellation = if abort {
+            Cmd::Loop(LoopCmd::Abort)
+        } else if roadmap {
+            Cmd::CancelRoadmapPrompt
+        } else {
+            Cmd::Cancel
+        };
+        commands.send(cancellation).unwrap();
+        assert!(matches!(
+            next(&mut events).await,
+            Msg::Agent(AgentEvent::PromptRejected { input: rejected, error })
+                if rejected == input && error == "This send was stopped. Your draft is still available."
+        ));
+        let terminal = next(&mut events).await;
+        if roadmap {
+            assert!(matches!(terminal, Msg::RoadmapRequestCancelled));
+        } else {
+            assert!(matches!(
+                terminal,
+                Msg::Agent(AgentEvent::TurnEnded(TurnEnd::Cancelled))
+            ));
+        }
+        if abort {
+            assert!(matches!(
+                next(&mut events).await,
+                Msg::CommandFailed {
+                    cmd: Cmd::Loop(LoopCmd::Abort),
+                    ..
+                }
+            ));
+        }
+        assert!(
+            release.send(()).is_err(),
+            "the cancelled connector was dropped"
+        );
+        assert_eq!(
+            cancelled.prompts.try_recv(),
+            Err(mpsc::error::TryRecvError::Disconnected)
+        );
+        assert!(
+            events.try_recv().is_err(),
+            "the input is rejected exactly once"
+        );
+
+        commands.send(prompt).unwrap();
+        let (mut retry, release) = next(&mut connections).await;
+        release.send(()).unwrap();
+        assert_eq!(next(&mut retry.prompts).await, input.text);
+        if roadmap {
+            assert!(matches!(
+                next(&mut events).await,
+                Msg::RoadmapRequestStarted
+            ));
+        }
+        assert!(
+            matches!(next(&mut events).await, Msg::InputAccepted(receipt) if receipt == input.receipt())
+        );
+        assert!(events.try_recv().is_err(), "only the retry was accepted");
+        commands.send(Cmd::Quit).unwrap();
+        task.await.unwrap().unwrap();
+    }
 }
 
 #[tokio::test]
@@ -401,7 +636,7 @@ async fn connection_failure_and_provider_death_allow_a_new_attempt() {
         .send(Cmd::Prompt("Keep this request".into()))
         .unwrap();
     assert!(
-        matches!(next(&mut events).await, Msg::Agent(AgentEvent::PromptRejected { text, error }) if text == "Keep this request" && error.contains("offline"))
+        matches!(next_observation(&mut events).await, Msg::Agent(AgentEvent::PromptRejected { input, error }) if input.text == "Keep this request" && error.contains("offline"))
     );
     commands.send(Cmd::Prompt("Retry".into())).unwrap();
     let mut first = next(&mut connections).await;
@@ -411,7 +646,7 @@ async fn connection_failure_and_provider_death_allow_a_new_attempt() {
         .send(AgentEvent::Error("provider died".into()))
         .unwrap();
     assert!(
-        matches!(next(&mut events).await, Msg::Agent(AgentEvent::Error(error)) if error == "provider died")
+        matches!(next_observation(&mut events).await, Msg::Agent(AgentEvent::Error(error)) if error == "provider died")
     );
     commands.send(Cmd::Prompt("Reconnect".into())).unwrap();
     let mut second = next(&mut connections).await;
@@ -485,16 +720,19 @@ async fn aborting_owner_releases_both_contexts_and_fences_a_running_local_job() 
         .events
         .send(AgentEvent::TurnEnded(TurnEnd::EndTurn))
         .unwrap();
-    next(&mut events).await;
+    next_observation(&mut events).await;
     commands
         .send(Cmd::RoadmapPrompt("Planning".into()))
         .unwrap();
     let mut planning = next(&mut connections).await;
     next(&mut planning.prompts).await;
     assert!(matches!(
-        next(&mut events).await,
+        next_observation(&mut events).await,
         Msg::RoadmapRequestStarted
     ));
+    assert!(
+        matches!(next(&mut events).await, Msg::InputAccepted(input) if input.text == "Planning")
+    );
     commands
         .send(Cmd::Workbench(WorkbenchCmd::Open {
             path: "held.rs".into(),
@@ -659,12 +897,6 @@ async fn unsupported_controls_and_absent_provider_fail_without_ending_live_work(
         None,
         None,
     );
-    let mut model =
-        magistr_cockpit::cockpit::Model::new(magistr_cockpit::cockpit::Size::new(80, 24));
-    magistr_cockpit::cockpit::update(
-        &mut model,
-        Msg::Agent(AgentEvent::Text("Still working".into())),
-    );
     for cmd in [
         Cmd::Cancel,
         Cmd::Permission {
@@ -688,11 +920,6 @@ async fn unsupported_controls_and_absent_provider_fail_without_ending_live_work(
             .unwrap();
         assert!(
             matches!(&event, Msg::CommandFailed { cmd: refused, error } if refused == &cmd && !error.is_empty())
-        );
-        magistr_cockpit::cockpit::update(&mut model, event);
-        assert!(
-            model.agent_activity().active,
-            "an action refusal cannot finish unrelated work"
         );
     }
     drop(commands_tx);
@@ -764,7 +991,7 @@ async fn a_start_during_a_response_or_inside_running_work_is_refused_in_words() 
     assert_eq!(next(&mut opening.prompts).await, "think");
     commands.send(Cmd::Launch(LaunchAction::Next)).unwrap();
     assert!(matches!(
-        next(&mut events).await,
+        next_observation(&mut events).await,
         Msg::CommandFailed { cmd: Cmd::Launch(LaunchAction::Next), error }
             if error.contains("current response")
     ));
@@ -779,7 +1006,7 @@ async fn a_start_during_a_response_or_inside_running_work_is_refused_in_words() 
     commands.send(Cmd::Prompt("still here".into())).unwrap();
     let running = tokio::spawn(async move { session.run(&mut receiver, None, false).await });
     assert!(matches!(
-        next(&mut events).await,
+        next_observation(&mut events).await,
         Msg::CommandFailed { cmd: Cmd::Launch(LaunchAction::Gates), error }
             if error == "The checks are not ready."
     ));
@@ -804,7 +1031,7 @@ async fn a_start_during_a_response_or_inside_running_work_is_refused_in_words() 
     .spawn(receiver);
     commands.send(Cmd::Launch(LaunchAction::Next)).unwrap();
     assert!(matches!(
-        next(&mut events).await,
+        next_observation(&mut events).await,
         Msg::CommandFailed { cmd: Cmd::Launch(_), error } if error.contains("cannot start work")
     ));
     drop(commands);
@@ -819,7 +1046,17 @@ async fn a_start_during_a_response_or_inside_running_work_is_refused_in_words() 
     let exit = session.run(&mut receiver, None, true).await;
     assert_eq!(exit.launch, None);
     assert!(matches!(
-        next(&mut events).await,
+        next_observation(&mut events).await,
         Msg::CommandFailed { cmd: Cmd::Launch(_), error } if error.contains("already running")
     ));
+}
+/// These coordinator tests assert routing and control events. Admission
+/// observations are asserted independently by the relay's companion suite.
+async fn next_observation(receiver: &mut mpsc::UnboundedReceiver<Msg>) -> Msg {
+    loop {
+        let message = next(receiver).await;
+        if !matches!(message, Msg::InputAccepted(_)) {
+            return message;
+        }
+    }
 }

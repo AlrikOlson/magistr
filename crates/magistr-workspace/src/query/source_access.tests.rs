@@ -59,8 +59,7 @@ fn oversized_source_is_a_typed_observation_and_a_named_refusal() {
     ));
     let refusal = query
         .snapshot("data\\huge.json")
-        .err()
-        .expect("named refusal");
+        .expect_err("named refusal");
     assert_eq!(refusal.kind, ErrorKind::BudgetTooSmall);
     assert!(
         refusal.message.contains("data/huge.json")
@@ -117,7 +116,7 @@ fn snapshot_refuses_outside_symlink_and_nonregular_file() {
     let worker = worker();
     let query = WorkspaceQueries::new(&policy, &worker, None).expect("queries");
     assert_eq!(
-        query.snapshot("escape").err().expect("refusal").code(),
+        query.snapshot("escape").expect_err("refusal").code(),
         "PATH_OUTSIDE_WORKSPACE"
     );
 }

@@ -33,7 +33,8 @@ use std::path::{Path, PathBuf};
 use serde::{Serialize, de::DeserializeOwned};
 
 use super::merged_write::MergedWrite;
-use super::store_stamp::StoreStamp;
+use super::{read_json, store_stamp};
+use magistr_workflow_contracts::{Observed, ReadError, ReadSource};
 
 const PERSIST_VAR: &str = "THINK_AND_SHIP_PERSIST";
 const DATA_DIR_VAR: &str = "THINK_AND_SHIP_DATA_DIR";
@@ -171,6 +172,10 @@ impl Persistence {
         }
     }
 
+    pub fn enabled(&self) -> bool {
+        self.enabled
+    }
+
     pub fn sessions_dir(&self) -> &Path {
         &self.sessions_dir
     }
@@ -222,41 +227,23 @@ impl Persistence {
 
     /// Read and deserialize the persisted state for `session_id`. Returns
     /// `Ok(None)` when persistence is off or the file doesn't exist.
-    pub fn load<T: DeserializeOwned>(&self, session_id: &str) -> std::io::Result<Option<T>> {
-        self.load_stamped(session_id).map(|(state, _)| state)
+    pub fn load<T: DeserializeOwned>(&self, session_id: &str) -> Result<Option<T>, ReadError> {
+        self.load_stamped(session_id).map(|observed| observed.value)
     }
 
-    /// [`Self::load`] with the stamp of the file it read. The stamp is taken
-    /// *before* the read: a write landing between the two leaves the older
-    /// stamp beside the newer content, which costs one spurious re-read
-    /// later and never a missed one. `(None, None)` when persistence is off
-    /// or there is no file.
+    /// Read validated records and the source of those exact bytes.
+    /// Absence and disabled persistence remain distinct from a stored empty value.
     pub fn load_stamped<T: DeserializeOwned>(
         &self,
         session_id: &str,
-    ) -> std::io::Result<(Option<T>, Option<StoreStamp>)> {
+    ) -> Result<Observed<Option<T>>, ReadError> {
         if !self.enabled {
-            return Ok((None, None));
+            return Ok(Observed {
+                value: None,
+                source: ReadSource::Memory,
+            });
         }
-        let path = self.path_for(session_id);
-        let stamp = StoreStamp::of(&path)?;
-        match fs::read_to_string(&path) {
-            Ok(s) => Ok((
-                Some(serde_json::from_str(&s).map_err(std::io::Error::other)?),
-                stamp,
-            )),
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok((None, None)),
-            Err(e) => Err(e),
-        }
-    }
-
-    /// The stamp of the store file for `session_id` as it stands: `None`
-    /// when persistence is off or there is no file. A `stat`, never a read.
-    pub fn stamp(&self, session_id: &str) -> std::io::Result<Option<StoreStamp>> {
-        if !self.enabled {
-            return Ok(None);
-        }
-        StoreStamp::of(&self.path_for(session_id))
+        read_json(&self.path_for(session_id))
     }
 
     pub fn clear(&self, session_id: &str) -> std::io::Result<()> {
@@ -275,8 +262,8 @@ impl Persistence {
 /// Serialize `state` to `path` under an exclusive advisory lock on a sibling
 /// `<path>.lock` file, merging in whatever is currently on disk via
 /// `merge(memory, disk)`. A missing or unreadable on-disk file (corrupt JSON,
-/// schema drift) falls back to writing `state` outright — matching `load`'s
-/// tolerance. Shared by [`Persistence::save_merging`] and by the ship and
+/// schema drift) currently falls back to writing `state` outright. Shared by
+/// [`Persistence::save_merging`] and by the ship and
 /// think family wrappers, so every family locks identically. The think
 /// family's own copy established the pattern and has since been folded onto
 /// this one.
@@ -315,7 +302,7 @@ where
         .and_then(|s| serde_json::from_str(&s).ok());
     let merged = on_disk.map(|disk| merge(state, disk));
     let result = atomic_write_json(path, merged.as_ref().unwrap_or(state))
-        .map(|()| StoreStamp::of(path).ok().flatten());
+        .map(|()| store_stamp::of(path).ok().flatten());
     let _ = lock_file.unlock();
     result.map(|stamp| MergedWrite { merged, stamp })
 }

@@ -34,7 +34,7 @@ async fn loop_budget_uses_recorded_spend_across_sessions() {
     for cost in [0.25, 0.5] {
         let (mut session, tx) = mock_session();
         tx.send(Ok(result_message(cost))).unwrap();
-        let (outcome, spend) = drain_iteration(
+        let outcome = drain_iteration(
             &mut session,
             HeadlessFormat::Plain,
             Some(1.0),
@@ -46,7 +46,6 @@ async fn loop_budget_uses_recorded_spend_across_sessions() {
         .await
         .unwrap();
         assert_eq!(outcome, HeadlessOutcome::Ok);
-        assert_eq!(spend.unwrap().cost_usd, cost);
     }
     assert_eq!(cumulative_cost, 0.75);
 
@@ -58,7 +57,7 @@ async fn loop_budget_uses_recorded_spend_across_sessions() {
     }))
     .unwrap();
     let mut errors = Vec::new();
-    let (outcome, spend) = drain_iteration(
+    let outcome = drain_iteration(
         &mut session,
         HeadlessFormat::Plain,
         Some(1.0),
@@ -75,7 +74,6 @@ async fn loop_budget_uses_recorded_spend_across_sessions() {
             .unwrap()
             .contains("$0.3000 >= $0.2500")
     );
-    assert!(spend.is_none(), "no result means no invented ledger row");
     assert_eq!(cumulative_cost, 1.05);
 }
 
@@ -84,7 +82,7 @@ async fn loop_without_cost_limit_still_accounts_for_recorded_spend() {
     let (mut session, tx) = mock_session();
     tx.send(Ok(result_message(0.5))).unwrap();
     let mut cumulative_cost = 0.25;
-    let (outcome, _) = drain_iteration(
+    let outcome = drain_iteration(
         &mut session,
         HeadlessFormat::Json,
         None,
@@ -110,7 +108,7 @@ async fn loop_final_result_cost_enforces_the_remaining_budget_without_usage_upda
         tx.send(Ok(result_message(cost))).unwrap();
         let mut cumulative_cost = 0.75;
         let mut checkpointed = None;
-        let (outcome, spend) = drain_iteration(
+        let outcome = drain_iteration(
             &mut session,
             HeadlessFormat::Plain,
             Some(1.0),
@@ -125,7 +123,6 @@ async fn loop_final_result_cost_enforces_the_remaining_budget_without_usage_upda
         .await
         .unwrap();
         assert_eq!(outcome, expected, "final session cost {cost}");
-        assert_eq!(spend.unwrap().cost_usd, cost);
         assert_eq!(cumulative_cost, 0.75 + cost);
         assert_eq!(checkpointed, Some(cumulative_cost));
     }
@@ -146,7 +143,7 @@ async fn loop_eof_without_a_terminal_result_is_an_agent_error() {
         drop(tx);
         let mut cumulative_cost = 0.75;
         let mut observations = Vec::new();
-        let (outcome, spend) = drain_iteration(
+        let outcome = drain_iteration(
             &mut session,
             HeadlessFormat::Json,
             Some(2.0),
@@ -161,10 +158,6 @@ async fn loop_eof_without_a_terminal_result_is_an_agent_error() {
         .await
         .unwrap();
         assert_eq!(outcome, HeadlessOutcome::AgentError);
-        assert!(
-            spend.is_none(),
-            "EOF must not manufacture a completed session"
-        );
         assert_eq!(cumulative_cost, 0.75 + reported_cost.unwrap_or(0.0));
         assert_eq!(
             observations,
@@ -215,6 +208,7 @@ async fn loop_stream_error_preserves_usage_in_the_recovery_checkpoint() {
     .await
     .unwrap_err();
     assert!(error.to_string().contains("transport disconnected"));
+    drop(iter_loop);
     let recovered = IterationLoop::recover(dir.path(), &spec).unwrap();
     assert_eq!(recovered.run_state().budget_total_usd, 1.0);
     assert_eq!(recovered.run_state().budget_limit_usd, Some(2.0));
@@ -265,7 +259,7 @@ async fn loop_session_outcomes_reach_the_process_exit_status() {
             message
         };
         tx.send(Ok(message)).unwrap();
-        let (outcome, _) = drain_iteration(
+        let outcome = drain_iteration(
             &mut session,
             HeadlessFormat::Plain,
             Some(1.0),

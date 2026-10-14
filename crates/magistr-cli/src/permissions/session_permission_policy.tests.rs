@@ -384,6 +384,61 @@ fn a_safe_shell_command_is_auto_approved_outside_workflow() {
     assert_eq!(decision, PolicyDecision::Allow, "safe prefix behind a cd");
 }
 
+fn incomplete_shell_inputs() -> [serde_json::Value; 13] {
+    [
+        serde_json::Value::Null,
+        serde_json::json!({}),
+        serde_json::json!({"description": "Run the build"}),
+        serde_json::json!("git status"),
+        serde_json::json!(["git status"]),
+        serde_json::json!({"command": null}),
+        serde_json::json!({"command": false}),
+        serde_json::json!({"command": 0}),
+        serde_json::json!({"command": ["git", "status"]}),
+        serde_json::json!({"command": {"command": "git status"}}),
+        serde_json::json!({"command": ""}),
+        serde_json::json!({"command": " \t\r\n"}),
+        serde_json::json!({"command": "\u{2003}\u{00a0}"}),
+    ]
+}
+
+#[test]
+fn incomplete_shell_input_cannot_receive_a_safe_command_allowance() {
+    for input in incomplete_shell_inputs() {
+        assert!(!is_safe_shell_command(&input), "{input}");
+    }
+}
+
+#[test]
+fn incomplete_shell_input_uses_profile_authority() {
+    for profile in PermissionProfile::all() {
+        for input in incomplete_shell_inputs() {
+            for (title, kind) in [
+                ("Bash", None),
+                ("Bash", Some(ToolKind::Execute)),
+                ("Run the build", Some(ToolKind::Execute)),
+                ("shell", None),
+            ] {
+                let mut policy = policy(*profile, false);
+                let request = request(title, input.clone(), kind);
+                let resolution = policy.evaluate_request(&request);
+                let (outcome, decision) = match profile {
+                    PermissionProfile::Yolo => (PermissionOutcome::Allow, PolicyDecision::Allow),
+                    _ => (PermissionOutcome::Ask, PolicyDecision::Ask(RiskTier::High)),
+                };
+                assert_eq!(resolution.risk, RiskTier::High, "{profile} {title} {input}");
+                assert_eq!(resolution.source, PermissionSource::Profile, "{input}");
+                assert_eq!(resolution.outcome, outcome, "{profile} {title} {input}");
+                assert_eq!(
+                    policy.decide(&policy_request(&request)),
+                    decision,
+                    "{input}"
+                );
+            }
+        }
+    }
+}
+
 #[test]
 fn a_gate_command_is_batch_approved_by_evaluate() {
     let mut policy = CockpitPolicy::new(
@@ -770,22 +825,22 @@ mod charter {
     fn a_delegated_scope_is_allowed_where_the_profile_would_ask() {
         let mut plain = cautious(Charter::default(), None);
         assert!(asks(plain.decide(&policy_request(&write_under(
-            "/repo/crates/magistr-tui/src/view.rs"
+            "/repo/crates/magistr-desktop/src/view.rs"
         )))));
 
         let mut charter = Charter::default();
         charter.delegate(PolicyRule::new(
-            "delegate:write:crates/magistr-tui",
+            "delegate:write:crates/magistr-desktop",
             PolicyCondition::all_of(vec![
                 PolicyCondition::tool("Write"),
-                PolicyCondition::path("*crates/magistr-tui/*"),
+                PolicyCondition::path("*crates/magistr-desktop/*"),
             ]),
             Effect::Allow,
         ));
         let mut under = cautious(charter, None);
         assert_eq!(
             under.decide(&policy_request(&write_under(
-                "/repo/crates/magistr-tui/src/view.rs"
+                "/repo/crates/magistr-desktop/src/view.rs"
             ))),
             PolicyDecision::Allow
         );
@@ -1116,4 +1171,18 @@ fn standing_answers_do_not_turn_glob_shaped_tool_titles_into_wildcard_rules() {
         policy.decide(&policy_request(&write_request("src/main.rs"))),
         PolicyDecision::Ask(_)
     ));
+}
+#[test]
+fn model_choices_use_the_same_frozen_policy_as_permission_decisions() {
+    let governance = magistr_engine::policy::GovernancePolicy {
+        approved_models: vec!["approved".into()],
+        ..Default::default()
+    };
+    let mut policy = policy(PermissionProfile::Standard, false)
+        .governed_by(governance.compile())
+        .on_model(Some("initial".into()));
+    assert!(policy.can_use_model("approved"));
+    assert!(!policy.can_use_model("other"));
+    policy.model_changed(Some("approved".into()));
+    assert_eq!(policy.model.as_deref(), Some("approved"));
 }

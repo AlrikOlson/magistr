@@ -196,8 +196,8 @@ impl Drop for Fixture {
 async fn queued_cockpit_turns_reach_the_provider_in_fifo_order_with_ordered_transcript_events() {
     let mut fixture = Fixture::start("hold first").await;
     assert_eq!(fixture.next_started().await, "hold first");
-    fixture.session.submit_turn("hold second").unwrap();
-    fixture.session.submit_turn("third").unwrap();
+    fixture.session.submit_turn(&"hold second".into()).unwrap();
+    fixture.session.submit_turn(&"third".into()).unwrap();
     assert_eq!(fixture.session.snapshot().queued_turns, 2);
     for next in ["hold second", "third"] {
         fixture.observed.finish.add_permits(1);
@@ -253,7 +253,7 @@ async fn cancellation_keeps_the_cockpit_turn_active_until_the_provider_acknowled
     let active = fixture.session.snapshot().active_turn;
     fixture
         .session
-        .submit_turn("discard this queued input")
+        .submit_turn(&"discard this queued input".into())
         .unwrap();
     fixture.session.cancel_turn().unwrap();
     fixture
@@ -276,7 +276,7 @@ async fn cancellation_keeps_the_cockpit_turn_active_until_the_provider_acknowled
     assert!(
         fixture
             .session
-            .submit_turn("before acknowledgement")
+            .submit_turn(&"before acknowledgement".into())
             .is_err()
     );
 
@@ -302,7 +302,7 @@ async fn cancellation_keeps_the_cockpit_turn_active_until_the_provider_acknowled
     );
     fixture
         .session
-        .submit_turn("after acknowledgement")
+        .submit_turn(&"after acknowledgement".into())
         .unwrap();
     assert_eq!(fixture.next_started().await, "after acknowledgement");
     assert_eq!(
@@ -331,7 +331,12 @@ async fn a_provider_disconnect_reaches_the_cockpit_as_an_error_without_a_fabrica
             .iter()
             .any(|event| matches!(event, AgentEvent::TurnEnded(_)))
     );
-    assert!(fixture.session.submit_turn("must not restart").is_err());
+    assert!(
+        fixture
+            .session
+            .submit_turn(&"must not restart".into())
+            .is_err()
+    );
 }
 
 #[tokio::test]

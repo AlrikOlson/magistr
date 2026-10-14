@@ -2,7 +2,7 @@ use super::*;
 
 // Pure type tests (gate_labels, gate_display, validation_result_*) now live
 // in magistr-core::validate::tests. This file tests CLI-specific behavior:
-// async execution, TUI extensions, and output truncation.
+// async execution, CLI extensions, and output truncation.
 
 #[test]
 fn gate_result_status_symbol_ext() {
@@ -79,9 +79,9 @@ async fn run_gates_with_config_partial_fail() {
 }
 
 #[test]
-fn load_config_missing_dir() {
-    let dir = std::path::PathBuf::from("/tmp/nonexistent-magistr-test-dir");
-    let err = load_project_config(&dir).unwrap_err();
+fn load_config_missing_settings() {
+    let dir = tempfile::tempdir().unwrap();
+    let err = load_project_config(dir.path()).unwrap_err();
     assert!(err.to_string().contains("no .magistr/project.json"));
 }
 

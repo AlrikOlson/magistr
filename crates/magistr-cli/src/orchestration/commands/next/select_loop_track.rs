@@ -11,13 +11,17 @@ pub(super) fn select_loop_track(
     if requested.is_some() {
         return run.select_track(requested).map_err(Into::into);
     }
+    run.select_track(None)?;
     if run.is_recovered() || !interactive || !io::stdin().is_terminal() {
         return Ok(());
     }
     let Some(engines) = run.native() else {
         return Ok(());
     };
-    let tracks = engines.roadmap_tracks();
+    let tracks = engines
+        .roadmap_workstreams()
+        .map_err(|error| color_eyre::eyre::eyre!(error))?
+        .current_names();
     if tracks.is_empty() {
         return Ok(());
     }

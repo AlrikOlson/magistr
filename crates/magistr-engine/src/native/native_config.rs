@@ -10,7 +10,7 @@ use magistr_workflow::think::{ConfigSource, ThinkConfigResolution};
 const PERSIST_VAR: &str = "THINK_AND_SHIP_PERSIST";
 const BROADCAST_VAR: &str = "THINK_AND_SHIP_BROADCAST_PATH";
 /// The socket `magistr mcp-serve` binds under `.magistr/` when no
-/// `THINK_AND_SHIP_BROADCAST_PATH` is set, and in-process hosts (TUI, GUI)
+/// `THINK_AND_SHIP_BROADCAST_PATH` is set, and in-process hosts (desktop, CLI)
 /// subscribe to.
 const PROJECT_SOCKET: &str = "think-and-ship.sock";
 /// The longest socket path the kernel accepts: `sun_path` minus its NUL —

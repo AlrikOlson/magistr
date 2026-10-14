@@ -158,7 +158,16 @@ fn branch_lifecycle_and_exact_merge_destination_survive_reader_restart() {
     let cfg = temp_config(&tmp);
     let project = "reasoning-restart";
     let observer = reader(&cfg, project);
-    assert!(observer.snapshot().branches.is_empty());
+    assert!(
+        observer
+            .snapshot()
+            .think
+            .current()
+            .unwrap()
+            .value
+            .branches
+            .is_empty()
+    );
     {
         let engines = host(&cfg, project);
         engines
@@ -183,6 +192,10 @@ fn branch_lifecycle_and_exact_merge_destination_survive_reader_restart() {
             .expect("merge");
         let snapshot = observer.snapshot();
         let receipt = snapshot
+            .think
+            .current()
+            .unwrap()
+            .value
             .branches
             .iter()
             .find(|branch| branch.id == "receipt")
@@ -191,13 +204,25 @@ fn branch_lifecycle_and_exact_merge_destination_survive_reader_restart() {
         assert_eq!(receipt.from_step, Some(1));
         assert_eq!(receipt.status, BranchStatus::Merged);
         assert_eq!(receipt.merged_into, Some(4));
-        assert_eq!(snapshot.steps[1].branch_id.as_deref(), Some("receipt"));
-        assert_eq!(snapshot.steps[1].outcome, "Keep one receipt per tenant.");
+        assert_eq!(
+            snapshot.think.current().unwrap().value.steps[1]
+                .branch_id
+                .as_deref(),
+            Some("receipt")
+        );
+        assert_eq!(
+            snapshot.think.current().unwrap().value.steps[1].outcome,
+            "Keep one receipt per tenant."
+        );
     }
 
     let restarted = reader(&cfg, project);
     let persisted = restarted.snapshot();
     let receipt = persisted
+        .think
+        .current()
+        .unwrap()
+        .value
         .branches
         .iter()
         .find(|branch| branch.id == "receipt")
@@ -219,6 +244,10 @@ fn branch_lifecycle_and_exact_merge_destination_survive_reader_restart() {
     }
     let stopped = restarted.snapshot();
     let receipt = stopped
+        .think
+        .current()
+        .unwrap()
+        .value
         .branches
         .iter()
         .find(|branch| branch.id == "receipt")
@@ -318,18 +347,29 @@ fn round_trip_through_a_temp_store() {
 
     // A second process on the same store sees everything.
     let reopened = reader(&cfg, "round-trip");
-    let snap = reopened.roadmap_snapshot();
+    let snap = reopened.roadmap_snapshot().unwrap();
     assert_eq!(snap.count("done"), 1);
     assert_eq!(snap.next_ready.as_deref(), Some("next"));
-    assert_eq!(reopened.roadmap_progress().checked_tasks, 1);
+    assert_eq!(reopened.roadmap_progress().unwrap().checked_tasks, 1);
     assert_eq!(
-        reopened.roadmap_chunk("base").map(|c| c.cross_refs),
+        reopened
+            .roadmap_chunk("base")
+            .unwrap()
+            .map(|c| c.cross_refs),
         Some(vec!["task:t1".to_string()])
     );
-    let pinned = reopened.think_pinned_steps().len();
+    let pinned = reopened
+        .think_steps_from_store()
+        .unwrap()
+        .iter()
+        .filter(|step| step.pinned == Some(true))
+        .count();
     assert_eq!(pinned, 1, "think trace persisted with its pin");
-    assert_eq!(reopened.ship_status()["objective"]["status"], "completed");
-    assert_eq!(reopened.signal_status()["counts"]["new"], 1);
+    assert_eq!(
+        reopened.ship_objective().unwrap().unwrap().status,
+        crate::native::ObjectiveStatus::Completed
+    );
+    assert_eq!(reopened.signal_status().unwrap()["counts"]["new"], 1);
 
     // Every family wrote under its own partition of the one data dir.
     for family in ["roadmap", "think", "ship", "signal"] {
@@ -362,7 +402,12 @@ fn two_writers_merge_without_data_loss() {
     // B wrote last from stale memory (it never saw from-a). A plain
     // overwrite would have erased from-a; the locked merge keeps both.
     let c = reader(&cfg, "shared");
-    let ids: Vec<String> = c.roadmap_chunks().into_iter().map(|c| c.id).collect();
+    let ids: Vec<String> = c
+        .roadmap_chunks()
+        .unwrap()
+        .into_iter()
+        .map(|c| c.id)
+        .collect();
     assert!(
         ids.contains(&"from-a".to_string()),
         "A's chunk survived: {ids:?}"
@@ -376,26 +421,26 @@ fn two_writers_merge_without_data_loss() {
     // handed it the merged file, so B answers A's chunk without a reload,
     // and A's next query observes B's chunk the same way.
     assert!(
-        b.roadmap_chunk("from-a").is_some(),
+        b.roadmap_chunk("from-a").unwrap().is_some(),
         "B's memory is the merged file after its own write"
     );
     assert!(
-        a.roadmap_chunk("from-b").is_some(),
+        a.roadmap_chunk("from-b").unwrap().is_some(),
         "A's query re-read the moved store"
     );
     b.roadmap_start_chunk("from-b").expect("start");
     assert_eq!(
-        a.roadmap_chunk("from-b").map(|c| c.status),
+        a.roadmap_chunk("from-b").unwrap().map(|c| c.status),
         Some(ChunkStatus::InProgress),
         "A observes B's transition on its next query"
     );
     let d = reader(&cfg, "shared");
-    assert_eq!(d.roadmap_snapshot().count("in_progress"), 1);
-    assert_eq!(d.roadmap_snapshot().count("pending"), 1);
+    assert_eq!(d.roadmap_snapshot().unwrap().count("in_progress"), 1);
+    assert_eq!(d.roadmap_snapshot().unwrap().count("pending"), 1);
     // A snapshot read on the writer that never reloaded is the current
     // store too, family by family.
     let snapshot = a.snapshot();
-    assert_eq!(snapshot.chunks.len(), 2);
+    assert_eq!(snapshot.roadmap.current().unwrap().value.chunks.len(), 2);
 }
 
 #[test]
@@ -423,7 +468,7 @@ fn persistence_off_writes_nothing() {
     add_chunk(&engines, "a", 1, &[]);
     assert!(!tmp.path().join("data").join("roadmap").exists());
     let again = reader(&cfg, "ephemeral");
-    assert!(again.roadmap_chunks().is_empty());
+    assert!(again.roadmap_chunks().unwrap().is_empty());
 }
 
 #[test]
@@ -500,7 +545,7 @@ fn roadmap_mutation_wrappers_round_trip() {
 }
 
 #[test]
-fn reload_picks_up_another_writers_changes() {
+fn repeated_validated_reads_pick_up_another_writers_changes() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = temp_config(&tmp);
     let host = reader(&cfg, "reload");
@@ -515,23 +560,20 @@ fn reload_picks_up_another_writers_changes() {
         .ship_add_task("t1".into(), "task".into(), TaskType::Implement, None)
         .expect("add task");
 
-    // The host's in-memory copies predate those writes; its queries read
-    // through, and an explicit reload is the same current answer.
+    // The host opened before those writes; every query observes durable truth.
     assert_eq!(
-        host.roadmap_next().map(|c| c.id).as_deref(),
+        host.roadmap_next().unwrap().map(|c| c.id).as_deref(),
         Some("only-on-disk")
     );
-    assert_eq!(host.ship_status()["tasks"]["total"], 1);
+    assert_eq!(host.ship_snapshot().unwrap().tasks.len(), 1);
 
-    host.reload_roadmap();
-    host.reload_ship();
     assert_eq!(
-        host.roadmap_next().map(|c| c.id).as_deref(),
+        host.roadmap_next().unwrap().map(|c| c.id).as_deref(),
         Some("only-on-disk")
     );
-    assert_eq!(host.ship_status()["tasks"]["total"], 1);
+    assert_eq!(host.ship_snapshot().unwrap().tasks.len(), 1);
     assert_eq!(
-        host.ship_status()["objective"]["scope"],
+        host.ship_snapshot().unwrap().objective.unwrap().scope,
         "chunk:only-on-disk"
     );
 }
@@ -541,7 +583,7 @@ fn think_steps_from_store_sees_another_writers_steps_without_reopening() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = temp_config(&tmp);
     let host = reader(&cfg, "think-store");
-    assert!(host.think_steps_from_store().is_empty());
+    assert!(host.think_steps_from_store().unwrap().is_empty());
 
     // The agent's server records after the host opened.
     let server = service(&cfg, "think-store");
@@ -550,6 +592,7 @@ fn think_steps_from_store_sees_another_writers_steps_without_reopening() {
 
     let numbers: Vec<u32> = host
         .think_steps_from_store()
+        .unwrap()
         .iter()
         .map(|s| s.step_number)
         .collect();
@@ -557,12 +600,16 @@ fn think_steps_from_store_sees_another_writers_steps_without_reopening() {
 }
 
 #[test]
-fn think_steps_from_store_is_empty_without_persistence() {
+fn reasoning_observation_uses_live_memory_when_persistence_is_disabled() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = temp_config(&tmp).persist(false);
     let engines = host(&cfg, "ephemeral-think");
     assert!(engines.think_record_step(step(1, "open")).is_ok());
-    assert!(engines.think_steps_from_store().is_empty());
+    assert_eq!(engines.think_steps_from_store().unwrap().len(), 1);
+    assert_eq!(
+        engines.snapshot().think.current().unwrap().source,
+        crate::native::ReadSource::Memory
+    );
 }
 
 #[test]
@@ -581,7 +628,12 @@ fn signal_triage_wrappers_round_trip() {
     let c = engines
         .signal_capture(SignalKind::Question, "cara".into(), "why".into())
         .expect("capture");
-    let ids: Vec<String> = engines.signal_list().into_iter().map(|s| s.id).collect();
+    let ids: Vec<String> = engines
+        .signal_list()
+        .unwrap()
+        .into_iter()
+        .map(|s| s.id)
+        .collect();
     assert!(ids.contains(&a.id) && ids.contains(&b.id) && ids.contains(&c.id));
 
     // Promote needs a researched signal; a fresh one is refused with a reason.
@@ -607,6 +659,7 @@ fn signal_triage_wrappers_round_trip() {
     );
     let chunk = engines
         .roadmap_chunk(&chunk_id)
+        .unwrap()
         .expect("promotion created the backlog chunk");
     assert_eq!(chunk.status, ChunkStatus::Backlog);
     assert_eq!(chunk.title, "[idea] faster");
@@ -617,6 +670,7 @@ fn signal_triage_wrappers_round_trip() {
     assert_eq!(
         engines
             .roadmap_chunks()
+            .unwrap()
             .iter()
             .filter(|c| c.id == chunk_id)
             .count(),
@@ -744,6 +798,7 @@ fn think_pin_and_checkpoint_act_on_the_live_trace() {
     );
     let pinned = engines
         .think_step(1)
+        .unwrap()
         .and_then(|step| step.pinned)
         .unwrap_or(false);
     assert!(pinned, "the flag stuck");
@@ -757,49 +812,62 @@ fn think_pin_and_checkpoint_act_on_the_live_trace() {
 }
 
 #[test]
-fn the_snapshot_cursor_is_none_without_persistence_and_moves_when_a_writer_lands() {
+fn family_observations_identify_missing_file_and_memory_sources() {
+    use crate::native::ReadSource;
+
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = temp_config(&tmp);
-
     let engines = host(&cfg, "stamped");
-    // Nothing written yet: no file, no cursor.
-    assert_eq!(engines.snapshot_cursor(), None);
+    assert_eq!(
+        engines.snapshot().roadmap.current().unwrap().source,
+        ReadSource::Missing
+    );
 
     add_chunk(&engines, "base", 100, &[]);
-    let first = engines
-        .snapshot_cursor()
-        .expect("the roadmap file exists now");
-
-    // A second process writing the same store moves the cursor.
-    let other = engines.clone();
-    add_chunk(&other, "next", 200, &["base"]);
-    assert_ne!(engines.snapshot_cursor(), Some(first), "the cursor moved");
-
-    // And a store with persistence off never has one at all.
-    let off = reader(
-        &NativeConfig::from_lookup(tmp.path().join("proj"), |_| None)
-            .with_data_dir(tmp.path().join("data"))
-            .persist(false),
-        "quiet",
+    let first = engines.snapshot().roadmap.current().unwrap().source;
+    assert!(matches!(first, ReadSource::File(_)));
+    assert_eq!(
+        engines.clone().snapshot().roadmap.current().unwrap().source,
+        first
     );
-    assert_eq!(off.snapshot_cursor(), None);
+    add_chunk(&engines, "next", 200, &["base"]);
+    assert_ne!(engines.snapshot().roadmap.current().unwrap().source, first);
+
+    let off = reader(&cfg.persist(false), "stamped");
+    let memory = off.snapshot();
+    assert_eq!(memory.roadmap.current().unwrap().source, ReadSource::Memory);
+    assert!(memory.roadmap.current().unwrap().value.chunks.is_empty());
 }
 
-/// The snapshot is the store whole, typed: what the cockpit seeds from
-/// and what a re-read after a gap restores. Each family comes back as the
-/// engine holds it — the ship half with actions and checks on their
-/// tasks — and the cursor is the store's, taken first.
+/// Each family supplies whole validated records and its own source.
 #[test]
-fn a_snapshot_reads_every_family_whole_with_its_cursor() {
+fn a_snapshot_reads_every_family_whole_with_its_source() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = temp_config(&tmp);
     let engines = host(&cfg, "snapshotted");
 
     let empty = engines.snapshot();
+    assert!(!empty.needs_retry());
     assert_eq!(
+        empty.roadmap.current().unwrap().source,
+        crate::native::ReadSource::Missing
+    );
+    assert_eq!(
+        empty.ship.current().unwrap().source,
+        crate::native::ReadSource::Missing
+    );
+    assert_eq!(
+        empty.signals.current().unwrap().source,
+        crate::native::ReadSource::Missing
+    );
+    assert_eq!(
+        empty.think.current().unwrap().source,
+        crate::native::ReadSource::Missing
+    );
+    assert_ne!(
         empty,
         NativeSnapshot::default(),
-        "an empty store is an empty snapshot"
+        "known empty is not unobserved"
     );
 
     add_chunk(&engines, "base", 100, &[]);
@@ -844,34 +912,86 @@ fn a_snapshot_reads_every_family_whole_with_its_cursor() {
     assert!(engines.think_record_step(step(1, "open")).is_ok());
 
     let snapshot = engines.snapshot();
+    assert!(!snapshot.needs_retry());
+    assert!(matches!(
+        snapshot.roadmap.current().unwrap().source,
+        crate::native::ReadSource::File(_)
+    ));
+    assert!(matches!(
+        snapshot.ship.current().unwrap().source,
+        crate::native::ReadSource::File(_)
+    ));
+    assert!(matches!(
+        snapshot.signals.current().unwrap().source,
+        crate::native::ReadSource::File(_)
+    ));
+    assert!(matches!(
+        snapshot.think.current().unwrap().source,
+        crate::native::ReadSource::File(_)
+    ));
     assert_eq!(
-        snapshot.cursor,
-        engines.snapshot_cursor(),
-        "the cursor is the store's stamp"
-    );
-    assert_eq!(
-        snapshot.objective.as_ref().map(|o| o.scope.as_str()),
+        snapshot
+            .ship
+            .current()
+            .unwrap()
+            .value
+            .objective
+            .as_ref()
+            .map(|o| o.scope.as_str()),
         Some("chunk:base")
     );
-    assert_eq!(snapshot.tasks.len(), 1);
+    assert_eq!(snapshot.ship.current().unwrap().value.tasks.len(), 1);
     assert_eq!(
-        snapshot.tasks[0].actions.len(),
+        snapshot.ship.current().unwrap().value.tasks[0]
+            .actions
+            .len(),
         1,
         "actions ride their task"
     );
-    assert_eq!(snapshot.tasks[0].checks.len(), 1, "checks ride their task");
     assert_eq!(
-        snapshot.tasks[0].checks[0].exit_code,
+        snapshot.ship.current().unwrap().value.tasks[0].checks.len(),
+        1,
+        "checks ride their task"
+    );
+    assert_eq!(
+        snapshot.ship.current().unwrap().value.tasks[0].checks[0].exit_code,
         Some(0),
         "the exit code ship_status would have dropped"
     );
-    let ids: Vec<&str> = snapshot.chunks.iter().map(|c| c.id.as_str()).collect();
+    let ids: Vec<&str> = snapshot
+        .roadmap
+        .current()
+        .unwrap()
+        .value
+        .chunks
+        .iter()
+        .map(|c| c.id.as_str())
+        .collect();
     assert_eq!(ids, vec!["base", "next"], "stored order");
-    assert_eq!(snapshot.chunks[0].status, ChunkStatus::InProgress);
-    assert_eq!(snapshot.progress.total_tasks, 2);
-    assert_eq!(snapshot.signals.len(), 1);
-    assert_eq!(snapshot.steps.len(), 1, "the persisted step");
-    assert_eq!(snapshot.steps[0].step_number, 1);
+    assert_eq!(
+        snapshot.roadmap.current().unwrap().value.chunks[0].status,
+        ChunkStatus::InProgress
+    );
+    assert_eq!(
+        snapshot
+            .roadmap
+            .current()
+            .unwrap()
+            .value
+            .progress
+            .total_tasks,
+        2
+    );
+    assert_eq!(snapshot.signals.current().unwrap().value.len(), 1);
+    assert_eq!(
+        snapshot.think.current().unwrap().value.steps.len(),
+        1,
+        "the persisted step"
+    );
+    assert_eq!(
+        snapshot.think.current().unwrap().value.steps[0].step_number,
+        1
+    );
 
     // A reader opened beside the writer reads the same store to the same
     // snapshot: the projection is a function of the files, not of the
@@ -905,6 +1025,7 @@ fn a_blocker_is_cleared_through_the_wrapper_and_erring_is_loud() {
     assert!(
         engines
             .roadmap_chunk("stuck")
+            .unwrap()
             .expect("chunk")
             .blocked_by
             .is_some()
@@ -940,6 +1061,7 @@ fn a_blocker_is_set_through_the_wrapper_the_way_the_verb_sets_it() {
     assert!(
         engines
             .roadmap_chunk("stuck")
+            .unwrap()
             .expect("chunk")
             .blocked_by
             .is_some()
@@ -961,7 +1083,7 @@ fn a_blocker_is_set_through_the_wrapper_the_way_the_verb_sets_it() {
 }
 
 #[test]
-fn reload_signal_picks_up_another_writers_capture() {
+fn signal_queries_observe_another_writers_capture() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = temp_config(&tmp);
     let host = reader(&cfg, "reload-signal");
@@ -973,13 +1095,17 @@ fn reload_signal_picks_up_another_writers_capture() {
         .expect("capture");
 
     // The host's in-memory copy predates it; its queries read through.
-    assert_eq!(host.signal_list().len(), 1);
-    assert_eq!(host.signal_status()["counts"]["total"], 1);
+    assert_eq!(host.signal_list().unwrap().len(), 1);
+    assert_eq!(host.signal_status().unwrap()["counts"]["total"], 1);
 
-    host.reload_signal();
-    let ids: Vec<String> = host.signal_list().into_iter().map(|s| s.id).collect();
+    let ids: Vec<String> = host
+        .signal_list()
+        .unwrap()
+        .into_iter()
+        .map(|s| s.id)
+        .collect();
     assert_eq!(ids, vec![captured.id]);
-    assert_eq!(host.signal_status()["counts"]["total"], 1);
+    assert_eq!(host.signal_status().unwrap()["counts"]["total"], 1);
 }
 
 /// A ship trace with one active task, ready to take a gate record.
@@ -998,6 +1124,7 @@ fn engines_with_active_task(tmp: &tempfile::TempDir) -> NativeEngines {
 fn checks(engines: &NativeEngines) -> Vec<Check> {
     engines
         .ship_tasks()
+        .unwrap()
         .into_iter()
         .flat_map(|t| t.checks)
         .collect()
@@ -1209,5 +1336,5 @@ fn a_fresh_cycle_reports_how_many_stale_tasks_it_cleared() {
         2,
         "the finished cycle's two tasks were cleared"
     );
-    assert!(engines.ship_tasks().is_empty());
+    assert!(engines.ship_tasks().unwrap().is_empty());
 }

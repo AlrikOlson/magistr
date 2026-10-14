@@ -64,7 +64,7 @@ class PairedCodex(Codex):
                 environment, command="chmod 755 /usr/local/bin/magistr"
             )
             result = await self.checked(
-                environment, "magistr init . --agent codex --yes --no-tui"
+                environment, "magistr init . --agent codex --yes"
             )
             (self.logs_dir / "magistr-setup.txt").write_text(
                 (result.stdout or "") + (result.stderr or "")

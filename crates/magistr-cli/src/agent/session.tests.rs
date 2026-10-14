@@ -47,7 +47,7 @@ async fn session_from_channel_receives_messages() {
 async fn session_send_followup_captured() {
     let (session, _tx, follow_ups) = AgentSession::from_channel_with_followups();
 
-    assert!(session.send_followup("follow up text").is_ok());
+    assert!(session.send_followup(&"follow up text".into()).is_ok());
     let captured = follow_ups.lock().unwrap();
     assert_eq!(captured.len(), 1);
     assert_eq!(captured[0], "follow up text");
@@ -120,7 +120,7 @@ fn cancelled_and_aborted_sessions_refuse_followup_input() {
     cancelled.cancel();
     assert!(
         cancelled
-            .send_followup("Must not start another turn")
+            .send_followup(&"Must not start another turn".into())
             .is_err()
     );
     assert!(captured.lock().unwrap().is_empty());
@@ -128,7 +128,7 @@ fn cancelled_and_aborted_sessions_refuse_followup_input() {
     aborted.abort();
     assert!(
         aborted
-            .send_followup("Must not start another turn")
+            .send_followup(&"Must not start another turn".into())
             .is_err()
     );
 }
@@ -151,7 +151,9 @@ async fn cancelled_terminal_retains_the_session_id_for_continuation() {
         session.session_id().unwrap().as_str(),
         "retained-after-cancel"
     );
-    session.send_followup("continue retained session").unwrap();
+    session
+        .send_followup(&"continue retained session".into())
+        .unwrap();
     assert_eq!(
         followups.lock().unwrap().as_slice(),
         ["continue retained session"]

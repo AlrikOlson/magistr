@@ -150,7 +150,7 @@ admission and settlement inside this module and the writer itself.
 | Consumer | Workflow capability | Workspace capability | Through |
 | --- | --- | --- | --- |
 | `magistr_gate` in `magistr mcp-serve` | `NativeEngines` (Service role, the same writer the MCP session serves) | `WorkspaceEvidence` attached in `MagistrService::new` | `AdmittedCheck::admit` before the pty run, `settle` with the run's `CheckExecution` after; the answer carries the receipt id, source revision and freshness |
-| Loop driver gates (`next`, `next-loop`) | `NativeEngines` (Host role via `writer_config`), one admitted verification task for the set; the set is `required_gates()` of the same capability | the same capability on the host's config | `AdmittedCheck` per gate, refusing a superseded verification target |
+| Hosted loop driver gates | `NativeEngines` (Host role via `writer_config`), one admitted verification task for the set; the set is `required_gates()` of the same capability | the same capability on the host's config | `AdmittedCheck` per gate, refusing a superseded verification target |
 | Native `ship_check` (agent) | `ShipUseCases::admit_check` / `settle_check` inside the workflow crate | the workflow's composed `EvidencePort` | the workflow's own async runner; the stale reply carries the receipt |
 | `roadmap_complete_chunk` (MCP, owner command, cockpit Complete, loop judge) | `RoadmapUseCases` with the ship family as completion authority | `required_gates()` and a fresh observation at completion | `verify_completion` before the transition; refusals name every outstanding gate |
 | Cockpit `run` and the cockpit loops | `NativeEngines` or an attached `OwnerClient` | the [`HostedWorkspace`](#the-hosted-workspace) this process admits for the run — the agent's bridge and the cockpit's port attach to it | engine port; `magistr workspace journal` for the journal model |
@@ -252,7 +252,9 @@ workflow's (see [receipts](project-authority.md#receipts-and-the-evidence-capabi
 and [completion](project-authority.md#completion-is-governed-by-receipts));
 the boundary observes nothing itself and composes the consumer's typed shape
 over what the workflow admitted. `WorkspaceEvidence` and `writer_config` live
-in `magistr_core::evidence` because the loop host is admitted there too.
+in `magistr_core::evidence` as shared composition for the MCP and interactive
+hosts. IterationLoop reads progress and recovery records without admitting a
+workflow writer; HostedWork supplies its writer explicitly to LoopDriver.
 
 ### Identity map
 
@@ -265,7 +267,7 @@ in `magistr_core::evidence` because the loop host is admitted there too.
 | Attempt | loop operation ledger | domain `AttemptId` (command plus attempt number) | each retry of one command |
 | Workflow owner generation | project lease (`ProjectAuthority`) | `OwnerGeneration`; `epoch` on every feed line | a new project writer is admitted |
 | Workflow event sequence | the owner's broadcaster | `seq` on every feed line, `EventCursor { epoch, sequence }` decoded | every frame that owner emits, whatever its family |
-| Workflow snapshot cursor | the store's on-disk stamp | `SnapshotCursor { modified, length }` | any family file is written |
+| Workflow read provenance | the opened family persistence owner | `ReadSource::File(StoreStamp { inode, modified, length })`, `Missing` or `Memory` within a successful observation | that family's source is observed; it does not certify another family |
 | Workflow record stamp | the family engine | `updated_at` on chunks and signals; ids and timestamps on ship actions and checks | that record is written |
 | Workflow schema version | the think history file | `schema_version` (1) | the file format changes; roadmap, signal and ship files carry none |
 | Workspace | admitted `WorkspaceService` | `WorkspaceIdentity { root, generation }` | the canonical root never; the generation on every owner admission |

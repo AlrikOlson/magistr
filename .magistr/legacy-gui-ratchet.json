@@ -3,5 +3,5 @@
 	"files": 0,
 	"loc": 0,
 	"unlock": ["legacy-gui", "delete"],
-	"replacement": "Desktop development is preserved on the gui2 branch; the release uses crates/magistr-tui."
+	"replacement": "The current desktop is crates/magistr-desktop; the frozen source remains absent."
 }

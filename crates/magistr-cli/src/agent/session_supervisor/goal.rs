@@ -52,6 +52,7 @@ impl Goal {
                     inner.snapshot.active_turn = None;
                     inner.goal_turn = None;
                     inner.completed_turns += 1;
+                    inner.history.finished_turn();
                     inner.snapshot.cancellation_requested = false;
                     inner.snapshot.last_outcome = Some(TurnOutcome {
                         turn_id: self.turn_id,

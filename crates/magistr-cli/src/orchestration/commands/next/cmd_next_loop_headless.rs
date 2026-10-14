@@ -37,7 +37,7 @@ pub async fn cmd_next_loop_headless(
         &dir,
         &wf.spec_path,
         request.max_iterations,
-        crate::roadmap::admit_native_host(&dir)?,
+        crate::roadmap::open_native_reader(&dir)?,
     )
     .suggest()?;
     super::select_loop_track(&mut iter_loop, request.track, false)?;
@@ -48,9 +48,6 @@ pub async fn cmd_next_loop_headless(
     iter_loop.set_budget_limit(max_cost).suggest()?;
     let max_cost = iter_loop.run_state().budget_limit_usd;
     iter_loop.persist().suggest()?;
-    // The host's owner endpoint, for a cockpit opened beside this loop;
-    // it lives for the loop and drops before the writer.
-    let _owner_endpoint = crate::roadmap::serve_owner_endpoint(iter_loop.native()).await?;
     // The workspace this host owns for the loop: every iteration's session
     // writes through it, or is refused when it could not be admitted.
     let workspace =
@@ -223,11 +220,8 @@ pub async fn cmd_next_loop_headless(
         // End provider residency before another attempt or a process exit.
         let cleanup = session.terminate_session().await.suggest();
         drop(session);
-        if let Ok((_, Some(spend))) = &drained {
-            crate::cost::record_session(&inputs, &dir, spend);
-        }
         let drained = drained.and_then(|result| cleanup.map(|()| result));
-        let (outcome, _) = match drained {
+        let outcome = match drained {
             Ok(result) => result,
             Err(error) => {
                 iter_loop
@@ -357,7 +351,7 @@ fn finish_loop(outcome: HeadlessOutcome) -> eyre::Result<()> {
     Ok(())
 }
 
-/// Drain one session against the remaining loop budget and retain its reported spend.
+/// Drain one session and checkpoint its reported spending against the loop budget.
 async fn drain_iteration(
     session: &mut agent::session::AgentSession,
     format: HeadlessFormat,
@@ -366,24 +360,16 @@ async fn drain_iteration(
     out: &mut dyn Write,
     err: &mut dyn Write,
     checkpoint: &mut dyn FnMut(f64) -> eyre::Result<()>,
-) -> eyre::Result<(HeadlessOutcome, Option<crate::cost::SessionSpend>)> {
+) -> eyre::Result<HeadlessOutcome> {
     let base = *cumulative_cost;
     let remaining = max_cost.map(|limit| (limit - base).max(0.0));
-    let mut spend = None;
-    let outcome = drain_headless_observing(
-        session,
-        format,
-        remaining,
-        out,
-        err,
-        &mut spend,
-        &mut |session_total| {
+    let outcome =
+        drain_headless_observing(session, format, remaining, out, err, &mut |session_total| {
             *cumulative_cost = cumulative_cost.max(base + session_total);
             checkpoint(*cumulative_cost)
-        },
-    )
-    .await?;
-    Ok((outcome, spend))
+        })
+        .await?;
+    Ok(outcome)
 }
 
 /// Emit a loop stop reason.

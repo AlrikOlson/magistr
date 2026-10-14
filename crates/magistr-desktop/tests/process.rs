@@ -41,6 +41,21 @@ fn live_desktop_has_the_host_and_no_terminal_renderer() {
     );
     let graph = String::from_utf8(result.stdout).unwrap();
     assert!(graph.contains("magistr-cli "));
-    assert!(graph.contains("magistr-gui2 "));
-    assert!(!graph.contains("magistr-tui "), "{graph}");
+    assert!(graph.contains("tauri "), "{graph}");
+    for retired in [
+        "magistr-tui ",
+        "magistr-gui2 ",
+        "qs-core ",
+        "qs-render ",
+        "qs-widgets ",
+    ] {
+        assert!(!graph.contains(retired), "{graph}");
+    }
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    for retired in ["magistr-tui", "magistr-gui2"] {
+        assert!(
+            !root.join("crates").join(retired).exists(),
+            "{retired} remains"
+        );
+    }
 }

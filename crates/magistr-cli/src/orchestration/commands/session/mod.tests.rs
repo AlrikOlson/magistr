@@ -16,7 +16,7 @@ fn cmd_costs_succeeds_with_empty_data() {
     let entries = cost::storage::load_entries(&costs_file).unwrap();
     assert!(entries.is_empty());
     let summary = cost::summarize_costs::summarize(&entries);
-    assert_eq!(summary.total_cost, 0.0);
+    assert_eq!(summary.total_cost, Some(0.0));
     assert_eq!(summary.total_turns, 0);
 }
 
@@ -159,7 +159,7 @@ fn the_three_new_report_modes_render_without_panicking() {
             session_id: "s1".into(),
             project: "alpha".into(),
             timestamp: chrono::Utc::now(),
-            cost_usd: 3.0,
+            cost_usd: Some(3.0),
             tokens: cost::TokenBreakdown::default(),
             turns: 2,
             duration_ms: 1000,
@@ -170,7 +170,7 @@ fn the_three_new_report_modes_render_without_panicking() {
             session_id: "s2".into(),
             project: "alpha".into(),
             timestamp: chrono::Utc::now(),
-            cost_usd: 1.0,
+            cost_usd: Some(1.0),
             tokens: cost::TokenBreakdown::default(),
             turns: 1,
             duration_ms: 500,

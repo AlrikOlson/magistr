@@ -28,6 +28,15 @@ pub trait SessionPolicy: Send + Sync {
     /// The policy's answer for `request`.
     fn decide(&mut self, request: &SessionPolicyRequest) -> PolicyDecision;
 
+    /// Model choices obey the same frozen session policy. Policies without model
+    /// restrictions permit the provider's advertised values.
+    fn can_use_model(&self, _model: &str) -> bool {
+        true
+    }
+
+    /// Confirmed provider state updates the model used for subsequent decisions.
+    fn model_changed(&mut self, _model: Option<alloc::string::String>) {}
+
     /// The reader answered `request` with `kind` — tally it under the
     /// ask's scope, and write the standing rule an *always* or a
     /// *never* is.

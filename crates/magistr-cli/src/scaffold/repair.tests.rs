@@ -7,7 +7,14 @@ use tempfile::TempDir;
 fn project() -> TempDir {
     let tmp = TempDir::new().expect("tempdir");
     std::fs::create_dir_all(tmp.path().join(".magistr")).expect("mkdir");
-    std::fs::write(tmp.path().join(".magistr/project.json"), "{}").expect("marker");
+    std::fs::write(tmp.path().join(".magistr/project.json"), serde_json::json!({
+    "project": {"name": "settings-test", "type": "cli"},
+    "stack": {"language": "unknown", "framework": "none", "package_manager": "unknown", "test_framework": "none", "linter": "none", "formatter": "none"},
+    "quality_gate": {"check": "true", "test": "true", "lint": "true"},
+    "format": {"command": "", "extensions": []},
+    "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"},
+    "reference_repos": [], "state_prefix": "settings-test", "roadmap_exports": false
+}).to_string()).expect("marker");
     tmp
 }
 

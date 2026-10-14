@@ -28,9 +28,6 @@ pub async fn cmd_run_workflow(
         .workflow_permissions(true)
         .allowed_tools(agent::ToolPermissions::for_workflow().into_strings())
         .with_project_context(project_dir);
-    // The inputs the session was composed with: the drain finds the ledger
-    // and the actor through the same capture.
-    let inputs = config.inputs().clone();
     let mut session = agent::session::AgentSession::start_checkpointed(config, source, || {
         launched(None).map_err(|error| crate::error::MagistrError::Workflow(error.to_string()))
     })
@@ -40,10 +37,7 @@ pub async fn cmd_run_workflow(
         let _ = session.terminate_session().await;
         return Err(error);
     }
-    let model = session.resolved_model().map(str::to_owned);
-    let outcome =
-        super::drain_session_interactive(&mut session, project_dir, &inputs, model.as_deref())
-            .await;
+    let outcome = super::drain_session_plain_turn(&mut session).await;
     let cleanup = session.terminate_session().await.suggest();
     outcome.and(cleanup)
 }

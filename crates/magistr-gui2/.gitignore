@@ -1,7 +1,0 @@
-# This independent workspace owns its build output.
-/target/
-# Reviewed screenshot fixtures are source assets, unlike local captures.
-!/tests/golden/**/*.png
-!/tests/mocks/**/*.png
-*.new.png
-

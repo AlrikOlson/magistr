@@ -1,7 +1,7 @@
 //! Markdown generator for the roadmap.
 //!
 //! Renders a [`Roadmap`] struct into a pretty `ROADMAP.md` string.
-//! This is the inverse of [`super::migrate::parse_markdown`].
+//! Renders the current YAML roadmap as an explicit Markdown export.
 
 use super::phase::Phase;
 use super::schema::Roadmap;
@@ -9,8 +9,7 @@ use super::task::Task;
 
 /// Render a roadmap as a markdown string.
 ///
-/// The output format matches what [`super::migrate::parse_markdown`] expects,
-/// ensuring lossless round-trips between YAML and markdown.
+/// The output describes the roadmap's phases and tasks for an explicit export.
 #[must_use]
 pub fn render(roadmap: &Roadmap) -> String {
     let mut out = String::new();

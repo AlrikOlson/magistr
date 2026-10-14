@@ -28,7 +28,7 @@ fn make_entry(id: &str, project: &str, cost: f64, tokens: TokenBreakdown) -> Cos
         session_id: id.into(),
         project: project.into(),
         timestamp: Utc::now(),
-        cost_usd: cost,
+        cost_usd: Some(cost),
         tokens,
         turns: 5,
         duration_ms: 30000,
@@ -69,7 +69,7 @@ fn tracker_to_storage_round_trip() {
     assert_eq!(loaded.len(), 1);
     assert_eq!(loaded[0].session_id, "session-001");
     assert_eq!(loaded[0].project, "my-project");
-    assert!((loaded[0].cost_usd - 4.25).abs() < f64::EPSILON);
+    assert!((loaded[0].cost_usd.unwrap() - 4.25).abs() < f64::EPSILON);
     assert_eq!(loaded[0].turns, 3);
     assert_eq!(loaded[0].duration_ms, 10000);
     assert_eq!(loaded[0].tokens.input_tokens, 2000);
@@ -125,7 +125,7 @@ fn multi_session_filter_and_summarize() {
     // Summarize filtered
     let summary = summarize(&frontend);
     assert_eq!(summary.entry_count, 2);
-    assert!((summary.total_cost - 5.50).abs() < f64::EPSILON);
+    assert!((summary.total_cost.unwrap() - 5.50).abs() < f64::EPSILON);
     assert_eq!(summary.total_turns, 10);
     assert_eq!(summary.total_tokens.input_tokens, 1200);
 }
@@ -167,7 +167,7 @@ fn daily_summary_groups_sessions() {
             session_id: "s1".into(),
             project: "p".into(),
             timestamp: d1,
-            cost_usd: 2.0,
+            cost_usd: Some(2.0),
             tokens: make_tokens(100, 50),
             turns: 3,
             duration_ms: 5000,
@@ -178,7 +178,7 @@ fn daily_summary_groups_sessions() {
             session_id: "s2".into(),
             project: "p".into(),
             timestamp: d1b,
-            cost_usd: 3.0,
+            cost_usd: Some(3.0),
             tokens: make_tokens(200, 100),
             turns: 4,
             duration_ms: 8000,
@@ -189,7 +189,7 @@ fn daily_summary_groups_sessions() {
             session_id: "s3".into(),
             project: "p".into(),
             timestamp: d2,
-            cost_usd: 1.5,
+            cost_usd: Some(1.5),
             tokens: make_tokens(150, 75),
             turns: 2,
             duration_ms: 3000,
@@ -201,11 +201,11 @@ fn daily_summary_groups_sessions() {
     let buckets = summarize_by_period(&entries, TimePeriod::Daily);
     assert_eq!(buckets.len(), 2);
     assert_eq!(buckets[0].label, "2026-03-10");
-    assert!((buckets[0].summary.total_cost - 5.0).abs() < f64::EPSILON);
+    assert!((buckets[0].summary.total_cost.unwrap() - 5.0).abs() < f64::EPSILON);
     assert_eq!(buckets[0].summary.total_turns, 7);
     assert_eq!(buckets[0].summary.total_tokens.input_tokens, 300);
     assert_eq!(buckets[1].label, "2026-03-11");
-    assert!((buckets[1].summary.total_cost - 1.5).abs() < f64::EPSILON);
+    assert!((buckets[1].summary.total_cost.unwrap() - 1.5).abs() < f64::EPSILON);
 }
 
 // ── Budget check with no budget set ────────────────────────────────
@@ -238,7 +238,7 @@ fn summary_from_multiple_tracker_entries() {
 
     let summary = CostSummary::from_entries(&entries);
     assert_eq!(summary.entry_count, 2);
-    assert!((summary.total_cost - 5.5).abs() < f64::EPSILON);
+    assert!((summary.total_cost.unwrap() - 5.5).abs() < f64::EPSILON);
     assert_eq!(summary.total_turns, 3); // 2 + 1
     assert_eq!(summary.total_tokens.input_tokens, 800);
     assert_eq!(summary.total_tokens.output_tokens, 400);

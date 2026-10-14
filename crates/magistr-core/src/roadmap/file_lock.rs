@@ -1,7 +1,7 @@
 //! File-based advisory locking for roadmap YAML.
 //!
 //! Uses `flock(2)` on Unix to serialize concurrent access to
-//! `.magistr-roadmap.yml` from MCP tools and the TUI.
+//! `.magistr-roadmap.yml` from MCP tools and the interface.
 
 use std::fs::File;
 use std::path::{Path, PathBuf};

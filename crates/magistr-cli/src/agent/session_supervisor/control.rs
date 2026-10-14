@@ -38,6 +38,8 @@ impl SessionControl {
         inner.next_turn += 1;
         inner.snapshot.active_turn = Some(turn_id);
         inner.goal_turn = Some(turn_id);
+        inner.history.begin_turn();
+        inner.publish_activity();
         let (reply, response) = oneshot::channel();
         if self
             .commands

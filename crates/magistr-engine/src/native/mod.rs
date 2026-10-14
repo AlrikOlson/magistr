@@ -47,7 +47,6 @@ pub mod native_config;
 pub mod native_engines;
 pub mod native_event;
 pub mod native_reader;
-pub mod native_snapshot;
 mod open_engines;
 pub mod owner_client;
 pub mod owner_command;
@@ -76,13 +75,11 @@ pub mod project_authority;
 mod project_location;
 mod working_copy_lease;
 pub use working_copy_lease::WorkingCopyLease;
-pub mod region_counts;
 pub mod roadmap_backend;
 pub mod roadmap_command;
 pub mod ship_command;
 pub mod signal_command;
 pub mod snapshot;
-pub mod snapshot_cursor;
 pub mod think_branch;
 pub mod think_command;
 #[cfg(windows)]
@@ -107,12 +104,15 @@ pub use identity::identity_declaration;
 pub use local_stream::LocalStream;
 pub use magistr_frame::MagistrFrame;
 pub use magistr_workflow::think::ConfigSource;
+pub use magistr_workflow_contracts::{
+    NativeSnapshot, Observed, ReadError, ReadErrorKind, ReadSource, ReadState, RoadmapData,
+    ShipData, StoreStamp, ThinkData,
+};
 pub use mcp_acceptor::McpAcceptor;
 pub use native_config::NativeConfig;
 pub use native_engines::NativeEngines;
 pub use native_event::NativeEvent;
 pub use native_reader::NativeReader;
-pub use native_snapshot::NativeSnapshot;
 pub use owner_client::OwnerClient;
 pub use owner_command::OwnerCommand;
 pub use owner_connection_record::OwnerConnectionRecord;
@@ -125,23 +125,21 @@ pub use owner_reply::OwnerReply;
 pub use owner_report::OwnerReport;
 pub use owner_socket::owner_socket_path;
 pub use owner_wire::OWNER_PROTOCOL_VERSION;
-pub use progress::progress_from_roadmap;
+pub use progress::progress_from_chunks;
 pub use project_authority::ProjectAuthority;
 pub use project_location::ProjectLocation;
-pub use region_counts::RegionCounts;
 pub use roadmap_backend::RoadmapBackend;
 pub use roadmap_command::RoadmapCommand;
 pub use ship_command::ShipCommand;
 pub use signal_command::SignalCommand;
 pub use snapshot::NativeRoadmapSnapshot;
-pub use snapshot_cursor::SnapshotCursor;
 pub use think_branch::ThinkBranch;
 pub use think_command::ThinkCommand;
 pub use workspace_socket_path::workspace_socket_path;
 pub use writer_role::WriterRole;
 
 // The library types the typed commands speak, re-exported so consumers
-// (magistr-core, the GUI, the TUI) never name the `magistr_workflow` crate.
+// (magistr-core, the GUI, the interface) never name the `magistr_workflow` crate.
 pub use magistr_workflow::content::{
     ContentFact, ContentListItem, ContentSection, StructuredContent,
 };
@@ -153,8 +151,10 @@ pub use magistr_workflow::infra::{
 // — are the events every surface folds, under the family's name.
 pub use magistr_workflow::roadmap::broadcast::RoadmapFrame;
 pub use magistr_workflow::roadmap::domain::{
-    BlockedBy, BlockerKind, Chunk, ChunkStatus, ReprioritizeProposal, Roadmap, StatusProposal,
-    TitleProposal,
+    BlockedBy, BlockerKind, Chunk, ChunkStatus, FocusState, Readiness, ReprioritizeProposal,
+    Roadmap, StatusProposal, TitleProposal, WorkstreamActivity, WorkstreamCatalog,
+    WorkstreamFrontier, WorkstreamHistory, WorkstreamResolution, assess_readiness, next_ready,
+    workstream_catalog, workstream_frontier,
 };
 pub use magistr_workflow::ship::application::{
     CheckAdmission, CheckExecution, CheckSettlement, CompletionEvidence, CompletionRefusal,

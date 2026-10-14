@@ -1,9 +1,3 @@
-//! Configuration — canonical definitions live in `magistr-core`.
-//!
-//! All submodules are re-exported here so existing `crate::config::*` imports
-//! continue to work without changes.
+//! Configuration provided by the shared core owner.
 
 pub use magistr_core::config::*;
-
-/// CLI-specific migration execution (depends on `crate::roadmap`).
-pub mod migration_exec;

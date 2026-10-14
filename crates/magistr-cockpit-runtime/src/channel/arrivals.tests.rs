@@ -6,6 +6,7 @@ use crate::channel::Inbox;
 
 fn request(id: u64) -> Msg {
     Msg::Agent(AgentEvent::PermissionRequest {
+        detail: String::new(),
         id,
         title: "Bash".to_owned(),
         choices: Vec::new(),

@@ -7,7 +7,6 @@ use std::process::{Command, Output};
 
 fn command(root: &Path, args: &[&str]) -> Output {
     Command::new(env!("CARGO_BIN_EXE_magistr"))
-        .args(["--no-tui"])
         .args(args)
         .current_dir(root)
         .env("HOME", root)

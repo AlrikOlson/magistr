@@ -5,23 +5,6 @@ use cli_test_support::parse_cli;
 use super::*;
 
 #[test]
-fn terminal_view_requires_a_supported_platform_even_with_terminal_stdio() {
-    assert_eq!(should_use_tui(false, true, true), cfg!(unix));
-}
-
-#[test]
-fn terminal_view_respects_explicit_plain_output() {
-    assert!(!should_use_tui(true, true, true));
-}
-
-#[test]
-fn terminal_view_requires_both_input_and_output_terminals() {
-    for (stdin_terminal, stdout_terminal) in [(false, true), (true, false), (false, false)] {
-        assert!(!should_use_tui(false, stdin_terminal, stdout_terminal));
-    }
-}
-
-#[test]
 fn sanitize_prefix_basic() {
     assert_eq!(utils::slug::sanitize_prefix("My Project"), "my-project");
 }
@@ -169,18 +152,6 @@ edition = "2024"
 fn cli_parses_json_flag() {
     let cli = parse_cli(["magistr", "--json", "detect"]).unwrap();
     assert!(cli.json);
-}
-
-#[test]
-fn cli_parses_theme_flag() {
-    let cli = parse_cli(["magistr", "--theme", "dracula", "detect"]).unwrap();
-    assert_eq!(cli.theme.as_deref(), Some("dracula"));
-}
-
-#[test]
-fn cli_theme_default_is_none() {
-    let cli = parse_cli(["magistr", "detect"]).unwrap();
-    assert!(cli.theme.is_none());
 }
 
 #[test]

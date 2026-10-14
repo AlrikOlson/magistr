@@ -65,10 +65,15 @@ impl ReasoningServer {
     /// and load `session_id`'s history. Rebuilds the per-history indexes.
     pub(crate) fn switch_to_session(&mut self, session_id: &str) {
         if self.active_session.as_deref() == Some(session_id) {
-            // Same session — just touch the access timestamp.
-            if let Some(entry) = self.sessions.get_mut(session_id) {
-                entry.last_accessed = Self::now_ms();
-            }
+            let now = Self::now_ms();
+            let snapshot = self.history_with_branches();
+            self.sessions
+                .entry(session_id.to_owned())
+                .and_modify(|entry| entry.last_accessed = now)
+                .or_insert(SessionEntry {
+                    history: snapshot,
+                    last_accessed: now,
+                });
             return;
         }
 
@@ -93,10 +98,9 @@ impl ReasoningServer {
         // Cross-project guard: refuse to load a session whose stamped
         // project id disagrees with this server's project. Prevents
         // silent merges (e.g. mounting a session file from one repo
-        // into a server running in another). The check is best-effort
-        // — empty `self.project_id` (analysis-only servers) skips it,
-        // and legacy sessions without a project_id stamp are accepted
-        // (the next step write will stamp them).
+        // into a server running in another). Persisted histories have already
+        // passed project validation; fresh empty sessions acquire their project
+        // when their first step is recorded.
         if !self.project_id.is_empty() {
             if let Some(stamped) = entry
                 .history
@@ -116,6 +120,7 @@ impl ReasoningServer {
             }
         }
         self.history = entry.history.clone();
+        self.history.session_id = (session_id != self.project_id).then(|| session_id.to_owned());
         self.branches = Self::restored_branches(&self.history);
         self.active_session = Some(session_id.to_string());
 
@@ -170,7 +175,7 @@ impl ReasoningServer {
             .collect();
         for id in expired {
             self.sessions.remove(&id);
-            eprintln!("🗑️ Session {id} expired and removed");
+            tracing::debug!("🗑️ Session {id} expired and removed");
         }
     }
 }

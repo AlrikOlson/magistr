@@ -113,7 +113,7 @@ async fn exercise(transport: &mut AcpTransport, cwd: &Path) -> eyre::Result<()> 
         .await?;
     transport.prompt(&format!(
         "In the current directory run exactly this shell command once: {COMMAND}.          Use your command execution tool. Do not use apply_patch or any other tool.          Do not inspect other files or call MCP servers. Then reply with exactly: verified"
-    ))?;
+    ).into())?;
     let mut approved_tool: Option<String> = None;
     let mut completed_tool = false;
     let mut streamed = false;
@@ -177,7 +177,7 @@ async fn exercise_detach(cwd: &Path) -> eyre::Result<()> {
 
     let config = AgentConfig::new("Do not use any tools. Reply exactly DETACHED_DONE.", cwd)
         .provider("codex")
-        .with_run_args(Some(MODEL), None, false);
+        .with_run_args(Some(MODEL), None, false)?;
     let mut session =
         tokio::time::timeout(WAIT, CockpitSession::start(config.resolve()?)).await??;
     let result = tokio::time::timeout(WAIT, async {

@@ -2,7 +2,7 @@
 //!
 //! The agent sends `session/request_permission` when a tool needs approval;
 //! the transport forwards it as an [`AcpPermissionRequest`] carrying a oneshot
-//! for the answer, so the TUI or GUI can show a prompt and reply.
+//! for the answer, so the desktop or command-line consumers can show a prompt and reply.
 
 mod option;
 mod option_kind;

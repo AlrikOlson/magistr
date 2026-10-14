@@ -1,42 +1,60 @@
 # Development
 
-Magistr is a Rust workspace. The CLI package is `crates/magistr-cli`; see the [architecture overview](architecture/overview.md) for crate ownership.
+Magistr's root Rust workspace owns application services, commands, native
+workflow and source engines. The desktop has a separate Cargo workspace and
+lockfile for its WebView dependencies. Use Rust 1.95 or later, Git and Node.js.
 
-## Rust checks
-
-Use Rust 1.95 or later from the workspace root:
+## Checks
 
 ```sh
 cargo fmt
 cargo check --workspace --all-targets
 cargo nextest run --workspace
 cargo clippy --workspace --all-targets -- -D warnings
+
+cargo fmt --manifest-path crates/magistr-desktop/Cargo.toml
+cargo check --manifest-path crates/magistr-desktop/Cargo.toml --all-targets --locked
+cargo build --manifest-path crates/magistr-desktop/Cargo.toml --locked
+cargo clippy --manifest-path crates/magistr-desktop/Cargo.toml --all-targets --locked -- -D warnings
+cargo nextest run --manifest-path crates/magistr-desktop/Cargo.toml --locked
+node --test crates/magistr-desktop/tests/*.mjs
 ```
 
-The configured project gates are in `.magistr/project.json`. Run `just gate` or `$validate` when you need the complete set.
+Install the OS WebView prerequisites from [Tauri's official guide](https://v2.tauri.app/start/prerequisites/).
+Both workspaces have explicit CI checks. The project gates are configured in
+`.magistr/project.json`. Choose focused verification for bounded changes and
+record real commands through Magistr. Use `just gate` or `$validate` for an
+explicit complete-suite request.
 
-The `structure` gate (`scripts/lint-structure.sh`) checks the owned crates `magistr-cli`, `magistr-engine`, `magistr-domain`, `magistr-application` and `magistr-workflow-contracts` against the [file-structure convention](../.claude/rules/conventions.md): a module may export several public items only as a documented, tested private module its parent facade re-exports; tests live in `{name}.tests.rs`; the domain layers keep their dependency direction; functions stay under 150 lines; the cockpit crates never silence dead-code lints. `.magistr/lint-structure-allowlist.txt` is a grandfathered baseline that is only pruned. The imported subsystems `magistr-workflow` and `magistr-workspace` are ratcheted per file against their reviewed baselines by their own gates instead.
-
-The terminal interface is checked against golden images under `crates/magistr-tui/tests/golden`; after an intended visual change, review the candidates and re-bless them with `MAGISTR_GOLDEN_UPDATE=1 cargo nextest run -p magistr-tui -E 'test(shot_)'`. The website's captures come from the sample project in `apps/website/fixtures/harbor.json`, never from Magistr's own roadmap; `./scripts/website-captures.sh` regenerates them and their manifest.
+The structure gate enforces cohesive modules, companion tests and dependency
+direction. Its allowlists only shrink. The duplication gate checks the desktop
+against application-owned behavior; shared decisions belong to the application,
+with the desktop calling its typed client. The frozen GUI ratchet remains zero.
+The [interface module index](reference/cockpit-modules.md) is checked against
+current sources.
 
 ## Desktop
 
-Open the current project with Codex:
-
 ```sh
-just desktop --provider codex
+cargo run --manifest-path crates/magistr-desktop/Cargo.toml --locked
+# Or choose an initial folder:
+cargo run --manifest-path crates/magistr-desktop/Cargo.toml --locked -- --dir /path/to/project
+python3 crates/magistr-desktop/tests/native_window.py crates/magistr-desktop/target/debug/magistr-desktop
 ```
 
-Use `--dir /path/to/project` to open another project. The desktop uses the same
-provider setup as the terminal.
+The native journey requires macOS accessibility and screen capture access.
+It creates and removes disposable projects and an app bundle. The production
+binary serves a controlled ACP fixture through the normal provider route;
+no paid model or user project is touched. Capture reviews include light, dark
+and narrow windows, text editing, permissions, drafts, clipboard and Quit.
+See [desktop architecture](architecture/desktop.md) and
+[current evidence](evidence/desktop-current/README.md).
 
-The native session launcher (`crates/magistr-desktop`) and renderer
-(`crates/magistr-gui2`) have separate Cargo workspaces and lockfiles. Their
-rendering dependencies are public. The launcher opens a project session; the
-renderer executable opens development fixtures. Follow the
-[desktop guide](architecture/desktop.md) for setup, direct Cargo commands,
-CPU screenshots, GPU readback and native-window checks. Root workspace checks
-do not cover either desktop workspace.
+After an intended UI change, rebuild, run the native journey and review its
+captures. `./scripts/website-captures.sh` publishes those reviewed captures to
+the website and updates their manifest. `screenshots` rejects stale source or
+image hashes and checks contrast and the icon; `release-latency` checks the
+production frontend response budget and recorded native input latency.
 
 ## Website
 
@@ -46,55 +64,6 @@ npm ci
 npm test
 ```
 
-`npm test` builds the site and checks the built output. The site deploys to the Cloudflare Pages project `magistr`, whose production alias is [magistr.dev](https://magistr.dev):
-
-```sh
-cd apps/website
-npm test
-wrangler pages deploy dist --project-name magistr --branch main
-```
-
-Verify [magistr.dev](https://magistr.dev), `/docs/installation` and `/robots.txt` after a deploy.
-
-## Setting up project checks
-
-Setup reads project manifests, scripts and tool configuration before writing
-check commands. It does not assume npm or install test, lint or formatting tools.
-For JavaScript and TypeScript, a declared package manager, lockfile or Bun
-configuration identifies the runner. Declared check, test, lint and format scripts
-take priority over direct commands for observed tools.
-
-Checks without enough evidence remain empty in `.magistr/project.json` and are
-reported as not configured. They cannot provide passing verification. Choose
-commands in the setup interview or supply project/user preset overrides when
-the project uses a different command. Language presets are proposals; they are
-not evidence that a project provides those commands.
-
-## Claude Code plugin
-
-The optional adapter lives in `plugins/magistr`. Read its
-[installation and usage guide](../plugins/magistr/README.md),
-[architecture decision](architecture/claude-mod.md) and
-[verification report](reference/claude-mod-verification.md).
-Its runtime imports only local ES modules and uses documented Claude APIs;
-Node is needed for contributor checks, not inside hooks.
-
-```sh
-node --test plugins/magistr/tests/*.contract.mjs
-npx --yes prettier@3.9.9 --check "plugins/magistr/hooks/*.js" "plugins/magistr/tests/*.{js,mjs,ts}"
-claude plugin validate .
-claude plugin validate plugins/magistr
-claude plugin test plugins/magistr
-```
-
-The independent contracts do not substitute for Claude's official harness or
-live host acceptance. Run the native stdio test after building Magistr; it
-creates its own isolated fixture, never a second owner for this checkout.
-Installation lifecycle checks are explicitly opt-in because they temporarily
-remove and restore the user's Magistr installation. See the report for the
-Windows command wrapper and exact remaining host limitations.
-
-## Contributions
-
-Keep changes focused, preserve crate and client boundaries, and update the short public docs when a command or supported surface changes. See [CONTRIBUTING.md](../CONTRIBUTING.md).
-
+The roadmap and execution plan live in native Magistr state. Never generate or
+commit a roadmap export. See [architecture](architecture/overview.md),
+[Codex setup](reference/codex.md) and [contributing](../CONTRIBUTING.md).

@@ -32,8 +32,11 @@ fn cmd_costs_summary(
             println!("period,total_cost,total_turns,sessions");
             for b in &buckets {
                 println!(
-                    "{},{:.6},{},{}",
-                    b.label, b.summary.total_cost, b.summary.total_turns, b.summary.entry_count
+                    "{},{},{},{}",
+                    b.label,
+                    csv_number(b.summary.total_cost, 6),
+                    b.summary.total_turns,
+                    b.summary.entry_count
                 );
             }
         }
@@ -54,20 +57,18 @@ fn cmd_costs_summary(
                 fmt::bold(&format!("💰 {period_label} Cost Summary"))
             );
 
-            let mut grand_total = 0.0;
+            let mut grand_total = Some(0.0);
             let mut grand_turns = 0u32;
             let mut grand_sessions = 0usize;
 
             for b in &buckets {
-                grand_total += b.summary.total_cost;
+                grand_total = grand_total
+                    .zip(b.summary.total_cost)
+                    .map(|(total, cost)| total + cost);
                 grand_turns += b.summary.total_turns;
                 grand_sessions += b.summary.entry_count;
 
-                let cost_str = if b.summary.total_cost < 0.01 {
-                    format!("${:.4}", b.summary.total_cost)
-                } else {
-                    format!("${:.2}", b.summary.total_cost)
-                };
+                let cost_str = reported_money(b.summary.total_cost);
 
                 eprintln!(
                     "  {}  {}  {} turns  {} sessions",
@@ -78,11 +79,7 @@ fn cmd_costs_summary(
                 );
             }
 
-            let total_str = if grand_total < 0.01 {
-                format!("${grand_total:.4}")
-            } else {
-                format!("${grand_total:.2}")
-            };
+            let total_str = reported_money(grand_total);
 
             eprintln!();
             eprintln!(
@@ -146,13 +143,13 @@ fn cmd_costs_grouped(
             );
             for g in &groups {
                 println!(
-                    "{},{:.6},{},{},{},{:.4}",
+                    "{},{},{},{},{},{}",
                     csv_field(&g.key),
-                    g.summary.total_cost,
+                    csv_number(g.summary.total_cost, 6),
                     g.summary.total_turns,
                     g.summary.entry_count,
                     g.summary.total_tokens.total(),
-                    g.share
+                    csv_number(g.share, 4)
                 );
             }
         }
@@ -171,19 +168,19 @@ fn cmd_costs_grouped(
                 eprintln!(
                     "  {}  {}  {:>5}  {} turns  {} sessions",
                     fmt::cyan(&format!("{:<28}", shorten(&g.key, 28))),
-                    fmt::yellow(&format!("{:>9}", money(g.summary.total_cost))),
-                    fmt::dim(&format!("{:.0}%", g.share * 100.0)),
+                    fmt::yellow(&format!("{:>9}", reported_money(g.summary.total_cost))),
+                    fmt::dim(&share_text(g.share)),
                     g.summary.total_turns,
                     g.summary.entry_count
                 );
             }
 
-            let total: f64 = groups.iter().map(|g| g.summary.total_cost).sum();
+            let total = cost::CostSummary::from_entries(entries).total_cost;
             eprintln!();
             eprintln!(
                 "  {} {} across {} {}s",
                 fmt::bold("Total:"),
-                money(total),
+                reported_money(total),
                 groups.len(),
                 dimension.as_str()
             );
@@ -227,14 +224,14 @@ fn cmd_costs_chargeback(
             );
             for r in &rows {
                 println!(
-                    "{},{},{:.6},{},{},{},{:.4}",
+                    "{},{},{},{},{},{},{}",
                     r.period,
                     csv_field(&r.key),
-                    r.cost_usd,
+                    csv_number(r.cost_usd, 6),
                     r.turns,
                     r.sessions,
                     r.tokens.total(),
-                    r.share
+                    csv_number(r.share, 4)
                 );
             }
         }
@@ -261,16 +258,16 @@ fn cmd_costs_chargeback(
                 eprintln!(
                     "    {}  {}  {:>5}  {} turns  {} sessions",
                     fmt::cyan(&format!("{:<26}", shorten(&r.key, 26))),
-                    fmt::yellow(&format!("{:>9}", money(r.cost_usd))),
-                    fmt::dim(&format!("{:.0}%", r.share * 100.0)),
+                    fmt::yellow(&format!("{:>9}", reported_money(r.cost_usd))),
+                    fmt::dim(&share_text(r.share)),
                     r.turns,
                     r.sessions
                 );
             }
 
-            let total: f64 = rows.iter().map(|r| r.cost_usd).sum();
+            let total = cost::CostSummary::from_entries(entries).total_cost;
             eprintln!();
-            eprintln!("  {} {}", fmt::bold("Charged:"), money(total));
+            eprintln!("  {} {}", fmt::bold("Charged:"), reported_money(total));
         }
     }
 
@@ -349,6 +346,22 @@ fn cmd_costs_policy(
     }
 
     Ok(())
+}
+
+fn reported_money(amount: Option<f64>) -> String {
+    amount.map(money).unwrap_or_else(|| "unknown".into())
+}
+
+fn csv_number(amount: Option<f64>, precision: usize) -> String {
+    amount
+        .map(|amount| format!("{amount:.precision$}"))
+        .unwrap_or_default()
+}
+
+fn share_text(share: Option<f64>) -> String {
+    share
+        .map(|share| format!("{:.0}%", share * 100.0))
+        .unwrap_or_else(|| "unknown".into())
 }
 
 /// Format a dollar amount, keeping sub-cent spend legible.

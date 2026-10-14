@@ -15,7 +15,8 @@ pub mod seq_key;
 pub mod session;
 #[cfg(test)]
 pub mod source_gate;
-pub mod store_stamp;
+mod store_read;
+pub(crate) mod store_stamp;
 pub mod tool_failure;
 pub mod tool_input;
 pub mod tool_result;
@@ -25,6 +26,7 @@ pub use cross_ref::{
     ActionId, CheckName, CrossRef, ExternalId, ParseError, ProviderId, StepNumber, TaskId,
 };
 pub use epoch_key::EPOCH_KEY;
+pub use magistr_workflow_contracts::StoreStamp;
 pub use merged_write::MergedWrite;
 pub use persistence::{Domain, Persistence, PersistenceConfig};
 pub use project_id::{
@@ -39,4 +41,4 @@ pub use repo_sync::{
 pub use resolve_project_id_from::resolve_project_id_from;
 pub use seq_key::SEQ_KEY;
 pub use session::resolve_default_session_id;
-pub use store_stamp::StoreStamp;
+pub(crate) use store_read::read_json;

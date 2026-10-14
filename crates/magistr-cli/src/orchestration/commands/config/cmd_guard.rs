@@ -46,14 +46,23 @@ pub fn cmd_guard(event: GuardEvent, dir: &Path) -> eyre::Result<()> {
     input.project_dir = Some(dir.clone());
 
     match crate::roadmap::open_native_reader(&dir) {
-        Some(engines) => {
-            apply_engine_state(
-                &mut input,
-                &engines.ship_status(),
-                &engines.roadmap_status(),
-            );
+        Ok(Some(engines)) => {
+            if let Err(error) = read_engine_state(&mut input, &engines) {
+                eprintln!(
+                    "magistr guard ({}): Work records could not be read: {error}",
+                    event.hook_name()
+                );
+                std::process::exit(BLOCK_EXIT_CODE);
+            }
         }
-        None => {
+        Err(error) => {
+            eprintln!(
+                "magistr guard ({}): Work records could not be opened: {error}",
+                event.hook_name()
+            );
+            std::process::exit(BLOCK_EXIT_CODE);
+        }
+        Ok(None) => {
             eprintln!(
                 "magistr guard: {} does not use the think-and-ship roadmap backend; allowing",
                 dir.display()
@@ -204,44 +213,57 @@ pub(crate) fn workbench_declared(dir: &Path) -> bool {
         .is_some_and(|json| json["mcpServers"][WORKBENCH_SERVER].is_object())
 }
 
-/// Fold the engines' `ship_status` and `roadmap_status` documents — the same
-/// JSON the agent sees over MCP — into the guard input.
+/// Read the required owners before computing any guard decision.
+fn read_engine_state(
+    input: &mut GuardInput,
+    engines: &magistr_engine::NativeReader,
+) -> Result<(), String> {
+    let ship = engines.ship_snapshot()?;
+    let chunks = engines.roadmap_chunks()?;
+    apply_engine_state(input, &ship, &chunks);
+    Ok(())
+}
+
+/// Fold validated typed records into the guard input.
 pub(crate) fn apply_engine_state(
     input: &mut GuardInput,
-    ship: &serde_json::Value,
-    roadmap: &serde_json::Value,
+    ship: &magistr_engine::ShipData,
+    chunks: &[magistr_workflow::roadmap::domain::Chunk],
 ) {
-    input.objective_status = ship["objective"]["status"]
-        .as_str()
-        .map(|s| s.to_ascii_lowercase());
-    input.objective_scope = ship["objective"]["scope"].as_str().map(str::to_owned);
-    input.tasks_total = ship["tasks"]["total"]
-        .as_u64()
-        .and_then(|n| usize::try_from(n).ok())
-        .unwrap_or(0);
-    input.checks = ship["checks"]
-        .as_array()
-        .map(|checks| {
-            checks
-                .iter()
-                .map(|c| CheckSummary {
-                    name: c["name"].as_str().unwrap_or_default().to_owned(),
-                    required: c["required"].as_bool().unwrap_or(true),
-                    passed: c["passed"].as_bool().unwrap_or(false),
-                    verified: c["verified"].as_bool().unwrap_or(false),
-                })
-                .collect()
+    use magistr_workflow::ship::domain::objective::ObjectiveStatus;
+    input.objective_status = ship.objective.as_ref().map(|objective| {
+        match objective.status {
+            ObjectiveStatus::Defined => "defined",
+            ObjectiveStatus::Active => "active",
+            ObjectiveStatus::Completed => "completed",
+            ObjectiveStatus::Abandoned => "abandoned",
+        }
+        .to_owned()
+    });
+    input.objective_scope = ship
+        .objective
+        .as_ref()
+        .map(|objective| objective.scope.clone());
+    input.tasks_total = ship.tasks.len();
+    input.checks = ship
+        .tasks
+        .iter()
+        .flat_map(|task| &task.checks)
+        .map(|check| CheckSummary {
+            name: check.name.clone(),
+            required: check.required,
+            passed: check.passed,
+            verified: check.verified,
         })
-        .unwrap_or_default();
+        .collect();
     input.chunk_in_progress = input
         .objective_scope
         .as_deref()
         .and_then(|scope| scope.strip_prefix("chunk:"))
         .is_some_and(|id| {
-            roadmap["chunks"].as_array().is_some_and(|chunks| {
-                chunks
-                    .iter()
-                    .any(|c| c["id"] == id && c["status"] == "in_progress")
+            chunks.iter().any(|chunk| {
+                chunk.id == id
+                    && chunk.status == magistr_workflow::roadmap::domain::ChunkStatus::InProgress
             })
         });
 }

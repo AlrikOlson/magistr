@@ -6,10 +6,11 @@
 //! Dependency direction: this module depends on `crate::roadmap::domain` (pure)
 //! and `crate::infra` (persistence) — never the reverse (DIP).
 
+mod observation;
 mod proposal_resolution;
 mod readiness;
 
-use magistr_workflow_contracts::roadmap::{Readiness, next_ready};
+use magistr_workflow_contracts::roadmap::next_ready;
 
 use chrono::Utc;
 
@@ -18,7 +19,9 @@ use crate::infra::{CrossRef, Persistence, StoreStamp};
 use crate::roadmap::broadcast::{Broadcaster, RoadmapFrame};
 use crate::roadmap::domain::{
     BlockedBy, BlockerKind, Chunk, ChunkStatus, ContainerKind, ContainerLink, Focus, FocusMode,
-    RefreshNote, ReprioritizeProposal, Roadmap, TrackerLink, TrackerOptIn, validate_lane,
+    RefreshNote, ReprioritizeProposal, Roadmap, TrackerLink, TrackerOptIn, WorkstreamCatalog,
+    WorkstreamFrontier, WorkstreamHistoryRecords, WorkstreamResolution, validate_lane,
+    workstream_catalog, workstream_frontier, workstream_history,
 };
 use crate::roadmap::region;
 
@@ -26,10 +29,7 @@ pub struct RoadmapEngine {
     roadmap: Roadmap,
     project_id: String,
     persistence: Option<Persistence>,
-    /// The stamp of the store file this memory was last read from or
-    /// written to; `None` while there is no file or after a failed write.
-    /// Compared against the file on every refresh so an unchanged store
-    /// costs a `stat`, never a parse.
+    /// The last validated or successfully written file, used only to report changes.
     stamp: Option<StoreStamp>,
     broadcaster: Option<Broadcaster>,
     /// Optional git-native trace mirror, reusing the same mirror core as the
@@ -56,59 +56,6 @@ pub struct RoadmapEngine {
     /// composition root and only its answer is handed down. That also means the
     /// engine cannot accidentally widen the rule.
     inherit_opt_in: Option<String>,
-}
-
-/// What a caller's workstream name resolved to.
-///
-/// Three outcomes, and only one of them is allowed to change anything. The
-/// other two carry the exact candidate list, because "no such workstream" is
-/// useless on its own and "did you mean" is the entire remedy — a caller that
-/// gets a bare refusal will guess again, and guessing is what produced the
-/// wrong name in the first place.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum GroupResolution {
-    /// Exactly one workstream matched. Carries the STORED name, not what the
-    /// caller typed, so everything downstream compares against one spelling.
-    Exact(String),
-    /// Several matched. Carries them, in stored order.
-    Ambiguous(Vec<String>),
-    /// None matched. Carries every workstream in play, which is the only
-    /// useful thing to say to someone who named one that does not exist.
-    Unknown(Vec<String>),
-}
-
-impl GroupResolution {
-    /// The stored name, when there is exactly one.
-    #[must_use]
-    pub fn exact(&self) -> Option<&str> {
-        match self {
-            Self::Exact(name) => Some(name.as_str()),
-            _ => None,
-        }
-    }
-
-    /// The refusal a caller sees, naming what they typed and what exists.
-    #[must_use]
-    pub fn explain(&self, query: &str) -> String {
-        let list = |names: &[String]| {
-            if names.is_empty() {
-                "(none — no chunk in this roadmap has a workstream yet)".to_string()
-            } else {
-                names.join(", ")
-            }
-        };
-        match self {
-            Self::Exact(name) => format!("'{query}' resolved to '{name}'"),
-            Self::Ambiguous(names) => format!(
-                "'{query}' is ambiguous — it matches {}. Focus is unchanged; name one exactly.",
-                list(names)
-            ),
-            Self::Unknown(names) => format!(
-                "no workstream matches '{query}'. Focus is unchanged. Workstreams in play: {}",
-                list(names)
-            ),
-        }
-    }
 }
 
 impl RoadmapEngine {
@@ -298,53 +245,11 @@ impl RoadmapEngine {
         });
     }
 
-    /// Attach a persistence handle, loading any prior roadmap for this project
-    /// off disk first (so state accumulates across conversations).
-    ///
-    /// Reports through `tracing`, never on stderr directly: this runs inside
-    /// whatever process embeds the engine — an in-process host reloads the
-    /// roadmap between turns while its terminal is in raw mode, where an
-    /// unconditional `eprintln!` lands on the alternate screen. The load is
-    /// `info!` (narration; `RUST_LOG=info` shows it) and the one-time repairs
-    /// are `warn!` (stored data that did not hold an invariant).
+    /// Attach the selected store and load it without rewriting authored records.
     pub fn with_persistence(mut self, persistence: Persistence) -> Self {
-        match persistence.load_stamped::<Roadmap>(&self.project_id) {
-            Ok((Some(loaded), stamp)) => {
-                tracing::info!(
-                    "think-and-ship: loaded roadmap with {} chunk(s) from disk",
-                    loaded.chunks.len()
-                );
-                self.roadmap = loaded;
-                self.stamp = stamp;
-            }
-            Ok((None, _)) => {}
-            Err(e) => tracing::warn!("think-and-ship: roadmap load failed: {e}"),
-        }
         self.persistence = Some(persistence);
-        // Before the name fill: a chunk with no id cannot even seed a name,
-        // and the known specimens predate the add-door rejection.
-        let (minted, removed) = self.repair_missing_ids();
-        if minted > 0 {
-            tracing::warn!("think-and-ship: minted an id for {minted} chunk(s) that had none");
-        }
-        if removed > 0 {
-            tracing::warn!("think-and-ship: removed {removed} contentless chunk(s) that had no id");
-        }
-        // Every chunk written before `name` existed loads without one. Filling
-        // them here — after the store is attached, so the fill persists — is
-        // what makes "no chunk is nameless" true of the existing roadmap and
-        // not just of the ones added from now on.
-        let filled = self.backfill_names();
-        if filled > 0 {
-            tracing::warn!("think-and-ship: named {filled} chunk(s) that had no name");
-        }
-        // After the fill, because a name seeded a moment ago can collide the
-        // same way a name seeded a year ago does.
-        let separated = self.repair_label_collisions();
-        if separated > 0 {
-            tracing::warn!(
-                "think-and-ship: relabeled {separated} chunk(s) whose derived labels collided"
-            );
+        if let Err(error) = self.reload_from_store() {
+            tracing::warn!(%error, "The roadmap could not be loaded");
         }
         self
     }
@@ -357,8 +262,8 @@ impl RoadmapEngine {
     /// "not persistent" can decide to re-focus each session; a person who is
     /// not told simply loses their place without explanation.
     #[must_use]
-    pub const fn persistence_enabled(&self) -> bool {
-        self.persistence.is_some()
+    pub fn persistence_enabled(&self) -> bool {
+        self.persistence.as_ref().is_some_and(Persistence::enabled)
     }
 
     /// Locked merge-on-save (family-stores-merge-on-save): chunks another
@@ -367,7 +272,7 @@ impl RoadmapEngine {
     /// landed — the merge keeps this memory's chunks first, in order, and
     /// appends the ones another writer acked, so every index a caller
     /// holds stays valid and now names the merged record — and remembers
-    /// the written file's stamp, so the next refresh is a `stat`.
+    /// the written file's stamp. Each refresh validates the stored records.
     fn persist(&mut self) {
         let Some(p) = &self.persistence else {
             return;
@@ -388,37 +293,15 @@ impl RoadmapEngine {
         }
     }
 
-    /// Observe the store before answering or acting: another process may
-    /// have written since this memory was read. A `stat` compares the
-    /// file's stamp with the one this memory was read from or written to;
-    /// only a moved stamp re-reads the file, which then replaces memory
-    /// whole — every mutation persists at once, so the file is the merged
-    /// truth of everything acknowledged, and a missing file is the empty
-    /// roadmap. Answers whether it re-read.
+    /// Validate the selected file and adopt its records before acting.
+    /// Answers whether the observation changed the held records or source.
     pub fn refresh_if_stale(&mut self) -> Result<bool, String> {
-        let Some(p) = &self.persistence else {
-            return Ok(false);
-        };
-        let on_disk = p.stamp(&self.project_id).map_err(|e| e.to_string())?;
-        if on_disk == self.stamp {
-            return Ok(false);
-        }
-        self.reload_from_store()
+        self.refresh_observed().map_err(|error| error.to_string())
     }
 
-    /// Re-read the store whatever the stamp says; the engine's wiring
-    /// (broadcaster, mirror, cloud, opt-in inheritance) stays. Answers
-    /// `true` when persistence is on.
+    /// Explicitly validate and adopt the selected persisted roadmap.
     pub fn reload_from_store(&mut self) -> Result<bool, String> {
-        let Some(p) = &self.persistence else {
-            return Ok(false);
-        };
-        let (loaded, stamp) = p
-            .load_stamped::<Roadmap>(&self.project_id)
-            .map_err(|e| e.to_string())?;
-        self.roadmap = loaded.unwrap_or_else(|| Self::empty_roadmap(&self.project_id));
-        self.stamp = stamp;
-        Ok(true)
+        self.refresh_observed().map_err(|error| error.to_string())
     }
 
     fn now() -> String {
@@ -543,7 +426,7 @@ impl RoadmapEngine {
         // The workstream is validated BEFORE anything is written, and rejected
         // as a whole call rather than dropped. A chunk born ungrouped because
         // its group was quietly ignored is invisible to every focused read —
-        // `next_in_group` will not offer it and `group_status` will not count
+        // `next_in_group` will not offer it and the frontier will not count
         // it — and nothing about the created chunk says why. Refusing here is
         // the only outcome a caller can act on.
         let group = Self::clean_group(group);
@@ -804,129 +687,6 @@ impl RoadmapEngine {
         Ok(&self.roadmap.chunks[idx])
     }
 
-    /// Deal with every chunk that has no id at all, and report how many were
-    /// re-identified and how many removed.
-    ///
-    /// The id is the field every other verb keys on, so an id-less record can
-    /// only sit in the store: it cannot be linked, mutated, mirrored, or
-    /// drawn. Two real stores held one — both admitted by an `add_chunk` that
-    /// did not yet reject an empty id. Runs on load (see
-    /// [`Self::with_persistence`]) before [`Self::backfill_names`], so a
-    /// minted id has its name seeded in the same pass.
-    ///
-    /// Disposition, decided from the two observed records rather than by
-    /// abstract rule: a record carrying content (a title, description, notes,
-    /// acceptance, or cross-refs) gets the id the import lane would have
-    /// minted for that content — `import::derive_id` over
-    /// its title (description when the title is empty too), uniquified
-    /// against the store — because import is the one lane that already knows
-    /// how to turn prose into a stable id. A record carrying nothing at all
-    /// is removed: there is no information to key, and the one observed
-    /// specimen's own `obsoleted_reason` recorded the intent ("removing")
-    /// that could not complete against an unaddressable record. Idempotent:
-    /// after one pass no empty id remains.
-    pub fn repair_missing_ids(&mut self) -> (usize, usize) {
-        if !self.roadmap.chunks.iter().any(|c| c.id.trim().is_empty()) {
-            return (0, 0);
-        }
-        let mut seen: std::collections::HashSet<String> = self
-            .roadmap
-            .chunks
-            .iter()
-            .filter(|c| !c.id.trim().is_empty())
-            .map(|c| c.id.clone())
-            .collect();
-        let mut minted = 0;
-        let mut removed = 0;
-        let mut kept = Vec::with_capacity(self.roadmap.chunks.len());
-        for mut c in std::mem::take(&mut self.roadmap.chunks) {
-            if !c.id.trim().is_empty() {
-                kept.push(c);
-                continue;
-            }
-            let contentless = c.title.trim().is_empty()
-                && c.description.trim().is_empty()
-                && c.notes.trim().is_empty()
-                && c.acceptance.is_empty()
-                && c.cross_refs.is_empty();
-            if contentless {
-                removed += 1;
-                continue;
-            }
-            let source = if c.title.trim().is_empty() {
-                &c.description
-            } else {
-                &c.title
-            };
-            c.id = crate::roadmap::import::uniquify(
-                crate::roadmap::import::derive_id(source),
-                &mut seen,
-            );
-            minted += 1;
-            kept.push(c);
-        }
-        self.roadmap.chunks = kept;
-        self.persist();
-        (minted, removed)
-    }
-
-    /// Give a name to every chunk that arrived without one, and report how many
-    /// were filled.
-    ///
-    /// Runs on load (see [`Self::with_persistence`]) rather than as a one-off
-    /// command, because chunks arrive from more than one direction: the local
-    /// store, a cloud pull, an import. A migration that only covers the file on
-    /// disk leaves the other two doors open.
-    ///
-    /// Only ever fills a gap. A name already present is left exactly as written,
-    /// including one that is over budget — silently rewriting somebody's label
-    /// would hide the very thing the gate is there to report.
-    pub fn backfill_names(&mut self) -> usize {
-        let mut filled = 0;
-        for c in &mut self.roadmap.chunks {
-            if c.name.trim().is_empty() {
-                c.name = crate::roadmap::name::derive(&c.id);
-                filled += 1;
-            }
-        }
-        if filled > 0 {
-            self.persist();
-        }
-        filled
-    }
-
-    /// Separate chunks whose derived labels collided, and report how many were
-    /// relabeled. The other half of the same migration as [`Self::backfill_names`],
-    /// run beside it on load for the same reason: colliding seeds arrive from
-    /// the local store, cloud pulls, and imports alike.
-    ///
-    /// Delegates the whole decision to [`crate::roadmap::name::repair_collisions`],
-    /// which only ever proposes a rewrite for a name still equal to its own
-    /// seed — an authored label, and any label that does not collide, is out of
-    /// reach by construction. Idempotent: a relabeled chunk no longer matches
-    /// its seed, so the next load leaves it alone.
-    pub fn repair_label_collisions(&mut self) -> usize {
-        let rewrites = {
-            let table: Vec<(&str, &str)> = self
-                .roadmap
-                .chunks
-                .iter()
-                .map(|c| (c.id.as_str(), c.name.as_str()))
-                .collect();
-            crate::roadmap::name::repair_collisions(&table)
-        };
-        let relabeled = rewrites.len();
-        for (id, name) in rewrites {
-            if let Some(c) = self.roadmap.chunks.iter_mut().find(|c| c.id == id) {
-                c.name = name;
-            }
-        }
-        if relabeled > 0 {
-            self.persist();
-        }
-        relabeled
-    }
-
     /// Every chunk whose name cannot serve as a node label, with the reason.
     /// The data-side half of constraint C8 — `doctor` reports it, and it is the
     /// gate that stops the sentence style leaking back in.
@@ -939,18 +699,10 @@ impl RoadmapEngine {
             .collect()
     }
 
-    /// Every distinct group in play, sorted, ignoring ungrouped chunks.
+    /// Current work and terminal history from this complete owner snapshot.
     #[must_use]
-    pub fn groups(&self) -> Vec<String> {
-        let mut seen: Vec<String> = self
-            .roadmap
-            .chunks
-            .iter()
-            .filter_map(|c| c.group.clone())
-            .collect();
-        seen.sort();
-        seen.dedup();
-        seen
+    pub fn workstreams(&self) -> WorkstreamCatalog {
+        workstream_catalog(&self.roadmap.chunks)
     }
 
     // ── Focus: what one lane is currently working on ───────────────────
@@ -974,14 +726,14 @@ impl RoadmapEngine {
     /// Point `lane` at `group` in `mode`.
     ///
     /// Validates BEFORE it writes, and the ordering is the contract: a call
-    /// naming an unknown or ambiguous group leaves the store exactly as it was,
+    /// naming a closed, unknown or ambiguous group leaves the store unchanged,
     /// so a mistyped switch can never strand a lane somewhere it did not ask to
     /// be. Chunk status is untouched — focus points at work, it does not start
     /// any.
     pub fn focus_set(&mut self, lane: &str, group: &str, mode: FocusMode) -> Result<Focus, String> {
         let lane = validate_lane(lane)?;
-        let resolved = match self.resolve_group(group) {
-            GroupResolution::Exact(name) => name,
+        let resolved = match self.workstreams().resolve_current(group) {
+            WorkstreamResolution::Current { group } => group,
             other => return Err(other.explain(group)),
         };
         let now = Self::now();
@@ -1020,45 +772,6 @@ impl RoadmapEngine {
         removed
     }
 
-    /// Resolve what a caller typed into exactly one group, or refuse.
-    ///
-    /// Three ways to name a workstream, tried in order of decreasing certainty:
-    /// the exact stored name, a case-insensitive match of it, then an
-    /// unambiguous substring. The substring pass exists because "authentication"
-    /// should find "Authentication and identity" — but it deliberately does not
-    /// pick a winner among several matches, because "closest match" is how a
-    /// caller ends up focused on a workstream it did not name and cannot see it
-    /// did not name.
-    #[must_use]
-    pub fn resolve_group(&self, query: &str) -> GroupResolution {
-        let q = query.trim();
-        if q.is_empty() {
-            return GroupResolution::Unknown(self.groups());
-        }
-        let groups = self.groups();
-        if let Some(hit) = groups.iter().find(|g| g.as_str() == q) {
-            return GroupResolution::Exact(hit.clone());
-        }
-        let lower = q.to_lowercase();
-        let ci: Vec<&String> = groups
-            .iter()
-            .filter(|g| g.to_lowercase() == lower)
-            .collect();
-        if ci.len() == 1 {
-            return GroupResolution::Exact(ci[0].clone());
-        }
-        let partial: Vec<String> = groups
-            .iter()
-            .filter(|g| g.to_lowercase().contains(&lower))
-            .cloned()
-            .collect();
-        match partial.len() {
-            0 => GroupResolution::Unknown(groups),
-            1 => GroupResolution::Exact(partial.into_iter().next().expect("length checked")),
-            _ => GroupResolution::Ambiguous(partial),
-        }
-    }
-
     /// The next ready chunk INSIDE `group` — same three readiness conditions as
     /// [`Self::next`], with membership added.
     ///
@@ -1077,74 +790,20 @@ impl RoadmapEngine {
         )
     }
 
-    /// A focused frontier report for one group: counts, what is ready, what is
-    /// blocked and why, and the next candidate.
-    ///
-    /// Separate from [`Self::status`] rather than a parameter on it, because the
-    /// two answer different questions at different scales — `status` is bounded
-    /// and elides, while a single workstream is small enough to report whole.
+    /// Current work in exactly one group; None selects ungrouped work.
+    /// Dependency readiness is assessed against every chunk in this owner.
     #[must_use]
-    pub fn group_status(&self, group: &str) -> serde_json::Value {
-        let members: Vec<&Chunk> = self
-            .roadmap
-            .chunks
-            .iter()
-            .filter(|c| c.group.as_deref() == Some(group))
-            .collect();
-        let count = |s: ChunkStatus| members.iter().filter(|c| c.status == s).count();
-        let ready: Vec<&&Chunk> = members
-            .iter()
-            .filter(|c| self.readiness(c).is_ready())
-            .collect();
-        // "Blocked" here is the reader's meaning, not the enum's: a chunk that
-        // cannot be worked right now for ANY reason — a recorded blocker, an
-        // unfinished dependency, or the Blocked status itself. Reporting only
-        // the enum would say zero on a workstream nobody can move.
-        let blocked: Vec<serde_json::Value> = members
-            .iter()
-            .filter(|c| {
-                matches!(
-                    self.readiness(c),
-                    Readiness::Blocked(_)
-                        | Readiness::Waiting(_)
-                        | Readiness::Inactive(ChunkStatus::Blocked)
-                )
-            })
-            .map(|c| {
-                let mut row = serde_json::json!({ "id": c.id, "name": c.name });
-                if let Some(b) = &c.blocked_by {
-                    row["blocker_kind"] = serde_json::json!(b.kind.as_wire());
-                    row["reason"] = serde_json::json!(b.reason);
-                } else if let Readiness::Waiting(deps) = self.readiness(c) {
-                    row["unmet_deps"] =
-                        serde_json::json!(deps.iter().map(|dep| dep.id).collect::<Vec<_>>());
-                    row["reason"] = serde_json::json!(self.waiting_reason(&deps));
-                }
-                row
-            })
-            .collect();
-        serde_json::json!({
-            "group": group,
-            "counts": {
-                "backlog": count(ChunkStatus::Backlog),
-                "pending": count(ChunkStatus::Pending),
-                "in_progress": count(ChunkStatus::InProgress),
-                "blocked": count(ChunkStatus::Blocked),
-                "done": count(ChunkStatus::Done),
-                "obsoleted": count(ChunkStatus::Obsoleted),
-                "total": members.len(),
-            },
-            "ready": ready.iter().map(|c| serde_json::json!({
-                "id": c.id, "name": c.name, "priority": c.priority,
-            })).collect::<Vec<_>>(),
-            "ready_count": ready.len(),
-            "blocked_count": blocked.len(),
-            "blocked": blocked,
-            "next": self.next_in_group(group).map(|c| c.id.clone()),
-        })
+    pub fn workstream_frontier(&self, group: Option<&str>) -> WorkstreamFrontier {
+        workstream_frontier(&self.roadmap.chunks, group)
     }
 
-    /// Which ungrouped chunks share an id prefix, offered for a person to name.
+    /// Read terminal record IDs only for the history being inspected.
+    #[must_use]
+    pub fn workstream_history(&self, group: Option<&str>) -> WorkstreamHistoryRecords {
+        workstream_history(&self.roadmap.chunks, group)
+    }
+
+    /// Which unfinished, ungrouped chunks share a prefix, offered to be named.
     ///
     /// This used to assign the prefix as the group, and could not be repaired
     /// into doing so correctly. [`region::why_unfit`] rejects a region name
@@ -1168,6 +827,7 @@ impl RoadmapEngine {
             self.roadmap
                 .chunks
                 .iter()
+                .filter(|c| c.status.is_active() && c.group.is_none())
                 .map(|c| (c.id.as_str(), c.group.as_deref())),
             min_shared,
         )
@@ -2010,79 +1670,37 @@ impl RoadmapEngine {
     /// and obsoleted chunks appear only in `counts` plus a short `recent_done`
     /// tail. Any elision is reported (`omitted_active`, `note`) — never silent.
     pub fn status(&self) -> serde_json::Value {
+        Self::status_of(&self.roadmap)
+    }
+
+    /// The canonical status projection of one complete roadmap observation.
+    pub fn status_of(roadmap: &Roadmap) -> serde_json::Value {
         use ChunkStatus::*;
-        let count = |s: ChunkStatus| self.roadmap.chunks.iter().filter(|c| c.status == s).count();
+        let count = |s: ChunkStatus| roadmap.chunks.iter().filter(|c| c.status == s).count();
 
         let summary = |c: &Chunk| {
             let mut row = serde_json::json!({
                 "id": c.id,
                 "title": Self::truncate_title(&c.title),
-                // The label, beside the truncated sentence. This is the surface
-                // that renders every chunk at once, so it is the one that most
-                // needs something shorter than a claim to show.
                 "name": c.name,
                 "status": c.status,
                 "priority": c.priority,
-                // The band names the number. Additive — `priority` keeps its
-                // meaning and its place as the sort key.
                 "band": crate::infra::coerce::priority_band(c.priority),
                 "deps": c.deps,
                 "has_reprioritize_proposal": c.reprioritize.is_some(),
-                // Its twin, and it was missing: a status proposal was writable
-                // and readable by NOTHING (tracker-status-proposal-unreachable).
-                // A proposal a human cannot see is the same defect as a proposal
-                // nothing can write — the capability stays false of the product.
                 "has_status_proposal": c.status_proposal.is_some(),
-                // The third sibling, visible from birth — the projector obeys
-                // an open title proposal, so a human must be able to see the
-                // thing that is steering their tracker's titles.
                 "has_title_proposal": c.title_proposal.is_some(),
             });
-            // Why the row carries anything about the blocker at all: a reader
-            // building their own frontier from this list (which is what
-            // /roadmap-run does) never calls `next`, so without it they would
-            // re-derive readiness from status + deps and hand out the very
-            // chunk the scheduler refused.
-            //
-            // Why the KIND and not the `has_blocker: bool` this replaces. The
-            // boolean was exactly `blocked_by.is_some()`, so the two could
-            // never legally disagree and one of them was a fifth wheel. The
-            // kind subsumes it — absent means unblocked — and it answers the
-            // question the boolean left open, which matters most precisely
-            // here: `title` above is CUT AT `STATUS_TITLE_LEN`, and on a real
-            // roadmap the blocker is usually stated in the tail of the
-            // sentence, so the truncation destroys the prose and this token is
-            // what survives it.
-            //
-            // Why the reason is not here: it is a sentence, and this is the
-            // surface that renders sixty rows at once. The token belongs in
-            // the list; the sentence belongs in the record and in the markdown
-            // export, both of which carry it.
-            //
-            // Absent rather than null when there is no blocker: the common row
-            // then pays nothing, which is the difference between a field that
-            // costs ~20 bytes on every one of sixty rows and one that costs
-            // only where there is something to say.
             if let Some(b) = &c.blocked_by {
                 row["blocker_kind"] = serde_json::json!(b.kind.as_wire());
             }
-            // The workstream, on the surface that renders every chunk at once.
-            // Without it a reader rebuilding a focused frontier from this list
-            // cannot tell which rows belong to the workstream they are in, and
-            // would have to fetch each record to find out — which is the same
-            // trap `blocker_kind` above was added to close.
-            //
-            // Absent rather than null when ungrouped, for the same reason as
-            // the blocker: the common row should pay nothing.
             if let Some(g) = &c.group {
                 row["group"] = serde_json::json!(g);
             }
             row
         };
 
-        // Active = anything still workable, priority-sorted.
-        let mut active: Vec<&Chunk> = self
-            .roadmap
+        let mut active: Vec<&Chunk> = roadmap
             .chunks
             .iter()
             .filter(|c| matches!(c.status, Backlog | Pending | InProgress | Blocked))
@@ -2096,10 +1714,7 @@ impl RoadmapEngine {
             .map(|c| summary(c))
             .collect();
 
-        // A short tail of the most-recently-touched done/obsoleted chunks for
-        // context, instead of dumping all of them.
-        let mut finished: Vec<&Chunk> = self
-            .roadmap
+        let mut finished: Vec<&Chunk> = roadmap
             .chunks
             .iter()
             .filter(|c| matches!(c.status, Done | Obsoleted))
@@ -2119,25 +1734,7 @@ impl RoadmapEngine {
             );
         }
 
-        // Blockers counted ACROSS the status partition rather than inside it.
-        // A blocker-carrying chunk keeps its status — that is the whole point
-        // of the skip — so it is still counted in `backlog` or `pending` above,
-        // and this cannot be another cell beside them. It has to be its own
-        // sub-object, or the reader is back to the situation this chunk exists
-        // to end: a disproven chunk and an undecided one indistinguishable
-        // because both were counted as backlog.
-        //
-        // Counted over the ACTIVE board only. `complete_chunk` does not clear
-        // `blocked_by`, so a finished chunk can still carry the blocker that
-        // once held it up; including it would answer a question nobody asked,
-        // because "how much of my board cannot be scheduled" is about work that
-        // is still waiting to be done.
         let mut blocked_by = serde_json::Map::new();
-        // Seeded from the vocabulary rather than from what happens to be on
-        // the board, for two reasons: a kind with no chunks reports 0 instead
-        // of vanishing (absence and zero are different answers), and a fifth
-        // kind added to `BlockerKind` shows up here without this function
-        // being edited to remember it.
         for kind in BlockerKind::ALL {
             blocked_by.insert(kind.as_wire().to_string(), serde_json::json!(0));
         }
@@ -2153,7 +1750,7 @@ impl RoadmapEngine {
         blocked_by.insert("total".to_string(), serde_json::json!(blocked_by_total));
 
         serde_json::json!({
-            "project_id": self.project_id,
+            "project_id": roadmap.project_id,
             "counts": {
                 "backlog": count(Backlog),
                 "pending": count(Pending),
@@ -2161,10 +1758,10 @@ impl RoadmapEngine {
                 "blocked": count(Blocked),
                 "done": count(Done),
                 "obsoleted": count(Obsoleted),
-                "total": self.roadmap.chunks.len(),
+                "total": roadmap.chunks.len(),
                 "blocked_by": blocked_by,
             },
-            "next": self.next().map(|c| c.id.clone()),
+            "next": next_ready(&roadmap.chunks, |c| c.readiness(|id| roadmap.chunks.iter().find(|dependency| dependency.id == id).map(|dependency| dependency.status)).is_ready(), |c| c.priority).map(|c| c.id.clone()),
             "active_total": active_total,
             "omitted_active": omitted_active,
             "chunks": chunks,
@@ -2174,25 +1771,30 @@ impl RoadmapEngine {
     }
 
     pub fn export(&self, format: &str) -> String {
+        Self::export_of(&self.roadmap, format)
+    }
+
+    /// Render one complete observation through the canonical roadmap exporter.
+    pub fn export_of(roadmap: &Roadmap, format: &str) -> String {
         match format {
-            "json" => serde_json::to_string_pretty(&self.roadmap).unwrap_or_default(),
-            _ => self.export_markdown(),
+            "json" => serde_json::to_string_pretty(roadmap).unwrap_or_default(),
+            _ => Self::export_markdown(roadmap),
         }
     }
 
     /// Render a ROADMAP.md-shaped markdown *view* of the roadmap: chunks grouped
     /// under status sections, priority-ordered within each. This is a generated
     /// projection of native state — not the source of truth.
-    fn export_markdown(&self) -> String {
+    fn export_markdown(roadmap: &Roadmap) -> String {
         use ChunkStatus::*;
 
-        let mut out = format!("# Roadmap — {}\n\n", self.project_id);
+        let mut out = format!("# Roadmap — {}\n\n", roadmap.project_id);
         // Preamble: the intro prose carried from the imported source.
-        if !self.roadmap.preamble.is_empty() {
-            out.push_str(&self.roadmap.preamble);
+        if !roadmap.preamble.is_empty() {
+            out.push_str(&roadmap.preamble);
             out.push_str("\n\n");
         }
-        let mut listed: Vec<&Chunk> = self.roadmap.chunks.iter().collect();
+        let mut listed: Vec<&Chunk> = roadmap.chunks.iter().collect();
         listed.sort_by_key(|c| c.priority);
 
         // (heading, statuses that fall under it), in display order. Blocked
@@ -2280,7 +1882,7 @@ impl RoadmapEngine {
         }
 
         // Doc-level note sections (Research notes, Vision, …) preserved verbatim.
-        for note in &self.roadmap.notes {
+        for note in &roadmap.notes {
             out.push_str(&format!("## {}\n\n", note.heading));
             if !note.body.is_empty() {
                 out.push_str(&note.body);
@@ -3088,8 +2690,14 @@ mod tests {
             e.next_in_group("Authentication").map(|c| c.id.as_str()),
             Some("auth-1")
         );
-        assert_eq!(e.group_status("Authentication")["ready_count"], 1);
-        assert_eq!(e.groups(), vec!["Authentication"]);
+        assert_eq!(
+            e.workstream_frontier(Some("Authentication"))
+                .activity
+                .readiness
+                .ready,
+            1
+        );
+        assert_eq!(e.workstreams().current_names(), vec!["Authentication"]);
 
         // And it is reachable by focusing, which is the path that matters.
         e.focus_set("lane", "Authentication", FocusMode::Build)
@@ -3119,7 +2727,7 @@ mod tests {
             .expect("created");
         }
         assert!(e.roadmap().chunks.iter().all(|c| c.group.is_none()));
-        assert!(e.groups().is_empty());
+        assert!(e.workstreams().current_names().is_empty());
     }
 
     /// Both doors into grouping enforce the SAME rule, so neither is a backdoor
@@ -3250,8 +2858,8 @@ mod tests {
         grouped(&mut e, "a1", 10, "Billing core");
         grouped(&mut e, "b1", 20, "Billing reports");
 
-        match e.resolve_group("billing") {
-            GroupResolution::Ambiguous(names) => {
+        match e.workstreams().resolve_current("billing") {
+            WorkstreamResolution::Ambiguous { matches: names } => {
                 assert_eq!(names, vec!["Billing core", "Billing reports"]);
             }
             other => panic!("expected ambiguity, got {other:?}"),
@@ -3271,16 +2879,18 @@ mod tests {
         grouped(&mut e, "b1", 20, "Billing");
 
         assert_eq!(
-            e.resolve_group("Authentication and identity").exact(),
+            e.workstreams()
+                .resolve_current("Authentication and identity")
+                .current(),
             Some("Authentication and identity")
         );
         assert_eq!(
-            e.resolve_group("billing").exact(),
+            e.workstreams().resolve_current("billing").current(),
             Some("Billing"),
             "case-insensitive exact match"
         );
         assert_eq!(
-            e.resolve_group("identity").exact(),
+            e.workstreams().resolve_current("identity").current(),
             Some("Authentication and identity"),
             "an unambiguous fragment resolves"
         );
@@ -3326,7 +2936,7 @@ mod tests {
     /// A group whose only chunk is blocked reports it as blocked rather than
     /// ready, and next_in_group refuses it.
     #[test]
-    fn group_status_counts_readiness_blockers_and_unmet_deps() {
+    fn workstream_frontier_counts_readiness_blockers_and_unmet_deps() {
         let mut e = engine();
         grouped(&mut e, "one", 10, "Auth");
         grouped(&mut e, "two", 20, "Auth");
@@ -3337,19 +2947,29 @@ mod tests {
             .unwrap()
             .deps = vec!["one".into()];
 
-        let s = e.group_status("Auth");
-        assert_eq!(s["ready_count"], 1, "only `one` is ready");
-        assert_eq!(s["next"], "one");
-        assert_eq!(s["blocked_count"], 1, "`two` waits on `one`");
-        assert_eq!(s["blocked"][0]["unmet_deps"][0], "one");
-        assert_eq!(s["counts"]["total"], 2);
+        let s = e.workstream_frontier(Some("Auth"));
+        assert_eq!(s.activity.readiness.ready, 1, "only `one` is ready");
+        assert_eq!(s.activity.next_ready.as_deref(), Some("one"));
+        assert_eq!(s.activity.readiness.waiting, 1, "`two` waits on `one`");
+        assert_eq!(
+            s.items[1].readiness,
+            crate::roadmap::domain::WorkstreamReadiness::Waiting {
+                dependencies: vec![crate::roadmap::domain::WorkstreamDependency {
+                    id: "one".into(),
+                    status: Some(ChunkStatus::Pending),
+                }],
+            }
+        );
+        assert_eq!(s.activity.counts.total, 2);
 
         // Finish the dependency and the frontier moves.
         e.set_status("one", ChunkStatus::InProgress).unwrap();
         e.set_status("one", ChunkStatus::Done).unwrap();
-        let s = e.group_status("Auth");
-        assert_eq!(s["next"], "two");
-        assert_eq!(s["blocked_count"], 0);
+        let s = e.workstream_frontier(Some("Auth"));
+        assert_eq!(s.activity.next_ready.as_deref(), Some("two"));
+        assert_eq!(s.activity.readiness.waiting, 0);
+        assert_eq!(s.activity.counts.total, 1);
+        assert_eq!(e.workstreams().history["Auth"].done, 1);
     }
 
     /// Focus survives a restart when persistence is on — the property that
@@ -3380,32 +3000,6 @@ mod tests {
         assert_eq!(
             e2.focus_get("lane-b").map(|f| (f.group.clone(), f.mode)),
             Some(("Billing".to_string(), FocusMode::Listen))
-        );
-    }
-
-    /// A store written before focus existed loads unchanged. The fixture is a
-    /// literal pre-focus document rather than a serialized modern one, because
-    /// a round-trip through today's type cannot prove yesterday's bytes parse.
-    #[test]
-    fn a_roadmap_persisted_before_focus_existed_loads_with_no_focuses() {
-        let pre_focus = serde_json::json!({
-            "project_id": "proj",
-            "preamble": "",
-            "chunks": [{
-                "id": "a", "title": "A", "name": "A", "status": "pending",
-                "priority": 1, "description": "", "notes": "",
-                "acceptance": [], "deps": [], "cross_refs": [], "shared": false,
-                "created_at": "2026-01-01T00:00:00+00:00",
-                "updated_at": "2026-01-01T00:00:00+00:00"
-            }],
-            "notes": [], "refreshes": [], "links": [], "tracker_opt_ins": []
-        });
-        let loaded: Roadmap =
-            serde_json::from_value(pre_focus).expect("a pre-focus store must still parse");
-        assert_eq!(loaded.chunks.len(), 1);
-        assert!(
-            loaded.focuses.is_empty(),
-            "absent focuses means nobody had focused anything, not a parse failure"
         );
     }
 
@@ -3821,104 +3415,6 @@ mod tests {
         assert!(e.set_name("c1", &"x".repeat(80)).is_err());
     }
 
-    /// The migration. Chunks persisted before the field existed deserialize
-    /// with no name, and the whole roadmap has to come back usable.
-    #[test]
-    fn a_roadmap_saved_before_names_existed_loads_and_is_backfilled() {
-        let legacy = serde_json::json!({
-            "project_id": "proj",
-            "chunks": [
-                {
-                    "id": "shipping-labels-print-blank",
-                    "title": "Shipping labels print blank on thermal printers",
-                    "status": "pending",
-                    "priority": 100,
-                    "created_at": "2026-01-01T00:00:00Z",
-                    "updated_at": "2026-01-01T00:00:00Z"
-                }
-            ]
-        });
-        let roadmap: crate::roadmap::domain::Roadmap =
-            serde_json::from_value(legacy).expect("a roadmap with no name key must still load");
-        assert_eq!(roadmap.chunks[0].name, "");
-
-        let mut e = engine();
-        e.roadmap = roadmap;
-        assert_eq!(e.backfill_names(), 1);
-        assert_eq!(
-            got(&e, "shipping-labels-print-blank").name,
-            "Shipping labels print"
-        );
-        assert!(e.chunks_without_usable_names().is_empty());
-        // Idempotent: a second pass has nothing left to fill.
-        assert_eq!(e.backfill_names(), 0);
-    }
-
-    /// The collision half of the load-time migration: seeds that tie are
-    /// separated, the family head keeps its label, and a hand-written name in
-    /// the same store is not touched. Driven by ids this roadmap has never held.
-    #[test]
-    fn colliding_derived_labels_are_separated_on_load() {
-        let mut e = engine();
-        for id in [
-            "tidepool-sensor-array",
-            "tidepool-sensor-array-calibration",
-            "tidepool-sensor-array-mounting",
-        ] {
-            e.add_chunk(
-                id.into(),
-                format!("A claim about {id}"),
-                ChunkStatus::Pending,
-                1,
-                String::new(),
-                vec![],
-                vec![],
-                false,
-            )
-            .unwrap();
-        }
-        e.add_chunk(
-            "kelp-survey".into(),
-            "A claim".into(),
-            ChunkStatus::Pending,
-            1,
-            String::new(),
-            vec![],
-            vec![],
-            false,
-        )
-        .unwrap();
-        e.set_name("kelp-survey", "Hand written").unwrap();
-
-        // The premise: all three seeds tie.
-        assert_eq!(
-            got(&e, "tidepool-sensor-array").name,
-            "Tidepool sensor array"
-        );
-        assert_eq!(
-            got(&e, "tidepool-sensor-array-calibration").name,
-            "Tidepool sensor array"
-        );
-
-        assert_eq!(e.repair_label_collisions(), 2);
-        assert_eq!(
-            got(&e, "tidepool-sensor-array").name,
-            "Tidepool sensor array"
-        );
-        assert_eq!(
-            got(&e, "tidepool-sensor-array-calibration").name,
-            "Array calibration"
-        );
-        assert_eq!(
-            got(&e, "tidepool-sensor-array-mounting").name,
-            "Array mounting"
-        );
-        assert_eq!(got(&e, "kelp-survey").name, "Hand written");
-
-        // Idempotent: the relabeled names no longer match their seeds.
-        assert_eq!(e.repair_label_collisions(), 0);
-    }
-
     /// The door itself: an id-less chunk cannot enter through `add_chunk`,
     /// which is how the two observed specimens got in. Drives the function,
     /// not the type — a blank and a whitespace id both bounce, and the store
@@ -3956,85 +3452,6 @@ mod tests {
         .unwrap();
         e.upsert_chunk(ghost);
         assert!(e.roadmap().chunks.is_empty());
-    }
-
-    /// The load-time disposition, driven by a store this engine never wrote:
-    /// a contentful id-less record gets the id the import lane would have
-    /// minted for its title (uniquified past a squatter), a contentless husk
-    /// is removed, and everyone else is untouched. Second pass finds nothing.
-    #[test]
-    fn empty_id_records_are_repaired_on_load() {
-        let foreign = serde_json::json!({
-            "project_id": "proj",
-            "chunks": [
-                {"id": "orchard-frost-watch", "title": "A chunk with an ordinary id",
-                 "status": "pending", "priority": 1,
-                 "created_at": "t", "updated_at": "t"},
-                // A squatter already wearing the id the mint would produce.
-                {"id": "orchard-drone-the-frost-sensor-misreads-at",
-                 "title": "The squatter", "status": "pending", "priority": 1,
-                 "created_at": "t", "updated_at": "t"},
-                // The contentful specimen: real title, live status, a cross-ref.
-                {"id": "", "title": "Orchard drone — the frost sensor misreads at dawn",
-                 "status": "pending", "priority": 118,
-                 "cross_refs": ["task:frost-audit"],
-                 "created_at": "t", "updated_at": "t"},
-                // The husk: nothing anywhere, obsoleted at birth.
-                {"id": "", "title": "", "status": "obsoleted", "priority": 0,
-                 "obsoleted_reason": "Accidental empty chunk; removing.",
-                 "created_at": "t", "updated_at": "t"}
-            ]
-        });
-        let mut e = engine();
-        e.roadmap = serde_json::from_value(foreign).unwrap();
-
-        assert_eq!(e.repair_missing_ids(), (1, 1));
-
-        let ids: Vec<&str> = e.roadmap().chunks.iter().map(|c| c.id.as_str()).collect();
-        assert_eq!(
-            ids,
-            vec![
-                "orchard-frost-watch",
-                "orchard-drone-the-frost-sensor-misreads-at",
-                // import::derive_id over the title, pushed past the squatter.
-                "orchard-drone-the-frost-sensor-misreads-at-2",
-            ]
-        );
-        // The record kept everything but gained an identity; the name gap is
-        // backfill_names' job, seeded from the minted id on the same load.
-        let repaired = got(&e, "orchard-drone-the-frost-sensor-misreads-at-2");
-        assert_eq!(repaired.cross_refs, vec!["task:frost-audit".to_string()]);
-        assert_eq!(repaired.priority, 118);
-        assert!(e.backfill_names() > 0);
-        assert!(
-            !got(&e, "orchard-drone-the-frost-sensor-misreads-at-2")
-                .name
-                .is_empty()
-        );
-
-        // Idempotent: one pass leaves no empty id behind.
-        assert_eq!(e.repair_missing_ids(), (0, 0));
-    }
-
-    /// Never overwrites a label somebody wrote — including one over budget,
-    /// which doctor reports rather than silently repairing.
-    #[test]
-    fn backfill_only_fills_gaps() {
-        let mut e = engine();
-        e.add_chunk(
-            "c1".into(),
-            "A claim".into(),
-            ChunkStatus::Pending,
-            1,
-            String::new(),
-            vec![],
-            vec![],
-            false,
-        )
-        .unwrap();
-        e.set_name("c1", "Hand written").unwrap();
-        assert_eq!(e.backfill_names(), 0);
-        assert_eq!(got(&e, "c1").name, "Hand written");
     }
 
     /// The export/import round trip. Both fields have to survive, and the name

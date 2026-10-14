@@ -39,11 +39,11 @@ enum SessionBackend {
 
 /// A running agent session that streams messages from the ACP backend.
 ///
-/// Owns the backend directly (no trait object). The TUI and command handlers
+/// Owns the backend directly (no trait object). The interface and command handlers
 /// consume this type to receive agent messages.
 ///
 /// When dropped, the backend is aborted to ensure the agent process doesn't
-/// outlive the TUI.
+/// outlive the interface.
 pub struct AgentSession {
     /// The active backend.
     backend: SessionBackend,
@@ -53,7 +53,7 @@ pub struct AgentSession {
     session_id: Option<SessionId>,
     /// The frozen initial model selection; None retains the runtime's model.
     resolved_model: Option<String>,
-    /// Compatibility test-channel lifecycle; real lifecycle belongs to the supervisor.
+    /// Test-channel lifecycle; real lifecycle belongs to the supervisor.
     #[cfg(test)]
     channel_closed: bool,
 }
@@ -138,7 +138,10 @@ impl AgentSession {
 
     /// Send a follow-up message in the current conversation.
     #[instrument(skip_all)]
-    pub fn send_followup(&self, content: &str) -> Result<()> {
+    pub fn send_followup(
+        &self,
+        content: &magistr_application::sessions::PromptInput,
+    ) -> Result<()> {
         #[cfg(test)]
         if self.channel_closed {
             return Err(crate::error::MagistrError::Acp(
@@ -152,7 +155,7 @@ impl AgentSession {
                 follow_ups
                     .lock()
                     .expect("follow_ups lock poisoned")
-                    .push(content.to_string());
+                    .push(content.text.clone());
                 Ok(())
             }
         }

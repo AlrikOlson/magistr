@@ -73,9 +73,9 @@ fn shared_steps_mirror_as_agent_trace_and_commit_on_close() {
         true, // shared → committed sessions/ partition
     );
 
-    assert!(server.process_step(step(1, false)).is_ok());
-    assert!(server.process_step(step(2, false)).is_ok());
-    assert!(server.process_step(step(3, true)).is_ok()); // closes the session
+    assert!(server.process_step_native(step(1, false)).is_ok());
+    assert!(server.process_step_native(step(2, false)).is_ok());
+    assert!(server.process_step_native(step(3, true)).is_ok()); // closes the session
     // The mirror is asynchronous; wait for the worker to drain before asserting.
     server.flush_mirror();
 
@@ -123,7 +123,7 @@ fn local_default_writes_but_never_commits() {
     // shared = false → records land in the gitignored local/ partition.
     let mut server =
         ReasoningServer::new(quiet_config()).with_repo_sink(RepoSink::new(tmp.path()), false);
-    server.process_step(step(1, true)).unwrap();
+    server.process_step_native(step(1, true)).unwrap();
     server.flush_mirror();
 
     let local = tmp.path().join(".think-and-ship/local");
@@ -144,5 +144,5 @@ fn local_default_writes_but_never_commits() {
 fn no_sink_preserves_local_behaviour() {
     // Without a sink, the engine works exactly as before and touches no repo.
     let mut server = ReasoningServer::new(quiet_config());
-    assert!(server.process_step(step(1, true)).is_ok());
+    assert!(server.process_step_native(step(1, true)).is_ok());
 }

@@ -12,16 +12,16 @@ fn a_path_scopes_to_the_tool_over_its_first_two_directories() {
     let root = Path::new("/repo");
     let scope = DelegationScope::of(
         "Edit",
-        &serde_json::json!({"file_path": "/repo/crates/magistr-tui/src/view.rs"}),
+        &serde_json::json!({"file_path": "/repo/crates/magistr-desktop/src/view.rs"}),
         Some(root),
     )
     .expect("a scope");
-    assert_eq!(scope.key, "edit:crates/magistr-tui");
-    assert_eq!(scope.subject, "Edit \u{b7} crates/magistr-tui");
+    assert_eq!(scope.key, "edit:crates/magistr-desktop");
+    assert_eq!(scope.subject, "Edit \u{b7} crates/magistr-desktop");
     // The relative spelling lands in the same scope.
     let relative = DelegationScope::of(
         "Edit",
-        &serde_json::json!({"file_path": "crates/magistr-tui/src/view.rs"}),
+        &serde_json::json!({"file_path": "crates/magistr-desktop/src/view.rs"}),
         Some(root),
     )
     .expect("a scope");
@@ -30,9 +30,9 @@ fn a_path_scopes_to_the_tool_over_its_first_two_directories() {
     // The condition holds for both spellings of a path inside, for the
     // crate's own top-level file, and for nothing outside.
     for inside in [
-        "/repo/crates/magistr-tui/src/view.rs",
-        "crates/magistr-tui/src/view.rs",
-        "crates/magistr-tui/Cargo.toml",
+        "/repo/crates/magistr-desktop/src/view.rs",
+        "crates/magistr-desktop/src/view.rs",
+        "crates/magistr-desktop/Cargo.toml",
     ] {
         assert!(
             holds(&scope, &PolicyRequest::tool("Edit").with_path(inside)),
@@ -41,7 +41,7 @@ fn a_path_scopes_to_the_tool_over_its_first_two_directories() {
     }
     assert!(!holds(
         &scope,
-        &PolicyRequest::tool("Edit").with_path("crates/magistr-tui-old/src/x.rs")
+        &PolicyRequest::tool("Edit").with_path("crates/magistr-desktop-old/src/x.rs")
     ));
     assert!(!holds(
         &scope,
@@ -50,7 +50,7 @@ fn a_path_scopes_to_the_tool_over_its_first_two_directories() {
     assert!(
         !holds(
             &scope,
-            &PolicyRequest::tool("Write").with_path("crates/magistr-tui/src/view.rs")
+            &PolicyRequest::tool("Write").with_path("crates/magistr-desktop/src/view.rs")
         ),
         "a scope is a tool over a place, never the place alone"
     );

@@ -10,8 +10,8 @@ use agent_client_protocol::schema::v1::{
 use agent_client_protocol::{
     Agent, Channel, Error, JsonRpcRequest, JsonRpcResponse, on_receive_request,
 };
+use magistr_acp::test_support::FakeAcpAgent;
 use magistr_application::sessions::{AgentEvent, SessionOptions, TurnEnd};
-use magistr_tui::harness::FakeAcpAgent;
 use serde::{Deserialize, Serialize};
 use tokio::task::JoinHandle;
 
@@ -25,11 +25,21 @@ struct GoalFixture {
     session_id: String,
     server: JoinHandle<Result<(), Error>>,
     _directory: tempfile::TempDir,
+    history_path: PathBuf,
 }
 
 impl GoalFixture {
     async fn connect(client: Channel, server: JoinHandle<Result<(), Error>>) -> Self {
         let directory = tempfile::tempdir().expect("goal session directory");
+        let inputs = crate::config::inputs::ProjectInputs::from_lookup(directory.path(), |key| {
+            (key == "XDG_DATA_HOME").then(|| directory.path().join("data").display().to_string())
+        });
+        let history = crate::agent::persistence::SessionHistory::new();
+        history
+            .begin(&inputs, directory.path(), "goal-fixture", None)
+            .await
+            .unwrap();
+        let history_path = crate::session::storage::sessions_db_path(&inputs).unwrap();
         let mut transport = magistr_acp::AcpTransport::new_with_args(
             PathBuf::from("unused-in-process-agent"),
             Vec::new(),
@@ -37,10 +47,12 @@ impl GoalFixture {
         )
         .expect("goal transport");
         transport.connect_over(client).await.expect("ACP handshake");
-        let (supervisor, mut events) = SessionSupervisor::start_interactive(
+        let (supervisor, mut events) = SessionSupervisor::start_interactive_bounded(
             transport,
             SessionOptions::new(),
             Box::new(CountingAllow(Arc::new(AtomicUsize::new(0)))),
+            crate::agent::observation::ObservationCapacity::DEFAULT,
+            Some(history),
         )
         .expect("goal supervisor");
         let session_id = tokio::time::timeout(DEADLINE, async {
@@ -60,6 +72,7 @@ impl GoalFixture {
             session_id,
             server,
             _directory: directory,
+            history_path,
         }
     }
 
@@ -110,7 +123,14 @@ async fn goal_reply_is_observed_after_text_on_both_sides_of_its_echo() {
         // must already be queued. Waiting here could hide an early reply.
         let mut transcript = Vec::new();
         while let Ok(event) = fixture.events.try_recv() {
-            transcript.push(event);
+            if !matches!(
+                event,
+                AgentEvent::Activity(_)
+                    | AgentEvent::Conversation(_)
+                    | AgentEvent::Configuration { .. }
+            ) {
+                transcript.push(event);
+            }
         }
         assert_eq!(
             transcript,
@@ -140,6 +160,27 @@ async fn goal_reply_is_observed_after_text_on_both_sides_of_its_echo() {
         ]
     );
     fixture.close().await;
+    let conn = crate::session::storage::open_db(&fixture.history_path).unwrap();
+    let records = crate::session::storage::query_sessions(
+        &conn,
+        &crate::session::session_filter::SessionFilter::new(),
+    )
+    .unwrap();
+    assert_eq!(records.len(), 1);
+    let record = &records[0];
+    assert_eq!(
+        record.provider_session_id.as_deref(),
+        Some(fixture.session_id.as_str())
+    );
+    assert_eq!(
+        record.outcome,
+        Some(crate::session::session_outcome::SessionOutcome::Completed)
+    );
+    assert_eq!(record.turns, Some(2));
+    assert_eq!(
+        record.summary.as_deref(),
+        Some("working toward: next goal\ngoal work finished")
+    );
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonRpcRequest)]
@@ -208,7 +249,9 @@ async fn rejected_goal_extension_never_emits_a_successful_terminal() {
     let transcript = tokio::time::timeout(DEADLINE, async {
         let mut transcript = Vec::new();
         while let Some(event) = fixture.events.recv().await {
-            transcript.push(event);
+            if !matches!(event, AgentEvent::Activity(_)) {
+                transcript.push(event);
+            }
         }
         transcript
     })
@@ -231,4 +274,17 @@ async fn rejected_goal_extension_never_emits_a_successful_terminal() {
     assert!(outcome.stop_reason.is_none());
     assert!(outcome.error.unwrap().contains("controlled goal rejection"));
     fixture.close().await;
+    let conn = crate::session::storage::open_db(&fixture.history_path).unwrap();
+    let records = crate::session::storage::query_sessions(
+        &conn,
+        &crate::session::session_filter::SessionFilter::new(),
+    )
+    .unwrap();
+    assert_eq!(records.len(), 1);
+    assert_eq!(
+        records[0].outcome,
+        Some(crate::session::session_outcome::SessionOutcome::Failed)
+    );
+    assert_eq!(records[0].turns, Some(0));
+    assert_eq!(records[0].cost_usd, None);
 }

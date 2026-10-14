@@ -56,10 +56,11 @@ pub use handle::{EngineEvent, EngineHandle, WorkflowEvent};
 pub use native::{
     AttachError, AttachKind, AttachRefusal, CallerIdentity, Delivery, EventCursor, FeedCursor,
     FeedStatus, GateOutput, MagistrFrame, McpAcceptor, NativeConfig, NativeEngines, NativeEvent,
-    NativeFrame, NativeReader, NativeRoadmapSnapshot, NativeSnapshot, OwnerClient, OwnerCommand,
-    OwnerEndpoint, OwnerGeneration, OwnerReply, ProjectAuthority, RoadmapBackend, RoadmapCommand,
-    RoadmapFrame, ShipCommand, ShipFrame, SignalCommand, SignalFrame, SnapshotCursor, ThinkCommand,
-    ThinkFrame, WriterRole,
+    NativeFrame, NativeReader, NativeRoadmapSnapshot, NativeSnapshot, Observed, OwnerClient,
+    OwnerCommand, OwnerEndpoint, OwnerGeneration, OwnerReply, ProjectAuthority, ReadError,
+    ReadErrorKind, ReadSource, ReadState, RoadmapBackend, RoadmapCommand, RoadmapData,
+    RoadmapFrame, ShipCommand, ShipData, ShipFrame, SignalCommand, SignalFrame, StoreStamp,
+    ThinkCommand, ThinkData, ThinkFrame, WriterRole,
 };
 pub use policy::{
     GovernancePolicy, ModelTier, ModelTierRule, PolicyCondition, PolicyDecision, PolicyEffect,
@@ -74,7 +75,7 @@ pub use session::{
 };
 pub use spec::SpecSummary;
 // The library's own wire types behind the NativeEngines verbs, re-exported
-// so engine hosts (the TUI, the GUI) can drive them without depending on
+// so engine hosts (the interface, the GUI) can drive them without depending on
 // think-and-ship directly.
 pub use magistr_workflow::roadmap::domain::ChunkStatus;
 pub use magistr_workflow::ship::domain::action::ActionType;

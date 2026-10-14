@@ -1,7 +1,7 @@
 //! In-memory roadmap index with query and mutation API.
 //!
 //! `RoadmapIndex` wraps a [`Roadmap`] and provides the typed query/mutation
-//! interface consumed by the TUI and MCP tools. It replaces all SQLite query
+//! interface consumed by the interface and MCP tools. It replaces all SQLite query
 //! functions from the old `db.rs`.
 
 use crate::error::{MagistrError, Result};

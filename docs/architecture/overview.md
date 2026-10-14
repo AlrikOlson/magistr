@@ -7,8 +7,7 @@ or historical implementation; none is a requirement to retain that behavior.
 
 Magistr separates project configuration, workflow state, agent transport, and
 presentation. The root Cargo manifest groups the public Rust crates into one workspace.
-The desktop renderer and session launcher have separate workspaces and lockfiles
-for their private renderer dependencies.
+The desktop has a separate workspace and lockfile for its OS WebView dependencies.
 The [contract baseline](contracts.md) maps current owners and entry paths,
 records the refactor's intended policies, and names executable behavior scenarios.
 The [system contracts](system-contracts.md) page is the maintained glossary,
@@ -28,11 +27,9 @@ exercised entry, build and platform matrix.
 | `magistr-acp` | Agent Client Protocol transport and configured local effect adapter |
 | `magistr-acp-agent` | Coding-runtime and chat-API provider adapters |
 | `magistr-mcp` | In-process MCP tool definitions and request handling |
-| `magistr-cockpit` | Shared interface state, updates, layout vocabulary, and effect ports |
+| `magistr-cockpit` | Semantic session/workflow messages, controls and effect ports |
 | `magistr-cockpit-runtime` | Shared message channels, conversation/planning coordination and session relays over application handles and effect ports, arrival measurements and bounded background jobs for hosts and surfaces |
-| `magistr-tui` | Terminal input, rendering, graphics protocols, and runtime |
-| `magistr-gui2` | Independent desktop renderer, native window, pixel layout, GPU/CPU painting, accessibility and fixture viewer; separate Cargo workspace |
-| `magistr-desktop` | Native session executable composing the terminal-free host and desktop renderer, including provider/MCP/worker child roles and settled shutdown; separate Cargo workspace |
+| `magistr-desktop` | Tauri Rust host, semantic HTML/CSS, typed session commands and bounded acknowledged channels; private child roles and settled shutdown; separate Cargo workspace |
 | `magistr-theme` | Shared color and theme vocabulary |
 
 The [domain boundary](domain.md) enforces effect-free dependencies. Existing
@@ -142,7 +139,6 @@ and the atomic production renderer cutover. Its bounded proof lives in
 `benchmarks/desktop-foundation`; the component rows above describe the currently
 delivered application.
 
-[Desktop development](desktop.md) is maintained in `crates/magistr-gui2` and
-`crates/magistr-desktop` on `main`. The session launcher uses the shared admitted
-host. Process and native-window checks with controlled providers verify its
+[Desktop development](desktop.md) is maintained in `crates/magistr-desktop`.
+The Tauri host uses the shared admitted application services. Process and native-window checks with controlled providers verify its
 composition; the complete real-provider interaction matrix remains separate work.

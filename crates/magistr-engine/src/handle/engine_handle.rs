@@ -5,7 +5,7 @@ use chrono::Utc;
 use tokio::sync::broadcast;
 
 use crate::cost::{BudgetConfig, CostGovernor};
-use crate::error::Result;
+use crate::error::{EngineError, Result};
 use crate::native::{NativeReader, NativeRoadmapSnapshot};
 use crate::project::ProjectContext;
 use crate::roadmap::RoadmapEvent;
@@ -103,13 +103,11 @@ impl EngineHandle {
         }
     }
 
-    /// Attach the native think-and-ship reader and seed roadmap progress
-    /// from its chunks. A reader, not a writer: the handle only derives its
-    /// cursor and progress from the roadmap.
+    /// Attach an existing native reader without observing its store.
+    /// Decisions and checkpoint capture perform their own required reads.
     #[must_use]
     pub fn with_native(mut self, native: NativeReader) -> Self {
         self.native = Some(native);
-        self.refresh_native_roadmap();
         self
     }
 
@@ -180,28 +178,35 @@ impl EngineHandle {
     /// ready one when nothing is. There is no second copy of "what this
     /// session is working on" to fall out of step with the roadmap
     /// itself.
-    #[must_use]
-    pub fn capture(&self) -> SessionSnapshot {
-        // The native engines carry their own locks and must never be
-        // held under ours, so this read happens before the state lock.
-        let cursor = self.native.as_ref().and_then(|native| {
-            let snapshot = native.roadmap_snapshot();
-            snapshot
-                .in_progress
-                .first()
-                .cloned()
-                .or(snapshot.next_ready)
-        });
-
+    pub fn capture(&self) -> Result<SessionSnapshot> {
+        // Observe before taking our state lock. Both native fields come from
+        // this one successful observation; refusal leaves the checkpoint owner untouched.
+        let native = self
+            .native
+            .as_ref()
+            .map(NativeReader::roadmap_snapshot)
+            .transpose()
+            .map_err(EngineError::WorkflowRead)?;
         let state = self.lock();
-        SessionSnapshot::capture(
+        let (progress, cursor) = match native {
+            Some(snapshot) => {
+                let cursor = snapshot
+                    .in_progress
+                    .first()
+                    .cloned()
+                    .or(snapshot.next_ready);
+                (snapshot.progress, cursor)
+            }
+            None => (state.roadmap.progress().clone(), None),
+        };
+        Ok(SessionSnapshot::capture(
             &state.session,
             state.workflow.iteration().clone(),
             Utc::now(),
         )
         .with_run(state.workflow.run().clone())
         .with_cost_governor(state.cost_governor.clone())
-        .with_roadmap(state.roadmap.progress().clone(), cursor)
+        .with_roadmap(progress, cursor))
     }
 
     /// Take a snapshot up in this process.
@@ -329,9 +334,13 @@ impl EngineHandle {
     }
 
     /// Whether the workflow loop should stop.
-    #[must_use]
-    pub fn should_stop(&self) -> bool {
-        self.lock().workflow.should_stop()
+    pub fn should_stop(&self) -> Result<bool> {
+        let progress = self.roadmap_progress()?;
+        let mut state = self.lock();
+        state
+            .workflow
+            .update_spec_progress(progress.checked_tasks, progress.total_tasks);
+        Ok(state.workflow.should_stop())
     }
 
     /// Whether the workflow loop is paused.
@@ -342,7 +351,20 @@ impl EngineHandle {
 
     /// Execute a workflow command (validate + apply + emit events).
     pub fn workflow_command(&self, command: WorkflowCommand) -> Result<()> {
+        let progress = if matches!(
+            command,
+            WorkflowCommand::StartIteration | WorkflowCommand::Skip
+        ) {
+            Some(self.roadmap_progress()?)
+        } else {
+            None
+        };
         let mut state = self.lock();
+        if let Some(progress) = progress {
+            state
+                .workflow
+                .update_spec_progress(progress.checked_tasks, progress.total_tasks);
+        }
         state.workflow.execute_command(&command)?;
         let iteration = state.workflow.display_iteration();
         drop(state);
@@ -426,26 +448,32 @@ impl EngineHandle {
     }
 
     /// Current roadmap progress.
-    #[must_use]
-    pub fn roadmap_progress(&self) -> RoadmapProgress {
-        self.lock().roadmap.progress().clone()
+    pub fn roadmap_progress(&self) -> Result<RoadmapProgress> {
+        match &self.native {
+            Some(native) => native.roadmap_progress().map_err(EngineError::WorkflowRead),
+            None => Ok(self.lock().roadmap.progress().clone()),
+        }
     }
 
     /// Whether the roadmap spec is complete.
-    #[must_use]
-    pub fn is_spec_complete(&self) -> bool {
-        self.lock().roadmap.is_complete()
+    pub fn is_spec_complete(&self) -> Result<bool> {
+        Ok(self.roadmap_progress()?.is_complete())
     }
 
     /// Re-read the native roadmap: feeds `RoadmapManager` from the chunks
     /// and emits a `NativeSnapshot` event. `None` without native engines.
-    pub fn refresh_native_roadmap(&self) -> Option<NativeRoadmapSnapshot> {
-        let snapshot = self.native.as_ref()?.roadmap_snapshot();
+    pub fn refresh_native_roadmap(&self) -> Result<Option<NativeRoadmapSnapshot>> {
+        let Some(native) = self.native.as_ref() else {
+            return Ok(None);
+        };
+        let snapshot = native
+            .roadmap_snapshot()
+            .map_err(EngineError::WorkflowRead)?;
         self.update_roadmap_progress(snapshot.progress.clone());
         self.emit(EngineEvent::Roadmap(RoadmapEvent::NativeSnapshot {
-            snapshot: snapshot.clone(),
+            snapshot: Box::new(snapshot.clone()),
         }));
-        Some(snapshot)
+        Ok(Some(snapshot))
     }
 
     // ── Project context ─────────────────────────────────────────────────

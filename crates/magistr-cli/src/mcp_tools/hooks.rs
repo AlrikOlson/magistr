@@ -401,16 +401,7 @@ fn format_hooks_list(hooks: &[LifecycleHook]) -> String {
 
 /// Load `ProjectConfig` from `.magistr/project.json`.
 fn load_project_config(project_root: &std::path::Path) -> Result<ProjectConfig, String> {
-    let config_path =
-        crate::paths::project_json(project_root).map_err(|error| error.to_string())?;
-    let content = std::fs::read_to_string(&config_path).map_err(|e| {
-        format!(
-            "Cannot read project config at {}: {e}. Run `magistr init` first.",
-            config_path.display()
-        )
-    })?;
-    serde_json::from_str(&content)
-        .map_err(|e| format!("Invalid project config at {}: {e}", config_path.display()))
+    crate::validate::load_project_config(project_root).map_err(|error| error.to_string())
 }
 
 /// Save `ProjectConfig` back to `.magistr/project.json` (hot-reload).

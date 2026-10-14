@@ -5,9 +5,11 @@ use chrono::{DateTime, Utc};
 /// Filter criteria for querying sessions.
 #[derive(Debug, Clone, Default)]
 pub struct SessionFilter {
+    /// Exact canonical working-copy directory, when selected.
+    pub workspace: Option<String>,
     /// Filter by project name (substring match).
     pub project: Option<String>,
-    /// Only sessions after this timestamp.
+    /// Only conversations settled after this timestamp.
     pub since: Option<DateTime<Utc>>,
     /// Only sessions with this tag.
     pub tag: Option<String>,
@@ -29,6 +31,11 @@ impl SessionFilter {
     /// Set project filter.
     pub fn with_project(mut self, project: impl Into<String>) -> Self {
         self.project = Some(project.into());
+        self
+    }
+
+    pub fn with_workspace(mut self, workspace: impl Into<String>) -> Self {
+        self.workspace = Some(workspace.into());
         self
     }
 

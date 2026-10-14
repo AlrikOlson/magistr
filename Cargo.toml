@@ -11,14 +11,13 @@ members = [
     "crates/magistr-theme",
     "crates/magistr-cockpit",
     "crates/magistr-cockpit-runtime",
-    "crates/magistr-tui",
     "crates/magistr-workflow",
     "crates/magistr-workflow-contracts",
     "crates/magistr-workspace",
     "crates/magistr-process",
 ]
-# Desktop has a separate lockfile and private renderer dependency.
-exclude = ["crates/magistr-gui2", "crates/magistr-desktop"]
+# The OS WebView host has an explicit separate lockfile and CI lane.
+exclude = ["crates/magistr-desktop"]
 default-members = ["crates/magistr-cli"]
 resolver = "3"
 
@@ -35,18 +34,4 @@ split-debuginfo = "unpacked"
 debug = "line-tables-only"
 split-debuginfo = "unpacked"
 
-# Graphics terminals rasterize type and compose pixels on every changed frame.
-# Keep development builds interactive; retain line tables for debugging.
-[profile.dev.package.magistr-tui]
-opt-level = 2
-[profile.dev.package.magistr-cockpit]
-opt-level = 2
-[profile.dev.package.fontdue]
-opt-level = 3
-[profile.dev.package.ttf-parser]
-opt-level = 3
-[profile.dev.package.tiny-skia]
-opt-level = 3
-[profile.dev.package.tiny-skia-path]
-opt-level = 3
 

@@ -5,8 +5,8 @@
 pub enum AcpSessionMode {
     /// `session/new`.
     New,
-    /// `session/load` with the given id. Falls back to `session/new` (with a
-    /// warning event) when the agent does not advertise `loadSession`.
+    /// `session/load` with the given provider id. A provider that does not
+    /// advertise `loadSession` refuses this request before opening a conversation.
     Load {
         /// The session id to resume.
         session_id: String,

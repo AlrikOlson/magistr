@@ -8,14 +8,14 @@ use super::types::TokenBreakdown;
 /// A single cost entry representing one completed session.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct CostEntry {
-    /// Claude session ID.
+    /// Logical Magistr conversation ID.
     pub session_id: String,
     /// Project name or directory.
     pub project: String,
     /// When the session ended.
     pub timestamp: DateTime<Utc>,
-    /// Total cost in USD.
-    pub cost_usd: f64,
+    /// Reported cumulative cost in USD; absent when the agent did not report it.
+    pub cost_usd: Option<f64>,
     /// Token usage breakdown.
     #[serde(default)]
     pub tokens: TokenBreakdown,

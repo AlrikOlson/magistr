@@ -4,6 +4,7 @@ use clap::{Parser, Subcommand};
 use color_eyre::eyre::{self, Context as _};
 use magistr::agent::AgentConfig;
 use magistr::commands::run::resolve_permission_profile;
+use magistr::config::inputs::ProjectInputs;
 use magistr::mcp_target::McpTarget;
 use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
@@ -18,9 +19,9 @@ use std::path::{Path, PathBuf};
 pub(crate) struct Desktop {
     /// Message to send when the session opens
     pub prompt: Option<String>,
-    /// Project directory
-    #[arg(long, default_value = ".")]
-    pub dir: PathBuf,
+    /// Project folder to open when the window is ready
+    #[arg(long)]
+    pub dir: Option<PathBuf>,
     /// Agent provider (uses your configured default when omitted)
     #[arg(long)]
     pub provider: Option<String>,
@@ -65,27 +66,41 @@ pub(crate) fn is_worker(argv: &[OsString]) -> bool {
 }
 
 impl Desktop {
-    /// The session the window opens with: the project, the first message and
-    /// the resume choices given on the command line.
-    pub(crate) fn config(&self) -> eyre::Result<AgentConfig> {
-        Ok(self
-            .project(&self.dir, self.prompt.as_deref().unwrap_or(""))?
-            .with_run_args(
-                self.model.as_deref(),
-                self.resume.as_deref(),
-                self.continue_conversation,
-            ))
+    fn session_choices(&self, config: AgentConfig) -> eyre::Result<AgentConfig> {
+        Ok(config.with_run_args(
+            self.model.as_deref(),
+            self.resume.as_deref(),
+            self.continue_conversation,
+        )?)
     }
 
-    /// A project the window switches to: the same provider, model and
-    /// permission choice, with no opening message and nothing to resume.
-    pub(crate) fn config_for(&self, dir: &Path) -> eyre::Result<AgentConfig> {
-        Ok(self
-            .project(dir, "")?
-            .with_run_args(self.model.as_deref(), None, false))
+    /// Configure only an explicitly opened project, using the launch's captured
+    /// inputs. Opening message and resume choices belong to the first session.
+    pub(crate) fn config_for(
+        &self,
+        dir: &Path,
+        inputs: &ProjectInputs,
+        initial: bool,
+    ) -> eyre::Result<AgentConfig> {
+        let prompt = if initial {
+            self.prompt.as_deref().unwrap_or("")
+        } else {
+            ""
+        };
+        let config = self.project(dir, prompt, inputs)?;
+        if initial {
+            self.session_choices(config)
+        } else {
+            Ok(config.with_run_args(self.model.as_deref(), None, false)?)
+        }
     }
 
-    fn project(&self, dir: &Path, prompt: &str) -> eyre::Result<AgentConfig> {
+    fn project(
+        &self,
+        dir: &Path,
+        prompt: &str,
+        inputs: &ProjectInputs,
+    ) -> eyre::Result<AgentConfig> {
         let root = dir
             .canonicalize()
             .wrap_err_with(|| format!("Could not open project {}", dir.display()))?;
@@ -96,6 +111,7 @@ impl Desktop {
         );
         let profile = resolve_permission_profile(&root, self.trust.as_deref())?;
         let mut config = AgentConfig::new(prompt, &root)
+            .with_inputs(&inputs.for_project(&root))
             .with_project_context(&root)
             .permission_profile(profile);
         if let Some(provider) = &self.provider {

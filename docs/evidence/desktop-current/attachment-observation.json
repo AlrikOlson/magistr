@@ -1,0 +1,367 @@
+{
+  "picker": [
+    {
+      "panel": {
+        "actions": [
+          "AXRaise"
+        ],
+        "AXDescription": "open",
+        "AXRole": "AXSheet",
+        "focused": false,
+        "rect": [
+          424,
+          351,
+          880,
+          448
+        ]
+      },
+      "selected": "preview.png"
+    },
+    {
+      "panel": {
+        "actions": [
+          "AXRaise"
+        ],
+        "AXDescription": "open",
+        "AXRole": "AXSheet",
+        "focused": false,
+        "rect": [
+          424,
+          351,
+          880,
+          448
+        ]
+      },
+      "selected": "reading-note.txt"
+    },
+    {
+      "panel": {
+        "actions": [
+          "AXRaise"
+        ],
+        "AXDescription": "open",
+        "AXRole": "AXSheet",
+        "focused": false,
+        "rect": [
+          424,
+          351,
+          880,
+          448
+        ]
+      },
+      "selected": "changed-note.txt"
+    },
+    {
+      "panel": {
+        "actions": [
+          "AXRaise"
+        ],
+        "AXDescription": "open",
+        "AXRole": "AXSheet",
+        "focused": false,
+        "rect": [
+          424,
+          351,
+          880,
+          448
+        ]
+      },
+      "selected": "missing-note.txt"
+    },
+    {
+      "panel": {
+        "actions": [
+          "AXRaise"
+        ],
+        "AXDescription": "open",
+        "AXRole": "AXSheet",
+        "focused": false,
+        "rect": [
+          424,
+          351,
+          880,
+          448
+        ]
+      },
+      "selected": "too-large.txt"
+    },
+    {
+      "panel": {
+        "actions": [
+          "AXRaise"
+        ],
+        "AXDescription": "open",
+        "AXRole": "AXSheet",
+        "focused": false,
+        "rect": [
+          424,
+          351,
+          880,
+          448
+        ]
+      },
+      "selected": "binary.bin"
+    },
+    {
+      "panel": {
+        "actions": [
+          "AXRaise"
+        ],
+        "AXDescription": "open",
+        "AXRole": "AXSheet",
+        "focused": false,
+        "rect": [
+          424,
+          351,
+          880,
+          448
+        ]
+      },
+      "selected": "preview.png"
+    },
+    {
+      "panel": {
+        "actions": [
+          "AXRaise"
+        ],
+        "AXDescription": "open",
+        "AXRole": "AXSheet",
+        "focused": false,
+        "rect": [
+          424,
+          351,
+          880,
+          448
+        ]
+      },
+      "selected": "preview.png"
+    },
+    {
+      "panel": {
+        "actions": [
+          "AXRaise"
+        ],
+        "AXDescription": "open",
+        "AXRole": "AXSheet",
+        "focused": false,
+        "rect": [
+          424,
+          351,
+          880,
+          448
+        ]
+      },
+      "selected": "reading-note.txt"
+    }
+  ],
+  "delivered": {
+    "files": {
+      "text_files": {
+        "reading-note.txt": {
+          "bytes": 85216,
+          "sha256": "f470bd6d08f84f446679c06a748ebea651c852f9f00d84e4aa8489daadb0c1b5"
+        }
+      },
+      "images": [
+        {
+          "bytes": 12499,
+          "sha256": "cf133f92ffb620a92a6e9a294e10e7d92e2b3379255b27b746516b759114118c"
+        }
+      ],
+      "wire_blocks": 4
+    },
+    "clipboard": {
+      "text_files": {},
+      "images": [
+        {
+          "bytes": 12499,
+          "sha256": "cf133f92ffb620a92a6e9a294e10e7d92e2b3379255b27b746516b759114118c"
+        }
+      ],
+      "wire_blocks": 3
+    },
+    "drop": {
+      "text_files": {
+        "drop-note.txt": {
+          "bytes": 33,
+          "sha256": "66432609122aa7f1941b87d6c4a410cb49f9b7522bd6d2b0444e22974b4d2f94"
+        }
+      },
+      "images": [],
+      "wire_blocks": 2
+    },
+    "unsupported": {
+      "text_files": {
+        "reading-note.txt": {
+          "bytes": 85216,
+          "sha256": "f470bd6d08f84f446679c06a748ebea651c852f9f00d84e4aa8489daadb0c1b5"
+        }
+      },
+      "images": [],
+      "wire_blocks": 2
+    }
+  },
+  "refused": [
+    {
+      "case": "changed",
+      "files": [
+        "changed-note.txt"
+      ],
+      "peer_prompts": 0
+    },
+    {
+      "case": "missing",
+      "files": [
+        "missing-note.txt"
+      ],
+      "peer_prompts": 0
+    },
+    {
+      "case": "unsupported",
+      "files": [
+        "preview.png",
+        "reading-note.txt"
+      ],
+      "peer_prompts": 0
+    }
+  ],
+  "cancel": {
+    "cancelled": true,
+    "panel": {
+      "actions": [
+        "AXRaise"
+      ],
+      "AXDescription": "open",
+      "AXRole": "AXSheet",
+      "focused": false,
+      "rect": [
+        424,
+        351,
+        880,
+        448
+      ]
+    }
+  },
+  "text_preview": {
+    "before": {
+      "summary": {
+        "actions": [
+          "AXShowMenu",
+          "AXScrollToVisible"
+        ],
+        "AXDescription": "Preview reading-note.txt",
+        "AXHelp": "",
+        "AXRole": "AXDisclosureTriangle",
+        "AXSubrole": "AXSummary",
+        "AXTitle": "Preview reading-note.txt",
+        "enabled": true,
+        "focused": false,
+        "rect": [
+          487,
+          833,
+          619,
+          16
+        ]
+      },
+      "excerpt_visible": false,
+      "excerpt_sample": ""
+    },
+    "opened": {
+      "summary": {
+        "actions": [
+          "AXShowMenu",
+          "AXScrollToVisible"
+        ],
+        "AXDescription": "Preview reading-note.txt",
+        "AXHelp": "",
+        "AXRole": "AXDisclosureTriangle",
+        "AXSubrole": "AXSummary",
+        "AXTitle": "Preview reading-note.txt",
+        "enabled": true,
+        "focused": true,
+        "rect": [
+          487,
+          785,
+          619,
+          16
+        ]
+      },
+      "excerpt_visible": true,
+      "excerpt_sample": "Native attachment reading note\r\ncafé · 日本語 · 👩🏽‍💻\r\nNative attachment reading note\r\ncafé · 日本語 · 👩🏽‍💻\r\nNative attachment reading note\r\ncafé · 日本語 · 👩🏽‍💻\r\nNative "
+    },
+    "closed": {
+      "summary": {
+        "actions": [
+          "AXShowMenu",
+          "AXScrollToVisible"
+        ],
+        "AXDescription": "Preview reading-note.txt",
+        "AXHelp": "",
+        "AXRole": "AXDisclosureTriangle",
+        "AXSubrole": "AXSummary",
+        "AXTitle": "Preview reading-note.txt",
+        "enabled": true,
+        "focused": true,
+        "rect": [
+          487,
+          833,
+          619,
+          16
+        ]
+      },
+      "excerpt_visible": false,
+      "excerpt_sample": ""
+    }
+  },
+  "clipboard": {
+    "png_bytes": 12499,
+    "types": [
+      "public.png",
+      "Apple PNG pasteboard type",
+      "public.tiff",
+      "NeXT TIFF v4.0 pasteboard type"
+    ],
+    "staged_name": "image.png"
+  },
+  "drop": {
+    "destination": {
+      "actions": [
+        "AXPress",
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription": "",
+      "AXHelp": "",
+      "AXRole": "AXTextArea",
+      "AXSelectedText": "",
+      "AXTitle": "Message the agent",
+      "AXValue": "Attachment check: drop",
+      "enabled": true,
+      "focused": true,
+      "rect": [
+        474,
+        655,
+        714,
+        110
+      ]
+    },
+    "drag_started": true,
+    "native_drag_moves": 21,
+    "native_mouse_down": true,
+    "native_mouse_down_window": 5014,
+    "operation": 1,
+    "pasteboard_file_url": "file:///var/folders/ml/51b226t50rxf09jwljnq7tn00000gn/T/magistr-desktop-journey-moa1pdy6/second/drop-note.txt",
+    "pasteboard_types": [
+      "public.file-url",
+      "CorePasteboardFlavorType 0x6675726C",
+      "dyn.ah62d4rv4gu8y6y4grf0gn5xbrzw1gydcr7u1e3cytf2gn",
+      "NSFilenamesPboardType",
+      "dyn.ah62d4rv4gu8yc6durvwwaznwmuuha2pxsvw0e55bsmwca7d3sbwu",
+      "Apple URL pasteboard type"
+    ],
+    "source": "drop-note.txt",
+    "source_window": 5014,
+    "source_window_hit_test": true
+  },
+  "native_accessibility_sha256": "6348f0644b420b1017733a286817170271d82947e5b144d261f0d0e199b20645"
+}

@@ -6,52 +6,66 @@ order: 2
 
 # Concepts
 
-Magistr keeps five things about a project: its roadmap, the sessions that work on it, the work those sessions record, the checks that verify it, and the state all of this lives in. The terminal interface, the commands an agent runs and the tools it calls all read and write the same things.
+Magistr keeps a project's roadmap, the sessions that work on it, their recorded work
+and the checks that verify it. The desktop, command line and agent tools share the
+project's state.
 
-## Terminal interface
+## Desktop
 
-Bare `magistr` opens the conversation, ready for your next message. Reasoning starts closed beneath it, leaving more room for messages. Choose **Show** to read the recorded steps and questions, or **Hide** to close them again. Your draft, selected step and reading position are kept. A roadmap summary and selected item sit beside the conversation, and the message area stays at the bottom.
+Open a configured project in `magistr-desktop`. The left side lists projects and
+sessions; the conversation sits beside its working-copy details. **New session**
+opens a separate conversation. Changing working copies keeps existing sessions
+open. Return to a session to continue reading and recover your draft.
 
-Select a step in **Reasoning** to read what Magistr considered, its conclusion, what comes next and any linked work. Select a question to follow its investigation. **Return to latest** selects the newest step without changing your conversation or draft.
+Write a message and press Return to send, or Shift Return for a new line. **Stop**
+cancels the current turn and keeps your draft. Permission requests offer the
+answers available for that action. **Copy conversation** copies its messages.
+**Close session** ends that conversation; Quit closes the application and its
+running work.
 
-Open **Roadmap** for a separate screen with the full plan, filters, dependencies and item details. Return to the conversation to pick up at the same place with your message draft intact. Open **Records** to browse reasoning, actions, checks and changes in time order. Details scroll independently.
+Choose System, Light or Dark under **Appearance**. Native text editing supports
+selection, clipboard and input methods.
 
-Use **Commands** or `Ctrl+P` to start work, run checks, open saved sessions and find other actions. `Alt+N`, `Alt+L` and `Alt+G` start the next item, continue through items and run checks.
-
-Click a tool call to inspect its input, output, status and duration. Select an edit to read its changes and use its Open or Undo action. Expand a command to follow its output.
-
-Write a message across multiple lines, add files and send when ready. Stop ends the current turn while keeping your draft. `Tab` and `Shift+Tab` move focus; `Ctrl+Tab` switches between the conversation, recorded work and Roadmap.
-
-On small windows, details open over the workspace and close with `Esc`. Plain terminals and screen readers retain text controls and keyboard navigation.
+The current desktop focuses on conversations. Roadmap planning, detailed recorded
+work, file review and project setup use the command line and agent tools.
 
 ## Roadmap
 
-The roadmap is the plan of work items. Each item has a title, a status, a priority, acceptance criteria and the items it depends on. Statuses move from backlog to pending, in progress and done; an item can also be blocked or obsoleted.
+A work item has a title, status, priority, acceptance criteria and dependencies.
+The next ready item is the most urgent pending item whose dependencies are done.
+An item may be in backlog, pending, in progress, done, blocked or obsolete.
 
-The next ready item is the most urgent pending item whose dependencies are all done. The Roadmap screen gives the plan its own space. Filter and sort work items, then select one to read its acceptance criteria, dependencies and available actions. Follow its relationships to see what must finish first and what it makes possible.
-
-With an empty draft, **Request a change** starts a message with the selected item’s name. Edit it and **Send**. Your request and the agent’s reply stay under **Requests** beside the plan; **Item details** returns to the selected work. If a work item is running, the request waits until it finishes. **Cancel** cancels that roadmap request. Updating the plan does not start another work item.
-
-The roadmap summary beside the conversation keeps the current work in view. Opening the full Roadmap screen and returning preserves your message draft and place in the conversation.
-
-The activity message distinguishes **Updating roadmap** from work on an item. It shows when the agent is waiting for a response, thinking, reading, running a command, or needs your answer. If a message cannot be sent, Magistr explains the problem and keeps your draft. You can send another message after a work loop finishes.
+Use the connected agent to read the plan and request changes. `$next` or `/next`
+resumes an interrupted item or starts one ready item, then stops. A planning request
+does not start implementation. `magistr next` runs one item;
+`magistr next-loop` continues up to its requested limit with fresh agent sessions.
 
 ## Sessions
 
-A session holds your conversation with an agent. It can cover a work item, changes to the roadmap, or an open-ended request. `magistr next` resumes an interrupted item or starts the next ready one; `magistr next-loop` runs one item per fresh session, so context does not accumulate across items. Roadmap requests have their own conversation, separate from implementing an item. The terminal interface shows what the agent is doing, its output, and any answer it needs from you.
+Each session is one conversation with an agent in one working copy. Switching
+sessions does not cancel their work. An unanswered request stays with the session
+that asked it. Saved session history records its model, outcome, usage and recent
+reply. Resume depends on the selected provider's support.
 
 ## Recorded work
 
-While a session runs, Magistr records what was done: the objective, the tasks planned, each action taken with the files it touched, and each check with its command, exit code and duration. The agent records important findings as the work progresses: what it checked, what it learned and what happens next. When an alternative or an unanswered question needs investigation, its findings stay together so you can follow how they affected the work. Later findings can correct earlier ones. Confidence is shown only when it was recorded.
-
-Reasoning shows the questions Magistr explored along the way. Each question identifies its starting point, related steps and recorded conclusion. A rejected idea can remain part of a useful investigation. When a relationship was not recorded, Magistr leaves it unspecified. Records provides the full history of reasoning, actions, checks and changes. Commands gives access to saved sessions and checkpoints. A step can be pinned to keep it easy to find. A checkpoint saves a place in your work that you can return to later.
+The agent records an objective, its plan, actions and checks. It records findings
+as work progresses, including the evidence, conclusion and next action.
+Investigations keep related findings together, and later findings can correct
+earlier ones. A step can be pinned so it stays easy to find. A checkpoint saves a
+place in the work that can be restored. The connected tools read these records.
 
 ## Verification
 
-An item is done when its acceptance criteria hold and the checks selected for the change pass. Verification covers the changed behaviour and affected dependencies: formatting and the relevant compilation, tests, lint and custom checks. Bounded changes use focused checks; the full project suite runs when explicitly requested or when the change needs coverage across the project.
-
-Each result is recorded with its command and real exit code. A failed required check keeps the item from completing. After a failure, diagnose the cause and rerun the affected checks.
+A work item is done when its acceptance criteria hold and the selected checks pass.
+Bounded changes use focused formatting, compilation, tests, lint and custom checks.
+The complete suite runs when requested or when a change needs coverage across the
+project. Each check records its command and real exit code. A failed required
+check keeps the item from completing; diagnose it and rerun the affected checks.
 
 ## Project state
 
-Everything above lives in the project, under `.magistr/`. `magistr init` writes the project file and the agent setup; Magistr keeps the rest as the project moves. A new session, or a new person, starts from the recorded state rather than from a summary of it.
+`magistr init` writes the project file and agent setup. Roadmap, reasoning and
+execution records stay with the project under `.magistr/`; saved conversations
+also use the configured local data folder. A fresh agent session recovers the
+recorded plan and evidence before continuing.

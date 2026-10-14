@@ -1,55 +1,65 @@
-//! Where a family's store file stands on disk.
+//! Filesystem observations for the canonical store stamp.
 
-use std::fs;
-use std::io;
-use std::path::Path;
-use std::time::SystemTime;
+use std::{fs, io, path::Path};
 
-/// The identity of one family's store file as it stood when an engine last
-/// read or wrote it: inode, modification time and length.
-///
-/// A cheap "did anyone else write this?" for an engine that answers its
-/// memory: compare the stamp on disk with the one remembered and re-read
-/// only when they differ. Every Magistr writer replaces the file by
-/// renaming a fresh temporary over it, so a write always moves the inode —
-/// the modification time and the length are carried for the filesystems
-/// that recycle inodes or truncate timestamps. It is *not* a revision: it
-/// orders nothing, says nothing about what changed, and an editor that
-/// rewrites the file in place inside one timestamp tick at the same length
-/// is invisible to it — direct edits of the store are outside the model
-/// anyway. The four families' stamps stay four; no global stamp is built
-/// over them.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct StoreStamp {
-    inode: u64,
-    modified: SystemTime,
-    length: u64,
+use magistr_workflow_contracts::StoreStamp;
+
+/// Observe a regular file. Absence is the only successful result without a stamp.
+pub(crate) fn of(path: &Path) -> io::Result<Option<StoreStamp>> {
+    let file = match open_regular(path) {
+        Ok(file) => file,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
+        Err(error) => return Err(error),
+    };
+    from_metadata(&file.metadata()?).map(Some)
 }
 
-impl StoreStamp {
-    /// The stamp of the file at `path`; `None` when there is no file.
-    pub fn of(path: &Path) -> io::Result<Option<Self>> {
-        match fs::metadata(path) {
-            Ok(meta) => Ok(Some(Self::from_metadata(&meta))),
-            Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(None),
-            Err(error) => Err(error),
-        }
+pub(crate) fn open_regular(path: &Path) -> io::Result<fs::File> {
+    let mut options = fs::OpenOptions::new();
+    options.read(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.custom_flags(libc::O_NONBLOCK);
     }
+    let file = options.open(path)?;
+    from_metadata(&file.metadata()?)?;
+    Ok(file)
+}
 
-    fn from_metadata(meta: &fs::Metadata) -> Self {
-        #[cfg(unix)]
-        let inode = {
-            use std::os::unix::fs::MetadataExt;
-            meta.ino()
-        };
-        #[cfg(not(unix))]
-        let inode = 0;
-        Self {
-            inode,
-            modified: meta.modified().unwrap_or(SystemTime::UNIX_EPOCH),
-            length: meta.len(),
+pub(crate) fn from_metadata(meta: &fs::Metadata) -> io::Result<StoreStamp> {
+    if !meta.is_file() {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "The saved work is not a file.",
+        ));
+    }
+    #[cfg(unix)]
+    let inode = {
+        use std::os::unix::fs::MetadataExt;
+        meta.ino()
+    };
+    #[cfg(not(unix))]
+    let inode = 0;
+    Ok(StoreStamp {
+        inode,
+        modified: meta.modified()?,
+        length: meta.len(),
+    })
+}
+
+pub(crate) fn unchanged(before: &fs::Metadata, after: &fs::Metadata) -> io::Result<bool> {
+    if from_metadata(before)? != from_metadata(after)? {
+        return Ok(false);
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::MetadataExt;
+        if (before.ctime(), before.ctime_nsec()) != (after.ctime(), after.ctime_nsec()) {
+            return Ok(false);
         }
     }
+    Ok(true)
 }
 
 #[cfg(test)]
