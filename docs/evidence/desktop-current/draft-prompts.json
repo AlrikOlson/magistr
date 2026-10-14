@@ -1,10 +1,10 @@
 [
   {
     "jsonrpc": "2.0",
-    "id": "3b82e939-070f-4f61-9628-581947f27443",
+    "id": "67b4cda1-26f1-4847-934d-1783b31c9b1e",
     "method": "session/prompt",
     "params": {
-      "sessionId": "9318514c-5e71-4016-b727-277c5054bf96",
+      "sessionId": "c56a90f4-5247-4f0d-88b9-343a3b77411a",
       "prompt": [
         {
           "type": "text",

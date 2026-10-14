@@ -185,7 +185,7 @@ func pause(_ seconds: Double) async throws { try await Task.sleep(nanoseconds: U
 @MainActor func chooseOption(_ pid: Int32, _ dialogTitle: String, _ label: String, _ value: String) async throws -> [String: Any] {
     let application = AXUIElementCreateApplication(pid)
     func popup() throws -> AXUIElement {
-        let dialog = nodes(application).first { candidate in
+        let dialog = dialogTitle.isEmpty ? application : nodes(application).first { candidate in
             ["AXGroup", "AXDialog", "AXSheet"].contains(string(candidate, "AXRole")) &&
             ["AXTitle", "AXDescription"].contains { string(candidate, $0) == dialogTitle }
         }
@@ -195,7 +195,14 @@ func pause(_ seconds: Double) async throws { try await Task.sleep(nanoseconds: U
         }) else { throw Failure.message("No native " + label + " picker in " + dialogTitle) }
         return control
     }
-    let control = try popup(), before = row(control)
+    var control = try popup()
+    for _ in 0..<100 {
+        if attr(control, "AXEnabled") as? Bool == true { break }
+        try await pause(0.05); control = try popup()
+    }
+    try require(attr(control, "AXEnabled") as? Bool == true, "The native " + label + " picker is not ready")
+    let before = row(control)
+    if string(control, "AXValue") == value { return ["before": before, "after": before, "already_selected": true] }
     try require(AXUIElementPerformAction(control, "AXPress" as CFString) == .success,
                 "The scoped native " + label + " picker did not accept AXPress")
     var observed: [[String: Any]] = []

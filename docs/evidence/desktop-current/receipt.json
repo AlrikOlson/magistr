@@ -338,6 +338,8 @@
   "checks": {
     "clean launch opens a usable chooser": true,
     "chooser launches no provider and creates no history": true,
+    "appearance commits dark": true,
+    "appearance commits light": true,
     "invalid directory stays in the chooser": true,
     "new project previews real setup with refusal": true,
     "declined setup returns to the chooser": true,
@@ -507,9 +509,251 @@
     "unavailable provider keeps the window usable returns to chooser": true,
     "rejected launches preserve settings and create no session history": true
   },
-  "launch_to_window_ms": 537.3810419987421,
+  "launch_to_window_ms": 543.8489590014797,
+  "appearance": [
+    {
+      "after": {
+        "actions": [
+          "AXPress",
+          "AXShowMenu",
+          "AXScrollToVisible"
+        ],
+        "AXDescription": "",
+        "AXHelp": "",
+        "AXRole": "AXPopUpButton",
+        "AXTitle": "Appearance",
+        "AXValue": "Dark",
+        "enabled": true,
+        "focused": false,
+        "rect": [
+          240,
+          880,
+          191,
+          22
+        ]
+      },
+      "before": {
+        "actions": [
+          "AXPress",
+          "AXShowMenu",
+          "AXScrollToVisible"
+        ],
+        "AXDescription": "",
+        "AXHelp": "",
+        "AXRole": "AXPopUpButton",
+        "AXTitle": "Appearance",
+        "AXValue": "System",
+        "enabled": true,
+        "focused": false,
+        "rect": [
+          240,
+          880,
+          191,
+          22
+        ]
+      },
+      "menu_observation_attempts": 1,
+      "menu_option": {
+        "actions": [
+          "AXCancel",
+          "AXPress",
+          "AXPick"
+        ],
+        "AXRole": "AXMenuItem",
+        "AXTitle": "Dark",
+        "enabled": true,
+        "focused": false,
+        "rect": [
+          227,
+          903,
+          191,
+          24
+        ]
+      }
+    },
+    {
+      "after": {
+        "actions": [
+          "AXPress",
+          "AXShowMenu",
+          "AXScrollToVisible"
+        ],
+        "AXDescription": "",
+        "AXHelp": "",
+        "AXRole": "AXPopUpButton",
+        "AXTitle": "Appearance",
+        "AXValue": "Light",
+        "enabled": true,
+        "focused": false,
+        "rect": [
+          240,
+          880,
+          191,
+          22
+        ]
+      },
+      "before": {
+        "actions": [
+          "AXPress",
+          "AXShowMenu",
+          "AXScrollToVisible"
+        ],
+        "AXDescription": "",
+        "AXHelp": "",
+        "AXRole": "AXPopUpButton",
+        "AXTitle": "Appearance",
+        "AXValue": "Dark",
+        "enabled": true,
+        "focused": false,
+        "rect": [
+          240,
+          880,
+          191,
+          22
+        ]
+      },
+      "menu_observation_attempts": 1,
+      "menu_option": {
+        "actions": [
+          "AXCancel",
+          "AXPress",
+          "AXPick"
+        ],
+        "AXRole": "AXMenuItem",
+        "AXTitle": "Light",
+        "enabled": true,
+        "focused": false,
+        "rect": [
+          227,
+          903,
+          191,
+          24
+        ]
+      }
+    },
+    {
+      "after": {
+        "actions": [
+          "AXPress",
+          "AXShowMenu",
+          "AXScrollToVisible"
+        ],
+        "AXDescription": "",
+        "AXHelp": "",
+        "AXRole": "AXPopUpButton",
+        "AXTitle": "Appearance",
+        "AXValue": "Dark",
+        "enabled": true,
+        "focused": false,
+        "rect": [
+          240,
+          999,
+          191,
+          22
+        ]
+      },
+      "before": {
+        "actions": [
+          "AXPress",
+          "AXShowMenu",
+          "AXScrollToVisible"
+        ],
+        "AXDescription": "",
+        "AXHelp": "",
+        "AXRole": "AXPopUpButton",
+        "AXTitle": "Appearance",
+        "AXValue": "Light",
+        "enabled": true,
+        "focused": false,
+        "rect": [
+          240,
+          999,
+          191,
+          22
+        ]
+      },
+      "menu_observation_attempts": 1,
+      "menu_option": {
+        "actions": [
+          "AXCancel",
+          "AXPress",
+          "AXPick"
+        ],
+        "AXRole": "AXMenuItem",
+        "AXTitle": "Dark",
+        "enabled": true,
+        "focused": false,
+        "rect": [
+          227,
+          974,
+          191,
+          24
+        ]
+      }
+    },
+    {
+      "after": {
+        "actions": [
+          "AXPress",
+          "AXShowMenu",
+          "AXScrollToVisible"
+        ],
+        "AXDescription": "",
+        "AXHelp": "",
+        "AXRole": "AXPopUpButton",
+        "AXTitle": "Appearance",
+        "AXValue": "Light",
+        "enabled": true,
+        "focused": false,
+        "rect": [
+          240,
+          999,
+          191,
+          22
+        ]
+      },
+      "before": {
+        "actions": [
+          "AXPress",
+          "AXShowMenu",
+          "AXScrollToVisible"
+        ],
+        "AXDescription": "",
+        "AXHelp": "",
+        "AXRole": "AXPopUpButton",
+        "AXTitle": "Appearance",
+        "AXValue": "Dark",
+        "enabled": true,
+        "focused": false,
+        "rect": [
+          240,
+          999,
+          191,
+          22
+        ]
+      },
+      "menu_observation_attempts": 1,
+      "menu_option": {
+        "actions": [
+          "AXCancel",
+          "AXPress",
+          "AXPick"
+        ],
+        "AXRole": "AXMenuItem",
+        "AXTitle": "Light",
+        "enabled": true,
+        "focused": false,
+        "rect": [
+          227,
+          1022,
+          191,
+          24
+        ]
+      }
+    }
+  ],
   "latency": {
-    "native_event_to_accessible_reply_ms": 96.22570834471844
+    "native_event_to_accessible_reply_ms": 102.46820833708625
   },
   "initial_model_picker": {
     "after": {
@@ -532,6 +776,7 @@
         22
       ]
     },
+    "already_selected": true,
     "before": {
       "actions": [
         "AXPress",
@@ -550,24 +795,6 @@
         659,
         626,
         22
-      ]
-    },
-    "menu_observation_attempts": 1,
-    "menu_option": {
-      "actions": [
-        "AXCancel",
-        "AXPress",
-        "AXPick"
-      ],
-      "AXRole": "AXMenuItem",
-      "AXTitle": "Scripted (fast)",
-      "enabled": true,
-      "focused": false,
-      "rect": [
-        538,
-        658,
-        626,
-        24
       ]
     }
   },
@@ -1038,9 +1265,9 @@
       "drag_started": true,
       "native_drag_moves": 21,
       "native_mouse_down": true,
-      "native_mouse_down_window": 7204,
+      "native_mouse_down_window": 7613,
       "operation": 1,
-      "pasteboard_file_url": "file:///var/folders/ml/51b226t50rxf09jwljnq7tn00000gn/T/magistr-desktop-journey-0py5014f/second/drop-note.txt",
+      "pasteboard_file_url": "file:///var/folders/ml/51b226t50rxf09jwljnq7tn00000gn/T/magistr-desktop-journey-9k11md3d/second/drop-note.txt",
       "pasteboard_types": [
         "public.file-url",
         "CorePasteboardFlavorType 0x6675726C",
@@ -1050,13 +1277,13 @@
         "Apple URL pasteboard type"
       ],
       "source": "drop-note.txt",
-      "source_window": 7204,
+      "source_window": 7613,
       "source_window_hit_test": true
     },
-    "native_accessibility_sha256": "205d89a942c98c1f21718d5b50654c47f6d8e8edee9a2307c28a1ae37aab54b8"
+    "native_accessibility_sha256": "d7e14161659a24dd0ca0b31f8636bab03d72a2167e2d301a42169dcce6ef8aa3"
   },
-  "attachment_observation_sha256": "69326d24ee17d59eaecf4438bae6f0ca18aaf3cbe9c2dcef9fb4ddd395e53868",
-  "attachment_prompts_sha256": "3d2dff6a8411888ba5308c3e024165aa7500b61d27117d7b7c9c09c4f1e93f66",
+  "attachment_observation_sha256": "2147a4106dc2dfa4b8ee381256a2dff2adaacf529936a19baa4b0df9d1139469",
+  "attachment_prompts_sha256": "2e025d9c48a22ab25e7629fa416efceff37ed8d2775820ec940765c16210ab9e",
   "rich_conversation": {
     "tool_keyboard": {
       "activation": "native keyboard",
@@ -1157,7 +1384,8 @@
         "Reading progress 0022: new result café 日本語 👩🏽‍💻.",
         "Reading progress 0023: new result café 日本語 👩🏽‍💻.",
         "Reading progress 0024: new result café 日本語 👩🏽‍💻.",
-        "Reading progress 0025: new result café 日本語 👩🏽‍💻."
+        "Reading progress 0025: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0026: new result café 日本語 👩🏽‍💻."
       ],
       "tool_values": [
         "Review local build · Running",
@@ -1273,13 +1501,13 @@
         "AXHelp": "",
         "AXRole": "AXStaticText",
         "AXTitle": "",
-        "AXValue": "Reading progress 0062: new result café 日本語 👩🏽‍💻.",
+        "AXValue": "Reading progress 0061: new result café 日本語 👩🏽‍💻.",
         "enabled": true,
         "focused": false,
         "rect": [
           474,
           636,
-          331,
+          329,
           17
         ]
       },
@@ -1315,13 +1543,13 @@
         "AXHelp": "",
         "AXRole": "AXStaticText",
         "AXTitle": "",
-        "AXValue": "Reading progress 0089: new result café 日本語 👩🏽‍💻.",
+        "AXValue": "Reading progress 0088: new result café 日本語 👩🏽‍💻.",
         "enabled": true,
         "focused": false,
         "rect": [
           474,
           636,
-          331,
+          332,
           17
         ]
       },
@@ -1624,7 +1852,10 @@
         "Reading progress 0122: new result café 日本語 👩🏽‍💻.",
         "Reading progress 0123: new result café 日本語 👩🏽‍💻.",
         "Reading progress 0124: new result café 日本語 👩🏽‍💻.",
-        "Reading progress 0125: new result café 日本語 👩🏽‍💻."
+        "Reading progress 0125: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0126: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0127: new result café 日本語 👩🏽‍💻.",
+        "Reading progress 0128: new result café 日本語 👩🏽‍💻."
       ],
       "tool_values": [
         "Review local build · Running",
@@ -1633,15 +1864,15 @@
     },
     "stream": {
       "stage": "finished",
-      "chunks": 129,
-      "elapsed": 13.374504292000001,
+      "chunks": 132,
+      "elapsed": 13.588262375,
       "stop_reason": "end_turn"
     },
     "canonical": {
       "reply_bytes": 11321,
-      "reply_sha256": "ea033ac49e33a1e3dab1e816bb30ab44365138e4baccfcc1f0014b6c95ce5e90",
-      "conversation_bytes": 21592,
-      "conversation_sha256": "f3b87a8ea87efc60f4d71f94bbb9e954f52c511acc418961933c232e75bd92e3"
+      "reply_sha256": "2d05ab16ef700bde1a3c57d2c3307c6085ec81ffef4add8d783aac21f929d6fc",
+      "conversation_bytes": 21796,
+      "conversation_sha256": "9f3a338d8b44cbda8e95abe9107208d5010f3681a97b71660af88850a9e349da"
     },
     "link": {
       "activated": true,
@@ -1652,7 +1883,7 @@
       },
       "browser": "org.mozilla.firefox",
       "closed_controlled_tab": true,
-      "controlled_marker_visible": false,
+      "controlled_marker_visible": true,
       "destination_observation": {
         "matches": true,
         "readable": true
@@ -1666,7 +1897,7 @@
             "AXScrollToVisible"
           ],
           "AXDescription": "",
-          "AXHelp": "http://127.0.0.1:51634/rich-link/1792011240109644000",
+          "AXHelp": "http://127.0.0.1:52563/rich-link/1792013866098244000",
           "AXRole": "AXLink",
           "AXTitle": "Open the local reading note",
           "AXValue": "",
@@ -1683,7 +1914,7 @@
       "request_observed": true
     }
   },
-  "rich_observation_sha256": "db277978594a30ad2a029c25ba657074381f304213a33394c639fce14017cde3",
+  "rich_observation_sha256": "334c95ddfbb070e466626480900d07409e3e383eb65e3543efb3a5ba233f27ee",
   "ime": {
     "source": "com.apple.inputmethod.Kotoeri.KanaTyping.Japanese",
     "committed": [
@@ -1923,23 +2154,23 @@
     "crates/magistr-desktop/tauri.conf.json": "b8af99622336b041fe41255fe57d6225447631945d6a89c5a4f3dc1c7348b4b9",
     "crates/magistr-desktop/tests/attachment.swift": "8c576478c14c2c3af04366295c4e159095e331f2fc8a2eba0480bbf78a6f29ce",
     "crates/magistr-desktop/tests/attachment_fixture.py": "21513d328e2e6a99ff12d576eb61f6cb313030c6667cb5c251b59c11484319e3",
-    "crates/magistr-desktop/tests/attachment_journey.py": "c97f3e57e484784cfa3c99df87839365df146a62760a36926941d2b5a4055a1b",
+    "crates/magistr-desktop/tests/attachment_journey.py": "f42519a0d13331a44448f255ca68d894885305ed143760d7834bcab55fbeb6d1",
     "crates/magistr-desktop/tests/attachments.mjs": "e761ba21b9d05ffa8e07532ac6bd6543c9f6820c6ffedc1f60afe76688c81f66",
     "crates/magistr-desktop/tests/draft_persistence.swift": "95b853b033bbb88fe5052c9a3c368cb955eb5ac1d3fa746c3c07838cb260d9a9",
-    "crates/magistr-desktop/tests/draft_persistence_journey.py": "faa3f049f5702ecc6229994f44b297da70e61b6f91ed9bc9cfb0dcdb9e0a8e2d",
+    "crates/magistr-desktop/tests/draft_persistence_journey.py": "72e36bc6a2571f55b5a8a936065d2544520870585a76f31f61779f85d7955ad0",
     "crates/magistr-desktop/tests/drafts.mjs": "371f679eaf90ba821df7c0491810aabce899f845b623dedc6b8c66f2693f8323",
-    "crates/magistr-desktop/tests/native_window.py": "6fe4af1bcc6fc78d401958c14b0222f068aa676a628477db522cc92424e0d5e8",
-    "crates/magistr-desktop/tests/native_window.swift": "d67d033a2980070eb252af599f3e9a0389f7d0b08458a0b1a054d99e87f6456d",
+    "crates/magistr-desktop/tests/native_window.py": "8dc9b404ff4766968025086cf80aa23a7f08f92f526ffac0eb6bc2b3e73185ac",
+    "crates/magistr-desktop/tests/native_window.swift": "5d379e0b01b8a4aaa55a63c435bce0dcf5d68df8fb4ef64978f31100c892af80",
     "crates/magistr-desktop/tests/preferences.mjs": "aafbdfc322774f97a185d88a1d74097104b606b5ccf25fea67dc09b4fe987d3a",
     "crates/magistr-desktop/tests/process_roles.py": "2406be1b8ebd5b026f2e498797ffa49932f373d595c487b57c73234869bcac94",
     "crates/magistr-desktop/tests/rich_conversation.swift": "6c6362c38438d71087c91b0707dfe7bf3946f69c400bd8f6d3f7ebf249001f2f",
     "crates/magistr-desktop/tests/rich_conversation_fixture.py": "b97fa784f12fbcb9e478e3bc409651b7b7080f2cc62e25e4ef504bf828e7c146",
-    "crates/magistr-desktop/tests/rich_conversation_journey.py": "1d44fcfea1d0afa56c5ca612d34c04c2c9a7a84819a60e7997f5b8d6fb0d2400",
+    "crates/magistr-desktop/tests/rich_conversation_journey.py": "d86d59f36ef269e72a1270da2b3a2567fca25101909e7bcc580187fc3def2cd9",
     "crates/magistr-desktop/tests/saved_drafts.mjs": "91af528a99e0c99578215cdca6a14dab2d94afed6247a25b26c3de17907fe879",
     "crates/magistr-desktop/tests/session_controls_fixture.py": "151ba2cf725b15ef1a245203d518d90fb09ba85aff6a54c1b37f88fb84cdc2fb",
     "crates/magistr-desktop/tests/work.mjs": "19b658066bb80ab9ee473cdbe5a88a00ff242a0e730f053ba163605a97dab840",
     "crates/magistr-desktop/tests/work_fixture.py": "35eb7a0a8257d26711138e6673bbaf20bbedcd5dd455fbc0343086e2afe53a6d",
-    "crates/magistr-desktop/tests/work_journey.py": "7fd7626d30d1023f532e57d8017b15d2198c79742d4d72aba36e3611fb010570",
+    "crates/magistr-desktop/tests/work_journey.py": "ee80613f18530a93f459943f0175d5387d1632e896148ddbe9f399b359d291be",
     "crates/magistr-desktop/ui/app.mjs": "3c52b810da5fc97e7f16c008e7500933b252c08bcce41b6c0243689879f1d310",
     "crates/magistr-desktop/ui/attachments.mjs": "c598ca322b4a2c1b22b9f378ddc35ce7ec89a7e93c81673de978b3269a28ce63",
     "crates/magistr-desktop/ui/composer.mjs": "9accf554a6a2f6e7c029f4972fa4221e40d755546693c8343cbd528ef2a00bc0",

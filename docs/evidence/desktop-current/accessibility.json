@@ -13,7 +13,7 @@
       "AXScrollToVisible"
     ],
     "AXDescription" : "",
-    "AXHelp" : "http:\/\/127.0.0.1:51634\/rich-link\/1792011240109644000",
+    "AXHelp" : "http:\/\/127.0.0.1:52563\/rich-link\/1792013866098244000",
     "AXRole" : "AXLink",
     "AXTitle" : "Open the local reading note",
     "AXValue" : "",
@@ -1863,9 +1863,9 @@
     "focused" : false,
     "rect" : [
       422,
-      -2951,
+      -2972,
       344,
-      55
+      76
     ]
   },
   {
@@ -2305,7 +2305,7 @@
       422,
       5924,
       344,
-      4279
+      4378
     ]
   },
   {
@@ -3988,7 +3988,7 @@
     "focused" : false,
     "rect" : [
       422,
-      -2951,
+      -2972,
       344,
       24
     ]
@@ -4007,9 +4007,9 @@
     "focused" : false,
     "rect" : [
       422,
-      -2917,
+      -2938,
       344,
-      21
+      42
     ]
   },
   {
@@ -7393,6 +7393,63 @@
     ],
     "AXDescription" : "",
     "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      10215,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      10248,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      10281,
+      344,
+      21
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
     "AXRole" : "AXStaticText",
     "AXTitle" : "",
     "AXValue" : "Message the agent",
@@ -8269,7 +8326,7 @@
     "focused" : false,
     "rect" : [
       422,
-      -2947,
+      -2968,
       36,
       15
     ]
@@ -8289,7 +8346,7 @@
     "focused" : false,
     "rect" : [
       693,
-      -2951,
+      -2972,
       74,
       24
     ]
@@ -8303,14 +8360,14 @@
     "AXHelp" : "",
     "AXRole" : "AXStaticText",
     "AXTitle" : "",
-    "AXValue" : "resumed cca6dc1b-4e80-49c6-95fd-a8a7c3100c37",
+    "AXValue" : "resumed 624293d0-3d62-4083-982a-e0212d261905",
     "enabled" : true,
     "focused" : false,
     "rect" : [
       422,
-      -2915,
-      343,
-      17
+      -2936,
+      257,
+      38
     ]
   },
   {
@@ -12296,6 +12353,63 @@
     "AXHelp" : "",
     "AXRole" : "AXStaticText",
     "AXTitle" : "",
+    "AXValue" : "Reading progress 0130: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      10217,
+      329,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0131: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      10250,
+      327,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Reading progress 0132: new result café 日本語 👩🏽‍💻.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      422,
+      10283,
+      329,
+      17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
     "AXValue" : "Message the agent",
     "enabled" : true,
     "focused" : false,
@@ -12448,7 +12562,7 @@
     "AXHelp" : "",
     "AXRole" : "AXStaticText",
     "AXTitle" : "",
-    "AXValue" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-0py5014f\/second",
+    "AXValue" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-9k11md3d\/second",
     "enabled" : true,
     "focused" : false,
     "rect" : [
@@ -12987,11 +13101,11 @@
       "AXShowMenu",
       "AXScrollToVisible"
     ],
-    "AXDescription" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-0py5014f\/feature",
-    "AXHelp" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-0py5014f\/feature",
+    "AXDescription" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-9k11md3d\/feature",
+    "AXHelp" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-9k11md3d\/feature",
     "AXRole" : "AXGroup",
     "AXSubrole" : "AXApplicationGroup",
-    "AXTitle" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-0py5014f\/feature",
+    "AXTitle" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-9k11md3d\/feature",
     "AXValue" : "",
     "enabled" : true,
     "focused" : false,
@@ -13087,11 +13201,11 @@
       "AXShowMenu",
       "AXScrollToVisible"
     ],
-    "AXDescription" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-0py5014f\/first",
-    "AXHelp" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-0py5014f\/first",
+    "AXDescription" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-9k11md3d\/first",
+    "AXHelp" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-9k11md3d\/first",
     "AXRole" : "AXGroup",
     "AXSubrole" : "AXApplicationGroup",
-    "AXTitle" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-0py5014f\/first",
+    "AXTitle" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-9k11md3d\/first",
     "AXValue" : "",
     "enabled" : true,
     "focused" : false,
@@ -13187,11 +13301,11 @@
       "AXShowMenu",
       "AXScrollToVisible"
     ],
-    "AXDescription" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-0py5014f\/second",
-    "AXHelp" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-0py5014f\/second",
+    "AXDescription" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-9k11md3d\/second",
+    "AXHelp" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-9k11md3d\/second",
     "AXRole" : "AXGroup",
     "AXSubrole" : "AXApplicationGroup",
-    "AXTitle" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-0py5014f\/second",
+    "AXTitle" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-9k11md3d\/second",
     "AXValue" : "",
     "enabled" : true,
     "focused" : false,
@@ -13742,7 +13856,7 @@
     "AXHelp" : "",
     "AXRole" : "AXStaticText",
     "AXTitle" : "",
-    "AXValue" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-0py5014f\/second\/sample.rs:2",
+    "AXValue" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-9k11md3d\/second\/sample.rs:2",
     "enabled" : true,
     "focused" : false,
     "rect" : [
@@ -13761,13 +13875,13 @@
     "AXHelp" : "",
     "AXRole" : "AXStaticText",
     "AXTitle" : "",
-    "AXValue" : "Duration: 13.37 seconds.",
+    "AXValue" : "Duration: 13.59 seconds.",
     "enabled" : true,
     "focused" : false,
     "rect" : [
       439,
       -159,
-      160,
+      161,
       17
     ]
   },

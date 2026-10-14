@@ -428,7 +428,7 @@
   },
   "immediate_quit": {
     "expected_text": "A saved message remains editable without agent resume.\nThe last edit was followed directly by Quit.",
-    "paste_to_quit_ms": 30.21479166636709
+    "paste_to_quit_ms": 30.254750003223307
   },
   "motion_restored": {
     "control": {
@@ -505,7 +505,7 @@
     "image_sha256": "cf133f92ffb620a92a6e9a294e10e7d92e2b3379255b27b746516b759114118c"
   },
   "rapid_edits": {
-    "elapsed_ms": 1664.4317083409987,
+    "elapsed_ms": 1676.2224583362695,
     "final": {
       "actions": [
         "AXPress",
@@ -530,164 +530,164 @@
     "input": "native_unicode_events",
     "revisions": [
       {
-        "elapsed_ms": 33.54587500507478,
+        "elapsed_ms": 43.541999999433756,
         "expected": "Rapid saved revision 00 · café 日本語",
         "observed": "Rapid saved revision 00 · café 日本語"
       },
       {
-        "elapsed_ms": 64.71966666867957,
+        "elapsed_ms": 75.24716666375753,
         "expected": "Rapid saved revision 01 · café 日本語",
         "observed": "Rapid saved revi"
       },
       {
-        "elapsed_ms": 94.94987499783747,
+        "elapsed_ms": 102.2862083336804,
         "expected": "Rapid saved revision 02 · café 日本語",
         "observed": "Rapid saved revision 01 · café 日本語"
       },
       {
-        "elapsed_ms": 120.28670833387878,
+        "elapsed_ms": 132.53120833542198,
         "expected": "Rapid saved revision 03 · café 日本語",
-        "observed": "Rapid saved revi"
+        "observed": "Rapid saved revision 02 · café 日本語"
       },
       {
-        "elapsed_ms": 150.5136250052601,
+        "elapsed_ms": 158.69704166834708,
         "expected": "Rapid saved revision 04 · café 日本語",
         "observed": "Rapid saved revision 02 · café 日本語"
       },
       {
-        "elapsed_ms": 180.73158332845196,
+        "elapsed_ms": 185.1989999995567,
         "expected": "Rapid saved revision 05 · café 日本語",
-        "observed": "Rapid saved revision 03 · café 日本語"
+        "observed": "Rapid saved revision 03 · café 日"
       },
       {
-        "elapsed_ms": 207.4377499957336,
+        "elapsed_ms": 213.8120000017807,
         "expected": "Rapid saved revision 06 · café 日本語",
         "observed": "Rapid saved revision 03 · café 日本語"
       },
       {
-        "elapsed_ms": 234.5528333389666,
+        "elapsed_ms": 241.9581249996554,
         "expected": "Rapid saved revision 07 · café 日本語",
         "observed": "Rapid saved revision 04 · café 日本語"
       },
       {
-        "elapsed_ms": 264.7841250000056,
+        "elapsed_ms": 272.21312500478234,
         "expected": "Rapid saved revision 08 · café 日本語",
         "observed": "Rapid saved revision 04 · café 日本語"
       },
       {
-        "elapsed_ms": 295.03729166754056,
+        "elapsed_ms": 302.45479167206213,
         "expected": "Rapid saved revision 09 · café 日本語",
         "observed": "Rapid saved revision 05 · café 日本語"
       },
       {
-        "elapsed_ms": 325.2431666624034,
+        "elapsed_ms": 332.78362499549985,
         "expected": "Rapid saved revision 10 · café 日本語",
         "observed": "Rapid saved revision 05 · café 日本語"
       },
       {
-        "elapsed_ms": 353.8470416679047,
+        "elapsed_ms": 358.70808333856985,
         "expected": "Rapid saved revision 11 · café 日本語",
         "observed": "Rapid saved revision 06 · café 日本語"
       },
       {
-        "elapsed_ms": 383.01308333757333,
+        "elapsed_ms": 390.9232083387906,
         "expected": "Rapid saved revision 12 · café 日本語",
-        "observed": "Rapid saved revision 07 · café 日本語"
+        "observed": "Rapid saved revision 07 · café 日"
       },
       {
-        "elapsed_ms": 413.2991249935003,
+        "elapsed_ms": 420.9438749967376,
         "expected": "Rapid saved revision 13 · café 日本語",
         "observed": "Rapid saved revision 07 · café 日本語"
       },
       {
-        "elapsed_ms": 443.54162500530947,
+        "elapsed_ms": 450.29329166573007,
         "expected": "Rapid saved revision 14 · café 日本語",
         "observed": "Rapid saved revision 08 · café 日本語"
       },
       {
-        "elapsed_ms": 473.780500004068,
+        "elapsed_ms": 478.4863749955548,
         "expected": "Rapid saved revision 15 · café 日本語",
         "observed": "Rapid saved revision 08 · café 日本語"
       },
       {
-        "elapsed_ms": 499.54049999359995,
+        "elapsed_ms": 508.71366666979156,
         "expected": "Rapid saved revision 16 · café 日本語",
         "observed": "Rapid saved revision 09 · café 日本語"
       },
       {
-        "elapsed_ms": 526.3300000078743,
+        "elapsed_ms": 539.0042916696984,
         "expected": "Rapid saved revision 17 · café 日本語",
         "observed": "Rapid saved revision 09 · café 日本語"
       },
       {
-        "elapsed_ms": 553.908333327854,
+        "elapsed_ms": 569.3369999935385,
         "expected": "Rapid saved revision 18 · café 日本語",
         "observed": "Rapid saved revision 10 · café 日本語"
       },
       {
-        "elapsed_ms": 582.5791666720761,
+        "elapsed_ms": 595.9814583329717,
         "expected": "Rapid saved revision 19 · café 日本語",
         "observed": "Rapid saved revision 10 · café 日本語"
       },
       {
-        "elapsed_ms": 608.2150000002002,
+        "elapsed_ms": 626.2735416676151,
         "expected": "Rapid saved revision 20 · café 日本語",
         "observed": "Rapid saved revision 11 · café 日本語"
       },
       {
-        "elapsed_ms": 640.6192083377391,
+        "elapsed_ms": 655.2949166652979,
         "expected": "Rapid saved revision 21 · café 日本語",
-        "observed": "Rapid saved revi"
+        "observed": "Rapid saved revision 12 · café 日本語"
       },
       {
-        "elapsed_ms": 693.7118333298713,
+        "elapsed_ms": 684.1860833374085,
         "expected": "Rapid saved revision 22 · café 日本語",
-        "observed": "Rapid saved revision 13 · café 日"
+        "observed": "Rapid saved revision 12 · café 日本語"
       },
       {
-        "elapsed_ms": 749.298374998034,
+        "elapsed_ms": 714.423583340249,
         "expected": "Rapid saved revision 23 · café 日本語",
-        "observed": "Rapid saved revi"
+        "observed": "Rapid saved revision 13 · café 日本語"
       },
       {
-        "elapsed_ms": 779.7150416736258,
+        "elapsed_ms": 744.725833326811,
         "expected": "Rapid saved revision 24 · café 日本語",
+        "observed": "Rapid saved revision 13 · café 日本語"
+      },
+      {
+        "elapsed_ms": 771.9113333296264,
+        "expected": "Rapid saved revision 25 · café 日本語",
         "observed": "Rapid saved revision 14 · café 日本語"
       },
       {
-        "elapsed_ms": 809.9123333377065,
-        "expected": "Rapid saved revision 25 · café 日本語",
-        "observed": "Rapid saved revision 15 · café 日本語"
-      },
-      {
-        "elapsed_ms": 840.1401666633319,
+        "elapsed_ms": 802.1952916606097,
         "expected": "Rapid saved revision 26 · café 日本語",
+        "observed": "Rapid saved revision 14 · café 日本語"
+      },
+      {
+        "elapsed_ms": 832.5351249950472,
+        "expected": "Rapid saved revision 27 · café 日本語",
         "observed": "Rapid saved revision 15 · café 日本語"
       },
       {
-        "elapsed_ms": 865.7684166682884,
-        "expected": "Rapid saved revision 27 · café 日本語",
-        "observed": "Rapid saved revision 16 · café 日本語"
-      },
-      {
-        "elapsed_ms": 895.9805833292194,
+        "elapsed_ms": 862.7721666707657,
         "expected": "Rapid saved revision 28 · café 日本語",
         "observed": "Rapid saved revision 16 · café 日本語"
       },
       {
-        "elapsed_ms": 926.2109583360143,
+        "elapsed_ms": 893.0549999931827,
         "expected": "Rapid saved revision 29 · café 日本語",
+        "observed": "Rapid saved revision 16 · café 日本語"
+      },
+      {
+        "elapsed_ms": 919.5719166600611,
+        "expected": "Rapid saved revision 30 · café 日本語",
         "observed": "Rapid saved revision 17 · café 日本語"
       },
       {
-        "elapsed_ms": 956.3941666710889,
-        "expected": "Rapid saved revision 30 · café 日本語",
-        "observed": "Rapid saved revision 18 · café 日"
-      },
-      {
-        "elapsed_ms": 986.6257083340315,
+        "elapsed_ms": 949.8965416714782,
         "expected": "Rapid saved revision 31 · café 日本語",
-        "observed": "Rapid saved revision 18 · café 日本語"
+        "observed": "Rapid saved revision 17 · café 日本語"
       }
     ]
   },
@@ -695,17 +695,17 @@
   "prompt_count": 1,
   "api_posts": [],
   "evidence_hashes": {
-    "drafts-save-failure.png": "b45fe253988953bef8cfe6e8527dc31a92fcf277893a7d4dc884600b48d1dc27",
-    "drafts-saved-message.png": "37212424ee41de0efaba9fd1be0626a253305a8a46816d8f811bc3bf805b694b",
-    "drafts-restored-dark.png": "7ee2b24df9a56ba2d2c194df0d02ea59b6112279c30d78923b7ecbdc45c6a54e",
-    "drafts-restored-narrow.png": "a6056aad1e756f94b954c1bfba5d9f1db6434842f7842fd07dfcbd28471d88b8",
-    "drafts-restored-light.png": "65ea9cb578f8135e5feb3cada65acf28831109478f4af93853deb1ccd1325287",
-    "drafts-restored-light-accessibility.json": "beccf6d6612c7223f683e65d4ac3e0be8f6f01a87c1d17610a3496e93d1d3b00",
-    "drafts-save-failure-accessibility.json": "8e65d8a29d8d1e9e681ae096edfe92c08eee62b0b2811b2cb34d628fc8c669cf",
-    "drafts-restored-narrow-accessibility.json": "93977841c397d89323b3332ef00fb742318d6df971cc5129291cbf37e1c1fdf4",
-    "drafts-saved-message-accessibility.json": "d121b25ccdcb8a7e644dc791943f2c07ee3e3bde6e14193f317586dee1f62aae",
-    "drafts-restored-dark-accessibility.json": "b99a87f397d28068a64015b51a92aec71da4a288adf77b66a1960754244a3a10",
-    "draft-prompts.json": "83b7f31bb11680b44fe57e519baf3c93d293c8be5784b989486635c33f1e9e80"
+    "drafts-save-failure.png": "b640d16a159b8c09359d8ee33406910b6277647005978fcb2de6a6f3e84f159c",
+    "drafts-saved-message.png": "af4f4dbf2cc95f774275d073d1825b4483d1cda3e89a70da4dc1fecd36953a3c",
+    "drafts-restored-dark.png": "414fbbc40381dde9f5db7f4694b627a3462e6d9956f0d8c178055664bb726105",
+    "drafts-restored-narrow.png": "7c29af0a40a7f6cc49460f77be5f886e582e99dcd777c5a42e072950a2609816",
+    "drafts-restored-light.png": "4123db57e0b1807525a53ea8eca8e90440abf7b49d4bf247da369b62b3ac9ecd",
+    "drafts-restored-light-accessibility.json": "258576b6a712c71036942819dccd3291a76abe8ce8e43d0241198c7647e11172",
+    "drafts-save-failure-accessibility.json": "2efb8a5a7c47502cfded71c9ec55c48f1f61c55f1605cc4b958564a327f54625",
+    "drafts-restored-narrow-accessibility.json": "ff131da6141829c9a366cb636c69a84bb7f8628d6a761006ddef393252c42569",
+    "drafts-saved-message-accessibility.json": "dadb031320434c7b06b487ce2633b14764d34f6d0ac896dbe3bbee871eda769f",
+    "drafts-restored-dark-accessibility.json": "c6e2e8d646b062a28a7c01a6a7e29f67aafc27ac278059af6a68df827a86c48f",
+    "draft-prompts.json": "f5c4c2988f0ba932ce85a5cdeea76e2fa9bdb93171ea16bd2b1c916e2f4259b5"
   },
   "source_hashes": {
     "crates/magistr-acp/src/transport/command.rs": "90a5b025a2c22f3a2e8d8d5d9be9eadbc28c3eb273413cb7efda61e8ea6bf9e4",
@@ -902,23 +902,23 @@
     "crates/magistr-desktop/tauri.conf.json": "b8af99622336b041fe41255fe57d6225447631945d6a89c5a4f3dc1c7348b4b9",
     "crates/magistr-desktop/tests/attachment.swift": "8c576478c14c2c3af04366295c4e159095e331f2fc8a2eba0480bbf78a6f29ce",
     "crates/magistr-desktop/tests/attachment_fixture.py": "21513d328e2e6a99ff12d576eb61f6cb313030c6667cb5c251b59c11484319e3",
-    "crates/magistr-desktop/tests/attachment_journey.py": "c97f3e57e484784cfa3c99df87839365df146a62760a36926941d2b5a4055a1b",
+    "crates/magistr-desktop/tests/attachment_journey.py": "f42519a0d13331a44448f255ca68d894885305ed143760d7834bcab55fbeb6d1",
     "crates/magistr-desktop/tests/attachments.mjs": "e761ba21b9d05ffa8e07532ac6bd6543c9f6820c6ffedc1f60afe76688c81f66",
     "crates/magistr-desktop/tests/draft_persistence.swift": "95b853b033bbb88fe5052c9a3c368cb955eb5ac1d3fa746c3c07838cb260d9a9",
-    "crates/magistr-desktop/tests/draft_persistence_journey.py": "faa3f049f5702ecc6229994f44b297da70e61b6f91ed9bc9cfb0dcdb9e0a8e2d",
+    "crates/magistr-desktop/tests/draft_persistence_journey.py": "72e36bc6a2571f55b5a8a936065d2544520870585a76f31f61779f85d7955ad0",
     "crates/magistr-desktop/tests/drafts.mjs": "371f679eaf90ba821df7c0491810aabce899f845b623dedc6b8c66f2693f8323",
-    "crates/magistr-desktop/tests/native_window.py": "6fe4af1bcc6fc78d401958c14b0222f068aa676a628477db522cc92424e0d5e8",
-    "crates/magistr-desktop/tests/native_window.swift": "d67d033a2980070eb252af599f3e9a0389f7d0b08458a0b1a054d99e87f6456d",
+    "crates/magistr-desktop/tests/native_window.py": "8dc9b404ff4766968025086cf80aa23a7f08f92f526ffac0eb6bc2b3e73185ac",
+    "crates/magistr-desktop/tests/native_window.swift": "5d379e0b01b8a4aaa55a63c435bce0dcf5d68df8fb4ef64978f31100c892af80",
     "crates/magistr-desktop/tests/preferences.mjs": "aafbdfc322774f97a185d88a1d74097104b606b5ccf25fea67dc09b4fe987d3a",
     "crates/magistr-desktop/tests/process_roles.py": "2406be1b8ebd5b026f2e498797ffa49932f373d595c487b57c73234869bcac94",
     "crates/magistr-desktop/tests/rich_conversation.swift": "6c6362c38438d71087c91b0707dfe7bf3946f69c400bd8f6d3f7ebf249001f2f",
     "crates/magistr-desktop/tests/rich_conversation_fixture.py": "b97fa784f12fbcb9e478e3bc409651b7b7080f2cc62e25e4ef504bf828e7c146",
-    "crates/magistr-desktop/tests/rich_conversation_journey.py": "1d44fcfea1d0afa56c5ca612d34c04c2c9a7a84819a60e7997f5b8d6fb0d2400",
+    "crates/magistr-desktop/tests/rich_conversation_journey.py": "d86d59f36ef269e72a1270da2b3a2567fca25101909e7bcc580187fc3def2cd9",
     "crates/magistr-desktop/tests/saved_drafts.mjs": "91af528a99e0c99578215cdca6a14dab2d94afed6247a25b26c3de17907fe879",
     "crates/magistr-desktop/tests/session_controls_fixture.py": "151ba2cf725b15ef1a245203d518d90fb09ba85aff6a54c1b37f88fb84cdc2fb",
     "crates/magistr-desktop/tests/work.mjs": "19b658066bb80ab9ee473cdbe5a88a00ff242a0e730f053ba163605a97dab840",
     "crates/magistr-desktop/tests/work_fixture.py": "35eb7a0a8257d26711138e6673bbaf20bbedcd5dd455fbc0343086e2afe53a6d",
-    "crates/magistr-desktop/tests/work_journey.py": "7fd7626d30d1023f532e57d8017b15d2198c79742d4d72aba36e3611fb010570",
+    "crates/magistr-desktop/tests/work_journey.py": "ee80613f18530a93f459943f0175d5387d1632e896148ddbe9f399b359d291be",
     "crates/magistr-desktop/ui/app.mjs": "3c52b810da5fc97e7f16c008e7500933b252c08bcce41b6c0243689879f1d310",
     "crates/magistr-desktop/ui/attachments.mjs": "c598ca322b4a2c1b22b9f378ddc35ce7ec89a7e93c81673de978b3269a28ce63",
     "crates/magistr-desktop/ui/composer.mjs": "9accf554a6a2f6e7c029f4972fa4221e40d755546693c8343cbd528ef2a00bc0",
@@ -941,6 +941,6 @@
     "crates/magistr-workspace/src/service/workspace_service.rs": "23500f38e2e9ebae67c201b694ea72a38884d0b9bd2ec92cffa2d8bc4a1d13fd",
     "scripts/desktop-visual-gate.py": "de0d3f7b6fc57c2668f0e02634ad846e51570a1c33764c0f68a9e84a7d558f2e"
   },
-  "binary_sha256": "8922512af9e4bb725f19a15d6ae94a11618970b308dd39fdf5cf9a664a3e4e7d",
-  "captured_at": "2026-10-14T20:58:49Z"
+  "binary_sha256": "ebe2b068ade7b7722ef05083da25a137bc5a59b5327b27f2348122852238c1b8",
+  "captured_at": "2026-10-14T21:42:35Z"
 }

@@ -133,8 +133,7 @@ def exercise_attachments(*, call, pid, evidence, results, send, draft, wait,
     checks["native text attachment disclosure opens and closes"] = True
     save()
     for theme in ("Dark", "Light"):
-        call("press", pid, "Appearance")
-        call("press", pid, theme)
+        call("choose-option", pid, "", "Appearance", theme)
         call("screenshot", pid, evidence / ("attachments-" + theme.lower() + ".png"))
     call("resize", pid, 800, 680)
     call("screenshot", pid, evidence / "attachments-narrow.png")

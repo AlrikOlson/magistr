@@ -140,8 +140,7 @@ def exercise_rich_conversation(*, call, pid, evidence, results, send, wait,
         print("UNAVAILABLE: native browser activation; " + observed["link"]["reason"], flush=True)
 
     for theme in ("Dark", "Light"):
-        call("press", pid, "Appearance")
-        call("press", pid, theme)
+        call("choose-option", pid, "", "Appearance", theme)
         call("rich-reveal", pid, "Release reading note")
         call("screenshot", pid, evidence / ("rich-" + theme.lower() + ".png"))
     call("resize", pid, 800, 680)
