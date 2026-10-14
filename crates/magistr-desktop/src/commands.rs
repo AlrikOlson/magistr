@@ -5,7 +5,7 @@ use crate::{
     wire::{CatalogFrame, Frame, SessionInfo},
 };
 use magistr::application::{
-    RecentProject, SessionClient, SessionOpening, WorkingCopies, WorkingCopy,
+    ConversationTarget, RecentProject, SessionClient, SessionOpening, WorkingCopies, WorkingCopy,
 };
 use magistr::config::inputs::ProjectInputs;
 use magistr_cockpit::cockpit::Cmd;
@@ -173,7 +173,7 @@ pub(crate) async fn acknowledge(
 }
 #[tauri::command]
 pub(crate) async fn session_action(
-    address: SessionAddress,
+    target: ConversationTarget,
     action: Action,
     state: State<'_, DesktopState>,
 ) -> Result<(), String> {
@@ -182,7 +182,7 @@ pub(crate) async fn session_action(
             text,
             attachment_ids,
         } => {
-            return state.client.send(&address, text, attachment_ids).await;
+            return state.client.send(&target, text, attachment_ids).await;
         }
         Action::Rename { name } => Cmd::Rename(name),
         Action::Configure { id, value } => Cmd::Configure { id, value },
@@ -190,16 +190,16 @@ pub(crate) async fn session_action(
         Action::Reconnect => Cmd::Reconnect,
         Action::Answer { id, option_id } => Cmd::Permission { id, option_id },
     };
-    state.client.command(&address, command).await
+    state.client.command(&target, command).await
 }
 #[tauri::command]
 pub(crate) async fn save_draft(
-    address: SessionAddress,
+    target: ConversationTarget,
     text: String,
     expected_revision: u64,
     state: State<'_, DesktopState>,
 ) -> Result<magistr::application::DraftStatus, String> {
-    state.client.draft(&address, expected_revision, text).await
+    state.client.draft(&target, expected_revision, text).await
 }
 #[tauri::command]
 pub(crate) async fn close_session(

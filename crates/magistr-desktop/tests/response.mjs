@@ -7,7 +7,7 @@ test("production full revisions stay within the response budget with bounded own
  for(let sequence=0;sequence<4096;sequence++){
   const started=performance.now();
   retained.push(sequence);if(retained.length>512)retained.shift();
-  assert.equal(view.apply({address,sequence,reseed:sequence===0,dropped:Math.max(0,sequence-511),pending:[],status:"Working",retained:[...retained],events:[
+  assert.equal(view.apply({address,target:{address,conversation:"history"},sequence,reseed:sequence===0,dropped:Math.max(0,sequence-511),pending:[],status:"Working",retained:[...retained],events:[
     {id:sequence,revision:sequence,role:"Agent",text:"日本語 ".repeat(100),document:null,tool:null}
   ]}),true);
   samples.push(performance.now()-started);

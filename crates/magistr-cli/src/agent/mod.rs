@@ -16,6 +16,7 @@ pub mod mock_followups;
 pub mod observation;
 pub mod permission_request;
 mod probe;
+mod purpose_policy;
 pub use probe::{probe_all_providers, probe_models};
 pub mod probe_model;
 pub mod provider_model_set;
@@ -135,8 +136,6 @@ pub struct AgentConfig {
     pub permission_profile: Option<crate::permissions::PermissionProfile>,
     /// Whether the shared policy should admit normal workflow operations.
     pub workflow_permissions: bool,
-    /// Restrict this session to native planning and read-only source context.
-    pub planning_only: bool,
     /// Whether to continue from the previous conversation
     pub continue_conversation: bool,
     /// Session ID to resume from
@@ -182,7 +181,6 @@ impl AgentConfig {
             permission_mode: None,
             permission_profile: None,
             workflow_permissions: false,
-            planning_only: false,
             continue_conversation: false,
             resume: None,
             provider: None,

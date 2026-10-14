@@ -29,8 +29,8 @@ impl CockpitSession {
             max_turns: spec.max_turns(),
         };
         let history = spec.history();
-        let (policy, _) = spec.into_permission_policy();
-        Self::start_owned(transport, options, Box::new(policy), history)
+        let (policy, _) = spec.into_session_policy();
+        Self::start_owned(transport, options, policy, history)
     }
 
     pub(crate) fn start_owned(
@@ -94,6 +94,9 @@ impl CockpitSession {
 }
 
 impl SessionHandle for CockpitSession {
+    fn conversation(&self) -> Option<magistr_application::sessions::Conversation> {
+        self.supervisor.conversation()
+    }
     fn submit_turn(
         &mut self,
         input: &magistr_application::sessions::PromptInput,

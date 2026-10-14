@@ -5,10 +5,10 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use super::checkpoint_detach::detach;
-use crate::agent::cockpit_session::CockpitSession;
 use crate::agent::session_supervisor::SessionControl;
 use crate::application::workflow_client::NativeEnginePort;
 use magistr_acp::AcpEvent;
+use magistr_application::sessions::SessionHandle;
 use magistr_application::sessions::{AgentEvent, SessionOptions, TurnEnd};
 use magistr_cockpit::checkpoint::CheckpointPort;
 use magistr_cockpit::cockpit::{CheckpointCmd, Cmd, KillCmd, LoopCmd, LoopEvent, LoopStage, Msg};
@@ -106,6 +106,7 @@ pub struct LoopDriver {
     keep_open: bool,
     choosing_track: bool,
     session_active: bool,
+    conversation: Option<String>,
     roadmap_request: Option<magistr_application::sessions::PromptInput>,
     goal: GoalMode,
     goal_note: Option<String>,
@@ -303,6 +304,7 @@ impl LoopDriver {
             keep_open: false,
             choosing_track: false,
             session_active: false,
+            conversation: None,
             roadmap_request: None,
             goal: GoalMode::Off,
             goal_note: None,
@@ -820,7 +822,8 @@ impl LoopDriver {
                 // done with the runtime: a crash from here on leaves
                 // recovery the particular process to ask about.
                 self.launched(&dispatch, runtime_handle(&transport));
-                let (session, session_tx, _) = match self.open_session(transport, spec, true) {
+                let (session, session_tx, _) = match self.open_session(transport, spec, true).await
+                {
                     Ok(opened) => opened,
                     Err(why) => {
                         self.settled(&dispatch, OperationOutcome::Failed);
@@ -934,7 +937,7 @@ impl LoopDriver {
     }
 
     /// Open the next session using the same setup that connected its transport.
-    fn open_session(
+    async fn open_session(
         &mut self,
         transport: magistr_acp::AcpTransport,
         spec: ResolvedSessionSpec,
@@ -955,14 +958,19 @@ impl LoopDriver {
         if send_opening {
             options = options.opening_prompt(spec.prompt());
         }
-        let history = spec.history();
-        let (policy, _) = spec.into_permission_policy();
-        let handle = CockpitSession::start_owned(transport, options, Box::new(policy), history)
+        let handle = self
+            .connector
+            .start_session(transport, spec, options)
+            .await
             .map_err(|error| error.to_string())?;
+        let conversation = handle.conversation().map(|conversation| conversation.id);
+        let session_inbox = conversation
+            .as_deref()
+            .map_or_else(|| self.inbox.clone(), |id| self.inbox.for_conversation(id));
         let control = handle.control();
         let session = spawn_session(
             Box::new(handle),
-            self.inbox.tap(self.tap_tx.clone()),
+            session_inbox.tap(self.tap_tx.clone()),
             session_commands,
             workbench,
             engine,
@@ -974,6 +982,7 @@ impl LoopDriver {
             None,
         );
         self.session_active = true;
+        self.conversation = conversation;
         Ok((session, session_tx, control))
     }
 
@@ -1139,7 +1148,7 @@ impl LoopDriver {
             return Err("the transport's event stream was already taken".to_owned());
         };
         self.launched(&dispatch, runtime_handle(&transport));
-        let (session, session_tx, control) = match self.open_session(transport, spec, false) {
+        let (session, session_tx, control) = match self.open_session(transport, spec, false).await {
             Ok(opened) => opened,
             Err(why) => {
                 self.settled(&dispatch, OperationOutcome::Failed);
@@ -2448,6 +2457,13 @@ impl LoopDriver {
             cmd = commands.next() => cmd.map_or(Wake::Closed, Wake::Cmd),
             outcome = recv_gate(gates) => outcome.map_or(Wake::GatesGone, Wake::Gate),
             () = tick(ticks) => Wake::Tick,
+        };
+        let wake = match wake {
+            Wake::Cmd(command) => self
+                .inbox
+                .command_for(command, self.conversation.as_deref())
+                .map_or(Wake::Ledger, Wake::Cmd),
+            other => other,
         };
         match wake {
             Wake::Cmd(Cmd::Quit) => Wake::Closed,

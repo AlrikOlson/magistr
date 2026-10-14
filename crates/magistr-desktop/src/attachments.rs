@@ -1,9 +1,9 @@
 //! Native file gestures grant only the selected conversation access to chosen paths.
 use crate::commands::DesktopState;
+use magistr::application::ConversationTarget;
 use magistr_application::sessions::{
     MAX_ATTACHMENT_BYTES, MAX_ATTACHMENT_TOTAL_BYTES, MAX_ATTACHMENTS,
 };
-use magistr_domain::identity::SessionAddress;
 use serde::Serialize;
 use std::{path::PathBuf, sync::Mutex};
 use tauri::{State, ipc::Channel};
@@ -13,7 +13,7 @@ use tauri::{State, ipc::Channel};
 pub(crate) enum DropNotice {
     Selected {
         selection: u64,
-        address: SessionAddress,
+        target: ConversationTarget,
         stream: u64,
         count: usize,
     },
@@ -24,7 +24,7 @@ pub(crate) enum DropNotice {
 
 struct Grant {
     selection: u64,
-    address: SessionAddress,
+    target: ConversationTarget,
     stream: u64,
     paths: Vec<PathBuf>,
 }
@@ -49,24 +49,24 @@ impl NativeAttachments {
         Ok(())
     }
 
-    pub(crate) fn dropped(&self, target: Option<(u64, SessionAddress)>, paths: Vec<PathBuf>) {
+    pub(crate) fn dropped(&self, selected: Option<(u64, ConversationTarget)>, paths: Vec<PathBuf>) {
         let Ok(mut drops) = self.drops.lock() else {
             return;
         };
         drops.pending = None;
-        let notice = match target {
-            Some((stream, address)) if !paths.is_empty() && paths.len() <= MAX_ATTACHMENTS => {
+        let notice = match selected {
+            Some((stream, target)) if !paths.is_empty() && paths.len() <= MAX_ATTACHMENTS => {
                 drops.next += 1;
                 let selection = drops.next;
                 let notice = DropNotice::Selected {
                     selection,
-                    address: address.clone(),
+                    target: target.clone(),
                     stream,
                     count: paths.len(),
                 };
                 drops.pending = Some(Grant {
                     selection,
-                    address,
+                    target,
                     stream,
                     paths,
                 });
@@ -96,12 +96,12 @@ impl NativeAttachments {
     fn take(
         &self,
         selection: u64,
-        address: &SessionAddress,
+        target: &ConversationTarget,
         stream: u64,
     ) -> Result<Vec<PathBuf>, String> {
         let mut drops = self.drops.lock().map_err(|_| unavailable())?;
         let grant = drops.pending.as_ref().ok_or_else(expired)?;
-        if grant.selection != selection || &grant.address != address || grant.stream != stream {
+        if grant.selection != selection || &grant.target != target || grant.stream != stream {
             return Err(expired());
         }
         Ok(drops.pending.take().ok_or_else(expired)?.paths)
@@ -143,7 +143,7 @@ pub(crate) fn subscribe_file_drops(
 #[tauri::command]
 pub(crate) async fn pick_attachments(
     window: tauri::WebviewWindow,
-    address: SessionAddress,
+    target: ConversationTarget,
     state: State<'_, DesktopState>,
 ) -> Result<(), String> {
     use tauri_plugin_dialog::DialogExt as _;
@@ -153,7 +153,7 @@ pub(crate) async fn pick_attachments(
         .file()
         .set_parent(&window)
         .set_title("Add files")
-        .set_directory(&address.workspace)
+        .set_directory(&target.address.workspace)
         .pick_files(move |paths| {
             let paths = paths
                 .map(|paths| {
@@ -167,22 +167,22 @@ pub(crate) async fn pick_attachments(
         });
     let paths = result.await.map_err(|_| unavailable())??;
     if let Some(paths) = paths {
-        state.client.attach_files(&address, &paths).await?;
+        state.client.attach_files(&target, &paths).await?;
     }
     Ok(())
 }
 
 #[tauri::command]
 pub(crate) async fn attach_dropped_files(
-    address: SessionAddress,
+    target: ConversationTarget,
     stream: u64,
     selection: u64,
     state: State<'_, DesktopState>,
 ) -> Result<(), String> {
-    let paths = state.attachments.take(selection, &address, stream)?;
+    let paths = state.attachments.take(selection, &target, stream)?;
     let count = paths.len();
     tracing::debug!(count, stream, "native file drop grant consumed");
-    let result = state.client.attach_files(&address, &paths).await;
+    let result = state.client.attach_files(&target, &paths).await;
     tracing::debug!(
         count,
         stream,
@@ -194,21 +194,21 @@ pub(crate) async fn attach_dropped_files(
 
 #[tauri::command]
 pub(crate) async fn attach_clipboard_file(
-    address: SessionAddress,
+    target: ConversationTarget,
     name: String,
     bytes: Vec<u8>,
     state: State<'_, DesktopState>,
 ) -> Result<(), String> {
-    state.client.attach_bytes(&address, name, bytes).await
+    state.client.attach_bytes(&target, name, bytes).await
 }
 
 #[tauri::command]
 pub(crate) async fn remove_attachment(
-    address: SessionAddress,
+    target: ConversationTarget,
     id: String,
     state: State<'_, DesktopState>,
 ) -> Result<(), String> {
-    state.client.remove_attachment(&address, id).await
+    state.client.remove_attachment(&target, id).await
 }
 
 #[cfg(test)]

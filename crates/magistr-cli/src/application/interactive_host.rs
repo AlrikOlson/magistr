@@ -14,7 +14,7 @@ use tokio::sync::oneshot;
 use tokio::task::JoinHandle;
 
 use super::{WorkspaceAdmission, workflow_client::EngineClient};
-use crate::agent::{AgentConfig, ResolvedSessionSpec, cockpit_session::CockpitSession};
+use crate::agent::{AgentConfig, ResolvedSessionSpec};
 use crate::orchestration::{
     hosted_work::HostedWork, interactive_session::interactive_session, loop_driver::Connector,
 };
@@ -48,7 +48,7 @@ impl InteractiveHost {
         )
         .context("Magistr could not open the project")?;
         let resources = Resources::open(engines, config.inputs()).await?;
-        Self::live(config, resources, inbox, commands).await
+        Self::live(config, resources, inbox, commands, None).await
     }
 
     pub(super) async fn open_admitted(
@@ -56,8 +56,9 @@ impl InteractiveHost {
         resources: Resources,
         inbox: Inbox,
         commands: Commands,
+        observation: std::sync::Arc<super::session_observation::SessionObservation>,
     ) -> eyre::Result<(Self, ProjectSeed)> {
-        Self::live(config, resources, inbox, commands).await
+        Self::live(config, resources, inbox, commands, Some(observation)).await
     }
 
     /// The production provider behind admitted `resources`.
@@ -66,6 +67,7 @@ impl InteractiveHost {
         resources: Resources,
         inbox: Inbox,
         commands: Commands,
+        observation: Option<std::sync::Arc<super::session_observation::SessionObservation>>,
     ) -> eyre::Result<(Self, ProjectSeed)> {
         let spec = config.clone().resolve();
         Self::connect(
@@ -74,13 +76,21 @@ impl InteractiveHost {
             spec,
             inbox,
             commands,
-            |spec| async {
-                CockpitSession::start(spec)
+            |spec, connector| async move {
+                let transport = spec.connect_transport().await?;
+                let options = magistr_application::sessions::SessionOptions {
+                    opening_prompt: (!spec.prompt().trim().is_empty())
+                        .then(|| spec.prompt().into()),
+                    model: None,
+                    max_turns: spec.max_turns(),
+                };
+                connector
+                    .start_session(transport, spec, options)
                     .await
                     .map(|session| Box::new(session) as Box<dyn SessionHandle>)
                     .map_err(eyre::Report::from)
             },
-            Connector::live,
+            move |source| Connector::live(source).observing(observation),
         )
         .await
     }
@@ -98,7 +108,7 @@ impl InteractiveHost {
         sessions: impl FnOnce(magistr_application::effects::SourceRoute) -> Connector,
     ) -> eyre::Result<(Self, ProjectSeed)>
     where
-        F: FnOnce(ResolvedSessionSpec) -> Fut,
+        F: FnOnce(ResolvedSessionSpec, Connector) -> Fut,
         Fut: Future<Output = eyre::Result<Box<dyn SessionHandle>>>,
     {
         let source = resources.admitted.workspace.source_route();
@@ -118,10 +128,12 @@ impl InteractiveHost {
             spec.workflow_permissions(),
             config.inputs(),
         );
-        let handle = match connect(spec).await {
+        let connector = sessions(source.clone());
+        let handle = match connect(spec, connector.clone()).await {
             Ok(handle) => handle,
             Err(error) => {
                 // Release the provider's source reference before the service.
+                drop(connector);
                 drop(source);
                 let cleanup = resources.close().await;
                 return Err(startup_error(error, cleanup));
@@ -140,7 +152,7 @@ impl InteractiveHost {
             config.inputs().as_ref().clone(),
             inbox.clone(),
         ));
-        let connector = sessions(source);
+        drop(source);
         let session = interactive_session(
             config.clone(),
             connector.clone(),

@@ -28,6 +28,7 @@ fn test_db() -> (TempDir, rusqlite::Connection) {
 fn make_record(id: &str, project: &str, cost: f64, turns: u32) -> SessionRecord {
     let now = Utc::now();
     SessionRecord {
+        purpose: magistr_application::sessions::SessionPurpose::Conversation,
         session_id: id.into(),
         name: None,
         project: project.into(),
@@ -117,6 +118,7 @@ fn purge_removes_old_keeps_recent() {
 
     let now = Utc::now();
     let old_record = SessionRecord {
+        purpose: magistr_application::sessions::SessionPurpose::Conversation,
         session_id: "old-session".into(),
         name: None,
         project: "project".into(),

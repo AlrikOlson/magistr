@@ -11,6 +11,7 @@ use tokio::sync::watch;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
 pub struct DraftStatus {
+    pub conversation: String,
     pub revision: u64,
     pub saved_revision: u64,
     /// Latest completed save attempt within this resident owner's lifetime.
@@ -68,10 +69,11 @@ pub(super) struct DraftWriter {
 impl DraftWriter {
     pub(super) fn start(
         history: SessionHistory,
-        state: watch::Sender<SessionSnapshot>,
+        initial: DraftStatus,
+        publish: impl Fn(DraftStatus) + Send + 'static,
     ) -> Arc<Self> {
         let (pending, mut receiver) = watch::channel::<Option<Pending>>(None);
-        let initial = state.borrow().draft_status();
+        let conversation = history.id();
         let (completed, completion) = watch::channel(initial.clone());
         tokio::spawn(async move {
             let mut saved_revision = initial.saved_revision;
@@ -88,18 +90,15 @@ impl DraftWriter {
                     }
                     Err(error) => Some(error),
                 };
-                state.send_modify(|snapshot| {
-                    snapshot.draft_saved_revision = saved_revision;
-                    snapshot.draft_save_attempt = pending.attempt;
-                    snapshot.draft_save_error.clone_from(&error);
-                    snapshot.sequence = snapshot.sequence.saturating_add(1);
-                });
-                completed.send_replace(DraftStatus {
+                let status = DraftStatus {
+                    conversation: conversation.clone(),
                     revision,
                     saved_revision,
                     save_attempt: pending.attempt,
                     error,
-                });
+                };
+                publish(status.clone());
+                completed.send_replace(status);
             }
         });
         Arc::new(Self {

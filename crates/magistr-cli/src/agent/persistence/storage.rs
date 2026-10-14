@@ -14,7 +14,7 @@ use crate::error::{MagistrError, Result};
 use super::retention_policy::RetentionPolicy;
 use super::session_filter::SessionFilter;
 use super::session_outcome::SessionOutcome;
-use super::session_record::SessionRecord;
+use super::session_record::{SessionRecord, purpose_from_name, purpose_name};
 use super::session_turn::{SessionTurn, TurnRole};
 
 /// Database filename.
@@ -25,7 +25,7 @@ const DB_FILENAME: &str = "sessions.db";
 const BUSY_WAIT: std::time::Duration = std::time::Duration::from_millis(500);
 
 /// Current schema only. Older formats are refused, never migrated.
-const SCHEMA_VERSION: i32 = 9;
+const SCHEMA_VERSION: i32 = 10;
 
 /// The session database, `<data_dir>/sessions.db`, over the captured data
 /// directory — the same directory the cost ledger and the audit log share;
@@ -127,6 +127,7 @@ fn initialize(conn: &Connection) -> Result<()> {
                 project TEXT NOT NULL,
                 workspace TEXT NOT NULL,
                 provider TEXT NOT NULL,
+                purpose TEXT NOT NULL CHECK(purpose IN ('conversation','roadmap')),
                 provider_session_id TEXT,
                 resume_supported INTEGER NOT NULL,
                 started_at TEXT NOT NULL,
@@ -165,7 +166,7 @@ fn initialize(conn: &Connection) -> Result<()> {
                 UNIQUE(session_id, turn_index)
             );
             CREATE INDEX idx_turns_session ON session_turns(session_id);
-            PRAGMA user_version = 9;",
+            PRAGMA user_version = 10;",
         )
         .map_err(|e| MagistrError::sqlite("create session schema", e))
     })();
@@ -192,9 +193,9 @@ pub fn insert_session(conn: &Connection, record: &SessionRecord) -> Result<()> {
             "INSERT INTO sessions
             (session_id, project, started_at, updated_at, cost_usd, turns,
              duration_ms, files_changed, tags, summary, model, owner,
-             workspace, provider, provider_session_id, resume_supported, outcome, name, ended_at)
+             workspace, provider, provider_session_id, resume_supported, outcome, name, ended_at, purpose)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12,
-                 ?13, ?14, ?15, ?16, ?17, ?18, ?19)
+                 ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20)
          ON CONFLICT(session_id) DO UPDATE SET
              updated_at=excluded.updated_at, cost_usd=excluded.cost_usd,
              turns=excluded.turns, duration_ms=excluded.duration_ms,
@@ -205,7 +206,8 @@ pub fn insert_session(conn: &Connection, record: &SessionRecord) -> Result<()> {
          WHERE excluded.updated_at > sessions.updated_at
            AND excluded.project = sessions.project
            AND excluded.workspace = sessions.workspace
-           AND excluded.provider = sessions.provider",
+           AND excluded.provider = sessions.provider
+           AND excluded.purpose = sessions.purpose",
             params![
                 record.session_id,
                 record.project,
@@ -227,6 +229,7 @@ pub fn insert_session(conn: &Connection, record: &SessionRecord) -> Result<()> {
                 record.outcome.map(SessionOutcome::as_str),
                 record.name,
                 record.ended_at.map(|time| time.to_rfc3339()),
+                purpose_name(record.purpose),
             ],
         )
         .map_err(|e| MagistrError::sqlite("save session", e))?;
@@ -234,10 +237,11 @@ pub fn insert_session(conn: &Connection, record: &SessionRecord) -> Result<()> {
         && let Some(existing) = get_session(conn, &record.session_id)?
         && (existing.project != record.project
             || existing.workspace != record.workspace
-            || existing.provider != record.provider)
+            || existing.provider != record.provider
+            || existing.purpose != record.purpose)
     {
         return Err(MagistrError::Config(
-            "A saved conversation cannot be reassigned to another project or agent.".into(),
+            "A saved conversation cannot change its project, agent or purpose.".into(),
         ));
     }
     Ok(())
@@ -250,7 +254,7 @@ pub fn query_sessions(conn: &Connection, filter: &SessionFilter) -> Result<Vec<S
     let mut sql = String::from(
         "SELECT session_id, project, started_at, updated_at, cost_usd, turns,
                 duration_ms, files_changed, tags, summary, model, owner,
-                workspace, provider, provider_session_id, resume_supported, outcome, name, ended_at
+                workspace, provider, provider_session_id, resume_supported, outcome, name, ended_at, purpose
          FROM sessions WHERE 1=1",
     );
     let mut param_values: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
@@ -310,7 +314,7 @@ pub fn get_session(conn: &Connection, session_id: &str) -> Result<Option<Session
         .prepare(
             "SELECT session_id, project, started_at, updated_at, cost_usd, turns,
                     duration_ms, files_changed, tags, summary, model, owner,
-                workspace, provider, provider_session_id, resume_supported, outcome, name, ended_at
+                workspace, provider, provider_session_id, resume_supported, outcome, name, ended_at, purpose
              FROM sessions WHERE session_id = ?1",
         )
         .map_err(|e| MagistrError::sqlite("prepare session query", e))?;
@@ -533,6 +537,9 @@ fn row_to_record(row: &rusqlite::Row<'_>) -> rusqlite::Result<SessionRecord> {
         .transpose()?;
     Ok(SessionRecord {
         session_id: row.get(0)?,
+        purpose: purpose_from_name(&row.get::<_, String>(19)?).map_err(|error| {
+            rusqlite::Error::FromSqlConversionFailure(19, rusqlite::types::Type::Text, error.into())
+        })?,
         name: row.get(17)?,
         project: row.get(1)?,
         started_at: timestamp(row, 2)?,

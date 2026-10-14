@@ -120,7 +120,24 @@ def source_hashes():
         "crates/magistr-workspace/src/query/source_observation.rs",
         "crates/magistr-workspace/src/service/workspace_service.rs",
     ))
-    return {str(path.relative_to(ROOT)):hashlib.sha256(path.read_bytes()).hexdigest() for path in files if path.is_file()}
+    # Bind evidence to every context owner, including modules split during normal
+    # refactoring; a new owner file must not silently fall outside freshness checks.
+    for pattern in (
+        "crates/magistr-application/src/sessions/*.rs",
+        "crates/magistr-cockpit-runtime/src/**/*.rs",
+        "crates/magistr-cli/src/application/session_*.rs",
+        "crates/magistr-cli/src/application/interactive_host.rs",
+        "crates/magistr-cli/src/agent/purpose_policy*.rs",
+        "crates/magistr-cli/src/agent/mod.rs",
+        "crates/magistr-cli/src/orchestration/hosted_work.rs",
+        "crates/magistr-cockpit/src/cockpit/cmd.rs",
+        "crates/magistr-cli/src/agent/persistence/*.rs",
+        "crates/magistr-cli/src/agent/session_supervisor/*.rs",
+        "crates/magistr-cli/src/orchestration/interactive_session.rs",
+        "crates/magistr-cli/src/orchestration/loop_driver/*.rs",
+    ):
+        files.extend(ROOT.glob(pattern))
+    return {str(path.relative_to(ROOT)):hashlib.sha256(path.read_bytes()).hexdigest() for path in sorted(set(files)) if path.is_file()}
 
 def main():
     parser=argparse.ArgumentParser()

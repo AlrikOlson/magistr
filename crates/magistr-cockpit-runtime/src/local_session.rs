@@ -8,6 +8,9 @@ use std::{future::Future, pin::Pin};
 pub(crate) struct LocalSession;
 
 impl SessionHandle for LocalSession {
+    fn conversation(&self) -> Option<magistr_application::sessions::Conversation> {
+        None
+    }
     fn submit_turn(
         &mut self,
         _: &magistr_application::sessions::PromptInput,

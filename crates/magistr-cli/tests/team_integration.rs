@@ -306,6 +306,7 @@ fn seed_session(home: &TempDir, id: &str, owner: &str) {
     insert_session(
         &conn,
         &SessionRecord {
+            purpose: magistr_application::sessions::SessionPurpose::Conversation,
             session_id: id.to_string(),
             name: None,
             project: "acme".to_string(),

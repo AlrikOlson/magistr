@@ -3,11 +3,11 @@ use crate::{
     credit::Credit,
     wire::{CatalogFrame, Frame},
 };
-use magistr::application::{SessionClient, SessionSubscription};
+use magistr::application::{ConversationTarget, SessionClient, SessionSubscription};
 use magistr_domain::identity::SessionAddress;
 use std::{
     sync::{
-        Arc,
+        Arc, Mutex as TargetMutex,
         atomic::{AtomicU64, Ordering},
     },
     time::Duration,
@@ -19,7 +19,7 @@ use tokio_util::sync::CancellationToken;
 struct Active {
     id: u64,
     selection: u64,
-    address: Option<SessionAddress>,
+    target: Arc<TargetMutex<Option<ConversationTarget>>>,
     stop: CancellationToken,
     credit: Arc<Credit>,
 }
@@ -30,10 +30,11 @@ pub(crate) struct Streams {
     next: AtomicU64,
 }
 impl Streams {
-    pub(crate) fn selected(&self) -> Option<(u64, SessionAddress)> {
+    pub(crate) fn selected(&self) -> Option<(u64, ConversationTarget)> {
         let active = self.active.try_lock().ok()?;
         let active = active.as_ref()?;
-        Some((active.id, active.address.clone()?))
+        let target = active.target.lock().ok()?.clone()?;
+        Some((active.id, target))
     }
 
     pub(crate) async fn subscribe(
@@ -57,17 +58,19 @@ impl Streams {
         let id = self.next.fetch_add(1, Ordering::Relaxed) + 1;
         let stop = CancellationToken::new();
         let credit = Arc::new(Credit::default());
+        let target = Arc::new(TargetMutex::new(None));
         tokio::spawn(forward(
             id,
             subscription,
             channel,
             stop.clone(),
             Arc::clone(&credit),
+            Arc::clone(&target),
         ));
         *active = Some(Active {
             id,
             selection,
-            address: Some(address.clone()),
+            target,
             stop,
             credit,
         });
@@ -95,7 +98,7 @@ impl Streams {
         *active = Some(Active {
             id,
             selection: 0,
-            address: None,
+            target: Arc::new(TargetMutex::new(None)),
             stop,
             credit,
         });
@@ -131,11 +134,19 @@ async fn forward(
     channel: Channel<Frame>,
     stop: CancellationToken,
     credit: Arc<Credit>,
+    selected: Arc<TargetMutex<Option<ConversationTarget>>>,
 ) {
     let mut snapshot = subscription.snapshot();
     let mut seen = None;
     let mut attachments_seen = Vec::new();
+    let mut previous_target = None;
     loop {
+        let target = snapshot.target();
+        if target != previous_target {
+            seen = None;
+            attachments_seen.clear();
+        }
+        previous_target = target.clone();
         let frame = Frame::from_snapshot(id, &snapshot, seen, &attachments_seen);
         attachments_seen = frame
             .attachments
@@ -152,6 +163,9 @@ async fn forward(
             ()=stop.cancelled()=>return,
             _=tokio::time::sleep(Duration::from_secs(30))=>return,
             ()=credit.ready.notified()=>{}
+        }
+        if let Ok(mut selected) = selected.lock() {
+            *selected = target;
         }
         seen = Some(sequence);
         if snapshot.closed {

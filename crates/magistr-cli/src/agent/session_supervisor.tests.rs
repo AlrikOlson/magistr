@@ -1190,11 +1190,26 @@ async fn permission_agent() -> (
     WireOutcomes,
     tempfile::TempDir,
 ) {
+    let directory = tempfile::tempdir().unwrap();
+    let (transport, server, outcomes) =
+        permission_agent_with_mode(directory.path(), magistr_acp::AcpSessionMode::New).await;
+    (transport, server, outcomes, directory)
+}
+
+async fn permission_agent_with_mode(
+    root: &std::path::Path,
+    mode: magistr_acp::AcpSessionMode,
+) -> (
+    magistr_acp::AcpTransport,
+    tokio::task::JoinHandle<()>,
+    WireOutcomes,
+) {
     use agent_client_protocol::schema::ProtocolVersion;
     use agent_client_protocol::schema::v1::{
-        ContentBlock, InitializeRequest, InitializeResponse, NewSessionRequest, NewSessionResponse,
-        PermissionOption, PermissionOptionKind, PromptRequest, PromptResponse,
-        RequestPermissionRequest, ToolCallUpdate, ToolCallUpdateFields,
+        AgentCapabilities, ContentBlock, InitializeRequest, InitializeResponse, LoadSessionRequest,
+        LoadSessionResponse, NewSessionRequest, NewSessionResponse, PermissionOption,
+        PermissionOptionKind, PromptRequest, PromptResponse, RequestPermissionRequest,
+        ToolCallUpdate, ToolCallUpdateFields,
     };
     use agent_client_protocol::{Agent, on_receive_request};
 
@@ -1206,13 +1221,23 @@ async fn permission_agent() -> (
             .name("supervisor-parity-test")
             .on_receive_request(
                 async move |_request: InitializeRequest, responder, _cx| {
-                    responder.respond(InitializeResponse::new(ProtocolVersion::V1))
+                    responder.respond(
+                        InitializeResponse::new(ProtocolVersion::V1)
+                            .agent_capabilities(AgentCapabilities::new().load_session(true)),
+                    )
                 },
                 on_receive_request!(),
             )
             .on_receive_request(
                 async move |_request: NewSessionRequest, responder, _cx| {
                     responder.respond(NewSessionResponse::new("parity-session"))
+                },
+                on_receive_request!(),
+            )
+            .on_receive_request(
+                async move |request: LoadSessionRequest, responder, _cx| {
+                    assert_eq!(request.session_id.to_string(), "parity-session");
+                    responder.respond(LoadSessionResponse::new())
                 },
                 on_receive_request!(),
             )
@@ -1261,15 +1286,15 @@ async fn permission_agent() -> (
             .connect_to(agent)
             .await;
     });
-    let directory = tempfile::tempdir().unwrap();
     let mut transport = magistr_acp::AcpTransport::new_with_args(
         std::path::PathBuf::from("unused-in-process-agent"),
         Vec::new(),
-        Some(directory.path().to_path_buf()),
+        Some(root.to_path_buf()),
     )
-    .unwrap();
+    .unwrap()
+    .session_mode(mode);
     transport.connect_over(client).await.unwrap();
-    (transport, server, outcomes, directory)
+    (transport, server, outcomes)
 }
 
 fn wire(outcome: agent_client_protocol::schema::v1::RequestPermissionOutcome) -> String {

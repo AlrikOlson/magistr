@@ -28,7 +28,13 @@ fn catalog_frames_preserve_full_ownership_and_omit_transcript_and_request_detail
             session: "resident".into(),
         },
         name: "Project".into(),
-        conversation: None,
+        owned_conversations: vec!["chat-history".into(), "planning-history".into()],
+        conversation: Some(magistr_application::sessions::Conversation {
+            id: "planning-history".into(),
+            purpose: SessionPurpose::Roadmap,
+            name: Some("Plan the next release".into()),
+            provider: "copilot".into(),
+        }),
         status: magistr::application::SessionStatus::Working,
         closed: false,
         model: None,
@@ -65,6 +71,13 @@ fn catalog_frames_preserve_full_ownership_and_omit_transcript_and_request_detail
     assert_eq!(session["address"]["workspace"], "copy");
     assert_eq!(session["address"]["session"], "resident");
     assert_eq!(session["status"], "Waiting for you");
+    assert_eq!(session["target"]["address"], session["address"]);
+    assert_eq!(session["target"]["conversation"], "planning-history");
+    assert_eq!(session["conversation"]["purpose"], "roadmap");
+    assert_eq!(
+        session["owned_conversations"],
+        serde_json::json!(["chat-history", "planning-history"])
+    );
     assert_eq!(session["pending"][0]["id"], 7);
     assert!(session["pending"][0].get("detail").is_none());
     assert!(session.get("events").is_none());

@@ -16,6 +16,8 @@ pub struct SessionSummary {
     pub address: SessionAddress,
     pub name: String,
     pub conversation: Option<magistr_application::sessions::Conversation>,
+    /// Histories retained by this resident, including parked conversations.
+    pub owned_conversations: Vec<String>,
     pub status: SessionStatus,
     pub closed: bool,
     pub model: Option<String>,
@@ -29,6 +31,11 @@ impl SessionSummary {
             address: snapshot.address.clone(),
             name: snapshot.seed.name.clone(),
             conversation: snapshot.conversation.clone(),
+            owned_conversations: snapshot
+                .conversation
+                .iter()
+                .map(|context| context.id.clone())
+                .collect(),
             status: snapshot.status,
             closed: snapshot.closed,
             model: snapshot.model.clone(),

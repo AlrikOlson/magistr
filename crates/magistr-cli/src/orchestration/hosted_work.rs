@@ -119,12 +119,30 @@ impl HostedWork {
                 Some(commands) => commands,
                 None => return Ok(()),
             };
-            session = self.admitting(interactive_session(
-                self.conversation(),
-                self.connector.clone(),
-                self.inbox.clone(),
-                Some(self.engines.clone()),
-            ));
+            let config = self.conversation();
+            let (transport, spec) = self
+                .connector
+                .connect(config.clone())
+                .await
+                .map_err(|error| error.to_string())?;
+            let handle = self
+                .connector
+                .start_session(
+                    transport,
+                    spec,
+                    magistr_application::sessions::SessionOptions::new(),
+                )
+                .await
+                .map_err(|error| error.to_string())?;
+            session = self.admitting(
+                interactive_session(
+                    config,
+                    self.connector.clone(),
+                    self.inbox.clone(),
+                    Some(self.engines.clone()),
+                )
+                .connected(Box::new(handle), false),
+            );
         }
     }
 

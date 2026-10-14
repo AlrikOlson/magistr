@@ -23,6 +23,7 @@ type Connect = dyn Fn(
 #[derive(Clone)]
 pub struct Connector {
     connection: Connection,
+    observation: Option<Arc<crate::application::session_observation::SessionObservation>>,
 }
 
 #[derive(Clone)]
@@ -40,6 +41,7 @@ impl Connector {
     {
         Self {
             connection: Connection::Custom(Arc::new(move |config| Box::pin(connect(config)))),
+            observation: None,
         }
     }
 
@@ -50,7 +52,41 @@ impl Connector {
     pub fn live(source: SourceRoute) -> Self {
         Self {
             connection: Connection::Live(source),
+            observation: None,
         }
+    }
+
+    pub(crate) fn observing(
+        mut self,
+        observation: Option<Arc<crate::application::session_observation::SessionObservation>>,
+    ) -> Self {
+        self.observation = observation;
+        self
+    }
+
+    /// Bind durable and retained state before the supervisor can admit an opening turn.
+    /// Raw connections, including judges, do not activate a displayed conversation.
+    pub(crate) async fn start_session(
+        &self,
+        transport: AcpTransport,
+        spec: ResolvedSessionSpec,
+        options: magistr_application::sessions::SessionOptions,
+    ) -> Result<crate::agent::cockpit_session::CockpitSession> {
+        let history = spec.history();
+        history.bind_transport(&transport);
+        if let Some(observation) = &self.observation {
+            observation
+                .bind_history(history.clone())
+                .await
+                .map_err(crate::error::MagistrError::Other)?;
+            observation
+                .activate_context(&history.id())
+                .map_err(crate::error::MagistrError::Other)?;
+        }
+        let (policy, _) = spec.into_session_policy();
+        crate::agent::cockpit_session::CockpitSession::start_owned(
+            transport, options, policy, history,
+        )
     }
 
     /// Connect without a persisted loop operation (single sessions and fixtures).

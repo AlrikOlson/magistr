@@ -37,6 +37,32 @@ impl Settle for Hosted {
         })
     }
 }
+pub(crate) fn mutation_target(address: &SessionAddress) -> ConversationTarget {
+    ConversationTarget {
+        address: address.clone(),
+        conversation: address.session.clone(),
+    }
+}
+
+fn bind_opening(opening: &Opening) -> String {
+    if let Some(conversation) = opening.observation.snapshot().conversation {
+        return conversation.id;
+    }
+    let id = match &opening.choice {
+        SessionOpening::Resume { id } => id.clone(),
+        _ => opening.address.session.clone(),
+    };
+    opening
+        .observation
+        .bind_context_for_test(magistr_application::sessions::Conversation {
+            id: id.clone(),
+            purpose: magistr_application::sessions::SessionPurpose::Conversation,
+            name: None,
+            provider: "scripted".into(),
+        });
+    id
+}
+
 pub(crate) fn opener(log: Log) -> Open<Hosted> {
     Box::new(move |opening| {
         let log = log.clone();
@@ -49,6 +75,7 @@ pub(crate) fn opener(log: Log) -> Open<Hosted> {
             if name == "held" {
                 return Err("provider unavailable".into());
             }
+            let conversation = bind_opening(&opening);
             log.note(format!("open {name}"));
             let seed = ProjectSeed {
                 name: name.clone(),
@@ -57,13 +84,16 @@ pub(crate) fn opener(log: Log) -> Open<Hosted> {
             };
             let (stop, mut stopped) = oneshot::channel();
             let mut commands = opening.commands;
-            let inbox = opening.inbox;
+            let inbox = opening.inbox.for_conversation(&conversation);
             let task = tokio::spawn(async move {
                 loop {
                     tokio::select! {
                         _ = &mut stopped => break,
-                        command = commands.next() => match command {
-                            Some(Cmd::Prompt(input)) => {
+                        command = commands.next() => {
+                            let Some(command) = command else { break; };
+                            let Some(command) = inbox.command_for(command, Some(&conversation)) else { continue; };
+                            match command {
+                            Cmd::Prompt(input) => {
                                 let text = input.text;
                                 log.note(format!("{name} got {text}"));
                                 inbox.send(Msg::Agent(AgentEvent::Text(format!("{name}: {text}"))));
@@ -71,13 +101,13 @@ pub(crate) fn opener(log: Log) -> Open<Hosted> {
                                     inbox.send(Msg::Agent(AgentEvent::PermissionRequest { detail: String::new(), id: 1, title: "Read".into(), choices: vec![PermissionChoice::new("allow", PermissionKind::AllowOnce)], edit: false, risk: magistr_domain::policy::RiskTier::Low, plan: None }));
                                 }
                             }
-                            Some(Cmd::Permission { id, option_id }) => {
+                            Cmd::Permission { id, option_id } => {
                                 log.note(format!("{name} answered {id} {option_id}"));
                                 inbox.send(Msg::Agent(AgentEvent::PermissionCancelled { id }));
                             }
-                            Some(Cmd::Cancel) => { log.note(format!("{name} cancelled")); }
-                            Some(_) => {}
-                            None => break,
+                            Cmd::Cancel => { log.note(format!("{name} cancelled")); }
+                            _ => {}
+                            }
                         },
                     }
                 }
@@ -165,19 +195,19 @@ fn stop_invalidates_delayed_preparation_and_concurrent_sends_cannot_overtake() {
         let sender = client.clone();
         let target = address.clone();
         let pending = tokio::spawn(async move {
-            sender.send(&target, "stopped message".into(), Vec::new()).await
+            sender.send(&mutation_target(&target), "stopped message".into(), Vec::new()).await
         });
         until(&mut reader, |snapshot| snapshot.seed.draft.as_deref() == Some("stopped message")).await;
-        assert!(client.send(&address, "later message".into(), Vec::new())
+        assert!(client.send(&mutation_target(&address), "later message".into(), Vec::new())
             .await.unwrap_err().contains("still being checked"));
-        assert!(client.command(&address, Cmd::Prompt("cannot overtake".into()))
+        assert!(client.command(&mutation_target(&address), Cmd::Prompt("cannot overtake".into()))
             .await.unwrap_err().contains("still being checked"));
-        client.command(&address, Cmd::Cancel).await.unwrap();
+        client.command(&mutation_target(&address), Cmd::Cancel).await.unwrap();
         release.send(()).unwrap();
         worker.await.unwrap();
         assert!(pending.await.unwrap().unwrap_err().contains("was stopped"));
         assert_eq!(reader.snapshot().seed.draft.as_deref(), Some("stopped message"));
-        client.send(&address, "send after stopping".into(), Vec::new()).await.unwrap();
+        client.send(&mutation_target(&address), "send after stopping".into(), Vec::new()).await.unwrap();
         until(&mut reader, |snapshot| snapshot.messages.iter().any(|event|
             matches!(&event.message, Msg::Agent(AgentEvent::Text(text)) if text == "first: send after stopping")
         )).await;
@@ -216,18 +246,24 @@ async fn addressed_sessions_in_two_workspaces_survive_disconnect_and_route_permi
     assert_ne!(a, c);
     assert_eq!(a.workspace, c.workspace);
     let mut reader = client.subscribe(&a).await.unwrap();
-    client.command(&a, Cmd::Prompt("ask".into())).await.unwrap();
+    client
+        .command(&mutation_target(&a), Cmd::Prompt("ask".into()))
+        .await
+        .unwrap();
     until(&mut reader, |snapshot| snapshot.pending.contains_key(&1)).await;
     drop(reader);
-    client.draft(&a, 0, "unsent first".into()).await.unwrap();
     client
-        .command(&b, Cmd::Prompt("other".into()))
+        .draft(&mutation_target(&a), 0, "unsent first".into())
+        .await
+        .unwrap();
+    client
+        .command(&mutation_target(&b), Cmd::Prompt("other".into()))
         .await
         .unwrap();
     assert!(
         client
             .command(
-                &b,
+                &mutation_target(&b),
                 Cmd::Permission {
                     id: 1,
                     option_id: "allow".into()
@@ -240,7 +276,7 @@ async fn addressed_sessions_in_two_workspaces_survive_disconnect_and_route_permi
     assert!(
         client
             .command(
-                &a,
+                &mutation_target(&a),
                 Cmd::Permission {
                     id: 1,
                     option_id: "unoffered".into()
@@ -251,7 +287,7 @@ async fn addressed_sessions_in_two_workspaces_survive_disconnect_and_route_permi
     );
     client
         .command(
-            &a,
+            &mutation_target(&a),
             Cmd::Permission {
                 id: 1,
                 option_id: "allow".into(),
@@ -262,7 +298,10 @@ async fn addressed_sessions_in_two_workspaces_survive_disconnect_and_route_permi
     let mut reader = client.subscribe(&a).await.unwrap();
     let snapshot = until(&mut reader, |snapshot| !snapshot.pending.contains_key(&1)).await;
     assert_eq!(snapshot.seed.draft.as_deref(), Some("unsent first"));
-    client.command(&c, Cmd::Cancel).await.unwrap();
+    client
+        .command(&mutation_target(&c), Cmd::Cancel)
+        .await
+        .unwrap();
     assert!(
         client
             .open(
@@ -277,16 +316,21 @@ async fn addressed_sessions_in_two_workspaces_survive_disconnect_and_route_permi
     client.close(&a).await.unwrap();
     assert!(
         client
-            .command(&a, Cmd::Cancel)
+            .command(&mutation_target(&a), Cmd::Cancel)
             .await
             .unwrap_err()
             .contains("no longer")
     );
     let mut forged = c.clone();
     forged.workspace = b.workspace.clone();
-    assert!(client.command(&forged, Cmd::Cancel).await.is_err());
+    assert!(
+        client
+            .command(&mutation_target(&forged), Cmd::Cancel)
+            .await
+            .is_err()
+    );
     client
-        .command(&b, Cmd::Prompt("still alive".into()))
+        .command(&mutation_target(&b), Cmd::Prompt("still alive".into()))
         .await
         .unwrap();
     registry.shutdown().await.unwrap();
@@ -381,10 +425,13 @@ async fn opening_a_provider_does_not_block_controls_for_an_existing_session() {
         })
     };
     tokio::task::yield_now().await;
-    tokio::time::timeout(Duration::from_secs(1), client.command(&a, Cmd::Cancel))
-        .await
-        .unwrap()
-        .unwrap();
+    tokio::time::timeout(
+        Duration::from_secs(1),
+        client.command(&mutation_target(&a), Cmd::Cancel),
+    )
+    .await
+    .unwrap()
+    .unwrap();
     release.notify_one();
     opening.await.unwrap().unwrap();
     registry.shutdown().await.unwrap();
@@ -406,7 +453,10 @@ async fn a_full_application_queue_returns_an_explicit_retry_without_losing_input
     };
     assert!(
         client
-            .command(&address, Cmd::Prompt("keep this draft".into()))
+            .command(
+                &mutation_target(&address),
+                Cmd::Prompt("keep this draft".into())
+            )
             .await
             .unwrap_err()
             .contains("busy")
@@ -429,7 +479,7 @@ async fn oversized_input_is_refused_before_entering_the_owner_queue() {
     assert!(
         tokio::time::timeout(
             Duration::from_millis(100),
-            client.draft(&address, 0, text.clone())
+            client.draft(&mutation_target(&address), 0, text.clone())
         )
         .await
         .expect("must refuse before posting")
@@ -439,7 +489,7 @@ async fn oversized_input_is_refused_before_entering_the_owner_queue() {
     assert!(
         tokio::time::timeout(
             Duration::from_millis(100),
-            client.command(&address, Cmd::Prompt(text.into()))
+            client.command(&mutation_target(&address), Cmd::Prompt(text.into()))
         )
         .await
         .expect("must refuse before posting")
@@ -473,7 +523,10 @@ async fn catalog_tracks_background_attention_without_token_or_draft_notification
         .unwrap();
     let mut catalog = client.catalog();
     assert_eq!(catalog.snapshot().sessions.len(), 2);
-    client.command(&b, Cmd::Prompt("ask".into())).await.unwrap();
+    client
+        .command(&mutation_target(&b), Cmd::Prompt("ask".into()))
+        .await
+        .unwrap();
     let update = tokio::time::timeout(Duration::from_secs(3), async {
         loop {
             let next = catalog.changed().await.unwrap();
@@ -498,12 +551,12 @@ async fn catalog_tracks_background_attention_without_token_or_draft_notification
         super::super::SessionStatus::Ready
     );
     client
-        .draft(&b, 0, "background draft".into())
+        .draft(&mutation_target(&b), 0, "background draft".into())
         .await
         .unwrap();
     for _ in 0..100 {
         client
-            .command(&b, Cmd::Prompt("token".into()))
+            .command(&mutation_target(&b), Cmd::Prompt("token".into()))
             .await
             .unwrap();
     }
@@ -515,7 +568,7 @@ async fn catalog_tracks_background_attention_without_token_or_draft_notification
     );
     client
         .command(
-            &b,
+            &mutation_target(&b),
             Cmd::Permission {
                 id: 1,
                 option_id: "allow".into(),
@@ -538,7 +591,7 @@ async fn catalog_tracks_background_attention_without_token_or_draft_notification
     assert!(
         client
             .command(
-                &b,
+                &mutation_target(&b),
                 Cmd::Permission {
                     id: 1,
                     option_id: "allow".into()
@@ -567,6 +620,7 @@ async fn refused_duplicate_permission_does_not_release_an_accepted_reservation()
     }
     let registry = SessionRegistry::start_with(
         Box::new(move |opening| {
+            bind_opening(&opening);
             sent.send(Arc::clone(&opening.observation)).unwrap();
             Box::pin(async { Ok((Held(opening), ProjectSeed::default())) })
         }),
@@ -595,10 +649,21 @@ async fn refused_duplicate_permission_does_not_release_an_accepted_reservation()
         id: 1,
         option_id: "allow".into(),
     };
-    client.command(&address, answer()).await.unwrap();
-    assert!(client.command(&address, answer()).await.is_err());
+    client
+        .command(&mutation_target(&address), answer())
+        .await
+        .unwrap();
     assert!(
-        client.command(&address, answer()).await.is_err(),
+        client
+            .command(&mutation_target(&address), answer())
+            .await
+            .is_err()
+    );
+    assert!(
+        client
+            .command(&mutation_target(&address), answer())
+            .await
+            .is_err(),
         "a rejected retry cannot reopen an accepted answer"
     );
     assert_eq!(observation.snapshot().pending_requests().count(), 0);
@@ -626,13 +691,14 @@ async fn catalog_keeps_closing_visible_until_the_addressed_owner_settles() {
         Box::new(move |opening| {
             let release = Arc::clone(&gate);
             Box::pin(async move {
-                opening.inbox.send(Msg::Agent(AgentEvent::Conversation(
+                opening.observation.bind_context_for_test(
                     magistr_application::sessions::Conversation {
                         id: "fresh-saved-conversation".into(),
+                        purpose: magistr_application::sessions::SessionPurpose::Conversation,
                         name: None,
                         provider: "copilot".into(),
                     },
-                )));
+                );
                 Ok((
                     Closing {
                         _opening: opening,
@@ -652,6 +718,13 @@ async fn catalog_keeps_closing_visible_until_the_addressed_owner_settles() {
         )
         .await
         .unwrap();
+    let target = client
+        .subscribe(&address)
+        .await
+        .unwrap()
+        .snapshot()
+        .target()
+        .unwrap();
     let mut catalog = client.catalog();
     catalog.snapshot();
     let addressed = address.clone();
@@ -664,7 +737,7 @@ async fn catalog_keeps_closing_visible_until_the_addressed_owner_settles() {
     assert_eq!(snapshot.sessions[0].address, address);
     assert_eq!(snapshot.sessions[0].label(), "Closing");
     assert!(!closing.is_finished());
-    assert!(client.command(&address, Cmd::Cancel).await.is_err());
+    assert!(client.command(&target, Cmd::Cancel).await.is_err());
     let duplicate = client
         .open(
             tmp.path().join("first"),

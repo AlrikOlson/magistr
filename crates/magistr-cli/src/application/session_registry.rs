@@ -60,7 +60,7 @@ enum Request {
         reply: oneshot::Sender<Result<SessionAddress, String>>,
     },
     Command {
-        address: SessionAddress,
+        address: ConversationTarget,
         command: Cmd,
         reply: oneshot::Sender<Result<(), String>>,
     },
@@ -72,7 +72,7 @@ enum Request {
         reply: oneshot::Sender<Vec<SessionSnapshot>>,
     },
     Draft {
-        address: SessionAddress,
+        address: ConversationTarget,
         expected_revision: u64,
         text: String,
         discard: bool,
@@ -86,17 +86,17 @@ enum Request {
         reply: oneshot::Sender<Result<super::DraftStatus, String>>,
     },
     Attach {
-        address: SessionAddress,
+        address: ConversationTarget,
         selection: AttachmentSelection,
         reply: oneshot::Sender<Result<(), String>>,
     },
     RemoveAttachment {
-        address: SessionAddress,
+        address: ConversationTarget,
         id: String,
         reply: oneshot::Sender<Result<(), String>>,
     },
     Send {
-        address: SessionAddress,
+        address: ConversationTarget,
         text: String,
         ids: Vec<String>,
         reply: oneshot::Sender<Result<(), String>>,
@@ -107,7 +107,14 @@ enum Request {
     },
 }
 
-/// Clonable control port. Every session action names its complete admitted address.
+/// One logical conversation within a resident application session.
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct ConversationTarget {
+    pub address: SessionAddress,
+    pub conversation: String,
+}
+
+/// Clonable control port. Conversation actions name their exact retained owner.
 #[derive(Clone)]
 pub struct SessionClient {
     sender: mpsc::Sender<Request>,
@@ -144,7 +151,7 @@ impl SessionClient {
             .map_err(|_| "The application closed while opening the session.".to_owned())?
     }
 
-    pub async fn command(&self, address: &SessionAddress, command: Cmd) -> Result<(), String> {
+    pub async fn command(&self, address: &ConversationTarget, command: Cmd) -> Result<(), String> {
         if let Cmd::Prompt(input) | Cmd::RoadmapPrompt(input) = &command {
             input.validate(true)?;
             if input.is_empty() {
@@ -197,7 +204,7 @@ impl SessionClient {
 
     pub async fn draft(
         &self,
-        address: &SessionAddress,
+        address: &ConversationTarget,
         expected_revision: u64,
         text: String,
     ) -> Result<super::DraftStatus, String> {
@@ -208,7 +215,7 @@ impl SessionClient {
 
     pub async fn discard_draft(
         &self,
-        address: &SessionAddress,
+        address: &ConversationTarget,
         expected_revision: u64,
     ) -> Result<super::DraftStatus, String> {
         self.edit_draft(address, expected_revision, String::new(), true)
@@ -217,7 +224,7 @@ impl SessionClient {
 
     async fn edit_draft(
         &self,
-        address: &SessionAddress,
+        address: &ConversationTarget,
         expected_revision: u64,
         text: String,
         discard: bool,
@@ -306,7 +313,7 @@ impl SessionClient {
     /// Stage native file selections only through this session's admitted workspace.
     pub async fn attach_files(
         &self,
-        address: &SessionAddress,
+        address: &ConversationTarget,
         paths: &[PathBuf],
     ) -> Result<(), String> {
         self.attach(address, AttachmentSelection::Files(paths.to_vec()))
@@ -316,7 +323,7 @@ impl SessionClient {
     /// Paste user-provided bytes; this carries no filesystem path or read capability.
     pub async fn attach_bytes(
         &self,
-        address: &SessionAddress,
+        address: &ConversationTarget,
         name: String,
         bytes: Vec<u8>,
     ) -> Result<(), String> {
@@ -329,7 +336,7 @@ impl SessionClient {
 
     async fn attach(
         &self,
-        address: &SessionAddress,
+        address: &ConversationTarget,
         selection: AttachmentSelection,
     ) -> Result<(), String> {
         let (reply, result) = oneshot::channel();
@@ -345,7 +352,7 @@ impl SessionClient {
 
     pub async fn remove_attachment(
         &self,
-        address: &SessionAddress,
+        address: &ConversationTarget,
         id: String,
     ) -> Result<(), String> {
         let (reply, result) = oneshot::channel();
@@ -362,7 +369,7 @@ impl SessionClient {
     /// Validate selected source revisions, then queue the exact immutable message.
     pub async fn send(
         &self,
-        address: &SessionAddress,
+        address: &ConversationTarget,
         text: String,
         attachment_ids: Vec<String>,
     ) -> Result<(), String> {
@@ -475,7 +482,7 @@ struct Resident<H> {
     commands: mpsc::Sender<Cmd>,
     observation: Arc<SessionObservation>,
     send_generation: u64,
-    preparing: bool,
+    preparing: Option<String>,
 }
 enum Completed<H> {
     DraftSaved {
@@ -488,12 +495,12 @@ enum Completed<H> {
         reply: oneshot::Sender<Result<(), String>>,
     },
     Attached {
-        address: SessionAddress,
+        address: ConversationTarget,
         result: Result<Vec<super::StagedAttachment>, String>,
         reply: oneshot::Sender<Result<(), String>>,
     },
     Prepared {
-        address: SessionAddress,
+        address: ConversationTarget,
         generation: u64,
         ids: Vec<String>,
         input: Result<PromptInput, String>,
@@ -644,13 +651,7 @@ impl<H: Settle> Serving<H> {
                             .values()
                             .map(|resident| &resident.observation)
                             .chain(self.closing.values())
-                            .any(|observation| {
-                                observation
-                                    .snapshot()
-                                    .conversation
-                                    .as_ref()
-                                    .is_some_and(|conversation| &conversation.id == id)
-                            }))
+                            .any(|observation| observation.owns(id)))
                 {
                     let _ = reply.send(Err(
                         "This conversation is already open. Choose it from Sessions.".into(),
@@ -697,10 +698,11 @@ impl<H: Settle> Serving<H> {
                 let result = self.command(&address, command);
                 if let Err(error) = &result
                     && !matches!(rejected, Cmd::Permission { .. })
-                    && let Some(resident) = self.sessions.get(&address)
+                    && let Some(resident) = self.sessions.get(&address.address)
                 {
-                    magistr_cockpit_runtime::channel::ObservationSink::send(
+                    magistr_cockpit_runtime::channel::ObservationSink::send_for(
                         &*resident.observation,
+                        &address.conversation,
                         magistr_cockpit::cockpit::Msg::CommandFailed {
                             cmd: rejected,
                             error: error.clone(),
@@ -777,7 +779,7 @@ impl<H: Settle> Serving<H> {
 
     fn edit_resident_draft(
         &mut self,
-        address: SessionAddress,
+        address: ConversationTarget,
         expected_revision: u64,
         text: String,
         discard: bool,
@@ -791,16 +793,22 @@ impl<H: Settle> Serving<H> {
         }
         let observation = self
             .sessions
-            .get(&address)
+            .get(&address.address)
             .map(|resident| Arc::clone(&resident.observation))
             .ok_or_else(gone);
         match observation.and_then(|observation| {
-            let revision = observation.edit_draft(expected_revision, text, discard)?;
+            observation.validate_target(&address)?;
+            let revision = observation.edit_draft_for(
+                &address.conversation,
+                expected_revision,
+                text,
+                discard,
+            )?;
             Ok((observation, revision))
         }) {
             Ok((observation, revision)) => {
                 self.pending.spawn(async move {
-                    let mut status = observation.flush_draft().await;
+                    let mut status = observation.flush_draft_for(&address.conversation).await;
                     status.revision = revision;
                     Completed::DraftSaved {
                         id: None,
@@ -829,13 +837,7 @@ impl<H: Settle> Serving<H> {
                 .values()
                 .map(|resident| &resident.observation)
                 .chain(self.closing.values())
-                .any(|observation| {
-                    observation
-                        .snapshot()
-                        .conversation
-                        .as_ref()
-                        .is_some_and(|conversation| conversation.id == id)
-                });
+                .any(|observation| observation.owns(&id));
         if self.pending.len() >= CAPACITY {
             let _ = reply.send(Err(
                 "The application is busy. Try saving your message again.".into(),
@@ -868,20 +870,21 @@ impl<H: Settle> Serving<H> {
 
     fn remove_pending_attachment(
         &mut self,
-        address: SessionAddress,
+        address: ConversationTarget,
         id: String,
         reply: oneshot::Sender<Result<(), String>>,
     ) {
         let observation = self
             .sessions
-            .get(&address)
+            .get(&address.address)
             .map(|resident| Arc::clone(&resident.observation))
             .ok_or_else(gone);
         match observation.and_then(|observation| {
-            observation.remove_attachment(&id)?;
+            observation.validate_target(&address)?;
+            observation.remove_attachment_for(&address.conversation, &id)?;
             Ok(observation)
         }) {
-            Ok(observation) => self.await_mutation(observation, reply),
+            Ok(observation) => self.await_mutation(observation, address.conversation, reply),
             Err(error) => {
                 let _ = reply.send(Err(error));
             }
@@ -891,10 +894,11 @@ impl<H: Settle> Serving<H> {
     fn await_mutation(
         &mut self,
         observation: Arc<SessionObservation>,
+        conversation: String,
         reply: oneshot::Sender<Result<(), String>>,
     ) {
         self.pending.spawn(async move {
-            let status = observation.flush_draft().await;
+            let status = observation.flush_draft_for(&conversation).await;
             Completed::MutationSaved {
                 result: status.error.map_or(Ok(()), Err),
                 reply,
@@ -904,14 +908,18 @@ impl<H: Settle> Serving<H> {
 
     fn attach(
         &mut self,
-        address: SessionAddress,
+        address: ConversationTarget,
         selection: AttachmentSelection,
         reply: oneshot::Sender<Result<(), String>>,
     ) {
-        let Some(resident) = self.sessions.get(&address) else {
+        let Some(resident) = self.sessions.get(&address.address) else {
             let _ = reply.send(Err(gone()));
             return;
         };
+        if let Err(error) = resident.observation.validate_target(&address) {
+            let _ = reply.send(Err(error));
+            return;
+        }
         if self.pending.len() >= CAPACITY {
             let _ = reply.send(Err("The application is busy. Try the action again.".into()));
             return;
@@ -932,22 +940,29 @@ impl<H: Settle> Serving<H> {
 
     fn prepare_submission(
         &mut self,
-        address: SessionAddress,
+        address: ConversationTarget,
         text: String,
         ids: Vec<String>,
         reply: oneshot::Sender<Result<(), String>>,
     ) {
-        let Some(resident) = self.sessions.get_mut(&address) else {
+        let Some(resident) = self.sessions.get_mut(&address.address) else {
             let _ = reply.send(Err(gone()));
             return;
         };
-        if resident.preparing {
+        if let Err(error) = resident.observation.validate_active(&address) {
+            let _ = reply.send(Err(error));
+            return;
+        }
+        if resident.preparing.as_deref() == Some(&address.conversation) {
             let _ = reply.send(Err(
                 "Your message is still being checked. Wait before sending again.".into(),
             ));
             return;
         }
-        let snapshot = resident.observation.snapshot();
+        let Some(snapshot) = resident.observation.context_snapshot(&address.conversation) else {
+            let _ = reply.send(Err(gone()));
+            return;
+        };
         if !matches_ids(&snapshot.attachments, &ids) {
             let _ = reply.send(Err(
                 "The attachments changed. Review the message and send again.".into(),
@@ -958,9 +973,15 @@ impl<H: Settle> Serving<H> {
             let _ = reply.send(Err("The application is busy. Try the action again.".into()));
             return;
         }
-        resident.observation.draft(text.clone());
+        if let Err(error) = resident
+            .observation
+            .draft_for(&address.conversation, text.clone())
+        {
+            let _ = reply.send(Err(error));
+            return;
+        }
         resident.send_generation += 1;
-        resident.preparing = true;
+        resident.preparing = Some(address.conversation.clone());
         let generation = resident.send_generation;
         let source = resident.observation.source();
         self.pending.spawn(async move {
@@ -982,18 +1003,24 @@ impl<H: Settle> Serving<H> {
 
     fn admit_prepared(
         &mut self,
-        address: &SessionAddress,
+        address: &ConversationTarget,
         generation: u64,
         ids: &[String],
         input: Result<PromptInput, String>,
     ) -> Result<(), String> {
-        let resident = self.sessions.get_mut(address).ok_or_else(gone)?;
-        if resident.send_generation != generation || !resident.preparing {
+        let resident = self.sessions.get_mut(&address.address).ok_or_else(gone)?;
+        if resident.send_generation != generation
+            || resident.preparing.as_deref() != Some(&address.conversation)
+        {
             return Err("This send was stopped. Your draft is still available.".into());
         }
-        resident.preparing = false;
+        resident.preparing = None;
+        resident.observation.validate_active(address)?;
         let input = input?;
-        let snapshot = resident.observation.snapshot();
+        let snapshot = resident
+            .observation
+            .context_snapshot(&address.conversation)
+            .ok_or_else(gone)?;
         if !matches_ids(&snapshot.attachments, ids) {
             return Err("The attachments changed. Review the message and send again.".into());
         }
@@ -1006,7 +1033,7 @@ impl<H: Settle> Serving<H> {
         self.command(address, Cmd::Prompt(input))
     }
 
-    fn command(&mut self, address: &SessionAddress, command: Cmd) -> Result<(), String> {
+    fn command(&mut self, address: &ConversationTarget, command: Cmd) -> Result<(), String> {
         if let Cmd::Prompt(input) | Cmd::RoadmapPrompt(input) = &command {
             input.validate(true)?;
             if input.is_empty() {
@@ -1016,16 +1043,22 @@ impl<H: Settle> Serving<H> {
         if matches!(command, Cmd::Quit) {
             return Err("Choose a session action or close the addressed session.".into());
         }
-        let resident = self.sessions.get_mut(address).ok_or_else(gone)?;
-        if resident.preparing && matches!(command, Cmd::Prompt(_) | Cmd::RoadmapPrompt(_)) {
+        let resident = self.sessions.get_mut(&address.address).ok_or_else(gone)?;
+        resident.observation.validate_active(address)?;
+        if resident.preparing.as_deref() == Some(&address.conversation)
+            && matches!(command, Cmd::Prompt(_) | Cmd::RoadmapPrompt(_))
+        {
             return Err("Your message is still being checked. Wait before sending again.".into());
         }
         let cancel = matches!(command, Cmd::Cancel);
         if let Cmd::Permission { id, ref option_id } = command {
-            if resident.observation.is_answered(id) {
+            if resident.observation.is_answered(&address.conversation, id) {
                 return Err("This request has already been answered.".into());
             }
-            let snapshot = resident.observation.snapshot();
+            let snapshot = resident
+                .observation
+                .context_snapshot(&address.conversation)
+                .ok_or_else(gone)?;
             if snapshot.closed
                 || snapshot
                     .activity
@@ -1049,9 +1082,9 @@ impl<H: Settle> Serving<H> {
         } else {
             None
         };
-        resident
+        let permit = resident
             .commands
-            .try_send(command)
+            .try_reserve()
             .map_err(|error| match error {
                 mpsc::error::TrySendError::Full(_) => {
                     "The session is busy. Try the action again.".to_owned()
@@ -1061,11 +1094,17 @@ impl<H: Settle> Serving<H> {
                 }
             })?;
         if let Some(id) = answered {
-            resident.observation.permission_answered(id);
+            resident
+                .observation
+                .permission_answered_for(&address.conversation, id)?;
         }
+        permit.send(Cmd::ForConversation {
+            id: address.conversation.clone(),
+            command: Box::new(command),
+        });
         if cancel {
             resident.send_generation += 1;
-            resident.preparing = false;
+            resident.preparing = None;
         }
         Ok(())
     }
@@ -1090,13 +1129,21 @@ impl<H: Settle> Serving<H> {
                     if quitting {
                         return Err("The application is closing.".into());
                     }
-                    let observation =
-                        Arc::clone(&self.sessions.get(&address).ok_or_else(gone)?.observation);
-                    observation.add_attachments(attachments)?;
+                    let observation = Arc::clone(
+                        &self
+                            .sessions
+                            .get(&address.address)
+                            .ok_or_else(gone)?
+                            .observation,
+                    );
+                    observation.validate_target(&address)?;
+                    observation.add_attachments_for(&address.conversation, attachments)?;
                     Ok(observation)
                 });
                 match result {
-                    Ok(observation) => self.await_mutation(observation, reply),
+                    Ok(observation) => {
+                        self.await_mutation(observation, address.conversation, reply)
+                    }
                     Err(error) => {
                         let _ = reply.send(Err(error));
                     }
@@ -1145,7 +1192,7 @@ impl<H: Settle> Serving<H> {
                                     commands,
                                     observation,
                                     send_generation: 0,
-                                    preparing: false,
+                                    preparing: None,
                                 },
                             );
                             let _ = reply.send(Ok(address));
@@ -1180,8 +1227,8 @@ async fn settle_host<H: Settle>(
     host: H,
     observation: Arc<SessionObservation>,
 ) -> Result<(), String> {
-    let draft = observation.flush_draft().await;
-    combine(draft.error.map_or(Ok(()), Err), host.settle().await)
+    let draft = observation.flush_all().await;
+    combine(draft, host.settle().await)
 }
 
 fn gone() -> String {
@@ -1204,3 +1251,7 @@ fn prepared(dir: &Path) -> Result<(String, PathBuf), String> {
 #[cfg(test)]
 #[path = "session_registry.tests.rs"]
 pub(super) mod tests;
+
+#[cfg(test)]
+#[path = "session_registry.ownership.tests.rs"]
+mod ownership_tests;

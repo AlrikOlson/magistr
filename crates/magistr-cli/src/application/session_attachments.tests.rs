@@ -1,7 +1,7 @@
 use super::*;
 use crate::application::{
     session_observation::SessionObservation,
-    session_registry::tests::{Log, projects, registry},
+    session_registry::tests::{Log, mutation_target, projects, registry},
 };
 use magistr_application::sessions::{AgentEvent, MAX_ATTACHMENT_BYTES};
 use magistr_cockpit::cockpit::Msg;
@@ -16,6 +16,17 @@ fn address() -> SessionAddress {
         workspace: "/test".into(),
         session: "one".into(),
     }
+}
+
+fn observation() -> SessionObservation {
+    let owner = SessionObservation::new(address());
+    owner.bind_context_for_test(magistr_application::sessions::Conversation {
+        id: "one".into(),
+        purpose: magistr_application::sessions::SessionPurpose::Conversation,
+        name: None,
+        provider: "scripted".into(),
+    });
+    owner
 }
 
 fn pasted(name: &str, bytes: &[u8]) -> Vec<StagedAttachment> {
@@ -62,10 +73,10 @@ async fn selected_file_changes_refuse_send_and_accepted_bytes_do_not_change() {
 
 #[test]
 fn source_and_clipboard_refusals_preserve_existing_draft_and_attachments() {
-    let owner = SessionObservation::new(address());
-    owner.draft("keep this".into());
+    let owner = observation();
+    owner.draft_for("one", "keep this".into()).unwrap();
     owner
-        .add_attachments(pasted("notes.txt", b"first"))
+        .add_attachments_for("one", pasted("notes.txt", b"first"))
         .unwrap();
     let before = owner.snapshot();
     assert!(
@@ -93,18 +104,23 @@ fn source_and_clipboard_refusals_preserve_existing_draft_and_attachments() {
     let more = (0..MAX_ATTACHMENTS)
         .flat_map(|n| pasted(&format!("{n}.txt"), b"x"))
         .collect();
-    assert!(owner.add_attachments(more).unwrap_err().contains("up to"));
+    assert!(
+        owner
+            .add_attachments_for("one", more)
+            .unwrap_err()
+            .contains("up to")
+    );
     assert_eq!(owner.snapshot(), before);
 }
 
 #[test]
 fn acceptance_compares_the_attached_bytes_and_rejection_restores_exact_content() {
-    let owner = SessionObservation::new(address());
+    let owner = observation();
     let old = pasted("notes.txt", b"old");
     let new = pasted("notes.txt", b"new");
     let old_input = prepare_send("same text".into(), &old, None).unwrap();
-    owner.draft("same text".into());
-    owner.add_attachments(new.clone()).unwrap();
+    owner.draft_for("one", "same text".into()).unwrap();
+    owner.add_attachments_for("one", new.clone()).unwrap();
     owner.send(Msg::InputAccepted(old_input.receipt()));
     assert_eq!(owner.snapshot().attachments, new);
     assert_eq!(owner.snapshot().seed.draft.as_deref(), Some("same text"));
@@ -144,10 +160,13 @@ async fn addressed_pending_files_survive_switching_refusal_and_cancellation() {
         )
         .await
         .unwrap();
-    client.draft(&first, 0, "image draft".into()).await.unwrap();
+    client
+        .draft(&mutation_target(&first), 0, "image draft".into())
+        .await
+        .unwrap();
     client
         .attach_bytes(
-            &first,
+            &mutation_target(&first),
             "picture.png".into(),
             b"\x89PNG\r\n\x1a\nimage".to_vec(),
         )
@@ -160,25 +179,28 @@ async fn addressed_pending_files_survive_switching_refusal_and_cancellation() {
     let ids = staged.iter().map(|file| file.id().to_owned()).collect();
     assert!(
         client
-            .send(&first, "image draft".into(), ids)
+            .send(&mutation_target(&first), "image draft".into(), ids)
             .await
             .unwrap_err()
             .contains("does not accept images")
     );
     client
-        .command(&first, magistr_cockpit::cockpit::Cmd::Cancel)
+        .command(
+            &mutation_target(&first),
+            magistr_cockpit::cockpit::Cmd::Cancel,
+        )
         .await
         .unwrap();
     assert_eq!(a.snapshot().attachments, staged);
     assert_eq!(a.snapshot().seed.draft.as_deref(), Some("image draft"));
     assert!(
         client
-            .remove_attachment(&second, staged[0].id().into())
+            .remove_attachment(&mutation_target(&second), staged[0].id().into())
             .await
             .is_err()
     );
     client
-        .remove_attachment(&first, staged[0].id().into())
+        .remove_attachment(&mutation_target(&first), staged[0].id().into())
         .await
         .unwrap();
     assert!(
@@ -192,7 +214,11 @@ async fn addressed_pending_files_survive_switching_refusal_and_cancellation() {
     );
     assert!(
         client
-            .send(&first, "image draft".into(), vec![staged[0].id().into()])
+            .send(
+                &mutation_target(&first),
+                "image draft".into(),
+                vec![staged[0].id().into()]
+            )
             .await
             .unwrap_err()
             .contains("changed")
@@ -200,7 +226,11 @@ async fn addressed_pending_files_survive_switching_refusal_and_cancellation() {
     client.close(&first).await.unwrap();
     assert!(
         client
-            .attach_bytes(&first, "later.txt".into(), b"late".to_vec())
+            .attach_bytes(
+                &mutation_target(&first),
+                "later.txt".into(),
+                b"late".to_vec()
+            )
             .await
             .is_err()
     );
@@ -209,16 +239,18 @@ async fn addressed_pending_files_survive_switching_refusal_and_cancellation() {
 
 #[test]
 fn acceptance_of_removed_content_does_not_clear_an_identical_new_selection() {
-    let owner = SessionObservation::new(address());
-    owner.draft("same text".into());
+    let owner = observation();
+    owner.draft_for("one", "same text".into()).unwrap();
     owner
-        .add_attachments(pasted("notes.txt", b"same bytes"))
+        .add_attachments_for("one", pasted("notes.txt", b"same bytes"))
         .unwrap();
     let selected = owner.snapshot().attachments;
     let old_input = prepare_send("same text".into(), &selected, None).unwrap();
-    owner.remove_attachment(selected[0].id()).unwrap();
     owner
-        .add_attachments(pasted("notes.txt", b"same bytes"))
+        .remove_attachment_for("one", selected[0].id())
+        .unwrap();
+    owner
+        .add_attachments_for("one", pasted("notes.txt", b"same bytes"))
         .unwrap();
     let replacement = owner.snapshot().attachments;
     assert_ne!(selected[0].id(), replacement[0].id());
@@ -244,7 +276,7 @@ async fn source_reader_lifetime_does_not_keep_an_admitted_owner_alive() {
         .await
         .unwrap(),
     );
-    let owner = SessionObservation::new(address());
+    let owner = observation();
     owner.set_source(Arc::downgrade(&source));
     assert!(owner.source().is_some());
     let service = Arc::try_unwrap(source)

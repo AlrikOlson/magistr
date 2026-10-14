@@ -11,12 +11,20 @@ fn summary_excludes_transcript_and_drafts_and_retains_current_facts() {
         workspace: "copy".into(),
         session: "session".into(),
     }));
+    owner.bind_context_for_test(magistr_application::sessions::Conversation {
+        id: "conversation".into(),
+        purpose: magistr_application::sessions::SessionPurpose::Conversation,
+        name: None,
+        provider: "scripted".into(),
+    });
     owner.send(Msg::Agent(AgentEvent::Text("first token".into())));
     let before = owner.summary();
     for _ in 0..600 {
         owner.send(Msg::Agent(AgentEvent::Text("next".into())));
     }
-    owner.draft("private draft".into());
+    owner
+        .draft_for("conversation", "private draft".into())
+        .unwrap();
     assert_eq!(owner.summary(), before);
     owner.send(Msg::Agent(AgentEvent::Usage {
         context: None,
@@ -42,6 +50,12 @@ fn cancellation_and_close_take_precedence_over_waiting() {
         workspace: "copy".into(),
         session: "session".into(),
     }));
+    owner.bind_context_for_test(magistr_application::sessions::Conversation {
+        id: "conversation".into(),
+        purpose: magistr_application::sessions::SessionPurpose::Conversation,
+        name: None,
+        provider: "scripted".into(),
+    });
     owner.send(Msg::Agent(AgentEvent::PermissionRequest {
         id: 1,
         title: "Read".into(),

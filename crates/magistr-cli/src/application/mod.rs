@@ -59,7 +59,7 @@ pub use session_attachments::StagedAttachment;
 mod session_catalog;
 mod session_drafts;
 pub use session_drafts::{DraftStatus, SavedDraft, saved_draft};
-mod session_observation;
+pub(crate) mod session_observation;
 mod session_workflow;
 pub use retained_observation::RetainedObservation;
 pub use session_catalog::{CatalogSubscription, SessionCatalog, SessionSummary, WaitingRequest};
@@ -71,7 +71,7 @@ pub use session_observation::{
     SessionSnapshot, SessionStatus, SessionSubscription, SubmissionAdmission,
 };
 pub use session_opening::SessionOpening;
-pub use session_registry::{SessionClient, SessionRegistry};
+pub use session_registry::{ConversationTarget, SessionClient, SessionRegistry};
 mod settled_check;
 mod working_copies;
 mod workspace_admission;

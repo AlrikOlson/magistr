@@ -131,6 +131,7 @@ desktop workspace. Companion Rust tests live beside their owners.
 - `crates/magistr-desktop/tests/session_controls_fixture.py`
 - `crates/magistr-desktop/ui/app.mjs`
 - `crates/magistr-desktop/ui/composer.mjs`
+- `crates/magistr-desktop/ui/context.mjs`
 - `crates/magistr-desktop/ui/conversation.mjs`
 - `crates/magistr-desktop/ui/selection.mjs`
 - `crates/magistr-desktop/ui/session_controls.mjs`

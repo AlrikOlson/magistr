@@ -8,6 +8,79 @@ fn inputs(dir: &tempfile::TempDir) -> ProjectInputs {
 }
 
 #[tokio::test]
+async fn live_draft_hydration_joins_database_initialization_before_any_writer_starts() {
+    for partially_opened in [true, false] {
+        let directory = tempfile::tempdir().unwrap();
+        let inputs = inputs(&directory);
+        let history = SessionHistory::new();
+        history
+            .begin(&inputs, directory.path(), "scripted", None)
+            .await
+            .unwrap();
+        let path = storage::sessions_db_path(&inputs).unwrap();
+        if partially_opened {
+            // SQLite creates the file before the first writer installs the schema.
+            // A second live conversation must join initialization, not read this
+            // transient version zero as an unsupported saved conversation.
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            drop(rusqlite::Connection::open(&path).unwrap());
+            assert!(storage::open_readonly_db(&path).is_err());
+        }
+        let draft = history
+            .load_draft()
+            .await
+            .expect("live history initializes its store");
+        assert_eq!(draft.status.conversation, history.id());
+        assert!(draft.text.is_empty());
+        let conn =
+            storage::open_readonly_db(&path).expect("the schema is ready before draft writes");
+        assert_eq!(storage::count_sessions(&conn).unwrap(), 0);
+        drop(conn);
+        history.save_draft(draft, 0).await.unwrap();
+        assert_eq!(history.load_draft().await.unwrap().status.revision, 0);
+    }
+}
+
+#[tokio::test]
+async fn live_draft_hydration_refuses_unsupported_and_unreadable_storage() {
+    for unreadable in [false, true] {
+        let directory = tempfile::tempdir().unwrap();
+        let inputs = inputs(&directory);
+        let history = SessionHistory::new();
+        history
+            .begin(&inputs, directory.path(), "scripted", None)
+            .await
+            .unwrap();
+        let path = storage::sessions_db_path(&inputs).unwrap();
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        if unreadable {
+            std::fs::create_dir(&path).unwrap();
+        } else {
+            let conn = rusqlite::Connection::open(&path).unwrap();
+            conn.execute_batch("PRAGMA user_version = 6;").unwrap();
+        }
+        assert!(history.load_draft().await.is_err());
+        if unreadable {
+            assert!(path.is_dir());
+        } else {
+            let conn = rusqlite::Connection::open(&path).unwrap();
+            let version: i32 = conn
+                .pragma_query_value(None, "user_version", |row| row.get(0))
+                .unwrap();
+            assert_eq!(version, 6);
+            let tables: u32 = conn
+                .query_row(
+                    "SELECT count(*) FROM sqlite_master WHERE type = 'table'",
+                    [],
+                    |row| row.get(0),
+                )
+                .unwrap();
+            assert_eq!(tables, 0);
+        }
+    }
+}
+
+#[tokio::test]
 async fn no_provider_id_and_unknown_usage_survive_reopen_and_repeated_settlement() {
     let directory = tempfile::tempdir().unwrap();
     let inputs = inputs(&directory);
@@ -32,14 +105,20 @@ async fn no_provider_id_and_unknown_usage_survive_reopen_and_repeated_settlement
 }
 
 #[tokio::test]
-async fn reconnect_retains_identity_and_counts_new_terminal_responses_once() {
+async fn reconnect_retains_identity_purpose_and_counts_new_terminal_responses_once() {
     let directory = tempfile::tempdir().unwrap();
     let inputs = inputs(&directory);
-    let history = SessionHistory::new();
+    let history = SessionHistory::for_purpose(SessionPurpose::Roadmap);
+    let id = history.id();
+    assert_eq!(history.purpose(), SessionPurpose::Roadmap);
     history
         .begin(&inputs, directory.path(), "scripted", None)
         .await
         .unwrap();
+    assert_eq!(
+        history.conversation().unwrap().purpose,
+        SessionPurpose::Roadmap
+    );
     history.finished_turn();
     history.settle(SessionOutcome::Completed).await.unwrap();
     let path = storage::sessions_db_path(&inputs).unwrap();
@@ -57,6 +136,11 @@ async fn reconnect_retains_identity_and_counts_new_terminal_responses_once() {
         .unwrap()
         .unwrap();
     assert_eq!(storage::count_sessions(&conn).unwrap(), 1);
+    assert_eq!(second.session_id, id);
+    assert_eq!(second.purpose, SessionPurpose::Roadmap);
+    let restored = SessionHistory::from_record(second.clone());
+    assert_eq!(restored.id(), id);
+    assert_eq!(restored.purpose(), SessionPurpose::Roadmap);
     assert_eq!(second.started_at, first.started_at);
     assert_eq!(second.turns, Some(2));
     assert_eq!(second.outcome, Some(SessionOutcome::Cancelled));

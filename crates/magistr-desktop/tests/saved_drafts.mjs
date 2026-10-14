@@ -23,6 +23,7 @@ function harness() {
       children: [], ownerDocument: document, parent: null, attributes: {},
       addEventListener: (name, listener) => listeners.set(name, listener),
       setAttribute(name, value) { this.attributes[name] = value; },
+      replaceChildren(...children) {for(const child of this.children)child.parent=null;this.children=[];this.append(...children);},
       append(...children) { for (const child of children) this.insertBefore(child, null); },
       insertBefore(child, before) {
         child.remove();
@@ -47,17 +48,18 @@ function harness() {
     if (!elements.has(id)) elements.set(id, node());
     return elements.get(id);
   };
-  const status = record => ({
+  const status = (record, conversation) => ({
+    conversation,
     revision: record.revision, saved_revision: record.revision, save_attempt: 0, error: null,
   });
-  const fixture = {element, records, calls, before: async () => {}};
+  const fixture = {element, records, calls, owner: null, before: async () => {}};
   const invoke = async (command, args) => {
     calls.push({command, ...args});
     await fixture.before(command, args);
     const record = records.get(args.id);
     assert.ok(record, "Every request addresses a real conversation");
     if (command === "saved_draft") {
-      return {text: record.text, attachments: record.attachments ?? [], status: status(record)};
+      return {text: record.text, attachments: record.attachments ?? [], status: status(record, args.id)};
     }
     assert.equal(args.expectedRevision, record.revision,
       "A write must compare the revision of its own conversation");
@@ -65,9 +67,9 @@ function harness() {
     else if (command === "discard_saved_draft") record.text = "";
     else throw new Error("Unexpected fixture command: " + command);
     record.revision += 1;
-    return status(record);
+    return status(record, args.id);
   };
-  fixture.editor = new SavedDraftEditor(element, invoke, () => false);
+  fixture.editor = new SavedDraftEditor(element, invoke, () => fixture.owner);
   return fixture;
 }
 
@@ -86,10 +88,10 @@ test("switching during discard keeps its result with the original conversation",
   await discard;
   assert.equal(await switching, true);
   assert.equal(h.records.get("first").text, "");
-  assert.equal(h.editor.current.id, "second");
+  assert.equal(h.editor.current.conversation, "second");
   assert.equal(h.element("saved-message").value, "Second conversation's message");
-  assert.equal(h.editor.writer.status({id: "second"}).revision, 1);
-  assert.equal(h.editor.writer.status({id: "second"}).save_attempt, 0);
+  assert.equal(h.editor.writer.status({conversation: "second"}).revision, 1);
+  assert.equal(h.editor.writer.status({conversation: "second"}).save_attempt, 0);
   h.element("saved-message").input("A later edit to the second conversation");
   await h.editor.flush();
   assert.equal(h.records.get("second").text, "A later edit to the second conversation");
@@ -117,8 +119,8 @@ test("switching during explicit Save cannot redirect its text or revision", asyn
   assert.equal(h.element("saved-message").value, "Second conversation's message");
   assert.deepEqual(h.calls.slice(marker).filter(call => call.command === "save_saved_draft")
     .map(call => call.id), ["first"]);
-  assert.equal(h.editor.writer.status({id: "second"}).revision, 1);
-  assert.equal(h.editor.writer.status({id: "second"}).save_attempt, 0);
+  assert.equal(h.editor.writer.status({conversation: "second"}).revision, 1);
+  assert.equal(h.editor.writer.status({conversation: "second"}).save_attempt, 0);
 });
 
 test("the latest navigation request wins while a previous discard settles", async () => {
@@ -135,9 +137,9 @@ test("the latest navigation request wins while a previous discard settles", asyn
   await discard;
   assert.deepEqual(await Promise.all([earlier, latest]), [false, true]);
   assert.equal(h.calls.some(call => call.id === "second"), false);
-  assert.equal(h.editor.current.id, "third");
+  assert.equal(h.editor.current.conversation, "third");
   assert.equal(h.element("saved-message").value, "Third conversation's message");
-  assert.equal(h.editor.writer.status({id: "third"}).revision, 3);
+  assert.equal(h.editor.writer.status({conversation: "third"}).revision, 3);
 });
 
 test("an older history read cannot replace a newer selected message", async () => {
@@ -153,7 +155,7 @@ test("an older history read cannot replace a newer selected message", async () =
   assert.equal(await h.editor.open({id: "third"}), true);
   release.resolve();
   assert.equal(await earlier, false);
-  assert.equal(h.editor.current.id, "third");
+  assert.equal(h.editor.current.conversation, "third");
   assert.equal(h.element("saved-message").value, "Third conversation's message");
 });
 
@@ -185,7 +187,7 @@ test("failed save during navigation leaves the unsaved editor and retry availabl
   assert.equal(h.element("saved-message").disabled, false);
   assert.equal(h.element("save-saved-message").disabled, false);
   assert.match(h.element("saved-draft-status").textContent, /disk is full/);
-  assert.equal(h.editor.current.id, "first");
+  assert.equal(h.editor.current.conversation, "first");
   assert.equal(h.calls.some(call => call.id === "second"), false);
   h.before = async () => {};
   await h.editor.retry();
@@ -208,7 +210,7 @@ test("a failed history read restores editing of the previously selected message"
   assert.equal(h.element("saved-message").value, "First conversation's message");
   release.resolve();
   await assert.rejects(switching, /cannot be read/);
-  assert.equal(h.editor.current.id, "first");
+  assert.equal(h.editor.current.conversation, "first");
   assert.equal(h.element("saved-message").disabled, false);
   h.element("saved-message").input("The original conversation remains editable");
   await h.editor.flush();
@@ -230,7 +232,7 @@ test("a failed discard cannot silently complete a queued history switch", async 
   const refused = assert.rejects(switching, /disk is full/);
   release.resolve();
   await Promise.all([discard, refused]);
-  assert.equal(h.editor.current.id, "first");
+  assert.equal(h.editor.current.conversation, "first");
   assert.equal(h.element("saved-draft").hidden, false);
   assert.equal(h.element("saved-message").disabled, false);
   assert.equal(h.records.get("first").text, "First conversation's message");
@@ -262,6 +264,40 @@ test("attachment removal is disabled throughout saved actions and history loadin
     await operation;
     if (action === "save") assert.equal(remove.disabled, false);
   }
-  assert.equal(h.editor.current.id, "second");
+  assert.equal(h.editor.current.conversation, "second");
   assert.equal(h.element("saved-attachments").hidden, true);
+});
+
+test("saved history selection cannot reuse another conversation's file preview",async()=>{
+ const h=harness();
+ h.records.get("first").attachments=[{id:"same",name:"first.png",mime_type:"image/png",preview:"data:image/png;base64,first",size:5}];
+ h.records.get("second").attachments=[{id:"same",name:"second.txt",excerpt:"second text",size:11}];
+ await h.editor.open({id:"first"});
+ assert.equal(h.editor.files.files[0].preview,"data:image/png;base64,first");
+ await h.editor.open({id:"second"});
+ assert.equal(h.editor.files.files[0].preview,undefined);
+ assert.equal(h.editor.files.files[0].excerpt,"second text");
+});
+
+test("parked and closing claims keep saved text read-only until the owner releases it",async()=>{
+ const h=harness();
+ await h.editor.open({id:"first"});
+ h.owner={target:{conversation:"planning"},closed:false};
+ h.editor.render();
+ assert.equal(h.element("saved-message").disabled,true);
+ assert.equal(h.element("save-saved-message").disabled,true);
+ assert.equal(h.element("discard-saved-draft").disabled,true);
+ assert.match(h.element("saved-draft-status").textContent,/Close that session/);
+ const before=h.calls.length;
+ await h.editor.mutate("discard_saved_draft");
+ assert.equal(h.calls.length,before);
+ h.owner.target.conversation="first";h.editor.render();
+ assert.match(h.element("saved-draft-status").textContent,/Resume it/);
+ h.owner.closed=true;h.editor.render();
+ assert.match(h.element("saved-draft-status").textContent,/still closing/);
+ h.owner=null;h.editor.render();
+ assert.equal(h.element("saved-message").disabled,false);
+ h.element("saved-message").input("Editable after release");
+ await h.editor.flush();
+ assert.equal(h.records.get("first").text,"Editable after release");
 });

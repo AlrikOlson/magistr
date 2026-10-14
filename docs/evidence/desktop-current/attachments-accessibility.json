@@ -851,7 +851,7 @@
       422,
       308,
       344,
-      76
+      55
     ]
   },
   {
@@ -869,7 +869,7 @@
     "focused" : false,
     "rect" : [
       422,
-      408,
+      387,
       344,
       97
     ]
@@ -889,7 +889,7 @@
     "focused" : false,
     "rect" : [
       422,
-      529,
+      508,
       344,
       53
     ]
@@ -909,7 +909,7 @@
     "focused" : false,
     "rect" : [
       422,
-      606,
+      585,
       344,
       55
     ]
@@ -1562,7 +1562,7 @@
       422,
       342,
       344,
-      42
+      21
     ]
   },
   {
@@ -1580,7 +1580,7 @@
     "focused" : false,
     "rect" : [
       439,
-      423,
+      402,
       310,
       24
     ]
@@ -1599,7 +1599,7 @@
     "focused" : false,
     "rect" : [
       439,
-      457,
+      436,
       310,
       21
     ]
@@ -1619,7 +1619,7 @@
     "focused" : false,
     "rect" : [
       422,
-      529,
+      508,
       344,
       24
     ]
@@ -1638,7 +1638,7 @@
     "focused" : false,
     "rect" : [
       422,
-      563,
+      542,
       344,
       19
     ]
@@ -1658,7 +1658,7 @@
     "focused" : false,
     "rect" : [
       422,
-      606,
+      585,
       344,
       24
     ]
@@ -1677,7 +1677,7 @@
     "focused" : false,
     "rect" : [
       422,
-      640,
+      619,
       344,
       21
     ]
@@ -1767,7 +1767,7 @@
     "AXHelp" : "",
     "AXRole" : "AXStaticText",
     "AXTitle" : "",
-    "AXValue" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-ptz7wmzq\/second",
+    "AXValue" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-qqq5fjhz\/second",
     "enabled" : true,
     "focused" : false,
     "rect" : [
@@ -2209,11 +2209,11 @@
       "AXShowMenu",
       "AXScrollToVisible"
     ],
-    "AXDescription" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-ptz7wmzq\/feature",
-    "AXHelp" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-ptz7wmzq\/feature",
+    "AXDescription" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-qqq5fjhz\/feature",
+    "AXHelp" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-qqq5fjhz\/feature",
     "AXRole" : "AXGroup",
     "AXSubrole" : "AXApplicationGroup",
-    "AXTitle" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-ptz7wmzq\/feature",
+    "AXTitle" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-qqq5fjhz\/feature",
     "AXValue" : "",
     "enabled" : true,
     "focused" : false,
@@ -2309,11 +2309,11 @@
       "AXShowMenu",
       "AXScrollToVisible"
     ],
-    "AXDescription" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-ptz7wmzq\/first",
-    "AXHelp" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-ptz7wmzq\/first",
+    "AXDescription" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-qqq5fjhz\/first",
+    "AXHelp" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-qqq5fjhz\/first",
     "AXRole" : "AXGroup",
     "AXSubrole" : "AXApplicationGroup",
-    "AXTitle" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-ptz7wmzq\/first",
+    "AXTitle" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-qqq5fjhz\/first",
     "AXValue" : "",
     "enabled" : true,
     "focused" : false,
@@ -2409,11 +2409,11 @@
       "AXShowMenu",
       "AXScrollToVisible"
     ],
-    "AXDescription" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-ptz7wmzq\/second",
-    "AXHelp" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-ptz7wmzq\/second",
+    "AXDescription" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-qqq5fjhz\/second",
+    "AXHelp" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-qqq5fjhz\/second",
     "AXRole" : "AXGroup",
     "AXSubrole" : "AXApplicationGroup",
-    "AXTitle" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-ptz7wmzq\/second",
+    "AXTitle" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-qqq5fjhz\/second",
     "AXValue" : "",
     "enabled" : true,
     "focused" : false,
@@ -2623,14 +2623,14 @@
     "AXHelp" : "",
     "AXRole" : "AXStaticText",
     "AXTitle" : "",
-    "AXValue" : "resumed 7b9619ed-0b02-4d43-b03a-939ecf217d7d",
+    "AXValue" : "resumed 1bad7d0c-6fcf-4ea8-81af-0894ee8c0b24",
     "enabled" : true,
     "focused" : false,
     "rect" : [
       422,
       344,
-      254,
-      38
+      337,
+      17
     ]
   },
   {
@@ -2647,7 +2647,7 @@
     "focused" : false,
     "rect" : [
       439,
-      427,
+      406,
       23,
       15
     ]
@@ -2667,7 +2667,7 @@
     "focused" : false,
     "rect" : [
       655,
-      423,
+      402,
       94,
       24
     ]
@@ -2686,7 +2686,7 @@
     "focused" : false,
     "rect" : [
       439,
-      459,
+      438,
       122,
       17
     ]
@@ -2705,7 +2705,7 @@
     "focused" : false,
     "rect" : [
       422,
-      533,
+      512,
       52,
       15
     ]
@@ -2725,7 +2725,7 @@
     "focused" : false,
     "rect" : [
       672,
-      529,
+      508,
       94,
       24
     ]
@@ -2744,7 +2744,7 @@
     "focused" : false,
     "rect" : [
       422,
-      564,
+      543,
       192,
       16
     ]
@@ -2763,7 +2763,7 @@
     "focused" : false,
     "rect" : [
       422,
-      610,
+      589,
       36,
       15
     ]
@@ -2783,7 +2783,7 @@
     "focused" : false,
     "rect" : [
       693,
-      606,
+      585,
       74,
       24
     ]
@@ -2802,7 +2802,7 @@
     "focused" : false,
     "rect" : [
       422,
-      642,
+      621,
       264,
       17
     ]

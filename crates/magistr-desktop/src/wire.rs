@@ -1,8 +1,8 @@
 //! The desktop's bounded, typed view of application observations and their identity.
 use crate::content::{Observation, observation};
 use base64::Engine as _;
-use magistr::application::{SessionCatalog, SessionSnapshot, SessionSummary};
-use magistr_application::sessions::{AgentEvent, PermissionKind};
+use magistr::application::{ConversationTarget, SessionCatalog, SessionSnapshot, SessionSummary};
+use magistr_application::sessions::{AgentEvent, PermissionKind, SessionPurpose};
 use magistr_cockpit::cockpit::Msg;
 use magistr_domain::identity::SessionAddress;
 use serde::Serialize;
@@ -11,6 +11,7 @@ use serde::Serialize;
 pub(crate) struct Frame {
     pub(crate) stream: u64,
     pub(crate) address: SessionAddress,
+    pub(crate) target: Option<ConversationTarget>,
     pub(crate) sequence: u64,
     pub(crate) reseed: bool,
     pub(crate) dropped: u64,
@@ -38,16 +39,24 @@ pub(crate) struct Conversation {
     name: Option<String>,
     provider: String,
     provider_label: String,
+    purpose: &'static str,
 }
 impl From<&magistr_application::sessions::Conversation> for Conversation {
     fn from(value: &magistr_application::sessions::Conversation) -> Self {
         Self {
             id: value.id.clone(),
+            purpose: purpose(value.purpose),
             name: value.name.clone(),
             provider: value.provider.clone(),
             provider_label: magistr::agent::AgentRuntime::provider_label_for(&value.provider)
                 .to_owned(),
         }
+    }
+}
+pub(crate) fn purpose(value: SessionPurpose) -> &'static str {
+    match value {
+        SessionPurpose::Conversation => "conversation",
+        SessionPurpose::Roadmap => "roadmap",
     }
 }
 #[derive(Serialize)]
@@ -190,6 +199,8 @@ pub(crate) struct CatalogFrame {
 #[derive(Serialize)]
 pub(crate) struct SessionInfo {
     address: SessionAddress,
+    target: Option<ConversationTarget>,
+    owned_conversations: Vec<String>,
     name: String,
     conversation: Option<Conversation>,
     status: String,
@@ -208,6 +219,14 @@ impl From<&SessionSummary> for SessionInfo {
     fn from(summary: &SessionSummary) -> Self {
         Self {
             address: summary.address.clone(),
+            target: summary
+                .conversation
+                .as_ref()
+                .map(|conversation| ConversationTarget {
+                    address: summary.address.clone(),
+                    conversation: conversation.id.clone(),
+                }),
+            owned_conversations: summary.owned_conversations.clone(),
             name: summary.name.clone(),
             conversation: summary.conversation.as_ref().map(Conversation::from),
             status: summary.label().into(),
@@ -286,6 +305,7 @@ impl Frame {
         Self {
             stream,
             address: snapshot.address.clone(),
+            target: snapshot.target(),
             sequence: snapshot.sequence,
             reseed,
             dropped: snapshot.dropped,

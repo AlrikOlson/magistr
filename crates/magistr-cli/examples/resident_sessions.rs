@@ -74,27 +74,35 @@ async fn exercise(parent: PathBuf) -> eyre::Result<()> {
         .subscribe(&a)
         .await
         .map_err(|error| eyre::eyre!(error))?;
+    let target_a = stream
+        .snapshot()
+        .target()
+        .ok_or_else(|| eyre::eyre!("first conversation bound"))?;
     client
-        .command(&a, Cmd::Prompt("first streaming".into()))
+        .command(&target_a, Cmd::Prompt("first streaming".into()))
         .await
         .map_err(|error| eyre::eyre!(error))?;
     text(&mut stream, "first streaming").await?;
     drop(stream);
     client
-        .draft(&a, 0, "unsent first".into())
+        .draft(&target_a, 0, "unsent first".into())
         .await
         .map_err(|error| eyre::eyre!(error))?;
     let mut other = client
         .subscribe(&b)
         .await
         .map_err(|error| eyre::eyre!(error))?;
+    let target_b = other
+        .snapshot()
+        .target()
+        .ok_or_else(|| eyre::eyre!("second conversation bound"))?;
     client
-        .command(&b, Cmd::Prompt("second complete".into()))
+        .command(&target_b, Cmd::Prompt("second complete".into()))
         .await
         .map_err(|error| eyre::eyre!(error))?;
     text(&mut other, "second complete").await?;
     client
-        .command(&a, Cmd::Cancel)
+        .command(&target_a, Cmd::Cancel)
         .await
         .map_err(|error| eyre::eyre!(error))?;
     let mut restored = client
@@ -135,8 +143,12 @@ async fn exercise(parent: PathBuf) -> eyre::Result<()> {
         .subscribe(&c)
         .await
         .map_err(|error| eyre::eyre!(error))?;
+    let target_c = third
+        .snapshot()
+        .target()
+        .ok_or_else(|| eyre::eyre!("third conversation bound"))?;
     client
-        .command(&c, Cmd::Prompt("third active".into()))
+        .command(&target_c, Cmd::Prompt("third active".into()))
         .await
         .map_err(|error| eyre::eyre!(error))?;
     text(&mut third, "third active").await?;
@@ -146,11 +158,12 @@ async fn exercise(parent: PathBuf) -> eyre::Result<()> {
         .ok_or_else(|| eyre::eyre!("isolated history directory"))?;
     let history = magistr::session::storage::open_db(&history_path)?;
     ensure!(
-        magistr::session::storage::count_sessions(&history)? == 1,
+        magistr::session::storage::get_session(&history, &target_b.conversation)?
+            .is_some_and(|record| record.ended_at.is_some()),
         "closing the actual second provider session must save its history"
     );
     ensure!(
-        client.command(&b, Cmd::Cancel).await.is_err(),
+        client.command(&target_b, Cmd::Cancel).await.is_err(),
         "removed session must reject controls"
     );
     drop(other);

@@ -1,5 +1,8 @@
 use super::*;
 
+#[path = "interactive_session_context.tests.rs"]
+mod context;
+
 #[tokio::test]
 async fn explicit_reconnect_restores_the_same_identity_without_sending_a_prompt() {
     let (inbox, mut events) = Inbox::channel();
@@ -76,10 +79,15 @@ use magistr_application::sessions::TurnEnd;
 use tokio::sync::mpsc;
 
 struct ControlledSession {
+    conversation: Conversation,
     events: mpsc::UnboundedReceiver<AgentEvent>,
     prompts: mpsc::UnboundedSender<String>,
+    calls: mpsc::UnboundedSender<Cmd>,
 }
 impl SessionHandle for ControlledSession {
+    fn conversation(&self) -> Option<Conversation> {
+        Some(self.conversation.clone())
+    }
     fn submit_turn(
         &mut self,
         input: &magistr_application::sessions::PromptInput,
@@ -97,8 +105,13 @@ impl SessionHandle for ControlledSession {
     fn cancel_turn(&mut self) -> Result<(), String> {
         Ok(())
     }
-    fn answer_permission(&mut self, _: u64, _: &str) -> Result<(), String> {
-        unreachable!()
+    fn answer_permission(&mut self, id: u64, option_id: &str) -> Result<(), String> {
+        self.calls
+            .send(Cmd::Permission {
+                id,
+                option_id: option_id.into(),
+            })
+            .map_err(|error| error.to_string())
     }
     fn constrain_permission(&mut self, _: u64, _: &str) -> Result<(), String> {
         unreachable!()
@@ -123,19 +136,33 @@ struct Opened {
     purpose: SessionPurpose,
     events: mpsc::UnboundedSender<AgentEvent>,
     prompts: mpsc::UnboundedReceiver<String>,
+    calls: mpsc::UnboundedReceiver<Cmd>,
 }
 fn controlled(purpose: SessionPurpose) -> (Box<dyn SessionHandle>, Opened) {
     let (events, receiver) = mpsc::unbounded_channel();
     let (prompts, requests) = mpsc::unbounded_channel();
+    let (calls, observations) = mpsc::unbounded_channel();
     (
         Box::new(ControlledSession {
+            conversation: Conversation {
+                id: match purpose {
+                    SessionPurpose::Conversation => "logical-conversation",
+                    SessionPurpose::Roadmap => "logical-roadmap",
+                }
+                .into(),
+                name: None,
+                provider: "controlled".into(),
+                purpose,
+            },
             events: receiver,
             prompts,
+            calls,
         }),
         Opened {
             purpose,
             events,
             prompts: requests,
+            calls: observations,
         },
     )
 }
@@ -245,7 +272,7 @@ async fn reconnect_restores_each_purpose_and_omits_replayed_history() {
         .unwrap();
     assert_eq!(next(&mut opening.prompts).await, "Continue conversation");
     let mut restored_sessions = Vec::new();
-    for (mut current, command, identity, purpose) in [
+    for (current, command, identity, purpose) in [
         (
             opening,
             Cmd::Prompt("Retry conversation".into()),
@@ -264,16 +291,6 @@ async fn reconnect_restores_each_purpose_and_omits_replayed_history() {
             .events
             .send(AgentEvent::Error("provider died".into()))
             .unwrap();
-        if purpose == SessionPurpose::Roadmap {
-            commands
-                .send(Cmd::RoadmapPrompt("Select planning".into()))
-                .unwrap();
-            assert!(matches!(
-                next_observation(&mut events).await,
-                Msg::RoadmapRequestStarted
-            ));
-            assert_eq!(next(&mut current.prompts).await, "Select planning");
-        }
         assert!(matches!(
             next_observation(&mut events).await,
             Msg::Agent(AgentEvent::Error(_))
@@ -834,6 +851,13 @@ async fn closed_local_and_provider_receivers_preserve_the_refused_action() {
         task: tokio::spawn(async { Ok(()) }),
         commands: Some(provider),
         events: provider_events,
+        conversation: Conversation {
+            id: "logical-conversation".into(),
+            name: None,
+            provider: "controlled".into(),
+            purpose: SessionPurpose::Conversation,
+        },
+        inbox: session.inbox.for_conversation("logical-conversation"),
         roadmap: false,
         replaying: false,
     });
@@ -874,6 +898,13 @@ async fn delivery_to_an_open_receiver_does_not_emit_a_refusal() {
         task: tokio::spawn(async { Ok(()) }),
         commands: Some(provider),
         events: provider_events,
+        conversation: Conversation {
+            id: "logical-conversation".into(),
+            name: None,
+            provider: "controlled".into(),
+            purpose: SessionPurpose::Conversation,
+        },
+        inbox: session.inbox.for_conversation("logical-conversation"),
         roadmap: false,
         replaying: false,
     });

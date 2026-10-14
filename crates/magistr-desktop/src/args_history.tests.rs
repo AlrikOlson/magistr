@@ -19,6 +19,7 @@ fn saved_desktop_resume_uses_the_recorded_agent_and_never_guesses_a_provider_id(
             project: root.display().to_string(),
             workspace: root.display().to_string(),
             provider: "recorded-agent".into(),
+            purpose: magistr_application::sessions::SessionPurpose::Roadmap,
             provider_session_id: Some("provider-thread".into()),
             resume_supported: true,
             started_at: now,

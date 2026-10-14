@@ -4,6 +4,7 @@ use chrono::TimeZone;
 
 fn sample_session() -> SessionRecord {
     SessionRecord {
+        purpose: magistr_application::sessions::SessionPurpose::Conversation,
         session_id: "abc12345-6789-abcd-ef01-234567890abc".to_string(),
         name: None,
         project: "my-project".to_string(),
@@ -194,4 +195,34 @@ fn saved_resume_refuses_wrong_agent_working_copy_and_missing_load_capability() {
     record.provider_session_id = None;
     super::super::storage::insert_session(&conn, &record).unwrap();
     assert!(saved_config(config(), &record.session_id).is_err());
+}
+
+#[test]
+fn saved_planning_restores_exact_identity_model_provider_and_purpose() {
+    use magistr_application::sessions::SessionPurpose;
+    let directory = tempfile::tempdir().unwrap();
+    let root = directory.path().canonicalize().unwrap();
+    let inputs = crate::config::inputs::ProjectInputs::from_lookup(&root, |key| {
+        (key == "XDG_DATA_HOME").then(|| directory.path().join("data").display().to_string())
+    });
+    let path = super::super::storage::sessions_db_path(&inputs).unwrap();
+    let conn = super::super::storage::open_db(&path).unwrap();
+    let mut record = sample_session();
+    record.workspace = root.display().to_string();
+    record.purpose = SessionPurpose::Roadmap;
+    record.model = Some("saved-model".into());
+    super::super::storage::insert_session(&conn, &record).unwrap();
+    drop(conn);
+    let base = crate::agent::AgentConfig::new("next request", &root)
+        .with_inputs(&inputs)
+        .model("unrelated-default");
+    let unrelated = base.history.id();
+    let restored = saved_config(base, &record.session_id).unwrap();
+    assert_ne!(restored.history.id(), unrelated);
+    assert_eq!(restored.history.id(), record.session_id);
+    assert_eq!(restored.history.purpose(), SessionPurpose::Roadmap);
+    assert_eq!(restored.resume, record.provider_session_id);
+    assert_eq!(restored.model, record.model);
+    assert_eq!(restored.provider.as_deref(), Some(record.provider.as_str()));
+    assert_eq!(restored.prompt, "next request");
 }

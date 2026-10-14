@@ -5,6 +5,7 @@ use chrono::TimeZone;
 
 fn sample_record(id: &str, project: &str, cost: f64, turns: u32) -> SessionRecord {
     SessionRecord {
+        purpose: magistr_application::sessions::SessionPurpose::Conversation,
         session_id: id.to_string(),
         name: None,
         project: project.to_string(),

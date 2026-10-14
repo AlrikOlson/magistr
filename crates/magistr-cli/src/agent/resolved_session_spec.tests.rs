@@ -2,7 +2,7 @@ use super::*;
 use crate::agent::permission_request::permission_request as policy_request;
 use crate::agent::{AuthMethod, PermissionMode};
 use crate::in_env as env_test;
-use magistr_application::sessions::{PolicyDecision, SessionPolicy};
+use magistr_application::sessions::PolicyDecision;
 use magistr_engine::policy::GovernancePolicy;
 
 fn runtime(provider: &str) -> AgentRuntime {
@@ -55,7 +55,7 @@ fn snapshots_keep_provider_model_mcp_and_policy_after_configuration_changes() {
     assert!(
         matches!(&spec.mcp_servers()[0], McpServer::Stdio(server) if server.name == "original")
     );
-    let (mut policy, handling) = spec.into_permission_policy();
+    let (mut policy, handling) = spec.into_session_policy();
     assert_eq!(handling, NoninteractivePolicy::Refuse);
     let (response_tx, _) = tokio::sync::oneshot::channel();
     let request = magistr_acp::AcpPermissionRequest {
@@ -447,4 +447,77 @@ fn application_execution_binds_every_tool_child_instead_of_configured_stale_ids(
             .iter()
             .any(|var| var.name == "CUSTOM" && var.value == "kept")
     );
+}
+
+struct NoSourceWrites;
+
+impl magistr_application::effects::SourceWriter for NoSourceWrites {
+    fn write_text(
+        &self,
+        _: &str,
+        _: &str,
+    ) -> magistr_application::effects::EffectFuture<
+        '_,
+        magistr_application::effects::SourceWriteReceipt,
+    > {
+        panic!("planning must never receive source authority");
+    }
+}
+
+#[test]
+fn saved_purpose_applies_startup_restrictions_without_replacing_identity_or_resume() {
+    use crate::agent::persistence::SessionHistory;
+    use magistr_application::sessions::SessionPurpose;
+    let dir = tempfile::tempdir().unwrap();
+    let mut config = AgentConfig::new("new planning request", dir.path())
+        .model("saved-model")
+        .resume("provider-planning-context")
+        .permission_profile(PermissionProfile::Yolo);
+    config.history = SessionHistory::for_purpose(SessionPurpose::Roadmap);
+    config.system_prompt = Some("Project context".into());
+    config.workflow_permissions = true;
+    config.allowed_tools.push("Bash".into());
+    let id = config.history.id();
+    let spec = ResolvedSessionSpec::resolve_with_runtime(
+        config,
+        &UserConfig::default(),
+        runtime("scripted"),
+    )
+    .unwrap()
+    .with_source_route(SourceRoute::Admitted(std::sync::Arc::new(NoSourceWrites)));
+    assert_eq!(spec.history().id(), id);
+    assert_eq!(spec.history().purpose(), SessionPurpose::Roadmap);
+    assert_eq!(spec.model(), Some("saved-model"));
+    assert!(
+        matches!(spec.session_mode(), AcpSessionMode::Load { session_id } if session_id == "provider-planning-context")
+    );
+    assert_eq!(spec.prompt(), "new planning request");
+    assert!(!spec.workflow_permissions());
+    assert!(!spec.source.is_admitted());
+    assert_eq!(spec.source.refusal(), Some(&SourceRefusal::NoAuthority));
+    assert_eq!(
+        spec.config.allowed_tools,
+        crate::agent::ToolPermissions::for_roadmap_request().into_strings()
+    );
+    let instructions = spec.config.system_prompt.as_deref().unwrap();
+    assert!(instructions.starts_with("Project context"));
+    assert!(instructions.contains("Do not implement code"));
+    let (mut policy, _) = spec.into_session_policy();
+    for (name, expected) in [
+        ("Write", PolicyDecision::Deny),
+        ("mcp__workbench_mcp__edit", PolicyDecision::Deny),
+        ("mcp__magistr__ship_start", PolicyDecision::Deny),
+        ("mcp__magistr__roadmap_add_chunk", PolicyDecision::Allow),
+    ] {
+        let (response_tx, _) = tokio::sync::oneshot::channel();
+        let request = magistr_acp::AcpPermissionRequest {
+            tool_call_id: name.into(),
+            tool_title: name.into(),
+            tool_input: serde_json::json!({}),
+            tool_kind: None,
+            options: Vec::new(),
+            response_tx,
+        };
+        assert_eq!(policy.decide(&policy_request(&request)), expected, "{name}");
+    }
 }

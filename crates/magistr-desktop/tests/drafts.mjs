@@ -1,10 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { Drafts } from "../ui/drafts.mjs";
-const address = {project:"one",workspace:"/one",session:"first"};
-const status = (revision, save_attempt=revision, saved_revision=revision, error=null) => ({revision,saved_revision,save_attempt,error});
+const address = {address:{project:"one",workspace:"/one",session:"first"},conversation:"first-history"};
+const status = (revision, save_attempt=revision, saved_revision=revision, error=null) => ({conversation:address.conversation,revision,saved_revision,save_attempt,error});
 const frame = (target, revision, save_attempt=revision, saved_revision=revision, error=null) => ({
-  address:target,draft_revision:revision,draft_saved_revision:saved_revision,draft_save_attempt:save_attempt,draft_save_error:error,
+  target,draft_revision:revision,draft_saved_revision:saved_revision,draft_save_attempt:save_attempt,draft_save_error:error,
 });
 const deferred = () => {let resolve;const promise=new Promise(done=>{resolve=done;});return {promise,resolve};};
 
@@ -23,12 +23,12 @@ test("rapid edits save the first and newest revisions in order", async () => {
 });
 
 test("saves remain addressed while another working copy is edited", async () => {
-  const gate=deferred(), calls=[], other={...address,workspace:"/two"};
+  const gate=deferred(), calls=[], other={...address,address:{...address.address,workspace:"/two"}};
   const drafts=new Drafts(async(target,revision,text)=>{calls.push({target,revision,text});if(target===address)await gate.promise;return status(revision+1);});
   drafts.observe(frame(address,8));drafts.observe(frame(other,2));
   drafts.edit(address,"one");drafts.edit(other,"two");await drafts.flush(other);
   gate.resolve();await drafts.flushAll();
-  assert.deepEqual(calls.map(({target,revision})=>[target.workspace,revision]),[["/one",8],["/two",2]]);
+  assert.deepEqual(calls.map(({target,revision})=>[target.address.workspace,revision]),[["/one",8],["/two",2]]);
 });
 
 test("failed save keeps the latest editable text for explicit retry", async () => {
@@ -139,3 +139,64 @@ test("a save error already observed on the Channel still keeps the RPC edit for 
   assert.deepEqual(drafts.status(address),{...status(7,11),saving:false});
 });
 
+
+test("a late save for a parked conversation cannot advance the current conversation draft",async()=>{
+ const gate=deferred(), other={...address,conversation:"planning"};
+ const drafts=new Drafts(async(target,revision)=>{if(target===address)await gate.promise;return {...status(revision+1),conversation:target.conversation};});
+ drafts.observe(frame(address,8));drafts.edit(address,"conversation text");
+ drafts.observe(frame(other,2));drafts.edit(other,"planning text");await drafts.flush(other);
+ const planning=drafts.status(other);gate.resolve();await drafts.flush(address);
+ assert.deepEqual(drafts.status(other),planning);
+ assert.equal(drafts.status(address).revision,9);
+ assert.equal(drafts.status(other).revision,3);
+ drafts.accept(other,{...status(100),conversation:address.conversation});
+ assert.deepEqual(drafts.status(other),planning);
+});
+test("a save reply for a different conversation leaves the requested draft pending",async()=>{
+ const drafts=new Drafts(async()=>({...status(9),conversation:"wrong-owner"}));
+ drafts.observe(frame(address,3));drafts.edit(address,"keep me");
+ await assert.rejects(drafts.flush(address),/conversation/);
+ assert.equal(drafts.status(address).revision,3);
+ assert.equal(drafts.status(address).saving,true);
+});
+
+test("returning before a parked save completes restores the latest local edit",async()=>{
+ const gate=deferred(),other={...address,conversation:"planning"};
+ const drafts=new Drafts(async(target,revision)=>{await gate.promise;return {...status(revision+1),conversation:target.conversation};});
+ drafts.observe(frame(address,2));drafts.edit(address,"first");drafts.edit(address,"latest");
+ drafts.observe(frame(other,1));
+ assert.equal(drafts.restore({...frame(address,2),draft:"old owner text"}),"latest");
+ gate.resolve();await drafts.flushSession(address.address);
+ assert.equal(drafts.restore({...frame(address,4),draft:"latest"}),"latest");
+ assert.equal(drafts.restore({...frame(address,5),draft:""}),"");
+ drafts.forgetSession(address.address);
+ assert.equal(drafts.entries.size,0);
+});
+
+test("a parked save acknowledged before its frame retains the confirmed local text",async()=>{
+ const other={...address,conversation:"planning"};
+ const drafts=new Drafts(async()=>status(9));
+ drafts.observe({...frame(address,8),draft:"older"});
+ drafts.edit(address,"saved while parked");
+ drafts.observe({...frame(other,1),draft:"planning"});
+ await drafts.flush(address);
+ const returning={...frame(address,8),draft:"older"};
+ drafts.observe(returning);
+ assert.equal(drafts.restore(returning),"saved while parked");
+ const saved={...frame(address,9),draft:"saved while parked"};
+ drafts.observe(saved);
+ assert.equal(drafts.restore(saved),"saved while parked");
+ const accepted={...frame(address,10),draft:""};
+ drafts.observe(accepted);
+ assert.equal(drafts.restore(accepted),"");
+});
+test("a confirmed discard cannot restore text from an earlier returning frame",()=>{
+ const drafts=new Drafts(async()=>assert.fail("No save expected"));
+ drafts.observe({...frame(address,8),draft:"discard me"});
+ assert.equal(drafts.accept(address,status(9),""),true);
+ const returning={...frame(address,8),draft:"discard me"};
+ drafts.observe(returning);
+ assert.equal(drafts.restore(returning),"");
+ drafts.observe({...frame(address,10),draft:"new owner edit"});
+ assert.equal(drafts.restore({...frame(address,10),draft:"new owner edit"}),"new owner edit");
+});
