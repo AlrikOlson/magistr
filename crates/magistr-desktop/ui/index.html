@@ -2,7 +2,7 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Magistr</title><link rel="stylesheet" href="style.css"></head>
 <body>
 <div class="shell">
-<aside class="rail" aria-label="Projects and sessions">
+<aside id="project-rail" class="rail" aria-label="Projects and sessions">
   <header class="brand"><img class="mark" src="icon.png" alt=""><strong>Magistr</strong></header>
   <div class="rail-primary">
     <button id="open-project">Open project</button>
@@ -10,6 +10,7 @@
   </div>
   <p id="attention-count" class="sr-only" role="status" aria-live="polite">0 requests waiting</p>
   <section class="attention-dock" id="attention-dock" aria-label="Needs your attention" hidden><h2>Needs your attention</h2><nav id="attention" aria-label="Requests across sessions"></nav></section>
+  <button id="find-conversation" aria-label="Find a conversation"><span>Find a conversation</span><kbd id="find-conversation-shortcut" aria-hidden="true"></kbd></button>
   <div class="rail-scroll">
     <h2 class="rail-section-title">Your projects</h2><nav id="projects" aria-label="Projects"></nav>
     <p id="sessions-empty" class="empty-note">Open a project to keep its conversations here.</p>
@@ -21,7 +22,7 @@
 </aside>
 <main>
   <header class="work-header">
-    <div class="work-heading"><p id="project-name">Magistr</p><h1 id="view-title">Your workspace</h1></div>
+    <div class="work-heading"><p id="project-name">Magistr</p><h1 id="view-title" tabindex="-1">Your workspace</h1></div>
     <div class="header-actions"><p id="status" role="status" aria-live="polite">Ready</p><button id="toggle-details" aria-controls="session-detail" aria-expanded="false" hidden>Details</button><details id="conversation-actions" class="header-menu" hidden><summary id="conversation-menu-trigger" aria-label="Conversation actions">···</summary><div class="header-menu-actions"><button id="rename-conversation">Rename conversation</button><button id="copy" disabled>Copy conversation</button><button id="reconnect" disabled hidden>Reconnect</button><button id="close-session" class="destructive" disabled>Close conversation</button></div></details></div>
   </header>
   <nav id="conversation-toolbar" class="conversation-toolbar" aria-label="Conversation controls" hidden>
@@ -41,7 +42,7 @@
         <div class="empty"><h2>What would you like to work on?</h2><p>Send a message to start a conversation in this working copy.</p></div>
       </div>
       <button id="latest" hidden>Latest reply ↓</button>
-      <form id="composer">
+      <form id="composer" tabindex="-1">
         <label for="draft" class="sr-only">Message the agent</label>
         <div class="composer-box">
           <textarea id="draft" disabled rows="3" placeholder="Ask a question or describe the next step…" maxlength="1048576"></textarea>
@@ -87,6 +88,13 @@
   </div>
 </main>
 </div>
+<dialog id="switch-picker" aria-labelledby="switch-title">
+  <header class="switch-heading"><h2 id="switch-title">Find a conversation</h2><p>Return to an open conversation in any project.</p></header>
+  <div class="switch-search"><label for="switch-search" class="sr-only">Find an open conversation</label><input id="switch-search" type="search" placeholder="Search conversations or projects…" aria-controls="switch-results" aria-describedby="switch-hint"></div>
+  <p id="switch-error" class="error" role="alert" tabindex="-1" hidden></p>
+  <nav id="switch-results" aria-label="Matching conversations"></nav><p id="switch-empty" hidden></p>
+  <footer class="switch-footer"><div><p id="switch-count" role="status"></p><p id="switch-hint">↓ to browse · Return to open</p></div><button id="switch-close">Cancel</button></footer>
+</dialog>
 <dialog id="rename-picker" aria-labelledby="rename-title">
   <form id="name-form"><h2 id="rename-title">Rename conversation</h2><p>Give this conversation a name you’ll recognize later.</p>
     <label for="conversation-name">Conversation name</label><input id="conversation-name" maxlength="120" required>
@@ -96,11 +104,14 @@
 </dialog>
 <dialog id="settings" aria-labelledby="settings-title">
   <div class="settings-heading"><h2 id="settings-title">Settings</h2><p>Make this workspace comfortable for you.</p></div>
-  <section class="settings-section" aria-label="Appearance and motion">
+  <div class="settings-content"><section class="settings-section" aria-label="Appearance and motion">
     <div class="settings-row"><div><label for="theme">Appearance</label><p>Use your system appearance, or choose one.</p></div><select id="theme" disabled><option value="system">System</option><option value="dark">Dark</option><option value="light">Light</option></select></div>
     <div class="settings-row"><div><label for="reduce-motion">Reduce motion</label><p>Keep movement to a minimum.</p></div><input id="reduce-motion" type="checkbox" disabled></div>
   </section>
   <p id="preferences-note" role="status"></p><button id="retry-preferences" hidden>Retry preferences</button>
+  <section class="settings-shortcuts" aria-label="Keyboard shortcuts"><h3>Keyboard shortcuts</h3>
+    <dl><div><dt>Find a conversation</dt><dd><kbd id="settings-find-shortcut"></kbd></dd></div><div><dt>Open project</dt><dd><kbd id="open-project-shortcut"></kbd></dd></div><div><dt>New conversation</dt><dd><kbd id="new-session-shortcut"></kbd></dd></div><div><dt>Settings</dt><dd><kbd id="open-settings-shortcut"></kbd></dd></div><div><dt>Move between areas</dt><dd><kbd>F6</kbd></dd></div><div><dt>Move to the previous area</dt><dd><kbd>Shift F6</kbd></dd></div></dl>
+  </section></div>
   <div class="dialog-actions"><button id="settings-close">Done</button></div>
 </dialog>
 <dialog id="project-picker" aria-labelledby="picker-title">
