@@ -33,7 +33,7 @@ fn engine_with(chunks: &[(&str, ChunkStatus, Option<&str>)]) -> RoadmapEngine {
 fn empty_roadmap_has_no_progress() {
     let e = RoadmapEngine::new("p".into());
     assert_eq!(
-        progress_from_roadmap(e.roadmap()),
+        progress_from_chunks(&e.roadmap().chunks),
         RoadmapProgress::default()
     );
 }
@@ -46,7 +46,7 @@ fn counts_chunks_as_tasks_and_groups_as_phases() {
         ("c", ChunkStatus::Pending, Some("GUI")),
         ("d", ChunkStatus::InProgress, None),
     ]);
-    let p = progress_from_roadmap(e.roadmap());
+    let p = progress_from_chunks(&e.roadmap().chunks);
     assert_eq!(p.total_tasks, 4);
     assert_eq!(p.checked_tasks, 2);
     assert_eq!(p.total_phases, 2);
@@ -61,7 +61,7 @@ fn obsoleted_chunks_count_toward_nothing() {
         ("z", ChunkStatus::Obsoleted, Some("Engine")),
         ("y", ChunkStatus::Obsoleted, Some("Dead")),
     ]);
-    let p = progress_from_roadmap(e.roadmap());
+    let p = progress_from_chunks(&e.roadmap().chunks);
     assert_eq!(p.total_tasks, 1);
     assert_eq!(p.checked_tasks, 1);
     assert_eq!(

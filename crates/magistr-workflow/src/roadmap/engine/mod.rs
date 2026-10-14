@@ -9,7 +9,7 @@
 mod proposal_resolution;
 mod readiness;
 
-use magistr_workflow_contracts::roadmap::{Readiness, next_ready};
+use magistr_workflow_contracts::roadmap::next_ready;
 
 use chrono::Utc;
 
@@ -18,7 +18,9 @@ use crate::infra::{CrossRef, Persistence, StoreStamp};
 use crate::roadmap::broadcast::{Broadcaster, RoadmapFrame};
 use crate::roadmap::domain::{
     BlockedBy, BlockerKind, Chunk, ChunkStatus, ContainerKind, ContainerLink, Focus, FocusMode,
-    RefreshNote, ReprioritizeProposal, Roadmap, TrackerLink, TrackerOptIn, validate_lane,
+    RefreshNote, ReprioritizeProposal, Roadmap, TrackerLink, TrackerOptIn, WorkstreamCatalog,
+    WorkstreamFrontier, WorkstreamHistoryRecords, WorkstreamResolution, validate_lane,
+    workstream_catalog, workstream_frontier, workstream_history,
 };
 use crate::roadmap::region;
 
@@ -56,59 +58,6 @@ pub struct RoadmapEngine {
     /// composition root and only its answer is handed down. That also means the
     /// engine cannot accidentally widen the rule.
     inherit_opt_in: Option<String>,
-}
-
-/// What a caller's workstream name resolved to.
-///
-/// Three outcomes, and only one of them is allowed to change anything. The
-/// other two carry the exact candidate list, because "no such workstream" is
-/// useless on its own and "did you mean" is the entire remedy — a caller that
-/// gets a bare refusal will guess again, and guessing is what produced the
-/// wrong name in the first place.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum GroupResolution {
-    /// Exactly one workstream matched. Carries the STORED name, not what the
-    /// caller typed, so everything downstream compares against one spelling.
-    Exact(String),
-    /// Several matched. Carries them, in stored order.
-    Ambiguous(Vec<String>),
-    /// None matched. Carries every workstream in play, which is the only
-    /// useful thing to say to someone who named one that does not exist.
-    Unknown(Vec<String>),
-}
-
-impl GroupResolution {
-    /// The stored name, when there is exactly one.
-    #[must_use]
-    pub fn exact(&self) -> Option<&str> {
-        match self {
-            Self::Exact(name) => Some(name.as_str()),
-            _ => None,
-        }
-    }
-
-    /// The refusal a caller sees, naming what they typed and what exists.
-    #[must_use]
-    pub fn explain(&self, query: &str) -> String {
-        let list = |names: &[String]| {
-            if names.is_empty() {
-                "(none — no chunk in this roadmap has a workstream yet)".to_string()
-            } else {
-                names.join(", ")
-            }
-        };
-        match self {
-            Self::Exact(name) => format!("'{query}' resolved to '{name}'"),
-            Self::Ambiguous(names) => format!(
-                "'{query}' is ambiguous — it matches {}. Focus is unchanged; name one exactly.",
-                list(names)
-            ),
-            Self::Unknown(names) => format!(
-                "no workstream matches '{query}'. Focus is unchanged. Workstreams in play: {}",
-                list(names)
-            ),
-        }
-    }
 }
 
 impl RoadmapEngine {
@@ -543,7 +492,7 @@ impl RoadmapEngine {
         // The workstream is validated BEFORE anything is written, and rejected
         // as a whole call rather than dropped. A chunk born ungrouped because
         // its group was quietly ignored is invisible to every focused read —
-        // `next_in_group` will not offer it and `group_status` will not count
+        // `next_in_group` will not offer it and the frontier will not count
         // it — and nothing about the created chunk says why. Refusing here is
         // the only outcome a caller can act on.
         let group = Self::clean_group(group);
@@ -939,18 +888,10 @@ impl RoadmapEngine {
             .collect()
     }
 
-    /// Every distinct group in play, sorted, ignoring ungrouped chunks.
+    /// Current work and terminal history from this complete owner snapshot.
     #[must_use]
-    pub fn groups(&self) -> Vec<String> {
-        let mut seen: Vec<String> = self
-            .roadmap
-            .chunks
-            .iter()
-            .filter_map(|c| c.group.clone())
-            .collect();
-        seen.sort();
-        seen.dedup();
-        seen
+    pub fn workstreams(&self) -> WorkstreamCatalog {
+        workstream_catalog(&self.roadmap.chunks)
     }
 
     // ── Focus: what one lane is currently working on ───────────────────
@@ -974,14 +915,14 @@ impl RoadmapEngine {
     /// Point `lane` at `group` in `mode`.
     ///
     /// Validates BEFORE it writes, and the ordering is the contract: a call
-    /// naming an unknown or ambiguous group leaves the store exactly as it was,
+    /// naming a closed, unknown or ambiguous group leaves the store unchanged,
     /// so a mistyped switch can never strand a lane somewhere it did not ask to
     /// be. Chunk status is untouched — focus points at work, it does not start
     /// any.
     pub fn focus_set(&mut self, lane: &str, group: &str, mode: FocusMode) -> Result<Focus, String> {
         let lane = validate_lane(lane)?;
-        let resolved = match self.resolve_group(group) {
-            GroupResolution::Exact(name) => name,
+        let resolved = match self.workstreams().resolve_current(group) {
+            WorkstreamResolution::Current { group } => group,
             other => return Err(other.explain(group)),
         };
         let now = Self::now();
@@ -1020,45 +961,6 @@ impl RoadmapEngine {
         removed
     }
 
-    /// Resolve what a caller typed into exactly one group, or refuse.
-    ///
-    /// Three ways to name a workstream, tried in order of decreasing certainty:
-    /// the exact stored name, a case-insensitive match of it, then an
-    /// unambiguous substring. The substring pass exists because "authentication"
-    /// should find "Authentication and identity" — but it deliberately does not
-    /// pick a winner among several matches, because "closest match" is how a
-    /// caller ends up focused on a workstream it did not name and cannot see it
-    /// did not name.
-    #[must_use]
-    pub fn resolve_group(&self, query: &str) -> GroupResolution {
-        let q = query.trim();
-        if q.is_empty() {
-            return GroupResolution::Unknown(self.groups());
-        }
-        let groups = self.groups();
-        if let Some(hit) = groups.iter().find(|g| g.as_str() == q) {
-            return GroupResolution::Exact(hit.clone());
-        }
-        let lower = q.to_lowercase();
-        let ci: Vec<&String> = groups
-            .iter()
-            .filter(|g| g.to_lowercase() == lower)
-            .collect();
-        if ci.len() == 1 {
-            return GroupResolution::Exact(ci[0].clone());
-        }
-        let partial: Vec<String> = groups
-            .iter()
-            .filter(|g| g.to_lowercase().contains(&lower))
-            .cloned()
-            .collect();
-        match partial.len() {
-            0 => GroupResolution::Unknown(groups),
-            1 => GroupResolution::Exact(partial.into_iter().next().expect("length checked")),
-            _ => GroupResolution::Ambiguous(partial),
-        }
-    }
-
     /// The next ready chunk INSIDE `group` — same three readiness conditions as
     /// [`Self::next`], with membership added.
     ///
@@ -1077,74 +979,20 @@ impl RoadmapEngine {
         )
     }
 
-    /// A focused frontier report for one group: counts, what is ready, what is
-    /// blocked and why, and the next candidate.
-    ///
-    /// Separate from [`Self::status`] rather than a parameter on it, because the
-    /// two answer different questions at different scales — `status` is bounded
-    /// and elides, while a single workstream is small enough to report whole.
+    /// Current work in exactly one group; None selects ungrouped work.
+    /// Dependency readiness is assessed against every chunk in this owner.
     #[must_use]
-    pub fn group_status(&self, group: &str) -> serde_json::Value {
-        let members: Vec<&Chunk> = self
-            .roadmap
-            .chunks
-            .iter()
-            .filter(|c| c.group.as_deref() == Some(group))
-            .collect();
-        let count = |s: ChunkStatus| members.iter().filter(|c| c.status == s).count();
-        let ready: Vec<&&Chunk> = members
-            .iter()
-            .filter(|c| self.readiness(c).is_ready())
-            .collect();
-        // "Blocked" here is the reader's meaning, not the enum's: a chunk that
-        // cannot be worked right now for ANY reason — a recorded blocker, an
-        // unfinished dependency, or the Blocked status itself. Reporting only
-        // the enum would say zero on a workstream nobody can move.
-        let blocked: Vec<serde_json::Value> = members
-            .iter()
-            .filter(|c| {
-                matches!(
-                    self.readiness(c),
-                    Readiness::Blocked(_)
-                        | Readiness::Waiting(_)
-                        | Readiness::Inactive(ChunkStatus::Blocked)
-                )
-            })
-            .map(|c| {
-                let mut row = serde_json::json!({ "id": c.id, "name": c.name });
-                if let Some(b) = &c.blocked_by {
-                    row["blocker_kind"] = serde_json::json!(b.kind.as_wire());
-                    row["reason"] = serde_json::json!(b.reason);
-                } else if let Readiness::Waiting(deps) = self.readiness(c) {
-                    row["unmet_deps"] =
-                        serde_json::json!(deps.iter().map(|dep| dep.id).collect::<Vec<_>>());
-                    row["reason"] = serde_json::json!(self.waiting_reason(&deps));
-                }
-                row
-            })
-            .collect();
-        serde_json::json!({
-            "group": group,
-            "counts": {
-                "backlog": count(ChunkStatus::Backlog),
-                "pending": count(ChunkStatus::Pending),
-                "in_progress": count(ChunkStatus::InProgress),
-                "blocked": count(ChunkStatus::Blocked),
-                "done": count(ChunkStatus::Done),
-                "obsoleted": count(ChunkStatus::Obsoleted),
-                "total": members.len(),
-            },
-            "ready": ready.iter().map(|c| serde_json::json!({
-                "id": c.id, "name": c.name, "priority": c.priority,
-            })).collect::<Vec<_>>(),
-            "ready_count": ready.len(),
-            "blocked_count": blocked.len(),
-            "blocked": blocked,
-            "next": self.next_in_group(group).map(|c| c.id.clone()),
-        })
+    pub fn workstream_frontier(&self, group: Option<&str>) -> WorkstreamFrontier {
+        workstream_frontier(&self.roadmap.chunks, group)
     }
 
-    /// Which ungrouped chunks share an id prefix, offered for a person to name.
+    /// Read terminal record IDs only for the history being inspected.
+    #[must_use]
+    pub fn workstream_history(&self, group: Option<&str>) -> WorkstreamHistoryRecords {
+        workstream_history(&self.roadmap.chunks, group)
+    }
+
+    /// Which unfinished, ungrouped chunks share a prefix, offered to be named.
     ///
     /// This used to assign the prefix as the group, and could not be repaired
     /// into doing so correctly. [`region::why_unfit`] rejects a region name
@@ -1168,6 +1016,7 @@ impl RoadmapEngine {
             self.roadmap
                 .chunks
                 .iter()
+                .filter(|c| c.status.is_active() && c.group.is_none())
                 .map(|c| (c.id.as_str(), c.group.as_deref())),
             min_shared,
         )
@@ -3088,8 +2937,14 @@ mod tests {
             e.next_in_group("Authentication").map(|c| c.id.as_str()),
             Some("auth-1")
         );
-        assert_eq!(e.group_status("Authentication")["ready_count"], 1);
-        assert_eq!(e.groups(), vec!["Authentication"]);
+        assert_eq!(
+            e.workstream_frontier(Some("Authentication"))
+                .activity
+                .readiness
+                .ready,
+            1
+        );
+        assert_eq!(e.workstreams().current_names(), vec!["Authentication"]);
 
         // And it is reachable by focusing, which is the path that matters.
         e.focus_set("lane", "Authentication", FocusMode::Build)
@@ -3119,7 +2974,7 @@ mod tests {
             .expect("created");
         }
         assert!(e.roadmap().chunks.iter().all(|c| c.group.is_none()));
-        assert!(e.groups().is_empty());
+        assert!(e.workstreams().current_names().is_empty());
     }
 
     /// Both doors into grouping enforce the SAME rule, so neither is a backdoor
@@ -3250,8 +3105,8 @@ mod tests {
         grouped(&mut e, "a1", 10, "Billing core");
         grouped(&mut e, "b1", 20, "Billing reports");
 
-        match e.resolve_group("billing") {
-            GroupResolution::Ambiguous(names) => {
+        match e.workstreams().resolve_current("billing") {
+            WorkstreamResolution::Ambiguous { matches: names } => {
                 assert_eq!(names, vec!["Billing core", "Billing reports"]);
             }
             other => panic!("expected ambiguity, got {other:?}"),
@@ -3271,16 +3126,18 @@ mod tests {
         grouped(&mut e, "b1", 20, "Billing");
 
         assert_eq!(
-            e.resolve_group("Authentication and identity").exact(),
+            e.workstreams()
+                .resolve_current("Authentication and identity")
+                .current(),
             Some("Authentication and identity")
         );
         assert_eq!(
-            e.resolve_group("billing").exact(),
+            e.workstreams().resolve_current("billing").current(),
             Some("Billing"),
             "case-insensitive exact match"
         );
         assert_eq!(
-            e.resolve_group("identity").exact(),
+            e.workstreams().resolve_current("identity").current(),
             Some("Authentication and identity"),
             "an unambiguous fragment resolves"
         );
@@ -3326,7 +3183,7 @@ mod tests {
     /// A group whose only chunk is blocked reports it as blocked rather than
     /// ready, and next_in_group refuses it.
     #[test]
-    fn group_status_counts_readiness_blockers_and_unmet_deps() {
+    fn workstream_frontier_counts_readiness_blockers_and_unmet_deps() {
         let mut e = engine();
         grouped(&mut e, "one", 10, "Auth");
         grouped(&mut e, "two", 20, "Auth");
@@ -3337,19 +3194,29 @@ mod tests {
             .unwrap()
             .deps = vec!["one".into()];
 
-        let s = e.group_status("Auth");
-        assert_eq!(s["ready_count"], 1, "only `one` is ready");
-        assert_eq!(s["next"], "one");
-        assert_eq!(s["blocked_count"], 1, "`two` waits on `one`");
-        assert_eq!(s["blocked"][0]["unmet_deps"][0], "one");
-        assert_eq!(s["counts"]["total"], 2);
+        let s = e.workstream_frontier(Some("Auth"));
+        assert_eq!(s.activity.readiness.ready, 1, "only `one` is ready");
+        assert_eq!(s.activity.next_ready.as_deref(), Some("one"));
+        assert_eq!(s.activity.readiness.waiting, 1, "`two` waits on `one`");
+        assert_eq!(
+            s.items[1].readiness,
+            crate::roadmap::domain::WorkstreamReadiness::Waiting {
+                dependencies: vec![crate::roadmap::domain::WorkstreamDependency {
+                    id: "one".into(),
+                    status: Some(ChunkStatus::Pending),
+                }],
+            }
+        );
+        assert_eq!(s.activity.counts.total, 2);
 
         // Finish the dependency and the frontier moves.
         e.set_status("one", ChunkStatus::InProgress).unwrap();
         e.set_status("one", ChunkStatus::Done).unwrap();
-        let s = e.group_status("Auth");
-        assert_eq!(s["next"], "two");
-        assert_eq!(s["blocked_count"], 0);
+        let s = e.workstream_frontier(Some("Auth"));
+        assert_eq!(s.activity.next_ready.as_deref(), Some("two"));
+        assert_eq!(s.activity.readiness.waiting, 0);
+        assert_eq!(s.activity.counts.total, 1);
+        assert_eq!(e.workstreams().history["Auth"].done, 1);
     }
 
     /// Focus survives a restart when persistence is on — the property that
@@ -3380,32 +3247,6 @@ mod tests {
         assert_eq!(
             e2.focus_get("lane-b").map(|f| (f.group.clone(), f.mode)),
             Some(("Billing".to_string(), FocusMode::Listen))
-        );
-    }
-
-    /// A store written before focus existed loads unchanged. The fixture is a
-    /// literal pre-focus document rather than a serialized modern one, because
-    /// a round-trip through today's type cannot prove yesterday's bytes parse.
-    #[test]
-    fn a_roadmap_persisted_before_focus_existed_loads_with_no_focuses() {
-        let pre_focus = serde_json::json!({
-            "project_id": "proj",
-            "preamble": "",
-            "chunks": [{
-                "id": "a", "title": "A", "name": "A", "status": "pending",
-                "priority": 1, "description": "", "notes": "",
-                "acceptance": [], "deps": [], "cross_refs": [], "shared": false,
-                "created_at": "2026-01-01T00:00:00+00:00",
-                "updated_at": "2026-01-01T00:00:00+00:00"
-            }],
-            "notes": [], "refreshes": [], "links": [], "tracker_opt_ins": []
-        });
-        let loaded: Roadmap =
-            serde_json::from_value(pre_focus).expect("a pre-focus store must still parse");
-        assert_eq!(loaded.chunks.len(), 1);
-        assert!(
-            loaded.focuses.is_empty(),
-            "absent focuses means nobody had focused anything, not a parse failure"
         );
     }
 

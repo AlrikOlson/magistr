@@ -46,8 +46,11 @@ fn show_native(
     engines: &magistr_engine::NativeReader,
     renderer: &dyn OutputRenderer,
 ) -> eyre::Result<()> {
-    let snapshot = engines.roadmap_snapshot();
-    let chunks = engines.roadmap_chunks();
+    let chunks = engines
+        .roadmap_chunks()
+        .map_err(|error| eyre::eyre!(error))?;
+    let snapshot =
+        magistr_engine::NativeRoadmapSnapshot::from_chunks(engines.project_id(), &chunks);
     if renderer.is_machine_readable() {
         renderer
             .json(&mut std::io::stdout(), &show_json(&snapshot, &chunks))
@@ -64,7 +67,7 @@ fn cmd_roadmap_next(dir: &std::path::Path, renderer: &dyn OutputRenderer) -> eyr
     let Some(engines) = crate::roadmap::open_native_reader(&dir)? else {
         eyre::bail!("{NATIVE_REQUIRED}");
     };
-    let next = engines.roadmap_next();
+    let next = engines.roadmap_next().map_err(|error| eyre::eyre!(error))?;
     if renderer.is_machine_readable() {
         let data = next
             .as_ref()

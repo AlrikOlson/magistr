@@ -99,7 +99,16 @@ advance-work
 
 Two MCP tools back it: `roadmap_focus_get` (read-only — it cannot create a focus
 as a side effect of being asked) and `roadmap_focus_set` (the only writer; an
-unknown or ambiguous workstream writes nothing and returns the exact candidates).
+unknown, closed or ambiguous workstream writes nothing and returns current choices).
+The read returns `workstreams.current` for unfinished groups and
+`workstreams.history` for completed and obsolete counts, plus a separate
+ungrouped bucket. Ready, waiting-on-dependencies and blocked counts are distinct.
+A saved focus is classified exactly as current, closed or missing; a read never
+redirects it to a similarly named group. The default `view: "current"` inspects
+unfinished work. Pass `view: "history"` and an exact group name to inspect its
+completed and obsolete records, including a group that still has current work.
+Omit the group to inspect the saved focus. Neither read changes focus. Full
+authored records remain available by the returned chunk IDs.
 
 ### Modes
 

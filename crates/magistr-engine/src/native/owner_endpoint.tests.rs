@@ -98,6 +98,7 @@ fn add_chunk(id: &str) -> OwnerCommand {
 fn chunk_ids(cfg: &NativeConfig) -> Vec<String> {
     NativeReader::open_for_project(cfg, "lease".into())
         .roadmap_chunks()
+        .unwrap()
         .into_iter()
         .map(|c| c.id)
         .collect()

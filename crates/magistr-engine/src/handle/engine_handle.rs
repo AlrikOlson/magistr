@@ -443,7 +443,7 @@ impl EngineHandle {
         let snapshot = self.native.as_ref()?.roadmap_snapshot();
         self.update_roadmap_progress(snapshot.progress.clone());
         self.emit(EngineEvent::Roadmap(RoadmapEvent::NativeSnapshot {
-            snapshot: snapshot.clone(),
+            snapshot: Box::new(snapshot.clone()),
         }));
         Some(snapshot)
     }

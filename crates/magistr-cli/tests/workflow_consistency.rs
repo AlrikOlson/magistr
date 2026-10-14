@@ -87,7 +87,12 @@ fn add_chunk_command(id: &str) -> OwnerCommand {
 }
 
 fn chunk_ids(reader: &NativeReader) -> Vec<String> {
-    let mut ids: Vec<String> = reader.roadmap_chunks().into_iter().map(|c| c.id).collect();
+    let mut ids: Vec<String> = reader
+        .roadmap_chunks()
+        .unwrap()
+        .into_iter()
+        .map(|c| c.id)
+        .collect();
     ids.sort();
     ids
 }
@@ -111,7 +116,10 @@ async fn an_attached_command_is_current_on_every_capability_and_observer() {
     let service = host.clone();
     let observer = reader(&cfg);
     // Both capabilities and the observer opened on an empty store.
-    assert!(service.roadmap_chunks().is_empty() && observer.roadmap_chunks().is_empty());
+    assert!(
+        service.roadmap_chunks().unwrap().is_empty()
+            && observer.roadmap_chunks().unwrap().is_empty()
+    );
 
     // The attached client's command runs on the host's engines: read-your-
     // writes for the owner, and on disk at once.
@@ -265,7 +273,7 @@ fn shared_signal_capabilities_promote_once_and_observers_refresh() {
     // it observes the promoted record and creates nothing.
     let again = service.signal_promote(&captured.id).expect("idempotent");
     assert_eq!(again.cross_refs, promoted.cross_refs);
-    assert_eq!(observer.roadmap_chunks().len(), 1);
+    assert_eq!(observer.roadmap_chunks().unwrap().len(), 1);
 }
 
 #[test]

@@ -5,7 +5,57 @@ import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { createInterface } from 'node:readline'
-import { validate, phase } from '../hooks/wire.js'
+import { decode, validate, phase } from '../hooks/wire.js'
+
+async function verifyWorkstreams(call, lane) {
+  const read = (args = {}) =>
+    call('roadmap_focus_get', { lane, ...args }).then((reply) =>
+      validate('focus', reply),
+    )
+  assert.equal((await read()).focus_state.state, 'unset')
+  for (const [id, group, status] of [
+    ['current', 'Rust desktop', 'pending'],
+    ['earlier', 'Rust desktop', 'done'],
+    ['retired', 'Rust', 'obsoleted'],
+  ]) {
+    const added = await call('roadmap_add_chunk', {
+      id,
+      title: id,
+      group,
+      status,
+    })
+    assert.notEqual(added.isError, true)
+  }
+  await call('roadmap_focus_set', { lane, group: 'Rust desktop', mode: 'build' })
+  const current = await read()
+  assert.deepEqual(Object.keys(current.workstreams.current), ['Rust desktop'])
+  assert.equal(current.frontier.frontier.activity.next_ready, 'current')
+  assert.equal(JSON.stringify(current).includes('chunk_ids'), false)
+
+  const history = await read({ group: 'Rust desktop', view: 'history' })
+  assert.equal(history.frontier.state, 'history')
+  assert.deepEqual(history.frontier.history.chunk_ids, ['earlier'])
+  assert.deepEqual(history.focus, current.focus)
+  const closed = await read({ group: 'Rust', view: 'history' })
+  assert.deepEqual(closed.frontier.history.chunk_ids, ['retired'])
+  assert.deepEqual(closed.focus, current.focus)
+  const records = decode(await call('roadmap_get', { ids: ['earlier', 'retired'] }))
+  assert.deepEqual(records.records.map((record) => record.id), ['earlier', 'retired'])
+
+  await call('roadmap_obsolete_chunk', {
+    id: 'current',
+    reason: 'Exercise closure of the last unfinished item',
+  })
+  const ended = await read()
+  assert.deepEqual(ended.focus_state, { state: 'closed', group: 'Rust desktop' })
+  assert.deepEqual(ended.workstreams.current, {})
+  assert.equal(JSON.stringify(ended).includes('chunk_ids'), false)
+  assert.deepEqual((await read({ view: 'history' })).frontier.history.chunk_ids, [
+    'current',
+    'earlier',
+  ])
+  assert.equal((await read({ lane: lane + '/another' })).focus_state.state, 'unset')
+}
 
 // Genuine Magistr MCP over stdio in a new fixture project, never this checkout's owner.
 test(
@@ -120,6 +170,7 @@ test(
       validate('roadmap', await call('roadmap_status'))
       validate('findings', await call('think_engine_status', { verbose: true }))
       assert.equal(phase(first, ship), 'Phase not reported')
+      await verifyWorkstreams(call, root)
       await call('ship_set_objective', {
         description: 'Inspect the connection',
         verification: 'focused',
@@ -146,7 +197,6 @@ test(
         gate: 'check',
         timeout_secs: 10,
       })
-      const { decode } = await import('../hooks/wire.js')
       const result = decode(gate)
       assert.equal(result.passed, true)
       assert.equal(result.recorded, true)

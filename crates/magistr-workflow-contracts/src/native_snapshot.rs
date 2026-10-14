@@ -1,6 +1,6 @@
 //! The store, read whole.
 
-use crate::roadmap::Chunk;
+use crate::roadmap::{Chunk, WorkstreamCatalog, workstream_catalog};
 use crate::ship::Objective;
 use crate::ship::Task;
 use crate::signal::Signal;
@@ -47,4 +47,12 @@ pub struct NativeSnapshot {
     pub steps: Vec<ThinkStep>,
     /// Branch names, origins, statuses and explicit merge destinations from the same archive.
     pub branches: Vec<super::ThinkBranch>,
+}
+
+impl NativeSnapshot {
+    /// Derived from the same complete chunk snapshot; never a second store.
+    #[must_use]
+    pub fn workstreams(&self) -> WorkstreamCatalog {
+        workstream_catalog(&self.chunks)
+    }
 }

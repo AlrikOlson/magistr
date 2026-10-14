@@ -936,7 +936,10 @@ fn explicit_new_request_keeps_the_admitted_native_roadmap() {
         next.pre_iteration_check().unwrap(),
         PreCheckResult::Continue
     );
-    assert_eq!(next.native().unwrap().roadmap_next().unwrap().id, "ready");
+    assert_eq!(
+        next.native().unwrap().roadmap_next().unwrap().unwrap().id,
+        "ready"
+    );
     assert_eq!(
         engines.roadmap_chunk("ready").unwrap().status,
         magistr_engine::native::ChunkStatus::Pending
@@ -1220,7 +1223,7 @@ fn new_loop_does_not_inherit_a_blocked_item_from_an_ended_run() {
 }
 
 #[test]
-fn track_loop_keeps_its_scope_after_recovery_and_stops_when_it_is_empty() {
+fn track_loop_keeps_its_scope_after_recovery_and_refuses_a_closed_workstream() {
     let (dir, spec_path) = setup_project("- [x] Done\n");
     let engines = native_engines(&dir);
     add_native_chunk(&engines, "chosen", 100, &[]);
@@ -1247,13 +1250,66 @@ fn track_loop_keeps_its_scope_after_recovery_and_stops_when_it_is_empty() {
     let before = recovered.state().clone();
     assert!(recovered.select_track(Some("Other work")).is_err());
     assert_eq!(recovered.state(), &before);
-    engines
-        .roadmap_set_status("chosen", magistr_engine::native::ChunkStatus::Obsoleted)
-        .unwrap();
+    let checkpoint = std::fs::read(loop_state_path(dir.path())).unwrap();
+    engines.roadmap_start_chunk("chosen").unwrap();
+    complete_native_chunk(&engines, "chosen");
+    let before_closed = recovered.state().clone();
+    assert!(recovered.select_track(None).is_err());
+    assert!(recovered.select_track(Some("Other work")).is_err());
+    let refusal = recovered.pre_iteration_check().unwrap_err().to_string();
+    assert!(refusal.contains("no unfinished work"), "{refusal}");
+    assert!(refusal.contains("Other work"), "{refusal}");
+    assert_eq!(recovered.state(), &before_closed);
     assert_eq!(
-        recovered.pre_iteration_check().unwrap(),
-        PreCheckResult::NoReadyChunk
+        std::fs::read(loop_state_path(dir.path())).unwrap(),
+        checkpoint
     );
+    assert_eq!(
+        engines.roadmap_chunk("elsewhere").unwrap().status,
+        magistr_engine::native::ChunkStatus::Pending
+    );
+}
+
+#[test]
+fn track_loop_refuses_a_moved_saved_name_without_replacing_the_checkpoint() {
+    let (dir, spec_path) = setup_project("- [x] Done\n");
+    let engines = native_engines(&dir);
+    add_native_chunk(&engines, "chosen", 100, &[]);
+    add_native_chunk(&engines, "elsewhere", 1, &[]);
+    engines
+        .roadmap_set_group("chosen", Some("Surface".into()))
+        .unwrap();
+    engines
+        .roadmap_set_group("elsewhere", Some("Surface follow-up".into()))
+        .unwrap();
+    let mut first = IterationLoop::open(dir.path(), &spec_path, 3, Some(engines.reader())).unwrap();
+    first.select_track(Some("Surface")).unwrap();
+    first.pre_iteration_check().unwrap();
+    first.persist().unwrap();
+    let checkpoint = std::fs::read(loop_state_path(dir.path())).unwrap();
+
+    engines
+        .roadmap_set_group("chosen", Some("Interface".into()))
+        .unwrap();
+    let mut recovered =
+        IterationLoop::recover_with(dir.path(), &spec_path, Some(engines.reader())).unwrap();
+    let before = recovered.state().clone();
+    for requested in [None, Some("Surface"), Some("Interface")] {
+        let refusal = recovered.select_track(requested).unwrap_err().to_string();
+        assert!(
+            refusal.contains("No current workstream matches 'Surface'"),
+            "{refusal}"
+        );
+        assert!(refusal.contains("Surface follow-up"), "{refusal}");
+        assert_eq!(recovered.state(), &before);
+    }
+    assert!(recovered.pre_iteration_check().is_err());
+    assert_eq!(recovered.state(), &before);
+    assert_eq!(
+        std::fs::read(loop_state_path(dir.path())).unwrap(),
+        checkpoint
+    );
+    assert_eq!(recovered.track(), Some("Surface"));
     assert_eq!(
         engines.roadmap_chunk("elsewhere").unwrap().status,
         magistr_engine::native::ChunkStatus::Pending

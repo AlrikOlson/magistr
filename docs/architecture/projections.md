@@ -31,6 +31,28 @@ proposal reaches it. Revoking completion of an existing session remains distinct
 from scheduling a new start, and owner-generation/freshness fences remain in the
 admitted command path.
 
+Current workstream discovery is another pure projection over those same chunks.
+`WorkstreamCatalog` separates unfinished groups from completed and obsolete
+history counts, retaining a distinct ungrouped bucket. Historical chunk IDs
+are returned only by an explicit named history inspection. Each current group
+reports lifecycle counts, ready/waiting/blocked counts and its exact next candidate.
+`WorkstreamFrontier` assesses every item against the complete roadmap, including
+dependencies outside that group. Neither projection is stored, and closing or
+moving the last unfinished item does not delete or relocate any history.
+
+Saved focus names are exact identities. A read reports `current`, `closed` or
+`missing` for the saved name, or `unset` when that caller has no focus. It never
+resolves a stale saved name into a similarly named group or writes while reading.
+Explicit new selection accepts an unambiguous current-name fragment; an exact
+closed name remains closed, including a case-insensitive exact match.
+`roadmap_focus_get` returns the typed current/history catalog. Its default
+`view: "current"` inspects unfinished work; `view: "history"` returns completed
+and obsolete chunk IDs for the named or saved group, including groups that also
+have current work. Neither inspection changes focus. The existing full-record
+read remains available for the returned chunk IDs.
+Current-work selection propagates roadmap read failures and does not choose work
+from an unsuccessfully refreshed cache.
+
 The cockpit's `DisplayPhase` is an inference used for presentation. It cannot
 advance an objective or grant workflow authority. Application session events and
 permission policy remain in `magistr-application::sessions`.

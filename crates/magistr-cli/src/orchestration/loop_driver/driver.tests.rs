@@ -588,9 +588,18 @@ async fn roadmap_connection_can_be_cancelled_or_closed_before_handshake_finishes
             None,
         )
         .spawn(receiver);
-        commands
-            .send(Cmd::RoadmapPrompt("More ready work".into()))
-            .unwrap();
+        let input = magistr_application::sessions::PromptInput {
+            text: "More ready work".into(),
+            attachments: vec![
+                magistr_application::sessions::PromptAttachment::from_bytes(
+                    "plan.txt",
+                    "selected-plan",
+                    b"Keep this plan\r\n".to_vec(),
+                )
+                .unwrap(),
+            ],
+        };
+        commands.send(Cmd::RoadmapPrompt(input.clone())).unwrap();
         tokio::time::timeout(Duration::from_secs(1), started.notified())
             .await
             .unwrap();
@@ -598,6 +607,14 @@ async fn roadmap_connection_can_be_cancelled_or_closed_before_handshake_finishes
             drop(commands);
         } else {
             commands.send(Cmd::CancelRoadmapPrompt).unwrap();
+            let event = tokio::time::timeout(Duration::from_secs(1), events.recv())
+                .await
+                .unwrap()
+                .unwrap();
+            assert!(
+                matches!(event, Msg::Agent(AgentEvent::PromptRejected { input: rejected, error })
+                    if rejected == input && error == "This send was stopped. Your draft is still available.")
+            );
             let event = tokio::time::timeout(Duration::from_secs(1), events.recv())
                 .await
                 .unwrap()
@@ -634,7 +651,10 @@ async fn local_project_controls_work_before_any_agent_is_connected() {
         ))
         .unwrap();
     next_matching(&mut events, |event| matches!(event, Msg::Engine(_))).await;
-    assert_eq!(engines.roadmap_chunks()[0].status, ChunkStatus::InProgress);
+    assert_eq!(
+        engines.roadmap_chunks().unwrap()[0].status,
+        ChunkStatus::InProgress
+    );
     drop(commands);
     session.await.unwrap().unwrap();
 }
@@ -3172,13 +3192,10 @@ async fn failures_before_the_first_iteration_are_reported_without_connecting_an_
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn rejected_opening_attachment_ends_the_loop_with_a_visible_failure() {
+async fn oversized_opening_message_ends_the_loop_with_a_visible_failure() {
     let dir = project("true", "true", "true");
-    std::fs::write(
-        dir.path().join("ROADMAP.md"),
-        "- [ ] Read @missing-loop-startup.txt before continuing\n",
-    )
-    .unwrap();
+    let item = "x".repeat(magistr_application::sessions::MAX_PROMPT_BYTES + 1);
+    std::fs::write(dir.path().join("ROADMAP.md"), format!("- [ ] {item}\n")).unwrap();
     let (model, report, prompts) = tokio::time::timeout(
         Duration::from_secs(5),
         run(
@@ -3197,15 +3214,17 @@ async fn rejected_opening_attachment_ends_the_loop_with_a_visible_failure() {
             report.end()
         );
     };
-    assert!(reason.contains("The message could not be sent"));
-    assert!(reason.contains("missing-loop-startup.txt"));
+    assert!(
+        reason.contains("This message is too long. Send a smaller part."),
+        "{reason}"
+    );
     assert_eq!(report.iterations(), 0);
     assert!(
         prompts.is_empty(),
         "no invalid message reached the provider"
     );
 
-    assert!(stage_text(&model).contains("missing-loop-startup.txt"));
+    assert!(stage_text(&model).contains("This message is too long. Send a smaller part."));
 
     let saved = checkpoint(dir.path());
     assert_eq!(
@@ -3219,6 +3238,50 @@ async fn rejected_opening_attachment_ends_the_loop_with_a_visible_failure() {
             .iter()
             .any(|record| record.kind == OperationKind::ProviderDispatch
                 && record.outcome == OperationOutcome::Failed)
+    );
+    assert_eq!(saved.operations.unsettled().count(), 0);
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn opening_message_keeps_at_paths_as_literal_text() {
+    let dir = project("true", "true", "true");
+    std::fs::write(
+        dir.path().join("ROADMAP.md"),
+        "- [ ] Read @missing-loop-startup.txt before continuing\n",
+    )
+    .unwrap();
+    let (model, report, prompts) = tokio::time::timeout(
+        Duration::from_secs(5),
+        run(
+            dir.path(),
+            1,
+            Actions::new(),
+            FakeAcpAgent::new().reply("The request arrived."),
+            false,
+        ),
+    )
+    .await
+    .expect("literal text is dispatched");
+    assert!(
+        matches!(report.end(), LoopEnd::MaxIterations(1)),
+        "{report}"
+    );
+    assert_eq!(report.iterations(), 1);
+    assert_eq!(prompts.len(), 1);
+    assert!(prompts[0].contains("Read @missing-loop-startup.txt before continuing"));
+    assert!(
+        !model
+            .iter()
+            .any(|message| matches!(message, Msg::Agent(AgentEvent::PromptRejected { .. })))
+    );
+    let saved = checkpoint(dir.path());
+    assert!(
+        saved
+            .operations
+            .records()
+            .iter()
+            .any(|record| record.kind == OperationKind::ProviderDispatch
+                && record.outcome == OperationOutcome::Completed)
     );
     assert_eq!(saved.operations.unsettled().count(), 0);
 }
@@ -3311,10 +3374,10 @@ async fn quitting_native_work_and_restarting_resumes_it_before_any_pending_item(
                     None,
                 )
                 .unwrap();
-            assert_eq!(engines.roadmap_next().unwrap().id, "new-work");
+            assert_eq!(engines.roadmap_next().unwrap().unwrap().id, "new-work");
         } else {
             assert!(
-                engines.roadmap_next().is_none(),
+                engines.roadmap_next().unwrap().is_none(),
                 "ready-only selection cannot resume work"
             );
         }
@@ -3419,12 +3482,25 @@ async fn the_selected_judge_target_is_not_replaced_by_another_in_progress_item()
         connector,
     );
     driver.target = Some("work".into());
-    assert_eq!(driver.target_chunk(&engines).unwrap().id, "work");
+    assert_eq!(driver.target_chunk(&engines).unwrap().unwrap().id, "work");
     driver.target = Some("missing".into());
     assert!(
-        driver.target_chunk(&engines).is_none(),
+        driver.target_chunk(&engines).unwrap().is_none(),
         "a removed selection cannot redirect work"
     );
+
+    use magistr_workflow::infra::{Domain, Persistence};
+    let path = Persistence::new(&engines.config().persistence_config(), Domain::Roadmap)
+        .path_for(engines.project_id());
+    let original = std::fs::read(&path).unwrap();
+    driver.target = Some("work".into());
+    std::fs::write(&path, "{invalid roadmap").unwrap();
+    assert!(
+        driver.target_chunk(&engines).is_err(),
+        "unreadable work cannot be judged from a cached selection"
+    );
+    std::fs::write(&path, original).unwrap();
+    assert_eq!(driver.target_chunk(&engines).unwrap().unwrap().id, "work");
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]

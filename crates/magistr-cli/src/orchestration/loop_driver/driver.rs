@@ -1050,10 +1050,13 @@ impl LoopDriver {
         started: Instant,
         ticks: &mut Interval,
     ) -> Result<Delegated, String> {
-        let chunk = self.native.as_ref().and_then(|engines| {
-            let id = self.target.clone()?;
-            engines.roadmap_chunks().into_iter().find(|c| c.id == id)
-        });
+        let chunk = match (&self.native, &self.target) {
+            (Some(engines), Some(id)) => engines
+                .roadmap_chunks()?
+                .into_iter()
+                .find(|chunk| chunk.id == *id),
+            _ => None,
+        };
         let objective =
             AgentGoal::compile_objective(chunk.as_ref().map(|c| (c.id.as_str(), c.title.as_str())));
         let picks: Vec<DeliveryKind> = match self.delegated {
@@ -1428,10 +1431,13 @@ impl LoopDriver {
         let Some(engines) = self.native.as_ref().cloned() else {
             return Step::Next;
         };
-        engines.reload_roadmap();
-        let Some(chunk) = self.target_chunk(&engines) else {
-            self.note("judge not asked: no chunk to judge this iteration");
-            return Step::Next;
+        let chunk = match self.target_chunk(&engines) {
+            Ok(Some(chunk)) => chunk,
+            Ok(None) => {
+                self.note("judge not asked: no chunk to judge this iteration");
+                return Step::Next;
+            }
+            Err(error) => return Step::End(LoopEnd::Failed(error)),
         };
         // A chunk the agent finished, blocked or retired during its turn
         // is not a question for the judge: the only verdict on a chunk
@@ -1640,16 +1646,16 @@ impl LoopDriver {
 
     /// Judge the work selected for this iteration, even if another item is
     /// in progress. An unselected legacy iteration may use its single active item.
-    fn target_chunk(&self, engines: &NativeEngines) -> Option<Chunk> {
-        let chunks = engines.roadmap_chunks();
+    fn target_chunk(&self, engines: &NativeEngines) -> Result<Option<Chunk>, String> {
+        let chunks = engines.roadmap_chunks()?;
         if let Some(target) = &self.target {
-            return chunks.into_iter().find(|chunk| &chunk.id == target);
+            return Ok(chunks.into_iter().find(|chunk| &chunk.id == target));
         }
         let mut active = chunks
             .into_iter()
             .filter(|chunk| chunk.status == ChunkStatus::InProgress);
-        let chunk = active.next()?;
-        active.next().is_none().then_some(chunk)
+        let chunk = active.next();
+        Ok(chunk.filter(|_| active.next().is_none()))
     }
 
     /// Complete `chunk` through the engines (starting one the agent

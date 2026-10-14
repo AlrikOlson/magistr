@@ -1,4 +1,4 @@
-use magistr_workflow::roadmap::domain::{ChunkStatus, Roadmap};
+use magistr_workflow::roadmap::domain::{Chunk, ChunkStatus};
 
 use crate::roadmap::RoadmapProgress;
 
@@ -8,11 +8,8 @@ use crate::roadmap::RoadmapProgress;
 /// are history and count toward nothing — the roadmap that carries 73 of
 /// them would otherwise read as one-third done before any work.
 #[must_use]
-pub fn progress_from_roadmap(roadmap: &Roadmap) -> RoadmapProgress {
-    let live = roadmap
-        .chunks
-        .iter()
-        .filter(|c| c.status != ChunkStatus::Obsoleted);
+pub fn progress_from_chunks(chunks: &[Chunk]) -> RoadmapProgress {
+    let live = chunks.iter().filter(|c| c.status != ChunkStatus::Obsoleted);
     let mut total_tasks = 0u32;
     let mut checked_tasks = 0u32;
     // group → (live, done)
