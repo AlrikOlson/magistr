@@ -55,6 +55,7 @@ pub mod repair;
 mod selections;
 mod setup_seeds;
 mod substitute;
+mod target_root;
 mod update_policy;
 mod vars;
 mod workflow_skills;
@@ -206,7 +207,11 @@ pub(crate) fn is_executable_path(path: &str) -> bool {
 /// off a directory, a symlink or an unreadable file. Unreadable is not
 /// evidence of absence.
 pub(crate) fn read_target(dir: &Path, path: &str) -> std::result::Result<Option<String>, Refusal> {
-    let full = dir.join(path);
+    let full = target_root::target_root(dir, path)
+        .map_err(|error| Refusal::Unreadable {
+            cause: error.to_string(),
+        })?
+        .join(path);
     match std::fs::symlink_metadata(&full) {
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
         Err(error) => Err(Refusal::Unreadable {

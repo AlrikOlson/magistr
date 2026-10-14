@@ -4,6 +4,7 @@ use crate::ship::domain::check::CheckType;
 
 fn admit(ledger: &ReceiptLedger, run: &str, id: &str) -> CheckReceipt {
     let target = TaskAdmission {
+        execution: None,
         project_id: "project".into(),
         run_id: run.into(),
         task_id: "verify".into(),

@@ -12,19 +12,19 @@ use super::writer_role::WriterRole;
 /// names — under the persistent store, or the project's `.magistr/` when
 /// persistence is off. Also what the owner endpoint's socket is derived
 /// from, so the endpoint is keyed by exactly what the lease is.
-pub(crate) fn lock_path(tas: &NativeConfig, project_id: &str, role: WriterRole) -> PathBuf {
+pub(crate) fn lock_path(tas: &NativeConfig, project_id: &str, _role: WriterRole) -> PathBuf {
     if tas.persist {
         Persistence::new(&tas.persistence_config(), Domain::Roadmap)
             .path_for(project_id)
-            .with_extension(role.lock_suffix())
+            .with_extension("project-owner.lock")
     } else {
-        tas.project_root.join(".magistr").join(role.lock_suffix())
+        tas.workflow_root().join(".magistr/project-owner.lock")
     }
 }
 
 /// The advisory locks an admitted writer holds for as long as its authority
-/// lives: the role's project lock, plus the feed publisher's lock when the
-/// service binds the live socket.
+/// lives: the shared project's lock, its store lock, and the publisher lock
+/// when the owner binds its live feed.
 ///
 /// Lock files are stable and never truncated, removed or replaced. Unlinking
 /// one would let another process open a second inode and defeat exclusion;
@@ -37,10 +37,10 @@ pub(crate) struct OwnerLease {
 }
 
 impl OwnerLease {
-    /// Take `role`'s lock for `project_id` on the store `tas` names.
+    /// Take the project lock for `project_id` on the store `tas` names.
     ///
     /// # Errors
-    /// `WouldBlock` when another writer of the same role holds it; any other
+    /// `WouldBlock` when another writer holds it; any other
     /// I/O failure creating or opening the lock file. Nothing is opened after
     /// a refusal.
     pub(crate) fn acquire(
@@ -53,9 +53,11 @@ impl OwnerLease {
             files: Vec::new(),
             generation: OwnerGeneration::default(),
         };
+        let project_lock = tas.workflow_root().join(".magistr/workflow-owner.lock");
+        lease.lock(&project_lock, role.resource())?;
         lease.lock(&path, role.resource())?;
         // The counter lives at the head of the project lock, written under
-        // it: the one place every admission of this role passes through.
+        // it: the one place every admission of this project passes through.
         let lock = lease
             .files
             .first_mut()
@@ -65,14 +67,14 @@ impl OwnerLease {
                 error.kind(),
                 format!(
                     "magistr: cannot mint the owner generation in {}: {error}",
-                    path.display()
+                    project_lock.display()
                 ),
             )
         })?;
         Ok(lease)
     }
 
-    /// Which incarnation of this role's owner the lease is.
+    /// Which incarnation of the project's owner the lease is.
     pub(crate) const fn generation(&self) -> OwnerGeneration {
         self.generation
     }
@@ -120,11 +122,15 @@ impl OwnerLease {
         let mut lock_path = path.as_os_str().to_os_string();
         lock_path.push(".mcp-owner.lock");
         self.lock(&PathBuf::from(lock_path), "live-feed socket owner")?;
+        let publisher = self
+            .files
+            .pop()
+            .ok_or_else(|| io::Error::other("The feed lease was not acquired."))?;
         ensure_feed_available(path).await?;
         // Every frame this owner publishes carries its generation as the
         // feed's epoch, so a subscriber that outlives it recognises the
         // next owner's frames as a change of hands.
-        Broadcaster::spawn(path.to_path_buf())
+        let broadcaster = Broadcaster::spawn(path.to_path_buf())
             .map(|broadcaster| broadcaster.with_epoch(self.generation.get()))
             .ok_or_else(|| {
                 io::Error::other(format!(
@@ -132,7 +138,9 @@ impl OwnerLease {
              before opening project engines (check the path and runtime support)",
                     path.display()
                 ))
-            })
+            })?;
+        self.files.push(publisher);
+        Ok(broadcaster)
     }
 }
 

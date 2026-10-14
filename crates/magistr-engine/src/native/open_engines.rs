@@ -44,7 +44,7 @@ pub(crate) fn open_engines(
             magistr_workflow::think::broadcast::Broadcaster::from_engine(b.clone()),
         );
         ship = ship.with_broadcaster(magistr_workflow::ship::broadcast::Broadcaster::from_engine(
-            b.clone(),
+            b.clone().with_execution(config.execution_context().key()),
         ));
         roadmap = roadmap.with_broadcaster(
             magistr_workflow::roadmap::broadcast::Broadcaster::from_engine(b.clone()),
@@ -92,10 +92,20 @@ pub(crate) fn open_signal(config: &NativeConfig, project_id: String) -> SignalEn
 /// (`tas-load-banner-ship-signal`). Same raw-mode caveat as [`open_signal`].
 pub(crate) fn open_ship(config: &NativeConfig, project_id: String) -> ShipEngine {
     let persist = config.persistence_config();
-    ShipEngine::new(project_id).with_persistence(ShipPersistence::new(&ShipPersistenceConfig {
-        enabled: persist.enabled,
-        data_dir: persist.data_dir,
-    }))
+    let context = config.execution_context();
+    ShipEngine::new(project_id)
+        .with_execution_binding(magistr_workflow::ship::application::ExecutionBinding {
+            working_copy: context.working_copy.clone(),
+            execution_id: context.execution_id.clone(),
+            owner_generation: config.owner_generation,
+        })
+        .with_persistence(
+            ShipPersistence::new(&ShipPersistenceConfig {
+                enabled: persist.enabled,
+                data_dir: persist.data_dir,
+            })
+            .for_execution(&context.key()),
+        )
 }
 
 #[cfg(test)]

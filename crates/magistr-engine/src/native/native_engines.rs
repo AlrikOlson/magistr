@@ -34,13 +34,16 @@ use super::project_authority::ProjectAuthority;
 /// without extending write admission. Long-running checks capture native run and
 /// task identity before execution, then settle against that identity.
 ///
-/// The existing native stores remain authoritative. Source-bound receipt
-/// consumption and completion freshness are deferred to arch-14.
+/// The native stores remain authoritative. Contextual evidence, task admission
+/// and current-source completion checks are owned by the workflow use cases.
 #[derive(Clone)]
 pub struct NativeEngines {
     reader: NativeReader,
     authority: Arc<ProjectAuthority>,
-    services: FamilyServices,
+    services: Arc<FamilyServices>,
+    _working_copy: Option<Arc<super::WorkingCopyLease>>,
+    executions:
+        Arc<std::sync::Mutex<std::collections::BTreeMap<String, std::sync::Weak<FamilyServices>>>>,
 }
 
 impl fmt::Debug for NativeEngines {
@@ -66,16 +69,117 @@ impl NativeEngines {
         authority: Arc<ProjectAuthority>,
         services: FamilyServices,
     ) -> Self {
+        let services = Arc::new(services);
+        let key = reader.config().execution_context().key();
+        let executions = Arc::new(std::sync::Mutex::new(std::collections::BTreeMap::from([(
+            key,
+            Arc::downgrade(&services),
+        )])));
         Self {
             reader,
             authority,
             services,
+            executions,
+            _working_copy: None,
         }
+    }
+
+    /// Start this owner's event feed and attach its existing execution views.
+    /// Hosts can open before entering an async runtime; their endpoint starts the publisher.
+    pub async fn publish(&self) -> std::io::Result<()> {
+        self.authority
+            .publish_feed(&self.authority.config().feed_socket_path())
+            .await?;
+        let feed = self
+            .authority
+            .feed()
+            .ok_or_else(|| std::io::Error::other("The project feed did not start."))?;
+        let executions = self
+            .executions
+            .lock()
+            .map_err(|_| std::io::Error::other("Execution owner lock failed."))?;
+        for (key, services) in executions.iter() {
+            if let Some(services) = services.upgrade() {
+                services.bind_feed(feed, key)?;
+            }
+        }
+        Ok(())
+    }
+
+    /// Bind an execution view to a registered working copy of this project.
+    /// Shared planning stays on this authority; selected tasks, receipts and source evidence
+    /// belong to the context and are reused only by that exact context.
+    pub fn for_working_copy(
+        &self,
+        root: &std::path::Path,
+        execution_id: &str,
+    ) -> std::io::Result<Self> {
+        let location = super::ProjectLocation::resolve(root)?;
+        let owner = super::ProjectLocation::resolve(self.authority.config().project_root())?;
+        if location.authority_root != owner.authority_root {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::PermissionDenied,
+                "This working copy belongs to another project.",
+            ));
+        }
+        super::ProjectLocation::require_open(&location.working_copy)?;
+        let working_copy = Arc::new(super::WorkingCopyLease::active(&location.working_copy)?);
+        super::ProjectLocation::require_open(&location.working_copy)?;
+        let context = super::ExecutionContext::new(&location.working_copy, execution_id)?;
+        let config = self.reader.config().for_context(&context)?;
+        let mut executions = self
+            .executions
+            .lock()
+            .map_err(|_| std::io::Error::other("Execution owner lock failed."))?;
+        executions.retain(|_, services| services.strong_count() != 0);
+        let key = context.key();
+        let services = if let Some(services) =
+            executions.get(&key).and_then(std::sync::Weak::upgrade)
+        {
+            services
+        } else {
+            if executions.len() >= 128 {
+                return Err(std::io::Error::other(
+                    "Close some task sessions before opening more.",
+                ));
+            }
+            let services = Arc::new({
+                let mut ship =
+                    super::open_engines::open_ship(&config, self.authority.project_id().to_owned());
+                if let Some(feed) = self.authority.feed() {
+                    ship = ship.with_broadcaster(
+                        magistr_workflow::ship::broadcast::Broadcaster::from_engine(
+                            feed.clone().with_execution(context.key()),
+                        ),
+                    );
+                }
+                self.services
+                    .for_execution(ship, config.evidence().cloned())
+            });
+            executions.insert(key, Arc::downgrade(&services));
+            services
+        };
+        let (think, ship, roadmap, signal) = services.engines();
+        let reader = NativeReader::from_shared(
+            self.authority.project_id().to_owned(),
+            config,
+            think,
+            ship,
+            roadmap,
+            signal,
+        );
+        Ok(Self {
+            reader,
+            authority: Arc::clone(&self.authority),
+            services,
+            executions: Arc::clone(&self.executions),
+            _working_copy: Some(working_copy),
+        })
     }
 
     /// The read capability over the same engines, without the lease: what a
     /// re-seed timer or a progress view holds so that dropping the last
-    /// writer releases the role's lock regardless of how many observers
+    /// writer releases the project's lock regardless of how many observers
     /// remain.
     #[must_use]
     pub fn reader(&self) -> NativeReader {

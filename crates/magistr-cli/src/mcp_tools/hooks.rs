@@ -401,7 +401,8 @@ fn format_hooks_list(hooks: &[LifecycleHook]) -> String {
 
 /// Load `ProjectConfig` from `.magistr/project.json`.
 fn load_project_config(project_root: &std::path::Path) -> Result<ProjectConfig, String> {
-    let config_path = crate::paths::project_json(project_root);
+    let config_path =
+        crate::paths::project_json(project_root).map_err(|error| error.to_string())?;
     let content = std::fs::read_to_string(&config_path).map_err(|e| {
         format!(
             "Cannot read project config at {}: {e}. Run `magistr init` first.",
@@ -417,7 +418,8 @@ fn save_project_config(
     project_root: &std::path::Path,
     config: &ProjectConfig,
 ) -> Result<(), String> {
-    let config_path = crate::paths::project_json(project_root);
+    let config_path =
+        crate::paths::project_json(project_root).map_err(|error| error.to_string())?;
     let content = serde_json::to_string_pretty(config)
         .map_err(|e| format!("Failed to serialize config: {e}"))?;
     std::fs::write(&config_path, content)

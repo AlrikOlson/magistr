@@ -36,7 +36,7 @@ fn a_different_build_limits_diagnostics_without_reporting_a_broken_connection() 
 }
 
 fn acceptor() -> McpAcceptor {
-    Arc::new(|stream: tokio::net::UnixStream, cancel| {
+    Arc::new(|stream: tokio::net::UnixStream, cancel, _context| {
         Box::pin(async move {
             let (mut read, mut write) = stream.into_split();
             tokio::select! {

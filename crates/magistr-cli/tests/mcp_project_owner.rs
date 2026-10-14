@@ -22,8 +22,23 @@ struct Server {
 
 impl Server {
     async fn spawn(root: &Path, data: &Path, socket: &Path) -> Self {
+        Self::spawn_as(root, data, socket, "default", &["mcp-serve"]).await
+    }
+
+    async fn spawn_as(
+        root: &Path,
+        data: &Path,
+        socket: &Path,
+        execution: &str,
+        args: &[&str],
+    ) -> Self {
         let mut child = Command::from(magistr_command::magistr_command())
-            .arg("mcp-serve")
+            .args(args)
+            .env("MAGISTR_EXECUTION_ID", execution)
+            .env("WORKBENCH_SESSION_ID", execution)
+            .env("WORKBENCH_NETWORK_FS", "0")
+            .env_remove("WORKBENCH_USER_CONFIG")
+            .env_remove("WORKBENCH_ORG_POLICY")
             .current_dir(root)
             .env("THINK_AND_SHIP_DATA_DIR", data)
             .env("THINK_AND_SHIP_PERSIST", "true")
@@ -76,6 +91,15 @@ impl Server {
     }
 
     async fn call(&mut self, name: &str, arguments: Value) -> Value {
+        self.call_with_errors(name, arguments, false).await
+    }
+
+    async fn call_with_errors(
+        &mut self,
+        name: &str,
+        arguments: Value,
+        expected_error: bool,
+    ) -> Value {
         self.send(json!({"jsonrpc":"2.0","id":2,"method":"tools/call",
             "params":{"name":name,"arguments":arguments}}))
             .await;
@@ -83,10 +107,14 @@ impl Server {
             let response = self.response().await.expect("tool response");
             if response["id"] == 2 {
                 let result = &response["result"];
-                assert_ne!(result["isError"], true, "{response}");
+                assert_eq!(result["isError"] == true, expected_error, "{response}");
                 return result.get("structuredContent").cloned().unwrap_or_else(|| {
-                    serde_json::from_str(result["content"][0]["text"].as_str().expect("text"))
-                        .expect("structured JSON")
+                    serde_json::from_str(
+                        result["content"][0]["text"].as_str().unwrap_or_else(|| {
+                            panic!("Missing tool result for {name}: {response}")
+                        }),
+                    )
+                    .expect("structured JSON")
                 });
             }
         }
@@ -139,6 +167,12 @@ fn native_project(root: &Path) {
         root.join(".magistr/project.json"),
         json!({
             "project": {"name": "owner-test", "description": "", "type": "cli"},
+            "stack": {"language":"rust","framework":"none","package_manager":"cargo","test_framework":"cargo-test","linter":"clippy","formatter":"rustfmt"},
+            "format": {"command":"true","extensions":["rs"]},
+            "testing": {"companion_pattern":"{name}.tests.{ext}","test_dir":"alongside"},
+            "reference_repos": [],
+            "state_prefix": "fixture",
+            "roadmap_exports": false,
             "quality_gate": {"check": "true", "test": "true", "lint": "true"},
             "roadmap_backend": "think-and-ship"
         })
@@ -227,7 +261,7 @@ async fn simultaneous_stdio_start_has_one_owner_and_kill_allows_fresh_restart() 
     assert_eq!(still_live["records"][0]["id"], "attached");
 
     use std::os::unix::fs::MetadataExt;
-    let lock_path = data.join("roadmap/sessions/owner-test.mcp-owner.lock");
+    let lock_path = data.join("roadmap/sessions/owner-test.project-owner.lock");
     let lock_inode = std::fs::metadata(&lock_path).expect("owner lock").ino();
     owner.child.kill().await.expect("kill owner");
     owner.child.wait().await.expect("owner reaped");
@@ -394,7 +428,7 @@ async fn different_stores_racing_for_one_feed_admit_only_one_publisher() {
     assert_ne!(ra.is_some(), rb.is_some(), "exactly one publisher");
     let (mut owner, mut rejected) = if ra.is_some() { (a, b) } else { (b, a) };
     let error = rejected.rejection().await;
-    assert!(error.contains("live-feed socket owner"), "{error}");
+    assert!(error.contains("project owner"), "{error}");
     owner.initialized().await;
     let result = owner.call("roadmap_status", json!({})).await;
     assert_eq!(result["project_id"], "owner-test");
@@ -437,6 +471,8 @@ async fn a_reader_command_answers_beside_the_running_owner_without_a_lease() {
         .await;
     assert_eq!(added["id"], "visible", "{added}");
 
+    let lease = data.join("roadmap/sessions/owner-test.project-owner.lock");
+    let before = std::fs::read(&lease).expect("the service owns the project");
     // `magistr roadmap status` is a reader: it takes no lease, so it answers
     // while the owner holds the project, and it sees the owner's write.
     let status = Command::from(magistr_command::magistr_command())
@@ -458,11 +494,10 @@ async fn a_reader_command_answers_beside_the_running_owner_without_a_lease() {
     assert_eq!(report["data"]["project_id"], "owner-test", "{report}");
     assert_eq!(report["data"]["counts"]["pending"], 1, "{report}");
     assert_eq!(report["data"]["next"], "visible", "{report}");
-    assert!(
-        !data
-            .join("roadmap/sessions/owner-test.host-owner.lock")
-            .exists(),
-        "a reader takes no host lease"
+    assert_eq!(
+        std::fs::read(&lease).expect("stable owner lease"),
+        before,
+        "a reader neither acquires nor changes the owner's lease"
     );
 
     // The owner is untouched by the read.
@@ -470,4 +505,252 @@ async fn a_reader_command_answers_beside_the_running_owner_without_a_lease() {
     assert_eq!(after["project_id"], "owner-test");
     owner.child.kill().await.expect("stop owner");
     owner.child.wait().await.expect("reap owner");
+}
+fn git(root: &Path, args: &[&str]) {
+    let result = std::process::Command::new("git")
+        .current_dir(root)
+        .args(args)
+        .output()
+        .expect("git");
+    assert!(
+        result.status.success(),
+        "{}",
+        String::from_utf8_lossy(&result.stderr)
+    );
+}
+
+async fn ready(server: &mut Server) {
+    assert!(server.response().await.expect("initialize")["result"].is_object());
+    server.initialized().await;
+}
+
+async fn begin_work(server: &mut Server, scope: &str) {
+    server
+        .call(
+            "ship_set_objective",
+            json!({"description": scope, "scope": scope, "verification":"focused"}),
+        )
+        .await;
+    server
+        .call(
+            "ship_plan",
+            json!({"action":"add","task_id":"verify","title":"Verify source","task_type":"test"}),
+        )
+        .await;
+    server.call("ship_start", json!({"task_id":"verify"})).await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn linked_worktrees_share_one_workflow_owner_and_keep_source_checks_and_recovery_separate() {
+    use magistr::application::{WorkingCopies, WorkingCopyError};
+    use magistr_engine::native::{ProjectAuthority, WriterRole};
+    use magistr_workspace::snapshot::{SelectionPolicy, SourceSnapshot};
+    let temp = tempfile::tempdir().expect("temporary");
+    let main = temp.path().join("main");
+    std::fs::create_dir(&main).expect("root");
+    identity(&main);
+    native_project(&main);
+    std::fs::write(
+        main.join(".gitignore"),
+        ".workbench/\n.magistr/\n.think-and-ship/\n",
+    )
+    .expect("ignore");
+    std::fs::write(main.join("source.txt"), "original\n").expect("source");
+    std::fs::write(
+        main.join("workbench.toml"),
+        "[edit]\nconfirm_mode = \"token\"\n",
+    )
+    .expect("configuration");
+    git(&main, &["init", "-b", "main"]);
+    git(&main, &["config", "user.name", "Test"]);
+    git(&main, &["config", "user.email", "test@example.invalid"]);
+    git(&main, &["add", "."]);
+    git(&main, &["commit", "-m", "initial"]);
+    let copies = WorkingCopies::at(&main).expect("working copies");
+    let linked = copies
+        .create(&temp.path().join("task-b"), "task-b", "HEAD")
+        .expect("create")
+        .path;
+    let main = main.canonicalize().expect("canonical");
+    assert!(!linked.join(".magistr/project.json").exists());
+    let data = temp.path().join("data");
+    let socket = temp.path().join("feed.sock");
+
+    let mut a = Server::spawn_as(&main, &data, &socket, "task-a", &["mcp-serve"]).await;
+    ready(&mut a).await;
+    let mut b = Server::spawn_as(&linked, &data, &socket, "task-b", &["mcp-serve"]).await;
+    ready(&mut b).await;
+    begin_work(&mut a, "chunk:a").await;
+    begin_work(&mut b, "chunk:b").await;
+    let status_a = a.call("ship_status", json!({})).await;
+    let status_b = b.call("ship_status", json!({})).await;
+    assert_eq!(status_a["objective"]["scope"], "chunk:a");
+    assert_eq!(status_b["objective"]["scope"], "chunk:b");
+    assert_eq!(status_a["execution"]["working_copy"], json!(main));
+    assert_eq!(status_b["execution"]["working_copy"], json!(linked));
+    assert_eq!(
+        status_a["execution"]["owner_generation"],
+        status_b["execution"]["owner_generation"]
+    );
+    assert_ne!(status_a["run_id"], status_b["run_id"]);
+    let cfg = magistr_core::evidence::writer_config(&linked, |_| None).with_data_dir(&data);
+    for role in [WriterRole::Host, WriterRole::Service] {
+        assert_eq!(
+            ProjectAuthority::admit(&cfg, role)
+                .expect_err("one workflow writer")
+                .kind(),
+            std::io::ErrorKind::WouldBlock
+        );
+    }
+
+    let mut source_a = Server::spawn_as(
+        &main,
+        &data,
+        &socket,
+        "same-source-session",
+        &["workspace", "serve"],
+    )
+    .await;
+    let mut source_b = Server::spawn_as(
+        &linked,
+        &data,
+        &socket,
+        "same-source-session",
+        &["workspace", "serve"],
+    )
+    .await;
+    ready(&mut source_a).await;
+    ready(&mut source_b).await;
+    // Equal client-supplied session names still cannot transfer an approval
+    // between different source owners and canonical roots.
+    let mut request = json!({"op":"move","from":"source.txt","to":"moved.txt"});
+    let preview = source_a
+        .call_with_errors("files", request.clone(), true)
+        .await;
+    assert_eq!(preview["error"]["code"], "CONFIRM_REQUIRED", "{preview}");
+    request["confirm"] = preview["error"]["confirmToken"].clone();
+    let denied = source_b.call_with_errors("files", request, true).await;
+    assert_eq!(denied["error"]["code"], "CONFIRM_MISMATCH", "{denied}");
+    assert!(!linked.join("moved.txt").exists());
+    for (server, text) in [(&mut source_a, "tree a\n"), (&mut source_b, "tree b\n")] {
+        let write = server
+            .call("write", json!({"path":"source.txt","content":text}))
+            .await;
+        assert_eq!(write["ok"], true, "{write}");
+    }
+    assert_eq!(
+        std::fs::read_to_string(main.join("source.txt")).expect("a"),
+        "tree a\n"
+    );
+    assert_eq!(
+        std::fs::read_to_string(linked.join("source.txt")).expect("b"),
+        "tree b\n"
+    );
+    assert!(matches!(
+        copies.archive(&linked),
+        Err(WorkingCopyError::Active)
+    ));
+
+    for (server, expected) in [(&mut a, "tree a"), (&mut b, "tree b")] {
+        let check = server
+            .call(
+                "ship_check",
+                json!({"type":"test","name":"source","command":"cat source.txt"}),
+            )
+            .await;
+        assert_eq!(check["passed"], true, "{check}");
+        assert!(
+            check["details"]
+                .as_str()
+                .expect("details")
+                .contains(expected),
+            "{check}"
+        );
+    }
+    let gate_a = a.call("magistr_gate", json!({"gate":"test"})).await;
+    let gate_b = b.call("magistr_gate", json!({"gate":"test"})).await;
+    assert_eq!(gate_a["passed"], true, "{gate_a}");
+    assert_eq!(gate_b["passed"], true, "{gate_b}");
+    let receipt_a = a
+        .call("magistr_context", json!({"receipt_id":gate_a["receipt"]}))
+        .await;
+    let receipt_b = b
+        .call("magistr_context", json!({"receipt_id":gate_b["receipt"]}))
+        .await;
+    for (receipt, status, root) in [
+        (&receipt_a, &status_a, &main),
+        (&receipt_b, &status_b, &linked),
+    ] {
+        assert_eq!(
+            receipt["receipt"]["target"]["execution"],
+            status["execution"]
+        );
+        assert_eq!(receipt["receipt"]["target"]["run_id"], status["run_id"]);
+        assert_eq!(receipt["receipt"]["source"]["workspace_root"], json!(root));
+    }
+    assert!(
+        a.call("magistr_context", json!({"receipt_id":gate_b["receipt"]}))
+            .await["receipt"]
+            .is_null(),
+        "no receipt cross-delivery"
+    );
+    std::fs::write(main.join("source.txt"), "changed after check\n").expect("change a");
+    let witness_b =
+        SourceSnapshot::capture(&linked, SelectionPolicy::default()).expect("b observation");
+    assert_eq!(
+        receipt_b["receipt"]["source"]["revision"],
+        witness_b.revision(),
+        "a does not invalidate b"
+    );
+    assert_ne!(
+        receipt_a["receipt"]["source"]["revision"],
+        SourceSnapshot::capture(&main, SelectionPolicy::default())
+            .expect("a")
+            .revision()
+    );
+
+    let generation = status_b["execution"]["owner_generation"]
+        .as_u64()
+        .expect("generation");
+    a.child.kill().await.expect("kill owner");
+    timeout(Duration::from_secs(15), a.child.wait())
+        .await
+        .expect("bounded reap")
+        .expect("reap");
+    // An existing bridge re-admits on its next call, with its own context.
+    let recovered_b = b.call("ship_status", json!({})).await;
+    assert_eq!(recovered_b["objective"]["scope"], "chunk:b");
+    assert_eq!(recovered_b["run_id"], status_b["run_id"]);
+    assert!(
+        recovered_b["execution"]["owner_generation"]
+            .as_u64()
+            .expect("new generation")
+            > generation
+    );
+    let mut recovered_a = Server::spawn_as(&main, &data, &socket, "task-a", &["mcp-serve"]).await;
+    ready(&mut recovered_a).await;
+    assert_eq!(
+        recovered_a.call("ship_status", json!({})).await["objective"]["scope"],
+        "chunk:a"
+    );
+    source_a.disconnect().await;
+    source_b.disconnect().await;
+    recovered_a.disconnect().await;
+    b.disconnect().await;
+    ProjectAuthority::admit(&cfg, WriterRole::Host).expect("all workflow connections released");
+    let nested = linked.join("app");
+    std::fs::create_dir(&nested).expect("nested project");
+    let mut nested_source =
+        Server::spawn_as(&nested, &data, &socket, "nested", &["workspace", "serve"]).await;
+    ready(&mut nested_source).await;
+    nested_source.call("workbench_status", json!({})).await;
+    assert!(
+        matches!(copies.archive(&linked), Err(WorkingCopyError::Active)),
+        "nested source owner keeps the Git copy active"
+    );
+    nested_source.disconnect().await;
+    assert!(
+        matches!(copies.archive(&linked), Err(WorkingCopyError::Dirty)),
+        "cleanup preserves unreviewed work"
+    );
 }

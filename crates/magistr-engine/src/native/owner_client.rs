@@ -97,6 +97,7 @@ impl OwnerClient {
             build: BuildIdentity::this_build(),
             identity: OwnerIdentity::Workflow { project_id, role },
             attach: AttachKind::Commands,
+            context: Some(config.execution_context()),
             caller,
         };
         let (link, generation, owner_pid) = unix::connect(&path, &hello, deadline)?;
@@ -132,6 +133,7 @@ impl OwnerClient {
             build: BuildIdentity::this_build(),
             identity: OwnerIdentity::Workflow { project_id, role },
             attach: AttachKind::Mcp,
+            context: Some(config.execution_context()),
             caller,
         };
         Self::attach_mcp_at(&path, &hello, deadline)

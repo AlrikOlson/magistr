@@ -10,6 +10,9 @@ use rmcp::model::{CallToolRequestParams, CallToolResult};
 use rmcp::{ClientHandler, ServiceExt};
 use serde_json::{Value, json};
 
+#[path = "mcp_serve_integration/gate_source_receipts.rs"]
+mod gate_source_receipts;
+
 #[derive(Clone)]
 struct TestClient;
 impl ClientHandler for TestClient {}
@@ -503,10 +506,19 @@ async fn one_server_serves_both_surfaces_and_records_gates_through_ship() {
         "phase action recorded: {actions:?} (task {task})"
     );
 
-    // Everything persisted under the temp store, keyed by the declared identity.
+    // Work persists under this execution's partition and declared project identity.
+    let context = magistr_engine::native::ExecutionContext::new(
+        &root,
+        ship["execution"]["execution_id"]
+            .as_str()
+            .expect("execution id"),
+    )
+    .expect("admitted context");
     assert!(
         data_dir
-            .join("ship/sessions/mcp-serve-fixture.json")
+            .join("ship/executions")
+            .join(context.key())
+            .join("sessions/mcp-serve-fixture.json")
             .exists()
     );
 
@@ -1086,7 +1098,7 @@ async fn context_reads_owner_phase_and_canonical_evidence_without_mutation() {
     call(
         &client,
         "ship_set_objective",
-        json!({"description": "Inspect evidence", "verification": "focused"}),
+        json!({"description": "Inspect evidence", "verification": "focused", "scope": "context:first"}),
     )
     .await;
     call(
@@ -1110,13 +1122,20 @@ async fn context_reads_owner_phase_and_canonical_evidence_without_mutation() {
     assert_eq!(context["task"]["record"]["id"], "inspect");
     assert_eq!(context["task"]["detail_limit"], 6000);
     assert!(context["receipt"].is_null());
-    // Clearing the cycle invalidates its observation, even if a task id is reused.
+    // Selecting another scope invalidates its observation, even if a task id is reused.
     call(
         &client,
         "ship_set_objective",
-        json!({"description": "Another cycle", "verification": "focused"}),
+        json!({"description": "Another cycle", "verification": "focused", "scope": "context:second"}),
     )
     .await;
+    call(
+        &client,
+        "ship_plan",
+        json!({"action": "add", "task_id": "inspect", "title": "Inspect"}),
+    )
+    .await;
+    call(&client, "ship_start", json!({"task_id": "inspect"})).await;
     let changed = text_json(&call(&client, "magistr_context", json!({})).await);
     assert!(changed["phase"].is_null());
     client.cancel().await.expect("cancel");

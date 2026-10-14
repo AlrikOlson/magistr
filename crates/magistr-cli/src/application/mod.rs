@@ -45,7 +45,9 @@ mod hosted_workspace;
 mod interactive_host;
 mod project_window;
 mod settled_check;
+mod working_copies;
 mod workspace_admission;
+pub use working_copies::{WorkingCopies, WorkingCopy, WorkingCopyError, WorkingCopyState};
 mod workspace_source_writer;
 
 pub use admitted_check::AdmittedCheck;

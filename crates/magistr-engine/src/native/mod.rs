@@ -10,8 +10,8 @@
 //! discipline (advisory lock, merge, atomic rename); nothing here re-implements
 //! persistence or identity.
 //!
-//! Writers are admitted by a [`ProjectAuthority`] — one per [`WriterRole`]
-//! per project and store, cooperatively — and receive the write capability
+//! Writers are admitted by a [`ProjectAuthority`] — one per project across
+//! host kinds and linked working copies, cooperatively — and receive the write capability
 //! [`NativeEngines`]; anyone may open the read capability [`NativeReader`].
 //!
 //! Canonical values live in `magistr-workflow-contracts`; this adapter produces
@@ -34,6 +34,7 @@ pub mod caller_identity;
 mod check_type_for;
 pub mod delivery;
 pub mod event_cursor;
+mod execution_context;
 mod family_services;
 pub mod feed_cursor;
 pub mod feed_status;
@@ -72,6 +73,9 @@ pub mod owner_wire;
 mod owner_workspace_link;
 pub mod progress;
 pub mod project_authority;
+mod project_location;
+mod working_copy_lease;
+pub use working_copy_lease::WorkingCopyLease;
 pub mod region_counts;
 pub mod roadmap_backend;
 pub mod roadmap_command;
@@ -95,6 +99,7 @@ pub use caller_identity::CallerIdentity;
 pub use check_type_for::check_type_for;
 pub use delivery::Delivery;
 pub use event_cursor::EventCursor;
+pub use execution_context::ExecutionContext;
 pub use feed_cursor::FeedCursor;
 pub use feed_status::FeedStatus;
 pub use gate_output::GateOutput;
@@ -122,6 +127,7 @@ pub use owner_socket::owner_socket_path;
 pub use owner_wire::OWNER_PROTOCOL_VERSION;
 pub use progress::progress_from_roadmap;
 pub use project_authority::ProjectAuthority;
+pub use project_location::ProjectLocation;
 pub use region_counts::RegionCounts;
 pub use roadmap_backend::RoadmapBackend;
 pub use roadmap_command::RoadmapCommand;
@@ -152,8 +158,8 @@ pub use magistr_workflow::roadmap::domain::{
 };
 pub use magistr_workflow::ship::application::{
     CheckAdmission, CheckExecution, CheckSettlement, CompletionEvidence, CompletionRefusal,
-    EvidencePort, GateContract, ObservationDrift, ShipReport, SourceFreshness, SourceObservation,
-    SourceWitness, TaskAdmission,
+    EvidencePort, ExecutionBinding, GateContract, ObservationDrift, ShipReport, SourceFreshness,
+    SourceObservation, SourceWitness, TaskAdmission,
 };
 pub use magistr_workflow::ship::broadcast::BroadcastFrame as ShipFrame;
 pub use magistr_workflow::ship::domain::action::{Action, ActionType};

@@ -15,9 +15,9 @@ use super::writer_role::WriterRole;
 /// identity on one store finds the same owner and a different store finds
 /// none.
 ///
-/// The socket sits beside the role's lock file (`<lock>.sock`) whenever
+/// The socket sits beside the project's lock file (`<lock>.sock`) whenever
 /// that fits the kernel's `sun_path`; a store rooted deep enough to
-/// overflow it gets `<runtime_dir>/magistr-<digest>.<role>.sock`, the
+/// overflow it gets `<runtime_dir>/magistr-<digest>.workflow.sock`, the
 /// digest being the lock path's, and a runtime directory that is itself
 /// too deep falls back to `/tmp`.
 #[must_use]
@@ -28,7 +28,7 @@ pub fn owner_socket_path(tas: &NativeConfig, project_id: &str, role: WriterRole)
         return beside;
     }
     let digest = hex_prefix(&lock.to_string_lossy());
-    let name = format!("magistr-{digest}.{}.sock", role.short_name());
+    let name = format!("magistr-{digest}.workflow.sock");
     let short = tas.runtime_dir.join(&name);
     if fits_sun_path(&short) {
         return short;

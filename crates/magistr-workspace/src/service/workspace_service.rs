@@ -77,6 +77,7 @@ pub struct WorkspaceService {
     #[cfg(feature = "sandbox")]
     interpreter: Option<crate::commands::ScriptInterpreter>,
     lock: ServerLock,
+    _lifecycle_lock: Option<std::fs::File>,
 }
 
 impl WorkspaceService {
@@ -101,6 +102,11 @@ impl WorkspaceService {
         std::fs::create_dir_all(&state_dir)?;
         let lock = ServerLock::acquire(state_dir.join(ServerLock::FILE_NAME))
             .map_err(WorkspaceOpenError::lock)?;
+        let lifecycle_lock = options
+            .lifecycle_lock
+            .as_deref()
+            .map(super::lifecycle_lock::acquire)
+            .transpose()?;
         let detection = NetworkDetection::detect(&root, options.network_override.as_deref());
         let policy = WorkspacePolicy::resolve(&options.resolve_options(root.clone()))
             .map_err(WorkspaceOpenError::policy)?;
@@ -167,6 +173,7 @@ impl WorkspaceService {
             #[cfg(feature = "sandbox")]
             interpreter: options.interpreter,
             lock,
+            _lifecycle_lock: lifecycle_lock,
         })
     }
 

@@ -285,31 +285,29 @@ fn reset_during_execution_does_not_resurrect_the_native_file() {
 }
 
 #[test]
-fn legacy_native_state_gets_stable_additive_identity_without_a_second_store() {
+fn incomplete_execution_state_refuses_admission_and_preserves_the_record() {
     let temp = tempfile::tempdir().unwrap();
     let cases = stored(temp.path());
     planned(&cases);
     let path = temp.path().join("ship/sessions/project.json");
-    let mut legacy: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
-    legacy.as_object_mut().unwrap().remove("execution");
-    std::fs::write(&path, serde_json::to_vec(&legacy).unwrap()).unwrap();
-    let first = stored(temp.path());
-    let second = stored(temp.path());
-    let admission = first.admit_check(request()).unwrap();
-    assert_eq!(admission.target, second.admit_task(None).unwrap());
-    assert!(matches!(
-        second.settle_check(admission, outcome()).unwrap(),
-        CheckSettlement::Applied { .. }
-    ));
-    let state: Value = serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
-    assert_eq!(state["schema_version"], 1);
+    let mut incomplete: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    incomplete.as_object_mut().unwrap().remove("execution");
+    let bytes = serde_json::to_vec(&incomplete).unwrap();
+    std::fs::write(&path, &bytes).unwrap();
+    let reopened = stored(temp.path());
     assert!(
-        state["execution"]["run_id"]
-            .as_str()
-            .unwrap()
-            .starts_with("legacy:")
+        reopened.admit_task(None).is_err(),
+        "a reader must not invent execution identity"
     );
-    assert_eq!(state["tasks"][0]["checks"].as_array().unwrap().len(), 1);
+    assert!(
+        reopened.admit_check(request()).is_err(),
+        "an incomplete record grants no check target"
+    );
+    assert_eq!(
+        std::fs::read(path).unwrap(),
+        bytes,
+        "refusal never reconstructs the record"
+    );
 }
 
 #[test]

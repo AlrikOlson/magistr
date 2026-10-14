@@ -1,13 +1,7 @@
-//! The workflow consistency model across adapters, as
-//! `docs/architecture/clients.md` states it: a Host writer serving its
-//! owner endpoint, a Service writer, a client attached to the Host and an
-//! unadmitted reader, all in one process on one store. Every family reads
-//! through: a query or a verb on any role re-reads its file when the
-//! store stamp moved and answers its cache otherwise, so two roles on one
-//! store answer one state without a reload; a write from either role
-//! merges on save and hands the merged file back to the writer's memory.
-//! Duplicate ownership of a workflow role or a workspace root is refused
-//! in-process, not only across processes.
+//! One workflow owner serves shared in-process capabilities and attached commands.
+//! Lease-free observers refresh persisted state as its store stamps change.
+//! Duplicate project or source ownership is refused across all host kinds,
+//! both within this process and across real processes.
 
 #![cfg(unix)]
 
@@ -109,14 +103,14 @@ fn checks_on(reader: &NativeReader, task: &str) -> Vec<String> {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn an_attached_command_is_current_on_the_owner_and_on_every_other_role_without_a_reload() {
+async fn an_attached_command_is_current_on_every_capability_and_observer() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = config(&tmp);
     let host = writer(&cfg, WriterRole::Host);
     let endpoint = OwnerEndpoint::serve(host.clone()).await.expect("endpoint");
-    let service = writer(&cfg, WriterRole::Service);
+    let service = host.clone();
     let observer = reader(&cfg);
-    // Both roles and the observer opened on an empty store.
+    // Both capabilities and the observer opened on an empty store.
     assert!(service.roadmap_chunks().is_empty() && observer.roadmap_chunks().is_empty());
 
     // The attached client's command runs on the host's engines: read-your-
@@ -135,13 +129,11 @@ async fn an_attached_command_is_current_on_the_owner_and_on_every_other_role_wit
     );
     assert_eq!(chunk_ids(&reader(&cfg)), vec!["via-attached".to_owned()]);
 
-    // The other role's next query observes the store as it stands: no
-    // reload, the stamp moved, the file is read once. Its own write then
-    // merges on save and lands beside the host's chunk, and its memory is
-    // the merged file — the write neither erased nor hid the other record.
+    // The service view acts through the same writer. Its mutation preserves
+    // the acknowledged record and becomes visible to persisted observers.
     assert!(
         service.roadmap_chunk("via-attached").is_some(),
-        "a query on the other role reads through"
+        "a query on the shared capability sees the acknowledged write"
     );
     add_chunk(&service, "via-service");
     assert_eq!(
@@ -154,8 +146,7 @@ async fn an_attached_command_is_current_on_the_owner_and_on_every_other_role_wit
         vec!["via-attached".to_owned(), "via-service".to_owned()],
         "the locked merge-on-save erased nothing"
     );
-    // The observer opened before both writes and the host that never saw
-    // the service's write both answer the current file on their next query.
+    // The observer opened before both writes and refreshes the current file.
     assert_eq!(
         chunk_ids(&observer),
         vec!["via-attached".to_owned(), "via-service".to_owned()]
@@ -170,7 +161,7 @@ async fn an_attached_command_is_current_on_the_owner_and_on_every_other_role_wit
     let refused = host
         .roadmap_start_chunk("via-attached")
         .expect_err("obsoleted on disk");
-    assert!(refused.contains("Obsoleted"), "{refused}");
+    assert!(refused.contains("replaced"), "{refused}");
     assert_eq!(
         host.roadmap_chunk("via-attached").map(|c| c.status),
         Some(ChunkStatus::Obsoleted)
@@ -181,11 +172,11 @@ async fn an_attached_command_is_current_on_the_owner_and_on_every_other_role_wit
 }
 
 #[test]
-fn ship_queries_and_verbs_read_through_across_roles_so_a_gate_the_service_recorded_survives() {
+fn shared_ship_capabilities_and_observers_retain_a_recorded_gate() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = config(&tmp);
     let host = writer(&cfg, WriterRole::Host);
-    let service = writer(&cfg, WriterRole::Service);
+    let service = host.clone();
     let observer = reader(&cfg);
 
     // The host opens the cycle: an objective with one task, started.
@@ -195,8 +186,7 @@ fn ship_queries_and_verbs_read_through_across_roles_so_a_gate_the_service_record
         .expect("task");
     host.ship_start_task("verify").expect("start");
 
-    // The service — opened on the empty store — records a gate on that task
-    // without any reload: the use case observed the current cycle first.
+    // The service view records a gate on the same admitted task.
     let check = service
         .ship_record_gate(
             Some("verify"),
@@ -211,8 +201,7 @@ fn ship_queries_and_verbs_read_through_across_roles_so_a_gate_the_service_record
     assert!(check.verified && check.passed);
     assert_eq!(service.ship_active_task_id().as_deref(), Some("verify"));
 
-    // The host's memory predates the check; completing the task from it
-    // neither loses the check nor answers a stale task.
+    // Completing through another capability preserves the recorded check.
     let completed = host.ship_complete_task("verify", vec![]).expect("complete");
     assert_eq!(
         completed
@@ -232,7 +221,7 @@ fn ship_queries_and_verbs_read_through_across_roles_so_a_gate_the_service_record
     assert_eq!(
         service.ship_status()["tasks"]["completed"],
         1,
-        "a query on the other role observes the current cycle"
+        "a query on the shared capability observes the current cycle"
     );
     assert_eq!(checks_on(&observer, "verify"), vec!["lint".to_owned()]);
     assert_eq!(observer.ship_status()["tasks"]["completed"], 1);
@@ -240,11 +229,11 @@ fn ship_queries_and_verbs_read_through_across_roles_so_a_gate_the_service_record
 }
 
 #[test]
-fn a_signal_captured_by_one_role_is_pending_on_the_other_and_promotes_once() {
+fn shared_signal_capabilities_promote_once_and_observers_refresh() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = config(&tmp);
     let host = writer(&cfg, WriterRole::Host);
-    let service = writer(&cfg, WriterRole::Service);
+    let service = host.clone();
     let observer = reader(&cfg);
     assert!(host.signal_list().is_empty() && observer.signal_list().is_empty());
 
@@ -258,8 +247,7 @@ fn a_signal_captured_by_one_role_is_pending_on_the_other_and_promotes_once() {
     );
     assert_eq!(observer.signal_status()["counts"]["total"], 1);
 
-    // A decision on the host: research then promote, both from a role that
-    // never captured the signal; the service observes the promoted chunk.
+    // A decision through the host capability is visible to the service view.
     host.signal_research(&captured.id, "worth it".into(), 0.9, vec![], None)
         .expect("research");
     let promoted = host.signal_promote(&captured.id).expect("promote");
@@ -271,7 +259,7 @@ fn a_signal_captured_by_one_role_is_pending_on_the_other_and_promotes_once() {
         .to_owned();
     assert!(
         service.roadmap_chunk(&chunk_id).is_some(),
-        "the promoted chunk is current on the other role"
+        "the promoted chunk is current on the shared capability"
     );
     // The service's own promote of the same signal is the same promotion:
     // it observes the promoted record and creates nothing.
@@ -281,13 +269,13 @@ fn a_signal_captured_by_one_role_is_pending_on_the_other_and_promotes_once() {
 }
 
 #[test]
-fn a_second_writer_of_a_role_is_refused_in_process_and_the_lease_ends_with_the_last_clone() {
+fn a_second_project_writer_is_refused_in_process_and_the_lease_ends_with_the_last_clone() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = config(&tmp);
     let host = writer(&cfg, WriterRole::Host);
-    let service = writer(&cfg, WriterRole::Service);
+    let service = host.clone();
     for role in [WriterRole::Host, WriterRole::Service] {
-        let refused = admit(&cfg, role).expect_err("a second writer of the role");
+        let refused = admit(&cfg, role).expect_err("a second project writer");
         assert_eq!(
             refused.kind(),
             io::ErrorKind::WouldBlock,
@@ -305,10 +293,10 @@ fn a_second_writer_of_a_role_is_refused_in_process_and_the_lease_ends_with_the_l
         io::ErrorKind::WouldBlock
     );
     drop(host_clone);
+    drop(service);
     drop(observer);
     admit(&cfg, WriterRole::Host).expect("released with the last writer clone");
-    drop(service);
-    admit(&cfg, WriterRole::Service).expect("released with the last writer");
+    admit(&cfg, WriterRole::Service).expect("either role may acquire the released project");
 }
 
 fn workspace_root(tmp: &tempfile::TempDir) -> PathBuf {

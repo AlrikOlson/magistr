@@ -27,7 +27,13 @@ resolver, so the launch line is this binary or nothing.
 ## Admission and rendezvous
 
 `WorkspaceService` holds the exclusive OS lock on `.workbench/server.lock`
-before opening the key, journal, index or worker. Its immutable native marker
+before opening the key, journal, index or worker. Magistr also supplies a stable
+lifecycle lock at the physical Git working-copy root. The source service holds
+that shared lock until it closes, including when its source root is a nested
+project. Archive takes the same lock exclusively and refuses active source or
+workflow sessions. [Working-copy lifecycle](project-authority.md#working-copy-lifecycle)
+owns archive and reopen; source roots, journals and generations remain independent.
+Its immutable native marker
 and durable `.workbench/server.generation` retain the d1 exclusion and fencing
 contract. Lock contention is the only attachment path; legacy, empty or
 malformed markers keep the documented
@@ -41,9 +47,9 @@ admission proof, or resets the durable generation.
 `OwnerIdentity::Workspace` names the canonical root independently of workflow
 project identity, store and writer roles. Aliases resolve to the same owner;
 distinct roots, including separate worktrees, have independent services and
-journals. The shared [project owner protocol](project-authority.md#handshake-and-identity)
-uses `Hello` version 5, which carries a
-[`BuildIdentity`](project-authority.md#build-identity) for diagnostics and typed
+journals. The shared [project owner protocol](project-authority.md#attachment)
+uses `Hello` version 6, which carries a
+[`BuildIdentity`](project-authority.md#attachment) for diagnostics and typed
 native attachment. MCP connections are opaque proxies: the owner alone supplies
 the tool definitions and runs their handlers, so a rebuilt proxy attaches to
 the running owner without opening another service. Exact protocol, canonical
@@ -178,7 +184,7 @@ nothing admitted, minted, marked or written.
   legacy record with its host, pid and — for this host only — whether that
   pid is alive, or unrecognized bytes) are read as records of past
   admissions. Liveness comes only from one bounded `probe` handshake on the
-  owner endpoint ([project authority](project-authority.md#handshake-and-identity)):
+  owner endpoint ([project authority](project-authority.md#attachment)):
   a live owner is reported with its generation, pid, build, endpoint and
   every attached session by kind with the caller each declared (`mcp` for
   bridges and the cockpit's port, `commands` for a workflow client); the

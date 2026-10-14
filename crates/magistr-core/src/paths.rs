@@ -56,9 +56,12 @@ pub fn magistr_dir(project_dir: &Path) -> PathBuf {
     project_dir.join(MAGISTR_DIR)
 }
 
-/// `.magistr/project.json` — project configuration.
-pub fn project_json(project_dir: &Path) -> PathBuf {
-    magistr_dir(project_dir).join(PROJECT_JSON)
+/// The project's shared `.magistr/project.json`, including from a linked working copy.
+/// Invalid or unavailable Git links refuse resolution rather than selecting another file.
+pub fn project_json(project_dir: &Path) -> crate::error::Result<PathBuf> {
+    let location = magistr_engine::native::ProjectLocation::resolve(project_dir)
+        .map_err(|error| crate::error::MagistrError::io(project_dir, error))?;
+    Ok(magistr_dir(&location.authority_root).join(PROJECT_JSON))
 }
 
 /// `.magistr/current-plan.md` — active iteration plan.
@@ -158,9 +161,8 @@ impl ProjectPaths {
         magistr_dir(&self.root)
     }
 
-    /// `.magistr/project.json` — project configuration.
-    #[must_use]
-    pub fn project_json(&self) -> PathBuf {
+    /// The project's shared configuration; other paths stay in this working copy.
+    pub fn project_json(&self) -> crate::error::Result<PathBuf> {
         project_json(&self.root)
     }
 

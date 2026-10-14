@@ -11,6 +11,14 @@ use super::{GateContract, SourceWitness};
 /// Retention reads run inside the receipt lock and must never call back into
 /// the workflow or wait for a receipt writer.
 pub trait EvidencePort: Send + Sync {
+    /// Rebind captured host policy after the project owner validates repository membership.
+    fn for_working_copy(
+        &self,
+        _root: &std::path::Path,
+    ) -> Result<std::sync::Arc<dyn EvidencePort>, String> {
+        Err("This evidence provider cannot open another working copy.".into())
+    }
+
     /// Observe the workspace now, lock-free.
     ///
     /// # Errors

@@ -183,7 +183,15 @@ impl<'a> AdminService<'a> {
         if let Err(failure) = self.revalidate(change) {
             return ApplyOutcome::Failed(failure);
         }
-        let full = self.dir.join(&change.path);
+        let root = match super::target_root::target_root(self.dir, &change.path) {
+            Ok(root) => root,
+            Err(error) => {
+                return ApplyOutcome::Failed(ApplyFailure::Io {
+                    cause: error.to_string(),
+                });
+            }
+        };
+        let full = root.join(&change.path);
         if let Err(error) = std::fs::remove_file(&full) {
             return ApplyOutcome::Failed(ApplyFailure::Io {
                 cause: error.to_string(),
@@ -194,7 +202,7 @@ impl<'a> AdminService<'a> {
         }
         let mut parent = full.parent();
         while let Some(path) = parent {
-            if path == self.dir {
+            if path == root {
                 break;
             }
             self.removed_parents.insert(path.to_path_buf());
@@ -224,7 +232,14 @@ impl<'a> AdminService<'a> {
         } else if let Err(failure) = self.revalidate(change) {
             return ApplyOutcome::Failed(failure);
         }
-        let full = self.dir.join(path);
+        let full = match super::target_root::target_root(self.dir, path) {
+            Ok(root) => root.join(path),
+            Err(error) => {
+                return ApplyOutcome::Failed(ApplyFailure::Io {
+                    cause: error.to_string(),
+                });
+            }
+        };
         let executable = super::is_executable_path(path);
         let creating = change.action == FileAction::Create;
         let written = if creating {

@@ -109,6 +109,8 @@ pub struct TaskCounts {
 #[derive(Serialize, JsonSchema)]
 pub struct StatusOutput {
     pub project_id: String,
+    pub execution: Option<crate::ship::application::ExecutionBinding>,
+    pub run_id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub objective: Option<ObjectiveOutput>,
     pub tasks: StatusCounts,

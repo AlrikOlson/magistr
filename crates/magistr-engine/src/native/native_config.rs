@@ -52,6 +52,8 @@ pub struct NativeConfig {
     /// records checks with no source and cannot complete a chunk; the host
     /// attaches it at every production admission.
     pub(super) evidence: Option<Arc<dyn EvidencePort>>,
+    execution_id: String,
+    pub(super) owner_generation: u64,
     think: ThinkConfig,
     project_name: Option<String>,
     sources: std::collections::BTreeMap<&'static str, ConfigSource>,
@@ -82,6 +84,8 @@ impl PartialEq for NativeConfig {
             && self.broadcast_path == other.broadcast_path
             && self.runtime_dir == other.runtime_dir
             && self.evidence.is_some() == other.evidence.is_some()
+            && self.execution_id == other.execution_id
+            && self.owner_generation == other.owner_generation
             && self.think == other.think
             && self.project_name == other.project_name
             && self.sources == other.sources
@@ -230,6 +234,13 @@ impl NativeConfig {
         for (key, source) in resolved.sources {
             sources.entry(key).or_insert(source);
         }
+        let execution_id = non_empty("MAGISTR_EXECUTION_ID");
+        sources.insert(
+            "execution_id",
+            execution_id.as_ref().map_or(ConfigSource::Default, |_| {
+                ConfigSource::Environment("MAGISTR_EXECUTION_ID")
+            }),
+        );
         Self {
             project_root,
             data_dir,
@@ -237,6 +248,8 @@ impl NativeConfig {
             broadcast_path,
             runtime_dir,
             evidence: None,
+            execution_id: execution_id.unwrap_or_else(|| "default".into()),
+            owner_generation: 0,
             think: resolved.config,
             project_name,
             sources,
@@ -249,7 +262,7 @@ impl NativeConfig {
     pub fn resolve_project_id(&self) -> String {
         magistr_workflow::infra::resolve_project_id_from(
             self.project_name.as_deref(),
-            &self.project_root,
+            &self.workflow_root(),
         )
         .0
     }
@@ -260,6 +273,48 @@ impl NativeConfig {
         self.project_root = root.into();
         self.sources.insert("project_root", ConfigSource::Explicit);
         self
+    }
+
+    /// The shared project directory, distinct from this working copy's source root.
+    #[must_use]
+    pub fn workflow_root(&self) -> PathBuf {
+        super::ProjectLocation::resolve(&self.project_root)
+            .map(|location| location.authority_root)
+            .unwrap_or_else(|_| self.project_root.clone())
+    }
+
+    #[must_use]
+    pub fn execution_context(&self) -> super::ExecutionContext {
+        super::ExecutionContext {
+            working_copy: self
+                .project_root
+                .canonicalize()
+                .unwrap_or_else(|_| self.project_root.clone()),
+            execution_id: self.execution_id.clone(),
+        }
+    }
+
+    #[must_use]
+    pub fn with_execution_id(mut self, id: impl Into<String>) -> Self {
+        self.execution_id = id.into();
+        self.sources.insert("execution_id", ConfigSource::Explicit);
+        self
+    }
+
+    pub(super) fn for_context(&self, context: &super::ExecutionContext) -> std::io::Result<Self> {
+        let mut config = self
+            .clone()
+            .with_project_root(&context.working_copy)
+            .with_execution_id(&context.execution_id);
+        if context.working_copy != self.execution_context().working_copy {
+            config.evidence = self
+                .evidence
+                .as_ref()
+                .map(|port| port.for_working_copy(&context.working_copy))
+                .transpose()
+                .map_err(std::io::Error::other)?;
+        }
+        Ok(config)
     }
 
     /// The captured store root.
@@ -367,14 +422,11 @@ impl NativeConfig {
     /// resolves the same file from the same root without a rendezvous file.
     #[must_use]
     pub fn project_socket_path(&self) -> PathBuf {
-        let local = self.project_root.join(".magistr").join(PROJECT_SOCKET);
+        let local = self.workflow_root().join(".magistr").join(PROJECT_SOCKET);
         if fits_sun_path(&local) {
             return local;
         }
-        let root = self
-            .project_root
-            .canonicalize()
-            .unwrap_or_else(|_| self.project_root.clone());
+        let root = self.workflow_root();
         let id = project_id_for_path(&root);
         let short = self.runtime_dir.join(format!("magistr-{id}.sock"));
         if fits_sun_path(&short) {

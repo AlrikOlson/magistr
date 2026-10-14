@@ -54,7 +54,7 @@ async fn waits_for_the_socket_decodes_lines_and_reattaches_after_a_hangup() {
     let socket = tmp.path().join("b.sock");
     let (inbox, mut rx) = Inbox::channel();
     let link = FeedLink::new();
-    let task = spawn_feed(socket.clone(), inbox, link.clone());
+    let task = spawn_feed(socket.clone(), "selected".into(), inbox, link.clone());
 
     assert_eq!(next(&mut rx).await, EngineEvent::Feed(FeedStatus::Waiting));
     assert!(!link.is_attached(), "nothing to attach to yet");
@@ -129,7 +129,7 @@ async fn deliveries_follow_the_publishers_sequence_and_a_new_owner_is_noticed() 
     let socket = tmp.path().join("b.sock");
     let (inbox, mut rx) = Inbox::channel();
     let link = FeedLink::new();
-    let task = spawn_feed(socket.clone(), inbox, link.clone());
+    let task = spawn_feed(socket.clone(), "selected".into(), inbox, link.clone());
     assert_eq!(next(&mut rx).await, EngineEvent::Feed(FeedStatus::Waiting));
 
     let listener = UnixListener::bind(&socket).expect("bind");
@@ -176,7 +176,12 @@ async fn without_unix_sockets_the_feed_waits_and_never_attaches() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let (inbox, mut rx) = Inbox::channel();
     let link = FeedLink::new();
-    let task = spawn_feed(tmp.path().join("b.sock"), inbox, link.clone());
+    let task = spawn_feed(
+        tmp.path().join("b.sock"),
+        "selected".into(),
+        inbox,
+        link.clone(),
+    );
 
     assert_eq!(next(&mut rx).await, EngineEvent::Feed(FeedStatus::Waiting));
     tokio::time::sleep(Duration::from_millis(50)).await;
@@ -189,11 +194,58 @@ async fn without_unix_sockets_the_feed_waits_and_never_attaches() {
 async fn ends_once_the_loop_is_gone() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let (inbox, rx) = Inbox::channel();
-    let task = spawn_feed(tmp.path().join("never.sock"), inbox, FeedLink::new());
+    let task = spawn_feed(
+        tmp.path().join("never.sock"),
+        "selected".into(),
+        inbox,
+        FeedLink::new(),
+    );
     tokio::time::sleep(Duration::from_millis(20)).await;
     drop(rx);
     tokio::time::timeout(Duration::from_secs(2), task)
         .await
         .expect("the feed ended")
         .expect("without a panic");
+}
+#[cfg(unix)]
+#[tokio::test]
+async fn other_executions_do_not_replace_the_selected_task_or_create_sequence_gaps() {
+    use magistr_engine::ShipFrame;
+    use tokio::io::AsyncWriteExt;
+    use tokio::net::UnixListener;
+    let temp = tempfile::tempdir().expect("temporary");
+    let socket = temp.path().join("events.sock");
+    let listener = UnixListener::bind(&socket).expect("listener");
+    let (inbox, mut rx) = Inbox::channel();
+    let link = FeedLink::new();
+    let task = spawn_feed(socket, "selected".into(), inbox, link.clone());
+    let (mut stream, _) = listener.accept().await.expect("accept");
+    assert_eq!(next(&mut rx).await, EngineEvent::Feed(FeedStatus::Waiting));
+    assert!(matches!(
+        next(&mut rx).await,
+        EngineEvent::Feed(FeedStatus::Connected { .. })
+    ));
+    assert!(requested(&link).await);
+    for (seq, key, id) in [(1, "other", "wrong"), (2, "selected", "right")] {
+        let line = serde_json::json!({"family":"ship","type":"task_started",
+            "task_id":id,"execution_key":key,"epoch":1,"seq":seq});
+        stream
+            .write_all(format!("{line}\n").as_bytes())
+            .await
+            .expect("frame");
+    }
+    assert_eq!(
+        next(&mut rx).await,
+        EngineEvent::Event {
+            event: NativeEvent::Ship(ShipFrame::TaskStarted {
+                task_id: "right".into()
+            }),
+            delivery: Delivery::InOrder,
+        }
+    );
+    assert!(
+        !requested(&link).await,
+        "foreign events still advance the shared cursor"
+    );
+    task.abort();
 }

@@ -68,7 +68,7 @@ pub struct MagistrService {
     /// through, so they are the same handler on the same engines as a tool
     /// call from the agent. Cloning a service shares it; the lease releases
     /// with the last clone.
-    engines: NativeEngines,
+    pub(super) engines: NativeEngines,
     roadmap_export: RoadmapExport,
     context: Arc<super::view_context::ContextState>,
     /// The admission this service runs under: the project identity, the
@@ -99,9 +99,14 @@ impl MagistrService {
         if let Some(path) = tas.broadcast_path() {
             authority = authority.publish(path).await?;
         }
-        let (unified, engines) = authority.serve();
+        let (_, engines) = authority.serve();
+        Ok(Self::from_engines(engines))
+    }
 
-        Ok(Self {
+    pub(crate) fn from_engines(engines: NativeEngines) -> Self {
+        let project_root = engines.config().project_root().to_path_buf();
+        let unified = ProjectAuthority::mcp_service(&engines);
+        Self {
             roadmap_export: RoadmapExport::new(&project_root),
             context: Arc::default(),
             tools: Arc::new(super::build_server(project_root.clone())),
@@ -109,7 +114,7 @@ impl MagistrService {
             unified,
             authority: engines.shared_authority(),
             engines,
-        })
+        }
     }
 
     /// The project this server works in.
@@ -300,7 +305,11 @@ impl MagistrService {
         // keyed by the gate, the event the cockpit's engine feed folds into
         // its terminal store. A frame nobody is attached for is dropped,
         // which is the library's documented degraded mode, not an error.
-        let feed = self.authority.feed().cloned();
+        let feed = self
+            .authority
+            .feed()
+            .cloned()
+            .map(|feed| feed.with_execution(self.engines.config().execution_context().key()));
         let gate = spec.name.clone();
         let stream = move |bytes: &[u8]| {
             if let Some(feed) = &feed {
@@ -400,7 +409,10 @@ impl MagistrService {
             phase,
         );
         if let Some(feed) = self.authority.feed() {
-            let _ = feed.emit(Family::Magistr, &MagistrFrame::PhaseSet { phase });
+            let _ = feed
+                .clone()
+                .with_execution(self.engines.config().execution_context().key())
+                .emit(Family::Magistr, &MagistrFrame::PhaseSet { phase });
         }
         let Some(task) = self.engines.ship_active_task_id() else {
             return;

@@ -21,7 +21,7 @@ fn exports_enabled() -> bool {
 /// Missing configuration preserves existing behavior; unreadable or invalid
 /// configuration refuses export instead of silently ignoring a possible opt-out.
 pub fn ensure_file_export_allowed(project_root: &Path) -> Result<()> {
-    let path = crate::paths::project_json(project_root);
+    let path = crate::paths::project_json(project_root)?;
     let raw = match std::fs::read_to_string(&path) {
         Ok(raw) => raw,
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),

@@ -11,10 +11,15 @@ fn magistr_dir_construction() {
 
 #[test]
 fn project_json_in_magistr_dir() {
-    let dir = Path::new("/home/user/project");
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path().canonicalize().unwrap();
     assert_eq!(
-        project_json(dir),
-        PathBuf::from("/home/user/project/.magistr/project.json")
+        project_json(&root).unwrap(),
+        root.join(".magistr/project.json")
+    );
+    assert_eq!(
+        ProjectPaths::new(&root).project_json().unwrap(),
+        project_json(&root).unwrap()
     );
 }
 
@@ -176,10 +181,7 @@ fn project_paths_root() {
 fn project_paths_all_methods() {
     let paths = ProjectPaths::new("/p");
     assert_eq!(paths.magistr_dir(), PathBuf::from("/p/.magistr"));
-    assert_eq!(
-        paths.project_json(),
-        PathBuf::from("/p/.magistr/project.json")
-    );
+    assert!(paths.project_json().is_err());
     assert_eq!(paths.plan(), PathBuf::from("/p/.magistr/current-plan.md"));
     assert_eq!(paths.task(), PathBuf::from("/p/.magistr/current-task.md"));
     assert_eq!(

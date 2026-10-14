@@ -24,7 +24,7 @@ impl Drop for SessionGuard {
 }
 
 fn echo(active: Arc<AtomicUsize>) -> McpAcceptor {
-    Arc::new(move |stream: LocalStream, cancel| {
+    Arc::new(move |stream: LocalStream, cancel, _context| {
         let active = Arc::clone(&active);
         Box::pin(async move {
             active.fetch_add(1, Ordering::SeqCst);

@@ -27,8 +27,7 @@ use magistr_cockpit_runtime::channel::Inbox;
 /// opening reads the store and may fail, and that must happen on a normal
 /// terminal, never inside the alternate screen. [`EngineClient::with_config`]
 /// admits this process as the project's host and holds the writer — one
-/// cockpit or loop per project and store, beside the agent's own
-/// `magistr mcp-serve` in the other role — while [`EngineClient::observe`]
+/// project writer across cockpit, loop and MCP hosts — while [`EngineClient::observe`]
 /// holds a reader only, so a viewer never contends with a running host.
 /// [`EngineClient::admit_or_attach_config`] is the cockpit's own entry: the host
 /// when the role is free, otherwise a client on the running host's owner
@@ -238,9 +237,9 @@ impl EngineClient {
         if cfg!(not(unix)) {
             return Ok(None);
         }
-        OwnerEndpoint::serve(writer.clone())
+        crate::mcp_tools::MagistrService::from_engines(writer.clone())
+            .serve_owner_endpoint()
             .await
-            .map(Some)
             .map_err(|source| EngineError::Endpoint {
                 path: writer.authority().owner_socket_path(),
                 source,
@@ -257,7 +256,12 @@ impl EngineClient {
     /// of attachment reaches `inbox` as `Msg::Engine`, reconnecting for as
     /// long as the loop lives. Abort the handle to stop it early.
     pub fn subscribe(&self, inbox: Inbox) -> JoinHandle<()> {
-        spawn_feed(self.socket.clone(), inbox, self.link.clone())
+        spawn_feed(
+            self.socket.clone(),
+            self.reader.config().execution_context().key(),
+            inbox,
+            self.link.clone(),
+        )
     }
 
     /// How often a cockpit with no feed attached re-reads the store.

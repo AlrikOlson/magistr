@@ -326,7 +326,9 @@ fn cmd_roadmap_migrate(dir: &std::path::Path) -> eyre::Result<()> {
 
 /// Patch `spec.file` in `.magistr/project.json` from `"ROADMAP.md"` to `".magistr-roadmap.yml"`.
 fn patch_project_json_spec_file(dir: &std::path::Path) {
-    let config_path = dir.join(".magistr").join("project.json");
+    let Ok(config_path) = crate::paths::project_json(dir) else {
+        return;
+    };
     if !config_path.exists() {
         return;
     }

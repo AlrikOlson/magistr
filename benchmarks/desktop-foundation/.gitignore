@@ -1,0 +1,5 @@
+/target/
+/results/
+__pycache__/
+/tauri/gen/
+!/assets/icon.png

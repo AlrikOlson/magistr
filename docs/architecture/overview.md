@@ -61,7 +61,7 @@ one admitted owner. The
 controls cooperating MCP owners; a second process must not open an independent
 cached writer for the same project. The [client inventory](clients.md) names
 every supported surface's capability and admission path, and states what
-is and is not coherent across the Host writer, the Service writer, attached
+is coherent across the project's owner, working-copy executions, attached
 clients and readers.
 
 The accepted [first-party subsystem decision](owned-subsystems.md) makes
@@ -134,6 +134,13 @@ connected MCP tools; native services retain every workflow and source authority.
 `apps/website` contains the documentation website. Fixture descriptions, font
 provenance, and licenses remain beside
 the files they document.
+
+The [desktop foundation decision](desktop-foundation.md), recorded 12 October 2026,
+selects a Tauri Rust host and OS WebView from native performance, editing and
+VoiceOver evidence. It names the existing workspace/session/history owner repairs
+and the atomic production renderer cutover. Its bounded proof lives in
+`benchmarks/desktop-foundation`; the component rows above describe the currently
+delivered application.
 
 [Desktop development](desktop.md) is maintained in `crates/magistr-gui2` and
 `crates/magistr-desktop` on `main`. The session launcher uses the shared admitted

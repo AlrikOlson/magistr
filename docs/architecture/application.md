@@ -232,8 +232,12 @@ workflow — the concrete task instance the check belongs to, refused before any
 byte is hashed when there is no task — which publishes the durable receipt and
 observes the workspace through the evidence capability the writer was admitted
 with; an unobservable workspace refuses the admission, so an unobservable gate
-is never recorded as evidence. The command runs outside every lock with the
-owner's edits still flowing. `settle(engines, execution, details)` takes the
+is never recorded as evidence. Named gates run in the selected project root;
+server-executed `ship_check` commands run in the workspace named by their
+admitted source observation, and relative report paths resolve there too.
+The process directory never selects a different tree for that receipt.
+The command runs outside every lock with the owner's edits still flowing.
+`settle(engines, execution, details)` takes the
 run's `CheckExecution` (an exit code, a timeout, a cancel — a flake is its
 passing retry's exit) and settles the check under the captured admission: the
 workflow re-observes the source first, then `SettledCheck` carries the
@@ -255,10 +259,11 @@ in `magistr_core::evidence` because the loop host is admitted there too.
 | Identity | Authority | Type | Changes when |
 | --- | --- | --- | --- |
 | Project | native workflow store (`.think-and-ship/project.json`) | `project_id` on `TaskAdmission`; domain `ProjectId` | never for a project |
-| Run | ship objective | `run_id` on `TaskAdmission` | a fresh objective after finalize |
+| Execution | project owner's execution registry | `ExecutionContext { working_copy, execution_id }`, `ExecutionBinding` on admissions | another working copy or task session is selected |
+| Run | contextual ship objective | `run_id` on `TaskAdmission` | a fresh objective after finalize |
 | Task and task instance | ship plan | `task_id`, `task_instance` on `TaskAdmission` | the same name in a later run is a new instance |
 | Attempt | loop operation ledger | domain `AttemptId` (command plus attempt number) | each retry of one command |
-| Workflow owner generation | role lease (`ProjectAuthority`) | `OwnerGeneration`; `epoch` on every feed line | a new writer of that role is admitted |
+| Workflow owner generation | project lease (`ProjectAuthority`) | `OwnerGeneration`; `epoch` on every feed line | a new project writer is admitted |
 | Workflow event sequence | the owner's broadcaster | `seq` on every feed line, `EventCursor { epoch, sequence }` decoded | every frame that owner emits, whatever its family |
 | Workflow snapshot cursor | the store's on-disk stamp | `SnapshotCursor { modified, length }` | any family file is written |
 | Workflow record stamp | the family engine | `updated_at` on chunks and signals; ids and timestamps on ship actions and checks | that record is written |
