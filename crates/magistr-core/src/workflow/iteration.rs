@@ -34,11 +34,8 @@ mod resolution;
 
 /// JSON-serializable iteration state, persisted to `.magistr/loop-state.json`.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct IterationState {
-    /// Compatibility projection of `run.completed_attempts`.
-    pub iteration: u32,
-    /// Compatibility projection of `run.max_iterations`.
-    pub max_iterations: u32,
     /// Canonical run policy and stopping evidence. Required for safe recovery.
     pub run: RunState,
     /// The run every operation record is scoped to; minted when the run
@@ -52,21 +49,20 @@ pub struct IterationState {
     /// Attempt whose Git baseline was captured, retained across recovery.
     #[serde(deserialize_with = "required_option")]
     pub attempt_started: Option<u32>,
-    /// The unfinished roadmap item selected for this run. Older checkpoints did not
-    /// carry one; recovery can then use an unambiguous unfinished item.
-    #[serde(default)]
+    /// The unfinished roadmap item selected for this run.
+    #[serde(deserialize_with = "required_option")]
     pub native_chunk_id: Option<String>,
     /// Track selected for this run, retained across iteration sessions and recovery.
+    #[serde(deserialize_with = "required_option")]
     pub native_track: Option<String>,
-    /// Agent settings frozen when this run began. Missing on older checkpoints.
-    #[serde(default)]
+    /// Agent settings frozen when this run began.
+    #[serde(deserialize_with = "required_option")]
     pub session_selection: Option<crate::config::session_selection::SessionSelection>,
     /// Git HEAD SHA before the current iteration started.
     /// Used to detect whether the iteration produced a commit.
     #[serde(deserialize_with = "required_option")]
     pub last_commit_sha: Option<String>,
     /// Status of the last completed iteration.
-    #[serde(with = "legacy_iteration_status")]
     pub last_status: IterationStatus,
     /// Spec progress: number of checked items at last check.
     pub spec_checked: usize,
@@ -95,7 +91,7 @@ impl IterationState {
     }
 
     /// The process that minted this run, as the run key names it
-    /// (`run-<millis>-<pid>`, see `mint_run_id`). Evidence, not proof: the
+    /// (`run-<nanoseconds>-<sequence>-<pid>`, see `mint_run_id`). Evidence, not proof: the
     /// id is not pinned to a start identity and may have been reused.
     #[must_use]
     pub fn run_process(&self) -> Option<u32> {
@@ -220,8 +216,6 @@ impl IterationLoop {
         };
 
         let state = IterationState {
-            iteration: 0,
-            max_iterations,
             run: RunState::new(RunMode::ChunkLoop, max_iterations, None),
             run_id: mint_run_id(&project_dir, native.as_ref())?,
             operations: OperationLedger::new(),
@@ -612,7 +606,6 @@ impl IterationLoop {
     /// Advance to the next iteration. Call after post-iteration check.
     pub fn advance(&mut self) {
         self.state.run.advance_attempt();
-        self.state.iteration = self.state.run.completed_attempts;
         self.state.attempt_started = None;
         // Keep unfinished work selected across retries. Selection moves on
         // once the roadmap records that this item has finished.
@@ -762,11 +755,6 @@ where
 fn validate_state(state: &IterationState) -> std::result::Result<(), &'static str> {
     state.run.validate()?;
     state.operations.validate()?;
-    if state.iteration != state.run.completed_attempts
-        || state.max_iterations != state.run.max_iterations
-    {
-        return Err("legacy iteration projections disagree with canonical run state");
-    }
     if state
         .attempt_started
         .is_some_and(|attempt| attempt != state.run.completed_attempts)
@@ -783,35 +771,6 @@ fn recovery_error(cause: impl std::fmt::Display) -> MagistrError {
     ))
 }
 
-/// The loop-state DTO historically spelled `Committed` as `success`. The
-/// canonical type remains shared while this file keeps its established wire value.
-mod legacy_iteration_status {
-    use super::IterationStatus;
-    use serde::{Deserialize, Deserializer, Serializer};
-
-    pub(super) fn serialize<S>(status: &IterationStatus, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        match status {
-            IterationStatus::Committed => serializer.serialize_str("success"),
-            status => serde::Serialize::serialize(status, serializer),
-        }
-    }
-
-    pub(super) fn deserialize<'de, D>(deserializer: D) -> Result<IterationStatus, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let value = String::deserialize(deserializer)?;
-        if value == "success" {
-            Ok(IterationStatus::Committed)
-        } else {
-            IterationStatus::deserialize(serde::de::value::StringDeserializer::new(value))
-        }
-    }
-}
-
 /// The run identity every operation record is scoped to: the native
 /// project's own id when there is one, else the directory's name, with a
 /// run key minted here from the clock and this process — the domain
@@ -826,12 +785,19 @@ fn mint_run_id(project_dir: &Path, native: Option<&NativeReader>) -> Result<RunI
         })
         .filter(|name| !name.is_empty())
         .unwrap_or_else(|| "project".to_owned());
-    let millis = std::time::SystemTime::now()
+    let nanos = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
-        .map(|since| since.as_millis())
+        .map(|since| since.as_nanos())
         .unwrap_or(0);
+    static RUN_SEQUENCE: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let sequence = RUN_SEQUENCE.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     ProjectId::new(project)
-        .and_then(|project| RunId::new(project, format!("run-{millis}-{}", std::process::id())))
+        .and_then(|project| {
+            RunId::new(
+                project,
+                format!("run-{nanos}-{sequence}-{}", std::process::id()),
+            )
+        })
         .map_err(|error| MagistrError::Workflow(format!("cannot name the run: {error}")))
 }
 

@@ -3732,6 +3732,7 @@ dependencies = [
  "magistr-application",
  "magistr-domain",
  "magistr-workflow-contracts",
+ "serde",
  "serde_json",
 ]
 

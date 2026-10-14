@@ -20,6 +20,7 @@ pub enum Msg {
     Engine(EngineEvent),
     Job { id: JobId, output: JobOutput },
     Loop(LoopEvent),
+    WorkRun(super::WorkRun),
     Workbench(WorkbenchEvent),
     Checkpoint(CheckpointEvent),
 }

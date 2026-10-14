@@ -504,7 +504,6 @@ fn doctor_explains_stalled_then_recoverable_operations_and_a_legacy_marker() {
         })
     };
     let checkpoint = serde_json::json!({
-        "iteration": 0, "max_iterations": 5,
         "run": { "mode": "chunk_loop", "completed_attempts": 0, "max_iterations": 5,
                  "consecutive_no_commits": 0, "budget_total_usd": 0.0, "budget_limit_usd": null,
                  "terminal_reason": null, "last_settled_attempt": null },
@@ -514,6 +513,7 @@ fn doctor_explains_stalled_then_recoverable_operations_and_a_legacy_marker() {
             record("0/dispatch", "provider_dispatch", "dispatch", "running", serde_json::json!(handle.to_string())),
         ] },
         "attempt_started": 0, "native_chunk_id": "chunk-a", "last_commit_sha": null,
+        "native_track": null, "session_selection": null,
         "last_status": "none", "spec_checked": 0, "spec_total": 1,
     });
     let state = dir.path().join(".magistr");

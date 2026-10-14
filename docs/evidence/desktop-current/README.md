@@ -5,8 +5,8 @@ a signed app bundle, a controlled ACP peer and a local streaming API fixture. Ap
 window; no annotations or simulated terminal rendering are added.
 
 The 14 October 2026 captures exercise the current debug executable in a
-disposable signed macOS app bundle. Both native journeys use the same source
-hashes. These captures verify the current conversation ownership changes;
+disposable signed macOS app bundle. All three native journeys use the same source
+hashes. These captures verify conversation ownership and bounded work controls;
 installer and Launch Services checks are separate packaging evidence.
 
 The receipt records keyboard and pointer actions, accessible controls, Unicode
@@ -51,6 +51,14 @@ reduced motion. Normal Quit also checks that every logical
 conversation retains exactly one spending record. Its separate receipt records exact source,
 binary and capture hashes and verifies that recovery sends no unintended prompt.
 
+The work-control journey starts a bounded run, requests pause during an item,
+steps one item from a paused boundary, resumes and finishes the current item
+before stopping. A competing launch from another resident is refused; returning
+to the owner retains its run and controls. Next completes one item, stopping a
+reply remains separate from stopping work, and a new conversation retains
+completed work. Native Quit leaves no provider process. `work-receipt.json`
+records 25 checks and the light and dark captures reviewed in `review.json`.
+
 The attention capture shows concurrent waiting and working agents with the
 selected draft. Light, dark and narrow conversation screenshots, chooser appearances, setup review, partial results, unavailable-agent guidance, agent/model selection, named conversation controls, saved summaries and refused resume are reviewed
 against their hashes in `review.json`. The receipt names interface and shared session-owner and observer source hashes.
@@ -79,8 +87,9 @@ Regenerate from the repository:
 cargo build --manifest-path crates/magistr-desktop/Cargo.toml --locked
 python3 crates/magistr-desktop/tests/native_window.py crates/magistr-desktop/target/debug/magistr-desktop
 python3 crates/magistr-desktop/tests/draft_persistence_journey.py crates/magistr-desktop/target/debug/magistr-desktop
+python3 crates/magistr-desktop/tests/work_journey.py crates/magistr-desktop/target/debug/magistr-desktop
 ```
 
-Review the resulting `.magistr/desktop-native` images, then copy them and their
-receipt here and update the review hashes. `scripts/website-captures.sh` uses
+Review the resulting images in `.magistr/desktop-native`, `.magistr/desktop-native-drafts`
+and `.magistr/desktop-work`, then copy them and their receipts here and update the review hashes. `scripts/website-captures.sh` uses
 these reviewed native images for the local website.

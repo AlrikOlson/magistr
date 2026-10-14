@@ -72,6 +72,9 @@ pub struct SessionSnapshot {
     pub draft_save_error: Option<String>,
     pub admission: Option<SubmissionAdmission>,
     pub activity: Option<magistr_application::sessions::SessionActivity>,
+    pub work: Option<magistr_cockpit::cockpit::WorkRun>,
+    pub work_admission: Option<super::WorkAdmission>,
+    pub work_error: Option<String>,
     bytes: usize,
     retained_from: u64,
     // An evicted active source keeps its kind/id so its tail cannot become a new reply.
@@ -197,6 +200,22 @@ impl SessionSnapshot {
             });
         }
         match &message {
+            Msg::CommandFailed {
+                cmd: magistr_cockpit::cockpit::Cmd::Launch(_),
+                error,
+            } => {
+                self.work_admission = Some(super::WorkAdmission {
+                    sequence: self.sequence,
+                    run_id: None,
+                    error: Some(error.clone()),
+                });
+            }
+            Msg::CommandFailed {
+                cmd: magistr_cockpit::cockpit::Cmd::Loop(_),
+                error,
+            } => {
+                self.work_error = Some(error.clone());
+            }
             Msg::InputAccepted(input) => {
                 self.status = SessionStatus::Working;
                 if self.seed.draft.as_ref() == Some(&input.text)
@@ -396,6 +415,9 @@ fn empty_snapshot(address: SessionAddress) -> SessionSnapshot {
         draft_save_error: None,
         admission: None,
         activity: None,
+        work: None,
+        work_admission: None,
+        work_error: None,
         bytes: 0,
         retained_from: 1,
         continuation: None,
@@ -569,6 +591,9 @@ impl SessionObservation {
         self.state.send_modify(|current| {
             let draft = next.seed.draft.take();
             next.seed = current.seed.clone();
+            next.work = current.work.clone();
+            next.work_admission = current.work_admission.clone();
+            next.work_error = current.work_error.clone();
             next.seed.draft = draft;
             next.sequence = current.sequence.max(next.sequence).saturating_add(1);
             // A switch is a reseed even when both contexts reused source IDs.
@@ -802,7 +827,13 @@ impl SessionObservation {
         if contexts.active.as_deref() == Some(id) {
             Some(self.state.borrow().clone())
         } else {
-            contexts.parked.get(id).cloned()
+            contexts.parked.get(id).cloned().map(|mut snapshot| {
+                let current = self.state.borrow();
+                snapshot.work = current.work.clone();
+                snapshot.work_admission = current.work_admission.clone();
+                snapshot.work_error = current.work_error.clone();
+                snapshot
+            })
         }
     }
     pub(super) fn wake_with(&self, wake: std::sync::Arc<Notify>) {
@@ -924,7 +955,16 @@ impl ObservationSink for SessionObservation {
         self.activate_context(id)
     }
     fn send_for(&self, id: &str, message: Msg) -> bool {
-        if matches!(&message, Msg::Engine(_)) {
+        if matches!(
+            &message,
+            Msg::Engine(_)
+                | Msg::WorkRun(_)
+                | Msg::CommandFailed {
+                    cmd: magistr_cockpit::cockpit::Cmd::Launch(_)
+                        | magistr_cockpit::cockpit::Cmd::Loop(_),
+                    ..
+                }
+        ) {
             return self.send(message);
         }
         self.record_for(Some(id), message)
@@ -932,6 +972,27 @@ impl ObservationSink for SessionObservation {
     fn send(&self, message: Msg) -> bool {
         if self.is_closed() {
             return false;
+        }
+        if let Msg::WorkRun(work) = message {
+            let _ = self.modify(None, false, |state| {
+                state.sequence = state.sequence.saturating_add(1);
+                if work.is_active()
+                    && state
+                        .work
+                        .as_ref()
+                        .is_none_or(|previous| previous.id != work.id || !previous.is_active())
+                {
+                    state.work_admission = Some(super::WorkAdmission {
+                        sequence: state.sequence,
+                        run_id: Some(work.id.clone()),
+                        error: None,
+                    });
+                }
+                state.work = Some(work);
+                state.work_error = None;
+            });
+            self.wake_catalog();
+            return true;
         }
         if let Msg::Engine(event) = message {
             let publishing = matches!(&event, magistr_cockpit::engine::EngineEvent::Seed(_));

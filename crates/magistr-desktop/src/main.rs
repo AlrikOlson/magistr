@@ -19,6 +19,7 @@ mod preferences;
 mod projects;
 mod streams;
 mod wire;
+mod work;
 
 use args::{Child, Desktop};
 use clap::Parser;

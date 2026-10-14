@@ -27,8 +27,6 @@ fn write_checkpoint(root: &Path, run: &str, records: Vec<Value>, terminal_reason
     let state = root.join(".magistr");
     std::fs::create_dir_all(&state).expect("state dir");
     let checkpoint = json!({
-        "iteration": 1,
-        "max_iterations": 5,
         "run": {
             "mode": "chunk_loop",
             "completed_attempts": 1,
@@ -43,8 +41,10 @@ fn write_checkpoint(root: &Path, run: &str, records: Vec<Value>, terminal_reason
         "operations": { "records": records },
         "attempt_started": 1,
         "native_chunk_id": "chunk-a",
+        "native_track": null,
+        "session_selection": null,
         "last_commit_sha": "abc123",
-        "last_status": "success",
+        "last_status": "committed",
         "spec_checked": 0,
         "spec_total": 1,
     });

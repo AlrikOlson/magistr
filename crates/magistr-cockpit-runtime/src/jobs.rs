@@ -39,14 +39,22 @@ impl Jobs {
     where
         F: FnOnce() -> JobOutput + Send + 'static,
     {
+        self.spawn_owned_job(f).0
+    }
+
+    /// Spawn a job whose caller must join its completion before releasing resources.
+    pub fn spawn_owned_job<F>(&self, f: F) -> (JobId, tokio::task::JoinHandle<()>)
+    where
+        F: FnOnce() -> JobOutput + Send + 'static,
+    {
         let id = JobId::new(self.next.fetch_add(1, Ordering::Relaxed));
         let inbox = self.inbox.clone();
         let work = tokio::task::spawn_blocking(f);
-        tokio::spawn(async move {
+        let completion = tokio::spawn(async move {
             let output = work.await.unwrap_or_else(|e| JobOutput::Failed(failure(e)));
             inbox.send(Msg::Job { id, output });
         });
-        id
+        (id, completion)
     }
 
     /// How many jobs were spawned through this handle family.

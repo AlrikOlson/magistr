@@ -18,6 +18,7 @@
 
 mod checkpoint_detach;
 mod connector;
+mod control;
 mod driver;
 mod failure_brief;
 mod gate_job;

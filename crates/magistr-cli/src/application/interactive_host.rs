@@ -120,6 +120,12 @@ impl InteractiveHost {
                 return Err(startup_error(error.into(), cleanup));
             }
         };
+        let inputs = config
+            .inputs()
+            .as_ref()
+            .clone()
+            .with_session_selection(spec.selection());
+        let config = config.with_inputs(&inputs);
         let project = crate::commands::galaxy_data::project_name(spec.cwd());
         let dir = spec.cwd().display().to_string();
         let supervision = crate::commands::run::supervision_seed(

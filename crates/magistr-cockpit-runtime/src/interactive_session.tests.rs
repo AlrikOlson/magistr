@@ -523,7 +523,7 @@ async fn planning_waits_for_the_turn_and_keeps_a_separate_reusable_context() {
 #[tokio::test]
 async fn cancelling_a_pending_connection_rejects_exact_input_and_allows_retry() {
     use magistr_application::sessions::{PromptAttachment, PromptInput};
-    for (roadmap, abort) in [(false, false), (true, false), (false, true), (true, true)] {
+    for roadmap in [false, true] {
         let (inbox, mut events) = Inbox::channel();
         let (commands, receiver) = Commands::channel();
         let (opened, mut connections) = mpsc::unbounded_channel();
@@ -562,9 +562,7 @@ async fn cancelling_a_pending_connection_rejects_exact_input_and_allows_retry() 
         };
         commands.send(prompt.clone()).unwrap();
         let (mut cancelled, release) = next(&mut connections).await;
-        let cancellation = if abort {
-            Cmd::Loop(LoopCmd::Abort)
-        } else if roadmap {
+        let cancellation = if roadmap {
             Cmd::CancelRoadmapPrompt
         } else {
             Cmd::Cancel
@@ -582,15 +580,6 @@ async fn cancelling_a_pending_connection_rejects_exact_input_and_allows_retry() 
             assert!(matches!(
                 terminal,
                 Msg::Agent(AgentEvent::TurnEnded(TurnEnd::Cancelled))
-            ));
-        }
-        if abort {
-            assert!(matches!(
-                next(&mut events).await,
-                Msg::CommandFailed {
-                    cmd: Cmd::Loop(LoopCmd::Abort),
-                    ..
-                }
             ));
         }
         assert!(
@@ -942,7 +931,7 @@ async fn unsupported_controls_and_absent_provider_fail_without_ending_live_work(
         Cmd::Kill(magistr_cockpit::cockpit::KillCmd::Terminal("build".into())),
         Cmd::Kill(magistr_cockpit::cockpit::KillCmd::Gate("checks".into())),
         Cmd::Reconnect,
-        Cmd::Loop(magistr_cockpit::cockpit::LoopCmd::Pause),
+        run_command(magistr_cockpit::cockpit::LoopCmd::Pause),
     ] {
         commands_tx.send(cmd.clone()).unwrap();
         let event = tokio::time::timeout(Duration::from_secs(2), messages.recv())
@@ -1090,4 +1079,47 @@ async fn next_observation(receiver: &mut mpsc::UnboundedReceiver<Msg>) -> Msg {
             return message;
         }
     }
+}
+
+fn run_command(action: magistr_cockpit::cockpit::LoopCmd) -> Cmd {
+    Cmd::Loop(magistr_cockpit::cockpit::RunCommand {
+        run_id: magistr_domain::identity::RunId::new(
+            magistr_domain::identity::ProjectId::new("fixture").unwrap(),
+            "run",
+        )
+        .unwrap(),
+        action,
+    })
+}
+
+#[tokio::test]
+async fn work_abort_without_a_work_owner_refuses_without_cancelling_the_reply() {
+    let (inbox, mut events) = Inbox::channel();
+    let (commands, receiver) = Commands::channel();
+    let (session, mut opening) = idle_session(inbox);
+    let task = session.spawn(receiver);
+    commands.send(Cmd::Prompt("keep working".into())).unwrap();
+    assert_eq!(next(&mut opening.prompts).await, "keep working");
+    commands
+        .send(run_command(magistr_cockpit::cockpit::LoopCmd::Abort))
+        .unwrap();
+    loop {
+        match next(&mut events).await {
+            Msg::CommandFailed {
+                cmd: Cmd::Loop(_), ..
+            } => break,
+            Msg::Agent(AgentEvent::TurnEnded(TurnEnd::Cancelled)) => {
+                panic!("run stop cancelled a reply")
+            }
+            _ => {}
+        }
+    }
+    assert!(
+        opening
+            .events
+            .send(AgentEvent::Text("still responding".into()))
+            .is_ok()
+    );
+    drop(commands);
+    task.await.unwrap().unwrap();
 }

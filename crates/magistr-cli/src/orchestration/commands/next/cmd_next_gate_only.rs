@@ -14,6 +14,8 @@ use crate::validate;
 /// results as plain text or JSON. Exits with code 1 if any gate fails.
 pub async fn cmd_next_gate_only(dir: &std::path::Path, format: HeadlessFormat) -> eyre::Result<()> {
     let dir = super::canonicalize_dir(dir)?;
+    let work_lease = magistr_core::workflow::loop_lease::LoopLease::acquire(&dir).suggest()?;
+    work_lease.require_settled(&dir).suggest()?;
 
     let start = Instant::now();
 

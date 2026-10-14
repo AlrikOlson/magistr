@@ -1,3 +1,4 @@
+import { WorkPanel } from "./work.mjs";
 import { addressKey, targetKey, sameTarget } from "./context.mjs";
 import { Transcript } from "./transcript.mjs";
 import { Drafts } from "./drafts.mjs";
@@ -32,6 +33,7 @@ let configurationKey="";
 let requestsKey="",railKey="";
 const labels=new Map();let issuedLabel=0;
 const showError=error=>{$("error").textContent=error?.message??String(error);$("error").hidden=false;};
+const workPanel=new WorkPanel($,invoke,showError);
 const clearError=()=>{$("error").hidden=true;};
 const button=(label,click)=>{const element=document.createElement("button");element.textContent=label;element.onclick=click;return element;};
 const text=(tag,value)=>{const element=document.createElement(tag);element.textContent=value;return element;};
@@ -66,7 +68,7 @@ function renderRail() {
     item.setAttribute("aria-current",String(selected?.session===id));item.setAttribute("aria-label",name);
     const [stop,reconnect,close]=row.children[2].children;
     stop.onclick=()=>act(session.target,"cancel");reconnect.onclick=()=>act(session.target,"reconnect");
-    stop.disabled=session.closed||session.activity?.cancellation_requested||!["Working","Waiting for you"].includes(session.status);
+    stop.disabled=session.closed||session.activity?.cancellation_requested||!session.activity?.active;
     reconnect.disabled=session.closed||session.status!=="Connection lost"||session.activity?.can_resume!==true;
     close.disabled=session.closed;
     stop.setAttribute("aria-label","Stop "+name);reconnect.setAttribute("aria-label","Reconnect "+name);close.setAttribute("aria-label","Close "+name);
@@ -216,7 +218,7 @@ async function select(address,requestId=null,requestTarget=null) {
     commit:(candidate,initial)=>{
       selected=address;view=candidate;candidate.requestId=requestId;candidate.requestTarget=requestTarget;requestsKey="";railKey="";configurationKey="";
       $("welcome").hidden=true;$("workspace").hidden=false;$("view-title").textContent="Conversation";
-      $("draft").value="";composerFrame=null;attachmentList.clear();
+      $("draft").value="";composerFrame=null;workPanel.render(null);attachmentList.clear();
       $("draft").disabled=true;$("send").disabled=true;$("add-files").disabled=true;$("attachment-note").textContent="";
       $("workspace-path").textContent=address.workspace;
       $("project-name").textContent=sessions.find(session=>session.address.session===address.session)?.name??"Project";
@@ -255,8 +257,8 @@ function receiveFrame(candidate,frame) {
 function render(frame) {
   transcriptView.render(view);
   if($("status").textContent!==frame.status)$("status").textContent=frame.status;
-  $("stop").disabled=!["Working","Waiting for you"].includes(frame.status);
-  composerFrame=frame;renderComposer();
+  $("stop").disabled=frame.closed||frame.activity?.cancellation_requested||!frame.activity?.active;
+  composerFrame=frame;renderComposer();workPanel.render(frame);
   $("new-session").disabled=frame.closed;$("close-session").disabled=frame.closed;
   $("copy").disabled=view.messages.length===0;
   $("model").textContent=frame.model??"Model information is unavailable.";

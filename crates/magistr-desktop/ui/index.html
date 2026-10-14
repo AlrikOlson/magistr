@@ -26,12 +26,22 @@
         <div class="empty"><h2>What would you like to work on?</h2><p>Send a message to start a conversation in this working copy.</p></div>
       </div>
       <button id="latest" hidden>Latest reply ↓</button>
-      <form id="composer"><label for="draft">Message the agent</label><textarea id="draft" disabled rows="4" placeholder="Describe the work…" maxlength="1048576"></textarea><div id="pending-attachments" class="attachments" role="list" aria-label="Files to send" hidden></div><p id="attachment-note" role="status" aria-live="polite"></p><div class="draft-state"><p id="draft-status" role="status"></p><button id="retry-draft" type="button" hidden>Retry save</button><button id="discard-draft" type="button" disabled>Discard draft</button></div><div class="composer-actions"><button id="add-files" type="button" disabled>Add files…</button><span>Return to send · Shift Return for a new line</span><button id="stop" type="button" disabled>Stop</button><button id="send" type="submit" disabled>Send</button></div></form>
+      <form id="composer"><label for="draft">Message the agent</label><textarea id="draft" disabled rows="4" placeholder="Describe the work…" maxlength="1048576"></textarea><div id="pending-attachments" class="attachments" role="list" aria-label="Files to send" hidden></div><p id="attachment-note" role="status" aria-live="polite"></p><div class="draft-state"><p id="draft-status" role="status"></p><button id="retry-draft" type="button" hidden>Retry save</button><button id="discard-draft" type="button" disabled>Discard draft</button></div><div class="composer-actions"><button id="add-files" type="button" disabled>Add files…</button><span>Return to send · Shift Return for a new line</span><button id="stop" type="button" title="Stop the current reply" disabled>Stop</button><button id="send" type="submit" disabled>Send</button></div></form>
     </section>
     <aside class="detail" aria-label="Session details">
       <h2>Working copy</h2><p id="workspace-path" class="path"></p><label for="working-copy">Working copy</label><select id="working-copy"></select>
       <form id="name-form"><label for="conversation-name">Conversation name</label><input id="conversation-name" maxlength="120" required><button id="save-name" type="submit">Save name</button></form>
       <h2>Agent</h2><p id="agent-provider"></p><div id="agent-configuration"></div><p id="model">Model information is unavailable.</p><p id="usage"></p><p id="queue"></p><p id="capabilities"></p>
+      <section id="work" aria-label="Planned work">
+        <h2>Planned work</h2>
+        <p id="work-status" role="status" aria-live="polite">No work is running.</p>
+        <p id="work-detail"></p><p id="work-error" class="error" role="alert" hidden></p>
+        <div class="work-actions">
+          <button id="work-next" disabled>Work on next item</button><button id="work-loop" disabled>Start 10 items</button>
+          <button id="work-pause" hidden>Pause after this item</button><button id="work-resume" hidden>Continue work</button>
+          <button id="work-step" hidden>One more item</button><button id="work-abort" hidden>Finish item and stop</button>
+        </div>
+      </section>
       <section id="requests" aria-label="Requests waiting for you"></section>
       <div class="session-actions"><button id="reconnect" disabled>Reconnect</button><button id="copy" disabled>Copy conversation</button><button id="close-session" disabled>Close session</button></div>
     </aside>

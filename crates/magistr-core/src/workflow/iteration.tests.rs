@@ -548,7 +548,7 @@ fn budget_exhaustion_survives_recovery_and_prevents_next_attempt() {
 }
 
 #[test]
-fn recovery_refuses_missing_counters_and_inconsistent_legacy_projections() {
+fn recovery_refuses_missing_required_progress_evidence() {
     let (dir, spec_path) = setup_project("- [ ] item 1\n");
     let loop_mgr = IterationLoop::with_max(dir.path(), &spec_path, 7).unwrap();
     let original = serde_json::to_value(loop_mgr.state()).unwrap();
@@ -557,10 +557,6 @@ fn recovery_refuses_missing_counters_and_inconsistent_legacy_projections() {
         .as_object_mut()
         .unwrap()
         .remove("consecutive_no_commits");
-    let mut inconsistent_iteration = original.clone();
-    inconsistent_iteration["iteration"] = 2.into();
-    let mut inconsistent_limit = original.clone();
-    inconsistent_limit["max_iterations"] = 70.into();
     let mut missing_attempt = original.clone();
     missing_attempt
         .as_object_mut()
@@ -580,8 +576,6 @@ fn recovery_refuses_missing_counters_and_inconsistent_legacy_projections() {
     missing_run_id.as_object_mut().unwrap().remove("run_id");
     for state in [
         missing_count,
-        inconsistent_iteration,
-        inconsistent_limit,
         missing_attempt,
         missing_git_baseline,
         missing_operations,
@@ -618,28 +612,6 @@ fn run_modes_share_policy_without_applying_chunk_loop_git_guard_to_conversations
                 RunMode::OneChunk => PreCheckResult::Stopped(StopReason::OneChunkComplete),
                 _ => PreCheckResult::Continue,
             }
-        );
-    }
-}
-
-#[test]
-fn loop_state_keeps_legacy_status_spelling_while_using_domain_status() {
-    let (dir, spec_path) = setup_project("- [ ] item 1\n");
-    let loop_mgr = IterationLoop::with_max(dir.path(), &spec_path, 7).unwrap();
-    for (legacy, canonical) in [
-        ("none", IterationStatus::None),
-        ("success", IterationStatus::Committed),
-        ("no_commit", IterationStatus::NoCommit),
-        ("failed", IterationStatus::Failed),
-    ] {
-        let mut state = serde_json::to_value(loop_mgr.state()).unwrap();
-        state["last_status"] = legacy.into();
-        let decoded: IterationState = serde_json::from_value(state).unwrap();
-        let shared: magistr_domain::workflow::IterationStatus = decoded.last_status;
-        assert_eq!(shared, canonical);
-        assert_eq!(
-            serde_json::to_value(decoded).unwrap()["last_status"],
-            legacy
         );
     }
 }
@@ -685,8 +657,6 @@ fn has_persisted_state_false_initially() {
 #[test]
 fn state_serializes_to_json() {
     let state = IterationState {
-        iteration: 3,
-        max_iterations: 10,
         run: RunState {
             completed_attempts: 3,
             ..RunState::new(RunMode::ChunkLoop, 10, None)
@@ -708,16 +678,14 @@ fn state_serializes_to_json() {
     };
 
     let json = serde_json::to_string_pretty(&state).unwrap();
-    assert!(json.contains("\"iteration\": 3"));
-    assert!(json.contains("\"success\""));
+    assert!(json.contains("\"completed_attempts\": 3"));
+    assert!(json.contains("\"committed\""));
     assert!(json.contains("\"abc1234\""));
 }
 
 #[test]
 fn state_deserializes_from_json() {
     let json = r#"{
-            "iteration": 2,
-            "max_iterations": 8,
             "run": {
                 "mode": "chunk_loop", "completed_attempts": 2, "max_iterations": 8,
                 "consecutive_no_commits": 1, "budget_total_usd": 0.0,
@@ -727,6 +695,9 @@ fn state_deserializes_from_json() {
             "run_id": {"project": "proj", "local": "run-1"},
             "operations": {"records": []},
             "attempt_started": null,
+            "native_chunk_id": null,
+            "native_track": null,
+            "session_selection": null,
             "last_commit_sha": "def5678",
             "last_status": "no_commit",
             "spec_checked": 3,
@@ -734,8 +705,8 @@ fn state_deserializes_from_json() {
         }"#;
 
     let state: IterationState = serde_json::from_str(json).unwrap();
-    assert_eq!(state.iteration, 2);
-    assert_eq!(state.max_iterations, 8);
+    assert_eq!(state.run.completed_attempts, 2);
+    assert_eq!(state.run.max_iterations, 8);
     assert_eq!(state.last_commit_sha, Some("def5678".to_string()));
     assert_eq!(state.last_status, IterationStatus::NoCommit);
     assert_eq!(state.spec_checked, 3);
@@ -1077,18 +1048,13 @@ fn cancelled_native_run_resumes_its_saved_item_and_preserves_the_plan() {
 }
 
 #[test]
-fn older_native_checkpoint_resumes_the_only_unfinished_item() {
+fn unselected_run_resumes_the_only_unfinished_item() {
     let (dir, spec_path) = setup_project("- [x] Legacy item\n");
     let engines = native_engines(&dir);
     add_native_chunk(&engines, "unfinished", 100, &[]);
     engines.roadmap_start_chunk("unfinished").unwrap();
     let first = IterationLoop::open(dir.path(), &spec_path, 3, Some(engines.reader())).unwrap();
     first.persist().unwrap();
-    let path = loop_state_path(dir.path());
-    let mut old: serde_json::Value =
-        serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
-    old.as_object_mut().unwrap().remove("native_chunk_id");
-    std::fs::write(&path, serde_json::to_vec(&old).unwrap()).unwrap();
     drop(first);
 
     let mut resumed =

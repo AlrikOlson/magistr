@@ -97,7 +97,8 @@
       "Reading progress 0021: new result café 日本語 👩🏽‍💻.",
       "Reading progress 0022: new result café 日本語 👩🏽‍💻.",
       "Reading progress 0023: new result café 日本語 👩🏽‍💻.",
-      "Reading progress 0024: new result café 日本語 👩🏽‍💻."
+      "Reading progress 0024: new result café 日本語 👩🏽‍💻.",
+      "Reading progress 0025: new result café 日本語 👩🏽‍💻."
     ],
     "tool_values": [
       "Review local build · Running",
@@ -171,8 +172,7 @@
       "Reading progress 0041: new result café 日本語 👩🏽‍💻.",
       "Reading progress 0042: new result café 日本語 👩🏽‍💻.",
       "Reading progress 0043: new result café 日本語 👩🏽‍💻.",
-      "Reading progress 0044: new result café 日本語 👩🏽‍💻.",
-      "Reading progress 0045: new result café 日本語 👩🏽‍💻."
+      "Reading progress 0044: new result café 日本語 👩🏽‍💻."
     ],
     "tool_values": [
       "Review local build · Running",
@@ -214,7 +214,7 @@
       "AXHelp": "",
       "AXRole": "AXStaticText",
       "AXTitle": "",
-      "AXValue": "Reading progress 0063: new result café 日本語 👩🏽‍💻.",
+      "AXValue": "Reading progress 0062: new result café 日本語 👩🏽‍💻.",
       "enabled": true,
       "focused": false,
       "rect": [
@@ -245,7 +245,7 @@
     }
   },
   "latest_after": {
-    "coherent_sample_attempts": 2,
+    "coherent_sample_attempts": 1,
     "selected_text": "",
     "tail": {
       "actions": [
@@ -256,7 +256,7 @@
       "AXHelp": "",
       "AXRole": "AXStaticText",
       "AXTitle": "",
-      "AXValue": "Reading progress 0092: new result café 日本語 👩🏽‍💻.",
+      "AXValue": "Reading progress 0089: new result café 日本語 👩🏽‍💻.",
       "enabled": true,
       "focused": false,
       "rect": [
@@ -410,10 +410,7 @@
       "Reading progress 0098: new result café 日本語 👩🏽‍💻.",
       "Reading progress 0099: new result café 日本語 👩🏽‍💻.",
       "Reading progress 0100: new result café 日本語 👩🏽‍💻.",
-      "Reading progress 0101: new result café 日本語 👩🏽‍💻.",
-      "Reading progress 0102: new result café 日本語 👩🏽‍💻.",
-      "Reading progress 0103: new result café 日本語 👩🏽‍💻.",
-      "Reading progress 0104: new result café 日本語 👩🏽‍💻."
+      "Reading progress 0101: new result café 日本語 👩🏽‍💻."
     ],
     "tool_values": [
       "Review local build · Running",
@@ -568,11 +565,7 @@
       "Reading progress 0122: new result café 日本語 👩🏽‍💻.",
       "Reading progress 0123: new result café 日本語 👩🏽‍💻.",
       "Reading progress 0124: new result café 日本語 👩🏽‍💻.",
-      "Reading progress 0125: new result café 日本語 👩🏽‍💻.",
-      "Reading progress 0126: new result café 日本語 👩🏽‍💻.",
-      "Reading progress 0127: new result café 日本語 👩🏽‍💻.",
-      "Reading progress 0128: new result café 日本語 👩🏽‍💻.",
-      "Reading progress 0129: new result café 日本語 👩🏽‍💻."
+      "Reading progress 0125: new result café 日本語 👩🏽‍💻."
     ],
     "tool_values": [
       "Review local build · Running",
@@ -581,26 +574,26 @@
   },
   "stream": {
     "stage": "finished",
-    "chunks": 133,
-    "elapsed": 13.735132583999999,
+    "chunks": 129,
+    "elapsed": 13.374504292000001,
     "stop_reason": "end_turn"
   },
   "canonical": {
     "reply_bytes": 11321,
-    "reply_sha256": "d55d375ea7f713748b007cd49b79074f16a3555df13bdbc0c08fa37c3c929766",
-    "conversation_bytes": 21864,
-    "conversation_sha256": "e7c21cb3179eb0472a97e2da5a9ed09a53af5d3547deeb5fab4769e2c6342b82"
+    "reply_sha256": "ea033ac49e33a1e3dab1e816bb30ab44365138e4baccfcc1f0014b6c95ce5e90",
+    "conversation_bytes": 21592,
+    "conversation_sha256": "f3b87a8ea87efc60f4d71f94bbb9e954f52c511acc418961933c232e75bd92e3"
   },
   "link": {
     "activated": true,
     "activation_sent": true,
     "after_close_observation": {
       "matches": false,
-      "readable": true
+      "readable": false
     },
     "browser": "org.mozilla.firefox",
     "closed_controlled_tab": true,
-    "controlled_marker_visible": true,
+    "controlled_marker_visible": false,
     "destination_observation": {
       "matches": true,
       "readable": true
@@ -614,7 +607,7 @@
           "AXScrollToVisible"
         ],
         "AXDescription": "",
-        "AXHelp": "http://127.0.0.1:61349/rich-link/1791999182623802000",
+        "AXHelp": "http://127.0.0.1:51634/rich-link/1792011240109644000",
         "AXRole": "AXLink",
         "AXTitle": "Open the local reading note",
         "AXValue": "",

@@ -268,7 +268,22 @@ linked working copy uses its shared project owner. Project identity, settings,
 customized files and unrelated shared-file entries remain with their owners.
 Folders without Git open as the project's sole source directory; Git-only working-copy creation explicitly requires a repository. Recent histories from linked copies resolve to their shared project. After the last session closes, the same window returns to its chooser.
 
-The desktop opens conversations and prepares projects. The CLI retains
+Planned work starts one item or a bounded run in a resident session. HostedWork
+acquires the same stable LoopLease for either mode before reading recovery,
+writing progress or clearing temporary work. The admitted selection is frozen
+from the resolved conversation and retained in the run checkpoint. LoopDriver
+owns one control state and joins provider, gate and checkpoint work before
+publishing its end; each worker retains the lease if its coordinator is dropped.
+
+WorkRun snapshots and launch refusals are retained outside the bounded message
+history. Controls use the resident SessionAddress and exact RunId, so a fresh
+provider conversation does not invalidate the run's controls. Pause, step and
+stop take effect at item boundaries; Stop in the composer cancels the current
+reply. A queued launch has its own pending state until the owner admits or
+refuses it. Navigation and reseeding project these facts without inventing a
+second execution state.
+
+The desktop opens conversations, starts planned work and prepares projects. The CLI retains
 headless runs, initialization, validation and administrative commands; MCP
 roles serve workflow and source tools. Roadmap editing and detailed file review remain later desktop work.
 
@@ -310,6 +325,11 @@ to reopen multiple conversations and working copies, recover files and text,
 verify immediate edit-to-Quit, interrupt a process after a durable rapid edit,
 force a SQLite write failure and retry, and confirm explicit discard and saved
 appearance. It records its own source-bound receipt and reviewed captures.
+
+The separate `tests/work_journey.py` starts actual hosted work with a controlled
+provider. It verifies lease refusal in another resident, navigation during
+pending pause, one-item stepping, resume, stop after the item, single-item
+completion, reply cancellation and orderly Quit in both appearances.
 
 See [current evidence](../evidence/desktop-current/README.md). Screenshot checks
 verify current capture hashes, contrast, the selected icon and source freshness.

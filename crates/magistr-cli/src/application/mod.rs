@@ -72,6 +72,10 @@ pub use session_observation::{
 };
 pub use session_opening::SessionOpening;
 pub use session_registry::{ConversationTarget, SessionClient, SessionRegistry};
+mod work_target;
+pub use work_target::WorkTarget;
+mod work_admission;
+pub use work_admission::WorkAdmission;
 mod settled_check;
 mod working_copies;
 mod workspace_admission;

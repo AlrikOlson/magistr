@@ -9,7 +9,7 @@ use crate::channel::{Commands, Inbox};
 use crate::spawn_session;
 use magistr_application::sessions::{AgentEvent, Conversation, SessionHandle, SessionPurpose};
 use magistr_cockpit::checkpoint::CheckpointPort;
-use magistr_cockpit::cockpit::{Cmd, LaunchAction, LoopCmd, Msg};
+use magistr_cockpit::cockpit::{Cmd, LaunchAction, Msg, RunCommand};
 use magistr_cockpit::engine::EnginePort;
 use magistr_cockpit::workbench::WorkbenchPort;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
@@ -20,8 +20,6 @@ use tokio::task::JoinHandle;
 pub struct SessionExit {
     /// The cockpit is still there: its commands did not close or quit.
     pub open: bool,
-    /// Loop decisions the phase received, returned to their owner.
-    pub controls: Vec<LoopCmd>,
     /// The work the reader asked the host to start, when that ended the phase.
     pub launch: Option<LaunchAction>,
 }
@@ -37,6 +35,7 @@ type Connect = dyn Fn(
 /// this phase ends, or the refusal in words. Asked before the conversation
 /// is given up, so a refused start costs the reader nothing.
 type Admit = dyn Fn(&LaunchAction) -> Result<(), String> + Send + Sync;
+type Control = dyn Fn(RunCommand) -> Result<(), String> + Send + Sync;
 
 const CLOSE_GRACE: Duration = Duration::from_secs(5);
 const START_WAITS: &str = "Wait for the current response before starting work.";
@@ -80,6 +79,7 @@ pub struct InteractiveSession {
     local_task: JoinHandle<Result<(), String>>,
     local_commands: Option<UnboundedSender<Cmd>>,
     admit: Option<Arc<Admit>>,
+    control: Option<Arc<Control>>,
     connection: Option<Connection>,
     parked: Option<Connection>,
     conversation_id: Option<String>,
@@ -132,6 +132,7 @@ impl InteractiveSession {
             local_task: task,
             local_commands: Some(commands),
             admit: None,
+            control: None,
             connection: None,
             parked: None,
             conversation_id: None,
@@ -154,6 +155,30 @@ impl InteractiveSession {
     ) -> Self {
         self.admit = Some(Arc::new(admit));
         self
+    }
+
+    /// Let the executing owner apply run requests immediately without cancelling replies.
+    #[must_use]
+    pub fn controlling_work(
+        mut self,
+        control: impl Fn(RunCommand) -> Result<(), String> + Send + Sync + 'static,
+    ) -> Self {
+        self.control = Some(Arc::new(control));
+        self
+    }
+
+    fn control_work(&self, command: RunCommand) {
+        let result = self
+            .control
+            .as_ref()
+            .ok_or_else(|| "There is no running work for this action.".to_owned())
+            .and_then(|control| control(command.clone()));
+        if let Err(error) = result {
+            self.inbox.send(Msg::CommandFailed {
+                cmd: Cmd::Loop(command),
+                error,
+            });
+        }
     }
 
     /// Adopt the opening conversation connected before the interface starts.
@@ -220,7 +245,6 @@ impl InteractiveSession {
         text: magistr_application::sessions::PromptInput,
         roadmap: bool,
         commands: &mut Commands,
-        controls: &mut Vec<LoopCmd>,
     ) {
         if self.busy {
             if !roadmap
@@ -320,21 +344,7 @@ impl InteractiveSession {
                             )));
                             return;
                         }
-                        Some(Cmd::Loop(command)) => {
-                            let abort = matches!(command, LoopCmd::Abort);
-                            controls.push(command);
-                            if abort {
-                                self.reject(text, "This send was stopped. Your draft is still available.");
-                                if roadmap {
-                                    self.current_inbox().send(Msg::RoadmapRequestCancelled);
-                                } else {
-                                    self.current_inbox().send(Msg::Agent(AgentEvent::TurnEnded(
-                                        magistr_application::sessions::TurnEnd::Cancelled,
-                                    )));
-                                }
-                                return;
-                            }
-                        }
+                        Some(Cmd::Loop(command)) => self.control_work(command),
                         Some(Cmd::Prompt(other) | Cmd::RoadmapPrompt(other)) => {
                             self.reject(other, "Wait for the connection before sending another message.");
                         }
@@ -553,7 +563,7 @@ impl InteractiveSession {
     }
 
     /// Run until the cockpit closes, or one requested turn ends at an iteration
-    /// boundary. Loop controls are returned to their owner rather than discarded.
+    /// boundary. Run controls are applied by the executing owner without cancelling the reply.
     ///
     /// A start ([`Cmd::Launch`]) the host admits ends an idle conversation
     /// phase with the commands still open: the host runs the work and opens
@@ -566,7 +576,6 @@ impl InteractiveSession {
         once: bool,
     ) -> SessionExit {
         let mut first = first;
-        let mut controls = Vec::new();
         let mut closed = false;
         let mut launch = None;
         loop {
@@ -646,10 +655,10 @@ impl InteractiveSession {
                     if addressed && self.busy && self.connection.is_some() {
                         self.forward(Cmd::Prompt(text));
                     } else {
-                        self.submit(text, roadmap, commands, &mut controls).await;
+                        self.submit(text, roadmap, commands).await;
                     }
                 }
-                Cmd::RoadmapPrompt(text) => self.submit(text, true, commands, &mut controls).await,
+                Cmd::RoadmapPrompt(text) => self.submit(text, true, commands).await,
                 Cmd::CancelRoadmapPrompt => {
                     if let Some(input) = self.queued.take() {
                         self.reject(
@@ -671,12 +680,7 @@ impl InteractiveSession {
                         });
                     }
                 }
-                Cmd::Loop(command) => {
-                    if matches!(command, LoopCmd::Abort) {
-                        self.forward(Cmd::Cancel);
-                    }
-                    controls.push(command);
-                }
+                Cmd::Loop(command) => self.control_work(command),
                 Cmd::Launch(action) => {
                     let refusal = if once {
                         Some("Work is already running.".to_owned())
@@ -704,14 +708,6 @@ impl InteractiveSession {
                     self.forward(other);
                 }
             }
-            if !once {
-                for command in controls.drain(..) {
-                    self.current_inbox().send(Msg::CommandFailed {
-                        cmd: Cmd::Loop(command),
-                        error: "There is no running work loop for this action.".into(),
-                    });
-                }
-            }
             if self.closed {
                 closed = true;
                 break;
@@ -732,7 +728,6 @@ impl InteractiveSession {
         }
         SessionExit {
             open: !closed,
-            controls,
             launch,
         }
     }

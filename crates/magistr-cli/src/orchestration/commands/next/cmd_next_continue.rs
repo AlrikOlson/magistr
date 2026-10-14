@@ -11,6 +11,8 @@ pub async fn cmd_next_continue(
     inputs: &crate::config::inputs::ProjectInputs,
 ) -> eyre::Result<()> {
     let dir = super::canonicalize_dir(dir)?;
+    let work_lease = magistr_core::workflow::loop_lease::LoopLease::acquire(&dir).suggest()?;
+    work_lease.require_settled(&dir).suggest()?;
     let inputs = super::workflow_inputs(&inputs.for_project(&dir), false)?;
 
     let wf = workflow::WorkflowConfig::load(&dir).suggest()?;

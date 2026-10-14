@@ -63,7 +63,7 @@ struct Prepared {
     iter_loop: IterationLoop,
     native: Option<NativeEngines>,
     persist: bool,
-    _lease: Option<LoopLease>,
+    lease: Arc<LoopLease>,
 }
 
 impl HostedWork {
@@ -152,8 +152,9 @@ impl HostedWork {
         let dir = self.config.cwd.clone();
         let engines = self.engines.clone();
         let admitted = Arc::clone(&self.admitted);
+        let selection = self.config.inputs().session_selection().cloned();
         session.admitting_work(move |action| {
-            let prepared = prepare(&dir, &engines, action)?;
+            let prepared = prepare(&dir, &engines, action, selection.as_ref())?;
             *admitted.lock().unwrap_or_else(PoisonError::into_inner) = Some(prepared);
             Ok(())
         })
@@ -202,6 +203,7 @@ impl HostedWork {
             commands,
             self.connector.clone(),
         )
+        .holding_lease(Arc::clone(&prepared.lease))
         .with_inputs(&inputs)
         .persisting(prepared.persist)
         .auto_pause(auto_pause)
@@ -235,12 +237,18 @@ impl HostedWork {
 }
 
 /// Open the run the terminal entry points open, on this host's writer.
-fn prepare(dir: &Path, engines: &EngineClient, action: &LaunchAction) -> Result<Prepared, String> {
+fn prepare(
+    dir: &Path,
+    engines: &EngineClient,
+    action: &LaunchAction,
+    selection: Option<&crate::config::session_selection::SessionSelection>,
+) -> Result<Prepared, String> {
     let writer = engines.writer().cloned().ok_or_else(|| {
         "Another Magistr session owns this project's work. Start the work there, \
              or close it and reopen this one."
             .to_owned()
     })?;
+    let lease = Arc::new(LoopLease::acquire(dir).map_err(|error| error.to_string())?);
     let native = magistr_core::roadmap::backend_for(dir)
         .map_err(|error| error.to_string())?
         .is_native()
@@ -257,25 +265,38 @@ fn prepare(dir: &Path, engines: &EngineClient, action: &LaunchAction) -> Result<
             {
                 return Err("Every roadmap item is complete. There is nothing to start.".into());
             }
-            wf.cleanup().map_err(|error| error.to_string())?;
-            let iter_loop = IterationLoop::open(
+            let mut iter_loop = IterationLoop::start_or_recover(
                 dir,
                 &wf.spec_path,
                 1,
                 native.as_ref().map(NativeEngines::reader),
             )
-            .map_err(|error| error.to_string())?
-            .with_run_mode(RunMode::OneChunk);
+            .map_err(|error| error.to_string())?;
+            if iter_loop.is_recovered() && iter_loop.run_state().mode != RunMode::OneChunk {
+                return Err(
+                    "A longer work run is unfinished. Continue that run before starting one item."
+                        .into(),
+                );
+            }
+            iter_loop = iter_loop.with_run_mode(RunMode::OneChunk);
+            if let Some(selection) = selection {
+                iter_loop
+                    .bind_session_selection(selection.clone())
+                    .map_err(|error| error.to_string())?;
+            }
+            iter_loop.persist().map_err(|error| error.to_string())?;
+            if !iter_loop.is_recovered() {
+                wf.cleanup().map_err(|error| error.to_string())?;
+            }
             Ok(Prepared {
                 wf,
                 iter_loop,
                 native,
-                persist: false,
-                _lease: None,
+                persist: true,
+                lease,
             })
         }
         LaunchAction::Loop(scope) => {
-            let lease = LoopLease::acquire(dir).map_err(|error| error.to_string())?;
             let mut iter_loop = IterationLoop::start_or_recover(
                 dir,
                 &wf.spec_path,
@@ -283,16 +304,24 @@ fn prepare(dir: &Path, engines: &EngineClient, action: &LaunchAction) -> Result<
                 native.as_ref().map(NativeEngines::reader),
             )
             .map_err(|error| error.to_string())?;
+            if iter_loop.is_recovered() && iter_loop.run_state().mode != RunMode::ChunkLoop {
+                return Err("A single work item is unfinished. Continue that item before starting a longer run.".into());
+            }
             iter_loop
                 .select_track(scope.track())
                 .map_err(|error| error.to_string())?;
+            if let Some(selection) = selection {
+                iter_loop
+                    .bind_session_selection(selection.clone())
+                    .map_err(|error| error.to_string())?;
+            }
             iter_loop.persist().map_err(|error| error.to_string())?;
             Ok(Prepared {
                 wf,
                 iter_loop,
                 native,
                 persist: true,
-                _lease: Some(lease),
+                lease,
             })
         }
         _ => Err("This session cannot start that here.".into()),
