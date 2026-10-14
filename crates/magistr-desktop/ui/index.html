@@ -4,34 +4,53 @@
 <div class="shell">
 <aside class="rail" aria-label="Projects and sessions">
   <header class="brand"><img class="mark" src="icon.png" alt=""><strong>Magistr</strong></header>
-  <button id="open-project">Open project<span aria-hidden="true">⌘ O</span></button>
-  <section class="attention-dock" aria-label="Needs your attention"><h2>Needs your attention</h2><p id="attention-count" role="status" aria-live="polite">0 requests waiting</p><nav id="attention" aria-label="Requests across sessions"></nav></section>
-  <h2>Projects</h2><nav id="projects" aria-label="Projects"></nav>
-  <h2>Sessions</h2><nav id="sessions" aria-label="Sessions"></nav>
-  <button id="new-session" disabled>New session</button>
-  <button id="saved-conversations">Saved conversations</button>
-  <footer><label for="theme">Appearance</label><select id="theme" disabled><option value="system">System</option><option value="dark">Dark</option><option value="light">Light</option></select><label class="check"><input id="reduce-motion" type="checkbox" disabled>Reduce motion</label><p id="preferences-note" role="status"></p><button id="retry-preferences" hidden>Retry preferences</button></footer>
+  <div class="rail-primary">
+    <button id="open-project">Open project</button>
+    <button id="new-session" disabled>New session</button>
+  </div>
+  <p id="attention-count" class="sr-only" role="status" aria-live="polite">0 requests waiting</p>
+  <section class="attention-dock" id="attention-dock" aria-label="Needs your attention" hidden><h2>Needs your attention</h2><nav id="attention" aria-label="Requests across sessions"></nav></section>
+  <div class="rail-scroll">
+    <h2>Projects</h2><nav id="projects" aria-label="Projects"></nav>
+    <h2>Conversations</h2><nav id="sessions" aria-label="Sessions"></nav>
+    <p id="sessions-empty" class="empty-note">Your open conversations appear here.</p>
+  </div>
+  <footer>
+    <button id="saved-conversations">Saved conversations</button>
+    <div class="appearance-row"><label for="theme">Appearance</label><select id="theme" disabled><option value="system">System</option><option value="dark">Dark</option><option value="light">Light</option></select></div>
+    <label class="check"><input id="reduce-motion" type="checkbox" disabled>Reduce motion</label>
+    <p id="preferences-note" role="status"></p><button id="retry-preferences" hidden>Retry preferences</button>
+  </footer>
 </aside>
 <main>
-  <header class="work-header"><div><p id="project-name">Magistr</p><h1 id="view-title">Projects</h1></div><p id="status" role="status" aria-live="polite">Ready</p></header>
+  <header class="work-header">
+    <div class="work-heading"><p id="project-name">Magistr</p><h1 id="view-title">Projects</h1></div>
+    <div class="header-actions"><p id="status" role="status" aria-live="polite">Ready</p><button id="toggle-details" aria-controls="session-detail" aria-expanded="false" hidden>Details</button></div>
+  </header>
   <p id="error" class="error" role="alert" hidden></p>
   <section id="welcome" class="welcome" aria-label="Open a project">
-    <h2>Open a project</h2><p>Choose a folder to start working. If it needs Magistr setup, you can review the files before making changes.</p>
+    <h2>A place for your work.</h2><p>Open a project to work with an agent. Pick up a saved conversation whenever you need it.</p>
     <div class="welcome-actions"><button id="welcome-open">Choose a folder…</button><button id="welcome-path">Enter a folder path</button></div>
+    <p>If the folder needs setup, you can review every change first.</p>
     <p id="welcome-note" role="status" hidden></p>
   </section>
   <div id="workspace" class="workspace" hidden>
-    <section class="conversation" aria-label="Conversation">
+    <section id="conversation" class="conversation" aria-label="Conversation">
       <div id="transcript" class="transcript" tabindex="0" aria-label="Messages">
         <div class="empty"><h2>What would you like to work on?</h2><p>Send a message to start a conversation in this working copy.</p></div>
       </div>
       <button id="latest" hidden>Latest reply ↓</button>
-      <form id="composer"><label for="draft">Message the agent</label><textarea id="draft" disabled rows="4" placeholder="Describe the work…" maxlength="1048576"></textarea><div id="pending-attachments" class="attachments" role="list" aria-label="Files to send" hidden></div><p id="attachment-note" role="status" aria-live="polite"></p><div class="draft-state"><p id="draft-status" role="status"></p><button id="retry-draft" type="button" hidden>Retry save</button><button id="discard-draft" type="button" disabled>Discard draft</button></div><div class="composer-actions"><button id="add-files" type="button" disabled>Add files…</button><span>Return to send · Shift Return for a new line</span><button id="stop" type="button" title="Stop the current reply" disabled>Stop</button><button id="send" type="submit" disabled>Send</button></div></form>
+      <form id="composer">
+        <div class="composer-label"><label for="draft">Message the agent</label><div class="draft-state"><p id="draft-status" role="status"></p><button id="retry-draft" type="button" hidden>Retry save</button><button id="discard-draft" type="button" disabled>Discard draft</button></div></div>
+        <textarea id="draft" disabled rows="3" placeholder="Describe the work…" maxlength="1048576"></textarea>
+        <div id="pending-attachments" class="attachments" role="list" aria-label="Files to send" hidden></div>
+        <p id="attachment-note" role="status" aria-live="polite"></p>
+        <div class="composer-actions"><button id="add-files" type="button" title="Add text files or PNG, JPEG and WebP images" disabled>Add files…</button><span>Return to send · Shift Return for a new line</span><button id="stop" type="button" title="Stop the current reply" disabled>Stop</button><button id="send" type="submit" disabled>Send</button></div>
+      </form>
     </section>
-    <aside class="detail" aria-label="Session details">
-      <h2>Working copy</h2><p id="workspace-path" class="path"></p><label for="working-copy">Working copy</label><select id="working-copy"></select>
-      <form id="name-form"><label for="conversation-name">Conversation name</label><input id="conversation-name" maxlength="120" required><button id="save-name" type="submit">Save name</button></form>
-      <h2>Agent</h2><p id="agent-provider"></p><div id="agent-configuration"></div><p id="model">Model information is unavailable.</p><p id="usage"></p><p id="queue"></p><p id="capabilities"></p>
+    <aside id="session-detail" class="detail" aria-label="Session details">
+      <div class="detail-title"><h2 id="detail-title" tabindex="-1">Conversation details</h2></div>
+      <section id="requests" aria-label="Requests waiting for you"></section>
       <section id="work" aria-label="Planned work">
         <h2>Planned work</h2>
         <p id="work-status" role="status" aria-live="polite">No work is running.</p>
@@ -42,8 +61,16 @@
           <button id="work-step" hidden>One more item</button><button id="work-abort" hidden>Finish item and stop</button>
         </div>
       </section>
-      <section id="requests" aria-label="Requests waiting for you"></section>
-      <div class="session-actions"><button id="reconnect" disabled>Reconnect</button><button id="copy" disabled>Copy conversation</button><button id="close-session" disabled>Close session</button></div>
+      <section class="detail-section" aria-label="Agent settings">
+        <h2>Agent</h2><p id="agent-provider"></p><div id="agent-configuration"></div><p id="model">Model information is unavailable.</p><p id="usage"></p><p id="queue"></p><p id="capabilities"></p>
+      </section>
+      <section class="detail-section" aria-label="Working copy">
+        <label for="working-copy">Working copy</label><select id="working-copy"></select><p id="workspace-path" class="path"></p>
+      </section>
+      <section class="detail-section" aria-label="Conversation settings">
+        <form id="name-form"><label for="conversation-name">Conversation name</label><input id="conversation-name" maxlength="120" required><button id="save-name" type="submit">Save name</button></form>
+        <div class="session-actions"><button id="reconnect" disabled>Reconnect</button><button id="copy" disabled>Copy conversation</button><button id="close-session" disabled>Close session</button></div>
+      </section>
     </aside>
   </div>
 </main>

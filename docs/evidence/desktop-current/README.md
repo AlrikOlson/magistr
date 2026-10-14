@@ -6,8 +6,13 @@ window; no annotations or simulated terminal rendering are added.
 
 The 14 October 2026 captures exercise the current debug executable in a
 disposable signed macOS app bundle. All three native journeys use the same source
-hashes. These captures verify conversation ownership and bounded work controls;
-installer and Launch Services checks are separate packaging evidence.
+hashes. These 32 reviewed captures verify the conversation-first composition,
+conversation ownership and bounded work controls. Persistent navigation stays
+within the window while its collections scroll. At 800 × 680, Details and the
+conversation share one working surface; opening Details and pressing Escape
+preserve the draft and files and restore keyboard focus. Latest reply occupies
+its own row without covering transcript text. Installer and Launch Services
+checks are separate packaging evidence.
 
 The receipt records keyboard and pointer actions, accessible controls, Unicode
 and multiline editing, clipboard round trips, permissions with requested action

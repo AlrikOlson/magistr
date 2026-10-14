@@ -102,7 +102,7 @@
     "rect" : [
       224,
       191,
-      224,
+      232,
       800
     ]
   },
@@ -120,9 +120,9 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      448,
+      456,
       191,
-      1056,
+      1048,
       800
     ]
   },
@@ -203,9 +203,9 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      240,
-      213,
-      191,
+      236,
+      209,
+      207,
       32
     ]
   },
@@ -223,106 +223,10 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      240,
-      271,
-      191,
-      39
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "Needs your attention",
-    "AXHelp" : "",
-    "AXRole" : "AXGroup",
-    "AXSubrole" : "AXLandmarkRegion",
-    "AXTitle" : "Needs your attention",
-    "AXValue" : "",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      240,
-      322,
-      191,
-      55
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXHeading",
-    "AXTitle" : "PROJECTS",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      240,
-      401,
-      191,
-      18
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "Projects",
-    "AXHelp" : "",
-    "AXRole" : "AXGroup",
-    "AXSubrole" : "AXLandmarkNavigation",
-    "AXTitle" : "Projects",
-    "AXValue" : "",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      240,
-      431,
-      191,
-      39
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXHeading",
-    "AXTitle" : "SESSIONS",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      240,
-      494,
-      191,
-      18
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "Sessions",
-    "AXHelp" : "",
-    "AXRole" : "AXGroup",
-    "AXSubrole" : "AXLandmarkNavigation",
-    "AXTitle" : "Sessions",
-    "AXValue" : "",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      240,
-      524,
-      191,
-      233
+      236,
+      253,
+      207,
+      37
     ]
   },
   {
@@ -339,30 +243,106 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      240,
-      769,
-      191,
-      39
+      236,
+      297,
+      207,
+      37
     ]
   },
   {
     "actions" : [
-      "AXPress",
       "AXShowMenu",
       "AXScrollToVisible"
     ],
     "AXDescription" : "",
     "AXHelp" : "",
-    "AXRole" : "AXButton",
-    "AXTitle" : "Saved conversations",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXApplicationStatus",
+    "AXTitle" : "",
     "AXValue" : "",
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      240,
-      820,
-      191,
-      39
+      236,
+      209,
+      1,
+      1
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXHeading",
+    "AXTitle" : "PROJECTS",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      245,
+      365,
+      189,
+      16
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "Projects",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXLandmarkNavigation",
+    "AXTitle" : "Projects",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      239,
+      388,
+      201,
+      35
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXHeading",
+    "AXTitle" : "CONVERSATIONS",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      245,
+      439,
+      189,
+      16
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "Sessions",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXLandmarkNavigation",
+    "AXTitle" : "Sessions",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      239,
+      462,
+      201,
+      234
     ]
   },
   {
@@ -379,10 +359,10 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      240,
-      871,
-      191,
-      109
+      236,
+      875,
+      207,
+      104
     ]
   },
   {
@@ -399,10 +379,10 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      448,
+      456,
       191,
-      1056,
-      91
+      1048,
+      76
     ]
   },
   {
@@ -419,10 +399,10 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      448,
-      282,
-      766,
-      709
+      456,
+      267,
+      760,
+      724
     ]
   },
   {
@@ -439,10 +419,10 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      1214,
-      282,
-      290,
-      709
+      1216,
+      267,
+      288,
+      724
     ]
   },
   {
@@ -471,10 +451,10 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      282,
-      215,
-      69,
-      28
+      280,
+      210,
+      63,
+      26
     ]
   },
   {
@@ -484,55 +464,16 @@
     ],
     "AXDescription" : "",
     "AXHelp" : "",
-    "AXRole" : "AXHeading",
-    "AXTitle" : "NEEDS YOUR ATTENTION",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      240,
-      332,
-      191,
-      18
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXGroup",
-    "AXSubrole" : "AXApplicationStatus",
+    "AXRole" : "AXStaticText",
     "AXTitle" : "",
-    "AXValue" : "",
+    "AXValue" : "0 requests waiting",
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      240,
-      350,
-      191,
-      16
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "Requests across sessions",
-    "AXHelp" : "",
-    "AXRole" : "AXGroup",
-    "AXSubrole" : "AXEmptyGroup",
-    "AXTitle" : "Requests across sessions",
-    "AXValue" : "",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      240,
-      322,
-      191,
-      10
+      236,
+      211,
+      119,
+      17
     ]
   },
   {
@@ -548,10 +489,10 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      240,
-      402,
-      70,
-      15
+      245,
+      366,
+      64,
+      13
     ]
   },
   {
@@ -561,17 +502,17 @@
       "AXScrollToVisible"
     ],
     "AXDescription" : "",
-    "AXHelp" : "",
+    "AXHelp" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-work-journey-7wpudfyj\/first",
     "AXRole" : "AXButton",
     "AXTitle" : "Draft project",
     "AXValue" : "",
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      240,
-      431,
-      191,
-      39
+      239,
+      388,
+      201,
+      35
     ]
   },
   {
@@ -583,14 +524,14 @@
     "AXHelp" : "",
     "AXRole" : "AXStaticText",
     "AXTitle" : "",
-    "AXValue" : "SESSIONS",
+    "AXValue" : "CONVERSATIONS",
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      240,
-      495,
-      68,
-      15
+      245,
+      440,
+      104,
+      13
     ]
   },
   {
@@ -607,10 +548,10 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      240,
-      524,
-      191,
-      55
+      239,
+      462,
+      201,
+      54
     ]
   },
   {
@@ -618,19 +559,19 @@
       "AXShowMenu",
       "AXScrollToVisible"
     ],
-    "AXDescription" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-work-journey-17fy73l_\/first",
-    "AXHelp" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-work-journey-17fy73l_\/first",
+    "AXDescription" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-work-journey-7wpudfyj\/first",
+    "AXHelp" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-work-journey-7wpudfyj\/first",
     "AXRole" : "AXGroup",
     "AXSubrole" : "AXApplicationGroup",
-    "AXTitle" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-work-journey-17fy73l_\/first",
+    "AXTitle" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-work-journey-7wpudfyj\/first",
     "AXValue" : "",
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      240,
-      579,
-      191,
-      23
+      239,
+      516,
+      201,
+      20
     ]
   },
   {
@@ -647,10 +588,10 @@
     "enabled" : false,
     "focused" : false,
     "rect" : [
-      240,
-      602,
-      35,
-      25
+      245,
+      538,
+      39,
+      26
     ]
   },
   {
@@ -667,10 +608,10 @@
     "enabled" : false,
     "focused" : false,
     "rect" : [
-      278,
-      602,
-      64,
-      25
+      287,
+      538,
+      71,
+      26
     ]
   },
   {
@@ -687,10 +628,10 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      345,
-      602,
-      40,
-      25
+      361,
+      538,
+      44,
+      26
     ]
   },
   {
@@ -707,10 +648,10 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      240,
-      643,
-      191,
-      55
+      239,
+      581,
+      201,
+      54
     ]
   },
   {
@@ -718,19 +659,19 @@
       "AXShowMenu",
       "AXScrollToVisible"
     ],
-    "AXDescription" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-work-journey-17fy73l_\/first",
-    "AXHelp" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-work-journey-17fy73l_\/first",
+    "AXDescription" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-work-journey-7wpudfyj\/first",
+    "AXHelp" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-work-journey-7wpudfyj\/first",
     "AXRole" : "AXGroup",
     "AXSubrole" : "AXApplicationGroup",
-    "AXTitle" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-work-journey-17fy73l_\/first",
+    "AXTitle" : "Working copy \/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-work-journey-7wpudfyj\/first",
     "AXValue" : "",
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      240,
-      698,
-      191,
-      23
+      239,
+      635,
+      201,
+      20
     ]
   },
   {
@@ -747,10 +688,10 @@
     "enabled" : false,
     "focused" : false,
     "rect" : [
-      240,
-      721,
-      35,
-      25
+      245,
+      657,
+      39,
+      26
     ]
   },
   {
@@ -767,10 +708,10 @@
     "enabled" : false,
     "focused" : false,
     "rect" : [
-      278,
-      721,
-      64,
-      25
+      287,
+      657,
+      71,
+      26
     ]
   },
   {
@@ -787,10 +728,30 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      345,
-      721,
-      40,
-      25
+      361,
+      657,
+      44,
+      26
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXButton",
+    "AXTitle" : "Saved conversations",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      240,
+      888,
+      199,
+      37
     ]
   },
   {
@@ -807,9 +768,9 @@
     "focused" : false,
     "rect" : [
       240,
-      892,
-      191,
-      21
+      934,
+      68,
+      18
     ]
   },
   {
@@ -826,10 +787,10 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      240,
-      921,
-      191,
-      22
+      343,
+      933,
+      96,
+      20
     ]
   },
   {
@@ -846,29 +807,9 @@
     "focused" : false,
     "rect" : [
       240,
-      951,
-      191,
-      21
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXGroup",
-    "AXSubrole" : "AXEmptyGroup",
-    "AXTitle" : "",
-    "AXValue" : "",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      240,
-      871,
-      191,
-      10
+      961,
+      199,
+      18
     ]
   },
   {
@@ -884,9 +825,9 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      474,
-      211,
-      135,
+      480,
+      205,
+      124,
       18
     ]
   },
@@ -902,10 +843,10 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      474,
-      233,
-      135,
-      28
+      480,
+      226,
+      124,
+      26
     ]
   },
   {
@@ -922,10 +863,30 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      1398,
-      226,
-      81,
-      20
+      1329,
+      219,
+      75,
+      19
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXButton",
+    "AXTitle" : "Details",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      1419,
+      211,
+      62,
+      35
     ]
   },
   {
@@ -941,10 +902,10 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      448,
-      282,
-      766,
-      423
+      456,
+      267,
+      760,
+      530
     ]
   },
   {
@@ -961,10 +922,10 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      448,
-      705,
-      766,
-      286
+      456,
+      797,
+      760,
+      194
     ]
   },
   {
@@ -975,224 +936,14 @@
     "AXDescription" : "",
     "AXHelp" : "",
     "AXRole" : "AXHeading",
-    "AXTitle" : "WORKING COPY",
+    "AXTitle" : "Conversation details",
     "enabled" : true,
     "focused" : false,
     "rect" : [
       1235,
-      86,
-      249,
+      260,
+      123,
       18
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXGroup",
-    "AXTitle" : "",
-    "AXValue" : "",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      1235,
-      116,
-      249,
-      57
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXStaticText",
-    "AXTitle" : "",
-    "AXValue" : "Working copy",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      1235,
-      185,
-      249,
-      18
-    ]
-  },
-  {
-    "actions" : [
-      "AXPress",
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXPopUpButton",
-    "AXTitle" : "Working copy",
-    "AXValue" : "main · Main",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      1235,
-      215,
-      249,
-      18
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXGroup",
-    "AXSubrole" : "AXLandmarkForm",
-    "AXTitle" : "",
-    "AXValue" : "",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      1235,
-      245,
-      249,
-      109
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXHeading",
-    "AXTitle" : "AGENT",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      1235,
-      376,
-      249,
-      18
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXGroup",
-    "AXTitle" : "",
-    "AXValue" : "",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      1235,
-      406,
-      249,
-      21
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXGroup",
-    "AXTitle" : "",
-    "AXValue" : "",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      1235,
-      439,
-      249,
-      43
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXGroup",
-    "AXTitle" : "",
-    "AXValue" : "",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      1235,
-      494,
-      249,
-      19
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXGroup",
-    "AXTitle" : "",
-    "AXValue" : "",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      1235,
-      525,
-      249,
-      38
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXGroup",
-    "AXTitle" : "",
-    "AXValue" : "",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      1235,
-      575,
-      249,
-      18
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXGroup",
-    "AXTitle" : "",
-    "AXValue" : "",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      1235,
-      605,
-      249,
-      36
     ]
   },
   {
@@ -1210,9 +961,9 @@
     "focused" : false,
     "rect" : [
       1235,
-      653,
-      249,
-      233
+      296,
+      251,
+      221
     ]
   },
   {
@@ -1220,79 +971,59 @@
       "AXShowMenu",
       "AXScrollToVisible"
     ],
-    "AXDescription" : "Requests waiting for you",
+    "AXDescription" : "Agent settings",
     "AXHelp" : "",
     "AXRole" : "AXGroup",
-    "AXSubrole" : "AXEmptyGroup",
-    "AXTitle" : "Requests waiting for you",
-    "AXValue" : "",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      1214,
-      282,
-      290,
-      10
-    ]
-  },
-  {
-    "actions" : [
-      "AXPress",
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXButton",
-    "AXTitle" : "Reconnect",
-    "AXValue" : "",
-    "enabled" : false,
-    "focused" : false,
-    "rect" : [
-      1235,
-      930,
-      249,
-      39
-    ]
-  },
-  {
-    "actions" : [
-      "AXPress",
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXButton",
-    "AXTitle" : "Copy conversation",
+    "AXSubrole" : "AXLandmarkRegion",
+    "AXTitle" : "Agent settings",
     "AXValue" : "",
     "enabled" : true,
     "focused" : false,
     "rect" : [
       1235,
-      977,
-      249,
-      39
+      535,
+      251,
+      259
     ]
   },
   {
     "actions" : [
-      "AXPress",
       "AXShowMenu",
       "AXScrollToVisible"
     ],
-    "AXDescription" : "",
+    "AXDescription" : "Working copy",
     "AXHelp" : "",
-    "AXRole" : "AXButton",
-    "AXTitle" : "Close session",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXLandmarkRegion",
+    "AXTitle" : "Working copy",
     "AXValue" : "",
     "enabled" : true,
     "focused" : false,
     "rect" : [
       1235,
-      1024,
-      249,
-      39
+      812,
+      251,
+      124
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "Conversation settings",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXLandmarkRegion",
+    "AXTitle" : "Conversation settings",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      1235,
+      954,
+      251,
+      246
     ]
   },
   {
@@ -1321,10 +1052,10 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      282,
-      218,
-      70,
-      22
+      280,
+      212,
+      63,
+      21
     ]
   },
   {
@@ -1336,32 +1067,13 @@
     "AXHelp" : "",
     "AXRole" : "AXStaticText",
     "AXTitle" : "",
-    "AXValue" : "NEEDS YOUR ATTENTION",
+    "AXValue" : "Working copy: first",
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      240,
-      333,
-      166,
-      15
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXStaticText",
-    "AXTitle" : "",
-    "AXValue" : "0 requests waiting",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      240,
-      351,
-      97,
+      248,
+      519,
+      99,
       13
     ]
   },
@@ -1378,28 +1090,9 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      242,
-      584,
-      130,
-      13
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXStaticText",
-    "AXTitle" : "",
-    "AXValue" : "Working copy: first",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      242,
-      703,
-      130,
+      248,
+      638,
+      99,
       13
     ]
   },
@@ -1417,9 +1110,9 @@
     "focused" : false,
     "rect" : [
       240,
-      894,
-      78,
-      17
+      935,
+      68,
+      15
     ]
   },
   {
@@ -1436,9 +1129,9 @@
     "focused" : false,
     "rect" : [
       240,
-      951,
-      191,
-      21
+      961,
+      199,
+      18
     ]
   },
   {
@@ -1455,9 +1148,9 @@
     "focused" : false,
     "rect" : [
       264,
-      953,
-      97,
-      17
+      962,
+      85,
+      15
     ]
   },
   {
@@ -1473,8 +1166,8 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      474,
-      212,
+      480,
+      206,
       72,
       15
     ]
@@ -1492,10 +1185,10 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      474,
-      234,
-      136,
-      26
+      480,
+      227,
+      124,
+      23
     ]
   },
   {
@@ -1511,10 +1204,10 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      1398,
-      227,
-      80,
-      17
+      1329,
+      220,
+      75,
+      16
     ]
   },
   {
@@ -1531,10 +1224,10 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      474,
-      -3070,
-      714,
-      3646
+      480,
+      -3539,
+      712,
+      4192
     ]
   },
   {
@@ -1551,10 +1244,10 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      474,
-      600,
-      714,
-      55
+      480,
+      681,
+      712,
+      60
     ]
   },
   {
@@ -1570,10 +1263,50 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      474,
-      722,
-      714,
+      480,
+      814,
+      112,
       18
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXApplicationStatus",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      1039,
+      815,
+      61,
+      16
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXButton",
+    "AXTitle" : "Discard draft",
+    "AXValue" : "",
+    "enabled" : false,
+    "focused" : false,
+    "rect" : [
+      1107,
+      810,
+      86,
+      26
     ]
   },
   {
@@ -1591,50 +1324,10 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      474,
-      747,
-      714,
-      110
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXGroup",
-    "AXSubrole" : "AXApplicationStatus",
-    "AXTitle" : "",
-    "AXValue" : "",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      474,
-      869,
-      714,
-      16
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXGroup",
-    "AXSubrole" : "AXApplicationStatus",
-    "AXTitle" : "",
-    "AXValue" : "",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      474,
-      899,
-      615,
-      18
+      480,
+      843,
+      712,
+      87
     ]
   },
   {
@@ -1644,37 +1337,17 @@
       "AXScrollToVisible"
     ],
     "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXButton",
-    "AXTitle" : "Discard draft",
-    "AXValue" : "",
-    "enabled" : false,
-    "focused" : false,
-    "rect" : [
-      1096,
-      893,
-      92,
-      30
-    ]
-  },
-  {
-    "actions" : [
-      "AXPress",
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
+    "AXHelp" : "Add text files or PNG, JPEG and WebP images · 1 MB per file.",
     "AXRole" : "AXButton",
     "AXTitle" : "Add files…",
     "AXValue" : "",
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      474,
-      932,
-      92,
-      39
+      480,
+      939,
+      81,
+      34
     ]
   },
   {
@@ -1690,10 +1363,10 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      573,
-      944,
+      569,
+      949,
       223,
-      14
+      13
     ]
   },
   {
@@ -1710,10 +1383,10 @@
     "enabled" : false,
     "focused" : false,
     "rect" : [
-      1049,
-      932,
-      55,
-      39
+      1067,
+      939,
+      50,
+      34
     ]
   },
   {
@@ -1730,10 +1403,10 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      1111,
-      932,
-      78,
-      39
+      1123,
+      939,
+      69,
+      34
     ]
   },
   {
@@ -1745,265 +1418,14 @@
     "AXHelp" : "",
     "AXRole" : "AXStaticText",
     "AXTitle" : "",
-    "AXValue" : "WORKING COPY",
+    "AXValue" : "Conversation details",
     "enabled" : true,
     "focused" : false,
     "rect" : [
       1235,
-      87,
-      106,
+      261,
+      123,
       15
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXStaticText",
-    "AXTitle" : "",
-    "AXValue" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-work-journey-17fy73l_\/first",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      1235,
-      118,
-      245,
-      53
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXStaticText",
-    "AXTitle" : "",
-    "AXValue" : "Working copy",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      1235,
-      186,
-      78,
-      15
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXStaticText",
-    "AXTitle" : "",
-    "AXValue" : "Conversation name",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      1235,
-      245,
-      249,
-      18
-    ]
-  },
-  {
-    "actions" : [
-      "AXPress",
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXTextField",
-    "AXSelectedText" : "",
-    "AXTitle" : "Conversation name",
-    "AXValue" : "",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      1235,
-      271,
-      249,
-      39
-    ]
-  },
-  {
-    "actions" : [
-      "AXPress",
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXButton",
-    "AXTitle" : "Save name",
-    "AXValue" : "",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      1235,
-      318,
-      249,
-      36
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXStaticText",
-    "AXTitle" : "",
-    "AXValue" : "AGENT",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      1235,
-      377,
-      46,
-      15
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXStaticText",
-    "AXTitle" : "",
-    "AXValue" : "GitHub Copilot",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      1235,
-      408,
-      96,
-      17
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXStaticText",
-    "AXTitle" : "",
-    "AXValue" : "Model",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      1235,
-      440,
-      35,
-      15
-    ]
-  },
-  {
-    "actions" : [
-      "AXPress",
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "Model",
-    "AXHelp" : "",
-    "AXRole" : "AXPopUpButton",
-    "AXTitle" : "Model",
-    "AXValue" : "Scripted (fast)",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      1235,
-      462,
-      249,
-      20
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXStaticText",
-    "AXTitle" : "",
-    "AXValue" : "scripted-fast",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      1235,
-      495,
-      79,
-      16
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXStaticText",
-    "AXTitle" : "",
-    "AXValue" : "Context use not reported · Spending not reported",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      1235,
-      526,
-      244,
-      35
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXStaticText",
-    "AXTitle" : "",
-    "AXValue" : "0 messages queued",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      1235,
-      576,
-      114,
-      15
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXStaticText",
-    "AXTitle" : "",
-    "AXValue" : "This agent can reopen conversations. It accepts text.",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      1235,
-      606,
-      223,
-      33
     ]
   },
   {
@@ -2014,13 +1436,13 @@
     "AXDescription" : "",
     "AXHelp" : "",
     "AXRole" : "AXHeading",
-    "AXTitle" : "PLANNED WORK",
+    "AXTitle" : "Planned work",
     "enabled" : true,
     "focused" : false,
     "rect" : [
       1235,
-      668,
-      249,
+      296,
+      251,
       18
     ]
   },
@@ -2039,8 +1461,8 @@
     "focused" : false,
     "rect" : [
       1235,
-      695,
-      249,
+      324,
+      251,
       21
     ]
   },
@@ -2058,8 +1480,8 @@
     "focused" : false,
     "rect" : [
       1235,
-      725,
-      249,
+      355,
+      251,
       36
     ]
   },
@@ -2078,7 +1500,7 @@
     "focused" : false,
     "rect" : [
       1235,
-      770,
+      401,
       122,
       34
     ]
@@ -2098,7 +1520,7 @@
     "focused" : false,
     "rect" : [
       1364,
-      770,
+      401,
       99,
       34
     ]
@@ -2118,7 +1540,7 @@
     "focused" : false,
     "rect" : [
       1235,
-      811,
+      442,
       102,
       34
     ]
@@ -2138,7 +1560,7 @@
     "focused" : false,
     "rect" : [
       1343,
-      811,
+      442,
       104,
       34
     ]
@@ -2158,8 +1580,278 @@
     "focused" : false,
     "rect" : [
       1235,
-      852,
+      483,
       77,
+      34
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXHeading",
+    "AXTitle" : "Agent",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      1235,
+      552,
+      251,
+      18
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      1235,
+      579,
+      251,
+      19
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      1235,
+      607,
+      251,
+      43
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      1235,
+      659,
+      251,
+      18
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      1235,
+      686,
+      251,
+      36
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      1235,
+      731,
+      251,
+      18
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      1235,
+      758,
+      251,
+      36
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Working copy",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      1235,
+      829,
+      251,
+      18
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXPopUpButton",
+    "AXTitle" : "Working copy",
+    "AXValue" : "main · Main",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      1235,
+      856,
+      251,
+      20
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      1235,
+      885,
+      251,
+      51
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXSubrole" : "AXLandmarkForm",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      1235,
+      971,
+      251,
+      102
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXButton",
+    "AXTitle" : "Reconnect",
+    "AXValue" : "",
+    "enabled" : false,
+    "focused" : false,
+    "rect" : [
+      1235,
+      1082,
+      251,
+      34
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXButton",
+    "AXTitle" : "Copy conversation",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      1235,
+      1124,
+      251,
+      34
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXButton",
+    "AXTitle" : "Close session",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      1235,
+      1166,
+      251,
       34
     ]
   },
@@ -2177,10 +1869,10 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      491,
-      -3055,
+      496,
+      -3525,
       680,
-      24
+      26
     ]
   },
   {
@@ -2196,10 +1888,10 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      491,
-      -3021,
+      496,
+      -3489,
       680,
-      3570
+      4128
     ]
   },
   {
@@ -2216,10 +1908,10 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      474,
-      600,
-      714,
-      24
+      480,
+      681,
+      712,
+      26
     ]
   },
   {
@@ -2235,10 +1927,10 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      474,
-      634,
-      714,
-      21
+      480,
+      717,
+      712,
+      24
     ]
   },
   {
@@ -2254,48 +1946,10 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      474,
-      723,
-      108,
+      480,
+      815,
+      112,
       15
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXGroup",
-    "AXTitle" : "",
-    "AXValue" : "",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      487,
-      760,
-      688,
-      21
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXStaticText",
-    "AXTitle" : "",
-    "AXValue" : "Add text files or PNG, JPEG and WebP images · 1 MB per file.",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      474,
-      870,
-      319,
-      13
     ]
   },
   {
@@ -2311,10 +1965,29 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      474,
-      900,
-      66,
-      15
+      1039,
+      816,
+      61,
+      13
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXGroup",
+    "AXTitle" : "",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      493,
+      855,
+      686,
+      21
     ]
   },
   {
@@ -2326,32 +1999,13 @@
     "AXHelp" : "",
     "AXRole" : "AXStaticText",
     "AXTitle" : "",
-    "AXValue" : "Conversation name",
+    "AXValue" : "Planned work",
     "enabled" : true,
     "focused" : false,
     "rect" : [
       1235,
-      246,
-      109,
-      15
-    ]
-  },
-  {
-    "actions" : [
-      "AXShowMenu",
-      "AXScrollToVisible"
-    ],
-    "AXDescription" : "",
-    "AXHelp" : "",
-    "AXRole" : "AXStaticText",
-    "AXTitle" : "",
-    "AXValue" : "PLANNED WORK",
-    "enabled" : true,
-    "focused" : false,
-    "rect" : [
-      1235,
-      669,
-      108,
+      297,
+      81,
       15
     ]
   },
@@ -2369,8 +2023,8 @@
     "focused" : false,
     "rect" : [
       1235,
-      697,
-      89,
+      326,
+      93,
       17
     ]
   },
@@ -2388,9 +2042,260 @@
     "focused" : false,
     "rect" : [
       1235,
-      726,
+      356,
       239,
       33
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Agent",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      1235,
+      553,
+      36,
+      15
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "GitHub Copilot",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      1235,
+      580,
+      94,
+      16
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Model",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      1235,
+      608,
+      35,
+      15
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "Model",
+    "AXHelp" : "",
+    "AXRole" : "AXPopUpButton",
+    "AXTitle" : "Model",
+    "AXValue" : "Scripted (fast)",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      1235,
+      630,
+      251,
+      20
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "scripted-fast",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      1235,
+      660,
+      74,
+      15
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Context use not reported · Spending not reported",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      1235,
+      687,
+      228,
+      33
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "0 messages queued",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      1235,
+      732,
+      114,
+      15
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "This agent can reopen conversations. It accepts text.",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      1235,
+      759,
+      223,
+      33
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Working copy",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      1235,
+      830,
+      78,
+      15
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-work-journey-7wpudfyj\/first",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      1235,
+      887,
+      245,
+      47
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Conversation name",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      1235,
+      971,
+      251,
+      18
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXTextField",
+    "AXSelectedText" : "",
+    "AXTitle" : "Conversation name",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      1235,
+      997,
+      251,
+      34
+    ]
+  },
+  {
+    "actions" : [
+      "AXPress",
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXButton",
+    "AXTitle" : "Save name",
+    "AXValue" : "",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      1235,
+      1039,
+      251,
+      34
     ]
   },
   {
@@ -2406,10 +2311,10 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      491,
-      -3051,
+      496,
+      -3520,
       23,
-      15
+      16
     ]
   },
   {
@@ -2426,10 +2331,10 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      1077,
-      -3055,
+      1082,
+      -3525,
       94,
-      24
+      26
     ]
   },
   {
@@ -2445,10 +2350,10 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      491,
-      -3019,
-      679,
-      3545
+      496,
+      -3486,
+      674,
+      4098
     ]
   },
   {
@@ -2464,10 +2369,10 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      474,
-      604,
+      480,
+      686,
       36,
-      15
+      16
     ]
   },
   {
@@ -2484,10 +2389,10 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      1115,
-      600,
+      1119,
+      681,
       74,
-      24
+      26
     ]
   },
   {
@@ -2503,10 +2408,10 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      474,
-      636,
-      121,
-      17
+      480,
+      720,
+      129,
+      18
     ]
   },
   {
@@ -2522,10 +2427,29 @@
     "enabled" : true,
     "focused" : false,
     "rect" : [
-      487,
-      762,
+      493,
+      857,
       129,
       17
+    ]
+  },
+  {
+    "actions" : [
+      "AXShowMenu",
+      "AXScrollToVisible"
+    ],
+    "AXDescription" : "",
+    "AXHelp" : "",
+    "AXRole" : "AXStaticText",
+    "AXTitle" : "",
+    "AXValue" : "Conversation name",
+    "enabled" : true,
+    "focused" : false,
+    "rect" : [
+      1235,
+      972,
+      109,
+      15
     ]
   }
 ]

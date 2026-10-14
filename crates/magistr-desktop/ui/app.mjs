@@ -1,3 +1,4 @@
+import { WorkspaceLayout } from "./layout.mjs";
 import { WorkPanel } from "./work.mjs";
 import { addressKey, targetKey, sameTarget } from "./context.mjs";
 import { Transcript } from "./transcript.mjs";
@@ -22,6 +23,7 @@ const systemMotion=matchMedia("(prefers-reduced-motion: reduce)");
 const preferences=new Preferences(invoke,()=>renderPreferences());
 systemMotion.addEventListener("change",()=>renderPreferences());
 const selection=new Selection();
+const layout=new WorkspaceLayout({root:$("workspace"),conversation:$("conversation"),detail:$("session-detail"),toggle:$("toggle-details"),heading:$("detail-title"),compact:matchMedia("(max-width:1100px)")});
 const catalog=new Catalog();
 const railNodes=new Map(),attentionNodes=new Map();
 let announcementKey="";
@@ -50,7 +52,10 @@ async function refresh() {
 }
 function renderRail() {
   const signature=JSON.stringify([projects,sessions,selected]);if(signature===railKey)return;railKey=signature;
-  $("projects").replaceChildren(...projects.map(project=>button(project.name,()=>openDirectory(project.directory))));
+  $("projects").replaceChildren(...projects.map(project=>{
+    const item=button(project.name,()=>openDirectory(project.directory));
+    item.title=project.directory;return item;
+  }));
   const rows=sessions.map(session=>{
     const id=session.address.session,index=labels.get(id),name=session.conversation?.name??(session.name+" session "+index);
     let row=railNodes.get(id);
@@ -75,6 +80,8 @@ function renderRail() {
     return row;
   });
   placeChildren($("sessions"),rows);
+  $("sessions-empty").hidden=rows.length>0;
+  if(selected)$("project-name").textContent=sessions.find(session=>session.address.session===selected.session)?.name??"Project";
   for(const id of railNodes.keys())if(!sessions.some(session=>session.address.session===id))railNodes.delete(id);
   for(const id of labels.keys())if(!sessions.some(session=>session.address.session===id))labels.delete(id);
   const waiting=sessions.flatMap(session=>session.pending.map(request=>({session,request})));
@@ -88,6 +95,7 @@ function renderRail() {
   placeChildren($("attention"),waitingRows);
   for(const [key,item] of attentionNodes)if(!waitingRows.includes(item))attentionNodes.delete(key);
   const failed=sessions.filter(session=>session.status==="Connection lost").length;
+  $("attention-dock").hidden=waiting.length===0&&failed===0;
   const announcement=waiting.length+(waiting.length===1?" request waiting":" requests waiting")+(failed?" · "+failed+(failed===1?" agent disconnected":" agents disconnected"):"");
   if(announcement!==announcementKey){$("attention-count").textContent=announcement;announcementKey=announcement;}
 }
@@ -128,8 +136,9 @@ function renderComposer() {
   const note=fileBusy?"Updating files…":images&&frame.activity?.can_send_images===false?
     "This agent cannot receive images. Remove the image before sending.":
     images&&frame.activity?.can_send_images!==true?"Image support has not been reported. Your files stay here if the agent cannot receive them.":
-    attachmentLimits?"Add text files or PNG, JPEG and WebP images · "+sizeLabel(attachmentLimits.file_bytes)+" per file.":"";
+    "";
   if($("attachment-note").textContent!==note)$("attachment-note").textContent=note;
+  $("add-files").title="Add text files or PNG, JPEG and WebP images"+(attachmentLimits?" · "+sizeLabel(attachmentLimits.file_bytes)+" per file.":"");
 }
 async function changeAttachments(target,operation) {
   if(!target)return;
@@ -218,6 +227,7 @@ async function select(address,requestId=null,requestTarget=null) {
     commit:(candidate,initial)=>{
       selected=address;view=candidate;candidate.requestId=requestId;candidate.requestTarget=requestTarget;requestsKey="";railKey="";configurationKey="";
       $("welcome").hidden=true;$("workspace").hidden=false;$("view-title").textContent="Conversation";
+      layout.enable(true);if(layout.compact.matches)layout.show(false);
       $("draft").value="";composerFrame=null;workPanel.render(null);attachmentList.clear();
       $("draft").disabled=true;$("send").disabled=true;$("add-files").disabled=true;$("attachment-note").textContent="";
       $("workspace-path").textContent=address.workspace;
@@ -282,7 +292,7 @@ function render(frame) {
   }));requestsKey=pendingKey;}
   if(view.requestId!==null) {
     const target=sameTarget(frame.target,view.requestTarget)&&$("requests").querySelector('[data-request="'+view.requestId+'"]');
-    if(target)target.focus();
+    if(target){layout.show(true);target.focus();}
     else if(frame.reseed)showError("This request is no longer waiting for an answer.");
     view.requestId=null;
   }
@@ -306,7 +316,7 @@ async function openDirectory(directory) {
 }
 function showWelcome(note="") {
   selected=null;view=null;composerFrame=null;attachmentList.clear();selection.clear();requestsKey="";railKey="";
-  $("workspace").hidden=true;$("welcome").hidden=false;
+  $("workspace").hidden=true;$("welcome").hidden=false;layout.enable(false);
   $("project-name").textContent="Magistr";$("view-title").textContent="Projects";$("status").textContent="Ready";
   $("draft").value="";$("requests").replaceChildren();transcriptView.clear();
   for(const id of ["draft","send","stop","new-session","close-session","copy","reconnect","add-files"])$(id).disabled=true;

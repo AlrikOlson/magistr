@@ -9,7 +9,7 @@
         "width": 1728
       }
     ],
-    "front_pid": 1940,
+    "front_pid": 38742,
     "input_source": "com.apple.keylayout.US",
     "input_sources": [
       "com.apple.keylayout.US",
@@ -382,6 +382,7 @@
     "waiting request names its exact session": true,
     "catalog subscription launches no providers": true,
     "another session works while the first waits": true,
+    "primary navigation and preferences stay inside the working window": true,
     "attention navigates to the owning copy and preserves its draft": true,
     "attention focuses the exact pending request": true,
     "accepted request leaves global attention": true,
@@ -496,6 +497,7 @@
     "rich reply link accepts native keyboard focus": true,
     "native keyboard opens the controlled link and closes only its test tab": true,
     "IME commit keeps unsent draft": true,
+    "narrow details exposes conversation actions": true,
     "closed session returns to another resident": true,
     "quit settles providers and releases owner": true,
     "session history written by application": true,
@@ -509,7 +511,7 @@
     "unavailable provider keeps the window usable returns to chooser": true,
     "rejected launches preserve settings and create no session history": true
   },
-  "launch_to_window_ms": 543.8489590014797,
+  "launch_to_window_ms": 558.6596249922877,
   "appearance": [
     {
       "after": {
@@ -526,10 +528,10 @@
         "enabled": true,
         "focused": false,
         "rect": [
-          240,
-          880,
-          191,
-          22
+          343,
+          889,
+          96,
+          20
         ]
       },
       "before": {
@@ -546,10 +548,10 @@
         "enabled": true,
         "focused": false,
         "rect": [
-          240,
-          880,
-          191,
-          22
+          343,
+          889,
+          96,
+          20
         ]
       },
       "menu_observation_attempts": 1,
@@ -564,10 +566,10 @@
         "enabled": true,
         "focused": false,
         "rect": [
-          227,
-          903,
-          191,
-          24
+          330,
+          910,
+          96,
+          22
         ]
       }
     },
@@ -586,10 +588,10 @@
         "enabled": true,
         "focused": false,
         "rect": [
-          240,
-          880,
-          191,
-          22
+          343,
+          889,
+          96,
+          20
         ]
       },
       "before": {
@@ -606,10 +608,10 @@
         "enabled": true,
         "focused": false,
         "rect": [
-          240,
-          880,
-          191,
-          22
+          343,
+          889,
+          96,
+          20
         ]
       },
       "menu_observation_attempts": 1,
@@ -624,10 +626,10 @@
         "enabled": true,
         "focused": false,
         "rect": [
-          227,
-          903,
-          191,
-          24
+          330,
+          910,
+          96,
+          22
         ]
       }
     },
@@ -646,10 +648,10 @@
         "enabled": true,
         "focused": false,
         "rect": [
-          240,
-          999,
-          191,
-          22
+          343,
+          889,
+          96,
+          20
         ]
       },
       "before": {
@@ -666,10 +668,10 @@
         "enabled": true,
         "focused": false,
         "rect": [
-          240,
-          999,
-          191,
-          22
+          343,
+          889,
+          96,
+          20
         ]
       },
       "menu_observation_attempts": 1,
@@ -684,10 +686,10 @@
         "enabled": true,
         "focused": false,
         "rect": [
-          227,
-          974,
-          191,
-          24
+          330,
+          866,
+          96,
+          22
         ]
       }
     },
@@ -706,10 +708,10 @@
         "enabled": true,
         "focused": false,
         "rect": [
-          240,
-          999,
-          191,
-          22
+          343,
+          889,
+          96,
+          20
         ]
       },
       "before": {
@@ -726,10 +728,10 @@
         "enabled": true,
         "focused": false,
         "rect": [
-          240,
-          999,
-          191,
-          22
+          343,
+          889,
+          96,
+          20
         ]
       },
       "menu_observation_attempts": 1,
@@ -744,16 +746,16 @@
         "enabled": true,
         "focused": false,
         "rect": [
-          227,
-          1022,
-          191,
-          24
+          330,
+          910,
+          96,
+          22
         ]
       }
     }
   ],
   "latency": {
-    "native_event_to_accessible_reply_ms": 102.46820833708625
+    "native_event_to_accessible_reply_ms": 96.46104167040903
   },
   "initial_model_picker": {
     "after": {
@@ -770,10 +772,10 @@
       "enabled": true,
       "focused": true,
       "rect": [
-        551,
-        659,
-        626,
-        22
+        539,
+        665,
+        650,
+        23
       ]
     },
     "already_selected": true,
@@ -791,10 +793,10 @@
       "enabled": true,
       "focused": true,
       "rect": [
-        551,
-        659,
-        626,
-        22
+        539,
+        665,
+        650,
+        23
       ]
     }
   },
@@ -813,10 +815,10 @@
       "enabled": true,
       "focused": true,
       "rect": [
-        551,
-        594,
-        626,
-        23
+        539,
+        591,
+        650,
+        22
       ]
     },
     "before": {
@@ -833,10 +835,10 @@
       "enabled": true,
       "focused": true,
       "rect": [
-        551,
-        594,
-        626,
-        23
+        539,
+        591,
+        650,
+        22
       ]
     },
     "menu_observation_attempts": 1,
@@ -851,9 +853,9 @@
       "enabled": true,
       "focused": false,
       "rect": [
-        538,
-        618,
-        626,
+        526,
+        614,
+        650,
         24
       ]
     }
@@ -873,10 +875,10 @@
       "enabled": true,
       "focused": false,
       "rect": [
-        1097,
-        885,
-        81,
-        39
+        1113,
+        889,
+        77,
+        37
       ]
     },
     "dialog": {
@@ -893,9 +895,9 @@
       "enabled": true,
       "focused": false,
       "rect": [
-        524,
+        514,
         231,
-        680,
+        700,
         720
       ]
     },
@@ -1174,9 +1176,9 @@
           "enabled": true,
           "focused": false,
           "rect": [
-            487,
-            833,
-            619,
+            493,
+            901,
+            617,
             16
           ]
         },
@@ -1197,9 +1199,9 @@
           "enabled": true,
           "focused": true,
           "rect": [
-            487,
-            785,
-            619,
+            493,
+            873,
+            617,
             16
           ]
         },
@@ -1220,9 +1222,9 @@
           "enabled": true,
           "focused": true,
           "rect": [
-            487,
-            833,
-            619,
+            493,
+            901,
+            617,
             16
           ]
         },
@@ -1256,18 +1258,18 @@
         "enabled": true,
         "focused": true,
         "rect": [
-          474,
-          655,
-          714,
-          110
+          480,
+          751,
+          712,
+          87
         ]
       },
       "drag_started": true,
       "native_drag_moves": 21,
       "native_mouse_down": true,
-      "native_mouse_down_window": 7613,
+      "native_mouse_down_window": 8356,
       "operation": 1,
-      "pasteboard_file_url": "file:///var/folders/ml/51b226t50rxf09jwljnq7tn00000gn/T/magistr-desktop-journey-9k11md3d/second/drop-note.txt",
+      "pasteboard_file_url": "file:///var/folders/ml/51b226t50rxf09jwljnq7tn00000gn/T/magistr-desktop-journey-gt_fi4og/second/drop-note.txt",
       "pasteboard_types": [
         "public.file-url",
         "CorePasteboardFlavorType 0x6675726C",
@@ -1277,13 +1279,13 @@
         "Apple URL pasteboard type"
       ],
       "source": "drop-note.txt",
-      "source_window": 7613,
+      "source_window": 8356,
       "source_window_hit_test": true
     },
-    "native_accessibility_sha256": "d7e14161659a24dd0ca0b31f8636bab03d72a2167e2d301a42169dcce6ef8aa3"
+    "native_accessibility_sha256": "8eb3dcfd5ac6591bc0a48669ed21e26e6d411e8cb4601a8b33192d851825f5eb"
   },
-  "attachment_observation_sha256": "2147a4106dc2dfa4b8ee381256a2dff2adaacf529936a19baa4b0df9d1139469",
-  "attachment_prompts_sha256": "2e025d9c48a22ab25e7629fa416efceff37ed8d2775820ec940765c16210ab9e",
+  "attachment_observation_sha256": "4111c662002957c48854cd7501d902c0d104dc72c2258a521a777f5921726779",
+  "attachment_prompts_sha256": "09489c0a465079247ddb12171e05be0b4f9dd6c45add926affaea86781f56972",
   "rich_conversation": {
     "tool_keyboard": {
       "activation": "native keyboard",
@@ -1300,9 +1302,9 @@
         "enabled": true,
         "focused": true,
         "rect": [
-          491,
-          483,
-          680,
+          495,
+          498,
+          682,
           21
         ]
       }
@@ -1321,10 +1323,10 @@
         "enabled": true,
         "focused": false,
         "rect": [
-          474,
-          402,
-          209,
-          17
+          480,
+          387,
+          221,
+          18
         ]
       },
       "pending_reply_visible": false,
@@ -1350,10 +1352,10 @@
         "enabled": true,
         "focused": false,
         "rect": [
-          474,
-          402,
-          209,
-          17
+          480,
+          387,
+          221,
+          18
         ]
       },
       "pending_reply_visible": false,
@@ -1384,8 +1386,7 @@
         "Reading progress 0022: new result café 日本語 👩🏽‍💻.",
         "Reading progress 0023: new result café 日本語 👩🏽‍💻.",
         "Reading progress 0024: new result café 日本語 👩🏽‍💻.",
-        "Reading progress 0025: new result café 日本語 👩🏽‍💻.",
-        "Reading progress 0026: new result café 日本語 👩🏽‍💻."
+        "Reading progress 0025: new result café 日本語 👩🏽‍💻."
       ],
       "tool_values": [
         "Review local build · Running",
@@ -1406,10 +1407,10 @@
         "enabled": true,
         "focused": false,
         "rect": [
-          474,
-          402,
-          209,
-          17
+          480,
+          387,
+          221,
+          18
         ]
       },
       "pending_reply_visible": false,
@@ -1482,10 +1483,10 @@
         "enabled": true,
         "focused": true,
         "rect": [
-          1081,
-          648,
-          115,
-          39
+          1090,
+          754,
+          103,
+          34
         ]
       }
     },
@@ -1505,10 +1506,10 @@
         "enabled": true,
         "focused": false,
         "rect": [
-          474,
-          636,
-          329,
-          17
+          480,
+          720,
+          349,
+          18
         ]
       },
       "viewport": {
@@ -1524,10 +1525,10 @@
         "enabled": true,
         "focused": false,
         "rect": [
-          448,
-          282,
-          766,
-          423
+          456,
+          267,
+          760,
+          530
         ]
       }
     },
@@ -1547,10 +1548,10 @@
         "enabled": true,
         "focused": false,
         "rect": [
-          474,
-          636,
-          332,
-          17
+          480,
+          720,
+          352,
+          18
         ]
       },
       "viewport": {
@@ -1566,10 +1567,10 @@
         "enabled": true,
         "focused": false,
         "rect": [
-          448,
-          282,
-          766,
-          423
+          456,
+          267,
+          760,
+          530
         ]
       }
     },
@@ -1587,10 +1588,10 @@
         "enabled": true,
         "focused": false,
         "rect": [
-          474,
-          402,
-          175,
-          23
+          480,
+          387,
+          178,
+          24
         ]
       },
       "pending_reply_visible": true,
@@ -1696,8 +1697,7 @@
         "Reading progress 0097: new result café 日本語 👩🏽‍💻.",
         "Reading progress 0098: new result café 日本語 👩🏽‍💻.",
         "Reading progress 0099: new result café 日本語 👩🏽‍💻.",
-        "Reading progress 0100: new result café 日本語 👩🏽‍💻.",
-        "Reading progress 0101: new result café 日本語 👩🏽‍💻."
+        "Reading progress 0100: new result café 日本語 👩🏽‍💻."
       ],
       "tool_values": [
         "Review local build · Running",
@@ -1718,10 +1718,10 @@
         "enabled": true,
         "focused": false,
         "rect": [
-          474,
-          402,
-          175,
-          23
+          480,
+          387,
+          178,
+          24
         ]
       },
       "pending_reply_visible": true,
@@ -1854,8 +1854,7 @@
         "Reading progress 0124: new result café 日本語 👩🏽‍💻.",
         "Reading progress 0125: new result café 日本語 👩🏽‍💻.",
         "Reading progress 0126: new result café 日本語 👩🏽‍💻.",
-        "Reading progress 0127: new result café 日本語 👩🏽‍💻.",
-        "Reading progress 0128: new result café 日本語 👩🏽‍💻."
+        "Reading progress 0127: new result café 日本語 👩🏽‍💻."
       ],
       "tool_values": [
         "Review local build · Running",
@@ -1864,15 +1863,15 @@
     },
     "stream": {
       "stage": "finished",
-      "chunks": 132,
-      "elapsed": 13.588262375,
+      "chunks": 131,
+      "elapsed": 13.518151791999998,
       "stop_reason": "end_turn"
     },
     "canonical": {
       "reply_bytes": 11321,
-      "reply_sha256": "2d05ab16ef700bde1a3c57d2c3307c6085ec81ffef4add8d783aac21f929d6fc",
-      "conversation_bytes": 21796,
-      "conversation_sha256": "9f3a338d8b44cbda8e95abe9107208d5010f3681a97b71660af88850a9e349da"
+      "reply_sha256": "d8b500274691c2d43e487eb1b6226b0c84de6cab1e3e737119858932997cb388",
+      "conversation_bytes": 21728,
+      "conversation_sha256": "befd65277923c934cc371902998c0b8ace75592dec3f6a7f88d0cd5766c2c696"
     },
     "link": {
       "activated": true,
@@ -1897,24 +1896,24 @@
             "AXScrollToVisible"
           ],
           "AXDescription": "",
-          "AXHelp": "http://127.0.0.1:52563/rich-link/1792013866098244000",
+          "AXHelp": "http://127.0.0.1:52928/rich-link/1792015098913719000",
           "AXRole": "AXLink",
           "AXTitle": "Open the local reading note",
           "AXValue": "",
           "enabled": true,
           "focused": true,
           "rect": [
-            474,
-            435,
-            692,
-            38
+            480,
+            423,
+            709,
+            42
           ]
         }
       },
       "request_observed": true
     }
   },
-  "rich_observation_sha256": "334c95ddfbb070e466626480900d07409e3e383eb65e3543efb3a5ba233f27ee",
+  "rich_observation_sha256": "1cb1116241746df9b2bc7812e7f217211b89902deb8354d0e000f2508f9a193e",
   "ime": {
     "source": "com.apple.inputmethod.Kotoeri.KanaTyping.Japanese",
     "committed": [
@@ -2157,9 +2156,9 @@
     "crates/magistr-desktop/tests/attachment_journey.py": "f42519a0d13331a44448f255ca68d894885305ed143760d7834bcab55fbeb6d1",
     "crates/magistr-desktop/tests/attachments.mjs": "e761ba21b9d05ffa8e07532ac6bd6543c9f6820c6ffedc1f60afe76688c81f66",
     "crates/magistr-desktop/tests/draft_persistence.swift": "95b853b033bbb88fe5052c9a3c368cb955eb5ac1d3fa746c3c07838cb260d9a9",
-    "crates/magistr-desktop/tests/draft_persistence_journey.py": "72e36bc6a2571f55b5a8a936065d2544520870585a76f31f61779f85d7955ad0",
+    "crates/magistr-desktop/tests/draft_persistence_journey.py": "81bbd3e042ddd8ee4778bdd4df2e11ca39863067ad641918e2e46009d132c9f5",
     "crates/magistr-desktop/tests/drafts.mjs": "371f679eaf90ba821df7c0491810aabce899f845b623dedc6b8c66f2693f8323",
-    "crates/magistr-desktop/tests/native_window.py": "8dc9b404ff4766968025086cf80aa23a7f08f92f526ffac0eb6bc2b3e73185ac",
+    "crates/magistr-desktop/tests/native_window.py": "014f02f7a2e1e953d9d12efe6b67c8469ec92ae42c47b4c5765cf227330aec09",
     "crates/magistr-desktop/tests/native_window.swift": "5d379e0b01b8a4aaa55a63c435bce0dcf5d68df8fb4ef64978f31100c892af80",
     "crates/magistr-desktop/tests/preferences.mjs": "aafbdfc322774f97a185d88a1d74097104b606b5ccf25fea67dc09b4fe987d3a",
     "crates/magistr-desktop/tests/process_roles.py": "2406be1b8ebd5b026f2e498797ffa49932f373d595c487b57c73234869bcac94",
@@ -2171,20 +2170,21 @@
     "crates/magistr-desktop/tests/work.mjs": "19b658066bb80ab9ee473cdbe5a88a00ff242a0e730f053ba163605a97dab840",
     "crates/magistr-desktop/tests/work_fixture.py": "35eb7a0a8257d26711138e6673bbaf20bbedcd5dd455fbc0343086e2afe53a6d",
     "crates/magistr-desktop/tests/work_journey.py": "ee80613f18530a93f459943f0175d5387d1632e896148ddbe9f399b359d291be",
-    "crates/magistr-desktop/ui/app.mjs": "3c52b810da5fc97e7f16c008e7500933b252c08bcce41b6c0243689879f1d310",
+    "crates/magistr-desktop/ui/app.mjs": "571dba98bed5e2a7107bc6a89fa084c277c3dbf4705936579ce8beb979c3b692",
     "crates/magistr-desktop/ui/attachments.mjs": "c598ca322b4a2c1b22b9f378ddc35ce7ec89a7e93c81673de978b3269a28ce63",
     "crates/magistr-desktop/ui/composer.mjs": "9accf554a6a2f6e7c029f4972fa4221e40d755546693c8343cbd528ef2a00bc0",
     "crates/magistr-desktop/ui/context.mjs": "9476a17db8e8c3032bd081dbdcd6088e9338ca2c41f9b455278243f5c98e4bcd",
     "crates/magistr-desktop/ui/conversation.mjs": "ee2753fdfa58093276bbb4e0b329d5eac03f2d04c79cdde4f6b131a26caf0651",
     "crates/magistr-desktop/ui/drafts.mjs": "6d5dab26f19fb14f67a79077b5927adff41f3dea78186ace91cc7cc5246888b4",
     "crates/magistr-desktop/ui/icon.png": "392002a92fdd8dc81923944cd5abd170d0867fe8eb3701d71d4df4aea083dd10",
-    "crates/magistr-desktop/ui/index.html": "e2290e26f0e47558d243e4c7afaf31461ef246b4d8bee8ffa3126831f539c6c0",
+    "crates/magistr-desktop/ui/index.html": "5422d717a0f60ea173e7729e4b4e1f3d64d4336d0a42d7ec583ce52b96583877",
+    "crates/magistr-desktop/ui/layout.mjs": "897467ab99a74ad6a351a56a54e7974746339c84af71a0612c11776a8d330980",
     "crates/magistr-desktop/ui/preferences.mjs": "119dfd44c2fbdf82da45e0973c6a12bbf3a284ffabf416f766e1315a47cad2d5",
     "crates/magistr-desktop/ui/projects.mjs": "e19f9be0696a2e21d082561403a2188e1b55cedb898539a7a5ae7280b8807031",
     "crates/magistr-desktop/ui/saved_drafts.mjs": "ae921dfdfa52f9b2e54920aefa6b09bef285ebe7ea326f3bec3287953ca9f52a",
     "crates/magistr-desktop/ui/selection.mjs": "fd844d9e146a9c5e1fb9ab6e2fc72c0273da66d4f59a70ce639877a87aff05fc",
     "crates/magistr-desktop/ui/session_controls.mjs": "738386755be2b65fd03899ae28e1b357b4313258d67b3edfaf72fe3fe37ff123",
-    "crates/magistr-desktop/ui/style.css": "7d293e8d7d994e0773864c84d66f4ef71eba5f1df486bcd2301ba77b54012ca5",
+    "crates/magistr-desktop/ui/style.css": "714b3dd99e2f8727e33c62a8997923a67c00d772a974d48012cef5ac48e4f534",
     "crates/magistr-desktop/ui/supervision.mjs": "032a49085ae6738687065e58e06950cf7229f4fa7f7e0e64ed7390edf3629d12",
     "crates/magistr-desktop/ui/transcript.mjs": "1e22dc70fe457e303b2d1e3edca61491f86d882406825cb5afe6bda9eff9d6ae",
     "crates/magistr-desktop/ui/work.mjs": "a7c16622a695378969fc6ecc34ae22d27d888c108641960522e7cd7b605a0658",
