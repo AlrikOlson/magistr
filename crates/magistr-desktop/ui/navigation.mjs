@@ -1,3 +1,4 @@
+import { decorateProject } from "./project_identity.mjs";
 import { addressKey } from "./context.mjs";
 
 // A view of the existing project catalog and resident sessions, never another registry.
@@ -76,7 +77,7 @@ export class ProjectNavigation {
         open.onclick=()=>this.open(group.project.directory);
       }
       group.project=project;group.name.textContent=project.name;
-      group.emblem.textContent=Array.from(project.name.trim())[0]?.toLocaleUpperCase()??"·";
+      group.emblem.textContent=decorateProject(group.root,project);
       group.root.dataset.selected=String(project.sessions.some(session=>addressKey(session.address)===addressKey(selected)));
       group.heading.title=project.directory;group.heading.setAttribute("aria-label",project.name+" · "+project.directory);
       group.count.textContent=String(project.sessions.length);group.count.hidden=!project.sessions.length;
