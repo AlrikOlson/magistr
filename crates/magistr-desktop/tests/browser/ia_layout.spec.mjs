@@ -168,3 +168,9 @@ test("17 project search filters list and map without changing the catalog",async
   await input.fill("nothing-matches-this");await expect(app.locator("#directory-empty")).toHaveText("No projects match your search.");
   await input.fill("");await expect(app.locator(".directory-project")).toHaveCount(2);
 });
+test("18 activity summary makes room for projects and tracks actual counts",async({app})=>{
+  await app.setViewportSize({width:760,height:550});const overview=app.locator("#project-activity");
+  await expect(overview.locator(".activity-total")).toHaveText("3open conversations");expect((await overview.boundingBox()).height).toBeLessThan(115);
+  await app.evaluate(()=>window.__fixture.publish("release",{status:"Working",activity:{active:true}}));await expect(overview.locator('[data-kind="working"] dd')).toHaveText("1");
+  for(const theme of ["dark","light"]){await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);await capture(app,"18-summary-"+theme);}
+});

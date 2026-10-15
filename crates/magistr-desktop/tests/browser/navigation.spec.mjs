@@ -14,38 +14,6 @@ test("project activity follows catalog state without counting closed conversatio
   await expect(overview.locator('[data-kind="disconnected"] dd')).toHaveText("1");
 });
 
-test("activity material keeps the semantic counts through graphics context loss",async({app})=>{
-  const canvas=app.locator(".activity-material");
-  await expect(canvas).toHaveCount(1);
-  const available=await canvas.evaluate(node=>!!node.getContext("webgl"));
-  if(available){
-    await expect(app.locator(".activity-wheel")).toHaveAttribute("data-material","rendered");
-    expect(await canvas.evaluate(node=>node.width)).toBeLessThanOrEqual(384);
-    expect(await canvas.evaluate(node=>node.width===node.height)).toBe(true);
-    await canvas.evaluate(node=>node.getContext("webgl").getExtension("WEBGL_lose_context")?.loseContext());
-    await expect(app.locator(".activity-wheel")).not.toHaveAttribute("data-material","rendered");
-  }
-  await expect(app.locator('#project-activity [data-kind="waiting"] dd')).toHaveText("1");
-  await expect(app.locator(".activity-wheel strong")).toHaveText("3");
-});
-
-test("dimensional material redraws only when its displayed data changes",async({app})=>{
-  const canvas=app.locator(".activity-material");
-  const available=await canvas.evaluate(node=>!!node.getContext("webgl"));
-  test.skip(!available,"WebGL unavailable in this renderer");
-  await expect(app.locator(".activity-wheel")).toHaveAttribute("data-material","rendered");
-  await canvas.evaluate(node=>{
-    const gl=node.getContext("webgl"),draw=gl.drawArrays.bind(gl);
-    window.__draws=0;gl.drawArrays=(...args)=>{window.__draws++;return draw(...args);};
-  });
-  await app.evaluate(()=>window.__fixture.publish("release",{status:"Ready"}));
-  await app.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
-  expect(await app.evaluate(()=>window.__draws)).toBe(0);
-  await app.evaluate(()=>window.__fixture.publish("release",{activity:{active:true}}));
-  await expect.poll(()=>app.evaluate(()=>window.__draws)).toBeGreaterThan(0);
-  expect(await canvas.evaluate(node=>node.getContext("webgl").getError())).toBe(0);
-});
-
 test("project groups preserve selection and addressed background actions",async({app})=>{
   const projects=app.getByRole("navigation",{name:"Projects",exact:true});
   await expect(projects.locator(".project-group")).toHaveCount(2);
@@ -131,26 +99,4 @@ test("appearance preview choices use the same saved preference and preserve moti
   await app.getByRole("button",{name:"Use system appearance",exact:true}).click();
   await expect(app.getByLabel("Appearance",{exact:true})).toHaveValue("system");
   await expect(app.locator("html")).not.toHaveAttribute("data-theme");
-});
-test("the sculpture responds to deliberate pointer movement and freezes for reduced motion",async({app})=>{
-  const wheel=app.locator(".activity-wheel"),canvas=app.locator(".activity-material");
-  test.skip(!await canvas.evaluate(node=>!!node.getContext("webgl")),"WebGL unavailable");
-  await expect(wheel).toHaveAttribute("data-material","rendered");
-  await canvas.evaluate(node=>{
-    const gl=node.getContext("webgl"),draw=gl.drawArrays.bind(gl);
-    window.__pointerDraws=0;gl.drawArrays=(...args)=>{window.__pointerDraws++;return draw(...args);};
-  });
-  await wheel.dispatchEvent("pointermove",{clientX:100,clientY:100});
-  await app.evaluate(()=>new Promise(resolve=>requestAnimationFrame(resolve)));
-  expect(await app.evaluate(()=>window.__pointerDraws)).toBe(0);
-  await app.evaluate(()=>document.documentElement.dataset.reducedMotion="false");
-  await wheel.dispatchEvent("pointermove",{clientX:100,clientY:100});
-  await expect.poll(()=>app.evaluate(()=>window.__pointerDraws)).toBeGreaterThan(0);
-  expect(await canvas.evaluate(node=>node.getContext("webgl").getError())).toBe(0);
-  await app.evaluate(()=>document.documentElement.dataset.reducedMotion="true");
-  await app.evaluate(()=>new Promise(resolve=>requestAnimationFrame(resolve)));
-  const count=await app.evaluate(()=>window.__pointerDraws);
-  await wheel.dispatchEvent("pointermove",{clientX:200,clientY:200});
-  await app.evaluate(()=>new Promise(resolve=>requestAnimationFrame(resolve)));
-  expect(await app.evaluate(()=>window.__pointerDraws)).toBe(count);
 });
