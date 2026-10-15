@@ -1,0 +1,78 @@
+{
+  "scope": "Group reasoning evidence for efficient reading",
+  "limitations": "Headless WebKit with isolated observations. Native OS input, assistive technology and Rust command integration were not exercised.",
+  "images": {
+    "reasoning--investigation-step-compact-dark.png": {
+      "sha256": "a3400784d86e07d9aa7fe0fd65020b2663a547edaebf61c3cae8a404a403705f",
+      "task": "Read purpose, outcome and supporting details with a consistent compact hierarchy.",
+      "observations": "The complete two-line decision title and timestamp lead into the emphasized outcome. Related reasoning uses a compact None row, allowing context into the first compact view. Desktop shows all supporting fields and clear selected investigation/conclusion arrows.",
+      "verdict": "pass"
+    },
+    "reasoning--investigation-step-compact-light.png": {
+      "sha256": "cdb204d0d44d0228a813010247240812332be1b618be3c4772104ff2785025ab",
+      "task": "Read purpose, outcome and supporting details with a consistent compact hierarchy.",
+      "observations": "The complete two-line decision title and timestamp lead into the emphasized outcome. Related reasoning uses a compact None row, allowing context into the first compact view. Desktop shows all supporting fields and clear selected investigation/conclusion arrows.",
+      "verdict": "pass"
+    },
+    "reasoning--investigation-step-desktop-dark.png": {
+      "sha256": "39722b9bae0e931d6e4bb9cc3182b07647338d2a5932170778a9e0c6b1e4f951",
+      "task": "Read purpose, outcome and supporting details with a consistent compact hierarchy.",
+      "observations": "The complete two-line decision title and timestamp lead into the emphasized outcome. Related reasoning uses a compact None row, allowing context into the first compact view. Desktop shows all supporting fields and clear selected investigation/conclusion arrows.",
+      "verdict": "pass"
+    },
+    "reasoning--investigation-step-desktop-light.png": {
+      "sha256": "600ddebcf121360312e440ba3b18942eb169df34a8dd2fc8ba57efa7949f788c",
+      "task": "Read purpose, outcome and supporting details with a consistent compact hierarchy.",
+      "observations": "The complete two-line decision title and timestamp lead into the emphasized outcome. Related reasoning uses a compact None row, allowing context into the first compact view. Desktop shows all supporting fields and clear selected investigation/conclusion arrows.",
+      "verdict": "pass"
+    },
+    "reasoning--selected-step-compact-dark.png": {
+      "sha256": "b760e45a0590ee6ba96f88012c7d425508c13553145014f3587cb4f8652048e3",
+      "task": "Read purpose, outcome and supporting details with a consistent compact hierarchy.",
+      "observations": "Outcome remains the first emphasized field. The supporting installation step is a compact relationship row with Supported by and Step 42 metadata, and its complete link fits the compact panel. The selected graph item and directional connections remain distinct.",
+      "verdict": "pass"
+    },
+    "reasoning--selected-step-compact-light.png": {
+      "sha256": "f4d668941a5a3883c14e6f917e7f64822cbca7bc9c7afafb71b8800667a16c07",
+      "task": "Read purpose, outcome and supporting details with a consistent compact hierarchy.",
+      "observations": "Outcome remains the first emphasized field. The supporting installation step is a compact relationship row with Supported by and Step 42 metadata, and its complete link fits the compact panel. The selected graph item and directional connections remain distinct.",
+      "verdict": "pass"
+    },
+    "reasoning--selected-step-desktop-dark.png": {
+      "sha256": "3852e8f30a65e4bb3a1c7fea6683d40a12fb05533a2c40a1fbc7ddace4401544",
+      "task": "Read purpose, outcome and supporting details with a consistent compact hierarchy.",
+      "observations": "Outcome remains the first emphasized field. The supporting installation step is a compact relationship row with Supported by and Step 42 metadata, and its complete link fits the compact panel. The selected graph item and directional connections remain distinct.",
+      "verdict": "pass"
+    },
+    "reasoning--selected-step-desktop-light.png": {
+      "sha256": "0c817340768868e781b2b6a8142074a2f7833714eb3d799af6179296fb2d3432",
+      "task": "Read purpose, outcome and supporting details with a consistent compact hierarchy.",
+      "observations": "Outcome remains the first emphasized field. The supporting installation step is a compact relationship row with Supported by and Step 42 metadata, and its complete link fits the compact panel. The selected graph item and directional connections remain distinct.",
+      "verdict": "pass"
+    },
+    "reasoning--supporting-details-compact-dark.png": {
+      "sha256": "718c551c13416efe0272d3b4acf721cf3b5273a877a9b0fee090c95181a4c071",
+      "task": "Read purpose, outcome and supporting details with a consistent compact hierarchy.",
+      "observations": "The scrolled panel exposes context, rationale, full reasoning, next action and tools together at compact size. Field labels and right-aligned Copy controls form a consistent rhythm; 13px body text wraps without clipping or overlap.",
+      "verdict": "pass"
+    },
+    "reasoning--supporting-details-compact-light.png": {
+      "sha256": "67b931b2aa5f9a82eaef50b603cc4538c4714307e5bffd1742e2d630b752b06b",
+      "task": "Read purpose, outcome and supporting details with a consistent compact hierarchy.",
+      "observations": "The scrolled panel exposes context, rationale, full reasoning, next action and tools together at compact size. Field labels and right-aligned Copy controls form a consistent rhythm; 13px body text wraps without clipping or overlap.",
+      "verdict": "pass"
+    },
+    "reasoning--supporting-details-desktop-dark.png": {
+      "sha256": "55aa897a197972a5b26f49ba3f1b91f7a8faac69474917a6e90ec4492461582d",
+      "task": "Read purpose, outcome and supporting details with a consistent compact hierarchy.",
+      "observations": "The scrolled panel exposes context, rationale, full reasoning, next action and tools together at compact size. Field labels and right-aligned Copy controls form a consistent rhythm; 13px body text wraps without clipping or overlap.",
+      "verdict": "pass"
+    },
+    "reasoning--supporting-details-desktop-light.png": {
+      "sha256": "5852295aacb618dcbed3686c0d1b74abd6b640f187a8fc28bcf2972c763d7509",
+      "task": "Read purpose, outcome and supporting details with a consistent compact hierarchy.",
+      "observations": "The scrolled panel exposes context, rationale, full reasoning, next action and tools together at compact size. Field labels and right-aligned Copy controls form a consistent rhythm; 13px body text wraps without clipping or overlap.",
+      "verdict": "pass"
+    }
+  }
+}
