@@ -3,7 +3,7 @@ async function open(app){await app.getByRole("button",{name:"Review the release 
 test("cross-session references and cycles retain local Back and origin focus",async({app})=>{
   await open(app);const related=app.getByRole("region",{name:"Related reasoning",exact:true});
   await related.getByRole("button",{name:"Inspect the installation result",exact:true}).click();
-  await expect(app.getByLabel("Reasoning to inspect",{exact:true})).toHaveValue('"review"');
+  await expect(app.getByRole("combobox",{name:"Reasoning",exact:true})).toHaveValue('"review"');
   await related.getByRole("button",{name:"Keep each conversation with its saved message",exact:true}).click();
   await app.getByRole("button",{name:"Back to previous step",exact:true}).click();
   await expect(related.getByRole("button",{name:"Keep each conversation with its saved message",exact:true})).toBeFocused();

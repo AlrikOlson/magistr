@@ -7,7 +7,7 @@ test("selected details leave useful reading space and Back restores collection c
   await app.getByRole("button",{name:"Back to track",exact:true}).click();await expect(app.getByLabel("Track",{exact:true})).toBeVisible();await expect(app.getByRole("button",{name:"Restore the project conversation and draft",exact:true})).toBeFocused();
   await app.getByRole("tab",{name:"Reasoning",exact:true}).click();await app.getByRole("button",{name:"Keep each conversation with its saved message",exact:true}).click();await expect(app.getByLabel("Search all reasoning",{exact:true})).toBeVisible();await readingSpace(app,270);
   await app.evaluate(()=>{const f=window.__fixture;f.workflow.think.data.value.sessions=f.workflow.think.data.value.sessions.filter(history=>history.session_id!==null);f.publish("release",{workflow_revision:1});});
-  await expect(app.locator("#work-browser-content")).toContainText("This reasoning is no longer available.");await expect(app.locator("#work-browser-inspector")).toBeHidden();await expect(app.getByLabel("Reasoning to inspect",{exact:true})).toBeVisible();
+  await expect(app.locator("#work-browser-content")).toContainText("This reasoning is no longer available.");await expect(app.locator("#work-browser-inspector")).toBeHidden();await expect(app.getByRole("combobox",{name:"Reasoning",exact:true})).toBeVisible();
   await app.getByRole("tab",{name:"Feedback",exact:true}).click();await app.getByRole("button",{name:"Keep my place when reopening a project",exact:true}).click();await expect(app.getByLabel("Search feedback",{exact:true})).toBeHidden();await readingSpace(app,270);
   await app.getByRole("button",{name:"Back to feedback",exact:true}).click();await expect(app.getByLabel("Search feedback",{exact:true})).toBeVisible();
 });

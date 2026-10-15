@@ -7,7 +7,7 @@ test("reasoning sessions expose complete stable steps and exact field copying",a
   await expect(app.locator(".reasoning-step")).toContainText("<script>literal</script>");await expect(app.locator(".reasoning-step script")).toHaveCount(0);
   await app.getByRole("button",{name:"Copy reasoning",exact:true}).click();expect(await app.evaluate(()=>window.__copied)).toBe("日本語\n".repeat(6000)+"<script>literal</script>");
   await app.getByRole("button",{name:"Back to reasoning",exact:true}).click();await expect(app.getByRole("button",{name:"Keep each conversation with its saved message",exact:true})).toBeFocused();
-  await app.getByLabel("Reasoning to inspect",{exact:true}).selectOption('"review"');
+  await app.getByRole("combobox",{name:"Reasoning",exact:true}).selectOption('"review"');
   await app.getByRole("button",{name:"Inspect the installation result",exact:true}).click();await expect(app.locator(".work-reasoning-facts dd").first()).toHaveText("42");
   await app.evaluate(()=>{const f=window.__fixture;f.workflow.think.data.value.sessions=f.workflow.think.data.value.sessions.filter(s=>s.session_id!=="review");f.publish("release",{workflow_revision:2});});
   await expect(app.locator("#work-browser-content")).toContainText("This reasoning is no longer available.");
