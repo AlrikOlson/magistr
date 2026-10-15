@@ -20,6 +20,10 @@ test("spending and provider facts retain unknown, zero and unavailable values",(
  assert.match(usagePresentation({used:0,size:100,cost_cents:null}).context,/0 \/ 100/);
  assert.match(usagePresentation({used:8,size:100,cost_cents:25}).spending,/\$0\.25/);
  assert.equal(usagePresentation({used:0,size:100}).percent,"0%");
+ assert.equal(usagePresentation({used:0,size:100}).fraction,0);
+ assert.equal(usagePresentation(null).fraction,null);
+ assert.equal(usagePresentation({used:150,size:100}).fraction,1);
+ assert.equal(usagePresentation({used:150,size:100}).percent,"150%");
  assert.equal(usagePresentation({used:0,size:0}).percent,"Not reported");
  assert.match(capabilityText(null),/unavailable/i);
  assert.match(capabilityText({can_resume:false,can_send_images:false}),/cannot reopen/i);
