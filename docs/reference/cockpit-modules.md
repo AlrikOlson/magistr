@@ -30,6 +30,9 @@ desktop workspace. Companion Rust tests live beside their owners.
 ## Modules and harnesses
 
 - `crates/magistr-desktop/src/workflow.rs` — addressed on-demand workflow reads from the session owner.
+- `crates/magistr-desktop/src/roadmap.rs` — desktop wire shape of shared roadmap projections.
+- `crates/magistr-desktop/ui/work_roadmap.mjs` — track selection and owner-provided readiness.
+- `crates/magistr-desktop/ui/work_tabs.mjs` — accessible work-view tab navigation.
 - `crates/magistr-desktop/ui/work_browser.mjs` — refresh, address guards and current-plan reading.
 - `crates/magistr-desktop/ui/work_records.mjs` — authored work and observation-state presentation.
 - `crates/magistr-desktop/ui/work_runs.mjs` — stable current/saved execution selection.

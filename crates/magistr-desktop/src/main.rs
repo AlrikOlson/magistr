@@ -19,6 +19,7 @@ mod launch;
 mod links;
 mod preferences;
 mod projects;
+mod roadmap;
 mod streams;
 mod wire;
 mod work;

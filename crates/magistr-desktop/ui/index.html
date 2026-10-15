@@ -127,8 +127,10 @@
 <dialog id="work-browser" aria-labelledby="work-browser-title">
   <header class="work-browser-heading"><div><h2 id="work-browser-title" tabindex="-1">Planned work</h2><p id="work-browser-project"></p></div><button id="work-browser-close" aria-label="Close planned work">×</button></header>
   <div class="work-browser-tools"><p id="work-browser-state" role="status"></p><button id="work-browser-refresh">Refresh</button></div>
-  <div class="work-run-selection"><label for="work-browser-runs">Work to inspect</label><select id="work-browser-runs"></select></div>
-  <div id="work-browser-content"></div>
+  <nav id="work-browser-tabs" class="work-browser-tabs" role="tablist" aria-label="Work view"><button id="work-tab-work" role="tab" aria-selected="true" aria-controls="work-browser-content" data-work-view="work">Current and saved work</button><button id="work-tab-roadmap" role="tab" aria-selected="false" aria-controls="work-browser-content" tabindex="-1" data-work-view="roadmap">Roadmap</button></nav>
+  <div id="work-run-selection" class="work-run-selection"><label for="work-browser-runs">Work to inspect</label><select id="work-browser-runs"></select></div>
+  <div id="work-track-selection" class="work-run-selection" hidden><label for="work-browser-track">Track</label><select id="work-browser-track"></select></div>
+  <div id="work-browser-content" role="tabpanel" aria-labelledby="work-tab-work" tabindex="0"></div>
 </dialog>
 <dialog id="project-picker" aria-labelledby="picker-title">
   <form id="project-form">

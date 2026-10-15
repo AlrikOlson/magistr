@@ -335,7 +335,11 @@ Task activity preserves owner action order, complete outcomes and produced
 artifact references. Files and tools mentioned by an agent remain authored
 claims. Web references use the existing native link policy; local references
 are selectable and copyable without inventing a filesystem-opening command.
-The reader never computes a second persisted plan.
+The Roadmap view uses workstream_catalog and workstream_frontier from the shared
+workflow contracts against the same complete roadmap. Counts and readiness
+arrive with preserved ReadState; JavaScript only presents them. Track selection
+keeps closed, ungrouped and missing tracks distinct. Keyboard tabs retain focus
+outside refreshed content. The reader never computes a second persisted plan.
 
 The desktop opens conversations, reads current objectives and tasks, starts planned work and prepares projects. The CLI retains
 headless runs, initialization, validation and administrative commands; MCP

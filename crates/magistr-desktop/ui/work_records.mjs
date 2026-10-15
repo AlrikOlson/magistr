@@ -2,9 +2,9 @@
 import { element } from "./work_dom.mjs";
 import { renderChecks } from "./work_checks.mjs";
 import { renderActivity } from "./work_activity.mjs";
-export function readState(record) {
+export function readState(record,kind="work") {
   if(record?.state==="current")return {value:record.data.value,source:record.data.source,current:true,
-    message:record.data.source.kind==="missing"?"No saved work yet.":"Up to date."};
+    message:record.data.source.kind==="missing"?"No saved "+kind+" yet.":"Up to date."};
   if(record?.state==="stale")return {value:record.data.last.value,source:record.data.last.source,current:false,
     message:"Showing the last saved records. "+record.data.error.message};
   return {value:null,current:false,message:record?.data?.message??"Work records have not been read yet."};
