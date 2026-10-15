@@ -1,0 +1,54 @@
+{
+  "scope": "Align agent settings and usage in the details panel",
+  "limitations": "Headless WebKit with isolated observations. Native OS input, assistive technology and Rust command integration were not exercised.",
+  "images": {
+    "conversation--agent-details-compact-dark.png": {
+      "sha256": "0c89428d6d54947d437ea7037ad96a59d40ca3c9f942b339025ab9c9abbf0349",
+      "task": "Inspect configuration and usage with clear labels and compact controls.",
+      "observations": "The 9% context meter, 18,400 / 200,000 token count and $0.42 spending are visible beside their labels. Provider and model controls use a restrained hierarchy. The compact details screen is scrolled to Agent settings with its title and close action retained. Dark text and controls remain clear.",
+      "verdict": "pass"
+    },
+    "conversation--agent-details-compact-light.png": {
+      "sha256": "56a5efd545c5db999ee8a4c2cc6dc32296e7737521f68444ad849f77cdb9ff3b",
+      "task": "Inspect configuration and usage with clear labels and compact controls.",
+      "observations": "The 9% context meter, 18,400 / 200,000 token count and $0.42 spending are visible beside their labels. Provider and model controls use a restrained hierarchy. The compact details screen is scrolled to Agent settings with its title and close action retained. Light text and controls remain clear.",
+      "verdict": "pass"
+    },
+    "conversation--agent-details-desktop-dark.png": {
+      "sha256": "89bcdb0be9a4c6812fdcf3bde4b6363ac0951546c8fe908955488be32c543ccb",
+      "task": "Inspect configuration and usage with clear labels and compact controls.",
+      "observations": "The 9% context meter, 18,400 / 200,000 token count and $0.42 spending are visible beside their labels. Provider and model controls use a restrained hierarchy. The desktop details column retains its relation to the conversation. Dark text and controls remain clear.",
+      "verdict": "pass"
+    },
+    "conversation--agent-details-desktop-light.png": {
+      "sha256": "bb3a84d03e99a7635acec0507879aba774874634d0367381ca07d71921a6e902",
+      "task": "Inspect configuration and usage with clear labels and compact controls.",
+      "observations": "The 9% context meter, 18,400 / 200,000 token count and $0.42 spending are visible beside their labels. Provider and model controls use a restrained hierarchy. The desktop details column retains its relation to the conversation. Light text and controls remain clear.",
+      "verdict": "pass"
+    },
+    "conversation--usage-unavailable-compact-dark.png": {
+      "sha256": "769130299afa5ec11db26f7885d9f6cd477309febb1d512a840e96e1bcd3f127",
+      "task": "Inspect configuration and usage with clear labels and compact controls.",
+      "observations": "Context and spending explicitly say Not reported; no empty meter implies a measured zero. Provider and model controls use a restrained hierarchy. The compact details screen is scrolled to Agent settings with its title and close action retained. Dark text and controls remain clear.",
+      "verdict": "pass"
+    },
+    "conversation--usage-unavailable-compact-light.png": {
+      "sha256": "5465db66108943cb15a8124615a656958f8bd212aa98b56c5ff3c1305d0f0dc6",
+      "task": "Inspect configuration and usage with clear labels and compact controls.",
+      "observations": "Context and spending explicitly say Not reported; no empty meter implies a measured zero. Provider and model controls use a restrained hierarchy. The compact details screen is scrolled to Agent settings with its title and close action retained. Light text and controls remain clear.",
+      "verdict": "pass"
+    },
+    "conversation--usage-unavailable-desktop-dark.png": {
+      "sha256": "5b3ad86b5cfe74bc11d81ece0e552f932b4696d2ba1395a084bd0088794d7e3e",
+      "task": "Inspect configuration and usage with clear labels and compact controls.",
+      "observations": "Context and spending explicitly say Not reported; no empty meter implies a measured zero. Provider and model controls use a restrained hierarchy. The desktop details column retains its relation to the conversation. Dark text and controls remain clear.",
+      "verdict": "pass"
+    },
+    "conversation--usage-unavailable-desktop-light.png": {
+      "sha256": "0e25e52f5a47df0ac1aa6a4e96907a7c75d8a678cf92fbd8d3bd4749cdbae49a",
+      "task": "Inspect configuration and usage with clear labels and compact controls.",
+      "observations": "Context and spending explicitly say Not reported; no empty meter implies a measured zero. Provider and model controls use a restrained hierarchy. The desktop details column retains its relation to the conversation. Light text and controls remain clear.",
+      "verdict": "pass"
+    }
+  }
+}

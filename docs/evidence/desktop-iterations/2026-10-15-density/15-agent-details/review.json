@@ -1,0 +1,54 @@
+{
+  "scope": "Align agent settings and usage in the details panel",
+  "limitations": "Headless WebKit with isolated observations. Native OS input, assistive technology and Rust command integration were not exercised.",
+  "images": {
+    "conversation--agent-details-compact-dark.png": {
+      "sha256": "0dd389fbef3fc31c06cae39094c14dc6c83a74a74fcc010429db3f40b20479c7",
+      "task": "Inspect configuration and usage with clear labels and compact controls.",
+      "observations": "FAIL: Details opened at its top after the deferred focus operation, so Agent settings are below the captured frame. The story must wait for focus placement and verify the usage fields are in the viewport.",
+      "verdict": "fail"
+    },
+    "conversation--agent-details-compact-light.png": {
+      "sha256": "2b5eb84ba5f8a1b4b52a6b61875c1036a83cb3cba48a675106483bcb460a7c27",
+      "task": "Inspect configuration and usage with clear labels and compact controls.",
+      "observations": "FAIL: Details opened at its top after the deferred focus operation, so Agent settings are below the captured frame. The story must wait for focus placement and verify the usage fields are in the viewport.",
+      "verdict": "fail"
+    },
+    "conversation--agent-details-desktop-dark.png": {
+      "sha256": "c7f74f8c9fdcf6ddddcbdefa334e40f55ef098db61148a91c0de3859bfb55a81",
+      "task": "Inspect configuration and usage with clear labels and compact controls.",
+      "observations": "The desktop agent block shows a readable provider, native model control and compact labeled usage. Compact coverage remains missing.",
+      "verdict": "fail"
+    },
+    "conversation--agent-details-desktop-light.png": {
+      "sha256": "5afded66131400317f315860a4da03acbaa3c48587083413c1a8ffd75c0afbd8",
+      "task": "Inspect configuration and usage with clear labels and compact controls.",
+      "observations": "The desktop agent block shows a readable provider, native model control and compact labeled usage. Compact coverage remains missing.",
+      "verdict": "fail"
+    },
+    "conversation--usage-unavailable-compact-dark.png": {
+      "sha256": "0dd389fbef3fc31c06cae39094c14dc6c83a74a74fcc010429db3f40b20479c7",
+      "task": "Inspect configuration and usage with clear labels and compact controls.",
+      "observations": "FAIL: Details opened at its top after the deferred focus operation, so Agent settings are below the captured frame. The story must wait for focus placement and verify the usage fields are in the viewport.",
+      "verdict": "fail"
+    },
+    "conversation--usage-unavailable-compact-light.png": {
+      "sha256": "2b5eb84ba5f8a1b4b52a6b61875c1036a83cb3cba48a675106483bcb460a7c27",
+      "task": "Inspect configuration and usage with clear labels and compact controls.",
+      "observations": "FAIL: Details opened at its top after the deferred focus operation, so Agent settings are below the captured frame. The story must wait for focus placement and verify the usage fields are in the viewport.",
+      "verdict": "fail"
+    },
+    "conversation--usage-unavailable-desktop-dark.png": {
+      "sha256": "10e9bbe24f3e9efe8c3d21bac82491e760117721633b14a2b467288396ab7396",
+      "task": "Inspect configuration and usage with clear labels and compact controls.",
+      "observations": "The desktop agent block shows a readable provider, native model control and compact labeled usage. Compact coverage remains missing.",
+      "verdict": "fail"
+    },
+    "conversation--usage-unavailable-desktop-light.png": {
+      "sha256": "117a917fe5fbefec0577e64d25c55dc149a747c3365b44d1d20abc061fade8f9",
+      "task": "Inspect configuration and usage with clear labels and compact controls.",
+      "observations": "The desktop agent block shows a readable provider, native model control and compact labeled usage. Compact coverage remains missing.",
+      "verdict": "fail"
+    }
+  }
+}

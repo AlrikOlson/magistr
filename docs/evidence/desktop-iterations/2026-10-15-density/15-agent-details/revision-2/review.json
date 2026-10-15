@@ -1,0 +1,18 @@
+{
+  "scope": "Align agent settings and usage in the details panel",
+  "limitations": "Headless WebKit with isolated observations. Native OS input, assistive technology and Rust command integration were not exercised.",
+  "images": {
+    "conversation--agent-details-desktop-dark.png": {
+      "sha256": "c7f74f8c9fdcf6ddddcbdefa334e40f55ef098db61148a91c0de3859bfb55a81",
+      "task": "Inspect configuration and usage with clear labels and compact controls.",
+      "observations": "Desktop usage fields are readable. Compact capture was rejected because the arrange selector matched the hidden Agent settings button instead of the details section. Qualify the section selector before acceptance.",
+      "verdict": "fail"
+    },
+    "conversation--agent-details-desktop-light.png": {
+      "sha256": "5afded66131400317f315860a4da03acbaa3c48587083413c1a8ffd75c0afbd8",
+      "task": "Inspect configuration and usage with clear labels and compact controls.",
+      "observations": "Desktop usage fields are readable. Compact capture was rejected because the arrange selector matched the hidden Agent settings button instead of the details section. Qualify the section selector before acceptance.",
+      "verdict": "fail"
+    }
+  }
+}

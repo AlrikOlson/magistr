@@ -121,3 +121,11 @@ export const FilePreviewOpen={parameters:{desktop:{...attachmentState,caption:"R
  verify:context=>{attachmentState.verify(context);context.expect(context.doc.querySelector("#composer .attachment details").open).toBe(true);},
 }}};
 
+async function showAgent(context){await openRelease(context);await context.userEvent.click(context.doc.querySelector("#toggle-details"));await context.waitFor(()=>context.expect(context.doc.querySelector("#session-detail").getClientRects().length).toBeGreaterThan(0));await new Promise(resolve=>context.window.requestAnimationFrame(()=>context.window.requestAnimationFrame(resolve)));context.doc.querySelector('#session-detail section[aria-label="Agent settings"]').scrollIntoView({block:"start"});}
+const agentState={caption:"Release conversation details showing agent configuration and reported usage",task:"Check the chosen agent, model, context use and spending.",arrange:showAgent,
+ verify:({doc,expect,visible})=>{expect(visible(doc,"#session-detail")).toBe(true);expect(doc.querySelector("#agent-provider").textContent).toBe("GitHub Copilot");expect(doc.querySelector("#context-value").textContent).toBe("9%");expect(doc.querySelector("#spending-value").getBoundingClientRect().bottom).toBeLessThanOrEqual(doc.defaultView.innerHeight);}};
+export const AgentDetails={parameters:{desktop:agentState}};
+export const UsageUnavailable={parameters:{desktop:{...agentState,caption:"Conversation details when the agent has not reported usage",task:"Distinguish unavailable usage from zero usage.",seed:seed=>{seed.frames[0].usage=null;},
+ verify:({doc,expect,visible})=>{expect(visible(doc,"#session-detail")).toBe(true);expect(doc.querySelector("#context-value").textContent).toBe("Not reported");expect(doc.querySelector("#context-meter").hidden).toBe(true);expect(doc.querySelector("#spending-value").getBoundingClientRect().bottom).toBeLessThanOrEqual(doc.defaultView.innerHeight);},
+}}};
+
