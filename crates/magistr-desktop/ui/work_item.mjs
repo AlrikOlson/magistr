@@ -1,4 +1,4 @@
-import { element,retainReading } from "./work_dom.mjs";
+import { element,retainReading,saveReading } from "./work_dom.mjs";
 import { addressKey } from "./context.mjs";
 import { readState } from "./work_records.mjs";
 import { renderDocument } from "./transcript.mjs";
@@ -75,6 +75,7 @@ export class RoadmapItemReader {
     [...this.root.querySelectorAll("[data-focus-key]")].find(node=>node.dataset.focusKey===previous.focus)?.focus({preventScroll:true});
   }
   open(address,id,revision){
+    this.originReading=saveReading(this.root);this.originReading.focus??="roadmap-open:"+id;
     this.close();this.active=true;this.address=address;this.id=id;this.originId=id;this.wanted=revision;this.originScroll=this.root.scrollTop;this.changed();return this.load(true);
   }
   observe(address,revision){

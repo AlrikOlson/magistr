@@ -17,5 +17,6 @@ export function renderRelations(item,{navigate,current}){
     }
     group.append(item[kind].length?list:element("p",empty,"roadmap-relation-empty"));section.append(group);
   }
+  const selected=element("div","","roadmap-relation-current");selected.setAttribute("aria-label","Selected work");selected.dataset.before=String(item.dependencies.length>0);selected.dataset.after=String(item.dependents.length>0);selected.append(element("span","This work"),element("strong",item.record.title),element("small",status[item.record.status]));section.append(selected);
   return section;
 }

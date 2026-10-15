@@ -60,11 +60,11 @@ test("04 related work shows counts and readable state rows",async({app})=>{
 });
 test("05 roadmap status and readiness remain distinct",async({app})=>{
   await openWork(app,"Roadmap");await app.setViewportSize({width:760,height:550});
-  await expect(app.locator(".roadmap-readiness-tag")).toHaveText(["Ready","Waiting for other work","Blocked"]);
-  await expect(app.locator(".roadmap-items")).toContainText("The release date needs approval.");
+  await expect(app.locator(".roadmap-lane>header h4")).toHaveText(["Ready","Waiting","Blocked"]);
+  await expect(app.locator(".roadmap-board")).toContainText("The release date needs approval.");
   for(const theme of ["dark","light"]){
     await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);
-    expect(await app.locator(".roadmap-items").evaluate(node=>node.scrollWidth-node.clientWidth)).toBeLessThanOrEqual(1);
+    expect(await app.locator(".roadmap-board").evaluate(node=>node.scrollWidth-node.clientWidth)).toBeLessThanOrEqual(1);
     await capture(app,"05-status-"+theme);
   }
 });
@@ -296,4 +296,14 @@ test("31 project work opens from the shell without admission and returns to the 
   await expect(app.locator("#workspace")).toBeVisible();await app.getByRole("button",{name:"Reasoning",exact:true}).click();await expect(app.getByRole("tab",{name:"Reasoning",exact:true})).toHaveAttribute("aria-selected","true");
   await app.keyboard.press("Escape");await expect(app.locator("#browse-reasoning-header")).toBeFocused();
   await capture(app,"31-conversation-compact");await app.setViewportSize({width:1280,height:820});await capture(app,"31-conversation-wide");await showProjects(app);await capture(app,"31-project-navigation");
+});
+test("32 roadmap board makes readiness and dependency navigation tangible",async({app})=>{
+  await openWork(app,"Roadmap");
+  for(const [width,height,size] of [[1280,820,"wide"],[760,550,"compact"]]){await app.setViewportSize({width,height});for(const theme of ["dark","light"]){await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);await capture(app,"32-board-"+size+"-"+theme);}}
+  const ready=app.getByRole("region",{name:"Ready work",exact:true});await ready.locator("summary").click();await ready.getByRole("button",{name:"Store conversations and drafts",exact:true}).click();
+  await expect(app.getByRole("heading",{name:"Store conversations and drafts",exact:true})).toBeFocused();await app.getByRole("button",{name:"Back to track",exact:true}).click();await expect(ready.getByRole("button",{name:"Store conversations and drafts",exact:true})).toBeFocused();
+  await app.getByRole("button",{name:"Restore the project conversation and draft",exact:true}).click();
+  for(const theme of ["dark","light"]){await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);await capture(app,"32-dependencies-"+theme);}
+  await app.getByRole("region",{name:"Required work",exact:true}).getByRole("button",{name:"Store conversations and drafts",exact:true}).click();await expect(app.getByRole("heading",{name:"Store conversations and drafts",exact:true})).toBeVisible();
+  for(const theme of ["dark","light"]){await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);await capture(app,"32-dependent-"+theme);}
 });
