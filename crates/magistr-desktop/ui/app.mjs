@@ -7,6 +7,7 @@ import { HistoryBrowser } from "./history.mjs";
 import { ConversationName } from "./conversation_actions.mjs";
 import { ProjectNavigation, ProjectDirectory } from "./navigation.mjs";
 import { WorkspaceLayout, ProjectRailLayout } from "./layout.mjs";
+import { AttemptRuler } from "./work_ruler.mjs";
 import { WorkPanel } from "./work.mjs";
 import { addressKey, targetKey, sameTarget } from "./context.mjs";
 import { Transcript } from "./transcript.mjs";
@@ -51,6 +52,7 @@ let configurationKey="";
 let requestsKey="",railKey="";
 const labels=new Map();let issuedLabel=0;
 const showError=error=>{$("error").textContent=error?.message??String(error);$("error").hidden=false;if(projectLayout.compact.matches&&projectLayout.open){projectLayout.show(false);$("error").focus();}};
+const attemptRuler=new AttemptRuler($("work-ruler"));
 const workPanel=new WorkPanel($,invoke,showError,renderWorkSummary);
 const conversationName=new ConversationName($,invoke);
 const clearError=()=>{$("error").hidden=true;};
@@ -88,6 +90,8 @@ document.addEventListener("pointerdown",event=>{
   if(!$("conversation-actions").contains(event.target))$("conversation-actions").open=false;
 });
 function renderWorkSummary(presentation,frame) {
+  attemptRuler.render(presentation.attempt,frame?.work?.phase?.kind);
+  $("work-attempt-label").textContent=frame?.work?.phase?.kind==="ended"?"Last attempt":"Current attempt";
   const summary=$("work-summary");
   summary.disabled=!frame?.target;
   summary.textContent=presentation.error?"Work needs attention":frame?.work||presentation.status==="Requesting work…"?presentation.status.replace(/[.]$/,""):"Planned work";
