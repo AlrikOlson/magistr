@@ -53,7 +53,7 @@ export class HistoryBrowser {
       let row=this.rows.get(record.id);
       if(!row) {
         const button=text("button",""),project=text("small",""),name=text("strong",""),meta=text("span","");
-        button.append(project,name,meta);row={button,project,name,meta,record};this.rows.set(record.id,row);
+        project.dataset.leadingIcon="folder";button.append(project,name,meta);row={button,project,name,meta,record};this.rows.set(record.id,row);
         button.onclick=()=>this.choose(row.record);
       }
       row.record=record;row.project.textContent=record.workspace.split(/[\\/]/).filter(Boolean).at(-1);
@@ -81,7 +81,8 @@ export class HistoryBrowser {
     this.$("history-name").textContent=historyName(record);this.$("history-project").textContent=record.workspace;
     const turns=record.turns==="unknown"?"Turns not reported":record.turns+(record.turns==="1"?" turn":" turns");
     const cost=record.cost==="unknown"?"Spending not reported":record.cost;
-    this.$("history-details").textContent=[record.provider,(record.ended_at?"Finished ":"Last saved ")+new Date(record.updated_at).toLocaleString(),turns,cost].join(" · ");
+    const saved=text("span",(record.ended_at?"Finished ":"Last saved ")+new Date(record.updated_at).toLocaleString());saved.className="history-saved-date";
+    this.$("history-details").replaceChildren(...[record.provider,turns,cost].map(value=>text("span",value)),saved);
     this.$("history-text").textContent=record.summary??"No reply summary was saved.";
   }
   update() {
