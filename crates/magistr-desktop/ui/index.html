@@ -77,14 +77,14 @@
         <div id="work-ruler" class="work-ruler" aria-hidden="true" hidden></div></div>
         <p id="work-detail"></p><p id="work-error" class="error" role="alert" hidden></p>
         <div class="work-actions">
-          <button id="work-next" aria-label="Work on next item" disabled><span class="run-size" aria-hidden="true">1</span><strong>Work on next item</strong><small>Run one item</small></button><button id="work-loop" aria-label="Start 10 items" disabled><span class="run-size" aria-hidden="true">10</span><strong>Start 10 items</strong><small>Run up to ten items</small></button>
+          <button id="work-next" disabled>Work on next item</button><button id="work-loop" disabled>Start 10 items</button>
           <button id="work-pause" data-leading-icon="pause" hidden>Pause after this item</button><button id="work-resume" data-leading-icon="arrow" hidden>Continue work</button>
           <button id="work-step" hidden>One more item</button><button id="work-abort" hidden>Finish item and stop</button>
         </div>
       </section>
       <section class="detail-section" aria-label="Agent settings">
         <h2>Agent</h2><p id="agent-provider"></p><div id="agent-configuration"></div><p id="model">Model information is unavailable.</p>
-        <div class="usage-summary"><div class="usage-metrics"><div class="context-metric"><span>Context used</span><div id="context-chart" class="context-chart" data-known="false"><span class="context-dial" aria-hidden="true"></span><strong id="context-value">Not reported</strong><div class="context-scale" aria-hidden="true"><span>0%</span><span>50%</span><span>100%</span></div></div><p id="usage"></p></div><div class="spending-metric"><span>Spending</span><strong id="spending-value">Not reported</strong></div></div><meter id="context-meter" aria-label="Context used" min="0" max="1" value="0" hidden></meter></div>
+        <div class="usage-summary"><div class="usage-metrics"><div class="context-metric"><span>Context used</span><div id="context-chart" class="context-chart" data-known="false"><strong id="context-value">Not reported</strong></div><meter id="context-meter" aria-label="Context used" min="0" max="1" value="0" hidden></meter><p id="usage"></p></div><div class="spending-metric"><span>Spending</span><strong id="spending-value">Not reported</strong></div></div></div>
         <p id="queue"></p><details class="agent-features"><summary>Agent capabilities</summary><p id="capabilities"></p></details>
       </section>
       <section class="detail-section" aria-label="Working copy">
