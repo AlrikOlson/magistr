@@ -1,5 +1,5 @@
 {
-  "receipt": "d2989466ae56479111d5b2f386482251f9f65f5cb97666177430ffac9523bcf4",
+  "receipt": "18d15b3df77ab7f1c1112613bf8bf16d9de9841dcada138b24fa23fb44e8619d",
   "images": {
     "welcome-dark.png": "dbeb5de57311812ef5a669f046708a23927e7504e74d686194bb801dfd5b8dff",
     "welcome-light.png": "c77e2e937e8f1e98e3061d94a5bb15c40abbcda679712e2d99ed503e54c54991",
@@ -16,10 +16,10 @@
     "work-paused-dark.png": "4e51b18b6419b26918f0db2c8611b0f944b871f16e6b572997dc84d2a4bc0dc3",
     "inspector-dark.png": "897d86e85f0204b70068ec10116a93410a98d3b605d465813bb1563cd32f3442",
     "inspector-unknown-dark.png": "899a726f2c53500006f5b80e88f459376a99edcaee0327c2f2b1cd3b6f44ce42",
-    "history-dark.png": "71c27feb1b20629c4c9d16d474fedf0dc6f59fe2040f2cdccf8aeb530d0074ff",
-    "history-reading-dark.png": "a242ebbe4a469845eacf490ee6e420a2b7ceaba486ceb266f268ef01958ccfbf",
-    "history-narrow-light.png": "1c721a49573ac1b4f3646d78d5e57a0357d0a3e3e220d2f9c641b7bb02564886",
-    "history-reading-narrow-light.png": "2d8643a8a517144dff3dd762b8ad6cf9055781519830d07046f338c2dd9e5416",
+    "history-dark.png": "7bf368b932dc6fbca9398ea0a6a75d462cbd8be38f0571907261871d9e089dbc",
+    "history-reading-dark.png": "21c10666e1c4523f8adda273a84b029ac0dd16ca88236054424d2d17b1a4b407",
+    "history-narrow-light.png": "8e891881fb9805e67742d7054850f97bd23ce22eb7a1d832697178dc8e68627d",
+    "history-reading-narrow-light.png": "3cf7236470910276dd5e358cecc92fb080c7ef64ecc240b35d3cb714b2d33f66",
     "setup-narrow-light.png": "94ebde2192668d16d99222fdc22e1a1ab384a79fb12f11cb2e143ef33bbf877e",
     "open-project-dark.png": "89d440d5fd9cbf19ab8ebf2fc37674ca2fed162cd6e91295517fc5a526293f8f",
     "setup-dark.png": "62412120a44218b5ac82796adc78d5b67a45ddee0328967564d1b862957b2bbf",
@@ -33,7 +33,7 @@
     "code-light.png": "ae425f2052fef41bf894a7f1d5e6d25427292e8cf471fa68001fd391cd13a83b",
     "tools-light.png": "4bba67c352198e69e6d6e83e69d27c77d3a504c939969ffab90211e6962230cc",
     "tools-dark.png": "b79874dc79f7147ba1ee5a831b0d3fc33ba1f01a5ba762f07a0ab3a9673af29d",
-    "attachments-dark.png": "bd3028c67e4d4d9f03175709bb9ab8812e1c4c9c1f52f31d85ed6edda0af6a72",
+    "attachments-dark.png": "c120bedbaebe08df88096204bf10530f437594cba7d7f357447e6997b05c4ef0",
     "image-inspection-dark.png": "51b96116ccbe5ba890c09877e00d02ed6ba8fd44f410a0dd2e3bd53f130f2091",
     "attachments-narrow-light.png": "47056e5b7fba232ed00f74c0c49fb688f8ce52c115b711957ca27ac686b0ff32",
     "request-narrow-light.png": "cb72a0a32dea45a851309596729d72fb59b5c024c49053530df02119ee42b544",
@@ -50,8 +50,8 @@
   },
   "reviewed_on": "2026-10-15",
   "findings": [
-    "Project setup review now has a stronger file directory, large selected-file heading and a contained source sheet with actual added/removed line counts. Reviewed dark and narrow light captures.",
-    "Seven focused project/workspace WebKit checks passed, including exact diff text, independent file approval and accessible actions in short windows.",
+    "The saved conversation archive now shows readable reply excerpts in its index, a larger title, aligned saved facts and a distinct unsent-message surface. Reviewed dark and narrow light captures.",
+    "Six focused history/workspace WebKit checks passed, including save failures, retries, preserved drafts during filtering and fixed short-window actions.",
     "Headless WebKit only; native input and assistive technology not exercised. Native workflow recording remains unavailable."
   ]
 }
