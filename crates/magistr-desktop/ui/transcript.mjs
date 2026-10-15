@@ -54,7 +54,8 @@ export class Transcript {
     this.places=new Map();this.selectedPlace=null;this.readingAnchor=null;this.size=null;
     this.gap=element(this.document,"p","Some earlier messages are unavailable.");this.gap.className="gap";this.gap.setAttribute("role","status");
     this.empty=element(this.document,"div");this.empty.className="empty";
-    this.empty.append(element(this.document,"h2","What would you like to work on?"),element(this.document,"p","Send a message to start a conversation in this working copy."));
+    const emptyIcon=element(this.document,"span");emptyIcon.className="empty-mark";emptyIcon.dataset.icon="chat";emptyIcon.setAttribute("aria-hidden","true");
+    this.empty.append(emptyIcon,element(this.document,"h2","What would you like to work on?"),element(this.document,"p","Write a message below. Add files if they’ll help explain what you need."));
     this.document.addEventListener("selectionchange",()=>{
       if(selectedWithin(this.document.getSelection(),this.root)){this.following=false;this.selectedPlace=captureSelection(root);}
       else if(root.contains(this.document.activeElement))this.selectedPlace=null;
