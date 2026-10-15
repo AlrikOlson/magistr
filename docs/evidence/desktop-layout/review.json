@@ -1,5 +1,5 @@
 {
-  "receipt": "2e5e9153d13cf8b30eb90d0c7aa4e2ac6a35ea713990de1fcbf9cef9584133b3",
+  "receipt": "da91685ae88ba9a54589a1e86522e2b228f846f607c0f5604a322ecb342bea36",
   "images": {
     "welcome-dark.png": "dc232490ea5d7805bfbce4a7b8c75ac278f863bd7e10b03b83f578f5c0b5fff6",
     "directory-dark.png": "816f80f48a1a180971803d1886c44e0b3fef86738f63d9942c3f157969889b02",
@@ -39,7 +39,7 @@
     "tools-light.png": "a9e6f021da1667c549210062370f72ba3a49a4bc2135413a300421b37b8d5cf8",
     "tools-dark.png": "3ca1594e069f9d08cc6609f47018d57110422863011f88eb81b8c35a5a2767fa",
     "attachments-dark.png": "4331ef63d8942c3c40c143d7e932286e023fda419bc7cf68654c71c0da05f7f7",
-    "image-inspection-dark.png": "fcf6d77882176e1204296a5032a40ebdf302990f95f542b6bcc920dbf0bd479d",
+    "image-inspection-dark.png": "9c1e6092953d0db057afdfe11240b039dc15ea3d73e4bb149c662a855a8ec85f",
     "attachments-narrow-light.png": "08f7cf69375d0d9ebc18beac3481ac3a5f06b87a886bf756830997b12b4988f4",
     "request-narrow-light.png": "4356be34f19c3a92db11b5698d4e50edbd8dbfcec69fd3909a0430faeb675963",
     "request-dark.png": "d9f976a92497bf2ba5c6c805731c1967d97ab4933b5091669c9bdd7450bf2d94",
@@ -72,12 +72,12 @@
     "editorial-dark.png": "7051ea4d806837a4f9abd29ab909e3950932d36b732a8b43ba1ff7bfc711c3be",
     "editorial-light.png": "c417512adfc06f3488a5374fc2dd652f6c42c34013e65ac81e5db62201fd2198",
     "editorial-compact.png": "23ab9728fc5e7ac54c56cd0f99dbb6c451ed0111335c194ab731f213b04e51e8",
-    "gallery-dark.png": "ca043a5e11064e7b1367711f696722047dff1ef12ef11b1d59f745e2434f29be",
-    "gallery-light.png": "195b5ed61bd5286f94576685f5c06996656ded1a12f6a1c47520828bd96229ba",
-    "gallery-compact.png": "fa2ffe41a933837f3e1cd2e23895a3c6cc024bfec9b6dc87ec6b7b9a30d8ed7c",
-    "image-stage-dark.png": "a82872dc627794e01dafaa8366a3aaf01ea5c44f9d397ee9a7018e16147a9296",
-    "image-stage-light.png": "91854526077942dfb6154578c9f08c1273d318c259cbcd6677f1d10953dc3473",
-    "image-stage-compact.png": "4ccf9fba3c88d09482ae5b7bd56cf96656c318db5acc5f89952c0cf14ddf25e5",
+    "gallery-dark.png": "dd4bc03ae8c9a0a31aa18b9cfbff8517cde4bec9206d94721dae4549eb742e92",
+    "gallery-light.png": "30ccc6d528d1d064ca3d335c5621f19c0ac9eef1568151332f45293ed9d3c22d",
+    "gallery-compact.png": "4cd38765bcefaa718b4a7fa0f664262e5e0eaa2c07a12aa831f5d65005dfcdee",
+    "image-stage-dark.png": "d5b3ee3de32f049cb66072b34656cb453bb51339995467283b07ae4e22263e32",
+    "image-stage-light.png": "c25d8ca62ff275f221d05bfa27b4731a0cb2aa04964d90fa88eff7523cacc2b2",
+    "image-stage-compact.png": "9a55e1de42876b39168ed1d4837be8cbb7fb013905ce90cdbca8fd44312daab1",
     "writing-dark.png": "a00d96683d6521ef69c3961db9285692c1f1b852c9abbd238a4544b51b6f06bd",
     "writing-light.png": "dd6ad4345912bceb22a6e5e29362c01b00f935eccbe2aada643c201ae6163099",
     "writing-compact.png": "64cc4575db67289b8e917372f86991b9c4233c1061375b6e5660925371c7d883",
@@ -98,10 +98,10 @@
     "workspace-compact-long-title.png": "5c765037041647d48df56954a99529108d1b19a55f086793aca708e3bd8f79ac"
   },
   "inspected": [
-    "request-dark.png",
-    "permission-dark.png",
-    "permission-compact.png"
+    "gallery-dark.png",
+    "image-stage-dark.png",
+    "image-stage-compact.png"
   ],
-  "notes": "Reviewed amber request sheets, framed typed details, equal-weight choices and the compact side-by-side decision layout. Corrected the evidence scene to align tall request sheets at their beginning instead of cropping the header. Exact source copy and addressed deny action pass.",
+  "notes": "Reviewed the document/image gallery, dark inspection background with labeled filmstrip, and compact 200% inspection with reachable controls. Source image bytes and exact dimensions remain owned by attachment records. Seven focused WebKit checks passed.",
   "native_limit": "Background WebKit only; native input and assistive technology not exercised."
 }

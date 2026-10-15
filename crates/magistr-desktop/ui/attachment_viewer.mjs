@@ -86,7 +86,8 @@ class AttachmentViewer {
       const button=this.document.createElement("button"),image=this.document.createElement("img");
       button.type="button";button.setAttribute("aria-label","Inspect "+file.name);
       button.setAttribute("aria-pressed",String(file.id===this.file?.id));
-      image.src=file.preview;image.alt="";button.append(image);button.onclick=()=>this.show(file);return button;
+      const caption=this.document.createElement("span");caption.textContent=file.name;caption.setAttribute("aria-hidden","true");
+      image.src=file.preview;image.alt="";button.title=file.name;button.append(image,caption);button.onclick=()=>this.show(file);return button;
     }));
     if(focused)[...this.strip.children].find(button=>button.getAttribute("aria-label")===focused)?.focus();
   }
