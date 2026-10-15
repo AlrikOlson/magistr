@@ -104,3 +104,23 @@ export async function outlineScene(app,capture,expect){
   await app.locator("#transcript").evaluate(node=>node.scrollTop=0);
   await capture("contents-compact.png");
 }
+export async function editorialScene(app,capture,expect){
+  await showDocument(app,[
+    {tag:"h2",start:0,text:"A dependable place to work"},
+    {tag:"blockquote",start:1,children:[{tag:"p",start:2,text:"The draft should still be there when I return. I should never have to wonder whether my message was saved."}]},
+    {tag:"ul",start:3,children:[
+      {tag:"li",start:4,children:[{tag:"task",checked:true,start:4},{tag:"text",text:"Preserve the draft before switching",start:5}]},
+      {tag:"li",start:6,children:[{tag:"task",checked:false,start:6},{tag:"text",text:"Review the release evidence",start:7},
+        {tag:"ul",start:8,children:[{tag:"li",start:9,text:"Check the desktop at its smallest supported window."},{tag:"li",start:10,text:"Confirm both light and dark appearances."}]}]}
+    ]}
+  ],905);
+  await expect(app.getByRole("img",{name:"Completed",exact:true})).toHaveCount(1);
+  await expect(app.getByRole("img",{name:"Not completed",exact:true})).toHaveCount(1);
+  await expect(app.locator(".message-body input")).toHaveCount(0);
+  await appearances(app,capture,"editorial");
+  await app.setViewportSize({width:760,height:550});
+  await app.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+  await app.locator("blockquote").evaluate(node=>node.scrollIntoView({block:"start"}));
+  expect(await app.evaluate(()=>document.documentElement.scrollWidth)).toBe(760);
+  await capture("editorial-compact.png");
+}
