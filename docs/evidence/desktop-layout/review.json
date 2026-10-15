@@ -1,5 +1,5 @@
 {
-  "receipt": "350b26ae260555f24e5ce2be046bf152c97545bc15f8cf9e6b270ff4b6fcc65f",
+  "receipt": "e4ce5332016b94d502664887b852aee4009ae6d4176884edcc3cf5600e6dfdb3",
   "images": {
     "welcome-dark.png": "196f05ebfbcfdacf73fe8a82ad187b73837dfd801f2a1e47c59f5c0863f9b216",
     "project-map-dark.png": "9bfb53f79bb4c5bc20d428239f65e12e83ca95825579c550ca0c522b2cdf9efe",
@@ -18,7 +18,7 @@
     "inspector-narrow-light.png": "ac07fd6fb2215d34ef88fc78cfafa6aae65867632b9df398328afafb583f27d1",
     "rename-light.png": "ad0f5715491f15f2235ddf8073d2a57d6e759c2e3c7dfec75dd8e85256403e27",
     "work-paused-dark.png": "a79d02738979c74cd380bb907ac98b612d4d5640c60c212454c63c40c9b0a372",
-    "work-plan-dark.png": "01970fa966adf8d2c657f1c207177240b6b1c9b33c5f286c8713fe3e11f851be",
+    "work-plan-dark.png": "b02da8d27490cf87a699ee61d7e9349794f3ab591d1aec395d96635ecef84403",
     "roadmap-dark.png": "fb43410fb6d36dc3ea5581ee0702464a3e5f03ad724a58561759b1480cee2dae",
     "roadmap-item-dark.png": "f69faa7b090139fbe2a3021a67e3680b673e3796051fecb0e0a7aea6c9319c64",
     "roadmap-dependency-dark.png": "5b217b4d195f14fab2264632508d11664c32628669ae5c1dcf0230d1c4852a5a",
@@ -35,13 +35,14 @@
     "feedback-research-dark.png": "522cd46c3a93068be90702a3d438f0d20d0f026bcc70e61f92d5eefbeebd8533",
     "feedback-linked-reasoning-dark.png": "66bc56ccce7a215b06250a2e52096fbaa611919584a724a1aa1992b8a9bf88f2",
     "feedback-search-dark.png": "3724588eeb00e63f8d8c8e436f67b13ad51d3111530d414461f735a717254369",
-    "work-check-results-dark.png": "9e2d055308a823d3a6d37491df164814a95a1e9864f1b8a5c2754bc277f2221a",
-    "work-activity-dark.png": "bccbdf70016a5b774a16c853b17805351404c14daef042a79f218f7eac4ad7aa",
-    "saved-work-dark.png": "6e1f82985f535d619d3ce57cbeb5f9af01ba02d695d5d68039aefed0b0e4cc16",
-    "work-plan-light.png": "cda0bfac441552f976ac45809ff2ec7df9f8f053180c28aa587e944dc3113b51",
+    "work-check-results-dark.png": "ae0d4cce5b1951f8a32d4c8d2c794c439155168bfd00d6d91b021fe9f7283157",
+    "work-activity-dark.png": "2f6484ba1a14d0a7096631403846b5eb948310c16b34373006252ba3af68806b",
+    "saved-work-dark.png": "0d2e163e1b936b3243c55b4956316394cfcb78c64ea417681fa744ff15abcc5e",
+    "work-history-search-dark.png": "e14c2601acca46132cc74760c9cde8918f0d83c1cbdac14f471b1d13adaeccfd",
+    "work-plan-light.png": "1739294096cde4f247412f6805b97702fe64bce2142ca4d2320efc06a4c043c5",
     "roadmap-light.png": "ab690a397d7f0011f4553557d1635af9954db08129f8edc608a41633e336490e",
     "roadmap-minimum.png": "607f859165dc5034d3f213bef6fe5e96fc06b63749bf1a2fae3d3986290c72e8",
-    "work-plan-minimum.png": "20c8a2067a0f93717932a9ceb186f37157d5e0f314c046e2a1adce50e775543b",
+    "work-plan-minimum.png": "7b0c393fef2906ab0d20ddefd250c4c05d25a9c51cfda9b373c8df4f708c8152",
     "inspector-dark.png": "89564c80e02d674b79bfbadf60cb4ffdef3e62bfe218c2aecf69b805fda729ff",
     "inspector-light.png": "8ea0d6264d1f3294624ec0abfd8637392848ab053fd5b2ac52937f132574666c",
     "inspector-unknown-dark.png": "90ddd2b7f563656b430918be102a28456a40ba7538432751a31110273522e430",
@@ -86,8 +87,8 @@
     "tables-light.png": "f1ee7ca0d66b2ab049e102a5bf9eb913977a71af18cf69c1cfc455e2ac86a4d6",
     "tables-compact.png": "b1c7232dec5db4be377871717ae0afd88381fd249f80687d6584e96f1c1259e7",
     "patch-dark.png": "e6ec8f194f3cd7b2691b07fa62b5933fdb8977eefcb06d1c5e5ed91f1b909576",
-    "patch-light.png": "33f3fd57018e64e902e8723ccb08fb22d0a6855e6d17d2537414d840347f138f",
-    "patch-comparison-dark.png": "8edf37365b50aff39946cf5809a46d44688184607a82aef16e7022200911ea3b",
+    "patch-light.png": "230ca8e1f26d52819aa7d2d5e54e02219c8b92e8ad3aee538e14738ac6d4122d",
+    "patch-comparison-dark.png": "b123658d32478531751b0e243cd888d45c5ae76cf574684ac796a431a0d6f15b",
     "patch-comparison-light.png": "2b35fd51750c85d77a7221e03aa248a673114c020aef393a2ead679d71e657ae",
     "patch-compact.png": "d1db1219b8836a04a58914ef5b60b8fbe510d67125715b8994f322c5b3781fa5",
     "result-dark.png": "ecc4b3b89cf52b424edaf6da03933083eae4bbbbb8e89fa72cf7d1ad51b88760",
@@ -126,8 +127,8 @@
     "workspace-compact-long-title.png": "5a9d1fe895fa847cb572d4dfd44aaf7a1102666f6e8ac77b3d494f1c7569f91d"
   },
   "inspected": [
-    "roadmap-proposal-dark.png"
+    "work-history-search-dark.png"
   ],
-  "notes": "Reviewed the suggestion card with actual and suggested status visible, including the full reason and copyable source. Suggestions are explicitly distinguished from accepted plan changes.",
+  "notes": "Reviewed current/saved execution search with clear objective titles and actual status. Checks cover complete historic output and exact run selection after a new objective starts.",
   "native_limit": "Current native OS-input, VoiceOver and live-provider behavior were not exercised."
 }

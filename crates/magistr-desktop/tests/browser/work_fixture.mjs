@@ -41,6 +41,8 @@ export async function workScene(app,capture){
   await activity.locator("summary").click();await app.locator("#work-browser-content").evaluate(node=>node.scrollTop=0);
   await app.getByLabel("Work to inspect",{exact:true}).selectOption("run:previous-run");
   await capture("saved-work-dark.png");
+  await app.getByLabel("Search work history",{exact:true}).fill("installer");await capture("work-history-search-dark.png");
+  await app.getByLabel("Search work history",{exact:true}).fill("");
   await app.getByLabel("Work to inspect",{exact:true}).selectOption("current");
   await app.getByRole("button",{name:"Close planned work",exact:true}).click();
   await app.getByRole("button",{name:"Settings",exact:true}).click();

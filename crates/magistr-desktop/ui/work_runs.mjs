@@ -12,13 +12,15 @@ export class WorkRuns {
     const retained=[...(data?.retained??[])].reverse();
     const options=[["current","Current work"],...retained.map(run=>["run:"+run.run_id,
       run.objective.description+" · "+statusLabel(run.objective.status)+(workDate(run.objective.created_at)?" · "+workDate(run.objective.created_at):"")])];
+    if(data?.current&&this.choice==="run:"+data.current.run_id)options.push([this.choice,data.current.objective.description+" · Selected work"]);
     if(!options.some(([key])=>key===this.choice))options.push([this.choice,"Saved work is no longer available"]);
     const keys=JSON.stringify(options);
     if(keys!==this.keys){
       this.select.replaceChildren(...options.map(([key,label])=>{const option=element("option",label);option.value=key;return option;}));
       this.keys=keys;this.select.value=this.choice;
     }
+    this.select.value=this.choice;
     this.select.disabled=!data;
-    return this.choice==="current"?data?.current:retained.find(run=>"run:"+run.run_id===this.choice);
+    return this.choice==="current"?data?.current:[...(data?.current?[data.current]:[]),...retained].find(run=>"run:"+run.run_id===this.choice);
   }
 }
