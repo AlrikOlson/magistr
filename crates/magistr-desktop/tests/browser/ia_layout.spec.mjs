@@ -47,3 +47,12 @@ test("03 roadmap checklist states are compact static marks",async({app})=>{
   await expect(app.locator(".roadmap-requirements>header .work-record-count")).toHaveText("1");
   await capture(app,"03-checklists");
 });
+test("04 related work shows counts and readable state rows",async({app})=>{
+  await openWork(app,"Roadmap");await app.getByRole("button",{name:"Restore the project conversation and draft",exact:true}).click();
+  await app.setViewportSize({width:760,height:550});
+  await expect(app.locator(".roadmap-relations header .work-record-count")).toHaveText(["1","0"]);
+  await app.locator(".roadmap-relations").scrollIntoViewIfNeeded();
+  await capture(app,"04-relations");
+  await app.getByRole("button",{name:"Store conversations and drafts",exact:true}).click();
+  await expect(app.getByRole("heading",{name:"Store conversations and drafts",exact:true})).toBeVisible();
+});
