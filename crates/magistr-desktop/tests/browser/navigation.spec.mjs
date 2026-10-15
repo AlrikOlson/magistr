@@ -103,3 +103,14 @@ test("a failed save returns from compact projects to the retained draft and visi
   await app.evaluate(()=>delete window.__fixture.handlers.save_draft);
 });
 
+test("appearance preview choices use the same saved preference and preserve motion",async({app})=>{
+  await app.getByRole("button",{name:"Settings",exact:true}).click();
+  await app.getByLabel("Reduce motion",{exact:true}).check();
+  await app.getByRole("button",{name:"Use light appearance",exact:true}).click();
+  await expect(app.getByLabel("Appearance",{exact:true})).toHaveValue("light");
+  await expect(app.getByRole("button",{name:"Use light appearance",exact:true})).toHaveAttribute("aria-pressed","true");
+  await expect(app.getByLabel("Reduce motion",{exact:true})).toBeChecked();
+  await app.getByRole("button",{name:"Use system appearance",exact:true}).click();
+  await expect(app.getByLabel("Appearance",{exact:true})).toHaveValue("system");
+  await expect(app.locator("html")).not.toHaveAttribute("data-theme");
+});

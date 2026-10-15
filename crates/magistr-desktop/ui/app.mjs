@@ -78,6 +78,7 @@ const switcher=new ConversationSwitcher($,{sessions:()=>sessions,selected:()=>se
 new KeyboardNavigation($,layout,projectLayout);
 $("open-settings").onclick=()=>{if(!document.querySelector("dialog[open]"))$("settings").showModal();};
 $("settings-close").onclick=()=>$("settings").close();
+for(const choice of document.querySelectorAll("[data-appearance-choice]"))choice.onclick=()=>preferences.change({theme:choice.dataset.appearanceChoice,reduce_motion:$("reduce-motion").checked});
 $("settings").onclose=()=>$("open-settings").focus();
 $("agent-quick-settings").onclick=()=>{layout.show(true,true);$("agent-configuration").querySelector("select")?.focus();};
 $("close-details").onclick=()=>{layout.show(false);$("toggle-details").focus();};
@@ -216,6 +217,7 @@ async function connectFileDrops() {
 function renderPreferences() {
   const value=preferences.value;
   $("theme").disabled=!value;$("reduce-motion").disabled=!value;
+  for(const choice of document.querySelectorAll("[data-appearance-choice]")){choice.disabled=!value;choice.setAttribute("aria-pressed",String(choice.dataset.appearanceChoice===value?.theme));}
   if(value) {
     $("theme").value=value.theme;$("reduce-motion").checked=value.reduce_motion;
     if(value.theme==="system")delete document.documentElement.dataset.theme;
