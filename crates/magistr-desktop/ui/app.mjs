@@ -344,7 +344,7 @@ function render(frame) {
   $("spending-value").dataset.known=String(frame.usage?.cost_cents!=null);
   const meter=$("context-meter"),known=usage.fraction!==null;
   $("context-chart").dataset.known=String(known);
-  $("context-chart").style.setProperty("--context-turn",(usage.fraction??0)*360+"deg");
+  $("context-chart").style.setProperty("--context-fill",(usage.fraction??0)*100+"%");
   meter.hidden=!known;
   if(known){meter.max=frame.usage.size;meter.value=frame.usage.used;meter.setAttribute("aria-valuetext",frame.usage.used.toLocaleString()+" of "+frame.usage.size.toLocaleString()+" context tokens");}
   $("model").hidden=(frame.configuration??[]).some(option=>option.id==="model");
