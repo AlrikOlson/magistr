@@ -91,11 +91,11 @@
 .work-checklist-state{display:inline-grid;place-items:center;width:18px;height:18px;font-size:13px;color:var(--muted)}.work-checklist-state[data-done=true]{color:var(--success)}.roadmap-requirements>header{display:flex;align-items:baseline;gap:8px}
 .roadmap-dependencies{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 20px}.roadmap-relations{margin:14px 0;padding:12px;background:var(--panel);border:1px solid var(--separator);border-radius:6px}.roadmap-relations>.roadmap-readiness{grid-column:1/-1}.roadmap-relations>section{min-width:0}
 .roadmap-relations section>header{display:flex;align-items:baseline;gap:8px;margin-bottom:6px}.roadmap-relations h4{font-size:12px;margin:0}.roadmap-relations ul{list-style:none;padding:0;margin:0}
-.roadmap-relations li{display:flex;align-items:baseline;justify-content:space-between;gap:8px 16px;flex-wrap:wrap;margin:0;padding:6px 0;border-top:1px solid var(--separator);font-size:12px}.roadmap-relations li>button{flex:1 1 170px}
+.roadmap-relations li{display:grid;grid-template-columns:minmax(0,1fr) minmax(70px,40%);align-items:baseline;gap:4px 12px;margin:0;padding:4px 0;border-top:1px solid var(--separator);font-size:12px}.roadmap-relations li>button{min-height:28px}
 .roadmap-relations button{text-align:left;background:transparent;border:0;color:var(--accent);padding:0;font-size:12px;line-height:1.5;white-space:pre-wrap}
-.roadmap-relations button:hover{text-decoration:underline}.roadmap-relation-state{display:block;color:var(--muted);font-size:11px;margin:0}
+.roadmap-relations button:hover{text-decoration:underline}.roadmap-relation-state{display:block;color:var(--muted);font-size:11px;line-height:1.5;margin:0}
 .roadmap-readiness{font-size:13px;line-height:1.6;color:var(--warning);margin:0}.roadmap-readiness[data-ready=true]{color:var(--success)}
-.roadmap-relation-empty{font-size:11px;color:var(--muted)}.roadmap-relations [data-available=false]{color:var(--warning)}
+.roadmap-relations [data-available=false]{color:var(--warning)}
 .work-status-family{margin-top:0;padding:12px 0;border-bottom:1px solid var(--separator)}.work-status>p{font-size:12px;color:var(--muted);margin-bottom:12px}.work-status-family .roadmap-content-facts{padding:0;border:0;margin:8px 0 0}
 .work-status-family>header{display:flex;align-items:center;justify-content:space-between;gap:12px}.work-status-family h4{flex:1;margin:0;font-size:13px}.work-status-family header button{font-size:11px;min-height:30px;padding:5px 8px}.work-status-result,.work-status-source{font-size:12px;line-height:1.7;color:var(--muted)}.work-status-family[data-current=false] .work-status-result{color:var(--warning)}.work-status-family .work-status-source{margin-top:4px}.work-status-family .source-result{max-height:240px;overflow:auto}
 .work-record-empty{padding:28px;color:var(--muted)}

@@ -1,0 +1,102 @@
+{
+  "scope": "Align required and dependent work",
+  "limitations": "Headless WebKit with isolated observations. Native OS input, assistive technology and Rust command integration were not exercised.",
+  "images": {
+    "roadmap--blocked-item-compact-dark.png": {
+      "sha256": "ee4f68be78f65bbb170a3f52dffbb647bf5dd58f0b53e723076d1600b5fdec6a",
+      "task": "Scan related work titles and statuses while retaining complete dependency context.",
+      "observations": "The approval reason remains prominent above two compact None rows. Removing repeated empty paragraphs reveals more of the next section; labels and values remain readable with adequate separation.",
+      "verdict": "pass"
+    },
+    "roadmap--blocked-item-compact-light.png": {
+      "sha256": "0e4e0f41f6e8c8aea6b318f9429d503be68a4e8f8bdd916edddc2d880eecddf3",
+      "task": "Scan related work titles and statuses while retaining complete dependency context.",
+      "observations": "The approval reason remains prominent above two compact None rows. Removing repeated empty paragraphs reveals more of the next section; labels and values remain readable with adequate separation.",
+      "verdict": "pass"
+    },
+    "roadmap--blocked-item-desktop-dark.png": {
+      "sha256": "4910668570e639bcd918ba8dc411ee760a2f6aac6a28784d00b582cd11ea4174",
+      "task": "Scan related work titles and statuses while retaining complete dependency context.",
+      "observations": "The approval reason remains prominent above two compact None rows. Removing repeated empty paragraphs reveals more of the next section; labels and values remain readable with adequate separation.",
+      "verdict": "pass"
+    },
+    "roadmap--blocked-item-desktop-light.png": {
+      "sha256": "a49eba9d30a660e146c4ab587b4892db79d1b027c80fbf5aa1a4b33346a4fae0",
+      "task": "Scan related work titles and statuses while retaining complete dependency context.",
+      "observations": "The approval reason remains prominent above two compact None rows. Removing repeated empty paragraphs reveals more of the next section; labels and values remain readable with adequate separation.",
+      "verdict": "pass"
+    },
+    "roadmap--dependent-item-compact-dark.png": {
+      "sha256": "59d90434e5e950b3976a82fe3cdd27afae4347de86033f805c09743c7f062049",
+      "task": "Scan related work titles and statuses while retaining complete dependency context.",
+      "observations": "The dependent item's full title wraps naturally in its own column, with Desktop · Planned aligned beside it. Required work is explicitly None. Back to previous item remains visible and the selected graph connection stays attached.",
+      "verdict": "pass"
+    },
+    "roadmap--dependent-item-compact-light.png": {
+      "sha256": "bf35007656df67240fb8b57e58d81dbafac0bae881ab708160645df74368fb2c",
+      "task": "Scan related work titles and statuses while retaining complete dependency context.",
+      "observations": "The dependent item's full title wraps naturally in its own column, with Desktop · Planned aligned beside it. Required work is explicitly None. Back to previous item remains visible and the selected graph connection stays attached.",
+      "verdict": "pass"
+    },
+    "roadmap--dependent-item-desktop-dark.png": {
+      "sha256": "05643d3fac008b40f9011dfa0c2956fada8d67cb377fa1294e23552f2c7657ee",
+      "task": "Scan related work titles and statuses while retaining complete dependency context.",
+      "observations": "The dependent item's full title wraps naturally in its own column, with Desktop · Planned aligned beside it. Required work is explicitly None. Back to previous item remains visible and the selected graph connection stays attached.",
+      "verdict": "pass"
+    },
+    "roadmap--dependent-item-desktop-light.png": {
+      "sha256": "3c07b2a307e88138ee0e2b4332fd45065e601cd517ff6fc2aeca71030f1943e1",
+      "task": "Scan related work titles and statuses while retaining complete dependency context.",
+      "observations": "The dependent item's full title wraps naturally in its own column, with Desktop · Planned aligned beside it. Required work is explicitly None. Back to previous item remains visible and the selected graph connection stays attached.",
+      "verdict": "pass"
+    },
+    "roadmap--missing-dependency-compact-dark.png": {
+      "sha256": "d15f88af01f3c02f5ac93176403aa92f0d0393e0810ecd626565a421c49c36f4",
+      "task": "Scan related work titles and statuses while retaining complete dependency context.",
+      "observations": "The missing prerequisite is a readable warning title beside its complete explanation, with no link styling or button. Waiting state and the empty dependent group fit above the description at compact size.",
+      "verdict": "pass"
+    },
+    "roadmap--missing-dependency-compact-light.png": {
+      "sha256": "f8a22bd00090b2cc35a34f72b0d87d89af4ba38760c0214a520284f834b4af79",
+      "task": "Scan related work titles and statuses while retaining complete dependency context.",
+      "observations": "The missing prerequisite is a readable warning title beside its complete explanation, with no link styling or button. Waiting state and the empty dependent group fit above the description at compact size.",
+      "verdict": "pass"
+    },
+    "roadmap--missing-dependency-desktop-dark.png": {
+      "sha256": "26bcf253cba8accf0e0edab84639236aba0c13924372064d34c975a0438bb24f",
+      "task": "Scan related work titles and statuses while retaining complete dependency context.",
+      "observations": "The missing prerequisite is a readable warning title beside its complete explanation, with no link styling or button. Waiting state and the empty dependent group fit above the description at compact size.",
+      "verdict": "pass"
+    },
+    "roadmap--missing-dependency-desktop-light.png": {
+      "sha256": "85a4682b0f04953b500ef708d6bf4fa36c8cd3081fce27133433ba76036549b1",
+      "task": "Scan related work titles and statuses while retaining complete dependency context.",
+      "observations": "The missing prerequisite is a readable warning title beside its complete explanation, with no link styling or button. Waiting state and the empty dependent group fit above the description at compact size.",
+      "verdict": "pass"
+    },
+    "roadmap--selected-item-compact-dark.png": {
+      "sha256": "15bdb8a7a400fb757e4c1728a30909fc89d385dd1773eb305618cd77a3e6d688",
+      "task": "Scan related work titles and statuses while retaining complete dependency context.",
+      "observations": "The completed prerequisite title and Platform · Completed status align in one compact row. The empty dependent group uses a clear None value, and the selected graph dependency remains visually distinct without crossing other items.",
+      "verdict": "pass"
+    },
+    "roadmap--selected-item-compact-light.png": {
+      "sha256": "b5ced91e5fc615fd5e0b35bdbd59e9e39ee9524fa7e17e9c9f537e0a21b2e937",
+      "task": "Scan related work titles and statuses while retaining complete dependency context.",
+      "observations": "The completed prerequisite title and Platform · Completed status align in one compact row. The empty dependent group uses a clear None value, and the selected graph dependency remains visually distinct without crossing other items.",
+      "verdict": "pass"
+    },
+    "roadmap--selected-item-desktop-dark.png": {
+      "sha256": "21316cd461e6b34465545637908c05efec437420c4ee4873843b4f67caabcca1",
+      "task": "Scan related work titles and statuses while retaining complete dependency context.",
+      "observations": "The completed prerequisite title and Platform · Completed status align in one compact row. The empty dependent group uses a clear None value, and the selected graph dependency remains visually distinct without crossing other items.",
+      "verdict": "pass"
+    },
+    "roadmap--selected-item-desktop-light.png": {
+      "sha256": "c8eddf5398791805ae1698d0f3977042ee12d3fc2b678ad6a23a6532e5215167",
+      "task": "Scan related work titles and statuses while retaining complete dependency context.",
+      "observations": "The completed prerequisite title and Platform · Completed status align in one compact row. The empty dependent group uses a clear None value, and the selected graph dependency remains visually distinct without crossing other items.",
+      "verdict": "pass"
+    }
+  }
+}
