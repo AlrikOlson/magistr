@@ -280,3 +280,16 @@ test("composer leaves reading room and expands the same draft",async({app})=>{
   expect((await draft.boundingBox()).height).toBeGreaterThan(400);
   await capture(app,"27-expanded-composer");
 });
+
+test("settings keeps compact previews and reachable controls",async({app})=>{
+  await app.getByRole("button",{name:"Settings",exact:true}).click();
+  expect((await app.locator(".appearance-comparison").boundingBox()).height).toBeLessThan(155);
+  await app.getByRole("button",{name:"Use light appearance",exact:true}).click();
+  await expect(app.getByLabel("Appearance",{exact:true})).toHaveValue("light");
+  await capture(app,"28-settings");
+  await app.setViewportSize({width:760,height:550});
+  await expect(app.getByRole("button",{name:"Done",exact:true})).toBeInViewport();
+  await app.getByLabel("Reduce motion",{exact:true}).check();
+  await expect(app.getByLabel("Reduce motion",{exact:true})).toBeChecked();
+  await capture(app,"28-settings-compact");
+});
