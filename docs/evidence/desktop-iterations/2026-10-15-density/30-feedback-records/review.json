@@ -1,0 +1,150 @@
+{
+  "scope": "Improve feedback browsing and detail hierarchy",
+  "limitations": "Headless WebKit with isolated observations. Native OS input, assistive technology and Rust command integration were not exercised.",
+  "images": {
+    "feedback--dense-list-compact-dark.png": {
+      "sha256": "91e89c02ce1909939771737b1757f645cb7a4c0e13e8b62a8f77ea8cee4a7e96",
+      "task": "Scan feedback, inspect its evidence and return without excessive summary text.",
+      "observations": "Kind/title/status columns align and remain legible in both appearances. The caption claims wrapping titles, but this frame does not demonstrate wrapping; correct the caption and recapture.",
+      "verdict": "fail"
+    },
+    "feedback--dense-list-compact-light.png": {
+      "sha256": "20c8fc00b8a723c84fef3d4a74f593d0a67f241b47c804b915db9e89dcba5dc4",
+      "task": "Scan feedback, inspect its evidence and return without excessive summary text.",
+      "observations": "Kind/title/status columns align and remain legible in both appearances. The caption claims wrapping titles, but this frame does not demonstrate wrapping; correct the caption and recapture.",
+      "verdict": "fail"
+    },
+    "feedback--dense-list-desktop-dark.png": {
+      "sha256": "fa9cd9b9dd705c929953db309e99bd5f6c6e9306d5d80ba52aea58b2e5d4d8a3",
+      "task": "Scan feedback, inspect its evidence and return without excessive summary text.",
+      "observations": "Kind/title/status columns align and remain legible in both appearances. The caption claims wrapping titles, but this frame does not demonstrate wrapping; correct the caption and recapture.",
+      "verdict": "fail"
+    },
+    "feedback--dense-list-desktop-light.png": {
+      "sha256": "a14d7c36a4aadc0c25ad60b54ec26f02ff8b676e6b651623887ad40b0ac38a21",
+      "task": "Scan feedback, inspect its evidence and return without excessive summary text.",
+      "observations": "Kind/title/status columns align and remain legible in both appearances. The caption claims wrapping titles, but this frame does not demonstrate wrapping; correct the caption and recapture.",
+      "verdict": "fail"
+    },
+    "feedback--no-research-compact-dark.png": {
+      "sha256": "2e1684715cedb28cbb6ceccc912245abb5064989f7e22e5c54ff86ebc827d855",
+      "task": "Scan feedback, inspect its evidence and return without excessive summary text.",
+      "observations": "The short idea is repeated verbatim as heading and Feedback body, consuming an unnecessary section. Research None is readable. Blocking duplicate content; revise and recapture.",
+      "verdict": "fail"
+    },
+    "feedback--no-research-compact-light.png": {
+      "sha256": "e01df61cba0f3ced21c6729a3d6c174da039e7247321a01193a3a938f0c9e083",
+      "task": "Scan feedback, inspect its evidence and return without excessive summary text.",
+      "observations": "The short idea is repeated verbatim as heading and Feedback body, consuming an unnecessary section. Research None is readable. Blocking duplicate content; revise and recapture.",
+      "verdict": "fail"
+    },
+    "feedback--no-research-desktop-dark.png": {
+      "sha256": "7120e3bbe73a7d0b0d3886a3887b610a9b33f0e3646b8353e899d2cf8d0c3c0f",
+      "task": "Scan feedback, inspect its evidence and return without excessive summary text.",
+      "observations": "The short idea is repeated verbatim as heading and Feedback body, consuming an unnecessary section. Research None is readable. Blocking duplicate content; revise and recapture.",
+      "verdict": "fail"
+    },
+    "feedback--no-research-desktop-light.png": {
+      "sha256": "6949c74699b900913c5741bd7dbfc3c1abb52a334d6ffe0ac000fb64d14369a4",
+      "task": "Scan feedback, inspect its evidence and return without excessive summary text.",
+      "observations": "The short idea is repeated verbatim as heading and Feedback body, consuming an unnecessary section. Research None is readable. Blocking duplicate content; revise and recapture.",
+      "verdict": "fail"
+    },
+    "feedback--no-results-compact-dark.png": {
+      "sha256": "4831549352b4f3769386243d921d443e15920303213d23e59b1df3a407561f74",
+      "task": "Scan feedback, inspect its evidence and return without excessive summary text.",
+      "observations": "Search value, clear action and no-matches message are visible with no overlap. Iteration remains failed for other affected feedback states.",
+      "verdict": "fail"
+    },
+    "feedback--no-results-compact-light.png": {
+      "sha256": "320aa268e1eb430f8babb216d87cfe2db4f96d0c86736202ffba4e0ba2ffd5f5",
+      "task": "Scan feedback, inspect its evidence and return without excessive summary text.",
+      "observations": "Search value, clear action and no-matches message are visible with no overlap. Iteration remains failed for other affected feedback states.",
+      "verdict": "fail"
+    },
+    "feedback--no-results-desktop-dark.png": {
+      "sha256": "917a4b4481e9493821693c2ad3a704241a8dc730706bcc9fbc700d878919dfce",
+      "task": "Scan feedback, inspect its evidence and return without excessive summary text.",
+      "observations": "Search value, clear action and no-matches message are visible with no overlap. Iteration remains failed for other affected feedback states.",
+      "verdict": "fail"
+    },
+    "feedback--no-results-desktop-light.png": {
+      "sha256": "262beb06b9e470fa1b4469f8a1b3d6f6c3be52f5733fcf3a83adf229e8ec5537",
+      "task": "Scan feedback, inspect its evidence and return without excessive summary text.",
+      "observations": "Search value, clear action and no-matches message are visible with no overlap. Iteration remains failed for other affected feedback states.",
+      "verdict": "fail"
+    },
+    "feedback--overview-compact-dark.png": {
+      "sha256": "41fd722a297147003a4d7c6d0b6858339ac3ab2f66eb4e53360e930472404f11",
+      "task": "Scan feedback, inspect its evidence and return without excessive summary text.",
+      "observations": "Two records have legible kind and status badges with aligned titles and authors. Iteration remains failed for duplicate short feedback and research spacing.",
+      "verdict": "fail"
+    },
+    "feedback--overview-compact-light.png": {
+      "sha256": "388196645d5cabdf7a47c4553c7aa15debedae393c481a612c766272fe7cca7c",
+      "task": "Scan feedback, inspect its evidence and return without excessive summary text.",
+      "observations": "Two records have legible kind and status badges with aligned titles and authors. Iteration remains failed for duplicate short feedback and research spacing.",
+      "verdict": "fail"
+    },
+    "feedback--overview-desktop-dark.png": {
+      "sha256": "b1b8f89212ef7711869220f7474f28e8e48549442367933b7f262c0e0e54a749",
+      "task": "Scan feedback, inspect its evidence and return without excessive summary text.",
+      "observations": "Two records have legible kind and status badges with aligned titles and authors. Iteration remains failed for duplicate short feedback and research spacing.",
+      "verdict": "fail"
+    },
+    "feedback--overview-desktop-light.png": {
+      "sha256": "2c2bdc078040c6434c4bbbcfecfeb8a5cdc011a72fa698d37b14b72155653e16",
+      "task": "Scan feedback, inspect its evidence and return without excessive summary text.",
+      "observations": "Two records have legible kind and status badges with aligned titles and authors. Iteration remains failed for duplicate short feedback and research spacing.",
+      "verdict": "fail"
+    },
+    "feedback--research-compact-dark.png": {
+      "sha256": "cce7682282ed719a0a0c96b598d4fbff322de7d0fca529b657e829f2d1300e9f",
+      "task": "Scan feedback, inspect its evidence and return without excessive summary text.",
+      "observations": "Expanded note, reasoning link and both source references are visible without clipping. Source heading has an oversized gap before its first reference and note metadata lacks the inner inset; tighten the research presentation.",
+      "verdict": "fail"
+    },
+    "feedback--research-compact-light.png": {
+      "sha256": "4ac7bfeacb85acf6f42d89f751d461531e8cec51ba3ea1bf0dd233a23a8dbdd9",
+      "task": "Scan feedback, inspect its evidence and return without excessive summary text.",
+      "observations": "Expanded note, reasoning link and both source references are visible without clipping. Source heading has an oversized gap before its first reference and note metadata lacks the inner inset; tighten the research presentation.",
+      "verdict": "fail"
+    },
+    "feedback--research-desktop-dark.png": {
+      "sha256": "32b3cdeb88afed041b2b4c65dd4d3bd81cbf3122030cdcfe17d434d4032adcf7",
+      "task": "Scan feedback, inspect its evidence and return without excessive summary text.",
+      "observations": "Expanded note, reasoning link and both source references are visible without clipping. Source heading has an oversized gap before its first reference and note metadata lacks the inner inset; tighten the research presentation.",
+      "verdict": "fail"
+    },
+    "feedback--research-desktop-light.png": {
+      "sha256": "f4f460d0832643486b01b66b8b3a97a02d5e98f09054a4be32ed4e99b24efe94",
+      "task": "Scan feedback, inspect its evidence and return without excessive summary text.",
+      "observations": "Expanded note, reasoning link and both source references are visible without clipping. Source heading has an oversized gap before its first reference and note metadata lacks the inner inset; tighten the research presentation.",
+      "verdict": "fail"
+    },
+    "feedback--selected-compact-dark.png": {
+      "sha256": "e7e385f25f452f7213824711be1ba01aa1efe8483cd65d078ea519382f25f0c8",
+      "task": "Scan feedback, inspect its evidence and return without excessive summary text.",
+      "observations": "Original request, author, expected behavior and checklist remain readable; compact frame scrolls to related work below the fold. Focus stays on the selected title. This iteration still fails for duplicate short feedback and research spacing.",
+      "verdict": "fail"
+    },
+    "feedback--selected-compact-light.png": {
+      "sha256": "95853d1bf9361b71f78814ada805bf71c8905cc6f82dee933401b50c6e9b8b42",
+      "task": "Scan feedback, inspect its evidence and return without excessive summary text.",
+      "observations": "Original request, author, expected behavior and checklist remain readable; compact frame scrolls to related work below the fold. Focus stays on the selected title. This iteration still fails for duplicate short feedback and research spacing.",
+      "verdict": "fail"
+    },
+    "feedback--selected-desktop-dark.png": {
+      "sha256": "c6dad395eac49c00cc0863fd8e89d487eabf4801da1f137eb96ebd735db1dc56",
+      "task": "Scan feedback, inspect its evidence and return without excessive summary text.",
+      "observations": "Original request, author, expected behavior and checklist remain readable; compact frame scrolls to related work below the fold. Focus stays on the selected title. This iteration still fails for duplicate short feedback and research spacing.",
+      "verdict": "fail"
+    },
+    "feedback--selected-desktop-light.png": {
+      "sha256": "22475b18e6b9c7370cd7575a3602cf055cbadf3e5ab13be0bbf04be5ad161a8b",
+      "task": "Scan feedback, inspect its evidence and return without excessive summary text.",
+      "observations": "Original request, author, expected behavior and checklist remain readable; compact frame scrolls to related work below the fold. Focus stays on the selected title. This iteration still fails for duplicate short feedback and research spacing.",
+      "verdict": "fail"
+    }
+  }
+}

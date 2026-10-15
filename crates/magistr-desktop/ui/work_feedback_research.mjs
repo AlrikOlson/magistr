@@ -3,7 +3,7 @@ import {prose} from "./work_prose.mjs";
 import {allowedDestination} from "./transcript.mjs";
 export function feedbackResearch(record,{copy,openLink,references}){
   const section=element("section","","feedback-research");section.setAttribute("aria-label","Feedback research");section.append(element("h4","Research"));
-  if(!record.enrichment.length){section.append(element("p","No research has been recorded."));return section;}
+  if(!record.enrichment.length){section.querySelector("h4").append(element("span","None","work-record-count"));return section;}
   for(const [index,note] of record.enrichment.entries()){
     const details=element("details","","work-check"),summary=element("summary"),key=record.id+":research:"+index;
     details.dataset.readingKey=key;summary.dataset.focusKey=key;summary.append(element("strong","Research note "+(index+1)),element("span",note.sources.length+" "+(note.sources.length===1?"source":"sources")));details.append(summary);

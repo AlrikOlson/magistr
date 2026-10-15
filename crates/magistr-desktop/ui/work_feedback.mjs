@@ -8,12 +8,14 @@ export const feedbackKind={question:"Question",idea:"Idea",concern:"Concern",bug
 export const feedbackTitle=record=>record.content?.summary||(record.body.length>180?record.body.slice(0,180)+"…":record.body);
 export function feedbackDetail(record,actions){
   const {copy}=actions;
-  const article=element("article","","work-record feedback-detail"),title=element("h3",feedbackTitle(record),"roadmap-track-title");title.tabIndex=-1;title.dataset.focusKey="feedback-title";article.append(title);
+  const heading=feedbackTitle(record),bodyIsTitle=heading===record.body;
+  const article=element("article","","work-record feedback-detail"),header=element("header","","feedback-detail-heading"),title=element("h3",heading,"roadmap-track-title");title.tabIndex=-1;title.dataset.focusKey="feedback-title";header.append(title);article.append(header);
+  if(bodyIsTitle){title.dataset.reading=record.id+":body";const button=element("button","Copy");button.setAttribute("aria-label","Copy feedback");button.onclick=()=>copy(record.body);header.append(button);}
   article.append(element("p",feedbackKind[record.kind]+" · "+feedbackStatus[record.status],"work-record-status"));
   const metadata=[["From",record.from]];
   for(const [label,value] of [["Received",record.created],["Raised for review",record.surfaced_at],["Reminder set for",record.snooze_until]])if(value)metadata.push([label,new Date(value).toLocaleString()]);
   article.append(inlineFacts(metadata));
-  article.append(prose("Feedback",record.body,record.id+":body",copy));
+  if(!bodyIsTitle)article.append(prose("Feedback",record.body,record.id+":body",copy));
   if(record.content){
     const facts=element("dl","","roadmap-content-facts");for(const fact of record.content.facts??[]){const pair=element("div");pair.append(element("dt",fact.label),element("dd",fact.value));facts.append(pair);}if(facts.children.length)article.append(facts);
     for(const [index,section] of (record.content.sections??[]).entries()){
@@ -35,6 +37,7 @@ export class FeedbackBrowser{
       const back=element("button","Back to feedback");back.dataset.focusKey="feedback-back";back.onclick=()=>this.back();article.append(back);
       const record=records.find(record=>record.id===this.id);article.append(record?feedbackDetail(record,this.actions):element("h3","This feedback is no longer available."));return article;
     }
+    article.classList.add("feedback-list");
     records=filterFeedback(records,this);
     article.append(element("h3","Feedback","roadmap-track-title"));
     const pages=pageControls(records.length,this.page,page=>{this.page=page;this.changed();this.root.scrollTop=0;});article.append(pages.nav);

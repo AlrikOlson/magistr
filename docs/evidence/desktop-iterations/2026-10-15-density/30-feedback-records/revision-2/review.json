@@ -1,0 +1,150 @@
+{
+  "scope": "Improve feedback browsing and detail hierarchy",
+  "limitations": "Headless WebKit with isolated observations. Native OS input, assistive technology and Rust command integration were not exercised.",
+  "images": {
+    "feedback--dense-list-compact-dark.png": {
+      "sha256": "91e89c02ce1909939771737b1757f645cb7a4c0e13e8b62a8f77ea8cee4a7e96",
+      "task": "Scan feedback, inspect its evidence and return without excessive summary text.",
+      "observations": "The eight-result count and first five rows are visible; remaining rows scroll below. Kind and status badges align around readable titles and author lines. Inline filters stay on one row. Dark surfaces preserve readable muted labels and lavender focus. No horizontal clipping or text/control overlap.",
+      "verdict": "pass"
+    },
+    "feedback--dense-list-compact-light.png": {
+      "sha256": "20c8fc00b8a723c84fef3d4a74f593d0a67f241b47c804b915db9e89dcba5dc4",
+      "task": "Scan feedback, inspect its evidence and return without excessive summary text.",
+      "observations": "The eight-result count and first five rows are visible; remaining rows scroll below. Kind and status badges align around readable titles and author lines. Inline filters stay on one row. Light surfaces preserve readable muted labels and purple focus. No horizontal clipping or text/control overlap.",
+      "verdict": "pass"
+    },
+    "feedback--dense-list-desktop-dark.png": {
+      "sha256": "fa9cd9b9dd705c929953db309e99bd5f6c6e9306d5d80ba52aea58b2e5d4d8a3",
+      "task": "Scan feedback, inspect its evidence and return without excessive summary text.",
+      "observations": "All eight feedback rows fit, with distinct kind and status badges, aligned authors and readable titles. Filters share one compact row. Dark surfaces preserve readable muted labels and lavender focus. No horizontal clipping or text/control overlap.",
+      "verdict": "pass"
+    },
+    "feedback--dense-list-desktop-light.png": {
+      "sha256": "a14d7c36a4aadc0c25ad60b54ec26f02ff8b676e6b651623887ad40b0ac38a21",
+      "task": "Scan feedback, inspect its evidence and return without excessive summary text.",
+      "observations": "All eight feedback rows fit, with distinct kind and status badges, aligned authors and readable titles. Filters share one compact row. Light surfaces preserve readable muted labels and purple focus. No horizontal clipping or text/control overlap.",
+      "verdict": "pass"
+    },
+    "feedback--no-research-compact-dark.png": {
+      "sha256": "95b6c4692bdaee9c4b50ad7525ac6c6dbdde055d2a0d08a394b2367f7c9b51ea",
+      "task": "Scan feedback, inspect its evidence and return without excessive summary text.",
+      "observations": "The full short idea appears once as the focused heading, with Copy beside it. Author/date and Research None follow closely without an empty prose section. Controls do not overlap. Dark surfaces preserve readable muted labels and lavender focus. No horizontal clipping or text/control overlap.",
+      "verdict": "pass"
+    },
+    "feedback--no-research-compact-light.png": {
+      "sha256": "69615858bbe15a98eef9654f953980a66166b1386bcaefe4a74b64dadde8ed06",
+      "task": "Scan feedback, inspect its evidence and return without excessive summary text.",
+      "observations": "The full short idea appears once as the focused heading, with Copy beside it. Author/date and Research None follow closely without an empty prose section. Controls do not overlap. Light surfaces preserve readable muted labels and purple focus. No horizontal clipping or text/control overlap.",
+      "verdict": "pass"
+    },
+    "feedback--no-research-desktop-dark.png": {
+      "sha256": "b4834feddda45474b0a5ef4889ee74043901987767c04ac86dc4ef81f78e638d",
+      "task": "Scan feedback, inspect its evidence and return without excessive summary text.",
+      "observations": "The full short idea appears once as the focused heading, with Copy beside it. Author/date and Research None follow closely without an empty prose section. Controls do not overlap. Dark surfaces preserve readable muted labels and lavender focus. No horizontal clipping or text/control overlap.",
+      "verdict": "pass"
+    },
+    "feedback--no-research-desktop-light.png": {
+      "sha256": "7fe5d7a7e703ea4dae75a360663240d715ec01883b5c1d5f0e427d7dc5fcee76",
+      "task": "Scan feedback, inspect its evidence and return without excessive summary text.",
+      "observations": "The full short idea appears once as the focused heading, with Copy beside it. Author/date and Research None follow closely without an empty prose section. Controls do not overlap. Light surfaces preserve readable muted labels and purple focus. No horizontal clipping or text/control overlap.",
+      "verdict": "pass"
+    },
+    "feedback--no-results-compact-dark.png": {
+      "sha256": "4831549352b4f3769386243d921d443e15920303213d23e59b1df3a407561f74",
+      "task": "Scan feedback, inspect its evidence and return without excessive summary text.",
+      "observations": "The unmatched query remains readable and focused; its clear control is visible. Zero results and the no-matches message are directly below the heading, without an obsolete record. Dark surfaces preserve readable muted labels and lavender focus. No horizontal clipping or text/control overlap.",
+      "verdict": "pass"
+    },
+    "feedback--no-results-compact-light.png": {
+      "sha256": "320aa268e1eb430f8babb216d87cfe2db4f96d0c86736202ffba4e0ba2ffd5f5",
+      "task": "Scan feedback, inspect its evidence and return without excessive summary text.",
+      "observations": "The unmatched query remains readable and focused; its clear control is visible. Zero results and the no-matches message are directly below the heading, without an obsolete record. Light surfaces preserve readable muted labels and purple focus. No horizontal clipping or text/control overlap.",
+      "verdict": "pass"
+    },
+    "feedback--no-results-desktop-dark.png": {
+      "sha256": "917a4b4481e9493821693c2ad3a704241a8dc730706bcc9fbc700d878919dfce",
+      "task": "Scan feedback, inspect its evidence and return without excessive summary text.",
+      "observations": "The unmatched query remains readable and focused; its clear control is visible. Zero results and the no-matches message are directly below the heading, without an obsolete record. Dark surfaces preserve readable muted labels and lavender focus. No horizontal clipping or text/control overlap.",
+      "verdict": "pass"
+    },
+    "feedback--no-results-desktop-light.png": {
+      "sha256": "262beb06b9e470fa1b4469f8a1b3d6f6c3be52f5733fcf3a83adf229e8ec5537",
+      "task": "Scan feedback, inspect its evidence and return without excessive summary text.",
+      "observations": "The unmatched query remains readable and focused; its clear control is visible. Zero results and the no-matches message are directly below the heading, without an obsolete record. Light surfaces preserve readable muted labels and purple focus. No horizontal clipping or text/control overlap.",
+      "verdict": "pass"
+    },
+    "feedback--overview-compact-dark.png": {
+      "sha256": "41fd722a297147003a4d7c6d0b6858339ac3ab2f66eb4e53360e930472404f11",
+      "task": "Scan feedback, inspect its evidence and return without excessive summary text.",
+      "observations": "The researched concern and promoted idea have separate readable title, author, kind and status positions. Kind/Status filters retain explicit labels and search has ample width. Dark surfaces preserve readable muted labels and lavender focus. No horizontal clipping or text/control overlap.",
+      "verdict": "pass"
+    },
+    "feedback--overview-compact-light.png": {
+      "sha256": "388196645d5cabdf7a47c4553c7aa15debedae393c481a612c766272fe7cca7c",
+      "task": "Scan feedback, inspect its evidence and return without excessive summary text.",
+      "observations": "The researched concern and promoted idea have separate readable title, author, kind and status positions. Kind/Status filters retain explicit labels and search has ample width. Light surfaces preserve readable muted labels and purple focus. No horizontal clipping or text/control overlap.",
+      "verdict": "pass"
+    },
+    "feedback--overview-desktop-dark.png": {
+      "sha256": "b1b8f89212ef7711869220f7474f28e8e48549442367933b7f262c0e0e54a749",
+      "task": "Scan feedback, inspect its evidence and return without excessive summary text.",
+      "observations": "The researched concern and promoted idea have separate readable title, author, kind and status positions. Kind/Status filters retain explicit labels and search has ample width. Dark surfaces preserve readable muted labels and lavender focus. No horizontal clipping or text/control overlap.",
+      "verdict": "pass"
+    },
+    "feedback--overview-desktop-light.png": {
+      "sha256": "2c2bdc078040c6434c4bbbcfecfeb8a5cdc011a72fa698d37b14b72155653e16",
+      "task": "Scan feedback, inspect its evidence and return without excessive summary text.",
+      "observations": "The researched concern and promoted idea have separate readable title, author, kind and status positions. Kind/Status filters retain explicit labels and search has ample width. Light surfaces preserve readable muted labels and purple focus. No horizontal clipping or text/control overlap.",
+      "verdict": "pass"
+    },
+    "feedback--research-compact-dark.png": {
+      "sha256": "6488b665dbcc621f0ddde6bdcb549da5ee7944bbbf7c1a5c351551d878e4dcfb",
+      "task": "Scan feedback, inspect its evidence and return without excessive summary text.",
+      "observations": "The complete expanded research note, recorded date, confidence, summary, reasoning link and both source rows are visible. Metadata now shares the content inset; Sources sits near its rows. Focus surrounds the disclosure. Preceding content is partially above the scroll boundary, not concealed within this note. Dark surfaces preserve readable muted labels and lavender focus. No horizontal clipping or text/control overlap.",
+      "verdict": "pass"
+    },
+    "feedback--research-compact-light.png": {
+      "sha256": "78368a611b48c0bea166610f90ef016aad58b8b26b87590643faa92064fe4fc0",
+      "task": "Scan feedback, inspect its evidence and return without excessive summary text.",
+      "observations": "The complete expanded research note, recorded date, confidence, summary, reasoning link and both source rows are visible. Metadata now shares the content inset; Sources sits near its rows. Focus surrounds the disclosure. Preceding content is partially above the scroll boundary, not concealed within this note. Light surfaces preserve readable muted labels and purple focus. No horizontal clipping or text/control overlap.",
+      "verdict": "pass"
+    },
+    "feedback--research-desktop-dark.png": {
+      "sha256": "7bff78fabc4bbc89a076d3988f6ad559fd8c9aeed6df95f373f722c8abd9f394",
+      "task": "Scan feedback, inspect its evidence and return without excessive summary text.",
+      "observations": "The complete expanded research note, recorded date, confidence, summary, reasoning link and both source rows are visible. Metadata now shares the content inset; Sources sits near its rows. Focus surrounds the disclosure. Preceding content is partially above the scroll boundary, not concealed within this note. Dark surfaces preserve readable muted labels and lavender focus. No horizontal clipping or text/control overlap.",
+      "verdict": "pass"
+    },
+    "feedback--research-desktop-light.png": {
+      "sha256": "61347d5b9ff09d007031634b489dd93681e4a0e85c8ba503fa022b46c1abc6f0",
+      "task": "Scan feedback, inspect its evidence and return without excessive summary text.",
+      "observations": "The complete expanded research note, recorded date, confidence, summary, reasoning link and both source rows are visible. Metadata now shares the content inset; Sources sits near its rows. Focus surrounds the disclosure. Preceding content is partially above the scroll boundary, not concealed within this note. Light surfaces preserve readable muted labels and purple focus. No horizontal clipping or text/control overlap.",
+      "verdict": "pass"
+    },
+    "feedback--selected-compact-dark.png": {
+      "sha256": "e7e385f25f452f7213824711be1ba01aa1efe8483cd65d078ea519382f25f0c8",
+      "task": "Scan feedback, inspect its evidence and return without excessive summary text.",
+      "observations": "The selected title, author/date, original request and both expectation markers fit without overlap. Related work continues below the scroll boundary; the Research story separately covers the expanded lower content. Dark surfaces preserve readable muted labels and lavender focus. No horizontal clipping or text/control overlap.",
+      "verdict": "pass"
+    },
+    "feedback--selected-compact-light.png": {
+      "sha256": "95853d1bf9361b71f78814ada805bf71c8905cc6f82dee933401b50c6e9b8b42",
+      "task": "Scan feedback, inspect its evidence and return without excessive summary text.",
+      "observations": "The selected title, author/date, original request and both expectation markers fit without overlap. Related work continues below the scroll boundary; the Research story separately covers the expanded lower content. Light surfaces preserve readable muted labels and purple focus. No horizontal clipping or text/control overlap.",
+      "verdict": "pass"
+    },
+    "feedback--selected-desktop-dark.png": {
+      "sha256": "c6dad395eac49c00cc0863fd8e89d487eabf4801da1f137eb96ebd735db1dc56",
+      "task": "Scan feedback, inspect its evidence and return without excessive summary text.",
+      "observations": "The selected title, metadata, original request, expectations, related work and closed research disclosure are all readable with clear grouping. Copy actions sit beside their content. Dark surfaces preserve readable muted labels and lavender focus. No horizontal clipping or text/control overlap.",
+      "verdict": "pass"
+    },
+    "feedback--selected-desktop-light.png": {
+      "sha256": "22475b18e6b9c7370cd7575a3602cf055cbadf3e5ab13be0bbf04be5ad161a8b",
+      "task": "Scan feedback, inspect its evidence and return without excessive summary text.",
+      "observations": "The selected title, metadata, original request, expectations, related work and closed research disclosure are all readable with clear grouping. Copy actions sit beside their content. Light surfaces preserve readable muted labels and purple focus. No horizontal clipping or text/control overlap.",
+      "verdict": "pass"
+    }
+  }
+}

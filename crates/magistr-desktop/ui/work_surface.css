@@ -170,3 +170,8 @@
 #work-reasoning-selection .work-filter:first-child{flex:0 1 210px}
 #work-reasoning-search{flex:1 1 200px}
 #work-reasoning-search .work-filter>label{position:absolute;clip-path:inset(50%);width:1px;height:1px;overflow:hidden}
+#work-feedback-filters{flex:0 1 450px}
+#work-feedback-filters .work-filter{grid-template-columns:auto minmax(0,1fr);align-items:center;gap:6px}
+#work-feedback-filters .work-filter>label{position:static;clip-path:none;width:auto;height:auto;overflow:visible;font-size:11px}
+#work-feedback-search{flex:1 1 230px}
+#work-feedback-search .work-filter>label{position:absolute;clip-path:inset(50%);width:1px;height:1px;overflow:hidden}

@@ -9,6 +9,17 @@ test("feedback reads full authored context and copies literal long text",async({
   await app.getByRole("button",{name:"Copy feedback",exact:true}).click();expect(await app.evaluate(()=>window.__copied)).toBe("日本語\n".repeat(4000)+"<img onerror=alert(1)>");
   await app.getByRole("button",{name:"Back to feedback",exact:true}).click();await expect(app.getByRole("button",{name:"Keep my place when reopening a project",exact:true})).toBeFocused();
 });
+test("short feedback appears once and copies its complete original text",async({app})=>{
+  await open(app);await app.evaluate(()=>{Object.defineProperty(navigator,"clipboard",{configurable:true,value:{writeText:async value=>window.__copied=value}});});
+  const body="Offer a light appearance for daytime work.";
+  await app.getByRole("button",{name:body,exact:true}).click();
+  await expect(app.locator(".feedback-detail").getByText(body,{exact:true})).toHaveCount(1);
+  await expect(app.locator('.feedback-detail [data-reading$=":body"]')).toHaveText(body);
+  await app.getByRole("button",{name:"Copy feedback",exact:true}).click();
+  expect(await app.evaluate(()=>window.__copied)).toBe(body);
+  await app.getByRole("button",{name:"Back to feedback",exact:true}).click();
+  await expect(app.getByRole("button",{name:body,exact:true})).toBeFocused();
+});
 test("stale, removed and unavailable feedback remain distinct",async({app})=>{
   await open(app);await app.getByRole("button",{name:"Keep my place when reopening a project",exact:true}).click();
   await app.evaluate(()=>{const f=window.__fixture;f.workflow.signals={state:"stale",data:{last:f.workflow.signals.data,error:{kind:"io",message:"Cannot read feedback."}}};f.publish("release",{workflow_revision:1});});
