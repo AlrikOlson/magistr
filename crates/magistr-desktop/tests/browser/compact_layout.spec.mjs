@@ -108,3 +108,13 @@ test("current work reveals complete requirements on demand",async({app})=>{
   await expect(disclosure).toHaveAttribute("open","");
   await disclosure.locator("summary").click();await capture(app,"09-current-work");
 });
+
+test("task rows align title and status at the minimum width",async({app})=>{
+  await openWork(app);await app.setViewportSize({width:760,height:550});
+  await app.locator(".work-tasks").scrollIntoViewIfNeeded();
+  const heading=app.locator(".work-task-heading").first();
+  const title=await heading.locator("strong").boundingBox(),state=await heading.locator("span").boundingBox();
+  expect(Math.abs(title.y-state.y)).toBeLessThan(6);
+  expect((await app.locator(".work-tasks>li").first().boundingBox()).height).toBeLessThan(85);
+  await capture(app,"10-tasks");
+});
