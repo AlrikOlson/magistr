@@ -32,10 +32,10 @@ function renderItem(item,actions){
     else article.append(element("h4",section.heading));
     if(section.list?.length)article.append(checklist(section.list));
   }
-  const requirements=element("section","","roadmap-requirements"),requirementsHead=element("header");requirementsHead.append(element("h4","Requirements"),element("span",String(record.acceptance.length),"work-record-count"));requirements.append(requirementsHead);
+  const requirements=element("section","","roadmap-requirements"),requirementsHead=element("header");requirementsHead.append(element("h4","Requirements"),element("span",record.acceptance.length?String(record.acceptance.length):"None","work-record-count"));requirements.append(requirementsHead);
   const list=element("ol");
   for(const [index,value] of record.acceptance.entries()){const row=element("li","","message-body");row.dataset.reading=record.id+":requirement:"+index;renderDocument(row,item.requirements[index].nodes,actions.openLink,actions.copy);list.append(row);}
-  requirements.append(record.acceptance.length?list:element("p","No requirements have been recorded."));article.append(requirements);
+  if(record.acceptance.length)requirements.append(list);article.append(requirements);
   if(record.notes)article.append(documentPart("Notes",record.notes,item.notes,record.id+":notes",actions));
   if(record.obsoleted_reason)article.append(element("p",record.obsoleted_reason,"work-record-warning"));
   const navigation=element("label","","work-section-jump");navigation.append(element("span","Jump to section"));
