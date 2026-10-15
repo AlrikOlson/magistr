@@ -217,3 +217,12 @@ test("23 composer shortcuts stay available in a compact footer",async({app})=>{
   await app.getByLabel("Message the agent",{exact:true}).fill("First");await app.getByLabel("Message the agent",{exact:true}).press("Shift+Enter");await app.getByLabel("Message the agent",{exact:true}).press("A");
   await expect(app.getByLabel("Message the agent",{exact:true})).toHaveValue("First\nA");
 });
+test("24 transcript attachments use compact previews with full inspection",async({app})=>{
+  await app.getByRole("button",{name:"Review the release plan",exact:true}).click();await app.setViewportSize({width:760,height:550});
+  await app.evaluate(()=>{const f=window.__fixture,frame=f.frames.get("release");f.publish("release",{events:[...frame.events,{id:3,revision:1,role:"You",text:"Files for review",attachments:[{id:"image",name:"icon.png",size:32768,path:"ui/icon.png",content_hash:"image",preview:"http://magistr.test/icon.png"},{id:"notes",name:"release-notes.md",size:1024,path:"docs/release-notes.md",content_hash:"notes",excerpt:"Verify reopening and the saved draft."}]}],retained:[1,2,3]});});
+  const files=app.locator(".transcript .attachments").last();await files.scrollIntoViewIfNeeded();
+  expect((await files.locator(".attachment").first().boundingBox()).height).toBeLessThan(120);
+  for(const theme of ["dark","light"]){await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);await capture(app,"24-files-"+theme);}
+  await files.getByRole("button",{name:"View icon.png",exact:true}).click();await expect(app.getByRole("dialog",{name:"icon.png",exact:true})).toBeVisible();await app.keyboard.press("Escape");
+  await files.getByLabel("Preview release-notes.md",{exact:true}).click();await expect(files.locator("pre")).toContainText("Verify reopening");
+});
