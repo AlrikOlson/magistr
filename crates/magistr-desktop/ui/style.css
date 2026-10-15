@@ -555,7 +555,8 @@ dialog h3{margin:20px 0 10px;font-size:17px}.dialog-actions{display:flex;justify
 #preferences-note{font-size:12px;color:var(--muted);margin-top:12px}#preferences-note:empty{display:none}
 #project-picker{width:620px;padding:0;max-width:calc(100vw - 48px);max-height:calc(100dvh - 56px)}
 #project-picker.has-review{width:1040px;height:min(740px,calc(100dvh - 56px))}
-#project-form{display:flex;flex-direction:column;max-height:inherit;height:100%;min-height:0}
+#project-form{display:flex;flex-direction:column;max-height:inherit;min-height:0}
+#project-picker.has-review #project-form{height:100%}
 
 #picker-folder-entry{padding:24px var(--dialog-gutter) 30px;min-height:0;overflow:auto}#picker-folder-entry label{font-size:11px;letter-spacing:.025em;margin-bottom:12px}#project-picker:not(.has-review) .picker-heading{padding-top:32px;padding-bottom:24px;background:var(--surface-wash),var(--base);border-bottom:1px solid var(--separator)}#project-picker:not(.has-review) .picker-heading h2{font-size:36px;font-weight:550;gap:16px;align-items:center}#project-picker:not(.has-review) #picker-title::before{width:44px;height:44px;flex-basis:44px}#picker-title::before{width:28px;height:28px;flex-basis:28px;color:var(--accent)}#picker-folder-entry .folder-input input{min-height:52px;font-size:13px;background:var(--panel);box-shadow:var(--inset-shadow)}#picker-folder-entry .folder-input button{background:var(--surface-wash),var(--panel);box-shadow:var(--control-shadow)}.folder-input input{font-family:var(--font-code);font-size:12px}.folder-input{display:flex;gap:8px}.folder-input input{min-width:0;flex:1}.folder-input button{white-space:nowrap}
 #picker-folder-entry>p{margin:12px 0 4px;font-size:13px}

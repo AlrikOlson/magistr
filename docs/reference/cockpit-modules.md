@@ -158,6 +158,7 @@ desktop workspace. Companion Rust tests live beside their owners.
 - `crates/magistr-desktop/ui/projects.mjs`
 - `crates/magistr-desktop/ui/project_picker.mjs` — folder entry, independent file review, exact approval selection and setup recovery.
 - `crates/magistr-desktop/tests/browser/projects.spec.mjs` — background setup review, cancellation, partial results and short-window actions.
+- `crates/magistr-desktop/tests/project_dialog.swift` — hidden macOS WKWebView checks for intrinsic project-dialog sizing, admission errors, dismissal and compact setup review; no native input.
 - `crates/magistr-desktop/src/streams.rs`
 - `crates/magistr-desktop/src/wire.rs`
 - `crates/magistr-desktop/tests/composer.mjs`
