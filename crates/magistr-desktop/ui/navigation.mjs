@@ -110,18 +110,22 @@ export class ProjectDirectory {
       let group=this.groups.get(project.id);
       if(!group){
         const root=node("section","directory-project"),heading=node("header","directory-project-heading");
-        const title=node("div","directory-project-title"),name=node("h2",""),path=node("p",""),facts=node("p","directory-project-facts");
+        const title=node("div","directory-project-title"),name=node("h2",""),path=node("p",""),facts=node("dl","directory-project-facts");
+        const opened=node("div",""),waiting=node("div","");
+        const openCount=node("dd","","0"),waitCount=node("dd","","0");
+        opened.append(node("dt","","Open conversations"),openCount);waiting.append(node("dt","","Waiting for you"),waitCount);facts.append(opened,waiting);
         const open=node("button","directory-open","Open project"),list=node("nav","directory-conversations");
         open.dataset.leadingIcon="arrow";
         title.append(name,path);heading.append(title,open);root.append(heading,facts,list);
-        group={root,name,path,facts,open,list,project};this.groups.set(project.id,group);
+        group={root,name,path,facts,openCount,waitCount,open,list,project};this.groups.set(project.id,group);
         open.onclick=()=>this.open(group.project.directory);
       }
       group.project=project;group.name.textContent=project.name;group.path.textContent=project.directory;
       group.open.setAttribute("aria-label","Open project "+project.name+" in "+project.directory);
       group.list.setAttribute("aria-label","Open conversations in "+project.name);
       const count=project.sessions.length,waiting=project.sessions.filter(session=>session.pending.length).length;
-      group.facts.textContent=(count?count+(count===1?" open conversation":" open conversations"):"No open conversations")+(waiting?" · "+waiting+(waiting===1?" needs":" need")+" your answer":"");
+      group.openCount.textContent=String(count);group.waitCount.textContent=String(waiting);
+      group.waitCount.parentElement.dataset.waiting=String(waiting>0);
       const rows=project.sessions.map(session=>{
         const key=addressKey(session.address);usedRows.add(key);let row=this.rows.get(key);
         if(!row){
