@@ -129,3 +129,16 @@ export const UsageUnavailable={parameters:{desktop:{...agentState,caption:"Conve
  verify:({doc,expect,visible})=>{expect(visible(doc,"#session-detail")).toBe(true);expect(doc.querySelector("#context-value").textContent).toBe("Not reported");expect(doc.querySelector("#context-meter").hidden).toBe(true);expect(doc.querySelector("#spending-value").getBoundingClientRect().bottom).toBeLessThanOrEqual(doc.defaultView.innerHeight);},
 }}};
 
+export const Settings={parameters:{desktop:{
+ caption:"Settings dialog showing appearance choices and reduced motion",
+ task:"Choose an appearance or adjust motion without a long introduction.",
+ arrange:async context=>{await openRelease(context);await context.userEvent.click(context.ui.getByRole("button",{name:"Settings",exact:true}));},
+ verify:({doc,expect,visible})=>{expect(doc.querySelector("#settings").open).toBe(true);expect(doc.querySelectorAll(".appearance-option").length).toBe(3);expect(visible(doc,"#settings-close")).toBe(true);},
+}}};
+
+export const KeyboardShortcuts={parameters:{desktop:{...Settings.parameters.desktop,
+ caption:"Settings dialog scrolled to keyboard shortcuts",
+ task:"Look up the commands for finding conversations and moving between areas.",
+ arrange:async context=>{await Settings.parameters.desktop.arrange(context);context.doc.querySelector(".settings-shortcuts").scrollIntoView({block:"start"});},
+ verify:context=>{Settings.parameters.desktop.verify(context);const r=context.doc.querySelector(".settings-shortcuts").getBoundingClientRect();context.expect(r.top).toBeGreaterThanOrEqual(0);context.expect(r.bottom).toBeLessThan(context.doc.querySelector("#settings-close").getBoundingClientRect().top);},
+}}};

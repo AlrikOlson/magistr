@@ -1,0 +1,30 @@
+{
+  "scope": "Group appearance and keyboard settings more tightly",
+  "limitations": "Headless WebKit with isolated observations. Native OS input, assistive technology and Rust command integration were not exercised.",
+  "images": {
+    "conversation--settings-compact-dark.png": {
+      "sha256": "13179874fbfc6c7931b16a72dbe262e8136cf02e2e33ca9bc834f50b9895d5d1",
+      "task": "Choose appearance and consult keyboard commands in an orderly compact dialog.",
+      "observations": "Opened full frame: the selected appearance now matches the rendered theme, each miniature preview includes its composer, and motion/Done are visible. Desktop shortcuts align in a secondary column. Compact shortcuts require a separate scrolled capture; this frame only depicts appearance and motion.",
+      "verdict": "pass"
+    },
+    "conversation--settings-compact-light.png": {
+      "sha256": "5106cb8415e6744d613d81ae139b70aa463eda8cd2102c5e0be395daca0644fb",
+      "task": "Choose appearance and consult keyboard commands in an orderly compact dialog.",
+      "observations": "Opened full frame: the selected appearance now matches the rendered theme, each miniature preview includes its composer, and motion/Done are visible. Desktop shortcuts align in a secondary column. Compact shortcuts require a separate scrolled capture; this frame only depicts appearance and motion.",
+      "verdict": "pass"
+    },
+    "conversation--settings-desktop-dark.png": {
+      "sha256": "d211e1b4d78aecea8a2801078e9396db540cc308a97444bfb0b87b75f615b252",
+      "task": "Choose appearance and consult keyboard commands in an orderly compact dialog.",
+      "observations": "Opened full frame: the selected appearance now matches the rendered theme, each miniature preview includes its composer, and motion/Done are visible. Desktop shortcuts align in a secondary column. Compact shortcuts require a separate scrolled capture; this frame only depicts appearance and motion.",
+      "verdict": "pass"
+    },
+    "conversation--settings-desktop-light.png": {
+      "sha256": "fc3c7c80d1471e97e1ddecea332ee65f36b144f035692df7e5c61f60e0859458",
+      "task": "Choose appearance and consult keyboard commands in an orderly compact dialog.",
+      "observations": "Opened full frame: the selected appearance now matches the rendered theme, each miniature preview includes its composer, and motion/Done are visible. Desktop shortcuts align in a secondary column. Compact shortcuts require a separate scrolled capture; this frame only depicts appearance and motion.",
+      "verdict": "pass"
+    }
+  }
+}

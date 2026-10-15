@@ -502,16 +502,16 @@ dialog h3{margin:20px 0 10px;font-size:17px}.dialog-actions{display:flex;justify
 .appearance-preview i{display:block;height:3px;background:var(--muted);border-radius:2px;opacity:.65}
 .preview-rail .preview-brand{width:10px;height:10px;border-radius:3px;background:var(--accent);opacity:1;margin-bottom:4px}
 .preview-rail .preview-selected{height:12px;background:var(--base);opacity:1;border:1px solid var(--line);box-shadow:inset 2px 0 var(--accent);border-radius:3px}
-.preview-workspace{padding:8px;display:flex;flex-direction:column;gap:6px;min-width:0;background:var(--base)}
+.preview-workspace{padding:6px;display:flex;flex-direction:column;gap:4px;min-width:0;background:var(--base)}
 .preview-workspace .preview-title{width:70%;height:5px;background:var(--text);opacity:1}
 .preview-message{padding:5px;background:var(--panel);border-radius:4px;display:grid;gap:3px;margin-left:8px}.preview-message i:last-child{width:60%}
 .preview-reply{display:grid;gap:3px;padding:5px 0;border-top:1px solid color-mix(in srgb,var(--text) 15%,transparent)}.preview-reply i:last-child{width:72%}
 .preview-compose{display:flex;justify-content:space-between;align-items:center;margin-top:auto;padding:4px;border:1px solid var(--line);border-radius:4px}
 .preview-compose i{width:44%;height:2px}.preview-compose b{width:13px;height:10px;background:var(--button);border-radius:2px}
-@media(max-height:600px){.appearance-preview{height:100px}.preview-workspace{gap:8px;padding:8px}.preview-rail{gap:7px;padding:8px 6px}.preview-message{padding:6px}.settings-content{gap:28px}}
+@media(max-height:600px){.appearance-preview{height:100px}.preview-workspace{gap:4px;padding:6px}.preview-rail{gap:7px;padding:8px 6px}.preview-message{padding:6px}.settings-content{gap:28px}}
 
 .settings-content h3{font:600 16px/1.4 var(--font-ui);letter-spacing:-.015em;color:var(--text);margin:0 0 12px}
-.settings-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0}
+.settings-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:8px 0}
 .settings-section .settings-row:first-of-type{padding-top:0}.settings-section .settings-row:first-of-type select{width:180px}.settings-shortcuts dl{display:grid;grid-template-columns:1fr;column-gap:32px}.settings-content .settings-shortcuts h3{font-size:15px;margin-bottom:8px}.settings-content .settings-shortcuts dl>div{align-items:center;gap:10px;padding:8px 0}.settings-section .settings-row:has(#reduce-motion){padding:12px 0;border-top:1px solid var(--separator);background:transparent}
 .settings-row+.settings-row{border-top:1px solid var(--separator)}
 
@@ -712,7 +712,7 @@ dialog h3{margin:20px 0 10px;font-size:17px}.dialog-actions{display:flex;justify
 .switch-group header>p{grid-column:1/-1;font:10px/1.5 var(--font-code);overflow-wrap:anywhere;margin:0;color:var(--muted)}
 
 #preferences-note{font-size:12px;margin:0;line-height:1.6}#preferences-note:empty{display:none}
-@media(max-width:800px){.settings-content{grid-template-columns:1fr;gap:24px}.settings-content .settings-shortcuts{border:0;border-top:1px solid var(--separator);padding:18px 0 0}.settings-shortcuts dl{grid-template-columns:1fr 1fr}.settings-content .settings-shortcuts dl>div{flex-direction:row;align-items:center}.appearance-caption{flex-direction:row}.appearance-preview{height:100px}.preview-workspace{padding:8px;gap:6px}.preview-message,.preview-reply{padding:5px;gap:3px}.preview-compose{padding:4px}}
+@media(max-width:800px){.settings-content{grid-template-columns:1fr;gap:24px}.settings-content .settings-shortcuts{border:0;border-top:1px solid var(--separator);padding:18px 0 0}.settings-shortcuts dl{grid-template-columns:1fr 1fr}.settings-content .settings-shortcuts dl>div{flex-direction:row;align-items:center}.appearance-caption{flex-direction:row}.appearance-preview{height:100px}.preview-workspace{padding:6px;gap:4px}.preview-message,.preview-reply{padding:5px;gap:3px}.preview-compose{padding:4px}}
 @media(max-width:680px){.settings-content{grid-template-columns:1fr;gap:32px;padding-top:0}.settings-content h3{margin-bottom:16px}.settings-shortcuts dl>div{padding-block:10px}}
 
 @media(max-width:900px){

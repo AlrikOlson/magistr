@@ -8,6 +8,7 @@ export function renderDesktop(_args, context) {
   frame.className="desktop-preview";
   frame.title=context.title+" — "+context.name;
   const seed=workspaceSeed();
+  seed.preferences.theme=context.globals.appearance??"dark";
   context.parameters.desktop.seed?.(seed);
   const script="("+install.toString()+")("+JSON.stringify(seed).replaceAll("<","\\u003c")+");";
   frame.srcdoc=html.replace("<head>",'<head><base href="/desktop-assets/"><script>'+script+"<"+"/script>");
@@ -26,7 +27,7 @@ export async function verifyDesktop({canvasElement,parameters,globals,id,title,n
   const doc=frame.contentDocument,ui=within(doc.body),state=parameters.desktop;
   await waitFor(()=>expect(doc.querySelectorAll("#projects .project-group").length).toBe(2));
   await doc.fonts.ready;
-  doc.documentElement.dataset.theme=globals.appearance??"dark";
+  await waitFor(()=>expect(doc.documentElement.dataset.theme).toBe(globals.appearance??"dark"));
   await state.arrange?.({doc,ui,window:frame.contentWindow,userEvent:userEvent.setup({document:doc}),expect,waitFor});
   await waitFor(()=>state.verify({doc,ui,expect,visible}));
   frame.contentWindow.__verifyStory=()=>state.verify({doc,ui,expect,visible});

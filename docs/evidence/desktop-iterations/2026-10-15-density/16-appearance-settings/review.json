@@ -1,0 +1,30 @@
+{
+  "scope": "Group appearance and keyboard settings more tightly",
+  "limitations": "Headless WebKit with isolated observations. Native OS input, assistive technology and Rust command integration were not exercised.",
+  "images": {
+    "conversation--settings-compact-dark.png": {
+      "sha256": "45784c15e995a184282f70258a932da2a29b0822d130a07e116fa0f470126a01",
+      "task": "Choose appearance and consult keyboard commands in an orderly compact dialog.",
+      "observations": "The compact settings title and controls are readable, but the appearance previews clip their miniature composer. Fix preference ownership in the fixture and preserve complete preview compositions before acceptance.",
+      "verdict": "fail"
+    },
+    "conversation--settings-compact-light.png": {
+      "sha256": "d27d13d21c199a6abb457931b948ec5c6211e9184fe48863f57aa9b05a65a3b6",
+      "task": "Choose appearance and consult keyboard commands in an orderly compact dialog.",
+      "observations": "FAIL: Light rendering still marks Dark as the saved appearance because the story overrides CSS instead of supplying the preference observation. Fix preference ownership in the fixture and preserve complete preview compositions before acceptance.",
+      "verdict": "fail"
+    },
+    "conversation--settings-desktop-dark.png": {
+      "sha256": "ff3247ca8a611820ff37647c885efa20d2ca93adc16258e5706500fa9330fd4f",
+      "task": "Choose appearance and consult keyboard commands in an orderly compact dialog.",
+      "observations": "The compact settings title and controls are readable, but the appearance previews clip their miniature composer. Fix preference ownership in the fixture and preserve complete preview compositions before acceptance.",
+      "verdict": "fail"
+    },
+    "conversation--settings-desktop-light.png": {
+      "sha256": "03a0e20716109c411f297f63d1684d41fa7291ee644aa718f10739e11f18c2ab",
+      "task": "Choose appearance and consult keyboard commands in an orderly compact dialog.",
+      "observations": "FAIL: Light rendering still marks Dark as the saved appearance because the story overrides CSS instead of supplying the preference observation. Fix preference ownership in the fixture and preserve complete preview compositions before acceptance.",
+      "verdict": "fail"
+    }
+  }
+}
