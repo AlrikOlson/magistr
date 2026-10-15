@@ -52,7 +52,7 @@ export class ProjectNavigation {
       session.activity?.queued_turns?session.activity.queued_turns+" queued":null,
       session.address.workspace!==project.directory?session.address.workspace.split(/[\\/]/).filter(Boolean).at(-1):null].filter(Boolean).join(" · ");
     if(row.state.textContent!==state)row.state.textContent=state;
-    row.root.dataset.state=session.pending.length?"waiting":session.activity?.active?"running":"ready";
+    row.root.dataset.state=sessionActivity(session)??"closed";
     row.select.setAttribute("aria-label",name);row.select.title=name+"\n"+session.address.workspace;
     row.more.setAttribute("aria-label","Actions for "+name);
     row.stop.hidden=!session.activity?.active||session.closed;
@@ -71,7 +71,8 @@ export class ProjectNavigation {
         const root=node("details","project-group");root.open=true;
         const heading=node("summary","project-heading"),name=node("span","project-title"),count=node("span","project-count");
         const path=node("small","project-path"),body=node("div","project-conversations"),open=node("button","project-open","Open project");
-        heading.append(name,count);root.append(heading,path,body,open);
+        const icon=node("span","project-symbol");icon.dataset.icon="folder";icon.setAttribute("aria-hidden","true");
+        heading.append(icon,name,count);root.append(heading,path,body,open);
         group={root,heading,name,count,path,body,open,project};this.groups.set(project.id,group);
         open.onclick=()=>this.open(group.project.directory);
       }
