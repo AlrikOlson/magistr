@@ -26,6 +26,13 @@ export class WorkBrowser {
     this.item=new RoadmapItemReader($("work-browser-content"),invoke,()=>this.backToTrack(),()=>this.updateControls());
     this.tabs=new WorkTabs($("work-browser-tabs"),area=>this.selectArea(area));
     this.roadmapBrowser=new RoadmapBrowser($("work-browser-track"),()=>{this.item.close();this.key="";this.render();});
+    this.searchFields=[...$("work-browser").querySelectorAll('input[type="search"]')].map(input=>{
+      const field=element("div","","work-search-field"),clear=element("button","×","work-search-clear");
+      clear.type="button";clear.setAttribute("aria-label","Clear "+input.labels[0].textContent.toLowerCase());clear.title="Clear search";clear.hidden=!input.value;
+      input.before(field);field.append(input,clear);
+      clear.onclick=()=>{input.value="";input.dispatchEvent(new Event("input",{bubbles:true}));input.focus();};
+      input.addEventListener("input",()=>{clear.hidden=!input.value;});return {input,clear};
+    });
     $("work-browser-roadmap-state").onchange=()=>{this.item.close();this.key="";this.render();};
     $("browse-work").onclick=()=>this.open($("browse-work"));
     $("browse-work-header").onclick=()=>this.open($("browse-work-header"));
@@ -126,6 +133,7 @@ export class WorkBrowser {
     retainReading(content,()=>content.replaceChildren(observed.value?renderRoadmap(frontier,observed.value,records,this.roadmapBrowser.choice!==undefined,id=>this.item.open(this.frame.address,id,this.revision),mode):element("p","The roadmap is unavailable. Use Refresh to try again.","work-record-empty")));
   }
   render(){
+    for(const {input,clear} of this.searchFields)clear.hidden=!input.value;
     this.renderContent();
     if(this.readError){this.$("work-browser-state").textContent=(this.snapshot?"Showing the previous records. ":"")+"Could not read work records. "+this.readError;this.$("work-browser-state").dataset.current="false";}
   }

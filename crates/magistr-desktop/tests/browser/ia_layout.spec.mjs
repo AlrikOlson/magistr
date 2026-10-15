@@ -76,3 +76,13 @@ test("06 track choices show owner counts and preserve the selection",async({app}
   await expect(tracks).toHaveValue('"Platform"');
   await capture(app,"06-tracks");
 });
+test("07 work searches clear directly and restore the collection",async({app})=>{
+  await openWork(app,"Roadmap");await app.setViewportSize({width:760,height:550});
+  for(const [tab,label] of [["Roadmap","Search all roadmap"],["Reasoning","Search all reasoning"],["Feedback","Search feedback"],["Current and saved work","Find a task"]]){
+    await app.getByRole("tab",{name:tab,exact:true}).click();
+    const input=app.getByLabel(label,{exact:true});await input.fill("no-matching-record-xyz");
+    const clear=app.getByRole("button",{name:"Clear "+label.toLowerCase(),exact:true});
+    await expect(clear).toBeVisible();await clear.click();await expect(input).toHaveValue("");await expect(input).toBeFocused();await expect(clear).toBeHidden();
+  }
+  await app.getByLabel("Find a task",{exact:true}).fill("installer");await capture(app,"07-search-clear");
+});
