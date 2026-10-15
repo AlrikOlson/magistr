@@ -41,7 +41,7 @@
       <div id="transcript" class="transcript" tabindex="0" aria-label="Messages">
         <div class="empty"><h2>What would you like to work on?</h2><p>Send a message to start a conversation in this working copy.</p></div>
       </div>
-      <button id="latest" hidden>Latest reply ↓</button>
+      <button id="latest" data-leading-icon="arrow" hidden>Latest reply</button>
       <form id="composer" tabindex="-1">
         <label for="draft" class="sr-only">Message the agent</label>
         <div class="composer-box">
@@ -49,11 +49,11 @@
           <div id="pending-attachments" class="attachments" role="list" aria-label="Files to send" hidden></div>
           <p id="attachment-note" role="status" aria-live="polite"></p>
           <div class="composer-actions">
-            <button id="add-files" type="button" title="Add text files or PNG, JPEG and WebP images" disabled><span aria-hidden="true">＋</span> Add files</button>
-            <button id="agent-quick-settings" type="button" aria-label="Agent settings" aria-controls="session-detail" disabled></button>
+            <button id="add-files" type="button" title="Add text files or PNG, JPEG and WebP images" disabled><span data-icon="plus" aria-hidden="true"></span> Add files</button>
+            <button id="agent-quick-settings" data-leading-icon="spark" type="button" aria-label="Agent settings" aria-controls="session-detail" disabled></button>
             <span class="composer-spacer"></span>
             <button id="stop" type="button" title="Stop the current reply" disabled hidden>Stop</button>
-            <button id="send" type="submit" disabled>Send <span aria-hidden="true">↑</span></button>
+            <button id="send" type="submit" disabled>Send <span data-icon="arrow" aria-hidden="true"></span></button>
           </div>
         </div>
         <div class="composer-footer">
