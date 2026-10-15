@@ -1,5 +1,5 @@
 import {test,expect} from "./fixture.mjs";
-async function open(app){await app.getByRole("button",{name:"Review the release plan",exact:true}).click();await app.getByRole("button",{name:"Work plan",exact:true}).click();await app.getByLabel("Show",{exact:true}).selectOption("activity");}
+async function open(app){await app.getByRole("button",{name:"Review the release plan",exact:true}).click();await app.getByRole("button",{name:"Work plan",exact:true}).click();await app.getByRole("radio",{name:"Activity and produced items",exact:true}).check();}
 test("activity index searches mentions and copies exact produced references",async({app})=>{
   await open(app);await expect(app.locator(".work-activity-entry")).toHaveCount(3);
   const query=app.getByLabel("Find activity",{exact:true});await query.fill("reopen.rs");await expect(query).toBeFocused();await expect(app.locator(".work-activity-entry")).toHaveCount(1);

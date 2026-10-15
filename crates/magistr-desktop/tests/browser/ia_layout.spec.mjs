@@ -96,3 +96,12 @@ test("08 find shortcut selects the visible work search",async({app})=>{
   }
   await capture(app,"08-find");
 });
+test("09 work subviews use directly selectable native controls",async({app})=>{
+  await openWork(app);await app.setViewportSize({width:760,height:550});
+  const plan=app.getByRole("radio",{name:"Plan and tasks",exact:true});await plan.focus();await app.keyboard.press("ArrowRight");
+  await expect(app.getByRole("radio",{name:"Checks",exact:true})).toBeChecked();await expect(app.getByLabel("Find a check",{exact:true})).toBeVisible();
+  await app.keyboard.press("ArrowRight");await expect(app.getByLabel("Find activity",{exact:true})).toBeVisible();
+  await app.getByRole("radio",{name:"Plan and tasks",exact:true}).check();await expect(app.getByLabel("Find a task",{exact:true})).toBeVisible();
+  expect(await app.locator(".work-browser-filters").evaluate(node=>node.scrollWidth-node.clientWidth)).toBeLessThanOrEqual(1);
+  await capture(app,"09-subviews");
+});

@@ -128,7 +128,7 @@ test("task metadata uses labeled facts and complete times",async({app})=>{
 });
 
 test("check outcomes stay aligned with long names",async({app})=>{
-  await openWork(app);await app.getByLabel("Show",{exact:true}).selectOption("checks");
+  await openWork(app);await app.getByRole("radio",{name:"Checks",exact:true}).check();
   await app.evaluate(()=>{const f=window.__fixture;f.workflow.ship.data.value.current.tasks[1].checks[0].name="Verify installation and complete restoration of the conversation, file attachments and unsent message";f.publish("release",{workflow_revision:1});});
   await app.setViewportSize({width:760,height:550});
   const summary=app.locator(".work-check summary").first();await summary.scrollIntoViewIfNeeded();
@@ -139,7 +139,7 @@ test("check outcomes stay aligned with long names",async({app})=>{
 });
 
 test("activity aligns timestamps and compact references",async({app})=>{
-  await openWork(app);await app.getByLabel("Show",{exact:true}).selectOption("activity");
+  await openWork(app);await app.getByRole("radio",{name:"Activity and produced items",exact:true}).check();
   await app.getByLabel("Entries",{exact:true}).selectOption("activity");
   const row=app.locator(".work-action-list>li").first();await row.scrollIntoViewIfNeeded();
   await expect(row.locator(".work-action-references")).toHaveCount(2);
@@ -148,7 +148,7 @@ test("activity aligns timestamps and compact references",async({app})=>{
 });
 
 test("produced items place actions alongside their reference",async({app})=>{
-  await openWork(app);await app.getByLabel("Show",{exact:true}).selectOption("activity");await app.getByLabel("Entries",{exact:true}).selectOption("items");
+  await openWork(app);await app.getByRole("radio",{name:"Activity and produced items",exact:true}).check();await app.getByLabel("Entries",{exact:true}).selectOption("items");
   await app.setViewportSize({width:760,height:550});
   const row=app.locator(".work-artifacts article").first();await row.scrollIntoViewIfNeeded();
   const reference=await row.locator(".work-artifact-reference").boundingBox(),actions=await row.locator(".work-artifact-actions").boundingBox();

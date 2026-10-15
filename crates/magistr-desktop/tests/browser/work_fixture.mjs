@@ -35,12 +35,12 @@ export async function workScene(app,capture){
   await app.getByLabel("Task status",{exact:true}).selectOption("active");
   await app.locator(".work-tasks").evaluate(node=>node.scrollIntoView({block:"start"}));await capture("work-task-filter-dark.png");
   await app.getByLabel("Task status",{exact:true}).selectOption("all");await app.locator("#work-browser-content").evaluate(node=>node.scrollTop=0);
-  await app.getByLabel("Show",{exact:true}).selectOption("checks");await app.getByLabel("Check results",{exact:true}).selectOption("failed");
+  await app.getByRole("radio",{name:"Checks",exact:true}).check();await app.getByLabel("Check results",{exact:true}).selectOption("failed");
   await app.locator(".work-check").locator("summary").click();await app.locator(".work-check").evaluate(node=>node.scrollIntoView({block:"start"}));await capture("work-check-index-dark.png");
-  await app.getByLabel("Check results",{exact:true}).selectOption("all");await app.getByLabel("Show",{exact:true}).selectOption("tasks");await app.locator("#work-browser-content").evaluate(node=>node.scrollTop=0);
-  await app.getByLabel("Show",{exact:true}).selectOption("activity");await app.getByLabel("Entries",{exact:true}).selectOption("items");
+  await app.getByLabel("Check results",{exact:true}).selectOption("all");await app.getByRole("radio",{name:"Plan and tasks",exact:true}).check();await app.locator("#work-browser-content").evaluate(node=>node.scrollTop=0);
+  await app.getByRole("radio",{name:"Activity and produced items",exact:true}).check();await app.getByLabel("Entries",{exact:true}).selectOption("items");
   await app.locator(".work-activity-entry").first().evaluate(node=>node.scrollIntoView({block:"start"}));await capture("work-activity-index-dark.png");
-  await app.getByLabel("Entries",{exact:true}).selectOption("all");await app.getByLabel("Show",{exact:true}).selectOption("tasks");await app.locator("#work-browser-content").evaluate(node=>node.scrollTop=0);
+  await app.getByLabel("Entries",{exact:true}).selectOption("all");await app.getByRole("radio",{name:"Plan and tasks",exact:true}).check();await app.locator("#work-browser-content").evaluate(node=>node.scrollTop=0);
   await app.getByRole("tab",{name:"Record status",exact:true}).click();await app.locator("#work-browser-content").evaluate(node=>node.scrollTop=0);await capture("work-record-status-dark.png");
   await app.getByRole("tab",{name:"Current and saved work",exact:true}).click();
   await roadmapScene(app,capture);await reasoningScene(app,capture);await feedbackScene(app,capture);
