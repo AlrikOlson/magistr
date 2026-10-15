@@ -1,5 +1,5 @@
 {
-  "receipt": "9601ffbb856d709f0a2d42138a3b6a3719ae0a45a6f8d07578a2f55d1d049bfb",
+  "receipt": "f9cd596e60b7604c57f321fec5c502c6c877bee3a02d6802c36447d3c7e3a957",
   "images": {
     "welcome-dark.png": "dbeb5de57311812ef5a669f046708a23927e7504e74d686194bb801dfd5b8dff",
     "welcome-light.png": "c77e2e937e8f1e98e3061d94a5bb15c40abbcda679712e2d99ed503e54c54991",
@@ -28,14 +28,14 @@
     "find-conversation-narrow-light.png": "8a296146f1537545976903204e39324ee295eb83cdeb911e6f97b146019b690e",
     "find-conversation-dark.png": "96ecd9de265c9138efe09bd353eafd6a736ab3f8d99328eaf020418605022170",
     "reading-dark.png": "794764c2e05b8978bdafc1cb681802231eb8326f3b1f80e2f95a113b1d3591c4",
-    "code-dark.png": "e088bfee805d8642334ca452d174bb829edb85d251d1443c174271fdbdedae87",
+    "code-dark.png": "9ef6a5811b31f34a70f32d5e29ac39f29e75383606e8761aee2acadebc6950d9",
     "reading-light.png": "d78d020abfdc61d0cfc9e6620c1bcbb5241d7d5c22c82e28a937433623a54beb",
-    "code-light.png": "ae425f2052fef41bf894a7f1d5e6d25427292e8cf471fa68001fd391cd13a83b",
+    "code-light.png": "8736ee3aab478bea2e0e7d6fd9303a78f2d54b2ab79620b73ac0aefc57d95ee4",
     "tools-light.png": "4bba67c352198e69e6d6e83e69d27c77d3a504c939969ffab90211e6962230cc",
     "tools-dark.png": "b79874dc79f7147ba1ee5a831b0d3fc33ba1f01a5ba762f07a0ab3a9673af29d",
     "attachments-dark.png": "c120bedbaebe08df88096204bf10530f437594cba7d7f357447e6997b05c4ef0",
     "image-inspection-dark.png": "2bd0507ddc7cf102c12225db1fff741d4b39f56973edbc565e0185c7e17a3311",
-    "attachments-narrow-light.png": "47056e5b7fba232ed00f74c0c49fb688f8ce52c115b711957ca27ac686b0ff32",
+    "attachments-narrow-light.png": "1b2dcf44b954f67ce371c6d5ee7b7da474e7161af27c3d0b6b66bb34a1844d0a",
     "request-narrow-light.png": "cb72a0a32dea45a851309596729d72fb59b5c024c49053530df02119ee42b544",
     "request-dark.png": "3eb198add49e96889a7c59d6ef2b5245ed3224de5e582fe09381d7bdfc2e8447",
     "minimum-workspace-dark.png": "92813cc7b60fee6f0749b733fc36f30c5633ad068062dc7c0141af207570ae57",
@@ -52,8 +52,8 @@
   },
   "reviewed_on": "2026-10-15",
   "findings": [
-    "Completed the twentieth design chunk with stronger shared dialog typography, contained recovery notices and a large empty-conversation introduction owned by Transcript. Reviewed dark/light empty conversations, rename and minimum-size diagnostic recovery.",
-    "Seventeen focused WebKit checks passed for context, project opening/recovery, exact source copying, reading/selection preservation and workspace composition. Earlier chunks also passed their focused opening, history, keyboard, attachments, navigation, composer and unit checks.",
-    "Headless WebKit only; no native OS-input or assistive-technology run. The native workflow server still reports read_failed/decode for saved work, so completion is represented by actual Git commits and source-bound visual evidence, not fabricated native task records."
+    "Prepared source-language visual design: reviewed syntax colors and declared-language captions in dark and light. Exact copy, literal markup, selection freezing and bounded lexical rendering pass the new headless scenario.",
+    "Four Rust document tests, desktop all-target compilation and Clippy passed. Eight unique focused WebKit scenarios passed across source design, reading continuity and workspace composition. The final lexical correction reran its affected source scenario and the current visual capture scenario.",
+    "Reviewed the changed code captures and compact attachment capture. Native OS input and assistive technology were not run. Authorized saved-record correction restored native admission; focused Rust and WebKit checks are now recorded against the source-design task."
   ]
 }
