@@ -197,6 +197,14 @@ article.you{background:var(--panel);padding:18px 24px;border-radius:12px 12px 4p
 .table-document tr:nth-child(2n+1) td{background:color-mix(in srgb,var(--raised) 40%,var(--panel))}
 .table-document tr:last-child td{border-bottom:0}.table-document td:first-child{font-weight:550}.table-document th+th,.table-document td+td{border-left:1px solid var(--separator)}
 .table-document td code{white-space:nowrap}.table-document:focus-visible{outline-offset:3px}
+.patch-document .code-surface pre{padding:12px 0}.patch-document .code-title{text-transform:none}
+.patch-line{display:block;position:relative;padding:0 20px 0 108px;min-height:1.8em;width:max-content;min-width:100%;white-space:pre}
+.patch-line::before{content:attr(data-position);position:absolute;left:12px;color:var(--muted);user-select:none;white-space:pre;font-variant-numeric:tabular-nums}
+.patch-added{background:color-mix(in srgb,var(--success) 10%,transparent);color:var(--success)}
+.patch-removed{background:color-mix(in srgb,var(--danger) 9%,transparent);color:var(--danger)}
+.patch-hunk{color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,transparent);margin-block:8px}
+.patch-file{color:var(--muted);font-weight:550}.patch-file::before,.patch-hunk::before{content:""}
+@media(max-width:800px){.patch-line{padding-left:88px}.patch-line::before{left:0}}
 .source-keyword{color:var(--accent);font-weight:600}.source-string{color:var(--success)}.source-literal{color:var(--warning)}.source-comment{color:var(--muted);font-style:italic}
 .code-title{text-transform:lowercase;font-weight:650;letter-spacing:.02em}.code-document:focus-within{border-color:var(--accent)}
 .code-document pre:focus-visible{outline-offset:-3px}.code-document figcaption button:focus-visible{outline-offset:0}

@@ -46,3 +46,20 @@ export async function tableScene(app,capture,expect){
   await app.locator(".table-document").evaluate(node=>node.scrollIntoView({block:"start"}));
   await capture("tables-compact.png");
 }
+
+export async function patchScene(app,capture,expect){
+  const text="diff --git a/src/draft.rs b/src/draft.rs\n--- a/src/draft.rs\n+++ b/src/draft.rs\n@@ -12,4 +12,5 @@\n pub fn save_draft(text: &str) {\n-    cache.insert(text);\n+    writer.save(text)?;\n+    cache.insert(text.to_owned());\n     notify_saved();\n }\n";
+  await showDocument(app,[{tag:"h2",start:0,text:"Keep drafts through a restart"},{tag:"pre",start:10,language:"diff",text}],901);
+  await expect(app.locator(".patch-document code")).toHaveText(text,{useInnerText:false});
+  expect(await app.locator(".patch-document code").textContent()).toBe(text);
+  await expect(app.locator(".patch-added")).toHaveCount(2);
+  await expect(app.locator(".patch-removed")).toHaveCount(1);
+  await expect(app.locator(".code-count")).toHaveText("+2 added · −1 removed");
+  await expect(app.locator(".patch-added").first()).toHaveAttribute("data-position","         13");
+  await appearances(app,capture,"patch",".patch-document");
+  await app.setViewportSize({width:760,height:550});
+  await app.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+  await app.locator(".patch-document").evaluate(node=>node.scrollIntoView({block:"start"}));
+  expect(await app.evaluate(()=>document.documentElement.scrollWidth)).toBe(760);
+  await capture("patch-compact.png");
+}

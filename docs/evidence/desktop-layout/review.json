@@ -1,5 +1,5 @@
 {
-  "receipt": "3b03e847e231d17a4b08c8d7696bc1289256a4efe6337304ce918d0095224bb2",
+  "receipt": "834880c601bb58c1a0f52822837626c2ce00503ef1619b47c63b9ac1701d92e0",
   "images": {
     "welcome-dark.png": "dbeb5de57311812ef5a669f046708a23927e7504e74d686194bb801dfd5b8dff",
     "welcome-light.png": "c77e2e937e8f1e98e3061d94a5bb15c40abbcda679712e2d99ed503e54c54991",
@@ -33,9 +33,9 @@
     "code-light.png": "8736ee3aab478bea2e0e7d6fd9303a78f2d54b2ab79620b73ac0aefc57d95ee4",
     "tools-light.png": "4bba67c352198e69e6d6e83e69d27c77d3a504c939969ffab90211e6962230cc",
     "tools-dark.png": "b79874dc79f7147ba1ee5a831b0d3fc33ba1f01a5ba762f07a0ab3a9673af29d",
-    "attachments-dark.png": "bd3028c67e4d4d9f03175709bb9ab8812e1c4c9c1f52f31d85ed6edda0af6a72",
+    "attachments-dark.png": "c120bedbaebe08df88096204bf10530f437594cba7d7f357447e6997b05c4ef0",
     "image-inspection-dark.png": "2bd0507ddc7cf102c12225db1fff741d4b39f56973edbc565e0185c7e17a3311",
-    "attachments-narrow-light.png": "47056e5b7fba232ed00f74c0c49fb688f8ce52c115b711957ca27ac686b0ff32",
+    "attachments-narrow-light.png": "1b2dcf44b954f67ce371c6d5ee7b7da474e7161af27c3d0b6b66bb34a1844d0a",
     "request-narrow-light.png": "cb72a0a32dea45a851309596729d72fb59b5c024c49053530df02119ee42b544",
     "request-dark.png": "3eb198add49e96889a7c59d6ef2b5245ed3224de5e582fe09381d7bdfc2e8447",
     "minimum-workspace-dark.png": "92813cc7b60fee6f0749b733fc36f30c5633ad068062dc7c0141af207570ae57",
@@ -51,12 +51,15 @@
     "empty-conversation-light.png": "97d0ce07ab216f494a04b6b48f49df79f97fd6410f5e73e174150e6611532aec",
     "tables-dark.png": "61148ab1cc8208734fe10d238dbdbc95c9b81628c3813ae90d07f1728f08b704",
     "tables-light.png": "d58806b13f4770fd13c75ad47b8f4dbdd33ffce7da330502b6222f9c322892e5",
-    "tables-compact.png": "e9dc349df9dfa9c6b9a5f02a9f2392060b17e1f9b590cbfeaa3b3c8a94ac1261"
+    "tables-compact.png": "e9dc349df9dfa9c6b9a5f02a9f2392060b17e1f9b590cbfeaa3b3c8a94ac1261",
+    "patch-dark.png": "fbcb2289806201dc033480915586942d5241e69c8fe454b958cfc0800641da23",
+    "patch-light.png": "6b9729bd81b4d629e141c933154980b42667edf0894def70842dd0a65369bff3",
+    "patch-compact.png": "13d75c7c266ece85d8ce9b6e72ee3013583aa533a17d3a8aa07e692ad8ae19b9"
   },
   "reviewed_on": "2026-10-15",
   "findings": [
-    "2/20: Reviewed aligned table headers, alternating rows, numeric alignment and restrained framing in dark and light. Compact tables retain their header in an independently scrollable region.",
-    "Five Rust document tests, current headless WebKit composition journey, desktop Clippy and formatting passed with recorded native receipts. Table structure comes from the bounded Rust Markdown projection.",
-    "Reviewed changed attachment captures. Native OS input and assistive technology were not rerun."
+    "3/20: Reviewed unified patches in both themes and at the minimum window size: authentic file headers, hunk bands, old/new numbers and additions/removals.",
+    "Exact source text, bounded rendering and current reading/selection behavior pass eight focused WebKit scenarios. Reviewed changed attachment captures.",
+    "Native OS input and assistive technology were not rerun."
   ]
 }

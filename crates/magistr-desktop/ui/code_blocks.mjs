@@ -1,3 +1,4 @@
+import { paintPatch } from "./patch_document.mjs";
 import { paintSource } from "./source_color.mjs";
 
 // Render source without changing the authored bytes or the transcript's selection ownership.
@@ -26,11 +27,13 @@ export function renderCodeBlock(figure, source, copy) {
   }
   const text = sourceText(source);
   const lines = text ? text.split("\n").length - Number(text.endsWith("\n")) : 0;
-  paintSource(state.code, text, source.language);
-  state.title.textContent = source.language || "Code";
-  state.count.textContent = lines.toLocaleString() + (lines === 1 ? " line" : " lines");
+  const patch=["diff","patch"].includes(source.language)?paintPatch(state.code,text):null;
+  figure.classList.toggle("patch-document",!!patch);
+  if(!patch)paintSource(state.code, text, source.language);
+  state.title.textContent = patch ? "Changes" : source.language || "Code";
+  state.count.textContent = patch ? "+"+patch.added+" added · −"+patch.removed+" removed" : lines.toLocaleString() + (lines === 1 ? " line" : " lines");
   // Large sources remain complete; avoid manufacturing thousands of gutter nodes.
-  state.gutter.hidden = lines > 1000;
+  state.gutter.hidden = !!patch || lines > 1000;
   const numbers = lines > 1000 ? "" : Array.from({ length: lines }, (_, i) => i + 1).join("\n");
   if (state.gutter.dataset.lines !== numbers) state.gutter.dataset.lines = numbers;
   state.button.disabled = !copy || !text;

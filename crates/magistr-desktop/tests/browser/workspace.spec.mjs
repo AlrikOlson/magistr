@@ -2,7 +2,7 @@ import { test, expect, root, ui, workspaceSeed } from "./fixture.mjs";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { resolve, relative } from "node:path";
 import { createHash } from "node:crypto";
-import { tableScene } from "./design_scenes.mjs";
+import { tableScene, patchScene } from "./design_scenes.mjs";
 
 test("workspace composition, appearances and narrow Details",async({app,browser})=>{
   const evidence=resolve(root,".magistr/desktop-layout");
@@ -299,6 +299,8 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
   checks["empty conversations have a readable introduction and a visible composer"]=true;
   await tableScene(app,capture,expect);
   checks["comparison tables preserve headers, column alignment and contained compact scrolling"]=true;
+  await patchScene(app,capture,expect);
+  checks["patch documents preserve source bytes, old/new positions and actual change totals"]=true;
   const sources={};
   for(const name of (await readdir(ui)).sort()){
     const file=resolve(ui,name);
