@@ -278,3 +278,10 @@ test("29 finder results keep current status beside the title and preserve keyboa
   await expect(app.locator("#switch-results mark")).toHaveText("sync");await app.locator("#switch-search").press("ArrowDown");await app.keyboard.press("Enter");
   await expect(app.locator("#switch-picker")).toBeHidden();await expect(app.locator("#view-title")).toHaveText("Investigate sync failure");
 });
+test("30 project failures keep the selected folder and retry beside compact feedback",async({app})=>{
+  await app.setViewportSize({width:760,height:550});await app.evaluate(()=>{window.__fixture.handlers.preview_project=({directory})=>({kind:"ready",directory});window.__fixture.handlers.open_session=()=>{throw "Sign-in expired.\n\nOpen the agent and sign in.";};});
+  await app.getByRole("button",{name:"Open project",exact:true}).click();await app.getByLabel("Project folder",{exact:true}).fill("/Projects/new-project");await app.locator("#picker-submit").click();
+  await expect(app.locator("#picker-error")).toBeFocused();await app.getByText("Show error details",{exact:true}).click();
+  for(const theme of ["dark","light"]){await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);await expect(app.getByRole("button",{name:"Try again",exact:true})).toBeInViewport();await capture(app,"30-feedback-"+theme);}
+  await app.evaluate(()=>window.__fixture.handlers.open_session=()=>window.__fixture.frames.get("release").address);await app.getByRole("button",{name:"Try again",exact:true}).click();await expect(app.locator("#project-picker")).toBeHidden();
+});

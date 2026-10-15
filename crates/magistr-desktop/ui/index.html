@@ -142,13 +142,13 @@
 <dialog id="project-picker" aria-labelledby="picker-title">
   <form id="project-form">
     <header class="picker-heading dialog-heading"><h2 id="picker-title" tabindex="-1" data-leading-icon="folder">Open a project</h2><p id="picker-intro">Choose the folder you want to work in.</p></header>
-    <div id="picker-folder-entry"><label for="project-folder">Project folder</label><div class="folder-input"><input id="project-folder" name="directory" required placeholder="/path/to/project"><button id="browse-folder" data-leading-icon="folder" type="button">Browse…</button></div><p>If this folder needs setup, you’ll review the changes before anything is written.</p></div>
+    <div id="picker-folder-entry"><label for="project-folder">Project folder</label><div class="folder-input"><input id="project-folder" name="directory" aria-describedby="project-folder-help" required placeholder="/path/to/project"><button id="browse-folder" data-leading-icon="folder" type="button">Browse…</button></div><p id="project-folder-help">You can review any setup changes before applying them.</p></div>
     <div id="picker-destination" hidden><p id="setup-root" class="path" data-leading-icon="folder"></p><button id="change-folder" type="button">Change folder</button></div>
     <p id="picker-status" role="status" aria-live="polite" hidden></p>
     <section id="picker-failure" class="picker-failure" aria-labelledby="picker-error" hidden>
       <h3 id="picker-error" role="alert" tabindex="-1"></h3>
       <p id="picker-error-message"></p>
-      <p id="picker-error-help" hidden>Your folder is still selected. Read the details below, then try again.</p>
+      <p id="picker-error-help" hidden>Your folder is still selected. Check the error details, then retry.</p>
       <details id="picker-error-details" hidden><summary>Show error details</summary><pre id="picker-error-source" tabindex="0" aria-label="Error details"></pre></details>
     </section>
     <section id="setup-preview" aria-label="Project setup" hidden>
