@@ -121,8 +121,9 @@ export class ProjectDirectory {
         opened.append(node("dt","","Open conversations"),openCount);waiting.append(node("dt","","Waiting for you"),waitCount);facts.append(opened,waiting);
         const open=node("button","directory-open","Open project"),list=node("nav","directory-conversations");
         open.dataset.leadingIcon="arrow";
-        title.append(name,path);heading.append(title,open);root.append(heading,facts,list);
-        group={root,name,path,facts,openCount,waitCount,open,list,project};this.groups.set(project.id,group);
+        const empty=node("p","directory-empty","No open conversations.");
+        title.append(name,path);heading.append(title,open);root.append(heading,facts,list,empty);
+        group={root,name,path,facts,openCount,waitCount,open,list,empty,project};this.groups.set(project.id,group);
         open.onclick=()=>this.open(group.project.directory);
       }
       group.project=project;group.name.textContent=project.name;group.path.textContent=project.directory;
@@ -145,7 +146,7 @@ export class ProjectDirectory {
         row.button.setAttribute("aria-label","Continue "+this.label(session)+" in "+project.name);
         row.button.title=session.address.workspace;return row.button;
       });
-      place(group.list,rows);group.list.hidden=!rows.length;return group.root;
+      place(group.list,rows);group.list.hidden=!rows.length;group.empty.hidden=!!rows.length;return group.root;
     });
     place(this.root,elements);
     for(const key of this.rows.keys())if(!usedRows.has(key))this.rows.delete(key);
