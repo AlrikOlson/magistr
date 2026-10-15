@@ -285,6 +285,17 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
     await app.getByRole("button",{name:"Cancel",exact:true}).click();
   }
   checks["project opening failures preserve the folder, disclose readable details and retain retry at the native minimum"]=true;
+  await app.setViewportSize({width:1280,height:820});
+  await app.getByRole("button",{name:"Update the home page",exact:true}).click();
+  for(const theme of ["dark","light"]){
+    await app.getByRole("button",{name:"Settings",exact:true}).click();
+    await app.getByLabel("Appearance",{exact:true}).selectOption(theme);
+    await app.getByRole("button",{name:"Done",exact:true}).click();
+    await app.locator("#transcript").evaluate(node=>node.scrollTop=0);
+    await expect(app.getByRole("heading",{name:"What would you like to work on?",exact:true})).toBeVisible();
+    await capture("empty-conversation-"+theme+".png");
+  }
+  checks["empty conversations have a readable introduction and a visible composer"]=true;
   const sources={};
   for(const name of (await readdir(ui)).sort()){
     const file=resolve(ui,name);
