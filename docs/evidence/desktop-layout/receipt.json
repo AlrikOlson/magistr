@@ -1,7 +1,7 @@
 {
   "renderer": "headless WebKit",
   "version": "27.2",
-  "captured_at": "2026-10-15T01:48:40.655Z",
+  "captured_at": "2026-10-15T01:49:35.703Z",
   "scope": "Production desktop HTML, CSS and JavaScript with isolated observation fixtures; no native OS input or Rust owner integration.",
   "checks": {
     "selected conversation and saved draft are visible": true,
@@ -14,7 +14,8 @@
     "setup review separates file approval from reading with fixed actions": true,
     "new conversation exposes destination, agents and optional model choice": true,
     "conversation finding and documented keyboard navigation keep focus visible": true,
-    "rich document typography renders headings, quotations, code and inline source": true
+    "rich document typography renders headings, quotations, code and inline source": true,
+    "tool cards distinguish result, failure and duration without losing disclosure": true
   },
   "source_hashes": {
     "crates/magistr-desktop/ui/app.mjs": "c20f500a42ea9b067ce68f436e0e442cc1d5ed79bbaee147c89863feb8a37374",
@@ -38,14 +39,14 @@
     "crates/magistr-desktop/ui/saved_drafts.mjs": "a0bfc036bfe1f48fa005fb42da66ea31fd608f656df57a8501ee504b59779ca0",
     "crates/magistr-desktop/ui/selection.mjs": "fd844d9e146a9c5e1fb9ab6e2fc72c0273da66d4f59a70ce639877a87aff05fc",
     "crates/magistr-desktop/ui/session_controls.mjs": "738386755be2b65fd03899ae28e1b357b4313258d67b3edfaf72fe3fe37ff123",
-    "crates/magistr-desktop/ui/style.css": "6e41ad4b9dfddc22361d1e3dcac91e420ad156925f91d26b771aadacf96b263b",
+    "crates/magistr-desktop/ui/style.css": "5fd9cdfe49fd6e3ab782a64ea0d7548082ba710efd47800dbe4582d8e3d58d9d",
     "crates/magistr-desktop/ui/supervision.mjs": "032a49085ae6738687065e58e06950cf7229f4fa7f7e0e64ed7390edf3629d12",
     "crates/magistr-desktop/ui/switcher.mjs": "629058ba7502c9ab39dec8292b55e2197fcb7eb1b42e7907ea6e2d74f5804556",
-    "crates/magistr-desktop/ui/transcript.mjs": "f7330b971c39b1c9832958164b524e8949d9c3fd5c2fad1c0582f307fdc569eb",
+    "crates/magistr-desktop/ui/transcript.mjs": "20409076551db4e3323c2433001baf9fe4325ad2d2300f2b5fba72cf62047d3a",
     "crates/magistr-desktop/ui/work.mjs": "a171d4c39c35bb7118c74a2a9691d106a4a062480a9afad13069cfe6021529af",
     "crates/magistr-desktop/playwright.config.mjs": "e97c1f9951b494fa8049e323eae8fc372a2d1c2de74fd8edd9de706be82e0634",
     "crates/magistr-desktop/tests/browser/fixture.mjs": "6f6be897d7881cebdab1977a3b4e0a49992d2442517e8b03aa33da2ddafd2eaf",
-    "crates/magistr-desktop/tests/browser/workspace.spec.mjs": "30965ec94f9dd85d8f90e1fa387575c91d0bda70c90a0f0f77382be3965426f1"
+    "crates/magistr-desktop/tests/browser/workspace.spec.mjs": "87f83cb4066c068318f573c39256be044ee521f09183c4068299d8b405ea9140"
   },
   "images": {
     "welcome-dark.png": "2dd25326fb4d53d3dc502391c4b54560b514b36266075d4f4fb08886726ada70",
@@ -57,7 +58,7 @@
     "rename-light.png": "9d7db6d47cfbc7b77378cef68ff134aba3752cc0a27b76785adeb20d22e16830",
     "work-paused-dark.png": "2eb3b9a8515c36b90ea91f6a2d71cc60ae60500b0a256aa1cd48ac5e2448785c",
     "history-dark.png": "5a52dd3dea300e6b7ed7ecf712dc4212498de1486da3d38fa62bf8cb91e547a4",
-    "history-narrow-light.png": "aabffd3bc45ba821b44b1fb25f5730e6f163a9cc1b4af5125e394daccccf6429",
+    "history-narrow-light.png": "93873f17006014750408e475be51c6a62c81b1f438b4e480eadfe29f2e420284",
     "setup-narrow-light.png": "3f758a7e7332f79d33d64e71cdd7779bcc991924faf3dabd54d918ed36c7a59f",
     "open-project-dark.png": "a37d1850f971b3311e039079bb3fff43570959aa405d08b9804264fdcb92f497",
     "setup-dark.png": "7896940baeff7492275d7825760c2f7d550069966193cacb8adf34122f757e8d",
@@ -66,6 +67,8 @@
     "find-conversation-narrow-light.png": "2ecf491f755490d9de30e3434201954d2de1f93c6f0195c02eab09ce57b8cd21",
     "find-conversation-dark.png": "22137248f4218ce82970feb545e0f4b6c8a4a9ad1b38db309bd63951552af454",
     "reading-dark.png": "cb4707bc66822004bfacc55c465f39e50a55a1ab6ba139af7af095774624bf6d",
-    "reading-light.png": "2b4cf2c5858a86146c216f4fcc13385d77db35ccf75dc6e2b832bec6bd20a174"
+    "reading-light.png": "2b4cf2c5858a86146c216f4fcc13385d77db35ccf75dc6e2b832bec6bd20a174",
+    "tools-light.png": "0350ff10aa015cf040957fb69990ebb6f3503d9425a93b929f51d0046597b8c2",
+    "tools-dark.png": "6f8cbe02377a7f220702893b2f720d68c932486ca773d73bd2d16847b5216e38"
   }
 }

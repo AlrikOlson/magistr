@@ -158,6 +158,12 @@ export class Transcript {
     header.append(role,copy);article.append(header);
     if(message.tool) {
       row.details=element(this.document,"details");row.summary=element(this.document,"summary");row.body=element(this.document,"div");row.body.className="tool-body";
+      row.toolTitle=element(this.document,"span");row.toolTitle.className="tool-title";
+      row.toolStatus=element(this.document,"span");row.toolStatus.className="tool-status";
+      row.toolDuration=element(this.document,"span");row.toolDuration.className="tool-duration";
+      const separator=element(this.document,"span"," · ");separator.className="sr-only";
+      row.summary.append(row.toolTitle,separator,row.toolStatus,row.toolDuration);
+      article.dataset.tool="true";
       row.details.append(row.summary,row.body);article.append(row.details);
     } else {
       row.body=element(this.document,"div");row.body.className="message-body";article.append(row.body);
@@ -170,7 +176,10 @@ export class Transcript {
     row.copy.disabled=!message.text;
     if(message.tool) {
       const tool=message.tool;
-      row.summary.textContent=tool.title+" · "+tool.status;
+      row.toolTitle.textContent=tool.title;row.toolStatus.textContent=tool.status;
+      row.article.dataset.status=tool.status.toLowerCase();
+      row.toolDuration.textContent=tool.duration_ms==null?"":(tool.duration_ms/1000).toLocaleString(undefined,{maximumFractionDigits:2})+" s";
+      row.toolDuration.hidden=tool.duration_ms==null;
       row.article.classList.toggle("failed",tool.status==="Failed");
       const specs=tool.details.map((detail,index)=>({
         tag:"section",key:index,label:detail.label,source:detail.source
@@ -186,7 +195,6 @@ export class Transcript {
       if(tool.truncated_from) {
         const note=element(this.document,"p","Some tool details are unavailable. Original size: "+tool.truncated_from+" bytes.");note.className="gap";row.body.append(note);
       }
-      if(tool.duration_ms!==null)row.body.append(element(this.document,"p","Duration: "+(tool.duration_ms/1000).toLocaleString(undefined,{maximumFractionDigits:2})+" seconds."));
       if(tool.image_count)row.body.append(element(this.document,"p",tool.image_count+" image"+(tool.image_count===1?"":"s")+" attached."));
     } else {
       row.attachments.apply(message.attachments??[]);

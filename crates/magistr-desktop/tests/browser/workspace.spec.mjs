@@ -143,6 +143,22 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
     await capture("reading-"+theme+".png");
   }
   checks["rich document typography renders headings, quotations, code and inline source"]=true;
+  await app.evaluate(()=>{
+    window.__fixture.publish("release",{events:[
+      {id:91,revision:1,role:"Tool",text:"cargo check -p magistr-desktop",tool:{title:"Check the draft writer",status:"Completed",details:[{label:"Command",source:"cargo check -p magistr-desktop"},{label:"Result",source:"Finished successfully. No warnings."}],duration_ms:1840,truncated_from:null,image_count:0}},
+      {id:92,revision:1,role:"Tool",text:"Read the session log",tool:{title:"Read the session log",status:"Failed",details:[{label:"Result",source:"The file could not be read. Permission was denied."}],duration_ms:46,truncated_from:null,image_count:0}}
+    ],retained:[91,92]});
+  });
+  await app.locator('[data-message="91"] summary').click();
+  for(const theme of ["light","dark"]){
+    await app.getByRole("button",{name:"Settings",exact:true}).click();
+    await app.getByLabel("Appearance",{exact:true}).selectOption(theme);
+    await app.getByRole("button",{name:"Done",exact:true}).click();
+    await app.locator("#transcript").evaluate(node=>node.scrollTop=0);
+    await expect(app.getByText("Finished successfully. No warnings.",{exact:true})).toBeVisible();
+    await capture("tools-"+theme+".png");
+  }
+  checks["tool cards distinguish result, failure and duration without losing disclosure"]=true;
   const sources={};
   for(const name of (await readdir(ui)).sort()){
     const file=resolve(ui,name);
