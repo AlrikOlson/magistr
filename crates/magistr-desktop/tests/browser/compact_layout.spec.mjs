@@ -77,3 +77,12 @@ test("roadmap detail keeps metadata beside the title",async({app})=>{
   await expect(app.locator(".roadmap-item-heading")).toContainText("Desktop · Planned");
   await capture(app,"06-roadmap-detail");
 });
+
+test("requirements remain complete in compact numbered rows",async({app})=>{
+  await openWork(app,"Roadmap");await app.setViewportSize({width:760,height:550});
+  await app.getByRole("button",{name:"Restore the project conversation and draft",exact:true}).click();
+  const requirements=app.locator(".roadmap-requirements");await requirements.scrollIntoViewIfNeeded();
+  await expect(requirements).toContainText("The same conversation and unsent message return after reopening.");
+  expect((await requirements.locator("li").first().boundingBox()).height).toBeLessThan(80);
+  await capture(app,"07-requirements");
+});
