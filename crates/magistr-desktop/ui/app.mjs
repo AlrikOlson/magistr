@@ -1,4 +1,5 @@
 import { ActivityOverview } from "./activity.mjs";
+import { renderSourceDetail } from "./source_details.mjs";
 import { ConversationSwitcher } from "./switcher.mjs";
 import { KeyboardNavigation } from "./keyboard.mjs";
 import { EditorPlaces } from "./reading.mjs";
@@ -365,7 +366,8 @@ function render(frame) {
     const position=text("span",String(index+1).padStart(2,"0")+" / "+String(view.pending.length).padStart(2,"0"));position.className="request-position";position.setAttribute("aria-label","Request "+(index+1)+" of "+view.pending.length);
     banner.append(heading,position);section.append(banner,text("h3",request.title));
     if(request.detail){
-      const details=text("pre",request.detail);details.className="request-detail";details.tabIndex=0;details.setAttribute("aria-label","Request details");const figure=text("figure","");figure.className="request-source";figure.append(text("figcaption","Details"),details);section.append(figure);
+      const source=text("section","");source.className="request-source";
+      renderSourceDetail(source,{label:"Request details",source:request.detail},value=>navigator.clipboard.writeText(value).catch(showError));section.append(source);
     }
     const actions=text("div","");actions.className="request-actions";actions.setAttribute("role","group");actions.setAttribute("aria-label","Answer this request");
     for(const choice of request.choices) {
