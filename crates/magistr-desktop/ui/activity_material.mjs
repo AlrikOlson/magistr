@@ -150,7 +150,7 @@ export class ActivityMaterial {
     const signature = JSON.stringify([size,this.counts,palette]);
     if (this.signature === signature && this.root.dataset.material === "rendered") return;
     this.signature = signature;
-    if (this.canvas.width !== size) this.canvas.width = this.canvas.height = size;
+    if (this.canvas.width !== size || this.canvas.height !== size) this.canvas.width = this.canvas.height = size;
     gl.viewport(0, 0, size, size); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
     gl.useProgram(this.program); gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
     const position = this.position;
