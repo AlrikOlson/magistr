@@ -44,7 +44,9 @@ export class ActivityOverview {
       item.append(node("dt", "", title), value); list.append(item);
       this.values.set(kind, value);
     }
-    body.append(list); root.append(this.wheel, body);
+    this.spectrum = node("div", "activity-spectrum"); this.spectrum.setAttribute("aria-hidden", "true");
+    for (const [kind] of activityKinds) { const segment = node("span", ""); segment.dataset.kind = kind; this.spectrum.append(segment); }
+    body.append(list, this.spectrum); root.append(this.wheel, body);
     this.material = new ActivityMaterial(this.wheel);
   }
   render(sessions) {
@@ -66,6 +68,7 @@ export class ActivityOverview {
     }
     this.wheel.style.setProperty("--activity-fill", stops.length ? "conic-gradient(" + stops.join(",") + ")" : "var(--raised)");
     this.root.dataset.empty = String(!total);
+    for (const segment of this.spectrum.children) { const count = counts[segment.dataset.kind]; segment.hidden = !count; segment.style.flexGrow = String(count); }
     this.material.update(activityKinds.map(([kind]) => counts[kind]));
   }
 }
