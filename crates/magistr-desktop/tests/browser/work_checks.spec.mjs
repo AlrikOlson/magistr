@@ -11,7 +11,7 @@ test("checks keep attempts, distinguish claims and copy complete output",async({
   await expect(checks.nth(1).locator("summary")).toContainText("Executed · Passed");
   await expect(checks.nth(2).locator("summary")).toContainText("Reported · Passed");
   await checks.nth(0).locator("summary").click();
-  await expect(checks.nth(0)).toContainText("Exit code 101");
+  await expect(checks.nth(0).locator(".work-check-facts dd").last()).toHaveText("101");
   await expect(checks.nth(0)).toContainText("1 passed · 1 failed · 0 skipped");
   await app.evaluate(()=>Object.defineProperty(navigator,"clipboard",{configurable:true,value:{writeText:async text=>{window.__copied=text;}}}));
   await checks.nth(0).getByRole("button",{name:"Copy check output",exact:true}).click();
