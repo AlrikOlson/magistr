@@ -13,7 +13,7 @@ export async function appearances(app,capture,name,focus=null){
     await app.getByLabel("Appearance",{exact:true}).selectOption(theme);
     await app.getByRole("button",{name:"Done",exact:true}).click();
     await app.locator("#transcript").evaluate(node=>node.scrollTop=0);
-    if(focus)await app.locator(focus).evaluate(node=>node.scrollIntoView({block:"center"}));
+    if(focus)await app.locator(focus).evaluate(node=>node.scrollIntoView({block:node.classList.contains("request")?"start":"center"}));
     await capture(name+"-"+theme+".png");
   }
 }
