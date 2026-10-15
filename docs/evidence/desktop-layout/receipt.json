@@ -1,7 +1,7 @@
 {
   "renderer": "headless WebKit",
   "version": "27.2",
-  "captured_at": "2026-10-15T05:29:53.403Z",
+  "captured_at": "2026-10-15T05:31:07.720Z",
   "scope": "Production desktop HTML, CSS and JavaScript with isolated observation fixtures; no native OS input or Rust owner integration.",
   "checks": {
     "project chooser presents actual projects and folder entry in both appearances": true,
@@ -54,7 +54,7 @@
     "crates/magistr-desktop/ui/index.html": "5359ce1fbbb5348b8b84e579e45dca80e8141274e1eaedb093c426be81a9130a",
     "crates/magistr-desktop/ui/keyboard.mjs": "ee034c0d7649b19a00bdcb7daddd4a3a9bd84f40a1f6a062a82a2babc922f270",
     "crates/magistr-desktop/ui/layout.mjs": "4c65e6a206688e27e386fa95c59eba488ef8ddcd725bfa300f0fd419baa8a072",
-    "crates/magistr-desktop/ui/navigation.mjs": "aade9f16456a133bc8649f2c1ad6893b5f5f2d9edd2bcbfd2c2ab347001f953e",
+    "crates/magistr-desktop/ui/navigation.mjs": "41b5e00f74dc486c64251ee99be7fc441b62f75a6a4ffc7ff6ca4902f90f926e",
     "crates/magistr-desktop/ui/patch_document.mjs": "15bc65476f7c5de99a1c54ac7b84b715d52f2c26e4300a319ee19603442f0320",
     "crates/magistr-desktop/ui/preferences.mjs": "119dfd44c2fbdf82da45e0973c6a12bbf3a284ffabf416f766e1315a47cad2d5",
     "crates/magistr-desktop/ui/project_picker.mjs": "d0cc1f6ee0cff0d2ebecaf096152defc8c796f8866ce825a6829ece4581d6aa7",
@@ -66,7 +66,7 @@
     "crates/magistr-desktop/ui/session_controls.mjs": "738386755be2b65fd03899ae28e1b357b4313258d67b3edfaf72fe3fe37ff123",
     "crates/magistr-desktop/ui/source_color.mjs": "1ac22d15033a59af850c8583abdb8123ff8062c16e71d500327f5d5743d41057",
     "crates/magistr-desktop/ui/source_details.mjs": "f9cdc8d8534c28200818fae85a5c44225f9e340eba4e04c866e7d4f417e83deb",
-    "crates/magistr-desktop/ui/style.css": "bedca56def4d1952a3844f5666356256329a4640fc67168a381636ef899cf7d0",
+    "crates/magistr-desktop/ui/style.css": "d1d0beaedd0327af6536029540bac37441887d9626263eebc470420c1cd72ee8",
     "crates/magistr-desktop/ui/supervision.mjs": "509cd792877f397ac427789d491b4f51fd2840cc1b94ae05690d295519b75431",
     "crates/magistr-desktop/ui/switcher.mjs": "7e0d3655808443dd842be7a01abc8ddd6ccc018557a920bfe6e44383ec5d857e",
     "crates/magistr-desktop/ui/transcript.mjs": "2b80cfacc4867a977b2b29a0345884f49cf28a84508f1f9ec06aa1a1f67b9d81",
@@ -80,9 +80,9 @@
     "crates/magistr-desktop/tests/browser/design_scenes.mjs": "89430092d12e1fa41453c3b56ae6cb467d69c8aa66e8b4da390a5b6f876515a3"
   },
   "images": {
-    "welcome-dark.png": "c9eca206e8150a375458e0634f8327b8ded302f72e8e702cd30d51ca5509ce75",
-    "welcome-light.png": "9b0fdae1afe8e8d2a09c33ecec663f252f29c472680ed483411d737868214c9e",
-    "welcome-narrow-light.png": "2a2d746ae9bd877186091bda81e1f98a9405f3f5281ce306bb72b42e977c6669",
+    "welcome-dark.png": "b286a65dcd908e14a5db7c5fbf5c9519aad7acb1da8184deaf31579ca8332fed",
+    "welcome-light.png": "8aeb5150f7f3548d0923ac15b900f3dbda7d16563f4cdcd727503eedba4805b8",
+    "welcome-narrow-light.png": "22da120efb8c0fd06b486574f57eb70258be871c811491264b957b5a2c3201ff",
     "settings-dark.png": "28e85777a4a492e8acba7ab8ada055c7b9274695ea19902dcc5f7ab3c732bd6c",
     "workspace-dark.png": "860017ef246cd0bdfa443991acee3ad92675477adea2bfe47cb0c8725a6f59b5",
     "settings-light.png": "5a3adda11fc5684a4194cff23a5c7ac7f88d8be33964334ef83da3591f356e7f",
@@ -133,7 +133,7 @@
     "tables-dark.png": "faa31a29a0662d1eae1d271aaf7fe0c148b8a52e775832fdda2cef6fcba87ae3",
     "tables-light.png": "868a07dd7bece9c1b3a5d4243078d90684d9f34f35eb5a79a753fdac92316dd6",
     "tables-compact.png": "3be3caa260edf1c33f8f92a28e041edab981dbe210ecef7729a4327278bd0924",
-    "patch-dark.png": "a9819c2981d8cb6d69f5e3815e5e2109be72466c32a983a67c3bd5555ffd3184",
+    "patch-dark.png": "1795bb83fd25ea704a6234b27700b7c4cf28e4899dca0d0ddeb19751eccf6948",
     "patch-light.png": "aee662b2a2cdce853a87b5cbb5d5d3635578ee03640c1c758442662c6eb6348b",
     "patch-compact.png": "99b43981af50d7efca149196f5b5150c14e4c09eb9f8dddb24132c01d3aa0ba0",
     "result-dark.png": "718c3d4430cdde428747d340bbbf811658d6357f0b9f0abf803f025bae56bc3b",

@@ -1,9 +1,9 @@
 {
-  "receipt": "86492c959ff6538a3da123d4fc78f194f4a56866fa57f4405dca2aa3c2aaf13b",
+  "receipt": "ee31c521bdc189aaba4e95405cfb420d8c22d3fb6ed250c1c616ade8cea2f14f",
   "images": {
-    "welcome-dark.png": "c9eca206e8150a375458e0634f8327b8ded302f72e8e702cd30d51ca5509ce75",
-    "welcome-light.png": "9b0fdae1afe8e8d2a09c33ecec663f252f29c472680ed483411d737868214c9e",
-    "welcome-narrow-light.png": "2a2d746ae9bd877186091bda81e1f98a9405f3f5281ce306bb72b42e977c6669",
+    "welcome-dark.png": "b286a65dcd908e14a5db7c5fbf5c9519aad7acb1da8184deaf31579ca8332fed",
+    "welcome-light.png": "8aeb5150f7f3548d0923ac15b900f3dbda7d16563f4cdcd727503eedba4805b8",
+    "welcome-narrow-light.png": "22da120efb8c0fd06b486574f57eb70258be871c811491264b957b5a2c3201ff",
     "settings-dark.png": "28e85777a4a492e8acba7ab8ada055c7b9274695ea19902dcc5f7ab3c732bd6c",
     "workspace-dark.png": "860017ef246cd0bdfa443991acee3ad92675477adea2bfe47cb0c8725a6f59b5",
     "settings-light.png": "5a3adda11fc5684a4194cff23a5c7ac7f88d8be33964334ef83da3591f356e7f",
@@ -54,7 +54,7 @@
     "tables-dark.png": "faa31a29a0662d1eae1d271aaf7fe0c148b8a52e775832fdda2cef6fcba87ae3",
     "tables-light.png": "868a07dd7bece9c1b3a5d4243078d90684d9f34f35eb5a79a753fdac92316dd6",
     "tables-compact.png": "3be3caa260edf1c33f8f92a28e041edab981dbe210ecef7729a4327278bd0924",
-    "patch-dark.png": "a9819c2981d8cb6d69f5e3815e5e2109be72466c32a983a67c3bd5555ffd3184",
+    "patch-dark.png": "1795bb83fd25ea704a6234b27700b7c4cf28e4899dca0d0ddeb19751eccf6948",
     "patch-light.png": "aee662b2a2cdce853a87b5cbb5d5d3635578ee03640c1c758442662c6eb6348b",
     "patch-compact.png": "99b43981af50d7efca149196f5b5150c14e4c09eb9f8dddb24132c01d3aa0ba0",
     "result-dark.png": "718c3d4430cdde428747d340bbbf811658d6357f0b9f0abf803f025bae56bc3b",
@@ -90,5 +90,5 @@
     "workspace-compact-final-light.png": "46bae9eb182e02b0ede55859dbb07e857cc35164af52e3af2e3386e09d38b501",
     "workspace-compact-long-title.png": "bd5fe90987fbccd1d2c085a341bbacd5d193876b9aaddaadf5211d80144f9f33"
   },
-  "review": "Reviewed full dark workspace and minimum light window. Project breadcrumb, lighter title and separate command deck retain draft and context controls. Five affected WebKit cases pass."
+  "review": "Reviewed dark full-width and compact light directory. Project identity and exact counts form one column; actual conversations form an adjacent list. Empty projects have a truthful empty state. Catalog ownership/focus cases pass."
 }
