@@ -173,7 +173,18 @@
 <dialog id="attachment-viewer" aria-labelledby="attachment-title">
   <header class="image-viewer-heading"><div><h2 id="attachment-title"></h2><p id="attachment-location"></p></div><button id="attachment-close" aria-label="Close image">×</button></header>
   <div class="image-viewer-stage"><img id="attachment-image" alt=""><p id="attachment-image-status" role="status"></p></div>
-  <footer class="dialog-footer"><p id="attachment-metadata"></p><button id="attachment-size">Actual size</button></footer>
+  <footer class="dialog-footer image-viewer-controls">
+    <p id="attachment-metadata"></p>
+    <div class="image-backgrounds" role="group" aria-label="Image background">
+      <button type="button" data-background="checker" aria-label="Checkered background" aria-pressed="true"></button>
+      <button type="button" data-background="light" aria-label="Light background" aria-pressed="false"></button>
+      <button type="button" data-background="dark" aria-label="Dark background" aria-pressed="false"></button>
+    </div>
+    <div class="image-zoom" role="group" aria-label="Image zoom">
+      <button type="button" id="attachment-zoom-out" aria-label="Zoom out">−</button><output id="attachment-scale" aria-live="polite">Fit</output><button type="button" id="attachment-zoom-in" aria-label="Zoom in">+</button>
+    </div>
+    <button id="attachment-size">Actual size</button>
+  </footer>
 </dialog>
 <script type="module" src="app.mjs"></script>
 </body></html>

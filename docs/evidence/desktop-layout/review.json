@@ -1,5 +1,5 @@
 {
-  "receipt": "174afeaf47d92fba02376d75a7ef922e3cebf863d196ee4f0e19be6825656cf3",
+  "receipt": "a158f11f02a07052c74490b767f38fb72c07d57d12373642ef6c3c010c63a15b",
   "images": {
     "welcome-dark.png": "dbeb5de57311812ef5a669f046708a23927e7504e74d686194bb801dfd5b8dff",
     "welcome-light.png": "c77e2e937e8f1e98e3061d94a5bb15c40abbcda679712e2d99ed503e54c54991",
@@ -34,7 +34,7 @@
     "tools-light.png": "a8614b0be9b948dab1ba591539095aef46bcce21b06eadce8de3c23c19a447e7",
     "tools-dark.png": "38f77fdbc732c75fdd847281e4b060deca65d9cfde1f3ad41f738b4a6a97dcb0",
     "attachments-dark.png": "e7a4ef133f8e8c06bdf3d0e1708bc92a7e7bf5b18229a128df314c595536f1cb",
-    "image-inspection-dark.png": "2bd0507ddc7cf102c12225db1fff741d4b39f56973edbc565e0185c7e17a3311",
+    "image-inspection-dark.png": "9fdf38ca2f907c26c1d5639e96e75123209fe61a22e2d8a7dc7054b31b9a3f5e",
     "attachments-narrow-light.png": "f01928da4fde56b91e54dca230f58a4277c5d1347e4ad3d4cb9b6e1c329c1b3c",
     "request-narrow-light.png": "cb72a0a32dea45a851309596729d72fb59b5c024c49053530df02119ee42b544",
     "request-dark.png": "3eb198add49e96889a7c59d6ef2b5245ed3224de5e582fe09381d7bdfc2e8447",
@@ -52,8 +52,8 @@
     "tables-dark.png": "61148ab1cc8208734fe10d238dbdbc95c9b81628c3813ae90d07f1728f08b704",
     "tables-light.png": "d58806b13f4770fd13c75ad47b8f4dbdd33ffce7da330502b6222f9c322892e5",
     "tables-compact.png": "e9dc349df9dfa9c6b9a5f02a9f2392060b17e1f9b590cbfeaa3b3c8a94ac1261",
-    "patch-dark.png": "fbcb2289806201dc033480915586942d5241e69c8fe454b958cfc0800641da23",
-    "patch-light.png": "6b9729bd81b4d629e141c933154980b42667edf0894def70842dd0a65369bff3",
+    "patch-dark.png": "4a1b3d635641d3cbc49ee668e202c846e1583ef00b33b5ddf9e3157a3a02b80d",
+    "patch-light.png": "6d2fad24d98396bf3aa149c4f5628a79ea48326318f52dddc2c3ff90245eca3c",
     "patch-compact.png": "13d75c7c266ece85d8ce9b6e72ee3013583aa533a17d3a8aa07e692ad8ae19b9",
     "result-dark.png": "e4420af9fc3e6834a8376a00c9a8947e17a4ef84cd23e619d0e1a08270c1cfb4",
     "result-light.png": "275b959ef273f3b5d8e7c618daa07edc90dddf90b43ce25589d83c01f421ac57",
@@ -65,12 +65,15 @@
     "editorial-compact.png": "56d67f3debbd5fb1251e5eb38fcde8bc94aee8ce0744907874cb2a1a8f9b3387",
     "gallery-dark.png": "a998fb4ab5e3d379a90ddf45eab5e45f5e3e8dcaa4167c2f724107b1717ef2ed",
     "gallery-light.png": "be7b0b0474f5e375419c7c26d511333e4a3c2bdef04356190a6216ca5f67d211",
-    "gallery-compact.png": "4d92eda9cb8b4d00862c8be003c9eff2327c6d082728842dfa3fd585e3927794"
+    "gallery-compact.png": "4d92eda9cb8b4d00862c8be003c9eff2327c6d082728842dfa3fd585e3927794",
+    "image-stage-dark.png": "e184a4511beec4ff7826b234ebcef0c91d39dd07c8cb10f9fe7dba2c7c9ec371",
+    "image-stage-light.png": "7885f78c12a2302b8eb0ba73e57947dd7febe9d0f846b916c25fb29e9fb29ba2",
+    "image-stage-compact.png": "3abaa1c50cc3168292fe94e8411426f44f2f80320de557d7a9893db40105b246"
   },
   "reviewed_on": "2026-10-15",
   "findings": [
-    "7/20: Reviewed sent-file contact sheets with contained image thumbnails, document excerpts, filename captions and separate size/path metadata in dark/light and compact windows.",
-    "The visual review exposed an intrinsic image-size overflow; corrected the owning thumbnail layout and added a bounding-box assertion. Four attachment identity/paste tests and three WebKit scenarios pass.",
-    "Image inspection, unavailable previews and source focus remain intact. Native OS input and assistive technology were not rerun."
+    "8/20: Reviewed full image stage, metadata bar, background swatches and zoom controls. Fit preserves the full image; explicit 200% zoom permits inspection with contained scrolling.",
+    "Three WebKit scenarios pass, including 25–400% limits via controls, background selection, actual-size/fit transitions, failure dismissal and focus return. Compact controls remain inside 760×550.",
+    "Consolidated duplicated image-viewer style ownership. Native OS input and assistive technology were not rerun."
   ]
 }

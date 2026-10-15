@@ -146,3 +146,20 @@ export async function galleryScene(app,capture,expect){
   expect(await app.evaluate(()=>document.documentElement.scrollWidth)).toBe(760);
   await capture("gallery-compact.png");
 }
+export async function viewerScene(app,capture,expect){
+  await app.setViewportSize({width:1280,height:820});
+  await app.getByRole("button",{name:"View icon.png",exact:true}).click();
+  await expect(app.locator("#attachment-metadata")).toContainText("×");
+  await app.getByRole("button",{name:"Dark background",exact:true}).click();
+  await capture("image-stage-dark.png");
+  await app.getByRole("button",{name:"Light background",exact:true}).click();
+  await capture("image-stage-light.png");
+  await app.getByRole("button",{name:"Actual size",exact:true}).click();
+  await app.getByRole("button",{name:"Zoom in",exact:true}).click();
+  await expect(app.locator("#attachment-scale")).toHaveText("200%");
+  await app.setViewportSize({width:760,height:550});
+  const zoom=await app.getByRole("button",{name:"Zoom in",exact:true}).boundingBox();
+  expect(zoom.y+zoom.height).toBeLessThan(550);
+  await capture("image-stage-compact.png");
+  await app.getByRole("button",{name:"Close image",exact:true}).click();
+}

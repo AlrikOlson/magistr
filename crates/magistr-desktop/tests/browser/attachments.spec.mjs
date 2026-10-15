@@ -8,6 +8,12 @@ test("image inspection retains dimensions, exact target and source focus", async
   await expect(app.locator("#attachment-metadata")).toContainText("×");
   await app.getByRole("button", { name: "Actual size", exact: true }).click();
   await expect(app.locator("#attachment-viewer")).toHaveAttribute("data-actual","true");
+  await app.getByRole("button",{name:"Zoom in",exact:true}).click();
+  await expect(app.locator("#attachment-scale")).toHaveText("200%");
+  await app.getByRole("button",{name:"Light background",exact:true}).click();
+  await expect(app.locator("#attachment-viewer")).toHaveAttribute("data-background","light");
+  await app.getByRole("button",{name:"Fit image",exact:true}).click();
+  await expect(app.locator("#attachment-scale")).toHaveText("Fit");
   await app.keyboard.press("Escape");
   await expect(app.getByRole("button", { name: "View icon.png", exact: true })).toBeFocused();
   await app.getByRole("button", { name: "View icon.png", exact: true }).click();
