@@ -31,9 +31,11 @@
   </nav>
   <p id="error" class="error" role="alert" hidden></p>
   <section id="welcome" class="welcome" aria-label="Open a project">
-    <div class="welcome-intro"><h2>Open a project</h2><p>Choose a folder to start a conversation, or reopen a project below.</p>
+    <div class="welcome-intro"><p class="welcome-description">Return to a conversation or open another folder.</p>
     <div class="welcome-actions"><button id="welcome-open" data-leading-icon="folder">Choose a folder…</button><button id="welcome-path">Enter a folder path</button></div>
-    <p class="welcome-hint">You’ll review any setup changes before they’re made.</p></div><div class="recent-heading"><h3>Recent projects</h3></div><div id="welcome-projects" aria-label="Recent projects"></div>
+    <p class="welcome-hint">You’ll review any setup changes before they’re made.</p></div>
+    <div id="welcome-projects" aria-label="Your projects"></div>
+    <p id="directory-empty" hidden>No projects yet. Choose a folder to get started.</p>
     <p id="welcome-note" role="status" hidden></p>
   </section>
   <div id="workspace" class="workspace" hidden>

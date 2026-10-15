@@ -4,7 +4,7 @@ import { EditorPlaces } from "./reading.mjs";
 import { ConversationPicker } from "./conversation_picker.mjs";
 import { HistoryBrowser } from "./history.mjs";
 import { ConversationName } from "./conversation_actions.mjs";
-import { ProjectNavigation } from "./navigation.mjs";
+import { ProjectNavigation, ProjectDirectory } from "./navigation.mjs";
 import { WorkspaceLayout } from "./layout.mjs";
 import { WorkPanel } from "./work.mjs";
 import { addressKey, targetKey, sameTarget } from "./context.mjs";
@@ -62,6 +62,10 @@ const navigation=new ProjectNavigation($("projects"),{
   select:address=>select(address).catch(showError),open:openDirectory,act,close:closeAddress,
   label:session=>session.conversation?.name??("Conversation "+labels.get(session.address.session))
 });
+const directory=new ProjectDirectory($("welcome-projects"),{
+  select:address=>select(address).catch(showError),open:openDirectory,
+  label:session=>session.conversation?.name??("Conversation "+labels.get(session.address.session))
+});
 const switcher=new ConversationSwitcher($,{sessions:()=>sessions,selected:()=>selected,ready:()=>catalog.sequence>=0,select,
   label:session=>session.conversation?.name??("Conversation "+labels.get(session.address.session))});
 new KeyboardNavigation($,layout);
@@ -93,15 +97,14 @@ async function refresh() {
   attachmentLimits=info.attachment_limits;
   for(const session of sessions)if(!labels.has(session.address.session))labels.set(session.address.session,++issuedLabel);
   renderRail();
-  $("welcome-projects").replaceChildren(...projects.slice(0,4).map(project=>{
-    const item=button("",()=>openDirectory(project.directory));
-    item.append(text("strong",project.name),text("span",project.directory),text("small","Open project →"));return item;
-  }));
+
   return info;
 }
 function renderRail() {
   const signature=JSON.stringify([projects,sessions,selected]);if(signature===railKey)return;railKey=signature;
   navigation.render(projects,sessions,selected);
+  const projectCount=directory.render(projects,sessions);
+  $("directory-empty").hidden=projectCount>0;
   $("sessions-empty").hidden=projects.length>0||sessions.length>0;
   if(selected){
     const name=sessions.find(session=>session.address.session===selected.session)?.name??"Project";

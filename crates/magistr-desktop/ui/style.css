@@ -248,28 +248,31 @@ textarea::placeholder,input::placeholder{color:var(--muted);opacity:1}
 .request-actions button:hover{background:var(--panel)}.request-actions button:disabled{color:var(--muted)}
 .session-actions{display:grid;gap:8px}.session-actions button{font-size:12px}
 .error{padding:10px 14px;color:var(--danger);background:var(--panel);border-bottom:1px solid var(--separator);overflow-wrap:anywhere;font-size:13px}
-.welcome{margin:0 auto;width:min(100%,960px);padding:48px;overflow:auto}
+.welcome{margin:0 auto;width:min(100%,1040px);padding:44px;overflow:auto}
+.welcome-intro{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px 32px;padding-bottom:36px}
 
-.welcome-intro{padding-bottom:32px}
-.recent-heading{display:flex;align-items:center;justify-content:space-between;gap:20px;padding-top:22px;border-top:1px solid var(--separator)}
-.recent-heading h3{font-size:18px;font-weight:600;letter-spacing:-.02em;margin:0}
+.welcome p{color:var(--muted);font-size:13px;line-height:1.7;margin:0}
+.welcome .welcome-description{font-size:18px;line-height:1.5;color:var(--text);max-width:40ch;align-self:center}
+.welcome .welcome-hint{grid-column:1/-1;font-size:12px}
+.welcome-actions{display:flex;flex-direction:column;gap:8px;align-self:start}
+.welcome-actions button{font-size:12px;min-height:40px;padding:10px 14px}
+.welcome-actions button:first-child{background:var(--button);color:var(--button-text);border-color:var(--button)}
+.welcome-actions button+button{background:transparent;border-color:transparent;color:var(--muted)}
 
-.welcome h2{font-size:28px;font-weight:600;line-height:1.2;color:var(--text);letter-spacing:-.025em;text-transform:none;margin-bottom:12px}
+.directory-project{border-top:1px solid var(--separator);padding:24px 0}
+.directory-project-heading{display:flex;justify-content:space-between;align-items:center;gap:20px}
+.directory-project-title{min-width:0}.directory-project-title h2{text-transform:none;color:var(--text);font-size:21px;font-weight:600;line-height:1.3;letter-spacing:-.025em;margin:0 0 6px}
+.directory-project-title p{font:11px/1.5 var(--font-code);overflow-wrap:anywhere}
+.directory-open{flex-shrink:0;font-size:12px;padding:8px 12px;border-color:var(--separator);background:transparent}
+.welcome .directory-project-facts{font-size:12px;margin:16px 0 10px}
+.directory-conversations{display:grid;gap:4px}
+.directory-conversation{display:flex;align-items:baseline;justify-content:space-between;gap:24px;border-color:transparent;border-radius:4px;background:transparent;padding:10px 12px;margin-inline:-12px;font-size:14px;line-height:1.4}
+.directory-conversation:hover{background:var(--panel)}
+.directory-conversation span{overflow-wrap:anywhere}.directory-conversation small{font-size:11px;color:var(--muted);white-space:nowrap}
+.directory-conversation[data-attention=true] small{color:var(--warning)}
+@media(max-width:1000px){.welcome{padding:28px}.welcome-intro{grid-template-columns:1fr;gap:16px;padding-bottom:28px}.welcome-actions{flex-direction:row;flex-wrap:wrap}}
+@media(max-width:600px){.directory-project-heading{align-items:flex-start;flex-wrap:wrap;gap:12px}.directory-conversation{flex-wrap:wrap;gap:6px}}
 
-.welcome p{color:var(--muted);font-size:13px;line-height:1.7}
-.welcome .welcome-hint{font-size:12px;max-width:360px;line-height:1.6}
-#welcome-projects{display:grid;grid-template-columns:1fr;gap:4px;margin-top:16px}
-
-#welcome-projects button{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 16px;padding:16px 12px;border-color:transparent;border-radius:6px;background:transparent;text-align:left}
-
-#welcome-projects strong{font-size:16px;font-weight:600;letter-spacing:-.015em;overflow-wrap:anywhere}
-#welcome-projects span{grid-row:2;grid-column:1/-1;color:var(--muted);font:11px var(--font-code);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#welcome-projects small{grid-column:2;grid-row:1;color:var(--muted);font-size:11px;align-self:center}
-#welcome-projects button:hover{background:var(--panel)}
-@media(max-width:1000px){#welcome-projects small{grid-row:3;grid-column:1;margin-top:6px}}
-@media(max-width:1000px){.welcome{padding:24px}.welcome h2{font-size:28px;font-weight:600;line-height:1.2;color:var(--text);letter-spacing:-.025em;text-transform:none;margin-bottom:12px}}
-@media(max-width:680px){#welcome-projects{display:grid;grid-template-columns:1fr;gap:4px;margin-top:16px}.welcome h2{font-size:28px;font-weight:600;line-height:1.2;color:var(--text);letter-spacing:-.025em;text-transform:none;margin-bottom:12px}}
-.welcome-actions{display:flex;flex-wrap:wrap;gap:8px;margin:24px 0 18px}.welcome-actions button{font-size:12px;min-height:40px;padding:10px 14px;border-radius:8px}.welcome-actions button:first-child{background:var(--button);color:var(--button-text);border-color:var(--button)}.welcome-actions button+button{background:transparent;border-color:var(--separator)}
 dialog{--dialog-gutter:28px;max-height:calc(100dvh - 48px);overflow:hidden;border:1px solid var(--separator);border-radius:12px;background:var(--base);color:var(--text);width:700px;max-width:calc(100vw - 32px);padding:0;box-shadow:var(--shadow)}
 dialog::backdrop{background:color-mix(in srgb,var(--canvas) 65%,transparent)}dialog h2{font-size:27px;line-height:1.2;font-weight:620;color:var(--text);text-transform:none;letter-spacing:-.035em;margin-bottom:10px}
 dialog p{color:var(--muted);margin-bottom:18px;line-height:1.65}dialog label{display:block;margin-bottom:8px;font-size:12px;font-weight:550}dialog input,dialog select{width:100%;min-height:40px;background:var(--panel);border-radius:8px;padding:9px 12px}dialog input:focus,dialog select:focus{background:var(--base)}dialog input[type=checkbox],dialog input[type=radio]{min-height:16px}dialog button{font-size:12px}
