@@ -1,7 +1,7 @@
 {
   "renderer": "headless WebKit",
   "version": "27.2",
-  "captured_at": "2026-10-15T04:52:13.867Z",
+  "captured_at": "2026-10-15T04:53:55.603Z",
   "scope": "Production desktop HTML, CSS and JavaScript with isolated observation fixtures; no native OS input or Rust owner integration.",
   "checks": {
     "project chooser presents actual projects and folder entry in both appearances": true,
@@ -33,8 +33,8 @@
     "expanded writing preserves native editor identity, text, caret and compact actions": true
   },
   "source_hashes": {
-    "crates/magistr-desktop/ui/activity.mjs": "51eedbc9383201c5e8d2051931a47f47643dd44e03b95ff4bc0d5652f1df7cde",
-    "crates/magistr-desktop/ui/activity_material.mjs": "ad6febd4924ef6400e89c9bb606fd890c7058181b049d545abcd445043d657e3",
+    "crates/magistr-desktop/ui/activity.mjs": "04ed81dd551940d90ccd7341374238a8feaa510d52c9fe929cf2ec448d700420",
+    "crates/magistr-desktop/ui/activity_material.mjs": "c4264eacc9068313c77f4a379b15ab084bb27c3f48211c98299dfc977581f6c9",
     "crates/magistr-desktop/ui/app.mjs": "776fd0c216a32b368f6ee634edcb9835ff6e63dce6c049fde1f7f812a396f45c",
     "crates/magistr-desktop/ui/attachment_viewer.mjs": "90fe436ef3b1420434637d612440d3012c4574eda324d8a0957070b7c81da6f1",
     "crates/magistr-desktop/ui/attachments.mjs": "6234de3d8c07b1451ad08e14f5cc98075ff6a813b17d673d8337c5693de483da",
@@ -61,7 +61,7 @@
     "crates/magistr-desktop/ui/selection.mjs": "fd844d9e146a9c5e1fb9ab6e2fc72c0273da66d4f59a70ce639877a87aff05fc",
     "crates/magistr-desktop/ui/session_controls.mjs": "738386755be2b65fd03899ae28e1b357b4313258d67b3edfaf72fe3fe37ff123",
     "crates/magistr-desktop/ui/source_color.mjs": "1ac22d15033a59af850c8583abdb8123ff8062c16e71d500327f5d5743d41057",
-    "crates/magistr-desktop/ui/style.css": "7a4dcd38eba56fe0837c1cd446a43fcee0fc965ce9651f35650152f68c01cde5",
+    "crates/magistr-desktop/ui/style.css": "82b4e8dfbc0dd8dd045e9be1db9d73a9ef5c8bfa7da0550cbcbf77258d6ea8ea",
     "crates/magistr-desktop/ui/supervision.mjs": "509cd792877f397ac427789d491b4f51fd2840cc1b94ae05690d295519b75431",
     "crates/magistr-desktop/ui/switcher.mjs": "7e0d3655808443dd842be7a01abc8ddd6ccc018557a920bfe6e44383ec5d857e",
     "crates/magistr-desktop/ui/tool_result.mjs": "531a8a89e26491d66b437bb2ed20d4a2117a35314c1e4d22b4837dae7c705b61",
@@ -76,9 +76,9 @@
     "crates/magistr-desktop/tests/browser/design_scenes.mjs": "61e55f391fb328082508eb1ad0a4174ef466e6ec86db7a26704fcb18a6070fea"
   },
   "images": {
-    "welcome-dark.png": "f18c41b8de2656120146ac3778365b5569f91b8531ee34d64815362ccad46fe1",
-    "welcome-light.png": "8e8a43b03fa9bebb95af68c560faf58cec7a50e19ca8e0f85f572838f9aeff06",
-    "welcome-narrow-light.png": "abc69e1091cb2ac278ffd99f31d8a6c795d587727e2db6211fde06a80bc0fae6",
+    "welcome-dark.png": "fa0bb2c36a671c5e08dba931c55cda81c8fdf959ab927aacaa1ff7aa5194bddc",
+    "welcome-light.png": "c1adcd1c321a6da7d82c2a3f9ba9ddae55484c9a3f79799b8793f287cf11b30a",
+    "welcome-narrow-light.png": "3ad1b6f10d541d9fb12f3c66905afb9870580aa24f3766dc2b590e67ba30eb46",
     "settings-dark.png": "e52a00b724a84978ffee054e695882d67c8245f7295b44440b187cf116e9c4da",
     "workspace-dark.png": "d1246bd8560b3e9c05e370cfece72c73fda98a35b77d4cd1dd1f1241652cd964",
     "settings-light.png": "417f75dbabb06544019c0ebf42e10a37ffc3bf78a9b770cac20b5dedd7d93a3a",
@@ -127,7 +127,7 @@
     "tables-dark.png": "b4b15fdb62cd17325c8e700f04b4b5c441c91e3146204775683c8b46c343ebfd",
     "tables-light.png": "b0ae433219af44bd1983f44276172defb0083894d7d69cea6636614df28d1a68",
     "tables-compact.png": "2af09a757fc67686e3864030f61a5125a878d80cac6c5e6fc1e7103f3c5a4267",
-    "patch-dark.png": "8b1c68c6858b35f47a750ebd778905620a75b42b704eda297bf18c3b26e8d3bb",
+    "patch-dark.png": "79fb50bc49f50cdb9cd876bf6f8e6eb32fed0b5e9f0d8f82eb02a8d9fc9fa517",
     "patch-light.png": "f8e8337c97bca88b300be69cddf8a07fa05749ae599e097031c9e7eb7cd537f8",
     "patch-compact.png": "6301fd1330aa31cf7a4d685c383239efc8988ce9e0ab3309bb60c50e9cfee460",
     "result-dark.png": "1c218dcd12c07269d08e4140d5db515d41217180694d78df609b34ee9f8f3e1d",

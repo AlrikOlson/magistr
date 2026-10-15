@@ -10,12 +10,20 @@ varying vec2 point;
 uniform vec4 ends;
 uniform vec3 colors[4];
 uniform float empty;
+uniform float segments;
 void main() {
   float radius = length(point);
-  float crossSection = (radius - 0.77) / 0.17;
+  float crossSection = (radius - 0.77) / 0.15;
   float coverage = 1.0 - smoothstep(0.97, 1.0, abs(crossSection));
   if (coverage <= 0.0) discard;
   float angle = fract(atan(point.x, point.y) / 6.2831853 + 1.0);
+  if (segments > 1.0) {
+    float slot = fract(angle * segments);
+    float edge = min(slot, 1.0 - slot) / segments;
+    coverage *= smoothstep(0.001, 0.004, edge);
+  }
+  float boundary = min(min(abs(angle - ends.x), abs(angle - ends.y)), abs(angle - ends.z));
+  if (empty < 0.5) coverage *= smoothstep(0.001, 0.003, boundary);
   vec3 color = colors[0];
   if (angle >= ends.x) color = colors[1];
   if (angle >= ends.y) color = colors[2];
@@ -26,7 +34,9 @@ void main() {
   vec3 light = normalize(vec3(-0.45, 0.6, 1.4));
   float diffuse = max(dot(normal, light), 0.0);
   float specular = pow(max(dot(reflect(-light, normal), vec3(0.0, 0.0, 1.0)), 0.0), 30.0);
-  color = color * (0.62 + diffuse * 0.38) + vec3(specular * 0.14);
+  float bevel = smoothstep(0.55, 0.9, abs(crossSection));
+  float engraving = 0.985 + 0.015 * cos(angle * 1256.637);
+  color = color * (0.82 + diffuse * 0.18) * engraving + vec3(specular * 0.065 + bevel * 0.035);
   gl_FragColor = vec4(color, coverage);
 }
 `;
@@ -113,6 +123,7 @@ export class ActivityMaterial {
     gl.uniform4fv(gl.getUniformLocation(this.program, "ends"), ends);
     gl.uniform3fv(gl.getUniformLocation(this.program, "colors[0]"), colors);
     gl.uniform1f(gl.getUniformLocation(this.program, "empty"), total ? 0 : 1);
+    gl.uniform1f(gl.getUniformLocation(this.program, "segments"), total <= 64 ? total : 0);
     gl.drawArrays(gl.TRIANGLES, 0, 6); gl.flush();
     this.root.dataset.material = "rendered";
   }
