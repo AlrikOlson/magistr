@@ -12,10 +12,11 @@ export function readState(record,kind="work") {
 }
 const labels={defined:"Planned",active:"In progress",completed:"Completed",abandoned:"Stopped",planned:"Planned",blocked:"Blocked",skipped:"Skipped"};
 export const statusLabel=status=>labels[status]??"Status unavailable";
-export function authoredList(title,values) {
+export function authoredList(title,values,key) {
   if(!values?.length)return null;
-  const section=element("section","","work-record-section"),list=element("ul");
-  section.append(element("h3",title));
+  const section=element("details","","work-objective-details"),list=element("ul"),summary=element("summary");
+  section.dataset.readingKey=key;summary.dataset.focusKey=key;
+  summary.append(element("span",title),element("span",String(values.length),"work-record-count"));section.append(summary);
   for(const value of values)list.append(element("li",value));
   section.append(list);return section;
 }
@@ -25,7 +26,7 @@ export function renderRun(run,actions,view) {
   article.dataset.run=run.run_id;
   const head=element("header","","work-record-heading");
   const title=element("h3",run.objective.description);title.tabIndex=-1;title.dataset.focusKey="run-title";
-  head.append(element("p",statusLabel(run.objective.status),"work-record-status"),title);
+  head.append(title,element("p",statusLabel(run.objective.status),"work-record-status"));
   const dates=element("dl","","work-record-dates");
   for(const [label,value] of [["Started",run.objective.created_at],["Finished",run.objective.completed_at]]){
     if(!value)continue;
@@ -35,7 +36,7 @@ export function renderRun(run,actions,view) {
   }
   if(dates.children.length)head.append(dates);
   article.append(head);
-  for(const section of [authoredList("Requirements",run.objective.acceptance_criteria),authoredList("Constraints",run.objective.constraints)])if(section)article.append(section);
+  for(const section of [authoredList("Requirements",run.objective.acceptance_criteria,run.run_id+":requirements"),authoredList("Constraints",run.objective.constraints,run.run_id+":constraints")])if(section)article.append(section);
   const tasks=element("section","","work-record-section"),list=element("ol","","work-tasks");
   tasks.append(element("h3","Tasks"),element("p",run.tasks.length+" "+(run.tasks.length===1?"task":"tasks"),"work-record-count"));
   const window=taskWindow(run.tasks,view);tasks.append(window.navigation);

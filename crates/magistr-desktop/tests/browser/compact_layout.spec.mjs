@@ -96,3 +96,15 @@ test("dependency groups share a compact comparison row",async({app})=>{
   expect((await app.locator(".roadmap-relations").boundingBox()).height).toBeLessThan(165);
   await capture(app,"08-dependencies");
 });
+
+test("current work reveals complete requirements on demand",async({app})=>{
+  await openWork(app);await app.setViewportSize({width:760,height:550});
+  const disclosure=app.locator(".work-objective-details").first();
+  await expect(disclosure).not.toHaveAttribute("open","");
+  await disclosure.locator("summary").focus();await app.keyboard.press("Enter");
+  await expect(disclosure.locator("li").last()).toBeVisible();
+  await expect(disclosure).toContainText("the previous build remains available");
+  await app.evaluate(()=>{window.__fixture.publish("release",{workflow_revision:1});});
+  await expect(disclosure).toHaveAttribute("open","");
+  await disclosure.locator("summary").click();await capture(app,"09-current-work");
+});
