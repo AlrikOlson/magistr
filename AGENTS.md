@@ -78,6 +78,16 @@ new evidence or a relevant correction. Keep this policy in the canonical workflo
 templates as well as generated skills so `magistr init` and repair preserve it.
 Scope changes and commits to the requested task; preserve other sessions' work.
 
+Every GUI iteration must save updated screenshots of every area it changes before
+completion or commit. Keep them in a dated, named iteration folder under
+`docs/evidence/desktop-iterations/`, with consistent view names, viewport sizes,
+appearance, renderer, source hashes and capture time. Inspect the images and
+record what was checked and any limitations alongside them. Include the evidence
+in the iteration's commit and link it in the receipt. Cover affected meaningful
+states and supported light/dark and compact layouts; do not substitute old images,
+a final-only gallery or test assertions for that iteration's screenshots.
+Never overwrite earlier iterations or label an unreviewed capture as reviewed.
+
 Desktop checks run in the background by default. Use focused headless WebKit
 scenarios for HTML/CSS/JavaScript layout and interaction, plus the affected unit
 or crate checks. Do not run every native journey or every desktop test for a

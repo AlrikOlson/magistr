@@ -1,6 +1,7 @@
 import {test,expect,root} from "./fixture.mjs";
 import {mkdir} from "node:fs/promises";
 import {resolve} from "node:path";
+import {captureIteration} from "./iteration_evidence.mjs";
 async function openWork(app,tab){
   await app.getByRole("button",{name:"Review the release plan",exact:true}).click();
   await app.getByRole("button",{name:"Work plan",exact:true}).click();
@@ -9,6 +10,7 @@ async function openWork(app,tab){
 async function capture(app,name){
   const dir=resolve(root,".magistr/desktop-ia");await mkdir(dir,{recursive:true});
   await app.screenshot({path:resolve(dir,name+".png"),animations:"disabled"});
+  await captureIteration(app,{root,name,scenario:test.info().file});
 }
 test("01 roadmap sections navigate complete content and retain focus",async({app})=>{
   await openWork(app,"Roadmap");

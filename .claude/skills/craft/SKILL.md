@@ -36,6 +36,11 @@ start an implementation loop by itself.
   headless checks do not establish native input or assistive-technology behavior.
   Run only the affected scenarios and checks. Verify meaningful states,
   keyboard behavior, visual hierarchy and supported light/dark modes.
+- Every GUI iteration must capture and inspect updated screenshots of each changed
+  area before committing. Store them in the project's dated iteration evidence
+  folder with consistent view names, viewport, appearance, renderer, capture time,
+  source hashes and review notes. Include the evidence in that iteration's commit.
+  Preserve earlier captures; a final-only gallery does not satisfy this rule.
 
 `/next` owns one implementation iteration; `/next-loop` owns bounded
 fresh-session handoffs, one chunk per agent session. `/roadmap-refresh` and `/signals` research and
