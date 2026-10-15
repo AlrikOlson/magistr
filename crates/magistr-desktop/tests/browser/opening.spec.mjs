@@ -14,7 +14,7 @@ test("destination and optional model are explicit and admission cannot duplicate
   expect(await app.evaluate(()=>window.__fixture.calls.filter(c=>["open_session","model_choices"].includes(c.command)))).toHaveLength(0);
   await app.getByRole("radio",{name:"API Agent",exact:true}).check();
   await app.getByRole("button",{name:"Choose a model…",exact:true}).click();
-  await app.getByLabel("Model for this conversation",{exact:true}).selectOption("gpt");
+  await app.getByRole("radio",{name:"GPT",exact:true}).check();
   const action=await app.getByRole("button",{name:"Start conversation",exact:true}).boundingBox();expect(action.y+action.height).toBeLessThan(560);
   await app.evaluate(()=>window.__fixture.handlers.open_session=()=>new Promise(resolve=>window.finishOpening=resolve));
   await app.getByRole("button",{name:"Start conversation",exact:true}).click();
@@ -62,11 +62,11 @@ test("late model failure cannot replace a changed agent or a closed dialog",asyn
 test("admission refusal preserves choices and admitted navigation retry never starts a second agent",async({app})=>{
   await show(app);
   await app.getByRole("button",{name:"Choose a model…",exact:true}).click();
-  await app.getByLabel("Model for this conversation",{exact:true}).selectOption("sonnet");
+  await app.getByRole("radio",{name:"Claude Sonnet",exact:true}).check();
   await app.evaluate(()=>window.__fixture.handlers.open_session=()=>{throw Error("The agent needs sign-in.");});
   await app.getByRole("button",{name:"Start conversation",exact:true}).click();
   await expect(app.locator("#session-picker-error")).toContainText("needs sign-in");
-  await expect(app.getByLabel("Model for this conversation",{exact:true})).toHaveValue("sonnet");
+  await expect(app.getByRole("radio",{name:"Claude Sonnet",exact:true})).toBeChecked();
   await app.evaluate(()=>{
     window.__fixture.handlers.open_session=()=>window.__fixture.frames.get("release").address;
     window.__fixture.handlers.overview=()=>{delete window.__fixture.handlers.overview;throw Error("Project list could not be read.");};

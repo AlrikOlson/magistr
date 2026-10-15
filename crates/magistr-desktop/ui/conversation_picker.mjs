@@ -37,7 +37,7 @@ export class ConversationPicker {
     this.$("session-form").setAttribute("aria-busy",String(pending||loading||models));
     for(const input of this.$("agent-choice").querySelectorAll("input"))input.disabled=pending||!!this.address;
     this.$("choose-initial-model").disabled=pending||loading||models||!this.provider||!!this.address;
-    this.$("initial-model").disabled=pending||models||!!this.address;
+    for(const input of this.$("initial-model").querySelectorAll("input"))input.disabled=pending||models||!!this.address;
     this.$("session-picker-open").disabled=pending||loading||models||!this.provider;
     this.$("session-picker-cancel").disabled=pending;
     this.$("session-picker-retry").hidden=!!this.choices.length||loading;
@@ -70,20 +70,21 @@ export class ConversationPicker {
   }
   async models() {
     if(!this.provider||["models","agents","opening"].includes(this.stage))return;
-    const generation=++this.generation,provider=this.provider,selected=this.$("initial-model").value;
+    const generation=++this.generation,provider=this.provider,selected=this.$("initial-model").querySelector("input:checked")?.value??"";
     this.stage="models";this.$("session-picker-error").hidden=true;this.render();
     try {
       const models=await this.invoke("model_choices",{directory:this.directory,provider});
       if(generation!==this.generation)return;
+      const current=models.some(model=>model.id===selected)?selected:"";
       this.$("initial-model").replaceChildren(...[{id:"",name:"Use the default model"},...models].map(model=>{
-        const option=text("option",model.name);option.value=model.id;return option;
+        const label=text("label",""),input=document.createElement("input");input.type="radio";input.name="initial-model";input.value=model.id;input.checked=model.id===current;
+        const name=text("span",model.name);label.append(input,name);return label;
       }));
-      this.$("initial-model").value=models.some(model=>model.id===selected)?selected:"";
       this.$("initial-model-control").hidden=!models.length;
       this.$("choose-initial-model").textContent="Check models again";
       this.$("model-choice-note").textContent=models.length?"Choose a model for this conversation. You can change supported settings later.":"This agent returned no model choices. You can still start with its default model.";
       this.stage="ready";this.render();
-      (models.length?this.$("initial-model"):this.$("choose-initial-model")).focus();
+      (models.length?this.$("initial-model").querySelector("input:checked"):this.$("choose-initial-model")).focus();
     }catch(error){if(generation===this.generation){this.stage="ready";this.render();this.error(error);}}
   }
   async start() {
@@ -91,7 +92,7 @@ export class ConversationPicker {
     this.stage="opening";this.$("session-picker-error").hidden=true;this.render();
     try {
       this.address??=await this.invoke("open_session",{directory:this.directory,choice:{
-        kind:"new",provider:this.provider,model:this.$("initial-model-control").hidden?null:this.$("initial-model").value||null
+        kind:"new",provider:this.provider,model:this.$("initial-model-control").hidden?null:this.$("initial-model").querySelector("input:checked")?.value||null
       }});
       await this.opened(this.address);this.$("session-picker").close();this.$("draft").focus();
     }catch(error){this.error(this.address?"The conversation opened, but could not be shown. Try again. "+error:error);}
