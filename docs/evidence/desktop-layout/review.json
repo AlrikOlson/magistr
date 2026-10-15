@@ -1,5 +1,5 @@
 {
-  "receipt": "d0460d624b70f2ef8b18cad64d8ea37097ed6d18ccea469d6a22fff7dbd4f4b2",
+  "receipt": "315b79952894d44b9bb46fb212429132f3e6fdd3d9a2508ff3dbbfc9000d783e",
   "images": {
     "welcome-dark.png": "dbeb5de57311812ef5a669f046708a23927e7504e74d686194bb801dfd5b8dff",
     "welcome-light.png": "c77e2e937e8f1e98e3061d94a5bb15c40abbcda679712e2d99ed503e54c54991",
@@ -23,8 +23,8 @@
     "setup-narrow-light.png": "94ebde2192668d16d99222fdc22e1a1ab384a79fb12f11cb2e143ef33bbf877e",
     "open-project-dark.png": "89d440d5fd9cbf19ab8ebf2fc37674ca2fed162cd6e91295517fc5a526293f8f",
     "setup-dark.png": "62412120a44218b5ac82796adc78d5b67a45ddee0328967564d1b862957b2bbf",
-    "new-conversation-dark.png": "f48cb37a5b297341c14c16c0727d882311e65f5a1552be1bce4610c72a2ea491",
-    "new-conversation-narrow-light.png": "886005533adf2bd67ef47816265102294c8a4b834dc8da69c51d0c2077d1c44a",
+    "new-conversation-dark.png": "877b08b9f2078af114ebbf154c82d3086d6b3c70d481e909d773c303b4919f17",
+    "new-conversation-narrow-light.png": "e1cb4ce2c47eec5c9a9546b11b1b700f3e2edb384a62012b2ee55e8d6b55b93d",
     "find-conversation-narrow-light.png": "7f96ded51dbde3701344271ae3800e67f2111bf79c680e9865c751e68bd98080",
     "find-conversation-dark.png": "38671ef7382d38d5313e1d045ee082a435f5ed2ceb070fa7e5a05d0e3ef40bc6",
     "reading-dark.png": "794764c2e05b8978bdafc1cb681802231eb8326f3b1f80e2f95a113b1d3591c4",
@@ -33,7 +33,7 @@
     "code-light.png": "ae425f2052fef41bf894a7f1d5e6d25427292e8cf471fa68001fd391cd13a83b",
     "tools-light.png": "4bba67c352198e69e6d6e83e69d27c77d3a504c939969ffab90211e6962230cc",
     "tools-dark.png": "b79874dc79f7147ba1ee5a831b0d3fc33ba1f01a5ba762f07a0ab3a9673af29d",
-    "attachments-dark.png": "c120bedbaebe08df88096204bf10530f437594cba7d7f357447e6997b05c4ef0",
+    "attachments-dark.png": "bd3028c67e4d4d9f03175709bb9ab8812e1c4c9c1f52f31d85ed6edda0af6a72",
     "image-inspection-dark.png": "51b96116ccbe5ba890c09877e00d02ed6ba8fd44f410a0dd2e3bd53f130f2091",
     "attachments-narrow-light.png": "47056e5b7fba232ed00f74c0c49fb688f8ce52c115b711957ca27ac686b0ff32",
     "request-narrow-light.png": "cb72a0a32dea45a851309596729d72fb59b5c024c49053530df02119ee42b544",
@@ -50,8 +50,8 @@
   },
   "reviewed_on": "2026-10-15",
   "findings": [
-    "Conversation search now has larger result typography, literal match highlighting, a separate current-conversation label and catalog-derived activity symbols. Reviewed dark and narrow light captures.",
-    "Seven focused WebKit checks passed across keyboard/workspace and punctuation/Unicode highlighting. Focus survives catalog updates and names remain literal text.",
+    "New conversation now presents discovered agents as large selectable choices, with a prominent project destination and a separate model section. Reviewed dark and narrow light captures.",
+    "Five focused opening/workspace WebKit checks passed, including agent/model changes, admission retries and blocked duplicate starts.",
     "Headless WebKit only; native input and assistive technology not exercised. Native workflow recording remains unavailable."
   ]
 }
