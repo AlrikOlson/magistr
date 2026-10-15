@@ -1,0 +1,54 @@
+{
+  "scope": "Balance conversation titles and nearby controls",
+  "limitations": "Headless WebKit with isolated observations. Native OS input, assistive technology and Rust command integration were not exercised.",
+  "images": {
+    "conversation--long-title-compact-dark.png": {
+      "sha256": "cd208a03ed8c96282ce6692eeb5870fdad3f6a6028453cf72ca4ea479af061fc",
+      "task": "Read long conversation titles while reaching their current actions.",
+      "observations": "The complete long title wraps onto two readable lines without hiding text. Planned work, status, Details and overflow stay aligned and separate from the title. At 760 × 550 the title controls fit without overlap and the unsent message stays visible. Light/dark text contrast and tab selection are clear.",
+      "verdict": "pass"
+    },
+    "conversation--long-title-compact-light.png": {
+      "sha256": "5d8f544f05e75a48667491bdd2e990e275c46c01e5c21eb1d6e48ae7f2399539",
+      "task": "Read long conversation titles while reaching their current actions.",
+      "observations": "The complete long title wraps onto two readable lines without hiding text. Planned work, status, Details and overflow stay aligned and separate from the title. At 760 × 550 the title controls fit without overlap and the unsent message stays visible. Light/dark text contrast and tab selection are clear.",
+      "verdict": "pass"
+    },
+    "conversation--long-title-desktop-dark.png": {
+      "sha256": "4213da911fbdd6745e3ec2d717fbb7d65c0714b428d4e483569fb48bdc228ae5",
+      "task": "Read long conversation titles while reaching their current actions.",
+      "observations": "The complete long title wraps onto two readable lines without hiding text. Planned work, status, Details and overflow stay aligned and separate from the title. At 1280 × 820 the title uses the available row width; reply and project navigation remain distinct. Light/dark text contrast and tab selection are clear.",
+      "verdict": "pass"
+    },
+    "conversation--long-title-desktop-light.png": {
+      "sha256": "1477f18b4f7af2ba2d4f3fb81ae867493ce51fdf3774d3cc2905a6b33dfc136e",
+      "task": "Read long conversation titles while reaching their current actions.",
+      "observations": "The complete long title wraps onto two readable lines without hiding text. Planned work, status, Details and overflow stay aligned and separate from the title. At 1280 × 820 the title uses the available row width; reply and project navigation remain distinct. Light/dark text contrast and tab selection are clear.",
+      "verdict": "pass"
+    },
+    "conversation--release-plan-compact-dark.png": {
+      "sha256": "99e24bb7a430d36cdb261e1d1e95fbb12db599c8613d4e3dca6d83e69b7d1534",
+      "task": "Read long conversation titles while reaching their current actions.",
+      "observations": "The short title remains on one line with a quiet 16px hierarchy. Planned work, status, Details and overflow stay aligned and separate from the title. At 760 × 550 the title controls fit without overlap and the unsent message stays visible. Light/dark text contrast and tab selection are clear.",
+      "verdict": "pass"
+    },
+    "conversation--release-plan-compact-light.png": {
+      "sha256": "8e62718d9d95c02f8750dde856ea1c9e0347194e55f944cf577e769b8bf576ed",
+      "task": "Read long conversation titles while reaching their current actions.",
+      "observations": "The short title remains on one line with a quiet 16px hierarchy. Planned work, status, Details and overflow stay aligned and separate from the title. At 760 × 550 the title controls fit without overlap and the unsent message stays visible. Light/dark text contrast and tab selection are clear.",
+      "verdict": "pass"
+    },
+    "conversation--release-plan-desktop-dark.png": {
+      "sha256": "2059c570a3ca095064440d8c0384403d2ef4e1097dd5b37eef19b34af54469aa",
+      "task": "Read long conversation titles while reaching their current actions.",
+      "observations": "The short title remains on one line with a quiet 16px hierarchy. Planned work, status, Details and overflow stay aligned and separate from the title. At 1280 × 820 the title uses the available row width; reply and project navigation remain distinct. Light/dark text contrast and tab selection are clear.",
+      "verdict": "pass"
+    },
+    "conversation--release-plan-desktop-light.png": {
+      "sha256": "93b4eb8ccc6390279124e0ef26c8e38426606dabeba4723a39a8631bbdc8e2e3",
+      "task": "Read long conversation titles while reaching their current actions.",
+      "observations": "The short title remains on one line with a quiet 16px hierarchy. Planned work, status, Details and overflow stay aligned and separate from the title. At 1280 × 820 the title uses the available row width; reply and project navigation remain distinct. Light/dark text contrast and tab selection are clear.",
+      "verdict": "pass"
+    }
+  }
+}
