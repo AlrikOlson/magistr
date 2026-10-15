@@ -71,14 +71,15 @@ export class ProjectNavigation {
         const root=node("details","project-group");root.open=true;
         const heading=node("summary","project-heading"),name=node("span","project-title"),count=node("span","project-count");
         const path=node("small","project-path"),body=node("div","project-conversations"),open=node("button","project-open","Open project");
-        const icon=node("span","project-symbol");icon.dataset.icon="folder";icon.setAttribute("aria-hidden","true");
+        const icon=node("span","project-monogram");icon.setAttribute("aria-hidden","true");
         const strip=node("div","project-status-strip");strip.setAttribute("aria-hidden","true");
         for(const [kind] of activityKinds){const part=node("span","");part.dataset.kind=kind;strip.append(part);}
         heading.append(icon,name,count);root.append(heading,strip,path,body,open);
-        group={root,heading,name,count,path,body,open,strip,project};this.groups.set(project.id,group);
+        group={root,heading,name,count,path,body,open,strip,icon,project};this.groups.set(project.id,group);
         open.onclick=()=>this.open(group.project.directory);
       }
       group.project=project;group.name.textContent=project.name;
+      group.icon.textContent=Array.from(project.name.trim()).slice(0,2).join("").toLocaleUpperCase();
       group.root.dataset.selected=String(project.sessions.some(session=>addressKey(session.address)===addressKey(selected)));
       group.heading.title=project.directory;group.heading.setAttribute("aria-label",project.name+" · "+project.directory);
       group.count.textContent=String(project.sessions.length);group.count.hidden=!project.sessions.length;
@@ -154,4 +155,3 @@ export class ProjectDirectory {
     return groups.length;
   }
 }
-
