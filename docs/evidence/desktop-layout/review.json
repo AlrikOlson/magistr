@@ -1,5 +1,5 @@
 {
-  "receipt": "aba6e3bed85ff486c1a47d604d22c93d9257b3bbd901cf14d1a54d170b524705",
+  "receipt": "9f2cd62df7fc1c1aedd14657e0bc274258b97249c5f53e1fe7c5839f60d6b1a4",
   "images": {
     "welcome-dark.png": "196f05ebfbcfdacf73fe8a82ad187b73837dfd801f2a1e47c59f5c0863f9b216",
     "project-map-dark.png": "9bfb53f79bb4c5bc20d428239f65e12e83ca95825579c550ca0c522b2cdf9efe",
@@ -21,6 +21,7 @@
     "work-plan-dark.png": "3a6ebf294c278ae313dbdb1ccb8f308401d18f383fea8246cec608c823052099",
     "work-task-filter-dark.png": "86f540683e3f5632ff826184d2c019d7548b9b4fb09917dd8f203edb7a182044",
     "work-check-index-dark.png": "ab27d432d4f4407d4bad4fa1e3568a94958ea267276be9bff7087787d7e3b939",
+    "work-activity-index-dark.png": "e8f403d4e8518e8c09213200e1a30bfbeba38bf0b832931494a4cf47fd4c81b1",
     "roadmap-dark.png": "fb43410fb6d36dc3ea5581ee0702464a3e5f03ad724a58561759b1480cee2dae",
     "roadmap-item-dark.png": "f69faa7b090139fbe2a3021a67e3680b673e3796051fecb0e0a7aea6c9319c64",
     "roadmap-dependency-dark.png": "5b217b4d195f14fab2264632508d11664c32628669ae5c1dcf0230d1c4852a5a",
@@ -129,8 +130,8 @@
     "workspace-compact-long-title.png": "5a9d1fe895fa847cb572d4dfd44aaf7a1102666f6e8ac77b3d494f1c7569f91d"
   },
   "inspected": [
-    "work-check-index-dark.png"
+    "work-activity-index-dark.png"
   ],
-  "notes": "Reviewed full failed check output in the aggregate check view with task context, outcome selection and readable controls. The recorded-attempt explanation remains above the list; focused tests cover exact copying and paging.",
+  "notes": "Reviewed produced items with task context, complete references and copy/open controls. Focused tests verify literal full results, kind/search filters, later pages and reset on selecting other work.",
   "native_limit": "Current native OS-input, VoiceOver and live-provider behavior were not exercised."
 }
