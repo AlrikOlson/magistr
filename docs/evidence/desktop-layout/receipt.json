@@ -1,7 +1,7 @@
 {
   "renderer": "headless WebKit",
   "version": "27.2",
-  "captured_at": "2026-10-15T09:11:01.518Z",
+  "captured_at": "2026-10-15T09:17:03.290Z",
   "scope": "Production desktop HTML, CSS and JavaScript with isolated observation fixtures; no native OS input or Rust owner integration.",
   "checks": {
     "project chooser presents actual projects and folder entry in both appearances": true,
@@ -53,7 +53,7 @@
     "crates/magistr-desktop/ui/drafts.mjs": "6d5dab26f19fb14f67a79077b5927adff41f3dea78186ace91cc7cc5246888b4",
     "crates/magistr-desktop/ui/history.mjs": "5753875cc59d138c417af5aa374779c853f51c30a67e91e8d10a0d3719bf3b32",
     "crates/magistr-desktop/ui/icon.png": "392002a92fdd8dc81923944cd5abd170d0867fe8eb3701d71d4df4aea083dd10",
-    "crates/magistr-desktop/ui/index.html": "efd0ee695a6a1e40dc23778c91c46fb4c6062dd77726eec9992f2a4a761e573c",
+    "crates/magistr-desktop/ui/index.html": "50e9aa70240e336694ff078a8c896f913da741d85812e80103fd1779d5e4c71d",
     "crates/magistr-desktop/ui/keyboard.mjs": "ee034c0d7649b19a00bdcb7daddd4a3a9bd84f40a1f6a062a82a2babc922f270",
     "crates/magistr-desktop/ui/layout.mjs": "4c65e6a206688e27e386fa95c59eba488ef8ddcd725bfa300f0fd419baa8a072",
     "crates/magistr-desktop/ui/manrope-LICENSE.txt": "58172e0c0fac2cda8a37b348164bb55e44b0e69051e557e92b1d3f6910141f7b",
@@ -80,20 +80,23 @@
     "crates/magistr-desktop/ui/transcript.mjs": "df0929eb16d76c728ba7bd8ee42df06aeda1509effe16c7f2755e6a5c504d1c6",
     "crates/magistr-desktop/ui/work.mjs": "9adfbdaa890ad4b74f755155caabc7f8599f1a4b1e1ea604ce83babea714999f",
     "crates/magistr-desktop/ui/work_activity.mjs": "e51d5b4a5855409fb42e62b47c01e71e8b7b5822c44ebfe3b5a5aed023ec21e9",
-    "crates/magistr-desktop/ui/work_browser.css": "89b4cd0ae3c213d0b61aa1da0872ba10efe188e940b26ad4e1c7c20702f1fc5f",
-    "crates/magistr-desktop/ui/work_browser.mjs": "b0b34bb97e4e49b20e89b0ee48ce5bd34e6135a1b5c66e39b9282ceec704d66f",
+    "crates/magistr-desktop/ui/work_browser.css": "a5565d2895d93e125301cd1d674c4bcb63317204f1dae5e65a2cd6b36883e9e0",
+    "crates/magistr-desktop/ui/work_browser.mjs": "627bbe730424077da75e65a14abd6a53fae9c84d18395aaa1b827f5c1b5abc9b",
     "crates/magistr-desktop/ui/work_checks.mjs": "faa4bea7f8f243780a149f4f44b59354b9a8c3c647ca4562730a30f6eb3e3fd7",
     "crates/magistr-desktop/ui/work_dom.mjs": "8572890eda39745d7dc21d32646aaf6b180e2b3ea9f03cb603139fa4439ba99a",
-    "crates/magistr-desktop/ui/work_records.mjs": "4ca472d880b42f56b68e94b1439c35edc657874603cd14d3547790348f021861",
+    "crates/magistr-desktop/ui/work_records.mjs": "aaed3fcbca9af8f13d208247ff653dcaff57f5d400fc6fdc8314a25edbd87457",
+    "crates/magistr-desktop/ui/work_roadmap.mjs": "6b53675fbf22796a62f76922a27ab5e57bbe8f122ba22b561d4bbbf8e5f21d38",
     "crates/magistr-desktop/ui/work_ruler.mjs": "19caaaddfa867366589c3be073e5be862bfaf2df0bf22b8bdc26a80e6f1f031d",
     "crates/magistr-desktop/ui/work_runs.mjs": "4fec2bbdc069d0db7a3226c476c8d80e79c23214dc881406ee72bdf3614e8343",
+    "crates/magistr-desktop/ui/work_tabs.mjs": "b80e2c15d1c60a0e7c657df7e00accd2975c64280386f5e82f0801c75375a175",
     "crates/magistr-desktop/ui/writing_surface.mjs": "a34379f33c19ea2a67d9ed29893eb182b7593ec7ec8d8eeeada73ed709b773ca",
     "crates/magistr-desktop/playwright.config.mjs": "e97c1f9951b494fa8049e323eae8fc372a2d1c2de74fd8edd9de706be82e0634",
     "crates/magistr-desktop/tauri.conf.json": "b8af99622336b041fe41255fe57d6225447631945d6a89c5a4f3dc1c7348b4b9",
-    "crates/magistr-desktop/tests/browser/fixture.mjs": "84fd2ebe79c1f0c8f8eb4af1f6193cabdb46918c22b76001fb5c6c02b32a8be1",
-    "crates/magistr-desktop/tests/browser/workspace.spec.mjs": "fb95722c9c4bbb89569ab2eeac09fcfec5f9411dc6b4636492ad19ad4bdb7028",
+    "crates/magistr-desktop/tests/browser/fixture.mjs": "32aa0c144f9825c450538a806d97ccd48edc757dfe20b68d0c91c4d6712f2894",
+    "crates/magistr-desktop/tests/browser/workspace.spec.mjs": "78ac71f39940158f18df5da555a4887e6513f1b81cb7f5ad8afe11019e8fcbee",
     "crates/magistr-desktop/tests/browser/design_scenes.mjs": "9f239102a00970e0af72f7bb324d92d853d93b85b4e5c9574054c321ffde6980",
-    "crates/magistr-desktop/tests/browser/work_fixture.mjs": "b2696ccb8027587b12deb54267612642fc1888f48dd887d598f3fd6ceb5f0dbc"
+    "crates/magistr-desktop/tests/browser/work_fixture.mjs": "9fc60059b5fdd3ad5eddbe82578414c30be8b5cbef01926cc654ac846c45a58b",
+    "crates/magistr-desktop/tests/browser/roadmap_fixture.mjs": "babd7e15764eedf3c9312c3c7a975cefe64047df0c251579c31b48c0e9a312dd"
   },
   "images": {
     "welcome-dark.png": "196f05ebfbcfdacf73fe8a82ad187b73837dfd801f2a1e47c59f5c0863f9b216",
@@ -113,12 +116,15 @@
     "inspector-narrow-light.png": "ac07fd6fb2215d34ef88fc78cfafa6aae65867632b9df398328afafb583f27d1",
     "rename-light.png": "ad0f5715491f15f2235ddf8073d2a57d6e759c2e3c7dfec75dd8e85256403e27",
     "work-paused-dark.png": "a79d02738979c74cd380bb907ac98b612d4d5640c60c212454c63c40c9b0a372",
-    "work-plan-dark.png": "c1db330019f6bafca3a76537313b2f747b06832e8f9e0c90bd95692c13e0092e",
-    "work-check-results-dark.png": "049936401ea91f3f08537b9f92432fe531bb73469a1950f78cbb195748bfcd19",
-    "work-activity-dark.png": "c8144d006a9190751f5e8870a5fa2c4b560395ea3dcb955f5db95c60d7591626",
-    "saved-work-dark.png": "dc36f268317214293fca35243d5a186f4cdf7b70b112e36770200dce0dfd1e49",
-    "work-plan-light.png": "6dd5b29d41defa31c92c4dda86fec79a471e3998aa191d0a08257d7a45581a02",
-    "work-plan-minimum.png": "37dbfd3890e5b8c55fabdfe499549b881db6534f42158ed60c1ddd7a81e5c787",
+    "work-plan-dark.png": "a94e499de64f8c96af03a6196aedb027e8450a6c30a250ccdcd96991135b9a41",
+    "roadmap-dark.png": "34d0f63fee27edd7491b87be8341a35324ba4d39c96d973a0f97d634dea8d37e",
+    "work-check-results-dark.png": "6a0390f311c4a76842ed7d4e4559547cf881ff62a76716e21dd99a01f590c843",
+    "work-activity-dark.png": "0187963df625494fedeea7d3d95e3c4d4d8d49950829d5ee4ad8840342150d5f",
+    "saved-work-dark.png": "9d4bc1b5f1c2edd7d48a25d9d3a7729b40b0623ee482945530e425e2506b616e",
+    "work-plan-light.png": "bdabda2389284ad05ffcd03462a6220981fc379c5b4b9739816c0ca8553670f9",
+    "roadmap-light.png": "f786c33106502806c79813763a9ae1a9786fa3841fdd85de14b39bd3991842ef",
+    "roadmap-minimum.png": "1d8af632ef025dc340227fdadb25e438dd6a09bdd732638dc255d3661cbbe024",
+    "work-plan-minimum.png": "aa23b76d79cb31259bf98d47863f082c486d47b7b6b5c18d16e10519aba3c2e4",
     "inspector-dark.png": "89564c80e02d674b79bfbadf60cb4ffdef3e62bfe218c2aecf69b805fda729ff",
     "inspector-light.png": "8ea0d6264d1f3294624ec0abfd8637392848ab053fd5b2ac52937f132574666c",
     "inspector-unknown-dark.png": "90ddd2b7f563656b430918be102a28456a40ba7538432751a31110273522e430",
@@ -162,7 +168,7 @@
     "tables-dark.png": "454e65e487f1350fb1311fca332a58fec70f761bb011376b12fc162ce00aecf3",
     "tables-light.png": "f1ee7ca0d66b2ab049e102a5bf9eb913977a71af18cf69c1cfc455e2ac86a4d6",
     "tables-compact.png": "b1c7232dec5db4be377871717ae0afd88381fd249f80687d6584e96f1c1259e7",
-    "patch-dark.png": "0b422d0c5d7d13ad7b7c8d9a91b109e7525fa99533a09df95cf7db76e4ecfb89",
+    "patch-dark.png": "e6ec8f194f3cd7b2691b07fa62b5933fdb8977eefcb06d1c5e5ed91f1b909576",
     "patch-light.png": "33f3fd57018e64e902e8723ccb08fb22d0a6855e6d17d2537414d840347f138f",
     "patch-comparison-dark.png": "8edf37365b50aff39946cf5809a46d44688184607a82aef16e7022200911ea3b",
     "patch-comparison-light.png": "2b35fd51750c85d77a7221e03aa248a673114c020aef393a2ead679d71e657ae",
@@ -275,6 +281,10 @@
       "width": 1280,
       "height": 820
     },
+    "roadmap-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
     "work-check-results-dark.png": {
       "width": 1280,
       "height": 820
@@ -290,6 +300,14 @@
     "work-plan-light.png": {
       "width": 1280,
       "height": 820
+    },
+    "roadmap-light.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "roadmap-minimum.png": {
+      "width": 760,
+      "height": 550
     },
     "work-plan-minimum.png": {
       "width": 760,

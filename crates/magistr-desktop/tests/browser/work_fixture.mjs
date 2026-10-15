@@ -1,3 +1,4 @@
+import { roadmapScene } from "./roadmap_fixture.mjs";
 export function workSnapshot(){
   const current={run_id:"release-run",task_instances:{review:"review-instance",build:"build-instance",verify:"verify-instance"},
     objective:{description:"Prepare the desktop release",status:"active",scope:"chunk:desktop-release",created_at:"2026-10-15T08:00:00Z",
@@ -29,6 +30,7 @@ export async function workScene(app,capture){
   await app.getByRole("button",{name:"Work plan",exact:true}).click();
   await app.getByRole("heading",{name:"Prepare the desktop release",exact:true}).waitFor();
   await capture("work-plan-dark.png");
+  await roadmapScene(app,capture);
   const check=app.locator(".work-check").nth(1);await check.locator("summary").click();
   await check.evaluate(node=>node.scrollIntoView({block:"start"}));await capture("work-check-results-dark.png");
   await check.locator("summary").click();await app.locator("#work-browser-content").evaluate(node=>node.scrollTop=0);
@@ -44,6 +46,9 @@ export async function workScene(app,capture){
   await app.getByRole("button",{name:"Done",exact:true}).click();
   await app.getByRole("button",{name:"Work plan",exact:true}).click();
   await capture("work-plan-light.png");
+  await app.getByRole("tab",{name:"Roadmap",exact:true}).click();await capture("roadmap-light.png");
+  await app.setViewportSize({width:760,height:550});await capture("roadmap-minimum.png");
+  await app.getByRole("tab",{name:"Current and saved work",exact:true}).click();
   await app.setViewportSize({width:760,height:550});await capture("work-plan-minimum.png");
   await app.getByRole("button",{name:"Close planned work",exact:true}).click();
   await app.setViewportSize({width:1280,height:820});

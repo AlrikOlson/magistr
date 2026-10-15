@@ -1,5 +1,5 @@
 {
-  "receipt": "9f74ae646cf8821aba713bc437d91b076b34816ee706877630ab72240e814a34",
+  "receipt": "75705b9d4d71f846c527b13635552607eb92540210baa5d7586ba6b9f957995d",
   "images": {
     "welcome-dark.png": "196f05ebfbcfdacf73fe8a82ad187b73837dfd801f2a1e47c59f5c0863f9b216",
     "project-map-dark.png": "9bfb53f79bb4c5bc20d428239f65e12e83ca95825579c550ca0c522b2cdf9efe",
@@ -18,12 +18,15 @@
     "inspector-narrow-light.png": "ac07fd6fb2215d34ef88fc78cfafa6aae65867632b9df398328afafb583f27d1",
     "rename-light.png": "ad0f5715491f15f2235ddf8073d2a57d6e759c2e3c7dfec75dd8e85256403e27",
     "work-paused-dark.png": "a79d02738979c74cd380bb907ac98b612d4d5640c60c212454c63c40c9b0a372",
-    "work-plan-dark.png": "c1db330019f6bafca3a76537313b2f747b06832e8f9e0c90bd95692c13e0092e",
-    "work-check-results-dark.png": "049936401ea91f3f08537b9f92432fe531bb73469a1950f78cbb195748bfcd19",
-    "work-activity-dark.png": "c8144d006a9190751f5e8870a5fa2c4b560395ea3dcb955f5db95c60d7591626",
-    "saved-work-dark.png": "dc36f268317214293fca35243d5a186f4cdf7b70b112e36770200dce0dfd1e49",
-    "work-plan-light.png": "6dd5b29d41defa31c92c4dda86fec79a471e3998aa191d0a08257d7a45581a02",
-    "work-plan-minimum.png": "37dbfd3890e5b8c55fabdfe499549b881db6534f42158ed60c1ddd7a81e5c787",
+    "work-plan-dark.png": "a94e499de64f8c96af03a6196aedb027e8450a6c30a250ccdcd96991135b9a41",
+    "roadmap-dark.png": "34d0f63fee27edd7491b87be8341a35324ba4d39c96d973a0f97d634dea8d37e",
+    "work-check-results-dark.png": "6a0390f311c4a76842ed7d4e4559547cf881ff62a76716e21dd99a01f590c843",
+    "work-activity-dark.png": "0187963df625494fedeea7d3d95e3c4d4d8d49950829d5ee4ad8840342150d5f",
+    "saved-work-dark.png": "9d4bc1b5f1c2edd7d48a25d9d3a7729b40b0623ee482945530e425e2506b616e",
+    "work-plan-light.png": "bdabda2389284ad05ffcd03462a6220981fc379c5b4b9739816c0ca8553670f9",
+    "roadmap-light.png": "f786c33106502806c79813763a9ae1a9786fa3841fdd85de14b39bd3991842ef",
+    "roadmap-minimum.png": "1d8af632ef025dc340227fdadb25e438dd6a09bdd732638dc255d3661cbbe024",
+    "work-plan-minimum.png": "aa23b76d79cb31259bf98d47863f082c486d47b7b6b5c18d16e10519aba3c2e4",
     "inspector-dark.png": "89564c80e02d674b79bfbadf60cb4ffdef3e62bfe218c2aecf69b805fda729ff",
     "inspector-light.png": "8ea0d6264d1f3294624ec0abfd8637392848ab053fd5b2ac52937f132574666c",
     "inspector-unknown-dark.png": "90ddd2b7f563656b430918be102a28456a40ba7538432751a31110273522e430",
@@ -67,7 +70,7 @@
     "tables-dark.png": "454e65e487f1350fb1311fca332a58fec70f761bb011376b12fc162ce00aecf3",
     "tables-light.png": "f1ee7ca0d66b2ab049e102a5bf9eb913977a71af18cf69c1cfc455e2ac86a4d6",
     "tables-compact.png": "b1c7232dec5db4be377871717ae0afd88381fd249f80687d6584e96f1c1259e7",
-    "patch-dark.png": "0b422d0c5d7d13ad7b7c8d9a91b109e7525fa99533a09df95cf7db76e4ecfb89",
+    "patch-dark.png": "e6ec8f194f3cd7b2691b07fa62b5933fdb8977eefcb06d1c5e5ed91f1b909576",
     "patch-light.png": "33f3fd57018e64e902e8723ccb08fb22d0a6855e6d17d2537414d840347f138f",
     "patch-comparison-dark.png": "8edf37365b50aff39946cf5809a46d44688184607a82aef16e7022200911ea3b",
     "patch-comparison-light.png": "2b35fd51750c85d77a7221e03aa248a673114c020aef393a2ead679d71e657ae",
@@ -108,8 +111,10 @@
     "workspace-compact-long-title.png": "5a9d1fe895fa847cb572d4dfd44aaf7a1102666f6e8ac77b3d494f1c7569f91d"
   },
   "inspected": [
-    "work-activity-dark.png"
+    "roadmap-dark.png",
+    "roadmap-light.png",
+    "roadmap-minimum.png"
   ],
-  "notes": "Task-activity delivery: inspected chronological authored action details, result source, mentioned files/tools and produced-item references. Focused scenarios cover long complete text, literal hostile markup, exact copying, delegated web links and saved-run separation. Remaining captures were refreshed by the workspace scenario; only the named capture was manually inspected in this chunk.",
+  "notes": "Roadmap overview: inspected current track readiness, complete item titles, owner counts and blockers in dark, light and minimum-window captures. Focused tests cover closed and ungrouped tracks, tab keys, stale reads and vanished track selection; Rust tests verify complete cross-track dependency policy. Other captures were regenerated, not individually re-inspected.",
   "native_limit": "Current native OS-input, VoiceOver and live-provider behavior were not exercised."
 }

@@ -1,6 +1,7 @@
 // Production UI in an isolated headless browser. This fixture does not verify Rust owners or native input.
 import { test as base, expect } from "@playwright/test";
 import { workSnapshot } from "./work_fixture.mjs";
+import { roadmapFixture } from "./roadmap_fixture.mjs";
 import { readFile } from "node:fs/promises";
 import { resolve, extname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -70,7 +71,8 @@ export function workspaceSeed() {
     {path:".claude/settings.json",action:"Keep file",ownership:"Your file",reason:"This file has been edited. Its current contents will be kept.",selectable:false,before:'{ "permissions": { "allow": [] } }',after:"",diff:null},
     ...Array.from({length:10},(_,index)=>({path:".agents/skills/"+["craft","next","validate","roadmap","roadmap-refresh","signals","handoff","workbench-routing","init","next-loop"][index]+"/SKILL.md",action:"Create file",ownership:"Managed by Magistr",reason:null,selectable:true,before:null,after:"# Project workflow\n\nRead the current project state before starting work.\n\n"+Array.from({length:12},()=>"- Keep each change focused and verify the affected behavior.").join("\n"),diff:null}))
   ]};
-  return {frames,history,setup,workflow:workSnapshot(),projects:[{id:"magistr",name:"Magistr",directory:"/Projects/magistr"},{id:"website",name:"Website",directory:"/Projects/website"}]};
+  const roadmap=roadmapFixture();
+  return {frames,history,setup,workflow:{...workSnapshot(),roadmap:roadmap.records},roadmap:roadmap.overview,projects:[{id:"magistr",name:"Magistr",directory:"/Projects/magistr"},{id:"website",name:"Website",directory:"/Projects/website"}]};
 }
 function install(seed) {
   const frames=new Map(seed.frames.map(frame=>[frame.address.session,frame])),calls=[];
@@ -80,12 +82,12 @@ function install(seed) {
     name:seed.projects.find(p=>p.directory===f.address.workspace)?.name??"Project",conversation:f.conversation,status:f.status,closed:f.closed,
     pending:f.pending.map(({id,title})=>({id,title})),activity:f.activity,usage:f.usage,model:f.model,work:f.work}));
   const emit=()=>{if(subscription){const f=frames.get(subscription.session);subscription.channel.onmessage({...structuredClone(f),stream:subscription.stream,sequence:++f.sequence});}};
-  window.__fixture={calls,frames,workflow:seed.workflow,history:seed.history,saved,handlers:{},publish(session,patch){Object.assign(frames.get(session),patch);if(subscription?.session===session)emit();catalog?.onmessage({stream:1,sequence:++stream,sessions:sessions()});}};
+  window.__fixture={calls,frames,workflow:seed.workflow,roadmap:seed.roadmap,history:seed.history,saved,handlers:{},publish(session,patch){Object.assign(frames.get(session),patch);if(subscription?.session===session)emit();catalog?.onmessage({stream:1,sequence:++stream,sessions:sessions()});}};
   window.__TAURI__={core:{Channel:class{},async invoke(command,args={}) {
     calls.push({command,args:JSON.parse(JSON.stringify(args))});
     if(window.__fixture.handlers[command])return window.__fixture.handlers[command](args);
     switch(command) {
-      case "read_workflow":return {address:args.address,revision:frames.get(args.address.session).workflow_revision??0,snapshot:structuredClone(window.__fixture.workflow)};
+      case "read_workflow":return {address:args.address,revision:frames.get(args.address.session).workflow_revision??0,snapshot:structuredClone(window.__fixture.workflow),roadmap:structuredClone(window.__fixture.roadmap)};
       case "overview":return {directory:null,reduce_motion:false,sessions:sessions(),projects:seed.projects,attachment_limits:{file_bytes:8388608}};
       case "subscribe_catalog":catalog=args.channel;catalog.onmessage({stream:1,sequence:++stream,sessions:sessions()});return 1;
       case "subscribe_file_drops":case "subscribe_exit":case "acknowledge":case "session_action":return;
