@@ -2,6 +2,37 @@ import { ProjectOpening } from "./projects.mjs";
 
 const node=(tag,value,className="")=>{const element=document.createElement(tag);element.textContent=value;element.className=className;return element;};
 
+
+export function sourceLines(value,diff=false) {
+  let before=0,after=0,leftBefore=0,leftAfter=0;
+  return (value.match(/[^\n]*\n|[^\n]+$/g)??[]).map((text,index)=>{
+    if(!diff)return {text,before:null,after:index+1,kind:""};
+    const row={text,before:null,after:null,kind:""};
+    const hunk=/^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/.exec(text);
+    if(hunk) {
+      before=Number(hunk[1]);after=Number(hunk[3]);leftBefore=Number(hunk[2]??1);leftAfter=Number(hunk[4]??1);row.kind="diff-hunk";
+    } else if(text[0]===" "&&leftBefore>0&&leftAfter>0) {
+      row.before=before++;row.after=after++;leftBefore--;leftAfter--;
+    } else if(text[0]==="-"&&leftBefore>0) {
+      row.before=before++;leftBefore--;row.kind="diff-removed";
+    } else if(text[0]==="+"&&leftAfter>0) {
+      row.after=after++;leftAfter--;row.kind="diff-added";
+    }
+    return row;
+  });
+}
+function sourceView(value,diff=false) {
+  const pre=node("pre","","setup-source"+(diff?" setup-diff":""));
+  for(const row of sourceLines(value,diff)) {
+    const line=node("span","","source-line "+row.kind);
+    for(const number of diff?[row.before,row.after]:[row.after]) {
+      const gutter=node("span","","source-number");gutter.dataset.line=number??"";gutter.setAttribute("aria-hidden","true");line.append(gutter);
+    }
+    line.append(node("span",row.text,"source-text"));pre.append(line);
+  }
+  return pre;
+}
+
 // Presentation and focus only. ProjectOpening owns the review lifetime and Rust owns every write.
 export class ProjectPicker {
   constructor(invoke,element,{open,opened,closed}) {
@@ -102,7 +133,10 @@ export class ProjectPicker {
     this.rows=preview.files.map((file,index)=>{
       const row=node("div","","setup-file"),button=node("button","","setup-file-open");button.type="button";
       row.dataset.action=file.action;
-      button.append(node("span",file.path),node("small",file.action));
+      const slash=file.path.lastIndexOf("/");
+      const path=node("span","","setup-file-name");
+      if(slash>=0)path.append(node("small",file.path.slice(0,slash+1),"setup-file-directory"));
+      path.append(node("strong",file.path.slice(slash+1)));button.append(path,node("small",file.action,"setup-file-action"));
       button.setAttribute("aria-label","Read "+file.path);
       button.onclick=()=>this.readFile(index);
       let check=null;
@@ -124,13 +158,11 @@ export class ProjectPicker {
     if(file.reason)body.append(node("p",file.reason,"setup-reason"));
     if(file.diff) {
       body.append(node("h4","Changes"));
-      const pre=node("pre","","setup-diff");
-      for(const line of file.diff.split("\n"))pre.append(node("span",line+"\n",line.startsWith("+")?"diff-added":line.startsWith("-")?"diff-removed":""));
-      body.append(pre);
+      body.append(sourceView(file.diff,true));
     } else {
       const value=file.selectable?(file.action==="Remove file"?file.before:file.after):(file.before??file.after);
       body.append(node("h4",file.selectable?(file.action==="Remove file"?"Contents to remove":"Contents after setup"):"Current contents"));
-      body.append(node("pre",value||"This file is empty."));
+      body.append(value?sourceView(value):node("p","This file is empty."));
     }
   }
 }

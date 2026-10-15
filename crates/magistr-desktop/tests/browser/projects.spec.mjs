@@ -12,6 +12,7 @@ test("file reading is separate from approval and pending or partial setup stays 
   await expect(app.locator("#setup-count")).toHaveText("12 of 12 changes selected");
   await app.getByRole("button",{name:"Read AGENTS.md",exact:true}).click();
   await expect(app.getByRole("region",{name:"Selected file change"})).toContainText("Only the Magistr instructions will change");
+  expect(await app.locator("#setup-change .setup-source").textContent()).toBe("@@ -1 +1,3 @@\n # Project notes\n+\n+Use focused checks for this project.\n");
   await expect(app.getByLabel("Include AGENTS.md",{exact:true})).toBeChecked();
   await app.getByLabel("Include AGENTS.md",{exact:true}).uncheck();
   await app.getByRole("button",{name:"Read .claude/settings.json",exact:true}).click();

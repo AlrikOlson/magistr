@@ -298,11 +298,18 @@ dialog h3{margin:20px 0 10px;font-size:17px}.dialog-actions{display:flex;justify
 .setup-file:has([aria-current=true]){background:var(--raised)}.setup-file{margin:3px 0}.setup-file input{width:16px;min-height:16px;flex-shrink:0;margin:12px 0 0 6px;accent-color:var(--accent)}
 .setup-kept{width:16px;flex-shrink:0;margin:10px 0 0 6px;color:var(--muted);text-align:center}
 .setup-file-open{flex:1;min-width:0;background:transparent;border-color:transparent!important;padding:7px 8px;font-size:12px}
-.setup-file-open span{display:block;overflow-wrap:anywhere;font-weight:550}.setup-file-open small{display:block;color:var(--muted);font-size:11px;margin-top:4px}.setup-file[data-action="Create file"] small{color:var(--success)}.setup-file[data-action="Update file"] small{color:var(--accent)}.setup-file[data-action="Remove file"] small{color:var(--danger)}
-#setup-change{overflow:auto;min-width:0;padding:24px}
-#setup-change h3{font-size:21px;letter-spacing:-.025em;overflow-wrap:anywhere;margin:0 0 6px}#setup-change h4{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:22px 0 10px}
+.setup-file-open span{display:block;overflow-wrap:anywhere;font-weight:550}.setup-file-open small{display:block;color:var(--muted);font-size:11px;margin-top:4px}.setup-file[data-action="Create file"] .setup-file-action{color:var(--success)}.setup-file[data-action="Update file"] .setup-file-action{color:var(--accent)}.setup-file[data-action="Remove file"] .setup-file-action{color:var(--danger)}
+#setup-change{overflow:auto;min-width:0;padding:28px;scroll-padding-block:28px}
+#setup-change h3{font-size:21px;letter-spacing:-.025em;overflow-wrap:anywhere;margin:0 0 6px}#setup-change h4{font-size:12px;color:var(--muted);font-weight:500;margin:28px 0 12px}
 #setup-change .setup-change-meta{font-size:12px;margin:0;color:var(--muted)}#setup-change .setup-reason{font-size:13px;margin:16px 0 0}
-#setup-change pre{font:12px/1.8 var(--font-code);white-space:pre-wrap;overflow-wrap:anywhere;padding:16px;background:var(--canvas);border:1px solid var(--separator);border-radius:9px;margin:0;tab-size:2}.setup-diff>span{display:block;min-height:1.8em;padding:0 8px;white-space:pre-wrap;margin:0 -8px}
+#setup-change .setup-source{font:12px/1.9 var(--font-code);white-space:pre-wrap;overflow-wrap:anywhere;padding:12px 0;background:var(--base);border-block:1px solid var(--separator);margin:0;tab-size:2}
+.source-line{display:grid;grid-template-columns:3.5ch minmax(0,1fr);min-height:1.9em;padding-inline:8px}
+.setup-diff .source-line{grid-template-columns:3.5ch 3.5ch minmax(0,1fr)}
+.source-number{color:var(--muted);user-select:none;text-align:right;padding-right:1ch;font-size:10px;line-height:2.28}
+.source-number::before{content:attr(data-line)}.source-text{white-space:pre-wrap;overflow-wrap:anywhere;min-width:0}
+.diff-hunk{color:var(--muted);background:var(--panel);margin-block:8px}.diff-hunk .source-text{grid-column:1/-1}
+.setup-file-open .setup-file-directory{font:10px/1.5 var(--font-code);margin:0 0 3px;color:var(--muted)}
+.setup-file-open strong{font-size:12px;font-weight:600}.setup-file-open .setup-file-action{margin-top:5px;font-size:10px}
 .diff-added{color:var(--success);background:color-mix(in srgb,var(--success) 8%,transparent)}.diff-removed{color:var(--danger);background:color-mix(in srgb,var(--danger) 8%,transparent)}
 .picker-footer{justify-content:space-between}
 .picker-footer>p{font-size:11px;margin:0;font-variant-numeric:tabular-nums;color:var(--accent)}.picker-footer .dialog-actions{margin:0 0 0 auto}

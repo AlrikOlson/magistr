@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { ProjectOpening } from "../ui/projects.mjs";
+import { sourceLines } from "../ui/project_picker.mjs";
 
 const preview={kind:"setup",review:4,directory:"/new",setup_directory:"/new",files:[{path:"config",selectable:true}]};
 function harness(respond) {
@@ -60,3 +61,20 @@ test("unavailable agents and invalid folders remain recoverable",async()=>{
   ready.picker.open=async directory=>({workspace:directory,session:"later"});
   await ready.picker.choose("/project");assert.equal(ready.opened.length,1);
 });
+test("source numbering preserves bytes, empty lines and a missing final newline",()=>{
+  for(const source of ["","a\n\nb","a\r\n\r\n","\n","a\n"]){
+    const rows=sourceLines(source);
+    assert.equal(rows.map(row=>row.text).join(""),source);
+    assert.deepEqual(rows.map(row=>row.after),rows.map((_,index)=>index+1));
+  }
+});
+test("diff numbering follows hunk coordinates without numbering headers or newline markers",()=>{
+  const source="--- a/file\n+++ b/file\n@@ -8,2 +12,3 @@\n same\n-old\n+new\n+++prefix\n\\ No newline at end of file\n@@ -21,0 +27 @@\n+insert";
+  const rows=sourceLines(source,true);
+  assert.equal(rows.map(row=>row.text).join(""),source);
+  assert.deepEqual(rows.map(({before,after})=>[before,after]),[
+    [null,null],[null,null],[null,null],[8,12],[9,null],[null,13],[null,14],[null,null],[null,null],[null,27]
+  ]);
+  assert.equal(rows[1].kind,"");assert.equal(rows[6].kind,"diff-added");
+});
+
