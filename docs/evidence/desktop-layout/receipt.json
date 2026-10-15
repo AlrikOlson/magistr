@@ -1,7 +1,7 @@
 {
   "renderer": "headless WebKit",
   "version": "27.2",
-  "captured_at": "2026-10-15T02:54:26.068Z",
+  "captured_at": "2026-10-15T02:55:38.048Z",
   "scope": "Production desktop HTML, CSS and JavaScript with isolated observation fixtures; no native OS input or Rust owner integration.",
   "checks": {
     "project chooser presents actual projects and folder entry in both appearances": true,
@@ -22,7 +22,7 @@
     "permission decisions present exact requested command and equal-weight choices": true
   },
   "source_hashes": {
-    "crates/magistr-desktop/ui/app.mjs": "8282d73e5f5cdb966f7578e46ad93ee56d749b77eab1b75a375f25801dbf4f20",
+    "crates/magistr-desktop/ui/app.mjs": "4ca18fc32d48a94c91baa0b79744ba2abb948564969507bf0055ddf917f0ed14",
     "crates/magistr-desktop/ui/attachments.mjs": "d7884d94cce9b13423b287ef6a0699d16e4b469ddcfe8ff2d7cd437cef7a4e44",
     "crates/magistr-desktop/ui/composer.mjs": "9accf554a6a2f6e7c029f4972fa4221e40d755546693c8343cbd528ef2a00bc0",
     "crates/magistr-desktop/ui/context.mjs": "9476a17db8e8c3032bd081dbdcd6088e9338ca2c41f9b455278243f5c98e4bcd",
@@ -43,7 +43,7 @@
     "crates/magistr-desktop/ui/saved_drafts.mjs": "a0bfc036bfe1f48fa005fb42da66ea31fd608f656df57a8501ee504b59779ca0",
     "crates/magistr-desktop/ui/selection.mjs": "fd844d9e146a9c5e1fb9ab6e2fc72c0273da66d4f59a70ce639877a87aff05fc",
     "crates/magistr-desktop/ui/session_controls.mjs": "738386755be2b65fd03899ae28e1b357b4313258d67b3edfaf72fe3fe37ff123",
-    "crates/magistr-desktop/ui/style.css": "a1ade8f87062273ff27e028aab86514f08ac0da3ac3af090c441801e5c9f5049",
+    "crates/magistr-desktop/ui/style.css": "e986c9458f1e8412bb3b9bd4274e38ce558dbc829670b109e67b3040aa69847b",
     "crates/magistr-desktop/ui/supervision.mjs": "509cd792877f397ac427789d491b4f51fd2840cc1b94ae05690d295519b75431",
     "crates/magistr-desktop/ui/switcher.mjs": "e011828ec8ba1a6035ee42cf5ed5c37651439ab77ccb65b1a4c7d6eb667257ff",
     "crates/magistr-desktop/ui/transcript.mjs": "60d1a8dc06425e790c5c02bdb5424444e6b7f837ad8c67b0f9d9075f71c2be0c",
@@ -85,9 +85,9 @@
     "code-light.png": "20ba40e69b7d593930cfcdbda222678d7d538b0fc314f6e6f6c6af6643fd7fc1",
     "tools-light.png": "9530fdabe98dff1d834218de8bb7c5c55b2bda3369245cddf7c9f87e8ccf1928",
     "tools-dark.png": "e15baf19500e26ab7ad40a94e24658eaef880b041f2b17a322ba795af0960748",
-    "attachments-dark.png": "ac368d52ce9b457ae0daf333fc1847605c11c2f924fdee920a6b37374089be84",
-    "attachments-narrow-light.png": "26b87b11bb21b951bb7200ebd8dc1b9249df47d0f401d0478e267b7e35d1b34a",
-    "request-narrow-light.png": "22a9afa68192fba1e23e89f0e82a62b5ecf833b617a6863ff38d87f85cee575b",
-    "request-dark.png": "41483353bb5fcc8980c4d6037fc99cf01e553043f29e7675ed15045101f693d5"
+    "attachments-dark.png": "c73d035a10e497e5a27a64bb13a6c1852b4ae60d9cd8c36492148ad15baff49e",
+    "attachments-narrow-light.png": "e94d209d5fac24c31cfb40c2865f09312a3de7204dc16878edad688b0fbbb4c1",
+    "request-narrow-light.png": "4629858d68321e74e2ace85f10cac765b0d56022b2cc51f9c4d9f76af6455ea1",
+    "request-dark.png": "4d2dfd55857d14f266bee83a41fa75f6ca7aae909d2300e65de0dc94affbb313"
   }
 }
