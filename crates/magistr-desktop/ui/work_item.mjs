@@ -41,6 +41,15 @@ function renderItem(item,actions){
   requirements.append(record.acceptance.length?list:element("p","No requirements have been recorded."));article.append(requirements);
   if(record.notes)article.append(documentPart("Notes",record.notes,item.notes,record.id+":notes",actions));
   if(record.obsoleted_reason)article.append(element("p",record.obsoleted_reason,"work-record-warning"));
+  const navigation=element("label","","work-section-jump");navigation.append(element("span","Jump to section"));
+  const select=element("select"),placeholder=element("option","Choose a section…");select.setAttribute("aria-label","Jump to section");placeholder.value="";select.append(placeholder);
+  const headings=[...article.querySelectorAll("h4")];
+  for(const [index,heading] of headings.entries()){
+    heading.tabIndex=-1;heading.dataset.focusKey="roadmap-section:"+record.id+":"+index;
+    const option=element("option",heading.textContent);option.value=String(index);select.append(option);
+  }
+  select.onchange=()=>{if(select.value==="")return;const heading=headings[Number(select.value)];heading.scrollIntoView({block:"start"});heading.focus({preventScroll:true});select.value="";};
+  navigation.append(select);heading.after(navigation);
   return article;
 }
 export class RoadmapItemReader {
