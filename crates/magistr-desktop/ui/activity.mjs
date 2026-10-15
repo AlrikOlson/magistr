@@ -1,3 +1,5 @@
+import { ActivityMaterial } from "./activity_material.mjs";
+
 // Summaries derive from the accepted session catalog; no activity is persisted here.
 export const activityKinds = [
   ["working", "Working", "success"],
@@ -43,6 +45,7 @@ export class ActivityOverview {
       this.values.set(kind, value);
     }
     body.append(list); root.append(this.wheel, body);
+    this.material = new ActivityMaterial(this.wheel);
   }
   render(sessions) {
     const counts = catalogActivity(sessions);
@@ -62,5 +65,6 @@ export class ActivityOverview {
     }
     this.wheel.style.setProperty("--activity-fill", stops.length ? "conic-gradient(" + stops.join(",") + ")" : "var(--raised)");
     this.root.dataset.empty = String(!total);
+    this.material.update(activityKinds.map(([kind]) => counts[kind]));
   }
 }
