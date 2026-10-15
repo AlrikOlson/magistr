@@ -1,0 +1,54 @@
+{
+  "scope": "Align dense tables for comparison",
+  "limitations": "Headless WebKit with isolated observations. Native OS input, assistive technology and Rust command integration were not exercised.",
+  "images": {
+    "conversation--readiness-table-compact-dark.png": {
+      "sha256": "f1f04497b7d695e30daa1effc684e5697bbe65335a8750171cd94ead0bc12a77",
+      "task": "Compare table rows and numeric values without oversized cells or numbers.",
+      "observations": "The compact table shows its count, four column headings and first data row; remaining rows are reachable within its bounded scroll region. Check counts align right at the same size as row text; headers and zebra rows remain distinct in dark appearance. No horizontal overflow, crowded values or detached controls.",
+      "verdict": "pass"
+    },
+    "conversation--readiness-table-compact-light.png": {
+      "sha256": "d7ed6666fd7e06e6c2c0b3f980046e2466a87e0c5b1c5394cd9bbeb7e743d81b",
+      "task": "Compare table rows and numeric values without oversized cells or numbers.",
+      "observations": "The compact table shows its count, four column headings and first data row; remaining rows are reachable within its bounded scroll region. Check counts align right at the same size as row text; headers and zebra rows remain distinct in light appearance. No horizontal overflow, crowded values or detached controls.",
+      "verdict": "pass"
+    },
+    "conversation--readiness-table-desktop-dark.png": {
+      "sha256": "ae2307085b4029335af08039010cbf2b5fece67b3edee4f13ec1949b2528c930",
+      "task": "Compare table rows and numeric values without oversized cells or numbers.",
+      "observations": "All four readiness rows fit in the desktop table. Check counts align right at the same size as row text; headers and zebra rows remain distinct in dark appearance. No horizontal overflow, crowded values or detached controls.",
+      "verdict": "pass"
+    },
+    "conversation--readiness-table-desktop-light.png": {
+      "sha256": "62737006992fd57bd793a4a298e821b5056e77997fbd396158abab29a2a67fcc",
+      "task": "Compare table rows and numeric values without oversized cells or numbers.",
+      "observations": "All four readiness rows fit in the desktop table. Check counts align right at the same size as row text; headers and zebra rows remain distinct in light appearance. No horizontal overflow, crowded values or detached controls.",
+      "verdict": "pass"
+    },
+    "conversation--table-last-rows-compact-dark.png": {
+      "sha256": "313630b02d4c5bc14cbdb7f1937b957a7a00d59f33fe6cad215df10f8770c08e",
+      "task": "Compare table rows and numeric values without oversized cells or numbers.",
+      "observations": "The bounded compact table shows Source documents and Attachments, with sticky column headings retained while earlier rows scroll underneath. Check counts align right at the same size as row text; headers and zebra rows remain distinct in dark appearance. No horizontal overflow, crowded values or detached controls.",
+      "verdict": "pass"
+    },
+    "conversation--table-last-rows-compact-light.png": {
+      "sha256": "209b5d029fc4cc24cb30a43043f433d76dba7323689bb7d76c4ab4c8313d3b09",
+      "task": "Compare table rows and numeric values without oversized cells or numbers.",
+      "observations": "The bounded compact table shows Source documents and Attachments, with sticky column headings retained while earlier rows scroll underneath. Check counts align right at the same size as row text; headers and zebra rows remain distinct in light appearance. No horizontal overflow, crowded values or detached controls.",
+      "verdict": "pass"
+    },
+    "conversation--table-last-rows-desktop-dark.png": {
+      "sha256": "ae2307085b4029335af08039010cbf2b5fece67b3edee4f13ec1949b2528c930",
+      "task": "Compare table rows and numeric values without oversized cells or numbers.",
+      "observations": "All four readiness rows fit in the desktop table. Check counts align right at the same size as row text; headers and zebra rows remain distinct in dark appearance. No horizontal overflow, crowded values or detached controls.",
+      "verdict": "pass"
+    },
+    "conversation--table-last-rows-desktop-light.png": {
+      "sha256": "62737006992fd57bd793a4a298e821b5056e77997fbd396158abab29a2a67fcc",
+      "task": "Compare table rows and numeric values without oversized cells or numbers.",
+      "observations": "All four readiness rows fit in the desktop table. Check counts align right at the same size as row text; headers and zebra rows remain distinct in light appearance. No horizontal overflow, crowded values or detached controls.",
+      "verdict": "pass"
+    }
+  }
+}

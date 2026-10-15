@@ -61,3 +61,20 @@ export const WrappedSource={parameters:{desktop:{...codeState,
   verify:context=>{codeState.verify(context);context.expect(context.doc.querySelector(".code-document").dataset.wrapped).toBe("true");},
 }}};
 
+const tableRows=[["Draft storage","Saved before switching","42","Available offline"],["Conversation history","Retained per project","128","Searchable"],["Source documents","Original text preserved","16","Copy without formatting"],["Attachments","Images and text files","8","Preview before sending"]];
+const tableSeed=seed=>{
+ const cell=(tag,text,index)=>({tag,text,start:index,alignment:index===2?"right":null});
+ const nodes=[{tag:"table",start:0,children:[{tag:"thead",start:1,children:[{tag:"tr",start:2,children:["Area","What is ready","Checks","Notes"].map((text,i)=>cell("th",text,i))}]},...tableRows.map((row,i)=>({tag:"tr",start:10+i,children:row.map((text,j)=>cell("td",text,j))}))]}];
+ seed.frames[0].events=[{id:11,revision:1,role:"Agent",text:"Release readiness",attachments:[],document:{nodes}}];seed.frames[0].retained=[11];
+};
+async function positionTable(context){await openRelease(context);await new Promise(resolve=>context.window.requestAnimationFrame(()=>context.window.requestAnimationFrame(resolve)));const t=context.doc.querySelector("#transcript"),table=context.doc.querySelector(".table-document");if(context.window.innerWidth<900)t.scrollTop+=table.getBoundingClientRect().top-t.getBoundingClientRect().top;}
+const tableState={caption:"Release conversation showing a four-column readiness table",task:"Compare readiness and check counts across four areas.",seed:tableSeed,arrange:positionTable,
+ verify:context=>{conversationVisible(context);context.expect(context.doc.querySelectorAll(".table-document td").length).toBe(16);context.expect(context.doc.querySelector(".table-note").textContent).toBe("4 rows · 4 columns");}};
+export const ReadinessTable={parameters:{desktop:tableState}};
+export const TableLastRows={parameters:{desktop:{...tableState,
+ caption:"Release readiness table scrolled to its last rows",
+ task:"Read the last rows while retaining table column headings.",
+ arrange:async context=>{await positionTable(context);const table=context.doc.querySelector(".table-document");table.scrollTop=table.scrollHeight;},
+ verify:context=>{tableState.verify(context);const t=context.doc.querySelector(".table-document");context.expect(t.scrollHeight-t.clientHeight-t.scrollTop).toBeLessThanOrEqual(1);},
+}}};
+
