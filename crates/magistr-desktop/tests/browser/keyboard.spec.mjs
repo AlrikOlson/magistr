@@ -9,11 +9,27 @@ test("find a conversation with the keyboard and recover the originating editor o
   await expect(app.locator("#switch-empty")).toHaveText("No open conversations match your search.");
   await app.keyboard.press("Escape");await expect(editor).toBeFocused();
   await app.keyboard.press(mod+"+k");await app.getByLabel("Find an open conversation",{exact:true}).fill("sync magistr");
+  await expect(app.locator("#switch-results strong mark")).toHaveText("sync");
   await app.keyboard.press("ArrowDown");
   await expect(app.getByRole("button",{name:"Open Investigate sync failure in Magistr",exact:true})).toBeFocused();
   await app.keyboard.press("Enter");
   await expect(app.getByRole("heading",{name:"Investigate sync failure",exact:true})).toBeFocused();
   await expect(app.locator("#switch-picker")).toBeHidden();
+});
+test("search highlights literal punctuation and Unicode without interpreting names as markup",async({app})=>{
+  const title="Fix [UI] + café <b>";
+  await app.evaluate(title=>{
+    const frame=window.__fixture.frames.get("release");
+    window.__fixture.publish("release",{conversation:{...frame.conversation,name:title}});
+  },title);
+  await app.getByRole("button",{name:"Find a conversation",exact:true}).click();
+  const search=app.getByLabel("Find an open conversation",{exact:true});
+  await search.fill("[UI] +");
+  await expect(app.locator("#switch-results strong")).toHaveText(title);
+  await expect(app.locator("#switch-results strong mark")).toHaveText(["[UI]","+"]);
+  await search.fill("café <b>");
+  await expect(app.locator("#switch-results strong mark")).toHaveText(["café","<b>"]);
+  await expect(app.locator("#switch-results strong b")).toHaveCount(0);
 });
 test("F6 reaches every logical area and recovers the conversation in a narrow window",async({app})=>{
   await app.setViewportSize({width:800,height:680});

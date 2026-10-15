@@ -1,5 +1,18 @@
 import { addressKey } from "./context.mjs";
+import { sessionActivity } from "./activity.mjs";
 const text=(tag,value)=>{const node=document.createElement(tag);node.textContent=value;return node;};
+
+
+function matchedText(node,value,words) {
+  if(!words.length){node.textContent=value;return;}
+  const pattern=new RegExp([...new Set(words)].sort((a,b)=>b.length-a.length).map(word=>word.replace(/[.*+?^$(){}|[\]\\]/g,"\\$&")).join("|"),"giu");
+  const parts=[];let offset=0;
+  for(const match of value.matchAll(pattern)){
+    parts.push(document.createTextNode(value.slice(offset,match.index)),text("mark",match[0]));
+    offset=match.index+match[0].length;
+  }
+  parts.push(document.createTextNode(value.slice(offset)));node.replaceChildren(...parts);
+}
 
 // Current catalog projection only; selection and draft admission remain with the application.
 export class ConversationSwitcher {
@@ -49,20 +62,21 @@ export class ConversationSwitcher {
         group={section,name,detail,count,list};this.groups.set(project,group);
       }
       const copies=new Set(members.map(session=>session.address.workspace));
-      group.name.textContent=members[0].name;group.section.setAttribute("aria-label",members[0].name+" conversations");
-      group.detail.textContent=copies.size===1?members[0].address.workspace:copies.size+" working copies";
+      matchedText(group.name,members[0].name,query);group.section.setAttribute("aria-label",members[0].name+" conversations");
+      matchedText(group.detail,copies.size===1?members[0].address.workspace:copies.size+" working copies",query);
       group.count.textContent=members.length+(members.length===1?" conversation":" conversations");
       const rows=members.map(session=>{
       const key=addressKey(session.address);used.add(key);let row=this.rows.get(key);
       if(!row) {
-        const button=document.createElement("button"),body=text("span",""),name=text("strong",""),context=text("small",""),state=text("span","");
+        const button=document.createElement("button"),body=text("span",""),name=text("strong",""),context=text("small",""),state=text("span",""),current=text("small","Current conversation");
         body.className="switch-body";
-        body.append(name,context);state.className="switch-state";button.append(body,state);
-        row={button,name,context,state,session};this.rows.set(key,row);
+        current.className="switch-current";body.append(name,context,current);state.className="switch-state";button.append(body,state);
+        row={button,name,context,state,current,session};this.rows.set(key,row);
         button.onclick=()=>this.open(row.session);
       }
-      row.session=session;row.name.textContent=this.label(session);row.context.textContent=session.address.workspace;row.context.hidden=copies.size===1;
-      row.state.textContent=session.closed?"Closing":session.pending.length?"Needs your attention":key===addressKey(this.selected())?"Current":session.status;
+      row.session=session;matchedText(row.name,this.label(session),query);matchedText(row.context,session.address.workspace,query);row.context.hidden=copies.size===1;
+      row.current.hidden=key!==addressKey(this.selected());row.button.dataset.state=sessionActivity(session)??"closed";
+      row.state.textContent=session.closed?"Closing":session.status==="Connection lost"?"Connection lost":session.pending.length?"Needs your attention":session.status;
       row.button.setAttribute("aria-label","Open "+this.label(session)+" in "+session.name);
       row.button.dataset.attention=String(session.pending.length>0);row.button.disabled=this.pending||session.closed;row.button.setAttribute("aria-current",String(key===addressKey(this.selected())));
         return row.button;
