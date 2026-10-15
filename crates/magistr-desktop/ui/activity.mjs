@@ -58,6 +58,7 @@ export class ActivityOverview {
       const count = counts[kind];
       this.values.get(kind).textContent = count.toLocaleString();
       this.values.get(kind).parentElement.dataset.empty = String(!count);
+      this.values.get(kind).parentElement.style.setProperty("--share",total?`${count/total*100}%`:"0%");
       if (!count) continue;
       const next = offset + count / total * 100;
       stops.push("var(--" + color + ") " + offset + "% " + next + "%");

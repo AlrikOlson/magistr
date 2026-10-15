@@ -72,14 +72,14 @@ test("Settings returns focus and keeps the conversation draft",async({app})=>{
 });
 test("the project directory reflects live conversations and opens the selected owner",async({app})=>{
   const directory=app.locator("#welcome-projects"),project=directory.locator(".directory-project").first();
-  await expect(project.locator(".directory-project-facts")).toHaveText("2 open conversations · 1 needs your answer");
+  await expect(project.locator(".directory-project-facts dd")).toHaveText(["2","1"]);
   const target=app.getByRole("button",{name:"Continue Investigate sync failure in Magistr",exact:true});
   await target.focus();
   await app.evaluate(()=>window.__fixture.publish("sync",{pending:[],status:"Ready"}));
-  await expect(project.locator(".directory-project-facts")).toHaveText("2 open conversations");
+  await expect(project.locator(".directory-project-facts dd")).toHaveText(["2","0"]);
   await expect(target).toBeFocused();await expect(target).toContainText("Ready");
   await app.evaluate(()=>window.__fixture.publish("release",{closed:true}));
-  await expect(project.locator(".directory-project-facts")).toHaveText("1 open conversation");
+  await expect(project.locator(".directory-project-facts dd")).toHaveText(["1","0"]);
   await expect(project.locator(".directory-conversation")).toHaveCount(1);
   await target.click();
   await expect(app.getByRole("heading",{name:"Investigate sync failure",exact:true})).toBeVisible();
