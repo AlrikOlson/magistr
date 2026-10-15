@@ -1,5 +1,5 @@
 {
-  "receipt": "765515110b838239f5f90cc062ebeb8ad0acc6fbdd5551639d97943c498f058d",
+  "receipt": "54a9e63ae7d7e05c96bd2d210f6182a61672afe039cd3219fbeef44aeab9675f",
   "images": {
     "welcome-dark.png": "2dd25326fb4d53d3dc502391c4b54560b514b36266075d4f4fb08886726ada70",
     "workspace-dark.png": "8bdd335f5dba3c2ab4354d1787b8e7b8191fe4e2a43277a8a4f9797c0407b35a",
@@ -10,7 +10,7 @@
     "rename-light.png": "9d7db6d47cfbc7b77378cef68ff134aba3752cc0a27b76785adeb20d22e16830",
     "work-paused-dark.png": "2eb3b9a8515c36b90ea91f6a2d71cc60ae60500b0a256aa1cd48ac5e2448785c",
     "history-dark.png": "5a52dd3dea300e6b7ed7ecf712dc4212498de1486da3d38fa62bf8cb91e547a4",
-    "history-narrow-light.png": "aabffd3bc45ba821b44b1fb25f5730e6f163a9cc1b4af5125e394daccccf6429",
+    "history-narrow-light.png": "93873f17006014750408e475be51c6a62c81b1f438b4e480eadfe29f2e420284",
     "setup-narrow-light.png": "3f758a7e7332f79d33d64e71cdd7779bcc991924faf3dabd54d918ed36c7a59f",
     "open-project-dark.png": "a37d1850f971b3311e039079bb3fff43570959aa405d08b9804264fdcb92f497",
     "setup-dark.png": "7896940baeff7492275d7825760c2f7d550069966193cacb8adf34122f757e8d",
@@ -19,12 +19,14 @@
     "find-conversation-narrow-light.png": "2ecf491f755490d9de30e3434201954d2de1f93c6f0195c02eab09ce57b8cd21",
     "find-conversation-dark.png": "22137248f4218ce82970feb545e0f4b6c8a4a9ad1b38db309bd63951552af454",
     "reading-dark.png": "cb4707bc66822004bfacc55c465f39e50a55a1ab6ba139af7af095774624bf6d",
-    "reading-light.png": "2b4cf2c5858a86146c216f4fcc13385d77db35ccf75dc6e2b832bec6bd20a174"
+    "reading-light.png": "2b4cf2c5858a86146c216f4fcc13385d77db35ccf75dc6e2b832bec6bd20a174",
+    "tools-light.png": "0350ff10aa015cf040957fb69990ebb6f3503d9425a93b929f51d0046597b8c2",
+    "tools-dark.png": "6f8cbe02377a7f220702893b2f720d68c932486ca773d73bd2d16847b5216e38"
   },
   "reviewed_on": "2026-10-15",
   "findings": [
-    "Inspected new dark and light rich-document captures: larger headings, measured paragraph leading, tinted quotations, inset code panels and inline-code treatments.",
-    "Added rich document capture coverage to the existing production renderer receipt. All four reading/composition scenarios pass.",
+    "Inspected expanded tool cards in dark and light. Completion and failure have distinct labelled status capsules; duration stays with the tool title, while input and output use separate source panels.",
+    "Four renderer scenarios pass, including stable disclosure and text selection while background content changes.",
     "Production headless WebKit only; native input, IME, OS dialogs, VoiceOver and Windows verification were not run."
   ]
 }
