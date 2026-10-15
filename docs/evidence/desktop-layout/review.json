@@ -1,15 +1,15 @@
 {
-  "receipt": "9d0a2f100868bf5a6519ebed71f4054c5b63c0af61e3870a870213974ba86c3c",
+  "receipt": "f08ba84065ad0e98c01314eb53d91ca720387c2e2170a6715a3ff45ef1679aaa",
   "images": {
     "welcome-dark.png": "8c5731fdb952bbbfa3dbf6a0d9629d0ac9c122fb975489512f05f9ee88cc15c6",
     "welcome-light.png": "61c6904d4301fa606a721eef7f7bc9966afa2100ea21fc2dd597c6500fb69863",
     "welcome-narrow-light.png": "f2436ea9614fdddb66e609faceff3974be67615a7143ac8fd3f70503e8a35f8f",
-    "settings-dark.png": "71604bf3893fbeca07aa8bd9acc58c9f0ed86e6bd36296407c84ebb6ab7cb6f1",
+    "settings-dark.png": "b196dc2c1f48fe089cd435d761ae7597bc619e7fb9c1af712fe4129868d43b86",
     "workspace-dark.png": "ee8d314db9b587613b6f0c8f49d6f2ff71540c8c0e1f262833b7691e0068f8b4",
-    "settings-light.png": "b3d66ee09c3bc1c14e60e7f557be17ae34d59f1016731059c05a6c04f4fe8a59",
+    "settings-light.png": "a5a25547334a83e513a68120bb24c09a9c9c9dda87cdeb03387c592bb4303ec4",
     "workspace-light.png": "0fbafaf92b31299ca93a13e27f1c11c7d06f6980c647a8fa8abb298b238a0c1e",
     "workspace-narrow.png": "8d80c833ac0daffc6c0db196895ce44e59dcbf2790915675789d64b645a9bb4a",
-    "settings-narrow-light.png": "a325e5f24fa35a0d9c54c9ab966198d577fbaa5dfb6a88d116dff7bcaa3bba98",
+    "settings-narrow-light.png": "1a974940eb626d30cb7ec92d0e32cbb9e1fe64441f7715c94531771d58f55e1c",
     "details-narrow.png": "360a22cffec19279c5cb1d771e40bdb48854a7d6d27c9b2fb92043f5973e3e95",
     "inspector-narrow-light.png": "49ed552928c0ce8ae0729fa13a9913aace79d28022e375e4ab41be8d15485312",
     "rename-light.png": "0f8136e54628761e9b4e43a45a110af94edf228a277a6ad2a1c02ca78dd76c7b",
@@ -40,7 +40,7 @@
   },
   "reviewed_on": "2026-10-15",
   "findings": [
-    "Conversation search now groups by actual project identity, with one folder heading for shared copies and explicit paths when several copies are present. Inspected dark and filtered compact light. Arrow/Home/End navigation and focus through catalog updates pass.",
+    "Settings now pairs actual display controls with an aligned keyboard reference and removes the ornamental mock-workspace preview. Inspected dark, light and compact light; appearance changes and keyboard dialog behavior pass.",
     "Production headless WebKit only; native OS input, IME, VoiceOver and Windows were not run."
   ]
 }

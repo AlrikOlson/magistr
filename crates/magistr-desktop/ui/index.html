@@ -106,11 +106,10 @@
 <dialog id="settings" aria-labelledby="settings-title">
   <div class="settings-heading dialog-heading"><h2 id="settings-title">Settings</h2><p>Appearance, motion and keyboard shortcuts.</p></div>
   <div class="settings-content"><section class="settings-section" aria-label="Appearance and motion">
-    <div class="appearance-preview" aria-hidden="true"><div class="preview-rail"><i></i><i></i><i></i></div><div class="preview-conversation"><div class="preview-title"></div><div class="preview-message"></div><div class="preview-lines"><i></i><i></i><i></i></div><div class="preview-composer"><i></i></div></div></div>
+    <h3>Display</h3>
     <div class="settings-row"><div><label for="theme">Appearance</label><p>Use your system appearance, or choose one.</p></div><select id="theme" disabled><option value="system">System</option><option value="dark">Dark</option><option value="light">Light</option></select></div>
     <div class="settings-row"><div><label for="reduce-motion">Reduce motion</label><p>Keep movement to a minimum.</p></div><input id="reduce-motion" type="checkbox" disabled></div>
-  </section>
-  <p id="preferences-note" role="status"></p><button id="retry-preferences" hidden>Retry preferences</button>
+  <p id="preferences-note" role="status"></p><button id="retry-preferences" hidden>Retry preferences</button></section>
   <section class="settings-shortcuts" aria-label="Keyboard shortcuts"><h3>Keyboard shortcuts</h3>
     <dl><div><dt>Find a conversation</dt><dd><kbd id="settings-find-shortcut"></kbd></dd></div><div><dt>Open project</dt><dd><kbd id="open-project-shortcut"></kbd></dd></div><div><dt>New conversation</dt><dd><kbd id="new-session-shortcut"></kbd></dd></div><div><dt>Settings</dt><dd><kbd id="open-settings-shortcut"></kbd></dd></div><div><dt>Move between areas</dt><dd><kbd>F6</kbd></dd></div><div><dt>Move to the previous area</dt><dd><kbd>Shift F6</kbd></dd></div></dl>
   </section></div>
