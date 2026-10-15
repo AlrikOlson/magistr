@@ -1,3 +1,4 @@
+import { feedbackFixture,feedbackScene } from "./feedback_fixture.mjs";
 import { reasoningFixture,reasoningScene } from "./reasoning_fixture.mjs";
 import { roadmapScene } from "./roadmap_fixture.mjs";
 export function workSnapshot(){
@@ -25,13 +26,13 @@ export function workSnapshot(){
   previous.tasks=previous.tasks.map(task=>({...task,title:"Earlier: "+task.title,status:"completed"}));
   previous.task_instances={review:"earlier-review",build:"earlier-build",verify:"earlier-verify"};
   return {ship:{state:"current",data:{source:{kind:"memory"},value:{current,retained:[previous]}}},
-    roadmap:{state:"unobserved"},think:reasoningFixture(),signals:{state:"unobserved"}};
+    roadmap:{state:"unobserved"},think:reasoningFixture(),signals:feedbackFixture()};
 }
 export async function workScene(app,capture){
   await app.getByRole("button",{name:"Work plan",exact:true}).click();
   await app.getByRole("heading",{name:"Prepare the desktop release",exact:true}).waitFor();
   await capture("work-plan-dark.png");
-  await roadmapScene(app,capture);await reasoningScene(app,capture);
+  await roadmapScene(app,capture);await reasoningScene(app,capture);await feedbackScene(app,capture);
   const check=app.locator(".work-check").nth(1);await check.locator("summary").click();
   await check.evaluate(node=>node.scrollIntoView({block:"start"}));await capture("work-check-results-dark.png");
   await check.locator("summary").click();await app.locator("#work-browser-content").evaluate(node=>node.scrollTop=0);
