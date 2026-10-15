@@ -1,9 +1,9 @@
 {
-  "receipt": "6b053a5a6db9897b5d9e3d1024a33c5ba56b795e18e638820d4ae984a66feae9",
+  "receipt": "e9c5ddc9a8df46ab65816051eeeba2b6d6c6b692ab8a4b005493f2895e80cd48",
   "images": {
-    "welcome-dark.png": "582f8e6bb4bac6da674fbdd6153407993453b6a4eb8cef45c623c9c5b5315122",
-    "welcome-light.png": "ef22b1856dc48ef3288a567665fc21e78695076d5722d601308dedf0f5f6a4bd",
-    "welcome-narrow-light.png": "89416a0efb2059905110c3666e0d148948894dc3b8e5810d89b58c0d889cbe2e",
+    "welcome-dark.png": "e6e17430637f0a971e1f75134d9a42314d572f25fd58ec84864345d16e67dc5b",
+    "welcome-light.png": "b4bf59ec45fd06aeb702b256e79e0e205619cff321ec753a94baae2357e1a1b3",
+    "welcome-narrow-light.png": "7d2f04b06c90cd6b7cf45d8a57992d01d2a7a17ad589e63e051a96f33f612f2c",
     "settings-dark.png": "1cc31ee8d2f4f2ccea63ef47dd549890ffa8fc73669ab38d285e746f021dcb0a",
     "workspace-dark.png": "d95d3e305d3f92e1de21946ada10091a042cf0ac46b33686d5e42e9695cec2f1",
     "settings-light.png": "8b7604544c89b7f0b75c84263d78d828f0445ca90dc1075741dd8b1e483917da",
@@ -49,8 +49,8 @@
   },
   "reviewed_on": "2026-10-15",
   "findings": [
-    "Reviewed the warm paper workspace and graphite minimum-window capture after the palette and type foundation changes. Reading, input and navigation remain clearly separated; primary violet is reserved for actions and focus.",
-    "The full workspace WebKit scenario passed across dialogs, documents, attachments, requests and minimum window dimensions.",
-    "Headless WebKit rendering and DOM checks only; no current native OS input, VoiceOver or Windows verification. Native workflow recording is unavailable because the connected server cannot read existing saved state."
+    "Reviewed the new project activity composition in dark and compact light views: the ring and four aligned numeric categories use the live catalog, with an explicit count of open conversations.",
+    "Six selected navigation and workspace WebKit tests passed, including working, closed, waiting and disconnected transitions.",
+    "Headless rendering and DOM evidence only. Native workflow recording is unavailable; existing saved records were preserved."
   ]
 }

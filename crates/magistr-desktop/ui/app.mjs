@@ -1,3 +1,4 @@
+import { ActivityOverview } from "./activity.mjs";
 import { ConversationSwitcher } from "./switcher.mjs";
 import { KeyboardNavigation } from "./keyboard.mjs";
 import { EditorPlaces } from "./reading.mjs";
@@ -39,6 +40,7 @@ const editorPlaces=new EditorPlaces($("draft"));
 const layout=new WorkspaceLayout({root:$("workspace"),conversation:$("conversation"),detail:$("session-detail"),toggle:$("toggle-details"),heading:$("detail-title"),compact:matchMedia("(max-width:1100px)")});
 const projectLayout=new ProjectRailLayout({root:$("desktop-shell"),panel:$("project-navigation"),content:$("workspace-main"),toggle:$("toggle-projects"),fallback:$("open-project"),compact:matchMedia("(max-width:900px)")});
 const catalog=new Catalog();
+const activityOverview=new ActivityOverview($("project-activity"));
 const attentionNodes=new Map();
 let announcementKey="";
 const transcriptView=new Transcript($("transcript"),$("latest"),{
@@ -104,6 +106,7 @@ async function refresh() {
 function renderRail() {
   const signature=JSON.stringify([projects,sessions,selected]);if(signature===railKey)return;railKey=signature;
   navigation.render(projects,sessions,selected);
+  activityOverview.render(sessions);
   const projectCount=directory.render(projects,sessions);
   $("directory-empty").hidden=projectCount>0;
   $("sessions-empty").hidden=projects.length>0||sessions.length>0;
