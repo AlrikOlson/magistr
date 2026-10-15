@@ -1,5 +1,5 @@
 {
-  "receipt": "0c3fc80251bc6f0f6eb23a35880b88e6b10678a5e3fad2e6f4649ed1a330de5e",
+  "receipt": "fc340e6d22c06f2fb52999a229216e5efa1f00c33d09269f4d3c0cef05c975fb",
   "images": {
     "welcome-dark.png": "c18e56fa3f76a5d9338c14ef21f1d94c761e09479a9597347b4a49080331713f",
     "welcome-light.png": "d308a673ba367d31445b01bafd2fb739c75ddb35a884c19b5a36f51a34427c45",
@@ -35,9 +35,9 @@
     "code-light.png": "bbf460cf7044f1999077db58cbe5a21585fca47cdbc70656ff3bc7e04f536d6c",
     "tools-light.png": "e1e315defa2135e3937cdefe7702b39d6d1a2547929d05a586d71cca3f1b99f2",
     "tools-dark.png": "bb82554071183563518995422b6331f3b370de22c4a010924af38c03824b7029",
-    "attachments-dark.png": "60e6b456eb8f7118a995f1f7976c75a526cff27884e7a2b2e0ef83a61761606b",
+    "attachments-dark.png": "947d847ccd4fe98e5d3cba291d4f7f015a35f6ea16682b71c503ea3748f8dc26",
     "image-inspection-dark.png": "43aa79f9937d1bba3184dbcd1be08acb31f56ed30f2a7404e7502cdb1564b597",
-    "attachments-narrow-light.png": "6c40a03c38a7711936e346cc8d18ad9ef8eb83d79a232deb33a3abae3616355a",
+    "attachments-narrow-light.png": "211d660f32b85627b08354d6763507f8b67715cf97a247c749598df51c6d69c2",
     "request-narrow-light.png": "13d6fd7dc50fbf5089c949450160d50d1f702262b29b1873284e745b3d829b25",
     "request-dark.png": "2dd962c508ae99050570560894f7727b0f488a7690184bb3300b6b33aec136d2",
     "minimum-workspace-dark.png": "f14d9f1b713aeb219807844386c87ee39c1a45a95bdd5fb24d8dfc2ccb7dca7f",
@@ -51,8 +51,8 @@
     "open-project-error-details-light.png": "4d08e18f241d73aacc1ecf1e14c44f6a2f87f01409b5a1e8954de005b1d60e48",
     "empty-conversation-dark.png": "0d382256e7651ddb1ad864049bdd018e5ef1e22c08dbf7c12d533194d75dfae6",
     "empty-conversation-light.png": "9dc4cac2174261e82db28c87f37a1d93ec257ac38866c4cecedad3f00ca4bf32",
-    "tables-dark.png": "923117d29382e5bb8c331cae658cae4ec92808c60f265b5ad40030f3268fb573",
-    "tables-light.png": "85b4d2df9f384641bbca3480daf5c8f92ab61462d75a585ac3901a4412e04ed8",
+    "tables-dark.png": "651ab0e1a1c7490348d508c5a859124d352fd7efe0939b0dac14bdff9121e18c",
+    "tables-light.png": "038c8917e550f11160badd6344b737ed36ed1eb0b01d260b47a4518163d53cb7",
     "tables-compact.png": "09a166dac8bbac152d9618ed6eeaa3c0bfaee07593a67ac5cbd0b82948a0e800",
     "patch-dark.png": "77c6798661132f07a133007da6b78e87d3cc4f975aa2f6c126faaa08fca148a3",
     "patch-light.png": "29f46393a0039b4178529e50bbef9c5ee0b3242036c20799921499cc2364308f",
@@ -69,12 +69,12 @@
     "editorial-dark.png": "61e9c916aeb47dc87f88836dcf8eb56e23e5ec1337352959484221e5befba50a",
     "editorial-light.png": "aceaa17f2772b29a22ffaeef4cb108365c4785e7fc94a68c06e1d6ca1f53ba37",
     "editorial-compact.png": "6aafd16edd4e0d1c4607396efebb40b0c4601b8143cab059ca39af09c12ebbfa",
-    "gallery-dark.png": "10df69665dd9268bb7ca3aca6da69de93015f94c51eb9b3dd67555056a50f62a",
-    "gallery-light.png": "15dacb6637886368d4b6ed45aec2c0edcf6076b7ede8c83dcfaf1b1db9f0902f",
-    "gallery-compact.png": "34d8b8fabbd2c7ee4407995313919358cca693c6432345540e0c5ee7d0cf2782",
+    "gallery-dark.png": "43519e04c66fa7ca7e3eafdef4a0e17a2e6044ec00027b47e146f9a81f5e3ff4",
+    "gallery-light.png": "74725955d0c7b6156586215dbf7143c3794f51edd69fc15ccfde6e487368df99",
+    "gallery-compact.png": "7f1caae5694eae81f3866b270d43f01ef6fa5ae64ff420cd8bfe697876e95249",
     "image-stage-dark.png": "7b1a35149adef7af36be98cc78125f6306625dd72645d779618bb22d512f9364",
     "image-stage-light.png": "21827fb698cd38f73b8067f808ed1caf903db0e27ccd9b0a8e83a9b6256b2bde",
-    "image-stage-compact.png": "3dae3eb4e96a5f47c7dda5d793c1b328e0f985f85458d00af9f52fa36441c301",
+    "image-stage-compact.png": "c65349b5594b9c2eaf6e53d70ade4afd71516795a0f76ec14e19ee862685636b",
     "writing-dark.png": "d3d2373a3f4ba397332fec88f0ecb07193b1a8f1474982c05f68ead3db74ddb3",
     "writing-light.png": "7d7e85193330305d1c6376f8a91645b5ed441f7eed3b07fdde70b72ca3c50534",
     "writing-compact.png": "a72d58ac8942e3a0a267d6c05e73230fc97851ead7df09b98bb6fd874d2a4335",
@@ -94,5 +94,5 @@
     "workspace-compact-final-light.png": "cf0660be6d4cd9833a7bebf556c4a3cb20907ab04622974b81800fc4180c40c0",
     "workspace-compact-long-title.png": "c937d7ecc8a49952c92e0fae474346c91fae0f7f4725a62a3c3644bd58feb772"
   },
-  "review": "Reviewed actual execution ledger in dark and compact light. Source-derived tool icons, aligned duration/status, compact closed rows and expanded result sheets preserve addressed disclosures and exact source. Seven WebKit reading cases pass."
+  "review": "Reviewed dark/light and compact file gallery, actual image dimensions, text previews and source labels. Three WebKit cases verify file targets, inspection, removal and focus. Decoded images captured in their full gallery viewport."
 }

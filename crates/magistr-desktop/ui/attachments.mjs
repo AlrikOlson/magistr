@@ -55,7 +55,7 @@ export class AttachmentList {
         name.textContent = file.name;
         const size=this.document.createElement("span"),path=this.document.createElement("span");
         size.className="attachment-size";size.textContent=sizeLabel(file.size);
-        path.className="attachment-path";path.textContent=file.path??file.source??"Pasted file";
+        path.className="attachment-path";path.textContent=file.path??file.source??"Pasted file";path.title=path.textContent;
         detail.append(size,path);
         content.append(name, detail);
         const visual=this.document.createElement(file.preview?"button":"div");visual.className="attachment-visual";item.append(visual);
@@ -63,7 +63,8 @@ export class AttachmentList {
         item.dataset.kind=file.preview?"image":"document";
         if (file.preview) {
           const image = this.document.createElement("img"); image.src = file.preview; image.alt = "Preview of " + file.name;
-          image.onload=()=>{visual.title=image.naturalWidth+" × "+image.naturalHeight+" pixels";};
+          const dimensions=this.document.createElement("span");dimensions.className="attachment-dimensions";dimensions.hidden=true;detail.append(dimensions);
+          image.onload=()=>{visual.title=image.naturalWidth+" × "+image.naturalHeight+" pixels";dimensions.textContent=image.naturalWidth+" × "+image.naturalHeight;dimensions.hidden=false;};
           image.onerror=()=>{image.hidden=true;visual.dataset.unavailable="true";visual.title="Image preview unavailable";};
           visual.append(image);
         } else {
@@ -88,6 +89,6 @@ export class AttachmentList {
       if(row.remove)row.remove.disabled = disabled;
       if (this.root.children[index] !== row.item) this.root.insertBefore(row.item, this.root.children[index] ?? null);
     });
-    this.root.hidden = !this.files.length;
+    this.root.hidden = !this.files.length;this.root.dataset.countLabel=this.files.length+" "+(this.files.length===1?"file":"files");
   }
 }
