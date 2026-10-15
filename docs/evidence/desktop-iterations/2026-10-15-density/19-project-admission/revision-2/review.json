@@ -1,0 +1,102 @@
+{
+  "scope": "Compact project opening and setup guidance",
+  "limitations": "Headless WebKit with isolated observations. Native OS input, assistive technology and Rust command integration were not exercised.",
+  "images": {
+    "conversation--folder-failure-compact-dark.png": {
+      "sha256": "dfe3019c3ccb3a7ad5221f5f1c77ca685b7aad256bb9c8d6731c213f70dde48c",
+      "task": "Open a folder and review errors or setup guidance without excessive headings.",
+      "observations": "Folder label has a consistent gutter below the heading. Input, Browse and footer actions fit both sizes. The failure state keeps the selected path, clear focused error and nearby Try again, with readable contrast in both appearances.",
+      "verdict": "pass"
+    },
+    "conversation--folder-failure-compact-light.png": {
+      "sha256": "56151a5340ab48797bd02b6e826b56959b4d303753631a7c238e827d0fad3e16",
+      "task": "Open a folder and review errors or setup guidance without excessive headings.",
+      "observations": "Folder label has a consistent gutter below the heading. Input, Browse and footer actions fit both sizes. The failure state keeps the selected path, clear focused error and nearby Try again, with readable contrast in both appearances.",
+      "verdict": "pass"
+    },
+    "conversation--folder-failure-desktop-dark.png": {
+      "sha256": "71d8bb406ecb6bc7687654f23ac6bee9db9d935d5497185a21c628ed871dfc19",
+      "task": "Open a folder and review errors or setup guidance without excessive headings.",
+      "observations": "Folder label has a consistent gutter below the heading. Input, Browse and footer actions fit both sizes. The failure state keeps the selected path, clear focused error and nearby Try again, with readable contrast in both appearances.",
+      "verdict": "pass"
+    },
+    "conversation--folder-failure-desktop-light.png": {
+      "sha256": "6d00ebb8e2ea8b8a849c5d4cad51b878598b4aec0925d2f815be657ade0d6a77",
+      "task": "Open a folder and review errors or setup guidance without excessive headings.",
+      "observations": "Folder label has a consistent gutter below the heading. Input, Browse and footer actions fit both sizes. The failure state keeps the selected path, clear focused error and nearby Try again, with readable contrast in both appearances.",
+      "verdict": "pass"
+    },
+    "conversation--open-folder-compact-dark.png": {
+      "sha256": "10a02b21e1d712fff1bff053dc98e8aaba8b20b53b2d8a27a266774863c6e25e",
+      "task": "Open a folder and review errors or setup guidance without excessive headings.",
+      "observations": "Folder label has a consistent gutter below the heading. Input, Browse and footer actions fit both sizes. The failure state keeps the selected path, clear focused error and nearby Try again, with readable contrast in both appearances.",
+      "verdict": "pass"
+    },
+    "conversation--open-folder-compact-light.png": {
+      "sha256": "d15f52d466f6d562fc1903df60d1b190706fdc3a3e2bce3e7f82abc36a51e3f8",
+      "task": "Open a folder and review errors or setup guidance without excessive headings.",
+      "observations": "Folder label has a consistent gutter below the heading. Input, Browse and footer actions fit both sizes. The failure state keeps the selected path, clear focused error and nearby Try again, with readable contrast in both appearances.",
+      "verdict": "pass"
+    },
+    "conversation--open-folder-desktop-dark.png": {
+      "sha256": "60a4927702e70a0542b113e0a7315ab53cbdcd17d283da9e1cfd24e5c24f00e5",
+      "task": "Open a folder and review errors or setup guidance without excessive headings.",
+      "observations": "Folder label has a consistent gutter below the heading. Input, Browse and footer actions fit both sizes. The failure state keeps the selected path, clear focused error and nearby Try again, with readable contrast in both appearances.",
+      "verdict": "pass"
+    },
+    "conversation--open-folder-desktop-light.png": {
+      "sha256": "dc8badaf32525cf1aa565c3920ec6772273bacf467a65cac5ef0009da920845e",
+      "task": "Open a folder and review errors or setup guidance without excessive headings.",
+      "observations": "Folder label has a consistent gutter below the heading. Input, Browse and footer actions fit both sizes. The failure state keeps the selected path, clear focused error and nearby Try again, with readable contrast in both appearances.",
+      "verdict": "pass"
+    },
+    "conversation--setup-file-changes-compact-dark.png": {
+      "sha256": "341eadb1571196bc12fe73d317871756d88c830a3ae2fa98a381b40940f21dac",
+      "task": "Open a folder and review errors or setup guidance without excessive headings.",
+      "observations": "Complete source diff, added-line count and mode controls are readable. At compact size only the reading pane is scrolled; AGENTS.md selection and Apply stay visible. No source line is covered by the footer.",
+      "verdict": "pass"
+    },
+    "conversation--setup-file-changes-compact-light.png": {
+      "sha256": "c8eeaa881e4c4f0aebaabaf65a98db2e52c3790bc7098e8654596474e5624b00",
+      "task": "Open a folder and review errors or setup guidance without excessive headings.",
+      "observations": "Complete source diff, added-line count and mode controls are readable. At compact size only the reading pane is scrolled; AGENTS.md selection and Apply stay visible. No source line is covered by the footer.",
+      "verdict": "pass"
+    },
+    "conversation--setup-file-changes-desktop-dark.png": {
+      "sha256": "981239e72ecc6787b2b6a2e24b947b3b4978355bed2606227ff724b5ca184897",
+      "task": "Open a folder and review errors or setup guidance without excessive headings.",
+      "observations": "Complete source diff, added-line count and mode controls are readable. At compact size only the reading pane is scrolled; AGENTS.md selection and Apply stay visible. No source line is covered by the footer.",
+      "verdict": "pass"
+    },
+    "conversation--setup-file-changes-desktop-light.png": {
+      "sha256": "fa0085084d7af39f0ccfc2c28ecdf1216854c71b5674059a3604ea73cd315a6e",
+      "task": "Open a folder and review errors or setup guidance without excessive headings.",
+      "observations": "Complete source diff, added-line count and mode controls are readable. At compact size only the reading pane is scrolled; AGENTS.md selection and Apply stay visible. No source line is covered by the footer.",
+      "verdict": "pass"
+    },
+    "conversation--setup-review-compact-dark.png": {
+      "sha256": "9d2088dcb4d997c51cf8bacbe563dcbfff43a461e0e0597dfae803a1d5ae2216",
+      "task": "Open a folder and review errors or setup guidance without excessive headings.",
+      "observations": "File name and operation share a row without repeating the root filename. Explanation and file modes sit above the diff. Desktop shows the complete diff; compact shows its beginning with the full reading position separately captured. Selection and approval remain distinct.",
+      "verdict": "pass"
+    },
+    "conversation--setup-review-compact-light.png": {
+      "sha256": "263622472d53620593a2f175b1a47d25b5701b944c350ed0e8795a9761adfec9",
+      "task": "Open a folder and review errors or setup guidance without excessive headings.",
+      "observations": "File name and operation share a row without repeating the root filename. Explanation and file modes sit above the diff. Desktop shows the complete diff; compact shows its beginning with the full reading position separately captured. Selection and approval remain distinct.",
+      "verdict": "pass"
+    },
+    "conversation--setup-review-desktop-dark.png": {
+      "sha256": "981239e72ecc6787b2b6a2e24b947b3b4978355bed2606227ff724b5ca184897",
+      "task": "Open a folder and review errors or setup guidance without excessive headings.",
+      "observations": "File name and operation share a row without repeating the root filename. Explanation and file modes sit above the diff. Desktop shows the complete diff; compact shows its beginning with the full reading position separately captured. Selection and approval remain distinct.",
+      "verdict": "pass"
+    },
+    "conversation--setup-review-desktop-light.png": {
+      "sha256": "fa0085084d7af39f0ccfc2c28ecdf1216854c71b5674059a3604ea73cd315a6e",
+      "task": "Open a folder and review errors or setup guidance without excessive headings.",
+      "observations": "File name and operation share a row without repeating the root filename. Explanation and file modes sit above the diff. Desktop shows the complete diff; compact shows its beginning with the full reading position separately captured. Selection and approval remain distinct.",
+      "verdict": "pass"
+    }
+  }
+}

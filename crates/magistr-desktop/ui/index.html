@@ -140,7 +140,7 @@
 
 <dialog id="project-picker" aria-labelledby="picker-title">
   <form id="project-form">
-    <header class="picker-heading dialog-heading"><h2 id="picker-title" tabindex="-1" data-leading-icon="folder">Open a project</h2><p id="picker-intro">Choose the folder you want to work in.</p></header>
+    <header class="picker-heading dialog-heading"><h2 id="picker-title" tabindex="-1" data-leading-icon="folder">Open a project</h2><p id="picker-intro" hidden></p></header>
     <div id="picker-folder-entry"><label for="project-folder">Project folder</label><div class="folder-input"><input id="project-folder" name="directory" aria-describedby="project-folder-help" required placeholder="/path/to/project"><button id="browse-folder" data-leading-icon="folder" type="button">Browse…</button></div><p id="project-folder-help">You can review any setup changes before applying them.</p></div>
     <div id="picker-destination" hidden><p id="setup-root" class="path" data-leading-icon="folder"></p><button id="change-folder" type="button">Change folder</button></div>
     <p id="picker-status" role="status" aria-live="polite" hidden></p>

@@ -1,0 +1,78 @@
+{
+  "scope": "Compact project opening and setup guidance",
+  "limitations": "Headless WebKit with isolated observations. Native OS input, assistive technology and Rust command integration were not exercised.",
+  "images": {
+    "conversation--folder-failure-compact-dark.png": {
+      "sha256": "d6df94e8d8a0019948d1b5bd5e67c47859b3b834782c393961549e843a27bc7a",
+      "task": "Open a folder and review errors or setup guidance without excessive headings.",
+      "observations": "Folder input, Browse, helper and action buttons are visible and aligned. Failure preserves the path and presents a readable focused error above Try again. Compact field label is too close to the heading separator; add a small consistent gutter.",
+      "verdict": "fail"
+    },
+    "conversation--folder-failure-compact-light.png": {
+      "sha256": "06c69f6f2f5a7f75bef4d46121b2cdd9279fa312dc5312a2abd2fec092aea4da",
+      "task": "Open a folder and review errors or setup guidance without excessive headings.",
+      "observations": "Folder input, Browse, helper and action buttons are visible and aligned. Failure preserves the path and presents a readable focused error above Try again. Compact field label is too close to the heading separator; add a small consistent gutter.",
+      "verdict": "fail"
+    },
+    "conversation--folder-failure-desktop-dark.png": {
+      "sha256": "71d8bb406ecb6bc7687654f23ac6bee9db9d935d5497185a21c628ed871dfc19",
+      "task": "Open a folder and review errors or setup guidance without excessive headings.",
+      "observations": "Folder input, Browse, helper and action buttons are visible and aligned. Failure preserves the path and presents a readable focused error above Try again. Compact field label is too close to the heading separator; add a small consistent gutter.",
+      "verdict": "fail"
+    },
+    "conversation--folder-failure-desktop-light.png": {
+      "sha256": "6d00ebb8e2ea8b8a849c5d4cad51b878598b4aec0925d2f815be657ade0d6a77",
+      "task": "Open a folder and review errors or setup guidance without excessive headings.",
+      "observations": "Folder input, Browse, helper and action buttons are visible and aligned. Failure preserves the path and presents a readable focused error above Try again. Compact field label is too close to the heading separator; add a small consistent gutter.",
+      "verdict": "fail"
+    },
+    "conversation--open-folder-compact-dark.png": {
+      "sha256": "1a94427511b4fd3237b3c5cc5341b375faf5743f771542fd719d12f7a5cc5cea",
+      "task": "Open a folder and review errors or setup guidance without excessive headings.",
+      "observations": "Folder input, Browse, helper and action buttons are visible and aligned. Failure preserves the path and presents a readable focused error above Try again. Compact field label is too close to the heading separator; add a small consistent gutter.",
+      "verdict": "fail"
+    },
+    "conversation--open-folder-compact-light.png": {
+      "sha256": "428c2dd56cb14eff42c1751e419e2d666ad04d5de06f0881dded131eabfa52c1",
+      "task": "Open a folder and review errors or setup guidance without excessive headings.",
+      "observations": "Folder input, Browse, helper and action buttons are visible and aligned. Failure preserves the path and presents a readable focused error above Try again. Compact field label is too close to the heading separator; add a small consistent gutter.",
+      "verdict": "fail"
+    },
+    "conversation--open-folder-desktop-dark.png": {
+      "sha256": "60a4927702e70a0542b113e0a7315ab53cbdcd17d283da9e1cfd24e5c24f00e5",
+      "task": "Open a folder and review errors or setup guidance without excessive headings.",
+      "observations": "Folder input, Browse, helper and action buttons are visible and aligned. Failure preserves the path and presents a readable focused error above Try again. Compact field label is too close to the heading separator; add a small consistent gutter.",
+      "verdict": "fail"
+    },
+    "conversation--open-folder-desktop-light.png": {
+      "sha256": "dc8badaf32525cf1aa565c3920ec6772273bacf467a65cac5ef0009da920845e",
+      "task": "Open a folder and review errors or setup guidance without excessive headings.",
+      "observations": "Folder input, Browse, helper and action buttons are visible and aligned. Failure preserves the path and presents a readable focused error above Try again. Compact field label is too close to the heading separator; add a small consistent gutter.",
+      "verdict": "fail"
+    },
+    "conversation--setup-review-compact-dark.png": {
+      "sha256": "c7dfa99244a5df4c8b72cd0526f9333265aaa03362ee82dbb3ae9caa386f371f",
+      "task": "Open a folder and review errors or setup guidance without excessive headings.",
+      "observations": "Setup selection and approval remain distinct and desktop diff is readable. Compact uses its full reading area for heading, explanation and tabs, leaving the file changes below the fold; repeated root filename and oversized document spacing need correction.",
+      "verdict": "fail"
+    },
+    "conversation--setup-review-compact-light.png": {
+      "sha256": "cc730133785508b92ba6ac3622e2968877daf35ca3bef98f3c87adebf9bbd0d5",
+      "task": "Open a folder and review errors or setup guidance without excessive headings.",
+      "observations": "Setup selection and approval remain distinct and desktop diff is readable. Compact uses its full reading area for heading, explanation and tabs, leaving the file changes below the fold; repeated root filename and oversized document spacing need correction.",
+      "verdict": "fail"
+    },
+    "conversation--setup-review-desktop-dark.png": {
+      "sha256": "c68eb9cf35b672028b1aca43ce8b4cb333d25b8f11fe3f465c389d23614e8576",
+      "task": "Open a folder and review errors or setup guidance without excessive headings.",
+      "observations": "Setup selection and approval remain distinct and desktop diff is readable. Compact uses its full reading area for heading, explanation and tabs, leaving the file changes below the fold; repeated root filename and oversized document spacing need correction.",
+      "verdict": "fail"
+    },
+    "conversation--setup-review-desktop-light.png": {
+      "sha256": "a236c3ac27362e68043e71dec03bb92ce457ec9504e630c9f1988f5c43f81e64",
+      "task": "Open a folder and review errors or setup guidance without excessive headings.",
+      "observations": "Setup selection and approval remain distinct and desktop diff is readable. Compact uses its full reading area for heading, explanation and tabs, leaving the file changes below the fold; repeated root filename and oversized document spacing need correction.",
+      "verdict": "fail"
+    }
+  }
+}
