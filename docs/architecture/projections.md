@@ -46,7 +46,7 @@ The full-record read remains available for those IDs.
 | Family | Value | Persistence owner |
 | --- | --- | --- |
 | Roadmap | `RoadmapData`: chunks and progress from the same read | `RoadmapEngine` |
-| Execution | `ShipData`: objective and tasks from the same read | `ShipEngine` |
+| Execution | `ShipData`: selected and retained runs from the same read | `ShipEngine` |
 | Signals | `Vec<Signal>` | `SignalEngine` |
 | Reasoning | `ThinkData`: selected session, steps and branches | `ReasoningServer` |
 
@@ -74,6 +74,20 @@ from one open with a pathname stamp from another. Atomic replacement may leave
 an already opened descriptor on the preceding file; the next read opens the
 replacement. The execution owner reads the file selected by its canonical
 working copy and execution identity, not a guessed project-wide ship path.
+
+`ShipData` exposes the selected `current` run and `retained` runs. Each `ShipRun`
+keeps its run ID, task-instance identities, objective and complete tasks, including
+actions, check details and artifacts. Selecting another objective retains the
+previous run in the same locked execution aggregate, whether unfinished or closed.
+Returning to an unfinished scope resumes its original run; returning to a closed
+scope starts another run without overwriting history. Reused task names never
+identify historical work on their own. `NativeReader::ship_run` resolves an exact
+run from a validated read and distinguishes missing work from a failed read.
+Historical checks retain their receipt IDs; the existing receipt reader resolves
+the actual command, source and acceptance evidence independently. A historical
+pass does not certify the source currently being edited. Receipt compaction keeps
+receipts belonging to retained runs. Explicit execution reset clears this aggregate;
+ordinary objective selection does not.
 
 Reasoning reads use the active session of a shared owner, or the captured
 configured session of a detached owner. `ThinkData::session_id` names that

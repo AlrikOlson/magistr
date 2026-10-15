@@ -437,7 +437,7 @@ impl NativeEngines {
         self.services
             .ship
             .set_objective(description, acceptance_criteria, constraints, scope)
-            .map(|result| result.map(|value| value.cleared_stale_tasks))
+            .map(|result| result.map(|value| value.retained_tasks))
     }
 
     /// Define the objective with an explicit verification scope.
@@ -458,7 +458,7 @@ impl NativeEngines {
                 scope,
                 verification,
             )
-            .map(|result| result.map(|value| value.cleared_stale_tasks))
+            .map(|result| result.map(|value| value.retained_tasks))
     }
 
     /// Validate existing receipts against current source and acceptance without

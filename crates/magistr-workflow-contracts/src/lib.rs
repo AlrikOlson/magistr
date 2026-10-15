@@ -41,7 +41,7 @@ pub use feed_status::FeedStatus;
 pub use gate_output::GateOutput;
 pub use magistr_frame::MagistrFrame;
 pub use native_event::NativeEvent;
-pub use native_snapshot::{NativeSnapshot, RoadmapData, ShipData, ThinkData};
+pub use native_snapshot::{NativeSnapshot, RoadmapData, ShipData, ShipRun, ThinkData};
 pub use owner_generation::OwnerGeneration;
 pub use read_state::{Observed, ReadError, ReadErrorKind, ReadSource, ReadState};
 pub use roadmap_progress::RoadmapProgress;

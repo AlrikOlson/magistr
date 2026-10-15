@@ -170,8 +170,7 @@ impl MagistrService {
                     .ship_snapshot()
                     .map_err(|error| ErrorData::internal_error(error, None))?;
                 if let Some(reason) =
-                    ShipGuardState::from_ship(ship.objective.as_ref(), &ship.tasks)
-                        .phase_block(phase)
+                    ShipGuardState::from_ship(ship.objective(), ship.tasks()).phase_block(phase)
                 {
                     return Ok(to_call_tool_result(ToolResult::error(reason)));
                 }
@@ -198,13 +197,13 @@ impl MagistrService {
             .engines
             .ship_snapshot()
             .map_err(|error| ErrorData::internal_error(error, None))?;
-        let cycle = ship.objective.as_ref().and_then(|o| o.created_at.clone());
+        let cycle = ship.objective().and_then(|o| o.created_at.clone());
         let task = ship.active_task().map(|task| task.id.clone());
         let detail = args
             .get("task_id")
             .and_then(Value::as_str)
             .map(|id| {
-                ship.tasks
+                ship.tasks()
                     .iter()
                     .find(|t| t.id == id)
                     .cloned()
@@ -409,7 +408,7 @@ impl MagistrService {
     /// nothing to record on.
     fn record_phase(&self, phase: WorkflowPhase, ship: &magistr_engine::ShipData) {
         self.context.observe(
-            ship.objective.as_ref().and_then(|o| o.created_at.clone()),
+            ship.objective().and_then(|o| o.created_at.clone()),
             ship.active_task().map(|task| task.id.clone()),
             phase,
         );

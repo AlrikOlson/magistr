@@ -167,7 +167,7 @@ async fn scoped_ship_only_and_signal_changes_reach_the_snapshot() {
             .current()
             .unwrap()
             .value
-            .objective
+            .objective()
             .as_ref()
             .unwrap()
             .description,

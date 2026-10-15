@@ -228,7 +228,12 @@ fn corrupt_cold_ship_reads_never_confirm_empty_and_recover_without_reopening() {
     }
     std::fs::write(&path, &good).unwrap();
     assert_eq!(
-        cold.observe().unwrap().value.objective.unwrap().description,
+        cold.observe()
+            .unwrap()
+            .value
+            .objective()
+            .unwrap()
+            .description,
         "kept"
     );
     assert!(cold.refresh_if_stale().unwrap());
@@ -280,7 +285,7 @@ fn each_family_retries_refused_reads_and_observes_deletion() {
     }
     assert_eq!(roadmap.observe().unwrap().value.chunks.len(), 1);
     assert_eq!(signal.observe().unwrap().value.signals.len(), 1);
-    assert!(ship.observe().unwrap().value.objective.is_some());
+    assert!(ship.observe().unwrap().value.objective().is_some());
     for path in &paths {
         std::fs::remove_file(path).unwrap();
     }
@@ -289,7 +294,7 @@ fn each_family_retries_refused_reads_and_observes_deletion() {
     assert_eq!(signal.observe().unwrap().source, ReadSource::Missing);
     assert!(signal.observe().unwrap().value.signals.is_empty());
     assert_eq!(ship.observe().unwrap().source, ReadSource::Missing);
-    assert!(ship.observe().unwrap().value.objective.is_none());
+    assert!(ship.observe().unwrap().value.objective().is_none());
 }
 
 #[test]
@@ -315,13 +320,13 @@ fn ship_observes_the_opened_execution_and_refuses_an_unsavable_mutation() {
             .observe()
             .unwrap()
             .value
-            .objective
+            .objective()
             .unwrap()
             .description,
         "execution a"
     );
     assert_eq!(
-        b.observe().unwrap().value.objective.unwrap().description,
+        b.observe().unwrap().value.objective().unwrap().description,
         "execution b"
     );
     let lock = a_path.with_extension("json.lock");
@@ -338,11 +343,11 @@ fn ship_observes_the_opened_execution_and_refuses_an_unsavable_mutation() {
         .unwrap_err();
     assert_eq!(refused.effect(), "none");
     assert!(a.tasks.is_empty());
-    assert!(a.observe().unwrap().value.tasks.is_empty());
+    assert!(a.observe().unwrap().value.tasks().is_empty());
     assert!(a.tasks.is_empty());
     std::fs::remove_file(&a_path).unwrap();
     assert_eq!(a_reader.observe().unwrap().source, ReadSource::Missing);
-    assert!(b.observe().unwrap().value.objective.is_some());
+    assert!(b.observe().unwrap().value.objective().is_some());
 }
 
 #[test]

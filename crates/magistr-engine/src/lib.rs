@@ -59,8 +59,8 @@ pub use native::{
     NativeFrame, NativeReader, NativeRoadmapSnapshot, NativeSnapshot, Observed, OwnerClient,
     OwnerCommand, OwnerEndpoint, OwnerGeneration, OwnerReply, ProjectAuthority, ReadError,
     ReadErrorKind, ReadSource, ReadState, RoadmapBackend, RoadmapCommand, RoadmapData,
-    RoadmapFrame, ShipCommand, ShipData, ShipFrame, SignalCommand, SignalFrame, StoreStamp,
-    ThinkCommand, ThinkData, ThinkFrame, WriterRole,
+    RoadmapFrame, ShipCommand, ShipData, ShipFrame, ShipRun, SignalCommand, SignalFrame,
+    StoreStamp, ThinkCommand, ThinkData, ThinkFrame, WriterRole,
 };
 pub use policy::{
     GovernancePolicy, ModelTier, ModelTierRule, PolicyCondition, PolicyDecision, PolicyEffect,

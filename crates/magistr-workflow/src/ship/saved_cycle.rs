@@ -1,4 +1,4 @@
-//! An execution plan retained while another objective is selected.
+//! An unfinished or closed execution retained while another objective is selected.
 
 use super::domain::{execution_identity::ExecutionIdentity, objective::Objective, task::Task};
 use serde::{Deserialize, Serialize};

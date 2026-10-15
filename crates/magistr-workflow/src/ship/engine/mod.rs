@@ -316,18 +316,14 @@ impl ShipEngine {
     pub fn observe(&self) -> Result<Observed<ShipData>, ReadError> {
         let Some(persistence) = self.persistence.as_ref().filter(|p| p.enabled()) else {
             return Ok(Observed {
-                value: ShipData {
-                    objective: self.objective.clone(),
-                    tasks: self.tasks.clone(),
-                },
+                value: self.persisted_state().into_observation(),
                 source: ReadSource::Memory,
             });
         };
         let read = persistence.current_stamped(&self.project_id)?;
-        let value = read.value.map_or_else(ShipData::default, |state| ShipData {
-            objective: state.objective,
-            tasks: state.tasks,
-        });
+        let value = read
+            .value
+            .map_or_else(ShipData::default, |state| state.into_observation());
         Ok(Observed {
             value,
             source: read.source,

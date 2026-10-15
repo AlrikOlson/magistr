@@ -231,7 +231,7 @@ pub(crate) fn apply_engine_state(
     chunks: &[magistr_workflow::roadmap::domain::Chunk],
 ) {
     use magistr_workflow::ship::domain::objective::ObjectiveStatus;
-    input.objective_status = ship.objective.as_ref().map(|objective| {
+    input.objective_status = ship.objective().map(|objective| {
         match objective.status {
             ObjectiveStatus::Defined => "defined",
             ObjectiveStatus::Active => "active",
@@ -240,13 +240,10 @@ pub(crate) fn apply_engine_state(
         }
         .to_owned()
     });
-    input.objective_scope = ship
-        .objective
-        .as_ref()
-        .map(|objective| objective.scope.clone());
-    input.tasks_total = ship.tasks.len();
+    input.objective_scope = ship.objective().map(|objective| objective.scope.clone());
+    input.tasks_total = ship.tasks().len();
     input.checks = ship
-        .tasks
+        .tasks()
         .iter()
         .flat_map(|task| &task.checks)
         .map(|check| CheckSummary {

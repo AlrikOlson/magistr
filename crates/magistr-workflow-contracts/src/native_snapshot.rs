@@ -16,19 +16,48 @@ pub struct RoadmapData {
     pub progress: RoadmapProgress,
 }
 
-/// The execution plan as it was observed, without inventing a missing run.
+/// A complete authored execution, addressed independently of reusable local task names.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ShipRun {
+    pub run_id: String,
+    pub task_instances: std::collections::BTreeMap<String, String>,
+    pub objective: Objective,
+    pub tasks: Vec<Task>,
+}
+
+/// Selected and retained executions from the same validated owner observation.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct ShipData {
-    pub objective: Option<Objective>,
-    pub tasks: Vec<Task>,
+    pub current: Option<ShipRun>,
+    pub retained: Vec<ShipRun>,
 }
 
 impl ShipData {
     #[must_use]
+    pub fn objective(&self) -> Option<&Objective> {
+        self.current.as_ref().map(|run| &run.objective)
+    }
+
+    #[must_use]
+    pub fn tasks(&self) -> &[Task] {
+        self.current
+            .as_ref()
+            .map_or(&[], |run| run.tasks.as_slice())
+    }
+
+    #[must_use]
     pub fn active_task(&self) -> Option<&Task> {
-        self.tasks
+        self.tasks()
             .iter()
             .find(|task| task.status == TaskStatus::Active)
+    }
+
+    #[must_use]
+    pub fn run(&self, run_id: &str) -> Option<&ShipRun> {
+        self.current
+            .iter()
+            .chain(&self.retained)
+            .find(|run| run.run_id == run_id)
     }
 }
 

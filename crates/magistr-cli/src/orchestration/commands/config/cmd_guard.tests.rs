@@ -11,8 +11,13 @@ fn ship(
     objective.scope = scope.into();
     objective.status = status;
     ShipData {
-        objective: Some(objective),
-        tasks: Vec::new(),
+        current: Some(magistr_engine::ShipRun {
+            run_id: "run".into(),
+            task_instances: Default::default(),
+            objective,
+            tasks: Vec::new(),
+        }),
+        retained: Vec::new(),
     }
 }
 
@@ -49,16 +54,16 @@ fn hook_fields_are_inert_on_null_or_foreign_json() {
 fn apply_engine_state_reads_validated_typed_records() {
     use magistr_workflow::ship::domain::objective::ObjectiveStatus;
     let mut ship = ship("chunk:b", ObjectiveStatus::Completed);
-    ship.tasks = (0..4)
+    ship.current.as_mut().unwrap().tasks = (0..4)
         .map(|id| fixtures::task(&id.to_string(), "work"))
         .collect();
-    ship.tasks[0].checks = vec![
+    ship.current.as_mut().unwrap().tasks[0].checks = vec![
         fixtures::check("cargo check", true),
         fixtures::check("svelte-check", false),
         fixtures::check("manual", true),
     ];
-    ship.tasks[0].checks[1].required = false;
-    ship.tasks[0].checks[2].verified = false;
+    ship.current.as_mut().unwrap().tasks[0].checks[1].required = false;
+    ship.current.as_mut().unwrap().tasks[0].checks[2].verified = false;
     let mut input = GuardInput::default();
     apply_engine_state(
         &mut input,
