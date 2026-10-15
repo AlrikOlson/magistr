@@ -175,6 +175,15 @@ article.you{background:var(--panel);padding:18px 24px;border-radius:12px 12px 4p
 .message-body pre,.tool-body pre{max-width:100%;overflow:auto;white-space:pre;font:12px/1.8 var(--font-code);background:var(--panel);border-radius:6px;padding:18px 20px;margin:20px 0 24px;tab-size:4}
 .message-body code{font:12px var(--font-code);background:var(--panel);color:var(--text);padding:2px 5px;border-radius:3px}.message-body pre code{font:inherit;background:transparent;padding:0;border:0;color:var(--text)}
 .message-body a{color:var(--accent);text-decoration:underline;text-underline-offset:4px;text-decoration-thickness:1px}.message-body a:hover{text-decoration-thickness:2px}.message-body hr{border:0;border-top:1px solid var(--separator);margin:36px 0}
+.code-document{margin:24px 0 28px;border:1px solid var(--surface-edge);border-radius:10px;overflow:hidden;background:var(--panel)}
+.code-caption{display:flex;align-items:center;gap:12px;padding:9px 16px;border-bottom:1px solid var(--separator);font:11px/1.5 var(--font-ui);color:var(--muted)}
+.code-title{color:var(--text);font-weight:550}.code-count{font-variant-numeric:tabular-nums}
+.code-copy{margin-left:auto;font:11px/1.4 var(--font-ui);min-height:28px;padding:4px 8px;border-color:transparent;background:transparent;color:var(--muted)}
+.code-surface{display:flex;align-items:stretch;min-width:0}
+.code-gutter{flex-shrink:0;padding:18px 12px 18px 16px;min-width:44px;border-right:1px solid var(--separator);font:12px/1.8 var(--font-code);text-align:right;color:var(--muted);user-select:none}
+.code-gutter::before{content:attr(data-lines);white-space:pre}
+.message-body .code-document pre{min-width:0;flex:1;margin:0;padding:18px 16px;border:0;border-radius:0;background:transparent;font:12px/1.8 var(--font-code);scrollbar-width:thin}
+.code-document pre:focus-visible{outline-offset:-3px}.code-document figcaption button:focus-visible{outline-offset:0}
 .transcript summary{cursor:pointer;color:var(--text);font-weight:600;overflow-wrap:anywhere}
 .tool-body{padding-top:12px}.tool-body h3{font-size:12px;color:var(--muted);margin:12px 0 5px}.tool-body pre{background:var(--base)}
 .transcript article[data-tool]{padding:14px 0;font-size:13px;border-top:1px solid var(--separator);margin-left:0}

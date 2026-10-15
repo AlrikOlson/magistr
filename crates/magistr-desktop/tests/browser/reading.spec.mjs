@@ -16,6 +16,30 @@ async function longConversation(app) {
   await expect(app.locator("#latest")).toBeVisible();
 }
 const offset=app=>app.locator('[data-reading="2:1500"]').evaluate(node=>node.getBoundingClientRect().top-document.getElementById("transcript").getBoundingClientRect().top);
+test("code documents preserve exact source, stable selection and copy bytes",async({app})=>{
+  await app.getByRole("button",{name:"Review the release plan",exact:true}).click();
+  const code="const value = '<script>literal</script>';\n\t日本語();\n";
+  await app.evaluate(code=>{
+    Object.defineProperty(navigator,"clipboard",{value:{writeText:async text=>{window.__fixture.copied=text;}}});
+    window.__fixture.publish("release",{events:[{id:500,revision:1,role:"Agent",text:code,document:{nodes:[{tag:"pre",start:0,children:[{tag:"code",text:code,start:0}]}]}}],retained:[500]});
+  },code);
+  await expect(app.locator(".code-count")).toHaveText("2 lines");
+  expect(await app.locator(".code-document pre code").textContent()).toBe(code);
+  await app.getByRole("button",{name:"Copy code",exact:true}).click();
+  expect(await app.evaluate(()=>window.__fixture.copied)).toBe(code);
+  await app.locator(".code-document pre code").evaluate(node=>{
+    window.__fixture.codeNode=node;
+    const range=document.createRange();range.setStart(node.firstChild,6);range.setEnd(node.firstChild,11);
+    document.getSelection().removeAllRanges();document.getSelection().addRange(range);
+  });
+  await app.evaluate(()=>window.__fixture.publish("release",{events:[{id:500,revision:2,role:"Agent",text:"updated",document:{nodes:[{tag:"pre",text:"updated",start:0}]}}],retained:[500]}));
+  expect(await app.locator(".code-document pre code").textContent()).toBe(code);
+  expect(await app.evaluate(()=>document.getSelection().toString())).toBe("value");
+  await app.evaluate(()=>document.getSelection().removeAllRanges());
+  await expect(app.locator(".code-document pre code")).toHaveText("updated");
+  expect(await app.locator(".code-document pre code").evaluate(node=>node===window.__fixture.codeNode)).toBe(true);
+});
+
 test("return to the same paragraph, valid text selection and open tool with current background content",async({app})=>{
   await longConversation(app);
   const before=await offset(app);

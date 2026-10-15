@@ -1,3 +1,4 @@
+import { renderCodeBlock } from "./code_blocks.mjs";
 import { targetKey } from "./context.mjs";
 import { remember, captureSelection, restoreSelection } from "./reading.mjs";
 // Native selection and reading position belong to this semantic document view.
@@ -14,17 +15,19 @@ export function allowedDestination(value) {
   try {const url=new URL(value);return ["http:","https:"].includes(url.protocol)&&!url.username&&!url.password&&!/[\u0000-\u001f\u007f]/.test(value)&&value.trim()===value;}catch{return false;}
 }
 
-export function renderDocument(parent,nodes,openLink) {
+export function renderDocument(parent,nodes,openLink,copy) {
   const document=parent.ownerDocument;
   nodes.forEach((source,index)=>{
     const tag=source.tag==="text"?"text":tags.has(source.tag)?source.tag:"span";
+    const hostTag=tag==="pre"?"figure":tag;
     let node=parent.childNodes[index];
-    if(!node||(tag==="text"?node.nodeType!==3:node.localName!==tag)) {
-      const next=tag==="text"?document.createTextNode(""):document.createElement(tag);
+    if(!node||(tag==="text"?node.nodeType!==3:node.localName!==hostTag)) {
+      const next=tag==="text"?document.createTextNode(""):document.createElement(hostTag);
       if(node)node.replaceWith(next);else parent.append(next);node=next;
     }
     if(tag==="text") {if(node.data!==source.text)node.data=source.text;return;}
     node.dataset.source=String(source.start);
+    if(tag==="pre"){renderCodeBlock(node,source,copy);return;}
     if(tag==="a") {
       const safe=allowedDestination(source.destination??"");
       if(safe) {node.href=source.destination;node.title=source.destination;node.rel="noreferrer noopener";
@@ -35,7 +38,7 @@ export function renderDocument(parent,nodes,openLink) {
     if(tag==="ol"&&source.number!==null)node.start=source.number;
     if(source.text) {
       if(node.textContent!==source.text)node.textContent=source.text;
-    } else renderDocument(node,source.children??[],openLink);
+    } else renderDocument(node,source.children??[],openLink,copy);
   });
   while(parent.childNodes.length>nodes.length)parent.lastChild.remove();
 }
@@ -200,7 +203,7 @@ export class Transcript {
     } else {
       row.attachments.apply(message.attachments??[]);
       const nodes=message.document?.nodes??[{tag:"p",text:message.text,children:[],start:0}];
-      renderDocument(row.body,nodes,this.openLink);
+      renderDocument(row.body,nodes,this.openLink,this.copy);
       for(const block of row.body.children)block.dataset.reading=message.id+":"+block.dataset.source;
       if(message.document?.limited) {
         const note=element(this.document,"p","This reply is shown as plain text because it contains extensive formatting.");note.className="gap";row.body.append(note);

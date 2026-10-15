@@ -142,6 +142,7 @@ desktop workspace. Companion Rust tests live beside their owners.
 - `crates/magistr-desktop/tests/session_controls_fixture.py`
 - `crates/magistr-desktop/ui/activity_material.mjs` — bounded on-demand WebGL ring, theme/resize observation, context loss and GPU cleanup.
 - `crates/magistr-desktop/ui/activity.mjs` — current catalog activity counts and their visual overview; no extra session state.
+- `crates/magistr-desktop/ui/code_blocks.mjs` — stable framed source documents, nonselectable line gutters and exact code copying.
 - `crates/magistr-desktop/ui/app.mjs`
 - `crates/magistr-desktop/ui/history.mjs` — searchable saved-record browser, independent reading/list surfaces and guarded resume feedback.
 - `crates/magistr-desktop/tests/browser/history.spec.mjs` — background filtering, draft recovery, loading cancellation and refused resume.
