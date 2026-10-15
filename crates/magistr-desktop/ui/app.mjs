@@ -1,3 +1,4 @@
+import { decorateProject } from "./project_identity.mjs";
 import { welcomeArt } from "./welcome_art.mjs";
 import { ConversationSwitcher } from "./switcher.mjs";
 import { KeyboardNavigation } from "./keyboard.mjs";
@@ -97,8 +98,9 @@ async function refresh() {
   renderRail();
   $("welcome-projects").replaceChildren(...projects.slice(0,4).map(project=>{
     const item=button("",()=>openDirectory(project.directory));
-    const emblem=text("b",Array.from(project.name.trim())[0]?.toLocaleUpperCase()??"·");emblem.className="recent-emblem";emblem.setAttribute("aria-hidden","true");
-    item.append(emblem,text("strong",project.name),text("span",project.directory),text("small","Open project →"));return item;
+    const cover=text("div","");cover.className="project-cover";cover.setAttribute("aria-hidden","true");
+    const emblem=text("b",decorateProject(item,project));emblem.className="recent-emblem";cover.append(emblem);
+    item.append(cover,text("strong",project.name),text("span",project.directory),text("small","Open project →"));return item;
   }));
   return info;
 }

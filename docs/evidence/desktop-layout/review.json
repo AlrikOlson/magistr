@@ -1,10 +1,10 @@
 {
-  "receipt": "7baf2803f3abd434903b71e1e15ebc21e4aa1dd493b6cf5d8db70dc91e2351c4",
+  "receipt": "8f4d69791d081bddd0e7df57c31dfa2059eebbd282e57eb0c26c85b7ee0f8572",
   "images": {
-    "welcome-dark.png": "06f44071324c55fd11af739489ba26c430fa646b6b4f9cd3aeaa7f4cd6bea9fd",
-    "welcome-light.png": "333590933520d8e94d975ebce051c82a0515a2cab7b3fd723f5b1bddf53e6a61",
-    "welcome-narrow-light.png": "fa99b3e89b46b67a75473462f9980a828ef95231f24648c5c655052dbc1a6d95",
-    "settings-dark.png": "2214c3f860195389a67917a71f6d584d05fc9ad2101d369124671818d720cb31",
+    "welcome-dark.png": "e6527e5b8ebac149cfc52ceb3fcd907fc8b36aaf1bd01885faf377bf0bda37b5",
+    "welcome-light.png": "0b405ebad1d9280e4929b281442dd2b559133540ca2084c02cda07ba89da238a",
+    "welcome-narrow-light.png": "1dd294990e9a909c92bf5045e6b09d9b804ccb7583148b859d5c78548f62db41",
+    "settings-dark.png": "9b937c6d1ac08202b26be2d55a7c8c50be929eed917df5f0441948082ae26635",
     "workspace-dark.png": "1d9fd3380031a64c163583e52f53b4f85b35c17239bd5007e13cc13e92c235f6",
     "settings-light.png": "61fa27c43fded179bac4d118f0d3a86912122039dcfc2cc850cce86385e31132",
     "workspace-light.png": "91b0d80c6e6b15f6bf44f468cb8ca3e68ac657628758d74212af7c66f41ce31a",
@@ -21,7 +21,7 @@
     "open-project-dark.png": "f0a6d0236725f473c9593e73b0b56238d5a416a072ebc9ff181950ba26aa9c43",
     "setup-dark.png": "401608230b4440828f5b8c73fc243274669068093b83a8cdd1d803f3b3aeda4f",
     "new-conversation-dark.png": "d5ebcce2b699f079f17b66dbeb6c0b200782861cb6cc11b49628fe00768511fc",
-    "new-conversation-narrow-light.png": "4f02db407f48746c95cbbebe69357c34b986756bf62de287b57bf23322b39854",
+    "new-conversation-narrow-light.png": "be0d64ec75a3d1219c9bf6fc470e30000f752d840a154bfdb397afa396568bb6",
     "find-conversation-narrow-light.png": "028fc8c44b82a6c759574c5d41aefffaaef85b50c63632dc1c8ba4487fbd9bde",
     "find-conversation-dark.png": "eeb7839af770fead45fa35462bc16e8f87ee205a2faadecb6c45f277a6fcfe09",
     "reading-dark.png": "84baa0384bf1d2ee6ec88ee118b3d00c6af099b74807b58c18bde75e7eadea69",
@@ -29,13 +29,13 @@
     "tools-light.png": "9e85062ad594c88ffb7a10a97843f7cbf6447cb774c070baa1a2a79364f086cf",
     "tools-dark.png": "c174ec3412aceac06f0980ce6912a5ded3272b409ff7a1b9edfd3aac85a161f0",
     "attachments-dark.png": "929cf75472f6de0a5cc059b896850aff1d872a059ba5be112e0cd7ef2e1082bd",
-    "attachments-narrow-light.png": "dabf0321fb72f16a3a7daa9162c9eb812a87c8c3dc8c3b3ec1fa2225e09afa1b",
+    "attachments-narrow-light.png": "543148f358567d464513bac532f6f307fff3792e560a54abcd7c9de86b0ac75a",
     "request-narrow-light.png": "819e500a5c090078f298220bd4405153ababfcc19b1387e80c26321adfb42f96",
     "request-dark.png": "c1c0ed6a5ffb23219723d03640420a4d14c1646f197e19d2c9ba556b74a224d7"
   },
   "reviewed_on": "2026-10-15",
   "findings": [
-    "Reviewed dark wide and light compact landing. The gridded sculpture plate, oversized serif/italic title and compact actions remain separate and readable; corrected spacing when the descriptive line wraps.",
+    "Reviewed project cover compositions in wide dark and compact light. Canonical identity deterministically selects the motif and angle, while the original name and folder remain explicit; no fabricated project metrics.",
     "Production headless WebKit only; native OS input, IME, VoiceOver and Windows were not run."
   ]
 }
