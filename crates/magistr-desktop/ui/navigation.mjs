@@ -1,4 +1,5 @@
 import { addressKey } from "./context.mjs";
+import { sessionActivity } from "./activity.mjs";
 
 // A view of the existing project catalog and resident sessions, never another registry.
 export function projectGroups(projects,sessions) {
@@ -110,6 +111,7 @@ export class ProjectDirectory {
         const root=node("section","directory-project"),heading=node("header","directory-project-heading");
         const title=node("div","directory-project-title"),name=node("h2",""),path=node("p",""),facts=node("p","directory-project-facts");
         const open=node("button","directory-open","Open project"),list=node("nav","directory-conversations");
+        open.dataset.leadingIcon="arrow";
         title.append(name,path);heading.append(title,open);root.append(heading,facts,list);
         group={root,name,path,facts,open,list,project};this.groups.set(project.id,group);
         open.onclick=()=>this.open(group.project.directory);
@@ -122,13 +124,14 @@ export class ProjectDirectory {
       const rows=project.sessions.map(session=>{
         const key=addressKey(session.address);usedRows.add(key);let row=this.rows.get(key);
         if(!row){
-          const button=node("button","directory-conversation"),name=node("span",""),state=node("small","");
+          const button=node("button","directory-conversation"),name=node("span","directory-conversation-name"),state=node("small","directory-conversation-state");
           button.append(name,state);row={button,name,state,session};this.rows.set(key,row);
           button.onclick=()=>this.select(row.session.address);
         }
         row.session=session;row.name.textContent=this.label(session);
         row.state.textContent=session.pending.length?"Needs your answer":session.status;
         row.button.dataset.attention=String(session.pending.length>0);
+        row.button.dataset.state=sessionActivity(session);
         row.button.setAttribute("aria-label","Continue "+this.label(session)+" in "+project.name);
         row.button.title=session.address.workspace;return row.button;
       });
