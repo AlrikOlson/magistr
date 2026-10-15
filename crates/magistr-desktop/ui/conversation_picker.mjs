@@ -61,7 +61,8 @@ export class ConversationPicker {
         input.type="radio";input.name="agent";input.value=choice.id;input.checked=choice.id===this.provider;
         input.onchange=()=>{++this.generation;this.provider=input.value;this.stage="ready";this.clearModels();this.$("session-picker-error").hidden=true;this.render();};
         const name=text("span",choice.label);name.className="agent-name";
-        label.append(input,name);return label;
+        const selected=text("span","Selected");selected.className="agent-selected";selected.setAttribute("aria-hidden","true");
+        label.append(input,name,selected);return label;
       }));
       this.stage="ready";this.render();
       (this.$("agent-choice").querySelector("input:checked")??this.$("session-picker-retry")).focus();
