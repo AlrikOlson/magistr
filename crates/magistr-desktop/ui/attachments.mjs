@@ -1,3 +1,5 @@
+import { attachmentViewer, releaseAttachmentPreview } from "./attachment_viewer.mjs";
+
 // The visible files are a projection of the selected conversation's staged content.
 export function inputIdentity(input) {
   return JSON.stringify([input.text, input.attachments.map(file =>
@@ -30,7 +32,7 @@ export class AttachmentList {
   input(text) {
     return {text, attachments: this.files.map(({id, name, content_hash}) => ({id, name, content_hash}))};
   }
-  clear() {this.files=[];this.rows.clear();this.root.replaceChildren();this.root.hidden=true;}
+  clear() {releaseAttachmentPreview(this.document, this.root);this.files=[];this.rows.clear();this.root.replaceChildren();this.root.hidden=true;}
   apply(files, disabled = false) {
     const previous = new Map(this.files.map(file => [file.id, file]));
     this.files = files.map(file => ({...file,
@@ -40,6 +42,7 @@ export class AttachmentList {
     const retained = new Set(this.files.map(file => file.id));
     for (const [id, row] of this.rows) if (!retained.has(id)) {
       const focused = row.item.contains(this.document.activeElement);
+      releaseAttachmentPreview(this.document, this.root, id);
       row.item.remove(); this.rows.delete(id);
       if (focused) this.focusFallback?.();
     }
@@ -52,7 +55,8 @@ export class AttachmentList {
         name.textContent = file.name;
         detail.textContent = sizeLabel(file.size) + " · " + (file.path ?? file.source ?? "Pasted file");
         content.append(name, detail);
-        const visual=this.document.createElement("div");visual.className="attachment-visual";item.append(visual);
+        const visual=this.document.createElement(file.preview?"button":"div");visual.className="attachment-visual";item.append(visual);
+        if(file.preview){visual.type="button";visual.setAttribute("aria-label","View "+file.name);visual.onclick=()=>attachmentViewer(this.document).open(this.files.find(item=>item.id===file.id)??file,visual,this.root,this.focusFallback);}
         item.dataset.kind=file.preview?"image":"document";
         if (file.preview) {
           const image = this.document.createElement("img"); image.src = file.preview; image.alt = "Preview of " + file.name;
