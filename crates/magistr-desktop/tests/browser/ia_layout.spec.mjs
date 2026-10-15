@@ -244,3 +244,11 @@ test("26 authored messages preserve readable content in a denser layout",async({
   expect(await app.evaluate(()=>window.__copied)).toContain("Focus on what someone needs during a long working session.");
   await app.setViewportSize({width:1280,height:820});await app.locator("#transcript").evaluate(node=>node.scrollTop=0);await capture(app,"26-messages-wide");
 });
+test("27 tool summaries align status and retain complete expandable results",async({app})=>{
+  await app.getByRole("button",{name:"Review the release plan",exact:true}).click();await app.setViewportSize({width:760,height:550});
+  await app.evaluate(()=>window.__fixture.publish("release",{events:[{id:752,revision:1,role:"Tool",text:"All three checks passed.",tool:{title:"Verify saved drafts",status:"Finished",duration_ms:1840,details:[{label:"Result",source:"All three checks passed.\nSaved draft restored exactly."}]}}],retained:[752]}));
+  const summary=app.locator("article[data-tool]>details>summary");expect((await summary.boundingBox()).height).toBeLessThanOrEqual(70);
+  await summary.click();await expect(app.locator(".tool-body")).toContainText("Saved draft restored exactly.");
+  for(const theme of ["dark","light"]){await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);await app.locator("article[data-tool]").scrollIntoViewIfNeeded();await capture(app,"27-tool-"+theme);}
+  await summary.click();await expect(app.locator(".tool-body")).toBeHidden();
+});
