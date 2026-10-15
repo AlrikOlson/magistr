@@ -12,3 +12,15 @@ export const Search={parameters:{desktop:{
  arrange:async context=>{await Overview.parameters.desktop.arrange(context);await context.userEvent.type(context.doc.querySelector("#work-browser-search"),"draft");},
  verify:({doc,expect})=>{expect(doc.querySelector("#work-browser-search").value).toBe("draft");expect(doc.querySelector("#work-browser-content").textContent).toContain("Restore the project conversation and draft");},
 }}};
+export const MoveView={parameters:{desktop:{...Overview.parameters.desktop,
+ caption:"Roadmap with directional view controls expanded above the toolbar",
+ task:"Move the canvas using directional buttons.",
+ arrange:async context=>{await Overview.parameters.desktop.arrange(context);await context.userEvent.click(context.doc.querySelector("#work-browser .surface-pan summary"));},
+ verify:context=>{Overview.parameters.desktop.verify(context);context.expect(context.doc.querySelector("#work-browser .surface-pan").open).toBe(true);context.expect(context.doc.querySelector("#work-browser .surface-pan-actions").getBoundingClientRect().bottom).toBeLessThan(context.doc.querySelector("#work-browser .surface-tools").getBoundingClientRect().top);},
+}}};
+export const ArrangeItem={parameters:{desktop:{...Overview.parameters.desktop,
+ caption:"Roadmap with controls to move the reopening item",
+ task:"Adjust an item's position and return to the canvas.",
+ arrange:async context=>{await Overview.parameters.desktop.arrange(context);await context.userEvent.click(context.doc.querySelector('.surface-node[data-node="reopen"] .surface-grip'));},
+ verify:context=>{Overview.parameters.desktop.verify(context);context.expect(visible(context.doc,".surface-arrange")).toBe(true);},
+}}};
