@@ -1,4 +1,5 @@
-import { element,statusLabel } from "./work_records.mjs";
+import { statusLabel } from "./work_records.mjs";
+import { element } from "./work_dom.mjs";
 export function workDate(value){
   if(!value)return null;
   const date=new Date(value);

@@ -27,6 +27,15 @@
 .work-task-heading strong{font-size:14px}.work-task-heading span{flex-shrink:0}
 .work-tasks p{font-size:12px;margin:8px 0 0;color:var(--muted)}
 .work-tasks .work-record-warning{color:var(--warning)}
+.work-checks{margin-top:20px;border-top:1px solid var(--separator);padding-top:12px}
+.work-checks h4{font-size:12px;margin:0}.work-checks .work-check-note{font-size:11px}
+.work-check{margin-top:12px;border:1px solid var(--separator);border-radius:5px;background:var(--base)}
+.work-check>summary{padding:12px;cursor:pointer;font-size:12px}.work-check>summary strong{font-weight:600}.work-check>summary>span{float:right;color:var(--muted);margin-left:12px}
+.work-check[data-verified=true][data-passed=true]>summary>span{color:var(--success)}
+.work-check[data-passed=false]>summary>span{color:var(--danger)}
+.work-check[data-verified=false]>summary>span{color:var(--warning)}
+.work-check>p{margin:12px;font-size:11px}.work-check>.source-details{margin:12px}
+.work-check .source-result{max-height:360px;overflow:auto}
 .work-record-empty{padding:28px;color:var(--muted)}
 #browse-work{width:100%;margin-bottom:16px}
 @media(max-width:800px){#work-browser{width:calc(100vw - 24px);max-height:calc(100dvh - 24px)}.work-browser-heading{padding:18px 22px}.work-browser-tools{padding:10px 22px}.work-run-selection{display:flex;align-items:center;gap:20px;padding:12px 30px;border-bottom:1px solid var(--separator);flex-shrink:0;background:var(--base)}

@@ -8,6 +8,11 @@ export function workSnapshot(){
       {id:"build",title:"Build and inspect the installer",status:"active",type:"implement",estimate:"One focused pass",actions:[],checks:[],artifacts:[]},
       {id:"verify",title:"Verify reopening and rollback",status:"planned",type:"test",estimate:null,actions:[],checks:[],artifacts:[]}
     ]};
+  current.tasks[1].checks=[
+    {receipt_id:"check-failed",name:"Installer checks",type:"test",passed:false,verified:true,required:true,command:"cargo test --test installer",exit_code:101,timestamp:"2026-10-15T08:10:00Z",details:"running 2 tests\nrestore_message ... FAILED\nopen_project ... ok\n\nExpected the saved message; found an empty draft.",results:{total:2,passed:1,failed:1,skipped:0,failures:[{name:"restore_message",message:"Expected the saved message; found an empty draft."}]}},
+    {receipt_id:"check-passed",name:"Installer checks",type:"test",passed:true,verified:true,required:true,command:"cargo test --test installer",exit_code:0,timestamp:"2026-10-15T08:15:00Z",details:"running 2 tests\nrestore_message ... ok\nopen_project ... ok\n\n2 passed; 0 failed.",results:{total:2,passed:2,failed:0,skipped:0,failures:[]}},
+    {name:"Visual review",type:"review",passed:true,verified:false,required:false,timestamp:"2026-10-15T08:20:00Z",details:"The installer window is readable."}
+  ];
   const previous=structuredClone(current);previous.run_id="previous-run";
   previous.objective={...previous.objective,description:"Improve project reopening",status:"completed",created_at:"2026-10-14T08:00:00Z",completed_at:"2026-10-14T09:00:00Z"};
   previous.tasks=previous.tasks.map(task=>({...task,title:"Earlier: "+task.title,status:"completed"}));
@@ -19,6 +24,9 @@ export async function workScene(app,capture){
   await app.getByRole("button",{name:"Work plan",exact:true}).click();
   await app.getByRole("heading",{name:"Prepare the desktop release",exact:true}).waitFor();
   await capture("work-plan-dark.png");
+  const check=app.locator(".work-check").nth(1);await check.locator("summary").click();
+  await check.evaluate(node=>node.scrollIntoView({block:"start"}));await capture("work-check-results-dark.png");
+  await check.locator("summary").click();await app.locator("#work-browser-content").evaluate(node=>node.scrollTop=0);
   await app.getByLabel("Work to inspect",{exact:true}).selectOption("run:previous-run");
   await capture("saved-work-dark.png");
   await app.getByLabel("Work to inspect",{exact:true}).selectOption("current");

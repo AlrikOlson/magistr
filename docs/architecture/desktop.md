@@ -327,7 +327,11 @@ selecting current work follows new objectives, while selecting a saved run stays
 on that run. A removed selection remains explicitly unavailable. The reader
 keeps drafts in place, rejects late responses
 from another address and presents stale, unavailable and missing states from
-ReadState. It never computes a second persisted plan.
+ReadState. Check output distinguishes commands actually executed from reported
+claims and preserves failed attempts beside later passes. Recorded check results
+do not certify that current source is unchanged. Complete commands and output
+use the shared safe source renderer, with exact copying and retained disclosures.
+The reader never computes a second persisted plan.
 
 The desktop opens conversations, reads current objectives and tasks, starts planned work and prepares projects. The CLI retains
 headless runs, initialization, validation and administrative commands; MCP
