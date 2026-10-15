@@ -52,12 +52,13 @@ export class HistoryBrowser {
     const nodes=visible.map(record=>{
       let row=this.rows.get(record.id);
       if(!row) {
-        const button=text("button",""),project=text("small",""),name=text("strong",""),meta=text("span","");
-        button.append(name,project,meta);row={button,project,name,meta,record};this.rows.set(record.id,row);
+        const button=text("button",""),project=text("small",""),name=text("strong",""),meta=text("time",""),excerpt=text("span","");
+        excerpt.className="history-excerpt";button.append(project,meta,name,excerpt);row={button,project,name,meta,excerpt,record};this.rows.set(record.id,row);
         button.onclick=()=>this.choose(row.record);
       }
       row.record=record;row.project.textContent=record.workspace.split(/[\\/]/).filter(Boolean).at(-1);
       row.name.textContent=historyName(record);row.meta.textContent=new Date(record.updated_at).toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"});
+      row.meta.dateTime=record.updated_at;row.excerpt.textContent=record.summary??"";row.excerpt.hidden=!record.summary;
       row.button.setAttribute("aria-label",historyName(record));row.button.title=record.workspace;
       row.button.setAttribute("aria-current",String(record.id===this.current?.id));
       row.button.setAttribute("aria-busy",String(record.id===this.opening));
