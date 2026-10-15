@@ -7,7 +7,7 @@ export function reasoningLinks(step,sessions,navigate){
   if(step.revised_by!=null)links.push(["Revised by",step.revised_by]);
   for(const edge of step.dependencies??[])links.push([({supports:"Supports",refutes:"Refutes",depends_on:"Depends on"})[edge.relation]??"References",dependencyNumber(edge)]);
   for(const record of records)for(const edge of record.step.dependencies??[])if(dependencyNumber(edge)===step.step_number)links.push([({supports:"Supported by",refutes:"Refuted by",depends_on:"Required by"})[edge.relation]??"Referenced by",record.step.step_number]);
-  const section=element("section","","roadmap-relations");section.setAttribute("aria-label","Related reasoning");section.append(element("h4","Related reasoning"));
+  const section=element("section","","roadmap-relations reasoning-links");section.setAttribute("aria-label","Related reasoning");section.append(element("h4","Related reasoning"));
   if(!links.length){section.append(element("p","No related steps were recorded."));return section;}
   const list=element("ul");
   for(const [index,[label,number]] of links.entries()){

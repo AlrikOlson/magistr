@@ -174,3 +174,11 @@ test("reasoning rows align sequence beside the decision",async({app})=>{
   expect(number.x+number.width).toBeLessThan(button.x);
   await capture(app,"16-reasoning-rows");
 });
+
+test("reasoning presents the outcome before supporting details",async({app})=>{
+  await openWork(app,"Reasoning");await app.getByRole("button",{name:"Keep each conversation with its saved message",exact:true}).click();
+  await app.setViewportSize({width:760,height:550});
+  await expect(app.locator(".reasoning-step .reasoning-prose").first().locator("h4")).toHaveText("Outcome");
+  await expect(app.locator(".reasoning-step .reasoning-prose").first()).toBeInViewport();
+  await capture(app,"17-reasoning-detail");
+});

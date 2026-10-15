@@ -35,7 +35,7 @@ export class ReasoningBrowser{
     if(this.stepId){
       const step=history.steps.find(step=>step.record_id===this.stepId);
       if(step){
-        const detail=reasoningStep(step,this.copy);detail.insertBefore(reasoningLinks(step,sessions,(record,focus)=>this.jump(record,focus)),detail.children[2]??null);article.append(detail);
+        const detail=reasoningStep(step,this.copy);detail.append(reasoningLinks(step,sessions,(record,focus)=>this.jump(record,focus)));article.append(detail);
       }else article.append(element("h3","This step is no longer available."));return article;
     }
     article.append(element("h3",reasoningName(history),"roadmap-track-title"),element("p",history.steps.length+" recorded "+(history.steps.length===1?"step":"steps")+" · "+(history.completed?"Finished":"In progress"),"work-record-status"));
