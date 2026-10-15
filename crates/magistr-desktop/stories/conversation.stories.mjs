@@ -190,3 +190,12 @@ export const SetupFileChanges={parameters:{desktop:{...SetupReview.parameters.de
  arrange:async context=>{await SetupReview.parameters.desktop.arrange(context);context.doc.querySelector(".setup-code-sheet").scrollIntoView({block:"nearest"});},
  verify:context=>{SetupReview.parameters.desktop.verify(context);context.expect(context.doc.querySelector(".setup-code-sheet").getBoundingClientRect().bottom).toBeLessThanOrEqual(context.doc.querySelector(".picker-footer").getBoundingClientRect().top);},
 }}};
+async function showRequest(context){await context.userEvent.click(context.ui.getByRole("button",{name:"Continue Investigate sync failure in Magistr",exact:true}));await context.waitFor(()=>context.expect(context.doc.querySelector("#review-requests").hidden).toBe(false));await context.userEvent.click(context.doc.querySelector("#review-requests"));}
+const requestState={caption:"Sync conversation showing the request to run focused checks",task:"Review the command and choose Allow once or Decline.",arrange:showRequest,
+ verify:({doc,expect})=>{expect(doc.querySelector(".request>h3").textContent).toBe("Run the focused sync checks");expect(doc.querySelectorAll(".request-actions button").length).toBe(2);const r=doc.querySelector(".request-actions").getBoundingClientRect();expect(r.bottom).toBeLessThanOrEqual(doc.defaultView.innerHeight);expect(r.top).toBeGreaterThanOrEqual(0);}};
+export const PermissionRequest={parameters:{desktop:requestState}};
+export const LongPermissionRequest={parameters:{desktop:{...requestState,
+ caption:"Sync request with a long scrollable command explanation and both answer choices",
+ task:"Read lengthy request details while keeping both answer choices available.",
+ seed:seed=>{seed.frames[1].pending[0].detail="cargo nextest run -p sync --lib\n"+"Review the complete change.\n".repeat(50);},
+}}};
