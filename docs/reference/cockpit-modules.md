@@ -37,6 +37,7 @@ desktop workspace. Companion Rust tests live beside their owners.
 - `crates/magistr-desktop/ui/work_reasoning_links.mjs` — direct references, revisions and project-wide identity resolution.
 - `crates/magistr-desktop/ui/work_reasoning_branch.mjs` — session-scoped investigations and recorded lifecycle.
 - `crates/magistr-desktop/ui/work_prose.mjs` — complete literal authored prose and exact copying.
+- `crates/magistr-desktop/ui/work_proposals.mjs` — explicit roadmap suggestions beside the actual saved values.
 - `crates/magistr-desktop/ui/work_references.mjs` — exact cross-family feedback references and explicit unresolved states.
 - `crates/magistr-desktop/ui/work_feedback_search.mjs` — complete feedback search and saved kind/status filters.
 - `crates/magistr-desktop/ui/work_feedback_research.mjs` — append-only research notes, reported confidence and source references.

@@ -1,7 +1,7 @@
 {
   "renderer": "headless WebKit",
   "version": "27.2",
-  "captured_at": "2026-10-15T10:05:42.421Z",
+  "captured_at": "2026-10-15T10:08:28.409Z",
   "scope": "Production desktop HTML, CSS and JavaScript with isolated observation fixtures; no native OS input or Rust owner integration.",
   "checks": {
     "project chooser presents actual projects and folder entry in both appearances": true,
@@ -87,7 +87,8 @@
     "crates/magistr-desktop/ui/work_feedback.mjs": "c25a958dc8aa054d6574f6e405eb9ef2aff281a1b5cdcfe210b38d1780894b2d",
     "crates/magistr-desktop/ui/work_feedback_research.mjs": "ed8314696c4987fd6cb3c6ac4762a30ec1defb74a708c12685d6d5b5315feb0a",
     "crates/magistr-desktop/ui/work_feedback_search.mjs": "bad8f635fd7ac5f4381fcb51d5f8968caac5494f3e1b025b8d862c6b5aa48f7a",
-    "crates/magistr-desktop/ui/work_item.mjs": "8d46b0d765490551aafd0b840625ae1e16bf073a760ab5943a5e450be8bf2f49",
+    "crates/magistr-desktop/ui/work_item.mjs": "7cd6a35be2a95b16212f92efc9fe918c31dd9a01dc4b3b2482d63e8952c760c2",
+    "crates/magistr-desktop/ui/work_proposals.mjs": "cbbfbeabd502c78ab14a47feb4e5ec1abdcc85cf73960318094f21bebea2d54c",
     "crates/magistr-desktop/ui/work_prose.mjs": "47a9017b6c329557d7155dffb672a7339c0be91f4e538ebd0e4adc2bf1468405",
     "crates/magistr-desktop/ui/work_reasoning.mjs": "126eb1ed6d72cd4064a1cb07d56f0606ccad2e7388a64f15bc18efbe0f88cd46",
     "crates/magistr-desktop/ui/work_reasoning_branch.mjs": "1dc414131eec8e7d685f3178b34bdc22082d9aec4d7ac5952f45122bb33d9980",
@@ -110,7 +111,7 @@
     "crates/magistr-desktop/tests/browser/workspace.spec.mjs": "992b46aa3169ac9002168d30352c4b4242afde753df8ed83749a929529f2af60",
     "crates/magistr-desktop/tests/browser/design_scenes.mjs": "9f239102a00970e0af72f7bb324d92d853d93b85b4e5c9574054c321ffde6980",
     "crates/magistr-desktop/tests/browser/work_fixture.mjs": "f92149fa73dd635833fdeaddc335406d233a1e7497cad3506ef97dc78334b689",
-    "crates/magistr-desktop/tests/browser/roadmap_fixture.mjs": "1b57003180f8e88dcefe74eb1f7e05f0f11a6676e8b9725afbc268a64a3895be",
+    "crates/magistr-desktop/tests/browser/roadmap_fixture.mjs": "667c63bfc4a8210ea6966270d550916414eed53bc369851a06dfc920af7a2eb4",
     "crates/magistr-desktop/tests/browser/reasoning_fixture.mjs": "88536adadc7a54ea3041433f4c2b837b47138fac500cb32e3d32f55c29ee9471",
     "crates/magistr-desktop/tests/browser/feedback_fixture.mjs": "f894b82aa327558ef3a4a47dae98538fe64abeb3c6675840ede59ee5b6779bd3"
   },
@@ -136,6 +137,7 @@
     "roadmap-dark.png": "fb43410fb6d36dc3ea5581ee0702464a3e5f03ad724a58561759b1480cee2dae",
     "roadmap-item-dark.png": "f69faa7b090139fbe2a3021a67e3680b673e3796051fecb0e0a7aea6c9319c64",
     "roadmap-dependency-dark.png": "5b217b4d195f14fab2264632508d11664c32628669ae5c1dcf0230d1c4852a5a",
+    "roadmap-proposal-dark.png": "d484fd5b7cc78d550014f4823e6f4ac429e34575a33370496b5840ed5b18ad09",
     "roadmap-history-dark.png": "90cd82e8c3a7210cf5f1edb724e49aa5c15ebddcf625b916c66e0df9ddbe50bb",
     "roadmap-search-dark.png": "091c32f029842dbff4ceb2d3ef61f64fad4da795a4e03e347555d02eeaded124",
     "reasoning-dark.png": "b89ae424abe0000d25b95cccb14bfdaa90387d19722c64a2e86245a393e0009b",
@@ -199,8 +201,8 @@
     "tables-light.png": "f1ee7ca0d66b2ab049e102a5bf9eb913977a71af18cf69c1cfc455e2ac86a4d6",
     "tables-compact.png": "b1c7232dec5db4be377871717ae0afd88381fd249f80687d6584e96f1c1259e7",
     "patch-dark.png": "e6ec8f194f3cd7b2691b07fa62b5933fdb8977eefcb06d1c5e5ed91f1b909576",
-    "patch-light.png": "230ca8e1f26d52819aa7d2d5e54e02219c8b92e8ad3aee538e14738ac6d4122d",
-    "patch-comparison-dark.png": "b123658d32478531751b0e243cd888d45c5ae76cf574684ac796a431a0d6f15b",
+    "patch-light.png": "33f3fd57018e64e902e8723ccb08fb22d0a6855e6d17d2537414d840347f138f",
+    "patch-comparison-dark.png": "8edf37365b50aff39946cf5809a46d44688184607a82aef16e7022200911ea3b",
     "patch-comparison-light.png": "2b35fd51750c85d77a7221e03aa248a673114c020aef393a2ead679d71e657ae",
     "patch-compact.png": "d1db1219b8836a04a58914ef5b60b8fbe510d67125715b8994f322c5b3781fa5",
     "result-dark.png": "ecc4b3b89cf52b424edaf6da03933083eae4bbbbb8e89fa72cf7d1ad51b88760",
@@ -320,6 +322,10 @@
       "height": 820
     },
     "roadmap-dependency-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "roadmap-proposal-dark.png": {
       "width": 1280,
       "height": 820
     },
