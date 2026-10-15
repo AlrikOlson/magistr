@@ -1,4 +1,5 @@
 import { test, expect, root, ui, workspaceSeed } from "./fixture.mjs";
+import { workScene } from "./work_fixture.mjs";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { resolve, relative } from "node:path";
 import { createHash } from "node:crypto";
@@ -101,6 +102,8 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
   }}));
   await app.getByRole("button",{name:"Work paused",exact:true}).click();
   await capture("work-paused-dark.png");
+  await workScene(app,capture);
+  checks["current objective, requirements and tasks remain readable in both appearances and the minimum window"]=true;
   await app.locator('.detail-section[aria-label="Agent settings"]').evaluate(node=>node.scrollIntoView({block:"start"}));
   await expect(app.locator("#context-value")).toHaveText("9%");
   await capture("inspector-dark.png");
@@ -358,7 +361,7 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
     const file=resolve(ui,name);
     sources[relative(root,file)]=createHash("sha256").update(await readFile(file)).digest("hex");
   }
-  for(const name of ["playwright.config.mjs","tauri.conf.json","tests/browser/fixture.mjs","tests/browser/workspace.spec.mjs","tests/browser/design_scenes.mjs"]) {
+  for(const name of ["playwright.config.mjs","tauri.conf.json","tests/browser/fixture.mjs","tests/browser/workspace.spec.mjs","tests/browser/design_scenes.mjs","tests/browser/work_fixture.mjs"]) {
     const file=resolve(root,"crates/magistr-desktop",name);
     sources[relative(root,file)]=createHash("sha256").update(await readFile(file)).digest("hex");
   }

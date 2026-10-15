@@ -98,6 +98,7 @@ pub(crate) async fn run(cli: Desktop) -> eyre::Result<()> {
         .invoke_handler(tauri::generate_handler![
             crate::commands::overview,
             crate::work::control_work,
+            crate::workflow::read_workflow,
             crate::exit::subscribe_exit,
             crate::exit::finish_exit,
             crate::preferences::preferences,

@@ -569,6 +569,10 @@ fn workflow_snapshots_survive_separately_without_evicting_conversation_or_drafts
     chunk.description = "x".repeat(MAX_BYTES + 1);
     let snapshot = fixtures::snapshot(vec![chunk], Vec::new());
     owner.send(Msg::Engine(EngineEvent::Seed(snapshot.clone())));
+    let revision = owner.snapshot().workflow_revision;
+    assert_eq!(revision, before.workflow_revision + 1);
+    owner.send(Msg::Engine(EngineEvent::Seed(snapshot.clone())));
+    assert_eq!(owner.snapshot().workflow_revision, revision);
     let failed = snapshot.failed(ReadError::new(
         ReadErrorKind::Io,
         "Cannot read work records.",
@@ -581,6 +585,15 @@ fn workflow_snapshots_survive_separately_without_evicting_conversation_or_drafts
     assert_eq!(after.dropped, before.dropped);
     assert_eq!(after.seed.draft.as_deref(), Some("unsent message"));
     assert_eq!(after.seed.snapshot, failed);
+    assert_eq!(after.workflow_revision, revision + 1);
+    owner.send(Msg::Agent(AgentEvent::Text("another reply".into())));
+    assert_eq!(owner.snapshot().workflow_revision, after.workflow_revision);
+    let mut next = owner.snapshot().conversation.unwrap();
+    next.id = "two".into();
+    owner.bind_context_for_test(next);
+    assert_eq!(owner.snapshot().workflow_revision, after.workflow_revision);
+    owner.activate_context("one").unwrap();
+    assert_eq!(owner.snapshot().workflow_revision, after.workflow_revision);
     assert!(matches!(
         after.seed.snapshot.roadmap,
         ReadState::Stale { .. }

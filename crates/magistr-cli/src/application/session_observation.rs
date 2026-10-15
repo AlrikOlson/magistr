@@ -56,6 +56,8 @@ pub struct SubmissionAdmission {
 pub struct SessionSnapshot {
     pub address: SessionAddress,
     pub sequence: u64,
+    /// Changes only when the owner publishes different workflow records or provenance.
+    pub workflow_revision: u64,
     pub seed: ProjectSeed,
     pub messages: Vec<super::RetainedObservation>,
     pub pending: BTreeMap<u64, Msg>,
@@ -399,6 +401,7 @@ fn empty_snapshot(address: SessionAddress) -> SessionSnapshot {
     SessionSnapshot {
         address,
         sequence: 0,
+        workflow_revision: 0,
         seed: ProjectSeed::default(),
         messages: Vec::new(),
         pending: BTreeMap::new(),
@@ -591,6 +594,7 @@ impl SessionObservation {
         self.state.send_modify(|current| {
             let draft = next.seed.draft.take();
             next.seed = current.seed.clone();
+            next.workflow_revision = current.workflow_revision;
             next.work = current.work.clone();
             next.work_admission = current.work_admission.clone();
             next.work_error = current.work_error.clone();
@@ -612,9 +616,14 @@ impl SessionObservation {
         let _ = self.modify(None, false, |state| {
             let draft = state.seed.draft.take();
             let observed = std::mem::take(&mut state.seed.snapshot);
+            let changed =
+                observed == magistr_engine::NativeSnapshot::default() && observed != seed.snapshot;
             state.seed = seed;
             if observed != magistr_engine::NativeSnapshot::default() {
                 state.seed.snapshot = observed;
+            }
+            if changed {
+                state.workflow_revision = state.workflow_revision.saturating_add(1);
             }
             if draft.is_some() {
                 state.seed.draft = draft;
@@ -1005,6 +1014,7 @@ impl ObservationSink for SessionObservation {
                     let before = state.seed.snapshot.clone();
                     requested = super::session_workflow::observe(&mut state.seed.snapshot, event);
                     if before != state.seed.snapshot {
+                        state.workflow_revision = state.workflow_revision.saturating_add(1);
                         state.sequence = state.sequence.saturating_add(1);
                     }
                 });

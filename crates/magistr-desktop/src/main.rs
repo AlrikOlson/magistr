@@ -22,6 +22,7 @@ mod projects;
 mod streams;
 mod wire;
 mod work;
+mod workflow;
 
 use args::{Child, Desktop};
 use clap::Parser;
