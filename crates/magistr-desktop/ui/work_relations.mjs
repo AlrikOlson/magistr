@@ -4,8 +4,8 @@ export function renderRelations(item,{navigate,current}){
   const section=element("section","","roadmap-relations roadmap-dependencies"),readiness=item.readiness;
   const state=readiness.state==="ready"?"Ready to start.":readiness.state==="waiting"?"Waiting for required work.":readiness.state==="blocked"?(readiness.blocker?.reason??"Work is blocked."):"";
   if(state){const note=element("p",(current?"":"Last recorded state: ")+state,"roadmap-readiness");note.dataset.ready=String(current&&readiness.state==="ready");section.append(note);}
-  for(const [kind,title,empty] of [["dependencies","Required work","No prerequisites were recorded."],["dependents","Work that depends on this","No dependent items were recorded."]]){
-    const group=element("section"),heading=element("header");group.setAttribute("aria-label",title);heading.append(element("h4",title),element("span",String(item[kind].length),"work-record-count"));group.append(heading);
+  for(const [kind,title] of [["dependencies","Required work"],["dependents","Work that depends on this"]]){
+    const group=element("section"),heading=element("header");group.setAttribute("aria-label",title);heading.append(element("h4",title),element("span",item[kind].length?String(item[kind].length):"None","work-record-count"));group.append(heading);
     const list=element("ul");
     for(const relation of item[kind]){
       const row=element("li");row.dataset.available=String(relation.status!==null);
@@ -15,7 +15,7 @@ export function renderRelations(item,{navigate,current}){
       }else row.append(element("strong","Required item unavailable"),element("span","This reference has no saved record.","roadmap-relation-state"));
       list.append(row);
     }
-    group.append(item[kind].length?list:element("p",empty,"roadmap-relation-empty"));section.append(group);
+    if(item[kind].length)group.append(list);section.append(group);
   }
   const selected=element("div","","roadmap-relation-current");selected.setAttribute("aria-label","Selected work");selected.dataset.before=String(item.dependencies.length>0);selected.dataset.after=String(item.dependents.length>0);selected.append(element("span","This work"),element("strong",item.record.title),element("small",status[item.record.status]));section.append(selected);
   return section;

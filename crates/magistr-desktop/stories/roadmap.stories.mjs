@@ -36,3 +36,13 @@ export const BlockedItem={parameters:{desktop:{
  arrange:async context=>{await Overview.parameters.desktop.arrange(context);await context.userEvent.click(context.ui.getByRole("button",{name:"Publish the desktop release",exact:true}));},
  verify:({doc,expect})=>{expect(doc.querySelector("#work-browser-inspector h3")?.textContent).toBe("Publish the desktop release");expect(doc.querySelector("#work-browser-inspector").textContent).toContain("The release date needs approval.");},
 }}};
+export const MissingDependency={parameters:{desktop:{
+ caption:"Installer item waiting for an unavailable prerequisite",task:"Understand why a required item cannot be opened.",
+ arrange:async context=>{await Overview.parameters.desktop.arrange(context);await context.userEvent.click(context.ui.getByRole("button",{name:"Build the desktop installer",exact:true}));},
+ verify:({doc,expect})=>{expect(doc.querySelector("#work-browser-inspector h3")?.textContent).toBe("Build the desktop installer");expect(doc.querySelector(".roadmap-relations [data-available=false]").textContent).toContain("Required item unavailable");},
+}}};
+export const DependentItem={parameters:{desktop:{
+ caption:"Completed storage item with its dependent reopening work",task:"Follow the work that depends on the selected item.",
+ arrange:async context=>{await SelectedItem.parameters.desktop.arrange(context);await context.userEvent.click(context.doc.querySelector(".roadmap-relations [data-focus-key=\"dependencies:foundation\"]"));},
+ verify:({doc,expect})=>{expect(doc.querySelector("#work-browser-inspector h3")?.textContent).toBe("Store conversations and drafts");expect(doc.querySelector(".roadmap-relations [data-focus-key=\"dependents:reopen\"]").textContent).toBe("Restore the project conversation and draft");},
+}}};
