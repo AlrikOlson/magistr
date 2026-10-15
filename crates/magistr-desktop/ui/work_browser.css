@@ -30,9 +30,9 @@
 .work-record-section ul{padding-left:20px}
 .work-record-section li{font-size:14px;line-height:1.8;white-space:pre-wrap;margin-block:10px}
 .work-record-count{font-size:11px;color:var(--muted)}
-.work-tasks{padding:0;list-style:none;counter-reset:work-task}
-.work-tasks>li{counter-increment:work-task;border:1px solid var(--separator);border-radius:6px;padding:16px 18px 16px 48px;position:relative;background:var(--panel)}
-.work-tasks>li::before{content:counter(work-task,decimal-leading-zero);position:absolute;left:16px;top:18px;color:var(--muted);font-size:11px}
+.work-tasks{padding:0;list-style:none}
+.work-tasks>li{border:1px solid var(--separator);border-radius:6px;padding:16px 18px 16px 48px;position:relative;background:var(--panel)}
+.work-tasks>li::before{content:attr(data-position);position:absolute;left:16px;top:18px;color:var(--muted);font-size:11px}
 .work-tasks>li[data-status=active]{border-color:var(--accent);box-shadow:inset 3px 0 var(--accent)}
 .work-task-heading{display:flex;align-items:baseline;justify-content:space-between;gap:20px}
 .work-task-heading strong{font-size:14px}.work-task-heading span{flex-shrink:0}

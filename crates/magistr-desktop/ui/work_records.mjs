@@ -1,6 +1,7 @@
 // Presentation of the workflow owner's read states and authored records.
 import { element } from "./work_dom.mjs";
 import { renderChecks } from "./work_checks.mjs";
+import { taskWindow,taskFacts } from "./work_task_view.mjs";
 import { renderActivity } from "./work_activity.mjs";
 export function readState(record,kind="work") {
   if(record?.state==="current")return {value:record.data.value,source:record.data.source,current:true,
@@ -18,7 +19,7 @@ export function authoredList(title,values) {
   for(const value of values)list.append(element("li",value));
   section.append(list);return section;
 }
-export function renderRun(run,actions) {
+export function renderRun(run,actions,view) {
   const article=element("article","","work-record");
   if(!run){article.append(element("h3","No current work"),element("p","Start planned work to see its objective and tasks here."));return article;}
   article.dataset.run=run.run_id;
@@ -37,16 +38,18 @@ export function renderRun(run,actions) {
   for(const section of [authoredList("Requirements",run.objective.acceptance_criteria),authoredList("Constraints",run.objective.constraints)])if(section)article.append(section);
   const tasks=element("section","","work-record-section"),list=element("ol","","work-tasks");
   tasks.append(element("h3","Tasks"),element("p",run.tasks.length+" "+(run.tasks.length===1?"task":"tasks"),"work-record-count"));
-  for(const task of run.tasks){
+  const window=taskWindow(run.tasks,view);tasks.append(window.navigation);
+  for(const task of window.tasks){
     const item=element("li"),heading=element("div","","work-task-heading");
     item.dataset.task=run.task_instances[task.id];item.dataset.status=task.status;
-    heading.append(element("strong",task.title),element("span",statusLabel(task.status),"work-record-status"));item.append(heading);
+    item.value=run.tasks.indexOf(task)+1;item.dataset.position=String(item.value).padStart(2,"0");
+    heading.append(element("strong",task.title),element("span",statusLabel(task.status),"work-record-status"));item.append(heading,taskFacts(task));
     if(task.estimate)item.append(element("p","Estimate: "+task.estimate));
     if(task.blocked_reason)item.append(element("p",task.blocked_reason,"work-record-warning"));
     const checks=renderChecks(run,task,actions.copy);if(checks)item.append(checks);
     const activity=renderActivity(run,task,actions);if(activity)item.append(activity);
     list.append(item);
   }
-  if(run.tasks.length)tasks.append(list);else tasks.append(element("p","No tasks have been added."));
+  if(window.total)tasks.append(list);else tasks.append(element("p",run.tasks.length?"No tasks match these filters.":"No tasks have been added."));
   article.append(tasks);return article;
 }
