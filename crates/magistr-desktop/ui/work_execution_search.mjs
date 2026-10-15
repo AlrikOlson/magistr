@@ -1,4 +1,4 @@
-import {element} from "./work_dom.mjs";
+import {element,inlineFacts} from "./work_dom.mjs";
 import {matchesText,pageControls} from "./work_search.mjs";
 import {statusLabel} from "./work_records.mjs";
 export const executionRecords=data=>[...(data?.current?[data.current]:[]),...(data?.retained??[]).toReversed()];
@@ -13,7 +13,7 @@ export function searchExecutions(data,query,page,change,open){
   article.append(element("h3","Work search results","roadmap-track-title"),pages.nav);const list=element("ol","","roadmap-items");
   for(const run of records.slice(pages.start,pages.end)){
     const row=element("li"),button=element("button",run.objective.description,"roadmap-item-open");button.dataset.runId=run.run_id;button.dataset.focusKey="run:"+run.run_id;button.onclick=()=>open(run.run_id);
-    row.append(button,element("span",statusLabel(run.objective.status),"roadmap-item-state"));list.append(row);
+    row.append(button,inlineFacts([["Status",statusLabel(run.objective.status)],["Tasks",run.tasks.length]]));list.append(row);
   }
   article.append(records.length?list:element("p","No saved work matches this search."));return article;
 }

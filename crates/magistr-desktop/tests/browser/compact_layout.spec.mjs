@@ -156,3 +156,14 @@ test("produced items place actions alongside their reference",async({app})=>{
   expect((await row.boundingBox()).height).toBeLessThan(90);
   await capture(app,"14-produced-items");
 });
+
+test("small result sets show counts and larger sets retain paging",async({app})=>{
+  await openWork(app);await app.getByLabel("Search work history",{exact:true}).fill("installer");
+  await expect(app.getByRole("button",{name:"Next page",exact:true})).toHaveCount(0);
+  await expect(app.locator(".work-pages")).toContainText("2 results");
+  await capture(app,"15-work-results");
+  await app.evaluate(()=>{const f=window.__fixture,ship=f.workflow.ship.data.value,run=ship.retained[0];ship.retained=Array.from({length:70},(_,n)=>({...run,run_id:"saved-"+n}));f.publish("release",{workflow_revision:1});});
+  await expect(app.getByRole("button",{name:"Next page",exact:true})).toBeEnabled();
+  await app.getByRole("button",{name:"Next page",exact:true}).click();
+  await expect(app.locator(".roadmap-items>li")).toHaveCount(21);
+});
