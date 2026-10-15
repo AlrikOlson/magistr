@@ -137,3 +137,12 @@ test("check outcomes stay aligned with long names",async({app})=>{
   await summary.focus();await app.keyboard.press("Enter");await expect(app.locator(".work-check").first()).toHaveAttribute("open","");
   await capture(app,"12-check-results");
 });
+
+test("activity aligns timestamps and compact references",async({app})=>{
+  await openWork(app);await app.getByLabel("Show",{exact:true}).selectOption("activity");
+  await app.getByLabel("Entries",{exact:true}).selectOption("activity");
+  const row=app.locator(".work-action-list>li").first();await row.scrollIntoViewIfNeeded();
+  await expect(row.locator(".work-action-references")).toHaveCount(2);
+  await expect(row).toContainText("crates/desktop/src/reopen.rs");
+  await capture(app,"13-activity");
+});

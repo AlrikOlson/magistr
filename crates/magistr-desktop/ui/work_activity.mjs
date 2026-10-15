@@ -10,8 +10,8 @@ export function renderAction(action,copy){
   if(action.result){const result=element("section");renderSourceDetail(result,{label:"Result",source:action.result},copy);row.append(result);}
   for(const [label,values] of [["Files mentioned",action.files_touched],["Tools mentioned",action.tools_used]]){
     if(!values?.length)continue;
-    row.append(element("h5",label));const references=element("ul");
-    for(const value of values)references.append(element("li",value));row.append(references);
+    const references=element("div","","work-action-references"),list=element("ul");references.append(element("h5",label));
+    for(const value of values)list.append(element("li",value));references.append(list);row.append(references);
   }
   return row;
 }
