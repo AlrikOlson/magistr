@@ -17,7 +17,7 @@ import { attachComposer } from "./composer.mjs";
 import { AttachmentList, clipboardFiles, sizeLabel } from "./attachments.mjs";
 import { Selection } from "./selection.mjs";
 import { ProjectPicker } from "./project_picker.mjs";
-import { Catalog, usageText, capabilityText } from "./supervision.mjs";
+import { Catalog, usagePresentation, capabilityText } from "./supervision.mjs";
 const {invoke,Channel}=window.__TAURI__.core;
 const $=id=>document.getElementById(id);
 let selected=null,view=null,sessions=[],projects=[],composerFrame=null,attachmentLimits=null;
@@ -321,7 +321,8 @@ function render(frame) {
   $("copy").disabled=view.messages.length===0;
   $("model").textContent=frame.model??"Model information is unavailable.";
   renderConfiguration(frame);
-  $("usage").textContent=usageText(frame.usage);
+  const usage=usagePresentation(frame.usage);
+  $("usage").textContent=usage.context;$("context-value").textContent=usage.percent;$("spending-value").textContent=usage.spending;
   const meter=$("context-meter"),known=frame.usage?.used!=null&&frame.usage?.size>0;
   meter.hidden=!known;
   if(known){meter.max=frame.usage.size;meter.value=frame.usage.used;meter.setAttribute("aria-valuetext",frame.usage.used.toLocaleString()+" of "+frame.usage.size.toLocaleString()+" context tokens");}

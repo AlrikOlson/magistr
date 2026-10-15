@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { Catalog, usageText, capabilityText } from "../ui/supervision.mjs";
+import { Catalog, usagePresentation, capabilityText } from "../ui/supervision.mjs";
 const address=(session,workspace="copy")=>({project:"project",workspace,session});
 test("catalog accepts only its stream and increasing snapshots, including reseeds",()=>{
  const catalog=new Catalog();catalog.open(4);
@@ -15,10 +15,12 @@ test("catalog accepts only its stream and increasing snapshots, including reseed
  assert.equal(catalog.apply({stream:5,sequence:3,sessions:[]}),true);
 });
 test("spending and provider facts retain unknown, zero and unavailable values",()=>{
- assert.match(usageText(null),/not reported/i);
- assert.match(usageText({used:null,size:null,cost_cents:0}),/\$0\.00/);
- assert.match(usageText({used:0,size:100,cost_cents:null}),/0 \/ 100/);
- assert.match(usageText({used:8,size:100,cost_cents:25}),/\$0\.25/);
+ assert.match(usagePresentation(null).context,/not reported/i);
+ assert.match(usagePresentation({used:null,size:null,cost_cents:0}).spending,/\$0\.00/);
+ assert.match(usagePresentation({used:0,size:100,cost_cents:null}).context,/0 \/ 100/);
+ assert.match(usagePresentation({used:8,size:100,cost_cents:25}).spending,/\$0\.25/);
+ assert.equal(usagePresentation({used:0,size:100}).percent,"0%");
+ assert.equal(usagePresentation({used:0,size:0}).percent,"Not reported");
  assert.match(capabilityText(null),/unavailable/i);
  assert.match(capabilityText({can_resume:false,can_send_images:false}),/cannot reopen/i);
  assert.match(capabilityText({can_resume:true,can_send_images:true}),/can reopen/i);

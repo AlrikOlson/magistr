@@ -76,12 +76,12 @@
         </div>
       </section>
       <section class="detail-section" aria-label="Agent settings">
-        <h2>Agent</h2><p id="agent-provider"></p><div id="agent-configuration"></div><p id="model">Model information is unavailable.</p>
-        <div class="usage-summary"><meter id="context-meter" aria-label="Context used" min="0" max="1" value="0" hidden></meter><p id="usage"></p></div>
+        <h2 data-leading-icon="spark">Agent</h2><p id="agent-provider"></p><div id="agent-configuration"></div><p id="model">Model information is unavailable.</p>
+        <div class="usage-summary"><div class="usage-metrics"><div><span>Context used</span><strong id="context-value">Not reported</strong></div><div><span>Spending</span><strong id="spending-value">Not reported</strong></div></div><meter id="context-meter" aria-label="Context used" min="0" max="1" value="0" hidden></meter><p id="usage"></p></div>
         <p id="queue"></p><details class="agent-features"><summary>Agent capabilities</summary><p id="capabilities"></p></details>
       </section>
       <section class="detail-section" aria-label="Working copy">
-        <label for="working-copy">Working copy</label><select id="working-copy"></select><p id="workspace-path" class="path"></p>
+        <label for="working-copy" data-leading-icon="branch">Working copy</label><select id="working-copy"></select><p id="workspace-path" class="path"></p>
       </section>
 
     </aside>
