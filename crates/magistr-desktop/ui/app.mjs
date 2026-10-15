@@ -108,7 +108,12 @@ function renderRail() {
   const signature=JSON.stringify([projects,sessions,selected]);if(signature===railKey)return;railKey=signature;
   navigation.render(projects,sessions,selected);
   $("sessions-empty").hidden=projects.length>0||sessions.length>0;
-  if(selected)$("project-name").textContent=sessions.find(session=>session.address.session===selected.session)?.name??"Project";
+  if(selected){
+    const name=sessions.find(session=>session.address.session===selected.session)?.name??"Project";
+    $("project-name").textContent=name;
+    $("project-symbol").textContent=decorateProject($("project-symbol"),{id:selected.project,name});
+  }
+  $("project-symbol").hidden=!selected;
   for(const id of labels.keys())if(!sessions.some(session=>session.address.session===id))labels.delete(id);
   const waiting=sessions.flatMap(session=>session.pending.map(request=>({session,request})));
   const waitingRows=waiting.map(({session,request})=>{
