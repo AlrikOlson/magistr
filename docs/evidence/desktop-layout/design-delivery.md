@@ -1,5 +1,7 @@
 # Desktop design: twenty-chunk delivery
 
+This records the earlier `desktop-art-direction-20` pass ending at `fa3ed7a1`. A [further twenty-chunk design pass](design-depth-delivery.md) follows it. Images in this directory track the latest reviewed source; the original captures remain in that commit.
+
 Completed for the October 14, 2026 request. These are twenty new design chunks beyond the previous design pass, tracked as `desktop-art-direction-20` in native Magistr state and delivered as separate commits.
 
 | # | Surface | Delivered design | Preview |
