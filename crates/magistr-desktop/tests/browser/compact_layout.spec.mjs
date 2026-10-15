@@ -197,3 +197,12 @@ test("feedback rows align kind title and status",async({app})=>{
   expect(kind.x+kind.width).toBeLessThan(title.x);
   await expect(row.locator(".work-record-status")).toBeVisible();await capture(app,"19-feedback-rows");
 });
+
+test("feedback metadata and research sources use compact labeled rows",async({app})=>{
+  await openWork(app,"Feedback");await app.getByRole("button",{name:"Keep my place when reopening a project",exact:true}).click();
+  await app.setViewportSize({width:760,height:550});
+  await expect(app.locator(".feedback-detail>.work-inline-facts")).toContainText("Project owner");
+  await capture(app,"20-feedback-detail");
+  const note=app.locator(".feedback-research details").first();await note.locator("summary").click();
+  await note.locator(".feedback-sources").scrollIntoViewIfNeeded();await capture(app,"20-feedback-sources");
+});
