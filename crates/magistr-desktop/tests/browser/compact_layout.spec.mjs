@@ -293,3 +293,14 @@ test("settings keeps compact previews and reachable controls",async({app})=>{
   await expect(app.getByLabel("Reduce motion",{exact:true})).toBeChecked();
   await capture(app,"28-settings-compact");
 });
+
+test("conversation catalogs show compact rows with complete accessible names",async({app})=>{
+  await app.getByRole("button",{name:"Find a conversation",exact:true}).click();
+  const result=app.getByRole("button",{name:"Open Investigate sync failure in Magistr",exact:true});
+  expect((await result.boundingBox()).height).toBeLessThan(80);
+  await capture(app,"29-finder");await app.keyboard.press("Escape");
+  await app.getByRole("button",{name:"Saved conversations",exact:true}).click();
+  await expect(app.getByRole("heading",{name:"Release notes and rollback",exact:true})).toBeVisible();
+  expect((await app.locator("#history-list button").first().boundingBox()).height).toBeLessThan(180);
+  await capture(app,"29-saved-conversations");
+});
