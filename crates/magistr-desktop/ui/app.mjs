@@ -1,4 +1,5 @@
 import { SurfaceMotion } from "./motion.mjs";
+import { ProjectAtlas } from "./project_atlas.mjs";
 import { ActivityOverview } from "./activity.mjs";
 import { renderSourceDetail } from "./source_details.mjs";
 import { ConversationSwitcher } from "./switcher.mjs";
@@ -76,6 +77,16 @@ const directory=new ProjectDirectory($("welcome-projects"),{
   select:address=>select(address).catch(showError),open:openDirectory,
   label:session=>session.conversation?.name??("Conversation "+labels.get(session.address.session))
 });
+const showProjectMap=map=>{
+  $("project-atlas").hidden=!map;$("welcome-projects").hidden=map;
+  $("projects-list-view").setAttribute("aria-pressed",String(!map));$("projects-map-view").setAttribute("aria-pressed",String(map));
+};
+const atlas=new ProjectAtlas($("project-atlas"),{
+  select:address=>select(address).catch(showError),open:openDirectory,
+  label:session=>session.conversation?.name??("Conversation "+labels.get(session.address.session)),
+  list:()=>{showProjectMap(false);$("projects-list-view").focus();}
+});
+$("projects-list-view").onclick=()=>showProjectMap(false);$("projects-map-view").onclick=()=>showProjectMap(true);
 const switcher=new ConversationSwitcher($,{sessions:()=>sessions,selected:()=>selected,ready:()=>catalog.sequence>=0,select,
   label:session=>session.conversation?.name??("Conversation "+labels.get(session.address.session))});
 new KeyboardNavigation($,layout,projectLayout);
@@ -118,6 +129,7 @@ function renderRail() {
   navigation.render(projects,sessions,selected);
   activityOverview.render(sessions);
   const projectCount=directory.render(projects,sessions);
+  atlas.render(projects,sessions);
   $("directory-empty").hidden=projectCount>0;
   $("sessions-empty").hidden=projects.length>0||sessions.length>0;
   if(selected){

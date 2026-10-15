@@ -20,6 +20,10 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
   await expect(app.locator(".directory-project-facts").first()).toContainText("Waiting for you");
   await expect(app.locator(".directory-project-facts").first().locator("dd")).toHaveText(["2","1"]);
   await capture("welcome-dark.png");
+  await app.getByRole("button",{name:"Map",exact:true}).click();
+  await app.locator("#project-atlas").scrollIntoViewIfNeeded();
+  await capture("project-map-dark.png");
+  await app.getByRole("button",{name:"List",exact:true}).click();
   await app.locator(".directory-project").first().evaluate(node=>node.scrollIntoView({block:"start"}));
   await capture("directory-dark.png");
   await app.locator("#welcome").evaluate(node=>node.scrollTop=0);
@@ -27,6 +31,10 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
   await app.getByLabel("Appearance",{exact:true}).selectOption("light");
   await app.getByRole("button",{name:"Done",exact:true}).click();
   await capture("welcome-light.png");
+  await app.getByRole("button",{name:"Map",exact:true}).click();
+  await app.locator("#project-atlas").scrollIntoViewIfNeeded();
+  await capture("project-map-light.png");
+  await app.getByRole("button",{name:"List",exact:true}).click();
   await app.locator(".directory-project").first().evaluate(node=>node.scrollIntoView({block:"start"}));
   await capture("directory-light.png");
   await app.locator("#welcome").evaluate(node=>node.scrollTop=0);
