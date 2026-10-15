@@ -110,6 +110,7 @@
 .work-pages span{text-align:center}
 @media(max-width:800px){.work-pages{gap:6px;font-size:.75rem}}
 
+.reasoning-row{display:grid;grid-template-columns:64px minmax(0,1fr);gap:12px;align-items:baseline}.reasoning-step-number{font:11px var(--font-code);color:var(--muted)}
 .reasoning-prose{margin:24px 0}.reasoning-prose header{display:flex;align-items:center;justify-content:space-between;gap:12px}.reasoning-prose h4{font-size:1rem}
 .reasoning-text{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.7}
 .reasoning-step.work-record{padding-left:0;padding-right:0}

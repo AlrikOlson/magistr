@@ -3,7 +3,7 @@ import {pageControls} from "./work_search.mjs";
 import {ReasoningBranches,branchSummary} from "./work_reasoning_branch.mjs";
 import {searchReasoning} from "./work_reasoning_search.mjs";
 import {reasoningLinks} from "./work_reasoning_links.mjs";
-import {reasoningStep} from "./work_reasoning_step.mjs";
+import {reasoningStep,reasoningRow} from "./work_reasoning_step.mjs";
 export const reasoningName=history=>history.session_id==null?"Project reasoning":history.steps[0]?.purpose||"Untitled reasoning";
 export class ReasoningBrowser{
   constructor(select,root,changed,copy,branches){this.select=select;this.root=root;this.changed=changed;this.copy=copy;this.branches=new ReasoningBranches(branches,()=>{this.page=0;this.stepId=null;this.trail=[];changed();});this.reset();select.onchange=()=>{this.choice=select.value;this.stepId=null;this.trail=[];this.page=0;this.branches.reset();changed();};}
@@ -43,8 +43,7 @@ export class ReasoningBrowser{
     const pages=pageControls(filtered.steps.length,this.page,page=>{this.page=page;this.changed();this.root.scrollTop=0;});article.append(pages.nav);
     const list=element("ol","","roadmap-items");
     for(const step of filtered.steps.slice(pages.start,pages.end)){
-      const row=element("li"),button=element("button",step.purpose,"roadmap-item-open");button.dataset.stepId=step.record_id;button.dataset.focusKey="step:"+step.record_id;button.onclick=()=>this.choose(step);
-      row.append(button,element("span","Step "+step.step_number+(step.pinned?" · Pinned":"")+(step.revised_by?" · Revised":""),"roadmap-item-state"));list.append(row);
+      list.append(reasoningRow(step,()=>this.choose(step)));
     }
     article.append(filtered.steps.length?list:element("p","No steps are recorded in this selection."));return article;
   }
