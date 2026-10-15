@@ -1,10 +1,10 @@
 #work-browser{width:min(1000px,calc(100vw - 48px));max-height:calc(100dvh - 48px);padding:0}
 #work-browser[open]{display:flex;flex-direction:column}
-.work-browser-heading{display:flex;align-items:start;justify-content:space-between;gap:20px;padding:24px 30px;border-bottom:1px solid var(--separator);flex-shrink:0}
-.work-browser-heading h2{font:500 30px Newsreader,serif;letter-spacing:-.02em;margin:0 0 8px}
+.work-browser-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;border-bottom:1px solid var(--separator);flex-shrink:0}
+.work-browser-heading h2{font:650 18px/1.4 var(--font-ui);letter-spacing:-.02em;margin:0 0 2px;text-transform:none;color:var(--text)}
 #work-browser-project{font-size:11px;color:var(--muted);overflow-wrap:anywhere;margin:0}
-.work-browser-tools{display:flex;align-items:center;gap:16px;padding:12px 30px;background:var(--panel);border-bottom:1px solid var(--separator);flex-shrink:0}
-#work-browser-state{font-size:12px;line-height:1.6;margin:0;flex:1;white-space:pre-wrap}
+.work-browser-heading>div:first-child{min-width:0;flex:1}.work-browser-tools{display:flex;align-items:center;gap:10px;min-width:0;max-width:55%}.work-browser-tools button,#work-browser-close{flex-shrink:0;font-size:12px}
+#work-browser-state{font-size:11px;line-height:1.5;margin:0;min-width:0;white-space:pre-wrap;overflow-wrap:anywhere;max-height:120px;overflow:auto}
 #work-browser-state[data-current=false]{color:var(--warning)}
 .work-browser-tabs{display:flex;gap:6px;padding:10px 30px;border-bottom:1px solid var(--separator);flex-shrink:0;background:var(--panel);overflow-x:auto}
 .work-browser-tabs button{font-size:12px;white-space:nowrap;border-color:transparent;background:transparent;color:var(--muted)}
@@ -83,13 +83,12 @@
 #browse-work{width:100%;margin-bottom:16px}
 @media(max-width:800px){
   #work-browser{width:calc(100vw - 24px);max-height:calc(100dvh - 24px)}
-  .work-browser-heading{padding:18px 22px}.work-browser-tools{padding:10px 22px}.work-browser-tabs{padding:8px 22px}
+  .work-browser-heading{padding:12px 16px}.work-browser-tabs{padding:8px 22px}
   .work-run-selection{padding:10px 22px;gap:12px;flex-wrap:wrap}
   #work-browser-content{padding:24px 22px}.work-task-heading{display:block}.work-task-heading span{display:block;margin-top:8px}
 }
 @media(max-height:650px){
-  .work-browser-heading{padding:12px 20px}.work-browser-heading h2{font-size:26px;margin-bottom:4px}
-  .work-browser-tools{padding:8px 20px}.work-browser-tabs{padding:6px 20px}
+  .work-browser-heading{padding:10px 16px}.work-browser-tabs{padding:6px 20px}
   .work-run-selection{padding:8px 20px;gap:12px}
   #work-browser-content{padding:20px 22px}
 }
