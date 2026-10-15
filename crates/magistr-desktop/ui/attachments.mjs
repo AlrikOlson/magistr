@@ -52,13 +52,15 @@ export class AttachmentList {
         name.textContent = file.name;
         detail.textContent = sizeLabel(file.size) + " · " + (file.path ?? file.source ?? "Pasted file");
         content.append(name, detail);
+        const visual=this.document.createElement("div");visual.className="attachment-visual";item.append(visual);
+        item.dataset.kind=file.preview?"image":"document";
         if (file.preview) {
           const image = this.document.createElement("img"); image.src = file.preview; image.alt = "Preview of " + file.name;
-          item.append(image);
+          visual.append(image);
         } else {
           const badge=this.document.createElement("span");badge.className="attachment-badge";badge.setAttribute("aria-hidden","true");
           badge.textContent=file.name.includes(".")?file.name.split(".").at(-1).slice(0,5).toLocaleUpperCase():"FILE";
-          item.append(badge);
+          visual.append(badge);
         }
         if (!file.preview && file.excerpt !== undefined) {
           const preview = this.document.createElement("details"), summary = this.document.createElement("summary"), excerpt = this.document.createElement("pre");

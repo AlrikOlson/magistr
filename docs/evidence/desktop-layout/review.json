@@ -1,5 +1,5 @@
 {
-  "receipt": "908ff563fad90cd94d10643130e394e57eb63332506f187fea1b4f6872cdcd5e",
+  "receipt": "aab56def06acd0f58d66254ffe259864cf9fc6be87ae7d31dae6450e5084ec01",
   "images": {
     "welcome-dark.png": "5a52184a63184d8017ce117a484a9c3e3b73732b6f6ffc4fd7a1c37d7ae794a7",
     "welcome-light.png": "cb1804dae2fe383e00216c50dd98a77fec05b24874e5a1593e23b810d6cb20f3",
@@ -30,14 +30,14 @@
     "code-light.png": "e4b2c0f1add1fe91c84b213b34a00ac8d914e123731bfe2ddcbab51e280a3f33",
     "tools-light.png": "2be7e2f98c6e73729a108b45420f69612007a8d47b5965b87f66d1238ba9103c",
     "tools-dark.png": "d45642750e786b82ef6641eec606f3478a1ec6993640f762a41d1c4cf1a0bd51",
-    "attachments-dark.png": "2987a55c2a62dd917930c7742385813167a4893ed908a6bb9f693a7c4523f2ce",
-    "attachments-narrow-light.png": "62e6d76d9c761439528b55b9239bf36751d6f65ded6ccda1a9d37bea9f5c5e27",
-    "request-narrow-light.png": "d68461f455496163842b1f03fea051314860357660c9b8c34faba2cda89894b5",
-    "request-dark.png": "12feabe1e0c6ee8e8ced83780ae07b419df84dbef023f3cbbae8c1e0cca8deba"
+    "attachments-dark.png": "857e3dd9d083800cd7d675b6ca0b41ad5318229226b0e32325645fd721bce731",
+    "attachments-narrow-light.png": "a67d2733fd83966a11a79ca99296b16ab523b16fbe0ea07ade15c910ac96e663",
+    "request-narrow-light.png": "717985cb2fe8c5a7ef3574345eec0ccf527e7c540dba1bdd5b1d80ed1e1c9cc6",
+    "request-dark.png": "7bd9272c09cf67b1cb8035d0f7f4bab13af8cc87609dbbba296b9347ab766f0e"
   },
   "reviewed_on": "2026-10-15",
   "findings": [
-    "Reviewed writing desk composition in wide dark and compact light. Save status sits beside the editor label, all native textarea behavior is retained, and keyboard/selection/caret tests pass.",
+    "Inspected image and document attachment folios in dark wide and compact light, with readable filename/path/size and visible named removal controls. Attachment identity and clipboard-bound checks pass.",
     "Production headless WebKit only; native OS input, IME, VoiceOver and Windows were not run."
   ]
 }
