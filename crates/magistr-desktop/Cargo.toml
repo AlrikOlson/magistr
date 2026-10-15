@@ -27,6 +27,7 @@ color-eyre = "0.6"
 magistr = { package = "magistr-cli", path = "../magistr-cli" }
 magistr-cockpit = { path = "../magistr-cockpit" }
 magistr-domain = { path = "../magistr-domain" }
+magistr-workflow-contracts = { path = "../magistr-workflow-contracts" }
 magistr-application = { path = "../magistr-application" }
 tauri-plugin-dialog = "2"
 tauri-plugin-opener = "2.7.1"

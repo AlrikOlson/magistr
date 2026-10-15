@@ -3781,6 +3781,7 @@ dependencies = [
  "magistr-cockpit",
  "magistr-domain",
  "magistr-process",
+ "magistr-workflow-contracts",
  "magistr-workspace",
  "pulldown-cmark",
  "serde",

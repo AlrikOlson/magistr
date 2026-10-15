@@ -318,7 +318,15 @@ reply. A queued launch has its own pending state until the owner admits or
 refuses it. Navigation and reseeding project these facts without inventing a
 second execution state.
 
-The desktop opens conversations, starts planned work and prepares projects. The CLI retains
+The Planned work reader asks the resident session for its complete validated
+workflow snapshot on demand. SessionObservation increments workflow_revision
+only when records or their provenance change; streaming frames carry this
+revision rather than the full project history. Conversation switches preserve
+that owner revision. The reader keeps drafts in place, rejects late responses
+from another address and presents stale, unavailable and missing states from
+ReadState. It never computes a second persisted plan.
+
+The desktop opens conversations, reads current objectives and tasks, starts planned work and prepares projects. The CLI retains
 headless runs, initialization, validation and administrative commands; MCP
 roles serve workflow and source tools. Roadmap editing and browsing arbitrary working-copy changes remain later desktop work.
 
