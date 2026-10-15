@@ -134,10 +134,10 @@
   <form id="session-form">
     <header class="picker-heading dialog-heading"><h2 id="session-picker-title">New conversation</h2><p>Choose an agent to work with in this project.</p></header>
     <div class="session-destination"><span>In this project</span><strong id="session-destination-name" data-leading-icon="folder"></strong><p id="session-destination-path" class="path"></p></div>
-    <div class="session-choices">
+    <div class="session-choices"><div class="session-choice-columns">
       <fieldset><legend>Agent</legend><div id="agent-choice"></div><p id="agent-choice-empty" hidden>No agents were found. Set up an agent on this computer, then check again.</p><button id="session-picker-retry" type="button" hidden>Check again</button></fieldset>
-      <section id="session-model-section" aria-label="Model choice" hidden><div class="model-choice-heading"><h3>Model <span>Optional</span></h3><button id="choose-initial-model" type="button">Choose a model…</button></div><p id="model-choice-note">Use the default model, or check the available choices.</p><div id="initial-model-control" hidden><label for="initial-model">Model for this conversation</label><select id="initial-model"></select></div></section>
-      <p id="session-picker-status" role="status" aria-live="polite" hidden></p><p id="session-picker-error" class="error" role="alert" tabindex="-1" hidden></p>
+      <section id="session-model-section" aria-label="Model choice" hidden><div class="model-choice-heading"><h3>Model <span>Optional</span></h3></div><p id="model-choice-note">Use the default model, or check the available choices.</p><button id="choose-initial-model" type="button">Choose a model…</button><div id="initial-model-control" hidden><label for="initial-model">Model for this conversation</label><select id="initial-model"></select></div></section>
+      </div><p id="session-picker-status" role="status" aria-live="polite" hidden></p><p id="session-picker-error" class="error" role="alert" tabindex="-1" hidden></p>
     </div>
     <footer class="picker-footer dialog-footer"><div class="dialog-actions"><button id="session-picker-cancel" type="button">Cancel</button><button id="session-picker-open" data-leading-icon="arrow" type="submit">Start conversation</button></div></footer>
   </form>
