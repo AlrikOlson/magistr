@@ -17,9 +17,11 @@ export function reasoningStep(step,copy){
   if(step.pinned)facts.push(["Pinned","Yes"]);
   if(step.confidence!=null)facts.push(["Reported confidence",Math.round(step.confidence*100)+"%"]);
   const metadata=inlineFacts(facts);metadata.classList.add("work-reasoning-facts");article.append(metadata);
-  for(const [field,label] of [["outcome","Outcome"],["context","Context"],["thought","Reasoning"],["rationale","Rationale"],["uncertainty_notes","Uncertainty"],["revision_reason","Reason for revision"]]){
-    if(step[field]){const section=prose(label,step[field],step.record_id+":"+field,copy);section.dataset.emphasis=String(field==="outcome");article.append(section);}
+  const evidence=element("div","","reasoning-evidence");
+  for(const [field,label] of [["outcome","Outcome"],["context","Context"],["rationale","Rationale"],["thought","Reasoning"],["uncertainty_notes","Uncertainty"],["revision_reason","Reason for revision"]]){
+    if(step[field]){const section=prose(label,step[field],step.record_id+":"+field,copy);section.dataset.emphasis=String(field==="outcome");(field==="outcome"?article:evidence).append(section);}
   }
+  if(evidence.childNodes.length)article.append(evidence);
   if(step.next_action)article.append(prose("Next action",typeof step.next_action==="string"?step.next_action:JSON.stringify(step.next_action,null,2),step.record_id+":next",copy));
   if(step.tools_used?.length)article.append(prose("Tools mentioned",step.tools_used.join("\n"),step.record_id+":tools",copy));
   return article;

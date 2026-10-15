@@ -13,11 +13,11 @@ export class ReasoningBranches{
     return {branch,steps,missing};
   }
 }
-export function branchSummary(branch){
+export function branchSummary(branch,reference=number=>"Step "+number){
   const section=element("section","","roadmap-relations reasoning-investigation"),header=element("header");
   header.append(element("h4",branch.name),element("p",labels[branch.status]??"Status unavailable","work-record-status"));section.append(header);
-  const facts=[["Started from","Step "+branch.from_step]];
-  if(branch.merged_into!=null)facts.push(["Conclusions","Step "+branch.merged_into]);
+  const facts=[["Started from",reference(branch.from_step,"Step ","origin")]];
+  if(branch.merged_into!=null)facts.push(["Conclusions",reference(branch.merged_into,"Step ","conclusion")]);
   if(branch.created_at)facts.push(["Started",new Date(branch.created_at).toLocaleString()]);
   section.append(inlineFacts(facts));
   return section;
