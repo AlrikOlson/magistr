@@ -1,0 +1,54 @@
+{
+  "scope": "Improve the selected work summary",
+  "limitations": "Headless WebKit with isolated observations. Native OS input, assistive technology and Rust command integration were not exercised.",
+  "images": {
+    "roadmap--blocked-item-compact-dark.png": {
+      "sha256": "53d1ae05e5a5326d73af1c0f9c06b3c3f5127c0fd5bb60004da42dfb52ec4902",
+      "task": "Read a selected work item's state and purpose without repeated heading space.",
+      "observations": "The complete approval blocker is now visible immediately after title, blocked state and section selector in the compact view. Current dependency information precedes suggested changes; the header and controls fit without clipping in both appearances.",
+      "verdict": "pass"
+    },
+    "roadmap--blocked-item-compact-light.png": {
+      "sha256": "3611bfed9a4866d6af2e094eb1c48ef12519d4f3e1b9f9ec040cdee43cf16a32",
+      "task": "Read a selected work item's state and purpose without repeated heading space.",
+      "observations": "The complete approval blocker is now visible immediately after title, blocked state and section selector in the compact view. Current dependency information precedes suggested changes; the header and controls fit without clipping in both appearances.",
+      "verdict": "pass"
+    },
+    "roadmap--blocked-item-desktop-dark.png": {
+      "sha256": "d357ca941b739749b86632d09e2c3d09813bdf78d2c0fef1db644a3d69cc55dd",
+      "task": "Read a selected work item's state and purpose without repeated heading space.",
+      "observations": "The complete approval blocker is now visible immediately after title, blocked state and section selector in the compact view. Current dependency information precedes suggested changes; the header and controls fit without clipping in both appearances.",
+      "verdict": "pass"
+    },
+    "roadmap--blocked-item-desktop-light.png": {
+      "sha256": "66af35fed478ccddd90464986b64e1b8484407890c50d8dbbc4c0261b608a04b",
+      "task": "Read a selected work item's state and purpose without repeated heading space.",
+      "observations": "The complete approval blocker is now visible immediately after title, blocked state and section selector in the compact view. Current dependency information precedes suggested changes; the header and controls fit without clipping in both appearances.",
+      "verdict": "pass"
+    },
+    "roadmap--selected-item-compact-dark.png": {
+      "sha256": "5f0f4eb3aae935f267ac801f43fbd1666a34788e2ef366f2869a9697714fa775",
+      "task": "Read a selected work item's state and purpose without repeated heading space.",
+      "observations": "The title, planned state and purpose form one compact readable header. Ready state and prerequisite remain visible in the opening compact panel; desktop retains the selected node and clear highlighted dependency endpoint.",
+      "verdict": "pass"
+    },
+    "roadmap--selected-item-compact-light.png": {
+      "sha256": "ce9dcb5e1e4140b8a6c15748514bdf089dd8755376d5660b28eb8705224e2643",
+      "task": "Read a selected work item's state and purpose without repeated heading space.",
+      "observations": "The title, planned state and purpose form one compact readable header. Ready state and prerequisite remain visible in the opening compact panel; desktop retains the selected node and clear highlighted dependency endpoint.",
+      "verdict": "pass"
+    },
+    "roadmap--selected-item-desktop-dark.png": {
+      "sha256": "93458b5a32fc5ba7422394016363542045cc14426f1392df7f5c40cb5127c719",
+      "task": "Read a selected work item's state and purpose without repeated heading space.",
+      "observations": "The title, planned state and purpose form one compact readable header. Ready state and prerequisite remain visible in the opening compact panel; desktop retains the selected node and clear highlighted dependency endpoint.",
+      "verdict": "pass"
+    },
+    "roadmap--selected-item-desktop-light.png": {
+      "sha256": "db54de227df644d704e593de68a49c1ff71da7baa3d5a2d749acae46add45104",
+      "task": "Read a selected work item's state and purpose without repeated heading space.",
+      "observations": "The title, planned state and purpose form one compact readable header. Ready state and prerequisite remain visible in the opening compact panel; desktop retains the selected node and clear highlighted dependency endpoint.",
+      "verdict": "pass"
+    }
+  }
+}

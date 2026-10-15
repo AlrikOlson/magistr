@@ -1,0 +1,54 @@
+{
+  "scope": "Improve the selected work summary",
+  "limitations": "Headless WebKit with isolated observations. Native OS input, assistive technology and Rust command integration were not exercised.",
+  "images": {
+    "roadmap--blocked-item-compact-dark.png": {
+      "sha256": "7bde268bf0e20c05b0d2f55cd5eefff103b13350d581b8cef2a5cdc09beeada1",
+      "task": "Read a selected work item's state and purpose without repeated heading space.",
+      "observations": "Title and blocked status are compact and readable, but the large suggested-change section precedes the actual blocker. At compact height the user cannot see the blocking reason in the opening view. Reorder current dependency/readiness information ahead of proposals.",
+      "verdict": "fail"
+    },
+    "roadmap--blocked-item-compact-light.png": {
+      "sha256": "86489c63572649825fa43114e40aa1e00b0eaba54abb4dcdfb31998e2dbe8ef6",
+      "task": "Read a selected work item's state and purpose without repeated heading space.",
+      "observations": "Title and blocked status are compact and readable, but the large suggested-change section precedes the actual blocker. At compact height the user cannot see the blocking reason in the opening view. Reorder current dependency/readiness information ahead of proposals.",
+      "verdict": "fail"
+    },
+    "roadmap--blocked-item-desktop-dark.png": {
+      "sha256": "12b246988ee3476b9ab0dc4178446b1f80a5de3bd1d5cb27f3eb553023192db5",
+      "task": "Read a selected work item's state and purpose without repeated heading space.",
+      "observations": "Title and blocked status are compact and readable, but the large suggested-change section precedes the actual blocker. At compact height the user cannot see the blocking reason in the opening view. Reorder current dependency/readiness information ahead of proposals.",
+      "verdict": "fail"
+    },
+    "roadmap--blocked-item-desktop-light.png": {
+      "sha256": "7d8349d5e93a0c8cbf374d86a268c57f1fba16ee9da79a2a70c8318e68426793",
+      "task": "Read a selected work item's state and purpose without repeated heading space.",
+      "observations": "Title and blocked status are compact and readable, but the large suggested-change section precedes the actual blocker. At compact height the user cannot see the blocking reason in the opening view. Reorder current dependency/readiness information ahead of proposals.",
+      "verdict": "fail"
+    },
+    "roadmap--selected-item-compact-dark.png": {
+      "sha256": "5f0f4eb3aae935f267ac801f43fbd1666a34788e2ef366f2869a9697714fa775",
+      "task": "Read a selected work item's state and purpose without repeated heading space.",
+      "observations": "Title, state and purpose now appear together before the section selector. The selected dependency connection remains clear on desktop; the compact inspector overlays part of the canvas while retaining its back control. No overlap or clipping in the changed header.",
+      "verdict": "fail"
+    },
+    "roadmap--selected-item-compact-light.png": {
+      "sha256": "ce9dcb5e1e4140b8a6c15748514bdf089dd8755376d5660b28eb8705224e2643",
+      "task": "Read a selected work item's state and purpose without repeated heading space.",
+      "observations": "Title, state and purpose now appear together before the section selector. The selected dependency connection remains clear on desktop; the compact inspector overlays part of the canvas while retaining its back control. No overlap or clipping in the changed header.",
+      "verdict": "fail"
+    },
+    "roadmap--selected-item-desktop-dark.png": {
+      "sha256": "93458b5a32fc5ba7422394016363542045cc14426f1392df7f5c40cb5127c719",
+      "task": "Read a selected work item's state and purpose without repeated heading space.",
+      "observations": "Title, state and purpose now appear together before the section selector. The selected dependency connection remains clear on desktop; the compact inspector overlays part of the canvas while retaining its back control. No overlap or clipping in the changed header.",
+      "verdict": "fail"
+    },
+    "roadmap--selected-item-desktop-light.png": {
+      "sha256": "db54de227df644d704e593de68a49c1ff71da7baa3d5a2d749acae46add45104",
+      "task": "Read a selected work item's state and purpose without repeated heading space.",
+      "observations": "Title, state and purpose now appear together before the section selector. The selected dependency connection remains clear on desktop; the compact inspector overlays part of the canvas while retaining its back control. No overlap or clipping in the changed header.",
+      "verdict": "fail"
+    }
+  }
+}
