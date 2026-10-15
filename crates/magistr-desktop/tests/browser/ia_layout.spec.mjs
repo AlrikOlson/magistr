@@ -138,3 +138,9 @@ test("13 produced items identify type beside their title",async({app})=>{
   const type=await item.locator(".work-artifact-type").boundingBox(),title=await item.locator("h5").boundingBox();expect(type.x+type.width).toBeLessThan(title.x);
   await expect(item.getByRole("button",{name:"Copy reference",exact:true})).toBeVisible();await capture(app,"13-artifact-types");
 });
+test("14 reasoning facts sit beside the decision",async({app})=>{
+  await openWork(app,"Reasoning");await app.getByRole("button",{name:"Keep each conversation with its saved message",exact:true}).click();
+  await app.setViewportSize({width:760,height:550});
+  const facts=app.locator(".work-reasoning-facts");await expect(facts).toContainText("41");await expect(facts.locator("time")).toHaveAttribute("datetime",/.+/);
+  for(const theme of ["dark","light"]){await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);await facts.scrollIntoViewIfNeeded();await capture(app,"14-reasoning-"+theme);}
+});
