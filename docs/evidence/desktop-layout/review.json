@@ -1,5 +1,5 @@
 {
-  "receipt": "58f2d94f84da0460a78f898305c8f135a66a49c35c8a2c7dfd15f667408c8d18",
+  "receipt": "f913b5069cc1a7acc74244746b33d0cb14b2553144b7da1c4dcc6f3e86cee3d5",
   "images": {
     "welcome-dark.png": "c18e56fa3f76a5d9338c14ef21f1d94c761e09479a9597347b4a49080331713f",
     "welcome-light.png": "d308a673ba367d31445b01bafd2fb739c75ddb35a884c19b5a36f51a34427c45",
@@ -17,10 +17,10 @@
     "inspector-dark.png": "1fe9f2ea8db3d2714c83151b7486aa2fb54f77c9d1d6c518eeb6eb240740dc8a",
     "inspector-light.png": "1fd47859729d95799a5185d61ab0af002d74925306299d699203897db5de7d29",
     "inspector-unknown-dark.png": "60507ee478728b441f1fbe43851f34c5d5a333f90dde1fca1511965c273c0a54",
-    "history-dark.png": "4c129c7fd59de6a4c6454a634097eec5f2d9b267a45287f34604fd1a9d7192fa",
-    "history-reading-dark.png": "3aacd8b4223101f21331d6408b5cdea46e8ae77e7973a1f21a02a3f614884ffd",
-    "history-narrow-light.png": "46704f0e6d6c68cadc37e2f238a7f25ef393ff51ec03d42a93bae159503ab4dc",
-    "history-reading-narrow-light.png": "a6b306ee0876a5875d4afdd10de68b28b40eaf008b12db3377ef26527862f475",
+    "history-dark.png": "8125a05f088f39e5577d05f6815bf7c05b803dda7c2d256f37dea241a124ec20",
+    "history-reading-dark.png": "1a448fc69c10696681596075d435830665df7f041ef6f2a6c01660b4dbdb08d3",
+    "history-narrow-light.png": "7c93c68544947dbdf6633cdea65f5d4989bc25ab741b0ca049352a0dff445fdb",
+    "history-reading-narrow-light.png": "762fe9c5bb1aea8fa4fb3d3c5f48c55461d794bd98c0aff18aabbd3498ca0937",
     "setup-narrow-light.png": "839b5d327501792b72b2b912efcea519ffa2a31c4e61bd5dab363ba4687af99a",
     "open-project-dark.png": "5a3b7407062311bcb0b03564ca2ae1caeffbfad33efefe06a6f5c1e5948ced6d",
     "setup-dark.png": "affc9e85b0525561df15907c15fe8f5e7a8fec348f97fb79d0eb48c825f270bc",
@@ -52,10 +52,10 @@
     "open-project-error-details-light.png": "d2a98412f87935375e5caabc78d77740c860d8b3f0e595a2e48494a3c1c9fb20",
     "empty-conversation-dark.png": "860b15b2c495a4fb6da858742c11bf27b46101d49573f4d77bb03b2721e80b85",
     "empty-conversation-light.png": "0966b20c228a8934cf7b3ee6ea557c9558e34299b5df664f22dcc81df19e09b4",
-    "tables-dark.png": "cfd6205bca5348bdb0a691a021291d6cc92b5502a22405a404a7f2701417573f",
-    "tables-light.png": "50c6e8322e583004f20fb442954a04457aa9d65fa5a19660998cd93779a0e9b9",
+    "tables-dark.png": "43c5daf09bfbe8417e8eb72b526dc0520b7c056e7c22ba367c69b1cd1ee3bacf",
+    "tables-light.png": "625554f05e3241f53bc7f869faeb6fa9c4db84efab62bfcc1105e752ead116bf",
     "tables-compact.png": "a22683103adef6c8aeed8521844ea8f3af05bdbb800c47b4ce22744c73ba76f9",
-    "patch-dark.png": "c050d5b8c829b9a438e1a75e732627a7f45fa659720d3ab0e1e91398431ab649",
+    "patch-dark.png": "da953df50d18b483b92ae60c4a123ca92b04c52238299e2f8ce4986fdce3347b",
     "patch-light.png": "03bd51d79d20f2f1c552b5a9bd6f26f0040f623f344bafa7b4a85d340f031930",
     "patch-comparison-dark.png": "e936e06959b8b07b3c4e2a369e0e6e7d788ff3e7a3e8dd4b71661651c84c7b3d",
     "patch-comparison-light.png": "e215a03a65cfe9a276d5d73ce7bf89d231c6507851fb2bb300515b9b2111aea1",
@@ -85,9 +85,9 @@
     "permission-dark.png": "dfc2176eda0765c9096097a7898cb6814b622036f5c8c6cb9299e0b35529b18a",
     "permission-light.png": "4e6bb1dc4d57536f851ce88f6af7ac6e32d19ca96b9f9f7cb6b47c3d36b01dc8",
     "permission-compact.png": "71a6455a6bf29f54b3a08e707eca86e4cf571e8bf93c6592b141a05da0d8e877",
-    "saved-document-dark.png": "aba715fe13c2f9cfa64a75aa7e8e62a267fef32ed2eddee672a4a58fdc91884e",
-    "saved-document-light.png": "7575a8c1954262ec2a9ae453b9476075f26441ed32eb3405dee5f02beea18c98",
-    "saved-document-compact.png": "6c53c0be37b7ecb997f7847cda5fd1d7d9bb69b2eceb775dee3b00fee75adfc0",
+    "saved-document-dark.png": "1b5b0c5944b21bb94fafe8cc2eeecdccb4de723c491eed55e8789d1c715536f5",
+    "saved-document-light.png": "54b50fa0b392c84db34a5e91ac63517e46b5e3a61b8f323e8596c762e8195063",
+    "saved-document-compact.png": "51414d3b2e02137a955ce0f2a2698ccaf99ba138f1fd8de72ed9c7a87bdae4a5",
     "workspace-wide-dark.png": "2aadd17bfc1c1a1c193323239ecbee00e46f012949c8ff34e74ec21ac60db01f",
     "workspace-wide-light.png": "01723416b353ac223e8c4e9e243e31eb2484142a9b79a582f932710b0790fd38",
     "workspace-wide-details-light.png": "8544caff46948e2103effcd333c63b73779c24311fb8b08deb49c62d04ed0f50",
@@ -95,5 +95,5 @@
     "workspace-compact-final-light.png": "8d0853b3d689b677732ae6b554f67f3af52e5171872cee0465d2a276f72d35b8",
     "workspace-compact-long-title.png": "a5c9844239c5e7574718109bc1038e19d117750468da8589f044a3f98e63d515"
   },
-  "review": "Reviewed dark request sheet and compact light two-column review: clear request title, quiet exact-source fields, separated answer area with equal-weight choices. All four decisions remain visible at minimum size; exact copy and captured answer destination verified."
+  "review": "Reviewed dark library, light saved document and minimum-size reading spread: contiguous source-derived catalog rows, selected spine, flat reading pane, restrained metadata and distinct unsent draft. Save failure, filtering, resume refusal and owner routing verified."
 }
