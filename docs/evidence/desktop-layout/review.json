@@ -1,15 +1,17 @@
 {
-  "receipt": "a305fa9051f02f47e9eb97fadc8074e153c0b70258f7b16087e01cf9445ae259",
+  "receipt": "8b9a395cae1d6187690796eeebf35ca3943416ff05fbc6b21606d8c976742b9a",
   "images": {
-    "welcome-dark.png": "2dd25326fb4d53d3dc502391c4b54560b514b36266075d4f4fb08886726ada70",
+    "welcome-dark.png": "bc080b6182778502db060cdcca7ad7481072a3ad456b32e47fbf80e7e576863e",
+    "welcome-light.png": "69c0147e434476040e82e648ce514e66c6aab7c7ac1b3325ed437b81500365ef",
+    "welcome-narrow-light.png": "2ac899f65b256b61230535757d6dcf720cc8edf9391f1fa9899877cb7ee66f93",
     "workspace-dark.png": "04635239cd40b14be57bf029435fb83f8e9e9cc0535a21efc45242b638898c01",
-    "settings-light.png": "f3ff0eac3cbded37059bd57e68c6cb400c7efd3c4b0ebed50cf6f231e0d03d55",
-    "workspace-light.png": "d6f353d8359aea79c396ac38f28ca00f91d32600b689a3d852f094de21aa41e6",
+    "settings-light.png": "b92f473b8e4ef1b3bc17c328c7a375ab5317760461e50ff9dc000b3548352019",
+    "workspace-light.png": "de06818f1a126c672ae54218d9ed639187d9ccdc1abd2c44f7a7821375d6f9ca",
     "workspace-narrow.png": "fd7dcd8470d6dc7d6ff5bfec2a5d84a046fef81f6e6aa355cb9a8c99527ea888",
     "details-narrow.png": "6e80d4cbb7466f553eb2d837342ff8bc4658f232e415658fd79bab703fc4d8c8",
     "rename-light.png": "7fe6abf72f341360fedc11843f75eb980367f69158fffe62ebf303267a08bcd7",
     "work-paused-dark.png": "30a5a2bf80da9a26a8917ceac146929e8b090d9f3025b9320be87fb57f6f6b36",
-    "history-dark.png": "1dc45fae3be3295058ce5e6443dbd26139516863d76b0dbafa7272f870d2356c",
+    "history-dark.png": "bc79da873873f6c47b86c10af5f67f770fbb84010eb905d66e298dee6caeb28b",
     "history-narrow-light.png": "585b7b520901a422fce012f68aecc34ad059cda369e65cbd1fbd2e7923d8bdea",
     "setup-narrow-light.png": "bc0b3db4a570f81f4194b738933297906a44adf868e8857de87fe967b22abcd2",
     "open-project-dark.png": "50e04a8c820eabd5b9f08cc1915b94ea5eceae75c110889e7126fd7a29ed1875",
@@ -29,8 +31,8 @@
   },
   "reviewed_on": "2026-10-15",
   "findings": [
-    "Inspected the compact light permission card and the corrected dark inspector capture. The exact command, waiting heading and equal-weight response controls remain readable and separated.",
-    "Four context/composition scenarios passed. Corrected the dark capture to explicitly reopen Details after the layout changed width; the focused capture scenario passed again.",
+    "Inspected wide dark, wide light and compact light welcome captures. The shader contour form sits beside the large invitation and redesigned project cards; text remains clear of the artwork.",
+    "Corrected premultiplied alpha after visual inspection. Actual WebGL execution, reduced-motion stillness, hidden-surface suspension, four-second settling and context-loss project entry all pass in WebKit.",
     "Production headless WebKit only; native input, IME, OS dialogs, VoiceOver and Windows verification were not run."
   ]
 }

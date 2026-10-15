@@ -1,3 +1,4 @@
+import { welcomeArt } from "./welcome_art.mjs";
 import { ConversationSwitcher } from "./switcher.mjs";
 import { KeyboardNavigation } from "./keyboard.mjs";
 import { EditorPlaces } from "./reading.mjs";
@@ -20,6 +21,7 @@ import { ProjectPicker } from "./project_picker.mjs";
 import { Catalog, usagePresentation, capabilityText } from "./supervision.mjs";
 const {invoke,Channel}=window.__TAURI__.core;
 const $=id=>document.getElementById(id);
+welcomeArt($("welcome-art"),$("welcome"));
 let selected=null,view=null,sessions=[],projects=[],composerFrame=null,attachmentLimits=null;
 const attachmentWork=new Map(),draftMutations=new Set();
 const submissions=new Submissions();
@@ -95,7 +97,8 @@ async function refresh() {
   renderRail();
   $("welcome-projects").replaceChildren(...projects.slice(0,4).map(project=>{
     const item=button("",()=>openDirectory(project.directory));
-    item.append(text("strong",project.name),text("span",project.directory),text("small","Open project →"));return item;
+    const emblem=text("b",Array.from(project.name.trim())[0]?.toLocaleUpperCase()??"·");emblem.className="recent-emblem";emblem.setAttribute("aria-hidden","true");
+    item.append(emblem,text("strong",project.name),text("span",project.directory),text("small","Open project →"));return item;
   }));
   return info;
 }
