@@ -1,7 +1,7 @@
 {
   "renderer": "headless WebKit",
   "version": "27.2",
-  "captured_at": "2026-10-15T09:03:25.421Z",
+  "captured_at": "2026-10-15T09:08:29.303Z",
   "scope": "Production desktop HTML, CSS and JavaScript with isolated observation fixtures; no native OS input or Rust owner integration.",
   "checks": {
     "project chooser presents actual projects and folder entry in both appearances": true,
@@ -79,18 +79,20 @@
     "crates/magistr-desktop/ui/switcher.mjs": "7e0d3655808443dd842be7a01abc8ddd6ccc018557a920bfe6e44383ec5d857e",
     "crates/magistr-desktop/ui/transcript.mjs": "df0929eb16d76c728ba7bd8ee42df06aeda1509effe16c7f2755e6a5c504d1c6",
     "crates/magistr-desktop/ui/work.mjs": "9adfbdaa890ad4b74f755155caabc7f8599f1a4b1e1ea604ce83babea714999f",
-    "crates/magistr-desktop/ui/work_browser.css": "c70e79a4381333332d1c28787217bfe3ed09a386f2b231759604a0ee415f4c46",
-    "crates/magistr-desktop/ui/work_browser.mjs": "fdeb64decbce95c035c24d104fc35297ff6e99eeb5a201e41521402871181e8c",
-    "crates/magistr-desktop/ui/work_records.mjs": "d5e94fd1db1368713ea4281e060ee05f97f3fb47248ba361da0c72f0bdd63690",
+    "crates/magistr-desktop/ui/work_browser.css": "a9603a7988485fafd51c011dda677a96ee6a70dbf741831a2db826d4bf7e133d",
+    "crates/magistr-desktop/ui/work_browser.mjs": "1a4d3b696d890010a65d13db71d226c8ee396cf8f8b10e5c419820ddb78a9ed7",
+    "crates/magistr-desktop/ui/work_checks.mjs": "faa4bea7f8f243780a149f4f44b59354b9a8c3c647ca4562730a30f6eb3e3fd7",
+    "crates/magistr-desktop/ui/work_dom.mjs": "8572890eda39745d7dc21d32646aaf6b180e2b3ea9f03cb603139fa4439ba99a",
+    "crates/magistr-desktop/ui/work_records.mjs": "d7ca87ff887ca654cd6526f83046b312c72f49a31f3b175bee6e02c073398004",
     "crates/magistr-desktop/ui/work_ruler.mjs": "19caaaddfa867366589c3be073e5be862bfaf2df0bf22b8bdc26a80e6f1f031d",
-    "crates/magistr-desktop/ui/work_runs.mjs": "98cd4c930834efd250648f76f077171e8159a7bae593099fb77b8274e555dc00",
+    "crates/magistr-desktop/ui/work_runs.mjs": "4fec2bbdc069d0db7a3226c476c8d80e79c23214dc881406ee72bdf3614e8343",
     "crates/magistr-desktop/ui/writing_surface.mjs": "a34379f33c19ea2a67d9ed29893eb182b7593ec7ec8d8eeeada73ed709b773ca",
     "crates/magistr-desktop/playwright.config.mjs": "e97c1f9951b494fa8049e323eae8fc372a2d1c2de74fd8edd9de706be82e0634",
     "crates/magistr-desktop/tauri.conf.json": "b8af99622336b041fe41255fe57d6225447631945d6a89c5a4f3dc1c7348b4b9",
     "crates/magistr-desktop/tests/browser/fixture.mjs": "84fd2ebe79c1f0c8f8eb4af1f6193cabdb46918c22b76001fb5c6c02b32a8be1",
     "crates/magistr-desktop/tests/browser/workspace.spec.mjs": "fb95722c9c4bbb89569ab2eeac09fcfec5f9411dc6b4636492ad19ad4bdb7028",
     "crates/magistr-desktop/tests/browser/design_scenes.mjs": "9f239102a00970e0af72f7bb324d92d853d93b85b4e5c9574054c321ffde6980",
-    "crates/magistr-desktop/tests/browser/work_fixture.mjs": "e5d3691f21c76d54bd21205bfda1cdb2ad63dc63971d2ed6fc96380da621d106"
+    "crates/magistr-desktop/tests/browser/work_fixture.mjs": "eae8b20bb577c9bfdc8da464b0ae0189d7ec055f0c658c9bccfa34c2df1aec32"
   },
   "images": {
     "welcome-dark.png": "196f05ebfbcfdacf73fe8a82ad187b73837dfd801f2a1e47c59f5c0863f9b216",
@@ -111,7 +113,8 @@
     "rename-light.png": "ad0f5715491f15f2235ddf8073d2a57d6e759c2e3c7dfec75dd8e85256403e27",
     "work-paused-dark.png": "a79d02738979c74cd380bb907ac98b612d4d5640c60c212454c63c40c9b0a372",
     "work-plan-dark.png": "c1db330019f6bafca3a76537313b2f747b06832e8f9e0c90bd95692c13e0092e",
-    "saved-work-dark.png": "ca56ce843195385b14f1cee8fdad47e849b22f6cb2b922a32144cda438d1b58f",
+    "work-check-results-dark.png": "b41d4e1ca066c0a6ecc2b2d1bada0fc96df19c7d128278ff0d8765d2f4b34de6",
+    "saved-work-dark.png": "dc36f268317214293fca35243d5a186f4cdf7b70b112e36770200dce0dfd1e49",
     "work-plan-light.png": "6dd5b29d41defa31c92c4dda86fec79a471e3998aa191d0a08257d7a45581a02",
     "work-plan-minimum.png": "37dbfd3890e5b8c55fabdfe499549b881db6534f42158ed60c1ddd7a81e5c787",
     "inspector-dark.png": "89564c80e02d674b79bfbadf60cb4ffdef3e62bfe218c2aecf69b805fda729ff",
@@ -267,6 +270,10 @@
       "height": 820
     },
     "work-plan-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "work-check-results-dark.png": {
       "width": 1280,
       "height": 820
     },

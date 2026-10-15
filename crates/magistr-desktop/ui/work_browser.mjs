@@ -1,5 +1,6 @@
 import { addressKey } from "./context.mjs";
-import { readState, renderRun, element } from "./work_records.mjs";
+import { readState, renderRun } from "./work_records.mjs";
+import { element, retainReading } from "./work_dom.mjs";
 import { WorkRuns } from "./work_runs.mjs";
 
 export class WorkBrowser {
@@ -57,7 +58,8 @@ export class WorkBrowser {
     const key=JSON.stringify([this.runs.choice,run,!!observed.value]);
     if(key===this.key)return;this.key=key;
     const content=this.$("work-browser-content");
-    content.replaceChildren(!observed.value?element("p","Work records are unavailable. Use Refresh to try again.","work-record-empty"):
-      this.runs.choice!=="current"&&!run?element("p","This saved work is no longer available. Choose another item.","work-record-empty"):renderRun(run));
+    const copy=value=>navigator.clipboard.writeText(value).catch(error=>{this.$("work-browser-state").textContent="Could not copy the text. "+String(error);});
+    retainReading(content,()=>content.replaceChildren(!observed.value?element("p","Work records are unavailable. Use Refresh to try again.","work-record-empty"):
+      this.runs.choice!=="current"&&!run?element("p","This saved work is no longer available. Choose another item.","work-record-empty"):renderRun(run,copy)));
   }
 }
