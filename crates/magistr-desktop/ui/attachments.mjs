@@ -59,7 +59,7 @@ export class AttachmentList {
         detail.append(size,path);
         content.append(name, detail);
         const visual=this.document.createElement(file.preview?"button":"div");visual.className="attachment-visual";item.append(visual);
-        if(file.preview){visual.type="button";visual.setAttribute("aria-label","View "+file.name);visual.onclick=()=>attachmentViewer(this.document).open(this.files.find(item=>item.id===file.id)??file,visual,this.root,this.focusFallback);}
+        if(file.preview){visual.type="button";visual.setAttribute("aria-label","View "+file.name);visual.onclick=()=>attachmentViewer(this.document).open(this.files.find(item=>item.id===file.id)??file,visual,this.root,this.focusFallback,()=>this.files);}
         item.dataset.kind=file.preview?"image":"document";
         if (file.preview) {
           const image = this.document.createElement("img"); image.src = file.preview; image.alt = "Preview of " + file.name;

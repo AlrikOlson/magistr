@@ -160,6 +160,10 @@ export async function galleryScene(app,capture,expect){
 }
 export async function viewerScene(app,capture,expect){
   await app.setViewportSize({width:1280,height:820});
+  await app.evaluate(()=>{
+    const event=window.__fixture.frames.get("release").events[0];
+    window.__fixture.publish("release",{events:[{...event,revision:2,attachments:[...event.attachments,{id:"second-image",name:"mark.png",size:32768,path:"ui/mark.png",content_hash:"mark",preview:"http://magistr.test/icon.png"}]}],retained:[907]});
+  });
   await app.getByRole("button",{name:"View icon.png",exact:true}).click();
   await expect(app.locator("#attachment-metadata")).toContainText("×");
   await app.getByRole("button",{name:"Dark background",exact:true}).click();
