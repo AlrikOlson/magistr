@@ -1,28 +1,28 @@
 {
-  "receipt": "852771f9447f2dfd70f055f5658ac869dcec324f08e1d4501a5bc767ebd94ae0",
+  "receipt": "5258d20699c7d28ca348469d4ff05c94be4c1c8f1c9e0d3d94c1531288ff02ab",
   "images": {
-    "welcome-dark.png": "d099bd2bceec8f5adf2a8f310dab02c8d85fdef78ccdd8ab8e20a075b4565333",
-    "workspace-dark.png": "df78f7e617dcf1b046cc0805fd757ac33957d3c61c0bfe9ed18657e7c100316b",
-    "settings-light.png": "abd657680ce32d958a995d3ea8a16f14715987bae9f27526657dae90b3f0e34b",
-    "workspace-light.png": "92ae8fbca51500891268c9ffa397e84155b23dcabff6f7737fa239f83daa9f93",
-    "workspace-narrow.png": "1573709ef517783fd69af81b71f4bf82b757a8f56a1acc715f631c774ea2c869",
-    "details-narrow.png": "63779bf685a8585f31677409f5c64ac4b05d7b4e319e2c9f618030c12d3469c6",
-    "rename-light.png": "9a15061f4ef9300fde9d5ebf1aadce166e7f5664f3b99d253dd928601eb592a3",
-    "work-paused-dark.png": "c41c7096d334c82f43bd81e0d5a35a49440745861abc531bb552380329192741",
-    "history-dark.png": "f89f0eaa980ef77fe3ac529c168049a2ab8a69cf6ca2eeac6fea318e69435db9",
-    "history-narrow-light.png": "54759f186568d94bd810216cec58f76c5bcdf3e6e58e4226227e255360fbb24b",
-    "setup-narrow-light.png": "a72a0ba76f61bce8f23584f175704d3aa2df721c9bdb629558403deab7bc6dc6",
-    "open-project-dark.png": "8d61fcb383cf74a19209cbbaeaf55aa7f17e1a6566875732becefcf1662b177f",
-    "setup-dark.png": "3e997400f6a68cc026c0e770268da397d37d6cb7ddce45c91d93ca212bea7fa0",
-    "new-conversation-dark.png": "b2223136cf4ba6799396c2b4be811580a424acba3ac0886de1f328d853fa34ff",
-    "new-conversation-narrow-light.png": "c2db55c6569612a1edbc9377075c13baf1148d59a9c84ca651ddb7ec763afdf3",
-    "find-conversation-narrow-light.png": "72b889e76d01726c353b7ebc83a88f629a49236c535d1e91b6e386162d0f9e00",
-    "find-conversation-dark.png": "b88cdd9ff9e46541f9afa3c4438e4eb823db2a06555813ce1f854752e4ac9a0c"
+    "welcome-dark.png": "6e1007ab0721675fa23a90f30fa656ecd9c8958103606c059ef3d402c6485d35",
+    "workspace-dark.png": "4ec51040d90cce254d8621ac11e33986046f3253417646894e0830db951947b4",
+    "settings-light.png": "17361dc3e044b829a3811f05b9c84c4ee67b5afd62c108b3e63f9efbc7065762",
+    "workspace-light.png": "b59655ba74408af1d05b1c1f695d819882405cd54de1e57d3b82976d9d346881",
+    "workspace-narrow.png": "f9d51615bd25f0c0d8b42a2ff8523c5b63b28b5d910d5621aefd6ef554ef2a67",
+    "details-narrow.png": "5eb986dfb9bb5fb19ca1ff10e8b2bd59fddd04c092734f07c1790cfaa8e2e675",
+    "rename-light.png": "0c284ce3c6b95be7eadbd5b6c757e5be2d825601efd55d2045a224bef1aeebad",
+    "work-paused-dark.png": "05a9d8b89669941315fbe748b2c3091a4f18d54e3daa6fa65cd20c6e44d500b5",
+    "history-dark.png": "09df7bb88aa077bf0e2093a93a7428da3cb766259bb1d29785b6b84d4fd4cae9",
+    "history-narrow-light.png": "ee3f196f30b6b247134f0c5a2a9d8433aeebf419f13cf2c6f3a88496247bab04",
+    "setup-narrow-light.png": "036593aeea261faf925f5726b965c40d780739cbd174c50c4750686c4f7a8e50",
+    "open-project-dark.png": "e2436482754cd9636f86af00bb8cab3d3cbaad554e7e3587079c0d4f962db4bd",
+    "setup-dark.png": "11944e12ed6c576b5a454522d8ab22a61d8ea68053aca6c7bfa59d8e75128923",
+    "new-conversation-dark.png": "8d57617f7fd6379f148e27da34e7b27a8607a465b360d9293f4971cba84a1738",
+    "new-conversation-narrow-light.png": "3a9763276ea1b1fbcca74b1b870b0763d2b98ddab71d57f61bc4a4f8f8ad9bbe",
+    "find-conversation-narrow-light.png": "229d83ea783710e392343d3456e4aa8fd3bbcb32b2867cdd65af018f14f62b14",
+    "find-conversation-dark.png": "2c2da0bf788a75debe943f2437ff4297a53a81856cd494fe903773cc314df018"
   },
   "reviewed_on": "2026-10-15",
   "findings": [
-    "Inspected light conversation, dark conversation with work inspector, and compact setup review at full size. Graphite and paper palettes retain legible secondary text and violet actions.",
-    "The shared foundation owns surface, elevation, typeface, selection and semantic status colors for subsequent component designs.",
+    "Inspected wide dark and compact light workspace captures. The inset working surface separates content from navigation without reducing the compact editor below its tested width.",
+    "Consistent vector masks replace platform-dependent navigation glyphs; contrast, source identity and icon integrity pass.",
     "Production headless WebKit only; native input, IME, OS dialogs, VoiceOver and Windows verification were not run."
   ]
 }
