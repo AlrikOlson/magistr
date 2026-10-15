@@ -103,7 +103,8 @@ export class ProjectPicker {
     this.$("project-picker").classList.toggle("has-review",reviewing);
     this.$("project-form").setAttribute("aria-busy",String(busy));
     this.$("picker-title").textContent=reviewing?"Review project setup":"Open a project";
-    this.$("picker-intro").textContent=reviewing?"Choose the files to change. Read each change before applying it.":"Choose the folder you want to work in.";
+    this.$("picker-intro").hidden=!reviewing;
+    this.$("picker-intro").textContent=reviewing?"Review each change, then apply the selected files.":"";
     this.$("picker-folder-entry").hidden=reviewing;
     this.$("picker-destination").hidden=!reviewing;
     this.$("setup-root").textContent=state.preview?.setup_directory??state.directory;
@@ -162,7 +163,9 @@ export class ProjectPicker {
     body.replaceChildren();body.scrollTop=0;
     if(!file){body.append(node("p","No file changes are needed."));return;}
     const heading=node("header","","setup-change-heading");
-    heading.append(node("p",file.path,"setup-file-path"),node("h3",file.path.split("/").at(-1)),node("p",file.action+" · "+file.ownership,"setup-change-meta"));body.append(heading);
+    const directory=file.path.slice(0,file.path.lastIndexOf("/")+1);
+    if(directory)heading.append(node("p",directory,"setup-file-path"));
+    heading.append(node("h3",file.path.split("/").at(-1)),node("p",file.action+" · "+file.ownership,"setup-change-meta"));body.append(heading);
     if(file.reason)body.append(node("p",file.reason,"setup-reason"));
     const tabs=node("div","","setup-source-modes");tabs.setAttribute("role","group");tabs.setAttribute("aria-label","File view");
     const modes=[];

@@ -166,3 +166,27 @@ export const FinderMatch={parameters:{desktop:{...Finder.parameters.desktop,
  arrange:async context=>{await Finder.parameters.desktop.arrange(context);await context.userEvent.type(context.doc.querySelector("#switch-search"),"sync");},
  verify:({doc,expect})=>{expect(doc.querySelectorAll("#switch-results button").length).toBe(1);expect(doc.querySelector("#switch-results mark").textContent).toBe("sync");},
 }}};
+export const OpenFolder={parameters:{desktop:{
+ caption:"Open project dialog with its folder field focused",
+ task:"Enter or browse to a project folder.",
+ arrange:async context=>{await context.userEvent.click(context.ui.getByRole("button",{name:"Open project",exact:true}));},
+ verify:({doc,expect})=>{expect(doc.querySelector("#project-picker").open).toBe(true);expect(doc.activeElement).toBe(doc.querySelector("#project-folder"));expect(doc.querySelector("#picker-intro").hidden).toBe(true);},
+}}};
+export const SetupReview={parameters:{desktop:{
+ caption:"Project setup review with AGENTS.md changes selected for reading",
+ task:"Read a proposed file change before applying selected files.",
+ arrange:async context=>{await OpenFolder.parameters.desktop.arrange(context);await context.userEvent.type(context.doc.querySelector("#project-folder"),"/Projects/new-project");await context.userEvent.click(context.doc.querySelector("#picker-submit"));await context.waitFor(()=>context.expect(context.doc.querySelector("#setup-preview").hidden).toBe(false));await context.userEvent.click(context.ui.getByRole("button",{name:"Read AGENTS.md",exact:true}));},
+ verify:({doc,expect})=>{expect(doc.querySelector("#picker-title").textContent).toBe("Review project setup");expect(doc.querySelector("#setup-change h3").textContent).toBe("AGENTS.md");expect(doc.querySelector("#setup-count").textContent).toBe("12 of 12 changes selected");},
+}}};
+export const FolderFailure={parameters:{desktop:{
+ caption:"Open project dialog after a folder could not be read",
+ task:"Read a folder error and retry with the selected path preserved.",
+ arrange:async context=>{context.window.__fixture.handlers.preview_project=()=>{throw "This folder is not readable. Check its permissions and try again.";};await OpenFolder.parameters.desktop.arrange(context);await context.userEvent.type(context.doc.querySelector("#project-folder"),"/Projects/new-project");await context.userEvent.click(context.doc.querySelector("#picker-submit"));},
+ verify:({doc,expect})=>{expect(doc.querySelector("#picker-failure").hidden).toBe(false);expect(doc.querySelector("#picker-submit").textContent).toBe("Try again");expect(doc.querySelector("#project-folder").value).toBe("/Projects/new-project");},
+}}};
+export const SetupFileChanges={parameters:{desktop:{...SetupReview.parameters.desktop,
+ caption:"Project setup review scrolled to the complete AGENTS.md changes",
+ task:"Read the source lines before applying selected files.",
+ arrange:async context=>{await SetupReview.parameters.desktop.arrange(context);context.doc.querySelector(".setup-code-sheet").scrollIntoView({block:"nearest"});},
+ verify:context=>{SetupReview.parameters.desktop.verify(context);context.expect(context.doc.querySelector(".setup-code-sheet").getBoundingClientRect().bottom).toBeLessThanOrEqual(context.doc.querySelector(".picker-footer").getBoundingClientRect().top);},
+}}};
