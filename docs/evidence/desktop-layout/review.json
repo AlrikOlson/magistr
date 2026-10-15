@@ -1,9 +1,9 @@
 {
-  "receipt": "e9c5ddc9a8df46ab65816051eeeba2b6d6c6b692ab8a4b005493f2895e80cd48",
+  "receipt": "0ee9251673777be18887c5f58d64bc9b1a5822b22f362cef8d45cc8896240e6d",
   "images": {
-    "welcome-dark.png": "e6e17430637f0a971e1f75134d9a42314d572f25fd58ec84864345d16e67dc5b",
-    "welcome-light.png": "b4bf59ec45fd06aeb702b256e79e0e205619cff321ec753a94baae2357e1a1b3",
-    "welcome-narrow-light.png": "7d2f04b06c90cd6b7cf45d8a57992d01d2a7a17ad589e63e051a96f33f612f2c",
+    "welcome-dark.png": "9c940a0eab4923d8146724dbd7bf8fbddb7efee405231c914b2020a7c4e35ddb",
+    "welcome-light.png": "71b1ee6da71a4f60bdb5db678473ba6ee99662df4f6c3a38278b088ae6b04843",
+    "welcome-narrow-light.png": "39445a62b3a84399eace1e80679d5101fb867bb39605dc7bee71ee7cc90f37f4",
     "settings-dark.png": "1cc31ee8d2f4f2ccea63ef47dd549890ffa8fc73669ab38d285e746f021dcb0a",
     "workspace-dark.png": "d95d3e305d3f92e1de21946ada10091a042cf0ac46b33686d5e42e9695cec2f1",
     "settings-light.png": "8b7604544c89b7f0b75c84263d78d828f0445ca90dc1075741dd8b1e483917da",
@@ -33,7 +33,7 @@
     "code-light.png": "908865ee3e1782fb34ba5fe59502483271ec2004dfc3a8daeb2138cb4a2c9830",
     "tools-light.png": "fa4c65327545972b7770b003a4973a7f567a0f78ecb5f7b92406ff02ad74a196",
     "tools-dark.png": "77bcd3b53d7d77a9de095c1d6513e789aced3d349677f84e9296db50d06c1624",
-    "attachments-dark.png": "b2eed22d105333d182a52aecc0307b550cf2c7b95cef635dd676fae885e859d3",
+    "attachments-dark.png": "b5d23c808f2c98b4611ab65e58d3d23092b243206c835a463b7e1bb391d68c35",
     "attachments-narrow-light.png": "e73337c008bbd1efd60d9e61196d33d1165b05ad65238ac6b4b238cadd8d4a3a",
     "request-narrow-light.png": "b045db73c23fa4f54738cc0c6f009491bc8952fdb47d862763cac79d44b714bc",
     "request-dark.png": "5c70c65d7c0721e994cdc2cde87114b6b36c69ff7b7e9d12d31652f9384116b9",
@@ -49,8 +49,8 @@
   },
   "reviewed_on": "2026-10-15",
   "findings": [
-    "Reviewed the new project activity composition in dark and compact light views: the ring and four aligned numeric categories use the live catalog, with an explicit count of open conversations.",
-    "Six selected navigation and workspace WebKit tests passed, including working, closed, waiting and disconnected transitions.",
-    "Headless rendering and DOM evidence only. Native workflow recording is unavailable; existing saved records were preserved."
+    "Reviewed the dark project activity graphic rendered by WebGL: segment proportions retain catalog meaning, with a restrained lit cross-section and the semantic numeric legend outside the canvas.",
+    "Seven selected WebKit checks passed, including actual WebGL context loss and preserved HTML counts; the buffer is capped and the renderer has no animation loop.",
+    "Headless WebKit only; this does not establish native GPU performance, OS input, VoiceOver or Windows behavior. Native workflow state remains unreadable and untouched."
   ]
 }

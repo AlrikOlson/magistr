@@ -14,6 +14,20 @@ test("project activity follows catalog state without counting closed conversatio
   await expect(overview.locator('[data-kind="disconnected"] dd')).toHaveText("1");
 });
 
+test("activity material keeps the semantic counts through graphics context loss",async({app})=>{
+  const canvas=app.locator(".activity-material");
+  await expect(canvas).toHaveCount(1);
+  const available=await canvas.evaluate(node=>!!node.getContext("webgl"));
+  if(available){
+    await expect(app.locator(".activity-wheel")).toHaveAttribute("data-material","rendered");
+    expect(await canvas.evaluate(node=>node.width)).toBeLessThanOrEqual(384);
+    await canvas.evaluate(node=>node.getContext("webgl").getExtension("WEBGL_lose_context")?.loseContext());
+    await expect(app.locator(".activity-wheel")).not.toHaveAttribute("data-material","rendered");
+  }
+  await expect(app.locator('#project-activity [data-kind="waiting"] dd')).toHaveText("1");
+  await expect(app.locator(".activity-wheel strong")).toHaveText("3");
+});
+
 test("project groups preserve selection and addressed background actions",async({app})=>{
   const projects=app.getByRole("navigation",{name:"Projects",exact:true});
   await expect(projects.locator(".project-group")).toHaveCount(2);
