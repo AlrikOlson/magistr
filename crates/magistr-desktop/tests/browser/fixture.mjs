@@ -62,6 +62,7 @@ export function workspaceSeed() {
     updated_at:"2026-10-"+String(14-Math.floor(index/2)).padStart(2,"0")+"T15:30:00Z",ended_at:null,turns:"8",cost:"$0.42",resume_reason:null,
     summary:index===0?"The release is ready for a final review.\n\nCheck the installer on a clean machine, keep the previous build available, and confirm that reopening a project restores the unsent message.\n\n"+Array.from({length:8},(_,n)=>"Review "+(n+1)+": confirm the expected behavior with the person responsible for this part of the release. Keep a short note of what changed and how to recover.").join("\n\n"):"We reviewed the current behavior and agreed on the next change. Return to this conversation to continue with the same context."
   }));
+  for(const record of history)record.document={nodes:record.summary.split("\n\n").map((value,index)=>paragraph(value,index*100))};
   const setup={kind:"setup",review:1,directory:"/Projects/new-project",setup_directory:"/Projects/new-project",files:[
     {path:".magistr/project.json",action:"Create file",ownership:"Managed by Magistr",reason:null,selectable:true,before:null,after:'{\n  "name": "New project",\n  "language": "Rust"\n}\n',diff:null},
     {path:"AGENTS.md",action:"Update file",ownership:"Shared file",reason:"Only the Magistr instructions will change. Your project notes stay in place.",selectable:true,before:"# Project notes\n",after:"# Project notes\n\nUse focused checks for this project.\n",diff:"@@ -1 +1,3 @@\n # Project notes\n+\n+Use focused checks for this project.\n"},

@@ -15,6 +15,13 @@ fn unsupported_history_is_readable_and_unavailable_resume_is_explicit() {
     assert_eq!(view.purpose, "roadmap");
     assert_eq!(view.summary.as_deref(), Some("A saved reply"));
     assert!(view.resume_reason.unwrap().contains("cannot resume"));
+    record.summary =
+        Some("## Release review\n\n- Preserve the saved draft.\n- Check the installer.".into());
+    let formatted = saved(record.clone(), &[]);
+    let document = formatted.document.unwrap();
+    assert_eq!(document.nodes[0].tag, "h2");
+    assert_eq!(document.nodes[1].tag, "ul");
+    assert_eq!(formatted.summary, record.summary);
     record.resume_supported = true;
     record.provider_session_id = Some("provider".into());
     assert!(
