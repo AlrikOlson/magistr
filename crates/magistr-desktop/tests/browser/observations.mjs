@@ -66,12 +66,12 @@ export function workspaceSeed() {
     ...Array.from({length:10},(_,index)=>({path:".agents/skills/"+["craft","next","validate","roadmap","roadmap-refresh","signals","handoff","workbench-routing","init","next-loop"][index]+"/SKILL.md",action:"Create file",ownership:"Managed by Magistr",reason:null,selectable:true,before:null,after:"# Project workflow\n\nRead the current project state before starting work.\n\n"+Array.from({length:12},()=>"- Keep each change focused and verify the affected behavior.").join("\n"),diff:null}))
   ]};
   const roadmap=roadmapFixture();
-  return {frames,history,setup,workflow:{...workSnapshot(),roadmap:roadmap.records},roadmap:roadmap.overview,projects:[{id:"magistr",name:"Magistr",directory:"/Projects/magistr"},{id:"website",name:"Website",directory:"/Projects/website"}]};
+  return {preferences:{theme:"dark",reduce_motion:true},frames,history,setup,workflow:{...workSnapshot(),roadmap:roadmap.records},roadmap:roadmap.overview,projects:[{id:"magistr",name:"Magistr",directory:"/Projects/magistr"},{id:"website",name:"Website",directory:"/Projects/website"}]};
 }
 export function install(seed) {
   const frames=new Map(seed.frames.map(frame=>[frame.address.session,frame])),calls=[];
   const saved=new Map(seed.history.map((record,index)=>[record.id,{text:index===0?"Before shipping, confirm the rollback steps and check that the installation guide matches the new release.":"",revision:1}]));
-  let stream=1,subscription=null,catalog=null,preferences={revision:1,preferences:{theme:"dark",reduce_motion:true}};
+  let stream=1,subscription=null,catalog=null,preferences={revision:1,preferences:structuredClone(seed.preferences)};
   const sessions=()=>[...frames.values()].map(f=>({address:f.address,target:f.target,owned_conversations:[f.conversation.id],
     name:seed.projects.find(p=>p.directory===f.address.workspace)?.name??"Project",conversation:f.conversation,status:f.status,closed:f.closed,
     pending:f.pending.map(({id,title})=>({id,title})),activity:f.activity,usage:f.usage,model:f.model,work:f.work}));
