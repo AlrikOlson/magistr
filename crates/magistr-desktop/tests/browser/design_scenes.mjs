@@ -253,3 +253,28 @@ export async function historyScene(app,capture,expect){
     await app.getByRole("button",{name:"Close saved conversations",exact:true}).click();
   }
 }
+export async function workspaceScaleScene(app,capture,expect){
+  await showDocument(app,[
+    {tag:"h2",start:0,text:"Ready for a focused review"},
+    {tag:"p",start:30,text:"The conversation keeps its draft, selected text and reading position. Project activity stays nearby, and the details are available when you need them."},
+    {tag:"blockquote",start:200,children:[{tag:"p",start:202,text:"Keep the work easy to read, even when the window is small."}]},
+    {tag:"h3",start:300,text:"What changed"},
+    {tag:"ul",start:320,children:[{tag:"li",start:322,text:"Source documents keep exact copy and readable line positions."},{tag:"li",start:390,text:"Saved conversations use the same document presentation."},{tag:"li",start:460,text:"Setup review separates current files from proposed changes."}]}
+  ],920);
+  await app.getByLabel("Message the agent",{exact:true}).fill("Keep the evidence with this release.");
+  await app.setViewportSize({width:1920,height:1080});
+  await appearances(app,capture,"workspace-wide");
+  await app.getByRole("button",{name:"Details",exact:true}).click();
+  await capture("workspace-wide-details-light.png");
+  expect((await app.locator("#transcript").boundingBox()).width).toBeGreaterThan(1000);
+  await app.setViewportSize({width:760,height:550});
+  if(await app.locator("#close-details").isVisible())await app.locator("#close-details").click();
+  await appearances(app,capture,"workspace-compact-final");
+  expect((await app.locator("#transcript").boundingBox()).height).toBeGreaterThanOrEqual(200);
+  expect(await app.evaluate(()=>document.documentElement.scrollWidth)).toBe(760);
+  const title="Review the desktop release, preserve every saved draft, and verify the installer before sharing the next build";
+  await app.evaluate(name=>{const f=window.__fixture.frames.get("release");window.__fixture.publish("release",{conversation:{...f.conversation,name}});},title);
+  await expect(app.locator("#view-title")).toHaveAttribute("title",title);
+  expect((await app.locator("#view-title").boundingBox()).height).toBeLessThanOrEqual(49);
+  await capture("workspace-compact-long-title.png");
+}

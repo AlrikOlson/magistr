@@ -6,6 +6,7 @@ export function matchesHistory(record,query) {
   const content=[historyName(record),record.workspace,record.provider,record.model,record.summary].filter(Boolean).join(" ").toLocaleLowerCase();
   return words.every(word=>content.includes(word));
 }
+const documentExcerpt=nodes=>nodes.map(node=>node.text||documentExcerpt(node.children??[])).join(" ");
 const text=(tag,value)=>{const element=document.createElement(tag);element.textContent=value;return element;};
 
 // Only browsing state lives here. SavedDraftEditor owns text and attachment writes.
@@ -60,7 +61,7 @@ export class HistoryBrowser {
       }
       row.record=record;row.project.textContent=record.workspace.split(/[\\/]/).filter(Boolean).at(-1);
       row.name.textContent=historyName(record);row.meta.textContent=new Date(record.updated_at).toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"});
-      row.meta.dateTime=record.updated_at;row.excerpt.textContent=record.summary??"";row.excerpt.hidden=!record.summary;
+      row.meta.dateTime=record.updated_at;row.excerpt.textContent=record.document?documentExcerpt(record.document.nodes):"";row.excerpt.hidden=!record.document;
       row.button.setAttribute("aria-label",historyName(record));row.button.title=record.workspace;
       row.button.setAttribute("aria-current",String(record.id===this.current?.id));
       row.button.setAttribute("aria-busy",String(record.id===this.opening));
