@@ -1,0 +1,54 @@
+{
+  "scope": "Use a compact readable hierarchy for agent replies",
+  "limitations": "Headless WebKit with isolated observations. Native OS input, assistive technology and Rust command integration were not exercised.",
+  "images": {
+    "conversation--reply-end-compact-dark.png": {
+      "sha256": "3c6076e13041baa594c410beb0188ce43ea7576b2f0b44b65e9f94157a0fc4c7",
+      "task": "Scan headings, paragraphs and lists without oversized document typography.",
+      "observations": "The compact end position shows the concluding paragraph, Next step subheading and recommendation above the composer. Paragraph and list spacing is tighter without crowding. Dark appearance remains readable. Composer and navigation retain their placement.",
+      "verdict": "pass"
+    },
+    "conversation--reply-end-compact-light.png": {
+      "sha256": "1b013feb728ae3ced74be28eb6f3c75a850facd596950c529101b10a06cfb20a",
+      "task": "Scan headings, paragraphs and lists without oversized document typography.",
+      "observations": "The compact end position shows the concluding paragraph, Next step subheading and recommendation above the composer. Paragraph and list spacing is tighter without crowding. Light appearance remains readable. Composer and navigation retain their placement.",
+      "verdict": "pass"
+    },
+    "conversation--reply-end-desktop-dark.png": {
+      "sha256": "00a7dfe6b55c7e46e32dd47a632f6a1600c55aa2cbbee508c9200383370605be",
+      "task": "Scan headings, paragraphs and lists without oversized document typography.",
+      "observations": "The desktop end position shows the reply heading, findings, two list items and Next step together. Paragraph and list spacing is tighter without crowding. Dark appearance remains readable. Composer and navigation retain their placement.",
+      "verdict": "pass"
+    },
+    "conversation--reply-end-desktop-light.png": {
+      "sha256": "a9fb80a61d5d09d1a9d2065e86cc227961293f45510d8e2e9529ae1996afa241",
+      "task": "Scan headings, paragraphs and lists without oversized document typography.",
+      "observations": "The desktop end position shows the reply heading, findings, two list items and Next step together. Paragraph and list spacing is tighter without crowding. Light appearance remains readable. Composer and navigation retain their placement.",
+      "verdict": "pass"
+    },
+    "conversation--transcript-start-compact-dark.png": {
+      "sha256": "db1ee50e908efc405114e479e9518a5e4aa493ce0fca0527e5ce454c046c79b7",
+      "task": "Scan headings, paragraphs and lists without oversized document typography.",
+      "observations": "The sent request and 20 px reply heading are visible with clear author boundaries. At 760 px the beginning of the reply remains above the fixed composer; Latest reply is reachable. Dark text surfaces and purple accents remain distinct. No horizontal clipping or control overlap.",
+      "verdict": "pass"
+    },
+    "conversation--transcript-start-compact-light.png": {
+      "sha256": "ced178ec122e2bc05fd835a147f93b9d8559075e62a4e2d7c097dc36921809a1",
+      "task": "Scan headings, paragraphs and lists without oversized document typography.",
+      "observations": "The sent request and 20 px reply heading are visible with clear author boundaries. At 760 px the beginning of the reply remains above the fixed composer; Latest reply is reachable. Light surfaces and body text retain clear contrast. No horizontal clipping or control overlap.",
+      "verdict": "pass"
+    },
+    "conversation--transcript-start-desktop-dark.png": {
+      "sha256": "3c641694a3b39a0242f39d205a737114c15b8a5155b6a5dbb9255ae3585ad54b",
+      "task": "Scan headings, paragraphs and lists without oversized document typography.",
+      "observations": "The sent request and 20 px reply heading are visible with clear author boundaries. At 1280 px the heading, subheading and two list rows form a readable hierarchy with shorter gaps. Dark text surfaces and purple accents remain distinct. No horizontal clipping or control overlap.",
+      "verdict": "pass"
+    },
+    "conversation--transcript-start-desktop-light.png": {
+      "sha256": "56dd84bc91b0d58fc0944b76237d08558b6425db40746c4348ef881af660df60",
+      "task": "Scan headings, paragraphs and lists without oversized document typography.",
+      "observations": "The sent request and 20 px reply heading are visible with clear author boundaries. At 1280 px the heading, subheading and two list rows form a readable hierarchy with shorter gaps. Light surfaces and body text retain clear contrast. No horizontal clipping or control overlap.",
+      "verdict": "pass"
+    }
+  }
+}

@@ -32,3 +32,15 @@ export const ExpandedEditor={parameters:{desktop:{
     expect(doc.querySelector("#draft").value).toContain("Keep the project list visible");
   },
 }}};
+export const TranscriptStart={parameters:{desktop:{
+  caption:"Release conversation at the start of the transcript, showing the sent message and reply opening",
+  task:"Read the sent request and the beginning of the agent reply.",
+  arrange:async context=>{await openRelease(context);await new Promise(resolve=>context.window.requestAnimationFrame(()=>context.window.requestAnimationFrame(resolve)));context.doc.querySelector("#transcript").scrollTop=0;},
+  verify:context=>{conversationVisible(context);context.expect(context.doc.querySelector("#transcript").scrollTop).toBe(0);},
+}}};
+export const ReplyEnd={parameters:{desktop:{
+  caption:"Release conversation scrolled to the end of the agent reply",
+  task:"Read the final recommendation and continue with an unsent message.",
+  arrange:async context=>{await openRelease(context);await new Promise(resolve=>context.window.requestAnimationFrame(()=>context.window.requestAnimationFrame(resolve)));const transcript=context.doc.querySelector("#transcript");transcript.scrollTop=transcript.scrollHeight;},
+  verify:context=>{conversationVisible(context);const t=context.doc.querySelector("#transcript");context.expect(Math.abs(t.scrollHeight-t.clientHeight-t.scrollTop)).toBeLessThanOrEqual(1);},
+}}};

@@ -1,0 +1,30 @@
+{
+  "scope": "Use a compact readable hierarchy for agent replies",
+  "limitations": "Headless WebKit with isolated observations. Native OS input, assistive technology and Rust command integration were not exercised.",
+  "images": {
+    "conversation--release-plan-compact-dark.png": {
+      "sha256": "86187a7e22ae59d631c73b26b592cf845d7c2ccf1d1d42a76bfba0e69441ad14",
+      "task": "Scan headings, paragraphs and lists without oversized document typography.",
+      "observations": "The reply spacing is readable, but this capture is scrolled toward the later reply and does not show all changed headings at compact size. Additional named reading-position states are required before accepting the iteration.",
+      "verdict": "fail"
+    },
+    "conversation--release-plan-compact-light.png": {
+      "sha256": "d89d5b00f2be46b9c8da61c933f15b3a0e874e4ebc30db9b9b13c01518f003d9",
+      "task": "Scan headings, paragraphs and lists without oversized document typography.",
+      "observations": "The reply spacing is readable, but this capture is scrolled toward the later reply and does not show all changed headings at compact size. Additional named reading-position states are required before accepting the iteration.",
+      "verdict": "fail"
+    },
+    "conversation--release-plan-desktop-dark.png": {
+      "sha256": "3f1da4c9e71604892439ec64dbb7b1ede9dacb85e10aa2b0206d1958cd6d8547",
+      "task": "Scan headings, paragraphs and lists without oversized document typography.",
+      "observations": "The reply spacing is readable, but this capture is scrolled toward the later reply and does not show all changed headings at compact size. Additional named reading-position states are required before accepting the iteration.",
+      "verdict": "fail"
+    },
+    "conversation--release-plan-desktop-light.png": {
+      "sha256": "3d29dc92726bc090938d531e81de45b1f62da6993a04364863e7ad093acab562",
+      "task": "Scan headings, paragraphs and lists without oversized document typography.",
+      "observations": "The reply spacing is readable, but this capture is scrolled toward the later reply and does not show all changed headings at compact size. Additional named reading-position states are required before accepting the iteration.",
+      "verdict": "fail"
+    }
+  }
+}
