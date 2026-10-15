@@ -8,9 +8,11 @@ function structured(document,value,depth,budget){
     if(comparable){
       const region=document.createElement("div");region.className="result-records";region.tabIndex=0;region.setAttribute("role","region");region.setAttribute("aria-label","Records");
       const table=document.createElement("table"),head=document.createElement("thead"),headers=document.createElement("tr"),body=document.createElement("tbody");
-      for(const key of keys){const th=document.createElement("th");th.scope="col";th.textContent=key;headers.append(th);}head.append(headers);
-      for(const row of value){const tr=document.createElement("tr");for(const key of keys){const td=document.createElement("td");td.append(structured(document,row[key],depth+1,budget));tr.append(td);}body.append(tr);}
-      table.append(head,body);region.append(table);return region;
+      const caption=document.createElement("caption");caption.textContent=value.length+" records · "+keys.length+" fields";
+      const numeric=key=>value.some(row=>typeof row[key]==="number")&&value.every(row=>row[key]===null||typeof row[key]==="number");
+      for(const key of keys){const th=document.createElement("th");th.scope="col";th.textContent=key;th.dataset.numeric=String(numeric(key));headers.append(th);}head.append(headers);
+      for(const row of value){const tr=document.createElement("tr");for(const key of keys){const td=document.createElement("td");td.dataset.numeric=String(numeric(key));td.append(structured(document,row[key],depth+1,budget));tr.append(td);}body.append(tr);}
+      table.append(caption,head,body);region.append(table);return region;
     }
   }
   const node=document.createElement(value&&typeof value==="object"?"dl":"span");
