@@ -154,3 +154,11 @@
 .work-surface[data-overview=true] .atlas-piece strong{font-size:calc(12px / var(--view-scale))}
 .work-surface[data-overview=true] .atlas-piece-detail,.work-surface[data-overview=true] .atlas-piece small{display:none}
 @container(max-width:900px){.surface-help{display:none}}
+#work-track-selection{flex:0 1 440px}
+#work-track-selection .work-filter{grid-template-columns:auto minmax(0,1fr);align-items:center;gap:6px}
+#work-track-selection .work-filter>label{position:static;clip-path:none;width:auto;height:auto;overflow:visible;font-size:11px}
+#work-track-selection .work-filter:last-child{flex:0 1 210px}
+#work-roadmap-search{flex:1 1 230px}
+#work-roadmap-search .work-filter{grid-template-columns:auto minmax(0,1fr);align-items:center;gap:6px}
+#work-roadmap-search .work-filter>label{position:absolute;clip-path:inset(50%);width:1px;height:1px;overflow:hidden}
+#work-roadmap-search .work-search-field{grid-column:1/-1}
