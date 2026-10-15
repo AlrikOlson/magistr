@@ -21,9 +21,9 @@ export function renderArtifact(run,task,artifact,index,{copy,openLink}){
   heading.append(element("h5",artifact.description||types[artifact.type]||"Produced item"),element("span",types[artifact.type]||"Item"));
   row.append(heading,element("p",artifact.ref,"work-artifact-reference"));
   const copyButton=element("button","Copy reference");copyButton.dataset.focusKey=identity+":artifact:"+index;
-  copyButton.onclick=()=>copy(artifact.ref);row.append(copyButton);
+  copyButton.onclick=()=>copy(artifact.ref);const controls=element("div","","work-artifact-actions");controls.append(copyButton);row.append(controls);
   if(/^https?:\/\//i.test(artifact.ref)){
-    const open=element("button","Open link");open.onclick=()=>openLink(artifact.ref);row.append(open);
+    const open=element("button","Open link");open.onclick=()=>openLink(artifact.ref);controls.append(open);
   }
   return row;
 }

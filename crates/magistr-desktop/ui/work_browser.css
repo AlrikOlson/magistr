@@ -67,10 +67,10 @@
 .work-action-references{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}.work-action-list h5{font-size:11px;margin:0;color:var(--muted);font-weight:500}.work-action-list ul{padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:4px 12px;margin:0}
 .work-action-list ul>li{font:11px/1.5 var(--font-code);margin:0;overflow-wrap:anywhere}
 .work-action-list .source-details{margin-top:4px}.work-action-list .source-result{max-height:320px;overflow:auto}
-.work-artifacts{margin-top:20px}.work-artifacts h4{font-size:12px}.work-artifacts article{padding:14px;border:1px solid var(--separator);border-radius:5px;margin-top:10px;background:var(--base)}
+.work-artifacts{margin-top:12px}.work-artifacts h4{font-size:12px}.work-artifacts article{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 16px;padding:10px 0;border-bottom:1px solid var(--separator);margin-top:0;background:transparent}.work-artifacts article>header,.work-artifacts .work-artifact-reference{grid-column:1}.work-artifact-actions{display:flex;gap:6px;align-items:center;grid-column:2;grid-row:1/3}.work-artifacts .work-artifact-reference{margin:0}
 .work-artifacts header{display:flex;align-items:baseline;gap:16px;justify-content:space-between}.work-artifacts h5{font-size:12px;margin:0}.work-artifacts header span{font-size:10px;color:var(--muted)}
 .work-artifacts .work-artifact-reference{font:11px/1.7 ui-monospace,monospace;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--text)}
-.work-artifacts button{font-size:11px;margin:12px 8px 0 0}
+.work-artifacts button{font-size:11px;min-height:30px;padding:5px 8px;margin:0}
 .roadmap-item-open{display:block;text-align:left;font-weight:600;font-size:14px;line-height:1.6;background:transparent;border:0;color:var(--text);padding:0 80px 0 0;white-space:pre-wrap;max-width:100%}.roadmap-item-open:hover{color:var(--accent)}
 .work-record-navigation{display:flex;align-items:center;gap:12px;margin-bottom:14px}.roadmap-back{font-size:12px;flex-shrink:0}.roadmap-item-detail{padding-top:0}.roadmap-item-heading{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 16px}.roadmap-item-heading h3{flex:1 1 350px;margin:0}.roadmap-item-heading .work-record-status{white-space:nowrap}
 .roadmap-item-summary{font-size:14px;line-height:1.6;margin-block:14px;white-space:pre-wrap}
