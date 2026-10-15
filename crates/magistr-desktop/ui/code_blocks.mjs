@@ -18,17 +18,19 @@ export function renderCodeBlock(figure, source, copy) {
     const title = create("span", "code-title", "Code");
     const count = create("span", "code-count");
     const button = create("button", "code-copy", "Copy code"); button.type = "button";
+    const wrap = create("button", "code-wrap", "Wrap lines");wrap.type = "button";wrap.setAttribute("aria-pressed","false");
+    wrap.onclick = () => {const wrapped=wrap.getAttribute("aria-pressed")!=="true";wrap.setAttribute("aria-pressed",String(wrapped));figure.dataset.wrapped=String(wrapped);};
     const surface = create("div", "code-surface");
     const gutter = create("span", "code-gutter"); gutter.setAttribute("aria-hidden", "true");
     const pre = create("pre", ""); pre.tabIndex = 0; pre.setAttribute("aria-label", "Code");
     const code = create("code", "");
-    pre.append(code); surface.append(gutter, pre); caption.append(title, count, button);
-    figure.append(caption, surface); state = { title, count, button, gutter, code }; states.set(figure, state);
+    pre.append(code); surface.append(gutter, pre); caption.append(title, count, wrap, button);
+    figure.append(caption, surface); state = { title, count, button, wrap, gutter, code }; states.set(figure, state);
   }
   const text = sourceText(source);
   const lines = text ? text.split("\n").length - Number(text.endsWith("\n")) : 0;
   const patch=["diff","patch"].includes(source.language)?paintPatch(state.code,text):null;
-  figure.classList.toggle("patch-document",!!patch);
+  figure.classList.toggle("patch-document",!!patch);state.wrap.hidden=!!patch;
   if(!patch)paintSource(state.code, text, source.language);
   state.title.textContent = patch ? "Changes" : source.language || "Code";
   state.count.textContent = patch ? "+"+patch.added+" added · −"+patch.removed+" removed" : lines.toLocaleString() + (lines === 1 ? " line" : " lines");
@@ -37,5 +39,5 @@ export function renderCodeBlock(figure, source, copy) {
   const numbers = lines > 1000 ? "" : Array.from({ length: lines }, (_, i) => i + 1).join("\n");
   if (state.gutter.dataset.lines !== numbers) state.gutter.dataset.lines = numbers;
   state.button.disabled = !copy || !text;
-  state.button.onclick = () => copy?.(state.code.textContent);
+  state.button.onclick = () => copy?.(text);
 }
