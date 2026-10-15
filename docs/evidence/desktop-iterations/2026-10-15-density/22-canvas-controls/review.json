@@ -1,0 +1,54 @@
+{
+  "scope": "Group canvas navigation controls compactly",
+  "limitations": "Headless WebKit with isolated observations. Native OS input, assistive technology and Rust command integration were not exercised.",
+  "images": {
+    "reasoning--overview-compact-dark.png": {
+      "sha256": "490fc2fcb8141ee1bc4d5879409a9672f153a7b675813cf5133e6196d84ad9bb",
+      "task": "Pan, zoom and arrange work with clear grouped controls and a useful drawing area.",
+      "observations": "Default roadmap and reasoning frames are legible at 100%; connections attach correctly and the zoom group is visually separated. Required expanded pan and arrangement captures are missing because a story selected a hidden canvas; verification remains incomplete.",
+      "verdict": "fail"
+    },
+    "reasoning--overview-compact-light.png": {
+      "sha256": "060d9675b96ccd0212e68e321b6e1308bba9c32c32edae3bc6272d5f5bf6836a",
+      "task": "Pan, zoom and arrange work with clear grouped controls and a useful drawing area.",
+      "observations": "Default roadmap and reasoning frames are legible at 100%; connections attach correctly and the zoom group is visually separated. Required expanded pan and arrangement captures are missing because a story selected a hidden canvas; verification remains incomplete.",
+      "verdict": "fail"
+    },
+    "reasoning--overview-desktop-dark.png": {
+      "sha256": "de9af4d7ebf19ad80811e91a03bfa884818ae3928450a2496cfc9de83dc3928f",
+      "task": "Pan, zoom and arrange work with clear grouped controls and a useful drawing area.",
+      "observations": "Default roadmap and reasoning frames are legible at 100%; connections attach correctly and the zoom group is visually separated. Required expanded pan and arrangement captures are missing because a story selected a hidden canvas; verification remains incomplete.",
+      "verdict": "fail"
+    },
+    "reasoning--overview-desktop-light.png": {
+      "sha256": "44b4701c076570787363b56114e6e648795c1682047012f47a108633042ecba2",
+      "task": "Pan, zoom and arrange work with clear grouped controls and a useful drawing area.",
+      "observations": "Default roadmap and reasoning frames are legible at 100%; connections attach correctly and the zoom group is visually separated. Required expanded pan and arrangement captures are missing because a story selected a hidden canvas; verification remains incomplete.",
+      "verdict": "fail"
+    },
+    "roadmap--overview-compact-dark.png": {
+      "sha256": "c0e24e5d3e33909234a95de04e2c793a93485b0ecc91ab8db490b51e9a799bf7",
+      "task": "Pan, zoom and arrange work with clear grouped controls and a useful drawing area.",
+      "observations": "Default roadmap and reasoning frames are legible at 100%; connections attach correctly and the zoom group is visually separated. Required expanded pan and arrangement captures are missing because a story selected a hidden canvas; verification remains incomplete.",
+      "verdict": "fail"
+    },
+    "roadmap--overview-compact-light.png": {
+      "sha256": "447c16384917486c77f35836f54f610037a18789d07b524fb4f06e813c4271e5",
+      "task": "Pan, zoom and arrange work with clear grouped controls and a useful drawing area.",
+      "observations": "Default roadmap and reasoning frames are legible at 100%; connections attach correctly and the zoom group is visually separated. Required expanded pan and arrangement captures are missing because a story selected a hidden canvas; verification remains incomplete.",
+      "verdict": "fail"
+    },
+    "roadmap--overview-desktop-dark.png": {
+      "sha256": "4be1e01a285024a35ecfb0c5493d14eb7b18080f200eb2658e7c4c508c4fd033",
+      "task": "Pan, zoom and arrange work with clear grouped controls and a useful drawing area.",
+      "observations": "Default roadmap and reasoning frames are legible at 100%; connections attach correctly and the zoom group is visually separated. Required expanded pan and arrangement captures are missing because a story selected a hidden canvas; verification remains incomplete.",
+      "verdict": "fail"
+    },
+    "roadmap--overview-desktop-light.png": {
+      "sha256": "bd7fc7a62b381c18fa79833429f06fbfd438b91cc6f423f46017284af03da200",
+      "task": "Pan, zoom and arrange work with clear grouped controls and a useful drawing area.",
+      "observations": "Default roadmap and reasoning frames are legible at 100%; connections attach correctly and the zoom group is visually separated. Required expanded pan and arrangement captures are missing because a story selected a hidden canvas; verification remains incomplete.",
+      "verdict": "fail"
+    }
+  }
+}

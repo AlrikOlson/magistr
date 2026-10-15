@@ -1,0 +1,126 @@
+{
+  "scope": "Group canvas navigation controls compactly",
+  "limitations": "Headless WebKit with isolated observations. Native OS input, assistive technology and Rust command integration were not exercised.",
+  "images": {
+    "projects-directory--map-compact-dark.png": {
+      "sha256": "52d0dc477ee6ae5dbb5b40a05e10dced844cd202dd2f854be420d83e08a67895",
+      "task": "Pan, zoom and arrange work with clear grouped controls and a useful drawing area.",
+      "observations": "The project map has a distinct zoom group followed by Fit all, Auto arrange and Move view. Project-to-conversation attachments are clear and readable at 100%; the compact viewport exposes the first project and can pan to the remainder. Toolbar stays below the drawing viewport without covering text.",
+      "verdict": "pass"
+    },
+    "projects-directory--map-compact-light.png": {
+      "sha256": "4c5098707eeb2ac5a1ed89c656cf105d3003f4d3a946274e3fe3be8776da245f",
+      "task": "Pan, zoom and arrange work with clear grouped controls and a useful drawing area.",
+      "observations": "The project map has a distinct zoom group followed by Fit all, Auto arrange and Move view. Project-to-conversation attachments are clear and readable at 100%; the compact viewport exposes the first project and can pan to the remainder. Toolbar stays below the drawing viewport without covering text.",
+      "verdict": "pass"
+    },
+    "projects-directory--map-desktop-dark.png": {
+      "sha256": "c7d69220ee6a0bc8396590191815532983104f0f8705776cc44478e68cb6caed",
+      "task": "Pan, zoom and arrange work with clear grouped controls and a useful drawing area.",
+      "observations": "The project map has a distinct zoom group followed by Fit all, Auto arrange and Move view. Project-to-conversation attachments are clear and readable at 100%; the compact viewport exposes the first project and can pan to the remainder. Toolbar stays below the drawing viewport without covering text.",
+      "verdict": "pass"
+    },
+    "projects-directory--map-desktop-light.png": {
+      "sha256": "dfb53517454097834354356240bf2f8681f7aecfe70836dfbb579f4b85bfc736",
+      "task": "Pan, zoom and arrange work with clear grouped controls and a useful drawing area.",
+      "observations": "The project map has a distinct zoom group followed by Fit all, Auto arrange and Move view. Project-to-conversation attachments are clear and readable at 100%; the compact viewport exposes the first project and can pan to the remainder. Toolbar stays below the drawing viewport without covering text.",
+      "verdict": "pass"
+    },
+    "reasoning--overview-compact-dark.png": {
+      "sha256": "490fc2fcb8141ee1bc4d5879409a9672f153a7b675813cf5133e6196d84ad9bb",
+      "task": "Pan, zoom and arrange work with clear grouped controls and a useful drawing area.",
+      "observations": "The reasoning graph keeps readable 100% step text, separate investigation and conclusion arrows, and clear endpoint attachments. Grouped navigation fits below the graph in both sizes with no overlap.",
+      "verdict": "pass"
+    },
+    "reasoning--overview-compact-light.png": {
+      "sha256": "060d9675b96ccd0212e68e321b6e1308bba9c32c32edae3bc6272d5f5bf6836a",
+      "task": "Pan, zoom and arrange work with clear grouped controls and a useful drawing area.",
+      "observations": "The reasoning graph keeps readable 100% step text, separate investigation and conclusion arrows, and clear endpoint attachments. Grouped navigation fits below the graph in both sizes with no overlap.",
+      "verdict": "pass"
+    },
+    "reasoning--overview-desktop-dark.png": {
+      "sha256": "de9af4d7ebf19ad80811e91a03bfa884818ae3928450a2496cfc9de83dc3928f",
+      "task": "Pan, zoom and arrange work with clear grouped controls and a useful drawing area.",
+      "observations": "The reasoning graph keeps readable 100% step text, separate investigation and conclusion arrows, and clear endpoint attachments. Grouped navigation fits below the graph in both sizes with no overlap.",
+      "verdict": "pass"
+    },
+    "reasoning--overview-desktop-light.png": {
+      "sha256": "44b4701c076570787363b56114e6e648795c1682047012f47a108633042ecba2",
+      "task": "Pan, zoom and arrange work with clear grouped controls and a useful drawing area.",
+      "observations": "The reasoning graph keeps readable 100% step text, separate investigation and conclusion arrows, and clear endpoint attachments. Grouped navigation fits below the graph in both sizes with no overlap.",
+      "verdict": "pass"
+    },
+    "roadmap--arrange-item-compact-dark.png": {
+      "sha256": "ba7dfc1697891310f367bbc3b6343d06617a11967ab10146aae9c845e18010df",
+      "task": "Pan, zoom and arrange work with clear grouped controls and a useful drawing area.",
+      "observations": "Move piece appears at bottom right with four arrows and Done, separate from the canvas navigation group at left. Focus is visible, controls fit the compact width, and dependency lines remain attached clearly.",
+      "verdict": "pass"
+    },
+    "roadmap--arrange-item-compact-light.png": {
+      "sha256": "092b2d08e9ffc904c2d55c8659cc89368f30a3d1ef893fb7bba4b810127571ce",
+      "task": "Pan, zoom and arrange work with clear grouped controls and a useful drawing area.",
+      "observations": "Move piece appears at bottom right with four arrows and Done, separate from the canvas navigation group at left. Focus is visible, controls fit the compact width, and dependency lines remain attached clearly.",
+      "verdict": "pass"
+    },
+    "roadmap--arrange-item-desktop-dark.png": {
+      "sha256": "ee0d0368d9f734b4fb67130b41cf7791e611c7668b1faa877d7c6c2c26eb95f6",
+      "task": "Pan, zoom and arrange work with clear grouped controls and a useful drawing area.",
+      "observations": "Move piece appears at bottom right with four arrows and Done, separate from the canvas navigation group at left. Focus is visible, controls fit the compact width, and dependency lines remain attached clearly.",
+      "verdict": "pass"
+    },
+    "roadmap--arrange-item-desktop-light.png": {
+      "sha256": "54d547bb55dcef2cd7495e765384e643384af759e0651b1d284a2744e34c79bb",
+      "task": "Pan, zoom and arrange work with clear grouped controls and a useful drawing area.",
+      "observations": "Move piece appears at bottom right with four arrows and Done, separate from the canvas navigation group at left. Focus is visible, controls fit the compact width, and dependency lines remain attached clearly.",
+      "verdict": "pass"
+    },
+    "roadmap--move-view-compact-dark.png": {
+      "sha256": "1d987159603410fb3829ab089030a40346e309d0a01c52d3124f17b9d3729ada",
+      "task": "Pan, zoom and arrange work with clear grouped controls and a useful drawing area.",
+      "observations": "Move view opens four directional buttons directly above its summary. The popup and focus outline remain separate from the zoom group and graph text; all five roadmap items and dependency arrows remain readable.",
+      "verdict": "pass"
+    },
+    "roadmap--move-view-compact-light.png": {
+      "sha256": "8c250906c0b08a53adce729f602901ba3c3120313e0e646a8dfbb5a9f943f176",
+      "task": "Pan, zoom and arrange work with clear grouped controls and a useful drawing area.",
+      "observations": "Move view opens four directional buttons directly above its summary. The popup and focus outline remain separate from the zoom group and graph text; all five roadmap items and dependency arrows remain readable.",
+      "verdict": "pass"
+    },
+    "roadmap--move-view-desktop-dark.png": {
+      "sha256": "a4cf972d62c9e88180d0b2ab4c0f8f1c18fdae5e36195fef5786670a95172eed",
+      "task": "Pan, zoom and arrange work with clear grouped controls and a useful drawing area.",
+      "observations": "Move view opens four directional buttons directly above its summary. The popup and focus outline remain separate from the zoom group and graph text; all five roadmap items and dependency arrows remain readable.",
+      "verdict": "pass"
+    },
+    "roadmap--move-view-desktop-light.png": {
+      "sha256": "6c616611c0f036049f795cef2e1306b2096434a7018d187f801f522ec9119c81",
+      "task": "Pan, zoom and arrange work with clear grouped controls and a useful drawing area.",
+      "observations": "Move view opens four directional buttons directly above its summary. The popup and focus outline remain separate from the zoom group and graph text; all five roadmap items and dependency arrows remain readable.",
+      "verdict": "pass"
+    },
+    "roadmap--overview-compact-dark.png": {
+      "sha256": "c0e24e5d3e33909234a95de04e2c793a93485b0ecc91ab8db490b51e9a799bf7",
+      "task": "Pan, zoom and arrange work with clear grouped controls and a useful drawing area.",
+      "observations": "Zoom controls form one compact group at bottom left followed by the three view actions. Roadmap item titles, readiness states and directional dependency lines remain readable at 100% in both sizes.",
+      "verdict": "pass"
+    },
+    "roadmap--overview-compact-light.png": {
+      "sha256": "447c16384917486c77f35836f54f610037a18789d07b524fb4f06e813c4271e5",
+      "task": "Pan, zoom and arrange work with clear grouped controls and a useful drawing area.",
+      "observations": "Zoom controls form one compact group at bottom left followed by the three view actions. Roadmap item titles, readiness states and directional dependency lines remain readable at 100% in both sizes.",
+      "verdict": "pass"
+    },
+    "roadmap--overview-desktop-dark.png": {
+      "sha256": "4be1e01a285024a35ecfb0c5493d14eb7b18080f200eb2658e7c4c508c4fd033",
+      "task": "Pan, zoom and arrange work with clear grouped controls and a useful drawing area.",
+      "observations": "Zoom controls form one compact group at bottom left followed by the three view actions. Roadmap item titles, readiness states and directional dependency lines remain readable at 100% in both sizes.",
+      "verdict": "pass"
+    },
+    "roadmap--overview-desktop-light.png": {
+      "sha256": "bd7fc7a62b381c18fa79833429f06fbfd438b91cc6f423f46017284af03da200",
+      "task": "Pan, zoom and arrange work with clear grouped controls and a useful drawing area.",
+      "observations": "Zoom controls form one compact group at bottom left followed by the three view actions. Roadmap item titles, readiness states and directional dependency lines remain readable at 100% in both sizes.",
+      "verdict": "pass"
+    }
+  }
+}

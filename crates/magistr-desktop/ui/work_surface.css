@@ -28,7 +28,9 @@
 .surface-connection[data-related=true]{color:var(--accent);border-color:var(--accent)}
 .surface-tools{position:absolute;bottom:14px;left:16px;display:flex;align-items:center;gap:3px;background:var(--panel);border:1px solid var(--separator);border-radius:7px;padding:4px;box-shadow:0 2px 12px #0002;z-index:2}
 .surface-tools button,.surface-tools summary{min-height:30px;padding:4px 8px;font-size:11px;border:0;background:transparent}.surface-tools output{width:42px;text-align:center;color:var(--muted);font-size:10px;font-variant-numeric:tabular-nums}
-.surface-pan{display:flex}.surface-pan[open]{display:flex;position:relative}.surface-pan summary{cursor:pointer;display:inline-block}.surface-pan button{min-width:28px}
+.surface-zoom{display:flex;align-items:center;border-right:1px solid var(--separator);padding-right:4px;margin-right:2px}.surface-zoom button{min-width:28px}
+.surface-pan{position:relative}.surface-pan summary{cursor:pointer;display:inline-block}.surface-pan button{min-width:30px}
+.surface-pan-actions{position:absolute;bottom:calc(100% + 10px);right:0;display:flex;gap:2px;padding:4px;background:var(--panel);border:1px solid var(--separator);border-radius:6px;box-shadow:var(--shadow-soft)}
 .surface-help{position:absolute;bottom:22px;right:18px;left:auto;margin:0;color:var(--muted);font-size:10px;pointer-events:none}
 .surface-arrange{position:absolute;right:16px;bottom:16px;display:flex;gap:3px;align-items:center;background:var(--panel);border:1px solid var(--accent);border-radius:6px;padding:6px;font-size:11px;z-index:3}.surface-arrange button{min-width:28px;min-height:28px;padding:3px 8px;font-size:11px}
 #work-browser-body{display:flex;flex:1;min-height:0;min-width:0}

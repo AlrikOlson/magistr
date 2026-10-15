@@ -12,9 +12,11 @@ export class WorkSurface{
     this.viewport.append(this.canvas,this.world);this.root.append(this.viewport);this.nodes=new Map();this.positions=new Map();this.camera={x:32,y:48,scale:1};this.edges=[];this.groups=[];this.selected=null;
     this.tools=element("div","","surface-tools");this.tools.setAttribute("role","toolbar");this.tools.setAttribute("aria-label",label+" view controls");
     this.zoomLabel=action("Actual size",()=>{this.fit(true);this.zoom(1/this.camera.scale);const anchor=this.nodes.get(this.selected??this.focusId);if(anchor)this.reveal(anchor);},"100%");
-    this.tools.append(action("Zoom out",()=>this.zoom(1/1.2),"−"),this.zoomLabel,action("Zoom in",()=>this.zoom(1.2),"+"),action("Fit all",()=>this.fit()),action("Auto arrange",()=>{this.positions.clear();for(const node of this.nodes.values())Object.assign(node,node.home);this.fit(true);}));
-    const pan=element("details","","surface-pan"),summary=element("summary","Move view");pan.append(summary);
-    for(const [label,x,y,mark] of [["left",80,0,"←"],["up",0,80,"↑"],["down",0,-80,"↓"],["right",-80,0,"→"]])pan.append(action("Pan "+label,()=>this.pan(x,y),mark));
+    const zoom=element("div","","surface-zoom");zoom.setAttribute("role","group");zoom.setAttribute("aria-label","Zoom");
+    zoom.append(action("Zoom out",()=>this.zoom(1/1.2),"−"),this.zoomLabel,action("Zoom in",()=>this.zoom(1.2),"+"));
+    this.tools.append(zoom,action("Fit all",()=>this.fit()),action("Auto arrange",()=>{this.positions.clear();for(const node of this.nodes.values())Object.assign(node,node.home);this.fit(true);}));
+    const pan=element("details","","surface-pan"),summary=element("summary","Move view"),directions=element("div","","surface-pan-actions");pan.append(summary,directions);
+    for(const [label,x,y,mark] of [["left",80,0,"←"],["up",0,80,"↑"],["down",0,-80,"↓"],["right",-80,0,"→"]])directions.append(action("Pan "+label,()=>this.pan(x,y),mark));
     this.tools.append(pan);this.root.append(this.tools);
     this.note=element("p","Drag the background to move · pinch to zoom","","");this.note.className="surface-help";this.root.append(this.note);
     this.observer=new ResizeObserver(()=>{if(!this.viewport.clientWidth||!this.viewport.clientHeight)return;if(this.needsFit||!this.hasNavigated){this.needsFit=false;this.fit(true);}else if(this.nodes.has(this.selected))this.reveal(this.nodes.get(this.selected));else this.render();});this.observer.observe(this.viewport);
