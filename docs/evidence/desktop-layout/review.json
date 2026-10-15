@@ -1,5 +1,5 @@
 {
-  "receipt": "3981e69d9174a538f30bbc46b7649da222c908bce83fc693a0104409505c3206",
+  "receipt": "d740a95ace3b2e63cf5101025efb1b87e353a3d6aa256ea0963c9590ef883977",
   "images": {
     "welcome-dark.png": "2dd25326fb4d53d3dc502391c4b54560b514b36266075d4f4fb08886726ada70",
     "workspace-dark.png": "04635239cd40b14be57bf029435fb83f8e9e9cc0535a21efc45242b638898c01",
@@ -21,12 +21,14 @@
     "reading-dark.png": "6c310f96aac2953e2b3f55b107d9bf82a1351bb81850f2d6d62d9c26edd481fd",
     "reading-light.png": "79d8bbcffd7492d9c0d32f477e28aa2d5ec64c4d2c7a743c89ba126b61acd47c",
     "tools-light.png": "cf7c62f774159abf9da274286a9ab4e8e65d2d8b309108ca3eaea676167e30dd",
-    "tools-dark.png": "e0aa8711744faf1ec2b8525d224fc88da1a559a7d4c10c1b51f7e3bf5520505d"
+    "tools-dark.png": "e0aa8711744faf1ec2b8525d224fc88da1a559a7d4c10c1b51f7e3bf5520505d",
+    "attachments-dark.png": "bc1d6c65d86afca7175b122fbaaffc9e1cc4b8315d6a4194fc16329831e26e41",
+    "attachments-narrow-light.png": "3ef3f5c07c74f67f34c8d1e37df5e9aec184782106ba71e89f6d2c7afba90196"
   },
   "reviewed_on": "2026-10-15",
   "findings": [
-    "Inspected the composer in dark wide and light compact captures. A separate action shelf, model chip, consistent icons, focus treatment and centered Latest control create a deliberate writing surface.",
-    "The initial reading check exposed a test locator containing the retired text arrow. Updated current browser and native journey callers to the clean label; all three reading checks pass. The native journey itself remains unrun.",
+    "Inspected attachment cards in wide dark and compact light. File extensions, image thumbnails, exact names, sizes and paths have separate visual roles; removal remains explicitly named for assistive controls.",
+    "Four attachment identity/bounds checks and the expanded WebKit composition scenario pass.",
     "Production headless WebKit only; native input, IME, OS dialogs, VoiceOver and Windows verification were not run."
   ]
 }
