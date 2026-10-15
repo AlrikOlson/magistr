@@ -144,3 +144,10 @@ test("14 reasoning facts sit beside the decision",async({app})=>{
   const facts=app.locator(".work-reasoning-facts");await expect(facts).toContainText("41");await expect(facts.locator("time")).toHaveAttribute("datetime",/.+/);
   for(const theme of ["dark","light"]){await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);await facts.scrollIntoViewIfNeeded();await capture(app,"14-reasoning-"+theme);}
 });
+test("15 feedback research exposes sources and compact facts",async({app})=>{
+  await openWork(app,"Feedback");await app.getByRole("button",{name:"Keep my place when reopening a project",exact:true}).click();
+  await app.setViewportSize({width:760,height:550});
+  const note=app.locator(".feedback-research details").first();await note.locator("summary").click();
+  await expect(note.locator("summary")).toContainText(/source/);await expect(note.locator("time")).toHaveAttribute("datetime",/.+/);
+  for(const theme of ["dark","light"]){await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);await note.scrollIntoViewIfNeeded();await capture(app,"15-research-"+theme);}
+});
