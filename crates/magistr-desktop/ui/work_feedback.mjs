@@ -19,10 +19,11 @@ export function feedbackDetail(record,actions){
       const list=element("ul","","roadmap-checklist");for(const entry of section.list??[]){const row=element("li");if(entry.done!=null)row.append(element("span",entry.done?"Completed":"To do","roadmap-checklist-state"));row.append(element("span",entry.text));list.append(row);}article.append(list);
     }
   }
+  const references=actions.references(record.cross_refs);if(references)article.append(references);
   article.append(feedbackResearch(record,actions));return article;
 }
 export class FeedbackBrowser{
-  constructor(root,changed,copy,openLink){this.root=root;this.changed=changed;this.actions={copy,openLink};this.reset();}
+  constructor(root,changed,copy,openLink,references){this.root=root;this.changed=changed;this.actions={copy,openLink,references};this.reset();}
   reset(){this.id=null;this.page=0;this.query="";this.kind="all";this.status="all";}
   open(id){this.originScroll=this.root.scrollTop;this.id=id;this.changed();this.root.scrollTop=0;this.root.querySelector("h3")?.focus({preventScroll:true});}
   back(){const id=this.id;this.id=null;this.changed();this.root.scrollTop=this.originScroll;[...this.root.querySelectorAll("[data-feedback-id]")].find(node=>node.dataset.feedbackId===id)?.focus({preventScroll:true});}
