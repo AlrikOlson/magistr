@@ -37,3 +37,19 @@ test("paired patches align real hunk positions and copy the original patch",asyn
   await app.getByRole("button",{name:"Side by side",exact:true}).click();
   expect(await app.locator(".code-document code").first().textContent()).toBe(source);
 });
+
+test("homogeneous result records form a bounded table and keep original source",async({app})=>{
+  await app.getByRole("button",{name:"Review the release plan",exact:true}).click();
+  const source=JSON.stringify({checks:[{name:"format",passed:true,seconds:1.2},{name:"<script>literal</script>",passed:false,seconds:0}]});
+  await app.evaluate(source=>{
+    window.__fixture.publish("release",{events:[{id:752,revision:1,role:"Tool",text:source,tool:{title:"Check results",status:"Finished",details:[{label:"Result",source}]}}],retained:[752]});
+  },source);
+  await app.locator('article[data-tool]>details>summary').click();
+  await app.locator(".result-fields summary").click();
+  await expect(app.getByRole("region",{name:"Records",exact:true})).toBeVisible();
+  await expect(app.locator(".result-records th")).toHaveText(["name","passed","seconds"]);
+  await expect(app.locator(".result-records script")).toHaveCount(0);
+  await expect(app.locator(".result-records .result-number")).toHaveText(["1.2","0"]);
+  await app.getByText("Original text",{exact:true}).click();
+  expect(await app.locator(".result-original pre").textContent()).toBe(source);
+});
