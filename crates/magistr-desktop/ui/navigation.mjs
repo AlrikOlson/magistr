@@ -2,7 +2,7 @@ import { addressKey } from "./context.mjs";
 import { sessionActivity, catalogActivity, activityKinds } from "./activity.mjs";
 
 // A view of the existing project catalog and resident sessions, never another registry.
-export function projectGroups(projects,sessions) {
+export function projectGroups(projects,sessions,query="",label=session=>session.conversation?.name??"") {
   const groups=new Map();
   for(const project of projects)if(!groups.has(project.id))groups.set(project.id,{...project,sessions:[]});
   for(const session of sessions) {
@@ -10,7 +10,8 @@ export function projectGroups(projects,sessions) {
     if(!groups.has(id))groups.set(id,{id,name:session.name,directory:session.address.workspace,sessions:[]});
     groups.get(id).sessions.push(session);
   }
-  return [...groups.values()];
+  const words=query.normalize("NFKC").toLocaleLowerCase().trim().split(/\s+/u);
+  return [...groups.values()].filter(group=>{const text=[group.name,group.directory,...group.sessions.map(label)].join(" ").normalize("NFKC").toLocaleLowerCase();return words.every(word=>text.includes(word));});
 }
 // Stable visual identity derives only from the canonical project id.
 export function projectVariant(id) {
@@ -115,8 +116,8 @@ export class ProjectDirectory {
   constructor(root,{select,open,label}) {
     Object.assign(this,{root,select,open,label});this.groups=new Map();this.rows=new Map();
   }
-  render(projects,sessions) {
-    const groups=projectGroups(projects,sessions.filter(session=>!session.closed)),usedRows=new Set();
+  render(projects,sessions,query="") {
+    const groups=projectGroups(projects,sessions.filter(session=>!session.closed),query,this.label),usedRows=new Set();
     const elements=groups.map(project=>{
       let group=this.groups.get(project.id);
       if(!group){

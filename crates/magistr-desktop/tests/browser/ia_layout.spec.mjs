@@ -159,3 +159,12 @@ test("16 project rows keep conversations in a compact shared column",async({app}
   }
   await app.getByRole("button",{name:"Continue Review the release plan in Magistr",exact:true}).click();await expect(app.getByRole("heading",{name:"Review the release plan",exact:true})).toBeVisible();
 });
+test("17 project search filters list and map without changing the catalog",async({app})=>{
+  await app.setViewportSize({width:760,height:550});const input=app.getByRole("searchbox",{name:"Filter projects",exact:true});
+  await input.fill("ＳＹＮＣ");await expect(app.locator(".directory-project")).toHaveCount(1);await expect(input).toBeFocused();await expect(app.locator(".directory-project h2")).toHaveText("Magistr");
+  await app.getByRole("button",{name:"Map",exact:true}).click();await expect(app.locator(".atlas-project")).toHaveCount(1);
+  await app.getByRole("button",{name:"List",exact:true}).click();
+  for(const theme of ["dark","light"]){await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);await capture(app,"17-search-"+theme);}
+  await input.fill("nothing-matches-this");await expect(app.locator("#directory-empty")).toHaveText("No projects match your search.");
+  await input.fill("");await expect(app.locator(".directory-project")).toHaveCount(2);
+});

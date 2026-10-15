@@ -465,6 +465,7 @@ p.error{white-space:pre-wrap}#error{margin:12px 24px 0;max-height:20dvh;overflow
 @media(max-width:600px){.welcome-stage{grid-template-columns:1fr;gap:16px}}
 @media(forced-colors:active){.activity-spectrum{display:none}.activity-wheel::before{background:none;border:2px solid CanvasText;mask:none;-webkit-mask:none}}
 .directory-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:16px}
+.directory-heading input{min-width:120px;width:clamp(160px,28vw,320px);margin-left:auto;font-size:12px;padding:7px 10px;min-height:34px}
 .directory-heading h2{font-size:16px;letter-spacing:-.03em;text-transform:none;color:var(--text)}
 .directory-views{display:flex;padding:3px;border:1px solid var(--separator);border-radius:8px;background:var(--chrome)}
 .directory-views button{font-size:11px;min-height:30px;padding:5px 14px;background:transparent;border-color:transparent;border-radius:5px;color:var(--muted)}
