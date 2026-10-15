@@ -11,24 +11,36 @@ uniform vec4 ends;
 uniform vec3 colors[4];
 uniform float empty;
 uniform float segments;
+uniform vec2 orientation;
 vec3 model(vec3 p) {
   // Orthographic camera: the chart's angular proportions remain source-owned.
-  float c = 0.78, s = 0.6258;
+  float angle = 0.58 + orientation.y * 0.12;
+  float c = cos(angle), s = sin(angle);
+  float yaw = orientation.x * 0.16;
+  p.xz = mat2(cos(yaw), -sin(yaw), sin(yaw), cos(yaw)) * p.xz;
   return vec3(p.x, c * p.y - s * p.z, s * p.y + c * p.z);
 }
 float surface(vec3 p) {
   vec3 q = model(p);
-  // A rounded rectangular cross-section gives the ring a face, rim and thickness.
-  vec2 edge = abs(vec2(length(q.xy) - 0.62, q.z)) - vec2(0.115, 0.065);
-  return min(max(edge.x, edge.y), 0.0) + length(max(edge, 0.0)) - 0.045;
+  // Rounded enamel arcs have real end faces, so light describes each separation.
+  float radius = length(q.xy);
+  vec2 edge = abs(vec2(radius - 0.60, q.z)) - vec2(0.12, 0.075);
+  float ring = min(max(edge.x, edge.y), 0.0) + length(max(edge, 0.0)) - 0.035;
+  if (segments > 1.0) {
+    float angle = fract(atan(q.x, q.y) / 6.2831853 + 1.0);
+    float slot = fract(angle * segments);
+    float distanceToEdge = min(slot, 1.0 - slot) * 6.2831853 * radius / segments;
+    ring = max(ring, 0.009 - distanceToEdge);
+  }
+  return ring;
 }
 void main() {
-  vec3 origin = vec3(point.x * 1.03, (point.y - 0.23) * 1.03, 2.4);
+  vec3 origin = vec3(point.x * 1.03, (point.y - 0.20) * 1.03, 2.4);
   vec3 direction = vec3(0.0, 0.0, -1.0);
   float travel = 0.0;
   vec3 hit = origin;
   bool found = false;
-  for (int i = 0; i < 48; i++) {
+  for (int i = 0; i < 64; i++) {
     hit = origin + direction * travel;
     float distance = surface(hit);
     if (distance < 0.0018) { found = true; break; }
@@ -44,11 +56,6 @@ void main() {
   }
   vec3 q = model(hit);
   float angle = fract(atan(q.x, q.y) / 6.2831853 + 1.0);
-  float gap = 1.0;
-  if (segments > 1.0) {
-    float slot = fract(angle * segments);
-    gap = smoothstep(0.001, 0.004, min(slot, 1.0 - slot) / segments);
-  }
   vec3 color = colors[0];
   if (angle >= ends.x) color = colors[1];
   if (angle >= ends.y) color = colors[2];
@@ -66,11 +73,12 @@ void main() {
   float inner = smoothstep(0.44, 0.72, length(q.xy));
   float occlusion = 0.76 + 0.24 * inner;
   // Fine radial brushing is material, never an activity or progress signal.
-  float brushed = 0.985 + 0.015 * sin(length(q.xy) * 950.0);
-  vec3 enamel = color * (0.38 + 0.62 * diffuse) * occlusion * brushed;
+  float brushed = 0.995 + 0.005 * sin(length(q.xy) * 140.0);
+  vec3 enamel = color * (0.30 + 0.70 * diffuse) * occlusion * brushed;
   vec3 coating = vec3(0.82, 0.88, 1.0) * (key * 0.48 + strip * 0.42 + fresnel * 0.18);
-  vec3 material = enamel + coating;
-  gl_FragColor = vec4(material, gap);
+  vec3 rim = mix(vec3(0.65, 0.55, 1.0), vec3(0.48, 0.90, 0.90), normal.x * 0.5 + 0.5);
+  vec3 material = enamel + coating + rim * fresnel * 0.10;
+  gl_FragColor = vec4(material, 1.0);
 }
 `;
 function rgb(value) {
@@ -82,13 +90,27 @@ function rgb(value) {
 export class ActivityMaterial {
   constructor(root) {
     this.root = root; this.document = root.ownerDocument; this.disposed = false; this.counts = null;
+    this.orientation = [0, 0]; this.pendingFrame = null;
     this.canvas = this.document.createElement("canvas");
     this.canvas.className = "activity-material";
     this.canvas.setAttribute("aria-hidden", "true");
     root.prepend(this.canvas);
     this.scheme = matchMedia("(prefers-color-scheme: light)");
     this.contrast = matchMedia("(forced-colors: active)");
-    this.refresh = () => this.draw();
+    this.refresh = () => {
+      if (this.document.documentElement.dataset.reducedMotion !== "false") this.orientation = [0, 0];
+      this.draw();
+    };
+    this.pointer = event => {
+      if (this.document.documentElement.dataset.reducedMotion !== "false" || this.contrast.matches) return;
+      const box = root.getBoundingClientRect();
+      this.orientation = event.type === "pointerleave" ? [0, 0] :
+        [Math.max(-1, Math.min(1, (event.clientX - box.left) / box.width * 2 - 1)),
+         Math.max(-1, Math.min(1, (event.clientY - box.top) / box.height * 2 - 1))];
+      if (this.pendingFrame !== null) return;
+      this.pendingFrame = this.document.defaultView.requestAnimationFrame(() => { this.pendingFrame = null; this.draw(); });
+    };
+    root.addEventListener("pointermove", this.pointer); root.addEventListener("pointerleave", this.pointer);
     this.lost = event => {
       event.preventDefault(); this.program = null; this.buffer = null; this.signature = null;
       delete root.dataset.material;
@@ -98,7 +120,7 @@ export class ActivityMaterial {
     this.canvas.addEventListener("webglcontextrestored", this.restored);
     this.resize = new ResizeObserver(this.refresh); this.resize.observe(root);
     this.theme = new MutationObserver(this.refresh);
-    this.theme.observe(this.document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    this.theme.observe(this.document.documentElement, { attributes: true, attributeFilter: ["data-theme", "data-reduced-motion"] });
     this.scheme.addEventListener("change", this.refresh); this.contrast.addEventListener("change", this.refresh);
     this.document.addEventListener("visibilitychange", this.refresh);
     this.onPageHide = event => { if (!event.persisted) this.dispose(); };
@@ -129,7 +151,7 @@ export class ActivityMaterial {
       gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]), gl.STATIC_DRAW);
       this.program = program; this.buffer = buffer; this.signature = null;
-      this.locations = Object.fromEntries(["ends","colors[0]","empty","segments"].map(name => [name, gl.getUniformLocation(program,name)]));
+      this.locations = Object.fromEntries(["ends","colors[0]","empty","segments","orientation"].map(name => [name, gl.getUniformLocation(program,name)]));
       this.position = gl.getAttribLocation(program,"position");
     } catch {
       if (program) gl.deleteProgram(program);
@@ -147,7 +169,7 @@ export class ActivityMaterial {
     if (!size) return;
     const style = getComputedStyle(this.root);
     const palette = ["success", "warning", "muted", "danger"].map(name => style.getPropertyValue("--" + name));
-    const signature = JSON.stringify([size,this.counts,palette]);
+    const signature = JSON.stringify([size,this.counts,palette,this.orientation]);
     if (this.signature === signature && this.root.dataset.material === "rendered") return;
     this.signature = signature;
     if (this.canvas.width !== size || this.canvas.height !== size) this.canvas.width = this.canvas.height = size;
@@ -163,12 +185,16 @@ export class ActivityMaterial {
     gl.uniform3fv(this.locations["colors[0]"], colors);
     gl.uniform1f(this.locations["empty"], total ? 0 : 1);
     gl.uniform1f(this.locations["segments"], total <= 64 ? total : 0);
+    gl.uniform2fv(this.locations["orientation"], this.orientation);
     gl.drawArrays(gl.TRIANGLES, 0, 6); gl.flush();
     this.root.dataset.material = "rendered";
   }
   dispose() {
     if (this.disposed) return;
-    this.disposed = true; this.resize.disconnect(); this.theme.disconnect();
+    this.disposed = true;
+    if (this.pendingFrame !== null) this.document.defaultView.cancelAnimationFrame(this.pendingFrame);
+    this.root.removeEventListener("pointermove", this.pointer); this.root.removeEventListener("pointerleave", this.pointer);
+    this.resize.disconnect(); this.theme.disconnect();
     this.scheme.removeEventListener("change", this.refresh); this.contrast.removeEventListener("change", this.refresh);
     this.document.removeEventListener("visibilitychange", this.refresh);
     this.document.defaultView.removeEventListener("pagehide", this.onPageHide);
