@@ -252,3 +252,19 @@ test("project directory is visible below a compact activity summary",async({app}
     await capture(app,"25-project-directory-"+width);
   }
 });
+
+test("agent usage shows a compact native meter and honest unknown values",async({app})=>{
+  await app.getByRole("button",{name:"Review the release plan",exact:true}).click();
+  await app.getByRole("button",{name:"Details",exact:true}).click();
+  await app.getByRole("region",{name:"Agent settings",exact:true}).scrollIntoViewIfNeeded();
+  await expect(app.getByRole("meter",{name:"Context used",exact:true})).toBeVisible();
+  await expect(app.getByRole("meter",{name:"Context used",exact:true})).toHaveAttribute("aria-valuetext","18,400 of 200,000 context tokens");
+  expect((await app.locator(".usage-summary").boundingBox()).height).toBeLessThan(150);
+  await capture(app,"26-agent-details");
+  await app.evaluate(()=>window.__fixture.publish("release",{usage:null}));
+  await expect(app.getByRole("meter",{name:"Context used",exact:true})).toBeHidden();
+  await expect(app.locator("#context-value")).toHaveText("Not reported");
+  await app.evaluate(()=>window.__fixture.publish("release",{usage:{used:0,size:200000,cost_cents:0}}));
+  await expect(app.getByRole("meter",{name:"Context used",exact:true})).toHaveAttribute("value","0");
+  await expect(app.locator("#spending-value")).toHaveText("$0.00");
+});
