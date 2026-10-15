@@ -268,3 +268,15 @@ test("agent usage shows a compact native meter and honest unknown values",async(
   await expect(app.getByRole("meter",{name:"Context used",exact:true})).toHaveAttribute("value","0");
   await expect(app.locator("#spending-value")).toHaveText("$0.00");
 });
+
+test("composer leaves reading room and expands the same draft",async({app})=>{
+  await app.getByRole("button",{name:"Review the release plan",exact:true}).click();
+  const draft=app.getByLabel("Message the agent",{exact:true}),text=await draft.inputValue();
+  expect((await app.locator(".composer-box").boundingBox()).height).toBeLessThan(150);
+  await app.getByRole("button",{name:"Expand editor",exact:true}).click();
+  await expect(app.locator("#composer")).toHaveAttribute("data-expanded","true");
+  await expect(draft).toHaveValue(text);
+  expect((await app.locator(".composer-heading").boundingBox()).height).toBeLessThan(70);
+  expect((await draft.boundingBox()).height).toBeGreaterThan(400);
+  await capture(app,"27-expanded-composer");
+});
