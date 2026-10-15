@@ -1,0 +1,54 @@
+{
+  "scope": "Group draft controls around the message editor",
+  "limitations": "Headless WebKit with isolated observations. Native OS input, assistive technology and Rust command integration were not exercised.",
+  "images": {
+    "conversation--expanded-editor-compact-dark.png": {
+      "sha256": "68ef8a6a221a604c747e77497cdb694e8e3c65f4b39a3b44a39dc583112b48c2",
+      "task": "Write and send with draft status and secondary controls using less vertical space.",
+      "observations": "Editor label, character count, saved status and Done writing now share one compact toolbar. The text area gains the removed row; Add files, agent choice and Send remain aligned below. At 760 × 550 all toolbar items fit with clear separation. Focus, text contrast and control edges remain clear in this appearance.",
+      "verdict": "pass"
+    },
+    "conversation--expanded-editor-compact-light.png": {
+      "sha256": "3337eb4a21e2a7c190f93a13b9532bc93ae90fda583d9642599513a4372a9544",
+      "task": "Write and send with draft status and secondary controls using less vertical space.",
+      "observations": "Editor label, character count, saved status and Done writing now share one compact toolbar. The text area gains the removed row; Add files, agent choice and Send remain aligned below. At 760 × 550 all toolbar items fit with clear separation. Focus, text contrast and control edges remain clear in this appearance.",
+      "verdict": "pass"
+    },
+    "conversation--expanded-editor-desktop-dark.png": {
+      "sha256": "b22e685a43640bbe3ccc07b292936b8770b1c8f4602aa0b80c1f244162c2a7ab",
+      "task": "Write and send with draft status and secondary controls using less vertical space.",
+      "observations": "Editor label, character count, saved status and Done writing now share one compact toolbar. The text area gains the removed row; Add files, agent choice and Send remain aligned below. At desktop size the centered editor preserves a readable writing width. Focus, text contrast and control edges remain clear in this appearance.",
+      "verdict": "pass"
+    },
+    "conversation--expanded-editor-desktop-light.png": {
+      "sha256": "ef728351e5826f7dfb0b529ea99879b8f797fa3a986f0dece8068821b793a485",
+      "task": "Write and send with draft status and secondary controls using less vertical space.",
+      "observations": "Editor label, character count, saved status and Done writing now share one compact toolbar. The text area gains the removed row; Add files, agent choice and Send remain aligned below. At desktop size the centered editor preserves a readable writing width. Focus, text contrast and control edges remain clear in this appearance.",
+      "verdict": "pass"
+    },
+    "conversation--release-plan-compact-dark.png": {
+      "sha256": "99e24bb7a430d36cdb261e1d1e95fbb12db599c8613d4e3dca6d83e69b7d1534",
+      "task": "Write and send with draft status and secondary controls using less vertical space.",
+      "observations": "The collapsed composer retains its label, saved status, Expand and send controls; the expanded-only count is absent. At 760 × 550 all toolbar items fit with clear separation. Focus, text contrast and control edges remain clear in this appearance.",
+      "verdict": "pass"
+    },
+    "conversation--release-plan-compact-light.png": {
+      "sha256": "8e62718d9d95c02f8750dde856ea1c9e0347194e55f944cf577e769b8bf576ed",
+      "task": "Write and send with draft status and secondary controls using less vertical space.",
+      "observations": "The collapsed composer retains its label, saved status, Expand and send controls; the expanded-only count is absent. At 760 × 550 all toolbar items fit with clear separation. Focus, text contrast and control edges remain clear in this appearance.",
+      "verdict": "pass"
+    },
+    "conversation--release-plan-desktop-dark.png": {
+      "sha256": "2059c570a3ca095064440d8c0384403d2ef4e1097dd5b37eef19b34af54469aa",
+      "task": "Write and send with draft status and secondary controls using less vertical space.",
+      "observations": "The collapsed composer retains its label, saved status, Expand and send controls; the expanded-only count is absent. At desktop size the centered editor preserves a readable writing width. Focus, text contrast and control edges remain clear in this appearance.",
+      "verdict": "pass"
+    },
+    "conversation--release-plan-desktop-light.png": {
+      "sha256": "93b4eb8ccc6390279124e0ef26c8e38426606dabeba4723a39a8631bbdc8e2e3",
+      "task": "Write and send with draft status and secondary controls using less vertical space.",
+      "observations": "The collapsed composer retains its label, saved status, Expand and send controls; the expanded-only count is absent. At desktop size the centered editor preserves a readable writing width. Focus, text contrast and control edges remain clear in this appearance.",
+      "verdict": "pass"
+    }
+  }
+}
