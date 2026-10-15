@@ -236,6 +236,13 @@ article.you{background:var(--panel);padding:20px 24px;border:1px solid var(--sep
 .table-document tr:nth-child(2n+1) td{background:var(--panel)}.table-document tr:hover td{background:var(--raised)}
 .table-document tr:last-child td{border-bottom:0}.table-document td:first-child{font-weight:550;position:sticky;left:0;z-index:1;box-shadow:1px 0 var(--separator);min-width:150px}.table-document th:first-child{left:0;z-index:3;box-shadow:1px 0 var(--separator)}.table-document [data-align=right]{font-family:var(--font-code);font-variant-numeric:tabular-nums}.table-document td[data-align=right]{color:var(--accent);font-weight:550}
 .table-document td code{white-space:nowrap}.table-document:focus-visible{outline-offset:3px}
+.code-compare{font:11px/1.4 var(--font-ui);padding:4px 8px;min-height:28px;border:1px solid var(--separator);background:transparent;color:var(--muted)}.code-compare[aria-pressed=true]{background:var(--base);border-color:var(--line);color:var(--text)}
+.patch-comparison{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));max-height:440px;overflow:auto;font:12px/1.8 var(--font-code)}
+.diff-column-title{position:sticky;top:0;z-index:2;padding:9px 14px;color:var(--muted);background:var(--panel);border-bottom:1px solid var(--separator);font:11px/1.5 var(--font-ui)}.diff-column-title:first-child{border-right:1px solid var(--separator)}
+.diff-pair-label{grid-column:1/-1;white-space:pre-wrap;overflow-wrap:anywhere;padding:8px 14px;color:var(--muted);background:var(--panel);font-size:10px;border-block:1px solid var(--separator)}
+.diff-cell{display:flex;gap:12px;min-width:0;padding:3px 10px 3px 0;border-right:1px solid var(--separator)}.diff-line-number{width:36px;flex:0 0 36px;text-align:right;color:var(--muted);user-select:none;font-size:10px}
+.message-body .diff-cell code{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;color:inherit;background:none;padding:0;border:0;border-radius:0;min-width:0}
+.diff-cell-added{background:color-mix(in srgb,var(--success) 9%,var(--base));color:var(--success)}.diff-cell-removed{background:color-mix(in srgb,var(--danger) 8%,var(--base));color:var(--danger)}.diff-cell-empty{background:var(--panel)}
 .patch-document .code-surface pre{padding:12px 0}.patch-document .code-title{text-transform:none}
 .patch-line{display:block;position:relative;padding:0 20px 0 108px;min-height:1.8em;width:max-content;min-width:100%;white-space:pre}
 .patch-line::before{content:attr(data-position);position:absolute;left:12px;color:var(--muted);user-select:none;white-space:pre;font-variant-numeric:tabular-nums}

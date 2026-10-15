@@ -1,5 +1,5 @@
 {
-  "receipt": "a65fb07f4bbe906734d7aea500a02c1f084e790a81e84ba0d8c5ab5954644338",
+  "receipt": "731c205ba8740bef30ae0c3d021b051ed75ed31f29963b78ef6e999a1685cf3e",
   "images": {
     "welcome-dark.png": "c18e56fa3f76a5d9338c14ef21f1d94c761e09479a9597347b4a49080331713f",
     "welcome-light.png": "d308a673ba367d31445b01bafd2fb739c75ddb35a884c19b5a36f51a34427c45",
@@ -51,12 +51,14 @@
     "open-project-error-details-light.png": "4d08e18f241d73aacc1ecf1e14c44f6a2f87f01409b5a1e8954de005b1d60e48",
     "empty-conversation-dark.png": "0d382256e7651ddb1ad864049bdd018e5ef1e22c08dbf7c12d533194d75dfae6",
     "empty-conversation-light.png": "9dc4cac2174261e82db28c87f37a1d93ec257ac38866c4cecedad3f00ca4bf32",
-    "tables-dark.png": "651ab0e1a1c7490348d508c5a859124d352fd7efe0939b0dac14bdff9121e18c",
-    "tables-light.png": "038c8917e550f11160badd6344b737ed36ed1eb0b01d260b47a4518163d53cb7",
+    "tables-dark.png": "923117d29382e5bb8c331cae658cae4ec92808c60f265b5ad40030f3268fb573",
+    "tables-light.png": "85b4d2df9f384641bbca3480daf5c8f92ab61462d75a585ac3901a4412e04ed8",
     "tables-compact.png": "09a166dac8bbac152d9618ed6eeaa3c0bfaee07593a67ac5cbd0b82948a0e800",
-    "patch-dark.png": "40fb846ec64ddfb0061740b481f13e0f71211588eb2934955086082d25b0735b",
-    "patch-light.png": "d4bfd061c6e1f5083378877913e7dc3cb3cfde38a9beaa74abc109e2aa5d6cb6",
-    "patch-compact.png": "ff7f77e12282d2148e196440279669e76e7213f61a62a7165dab7342cdb26d77",
+    "patch-dark.png": "77c6798661132f07a133007da6b78e87d3cc4f975aa2f6c126faaa08fca148a3",
+    "patch-light.png": "29f46393a0039b4178529e50bbef9c5ee0b3242036c20799921499cc2364308f",
+    "patch-comparison-dark.png": "60a711fc720c1eda2459a75cae5184fd3d1726ce6b9afbe5f2960f34f20df33e",
+    "patch-comparison-light.png": "1e643c5cffa661c7681b1cedcec506c2a343abdb237fbcca43c85740d7fbc564",
+    "patch-compact.png": "ac161fa4a75712cdca9cc950a75ffbb5b64de880f05902403bd1b11bce00563a",
     "result-dark.png": "718c3d4430cdde428747d340bbbf811658d6357f0b9f0abf803f025bae56bc3b",
     "result-light.png": "a7b6d6ad03cd09696e26ab6a3e1853796aeb917a8b88897d39bb5f6f46fc008d",
     "contents-dark.png": "907bd8196ed52d4d0d08d55af08c3b04896e0f51ebcf6c841ccd081560fd2706",
@@ -90,5 +92,5 @@
     "workspace-compact-final-light.png": "cf0660be6d4cd9833a7bebf556c4a3cb20907ab04622974b81800fc4180c40c0",
     "workspace-compact-long-title.png": "c937d7ecc8a49952c92e0fae474346c91fae0f7f4725a62a3c3644bd58feb772"
   },
-  "review": "Reviewed dark and compact light tables. Actual dimensions, anchored row/column headers, numeric typography and alternating rows retain semantic cells and authored alignment. Source-bound WebKit composition passes."
+  "review": "Reviewed paired patch in both appearances. Real hunk coordinates align removals/additions and preserve gaps, source selection and exact original copying. Three focused renderer checks pass."
 }
