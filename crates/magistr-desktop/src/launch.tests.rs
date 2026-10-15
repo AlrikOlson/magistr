@@ -12,6 +12,9 @@ fn the_bundled_page_contains_the_chooser_and_its_modules() {
         "app.mjs",
         "attachments.mjs",
         "projects.mjs",
+        "project_atlas.mjs",
+        "manrope-latin.woff2",
+        "newsreader-latin.woff2",
         "selection.mjs",
         "style.css",
     ] {

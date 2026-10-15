@@ -121,7 +121,7 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
   await expect(app.locator("#context-value")).toHaveText("0%");
   await expect(app.locator("#spending-value")).toHaveText("$0.00");
   await app.evaluate(()=>window.__fixture.publish("release",{usage:{used:18400,size:200000,cost_cents:42}}));
-  checks["context dial distinguishes reported values, real zero and absent usage"]=true;
+  checks["capacity meter distinguishes reported values, real zero and absent usage"]=true;
   checks["work summary opens exact controls and naming has its own dialog"]=true;
   await app.getByRole("button",{name:"Saved conversations",exact:true}).click();
   await expect(app.getByRole("heading",{name:"Release notes and rollback",exact:true})).toBeVisible();
