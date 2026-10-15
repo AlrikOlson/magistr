@@ -1,0 +1,66 @@
+{
+  "scope": "Keep project destinations together in one toolbar",
+  "limitations": "Headless WebKit with isolated observations. No foreground OS input, Rust command integration or assistive technology verification.",
+  "images": {
+    "conversation-desktop-dark.png": {
+      "sha256": "bcc40c139ff7134191f05e13780a027e03dda7403b2b025ac6357faaff46a803",
+      "task": "Open project work while keeping the current project and selected destination clear.",
+      "observations": "Project identity and six tabs form one readable row above conversation actions. Selected tab underline and text contrast are clear; body and draft retain their measure. Compact controls fit without clipping or overlap.",
+      "verdict": "pass"
+    },
+    "conversation-desktop-light.png": {
+      "sha256": "6d16675384a6f35a8592ef234f9f48475189945ba28d4f7730d34f853f30b997",
+      "task": "Open project work while keeping the current project and selected destination clear.",
+      "observations": "Project identity and six tabs form one readable row above conversation actions. Selected tab underline and text contrast are clear; body and draft retain their measure. Compact controls fit without clipping or overlap.",
+      "verdict": "pass"
+    },
+    "conversation-compact-dark.png": {
+      "sha256": "1b302f30411db5adf0266fc1eb1a3963aabb786e671cc8ae6a3b8c1aea5e6454",
+      "task": "Open project work while keeping the current project and selected destination clear.",
+      "observations": "Project identity and six tabs form one readable row above conversation actions. Selected tab underline and text contrast are clear; body and draft retain their measure. Compact controls fit without clipping or overlap.",
+      "verdict": "pass"
+    },
+    "conversation-compact-light.png": {
+      "sha256": "137033b83cb43007b810876cf7d4d00b65919188baf42387eb50150923f457dd",
+      "task": "Open project work while keeping the current project and selected destination clear.",
+      "observations": "Project identity and six tabs form one readable row above conversation actions. Selected tab underline and text contrast are clear; body and draft retain their measure. Compact controls fit without clipping or overlap.",
+      "verdict": "pass"
+    },
+    "03-shell-roadmap-dark.png": {
+      "sha256": "05e32d48c32357e13312074cd699cfce2ef7a3eda40bf270d603eae8e6633095",
+      "task": "Open project work while keeping the current project and selected destination clear.",
+      "observations": "Project identity, selected Roadmap tab and workspace/refresh controls fit the toolbar. Dependency ports meet straight routes; dashed unavailable dependency is distinct. Nodes and footer remain separated.",
+      "verdict": "pass"
+    },
+    "03-shell-roadmap-light.png": {
+      "sha256": "2058e2057102182b8b695fce1a0475418f2d5dbca466af67b03c5355ba68f191",
+      "task": "Open project work while keeping the current project and selected destination clear.",
+      "observations": "Project identity, selected Roadmap tab and workspace/refresh controls fit the toolbar. Dependency ports meet straight routes; dashed unavailable dependency is distinct. Nodes and footer remain separated.",
+      "verdict": "pass"
+    },
+    "03-shell-conversation.png": {
+      "sha256": "43da1fd5f1149af2cc1cd3da147c58b3f267eeaf89957dffabc8b16cb9c28860",
+      "task": "Open project work while keeping the current project and selected destination clear.",
+      "observations": "Project identity and six tabs form one readable row above conversation actions. Selected tab underline and text contrast are clear; body and draft retain their measure. Compact controls fit without clipping or overlap.",
+      "verdict": "pass"
+    },
+    "03-shell-compact-dark.png": {
+      "sha256": "b297126cdcead53b9806268b650aa910229d667dcb083dc623f5b0d4abaf0aa8",
+      "task": "Open project work while keeping the current project and selected destination clear.",
+      "observations": "Project identity, selected Roadmap tab and workspace/refresh controls fit the toolbar. Dependency ports meet straight routes; dashed unavailable dependency is distinct. Nodes and footer remain separated.",
+      "verdict": "pass"
+    },
+    "03-shell-compact-light.png": {
+      "sha256": "1101b7e36647bdfc00d945a71e3ba5cc71ff63b1e32eb93c5361c4af9763aad2",
+      "task": "Open project work while keeping the current project and selected destination clear.",
+      "observations": "Project identity, selected Roadmap tab and workspace/refresh controls fit the toolbar. Dependency ports meet straight routes; dashed unavailable dependency is distinct. Nodes and footer remain separated.",
+      "verdict": "pass"
+    },
+    "03-reasoning-compact.png": {
+      "sha256": "7f809ab8027390b060fec6c533c0e3e68b07f4f52517e260ac7b7bddabecc3dc",
+      "task": "Open project work while keeping the current project and selected destination clear.",
+      "observations": "Selected Reasoning destination stays legible; the two investigation columns have readable text, direct ports and distinct outward/return routes without crossing controls.",
+      "verdict": "pass"
+    }
+  }
+}
