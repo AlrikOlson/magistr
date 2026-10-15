@@ -197,7 +197,7 @@ impl InteractiveHost {
                 name: project,
                 dir,
                 supervision,
-                snapshot: seed,
+                snapshot: seed.into(),
                 workspace_files,
                 ..ProjectSeed::default()
             },

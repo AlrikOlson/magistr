@@ -616,10 +616,10 @@ impl SessionObservation {
         let _ = self.modify(None, false, |state| {
             let draft = state.seed.draft.take();
             let observed = std::mem::take(&mut state.seed.snapshot);
-            let changed =
-                observed == magistr_engine::NativeSnapshot::default() && observed != seed.snapshot;
+            let changed = observed.as_ref() == &magistr_engine::NativeSnapshot::default()
+                && observed != seed.snapshot;
             state.seed = seed;
-            if observed != magistr_engine::NativeSnapshot::default() {
+            if observed.as_ref() != &magistr_engine::NativeSnapshot::default() {
                 state.seed.snapshot = observed;
             }
             if changed {
@@ -1013,7 +1013,7 @@ impl ObservationSink for SessionObservation {
                     }
                     let before = state.seed.snapshot.clone();
                     requested = super::session_workflow::observe(&mut state.seed.snapshot, event);
-                    if before != state.seed.snapshot {
+                    if !std::sync::Arc::ptr_eq(&before, &state.seed.snapshot) {
                         state.workflow_revision = state.workflow_revision.saturating_add(1);
                         state.sequence = state.sequence.saturating_add(1);
                     }
