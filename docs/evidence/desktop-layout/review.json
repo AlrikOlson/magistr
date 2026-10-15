@@ -1,5 +1,5 @@
 {
-  "receipt": "43e7e7effa5e1835bb89dd8ab9f327ea5426196fb492e97cad141dcedd1a3236",
+  "receipt": "0056c52ecd631d1a7dc5cad91fa576ce6fac066b8fe936e96f253d4898683d10",
   "images": {
     "welcome-dark.png": "8c5731fdb952bbbfa3dbf6a0d9629d0ac9c122fb975489512f05f9ee88cc15c6",
     "welcome-light.png": "61c6904d4301fa606a721eef7f7bc9966afa2100ea21fc2dd597c6500fb69863",
@@ -23,8 +23,8 @@
     "setup-narrow-light.png": "d6535954a15400abfe16ffa7b0cde3157bb882a10c5fdf478d593da4c19e4e13",
     "open-project-dark.png": "e6e6117cc529a32a48781474a68297ff852e04bc9b94c4480f2050a73ca6ec19",
     "setup-dark.png": "c736e4f4ba76c215926c400b1cd24ba2ea5f172ddabf12535fbd330e334b0e26",
-    "new-conversation-dark.png": "80f9a073590706a38b2831c46b3c4e6cbf440056aa647472f1dded61be9c56b0",
-    "new-conversation-narrow-light.png": "073ffcb792e225beb2242ff07fecf841764e48414b5f1721083030a529450e82",
+    "new-conversation-dark.png": "ca08c4318d0d898d3cff9b4a3ee7b6a9bb029b067b1e0a6b92212f89e58bf049",
+    "new-conversation-narrow-light.png": "b6f3247949e080684cb8902114be3b0d5331f652db3c07477c5b75f73a43166d",
     "find-conversation-narrow-light.png": "d41ba09d9aaa944beccc2c055c20102e844899f259d04667bf0ea02333a6c8b9",
     "find-conversation-dark.png": "a2cbb3c4712aee42758c3ea8d0829a23c6ceafdc5a19b3c2d22ef1a1701ca67e",
     "reading-dark.png": "41d22c41c3d19890cb52496dee8dd46baaffa104b7b5d2d8bb34083ea8a09f44",
@@ -33,14 +33,14 @@
     "code-light.png": "20ba40e69b7d593930cfcdbda222678d7d538b0fc314f6e6f6c6af6643fd7fc1",
     "tools-light.png": "9530fdabe98dff1d834218de8bb7c5c55b2bda3369245cddf7c9f87e8ccf1928",
     "tools-dark.png": "e15baf19500e26ab7ad40a94e24658eaef880b041f2b17a322ba795af0960748",
-    "attachments-dark.png": "ac368d52ce9b457ae0daf333fc1847605c11c2f924fdee920a6b37374089be84",
-    "attachments-narrow-light.png": "e94d209d5fac24c31cfb40c2865f09312a3de7204dc16878edad688b0fbbb4c1",
+    "attachments-dark.png": "c73d035a10e497e5a27a64bb13a6c1852b4ae60d9cd8c36492148ad15baff49e",
+    "attachments-narrow-light.png": "26b87b11bb21b951bb7200ebd8dc1b9249df47d0f401d0478e267b7e35d1b34a",
     "request-narrow-light.png": "4629858d68321e74e2ace85f10cac765b0d56022b2cc51f9c4d9f76af6455ea1",
     "request-dark.png": "4d2dfd55857d14f266bee83a41fa75f6ca7aae909d2300e65de0dc94affbb313"
   },
   "reviewed_on": "2026-10-15",
   "findings": [
-    "Setup review now uses a file index with separate folder and filename hierarchy, plus source gutters derived from actual file lines and unified-diff coordinates. Reviewed dark and compact light; exact rendered source and approval selection remain intact.",
+    "Agent selection now uses a compact radio list beside the optional model controls, with actual destination information above. Inspected dark default and compact light selected-model captures; all five admission/discovery scenarios passed.",
     "Production headless WebKit only; native OS input, IME, VoiceOver and Windows were not run."
   ]
 }
