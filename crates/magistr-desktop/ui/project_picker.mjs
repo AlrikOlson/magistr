@@ -23,6 +23,7 @@ export function sourceLines(value,diff=false) {
 }
 function sourceView(value,diff=false) {
   const pre=node("pre","","setup-source"+(diff?" setup-diff":""));
+  pre.tabIndex=0;pre.setAttribute("aria-label",diff?"File changes":"File contents");
   for(const row of sourceLines(value,diff)) {
     const line=node("span","","source-line "+row.kind);
     for(const number of diff?[row.before,row.after]:[row.after]) {
@@ -167,15 +168,20 @@ export class ProjectPicker {
     const file=this.rows[index]?.file,body=this.$("setup-change");
     body.replaceChildren();body.scrollTop=0;
     if(!file){body.append(node("p","No file changes are needed."));return;}
-    body.append(node("h3",file.path),node("p",file.action+" · "+file.ownership,"setup-change-meta"));
+    const heading=node("header","","setup-change-heading");
+    heading.append(node("p",file.path,"setup-file-path"),node("h3",file.path.split("/").at(-1)),node("p",file.action+" · "+file.ownership,"setup-change-meta"));body.append(heading);
     if(file.reason)body.append(node("p",file.reason,"setup-reason"));
+    const sheet=node("figure","","setup-code-sheet"),caption=node("figcaption","");sheet.append(caption);
     if(file.diff) {
-      body.append(node("h4","Changes"));
-      body.append(sourceView(file.diff,true));
+      caption.append(node("span","Changes"));
+      const lines=sourceLines(file.diff,true),added=lines.filter(line=>line.kind==="diff-added").length,removed=lines.filter(line=>line.kind==="diff-removed").length;
+      const counts=node("span","","setup-delta");counts.append(node("span","+"+added,"added"),node("span","−"+removed,"removed"));counts.setAttribute("aria-label",added+" lines added, "+removed+" lines removed");caption.append(counts);
+      sheet.append(sourceView(file.diff,true));
     } else {
       const value=file.selectable?(file.action==="Remove file"?file.before:file.after):(file.before??file.after);
-      body.append(node("h4",file.selectable?(file.action==="Remove file"?"Contents to remove":"Contents after setup"):"Current contents"));
-      body.append(value?sourceView(value):node("p","This file is empty."));
+      caption.append(node("span",file.selectable?(file.action==="Remove file"?"Contents to remove":"Contents after setup"):"Current contents"));
+      sheet.append(value?sourceView(value):node("p","This file is empty."));
     }
+    body.append(sheet);
   }
 }
