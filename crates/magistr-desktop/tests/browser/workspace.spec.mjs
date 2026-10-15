@@ -121,6 +121,28 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
   await app.getByRole("button",{name:"Find a conversation",exact:true}).click();
   await capture("find-conversation-dark.png");
   checks["conversation finding and documented keyboard navigation keep focus visible"]=true;
+  await app.getByRole("button",{name:"Cancel",exact:true}).click();
+  await app.evaluate(()=>{
+    const nodes=[
+      {tag:"h2",text:"A small, recoverable change",start:0},
+      {tag:"p",text:"Keep the saved message and the visible conversation in sync. The change belongs in the draft writer, with a focused check for interrupted navigation.",start:40},
+      {tag:"blockquote",children:[{tag:"p",text:"Save the incoming draft before replacing the visible conversation.",start:200}],start:200},
+      {tag:"h3",text:"Apply the change",start:280},
+      {tag:"pre",children:[{tag:"code",text:"const saved = await drafts.flush(target);\nif (saved) {\n  await selectConversation(next);\n}",start:310}],start:310},
+      {tag:"p",children:[{tag:"text",text:"Verify the ",start:410},{tag:"code",text:"save_draft",start:421},{tag:"text",text:" result before changing the selection.",start:431}],start:410}
+    ];
+    window.__fixture.publish("release",{events:[{id:90,revision:1,role:"Agent",text:"A small, recoverable change",document:{nodes},attachments:[]}],retained:[90]});
+  });
+  await app.getByRole("button",{name:"Details",exact:true}).click();
+  for(const theme of ["dark","light"]){
+    await app.getByRole("button",{name:"Settings",exact:true}).click();
+    await app.getByLabel("Appearance",{exact:true}).selectOption(theme);
+    await app.getByRole("button",{name:"Done",exact:true}).click();
+    await app.locator("#transcript").evaluate(node=>node.scrollTop=0);
+    await expect(app.getByRole("heading",{name:"A small, recoverable change",exact:true})).toBeVisible();
+    await capture("reading-"+theme+".png");
+  }
+  checks["rich document typography renders headings, quotations, code and inline source"]=true;
   const sources={};
   for(const name of (await readdir(ui)).sort()){
     const file=resolve(ui,name);
