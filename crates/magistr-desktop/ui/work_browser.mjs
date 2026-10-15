@@ -13,6 +13,7 @@ export class WorkBrowser {
     this.item=new RoadmapItemReader($("work-browser-content"),invoke,()=>this.backToTrack());
     this.tabs=new WorkTabs($("work-browser-tabs"),area=>{this.item.close();this.area=area;this.key="";this.render();});
     this.roadmapBrowser=new RoadmapBrowser($("work-browser-track"),()=>{this.item.close();this.key="";this.render();});
+    $("work-browser-roadmap-state").onchange=()=>{this.item.close();this.key="";this.render();};
     this.runs=new WorkRuns($("work-browser-runs"),()=>{this.key="";this.render();});
     $("browse-work").onclick=()=>this.open($("browse-work"));
     $("browse-work-header").onclick=()=>this.open($("browse-work-header"));
@@ -23,7 +24,7 @@ export class WorkBrowser {
   observe(frame){
     if(addressKey(this.frame?.address)!==addressKey(frame?.address)){
       ++this.generation;this.revision=-1;this.key="";this.loading=false;this.snapshot=null;
-      this.$("work-browser-content").replaceChildren();this.runs.reset();this.roadmapBrowser.reset();this.tabs.select("work");
+      this.$("work-browser-content").replaceChildren();this.runs.reset();this.roadmapBrowser.reset();this.$("work-browser-roadmap-state").value="open";this.tabs.select("work");
       if(this.$("work-browser").open)this.$("work-browser").close();
     }
     this.frame=frame;
@@ -68,9 +69,10 @@ export class WorkBrowser {
     this.$("work-browser-state").dataset.current=String(observed.current);
     if(this.item.id){this.item.observe(this.frame.address,this.revision);return;}
     const records=readState(this.snapshot.roadmap).value?.chunks??[];
-    const key=JSON.stringify(["roadmap",this.roadmapBrowser.choice,observed.value,records]);if(key===this.key)return;this.key=key;
+    const mode=this.$("work-browser-roadmap-state").value;
+    const key=JSON.stringify(["roadmap",this.roadmapBrowser.choice,mode,observed.value,records]);if(key===this.key)return;this.key=key;
     const content=this.$("work-browser-content");
-    retainReading(content,()=>content.replaceChildren(observed.value?renderRoadmap(frontier,observed.value,records,this.roadmapBrowser.choice!==undefined,id=>this.item.open(this.frame.address,id,this.revision)):element("p","The roadmap is unavailable. Use Refresh to try again.","work-record-empty")));
+    retainReading(content,()=>content.replaceChildren(observed.value?renderRoadmap(frontier,observed.value,records,this.roadmapBrowser.choice!==undefined,id=>this.item.open(this.frame.address,id,this.revision),mode):element("p","The roadmap is unavailable. Use Refresh to try again.","work-record-empty")));
   }
   render(){
     this.$("work-run-selection").hidden=this.area!=="work";

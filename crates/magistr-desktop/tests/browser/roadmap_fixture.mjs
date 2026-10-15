@@ -38,5 +38,10 @@ export async function roadmapScene(app,capture){
   await capture("roadmap-dependency-dark.png");
   await app.getByRole("button",{name:"Back to previous item",exact:true}).click();
   await app.getByRole("button",{name:"Back to track",exact:true}).click();
+  await app.getByLabel("Track",{exact:true}).selectOption('"Platform"');
+  await app.getByLabel("Items",{exact:true}).selectOption("closed");
+  await capture("roadmap-history-dark.png");
+  await app.getByLabel("Items",{exact:true}).selectOption("open");
+  await app.getByLabel("Track",{exact:true}).selectOption('"Desktop"');
   await app.getByRole("tab",{name:"Current and saved work",exact:true}).click();
 }

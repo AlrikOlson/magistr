@@ -15,7 +15,7 @@ export class RoadmapBrowser {
     return frontiers.find(f=>JSON.stringify(f.group)===this.choice);
   }
 }
-export function renderRoadmap(frontier,data,chunks,selected,open){
+export function renderRoadmap(frontier,data,chunks,selected,open,mode="open"){
   const article=element("article","","work-record");
   if(!frontier){article.append(element("h3",selected?"This track is no longer available.":"No roadmap items yet."));return article;}
   const history=(frontier.group===null?data.catalog.ungrouped_history:data.catalog.history[frontier.group])??{done:0,obsoleted:0};
@@ -25,6 +25,19 @@ export function renderRoadmap(frontier,data,chunks,selected,open){
     const fact=element("div");fact.append(element("dt",label),element("dd",String(value)));facts.append(fact);
   }
   article.append(facts);
+  if(mode==="closed"){
+    article.append(element("h4","Completed and retired"));
+    const closed=chunks.filter(item=>(item.group??null)===frontier.group&&["done","obsoleted"].includes(item.status));
+    const list=element("ol","","roadmap-items");
+    for(const item of closed){
+      const row=element("li");row.dataset.chunk=item.id;
+      const title=element("button",item.title,"roadmap-item-open");title.dataset.openItem=item.id;title.dataset.focusKey="roadmap-open:"+item.id;title.onclick=()=>open(item.id);
+      row.append(title,element("span",statuses[item.status],"roadmap-item-state"));
+      if(item.obsoleted_reason)row.append(element("p",item.obsoleted_reason,"roadmap-waiting"));
+      list.append(row);
+    }
+    article.append(closed.length?list:element("p","This track has no completed or retired items."));return article;
+  }
   if(!frontier.items.length){article.append(element("p","This track has no unfinished items."));return article;}
   const byId=new Map(chunks.map(chunk=>[chunk.id,chunk])),list=element("ol","","roadmap-items");
   for(const item of frontier.items){
