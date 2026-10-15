@@ -174,3 +174,12 @@ test("18 activity summary makes room for projects and tracks actual counts",asyn
   await app.evaluate(()=>window.__fixture.publish("release",{status:"Working",activity:{active:true}}));await expect(overview.locator('[data-kind="working"] dd')).toHaveText("1");
   for(const theme of ["dark","light"]){await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);await capture(app,"18-summary-"+theme);}
 });
+test("19 long project locations stay selectable without displacing actions",async({app})=>{
+  const path="/Projects/"+"a-very-long-workspace-name/".repeat(12);
+  await app.evaluate(path=>{const f=window.__fixture,frame=f.frames.get("release");f.publish("release",{address:{...frame.address,project:"long-path",workspace:path}});},path);
+  await app.setViewportSize({width:760,height:550});const location=app.getByRole("textbox",{name:"Project location for Project",exact:true});
+  await expect(location).toHaveValue(path);await expect(location).toHaveAttribute("readonly","");await location.focus();await location.press("Meta+a");
+  expect(await location.evaluate(node=>node.selectionEnd-node.selectionStart)).toBe(path.length);
+  const project=app.locator(".directory-project").filter({has:location});await project.scrollIntoViewIfNeeded();expect((await project.locator(".directory-cover").boundingBox()).height).toBeLessThan(110);
+  for(const theme of ["dark","light"]){await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);await capture(app,"19-path-"+theme);}
+});
