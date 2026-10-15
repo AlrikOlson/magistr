@@ -1,5 +1,5 @@
 {
-  "receipt": "18d15b3df77ab7f1c1112613bf8bf16d9de9841dcada138b24fa23fb44e8619d",
+  "receipt": "d0460d624b70f2ef8b18cad64d8ea37097ed6d18ccea469d6a22fff7dbd4f4b2",
   "images": {
     "welcome-dark.png": "dbeb5de57311812ef5a669f046708a23927e7504e74d686194bb801dfd5b8dff",
     "welcome-light.png": "c77e2e937e8f1e98e3061d94a5bb15c40abbcda679712e2d99ed503e54c54991",
@@ -25,8 +25,8 @@
     "setup-dark.png": "62412120a44218b5ac82796adc78d5b67a45ddee0328967564d1b862957b2bbf",
     "new-conversation-dark.png": "f48cb37a5b297341c14c16c0727d882311e65f5a1552be1bce4610c72a2ea491",
     "new-conversation-narrow-light.png": "886005533adf2bd67ef47816265102294c8a4b834dc8da69c51d0c2077d1c44a",
-    "find-conversation-narrow-light.png": "7b7b098e19023305e71744154213609f31e0f1059c59f2999747ee1c5dea0fbf",
-    "find-conversation-dark.png": "76eb04181635e02454b918fcf6f37f448b90ecd61fd587869fb6e50cd27180f2",
+    "find-conversation-narrow-light.png": "7f96ded51dbde3701344271ae3800e67f2111bf79c680e9865c751e68bd98080",
+    "find-conversation-dark.png": "38671ef7382d38d5313e1d045ee082a435f5ed2ceb070fa7e5a05d0e3ef40bc6",
     "reading-dark.png": "794764c2e05b8978bdafc1cb681802231eb8326f3b1f80e2f95a113b1d3591c4",
     "code-dark.png": "e088bfee805d8642334ca452d174bb829edb85d251d1443c174271fdbdedae87",
     "reading-light.png": "d78d020abfdc61d0cfc9e6620c1bcbb5241d7d5c22c82e28a937433623a54beb",
@@ -50,8 +50,8 @@
   },
   "reviewed_on": "2026-10-15",
   "findings": [
-    "The saved conversation archive now shows readable reply excerpts in its index, a larger title, aligned saved facts and a distinct unsent-message surface. Reviewed dark and narrow light captures.",
-    "Six focused history/workspace WebKit checks passed, including save failures, retries, preserved drafts during filtering and fixed short-window actions.",
+    "Conversation search now has larger result typography, literal match highlighting, a separate current-conversation label and catalog-derived activity symbols. Reviewed dark and narrow light captures.",
+    "Seven focused WebKit checks passed across keyboard/workspace and punctuation/Unicode highlighting. Focus survives catalog updates and names remain literal text.",
     "Headless WebKit only; native input and assistive technology not exercised. Native workflow recording remains unavailable."
   ]
 }
