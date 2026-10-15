@@ -146,3 +146,13 @@ test("activity aligns timestamps and compact references",async({app})=>{
   await expect(row).toContainText("crates/desktop/src/reopen.rs");
   await capture(app,"13-activity");
 });
+
+test("produced items place actions alongside their reference",async({app})=>{
+  await openWork(app);await app.getByLabel("Show",{exact:true}).selectOption("activity");await app.getByLabel("Entries",{exact:true}).selectOption("items");
+  await app.setViewportSize({width:760,height:550});
+  const row=app.locator(".work-artifacts article").first();await row.scrollIntoViewIfNeeded();
+  const reference=await row.locator(".work-artifact-reference").boundingBox(),actions=await row.locator(".work-artifact-actions").boundingBox();
+  expect(reference.x+reference.width).toBeLessThan(actions.x);
+  expect((await row.boundingBox()).height).toBeLessThan(90);
+  await capture(app,"14-produced-items");
+});
