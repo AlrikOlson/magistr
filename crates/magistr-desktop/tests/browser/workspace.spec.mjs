@@ -78,6 +78,8 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
   await app.getByRole("button",{name:"Saved conversations",exact:true}).click();
   await expect(app.getByRole("heading",{name:"Release notes and rollback",exact:true})).toBeVisible();
   await capture("history-dark.png");
+  await app.locator("#saved-draft>summary").click();
+  await capture("history-reading-dark.png");
   await app.getByRole("button",{name:"Close saved conversations",exact:true}).click();
   await app.getByRole("button",{name:"Settings",exact:true}).click();
   await app.getByLabel("Appearance",{exact:true}).selectOption("light");
@@ -85,7 +87,10 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
   await app.setViewportSize({width:800,height:680});
   await app.getByRole("button",{name:"Saved conversations",exact:true}).click();
   await expect(app.getByRole("heading",{name:"Release notes and rollback",exact:true})).toBeVisible();
+  if(await app.locator("#saved-draft").getAttribute("open")===null)await app.locator("#saved-draft>summary").click();
   await capture("history-narrow-light.png");
+  await app.locator("#saved-draft>summary").click();
+  await capture("history-reading-narrow-light.png");
   checks["saved history has fixed heading, search, independent panes and resume action"]=true;
   await app.getByRole("button",{name:"Close saved conversations",exact:true}).click();
   await app.getByRole("button",{name:"Open project",exact:true}).click();

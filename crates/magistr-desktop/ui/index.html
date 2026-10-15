@@ -142,21 +142,21 @@
   </form>
 </dialog>
 <dialog id="history-picker" aria-labelledby="history-title">
-  <header class="history-heading"><div><h2 id="history-title">Saved conversations</h2><p>Find a previous conversation and pick up where you left off.</p></div><button id="history-close" aria-label="Close saved conversations">×</button></header>
-  <div class="history-search"><label for="history-search" class="sr-only">Search saved conversations</label><input id="history-search" type="search" placeholder="Search by name, project, agent or content"><button id="history-refresh">Refresh</button><p id="history-count" role="status"></p></div>
+  <header class="history-heading"><div><h2 id="history-title" data-leading-icon="history">Saved conversations</h2><p>Find a previous conversation and pick up where you left off.</p></div><button id="history-close" aria-label="Close saved conversations">×</button></header>
+  <div class="history-search"><span data-icon="search" aria-hidden="true"></span><label for="history-search" class="sr-only">Search saved conversations</label><input id="history-search" type="search" placeholder="Search by name, project, agent or content"><button id="history-refresh" data-leading-icon="history">Refresh</button><p id="history-count" role="status"></p></div>
   <p id="history-error" class="error" role="alert" tabindex="-1" hidden></p>
   <div class="history-layout">
     <nav id="history-list" aria-label="Saved conversations"></nav>
     <div id="history-reading">
       <section id="history-empty" class="history-empty"><h3>Choose a conversation</h3><p>Read its last saved reply, recover an unsent message or resume with the original agent.</p></section>
       <section id="history-summary" tabindex="-1" aria-label="Saved summary" hidden>
-        <header class="history-summary-heading"><p id="history-project"></p><h3 id="history-name"></h3><p id="history-details"></p></header>
+        <header class="history-summary-heading"><p id="history-project" data-leading-icon="folder"></p><h3 id="history-name"></h3><div id="history-details"></div></header>
         <details id="saved-draft" hidden><summary>Unsent message</summary><div class="saved-draft-content"><label for="saved-message" class="sr-only">Saved message</label><textarea id="saved-message" rows="4" maxlength="1048576" placeholder="Write a message to continue with later…"></textarea><div id="saved-attachments" class="attachments" role="list" aria-label="Saved files" hidden></div><p id="saved-draft-status" role="status"></p><div class="saved-draft-actions"><button id="save-saved-message">Retry save</button><button id="discard-saved-draft">Discard saved draft</button></div></div></details>
         <section class="saved-reply" aria-label="Last saved reply"><h4>Last saved reply</h4><p id="history-text"></p></section>
       </section>
     </div>
   </div>
-  <footer class="history-footer"><p id="history-resume-reason">Reading saved conversations does not start an agent.</p><button id="history-resume" disabled>Resume conversation</button></footer>
+  <footer class="history-footer"><p id="history-resume-reason">Reading saved conversations does not start an agent.</p><button id="history-resume" data-leading-icon="arrow" disabled>Resume conversation</button></footer>
 </dialog>
 <script type="module" src="app.mjs"></script>
 </body></html>
