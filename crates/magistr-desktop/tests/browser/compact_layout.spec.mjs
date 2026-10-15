@@ -206,3 +206,11 @@ test("feedback metadata and research sources use compact labeled rows",async({ap
   const note=app.locator(".feedback-research details").first();await note.locator("summary").click();
   await note.locator(".feedback-sources").scrollIntoViewIfNeeded();await capture(app,"20-feedback-sources");
 });
+
+test("record availability places each action beside its status",async({app})=>{
+  await openWork(app,"Record status");
+  await expect(app.locator(".work-status-family")).toHaveCount(4);
+  const family=app.locator(".work-status-family").first();await expect(family.locator("header button")).toHaveText("Open work");
+  expect((await family.boundingBox()).height).toBeLessThan(140);
+  await capture(app,"21-record-status");
+});

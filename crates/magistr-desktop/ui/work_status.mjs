@@ -15,7 +15,7 @@ function savedTime(source){
   const date=new Date(millis);return Number.isNaN(date.getTime())?null:date;
 }
 export function renderRecordStatus(snapshot,{copy,navigate}){
-  const root=element("article","","work-record work-status"),title=element("h3","Record status");title.tabIndex=-1;title.dataset.focusKey="record-status-title";
+  const root=element("article","","work-record work-status"),title=element("h3","Record status","roadmap-track-title");title.tabIndex=-1;title.dataset.focusKey="record-status-title";
   root.append(title,element("p","Each part of the project is read separately. Use Refresh to read the records again."));
   for(const [kind,label,area] of families){
     const record=snapshot[kind],observed=readState(record),section=element("section","","work-status-family");section.setAttribute("aria-label",label+" records");section.dataset.current=String(observed.current);
@@ -34,7 +34,7 @@ export function renderRecordStatus(snapshot,{copy,navigate}){
     const error=state==="stale"?record.data.error:state==="unavailable"?record.data:null;
     if(error){const detail=element("section");renderSourceDetail(detail,{label:label+" read error",source:error.message},copy);section.append(detail,element("p","Use Refresh to try again.","work-status-source"));}
     if(state==="unobserved")section.append(element("p","These records have not been read yet. Use Refresh to try again."));
-    const open=element("button","Open "+label.toLowerCase());open.dataset.focusKey="record-status-"+area;open.onclick=()=>navigate(area);section.append(open);root.append(section);
+    const open=element("button","Open "+label.toLowerCase());open.dataset.focusKey="record-status-"+area;open.onclick=()=>navigate(area);heading.append(open);root.append(section);
   }
   return root;
 }
