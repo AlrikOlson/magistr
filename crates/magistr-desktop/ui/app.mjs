@@ -61,7 +61,7 @@ const labels=new Map();let issuedLabel=0;
 const showError=error=>{$("error").textContent=error?.message??String(error);$("error").hidden=false;if(projectLayout.compact.matches&&projectLayout.open){projectLayout.show(false);$("error").focus();}};
 const attemptRuler=new AttemptRuler($("work-ruler"));
 const workPanel=new WorkPanel($,invoke,showError,renderWorkSummary);
-const workBrowser=new WorkBrowser($,invoke);
+const workBrowser=new WorkBrowser($,invoke,renderWorkNavigation);
 const conversationName=new ConversationName($,invoke);
 const clearError=()=>{$("error").hidden=true;};
 const button=(label,click)=>{const element=document.createElement("button");element.textContent=label;element.onclick=click;return element;};
@@ -72,11 +72,11 @@ const attachmentList=new AttachmentList($("pending-attachments"),id=>{
 },()=>$("add-files").focus());
 
 const navigation=new ProjectNavigation($("projects"),{
-  select:address=>select(address).catch(showError),open:openDirectory,act,close:closeAddress,
+  select:address=>select(address).catch(showError),work:openProjectWork,open:openDirectory,act,close:closeAddress,
   label:session=>session.conversation?.name??("Conversation "+labels.get(session.address.session))
 });
 const directory=new ProjectDirectory($("welcome-projects"),{
-  select:address=>select(address).catch(showError),open:openDirectory,
+  select:address=>select(address).catch(showError),work:openProjectWork,open:openDirectory,
   label:session=>session.conversation?.name??("Conversation "+labels.get(session.address.session))
 });
 const showProjectMap=map=>{
@@ -113,7 +113,7 @@ function renderWorkSummary(presentation,frame) {
   $("work-attempt-label").textContent=frame?.work?.phase?.kind==="ended"?"Last attempt":"Current attempt";
   const summary=$("work-summary");
   summary.disabled=!frame?.target;
-  summary.textContent=presentation.error?"Work needs attention":frame?.work||presentation.status==="Requesting work…"?presentation.status.replace(/[.]$/,""):"Planned work";
+  summary.textContent=presentation.error?"Work needs attention":frame?.work||presentation.status==="Requesting work…"?presentation.status.replace(/[.]$/,""):"Run planned work";
   summary.title=presentation.detail;
   summary.dataset.active=String(presentation.active||presentation.status==="Requesting work…");
 }
@@ -127,6 +127,9 @@ async function refresh() {
   return info;
 }
 $("project-search").oninput=()=>renderRail();
+function renderWorkNavigation(area=workBrowser.area,visible=!$("work-browser").hidden){
+  for(const button of document.querySelectorAll(".project-work-links button")){const active=visible&&button.closest("[data-project]").dataset.project===String(selected?.project)&&button.dataset.workArea===area;button.setAttribute("aria-current",active?"page":"false");}
+}
 function renderRail() {
   const query=$("project-search").value;
   const signature=JSON.stringify([projects,sessions,selected,query]);if(signature===railKey)return;railKey=signature;
@@ -134,6 +137,7 @@ function renderRail() {
   activityOverview.render(sessions);
   const projectCount=directory.render(projects,sessions,query);
   atlas.render(projects,sessions,query);
+  renderWorkNavigation();
   $("directory-empty").hidden=projectCount>0;
   $("directory-empty").textContent=query.trim()?"No projects match your search.":"No projects yet. Choose a folder to get started.";
   $("sessions-empty").hidden=projects.length>0||sessions.length>0;
@@ -226,7 +230,7 @@ async function connectFileDrops() {
   const channel=new Channel();
   channel.onmessage=notice=>{
     if(notice.kind==="error"){showError(notice.message);return;}
-    if(!currentIs(notice.target)||selection.current?.stream!==notice.stream||document.querySelector("dialog[open]")) {
+    if(!currentIs(notice.target)||selection.current?.stream!==notice.stream||document.querySelector("dialog[open]")||!$("work-browser").hidden) {
       showError("The selected conversation changed. Drop the files again.");return;
     }
     const target=notice.target;
@@ -290,6 +294,11 @@ async function saveDraft(target=currentTarget(),input=attachmentList.input($("dr
   drafts.edit(target,input.text);
   await drafts.flush(target);
 }
+async function openProjectWork(project,area,trigger) {
+  const resident=project.sessions.find(session=>addressKey(session.address)===addressKey(selected)&&!session.closed)??project.sessions.find(session=>!session.closed);
+  if(!resident)return;
+  try{if(addressKey(selected)!==addressKey(resident.address))await select(resident.address);projectLayout.show(false);workBrowser.open(trigger,area);}catch(error){showError(error);}
+}
 async function select(address,requestId=null,requestTarget=null) {
   const previous=currentTarget(),input=attachmentList.input($("draft").value);
   const accepted=await selection.open(address,{
@@ -299,6 +308,7 @@ async function select(address,requestId=null,requestTarget=null) {
       return invoke("subscribe_session",{address,channel,selection:intent});
     },
     commit:(candidate,initial)=>{
+      workBrowser.close(false);
       const fromProjects=projectLayout.compact.matches&&projectLayout.open;projectLayout.show(false);
       const previous=currentTarget();
       if(previous)editorPlaces.capture(previous,drafts.status(previous).revision);
@@ -428,6 +438,7 @@ async function openDirectory(directory) {
   showPicker(directory);await projectOpening.choose(directory);
 }
 function showWelcome(note="") {
+  workBrowser.observe(null);
   selected=null;view=null;composerFrame=null;attachmentList.clear();selection.clear();requestsKey="";railKey="";
   $("workspace").hidden=true;$("welcome").hidden=false;layout.enable(false);
   $("conversation-toolbar").hidden=true;$("conversation-actions").hidden=true;$("conversation-actions").open=false;conversationName.render(null);workPanel.render(null);

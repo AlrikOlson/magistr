@@ -122,8 +122,8 @@ test("task rows align title and status at the minimum width",async({app})=>{
 test("task metadata uses labeled facts and complete times",async({app})=>{
   await openWork(app);await app.evaluate(()=>{const f=window.__fixture;f.workflow.ship.data.value.current.tasks[1].started_at="2026-10-15T08:12:00Z";f.publish("release",{workflow_revision:1});});
   const row=app.locator(".work-tasks>li").nth(1);await row.locator(".work-task-heading").scrollIntoViewIfNeeded();
-  await expect(row.locator(".work-inline-facts dt")).toHaveText(["Type","Estimate","Started"]);
-  await expect(row.locator(".work-inline-facts time")).toHaveAttribute("datetime","2026-10-15T08:12:00Z");
+  await expect(row.locator(":scope>.work-inline-facts dt")).toHaveText(["Type","Estimate","Started"]);
+  await expect(row.locator(":scope>.work-inline-facts time")).toHaveAttribute("datetime","2026-10-15T08:12:00Z");
   await capture(app,"11-task-facts");
 });
 

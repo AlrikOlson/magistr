@@ -325,7 +325,15 @@ reply. A queued launch has its own pending state until the owner admits or
 refuses it. Navigation and reseeding project these facts without inventing a
 second execution state.
 
-The Planned work reader asks the resident session for its complete validated
+Project Work, Roadmap and Reasoning open as full workspace destinations from the
+project rail, project directory and conversation controls. They reuse the selected
+project's resident session without admitting another provider. Returning restores
+the same conversation and draft. The project rail remains available, marks the
+active work destination, and keyboard region navigation includes the work reader.
+The reader retains its selection when returning to the conversation and rejects
+late reads after closing or changing the resident address.
+
+The project work reader asks the resident session for its complete validated
 workflow snapshot on demand. SessionObservation increments workflow_revision
 only when records or their provenance change; streaming frames carry this
 revision rather than the full project history. ProjectSeed shares the immutable

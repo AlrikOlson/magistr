@@ -23,7 +23,8 @@ export class KeyboardNavigation {
   }
   cycle(direction) {
     const $=this.$,areas=[{root:$("project-rail"),focus:()=>{this.projects.show(true);const row=$("projects").querySelector('[aria-current=true]');(row?.closest(".project-group")?.open&&row.getClientRects().length?row:$("find-conversation")).focus();}}];
-    if(this.layout.enabled)areas.push(
+    if(!$("work-browser").hidden)areas.push({root:$("work-browser"),focus:()=>{this.projects.show(false);$("work-browser-content").focus({preventScroll:true});}});
+    else if(this.layout.enabled)areas.push(
       {root:$("transcript"),focus:()=>{this.projects.show(false);if(this.layout.compact.matches)this.layout.show(false);$("transcript").focus({preventScroll:true});}},
       {root:$("composer"),focus:()=>{this.projects.show(false);if(this.layout.compact.matches)this.layout.show(false);($("draft").disabled?$("composer"):$("draft")).focus({preventScroll:true});}},
       {root:$("session-detail"),focus:()=>{this.projects.show(false);this.layout.show(true);$("detail-title").focus();}}

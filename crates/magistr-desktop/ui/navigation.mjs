@@ -18,14 +18,19 @@ export function projectVariant(id) {
   let hash=0;for(const character of id)hash=(Math.imul(hash,31)+character.codePointAt(0))>>>0;
   return String(hash%4);
 }
+function projectWorkLinks(work,project){
+  const nav=node("nav","project-work-links");nav.setAttribute("aria-label","Project work");
+  for(const [area,label] of [["work","Work"],["roadmap","Roadmap"],["reasoning","Reasoning"]]){const button=node("button","",label);button.dataset.workArea=area;button.onclick=()=>work(project(),area,button);nav.append(button);}
+  return nav;
+}
 const node=(tag,className,value="")=>{const el=document.createElement(tag);el.className=className;el.textContent=value;return el;};
 function place(parent,children) {
   children.forEach((child,index)=>{if(parent.children[index]!==child)parent.insertBefore(child,parent.children[index]??null);});
   while(parent.children.length>children.length)parent.lastChild.remove();
 }
 export class ProjectNavigation {
-  constructor(root,{select,open,act,close,label}) {
-    Object.assign(this,{root,select,open,act,close,label});this.groups=new Map();this.rows=new Map();
+  constructor(root,{select,work,open,act,close,label}) {
+    Object.assign(this,{root,select,work,open,act,close,label});this.groups=new Map();this.rows=new Map();
     document.addEventListener("pointerdown",event=>{
       for(const row of this.rows.values())if(row.menu.open&&!row.menu.contains(event.target))row.menu.open=false;
     });
@@ -81,10 +86,11 @@ export class ProjectNavigation {
         const strip=node("div","project-status-strip");strip.setAttribute("aria-hidden","true");
         for(const [kind] of activityKinds){const part=node("span","");part.dataset.kind=kind;strip.append(part);}
         heading.append(icon,name,count);root.append(heading,strip,path,body,open);
-        group={root,heading,name,count,path,body,open,strip,icon,project};this.groups.set(project.id,group);
+        const work=projectWorkLinks(this.work,()=>group.project);root.insertBefore(work,body);
+        group={root,heading,name,count,path,body,open,strip,icon,project,work};this.groups.set(project.id,group);
         open.onclick=()=>this.open(group.project.directory);
       }
-      group.project=project;group.root.dataset.variant=projectVariant(project.id);group.name.textContent=project.name;
+      group.project=project;group.root.dataset.project=String(project.id);group.work.setAttribute("aria-label",project.name+" work");group.root.dataset.variant=projectVariant(project.id);group.name.textContent=project.name;
       group.icon.textContent=Array.from(project.name.trim()).slice(0,2).join("").toLocaleUpperCase();
       group.root.dataset.selected=String(project.sessions.some(session=>addressKey(session.address)===addressKey(selected)));
       group.heading.title=project.directory;group.heading.setAttribute("aria-label",project.name+" · "+project.directory);
@@ -93,7 +99,7 @@ export class ProjectNavigation {
       group.strip.hidden=!project.sessions.length;
       for(const part of group.strip.children){const count=counts[part.dataset.kind];part.style.flex=String(count);part.hidden=!count;}
       group.path.textContent=project.directory;group.path.hidden=names.get(project.name)<2;
-      group.open.hidden=project.sessions.length>0;
+      group.open.hidden=project.sessions.length>0;group.work.hidden=!project.sessions.some(session=>!session.closed);
       const rows=project.sessions.map(session=>{
         const row=this.row(session,project),key=addressKey(session.address);usedRows.add(key);
         row.select.setAttribute("aria-current",String(addressKey(selected)===key));return row.root;
@@ -113,8 +119,8 @@ export class ProjectNavigation {
 
 // A second presentation of the same catalog, updated with the rail on every observation.
 export class ProjectDirectory {
-  constructor(root,{select,open,label}) {
-    Object.assign(this,{root,select,open,label});this.groups=new Map();this.rows=new Map();
+  constructor(root,{select,work,open,label}) {
+    Object.assign(this,{root,select,work,open,label});this.groups=new Map();this.rows=new Map();
   }
   render(projects,sessions,query="") {
     const groups=projectGroups(projects,sessions.filter(session=>!session.closed),query,this.label),usedRows=new Set();
@@ -132,15 +138,16 @@ export class ProjectDirectory {
         const empty=node("p","directory-empty","No open conversations.");
         const cover=node("div","directory-cover");
         title.append(mark,name,path);heading.append(title,open);cover.append(heading,facts);root.append(cover,list,empty);
-        group={root,name,path,facts,openCount,waitCount,open,list,empty,mark,project};this.groups.set(project.id,group);
+        const work=projectWorkLinks(this.work,()=>group.project);cover.append(work);
+        group={root,name,path,facts,openCount,waitCount,open,list,empty,mark,project,work};this.groups.set(project.id,group);
         open.onclick=()=>this.open(group.project.directory);
       }
-      group.project=project;group.root.dataset.variant=projectVariant(project.id);group.name.textContent=project.name;group.path.value=project.directory;group.path.setAttribute("aria-label","Project location for "+project.name);
+      group.project=project;group.root.dataset.project=String(project.id);group.work.setAttribute("aria-label",project.name+" work");group.root.dataset.variant=projectVariant(project.id);group.name.textContent=project.name;group.path.value=project.directory;group.path.setAttribute("aria-label","Project location for "+project.name);
       group.mark.textContent=Array.from(project.name.trim()).slice(0,2).join("").toLocaleUpperCase();
       group.open.setAttribute("aria-label","Open project "+project.name+" in "+project.directory);
       group.list.setAttribute("aria-label","Open conversations in "+project.name);
       const count=project.sessions.length,waiting=project.sessions.filter(session=>session.pending.length).length;
-      group.openCount.textContent=String(count);group.waitCount.textContent=String(waiting);
+      group.work.hidden=!count;group.openCount.textContent=String(count);group.waitCount.textContent=String(waiting);
       group.waitCount.parentElement.dataset.waiting=String(waiting>0);
       const rows=project.sessions.map(session=>{
         const key=addressKey(session.address);usedRows.add(key);let row=this.rows.get(key);

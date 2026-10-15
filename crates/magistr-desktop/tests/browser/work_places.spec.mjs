@@ -19,7 +19,7 @@ test("roadmap selection and dependency trail survive tabs and ignore late suspen
 });
 test("unchanged text selection returns but changed text is never substituted",async({app})=>{
   await open(app);await app.getByRole("tab",{name:"Reasoning",exact:true}).click();await app.getByRole("button",{name:"Keep each conversation with its saved message",exact:true}).click();
-  const selection=await app.evaluate(()=>{const block=document.querySelector(".reasoning-step [data-reading]"),node=block.firstChild;getSelection().setBaseAndExtent(node,0,node,8);return getSelection().toString();});
+  const selection=await app.evaluate(()=>{const block=document.querySelector(".reasoning-step [data-reading$=':context']"),node=block.firstChild;getSelection().setBaseAndExtent(node,0,node,8);return getSelection().toString();});
   await app.getByRole("tab",{name:"Feedback",exact:true}).click();await app.getByRole("tab",{name:"Reasoning",exact:true}).click();expect(await app.evaluate(()=>getSelection().toString())).toBe(selection);
   await app.getByRole("tab",{name:"Feedback",exact:true}).click();await app.evaluate(()=>{const f=window.__fixture;f.workflow.think.data.value.sessions[0].steps[0].context="Changed context.";f.publish("release",{workflow_revision:1});});
   await app.getByRole("tab",{name:"Reasoning",exact:true}).click();expect(await app.evaluate(()=>getSelection().toString())).toBe("");await expect(app.locator(".reasoning-step")).toContainText("Changed context.");
