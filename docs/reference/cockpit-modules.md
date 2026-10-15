@@ -32,7 +32,7 @@ desktop workspace. Companion Rust tests live beside their owners.
 - `crates/magistr-desktop/src/workflow.rs` — addressed on-demand workflow reads from the session owner.
 - `crates/magistr-desktop/src/roadmap.rs` — desktop wire shape of shared roadmap projections.
 - `crates/magistr-desktop/src/roadmap_item.rs` — selected complete roadmap records and safe rich documents.
-- `crates/magistr-desktop/ui/work_item.mjs` — addressed item reader, full authored details and return navigation.
+- `crates/magistr-desktop/ui/work_item.mjs` — addressed item reader, full authored details, suspended/resumed reads and return navigation.
 - `crates/magistr-desktop/ui/work_reasoning_search.mjs` — complete authored reasoning search across sessions.
 - `crates/magistr-desktop/ui/work_reasoning_links.mjs` — direct references, revisions and project-wide identity resolution.
 - `crates/magistr-desktop/ui/work_reasoning_branch.mjs` — session-scoped investigations and recorded lifecycle.
@@ -53,7 +53,7 @@ desktop workspace. Companion Rust tests live beside their owners.
 - `crates/magistr-desktop/ui/work_roadmap.mjs` — track selection and owner-provided readiness.
 - `crates/magistr-desktop/ui/work_status.mjs` — independent record observations, complete counts and saved-file provenance.
 - `crates/magistr-desktop/ui/work_tabs.mjs` — accessible work-view tab navigation.
-- `crates/magistr-desktop/ui/work_browser.mjs` — refresh, address guards and current-plan reading.
+- `crates/magistr-desktop/ui/work_browser.mjs` — refresh, address guards and bounded cross-view reading coordinates.
 - `crates/magistr-desktop/ui/work_records.mjs` — authored work and observation-state presentation.
 - `crates/magistr-desktop/ui/work_runs.mjs` — stable current/saved execution selection.
 - `crates/magistr-desktop/ui/work_dom.mjs` — workflow DOM and reading-state retention.

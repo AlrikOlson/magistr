@@ -21,6 +21,7 @@ export class WorkExecutionBrowser{
     this.$("work-check-filters").hidden=!visible||results||this.$("work-browser-execution-view").value!=="checks";
     this.$("work-activity-filters").hidden=!visible||results||this.$("work-browser-execution-view").value!=="activity";
   }
+  readingIdentity(){return JSON.stringify([this.runs.choice,this.lastRun,this.$("work-browser-execution-view").value,this.$("work-browser-work-search").value,this.workSearchSelected,this.workSearchPage]);}
   render(read){
     const content=this.$("work-browser-content");
     const observed=readState(read);
