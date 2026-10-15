@@ -32,7 +32,7 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
     await app.getByRole("button",{name:"Settings",exact:true}).click();
     await app.getByLabel("Appearance",{exact:true}).selectOption(theme);
     await expect(app.locator("html")).toHaveAttribute("data-theme",theme);
-    if(theme==="light")await capture("settings-light.png");
+    await capture("settings-"+theme+".png");
     await app.getByRole("button",{name:"Done",exact:true}).click();
     await app.locator("#transcript").evaluate(node=>node.scrollTop=0);
     for(const name of ["Open project","New conversation","Saved conversations"]){
@@ -50,6 +50,9 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
   await expect(editor).toBeVisible();
   expect((await editor.boundingBox()).width).toBeGreaterThanOrEqual(500);
   await capture("workspace-narrow.png");
+  await app.getByRole("button",{name:"Settings",exact:true}).click();
+  await capture("settings-narrow-light.png");
+  await app.getByRole("button",{name:"Done",exact:true}).click();
   checks["narrow conversation retains a useful reading and editing width"]=true;
   await app.getByRole("button",{name:"Details",exact:true}).click();
   await expect(editor).toBeHidden();
