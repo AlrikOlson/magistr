@@ -5,7 +5,7 @@ import { targetKey } from "./context.mjs";
 import { remember, captureSelection, restoreSelection } from "./reading.mjs";
 // Native selection and reading position belong to this semantic document view.
 import { AttachmentList } from "./attachments.mjs";
-const tags=new Set(["p","h1","h2","h3","h4","h5","h6","blockquote","pre","ol","ul","li","em","strong","s","a","span","code","hr","br","table","thead","tbody","tr","th","td"]);
+const tags=new Set(["p","h1","h2","h3","h4","h5","h6","blockquote","pre","ol","ul","li","em","strong","s","a","span","code","hr","br","task","table","thead","tbody","tr","th","td"]);
 const element=(document,tag,value="")=>{const node=document.createElement(tag);node.textContent=value;return node;};
 export function selectedWithin(selection,node) {
   if(!selection||selection.isCollapsed||!selection.rangeCount)return false;
@@ -21,7 +21,7 @@ export function renderDocument(parent,nodes,openLink,copy) {
   const document=parent.ownerDocument;
   nodes.forEach((source,index)=>{
     const tag=source.tag==="text"?"text":tags.has(source.tag)?source.tag:"span";
-    const hostTag=tag==="pre"?"figure":tag==="table"?"div":tag;
+    const hostTag=tag==="pre"?"figure":tag==="table"?"div":tag==="task"?"span":tag;
     let node=parent.childNodes[index];
     if(!node||(tag==="text"?node.nodeType!==3:node.localName!==hostTag)) {
       const next=tag==="text"?document.createTextNode(""):document.createElement(hostTag);
@@ -36,6 +36,7 @@ export function renderDocument(parent,nodes,openLink,copy) {
       if(!table){table=document.createElement("table");node.append(table);}
       renderDocument(table,source.children??[],openLink,copy);return;
     }
+    if(tag==="task"){node.className="task-marker";node.setAttribute("role","img");node.setAttribute("aria-label",source.checked?"Completed":"Not completed");node.dataset.checked=String(!!source.checked);return;}
     if(tag==="th")node.scope="col";
     if(tag==="th"||tag==="td")node.style.textAlign=["left","center","right"].includes(source.alignment)?source.alignment:"";
     if(tag==="a") {

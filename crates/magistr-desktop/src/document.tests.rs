@@ -1,6 +1,16 @@
 use super::*;
 
 #[test]
+fn task_lists_project_authored_completion_without_mutable_controls() {
+    let doc = Document::parse("- [x] Save the draft\n- [ ] Review changes\n");
+    let items = &doc.nodes[0].children;
+    assert_eq!(items[0].children[0].tag, "task");
+    assert_eq!(items[0].children[0].checked, Some(true));
+    assert_eq!(items[1].children[0].checked, Some(false));
+    assert_eq!(items[1].children[1].text, "Review changes");
+}
+
+#[test]
 fn tables_preserve_headers_alignment_and_inline_content() {
     let doc = Document::parse(
         "| Name | Count | Status |\n| :--- | ---: | :---: |\n| **Drafts** | 42 | saved |\n",

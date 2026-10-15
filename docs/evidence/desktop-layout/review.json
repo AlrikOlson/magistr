@@ -1,5 +1,5 @@
 {
-  "receipt": "3fad635ef0e5e311b32770eb64bbeb0d5120077ac48322e502c84892f03aaff9",
+  "receipt": "41d8bf4e2254b0db97ac5a0626595e671b652304db65d54b022713e5d77cd300",
   "images": {
     "welcome-dark.png": "dbeb5de57311812ef5a669f046708a23927e7504e74d686194bb801dfd5b8dff",
     "welcome-light.png": "c77e2e937e8f1e98e3061d94a5bb15c40abbcda679712e2d99ed503e54c54991",
@@ -27,10 +27,10 @@
     "new-conversation-narrow-light.png": "040a36021b202d652519541941f557240311519b8596f547f772f31037ce4614",
     "find-conversation-narrow-light.png": "8a296146f1537545976903204e39324ee295eb83cdeb911e6f97b146019b690e",
     "find-conversation-dark.png": "96ecd9de265c9138efe09bd353eafd6a736ab3f8d99328eaf020418605022170",
-    "reading-dark.png": "794764c2e05b8978bdafc1cb681802231eb8326f3b1f80e2f95a113b1d3591c4",
-    "code-dark.png": "9ef6a5811b31f34a70f32d5e29ac39f29e75383606e8761aee2acadebc6950d9",
-    "reading-light.png": "d78d020abfdc61d0cfc9e6620c1bcbb5241d7d5c22c82e28a937433623a54beb",
-    "code-light.png": "8736ee3aab478bea2e0e7d6fd9303a78f2d54b2ab79620b73ac0aefc57d95ee4",
+    "reading-dark.png": "e5ebf32fd1b81b3885deafe311afbf044468d183acaade53719fc31897b56931",
+    "code-dark.png": "23eacc65beb6b81e8b3a00bfda82391ff727ad45598b73d4a203680269177282",
+    "reading-light.png": "a1beb6c605b264742921bd227750036417af90c5989cf3da77bbec1d7fcf30a1",
+    "code-light.png": "88e1226487888ba4ac39f15c49587c365bcbc0261b3ddc07b082cc3fb2155515",
     "tools-light.png": "a8614b0be9b948dab1ba591539095aef46bcce21b06eadce8de3c23c19a447e7",
     "tools-dark.png": "38f77fdbc732c75fdd847281e4b060deca65d9cfde1f3ad41f738b4a6a97dcb0",
     "attachments-dark.png": "045583a42e5ba3335d55cd4a6a09d189327399270121e5b108898ef64d861979",
@@ -59,12 +59,15 @@
     "result-light.png": "275b959ef273f3b5d8e7c618daa07edc90dddf90b43ce25589d83c01f421ac57",
     "contents-dark.png": "c1658d62175c63c41e0f23195cde9c7c454245928ee245a9d35a795c5c7e906d",
     "contents-light.png": "f65ab8fe271bc71c109248c71b6745cebbec4862985c5b14e5cda872028abbb0",
-    "contents-compact.png": "818729570c896b6615bfc328b240e7b2051926ac5b68245183724b6caa809699"
+    "contents-compact.png": "818729570c896b6615bfc328b240e7b2051926ac5b68245183724b6caa809699",
+    "editorial-dark.png": "d9ada606f5dfd8162b8f8f0b4b0d5f9d58310187ffcd8360409acf494e4f8a89",
+    "editorial-light.png": "ba26a2abc7a326fc8d35ac75035b8365cded6ac246d0af5bf0801520d2c2033b",
+    "editorial-compact.png": "56d67f3debbd5fb1251e5eb38fcde8bc94aee8ce0744907874cb2a1a8f9b3387"
   },
   "reviewed_on": "2026-10-15",
   "findings": [
-    "5/20: Reviewed the two-column numbered contents surface for substantial replies, including compact layout. Short replies retain their direct reading layout.",
-    "Contents are derived from retained headings, capped at 24, and keyboard activation focuses the real section. Seven focused WebKit scenarios pass, including reading and selection continuity.",
-    "Native OS input and assistive technology were not rerun."
+    "6/20: Reviewed serif quotations, separate nested-list rhythm and authored completion markers in dark/light and compact layouts. The quote remains selectable source text.",
+    "Six focused Rust document tests, current WebKit composition journey, desktop formatting and Clippy pass. Task markers have semantic completed/not-completed labels and no misleading editable control.",
+    "Reviewed affected reading and code captures. Native OS input and assistive technology were not rerun."
   ]
 }

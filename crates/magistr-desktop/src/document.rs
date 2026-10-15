@@ -16,6 +16,7 @@ pub(crate) struct Node {
     pub(crate) number: Option<u64>,
     pub(crate) language: Option<String>,
     pub(crate) alignment: Option<&'static str>,
+    pub(crate) checked: Option<bool>,
 }
 impl Node {
     fn element(tag: &'static str, start: usize) -> Self {
@@ -28,6 +29,7 @@ impl Node {
             number: None,
             language: None,
             alignment: None,
+            checked: None,
         }
     }
     fn text(text: impl Into<String>, start: usize) -> Self {
@@ -59,7 +61,7 @@ impl Document {
         let mut columns = Vec::new();
         for (event, range) in Parser::new_ext(
             source,
-            Options::ENABLE_STRIKETHROUGH | Options::ENABLE_TABLES,
+            Options::ENABLE_STRIKETHROUGH | Options::ENABLE_TABLES | Options::ENABLE_TASKLISTS,
         )
         .into_offset_iter()
         {
@@ -164,6 +166,14 @@ impl Document {
                         parent.children.push(Node {
                             text: text.into_string(),
                             ..Node::element("code", range.start)
+                        });
+                    }
+                }
+                Event::TaskListMarker(checked) => {
+                    if let Some(parent) = stack.last_mut() {
+                        parent.children.push(Node {
+                            checked: Some(checked),
+                            ..Node::element("task", range.start)
                         });
                     }
                 }
