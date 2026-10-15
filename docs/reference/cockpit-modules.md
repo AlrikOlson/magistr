@@ -149,6 +149,8 @@ desktop workspace. Companion Rust tests live beside their owners.
 - `crates/magistr-desktop/ui/patch_document.mjs` — bounded patch line, position and change-count presentation.
 - `crates/magistr-desktop/ui/code_blocks.mjs` — stable framed source documents, nonselectable line gutters and exact code copying.
 - `crates/magistr-desktop/ui/attachment_viewer.mjs` — fit/actual-size image inspection from owned attachment previews with focus restoration and removal handling.
+- `crates/magistr-desktop/tests/browser/atlas.spec.mjs` — spatial catalog bounds, focus and addressed navigation.
+- `crates/magistr-desktop/ui/project_atlas.mjs` — bounded spatial catalog view with stable native controls.
 - `crates/magistr-desktop/ui/app.mjs`
 - `crates/magistr-desktop/ui/history.mjs` — searchable saved-record browser, independent reading/list surfaces and guarded resume feedback.
 - `crates/magistr-desktop/tests/browser/history.spec.mjs` — background filtering, draft recovery, loading cancellation and refused resume.
