@@ -1,0 +1,30 @@
+{
+  "scope": "Align project facts beside their actions",
+  "limitations": "Headless WebKit with isolated observations. Native OS input, assistive technology and Rust command integration were not exercised.",
+  "images": {
+    "welcome-desktop-dark.png": {
+      "sha256": "5578115d88c45e6d060f964e356a96f7ff7e36976cf9da76fa15bf1776903d72",
+      "task": "Compare projects and their open conversations in compact aligned rows.",
+      "observations": "Conversation and waiting counts now form compact labeled components beside project entry actions. The Website row correctly reads '1 Conversation'. Project paths remain readable/selectable, title and counts align, and waiting color accompanies its label. Compact first project and actions fit without overlap; further projects remain in the scrolling list. Both appearances retain contrast.",
+      "verdict": "pass"
+    },
+    "welcome-desktop-light.png": {
+      "sha256": "87d711b5c9036a297726b48714e7b6795087cd1d05b4cb6ca616e2d8f97f6faa",
+      "task": "Compare projects and their open conversations in compact aligned rows.",
+      "observations": "Conversation and waiting counts now form compact labeled components beside project entry actions. The Website row correctly reads '1 Conversation'. Project paths remain readable/selectable, title and counts align, and waiting color accompanies its label. Compact first project and actions fit without overlap; further projects remain in the scrolling list. Both appearances retain contrast.",
+      "verdict": "pass"
+    },
+    "welcome-compact-dark.png": {
+      "sha256": "ee1d13556469b7355e60b168e891f99ea111c669c3ab16e8e5418f60581480a4",
+      "task": "Compare projects and their open conversations in compact aligned rows.",
+      "observations": "Conversation and waiting counts now form compact labeled components beside project entry actions. The Website row correctly reads '1 Conversation'. Project paths remain readable/selectable, title and counts align, and waiting color accompanies its label. Compact first project and actions fit without overlap; further projects remain in the scrolling list. Both appearances retain contrast.",
+      "verdict": "pass"
+    },
+    "welcome-compact-light.png": {
+      "sha256": "def1de5bc8dac963b82daa85d87ef139e8951da909535ca1c2a87cc90925968a",
+      "task": "Compare projects and their open conversations in compact aligned rows.",
+      "observations": "Conversation and waiting counts now form compact labeled components beside project entry actions. The Website row correctly reads '1 Conversation'. Project paths remain readable/selectable, title and counts align, and waiting color accompanies its label. Compact first project and actions fit without overlap; further projects remain in the scrolling list. Both appearances retain contrast.",
+      "verdict": "pass"
+    }
+  }
+}

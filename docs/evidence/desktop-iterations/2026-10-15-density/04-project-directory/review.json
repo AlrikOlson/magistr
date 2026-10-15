@@ -1,0 +1,30 @@
+{
+  "scope": "Align project facts beside their actions",
+  "limitations": "Headless WebKit with isolated observations. Native OS input, assistive technology and Rust command integration were not exercised.",
+  "images": {
+    "welcome-desktop-dark.png": {
+      "sha256": "7daa93d9bec5da5f19fb39d0df2ec2fc17e21401784d98e6f47f29b173e2d1c8",
+      "task": "Compare projects and their open conversations in compact aligned rows.",
+      "observations": "Count components fit beside project actions with clear contrast and alignment, but the desktop Website entry reads '1 Conversations'. This grammatical defect must be corrected before acceptance. Compact list remains scrollable and its first project fits without overlap.",
+      "verdict": "fail"
+    },
+    "welcome-desktop-light.png": {
+      "sha256": "93f984a0141dbf054c9ee8f6db09ee6fd3fc02a976a698c9592ab654034d7567",
+      "task": "Compare projects and their open conversations in compact aligned rows.",
+      "observations": "Count components fit beside project actions with clear contrast and alignment, but the desktop Website entry reads '1 Conversations'. This grammatical defect must be corrected before acceptance. Compact list remains scrollable and its first project fits without overlap.",
+      "verdict": "fail"
+    },
+    "welcome-compact-dark.png": {
+      "sha256": "320ae0becf42c5203cec3df6852b17c6d83bca31f5e6b7f8c05e57c800c3124b",
+      "task": "Compare projects and their open conversations in compact aligned rows.",
+      "observations": "Count components fit beside project actions with clear contrast and alignment, but the desktop Website entry reads '1 Conversations'. This grammatical defect must be corrected before acceptance. Compact list remains scrollable and its first project fits without overlap.",
+      "verdict": "fail"
+    },
+    "welcome-compact-light.png": {
+      "sha256": "203d205a6ec8128757bdf96b811512210b82ffbcd797763d16dd409073e16735",
+      "task": "Compare projects and their open conversations in compact aligned rows.",
+      "observations": "Count components fit beside project actions with clear contrast and alignment, but the desktop Website entry reads '1 Conversations'. This grammatical defect must be corrected before acceptance. Compact list remains scrollable and its first project fits without overlap.",
+      "verdict": "fail"
+    }
+  }
+}
