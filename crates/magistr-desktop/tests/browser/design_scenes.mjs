@@ -68,7 +68,7 @@ export async function toolScene(app,capture,expect){
   const source=JSON.stringify({file:"src/draft.rs",checks:42,passed:true,duration_ms:1840,changes:{added:2,removed:1},notes:"<script>literal source</script>"},null,2);
   await app.evaluate(source=>{
     Object.defineProperty(navigator,"clipboard",{configurable:true,value:{writeText:async text=>{window.__fixture.copied=text;}}});
-    window.__fixture.publish("release",{events:[{id:903,revision:1,role:"Tool",text:source,tool:{title:"Verify saved drafts",status:"Completed",duration_ms:1840,details:[{label:"Result",source}]}}],retained:[903]});
+    window.__fixture.publish("release",{events:[{id:903,revision:1,role:"Tool",text:source,tool:{title:"Verify saved drafts",status:"Finished",duration_ms:1840,details:[{label:"Result",source}]}}],retained:[903]});
   },source);
   await app.locator('article[data-tool]>details>summary').click();
   await expect(app.locator(".result-fields").first()).toContainText("duration_ms");
@@ -181,4 +181,23 @@ export async function writingScene(app,capture,expect){
   await draft.focus();await app.keyboard.press("Escape");
   await expect(app.getByRole("button",{name:"Expand editor",exact:true})).toBeFocused();
   await expect(draft).toHaveValue(text);
+}
+export async function ledgerScene(app,capture,expect){
+  await showDocument(app,[],910);
+  await app.evaluate(()=>window.__fixture.publish("release",{events:[
+    {id:911,revision:1,role:"Tool",text:"Checked the desktop",tool:{title:"Check desktop compilation",status:"Finished",duration_ms:1840,details:[{label:"Input",source:JSON.stringify({command:"cargo check --manifest-path crates/magistr-desktop/Cargo.toml"})},{label:"Result",source:"Compilation finished without warnings."}]}},
+    {id:912,revision:1,role:"Tool",text:"Could not read log",tool:{title:"Read the session log",status:"Failed",duration_ms:46,details:[{label:"Location",source:"logs/session.log"},{label:"Result",source:"Permission was denied."}]}},
+    {id:913,revision:1,role:"Tool",text:"Capturing screenshots",tool:{title:"Capture the desktop views",status:"Running",duration_ms:null,details:[{label:"Input",source:"npm run test:ui"}]}}
+  ],retained:[911,912,913]}));
+  await expect(app.locator(".tool-status")).toHaveText(["Finished","Failed","Running"]);
+  await expect(app.locator(".tool-preview").first()).toHaveText("cargo check --manifest-path crates/magistr-desktop/Cargo.toml");
+  await expect(app.locator('[data-message="913"] .tool-duration')).toBeHidden();
+  await appearances(app,capture,"execution");
+  await app.locator('[data-message="912"]>details>summary').click();
+  await expect(app.locator('[data-message="912"] .tool-body')).toContainText("Permission was denied.");
+  await app.setViewportSize({width:760,height:550});
+  await app.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+  await app.locator('[data-message="912"]').evaluate(node=>node.scrollIntoView({block:"start"}));
+  expect(await app.evaluate(()=>document.documentElement.scrollWidth)).toBe(760);
+  await capture("execution-compact.png");
 }

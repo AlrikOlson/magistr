@@ -178,7 +178,8 @@ export class Transcript {
       row.toolStatus=element(this.document,"span");row.toolStatus.className="tool-status";
       row.toolDuration=element(this.document,"span");row.toolDuration.className="tool-duration";
       const separator=element(this.document,"span"," · ");separator.className="sr-only";
-      row.summary.append(row.toolTitle,separator,row.toolStatus,row.toolDuration);
+      row.toolPreview=element(this.document,"code");row.toolPreview.className="tool-preview";
+      row.summary.append(row.toolTitle,separator,row.toolStatus,row.toolDuration,row.toolPreview);
       article.dataset.tool="true";
       row.details.append(row.summary,row.body);article.append(row.details);
     } else {
@@ -194,7 +195,13 @@ export class Transcript {
     if(message.tool) {
       const tool=message.tool;
       row.toolTitle.textContent=tool.title;row.toolStatus.textContent=tool.status;
-      row.toolStatus.dataset.leadingIcon=tool.status==="Completed"?"check":tool.status==="Failed"?"close":"clock";
+      row.toolStatus.dataset.leadingIcon=tool.status==="Finished"?"check":tool.status==="Failed"?"close":"clock";
+      const location=tool.details.find(detail=>["Location","File"].includes(detail.label));
+      const input=tool.details.find(detail=>detail.label==="Input");
+      let preview=location?.source??input?.source??"";
+      if(!location&&input){try{const value=JSON.parse(input.source);preview=typeof(value.command??value.cmd)==="string"?(value.command??value.cmd):"";}catch{}}
+      row.toolPreview.textContent=preview.split("\n")[0].slice(0,240);row.toolPreview.hidden=!row.toolPreview.textContent;
+      row.toolPreview.title=preview;
       row.article.dataset.status=tool.status.toLowerCase();
       row.toolDuration.textContent=tool.duration_ms==null?"":(tool.duration_ms/1000).toLocaleString(undefined,{maximumFractionDigits:2})+" s";
       row.toolDuration.hidden=tool.duration_ms==null;

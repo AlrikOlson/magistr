@@ -2,7 +2,7 @@ import { test, expect, root, ui, workspaceSeed } from "./fixture.mjs";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { resolve, relative } from "node:path";
 import { createHash } from "node:crypto";
-import { tableScene, patchScene, toolScene, outlineScene, editorialScene, galleryScene, viewerScene, writingScene } from "./design_scenes.mjs";
+import { tableScene, patchScene, toolScene, outlineScene, editorialScene, galleryScene, viewerScene, writingScene, ledgerScene } from "./design_scenes.mjs";
 
 test("workspace composition, appearances and narrow Details",async({app,browser})=>{
   test.setTimeout(60000);
@@ -192,7 +192,7 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
   checks["rich document typography renders headings, quotations, code and inline source"]=true;
   await app.evaluate(()=>{
     window.__fixture.publish("release",{events:[
-      {id:91,revision:1,role:"Tool",text:"cargo check -p magistr-desktop",tool:{title:"Check the draft writer",status:"Completed",details:[{label:"Command",source:"cargo check -p magistr-desktop"},{label:"Result",source:"Finished successfully. No warnings."}],duration_ms:1840,truncated_from:null,image_count:0}},
+      {id:91,revision:1,role:"Tool",text:"cargo check -p magistr-desktop",tool:{title:"Check the draft writer",status:"Finished",details:[{label:"Input",source:"cargo check --manifest-path crates/magistr-desktop/Cargo.toml"},{label:"Result",source:"Finished successfully. No warnings."}],duration_ms:1840,truncated_from:null,image_count:0}},
       {id:92,revision:1,role:"Tool",text:"Read the session log",tool:{title:"Read the session log",status:"Failed",details:[{label:"Result",source:"The file could not be read. Permission was denied."}],duration_ms:46,truncated_from:null,image_count:0}}
     ],retained:[91,92]});
   });
@@ -318,6 +318,8 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
   checks["image inspection provides fit and pixel zoom, backgrounds and compact controls"]=true;
   await writingScene(app,capture,expect);
   checks["expanded writing preserves native editor identity, text, caret and compact actions"]=true;
+  await ledgerScene(app,capture,expect);
+  checks["execution ledger preserves reported outcomes, source input and independent result expansion"]=true;
   const sources={};
   for(const name of (await readdir(ui)).sort()){
     const file=resolve(ui,name);
