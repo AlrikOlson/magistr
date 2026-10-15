@@ -66,6 +66,7 @@ const CODEX_DIR: &str = ".codex";
 #[derive(Debug, Clone, PartialEq)]
 pub struct ProjectInputs {
     project_root: PathBuf,
+    workflow: magistr_engine::NativeConfig,
     /// `$HOME`, else `$USERPROFILE`, else none.
     home_dir: Option<PathBuf>,
     /// `$XDG_CONFIG_HOME/magistr`, else `<home>/.config/magistr`, else none.
@@ -274,8 +275,11 @@ impl ProjectInputs {
             Self::source_for(workspace_session_id.is_some(), WORKSPACE_SESSION_ID),
         );
 
+        let project_root = project_root.into();
+        let workflow = magistr_engine::NativeConfig::from_lookup(&project_root, value);
         Self {
-            project_root: project_root.into(),
+            project_root,
+            workflow,
             home_dir,
             config_dir,
             data_dir,
@@ -325,6 +329,7 @@ impl ProjectInputs {
     pub fn for_project(&self, root: impl Into<PathBuf>) -> Self {
         let mut inputs = self.clone();
         inputs.project_root = root.into();
+        inputs.workflow = inputs.workflow.with_project_root(&inputs.project_root);
         inputs.sources.insert("project_root", InputSource::Explicit);
         inputs
     }
@@ -408,6 +413,12 @@ impl ProjectInputs {
     #[must_use]
     pub fn session_selection(&self) -> Option<&crate::config::session_selection::SessionSelection> {
         self.session_selection.as_ref()
+    }
+
+    /// Workflow storage and execution inputs captured with the session inputs.
+    #[must_use]
+    pub fn workflow(&self) -> &magistr_engine::NativeConfig {
+        &self.workflow
     }
 
     // ── Captured values ──────────────────────────────────────────────
