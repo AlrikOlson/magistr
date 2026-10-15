@@ -4,6 +4,7 @@ import { renderReferences } from "./work_references.mjs";
 import { element, retainReading, saveReading, restoreReading } from "./work_dom.mjs";
 import { WorkExecutionBrowser } from "./work_execution.mjs";
 import { WorkTabs } from "./work_tabs.mjs";
+import {renderRecordStatus,recordStatusMessage} from "./work_status.mjs";
 import { RoadmapBrowser, renderRoadmap } from "./work_roadmap.mjs";
 import { FeedbackBrowser } from "./work_feedback.mjs";
 import { ReasoningBrowser } from "./work_reasoning.mjs";
@@ -116,6 +117,10 @@ export class WorkBrowser {
     this.$("work-roadmap-search").hidden=this.area!=="roadmap";
     const content=this.$("work-browser-content");content.setAttribute("aria-labelledby","work-tab-"+this.area);
     if(!this.snapshot)return;
+    if(this.area==="status"){
+      const message=recordStatusMessage(this.snapshot);this.$("work-browser-state").textContent=message;this.$("work-browser-state").dataset.current=String(Object.values(this.snapshot).every(read=>read.state==="current"));
+      retainReading(content,()=>content.replaceChildren(renderRecordStatus(this.snapshot,{copy:value=>navigator.clipboard.writeText(value).catch(error=>{this.$("work-browser-state").textContent="Could not copy the text. "+String(error);}),navigate:area=>this.tabs.select(area)})));return;
+    }
     if(this.area==="roadmap"){this.renderRoadmap();return;}
     if(this.area==="feedback"){
       const observed=readState(this.snapshot.signals,"feedback");
