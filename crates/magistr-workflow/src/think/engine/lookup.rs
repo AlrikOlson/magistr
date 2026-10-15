@@ -22,7 +22,12 @@ impl ReasoningServer {
                 return Some(s.clone());
             }
         }
-        None
+        self.project
+            .histories
+            .values()
+            .flat_map(|history| &history.steps)
+            .find(|step| step.step_number == n)
+            .cloned()
     }
 
     /// Walk the `revised_by` chain forward from `n` and return the live
@@ -49,7 +54,14 @@ impl ReasoningServer {
     /// `self.history.steps` (push happens unconditionally in `process_step`),
     /// so iterating main is sufficient — chaining branches in would double-count.
     pub(crate) fn all_steps(&self) -> impl Iterator<Item = &ThinkStep> {
-        self.history.steps.iter()
+        let selected = self.selected_key();
+        self.history.steps.iter().chain(
+            self.project
+                .histories
+                .iter()
+                .filter(move |(key, _)| **key != selected)
+                .flat_map(|(_, history)| &history.steps),
+        )
     }
 
     /// Case-insensitive substring search across the text-bearing fields of
@@ -95,6 +107,8 @@ impl ReasoningServer {
                         step.step_number,
                         json!({
                             "step_number": step.step_number,
+                            "session_id": step.session_id,
+                            "record_id": step.record_id,
                             "purpose": step.purpose,
                             "matched_field": name,
                             "excerpt": excerpt,

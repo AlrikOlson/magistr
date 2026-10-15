@@ -16,6 +16,9 @@ pub struct EngineStatusOutput {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub active_session: Option<String>,
     pub sessions_count: u32,
+    pub session_present: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source: Option<magistr_workflow_contracts::ReadSource>,
     /// A COUNT of retained steps — NOT the highest step number used. The
     /// numbering is sparse, so this is smaller than the head by however many
     /// steps have been trimmed. Never derive a step number from it; use
@@ -70,9 +73,9 @@ pub struct PinnedStepDescriptor {
 
 #[derive(Debug, Clone, Serialize, JsonSchema)]
 pub struct SessionDescriptor {
-    pub session_id: String,
-    pub step_count: u32,
+    pub session_id: Option<String>,
+    pub step_count: usize,
     pub completed: bool,
-    pub last_accessed_ms: u64,
-    pub active: bool,
+    pub created_at: Option<String>,
+    pub updated_at: Option<String>,
 }

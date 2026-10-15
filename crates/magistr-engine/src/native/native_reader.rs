@@ -174,26 +174,10 @@ impl NativeReader {
         result
     }
 
-    fn observe_think(&self) -> Result<Observed<ThinkHistory>, ReadError> {
+    fn observe_think(&self) -> Result<Observed<ThinkData>, ReadError> {
         let engine = lock(&self.think);
-        let result = engine.observe_archive();
-        let view = result.as_ref().map(|observed| Observed {
-            value: ThinkData {
-                session_id: observed.value.session_id.clone(),
-                steps: observed.value.steps.clone(),
-                branches: observed
-                    .value
-                    .branches
-                    .iter()
-                    .flatten()
-                    .map(super::ThinkBranch::from)
-                    .collect(),
-            },
-            source: observed.source,
-        });
-        lock(&self.observations)
-            .think
-            .record(view.map_err(Clone::clone));
+        let result = engine.observe_sessions();
+        lock(&self.observations).think.record(result.clone());
         result
     }
 
@@ -208,22 +192,28 @@ impl NativeReader {
         lock(&self.observations).clone()
     }
 
-    /// Reasoning steps from the owner's selected session, or live memory when
-    /// storage is disabled. A failed read is a refusal, never an empty trace.
-    pub fn think_steps_from_store(&self) -> Result<Vec<ThinkStep>, String> {
+    /// Complete sessions from the same validated owner used by snapshots and MCP.
+    pub fn think_sessions(&self) -> Result<ThinkData, String> {
         Ok(self
             .observe_think()
             .map_err(|error| error.to_string())?
-            .value
-            .steps)
+            .value)
     }
 
-    /// One recorded step by its number within the owner's selected session.
+    /// None selects the default; a named session is resolved by the owner.
+    pub fn think_session(&self, session: Option<&str>) -> Result<Option<ThinkHistory>, String> {
+        lock(&self.think)
+            .observe_session(session)
+            .map(|read| read.value)
+            .map_err(|error| error.to_string())
+    }
+
+    /// Stable project-wide lookup across every complete session.
     pub fn think_step(&self, step_number: u32) -> Result<Option<ThinkStep>, String> {
-        Ok(self
-            .think_steps_from_store()?
-            .into_iter()
-            .find(|step| step.step_number == step_number))
+        lock(&self.think)
+            .observe_step(step_number, false)
+            .map(|read| read.value)
+            .map_err(|error| error.to_string())
     }
 
     // ── Roadmap ────────────────────────────────────────────────────────

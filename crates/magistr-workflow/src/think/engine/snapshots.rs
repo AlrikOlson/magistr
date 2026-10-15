@@ -43,22 +43,18 @@ impl ReasoningServer {
             .filter_map(|b| serde_json::to_value(b).ok())
             .collect()
     }
-
-    /// Per-session summary used by the `think_sessions` tool. Sorted
-    /// most-recent first.
+    /// Complete session summaries, independent of the expiring display cache.
     pub fn sessions_snapshot(&self) -> Vec<Value> {
-        let mut entries: Vec<_> = self.sessions.iter().collect();
-        entries.sort_by_key(|e| std::cmp::Reverse(e.1.last_accessed));
-        entries
-            .into_iter()
-            .map(|(id, e)| {
-                let last_accessed = u64::try_from(e.last_accessed).unwrap_or(u64::MAX);
+        self.project
+            .histories
+            .values()
+            .map(|history| {
                 json!({
-                    "session_id": id,
-                    "step_count": e.history.steps.len(),
-                    "completed": e.history.completed,
-                    "last_accessed_ms": last_accessed,
-                    "active": self.active_session.as_deref() == Some(id),
+                    "session_id": history.session_id,
+                    "step_count": history.steps.len(),
+                    "completed": history.completed,
+                    "created_at": history.created_at,
+                    "updated_at": history.updated_at,
                 })
             })
             .collect()
@@ -442,7 +438,11 @@ impl ReasoningServer {
             json!(self.config.features.default_session_id),
         );
         obj.insert("active_session".into(), json!(self.active_session));
-        obj.insert("sessions_count".into(), json!(self.sessions.len()));
+        obj.insert("sessions_count".into(), json!(self.project.histories.len()));
+        obj.insert(
+            "session_present".into(),
+            json!(self.project.histories.contains_key(&self.selected_key())),
+        );
         obj.insert("total_steps".into(), json!(self.history.steps.len()));
         // THE NEXT SAFE STEP NUMBER — the one field think_record_step requires
         // and, until this shipped, the one field with no authoritative source.

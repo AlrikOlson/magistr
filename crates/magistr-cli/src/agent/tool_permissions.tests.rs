@@ -98,10 +98,13 @@ fn reasoning_lifecycle_is_available_to_workflow_and_roadmap_agents() {
     for permissions in [
         ToolPermissions::for_workflow(),
         ToolPermissions::for_roadmap(),
+        ToolPermissions::for_roadmap_request(),
     ] {
         for name in [
             "think_record_step",
             "think_get_step",
+            "think_sessions",
+            "think_session",
             "think_set_branch_status",
             "think_step_impact",
             "think_revise_estimate",

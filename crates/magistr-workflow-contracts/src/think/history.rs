@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use super::{branch::Branch, step::ThinkStep};
 
 /// Per-session aggregates surfaced by snapshots and the Tauri viewer.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, schemars::JsonSchema)]
 pub struct HistoryMetadata {
     // u64 for the same reason as `ThinkStep.duration_ms` —
     // serde_json's default deserializer rejects u128 on the viewer side.
@@ -27,7 +27,7 @@ pub struct HistoryMetadata {
 }
 
 /// One session's worth of reasoning — the canonical persistence shape.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, schemars::JsonSchema)]
 pub struct ThinkHistory {
     pub steps: Vec<ThinkStep>,
     #[serde(skip_serializing_if = "Option::is_none", default)]

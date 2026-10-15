@@ -1,6 +1,6 @@
 //! Core reasoning-step engine. Owns the `ReasoningServer` struct and its sibling impl blocks.
 
-use magistr_workflow_contracts::{Observed, ReadError, ReadSource, ReadState};
+use magistr_workflow_contracts::{Observed, ReadSource, ReadState};
 
 use std::collections::{HashMap, HashSet};
 use std::time::Instant;
@@ -273,6 +273,7 @@ impl ReasoningServer {
             }
         }
 
+        let active_session = history.session_id.clone();
         let formatter = Formatter::new(false);
         let persistence = Persistence::for_project(&config.persistence, &project_id);
 
@@ -295,7 +296,7 @@ impl ReasoningServer {
             step_to_branch,
             branch_depth_cache: HashMap::new(),
             steps_since_cleanup: 0,
-            active_session: None,
+            active_session,
             broadcaster: None,
             cwd: None,
             project_id,
@@ -322,40 +323,6 @@ impl ReasoningServer {
                 tools_used: Some(Vec::new()),
                 project_id: None,
             }),
-        }
-    }
-
-    /// Read the selected session's archive without changing this writer's memory.
-    pub fn observe_archive(&self) -> Result<Observed<ThinkHistory>, ReadError> {
-        if !self.persistence.enabled() {
-            return Ok(Observed {
-                value: self.history_with_branches(),
-                source: ReadSource::Memory,
-            });
-        }
-        let read = self.read_active_archive()?;
-        let value = read.value.unwrap_or_else(|| ThinkHistory {
-            steps: Vec::new(),
-            branches: None,
-            completed: false,
-            session_id: self
-                .active_session
-                .clone()
-                .filter(|id| id != &self.project_id),
-            created_at: None,
-            updated_at: None,
-            metadata: None,
-        });
-        Ok(Observed {
-            value,
-            source: read.source,
-        })
-    }
-
-    fn read_active_archive(&self) -> Result<Observed<Option<ThinkHistory>>, ReadError> {
-        match self.active_session.as_deref() {
-            Some(session) => self.persistence.load_session(session),
-            None => self.persistence.load_default(),
         }
     }
 

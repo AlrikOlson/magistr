@@ -6,8 +6,8 @@ use serde::{Deserialize, Serialize};
 use crate::roadmap::{Chunk, WorkstreamCatalog, workstream_catalog};
 use crate::ship::{Objective, Task, TaskStatus};
 use crate::signal::Signal;
-use crate::think::ThinkStep;
-use crate::{ReadError, ReadState, RoadmapProgress, ThinkBranch};
+use crate::think::ThinkHistory;
+use crate::{ReadError, ReadState, RoadmapProgress};
 
 /// Roadmap records and progress derived from the same validated observation.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -61,13 +61,19 @@ impl ShipData {
     }
 }
 
-/// Reasoning steps and branch metadata from the owner's selected session.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+/// Complete reasoning sessions from one validated project observation.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ThinkData {
-    /// The selected session; None only when reading the unscoped default archive.
-    pub session_id: Option<String>,
-    pub steps: Vec<ThinkStep>,
-    pub branches: Vec<ThinkBranch>,
+    pub sessions: Vec<ThinkHistory>,
+}
+
+impl ThinkData {
+    /// None addresses the default session. Named identities are canonical.
+    pub fn session(&self, id: Option<&str>) -> Option<&ThinkHistory> {
+        self.sessions
+            .iter()
+            .find(|history| history.session_id.as_deref() == id)
+    }
 }
 
 /// Independent observations from the four workflow owners.

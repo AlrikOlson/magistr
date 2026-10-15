@@ -53,7 +53,7 @@ for the namespace it mirrors itself through:
   roadmap_* (17 tools)   the long-horizon plan-of-plans (drives the project)
   tracker_* (2 tools)    roadmap's mirroring namespace — project the plan into an
                          issue tracker through one provider-agnostic port
-  think_*   (11 tools)   reasoning trace
+  think_*   (13 tools)   reasoning trace
   ship_*    (14 tools)   execution trace (incl. approval gates: gate_open/gate_wait)
   signal_*  (10 tools)   stakeholder signals (capture/research/surface/promote + inbox verbs)
 

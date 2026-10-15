@@ -55,7 +55,8 @@ async fn poisoned_native_owner_remains_an_internal_mcp_error() {
             merged_into: None,
         }))
         .await,
-        peer.think_trace_checkpoint(Parameters(NoArgs {})).await,
+        peer.think_trace_checkpoint(Parameters(Default::default()))
+            .await,
     ];
     for result in results {
         let error = result.expect_err("owner failure must remain a JSON-RPC internal error");
@@ -81,6 +82,7 @@ async fn native_domain_refusals_keep_their_existing_tool_error_shapes() {
 
     let invalid_export = service
         .think_export_trace(Parameters(ExportArgs {
+            session_id: None,
             format: Some("unknown-format".into()),
         }))
         .await

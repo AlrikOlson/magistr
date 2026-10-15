@@ -18,9 +18,16 @@ use serde::{Deserialize, Serialize};
 #[schemars(description = "")]
 pub struct NoArgs {}
 
+#[path = "session_args.rs"]
+mod session;
+pub use session::SessionArgs;
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema, PartialEq)]
 #[schemars(description = "Export options.")]
 pub struct ExportArgs {
+    /// Named session to read. Omit for the project's default session.
+    #[serde(default)]
+    pub session_id: Option<String>,
     /// "markdown" (default, badged), "json" (full state), "console"
     /// (ANSI-styled), or "tree" (branch structure as text).
     #[serde(skip_serializing_if = "Option::is_none", default)]
@@ -123,6 +130,9 @@ pub struct PinArgs {
 #[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema, PartialEq)]
 #[schemars(description = "Status snapshot options.")]
 pub struct StatusArgs {
+    /// Named session to read. Omit for the project's default session.
+    #[serde(default)]
+    pub session_id: Option<String>,
     /// When true, include `pinned[]` (full step descriptors) and
     /// `sessions[]` (per-session summaries) in the response. Default false
     /// keeps the snapshot compact.
