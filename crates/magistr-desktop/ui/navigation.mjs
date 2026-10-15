@@ -133,7 +133,8 @@ export class ProjectDirectory {
         const mark=node("span","project-monogram");mark.setAttribute("aria-hidden","true");
         const opened=node("div",""),waiting=node("div","");
         const openCount=node("dd","","0"),waitCount=node("dd","","0");
-        opened.append(node("dt","","Open conversations"),openCount);waiting.append(node("dt","","Waiting for you"),waitCount);facts.append(opened,waiting);
+        opened.append(node("dt","","Conversations"),openCount);waiting.append(node("dt","","Waiting"),waitCount);facts.append(opened,waiting);
+        opened.setAttribute("aria-label","Open conversations");waiting.setAttribute("aria-label","Waiting for your answer");
         const open=node("button","directory-open","Open project"),list=node("nav","directory-conversations");
         open.dataset.leadingIcon="arrow";
         const empty=node("p","directory-empty","No open conversations.");
@@ -148,7 +149,7 @@ export class ProjectDirectory {
       group.open.setAttribute("aria-label","Open project "+project.name+" in "+project.directory);
       group.list.setAttribute("aria-label","Open conversations in "+project.name);
       const count=project.sessions.length,waiting=project.sessions.filter(session=>session.pending.length).length;
-      group.work.hidden=!count;group.openCount.textContent=String(count);group.waitCount.textContent=String(waiting);
+      group.work.hidden=!count;group.openCount.previousElementSibling.textContent=count===1?"Conversation":"Conversations";group.openCount.textContent=String(count);group.waitCount.textContent=String(waiting);
       group.waitCount.parentElement.dataset.waiting=String(waiting>0);
       const rows=project.sessions.map(session=>{
         const key=addressKey(session.address);usedRows.add(key);let row=this.rows.get(key);
