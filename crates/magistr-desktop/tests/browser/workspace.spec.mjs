@@ -209,6 +209,10 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
   });
   await expect(app.getByRole("list",{name:"Files to send",exact:true})).toBeVisible();
   await capture("attachments-dark.png");
+  await app.getByRole("button",{name:"View icon.png",exact:true}).click();
+  await expect(app.locator("#attachment-metadata")).toContainText("×");
+  await capture("image-inspection-dark.png");
+  await app.getByRole("button",{name:"Close image",exact:true}).click();
   await app.getByRole("button",{name:"Settings",exact:true}).click();
   await app.getByLabel("Appearance",{exact:true}).selectOption("light");
   await app.getByRole("button",{name:"Done",exact:true}).click();

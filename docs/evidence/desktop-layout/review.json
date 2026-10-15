@@ -1,5 +1,5 @@
 {
-  "receipt": "caf238bff7b8d843785bc8961060dfb41f57aa5ccaa45248aedbc66182b839df",
+  "receipt": "f358d42c59b0291c1927681873dd93ee9db1501dfdf9e73bedcee29591463661",
   "images": {
     "welcome-dark.png": "dbeb5de57311812ef5a669f046708a23927e7504e74d686194bb801dfd5b8dff",
     "welcome-light.png": "c77e2e937e8f1e98e3061d94a5bb15c40abbcda679712e2d99ed503e54c54991",
@@ -33,8 +33,9 @@
     "code-light.png": "ae425f2052fef41bf894a7f1d5e6d25427292e8cf471fa68001fd391cd13a83b",
     "tools-light.png": "4bba67c352198e69e6d6e83e69d27c77d3a504c939969ffab90211e6962230cc",
     "tools-dark.png": "b79874dc79f7147ba1ee5a831b0d3fc33ba1f01a5ba762f07a0ab3a9673af29d",
-    "attachments-dark.png": "181d69254b83d126b272546feb6ca0ab974b8ac6e8a12362814f4ac275730421",
-    "attachments-narrow-light.png": "b251437adfcfca4069445c763cfc8a46e9d56b39ef41cbe5bc827187e5251280",
+    "attachments-dark.png": "bd3028c67e4d4d9f03175709bb9ab8812e1c4c9c1f52f31d85ed6edda0af6a72",
+    "image-inspection-dark.png": "51b96116ccbe5ba890c09877e00d02ed6ba8fd44f410a0dd2e3bd53f130f2091",
+    "attachments-narrow-light.png": "47056e5b7fba232ed00f74c0c49fb688f8ce52c115b711957ca27ac686b0ff32",
     "request-narrow-light.png": "b0d5f74f81eabec4d5348ead6742c4f6d3226525131cc1aa2d3426ed78025ec6",
     "request-dark.png": "a734e39f295ec51d44083dcfebc3b26299619b1038eb6d930ac0613e3554b818",
     "minimum-workspace-dark.png": "92813cc7b60fee6f0749b733fc36f30c5633ad068062dc7c0141af207570ae57",
@@ -49,8 +50,8 @@
   },
   "reviewed_on": "2026-10-15",
   "findings": [
-    "Reviewed the separate writing surface in paper and minimum graphite windows. Larger input typography, a dedicated action bar and explicit save-state styling distinguish composing from reading without hiding the draft controls.",
-    "Thirteen selected WebKit scenarios passed across navigation, reading, code, selection and minimum-window layout.",
-    "Headless renderer only; native editing and assistive technology were not exercised. Native workflow records remain inaccessible and unchanged."
+    "Reviewed the full-size image inspection surface with actual decoded dimensions, original path and fit/actual-size controls. The image keeps its aspect ratio against a transparency checkerboard.",
+    "Three WebKit scenarios and the attachment unit checks passed, covering focus return, removal, invalid images and existing attachment behavior.",
+    "Headless fixture previews only; native file pickers, clipboard, OS input and assistive technology were not tested. Existing workflow state remains unreadable."
   ]
 }
