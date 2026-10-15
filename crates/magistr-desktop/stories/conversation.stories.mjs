@@ -78,3 +78,21 @@ export const TableLastRows={parameters:{desktop:{...tableState,
  verify:context=>{tableState.verify(context);const t=context.doc.querySelector(".table-document");context.expect(t.scrollHeight-t.clientHeight-t.scrollTop).toBeLessThanOrEqual(1);},
 }}};
 
+function toolSeed(seed){
+ seed.frames[0].events=[
+  {id:12,revision:1,role:"Tool",text:"Formatting passed",tool:{title:"Check formatting",status:"Finished",duration_ms:1200,details:[{label:"Input",source:'{"command":"cargo fmt --check"}'},{label:"Result",source:"Formatting passed"}]}},
+  {id:13,revision:1,role:"Tool",text:"Draft storage check failed",tool:{title:"Verify saved drafts",status:"Failed",duration_ms:2400,details:[{label:"Result",source:"The saved message did not match after reopening. Review the draft writer before retrying."}]}}
+ ];seed.frames[0].retained=[12,13];
+}
+async function toolPosition(context){await new Promise(resolve=>context.window.requestAnimationFrame(()=>context.window.requestAnimationFrame(resolve)));context.doc.querySelector("#transcript").scrollTop=0;}
+const toolState={caption:"Release conversation with a finished formatting check and failed draft check",task:"Scan tool outcomes and duration, then open the failed check.",seed:toolSeed,
+ arrange:async context=>{await openRelease(context);await toolPosition(context);},
+ verify:context=>{conversationVisible(context);context.expect(context.doc.querySelectorAll("article[data-tool]").length).toBe(2);context.expect(context.doc.querySelectorAll("article[data-tool] details[open]").length).toBe(0);}};
+export const ToolActivity={parameters:{desktop:toolState}};
+export const FailedToolDetails={parameters:{desktop:{...toolState,
+ caption:"Release conversation showing the failed draft check's details",
+ task:"Read why the draft check failed and reach its copy control.",
+ arrange:async context=>{await openRelease(context);await context.userEvent.click(context.doc.querySelector('article[data-status="failed"] summary'));await toolPosition(context);const t=context.doc.querySelector("#transcript"),row=context.doc.querySelector('article[data-status="failed"]');if(context.window.innerWidth<900)t.scrollTop+=row.getBoundingClientRect().top-t.getBoundingClientRect().top;},
+ verify:context=>{conversationVisible(context);context.expect(context.doc.querySelector('article[data-status="failed"] details').open).toBe(true);context.expect(context.doc.querySelector('article[data-status="failed"] .tool-body').textContent).toContain("saved message did not match");},
+}}};
+
