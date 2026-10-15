@@ -1,5 +1,3 @@
-import { decorateProject } from "./project_identity.mjs";
-import { welcomeArt } from "./welcome_art.mjs";
 import { ConversationSwitcher } from "./switcher.mjs";
 import { KeyboardNavigation } from "./keyboard.mjs";
 import { EditorPlaces } from "./reading.mjs";
@@ -22,7 +20,6 @@ import { ProjectPicker } from "./project_picker.mjs";
 import { Catalog, usagePresentation, capabilityText } from "./supervision.mjs";
 const {invoke,Channel}=window.__TAURI__.core;
 const $=id=>document.getElementById(id);
-welcomeArt($("welcome-art"),$("welcome"));
 let selected=null,view=null,sessions=[],projects=[],composerFrame=null,attachmentLimits=null;
 const attachmentWork=new Map(),draftMutations=new Set();
 const submissions=new Submissions();
@@ -98,9 +95,7 @@ async function refresh() {
   renderRail();
   $("welcome-projects").replaceChildren(...projects.slice(0,4).map(project=>{
     const item=button("",()=>openDirectory(project.directory));
-    const cover=text("div","");cover.className="project-cover";cover.setAttribute("aria-hidden","true");
-    const emblem=text("b",decorateProject(item,project));emblem.className="recent-emblem";cover.append(emblem);
-    item.append(cover,text("strong",project.name),text("span",project.directory),text("small","Open project →"));return item;
+    item.append(text("strong",project.name),text("span",project.directory),text("small","Open project →"));return item;
   }));
   return info;
 }
@@ -111,9 +106,7 @@ function renderRail() {
   if(selected){
     const name=sessions.find(session=>session.address.session===selected.session)?.name??"Project";
     $("project-name").textContent=name;
-    $("project-symbol").textContent=decorateProject($("project-symbol"),{id:selected.project,name});
   }
-  $("project-symbol").hidden=!selected;
   for(const id of labels.keys())if(!sessions.some(session=>session.address.session===id))labels.delete(id);
   const waiting=sessions.flatMap(session=>session.pending.map(request=>({session,request})));
   const waitingRows=waiting.map(({session,request})=>{

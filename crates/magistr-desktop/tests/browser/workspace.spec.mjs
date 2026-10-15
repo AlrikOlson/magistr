@@ -12,7 +12,8 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
     const bytes=await app.screenshot({path:resolve(evidence,name),animations:"disabled"});
     images[name]=createHash("sha256").update(bytes).digest("hex");
   };
-  await expect(app.locator("#welcome-art")).toHaveAttribute("data-renderer","webgl");
+  await expect(app.locator("#welcome-projects")).toContainText("/Projects/magistr");
+  await expect(app.getByRole("button",{name:"Choose a folder…",exact:true})).toBeVisible();
   await capture("welcome-dark.png");
   await app.getByRole("button",{name:"Settings",exact:true}).click();
   await app.getByLabel("Appearance",{exact:true}).selectOption("light");
@@ -24,7 +25,7 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
   await app.getByRole("button",{name:"Settings",exact:true}).click();
   await app.getByLabel("Appearance",{exact:true}).selectOption("dark");
   await app.getByRole("button",{name:"Done",exact:true}).click();
-  checks["welcome artwork renders through WebGL in both appearances"]=true;
+  checks["project chooser presents actual projects and folder entry in both appearances"]=true;
   await app.getByRole("button",{name:"Review the release plan",exact:true}).click();
   await expect(app.getByRole("heading",{name:"Review the release plan",exact:true})).toBeVisible();
   await expect(app.getByLabel("Message the agent",{exact:true})).toHaveValue("Keep the project list visible, and let me return to the same paragraph.");

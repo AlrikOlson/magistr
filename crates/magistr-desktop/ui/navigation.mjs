@@ -1,4 +1,3 @@
-import { decorateProject } from "./project_identity.mjs";
 import { addressKey } from "./context.mjs";
 
 // A view of the existing project catalog and resident sessions, never another registry.
@@ -70,14 +69,12 @@ export class ProjectNavigation {
       if(!group) {
         const root=node("details","project-group");root.open=true;
         const heading=node("summary","project-heading"),name=node("span","project-title"),count=node("span","project-count");
-        const emblem=node("span","project-emblem");emblem.setAttribute("aria-hidden","true");
         const path=node("small","project-path"),body=node("div","project-conversations"),open=node("button","project-open","Open project");
-        heading.append(emblem,name,count);root.append(heading,path,body,open);
-        group={root,heading,emblem,name,count,path,body,open,project};this.groups.set(project.id,group);
+        heading.append(name,count);root.append(heading,path,body,open);
+        group={root,heading,name,count,path,body,open,project};this.groups.set(project.id,group);
         open.onclick=()=>this.open(group.project.directory);
       }
       group.project=project;group.name.textContent=project.name;
-      group.emblem.textContent=decorateProject(group.root,project);
       group.root.dataset.selected=String(project.sessions.some(session=>addressKey(session.address)===addressKey(selected)));
       group.heading.title=project.directory;group.heading.setAttribute("aria-label",project.name+" · "+project.directory);
       group.count.textContent=String(project.sessions.length);group.count.hidden=!project.sessions.length;

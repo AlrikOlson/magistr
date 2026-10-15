@@ -40,13 +40,13 @@ export class ConversationSwitcher {
     const nodes=sessions.map(session=>{
       const key=addressKey(session.address);used.add(key);let row=this.rows.get(key);
       if(!row) {
-        const button=document.createElement("button"),emblem=text("span",""),body=text("span",""),name=text("strong",""),context=text("small",""),state=text("span","");
-        emblem.className="switch-emblem";emblem.setAttribute("aria-hidden","true");body.className="switch-body";
-        body.append(name,context);state.className="switch-state";button.append(emblem,body,state);
-        row={button,emblem,name,context,state,session};this.rows.set(key,row);
+        const button=document.createElement("button"),body=text("span",""),name=text("strong",""),context=text("small",""),state=text("span","");
+        body.className="switch-body";
+        body.append(name,context);state.className="switch-state";button.append(body,state);
+        row={button,name,context,state,session};this.rows.set(key,row);
         button.onclick=()=>this.open(row.session);
       }
-      row.session=session;row.emblem.textContent=session.name.trim().slice(0,1).toLocaleUpperCase();row.name.textContent=this.label(session);row.context.textContent=session.name+" · "+session.address.workspace;
+      row.session=session;row.name.textContent=this.label(session);row.context.textContent=session.name+" · "+session.address.workspace;
       row.state.textContent=session.closed?"Closing":session.pending.length?"Needs your attention":key===addressKey(this.selected())?"Current":session.status;
       row.button.setAttribute("aria-label","Open "+this.label(session)+" in "+session.name);
       row.button.dataset.attention=String(session.pending.length>0);row.button.disabled=this.pending||session.closed;row.button.setAttribute("aria-current",String(key===addressKey(this.selected())));

@@ -61,7 +61,7 @@ export class Transcript {
     });
     root.addEventListener("pointerdown",()=>{this.selectedPlace=null;});
     root.addEventListener("scroll",()=>{
-      if(!root.clientHeight||this.size!==this.dimensions())return;
+      if(!root.clientHeight||!this.sameWidth())return;
       this.following=nearBottom(root)&&!selectedWithin(this.document.getSelection(),root);
       this.readingAnchor=this.anchor();latest.hidden=nearBottom(root);
     },{passive:true});
@@ -69,9 +69,11 @@ export class Transcript {
       if(this.resizeFrame)return;
       this.resizeFrame=requestAnimationFrame(()=>{
         this.resizeFrame=null;
-        if(!root.clientHeight||!root.clientWidth||!this.view||this.size===this.dimensions())return;
+        if(!root.clientHeight||!root.clientWidth||!this.view||this.sameSize())return;
         if(this.selectedPlace&&!selectedWithin(this.document.getSelection(),root))this.selectedPlace=restoreSelection(root,this.selectedPlace)?this.selectedPlace:null;
-        this.restoreAnchor(this.following?null:this.readingAnchor,this.following);
+        // Height-only changes do not reflow text; keep a scroll made before this frame.
+        const anchor=this.sameWidth()?this.anchor():this.readingAnchor;
+        this.restoreAnchor(this.following?null:anchor,this.following);
         this.size=this.dimensions();this.readingAnchor=this.anchor();latest.hidden=nearBottom(root);
       });
     });
@@ -82,7 +84,9 @@ export class Transcript {
     this.document.getSelection()?.removeAllRanges();this.selectedPlace=null;this.pending=false;this.following=true;
     this.render(this.view);this.root.scrollTop=this.root.scrollHeight;this.latest.hidden=true;
   }
-  dimensions(){return this.root.clientWidth+":"+this.root.clientHeight;}
+  dimensions(){return {width:this.root.clientWidth,height:this.root.clientHeight};}
+  sameWidth(){return this.size?.width===this.root.clientWidth;}
+  sameSize(){return this.sameWidth()&&this.size.height===this.root.clientHeight;}
   remember() {
     if(!this.address||(this.targets&&!this.targets.has(this.address)))return;
     remember(this.places,this.address,{anchor:this.root.clientHeight?this.anchor():this.readingAnchor,following:this.following,
@@ -117,7 +121,7 @@ export class Transcript {
     if(selected)this.following=false;
     const visible=this.root.clientHeight>0;
     const follow=(fresh?!saved||saved.following:this.following&&(!visible||nearBottom(this.root)))&&!selected;
-    const anchor=follow?null:saved?.anchor??(visible?this.anchor():this.readingAnchor),previousTop=this.root.scrollTop;
+    const anchor=follow?null:saved?.anchor??(visible&&this.sameWidth()?this.anchor():this.readingAnchor),previousTop=this.root.scrollTop;
     const children=view.dropped?[this.gap]:[];
     if(!view.messages.length&&!view.dropped)children.push(this.empty);
     const retained=new Set(view.messages.map(message=>message.id));
@@ -150,10 +154,6 @@ export class Transcript {
     article.setAttribute("aria-label",message.role==="Agent"?"Agent reply":message.tool?"Tool activity":message.role);
     article.dataset.reading=String(message.id);
     const header=element(this.document,"header"),role=element(this.document,"span",message.role);role.className="message-role";
-    const emblem=element(this.document,"span");emblem.className="message-emblem";emblem.setAttribute("aria-hidden","true");
-    emblem.dataset.icon=message.tool?"terminal":message.role==="Agent"?"spark":message.role==="You"?"chat":"clock";
-    const avatar=element(this.document,"span");avatar.className="message-avatar";avatar.setAttribute("aria-hidden","true");avatar.append(emblem);
-    role.prepend(avatar);
     const copy=element(this.document,"button",message.tool?"Copy tool details":message.role==="Agent"?"Copy reply":"Copy message");
     const row={article,copy,message,revision:null};copy.onclick=()=>this.copy(row.message.text);
     header.append(role,copy);article.append(header);
