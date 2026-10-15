@@ -1,18 +1,18 @@
 {
-  "receipt": "93f5f5f1bafeef65ecbe7f476c4ce287d322611da2909d071f7195c296c307a3",
+  "receipt": "a305fa9051f02f47e9eb97fadc8074e153c0b70258f7b16087e01cf9445ae259",
   "images": {
     "welcome-dark.png": "2dd25326fb4d53d3dc502391c4b54560b514b36266075d4f4fb08886726ada70",
     "workspace-dark.png": "04635239cd40b14be57bf029435fb83f8e9e9cc0535a21efc45242b638898c01",
-    "settings-light.png": "b92f473b8e4ef1b3bc17c328c7a375ab5317760461e50ff9dc000b3548352019",
-    "workspace-light.png": "de06818f1a126c672ae54218d9ed639187d9ccdc1abd2c44f7a7821375d6f9ca",
+    "settings-light.png": "f3ff0eac3cbded37059bd57e68c6cb400c7efd3c4b0ebed50cf6f231e0d03d55",
+    "workspace-light.png": "d6f353d8359aea79c396ac38f28ca00f91d32600b689a3d852f094de21aa41e6",
     "workspace-narrow.png": "fd7dcd8470d6dc7d6ff5bfec2a5d84a046fef81f6e6aa355cb9a8c99527ea888",
     "details-narrow.png": "6e80d4cbb7466f553eb2d837342ff8bc4658f232e415658fd79bab703fc4d8c8",
     "rename-light.png": "7fe6abf72f341360fedc11843f75eb980367f69158fffe62ebf303267a08bcd7",
-    "work-paused-dark.png": "73701ecf9f6fca247ed9faf56238741537a906158de833229ea05d19b4a7aa19",
+    "work-paused-dark.png": "30a5a2bf80da9a26a8917ceac146929e8b090d9f3025b9320be87fb57f6f6b36",
     "history-dark.png": "1dc45fae3be3295058ce5e6443dbd26139516863d76b0dbafa7272f870d2356c",
     "history-narrow-light.png": "585b7b520901a422fce012f68aecc34ad059cda369e65cbd1fbd2e7923d8bdea",
     "setup-narrow-light.png": "bc0b3db4a570f81f4194b738933297906a44adf868e8857de87fe967b22abcd2",
-    "open-project-dark.png": "a8d50b0940a00f73177b11c606522502ac20d1221ab35fc3e4cdc1d44b84a505",
+    "open-project-dark.png": "50e04a8c820eabd5b9f08cc1915b94ea5eceae75c110889e7126fd7a29ed1875",
     "setup-dark.png": "51e5d65d96ca2fb0145f335eb23ad4b0ed8e1e0407b6c6437a95dbb63c5b412e",
     "new-conversation-dark.png": "52a68c2590e72fea41d89a872af5c2e7c66a5982f09856c24d01e6f76724b9f5",
     "new-conversation-narrow-light.png": "a9edb3c4ff1b3763a262bdea0e16eacdde11dad2d0c29227d0bdf47129424f51",
@@ -23,12 +23,14 @@
     "tools-light.png": "cf7c62f774159abf9da274286a9ab4e8e65d2d8b309108ca3eaea676167e30dd",
     "tools-dark.png": "e0aa8711744faf1ec2b8525d224fc88da1a559a7d4c10c1b51f7e3bf5520505d",
     "attachments-dark.png": "bc1d6c65d86afca7175b122fbaaffc9e1cc4b8315d6a4194fc16329831e26e41",
-    "attachments-narrow-light.png": "65279db81b6c4565269d256d8f395d83901e48702f1787ac5da1a6d8bd110cab"
+    "attachments-narrow-light.png": "3ef3f5c07c74f67f34c8d1e37df5e9aec184782106ba71e89f6d2c7afba90196",
+    "request-narrow-light.png": "e42c8fccaca9e1ca0481c0b880f33240c5264584016a1c67a41379c3b2ea0536",
+    "request-dark.png": "8347f956555fd43f333cd4d15c660cea15b9e20f60b7da5d2a02b8ff8bcc36c8"
   },
   "reviewed_on": "2026-10-15",
   "findings": [
-    "Inspected the paused-work inspector. A large attempt ordinal, separate status and grouped boundary controls show the current run without inventing a completion percentage.",
-    "Four work-state tests cover pending admission, failure and addressed controls. Four context/composition browser scenarios pass.",
+    "Inspected the compact light permission card and the corrected dark inspector capture. The exact command, waiting heading and equal-weight response controls remain readable and separated.",
+    "Four context/composition scenarios passed. Corrected the dark capture to explicitly reopen Details after the layout changed width; the focused capture scenario passed again.",
     "Production headless WebKit only; native input, IME, OS dialogs, VoiceOver and Windows verification were not run."
   ]
 }

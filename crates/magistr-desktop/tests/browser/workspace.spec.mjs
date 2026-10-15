@@ -175,6 +175,17 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
   await expect(app.getByRole("button",{name:"Remove release-notes.md",exact:true})).toBeVisible();
   await capture("attachments-narrow-light.png");
   checks["file cards retain preview, path, size and named removal at compact width"]=true;
+  await app.getByRole("button",{name:"Investigate sync failure",exact:true}).click();
+  await app.locator("#review-requests").click();
+  await expect(app.getByRole("heading",{name:"Run the focused sync checks",exact:true})).toBeVisible();
+  await capture("request-narrow-light.png");
+  await app.setViewportSize({width:1280,height:820});
+  await app.getByRole("button",{name:"Settings",exact:true}).click();
+  await app.getByLabel("Appearance",{exact:true}).selectOption("dark");
+  await app.getByRole("button",{name:"Done",exact:true}).click();
+  await app.locator("#review-requests").click();
+  await capture("request-dark.png");
+  checks["permission decisions present exact requested command and equal-weight choices"]=true;
   const sources={};
   for(const name of (await readdir(ui)).sort()){
     const file=resolve(ui,name);
