@@ -99,8 +99,6 @@ desktop workspace. Companion Rust tests live beside their owners.
 - `crates/magistr-desktop/tests/reading.mjs` — finite view-coordinate retention and closed-owner cleanup.
 - `crates/magistr-desktop/ui/reading.mjs` — bounded semantic reading and native editor position bookmarks; no durable content cache.
 - `crates/magistr-desktop/tests/browser/reading.spec.mjs` — background switching, resize, tool disclosure, selection and editor continuity.
-- `crates/magistr-desktop/tests/browser/welcome.spec.mjs` — shader execution, reduced-motion stillness, bounded entrance and graphics-loss recovery.
-- `crates/magistr-desktop/ui/welcome_art.mjs` — bounded decorative WebGL welcome artwork; reduced motion, hidden-surface suspension and context-loss recovery.
 - `crates/magistr-desktop/ui/transcript.mjs`
 - `crates/magistr-desktop/tests/transcript.mjs`
 - `crates/magistr-desktop/src/conversations.rs`
@@ -151,7 +149,6 @@ desktop workspace. Companion Rust tests live beside their owners.
 - `crates/magistr-desktop/ui/keyboard.mjs` — platform shortcut hints, modal/IME guards and logical region navigation.
 - `crates/magistr-desktop/ui/switcher.mjs` — searchable current-catalog conversations and guarded selection/focus recovery.
 - `crates/magistr-desktop/tests/browser/keyboard.spec.mjs` — background shortcut, region, modal, IME guard and refused-selection journeys.
-- `crates/magistr-desktop/ui/project_identity.mjs` — decorative project marks derived from the canonical project identity.
 - `crates/magistr-desktop/ui/navigation.mjs` — grouped project/conversation presentation and addressed row actions.
 - `crates/magistr-desktop/tests/navigation.mjs` — project identity and linked-copy grouping.
 - `crates/magistr-desktop/tests/browser/navigation.spec.mjs` — background navigation, contextual actions and Settings recovery.

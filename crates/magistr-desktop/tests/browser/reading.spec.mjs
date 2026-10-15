@@ -74,3 +74,20 @@ test("Details, resize and Latest preserve deliberate reading while pruned select
   await expect(app.locator("#transcript")).toContainText("Some earlier messages are unavailable.");
   expect(await app.evaluate(()=>getSelection().toString())).toBe("");
 });
+test("an observation before resize restoration preserves the last stable reading anchor",async({app})=>{
+  await app.evaluate(async()=>{
+    const { Transcript }=await import("/transcript.mjs");
+    const render=Transcript.prototype.render;
+    Transcript.prototype.render=function(view){window.__readingView=this;return render.call(this,view);};
+  });
+  await longConversation(app);
+  await app.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+  const before=await offset(app);
+  await app.evaluate(()=>{
+    // Simulate a narrower pane and an owner update in the same rendering frame.
+    const reader=window.__readingView;
+    reader.root.style.width="592px";
+    reader.render(reader.view);
+  });
+  await expect.poll(async()=>Math.abs(await offset(app)-before)).toBeLessThan(3);
+});

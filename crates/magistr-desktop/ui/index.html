@@ -22,7 +22,7 @@
 </aside>
 <main>
   <header class="work-header">
-    <div class="work-heading"><span id="project-symbol" class="masthead-mark" aria-hidden="true" hidden></span><div class="work-titles"><p id="project-name">Magistr</p><h1 id="view-title" tabindex="-1">Your workspace</h1></div></div>
+    <div class="work-heading"><div class="work-titles"><p id="project-name">Magistr</p><h1 id="view-title" tabindex="-1">Your workspace</h1></div></div>
     <div class="header-actions"><p id="status" role="status" aria-live="polite">Ready</p><button id="toggle-details" data-leading-icon="panel" aria-controls="session-detail" aria-expanded="false" hidden>Details</button><details id="conversation-actions" class="header-menu" hidden><summary id="conversation-menu-trigger" aria-label="Conversation actions">···</summary><div class="header-menu-actions"><button id="rename-conversation">Rename conversation</button><button id="copy" disabled>Copy conversation</button><button id="reconnect" disabled hidden>Reconnect</button><button id="close-session" class="destructive" disabled>Close conversation</button></div></details></div>
   </header>
   <nav id="conversation-toolbar" class="conversation-toolbar" aria-label="Conversation controls" hidden>
@@ -31,9 +31,9 @@
   </nav>
   <p id="error" class="error" role="alert" hidden></p>
   <section id="welcome" class="welcome" aria-label="Open a project">
-    <div class="welcome-hero"><div class="welcome-copy"><p class="eyebrow">Your workspace</p><h2>What are we<br><em>working on?</em></h2><p>Pick up a project or start somewhere new.<br> Your conversations and work stay together.</p>
+    <div class="welcome-intro"><h2>Open a project</h2><p>Choose a folder to start a conversation, or reopen a project below.</p>
     <div class="welcome-actions"><button id="welcome-open" data-leading-icon="folder">Choose a folder…</button><button id="welcome-path">Enter a folder path</button></div>
-    <p class="welcome-hint">You’ll review any setup changes before they’re made.</p></div><div class="welcome-art" aria-hidden="true"><canvas id="welcome-art"></canvas></div></div><div class="recent-heading"><h3>Recent projects</h3><span>Pick up where you left off</span></div><div id="welcome-projects" aria-label="Recent projects"></div>
+    <p class="welcome-hint">You’ll review any setup changes before they’re made.</p></div><div class="recent-heading"><h3>Recent projects</h3></div><div id="welcome-projects" aria-label="Recent projects"></div>
     <p id="welcome-note" role="status" hidden></p>
   </section>
   <div id="workspace" class="workspace" hidden>
@@ -50,7 +50,7 @@
           <p id="attachment-note" role="status" aria-live="polite"></p>
           <div class="composer-actions">
             <button id="add-files" type="button" title="Add text files or PNG, JPEG and WebP images" disabled><span data-icon="plus" aria-hidden="true"></span> Add files</button>
-            <button id="agent-quick-settings" data-leading-icon="spark" type="button" aria-label="Agent settings" aria-controls="session-detail" disabled></button>
+            <button id="agent-quick-settings" type="button" aria-label="Agent settings" aria-controls="session-detail" disabled></button>
             <span class="composer-spacer"></span>
             <button id="stop" type="button" title="Stop the current reply" disabled hidden>Stop</button>
             <button id="send" type="submit" disabled>Send <span data-icon="arrow" aria-hidden="true"></span></button>
@@ -77,7 +77,7 @@
         </div>
       </section>
       <section class="detail-section" aria-label="Agent settings">
-        <h2 data-leading-icon="spark">Agent</h2><p id="agent-provider"></p><div id="agent-configuration"></div><p id="model">Model information is unavailable.</p>
+        <h2>Agent</h2><p id="agent-provider"></p><div id="agent-configuration"></div><p id="model">Model information is unavailable.</p>
         <div class="usage-summary"><div class="usage-metrics"><div class="context-metric"><span>Context used</span><div id="context-chart" class="context-chart" data-known="false"><span class="context-dial" aria-hidden="true"></span><strong id="context-value">Not reported</strong></div></div><div><span>Spending</span><strong id="spending-value">Not reported</strong></div></div><meter id="context-meter" aria-label="Context used" min="0" max="1" value="0" hidden></meter><p id="usage"></p></div>
         <p id="queue"></p><details class="agent-features"><summary>Agent capabilities</summary><p id="capabilities"></p></details>
       </section>
@@ -132,7 +132,7 @@
 </dialog>
 <dialog id="session-picker" aria-labelledby="session-picker-title">
   <form id="session-form">
-    <header class="picker-heading"><div class="dialog-symbol" aria-hidden="true"><span data-icon="spark"></span></div><h2 id="session-picker-title">New conversation</h2><p>Choose an agent to work with in this project.</p></header>
+    <header class="picker-heading"><div class="dialog-symbol" aria-hidden="true"><span data-icon="chat"></span></div><h2 id="session-picker-title">New conversation</h2><p>Choose an agent to work with in this project.</p></header>
     <div class="session-destination"><span>In this project</span><strong id="session-destination-name" data-leading-icon="folder"></strong><p id="session-destination-path" class="path"></p></div>
     <div class="session-choices">
       <fieldset><legend>Agent</legend><div id="agent-choice"></div><p id="agent-choice-empty" hidden>No agents were found. Set up an agent on this computer, then check again.</p><button id="session-picker-retry" type="button" hidden>Check again</button></fieldset>
