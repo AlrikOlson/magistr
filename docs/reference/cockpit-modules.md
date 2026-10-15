@@ -35,6 +35,7 @@ desktop workspace. Companion Rust tests live beside their owners.
 - `crates/magistr-desktop/ui/work_runs.mjs` — stable current/saved execution selection.
 - `crates/magistr-desktop/ui/work_dom.mjs` — workflow DOM and reading-state retention.
 - `crates/magistr-desktop/ui/work_checks.mjs` — executed/reported checks and complete output.
+- `crates/magistr-desktop/ui/work_activity.mjs` — authored action history and artifact references.
 
 - `crates/magistr-cockpit-runtime/src/channel/arrivals.rs`
 - `crates/magistr-cockpit-runtime/src/channel/commands.rs`

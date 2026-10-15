@@ -1,6 +1,7 @@
 // Presentation of the workflow owner's read states and authored records.
 import { element } from "./work_dom.mjs";
 import { renderChecks } from "./work_checks.mjs";
+import { renderActivity } from "./work_activity.mjs";
 export function readState(record) {
   if(record?.state==="current")return {value:record.data.value,source:record.data.source,current:true,
     message:record.data.source.kind==="missing"?"No saved work yet.":"Up to date."};
@@ -17,7 +18,7 @@ export function authoredList(title,values) {
   for(const value of values)list.append(element("li",value));
   section.append(list);return section;
 }
-export function renderRun(run,copy) {
+export function renderRun(run,actions) {
   const article=element("article","","work-record");
   if(!run){article.append(element("h3","No current work"),element("p","Start planned work to see its objective and tasks here."));return article;}
   article.dataset.run=run.run_id;
@@ -41,7 +42,8 @@ export function renderRun(run,copy) {
     heading.append(element("strong",task.title),element("span",statusLabel(task.status),"work-record-status"));item.append(heading);
     if(task.estimate)item.append(element("p","Estimate: "+task.estimate));
     if(task.blocked_reason)item.append(element("p",task.blocked_reason,"work-record-warning"));
-    const checks=renderChecks(run,task,copy);if(checks)item.append(checks);
+    const checks=renderChecks(run,task,actions.copy);if(checks)item.append(checks);
+    const activity=renderActivity(run,task,actions);if(activity)item.append(activity);
     list.append(item);
   }
   if(run.tasks.length)tasks.append(list);else tasks.append(element("p","No tasks have been added."));

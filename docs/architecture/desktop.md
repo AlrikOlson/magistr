@@ -331,6 +331,10 @@ ReadState. Check output distinguishes commands actually executed from reported
 claims and preserves failed attempts beside later passes. Recorded check results
 do not certify that current source is unchanged. Complete commands and output
 use the shared safe source renderer, with exact copying and retained disclosures.
+Task activity preserves owner action order, complete outcomes and produced
+artifact references. Files and tools mentioned by an agent remain authored
+claims. Web references use the existing native link policy; local references
+are selectable and copyable without inventing a filesystem-opening command.
 The reader never computes a second persisted plan.
 
 The desktop opens conversations, reads current objectives and tasks, starts planned work and prepares projects. The CLI retains
