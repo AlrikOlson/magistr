@@ -92,7 +92,11 @@ function install(seed) {
         const wrap=value=>{
           const record=value.chunks.find(record=>record.id===args.id);if(!record)return null;
           const document=source=>({nodes:[{tag:"p",text:source,children:[],start:0}],limited:false});
-          return {record:structuredClone(record),description:document(record.description),notes:document(record.notes),
+          const relation=id=>{const item=value.chunks.find(item=>item.id===id);return {id,title:item?.title??null,status:item?.status??null,group:item?.group??null};};
+          const overview=window.__fixture.roadmap,frontiers=(overview.state==="current"?overview.data:overview.data?.last)?.value.frontiers??[];
+          return {record:structuredClone(record),readiness:frontiers.flatMap(track=>track.items).find(item=>item.id===record.id)?.readiness??{state:"inactive"},
+            dependencies:record.deps.map(relation),dependents:value.chunks.filter(item=>item.deps.includes(record.id)).map(item=>relation(item.id)),
+            description:document(record.description),notes:document(record.notes),
             requirements:record.acceptance.map(document),sections:(record.content?.sections??[]).map(section=>document(section.prose??""))};
         };
         const item=state.state==="current"?{state:"current",data:{...state.data,value:wrap(state.data.value)}}:

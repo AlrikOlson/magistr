@@ -69,6 +69,13 @@
 .roadmap-requirements{margin-top:28px}.roadmap-requirements ol{padding-left:22px}.roadmap-requirements li{margin-block:14px}
 .roadmap-checklist{padding-left:18px}.roadmap-checklist li{font-size:14px;line-height:1.8;white-space:pre-wrap}
 .roadmap-checklist-state{display:inline-block;font-size:10px;border:1px solid var(--separator);padding:2px 5px;margin-right:8px;color:var(--muted);border-radius:4px}
+.roadmap-relations{margin:24px 0;padding:20px;background:var(--panel);border:1px solid var(--separator);border-radius:6px}
+.roadmap-relations h4{font-size:12px;margin:18px 0 10px}.roadmap-relations ul{list-style:none;padding:0;margin:0}
+.roadmap-relations li{margin:10px 0;padding:10px 0;border-top:1px solid var(--separator);font-size:12px}
+.roadmap-relations button{text-align:left;background:transparent;border:0;color:var(--accent);padding:0;font-size:13px;line-height:1.7;white-space:pre-wrap}
+.roadmap-relations button:hover{text-decoration:underline}.roadmap-relation-state{display:block;color:var(--muted);font-size:10px;margin-top:6px}
+.roadmap-readiness{font-size:13px;line-height:1.6;color:var(--warning);margin:0}.roadmap-readiness[data-ready=true]{color:var(--success)}
+.roadmap-relation-empty{font-size:11px;color:var(--muted)}.roadmap-relations [data-available=false]{color:var(--warning)}
 .work-record-empty{padding:28px;color:var(--muted)}
 #browse-work{width:100%;margin-bottom:16px}
 @media(max-width:800px){#work-browser{width:calc(100vw - 24px);max-height:calc(100dvh - 24px)}.work-browser-heading{padding:18px 22px}.work-browser-tools{padding:10px 22px}.work-browser-tabs{display:flex;gap:6px;padding:10px 30px;border-bottom:1px solid var(--separator);flex-shrink:0;background:var(--panel);overflow-x:auto}

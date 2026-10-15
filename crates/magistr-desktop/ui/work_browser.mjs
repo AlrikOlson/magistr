@@ -58,7 +58,7 @@ export class WorkBrowser {
     }
   }
   backToTrack(){
-    const id=this.item.id,scroll=this.item.originScroll;this.item.close();this.key="";this.render();
+    const id=this.item.originId,scroll=this.item.originScroll;this.item.close();this.key="";this.render();
     const root=this.$("work-browser-content");root.scrollTop=scroll;
     [...root.querySelectorAll("[data-open-item]")].find(node=>node.dataset.openItem===id)?.focus({preventScroll:true});
   }
