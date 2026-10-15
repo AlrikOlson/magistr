@@ -1,7 +1,7 @@
 {
   "renderer": "headless WebKit",
   "version": "27.2",
-  "captured_at": "2026-10-15T02:29:42.513Z",
+  "captured_at": "2026-10-15T02:31:01.972Z",
   "scope": "Production desktop HTML, CSS and JavaScript with isolated observation fixtures; no native OS input or Rust owner integration.",
   "checks": {
     "welcome artwork renders through WebGL in both appearances": true,
@@ -22,7 +22,7 @@
   },
   "source_hashes": {
     "crates/magistr-desktop/ui/app.mjs": "e137c374dee777e9f6cc720a5e3830ac0b92b196421afa54802035348619bd58",
-    "crates/magistr-desktop/ui/attachments.mjs": "f82fe0eb34f9d5b3a07f45ac10107e624a8913931b85badb47ef0d8f4fe60dbe",
+    "crates/magistr-desktop/ui/attachments.mjs": "d7884d94cce9b13423b287ef6a0699d16e4b469ddcfe8ff2d7cd437cef7a4e44",
     "crates/magistr-desktop/ui/composer.mjs": "9accf554a6a2f6e7c029f4972fa4221e40d755546693c8343cbd528ef2a00bc0",
     "crates/magistr-desktop/ui/context.mjs": "9476a17db8e8c3032bd081dbdcd6088e9338ca2c41f9b455278243f5c98e4bcd",
     "crates/magistr-desktop/ui/conversation.mjs": "ee2753fdfa58093276bbb4e0b329d5eac03f2d04c79cdde4f6b131a26caf0651",
@@ -43,7 +43,7 @@
     "crates/magistr-desktop/ui/saved_drafts.mjs": "a0bfc036bfe1f48fa005fb42da66ea31fd608f656df57a8501ee504b59779ca0",
     "crates/magistr-desktop/ui/selection.mjs": "fd844d9e146a9c5e1fb9ab6e2fc72c0273da66d4f59a70ce639877a87aff05fc",
     "crates/magistr-desktop/ui/session_controls.mjs": "738386755be2b65fd03899ae28e1b357b4313258d67b3edfaf72fe3fe37ff123",
-    "crates/magistr-desktop/ui/style.css": "77375db29e5844f30efadac144b023216fd82b7c66454ef4ff702991fcb78206",
+    "crates/magistr-desktop/ui/style.css": "ad987c3e1ef736204e260773d3e1717c4e01d2c8a5909908d2ef89eb0aac9fef",
     "crates/magistr-desktop/ui/supervision.mjs": "f84dcc0fa706354458b87ededdb628fe3263488e7276ebd10102d7831c8ee510",
     "crates/magistr-desktop/ui/switcher.mjs": "383d10954df2b17312970dd5cee31b618e6edf8edc542f3a77cdd3a54eb7ad58",
     "crates/magistr-desktop/ui/transcript.mjs": "e230c0013d2bb315692b092c9382f50ac844275029b9e82ed73dd8d5a6f20e14",
@@ -83,9 +83,9 @@
     "code-light.png": "e4b2c0f1add1fe91c84b213b34a00ac8d914e123731bfe2ddcbab51e280a3f33",
     "tools-light.png": "2be7e2f98c6e73729a108b45420f69612007a8d47b5965b87f66d1238ba9103c",
     "tools-dark.png": "d45642750e786b82ef6641eec606f3478a1ec6993640f762a41d1c4cf1a0bd51",
-    "attachments-dark.png": "2987a55c2a62dd917930c7742385813167a4893ed908a6bb9f693a7c4523f2ce",
-    "attachments-narrow-light.png": "62e6d76d9c761439528b55b9239bf36751d6f65ded6ccda1a9d37bea9f5c5e27",
-    "request-narrow-light.png": "d68461f455496163842b1f03fea051314860357660c9b8c34faba2cda89894b5",
-    "request-dark.png": "12feabe1e0c6ee8e8ced83780ae07b419df84dbef023f3cbbae8c1e0cca8deba"
+    "attachments-dark.png": "857e3dd9d083800cd7d675b6ca0b41ad5318229226b0e32325645fd721bce731",
+    "attachments-narrow-light.png": "a67d2733fd83966a11a79ca99296b16ab523b16fbe0ea07ade15c910ac96e663",
+    "request-narrow-light.png": "717985cb2fe8c5a7ef3574345eec0ccf527e7c540dba1bdd5b1d80ed1e1c9cc6",
+    "request-dark.png": "7bd9272c09cf67b1cb8035d0f7f4bab13af8cc87609dbbba296b9347ab766f0e"
   }
 }
