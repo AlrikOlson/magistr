@@ -12,7 +12,8 @@ use magistr_workflow::think::config::ThinkConfig;
 use magistr_workflow::think::domain::{NextAction, ThinkStep};
 use magistr_workflow::think::engine::core::ReasoningServer;
 use magistr_workflow::think::mcp::args::{
-    ExportArgs, ImpactArgs, NoArgs, PinArgs, ReviseEstimateArgs, SearchArgs, StepLookupArgs,
+    ExportArgs, ImpactArgs, NoArgs, PinArgs, ReviseEstimateArgs, SearchArgs, SessionArgs,
+    StepLookupArgs,
 };
 use magistr_workflow::think::mcp::service::ThinkService;
 use magistr_workflow::think::output_schemas::output_schema_for;
@@ -128,6 +129,8 @@ const EXPECTED_TOOL_NAMES: &[&str] = &[
     "think_set_branch_status",
     "think_trace_checkpoint",
     "think_wipe_trace",
+    "think_sessions",
+    "think_session",
 ];
 
 #[test]
@@ -144,7 +147,7 @@ fn tools_list_has_exactly_the_think_canonicals() {
     let expected: BTreeSet<String> = EXPECTED_TOOL_NAMES.iter().map(|s| s.to_string()).collect();
     assert_eq!(
         names, expected,
-        "tool list should expose exactly the 11 think_* canonical names"
+        "tool list should expose exactly the 13 think_* canonical names"
     );
 }
 
@@ -381,7 +384,7 @@ async fn trace_checkpoint_call_returns_structured() {
     let s = svc();
     s.think_record_step(Parameters(base_step(1))).await.unwrap();
     let result = s
-        .think_trace_checkpoint(Parameters(NoArgs {}))
+        .think_trace_checkpoint(Parameters(Default::default()))
         .await
         .unwrap();
     let sc = structured(&result);
@@ -420,6 +423,7 @@ async fn export_trace_returns_text_no_structured_content() {
     s.think_record_step(Parameters(base_step(1))).await.unwrap();
     let result = s
         .think_export_trace(Parameters(ExportArgs {
+            session_id: None,
             format: Some("json".into()),
         }))
         .await
@@ -429,4 +433,101 @@ async fn export_trace_returns_text_no_structured_content() {
         "think_export_trace should return text only, not structured"
     );
     assert!(!result.content.is_empty(), "should have text content");
+}
+
+#[tokio::test]
+async fn saved_session_tools_read_full_records_and_refuse_unreadable_sources() {
+    use magistr_workflow::think::application::ThinkUseCases;
+    use std::sync::{Arc, Mutex};
+    let dir = tempfile::tempdir().unwrap();
+    let mut config = ThinkConfig::default();
+    config.features.enable_sessions = true;
+    config.system.max_history_size = 1;
+    config.persistence.enabled = true;
+    config.persistence.data_dir = dir.path().into();
+    config.display.color_output = false;
+    let owner = Arc::new(Mutex::new(ReasoningServer::new_for_project(
+        config.clone(),
+        "browse".into(),
+    )));
+    let app = ThinkUseCases::new(owner.clone());
+    let wire = ThinkService::from_use_cases(app.clone());
+    let absent = wire
+        .think_session(Parameters(SessionArgs::default()))
+        .await
+        .unwrap();
+    assert!(structured(&absent)["value"].is_null());
+    for n in 1..=4 {
+        let mut step = base_step(n);
+        step.session_id = Some(if n == 4 { "other" } else { "chosen" }.into());
+        app.record_step(step).unwrap();
+    }
+    let list = wire.think_sessions(Parameters(NoArgs {})).await.unwrap();
+    assert_eq!(structured(&list)["value"].as_array().unwrap().len(), 2);
+    let selected = wire
+        .think_session(Parameters(SessionArgs {
+            session_id: Some("chosen".into()),
+        }))
+        .await
+        .unwrap();
+    let saved = &structured(&selected)["value"];
+    assert_eq!(saved["steps"].as_array().unwrap().len(), 3);
+    assert_eq!(saved["session_id"], "browse__chosen");
+    let found = app.get_step(1, false).unwrap().unwrap();
+    assert_eq!(serde_json::to_value(found).unwrap(), saved["steps"][0]);
+    let matches = app.search("Test thought", 10).unwrap();
+    assert_eq!(matches.len(), 4);
+    let history = app.session(Some("chosen")).unwrap().value.unwrap();
+    let analysis = ReasoningServer::for_analysis(history, Default::default());
+    assert_eq!(analysis.search_steps("Test thought", 10).len(), 3);
+    assert_eq!(matches[0]["session_id"], "browse__chosen");
+    assert!(matches[0]["record_id"].is_string());
+    assert_eq!(app.status(false, Some("chosen")).unwrap()["total_steps"], 3);
+    assert_eq!(app.status(false, None).unwrap()["session_present"], false);
+    let exported: serde_json::Value =
+        serde_json::from_str(&app.export("json", Some("chosen")).unwrap()).unwrap();
+    assert_eq!(exported["steps"], saved["steps"]);
+    for (name, result) in [("think_sessions", &list), ("think_session", &selected)] {
+        let schema = output_schema_for(name).unwrap();
+        assert!(
+            jsonschema::is_valid(
+                &serde_json::Value::Object((*schema).clone()),
+                structured(result)
+            ),
+            "{name}"
+        );
+    }
+    let store = magistr_workflow::think::persistence::Persistence::for_project(
+        &config.persistence,
+        "browse",
+    );
+    let path = store.store_path().unwrap();
+    let bytes = std::fs::read(&path).unwrap();
+    std::fs::write(&path, b"broken").unwrap();
+    let failed = wire
+        .think_get_step(Parameters(StepLookupArgs {
+            step_number: 1,
+            resolve_latest: None,
+        }))
+        .await
+        .unwrap();
+    assert_eq!(failed.is_error, Some(true));
+    assert_eq!(structured(&failed)["error_kind"], "source_unavailable");
+    let failed = wire
+        .think_session(Parameters(SessionArgs {
+            session_id: Some("absent".into()),
+        }))
+        .await
+        .unwrap();
+    assert_eq!(failed.is_error, Some(true));
+    std::fs::write(&path, bytes).unwrap();
+    assert_eq!(
+        app.session(Some("chosen"))
+            .unwrap()
+            .value
+            .unwrap()
+            .steps
+            .len(),
+        3
+    );
 }

@@ -13,6 +13,8 @@ pub struct SearchTraceOutput {
 #[derive(Debug, Clone, Serialize, JsonSchema)]
 pub struct SearchHit {
     pub step_number: u32,
+    pub session_id: Option<String>,
+    pub record_id: String,
     pub purpose: String,
     /// Which field matched: one of `thought`, `outcome`, `context`,
     /// `purpose`, `rationale`, `next_action`.

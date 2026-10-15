@@ -400,9 +400,9 @@ fn reasoning_reads_preserve_authored_ids_numbers_and_file_bytes() {
         magistr_workflow::think::persistence::Persistence::for_project(&config.persistence, "proj");
     let path = persistence.store_path().unwrap();
     let original = std::fs::read(&path).unwrap();
-    let before = writer.observe_archive().unwrap();
+    let before = writer.observe_session(None).unwrap().map(Option::unwrap);
     let reader = ReasoningServer::new_for_project(config, "proj".into());
-    let after = reader.observe_archive().unwrap();
+    let after = reader.observe_session(None).unwrap().map(Option::unwrap);
     assert_eq!(
         after
             .value
@@ -432,95 +432,137 @@ fn reasoning_reads_preserve_authored_ids_numbers_and_file_bytes() {
     let bytes = serde_json::to_vec(&invalid).unwrap();
     std::fs::write(&path, &bytes).unwrap();
     assert_eq!(
-        reader.observe_archive().unwrap_err().kind,
+        reader.observe_session(None).unwrap_err().kind,
         ReadErrorKind::Identity
     );
     assert_eq!(std::fs::read(&path).unwrap(), bytes);
 }
 
 #[test]
-fn reasoning_observes_selected_history_from_one_validated_project() {
+fn reasoning_reads_complete_explicit_sessions_independently_of_writer_and_cache() {
     use magistr_workflow::think::{
         config::ThinkConfig, domain::ThinkStep, engine::ReasoningServer,
         persistence::Persistence as ThinkPersistence,
     };
     use magistr_workflow_contracts::{ReadErrorKind, ReadSource};
-    let tmp = TempDir::new().unwrap();
-    let mut config = ThinkConfig {
-        persistence: infra_cfg(&tmp),
-        ..ThinkConfig::default()
-    };
-    config.display.color_output = false;
-    let step = |number, session: Option<&str>| -> ThinkStep {
-        serde_json::from_value(serde_json::json!({
-            "step_number": number, "estimated_total": 10, "purpose": "analysis",
-            "context": "session scope", "thought": format!("saved step {number}"),
-            "outcome": "observed", "next_action": "continue", "rationale": "preserve scope",
-            "session_id": session,
-        }))
-        .unwrap()
-    };
-    let mut default = ReasoningServer::new_for_project(config.clone(), "proj".into());
-    default.process_step_native(step(1, None)).unwrap();
-    let store = ThinkPersistence::for_project(&config.persistence, "proj");
-    let default_history = default.observe_archive().unwrap().value;
-    config.features.enable_sessions = true;
-    config.features.default_session_id = Some("chosen".into());
-    let mut writer = ReasoningServer::new_for_project(config.clone(), "proj".into());
-    let missing = writer.observe_archive().unwrap();
-    assert!(matches!(missing.source, ReadSource::File(_)));
-    assert_eq!(missing.value.session_id.as_deref(), Some("proj__chosen"));
-    assert!(writer.history().steps.is_empty());
-    writer.process_step_native(step(7, None)).unwrap();
-    let chosen = writer.observe_archive().unwrap();
-    assert_eq!(chosen.value.session_id.as_deref(), Some("proj__chosen"));
-    assert_eq!(chosen.value.steps[0].step_number, 7);
-    let detached = ReasoningServer::new_for_project(config.clone(), "proj".into());
-    assert_eq!(
-        serde_json::to_value(detached.observe_archive().unwrap().value).unwrap(),
-        serde_json::to_value(&chosen.value).unwrap()
-    );
-    writer.process_step_native(step(9, Some("other"))).unwrap();
-    let other = writer.observe_archive().unwrap();
-    assert_eq!(other.value.session_id.as_deref(), Some("proj__other"));
-    assert_eq!(other.value.steps.len(), 1);
-    assert_eq!(other.value.steps[0].step_number, 9);
-    assert_eq!(
-        serde_json::to_value(detached.observe_archive().unwrap().value).unwrap(),
-        serde_json::to_value(&chosen.value).unwrap()
-    );
-
-    let other_path = store.store_path().unwrap();
-    let bytes = std::fs::read(&other_path).unwrap();
-    let mut wrong: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
-    wrong["histories"]["proj__other"]["session_id"] = serde_json::json!("proj__chosen");
-    let wrong_bytes = serde_json::to_vec(&wrong).unwrap();
-    std::fs::write(&other_path, &wrong_bytes).unwrap();
-    assert_eq!(
-        writer.observe_archive().unwrap_err().kind,
-        ReadErrorKind::Identity
-    );
-    assert_eq!(std::fs::read(&other_path).unwrap(), wrong_bytes);
-    assert_eq!(writer.history().steps[0].step_number, 9);
-    assert_eq!(
-        detached.observe_archive().unwrap_err().kind,
-        ReadErrorKind::Identity
-    );
-    std::fs::write(&other_path, bytes).unwrap();
-    assert_eq!(
-        serde_json::to_value(writer.observe_archive().unwrap().value).unwrap(),
-        serde_json::to_value(other.value).unwrap()
-    );
-
-    config.features.default_session_id = Some("proj".into());
-    let project_session = ReasoningServer::new_for_project(config, "proj".into());
-    let observed = project_session.observe_archive().unwrap();
-    assert_eq!(observed.value.session_id, None);
-    assert_eq!(observed.value.steps[0].step_number, 1);
-    assert_eq!(
-        serde_json::to_value(observed.value).unwrap(),
-        serde_json::to_value(default_history).unwrap()
-    );
+    for persisted in [false, true] {
+        let tmp = TempDir::new().unwrap();
+        let mut config = ThinkConfig {
+            persistence: infra_cfg(&tmp),
+            ..ThinkConfig::default()
+        };
+        config.persistence.enabled = persisted;
+        config.display.color_output = false;
+        config.features.enable_sessions = true;
+        config.system.max_history_size = 2;
+        config.system.session_timeout = 0;
+        let mut writer = ReasoningServer::new_for_project(config.clone(), "proj".into());
+        assert!(writer.observe_sessions().unwrap().value.sessions.is_empty());
+        assert!(writer.observe_session(None).unwrap().value.is_none());
+        assert!(writer.observe_session(Some(" ")).is_err());
+        assert!(
+            writer
+                .observe_session(Some("missing"))
+                .unwrap()
+                .value
+                .is_none()
+        );
+        let step = |number, session: Option<&str>| -> ThinkStep {
+            serde_json::from_value(serde_json::json!({
+                "step_number": number, "estimated_total": 20, "purpose": "analysis",
+                "context": "session scope", "thought": format!("saved evidence {number}"),
+                "outcome": "observed", "next_action": "continue", "rationale": "preserve scope",
+                "session_id": session,
+            }))
+            .unwrap()
+        };
+        writer.process_step_native(step(1, None)).unwrap();
+        for number in 2..=7 {
+            writer
+                .process_step_native(step(number, Some("chosen")))
+                .unwrap();
+        }
+        let mut branch = step(8, Some("chosen"));
+        branch.branch_from = Some(2);
+        branch.branch_name = Some("Saved investigation".into());
+        writer.process_step_native(branch).unwrap();
+        let chosen = writer
+            .observe_session(Some("chosen"))
+            .unwrap()
+            .value
+            .unwrap();
+        assert_eq!(chosen.steps.len(), 7);
+        assert_eq!(
+            chosen.branches.as_ref().unwrap()[0].name,
+            "Saved investigation"
+        );
+        writer.process_step_native(step(9, Some("other"))).unwrap();
+        writer.cleanup_expired_sessions(true);
+        assert_eq!(
+            writer
+                .observe_session(Some("chosen"))
+                .unwrap()
+                .value
+                .as_ref(),
+            Some(&chosen)
+        );
+        assert_eq!(
+            writer.observe_session(None).unwrap().value.unwrap().steps[0].step_number,
+            1
+        );
+        assert_eq!(
+            writer.observe_step(2, false).unwrap().value.unwrap(),
+            chosen.steps[0]
+        );
+        let all = writer.observe_sessions().unwrap();
+        assert_eq!(all.value.sessions.len(), 3);
+        assert!(
+            writer
+                .observe_session(Some("not-recorded"))
+                .unwrap()
+                .value
+                .is_none()
+        );
+        if !persisted {
+            assert_eq!(all.source, ReadSource::Memory);
+            continue;
+        }
+        let detached = ReasoningServer::new_for_project(config.clone(), "proj".into());
+        assert_eq!(detached.observe_sessions().unwrap(), all);
+        let store = ThinkPersistence::for_project(&config.persistence, "proj");
+        let path = store.store_path().unwrap();
+        let bytes = std::fs::read(&path).unwrap();
+        assert_eq!(
+            detached
+                .observe_session(Some("chosen"))
+                .unwrap()
+                .value
+                .as_ref(),
+            Some(&chosen)
+        );
+        assert_eq!(std::fs::read(&path).unwrap(), bytes, "reads never write");
+        let mut invalid: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+        invalid["histories"]["proj__other"]["session_id"] = serde_json::json!("proj__chosen");
+        let corrupted = serde_json::to_vec(&invalid).unwrap();
+        std::fs::write(&path, &corrupted).unwrap();
+        assert_eq!(
+            writer.observe_sessions().unwrap_err().kind,
+            ReadErrorKind::Identity
+        );
+        assert!(detached.observe_session(Some("chosen")).is_err());
+        assert!(detached.observe_step(2, false).is_err());
+        assert!(detached.observe_session(Some("missing")).is_err());
+        assert_eq!(std::fs::read(&path).unwrap(), corrupted);
+        std::fs::write(&path, &bytes).unwrap();
+        assert_eq!(
+            detached
+                .observe_session(Some("chosen"))
+                .unwrap()
+                .value
+                .unwrap(),
+            chosen
+        );
+    }
 }
 
 #[test]

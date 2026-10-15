@@ -7,6 +7,9 @@ use crate::think::engine::maintenance::MaintenanceReport;
 
 #[derive(Debug, Clone, Serialize, JsonSchema)]
 pub struct TraceCheckpointOutput {
+    pub session_id: Option<String>,
+    pub session_present: bool,
+    pub source: magistr_workflow_contracts::ReadSource,
     pub open_hypotheses: Vec<CheckpointHypothesis>,
     pub stale_branches: Vec<CheckpointStaleBranch>,
     /// One of: `"rising"`, `"falling"`, `"stable"`, `"insufficient_data"`.

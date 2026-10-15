@@ -322,8 +322,11 @@ fn failed_session_reads_retain_the_previous_sessions_identity_until_recovery() {
     let first = observer.snapshot().think.current().unwrap().clone();
     let alpha = namespace_session_id("session-read", "alpha");
     let beta = namespace_session_id("session-read", "beta");
-    assert_eq!(first.value.session_id.as_deref(), Some(alpha.as_str()));
-    assert_eq!(first.value.steps[0].thought, "Evidence from alpha");
+    assert_eq!(first.value.sessions.len(), 1);
+    assert_eq!(
+        first.value.session(Some(&alpha)).unwrap().steps[0].thought,
+        "Evidence from alpha"
+    );
 
     writer.think_record_step(step(2, "beta")).unwrap();
     let persistence = Persistence::for_project(&config.persistence_config(), "session-read");
@@ -348,10 +351,20 @@ fn failed_session_reads_retain_the_previous_sessions_identity_until_recovery() {
 
     std::fs::write(path, saved).unwrap();
     let recovered = observer.snapshot().think.current().unwrap().clone();
-    assert_eq!(recovered.value.session_id, Some(beta));
-    assert_eq!(recovered.value.steps.len(), 1);
-    assert_eq!(recovered.value.steps[0].thought, "Evidence from beta");
-    assert!(observer.think_step(1).unwrap().is_none());
+    assert_eq!(recovered.value.sessions.len(), 2);
+    assert_eq!(
+        recovered.value.session(Some(&beta)).unwrap().steps[0].thought,
+        "Evidence from beta"
+    );
+    assert_eq!(
+        observer.think_step(1).unwrap().unwrap().thought,
+        "Evidence from alpha"
+    );
+    assert_eq!(
+        observer.think_session(Some("alpha")).unwrap(),
+        detached.think_session(Some("alpha")).unwrap()
+    );
+    assert!(observer.think_session(None).unwrap().is_none());
 }
 
 #[test]

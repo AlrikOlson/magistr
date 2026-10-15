@@ -420,7 +420,7 @@ impl NativeEngines {
     /// `think_trace_checkpoint` verb's report): open hypotheses, stale
     /// branches, confidence drift, dependencies on revised steps.
     pub fn think_checkpoint(&self) -> Result<Value, String> {
-        self.services.think.checkpoint()
+        self.services.think.checkpoint(None)
     }
 
     // ── Ship ───────────────────────────────────────────────────────────

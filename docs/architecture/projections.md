@@ -48,7 +48,7 @@ The full-record read remains available for those IDs.
 | Roadmap | `RoadmapData`: chunks and progress from the same read | `RoadmapEngine` |
 | Execution | `ShipData`: selected and retained runs from the same read | `ShipEngine` |
 | Signals | `Vec<Signal>` | `SignalEngine` |
-| Reasoning | `ThinkData`: selected session, steps and branches | `ReasoningServer` |
+| Reasoning | `ThinkData`: complete saved sessions, steps and branches | `ReasoningServer` |
 
 Each observation preserves both its value and its provenance:
 
@@ -95,11 +95,15 @@ unfinished work and leaves completion to the workflow owner. Overall roadmap
 counts cannot complete an objective. File-plan archives and their cleanup are
 not part of the execution lifecycle.
 
-Reasoning reads use the active session of a shared owner, or the captured
-configured session of a detached owner. `ThinkData::session_id` names that
-scope; `None` names the one default project archive. A retained value keeps its
-original session identity after a failed read of another session. These reads
-do not claim to discover every reasoning session in the project.
+Reasoning observations read every saved session from the one validated project
+document. Each history retains its authored identity, steps and branch metadata.
+Explicit session reads use `None` for the default and return `None` when absent;
+unreadable sources remain errors. Shared and detached readers use the same
+selection rules, independent of the last writer and expiring display caches.
+Global step references retain their record identity and owning session. MCP
+discovery, session reads, search, status, checkpoint and export use these same
+complete observations. Retained snapshots keep their original identities and
+source when a later read fails.
 
 An observation returns validated durable data. Failed mutations leave the held
 state at its preceding commit; an observation never certifies an attempted

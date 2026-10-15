@@ -232,7 +232,7 @@ fn branches_summary_lists_each_active_branch() {
 }
 
 #[test]
-fn sessions_snapshot_marks_active_session() {
+fn sessions_snapshot_preserves_saved_session_metadata() {
     let mut c = quiet_config();
     c.features.enable_sessions = true;
     let mut s = ReasoningServer::new(c);
@@ -247,7 +247,8 @@ fn sessions_snapshot_marks_active_session() {
         snap[0].get("session_id").and_then(|x| x.as_str()),
         Some(expected.as_str())
     );
-    assert_eq!(snap[0].get("active").and_then(|x| x.as_bool()), Some(true));
+    assert!(snap[0]["created_at"].is_string());
+    assert!(snap[0]["updated_at"].is_string());
     assert_eq!(snap[0].get("step_count").and_then(|x| x.as_u64()), Some(1));
 }
 

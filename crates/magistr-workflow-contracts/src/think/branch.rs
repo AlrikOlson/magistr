@@ -7,7 +7,7 @@ use super::step::ThinkStep;
 /// Lifecycle state of a branch. A branch always starts `Active`; the agent
 /// can mark it `Merged` when its conclusions have been folded into the
 /// main line, or `Abandoned` when the approach is dropped.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, schemars::JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum BranchStatus {
     Active,
@@ -18,7 +18,7 @@ pub enum BranchStatus {
 /// A named fork off the main reasoning line. The branch's `from_step`
 /// points at the main-line step it forks from; subsequent steps with
 /// `branch_id == this.id` belong to the branch.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, schemars::JsonSchema)]
 pub struct Branch {
     pub id: String,
     pub name: String,
@@ -36,7 +36,7 @@ pub struct Branch {
 }
 
 /// The exact lifecycle metadata acknowledged by the reasoning owner.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct BranchStatusChange {
     pub previous: String,
     pub current: String,

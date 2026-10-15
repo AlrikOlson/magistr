@@ -1,11 +1,11 @@
-//! The 11 `#[tool]` handler methods, all in one `#[tool_router]` impl.
+//! The reasoning `#[tool]` handler methods, all in one `#[tool_router]` impl.
 //!
 //! The macro requires every annotated tool to live in a single impl
 //! block. Description strings stay inline — the `#[tool]` macro accepts
 //! only string literals (no `const`/`path` expressions), so a separate
 //! `descriptions.rs` would require a build script. Inline is cleaner.
 //!
-//! Description shape (all 11 follow the same template):
+//! Description shape:
 //!
 //!   1. When to use — one short sentence orienting tool selection.
 //!   2. Inputs — references the inputSchema; lists required vs optional.
@@ -22,7 +22,7 @@ use rmcp::{
 
 use super::args::{
     BranchStatusArgs, ExportArgs, ImpactArgs, NoArgs, PinArgs, ReviseEstimateArgs, SearchArgs,
-    StatusArgs, StepLookupArgs,
+    SessionArgs, StatusArgs, StepLookupArgs,
 };
 use crate::mcp::client_view::ClientView;
 use crate::think::domain::ThinkStep;
@@ -46,6 +46,59 @@ impl ThinkService {
 #[tool_router]
 impl ThinkService {
     #[tool(
+        name = "think_sessions",
+        description = "List the project's saved reasoning sessions, including the default session.\n\nInputs: none.\n\nReturns: summaries and the source read. Use think_session to read a complete session.\n\nPitfalls: a failed read is reported as unavailable; an empty list means no saved sessions.",
+        annotations(
+            title = "Saved reasoning",
+            read_only_hint = true,
+            destructive_hint = false,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
+    )]
+    pub async fn think_sessions(
+        &self,
+        Parameters(_): Parameters<NoArgs>,
+    ) -> Result<CallToolResult, ErrorData> {
+        let result = self.use_cases().sessions().map(|read| {
+            read.map(|data| {
+                data.sessions
+                    .into_iter()
+                    .map(|history| crate::think::output_schemas::SessionDescriptor {
+                        session_id: history.session_id,
+                        step_count: history.steps.len(),
+                        completed: history.completed,
+                        created_at: history.created_at,
+                        updated_at: history.updated_at,
+                    })
+                    .collect::<Vec<_>>()
+            })
+        });
+        Self::native_result(result, "source_unavailable")
+    }
+
+    #[tool(
+        name = "think_session",
+        description = "Read a complete saved reasoning session.\n\nInputs: optional session_id; omit for the default session.\n\nReturns: authored steps, branch metadata and source.\n\nPitfalls: a missing session returns value:null; an unreadable source returns an error.",
+        annotations(
+            title = "Saved reasoning",
+            read_only_hint = true,
+            destructive_hint = false,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
+    )]
+    pub async fn think_session(
+        &self,
+        Parameters(args): Parameters<SessionArgs>,
+    ) -> Result<CallToolResult, ErrorData> {
+        Self::native_result(
+            self.use_cases().session(args.session_id.as_deref()),
+            "source_unavailable",
+        )
+    }
+
+    #[tool(
         name = "think_record_step",
         description = "Record reasoning.\n\nInputs: estimated_total>=1; nonblank purpose, context, thought, outcome, next_action, rationale as separate JSON fields. next_action may be an object with nonblank action. Omit step_number, including for branches/revisions; explicit numbers use think_engine_status.next_step_number, never total_steps.\n\nReturns: structuredContent: step_number, total_steps, excerpts, warnings, recent_steps. Fetch pins in recent_steps_omitted with think_get_step. Honor isError.\n\nPitfalls: invalid_args gives field problems and effect:none; correct before retry. Never embed XML such as </thought><outcome> in thought or invent missing text. Read back uncertain writes before retry.\n\nBranches: start with branch_from=earlier step, branch_name=question; continue with returned branch.id as branch_id. Omit branch fields for the main line. Record synthesis with dependencies, then think_set_branch_status(status=merged, merged_into=synthesis step). abandoned drops the investigation. execution_ref links task, action or check.",
         annotations(
@@ -68,7 +121,7 @@ impl ThinkService {
 
     #[tool(
         name = "think_engine_status",
-        description = "Inspect engine state — config, counts, version, and what the MCP client on the other end of this very request declared. Use to check whether persistence is on, which session is active, how big the trace is, and — via `client` — whether a capability like elicitation or the SEP-2663 tasks extension is actually live on this connection.\n\nInputs: see inputSchema. Optional `verbose: true` folds in pinned[] and sessions[] arrays.\n\nReturns: structuredContent shaped by outputSchema (EngineStatusOutput). `next_step_number` is the next safe `step_number` for think_record_step. The `client` block carries name/version, `capability_source` (`request_meta` | `initialize` | `none`), `declares_elicitation`, `elicitation_modes`, `declares_tasks`, `extensions[]` and the server's own `asking_enabled` gate.\n\nPitfalls: `total_steps` is a COUNT of retained steps, NOT the highest step number used — the numbering is sparse, so it can be hundreds below the head. Numbering a new step from `total_steps` writes an orphan disconnected from the trace. Use `next_step_number`, or simply omit `step_number` on think_record_step and let the engine append. `next_step_number` is monotonic across trimming and restarts but resets after think_wipe_trace. Engine config reflects the live process — env-var changes won't show until the server restarts. The `client` block does NOT: it is read fresh from this request. `declares_elicitation` can be true while `elicitation_modes` is empty, because rmcp reads modes from the initialize handshake only — the modes are the gate that decides whether you are actually asked.",
+        description = "Inspect saved reasoning, runtime settings and this request's client capabilities.\n\nInputs: optional session_id (omit for default), verbose (include pins and session summaries).\n\nReturns: counts, session_present, source, next_step_number, settings and client capabilities.\n\nPitfalls: total_steps counts one session; never use it to number a new step. Omit step_number when recording, or use next_step_number. A missing session differs from an unreadable source. Settings are captured at startup; client capabilities are read per request. Elicitation requires declared modes as well as support. Numbering resets after an explicit wipe.",
         annotations(
             title = "Engine snapshot",
             read_only_hint = true,
@@ -82,10 +135,13 @@ impl ThinkService {
         Parameters(args): Parameters<StatusArgs>,
         context: RequestContext<RoleServer>,
     ) -> Result<CallToolResult, ErrorData> {
-        let mut v = self
+        let mut v = match self
             .use_cases()
-            .status(args.verbose.unwrap_or(false))
-            .map_err(|_| Self::poisoned())?;
+            .status(args.verbose.unwrap_or(false), args.session_id.as_deref())
+        {
+            Ok(value) => value,
+            Err(error) => return Ok(Self::structured_err("source_unavailable", error)),
+        };
         // Client capability observation is transport state, never native state.
         if let (Some(map), Ok(view)) = (
             v.as_object_mut(),
@@ -98,7 +154,7 @@ impl ThinkService {
 
     #[tool(
         name = "think_export_trace",
-        description = "Export the trace in a human-readable format. Pick `markdown` (default, badged steps) for review, `json` for downstream tooling, `console` for ANSI-styled terminal output, `tree` for branch structure.\n\nInputs: see inputSchema. Optional `format`: \"markdown\" | \"json\" | \"console\" | \"tree\".\n\nReturns: text content. NOTE: this tool intentionally has no outputSchema because the shape depends on the chosen format.\n\nPitfalls: `console` includes ANSI escapes — only useful if the consumer renders them. For programmatic consumers, prefer `json`.",
+        description = "Export a complete saved reasoning session.\n\nInputs: optional session_id (omit for default), format (markdown, json, console or tree; default markdown).\n\nReturns: text in the selected format; JSON retains authored records and tree shows branches.\n\nPitfalls: console includes ANSI escapes. Missing sessions and unreadable sources return errors. This read never changes stored work.",
         annotations(
             title = "Export trace",
             read_only_hint = true,
@@ -111,10 +167,10 @@ impl ThinkService {
         &self,
         Parameters(args): Parameters<ExportArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        match self
-            .use_cases()
-            .export(args.format.as_deref().unwrap_or(""))
-        {
+        match self.use_cases().export(
+            args.format.as_deref().unwrap_or(""),
+            args.session_id.as_deref(),
+        ) {
             Ok(text) => Ok(CallToolResult::success(vec![ContentBlock::text(text)])),
             Err(error) if error == "engine mutex poisoned" => Err(Self::poisoned()),
             Err(error) => Ok(CallToolResult::error(vec![ContentBlock::text(error)])),
@@ -123,7 +179,7 @@ impl ThinkService {
 
     #[tool(
         name = "think_get_step",
-        description = "Fetch one step by its project-global step_number. Use to inspect a specific step, including branch steps.\n\nInputs: see inputSchema. Required: `step_number`. Optional: `resolve_latest: true` walks revised_by forward to return the live canonical revision instead of the historical original.\n\nReturns: structuredContent — a ThinkStep object (see outputSchema).\n\nPitfalls: returns a structured error envelope (error_kind=\"step_not_found\") when no step exists. Branch steps share the project-global numbering — there's no separate index.",
+        description = "Read one complete step by its project-global number, across all saved sessions.\n\nInputs: step_number; optional resolve_latest follows the revision chain.\n\nReturns: the authored ThinkStep with its record and session identity.\n\nPitfalls: a missing step returns step_not_found; unreadable data or a broken revision chain returns source_unavailable. Branch steps share the same numbering. No memory-window limit applies.",
         annotations(
             title = "Fetch step",
             read_only_hint = true,
@@ -139,10 +195,10 @@ impl ThinkService {
         match self
             .use_cases()
             .get_step(args.step_number, args.resolve_latest.unwrap_or(false))
-            .map_err(|_| Self::poisoned())?
         {
-            Some(step) => Self::native_result(Ok(step), "step_not_found"),
-            None => Ok(Self::structured_err(
+            Ok(Some(step)) => Self::native_result(Ok(step), "step_not_found"),
+            Err(error) => Ok(Self::structured_err("source_unavailable", error)),
+            Ok(None) => Ok(Self::structured_err(
                 "step_not_found",
                 format!("No step #{} found.", args.step_number),
             )),
@@ -151,7 +207,7 @@ impl ThinkService {
 
     #[tool(
         name = "think_search_trace",
-        description = "Case-insensitive substring search across every step's thought, outcome, context, purpose, rationale, and next_action. Use when the trace has grown past the recent_steps window and you need to locate an earlier claim.\n\nInputs: see inputSchema. Required: `query`. Optional: `limit` (default 10, min 1).\n\nReturns: structuredContent shaped by outputSchema (SearchTraceOutput) — query, match_count, matches[] with per-hit excerpt and matched_field.\n\nPitfalls: substring search is literal, not semantic. Lowercase the needle yourself if your query mixes case sensitivity expectations. Excerpts are ~60 chars around the match — use think_get_step for full text.",
+        description = "Search all saved reasoning sessions, including steps outside recent memory.\n\nInputs: query (case-insensitive literal substring), limit (default 10, minimum 1).\n\nReturns: matching step numbers, session and record identities, matched fields and excerpts. Searches thought, outcome, context, purpose, rationale, next action and execution reference.\n\nPitfalls: excerpts are partial; use think_get_step for the full step. Unreadable data returns an error.",
         annotations(
             title = "Search trace",
             read_only_hint = true,
@@ -164,10 +220,13 @@ impl ThinkService {
         &self,
         Parameters(args): Parameters<SearchArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        let hits = self
+        let hits = match self
             .use_cases()
             .search(&args.query, args.limit.unwrap_or(10).max(1) as usize)
-            .map_err(|_| Self::poisoned())?;
+        {
+            Ok(value) => value,
+            Err(error) => return Ok(Self::structured_err("source_unavailable", error)),
+        };
         Ok(CallToolResult::structured(serde_json::json!({
             "query": args.query,
             "match_count": hits.len(),
@@ -177,7 +236,7 @@ impl ThinkService {
 
     #[tool(
         name = "think_step_impact",
-        description = "Dependency + revision graph around a step. Use BEFORE revising a load-bearing step — answers \"if I change this, what else re-breaks?\".\n\nInputs: see inputSchema. Required: `step_number`.\n\nReturns: structuredContent shaped by outputSchema (StepImpactOutput) — upstream (direct + transitive deps), downstream (direct + transitive dependents, partitioned by relation label), revision_chain (original → revised-by → ...), branches_from.\n\nPitfalls: returns structured error envelope (error_kind=\"step_not_found\") when no step exists. Transitive walks are capped at 256 nodes — pathological cycles get truncated, not infinite-looped.",
+        description = "Inspect dependencies and revisions before changing a reasoning step.\n\nInputs: step_number (project-global).\n\nReturns: upstream and downstream dependencies, relation labels, revision chain and branches from the step.\n\nPitfalls: missing steps return an error. Graph walks stop at 256 nodes; large or cyclic graphs can be partial. Reads use complete saved records across sessions.",
         annotations(
             title = "Step impact graph",
             read_only_hint = true,
@@ -283,7 +342,7 @@ impl ThinkService {
 
     #[tool(
         name = "think_trace_checkpoint",
-        description = "Trace-wide metacognitive snapshot. Aggregates per-step warnings into patterns that only show up across the whole history — open hypotheses with no validation downstream, stale branches, the confidence trend, revisions whose dependents didn't acknowledge them, and steps that transitively depend on something refuted later. Also reports MEMORY MAINTENANCE health: how big the pinned set has grown, how hard it is pressing on the rollup budget, and which pins have stopped earning their slot.\n\nInputs: none.\n\nReturns: structuredContent shaped by outputSchema (TraceCheckpointOutput) — open_hypotheses, stale_branches, confidence_trend, revised_but_undefended, refuted_chain_alerts, maintenance.\n\nThe `maintenance` block is a PROPOSAL and nothing else: it names `decay_candidates` (pins outside the rollup budget that nothing depends on and no revision touches) and the verb that disposes of one — `think_pin_step(step_number, pinned: false)`. The server never clears a pin by itself, and unpinning never deletes a step; the step stays in the trace and stays fetchable with think_get_step.\n\nPitfalls: confidence_trend reports `insufficient_data` when fewer than 2 confidence values exist; not an error. `decay_candidates` is capped — read `decay_candidates_total` for the real count. Call this periodically on long traces — per-step warnings can't see these whole-trace patterns.",
+        description = "Review unresolved hypotheses, stale branches, confidence changes, unsupported revisions and refuted dependencies in a saved reasoning session.\n\nInputs: optional session_id; omit for default.\n\nReturns: findings, session_present, source and memory-maintenance proposals.\n\nPitfalls: proposals never change pins or delete steps. Use think_pin_step to accept an unpin proposal. Lists may be bounded; use their total counts. Fewer than two confidence values yields insufficient_data. A missing session is explicit; unreadable data is an error.",
         annotations(
             title = "Trace checkpoint",
             read_only_hint = true,
@@ -294,9 +353,12 @@ impl ThinkService {
     )]
     pub async fn think_trace_checkpoint(
         &self,
-        Parameters(_): Parameters<NoArgs>,
+        Parameters(args): Parameters<SessionArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        Self::native_result(self.use_cases().checkpoint(), "engine_unavailable")
+        Self::native_result(
+            self.use_cases().checkpoint(args.session_id.as_deref()),
+            "source_unavailable",
+        )
     }
 
     #[tool(

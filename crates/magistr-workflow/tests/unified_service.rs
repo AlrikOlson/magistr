@@ -1,5 +1,5 @@
 //! End-to-end smoke test for the UnifiedService: all four families register
-//! together and expose the full 54-tool surface (think 11, ship 14, roadmap 17,
+//! together and expose the full 56-tool surface (think 13, ship 14, roadmap 17,
 //! tracker 2, signal 10 — all canonical).
 
 use std::collections::BTreeSet;
@@ -24,19 +24,19 @@ fn build_unified() -> UnifiedService {
 }
 
 #[test]
-fn lists_54_canonical_tools_across_four_families() {
+fn lists_56_canonical_tools_across_four_families() {
     let svc = build_unified();
     let tools = svc.list_tools_view();
     assert_eq!(
         tools.len(),
-        54,
-        "expected 11 think_* + 14 ship_* + 17 roadmap_* + 2 tracker_* + 10 signal_*, got {}",
+        56,
+        "expected 13 think_* + 14 ship_* + 17 roadmap_* + 2 tracker_* + 10 signal_*, got {}",
         tools.len()
     );
 
     let names: BTreeSet<String> = tools.iter().map(|t| t.name.to_string()).collect();
     let count = |prefix: &str| names.iter().filter(|n| n.starts_with(prefix)).count();
-    assert_eq!(count("think_"), 11, "11 think_* tools");
+    assert_eq!(count("think_"), 13, "13 think_* tools");
     assert_eq!(
         count("ship_"),
         14,
@@ -575,8 +575,8 @@ fn default_selection_is_byte_identical_to_no_selection() {
         tools_list_bytes(&explicit),
         "an all-families selection must serialize identically to no selection at all"
     );
-    assert_eq!(plain.list_tools_view().len(), 54);
-    assert_eq!(explicit.list_tools_view().len(), 54);
+    assert_eq!(plain.list_tools_view().len(), 56);
+    assert_eq!(explicit.list_tools_view().len(), 56);
 }
 
 /// A narrowed deployment serves exactly its families — nothing leaks through.
@@ -595,9 +595,8 @@ fn a_narrowed_deployment_lists_only_its_families() {
         || n.starts_with("tracker_")));
     assert_eq!(names.iter().filter(|n| n.starts_with("ship_")).count(), 0);
     assert_eq!(names.iter().filter(|n| n.starts_with("signal_")).count(), 0);
-    // think 11 + the Roadmap family's 19 (17 roadmap_* AND the 2 tracker_* that
-    // ride it — 11+14+17+10 is 52, and the 54-tool total is those two).
-    assert_eq!(names.len(), 30);
+    // 13 reasoning tools plus 17 roadmap and 2 tracker tools.
+    assert_eq!(names.len(), 32);
 }
 
 /// THE SAVING, measured through the ceiling's own instrument.

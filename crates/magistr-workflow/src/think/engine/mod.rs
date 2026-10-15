@@ -22,6 +22,7 @@ pub mod maintenance;
 pub mod mutations;
 pub mod numbering;
 pub mod process;
+mod queries;
 pub mod recovery;
 pub mod revisions;
 pub mod sessions;

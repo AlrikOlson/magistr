@@ -73,6 +73,13 @@ pub fn output_schema_for(tool_name: &str) -> Option<Arc<JsonObject>> {
         "think_record_step" => schema_for!(RecordStepOutput).to_value(),
         "think_engine_status" => schema_for!(EngineStatusOutput).to_value(),
         "think_get_step" => schema_for!(ThinkStep).to_value(),
+        "think_sessions" => {
+            schema_for!(magistr_workflow_contracts::Observed<Vec<SessionDescriptor>>).to_value()
+        }
+        "think_session" => schema_for!(
+            magistr_workflow_contracts::Observed<Option<crate::think::domain::ThinkHistory>>
+        )
+        .to_value(),
         "think_search_trace" => schema_for!(SearchTraceOutput).to_value(),
         "think_step_impact" => schema_for!(StepImpactOutput).to_value(),
         "think_pin_step" => schema_for!(PinStepOutput).to_value(),

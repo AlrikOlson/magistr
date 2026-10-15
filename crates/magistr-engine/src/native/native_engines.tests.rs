@@ -104,7 +104,7 @@ fn step(n: u32, purpose: &str) -> ThinkStep {
 }
 
 #[test]
-fn compaction_owner_command_keeps_current_receipts_and_removes_old_settled_history() {
+fn compaction_owner_command_preserves_receipts_for_current_and_retained_runs() {
     use crate::native::{OwnerCommand, OwnerReply, ShipCommand};
     let temp = tempfile::tempdir().unwrap();
     let cfg = temp_config(&temp);
@@ -145,9 +145,10 @@ fn compaction_owner_command_keeps_current_receipts_and_removes_old_settled_histo
     let OwnerReply::Report(report) = engines.apply(command).unwrap() else {
         panic!("compaction report")
     };
-    assert_eq!(report["removed"], 1);
+    assert_eq!(report["removed"], 0);
     assert_eq!(report["retained_current"], 1);
-    assert!(engines.ship_receipt(&old_id).unwrap().is_none());
+    assert_eq!(report["retained_referenced"], 1);
+    assert!(engines.ship_receipt(&old_id).unwrap().is_some());
 }
 
 #[test]
@@ -165,7 +166,7 @@ fn branch_lifecycle_and_exact_merge_destination_survive_reader_restart() {
             .current()
             .unwrap()
             .value
-            .branches
+            .sessions
             .is_empty()
     );
     {
@@ -196,22 +197,40 @@ fn branch_lifecycle_and_exact_merge_destination_survive_reader_restart() {
             .current()
             .unwrap()
             .value
+            .session(None)
+            .unwrap()
             .branches
             .iter()
+            .flatten()
             .find(|branch| branch.id == "receipt")
             .expect("persisted branch");
         assert_eq!(receipt.name, "Can each tenant keep its own receipt?");
-        assert_eq!(receipt.from_step, Some(1));
+        assert_eq!(receipt.from_step, 1);
         assert_eq!(receipt.status, BranchStatus::Merged);
         assert_eq!(receipt.merged_into, Some(4));
         assert_eq!(
-            snapshot.think.current().unwrap().value.steps[1]
+            snapshot
+                .think
+                .current()
+                .unwrap()
+                .value
+                .session(None)
+                .unwrap()
+                .steps[1]
                 .branch_id
                 .as_deref(),
             Some("receipt")
         );
         assert_eq!(
-            snapshot.think.current().unwrap().value.steps[1].outcome,
+            snapshot
+                .think
+                .current()
+                .unwrap()
+                .value
+                .session(None)
+                .unwrap()
+                .steps[1]
+                .outcome,
             "Keep one receipt per tenant."
         );
     }
@@ -223,8 +242,11 @@ fn branch_lifecycle_and_exact_merge_destination_survive_reader_restart() {
         .current()
         .unwrap()
         .value
+        .session(None)
+        .unwrap()
         .branches
         .iter()
+        .flatten()
         .find(|branch| branch.id == "receipt")
         .expect("branch after restart");
     assert_eq!(receipt.status, BranchStatus::Merged);
@@ -248,8 +270,11 @@ fn branch_lifecycle_and_exact_merge_destination_survive_reader_restart() {
         .current()
         .unwrap()
         .value
+        .session(None)
+        .unwrap()
         .branches
         .iter()
+        .flatten()
         .find(|branch| branch.id == "receipt")
         .expect("stopped branch");
     assert_eq!(receipt.status, BranchStatus::Abandoned);
@@ -362,8 +387,10 @@ fn round_trip_through_a_temp_store() {
         Some(vec!["task:t1".to_string()])
     );
     let pinned = reopened
-        .think_steps_from_store()
+        .think_session(None)
         .unwrap()
+        .unwrap()
+        .steps
         .iter()
         .filter(|step| step.pinned == Some(true))
         .count();
@@ -589,11 +616,11 @@ fn repeated_validated_reads_pick_up_another_writers_changes() {
 }
 
 #[test]
-fn think_steps_from_store_sees_another_writers_steps_without_reopening() {
+fn think_session_sees_another_writers_steps_without_reopening() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = temp_config(&tmp);
     let host = reader(&cfg, "think-store");
-    assert!(host.think_steps_from_store().unwrap().is_empty());
+    assert!(host.think_session(None).unwrap().is_none());
 
     // The agent's server records after the host opened.
     let server = service(&cfg, "think-store");
@@ -601,8 +628,10 @@ fn think_steps_from_store_sees_another_writers_steps_without_reopening() {
     assert!(server.think_record_step(step(2, "ground")).is_ok());
 
     let numbers: Vec<u32> = host
-        .think_steps_from_store()
+        .think_session(None)
         .unwrap()
+        .unwrap()
+        .steps
         .iter()
         .map(|s| s.step_number)
         .collect();
@@ -615,7 +644,7 @@ fn reasoning_observation_uses_live_memory_when_persistence_is_disabled() {
     let cfg = temp_config(&tmp).persist(false);
     let engines = host(&cfg, "ephemeral-think");
     assert!(engines.think_record_step(step(1, "open")).is_ok());
-    assert_eq!(engines.think_steps_from_store().unwrap().len(), 1);
+    assert_eq!(engines.think_session(None).unwrap().unwrap().steps.len(), 1);
     assert_eq!(
         engines.snapshot().think.current().unwrap().source,
         crate::native::ReadSource::Memory
@@ -1006,12 +1035,28 @@ fn a_snapshot_reads_every_family_whole_with_its_source() {
     );
     assert_eq!(snapshot.signals.current().unwrap().value.len(), 1);
     assert_eq!(
-        snapshot.think.current().unwrap().value.steps.len(),
+        snapshot
+            .think
+            .current()
+            .unwrap()
+            .value
+            .session(None)
+            .unwrap()
+            .steps
+            .len(),
         1,
         "the persisted step"
     );
     assert_eq!(
-        snapshot.think.current().unwrap().value.steps[0].step_number,
+        snapshot
+            .think
+            .current()
+            .unwrap()
+            .value
+            .session(None)
+            .unwrap()
+            .steps[0]
+            .step_number,
         1
     );
 
