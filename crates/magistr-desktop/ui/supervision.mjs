@@ -12,6 +12,7 @@ export function usagePresentation(usage) {
   const known=usage?.used!=null&&usage?.size>0;
   return {
     context:known?usage.used.toLocaleString()+" / "+usage.size.toLocaleString()+" tokens":"Context use not reported",
+    fraction:known?Math.max(0,Math.min(1,usage.used/usage.size)):null,
     percent:known?Math.round(usage.used/usage.size*100)+"%":"Not reported",
     spending:usage?.cost_cents==null?"Not reported":"$"+(usage.cost_cents/100).toFixed(2)
   };
