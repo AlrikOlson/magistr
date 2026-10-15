@@ -38,8 +38,9 @@ export class FeedbackBrowser{
     const pages=pageControls(records.length,this.page,page=>{this.page=page;this.changed();this.root.scrollTop=0;});article.append(pages.nav);
     const list=element("ol","","roadmap-items");
     for(const record of records.slice(pages.start,pages.end)){
-      const row=element("li"),button=element("button",feedbackTitle(record),"roadmap-item-open");button.dataset.feedbackId=record.id;button.dataset.focusKey="feedback:"+record.id;button.onclick=()=>this.open(record.id);
-      row.append(button,element("span",feedbackKind[record.kind]+" · "+feedbackStatus[record.status]+" · "+record.from,"roadmap-item-state"));list.append(row);
+      const row=element("li","","feedback-row"),button=element("button",feedbackTitle(record),"roadmap-item-open");button.dataset.feedbackId=record.id;button.dataset.focusKey="feedback:"+record.id;button.onclick=()=>this.open(record.id);
+      const body=element("div");body.append(button,element("span",record.from,"roadmap-item-state"));
+      row.append(element("span",feedbackKind[record.kind],"feedback-kind"),body,element("span",feedbackStatus[record.status],"work-record-status"));list.append(row);
     }
     article.append(records.length?list:element("p",this.query.trim()||this.kind!=="all"||this.status!=="all"?"No feedback matches these filters.":"No feedback has been saved."));return article;
   }

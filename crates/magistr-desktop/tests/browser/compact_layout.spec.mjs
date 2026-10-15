@@ -190,3 +190,10 @@ test("investigation summary keeps its origin and conclusion together",async({app
   await expect(summary.locator("dd").first()).toHaveText("Step 41");await expect(summary.locator("dd").nth(1)).toHaveText("Step 41");
   await capture(app,"18-investigation");
 });
+
+test("feedback rows align kind title and status",async({app})=>{
+  await openWork(app,"Feedback");await app.setViewportSize({width:760,height:550});
+  const row=app.locator(".feedback-row").first();const kind=await row.locator(".feedback-kind").boundingBox(),title=await row.locator("button").boundingBox();
+  expect(kind.x+kind.width).toBeLessThan(title.x);
+  await expect(row.locator(".work-record-status")).toBeVisible();await capture(app,"19-feedback-rows");
+});
