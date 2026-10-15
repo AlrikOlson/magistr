@@ -1,7 +1,7 @@
 // Window navigation keys only; native editing and composition keep their own keys.
 export class KeyboardNavigation {
-  constructor(element,layout) {
-    this.$=element;this.layout=layout;this.mac=/Mac|iPhone|iPad/.test(navigator.platform);
+  constructor(element,layout,projects) {
+    this.$=element;this.layout=layout;this.projects=projects;this.mac=/Mac|iPhone|iPad/.test(navigator.platform);
     const modifier=this.mac?"⌘":"Ctrl",aria=this.mac?"Meta":"Control";
     const shortcuts=[
       ["find-conversation","K",false],["open-project","O",false],["new-session","N",true],["open-settings",",",false]
@@ -22,13 +22,13 @@ export class KeyboardNavigation {
     });
   }
   cycle(direction) {
-    const $=this.$,areas=[{root:$("project-rail"),focus:()=>{const row=$("projects").querySelector('[aria-current=true]');(row?.closest(".project-group")?.open&&row.getClientRects().length?row:$("find-conversation")).focus();}}];
+    const $=this.$,areas=[{root:$("project-rail"),focus:()=>{this.projects.show(true);const row=$("projects").querySelector('[aria-current=true]');(row?.closest(".project-group")?.open&&row.getClientRects().length?row:$("find-conversation")).focus();}}];
     if(this.layout.enabled)areas.push(
-      {root:$("transcript"),focus:()=>{if(this.layout.compact.matches)this.layout.show(false);$("transcript").focus({preventScroll:true});}},
-      {root:$("composer"),focus:()=>{if(this.layout.compact.matches)this.layout.show(false);($("draft").disabled?$("composer"):$("draft")).focus({preventScroll:true});}},
-      {root:$("session-detail"),focus:()=>{this.layout.show(true);$("detail-title").focus();}}
+      {root:$("transcript"),focus:()=>{this.projects.show(false);if(this.layout.compact.matches)this.layout.show(false);$("transcript").focus({preventScroll:true});}},
+      {root:$("composer"),focus:()=>{this.projects.show(false);if(this.layout.compact.matches)this.layout.show(false);($("draft").disabled?$("composer"):$("draft")).focus({preventScroll:true});}},
+      {root:$("session-detail"),focus:()=>{this.projects.show(false);this.layout.show(true);$("detail-title").focus();}}
     );
-    else areas.push({root:$("welcome"),focus:()=>$("welcome-open").focus()});
+    else areas.push({root:$("welcome"),focus:()=>{this.projects.show(false);$("welcome-open").focus();}});
     const index=areas.findIndex(area=>area.root.contains(document.activeElement));
     const next=index<0?(direction>0?0:areas.length-1):(index+direction+areas.length)%areas.length;
     areas[next].focus();

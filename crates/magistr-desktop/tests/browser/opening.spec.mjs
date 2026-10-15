@@ -1,6 +1,7 @@
-import { test, expect } from "./fixture.mjs";
+import { test, expect, showProjects } from "./fixture.mjs";
 
 async function show(app) {
+  await showProjects(app);
   await app.getByRole("button",{name:"Review the release plan",exact:true}).click();
   await app.getByRole("button",{name:"New conversation",exact:true}).click();
 }

@@ -35,3 +35,45 @@ export class WorkspaceLayout {
     if(open&&this.compact.matches&&this.conversation.contains(focus))this.heading.focus();
   }
 }
+
+// Compact project browsing keeps the same rail, conversation and draft nodes mounted.
+export class ProjectRailLayout {
+  constructor({root,panel,content,toggle,fallback,compact}) {
+    Object.assign(this,{root,panel,content,toggle,fallback,compact});this.open=false;this.returnFocus=null;
+    toggle.onclick=()=>this.show(!this.open,true);
+    compact.addEventListener("change",()=>{
+      const focus=panel.ownerDocument.activeElement;
+      if(compact.matches)this.open=panel.contains(focus);
+      this.render();
+      if(!compact.matches&&focus===toggle)this.focusProjects();
+    });
+    root.addEventListener("keydown",event=>{
+      if(event.key==="Escape"&&!event.isComposing&&!event.defaultPrevented&&compact.matches&&this.open){
+        event.preventDefault();this.show(false,true);
+      }
+    });
+    this.render();
+  }
+  focusProjects() {
+    const selected=this.panel.querySelector('[aria-current=true]');
+    const target=selected?.getClientRects().length?selected:this.panel.querySelector(".project-heading")??this.fallback;
+    target.focus({preventScroll:true});
+  }
+  show(value,focus=false) {
+    if(value&&!this.open)this.returnFocus=this.panel.ownerDocument.activeElement;
+    this.open=value;this.render();
+    if(!focus)return;
+    if(value)this.focusProjects();
+    else {
+      const previous=this.returnFocus;
+      (previous?.isConnected&&previous.getClientRects().length&&!previous.disabled?previous:this.toggle).focus({preventScroll:true});
+    }
+  }
+  render() {
+    const compact=this.compact.matches,open=compact&&this.open;
+    this.root.dataset.projects=String(open);this.toggle.hidden=!compact;
+    this.toggle.setAttribute("aria-expanded",String(open));
+    this.panel.hidden=compact&&!open;this.content.hidden=open;
+  }
+}
+

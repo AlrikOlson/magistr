@@ -17,6 +17,7 @@ test("find a conversation with the keyboard and recover the originating editor o
 });
 test("F6 reaches every logical area and recovers the conversation in a narrow window",async({app})=>{
   await app.setViewportSize({width:800,height:680});
+  await app.getByRole("button",{name:"Projects",exact:true}).click();
   await app.getByRole("button",{name:"Review the release plan",exact:true}).click();
   await app.getByRole("button",{name:"Find a conversation",exact:true}).focus();
   await app.keyboard.press("F6");await expect(app.locator("#transcript")).toBeFocused();

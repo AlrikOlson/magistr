@@ -1,4 +1,4 @@
-import { test, expect, root, ui } from "./fixture.mjs";
+import { test, expect, root, ui, workspaceSeed } from "./fixture.mjs";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { resolve, relative } from "node:path";
 import { createHash } from "node:crypto";
@@ -6,11 +6,11 @@ import { createHash } from "node:crypto";
 test("workspace composition, appearances and narrow Details",async({app,browser})=>{
   const evidence=resolve(root,".magistr/desktop-layout");
   await mkdir(evidence,{recursive:true});
-  const images={},checks={};
+  const images={},viewports={},checks={};
   const capture=async name=>{
     await app.mouse.move(0,0);
     const bytes=await app.screenshot({path:resolve(evidence,name),animations:"disabled"});
-    images[name]=createHash("sha256").update(bytes).digest("hex");
+    images[name]=createHash("sha256").update(bytes).digest("hex");viewports[name]=app.viewportSize();
   };
   await expect(app.locator("#welcome-projects")).toContainText("/Projects/magistr");
   await expect(app.getByRole("button",{name:"Choose a folder…",exact:true})).toBeVisible();
@@ -216,6 +216,7 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
   await expect(app.getByRole("button",{name:"Remove release-notes.md",exact:true})).toBeVisible();
   await capture("attachments-narrow-light.png");
   checks["file cards retain preview, path, size and named removal at compact width"]=true;
+  await app.getByRole("button",{name:"Projects",exact:true}).click();
   await app.getByRole("button",{name:"Investigate sync failure",exact:true}).click();
   await app.locator("#review-requests").click();
   await expect(app.getByRole("heading",{name:"Run the focused sync checks",exact:true})).toBeVisible();
@@ -227,18 +228,50 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
   await app.locator("#review-requests").click();
   await capture("request-dark.png");
   checks["permission decisions present exact requested command and equal-weight choices"]=true;
+  const config=JSON.parse(await readFile(resolve(root,"crates/magistr-desktop/tauri.conf.json"),"utf8"));
+  const minimum=config.app.windows[0];
+  await app.getByRole("button",{name:"Review the release plan",exact:true}).click();
+  await app.evaluate(events=>{
+    const frame=window.__fixture.frames.get("release");
+    window.__fixture.publish("release",{events,retained:events.map(event=>event.id),attachments:[],draft_revision:frame.draft_revision+1,draft_saved_revision:frame.draft_revision+1});
+  },workspaceSeed().frames[0].events);
+  await app.getByLabel("Message the agent",{exact:true}).fill("Check the release notes before we continue.");
+  await expect(app.locator("#draft-status")).toHaveText("Draft saved");
+  await app.setViewportSize({width:minimum.minWidth,height:minimum.minHeight});
+  for(const theme of ["dark","light"]){
+    await app.getByRole("button",{name:"Settings",exact:true}).click();
+    await app.getByLabel("Appearance",{exact:true}).selectOption(theme);
+    await app.getByRole("button",{name:"Done",exact:true}).click();
+    if(await app.getByRole("button",{name:"Latest reply",exact:true}).isVisible())await app.getByRole("button",{name:"Latest reply",exact:true}).click();
+    const editor=app.getByLabel("Message the agent",{exact:true});
+    await expect(editor).toBeVisible();
+    expect((await editor.boundingBox()).width).toBeGreaterThanOrEqual(minimum.minWidth-64);
+    expect(await app.evaluate(()=>document.documentElement.scrollWidth)).toBe(minimum.minWidth);
+    await capture("minimum-workspace-"+theme+".png");
+    await app.getByRole("button",{name:"Projects",exact:true}).click();
+    await expect(app.locator("#workspace-main")).toBeHidden();
+    await capture("minimum-projects-"+theme+".png");
+    await app.keyboard.press("Escape");
+    await expect(editor).toHaveValue("Check the release notes before we continue.");
+  }
+  await app.getByRole("button",{name:"Settings",exact:true}).click();
+  await capture("minimum-settings-light.png");
+  const done=await app.getByRole("button",{name:"Done",exact:true}).boundingBox();
+  expect(done.y+done.height).toBeLessThan(minimum.minHeight);
+  await app.getByRole("button",{name:"Done",exact:true}).click();
+  checks["native minimum window keeps full-width editing, project browsing and dialog actions reachable"]=true;
   const sources={};
   for(const name of (await readdir(ui)).sort()){
     const file=resolve(ui,name);
     sources[relative(root,file)]=createHash("sha256").update(await readFile(file)).digest("hex");
   }
-  for(const name of ["playwright.config.mjs","tests/browser/fixture.mjs","tests/browser/workspace.spec.mjs"]) {
+  for(const name of ["playwright.config.mjs","tauri.conf.json","tests/browser/fixture.mjs","tests/browser/workspace.spec.mjs"]) {
     const file=resolve(root,"crates/magistr-desktop",name);
     sources[relative(root,file)]=createHash("sha256").update(await readFile(file)).digest("hex");
   }
   await writeFile(resolve(evidence,"receipt.json"),JSON.stringify({
     renderer:"headless WebKit",version:browser.version(),captured_at:new Date().toISOString(),
     scope:"Production desktop HTML, CSS and JavaScript with isolated observation fixtures; no native OS input or Rust owner integration.",
-    checks,source_hashes:sources,images,
+    checks,source_hashes:sources,images,viewports,
   },null,2)+"\n");
 });

@@ -5,7 +5,7 @@ import { ConversationPicker } from "./conversation_picker.mjs";
 import { HistoryBrowser } from "./history.mjs";
 import { ConversationName } from "./conversation_actions.mjs";
 import { ProjectNavigation, ProjectDirectory } from "./navigation.mjs";
-import { WorkspaceLayout } from "./layout.mjs";
+import { WorkspaceLayout, ProjectRailLayout } from "./layout.mjs";
 import { WorkPanel } from "./work.mjs";
 import { addressKey, targetKey, sameTarget } from "./context.mjs";
 import { Transcript } from "./transcript.mjs";
@@ -37,6 +37,7 @@ systemMotion.addEventListener("change",()=>renderPreferences());
 const selection=new Selection();
 const editorPlaces=new EditorPlaces($("draft"));
 const layout=new WorkspaceLayout({root:$("workspace"),conversation:$("conversation"),detail:$("session-detail"),toggle:$("toggle-details"),heading:$("detail-title"),compact:matchMedia("(max-width:1100px)")});
+const projectLayout=new ProjectRailLayout({root:$("desktop-shell"),panel:$("project-navigation"),content:$("workspace-main"),toggle:$("toggle-projects"),fallback:$("open-project"),compact:matchMedia("(max-width:900px)")});
 const catalog=new Catalog();
 const attentionNodes=new Map();
 let announcementKey="";
@@ -47,7 +48,7 @@ const transcriptView=new Transcript($("transcript"),$("latest"),{
 let configurationKey="";
 let requestsKey="",railKey="";
 const labels=new Map();let issuedLabel=0;
-const showError=error=>{$("error").textContent=error?.message??String(error);$("error").hidden=false;};
+const showError=error=>{$("error").textContent=error?.message??String(error);$("error").hidden=false;if(projectLayout.compact.matches&&projectLayout.open){projectLayout.show(false);$("error").focus();}};
 const workPanel=new WorkPanel($,invoke,showError,renderWorkSummary);
 const conversationName=new ConversationName($,invoke);
 const clearError=()=>{$("error").hidden=true;};
@@ -68,7 +69,7 @@ const directory=new ProjectDirectory($("welcome-projects"),{
 });
 const switcher=new ConversationSwitcher($,{sessions:()=>sessions,selected:()=>selected,ready:()=>catalog.sequence>=0,select,
   label:session=>session.conversation?.name??("Conversation "+labels.get(session.address.session))});
-new KeyboardNavigation($,layout);
+new KeyboardNavigation($,layout,projectLayout);
 $("open-settings").onclick=()=>{if(!document.querySelector("dialog[open]"))$("settings").showModal();};
 $("settings-close").onclick=()=>$("settings").close();
 $("settings").onclose=()=>$("open-settings").focus();
@@ -129,6 +130,7 @@ function renderRail() {
   const failed=sessions.filter(session=>session.status==="Connection lost").length;
   $("attention-dock").hidden=waiting.length===0&&failed===0;
   $("attention-total").textContent=String(waiting.length+failed);
+  $("compact-attention").textContent=String(waiting.length+failed);$("compact-attention").hidden=waiting.length+failed===0;
   $("attention-disconnected").hidden=!failed;
   $("attention-disconnected").textContent=failed+(failed===1?" agent disconnected":" agents disconnected");
   const announcement=waiting.length+(waiting.length===1?" request waiting":" requests waiting")+(failed?" · "+failed+(failed===1?" agent disconnected":" agents disconnected"):"");
@@ -264,6 +266,7 @@ async function select(address,requestId=null,requestTarget=null) {
       return invoke("subscribe_session",{address,channel,selection:intent});
     },
     commit:(candidate,initial)=>{
+      const fromProjects=projectLayout.compact.matches&&projectLayout.open;projectLayout.show(false);
       const previous=currentTarget();
       if(previous)editorPlaces.capture(previous,drafts.status(previous).revision);
       transcriptView.clear();
@@ -277,8 +280,9 @@ async function select(address,requestId=null,requestTarget=null) {
       $("copy-summary").title=address.workspace;
       $("conversation-toolbar").hidden=false;$("conversation-actions").hidden=false;$("conversation-actions").open=false;
       $("project-name").textContent=sessions.find(session=>session.address.session===address.session)?.name??"Project";
-      $("status").textContent="Connecting";renderRail();navigation.reveal(address);clearError();
+      $("status").hidden=false;$("status").textContent="Connecting";renderRail();navigation.reveal(address);clearError();
       if(initial)receiveFrame(candidate,initial);
+      if(fromProjects&&requestId===null)$("view-title").focus({preventScroll:true});
     },
     receive:receiveFrame
   });
@@ -388,7 +392,7 @@ function showWelcome(note="") {
   selected=null;view=null;composerFrame=null;attachmentList.clear();selection.clear();requestsKey="";railKey="";
   $("workspace").hidden=true;$("welcome").hidden=false;layout.enable(false);
   $("conversation-toolbar").hidden=true;$("conversation-actions").hidden=true;$("conversation-actions").open=false;conversationName.render(null);workPanel.render(null);
-  $("project-name").textContent="Magistr";$("view-title").textContent="Projects";$("status").textContent="Ready";$("status").dataset.state="ready";
+  $("project-name").textContent="Magistr";$("view-title").textContent="Projects";$("status").textContent="";$("status").hidden=true;
   $("draft").value="";$("requests").replaceChildren();transcriptView.clear();
   for(const id of ["draft","send","stop","new-session","close-session","copy","reconnect","add-files"])$(id).disabled=true;
   $("welcome-note").textContent=note;$("welcome-note").hidden=!note;
