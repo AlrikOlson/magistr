@@ -38,3 +38,15 @@ test("work navigation fits and follows arrow-key focus",async({app})=>{
   await expect(app.getByRole("tab",{name:"Roadmap",exact:true})).toBeFocused();
   await capture(app,"02-navigation");
 });
+
+test("work filters group related fields and retain content space",async({app})=>{
+  await openWork(app,"Roadmap");await app.setViewportSize({width:760,height:550});
+  expect((await app.locator(".work-browser-filters").boundingBox()).height).toBeLessThan(85);
+  await app.getByLabel("Search all roadmap",{exact:true}).fill("installer");
+  await expect(app.getByRole("button",{name:"Build the desktop installer",exact:true})).toBeVisible();
+  await app.getByLabel("Search all roadmap",{exact:true}).fill("");
+  await capture(app,"03-filters");
+  await app.getByRole("tab",{name:"Current and saved work",exact:true}).click();
+  expect(await app.locator("#work-browser").evaluate(node=>node.scrollWidth-node.clientWidth)).toBeLessThanOrEqual(1);
+  expect((await app.locator("#work-browser-content").boundingBox()).height).toBeGreaterThan(220);
+});
