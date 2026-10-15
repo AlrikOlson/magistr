@@ -109,14 +109,22 @@ function renderRail() {
   const waitingRows=waiting.map(({session,request})=>{
     const key=JSON.stringify([session.target,request.id]);
     let item=attentionNodes.get(key);
-    if(!item){item=button("",()=>select(session.address,request.id,session.target).catch(showError));attentionNodes.set(key,item);}
-    item.textContent=(session.conversation?.name??(session.name+" session "+labels.get(session.address.session)))+": "+request.title;
+    if(!item){
+      item=button("",()=>select(session.address,request.id,session.target).catch(showError));
+      item.append(text("strong",""),text("span",""));attentionNodes.set(key,item);
+    }
+    const conversation=session.conversation?.name??(session.name+" session "+labels.get(session.address.session));
+    item.children[0].textContent=conversation;item.children[1].textContent=request.title;
+    item.setAttribute("aria-label",conversation+": "+request.title);
     return item;
   });
   placeChildren($("attention"),waitingRows);
   for(const [key,item] of attentionNodes)if(!waitingRows.includes(item))attentionNodes.delete(key);
   const failed=sessions.filter(session=>session.status==="Connection lost").length;
   $("attention-dock").hidden=waiting.length===0&&failed===0;
+  $("attention-total").textContent=String(waiting.length+failed);
+  $("attention-disconnected").hidden=!failed;
+  $("attention-disconnected").textContent=failed+(failed===1?" agent disconnected":" agents disconnected");
   const announcement=waiting.length+(waiting.length===1?" request waiting":" requests waiting")+(failed?" · "+failed+(failed===1?" agent disconnected":" agents disconnected"):"");
   if(announcement!==announcementKey){$("attention-count").textContent=announcement;announcementKey=announcement;}
 }
@@ -303,6 +311,7 @@ function receiveFrame(candidate,frame) {
 function render(frame) {
   transcriptView.render(view);
   if($("status").textContent!==frame.status)$("status").textContent=frame.status;
+  $("status").dataset.state=frame.status==="Connection lost"?"disconnected":view.pending.length?"waiting":frame.activity?.active?"running":"ready";
   $("stop").disabled=frame.closed||frame.activity?.cancellation_requested||!frame.activity?.active;
   $("stop").hidden=!frame.activity?.active;
   $("agent-quick-settings").disabled=frame.closed;
@@ -365,7 +374,7 @@ function showWelcome(note="") {
   selected=null;view=null;composerFrame=null;attachmentList.clear();selection.clear();requestsKey="";railKey="";
   $("workspace").hidden=true;$("welcome").hidden=false;layout.enable(false);
   $("conversation-toolbar").hidden=true;$("conversation-actions").hidden=true;$("conversation-actions").open=false;conversationName.render(null);workPanel.render(null);
-  $("project-name").textContent="Magistr";$("view-title").textContent="Projects";$("status").textContent="Ready";
+  $("project-name").textContent="Magistr";$("view-title").textContent="Projects";$("status").textContent="Ready";$("status").dataset.state="ready";
   $("draft").value="";$("requests").replaceChildren();transcriptView.clear();
   for(const id of ["draft","send","stop","new-session","close-session","copy","reconnect","add-files"])$(id).disabled=true;
   $("welcome-note").textContent=note;$("welcome-note").hidden=!note;

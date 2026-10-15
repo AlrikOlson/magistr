@@ -1,28 +1,28 @@
 {
-  "receipt": "3586906ad6028ae169a856a2c885118ebadafd0d30c694d7a4035ffbad56c0fe",
+  "receipt": "4630dfa2561ea5673fadd97b17293bfa2005adf4b4756d827dd353bf9aebf1e9",
   "images": {
-    "welcome-dark.png": "eec7365ec8ae3d4c2350a7528b6b743d8dd0551d3c43c154e40a3e4baa914f7b",
-    "workspace-dark.png": "cd6fe4be602c86f393d426de0e898d94232187ff730741d8190a653f23585485",
-    "settings-light.png": "c3f4e477260e7b90b237ebde4de7232dfb315ab68b56a103d060185419f7d472",
-    "workspace-light.png": "832a0a5b977f1bd9fe36b47261b410869c9157df70250a0201a21defbd00eed9",
-    "workspace-narrow.png": "317fdb5bf6d3b96fffe9fb7c34449e37cf0266fd670b356f3e41b538eb750117",
-    "details-narrow.png": "bf27c53ebd339aa4305630e6a77d8863d964012e98065d08a50c977e4f5aa509",
-    "rename-light.png": "f7cd44343d858c4be316fb521484854a9463ef6ba7c25d41a3241523448d6c41",
-    "work-paused-dark.png": "8c2e795f29e9cd6c836b0b34fb3cc95d83b7bb14dc4310b81b6bcac26c0d35fe",
-    "history-dark.png": "487b785d2aa440c217d52af876baf2fdf83175907f55df4f331ae758dcdd38e2",
-    "history-narrow-light.png": "a20ac32652f917f0bc2665e4c678fccc2587d6d895c267e9ec4258e946d3c50d",
-    "setup-narrow-light.png": "7dc2f40570f33c67fa8daab4e07e26039d7873b68fc4cc12c4b705aaca7ce33c",
-    "open-project-dark.png": "4206c31b7fecc66a2b36f340daa624d3d00879ad01c67fbd5fa3b8fc214a9a1e",
-    "setup-dark.png": "36487d773bd92be41a7a923fa2828d7b14d52d3360eb7c652d2c82ecd70919ec",
-    "new-conversation-dark.png": "a44fdc9bb3308c172f10b9d02ce805b42ae51e02e634b6300692cf71a3861294",
-    "new-conversation-narrow-light.png": "6780dded92a0017dd871e473affc8c7c8f5279db3856c83f172da397042a20a2",
-    "find-conversation-narrow-light.png": "619967f81663901f842b7dba63f6d94e79b74ffa09f45ee0ef52467d066ba4a1",
-    "find-conversation-dark.png": "3d92a2b9f1bf5909ebd286960b94a73a3d339854293fd21f29bb13f5b9f2f1c3"
+    "welcome-dark.png": "d182278e0cae1d3b17fc4002e9a229961be62d3b5e980bf65850712d52337a4f",
+    "workspace-dark.png": "1a9719f22b73eac90b47bdb0255fa85cfb38c9f2c7edd1434183c8307d6a750e",
+    "settings-light.png": "37d7c30603de469a95dc84fdcdb0e536eebf001f361926885a33722fbd1f502b",
+    "workspace-light.png": "d707f9ad3a60a872eb2f3b11a65bd9677de9f3054a51c1327756b7ba6d9cf8fe",
+    "workspace-narrow.png": "4a81911343896b8ae7e01244ba092cd34ff647ddfa684c4c925282ff64df8ddb",
+    "details-narrow.png": "ec3875d6cc1b318d72516ea86fe9ea1225fb309673f989cc4d5efd26b238db7c",
+    "rename-light.png": "165784442946989758209120a45eab9e3fd1e651ef584810b361651e69bc2252",
+    "work-paused-dark.png": "b71058373109b4749bfab7fa2129eb890df86a96061136db9f178aab6c891ff3",
+    "history-dark.png": "deb3627142c8d601fb9c019bfe1dcc7c517a0fd7a489cfda252c094ebda07b12",
+    "history-narrow-light.png": "c3c57365fe68665af9c24ccec9dc0732f3dc24b0ed3287a81b85fb66374cf5e4",
+    "setup-narrow-light.png": "6ed0ecba20b4d72dbfe183f448491f0ceeccfb2425e2058783e9bd89c8a65220",
+    "open-project-dark.png": "80f886edf1451d2d01d906be5ef09661f727d5edf8e588546d94ba66fa027204",
+    "setup-dark.png": "b1290f7ffa90449ad4d637d9ab67cf3e296f98b2a2f712bc254414bbf8b327d9",
+    "new-conversation-dark.png": "b7e39b80547a01319f79597676f82d3b33ffe18c19cfe6ed6b2be46108b6a711",
+    "new-conversation-narrow-light.png": "91877c63856751ec2cde05102ec31fad8d458fff1f41dbf08d011f001b49876a",
+    "find-conversation-narrow-light.png": "d4b1c1a7caf74724640bc13b5c5af574a57dde671d87f0046b33816745507bf2",
+    "find-conversation-dark.png": "a9158fed3d845b7ca5b7501df82f7f02c89021c16eada4e0c8db9303fa0cfc24"
   },
   "reviewed_on": "2026-10-15",
   "findings": [
-    "Inspected the project rail in the wide dark capture. Monograms, count capsules and branch rules clarify project grouping; selected conversations have an inset violet edge distinct from their status marker.",
-    "Three WebKit scenarios verify composition, stable project selection, background actions and Settings focus/draft retention.",
+    "Inspected wide dark and compact light captures. Amber request cards separate conversation name and requested action, while selection remains violet.",
+    "Existing catalog data drives request/disconnection counts and live status colors. Three focused WebKit scenarios pass.",
     "Production headless WebKit only; native input, IME, OS dialogs, VoiceOver and Windows verification were not run."
   ]
 }
