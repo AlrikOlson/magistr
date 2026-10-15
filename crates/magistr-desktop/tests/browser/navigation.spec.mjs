@@ -132,3 +132,25 @@ test("appearance preview choices use the same saved preference and preserve moti
   await expect(app.getByLabel("Appearance",{exact:true})).toHaveValue("system");
   await expect(app.locator("html")).not.toHaveAttribute("data-theme");
 });
+test("the sculpture responds to deliberate pointer movement and freezes for reduced motion",async({app})=>{
+  const wheel=app.locator(".activity-wheel"),canvas=app.locator(".activity-material");
+  test.skip(!await canvas.evaluate(node=>!!node.getContext("webgl")),"WebGL unavailable");
+  await expect(wheel).toHaveAttribute("data-material","rendered");
+  await canvas.evaluate(node=>{
+    const gl=node.getContext("webgl"),draw=gl.drawArrays.bind(gl);
+    window.__pointerDraws=0;gl.drawArrays=(...args)=>{window.__pointerDraws++;return draw(...args);};
+  });
+  await wheel.dispatchEvent("pointermove",{clientX:100,clientY:100});
+  await app.evaluate(()=>new Promise(resolve=>requestAnimationFrame(resolve)));
+  expect(await app.evaluate(()=>window.__pointerDraws)).toBe(0);
+  await app.evaluate(()=>document.documentElement.dataset.reducedMotion="false");
+  await wheel.dispatchEvent("pointermove",{clientX:100,clientY:100});
+  await expect.poll(()=>app.evaluate(()=>window.__pointerDraws)).toBeGreaterThan(0);
+  expect(await canvas.evaluate(node=>node.getContext("webgl").getError())).toBe(0);
+  await app.evaluate(()=>document.documentElement.dataset.reducedMotion="true");
+  await app.evaluate(()=>new Promise(resolve=>requestAnimationFrame(resolve)));
+  const count=await app.evaluate(()=>window.__pointerDraws);
+  await wheel.dispatchEvent("pointermove",{clientX:200,clientY:200});
+  await app.evaluate(()=>new Promise(resolve=>requestAnimationFrame(resolve)));
+  expect(await app.evaluate(()=>window.__pointerDraws)).toBe(count);
+});
