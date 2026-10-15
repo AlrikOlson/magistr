@@ -15,8 +15,8 @@ export class ProjectAtlas {
     this.board=node("div","atlas-board");this.more=node("button","atlas-more");
     this.more.onclick=list;root.append(this.board,this.more);
   }
-  render(projects,sessions) {
-    const all=projectGroups(projects,sessions.filter(session=>!session.closed));
+  render(projects,sessions,query="") {
+    const all=projectGroups(projects,sessions.filter(session=>!session.closed),query,this.label);
     const groups=all.slice(0,8), used=new Set();
     const cards=groups.map(project=>{
       let card=this.groups.get(project.id);

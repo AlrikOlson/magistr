@@ -126,13 +126,16 @@ async function refresh() {
 
   return info;
 }
+$("project-search").oninput=()=>renderRail();
 function renderRail() {
-  const signature=JSON.stringify([projects,sessions,selected]);if(signature===railKey)return;railKey=signature;
+  const query=$("project-search").value;
+  const signature=JSON.stringify([projects,sessions,selected,query]);if(signature===railKey)return;railKey=signature;
   navigation.render(projects,sessions,selected);
   activityOverview.render(sessions);
-  const projectCount=directory.render(projects,sessions);
-  atlas.render(projects,sessions);
+  const projectCount=directory.render(projects,sessions,query);
+  atlas.render(projects,sessions,query);
   $("directory-empty").hidden=projectCount>0;
+  $("directory-empty").textContent=query.trim()?"No projects match your search.":"No projects yet. Choose a folder to get started.";
   $("sessions-empty").hidden=projects.length>0||sessions.length>0;
   if(selected){
     const name=sessions.find(session=>session.address.session===selected.session)?.name??"Project";
