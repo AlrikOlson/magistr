@@ -1,5 +1,5 @@
 {
-  "receipt": "21c869866a87921670796783038a0f1811b03b99609f6d4bc03cc0fca9fd96a9",
+  "receipt": "9f74ae646cf8821aba713bc437d91b076b34816ee706877630ab72240e814a34",
   "images": {
     "welcome-dark.png": "196f05ebfbcfdacf73fe8a82ad187b73837dfd801f2a1e47c59f5c0863f9b216",
     "project-map-dark.png": "9bfb53f79bb4c5bc20d428239f65e12e83ca95825579c550ca0c522b2cdf9efe",
@@ -19,7 +19,8 @@
     "rename-light.png": "ad0f5715491f15f2235ddf8073d2a57d6e759c2e3c7dfec75dd8e85256403e27",
     "work-paused-dark.png": "a79d02738979c74cd380bb907ac98b612d4d5640c60c212454c63c40c9b0a372",
     "work-plan-dark.png": "c1db330019f6bafca3a76537313b2f747b06832e8f9e0c90bd95692c13e0092e",
-    "work-check-results-dark.png": "b41d4e1ca066c0a6ecc2b2d1bada0fc96df19c7d128278ff0d8765d2f4b34de6",
+    "work-check-results-dark.png": "049936401ea91f3f08537b9f92432fe531bb73469a1950f78cbb195748bfcd19",
+    "work-activity-dark.png": "c8144d006a9190751f5e8870a5fa2c4b560395ea3dcb955f5db95c60d7591626",
     "saved-work-dark.png": "dc36f268317214293fca35243d5a186f4cdf7b70b112e36770200dce0dfd1e49",
     "work-plan-light.png": "6dd5b29d41defa31c92c4dda86fec79a471e3998aa191d0a08257d7a45581a02",
     "work-plan-minimum.png": "37dbfd3890e5b8c55fabdfe499549b881db6534f42158ed60c1ddd7a81e5c787",
@@ -66,9 +67,9 @@
     "tables-dark.png": "454e65e487f1350fb1311fca332a58fec70f761bb011376b12fc162ce00aecf3",
     "tables-light.png": "f1ee7ca0d66b2ab049e102a5bf9eb913977a71af18cf69c1cfc455e2ac86a4d6",
     "tables-compact.png": "b1c7232dec5db4be377871717ae0afd88381fd249f80687d6584e96f1c1259e7",
-    "patch-dark.png": "e6ec8f194f3cd7b2691b07fa62b5933fdb8977eefcb06d1c5e5ed91f1b909576",
-    "patch-light.png": "230ca8e1f26d52819aa7d2d5e54e02219c8b92e8ad3aee538e14738ac6d4122d",
-    "patch-comparison-dark.png": "b123658d32478531751b0e243cd888d45c5ae76cf574684ac796a431a0d6f15b",
+    "patch-dark.png": "0b422d0c5d7d13ad7b7c8d9a91b109e7525fa99533a09df95cf7db76e4ecfb89",
+    "patch-light.png": "33f3fd57018e64e902e8723ccb08fb22d0a6855e6d17d2537414d840347f138f",
+    "patch-comparison-dark.png": "8edf37365b50aff39946cf5809a46d44688184607a82aef16e7022200911ea3b",
     "patch-comparison-light.png": "2b35fd51750c85d77a7221e03aa248a673114c020aef393a2ead679d71e657ae",
     "patch-compact.png": "d1db1219b8836a04a58914ef5b60b8fbe510d67125715b8994f322c5b3781fa5",
     "result-dark.png": "ecc4b3b89cf52b424edaf6da03933083eae4bbbbb8e89fa72cf7d1ad51b88760",
@@ -107,8 +108,8 @@
     "workspace-compact-long-title.png": "5a9d1fe895fa847cb572d4dfd44aaf7a1102666f6e8ac77b3d494f1c7569f91d"
   },
   "inspected": [
-    "work-check-results-dark.png"
+    "work-activity-dark.png"
   ],
-  "notes": "Recorded-check delivery: inspected executed passing check, command, exit code, report counts and complete selectable output. Focused WebKit scenarios also verify retained failures, unverified claims, exact copy, literal hostile text and disclosure/focus through updates. The workspace composition scenario refreshed the remaining captures; this does not claim manual inspection of all captures.",
+  "notes": "Task-activity delivery: inspected chronological authored action details, result source, mentioned files/tools and produced-item references. Focused scenarios cover long complete text, literal hostile markup, exact copying, delegated web links and saved-run separation. Remaining captures were refreshed by the workspace scenario; only the named capture was manually inspected in this chunk.",
   "native_limit": "Current native OS-input, VoiceOver and live-provider behavior were not exercised."
 }

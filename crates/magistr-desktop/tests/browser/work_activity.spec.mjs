@@ -1,0 +1,31 @@
+import { test,expect } from "./fixture.mjs";
+test("activity retains full authored content and artifacts delegate safe links",async({app})=>{
+  await app.getByRole("button",{name:"Review the release plan",exact:true}).click();
+  await app.evaluate(()=>{
+    const fixture=window.__fixture,task=fixture.workflow.ship.data.value.current.tasks[1];
+    task.actions[0].result="Long result\n"+"Details 日本語\n".repeat(1000)+"<script>alert(1)</script>\nComplete ending";
+    task.artifacts.push({type:"file",ref:"javascript:alert(1)",description:"Untrusted reference"});
+    Object.defineProperty(navigator,"clipboard",{configurable:true,value:{writeText:async value=>{window.__copied=value;}}});
+    fixture.handlers.open_link=()=>{};
+  });
+  await app.getByRole("button",{name:"Work plan",exact:true}).click();
+  const activity=app.locator(".work-activity").first();await activity.locator("summary").click();
+  await expect(activity).toContainText("Complete ending");
+  await expect(activity).toContainText("Files mentioned");
+  await expect(activity.locator("script")).toHaveCount(0);
+  await activity.getByRole("button",{name:"Copy result",exact:true}).click();
+  expect(await app.evaluate(()=>window.__copied)).toBe(await app.evaluate(()=>window.__fixture.workflow.ship.data.value.current.tasks[1].actions[0].result));
+  const artifacts=activity.locator(".work-artifacts article");
+  await expect(artifacts).toHaveCount(3);
+  await artifacts.first().getByRole("button",{name:"Copy reference",exact:true}).click();
+  expect(await app.evaluate(()=>window.__copied)).toBe("docs/release-checklist.md");
+  await artifacts.nth(1).getByRole("button",{name:"Open link",exact:true}).click();
+  expect(await app.evaluate(()=>window.__fixture.calls.findLast(c=>c.command==="open_link").args.destination)).toBe("https://example.com/review/42");
+  await expect(artifacts.nth(2).getByRole("button",{name:"Open link",exact:true})).toHaveCount(0);
+  await app.evaluate(()=>{window.__fixture.workflow.ship.data.value.current.tasks[1].actions[0].description="Updated activity";window.__fixture.publish("release",{workflow_revision:1});});
+  await expect(activity).toHaveAttribute("open","");
+  await expect(activity).toContainText("Updated activity");
+  await app.getByLabel("Work to inspect",{exact:true}).selectOption("run:previous-run");
+  await app.locator(".work-activity").first().locator("summary").click();
+  await expect(app.locator(".work-activity")).not.toContainText("Updated activity");
+});
