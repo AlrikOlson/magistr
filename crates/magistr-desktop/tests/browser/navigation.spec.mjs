@@ -21,6 +21,7 @@ test("activity material keeps the semantic counts through graphics context loss"
   if(available){
     await expect(app.locator(".activity-wheel")).toHaveAttribute("data-material","rendered");
     expect(await canvas.evaluate(node=>node.width)).toBeLessThanOrEqual(384);
+    expect(await canvas.evaluate(node=>node.width===node.height)).toBe(true);
     await canvas.evaluate(node=>node.getContext("webgl").getExtension("WEBGL_lose_context")?.loseContext());
     await expect(app.locator(".activity-wheel")).not.toHaveAttribute("data-material","rendered");
   }
