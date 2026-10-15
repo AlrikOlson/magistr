@@ -285,6 +285,7 @@ async function select(address,requestId=null,requestTarget=null) {
       $("draft").value="";composerFrame=null;workPanel.render(null);attachmentList.clear();
       $("draft").disabled=true;$("send").disabled=true;$("add-files").disabled=true;$("attachment-note").textContent="";
       $("workspace-path").textContent=address.workspace;
+      $("header-location").textContent=address.workspace;$("header-location").title=address.workspace;
       $("copy-summary").textContent="Working copy";
       $("copy-summary").title=address.workspace;
       $("conversation-toolbar").hidden=false;$("conversation-actions").hidden=false;$("conversation-actions").open=false;
