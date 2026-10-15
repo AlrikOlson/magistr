@@ -37,3 +37,13 @@ test("02 roadmap prose uses compact readable documents",async({app})=>{
     await capture(app,"02-documents-"+theme);
   }
 });
+test("03 roadmap checklist states are compact static marks",async({app})=>{
+  await openWork(app,"Roadmap");await app.getByRole("button",{name:"Restore the project conversation and draft",exact:true}).click();
+  await app.setViewportSize({width:760,height:550});
+  await app.getByLabel("Jump to section",{exact:true}).selectOption({label:"What changes"});
+  await expect(app.locator(".roadmap-checklist").getByRole("img",{name:"Completed",exact:true})).toBeVisible();
+  await expect(app.locator(".roadmap-checklist").getByRole("img",{name:"To do",exact:true})).toBeVisible();
+  await expect(app.locator(".roadmap-checklist input")).toHaveCount(0);
+  await expect(app.locator(".roadmap-requirements>header .work-record-count")).toHaveText("1");
+  await capture(app,"03-checklists");
+});
