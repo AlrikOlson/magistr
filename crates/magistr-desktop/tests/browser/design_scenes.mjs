@@ -124,3 +124,25 @@ export async function editorialScene(app,capture,expect){
   expect(await app.evaluate(()=>document.documentElement.scrollWidth)).toBe(760);
   await capture("editorial-compact.png");
 }
+export async function galleryScene(app,capture,expect){
+  await showDocument(app,[],906);
+  await app.evaluate(()=>window.__fixture.publish("release",{events:[{id:907,revision:1,role:"You",text:"Here are the files for the release review.",attachments:[
+    {id:"sent-notes",name:"release-notes.md",size:2460,path:"docs/release-notes.md",content_hash:"notes",excerpt:"# Release notes\n\nKeep drafts when changing conversations.\nReview every change before applying it.\n\n## Verification\nDesktop checks pass."},
+    {id:"sent-image",name:"icon.png",size:32768,path:"ui/icon.png",content_hash:"image",preview:"http://magistr.test/icon.png"}
+  ]}],retained:[907]}));
+  await expect(app.locator(".transcript .attachment")).toHaveCount(2);
+  await expect(app.locator(".transcript .attachment-excerpt")).toContainText("Release notes");
+  const thumbnail=await app.locator(".transcript .attachment img").boundingBox();
+  const stage=await app.locator(".transcript [data-kind=image] .attachment-visual").boundingBox();
+  expect(thumbnail.height).toBeLessThanOrEqual(stage.height);
+  await appearances(app,capture,"gallery");
+  await app.getByRole("button",{name:"View icon.png",exact:true}).click();
+  await expect(app.locator("#attachment-metadata")).toContainText("×");
+  await app.getByRole("button",{name:"Close image",exact:true}).click();
+  await expect(app.getByRole("button",{name:"View icon.png",exact:true})).toBeFocused();
+  await app.setViewportSize({width:760,height:550});
+  await app.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+  await app.locator(".transcript .attachments").evaluate(node=>node.scrollIntoView({block:"start"}));
+  expect(await app.evaluate(()=>document.documentElement.scrollWidth)).toBe(760);
+  await capture("gallery-compact.png");
+}

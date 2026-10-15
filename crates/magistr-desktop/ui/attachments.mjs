@@ -53,18 +53,24 @@ export class AttachmentList {
         const content = this.document.createElement("div"); content.className = "attachment-content";
         const name = this.document.createElement("strong"), detail = this.document.createElement("small");
         name.textContent = file.name;
-        detail.textContent = sizeLabel(file.size) + " · " + (file.path ?? file.source ?? "Pasted file");
+        const size=this.document.createElement("span"),path=this.document.createElement("span");
+        size.className="attachment-size";size.textContent=sizeLabel(file.size);
+        path.className="attachment-path";path.textContent=file.path??file.source??"Pasted file";
+        detail.append(size,path);
         content.append(name, detail);
         const visual=this.document.createElement(file.preview?"button":"div");visual.className="attachment-visual";item.append(visual);
         if(file.preview){visual.type="button";visual.setAttribute("aria-label","View "+file.name);visual.onclick=()=>attachmentViewer(this.document).open(this.files.find(item=>item.id===file.id)??file,visual,this.root,this.focusFallback);}
         item.dataset.kind=file.preview?"image":"document";
         if (file.preview) {
           const image = this.document.createElement("img"); image.src = file.preview; image.alt = "Preview of " + file.name;
+          image.onload=()=>{visual.title=image.naturalWidth+" × "+image.naturalHeight+" pixels";};
+          image.onerror=()=>{image.hidden=true;visual.dataset.unavailable="true";visual.title="Image preview unavailable";};
           visual.append(image);
         } else {
           const badge=this.document.createElement("span");badge.className="attachment-badge";badge.setAttribute("aria-hidden","true");
           badge.textContent=file.name.includes(".")?file.name.split(".").at(-1).slice(0,5).toLocaleUpperCase():"FILE";
           visual.append(badge);
+          if(file.excerpt){const sample=this.document.createElement("span");sample.className="attachment-excerpt";sample.textContent=file.excerpt.slice(0,240);sample.setAttribute("aria-hidden","true");visual.append(sample);}
         }
         if (!file.preview && file.excerpt !== undefined) {
           const preview = this.document.createElement("details"), summary = this.document.createElement("summary"), excerpt = this.document.createElement("pre");

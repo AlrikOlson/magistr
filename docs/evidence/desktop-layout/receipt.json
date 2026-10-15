@@ -1,7 +1,7 @@
 {
   "renderer": "headless WebKit",
   "version": "27.2",
-  "captured_at": "2026-10-15T04:41:58.862Z",
+  "captured_at": "2026-10-15T04:44:29.105Z",
   "scope": "Production desktop HTML, CSS and JavaScript with isolated observation fixtures; no native OS input or Rust owner integration.",
   "checks": {
     "project chooser presents actual projects and folder entry in both appearances": true,
@@ -27,14 +27,15 @@
     "patch documents preserve source bytes, old/new positions and actual change totals": true,
     "structured tool sheets retain nested values, bounded rendering and exact copy": true,
     "reply contents derive from real headings and land keyboard focus on the chosen section": true,
-    "editorial quotes and nested task lists retain semantic source and authored order": true
+    "editorial quotes and nested task lists retain semantic source and authored order": true,
+    "sent attachments form a contact sheet with source previews and native image inspection": true
   },
   "source_hashes": {
     "crates/magistr-desktop/ui/activity.mjs": "51eedbc9383201c5e8d2051931a47f47643dd44e03b95ff4bc0d5652f1df7cde",
     "crates/magistr-desktop/ui/activity_material.mjs": "ad6febd4924ef6400e89c9bb606fd890c7058181b049d545abcd445043d657e3",
     "crates/magistr-desktop/ui/app.mjs": "6595e67326cc6667bf3ae5eacbd1cb1b0ca35220689b355946fba624aea5919f",
     "crates/magistr-desktop/ui/attachment_viewer.mjs": "977531211796dc5727d27033038f57bb688d76e050f6c2efd5d8ad6456846c26",
-    "crates/magistr-desktop/ui/attachments.mjs": "974f0e739ad8dd57dde10b9d4293c78f2224a04a5673ef80ae6aa6f602e54d90",
+    "crates/magistr-desktop/ui/attachments.mjs": "6234de3d8c07b1451ad08e14f5cc98075ff6a813b17d673d8337c5693de483da",
     "crates/magistr-desktop/ui/code_blocks.mjs": "1757064400603839feb3d108156a75582da48ca67f350439c7cfc885e5a1e02d",
     "crates/magistr-desktop/ui/composer.mjs": "9accf554a6a2f6e7c029f4972fa4221e40d755546693c8343cbd528ef2a00bc0",
     "crates/magistr-desktop/ui/context.mjs": "9476a17db8e8c3032bd081dbdcd6088e9338ca2c41f9b455278243f5c98e4bcd",
@@ -58,7 +59,7 @@
     "crates/magistr-desktop/ui/selection.mjs": "fd844d9e146a9c5e1fb9ab6e2fc72c0273da66d4f59a70ce639877a87aff05fc",
     "crates/magistr-desktop/ui/session_controls.mjs": "738386755be2b65fd03899ae28e1b357b4313258d67b3edfaf72fe3fe37ff123",
     "crates/magistr-desktop/ui/source_color.mjs": "1ac22d15033a59af850c8583abdb8123ff8062c16e71d500327f5d5743d41057",
-    "crates/magistr-desktop/ui/style.css": "760f0f371b94ad0593bc5aec8e35580679b861c91749b4e45facec1b2a756d97",
+    "crates/magistr-desktop/ui/style.css": "cd5d05e96c4db94adba26d7c4036846ac4ed50071167456e860021e43ad24d93",
     "crates/magistr-desktop/ui/supervision.mjs": "509cd792877f397ac427789d491b4f51fd2840cc1b94ae05690d295519b75431",
     "crates/magistr-desktop/ui/switcher.mjs": "7e0d3655808443dd842be7a01abc8ddd6ccc018557a920bfe6e44383ec5d857e",
     "crates/magistr-desktop/ui/tool_result.mjs": "531a8a89e26491d66b437bb2ed20d4a2117a35314c1e4d22b4837dae7c705b61",
@@ -68,8 +69,8 @@
     "crates/magistr-desktop/playwright.config.mjs": "e97c1f9951b494fa8049e323eae8fc372a2d1c2de74fd8edd9de706be82e0634",
     "crates/magistr-desktop/tauri.conf.json": "b8af99622336b041fe41255fe57d6225447631945d6a89c5a4f3dc1c7348b4b9",
     "crates/magistr-desktop/tests/browser/fixture.mjs": "eec391f04626f7f7387c5a416459f2a065597f85482074710b0c344dd91cbd29",
-    "crates/magistr-desktop/tests/browser/workspace.spec.mjs": "b0b669ac93c83625f97f5a4f5270933c69719f052c1699fa05ff62b62c7b58e8",
-    "crates/magistr-desktop/tests/browser/design_scenes.mjs": "5e0a7b63e39cf035e2c5a74f611f16511b75e0937f932c38db9beeefcc375c4a"
+    "crates/magistr-desktop/tests/browser/workspace.spec.mjs": "bf2ee7adab35ea76bcb925963d8aaf9c7a0083012666d22a38cda0e8d21a90d6",
+    "crates/magistr-desktop/tests/browser/design_scenes.mjs": "f5b2dba75f42ea89d29e8a4f482672415850a2bea61646c970626c79facbbc24"
   },
   "images": {
     "welcome-dark.png": "dbeb5de57311812ef5a669f046708a23927e7504e74d686194bb801dfd5b8dff",
@@ -104,9 +105,9 @@
     "code-light.png": "88e1226487888ba4ac39f15c49587c365bcbc0261b3ddc07b082cc3fb2155515",
     "tools-light.png": "a8614b0be9b948dab1ba591539095aef46bcce21b06eadce8de3c23c19a447e7",
     "tools-dark.png": "38f77fdbc732c75fdd847281e4b060deca65d9cfde1f3ad41f738b4a6a97dcb0",
-    "attachments-dark.png": "045583a42e5ba3335d55cd4a6a09d189327399270121e5b108898ef64d861979",
+    "attachments-dark.png": "e7a4ef133f8e8c06bdf3d0e1708bc92a7e7bf5b18229a128df314c595536f1cb",
     "image-inspection-dark.png": "2bd0507ddc7cf102c12225db1fff741d4b39f56973edbc565e0185c7e17a3311",
-    "attachments-narrow-light.png": "c0c999a41f812a5463deb5005e990a2e725563c14c0b3a069a5501208aea728e",
+    "attachments-narrow-light.png": "f01928da4fde56b91e54dca230f58a4277c5d1347e4ad3d4cb9b6e1c329c1b3c",
     "request-narrow-light.png": "cb72a0a32dea45a851309596729d72fb59b5c024c49053530df02119ee42b544",
     "request-dark.png": "3eb198add49e96889a7c59d6ef2b5245ed3224de5e582fe09381d7bdfc2e8447",
     "minimum-workspace-dark.png": "92813cc7b60fee6f0749b733fc36f30c5633ad068062dc7c0141af207570ae57",
@@ -133,7 +134,10 @@
     "contents-compact.png": "818729570c896b6615bfc328b240e7b2051926ac5b68245183724b6caa809699",
     "editorial-dark.png": "d9ada606f5dfd8162b8f8f0b4b0d5f9d58310187ffcd8360409acf494e4f8a89",
     "editorial-light.png": "ba26a2abc7a326fc8d35ac75035b8365cded6ac246d0af5bf0801520d2c2033b",
-    "editorial-compact.png": "56d67f3debbd5fb1251e5eb38fcde8bc94aee8ce0744907874cb2a1a8f9b3387"
+    "editorial-compact.png": "56d67f3debbd5fb1251e5eb38fcde8bc94aee8ce0744907874cb2a1a8f9b3387",
+    "gallery-dark.png": "a998fb4ab5e3d379a90ddf45eab5e45f5e3e8dcaa4167c2f724107b1717ef2ed",
+    "gallery-light.png": "be7b0b0474f5e375419c7c26d511333e4a3c2bdef04356190a6216ca5f67d211",
+    "gallery-compact.png": "4d92eda9cb8b4d00862c8be003c9eff2327c6d082728842dfa3fd585e3927794"
   },
   "viewports": {
     "welcome-dark.png": {
@@ -381,6 +385,18 @@
       "height": 820
     },
     "editorial-compact.png": {
+      "width": 760,
+      "height": 550
+    },
+    "gallery-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "gallery-light.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "gallery-compact.png": {
       "width": 760,
       "height": 550
     }
