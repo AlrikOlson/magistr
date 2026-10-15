@@ -21,3 +21,14 @@ export const LongTitle={parameters:{desktop:{
     expect(doc.querySelector(".work-header").scrollWidth).toBeLessThanOrEqual(doc.querySelector(".work-header").clientWidth);
   },
 }}};
+export const ExpandedEditor={parameters:{desktop:{
+  caption:"Release conversation with its message editor expanded",
+  task:"Write a longer message while retaining save state, length and send controls.",
+  arrange:async context=>{await openRelease(context);await context.userEvent.click(context.ui.getByRole("button",{name:"Expand editor",exact:true}));},
+  verify:({doc,expect,visible})=>{
+    expect(doc.querySelector("#composer").dataset.expanded).toBe("true");
+    expect(visible(doc,"#draft-measure")).toBe(true);
+    expect(doc.activeElement).toBe(doc.querySelector("#draft"));
+    expect(doc.querySelector("#draft").value).toContain("Keep the project list visible");
+  },
+}}};

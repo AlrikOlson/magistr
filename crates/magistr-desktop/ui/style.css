@@ -349,16 +349,15 @@ article.you{display:block;background:var(--panel);padding:12px 16px;border:0;bor
 .conversation:has(#composer[data-expanded=true])>#transcript{visibility:hidden}.conversation:has(#composer[data-expanded=true])>#latest{display:none}
 #composer[data-expanded=true]{grid-area:1/1;z-index:3;min-height:0;display:flex;flex-direction:column;padding:16px max(24px,calc((100% - 860px)/2)) 12px;background:radial-gradient(ellipse at 50% 0,color-mix(in srgb,var(--accent) 6%,transparent),transparent 70%),var(--chrome)}
 #composer[data-expanded=true] .composer-box{display:flex;flex-direction:column;flex:1;min-height:0;border-color:var(--surface-edge);border-radius:3px 3px 10px 10px;box-shadow:0 0 0 4px color-mix(in srgb,var(--base) 30%,transparent),0 14px 36px color-mix(in srgb,var(--canvas) 24%,transparent);background:var(--document)}
-#composer[data-expanded=true] .composer-heading{padding:14px 24px 10px;align-items:center}
-.writing-facts{display:none}#composer[data-expanded=true] .writing-facts{display:flex;justify-content:space-between;gap:12px;flex-shrink:0;margin:0 24px;padding:0 0 10px;border-bottom:1px solid var(--separator);color:var(--muted);font:10px/1.5 var(--font-code)}
-#composer[data-expanded=true] .writing-facts>span{color:var(--accent);font:600 10px var(--font-ui);letter-spacing:.12em;text-transform:uppercase;border:0;padding:0}
+#composer[data-expanded=true] .composer-heading{padding:10px 16px;align-items:center;border-bottom:1px solid var(--separator);gap:12px}
+.writing-facts{display:none}#composer[data-expanded=true] .writing-facts{display:flex;flex-shrink:0;color:var(--muted);font:10px/1.5 var(--font-ui);font-variant-numeric:tabular-nums}
 #composer[data-expanded=true] #expand-composer{padding:6px 12px;border:1px solid var(--line);border-radius:6px;color:var(--text)}
 
-#composer[data-expanded=true] .composer-heading label{font-family:var(--font-ui);font-size:18px;font-weight:600;letter-spacing:-.02em}#composer[data-expanded=true] .composer-heading label::before{display:none}
+#composer[data-expanded=true] .composer-heading label{font-family:var(--font-ui);font-size:14px;font-weight:600;letter-spacing:0}#composer[data-expanded=true] .composer-heading label::before{display:none}
 #composer[data-expanded=true] #draft{flex:1;min-height:80px;max-height:none;resize:none;padding:18px 24px;font-size:15px;line-height:1.7;background:transparent}
 #composer[data-expanded=true] .composer-actions{padding:8px 16px;background:var(--panel)}#composer[data-expanded=true] .attachments{flex-shrink:0}
 #composer[data-expanded=true] .composer-box:focus-within{outline:none;border-color:var(--accent)}
-@media(max-height:600px),(max-width:800px){#composer[data-expanded=true]{padding:12px 20px}#composer[data-expanded=true] .composer-heading{padding:12px 16px}#composer[data-expanded=true] .composer-heading label{font-size:16px}#composer[data-expanded=true] #draft{padding:16px 24px;font-size:15px;line-height:1.65;background:none}#composer[data-expanded=true] .writing-facts{margin:0 16px;padding-bottom:10px;font-size:10px}#composer[data-expanded=true] .composer-actions{padding:8px 12px}}
+@media(max-height:600px),(max-width:800px){#composer[data-expanded=true]{padding:12px 20px}#composer[data-expanded=true] .composer-heading{padding:8px 12px}#composer[data-expanded=true] .composer-heading label{font-size:14px}#composer[data-expanded=true] #draft{padding:16px 24px;font-size:15px;line-height:1.65;background:none}#composer[data-expanded=true] .composer-actions{padding:8px 12px}}
 .composer-box:focus-within{border-color:var(--accent);outline:2px solid var(--focus);outline-offset:2px}
 textarea{width:100%;resize:vertical;max-height:240px;min-height:76px;border:1px solid var(--line);border-radius:8px;background:var(--base);padding:11px 12px;line-height:1.5}
 textarea::placeholder,input::placeholder{color:var(--muted);opacity:1}
