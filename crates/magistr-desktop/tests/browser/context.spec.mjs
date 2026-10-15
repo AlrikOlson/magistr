@@ -1,5 +1,17 @@
 import { test, expect } from "./fixture.mjs";
 
+test("work ruler marks owner attempt without inventing completed items",async({app})=>{
+  await app.getByRole("button",{name:"Review the release plan",exact:true}).click();
+  await app.evaluate(()=>window.__fixture.publish("release",{work:{id:{project:"magistr",local:"run"},phase:{kind:"paused"},iteration:3,limit:10,requested:null}}));
+  await app.getByRole("button",{name:"Work paused",exact:true}).click();
+  await expect(app.locator(".attempt-mark")).toHaveCount(10);
+  await expect(app.locator('.attempt-mark[data-current="true"]')).toHaveText("3");
+  await app.evaluate(()=>window.__fixture.publish("release",{work:{id:{project:"magistr",local:"run"},phase:{kind:"ended",reason:"Stopped"},iteration:50,limit:1000000,requested:null}}));
+  await expect(app.locator("#work-attempt-label")).toHaveText("Last attempt");
+  await expect(app.locator(".attempt-mark")).toHaveCount(5);
+  await expect(app.locator('.attempt-mark[data-current="true"]')).toHaveText("50");
+});
+
 test("rename stays pending until acknowledged, keeps failed text and uses the captured conversation",async({app})=>{
   await app.getByRole("button",{name:"Review the release plan",exact:true}).click();
   const draft=await app.getByLabel("Message the agent",{exact:true}).inputValue();

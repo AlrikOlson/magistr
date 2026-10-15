@@ -74,7 +74,8 @@
       <section id="work" aria-label="Planned work">
         <h2 id="work-title" tabindex="-1" data-leading-icon="clock">Planned work</h2>
         <p id="work-status" role="status" aria-live="polite">No work is running.</p>
-        <dl id="work-attempt" class="work-attempt" hidden><dt>Current attempt</dt><dd><strong id="work-attempt-current"></strong><span id="work-attempt-limit"></span></dd></dl>
+        <dl id="work-attempt" class="work-attempt" hidden><dt id="work-attempt-label">Current attempt</dt><dd><strong id="work-attempt-current"></strong><span id="work-attempt-limit"></span></dd></dl>
+        <div id="work-ruler" class="work-ruler" aria-hidden="true" hidden></div>
         <p id="work-detail"></p><p id="work-error" class="error" role="alert" hidden></p>
         <div class="work-actions">
           <button id="work-next" disabled>Work on next item</button><button id="work-loop" disabled>Start 10 items</button>

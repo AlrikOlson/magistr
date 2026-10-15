@@ -169,6 +169,7 @@ desktop workspace. Companion Rust tests live beside their owners.
 - `crates/magistr-cockpit/src/cockpit/work_phase.rs`
 - `crates/magistr-cockpit/src/cockpit/work_run.rs`
 - `crates/magistr-desktop/src/work.rs`
+- `crates/magistr-desktop/ui/work_ruler.mjs` — bounded attempt-position landmarks from the current run; no inferred completion.
 - `crates/magistr-desktop/ui/work.mjs`
 - `crates/magistr-desktop/tests/work.mjs`
 - `crates/magistr-desktop/tests/work_fixture.py`
