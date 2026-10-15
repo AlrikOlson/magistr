@@ -1,5 +1,5 @@
 {
-  "receipt": "2e40a3c877146c8daefe9a4514319a6ed1a294079f048b7d319dc4ed1ebcbe56",
+  "receipt": "58f2d94f84da0460a78f898305c8f135a66a49c35c8a2c7dfd15f667408c8d18",
   "images": {
     "welcome-dark.png": "c18e56fa3f76a5d9338c14ef21f1d94c761e09479a9597347b4a49080331713f",
     "welcome-light.png": "d308a673ba367d31445b01bafd2fb739c75ddb35a884c19b5a36f51a34427c45",
@@ -39,8 +39,8 @@
     "attachments-dark.png": "415fdc827f01924bc5a4d17378277a9a3c2ff093883792371e39eae61d562b8b",
     "image-inspection-dark.png": "d178e618744199fa08526e350e1c0ecac05db5a873669e63b4e793fb4839172c",
     "attachments-narrow-light.png": "884ddbc42bef3a83bc20589fce98ecc272d681a0200b0aee5345401d247331f4",
-    "request-narrow-light.png": "13d6fd7dc50fbf5089c949450160d50d1f702262b29b1873284e745b3d829b25",
-    "request-dark.png": "f09df66cbf7409a368d67283186a1880b11151b22565434935856ae943220b84",
+    "request-narrow-light.png": "16ecd9cfb9cfb45df6a3fc4bb9595eca524669457726cba6517a065e2f5f3e42",
+    "request-dark.png": "83d40b28cb6e1a4494f6198e8e7a68e8c4ce171c164103767bb80ad0250ec291",
     "minimum-workspace-dark.png": "4340825bccd7de1d20a388a82a98f8da9b4b05922eaf0a498377f28593f59052",
     "minimum-projects-dark.png": "cc00ff1dc76ddc115f4a3385741be6155e179411743716ba853a1a0785c0f7fc",
     "minimum-workspace-light.png": "a8df5c3c7273c7a1a0f2cadbe81e3c613190d547ece063b78cbdc5e5a2a56647",
@@ -70,7 +70,7 @@
     "editorial-dark.png": "6c8b866ecd5a4832cd12c1bbda38a3034c0939b3404dcb2a21cad7b0922c77c7",
     "editorial-light.png": "b0400c11cfb8aa0013492dcec9ac27ab4aad8e7c0dbcf1b8d37cc4302f9b3aae",
     "editorial-compact.png": "a3be069dc3f7711d6792fb53852dbcc2dae6034bfbb8506b233eae9a410d28d2",
-    "gallery-dark.png": "32d413a0d0830bb67eb8f5e88c38eec3e50b746edc369c4403a72b6e134e06da",
+    "gallery-dark.png": "80bba98e8a833a460c6e4e0ddd7929d2b90b128c75452073f1a6f3d1514687d9",
     "gallery-light.png": "4945c796756cdc2f79787eba6a0e973f846b0a11533dd0088d7b2a17221c4d2e",
     "gallery-compact.png": "510195adbc63c7a4d6b76f836f1efe6f5c1dc3448e9a83e9af1970ad63f39176",
     "image-stage-dark.png": "18ae1aa0ee1cc011dda2676eea2e47931dcdc016e23642a0023b4bdf91f02a81",
@@ -82,11 +82,11 @@
     "execution-dark.png": "b3c0a3ac351117978f36c3866155e25a9a1bd0638d0776d89a4e5fc1f1ef4e44",
     "execution-light.png": "7eb6edcfb994e482f8b030cc681478dc46bc31733e67061b365bbbe952b85847",
     "execution-compact.png": "0f85997831d42cd67504a4c9d34f308179bcc2a22e245abdd5e5cb68f4c5451e",
-    "permission-dark.png": "6a7d35aa2a4a4c04974de9b5855dbc6a1ad11578f886ef7abeaf38726fe5c907",
-    "permission-light.png": "c616cb55853259665e64d8b818ef70a98f3cb1325e3f963ac2a7eeca2a61b46e",
-    "permission-compact.png": "c7eed84bed23152b834297c984d6432d7fb141cde05f57d889f62fdaae2a9ee2",
-    "saved-document-dark.png": "4f7eb92ad091e10becdc808b338b27f1a5900a6577bceee0479d32d60c16a342",
-    "saved-document-light.png": "029c9cdacd642be8501ceb37f8b9adf2dc72248a1542638a61dedd3d52a0b5b4",
+    "permission-dark.png": "dfc2176eda0765c9096097a7898cb6814b622036f5c8c6cb9299e0b35529b18a",
+    "permission-light.png": "4e6bb1dc4d57536f851ce88f6af7ac6e32d19ca96b9f9f7cb6b47c3d36b01dc8",
+    "permission-compact.png": "71a6455a6bf29f54b3a08e707eca86e4cf571e8bf93c6592b141a05da0d8e877",
+    "saved-document-dark.png": "aba715fe13c2f9cfa64a75aa7e8e62a267fef32ed2eddee672a4a58fdc91884e",
+    "saved-document-light.png": "7575a8c1954262ec2a9ae453b9476075f26441ed32eb3405dee5f02beea18c98",
     "saved-document-compact.png": "6c53c0be37b7ecb997f7847cda5fd1d7d9bb69b2eceb775dee3b00fee75adfc0",
     "workspace-wide-dark.png": "2aadd17bfc1c1a1c193323239ecbee00e46f012949c8ff34e74ec21ac60db01f",
     "workspace-wide-light.png": "01723416b353ac223e8c4e9e243e31eb2484142a9b79a582f932710b0790fd38",
@@ -95,5 +95,5 @@
     "workspace-compact-final-light.png": "8d0853b3d689b677732ae6b554f67f3af52e5171872cee0465d2a276f72d35b8",
     "workspace-compact-long-title.png": "a5c9844239c5e7574718109bc1038e19d117750468da8589f044a3f98e63d515"
   },
-  "review": "Reviewed known and unknown dark inspector and light inspector: segmented capacity scale, exact source usage, typographic spending, provider and configuration hierarchy. Reported zero remains distinct from unavailable data."
+  "review": "Reviewed dark request sheet and compact light two-column review: clear request title, quiet exact-source fields, separated answer area with equal-weight choices. All four decisions remain visible at minimum size; exact copy and captured answer destination verified."
 }
