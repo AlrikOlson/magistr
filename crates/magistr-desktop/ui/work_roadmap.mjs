@@ -44,8 +44,8 @@ export function renderRoadmap(frontier,data,chunks,selected,open,mode="open"){
     const row=element("li"),chunk=byId.get(item.id),next=activity.next_ready===item.id;
     row.dataset.chunk=item.id;row.dataset.next=String(next);
     const title=element("button",chunk?.title??item.name,"roadmap-item-open");title.dataset.openItem=item.id;title.dataset.focusKey="roadmap-open:"+item.id;title.onclick=()=>open(item.id);row.append(title);
-    const state=[statuses[item.status]??"Status unavailable",readiness[item.readiness.state]].filter(Boolean).join(" · ");
-    row.append(element("span",state,"roadmap-item-state"));
+    const state=element("div","","roadmap-item-state roadmap-state-facts");state.append(element("span",statuses[item.status]??"Status unavailable"));
+    if(readiness[item.readiness.state]){const availability=element("span",readiness[item.readiness.state],"roadmap-readiness-tag");availability.dataset.state=item.readiness.state;state.append(availability);}row.append(state);
     if(next)row.append(element("span","Next ready","roadmap-next"));
     if(item.readiness.state==="blocked"&&item.readiness.blocker?.reason)row.append(element("p",item.readiness.blocker.reason,"work-record-warning"));
     if(item.readiness.state==="waiting")row.append(element("p",item.readiness.dependencies.length+" "+(item.readiness.dependencies.length===1?"dependency":"dependencies")+" unfinished or unavailable.","roadmap-waiting"));

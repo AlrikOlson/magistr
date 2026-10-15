@@ -56,3 +56,13 @@ test("04 related work shows counts and readable state rows",async({app})=>{
   await app.getByRole("button",{name:"Store conversations and drafts",exact:true}).click();
   await expect(app.getByRole("heading",{name:"Store conversations and drafts",exact:true})).toBeVisible();
 });
+test("05 roadmap status and readiness remain distinct",async({app})=>{
+  await openWork(app,"Roadmap");await app.setViewportSize({width:760,height:550});
+  await expect(app.locator(".roadmap-readiness-tag")).toHaveText(["Ready","Waiting for other work","Blocked"]);
+  await expect(app.locator(".roadmap-items")).toContainText("The release date needs approval.");
+  for(const theme of ["dark","light"]){
+    await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);
+    expect(await app.locator(".roadmap-items").evaluate(node=>node.scrollWidth-node.clientWidth)).toBeLessThanOrEqual(1);
+    await capture(app,"05-status-"+theme);
+  }
+});
