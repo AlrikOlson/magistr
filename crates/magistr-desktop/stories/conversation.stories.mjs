@@ -96,3 +96,19 @@ export const FailedToolDetails={parameters:{desktop:{...toolState,
  verify:context=>{conversationVisible(context);context.expect(context.doc.querySelector('article[data-status="failed"] details').open).toBe(true);context.expect(context.doc.querySelector('article[data-status="failed"] .tool-body').textContent).toContain("saved message did not match");},
 }}};
 
+const outlineNames=["What is ready","What needs attention","Verification results","Next steps"];
+function outlineSeed(seed){const nodes=outlineNames.flatMap((text,index)=>[{tag:"h2",start:index*100,text},{tag:"p",start:index*100+10,text:"Keep the current work visible. Each conversation retains its own draft, selected text and reading position. Review the evidence before continuing. ".repeat(3)}]);seed.frames[0].events=[{id:14,revision:1,role:"Agent",text:"Release review",attachments:[],document:{nodes}}];seed.frames[0].retained=[14];}
+const outlineState={caption:"Long release reply with a collapsed section navigator",task:"Read the reply at full width and open its section list when needed.",seed:outlineSeed,
+ arrange:async context=>{await openRelease(context);await toolPosition(context);},
+ verify:context=>{conversationVisible(context);context.expect(context.doc.querySelector(".reply-outline-toggle").getAttribute("aria-expanded")).toBe("false");context.expect(context.doc.querySelectorAll(".reply-contents li").length).toBe(4);}};
+export const ReplySections={parameters:{desktop:outlineState}};
+export const ReplySectionsOpen={parameters:{desktop:{...outlineState,caption:"Long release reply with its four-section navigator expanded",task:"Choose a section from a compact list without a permanent side column.",
+ arrange:async context=>{await openRelease(context);await toolPosition(context);await context.userEvent.click(context.ui.getByRole("button",{name:"Reply sections",exact:true}));},
+ verify:context=>{conversationVisible(context);context.expect(context.doc.querySelector(".reply-outline-toggle").getAttribute("aria-expanded")).toBe("true");context.expect(context.visible(context.doc,".reply-contents ol")).toBe(true);},
+}}};
+
+export const ReplySectionSelected={parameters:{desktop:{...outlineState,caption:"Long release reply after choosing Verification results",task:"Continue reading the selected section with keyboard focus on its heading.",
+ arrange:async context=>{await openRelease(context);await toolPosition(context);await context.userEvent.click(context.ui.getByRole("button",{name:"Reply sections",exact:true}));await context.userEvent.click(context.ui.getByRole("button",{name:"Verification results",exact:true}));},
+ verify:context=>{outlineState.verify(context);const h=context.ui.getByRole("heading",{name:"Verification results",exact:true}),t=context.doc.querySelector("#transcript").getBoundingClientRect(),r=h.getBoundingClientRect();context.expect(context.doc.activeElement).toBe(h);context.expect(r.top).toBeGreaterThanOrEqual(t.top);context.expect(r.bottom).toBeLessThanOrEqual(t.bottom);},
+}}};
+
