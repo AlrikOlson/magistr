@@ -1,4 +1,4 @@
-import { element } from "./work_dom.mjs";
+import { element,inlineFacts } from "./work_dom.mjs";
 import { renderSourceDetail } from "./source_details.mjs";
 export const checkNote="These results describe the recorded checks. They do not confirm that the files are unchanged today.";
 export function renderCheck(run,task,check,index,copy){
@@ -8,11 +8,8 @@ export function renderCheck(run,task,check,index,copy){
   details.dataset.verified=String(check.verified);details.dataset.passed=String(check.passed);
   summary.append(element("strong",check.name),element("span",(check.verified?"Executed":"Reported")+" · "+(check.passed?"Passed":"Failed")));
   details.append(summary);
-  const facts=element("p","","work-check-facts");
-  const date=new Date(check.timestamp);
-  facts.textContent=[check.required?"Required check":"Optional check",Number.isNaN(date.getTime())?null:date.toLocaleString(),
-    check.exit_code==null?null:"Exit code "+check.exit_code].filter(Boolean).join(" · ");
-  details.append(facts);
+  const date=new Date(check.timestamp),time=Number.isNaN(date.getTime())?null:element("time",date.toLocaleString());if(time)time.dateTime=check.timestamp;
+  const facts=inlineFacts([["Required",check.required?"Yes":"No"],["Recorded",time],["Exit code",check.exit_code]]);facts.classList.add("work-check-facts");details.append(facts);
   if(!check.verified)details.append(element("p","This result was reported without running a command.","work-record-warning"));
   if(check.command){const command=element("section");renderSourceDetail(command,{label:"Command",source:check.command},copy);details.append(command);}
   if(check.results){

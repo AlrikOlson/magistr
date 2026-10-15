@@ -115,3 +115,10 @@ test("10 task overview shows actual progress without repeated totals",async({app
   await app.getByLabel("Task status",{exact:true}).selectOption("active");
   await expect(app.locator(".work-tasks>li")).toHaveCount(1);await expect(overview.locator("dd").first()).toHaveText("3");
 });
+test("11 checks present labeled facts with complete recorded times",async({app})=>{
+  await openWork(app);await app.getByRole("radio",{name:"Checks",exact:true}).check();
+  const check=app.locator(".work-check").first();await check.locator("summary").click();
+  await expect(check.locator(".work-check-facts dt")).toHaveText(["Required","Recorded","Exit code"]);
+  await expect(check.locator(".work-check-facts time")).toHaveAttribute("datetime",/.+/);
+  await app.setViewportSize({width:760,height:550});await check.scrollIntoViewIfNeeded();await capture(app,"11-check-facts");
+});

@@ -62,7 +62,7 @@
 .work-check[data-verified=true][data-passed=true]>summary>span{color:var(--success)}
 .work-check[data-passed=false]>summary>span{color:var(--danger)}
 .work-check[data-verified=false]>summary>span{color:var(--warning)}
-.work-check>p{margin:12px;font-size:11px}.work-check>.source-details{margin:12px}
+.work-check>.work-check-facts{margin:10px 12px}.work-check>p{margin:12px;font-size:11px}.work-check>.source-details{margin:12px}
 .work-check .source-result{max-height:360px;overflow:auto}
 .work-activity{margin-top:16px;border-top:1px solid var(--separator);padding-top:12px}
 .work-activity>summary{font-size:12px;cursor:pointer;font-weight:600}
