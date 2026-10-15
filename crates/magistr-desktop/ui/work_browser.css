@@ -38,7 +38,7 @@
 .work-task-heading strong{font-size:14px}.work-task-heading span{flex-shrink:0}
 .work-tasks p{font-size:12px;margin:8px 0 0;color:var(--muted)}
 .work-tasks .work-record-warning{color:var(--warning)}
-.work-check-attempt{margin-block:24px}.work-check-attempt>h4{font-size:12px;margin:0}.work-check-note{font-size:11px;line-height:1.8;color:var(--muted)}
+.work-check-attempt,.work-activity-entry{margin-block:24px}.work-check-attempt>h4,.work-activity-entry>h4{font-size:12px;margin:0}.work-check-note{font-size:11px;line-height:1.8;color:var(--muted)}
 .work-checks{margin-top:20px;border-top:1px solid var(--separator);padding-top:12px}
 .work-checks h4{font-size:12px;margin:0}.work-checks .work-check-note{font-size:11px}
 .work-check{margin-top:12px;border:1px solid var(--separator);border-radius:5px;background:var(--base)}
