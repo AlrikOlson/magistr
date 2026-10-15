@@ -584,10 +584,17 @@ fn workflow_snapshots_survive_separately_without_evicting_conversation_or_drafts
     assert_eq!(after.pending, before.pending);
     assert_eq!(after.dropped, before.dropped);
     assert_eq!(after.seed.draft.as_deref(), Some("unsent message"));
-    assert_eq!(after.seed.snapshot, failed);
+    assert_eq!(after.seed.snapshot.as_ref(), &failed);
     assert_eq!(after.workflow_revision, revision + 1);
-    owner.send(Msg::Agent(AgentEvent::Text("another reply".into())));
-    assert_eq!(owner.snapshot().workflow_revision, after.workflow_revision);
+    for _ in 0..128 {
+        owner.send(Msg::Agent(AgentEvent::Text("another reply".into())));
+        let frame = owner.snapshot();
+        assert_eq!(frame.workflow_revision, after.workflow_revision);
+        assert!(std::sync::Arc::ptr_eq(
+            &after.seed.snapshot,
+            &frame.seed.snapshot
+        ));
+    }
     let mut next = owner.snapshot().conversation.unwrap();
     next.id = "two".into();
     owner.bind_context_for_test(next);

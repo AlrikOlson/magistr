@@ -321,7 +321,11 @@ second execution state.
 The Planned work reader asks the resident session for its complete validated
 workflow snapshot on demand. SessionObservation increments workflow_revision
 only when records or their provenance change; streaming frames carry this
-revision rather than the full project history. Conversation switches preserve
+revision rather than the full project history. ProjectSeed shares the immutable
+NativeSnapshot through Arc, so streamed replies and subscription clones do not
+copy complete work histories. Only changed workflow reads or actual family
+invalidation replace the shared value; duplicate and phase events retain it.
+Held observations remain unchanged when a newer snapshot is published. Conversation switches preserve
 that owner revision. Saved work uses each execution's stable run identity;
 selecting current work follows new objectives, while selecting a saved run stays
 on that run. A removed selection remains explicitly unavailable. The reader

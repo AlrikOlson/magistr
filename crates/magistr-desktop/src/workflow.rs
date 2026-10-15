@@ -8,7 +8,7 @@ use serde::Serialize;
 pub(crate) struct WorkflowView {
     address: SessionAddress,
     revision: u64,
-    snapshot: NativeSnapshot,
+    snapshot: std::sync::Arc<NativeSnapshot>,
     roadmap: magistr_workflow_contracts::ReadState<crate::roadmap::RoadmapOverview>,
 }
 
