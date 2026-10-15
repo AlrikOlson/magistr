@@ -182,3 +182,11 @@ test("reasoning presents the outcome before supporting details",async({app})=>{
   await expect(app.locator(".reasoning-step .reasoning-prose").first()).toBeInViewport();
   await capture(app,"17-reasoning-detail");
 });
+
+test("investigation summary keeps its origin and conclusion together",async({app})=>{
+  await openWork(app,"Reasoning");await app.getByLabel("Investigation",{exact:true}).selectOption("branch:storage");
+  await app.setViewportSize({width:760,height:550});
+  const summary=app.locator(".reasoning-investigation");expect((await summary.boundingBox()).height).toBeLessThan(130);
+  await expect(summary.locator("dd").first()).toHaveText("Step 41");await expect(summary.locator("dd").nth(1)).toHaveText("Step 41");
+  await capture(app,"18-investigation");
+});

@@ -1,4 +1,4 @@
-import {element} from "./work_dom.mjs";
+import {element,inlineFacts} from "./work_dom.mjs";
 const labels={active:"In progress",merged:"Included in conclusions",abandoned:"Abandoned"};
 export class ReasoningBranches{
   constructor(select,changed){this.select=select;this.changed=changed;this.reset();select.onchange=()=>{this.choice=select.value;changed();};}
@@ -14,9 +14,11 @@ export class ReasoningBranches{
   }
 }
 export function branchSummary(branch){
-  const section=element("section","","roadmap-relations");section.append(element("h4",branch.name),element("p",labels[branch.status]??"Status unavailable","work-record-status"));
-  section.append(element("p","Started from step "+branch.from_step+"."));
-  if(branch.merged_into!=null)section.append(element("p","Conclusions recorded in step "+branch.merged_into+"."));
-  if(branch.created_at)section.append(element("p","Started "+new Date(branch.created_at).toLocaleString()+".","roadmap-relation-state"));
+  const section=element("section","","roadmap-relations reasoning-investigation"),header=element("header");
+  header.append(element("h4",branch.name),element("p",labels[branch.status]??"Status unavailable","work-record-status"));section.append(header);
+  const facts=[["Started from","Step "+branch.from_step]];
+  if(branch.merged_into!=null)facts.push(["Conclusions","Step "+branch.merged_into]);
+  if(branch.created_at)facts.push(["Started",new Date(branch.created_at).toLocaleString()]);
+  section.append(inlineFacts(facts));
   return section;
 }
