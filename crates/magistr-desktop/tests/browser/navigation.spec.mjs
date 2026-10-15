@@ -1,5 +1,19 @@
 import { test, expect } from "./fixture.mjs";
 
+test("project activity follows catalog state without counting closed conversations",async({app})=>{
+  const overview=app.locator("#project-activity");
+  await expect(overview).toHaveAttribute("aria-label","3 open conversations across your projects");
+  await expect(overview.locator('[data-kind="waiting"] dd')).toHaveText("1");
+  await app.evaluate(()=>window.__fixture.publish("release",{activity:{active:true}}));
+  await expect(overview.locator('[data-kind="working"] dd')).toHaveText("1");
+  await app.evaluate(()=>window.__fixture.publish("release",{closed:true}));
+  await expect(overview).toHaveAttribute("aria-label","2 open conversations across your projects");
+  await expect(overview.locator('[data-kind="working"] dd')).toHaveText("0");
+  await app.evaluate(()=>window.__fixture.publish("sync",{status:"Connection lost"}));
+  await expect(overview.locator('[data-kind="waiting"] dd')).toHaveText("0");
+  await expect(overview.locator('[data-kind="disconnected"] dd')).toHaveText("1");
+});
+
 test("project groups preserve selection and addressed background actions",async({app})=>{
   const projects=app.getByRole("navigation",{name:"Projects",exact:true});
   await expect(projects.locator(".project-group")).toHaveCount(2);

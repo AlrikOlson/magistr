@@ -1,7 +1,7 @@
 {
   "renderer": "headless WebKit",
   "version": "27.2",
-  "captured_at": "2026-10-15T03:37:30.222Z",
+  "captured_at": "2026-10-15T03:39:18.738Z",
   "scope": "Production desktop HTML, CSS and JavaScript with isolated observation fixtures; no native OS input or Rust owner integration.",
   "checks": {
     "project chooser presents actual projects and folder entry in both appearances": true,
@@ -24,7 +24,8 @@
     "project opening failures preserve the folder, disclose readable details and retain retry at the native minimum": true
   },
   "source_hashes": {
-    "crates/magistr-desktop/ui/app.mjs": "821f91bf7d6d69c314c5ccc2199f3220762abdccd2e4f700f05321c214879e4c",
+    "crates/magistr-desktop/ui/activity.mjs": "aec7052526a1b66c7646fca12f562062c2b659d077a5f60ea876a8c11801572f",
+    "crates/magistr-desktop/ui/app.mjs": "1cc5b0eb2df4ecf7b35cb386a308bc09ef7e5fd8037df4aaec6cc71b228cdddb",
     "crates/magistr-desktop/ui/attachments.mjs": "d7884d94cce9b13423b287ef6a0699d16e4b469ddcfe8ff2d7cd437cef7a4e44",
     "crates/magistr-desktop/ui/composer.mjs": "9accf554a6a2f6e7c029f4972fa4221e40d755546693c8343cbd528ef2a00bc0",
     "crates/magistr-desktop/ui/context.mjs": "9476a17db8e8c3032bd081dbdcd6088e9338ca2c41f9b455278243f5c98e4bcd",
@@ -34,7 +35,7 @@
     "crates/magistr-desktop/ui/drafts.mjs": "6d5dab26f19fb14f67a79077b5927adff41f3dea78186ace91cc7cc5246888b4",
     "crates/magistr-desktop/ui/history.mjs": "c295481cd698924dc563dc9fb21e1a3f32df180c0d9c1ddf6d3380e8173132b3",
     "crates/magistr-desktop/ui/icon.png": "392002a92fdd8dc81923944cd5abd170d0867fe8eb3701d71d4df4aea083dd10",
-    "crates/magistr-desktop/ui/index.html": "52a1685e1bec073b4bb55a7d277f7def8f459b34931e28149c6764d4691ee94a",
+    "crates/magistr-desktop/ui/index.html": "e2029e2688b2b0ef1cc9340c9c3bd82976536019fb1fa8146269695e61bca905",
     "crates/magistr-desktop/ui/keyboard.mjs": "ee034c0d7649b19a00bdcb7daddd4a3a9bd84f40a1f6a062a82a2babc922f270",
     "crates/magistr-desktop/ui/layout.mjs": "4c65e6a206688e27e386fa95c59eba488ef8ddcd725bfa300f0fd419baa8a072",
     "crates/magistr-desktop/ui/navigation.mjs": "1e708e58b6d777165700edcbfd7846e9292474d54975d66cf6d10368542f3dfa",
@@ -45,7 +46,7 @@
     "crates/magistr-desktop/ui/saved_drafts.mjs": "a0bfc036bfe1f48fa005fb42da66ea31fd608f656df57a8501ee504b59779ca0",
     "crates/magistr-desktop/ui/selection.mjs": "fd844d9e146a9c5e1fb9ab6e2fc72c0273da66d4f59a70ce639877a87aff05fc",
     "crates/magistr-desktop/ui/session_controls.mjs": "738386755be2b65fd03899ae28e1b357b4313258d67b3edfaf72fe3fe37ff123",
-    "crates/magistr-desktop/ui/style.css": "c21067044e55d301ae7967e2edb2a45d5d1efc59ab1ff480c27b04aba9513a99",
+    "crates/magistr-desktop/ui/style.css": "701ea8b64ba165867de188fbb21d929c3bc3eee23ced407b4cb31d9451445608",
     "crates/magistr-desktop/ui/supervision.mjs": "509cd792877f397ac427789d491b4f51fd2840cc1b94ae05690d295519b75431",
     "crates/magistr-desktop/ui/switcher.mjs": "5fdfb742cee79c77887aef2ff03a905dbacf279639410a482e4d991b1075cb0a",
     "crates/magistr-desktop/ui/transcript.mjs": "60d1a8dc06425e790c5c02bdb5424444e6b7f837ad8c67b0f9d9075f71c2be0c",
@@ -56,9 +57,9 @@
     "crates/magistr-desktop/tests/browser/workspace.spec.mjs": "73143a65c682e3320155900a1ea632fdf083b2c40d8fa5327aff19d86e5d318d"
   },
   "images": {
-    "welcome-dark.png": "582f8e6bb4bac6da674fbdd6153407993453b6a4eb8cef45c623c9c5b5315122",
-    "welcome-light.png": "ef22b1856dc48ef3288a567665fc21e78695076d5722d601308dedf0f5f6a4bd",
-    "welcome-narrow-light.png": "89416a0efb2059905110c3666e0d148948894dc3b8e5810d89b58c0d889cbe2e",
+    "welcome-dark.png": "e6e17430637f0a971e1f75134d9a42314d572f25fd58ec84864345d16e67dc5b",
+    "welcome-light.png": "b4bf59ec45fd06aeb702b256e79e0e205619cff321ec753a94baae2357e1a1b3",
+    "welcome-narrow-light.png": "7d2f04b06c90cd6b7cf45d8a57992d01d2a7a17ad589e63e051a96f33f612f2c",
     "settings-dark.png": "1cc31ee8d2f4f2ccea63ef47dd549890ffa8fc73669ab38d285e746f021dcb0a",
     "workspace-dark.png": "d95d3e305d3f92e1de21946ada10091a042cf0ac46b33686d5e42e9695cec2f1",
     "settings-light.png": "8b7604544c89b7f0b75c84263d78d828f0445ca90dc1075741dd8b1e483917da",
