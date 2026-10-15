@@ -90,6 +90,13 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
   await app.locator('.detail-section[aria-label="Agent settings"]').evaluate(node=>node.scrollIntoView({block:"start"}));
   await expect(app.locator("#context-value")).toHaveText("9%");
   await capture("inspector-dark.png");
+  await app.getByRole("button",{name:"Settings",exact:true}).click();
+  await app.getByLabel("Appearance",{exact:true}).selectOption("light");
+  await app.getByRole("button",{name:"Done",exact:true}).click();
+  await capture("inspector-light.png");
+  await app.getByRole("button",{name:"Settings",exact:true}).click();
+  await app.getByLabel("Appearance",{exact:true}).selectOption("dark");
+  await app.getByRole("button",{name:"Done",exact:true}).click();
   await app.evaluate(()=>window.__fixture.publish("release",{usage:null}));
   await expect(app.locator("#context-chart")).toHaveAttribute("data-known","false");
   await expect(app.locator("#context-value")).toHaveText("Not reported");
