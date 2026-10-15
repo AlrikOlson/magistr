@@ -43,9 +43,9 @@
       </div>
       <button id="latest" data-leading-icon="arrow" hidden>Latest reply</button>
       <form id="composer" tabindex="-1">
-        <label for="draft" class="sr-only">Message the agent</label>
         <div class="composer-box">
-          <textarea id="draft" disabled rows="3" placeholder="Ask a question or describe the next step…" maxlength="1048576"></textarea>
+          <div class="composer-heading"><label for="draft">Message the agent</label><p id="draft-status" role="status"></p></div>
+          <textarea id="draft" disabled rows="2" placeholder="Ask a question or describe the next step…" maxlength="1048576"></textarea>
           <div id="pending-attachments" class="attachments" role="list" aria-label="Files to send" hidden></div>
           <p id="attachment-note" role="status" aria-live="polite"></p>
           <div class="composer-actions">
@@ -57,8 +57,8 @@
           </div>
         </div>
         <div class="composer-footer">
-          <div class="draft-state"><p id="draft-status" role="status"></p><button id="retry-draft" type="button" hidden>Retry save</button><button id="discard-draft" type="button" disabled>Discard draft</button></div>
-          <span class="compose-hint">Return to send · Shift Return for a new line</span>
+          <div class="draft-state"><button id="retry-draft" type="button" hidden>Retry save</button><button id="discard-draft" type="button" disabled>Discard draft</button></div>
+          <span class="compose-hint"><kbd>Return</kbd> to send <span aria-hidden="true">·</span> <kbd>Shift Return</kbd> for a new line</span>
         </div>
       </form>
     </section>
