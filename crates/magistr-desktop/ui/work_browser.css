@@ -40,6 +40,7 @@
 .work-record-section ul{padding-left:20px}
 .work-record-section li{font-size:14px;line-height:1.8;white-space:pre-wrap;margin-block:10px}
 .work-record-count{font-size:11px;color:var(--muted)}
+.work-task-overview{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px 16px;margin-bottom:8px}.work-task-overview h3{margin:0;font-size:13px}.work-task-overview .work-inline-facts{margin:0}
 .work-tasks{padding:0;list-style:none}
 .work-tasks>li{border:0;border-bottom:1px solid var(--separator);border-radius:0;padding:10px 12px 10px 40px;position:relative;background:transparent}.work-record-section .work-tasks>li{margin:0}
 .work-tasks>li::before{content:attr(data-position);position:absolute;left:12px;top:14px;color:var(--muted);font:11px var(--font-code);font-variant-numeric:tabular-nums}
