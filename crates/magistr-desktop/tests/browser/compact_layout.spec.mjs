@@ -86,3 +86,13 @@ test("requirements remain complete in compact numbered rows",async({app})=>{
   expect((await requirements.locator("li").first().boundingBox()).height).toBeLessThan(80);
   await capture(app,"07-requirements");
 });
+
+test("dependency groups share a compact comparison row",async({app})=>{
+  await openWork(app,"Roadmap");await app.setViewportSize({width:760,height:550});
+  await app.getByRole("button",{name:"Restore the project conversation and draft",exact:true}).click();
+  const required=await app.getByRole("region",{name:"Required work",exact:true}).boundingBox();
+  const dependent=await app.getByRole("region",{name:"Work that depends on this",exact:true}).boundingBox();
+  expect(Math.abs(required.y-dependent.y)).toBeLessThan(2);
+  expect((await app.locator(".roadmap-relations").boundingBox()).height).toBeLessThan(165);
+  await capture(app,"08-dependencies");
+});
