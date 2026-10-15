@@ -22,13 +22,15 @@ export function renderCodeBlock(figure, source, copy) {
     wrap.onclick = () => {const wrapped=wrap.getAttribute("aria-pressed")!=="true";wrap.setAttribute("aria-pressed",String(wrapped));figure.dataset.wrapped=String(wrapped);};
     const compare=create("button","code-compare","Side by side");compare.type="button";compare.setAttribute("aria-pressed","false");compare.hidden=true;
     const comparison=create("div","patch-comparison");comparison.hidden=true;comparison.tabIndex=0;comparison.setAttribute("role","region");comparison.setAttribute("aria-label","Before and after");
+    const balance = create("div", "patch-balance"); balance.setAttribute("aria-hidden","true");
+    const removed = create("span", "patch-balance-removed"), added = create("span", "patch-balance-added"); balance.append(removed,added);
     const surface = create("div", "code-surface");
     const gutter = create("span", "code-gutter"); gutter.setAttribute("aria-hidden", "true");
     const pre = create("pre", ""); pre.tabIndex = 0; pre.setAttribute("aria-label", "Code");
     const code = create("code", "");
     const overview = create("div", "code-overview"); overview.setAttribute("aria-hidden", "true");
     pre.append(code); surface.append(gutter, pre, overview); caption.append(title, count, wrap, compare, button);
-    figure.append(caption, surface, comparison); state = { title, count, button, wrap, compare, comparison, surface, gutter, code, overview }; states.set(figure, state);
+    figure.append(caption, balance, surface, comparison); state = { title, count, button, wrap, compare, comparison, surface, gutter, code, overview, balance, removed, added }; states.set(figure, state);
   }
   const text = sourceText(source);
   const lines = text ? text.split("\n").length - Number(text.endsWith("\n")) : 0;
@@ -43,6 +45,8 @@ export function renderCodeBlock(figure, source, copy) {
   state.gutter.hidden = !!patch || lines > 1000;
   const numbers = lines > 1000 ? "" : Array.from({ length: lines }, (_, i) => i + 1).join("\n");
   if (state.gutter.dataset.lines !== numbers) state.gutter.dataset.lines = numbers;
+  state.balance.hidden = !patch || !(patch.added + patch.removed);
+  state.removed.style.flexGrow = String(patch?.removed ?? 0); state.added.style.flexGrow = String(patch?.added ?? 0);
   state.overview.hidden = !!patch || lines < 24 || lines > 1000 || text.length > 65536;
   if (!state.overview.hidden) {
     const rows = text.split("\n"), stride = Math.ceil(lines / 120), marks = [];

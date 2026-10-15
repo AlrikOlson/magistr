@@ -61,7 +61,10 @@ function changedParts(before,after) {
 }
 export function paintPatchComparison(root,patch) {
   const document=root.ownerDocument,fragment=document.createDocumentFragment();
-  for(const title of ["Before","After"]){const heading=document.createElement("div");heading.className="diff-column-title";heading.textContent=title;fragment.append(heading);}
+  for(const [title,count,sign] of [["Before",patch.removed,"−"],["After",patch.added,"+"]]){
+    const heading=document.createElement("div");heading.className="diff-column-title";heading.textContent=title;
+    const total=document.createElement("span");total.className="diff-change-count";total.textContent=sign+" "+count+" "+(count===1?"line":"lines");heading.append(total);fragment.append(heading);
+  }
   for(const row of pairPatchRows(patch)){
     if(row.label!==undefined){const label=document.createElement("div");label.className="diff-pair-label";label.textContent=row.label;fragment.append(label);continue;}
     const emphasis=row.before?.kind==="removed"&&row.after?.kind==="added"?changedParts(row.before.text.slice(1),row.after.text.slice(1)):null;
