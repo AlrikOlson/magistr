@@ -38,11 +38,11 @@
 .work-record-section li{font-size:14px;line-height:1.8;white-space:pre-wrap;margin-block:10px}
 .work-record-count{font-size:11px;color:var(--muted)}
 .work-tasks{padding:0;list-style:none}
-.work-tasks>li{border:1px solid var(--separator);border-radius:6px;padding:16px 18px 16px 48px;position:relative;background:var(--panel)}
-.work-tasks>li::before{content:attr(data-position);position:absolute;left:16px;top:18px;color:var(--muted);font-size:11px}
-.work-tasks>li[data-status=active]{border-color:var(--accent);box-shadow:inset 3px 0 var(--accent)}
-.work-task-heading{display:flex;align-items:baseline;justify-content:space-between;gap:20px}
-.work-task-heading strong{font-size:14px}.work-task-heading span{flex-shrink:0}
+.work-tasks>li{border:0;border-bottom:1px solid var(--separator);border-radius:0;padding:10px 12px 10px 40px;position:relative;background:transparent}.work-record-section .work-tasks>li{margin:0}
+.work-tasks>li::before{content:attr(data-position);position:absolute;left:12px;top:14px;color:var(--muted);font:11px var(--font-code);font-variant-numeric:tabular-nums}
+.work-tasks>li[data-status=active]{background:var(--panel);box-shadow:inset 2px 0 var(--accent)}
+.work-task-heading{display:flex;align-items:baseline;justify-content:space-between;gap:8px 16px}
+.work-task-heading strong{font-size:13px;line-height:1.6}.work-task-heading span{flex-shrink:0;font-size:11px}
 .work-tasks p{font-size:12px;margin:8px 0 0;color:var(--muted)}
 .work-tasks .work-record-warning{color:var(--warning)}
 .work-check-attempt,.work-activity-entry{margin-block:24px}.work-check-attempt>h4,.work-activity-entry>h4{font-size:12px;margin:0}.work-check-note{font-size:11px;line-height:1.8;color:var(--muted)}
@@ -92,7 +92,7 @@
   #work-browser{width:calc(100vw - 24px);max-height:calc(100dvh - 24px)}
   .work-browser-heading{padding:12px 16px}.work-browser-tabs{padding:5px 16px}
   .work-browser-filters{padding:8px 16px}
-  #work-browser-content{padding:24px 22px}.work-task-heading{display:block}.work-task-heading span{display:block;margin-top:8px}
+  #work-browser-content{padding:24px 22px}.work-task-heading{flex-wrap:wrap}
 }
 @media(max-height:650px){
   .work-browser-heading{padding:10px 16px}.work-browser-tabs{padding:5px 16px}
