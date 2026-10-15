@@ -1,5 +1,5 @@
 {
-  "receipt": "64221a6133c777845f59c2bde8a868ba46f327e1354e75fd3a47aa5d7d86ebca",
+  "receipt": "a6fbfca74c28c8cad16759034cc74e4b5103635f5585531de55da47269f4749e",
   "images": {
     "welcome-dark.png": "1925c595aa0de8c3a57b14d30317516a1d5a6195cc71915c7ba4553d16e6875c",
     "project-map-dark.png": "b87419bf72f68b4182b8d544bd8c0cdc492e33a5268ef2739420f4e3d23ea4e7",
@@ -95,8 +95,8 @@
     "tables-compact.png": "e78a8b403af17b2c2754a1242dc764fd5d55970a16748447393edfa36b0adbfd",
     "patch-dark.png": "dc7b6ed932c4bd2385cf894a9b4d1edbab0372a654d231f5dcb5aa1f7a0f7bd8",
     "patch-light.png": "701f5cfc717b8b83817453460b2f19e7a2160517e5a03b58007e03af47e059ec",
-    "patch-comparison-dark.png": "3a5a2fb8252b6683f195534ad4619cc2b9471b7ed421722beae1ea538a781b68",
-    "patch-comparison-light.png": "6c257587de9838f45d3c4dd152fbe77025369965e1d92cae19c894690b1b9e98",
+    "patch-comparison-dark.png": "2ca64a86a5c6aae7c9dbb03e128b79f835019d5e7d7b95ce26ee98dacbc55494",
+    "patch-comparison-light.png": "4b5c65c398a382d568683dc932e2a9826916b6533c03be862c43ed8aa8a497dd",
     "patch-compact.png": "d90ec26fc3b6ccc2806bf87a5e2a4f514990d63c4efebb46a250108c8d9221c3",
     "result-dark.png": "94a594686e15a5d586dc658b68e175b0454b444286ad94e17b27aee496e54415",
     "result-light.png": "d937ca7a74ef83e48084d86a0d8cba215ad6957701ead87b984f5e86dc25cc10",
@@ -133,7 +133,7 @@
     "workspace-compact-final-light.png": "0b213cd78b54f31385d21d1563cf64b53b3ba458b428f396ec56992f33322bc5",
     "workspace-compact-long-title.png": "fcc2520d7ab9cdd54e98d600c982470502c5fe48fa6e665ea6a363345556c468"
   },
-  "review_evidence": "docs/evidence/desktop-iterations/2026-10-15-restart/21-final-gallery/gallery/review.md",
-  "coverage": "131 individually reviewed views; 22 changed images reopened in the final gallery, 109 exact PNG hash matches to reviewed passing images in iteration 15.",
+  "review_evidence": "docs/evidence/desktop-iterations/2026-10-15-restart/22-focus-reveal/gallery/review.md",
+  "coverage": "131 current-source views: two changed images opened here; 129 exact PNG hash matches to individually reviewed iteration 21 images. Six new focus states and two changed dense graph states inspected in the parent review.",
   "limitations": "Headless WebKit only; no native OS input, Tauri integration, IME, assistive-technology or Windows claim."
 }
