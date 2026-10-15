@@ -260,6 +260,27 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
   expect(done.y+done.height).toBeLessThan(minimum.minHeight);
   await app.getByRole("button",{name:"Done",exact:true}).click();
   checks["native minimum window keeps full-width editing, project browsing and dialog actions reachable"]=true;
+
+  await app.evaluate(()=>{
+    window.__fixture.handlers.preview_project=({directory})=>({kind:"ready",directory});
+    window.__fixture.handlers.open_session=()=>{throw "The agent could not connect.\n\nThe sign-in attempt expired.\nOpen the agent, sign in, then try again.\n\nConnection details:\nThe agent ended the connection before the conversation was ready.";};
+  });
+  for(const theme of ["dark","light"]){
+    await app.getByRole("button",{name:"Settings",exact:true}).click();
+    await app.getByLabel("Appearance",{exact:true}).selectOption(theme);
+    await app.getByRole("button",{name:"Done",exact:true}).click();
+    await app.getByRole("button",{name:"Open project",exact:true}).click();
+    await app.getByLabel("Project folder",{exact:true}).fill("/Projects/new-project");
+    await app.locator("#picker-submit").click();
+    await expect(app.locator("#picker-error")).toHaveText("Couldn’t start the conversation");
+    await capture("open-project-error-"+theme+".png");
+    await app.getByText("Show error details",{exact:true}).click();
+    await capture("open-project-error-details-"+theme+".png");
+    const retry=await app.getByRole("button",{name:"Try again",exact:true}).boundingBox();
+    expect(retry.y+retry.height).toBeLessThan(minimum.minHeight);
+    await app.getByRole("button",{name:"Cancel",exact:true}).click();
+  }
+  checks["project opening failures preserve the folder, disclose readable details and retain retry at the native minimum"]=true;
   const sources={};
   for(const name of (await readdir(ui)).sort()){
     const file=resolve(ui,name);

@@ -14,9 +14,10 @@
 //! 1. `claude` on PATH with direct auth (API key or CLI login) — served by
 //!    magistr's own ACP agent (`magistr acp-agent --provider claude`,
 //!    `crates/magistr-acp-agent`), which drives that `claude` — preferred
-//! 2. `copilot --acp` — authenticated via GitHub session
-//! 3. `claude` on PATH without explicit auth — the CLI may hold its own credentials
-//! 4. Error with actionable install/login guidance
+//! 2. `codex` on PATH — authentication is checked by Codex during startup
+//! 3. `copilot --acp` — authenticated via GitHub session
+//! 4. `claude` on PATH without explicit auth — the CLI may hold its own credentials
+//! 5. Error naming the missing agent commands
 
 use std::path::PathBuf;
 
@@ -87,12 +88,6 @@ const OPENAI_PROVIDER: &str = magistr_acp_agent::OpenAi::NAME;
 const GEMINI_PROVIDER: &str = magistr_acp_agent::Gemini::NAME;
 const OLLAMA_PROVIDER: &str = magistr_acp_agent::Ollama::NAME;
 const API_PROVIDERS: [&str; 3] = [OPENAI_PROVIDER, GEMINI_PROVIDER, OLLAMA_PROVIDER];
-
-/// The line that installs Claude Code, as its documentation gives it.
-const CLAUDE_INSTALL: &str = "curl -fsSL https://claude.ai/install.sh | bash";
-/// The line that installs the Copilot CLI, as its documentation gives it
-/// (the install script; Homebrew and WinGet are the alternatives).
-const COPILOT_INSTALL: &str = "curl -fsSL https://gh.io/copilot-install | bash";
 
 // ── Detection helpers ────────────────────────────────────────────────────
 
@@ -221,8 +216,7 @@ impl AgentRuntime {
             Some(COPILOT_PROVIDER) => {
                 return copilot_path.map(Self::copilot).ok_or_else(|| {
                     crate::error::MagistrError::Acp(format!(
-                        "Copilot selected as default provider but `{COPILOT_BINARY}` binary not found on PATH.\n\
-                         Install: {COPILOT_INSTALL}"
+                        "GitHub Copilot was selected, but the {COPILOT_BINARY} command was not found on PATH. Install GitHub Copilot, then reopen Magistr."
                     ))
                 });
             }
@@ -232,8 +226,7 @@ impl AgentRuntime {
                     .transpose()?
                     .ok_or_else(|| {
                         crate::error::MagistrError::Acp(format!(
-                            "Claude Code selected as default provider but `{CLAUDE_CLI}` binary not found on PATH.\n\
-                             Install Claude Code: {CLAUDE_INSTALL}"
+                            "Claude Code was selected, but the {CLAUDE_CLI} command was not found on PATH. Install Claude Code, then reopen Magistr."
                         ))
                     });
             }
@@ -247,19 +240,26 @@ impl AgentRuntime {
             return Self::claude(auth);
         }
 
-        // 2. copilot --acp — authenticated via GitHub session
+        // 2. Codex owns its login check during provider startup.
+        if find(CODEX_PROVIDER).is_some() {
+            return Self::in_binary(CODEX_PROVIDER).map_err(|error| {
+                crate::error::MagistrError::Acp(format!("cannot locate this executable: {error}"))
+            });
+        }
+
+        // 3. copilot --acp — authenticated via GitHub session
         if let Some(path) = copilot_path {
             return Ok(Self::copilot(path));
         }
 
-        // 3. claude without explicit auth — the CLI may hold its own credentials
+        // 4. claude without explicit auth — the CLI may hold its own credentials
         if let Some(auth) = claude_auth {
             return Self::claude(auth);
         }
 
-        // 4. Nothing found — actionable error
+        // 5. No command found. This is not an authentication diagnosis.
         Err(crate::error::MagistrError::Acp(
-            Self::no_runtime_message_with(false),
+            "No agents were found. Install Claude Code, Codex or GitHub Copilot, then reopen Magistr. If one is already installed, check that its command is available in your terminal.".into(),
         ))
     }
 
@@ -272,7 +272,7 @@ impl AgentRuntime {
     }
 
     fn is_any_binary_available_with(exists: impl Fn(&str) -> bool) -> bool {
-        exists(CLAUDE_CLI) || exists(COPILOT_BINARY)
+        exists(CLAUDE_CLI) || exists(CODEX_PROVIDER) || exists(COPILOT_BINARY)
     }
 
     /// The agent this binary serves itself: `magistr acp-agent --provider
@@ -365,35 +365,6 @@ impl AgentRuntime {
         }
 
         runtimes
-    }
-
-    /// Build the "no runtime available" error message with install instructions.
-    fn no_runtime_message_with(has_claude_cli: bool) -> String {
-        let mut msg = String::from("No authentication configured.\n\n");
-
-        if has_claude_cli {
-            msg.push_str(&format!(
-                "  Option 1 (recommended): Log in with your Claude subscription:\n\
-                 \n    claude auth login\n\n\
-                 \x20 Option 2: Set an API key:\n\
-                 \n    export ANTHROPIC_API_KEY=\"sk-ant-...\"\n\n\
-                 \x20 Option 3: Install GitHub Copilot CLI (uses your GitHub auth):\n\
-                 \n    {COPILOT_INSTALL}\n",
-            ));
-        } else {
-            msg.push_str(&format!(
-                "  Option 1 (recommended): Install Claude Code and log in:\n\
-                 \n    {CLAUDE_INSTALL}\n\
-                 \x20   claude auth login\n\n\
-                 \x20 Option 2: Install Claude Code and set an Anthropic API key:\n\
-                 \n    {CLAUDE_INSTALL}\n\
-                 \x20   export ANTHROPIC_API_KEY=\"sk-ant-...\"\n\n\
-                 \x20 Option 3: Install GitHub Copilot CLI (uses your GitHub auth):\n\
-                 \n    {COPILOT_INSTALL}\n",
-            ));
-        }
-
-        msg
     }
 }
 

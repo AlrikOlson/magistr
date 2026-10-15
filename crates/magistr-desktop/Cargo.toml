@@ -40,6 +40,9 @@ tokio = { version = "1", features = ["rt-multi-thread", "sync", "time"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
+[target.'cfg(target_os = "macos")'.dependencies]
+magistr-process = { path = "../magistr-process" }
+
 [dev-dependencies]
 tempfile = "3"
 

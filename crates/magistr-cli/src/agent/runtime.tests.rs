@@ -124,28 +124,44 @@ fn availability_requires_either_supported_binary() {
     assert_eq!(AgentRuntime::AGENT_BINARY, "claude");
 }
 
-// ── Error message ────────────────────────────────────────────
-
 #[test]
-fn no_runtime_message_mentions_install_options() {
-    let msg = AgentRuntime::no_runtime_message_with(false);
-    assert!(msg.contains("Option 1"));
-    assert!(msg.contains("Option 2"));
-    assert!(msg.contains("Option 3"));
+fn automatic_codex_and_binary_availability_agree() {
+    let runtime = AgentRuntime::detect_with(
+        None,
+        |name| (name == "codex").then(|| PathBuf::from("/tools/codex")),
+        |_| panic!("Codex authentication belongs to startup"),
+    )
+    .expect("installed Codex");
+    assert_eq!(runtime.provider_id(), "codex");
+    assert_eq!(runtime.args, vec!["acp-agent", "--provider", "codex"]);
+    assert!(AgentRuntime::is_any_binary_available_with(
+        |name| name == "codex"
+    ));
 }
 
 #[test]
-fn no_runtime_message_names_the_real_installers() {
-    let msg = AgentRuntime::no_runtime_message_with(false);
-    assert!(msg.contains(COPILOT_INSTALL), "{msg}");
-    assert!(
-        msg.contains(CLAUDE_INSTALL) || msg.contains("claude auth login"),
-        "{msg}"
-    );
-    assert!(
-        !msg.contains("npm install"),
-        "no npm shim is ever hinted: {msg}"
-    );
+fn automatic_codex_precedes_implicit_claude_and_copilot() {
+    let find = |name: &str| Some(PathBuf::from("/tools").join(name));
+    let runtime =
+        AgentRuntime::detect_with(None, find, |_| AuthMethod::Implicit).expect("installed Codex");
+    assert_eq!(runtime.provider_id(), "codex");
+    let runtime = AgentRuntime::detect_with(None, find, |_| AuthMethod::CliLogin)
+        .expect("authenticated Claude");
+    assert_eq!(runtime.provider_id(), "claude");
+    let runtime = AgentRuntime::detect_with(Some("copilot"), find, |_| panic!("no Claude probe"))
+        .expect("explicit Copilot");
+    assert_eq!(runtime.provider_id(), "copilot");
+}
+
+#[test]
+fn missing_commands_do_not_claim_missing_authentication() {
+    let error = AgentRuntime::detect_with(None, |_| None, |_| panic!("no command"))
+        .expect_err("no commands")
+        .to_string();
+    assert!(error.contains("No agents were found"), "{error}");
+    assert!(error.contains("Codex"), "{error}");
+    assert!(!error.contains("authentication"), "{error}");
+    assert!(!error.contains("curl"), "{error}");
 }
 
 // ── Provider ID / label ──────────────────────────────────────

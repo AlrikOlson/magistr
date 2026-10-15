@@ -22,6 +22,17 @@ are build tools only. Direct `cargo run --manifest-path crates/magistr-desktop/C
 remains a development command. See [development](../development.md) for prerequisites
 and artifact locations.
 
+On macOS, ordinary desktop startup reads only PATH from the user's interactive
+login shell before starting threads, with a three-second timeout and a 64 KiB
+output limit. Explicit inherited command directories keep precedence. The
+shared process-group owner settles the shell and its descendants; a failed read
+leaves the inherited path intact and logs the failure. Protocol children skip
+this bootstrap and inherit the same resolved path as discovery. Automatic
+agent selection considers authenticated Claude, installed Codex, Copilot and
+implicit Claude in that order; an explicit provider remains authoritative.
+Coding-agent availability checks and automatic startup both include Codex.
+See [Tauri's macOS packaging guidance](https://tauri.app/distribute/macos-application-bundle/).
+
 The window opens before project or provider admission. With no directory it
 shows a project chooser and reads existing session history without creating a
 project, database or provider. A requested directory is inspected after the
@@ -43,6 +54,11 @@ its existing view or receive a refusal.
 | Desktop commands | Typed translation from window actions to the application client; ephemeral single-use setup review handles |
 | Desktop streams | Independent conversation and catalog subscriptions, batching and acknowledgement credit |
 | WebView | Native editing, accessible controls, focus, layout and bounded conversation presentation |
+
+Project-opening failures retain the selected folder and identify the failed
+operation. Short reasons stay visible; multiline or lengthy diagnostics are
+selectable under a bounded native disclosure. Retry repeats the normal
+readiness/admission path, and pending admission disables duplicate submission.
 
 The UI never launches a provider or writes a second session registry. Every
 frame carries project, canonical workspace and resident session identity. Every

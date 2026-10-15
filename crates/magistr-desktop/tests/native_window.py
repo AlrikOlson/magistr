@@ -570,7 +570,7 @@ def main():
             ("unavailable provider keeps the window usable",first,"copilot","not found on PATH"),
         ]
         provider_count=len(list(peers.glob("*.json")))
-        unavailable_env=dict(env,PATH="/usr/bin:/bin")
+        unavailable_env=dict(env,PATH="/usr/bin:/bin",SHELL="/usr/bin/false")
         assert shutil.which("copilot",path=unavailable_env["PATH"]) is None
         for label,directory,provider,expected in cases:
             missing_provider=label=="unavailable provider keeps the window usable"

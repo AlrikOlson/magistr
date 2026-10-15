@@ -63,7 +63,7 @@ export class ProjectPicker {
     try {
       const directory=await this.invoke("pick_folder");
       if(directory&&this.$("project-picker").open&&intent===this.flow.intent)await this.flow.choose(directory);
-    }catch(error){if(intent===this.flow.intent)this.flow.emit({stage:"error",error:String(error)});}
+    }catch(error){if(intent===this.flow.intent)this.flow.fail(error,"Couldn’t open the folder picker");}
     finally{this.render(this.flow.state);}
   }
   async close() {
@@ -89,7 +89,20 @@ export class ProjectPicker {
       await this.flow.choose(directory,!!(state.preview?.kind==="setup"&&!state.result?.complete));
     }
   }
-  error(error) {this.$("picker-error").textContent=String(error);this.$("picker-error").hidden=false;this.$("picker-error").focus();}
+  error(error) {this.flow.fail(error,"Couldn’t close the setup review");}
+  renderError(state) {
+    const detail=state.error??"",long=detail.length>240||detail.includes("\n");
+    const changed=detail!==this.errorDetail;
+    this.errorDetail=detail;
+    this.$("picker-failure").hidden=!detail;
+    this.$("picker-error").textContent=state.errorTitle??"Couldn’t open this project";
+    this.$("picker-error-message").hidden=long;
+    this.$("picker-error-message").textContent=long?"":detail;
+    this.$("picker-error-details").hidden=!long;
+    this.$("picker-error-source").textContent=long?detail:"";
+    if(changed)this.$("picker-error-details").open=false;
+    this.$("picker-error-help").hidden=!long;
+  }
   render(state) {
     const busy=["reading","applying","opening"].includes(state.stage),review=state.preview?.kind==="setup"&&!state.result;
     const reviewing=review||!!state.result;
@@ -102,12 +115,12 @@ export class ProjectPicker {
     this.$("setup-root").textContent=state.preview?.setup_directory??state.directory;
     this.$("setup-preview").hidden=!review;
     this.$("setup-result").hidden=!state.result;
-    this.$("picker-error").textContent=state.error??"";this.$("picker-error").hidden=!state.error;
+    this.renderError(state);
     const status={reading:"Checking the folder…",applying:"Applying selected files…",opening:"Opening your conversation…",partial:"Some changes still need attention. Review the folder again to continue."}[state.stage]??"";
     this.$("picker-status").textContent=status;this.$("picker-status").hidden=!status;
     for(const id of ["browse-folder","project-folder","picker-submit","change-folder","select-files","clear-files"])this.$(id).disabled=busy;
     this.$("picker-cancel").disabled=["applying","opening"].includes(state.stage);
-    this.$("picker-submit").textContent=state.stage==="review"?"Apply selected files":busy?"Please wait…":reviewing?"Review again":"Open project";
+    this.$("picker-submit").textContent=state.stage==="review"?"Apply selected files":busy?"Please wait…":state.error?"Try again":reviewing?"Review again":"Open project";
     if(state.directory)this.$("project-folder").value=state.directory;
     if(review&&state.preview.review!==this.review)this.files(state.preview);
     for(const row of this.rows)if(row.check)row.check.disabled=busy;
