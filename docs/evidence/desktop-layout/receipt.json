@@ -1,7 +1,7 @@
 {
   "renderer": "headless WebKit",
   "version": "27.2",
-  "captured_at": "2026-10-15T09:53:29.924Z",
+  "captured_at": "2026-10-15T09:55:19.150Z",
   "scope": "Production desktop HTML, CSS and JavaScript with isolated observation fixtures; no native OS input or Rust owner integration.",
   "checks": {
     "project chooser presents actual projects and folder entry in both appearances": true,
@@ -53,7 +53,7 @@
     "crates/magistr-desktop/ui/drafts.mjs": "6d5dab26f19fb14f67a79077b5927adff41f3dea78186ace91cc7cc5246888b4",
     "crates/magistr-desktop/ui/history.mjs": "5753875cc59d138c417af5aa374779c853f51c30a67e91e8d10a0d3719bf3b32",
     "crates/magistr-desktop/ui/icon.png": "392002a92fdd8dc81923944cd5abd170d0867fe8eb3701d71d4df4aea083dd10",
-    "crates/magistr-desktop/ui/index.html": "9b8a788a1e877009f5c50ff73915fd1c6a7b21156bebfba9c874a6250d5fbeac",
+    "crates/magistr-desktop/ui/index.html": "6cc3459dcb187e82be7bf5f788c1cde08a9a72146ee07c31af03707d0c76d1d2",
     "crates/magistr-desktop/ui/keyboard.mjs": "ee034c0d7649b19a00bdcb7daddd4a3a9bd84f40a1f6a062a82a2babc922f270",
     "crates/magistr-desktop/ui/layout.mjs": "4c65e6a206688e27e386fa95c59eba488ef8ddcd725bfa300f0fd419baa8a072",
     "crates/magistr-desktop/ui/manrope-LICENSE.txt": "58172e0c0fac2cda8a37b348164bb55e44b0e69051e557e92b1d3f6910141f7b",
@@ -81,13 +81,14 @@
     "crates/magistr-desktop/ui/work.mjs": "9adfbdaa890ad4b74f755155caabc7f8599f1a4b1e1ea604ce83babea714999f",
     "crates/magistr-desktop/ui/work_activity.mjs": "e51d5b4a5855409fb42e62b47c01e71e8b7b5822c44ebfe3b5a5aed023ec21e9",
     "crates/magistr-desktop/ui/work_browser.css": "a27a31bc828a5c32930205cc67e33b9634e9fcd98b472863c3ecedb3418a95e0",
-    "crates/magistr-desktop/ui/work_browser.mjs": "5115e416ade4ebd52ba6fc833c3a90a70fc8699f8d7c09681a694ea15f76021a",
+    "crates/magistr-desktop/ui/work_browser.mjs": "e922c49fbc00024bfff29f636c4facd2bd0e09915f0b4dc51a44ebb3c7c9d556",
     "crates/magistr-desktop/ui/work_checks.mjs": "faa4bea7f8f243780a149f4f44b59354b9a8c3c647ca4562730a30f6eb3e3fd7",
     "crates/magistr-desktop/ui/work_dom.mjs": "1c420c0e40d58b10008ff8d81a087ab2714d464772da881757b9bb31b729a36f",
     "crates/magistr-desktop/ui/work_item.mjs": "8d46b0d765490551aafd0b840625ae1e16bf073a760ab5943a5e450be8bf2f49",
-    "crates/magistr-desktop/ui/work_reasoning.mjs": "62541d6ac957a910d352cbb33451eb1ca14c05372b2f9501265a652fafe8966f",
+    "crates/magistr-desktop/ui/work_reasoning.mjs": "126eb1ed6d72cd4064a1cb07d56f0606ccad2e7388a64f15bc18efbe0f88cd46",
     "crates/magistr-desktop/ui/work_reasoning_branch.mjs": "1dc414131eec8e7d685f3178b34bdc22082d9aec4d7ac5952f45122bb33d9980",
     "crates/magistr-desktop/ui/work_reasoning_links.mjs": "adae5f5f423d89131f6147632cc039ad3a3ea2865c421bac733aa30b478099aa",
+    "crates/magistr-desktop/ui/work_reasoning_search.mjs": "0d84f9485963c3fa03604ead4df0ac3cf7bd1b3e48563d33d3d3556617d874a4",
     "crates/magistr-desktop/ui/work_reasoning_step.mjs": "9787c4060925215b44efc3a705edf0e09ba1389f4d62f5454ceaa4c8e14a194a",
     "crates/magistr-desktop/ui/work_records.mjs": "aaed3fcbca9af8f13d208247ff653dcaff57f5d400fc6fdc8314a25edbd87457",
     "crates/magistr-desktop/ui/work_relations.mjs": "3f65dce84f64201c969b295e4e7a8da85982cd081f7c4239736da22e7b3e8310",
@@ -105,7 +106,7 @@
     "crates/magistr-desktop/tests/browser/design_scenes.mjs": "9f239102a00970e0af72f7bb324d92d853d93b85b4e5c9574054c321ffde6980",
     "crates/magistr-desktop/tests/browser/work_fixture.mjs": "24e401b0da221d6304829e9313c01194a8949901aae21109820427233021f600",
     "crates/magistr-desktop/tests/browser/roadmap_fixture.mjs": "1b57003180f8e88dcefe74eb1f7e05f0f11a6676e8b9725afbc268a64a3895be",
-    "crates/magistr-desktop/tests/browser/reasoning_fixture.mjs": "ca670eb79a0efa3d8325db22f551aadb645b258b9bd669ddc5d30544e177d20c"
+    "crates/magistr-desktop/tests/browser/reasoning_fixture.mjs": "88536adadc7a54ea3041433f4c2b837b47138fac500cb32e3d32f55c29ee9471"
   },
   "images": {
     "welcome-dark.png": "196f05ebfbcfdacf73fe8a82ad187b73837dfd801f2a1e47c59f5c0863f9b216",
@@ -131,10 +132,11 @@
     "roadmap-dependency-dark.png": "5f86dfb8a4031017aba4d451b36ac9fb7c64eaa413393c6faa188f1361115c83",
     "roadmap-history-dark.png": "e0268698c44103861381c9f1b980b3ffb5de0448d6a26b27e2c21c5e21eeac11",
     "roadmap-search-dark.png": "3ed73913aaa8c58bf0c9b111a813a8d41edbd20566e841f233e68874c254a6f9",
-    "reasoning-dark.png": "3a04a58ecdba71beecf355ca070da2fb6931472ce7d786d423ce80865a8fbc9f",
-    "reasoning-step-dark.png": "bdedb3768e26afb1934e21d6aa1caa78acf0670f6da7d5b0589d2da073aa119f",
-    "reasoning-related-dark.png": "28dafc8722bd1fb7e459c9d358234ca22e92931ca0861d415c1a7d201c86c674",
-    "reasoning-investigation-dark.png": "13c1ec67b561fad0790dc0fc78c66116db3f275c12c7632cd561600ffe7320a1",
+    "reasoning-dark.png": "061db2a2c2bb7c5935557e383bb6992a47ec9c5153b986b83c3af9dd9f21d14d",
+    "reasoning-step-dark.png": "220612ef7be22a0430444e9db0af858dc460b8e2bd8bc5e0077ecb29bad7e728",
+    "reasoning-related-dark.png": "0f8e63bcb443c1231c8c73029487eeecd60b533c3c6ea80be887dfcc295cf748",
+    "reasoning-investigation-dark.png": "976fd88a2aa499adaa6c999f7f322ee56bf616f279f8989410fd2f245960543d",
+    "reasoning-search-dark.png": "e6af8f7714c7a1f868fbc90a7eb221d34739e23c096f78200ea3b5c07f539607",
     "work-check-results-dark.png": "933a4595515dfe642d410f5e0bbd79a0bcf6d1080473d3985e35d88e594beded",
     "work-activity-dark.png": "eb498673aeee9f2cb2c855fc53a1064ce9d2e3773711fc88b28b5f05a5e7d6cc",
     "saved-work-dark.png": "c188de893ec4ee6b1af4e6f2061a1177b6e8dd9318979a918c2625a689c7a013",
@@ -201,7 +203,7 @@
     "editorial-light.png": "3c228ca2dc7b17eca2c9632201427646cfeb195bff2b3fdbea287912259f94ad",
     "editorial-compact.png": "73f3f6565f23ab2090e26e204b7f88afc60f1cde641dc01419d9453459fea431",
     "gallery-dark.png": "99e285b2fcb664997c54b9786c49ff22c522257b36ff9a6ffd282243dd580f08",
-    "gallery-light.png": "9922e577db373f81732bcfb0abafc102353c7167b8e9b0be16c30c19f4deb68c",
+    "gallery-light.png": "363ee26f2888219ac48e9492a9bdb26b3fafe281eb2119ce9469f344a40f49b1",
     "gallery-compact.png": "7dc04de3275273f14d0a85e7b97486177aedfb55734db7ee4bdce6cefc6618b6",
     "image-stage-dark.png": "e64738c9810290a38f670b829f99ba5926aa19f64bfc153ba5de2ff5ffa7d8ff",
     "image-stage-light.png": "bbbb348ffdb29485e59f92dfffa69044f435c9ef3a0d537723b9924c392868ba",
@@ -331,6 +333,10 @@
       "height": 820
     },
     "reasoning-investigation-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "reasoning-search-dark.png": {
       "width": 1280,
       "height": 820
     },

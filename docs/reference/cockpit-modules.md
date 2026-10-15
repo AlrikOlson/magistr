@@ -33,6 +33,7 @@ desktop workspace. Companion Rust tests live beside their owners.
 - `crates/magistr-desktop/src/roadmap.rs` — desktop wire shape of shared roadmap projections.
 - `crates/magistr-desktop/src/roadmap_item.rs` — selected complete roadmap records and safe rich documents.
 - `crates/magistr-desktop/ui/work_item.mjs` — addressed item reader, full authored details and return navigation.
+- `crates/magistr-desktop/ui/work_reasoning_search.mjs` — complete authored reasoning search across sessions.
 - `crates/magistr-desktop/ui/work_reasoning_links.mjs` — direct references, revisions and project-wide identity resolution.
 - `crates/magistr-desktop/ui/work_reasoning_branch.mjs` — session-scoped investigations and recorded lifecycle.
 - `crates/magistr-desktop/ui/work_reasoning.mjs` — complete reasoning sessions, step selection and pages.

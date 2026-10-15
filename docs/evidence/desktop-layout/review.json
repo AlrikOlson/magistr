@@ -1,5 +1,5 @@
 {
-  "receipt": "a1c549889cfeb26b02b15e4e311f96ec6ba3a118f9f920f65b4031d9255ab79b",
+  "receipt": "e65096974472e3ab360ced5c0997c54cfcfb46f7a0eb56cab292344b701433c8",
   "images": {
     "welcome-dark.png": "196f05ebfbcfdacf73fe8a82ad187b73837dfd801f2a1e47c59f5c0863f9b216",
     "project-map-dark.png": "9bfb53f79bb4c5bc20d428239f65e12e83ca95825579c550ca0c522b2cdf9efe",
@@ -24,10 +24,11 @@
     "roadmap-dependency-dark.png": "5f86dfb8a4031017aba4d451b36ac9fb7c64eaa413393c6faa188f1361115c83",
     "roadmap-history-dark.png": "e0268698c44103861381c9f1b980b3ffb5de0448d6a26b27e2c21c5e21eeac11",
     "roadmap-search-dark.png": "3ed73913aaa8c58bf0c9b111a813a8d41edbd20566e841f233e68874c254a6f9",
-    "reasoning-dark.png": "3a04a58ecdba71beecf355ca070da2fb6931472ce7d786d423ce80865a8fbc9f",
-    "reasoning-step-dark.png": "bdedb3768e26afb1934e21d6aa1caa78acf0670f6da7d5b0589d2da073aa119f",
-    "reasoning-related-dark.png": "28dafc8722bd1fb7e459c9d358234ca22e92931ca0861d415c1a7d201c86c674",
-    "reasoning-investigation-dark.png": "13c1ec67b561fad0790dc0fc78c66116db3f275c12c7632cd561600ffe7320a1",
+    "reasoning-dark.png": "061db2a2c2bb7c5935557e383bb6992a47ec9c5153b986b83c3af9dd9f21d14d",
+    "reasoning-step-dark.png": "220612ef7be22a0430444e9db0af858dc460b8e2bd8bc5e0077ecb29bad7e728",
+    "reasoning-related-dark.png": "0f8e63bcb443c1231c8c73029487eeecd60b533c3c6ea80be887dfcc295cf748",
+    "reasoning-investigation-dark.png": "976fd88a2aa499adaa6c999f7f322ee56bf616f279f8989410fd2f245960543d",
+    "reasoning-search-dark.png": "e6af8f7714c7a1f868fbc90a7eb221d34739e23c096f78200ea3b5c07f539607",
     "work-check-results-dark.png": "933a4595515dfe642d410f5e0bbd79a0bcf6d1080473d3985e35d88e594beded",
     "work-activity-dark.png": "eb498673aeee9f2cb2c855fc53a1064ce9d2e3773711fc88b28b5f05a5e7d6cc",
     "saved-work-dark.png": "c188de893ec4ee6b1af4e6f2061a1177b6e8dd9318979a918c2625a689c7a013",
@@ -94,7 +95,7 @@
     "editorial-light.png": "3c228ca2dc7b17eca2c9632201427646cfeb195bff2b3fdbea287912259f94ad",
     "editorial-compact.png": "73f3f6565f23ab2090e26e204b7f88afc60f1cde641dc01419d9453459fea431",
     "gallery-dark.png": "99e285b2fcb664997c54b9786c49ff22c522257b36ff9a6ffd282243dd580f08",
-    "gallery-light.png": "9922e577db373f81732bcfb0abafc102353c7167b8e9b0be16c30c19f4deb68c",
+    "gallery-light.png": "363ee26f2888219ac48e9492a9bdb26b3fafe281eb2119ce9469f344a40f49b1",
     "gallery-compact.png": "7dc04de3275273f14d0a85e7b97486177aedfb55734db7ee4bdce6cefc6618b6",
     "image-stage-dark.png": "e64738c9810290a38f670b829f99ba5926aa19f64bfc153ba5de2ff5ffa7d8ff",
     "image-stage-light.png": "bbbb348ffdb29485e59f92dfffa69044f435c9ef3a0d537723b9924c392868ba",
@@ -119,8 +120,8 @@
     "workspace-compact-long-title.png": "5a9d1fe895fa847cb572d4dfd44aaf7a1102666f6e8ac77b3d494f1c7569f91d"
   },
   "inspected": [
-    "reasoning-related-dark.png"
+    "reasoning-search-dark.png"
   ],
-  "notes": "Reviewed direct cross-session references: relation labels, full purpose and step number are readable. Headless checks exercise revision links, missing records and cyclic navigation with Back focus restoration.",
+  "notes": "Reviewed full-history reasoning search: query and exact step purpose remain clear, with accessible page controls. Tests cover deep Unicode fields, another session and returning to the last result page.",
   "native_limit": "Current native OS-input, VoiceOver and live-provider behavior were not exercised."
 }
