@@ -15,5 +15,7 @@ export async function reasoningScene(app,capture){
   await app.getByRole("button",{name:"Back to reasoning",exact:true}).click();
   await app.getByLabel("Investigation",{exact:true}).selectOption("branch:storage");await capture("reasoning-investigation-dark.png");
   await app.getByLabel("Investigation",{exact:true}).selectOption("all");
+  await app.getByLabel("Search all reasoning",{exact:true}).fill("installation");await capture("reasoning-search-dark.png");
+  await app.getByLabel("Search all reasoning",{exact:true}).fill("");
   await app.getByRole("tab",{name:"Current and saved work",exact:true}).click();
 }
