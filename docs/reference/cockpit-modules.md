@@ -226,3 +226,10 @@ desktop workspace. Companion Rust tests live beside their owners.
 - `crates/magistr-desktop/ui/work_roadmap_context.mjs` — bounded graph neighborhoods with explicit prerequisite bundles.
 - `crates/magistr-desktop/tests/browser/surface_routes.spec.mjs` — rendered route clearance, legibility, branches and shared prerequisites.
 - `crates/magistr-desktop/tests/browser/freeform_workspace.spec.mjs` — camera, arrangement, inspection and shell continuity.
+## Desktop review catalog
+
+- `crates/magistr-desktop/.storybook/main.mjs` — HTML/Vite catalog and production static assets.
+- `crates/magistr-desktop/stories/desktop.mjs` — isolated production document, shared observations and visible-state verification.
+- `crates/magistr-desktop/tests/browser/observations.mjs` — deterministic native observations shared by stories and interaction fixtures.
+- `crates/magistr-desktop/tests/browser/storybook.spec.mjs` — verified story identities, viewport/appearance capture and wrong-screen rejection.
+- `crates/magistr-desktop/tests/browser/iteration_evidence.mjs` — immutable capture bytes, source hashes and story captions.

@@ -63,6 +63,7 @@ vendor/
 !docs/evidence/desktop-iterations/**/*.png
 !crates/magistr-desktop/ui/icon.png
 .magistr/desktop-native/
+.magistr/desktop-storybook/
 .magistr/desktop-native-driver
 .magistr-roadmap.yml.lock
 

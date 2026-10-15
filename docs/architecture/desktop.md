@@ -435,6 +435,16 @@ handling, stale navigation and bounded retention. `tests/process.rs` exercises
 the actual executable's worker, ACP and both MCP roles and rejects retired
 renderer dependencies.
 
+Storybook owns the named desktop review states in `stories/*.stories.mjs`.
+Its HTML renderer embeds the actual production document in a fresh iframe:
+the app currently owns document-scoped controllers, so switching stories must
+dispose their entire document and native bridge simulation. The shared
+`tests/browser/observations.mjs` supplies isolated native observations to both
+Storybook and interaction tests. Stories arrange and assert visible state;
+`storybook.spec.mjs` consumes Storybook's generated index, verifies identity
+and state, and captures the supported viewport/appearance matrix. This catalog
+does not implement a second application or claim to exercise Rust commands.
+
 Routine UI checks run selected scenarios under `tests/browser` in headless WebKit.
 They load the actual HTML/CSS/JavaScript and isolated observation fixtures; they
 never activate applications or post OS input. Current reviewed layout evidence

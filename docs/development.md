@@ -95,6 +95,30 @@ Cancel, setup review and compact folder entry, and writes captures and source
 hashes to `.magistr/desktop-project-opening`. It complements Playwright's WebKit
 build; neither test establishes native keyboard input or Tauri command integration.
 
+The desktop review catalog uses Storybook's HTML renderer. Run
+`npm --prefix crates/magistr-desktop run storybook` to browse it. Stories in
+`crates/magistr-desktop/stories` load the production document in a fresh iframe
+and share native observations with the browser interaction tests. Appearance is
+selectable in the catalog. Sidebar and compact project navigation are distinct
+stories; a story's assertions must pass before it can be captured.
+
+For a focused iteration, select exact IDs from Storybook's `index.json`:
+
+```sh
+MAGISTR_GUI_STORY=projects-directory--list \
+MAGISTR_GUI_ITERATION=2026-10-15-example \
+npm --prefix crates/magistr-desktop run test:stories
+```
+
+Comma-separated story IDs capture several related states. The runner builds
+Storybook, serves the static catalog locally, and exercises each selected story
+in headless WebKit at 1280 × 820 and 760 × 550 in dark and light appearance.
+Stories restricted to a sidebar or compact panel run at their applicable size.
+It verifies the visible state again immediately before capture. Filenames derive
+from the story ID, size and appearance; receipts include the caption, task,
+visible heading, selected view, source hashes and capture time. A passing story
+assertion still requires opening and reviewing every archived image.
+
 The workspace scenario writes captures and a source-bound receipt directly under
 `docs/evidence/desktop-iterations/<iteration>/gallery/`. Set `MAGISTR_GUI_ITERATION`
 to a new dated folder, or let the gallery create a timestamped folder. Existing
