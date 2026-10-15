@@ -1,5 +1,5 @@
 {
-  "receipt": "8f01187774ebc09c85da177f9fe7c4ec602c62a8c6db5479504ffdbe32bf6717",
+  "receipt": "127683314921db3ecf7aa938d4531271b8e1dd2d24e793c7933d9aa7f94f38c0",
   "images": {
     "welcome-dark.png": "dc232490ea5d7805bfbce4a7b8c75ac278f863bd7e10b03b83f578f5c0b5fff6",
     "directory-dark.png": "816f80f48a1a180971803d1886c44e0b3fef86738f63d9942c3f157969889b02",
@@ -57,11 +57,11 @@
     "tables-dark.png": "a5ef169d7d0f78c0ab30e33d55ec3f78848a51361b6db454ea7d99fc2170dd03",
     "tables-light.png": "c2f23981c7e8c5eec93ce9754242333ef75e957a545112d8b905253941db864b",
     "tables-compact.png": "6184f777743dedd7fe23a13a698c2d953edeb01fc30f36df1bdb31881cec55bf",
-    "patch-dark.png": "c723b3b76e43d1f7f1ee5defbbe452f2d70f2ca37e2ea8767ec343b13187fc97",
-    "patch-light.png": "76181b1f6544f23b9300ae76fedb10591b79916205ce8819b8d257fa86bb834b",
-    "patch-comparison-dark.png": "98f10229bacc01c597b90093f155c17165b581709168a4cc7013e4aebefe5a93",
-    "patch-comparison-light.png": "57e4be69de6f058b02eac1ae82745fe09b793c82160b56cc72962910dca7898b",
-    "patch-compact.png": "3b328aeba1e32c1b7facfdb255443f4ca3e54183f02e74ffb9c7305786fba52d",
+    "patch-dark.png": "d3f7aca149e71c0496ac76cad9619971c7d9d6878dc0b4b51de50c0d73ff47ee",
+    "patch-light.png": "476456e24fbc5a38a5078b25daa65d4958c1fe6d5ad2c259a977337c59121a4f",
+    "patch-comparison-dark.png": "0c7858452a70780d57bc988f3b34aad57b473d0fe9f5be5a9484bd01410bb377",
+    "patch-comparison-light.png": "114da511e109c7599a3d0d597cdb6c3ed649d7f725b1a9057f2f243d47cdfe1d",
+    "patch-compact.png": "8483610bda4e89d966689d3349062b24b1bb127a9b2d8630c1dc15ad2dc7041f",
     "result-dark.png": "a71b52112b2c9d0c90752983b20fe8a9517b1fa30428e9e785e61ec474bd0e74",
     "result-light.png": "6c09e5f58388c097983a31bf36dc157149eb28ef74c10ed8598b8eefe2307d80",
     "records-dark.png": "4bd05467c07ba5153080cfc03b5efcc8c56bf4bd5eecc6b3cebf28e1a9f9b2df",
@@ -98,10 +98,10 @@
     "workspace-compact-long-title.png": "f9267eef49690eb586da1f86684a1291e892332df719b30c18a0efff5f9d8f13"
   },
   "inspected": [
-    "tables-light.png",
-    "records-dark.png",
-    "result-dark.png"
+    "patch-comparison-dark.png",
+    "patch-comparison-light.png",
+    "patch-compact.png"
   ],
-  "notes": "Inspected table header planes, aligned numbers, real record/field counts and typed result sheets. Literal source and original-text copy checks remain green.",
+  "notes": "Inspected before/after planes, hatched unmatched cells, exact line positions and intraline emphasis. Original patch copy and paired-line text still match exactly.",
   "native_limit": "Background WebKit only; native input and assistive technology not exercised."
 }

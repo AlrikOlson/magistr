@@ -32,6 +32,8 @@ test("paired patches align real hunk positions and copy the original patch",asyn
   await expect(app.locator(".diff-cell-added code")).toHaveText(["new();\n","extra();\n"]);
   await expect(app.locator(".diff-cell-added .diff-line-number")).toHaveText(["2","3"]);
   await expect(app.locator(".diff-cell-empty")).toHaveCount(1);
+  await expect(app.locator(".diff-cell-removed mark")).toHaveText("old");
+  await expect(app.locator(".diff-cell-added mark")).toHaveText("new");
   await app.getByRole("button",{name:"Copy code",exact:true}).click();
   expect(await app.evaluate(()=>window.__fixture.copied)).toBe(source);
   await app.getByRole("button",{name:"Side by side",exact:true}).click();
