@@ -1,0 +1,54 @@
+{
+  "scope": "Compact source toolbars and align code gutters",
+  "limitations": "Headless WebKit with isolated observations. Native OS input, assistive technology and Rust command integration were not exercised.",
+  "images": {
+    "conversation--source-code-compact-dark.png": {
+      "sha256": "e45ca7d950294cac32e7fb7b1098c38a824242fa16a81870c0ce22d9e99fad8a",
+      "task": "Read source code with nearby copy and wrapping controls and consistent line alignment.",
+      "observations": "Toolbar and source remain readable, but the sixth line and bottom padding are outside the captured transcript viewport. Capture must explicitly position the complete short block before review can pass.",
+      "verdict": "fail"
+    },
+    "conversation--source-code-compact-light.png": {
+      "sha256": "fcde40c5edab6988b2753c69ee59f327e267fca2dac624e1d808ae8cc8d924f5",
+      "task": "Read source code with nearby copy and wrapping controls and consistent line alignment.",
+      "observations": "Toolbar and source remain readable, but the sixth line and bottom padding are outside the captured transcript viewport. Capture must explicitly position the complete short block before review can pass.",
+      "verdict": "fail"
+    },
+    "conversation--source-code-desktop-dark.png": {
+      "sha256": "7b05b75bc5a368a9a411446ec3515c0e1f5e25ef0dcb3501e240eef0594df1bf",
+      "task": "Read source code with nearby copy and wrapping controls and consistent line alignment.",
+      "observations": "Full six-line source, toolbar and aligned gutter are readable. Overall iteration remains failed until compact captures include the complete short block.",
+      "verdict": "fail"
+    },
+    "conversation--source-code-desktop-light.png": {
+      "sha256": "033e5b81e1a4496914ca6dd138ce9a77d77c6fe4de79ed7c7b1425f00075dd1d",
+      "task": "Read source code with nearby copy and wrapping controls and consistent line alignment.",
+      "observations": "Full six-line source, toolbar and aligned gutter are readable. Overall iteration remains failed until compact captures include the complete short block.",
+      "verdict": "fail"
+    },
+    "conversation--wrapped-source-compact-dark.png": {
+      "sha256": "7110e6e77c97790e30e0b188285e1bf0a7b9d0f245f23df2be5e0f4efa65972f",
+      "task": "Read source code with nearby copy and wrapping controls and consistent line alignment.",
+      "observations": "Toolbar and source remain readable, but the sixth line and bottom padding are outside the captured transcript viewport. Capture must explicitly position the complete short block before review can pass.",
+      "verdict": "fail"
+    },
+    "conversation--wrapped-source-compact-light.png": {
+      "sha256": "33b96983e0b882737bface68c6bbaa589ab1ac3800fab5e9e1afb4e8b0c7beb2",
+      "task": "Read source code with nearby copy and wrapping controls and consistent line alignment.",
+      "observations": "Toolbar and source remain readable, but the sixth line and bottom padding are outside the captured transcript viewport. Capture must explicitly position the complete short block before review can pass.",
+      "verdict": "fail"
+    },
+    "conversation--wrapped-source-desktop-dark.png": {
+      "sha256": "f160f86b8e92c24bccf748b2b8a032344be973fa99dec3c2c4974af45602b90f",
+      "task": "Read source code with nearby copy and wrapping controls and consistent line alignment.",
+      "observations": "Full six-line source, toolbar and aligned gutter are readable. Overall iteration remains failed until compact captures include the complete short block.",
+      "verdict": "fail"
+    },
+    "conversation--wrapped-source-desktop-light.png": {
+      "sha256": "4011669657999a014b36b00cdfbacd376d77a94de363c7a6cfd24c7527f6fa9d",
+      "task": "Read source code with nearby copy and wrapping controls and consistent line alignment.",
+      "observations": "Full six-line source, toolbar and aligned gutter are readable. Overall iteration remains failed until compact captures include the complete short block.",
+      "verdict": "fail"
+    }
+  }
+}

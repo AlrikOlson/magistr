@@ -1,0 +1,54 @@
+{
+  "scope": "Compact source toolbars and align code gutters",
+  "limitations": "Headless WebKit with isolated observations. Native OS input, assistive technology and Rust command integration were not exercised.",
+  "images": {
+    "conversation--source-code-compact-dark.png": {
+      "sha256": "b9ab7167fd65dc24db80b9c3d04aab5b05a871be6481f6a7d6d6c87a91efbf11",
+      "task": "Read source code with nearby copy and wrapping controls and consistent line alignment.",
+      "observations": "The complete six-line block now fits in the compact transcript above the composer. The compact caption groups language and line count on the left, with wrapping and copying on the right. Line numbers align with source text through the last line. Syntax colors and controls have clear dark-surface contrast. No overlap or clipped source in this captured reading position.",
+      "verdict": "pass"
+    },
+    "conversation--source-code-compact-light.png": {
+      "sha256": "7cd033f170f44cfaf9b581f93b5f61dc57d7042bac9a219c9def73b3222092db",
+      "task": "Read source code with nearby copy and wrapping controls and consistent line alignment.",
+      "observations": "The complete six-line block now fits in the compact transcript above the composer. The compact caption groups language and line count on the left, with wrapping and copying on the right. Line numbers align with source text through the last line. Syntax colors and controls have clear light-surface contrast. No overlap or clipped source in this captured reading position.",
+      "verdict": "pass"
+    },
+    "conversation--source-code-desktop-dark.png": {
+      "sha256": "7b05b75bc5a368a9a411446ec3515c0e1f5e25ef0dcb3501e240eef0594df1bf",
+      "task": "Read source code with nearby copy and wrapping controls and consistent line alignment.",
+      "observations": "The complete six-line block is readable in the desktop column. The compact caption groups language and line count on the left, with wrapping and copying on the right. Line numbers align with source text through the last line. Syntax colors and controls have clear dark-surface contrast. No overlap or clipped source in this captured reading position.",
+      "verdict": "pass"
+    },
+    "conversation--source-code-desktop-light.png": {
+      "sha256": "033e5b81e1a4496914ca6dd138ce9a77d77c6fe4de79ed7c7b1425f00075dd1d",
+      "task": "Read source code with nearby copy and wrapping controls and consistent line alignment.",
+      "observations": "The complete six-line block is readable in the desktop column. The compact caption groups language and line count on the left, with wrapping and copying on the right. Line numbers align with source text through the last line. Syntax colors and controls have clear light-surface contrast. No overlap or clipped source in this captured reading position.",
+      "verdict": "pass"
+    },
+    "conversation--wrapped-source-compact-dark.png": {
+      "sha256": "45430b84eb3fdb2c9a6dbf09632abc503beb40700fd2a464ad1fd2c79b42dc31",
+      "task": "Read source code with nearby copy and wrapping controls and consistent line alignment.",
+      "observations": "The complete six-line block now fits in the compact transcript above the composer. The compact caption groups language and line count on the left, with wrapping and copying on the right. Wrap lines is visibly selected and focused; the gutter is removed. Syntax colors and controls have clear dark-surface contrast. No overlap or clipped source in this captured reading position.",
+      "verdict": "pass"
+    },
+    "conversation--wrapped-source-compact-light.png": {
+      "sha256": "30247637cff8ead06564ff3f3f54c565793d861d3cdaeeace84e7bc42f694af2",
+      "task": "Read source code with nearby copy and wrapping controls and consistent line alignment.",
+      "observations": "The complete six-line block now fits in the compact transcript above the composer. The compact caption groups language and line count on the left, with wrapping and copying on the right. Wrap lines is visibly selected and focused; the gutter is removed. Syntax colors and controls have clear light-surface contrast. No overlap or clipped source in this captured reading position.",
+      "verdict": "pass"
+    },
+    "conversation--wrapped-source-desktop-dark.png": {
+      "sha256": "f160f86b8e92c24bccf748b2b8a032344be973fa99dec3c2c4974af45602b90f",
+      "task": "Read source code with nearby copy and wrapping controls and consistent line alignment.",
+      "observations": "The complete six-line block is readable in the desktop column. The compact caption groups language and line count on the left, with wrapping and copying on the right. Wrap lines is visibly selected and focused; the gutter is removed. Syntax colors and controls have clear dark-surface contrast. No overlap or clipped source in this captured reading position.",
+      "verdict": "pass"
+    },
+    "conversation--wrapped-source-desktop-light.png": {
+      "sha256": "4011669657999a014b36b00cdfbacd376d77a94de363c7a6cfd24c7527f6fa9d",
+      "task": "Read source code with nearby copy and wrapping controls and consistent line alignment.",
+      "observations": "The complete six-line block is readable in the desktop column. The compact caption groups language and line count on the left, with wrapping and copying on the right. Wrap lines is visibly selected and focused; the gutter is removed. Syntax colors and controls have clear light-surface contrast. No overlap or clipped source in this captured reading position.",
+      "verdict": "pass"
+    }
+  }
+}
