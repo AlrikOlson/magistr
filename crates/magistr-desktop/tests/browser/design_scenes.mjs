@@ -187,6 +187,7 @@ export async function writingScene(app,capture,expect){
   await draft.evaluate(node=>{window.__originalEditor=node;node.setSelectionRange(7,18,"backward");});
   await app.getByRole("button",{name:"Expand editor",exact:true}).click();
   await expect(draft).toBeFocused();
+  await expect(app.locator("#draft-measure")).toContainText("9 lines");
   expect(await draft.evaluate(node=>node===window.__originalEditor&&node.selectionStart===7&&node.selectionEnd===18)).toBe(true);
   const bounds=await draft.boundingBox();expect(bounds.height).toBeGreaterThan(350);
   await appearances(app,capture,"writing");
