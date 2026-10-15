@@ -61,3 +61,11 @@ test("roadmap totals leave the first items visible",async({app})=>{
     await capture(app,"04-totals-"+theme);
   }
 });
+
+test("roadmap rows expose readiness and blockers without oversized cards",async({app})=>{
+  await openWork(app,"Roadmap");await app.setViewportSize({width:760,height:550});
+  const rows=app.locator(".roadmap-items>li");await expect(rows).toHaveCount(3);
+  expect((await rows.first().boundingBox()).height).toBeLessThan(80);
+  await expect(rows.last()).toBeInViewport();
+  await capture(app,"05-roadmap-rows");
+});
