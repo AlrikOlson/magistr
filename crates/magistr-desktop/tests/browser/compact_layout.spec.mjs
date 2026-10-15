@@ -242,3 +242,13 @@ test("conversation heading preserves controls with less vertical space",async({a
     await capture(app,"24-conversation-"+width);
   }
 });
+
+test("project directory is visible below a compact activity summary",async({app})=>{
+  for(const width of [1280,760]){
+    await app.setViewportSize({width,height:width===760?550:820});
+    expect((await app.locator(".welcome-stage").boundingBox()).height).toBeLessThan(180);
+    await expect(app.getByRole("button",{name:"Continue Review the release plan in Magistr",exact:true})).toBeInViewport();
+    expect((await app.locator(".directory-project").first().boundingBox()).y).toBeLessThan(360);
+    await capture(app,"25-project-directory-"+width);
+  }
+});
