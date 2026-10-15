@@ -1,11 +1,10 @@
 import { addressKey } from "./context.mjs";
-import { readState, renderRun } from "./work_records.mjs";
+import { readState } from "./work_records.mjs";
 import { renderReferences } from "./work_references.mjs";
 import { element, retainReading, saveReading, restoreReading } from "./work_dom.mjs";
-import { WorkRuns } from "./work_runs.mjs";
+import { WorkExecutionBrowser } from "./work_execution.mjs";
 import { WorkTabs } from "./work_tabs.mjs";
 import { RoadmapBrowser, renderRoadmap } from "./work_roadmap.mjs";
-import { searchExecutions } from "./work_execution_search.mjs";
 import { FeedbackBrowser } from "./work_feedback.mjs";
 import { ReasoningBrowser } from "./work_reasoning.mjs";
 import { searchRoadmap } from "./work_roadmap_search.mjs";
@@ -14,8 +13,8 @@ import { RoadmapItemReader } from "./work_item.mjs";
 export class WorkBrowser {
   constructor($,invoke){
     this.$=$;this.invoke=invoke;this.frame=null;this.generation=0;this.revision=-1;this.loading=false;this.key="";
-    this.area="work";this.workSearchPage=0;this.workSearchSelected=false;this.searchPage=0;
-    $("work-browser-work-search").oninput=()=>{this.workSearchPage=0;this.workSearchSelected=false;this.key="";this.render();};this.returnTrail=[];
+    this.area="work";this.searchPage=0;this.returnTrail=[];
+    this.execution=new WorkExecutionBrowser($,invoke,()=>this.render());
     $("work-browser-return").onclick=()=>this.returnToFeedback();
     this.feedback=new FeedbackBrowser($("work-browser-content"),()=>{this.key="";this.render();},value=>navigator.clipboard.writeText(value).catch(error=>{$("work-browser-state").textContent="Could not copy the text. "+String(error);}),destination=>this.invoke("open_link",{destination}).catch(error=>{$("work-browser-state").textContent=String(error);}), (references,label)=>renderReferences(references,{snapshot:this.snapshot,navigate:(target,focus)=>this.openReference(target,focus),copy:value=>navigator.clipboard.writeText(value).catch(error=>{$("work-browser-state").textContent=String(error);})},label));
     this.reasoning=new ReasoningBrowser($("work-browser-reasoning"),$("work-browser-content"),()=>{this.key="";this.render();},value=>navigator.clipboard.writeText(value).catch(error=>{$("work-browser-state").textContent="Could not copy the text. "+String(error);}),$("work-browser-branch"));
@@ -27,7 +26,6 @@ export class WorkBrowser {
     this.tabs=new WorkTabs($("work-browser-tabs"),area=>{if(!this.routing)this.returnTrail=[];this.item.close();this.area=area;this.key="";this.render();});
     this.roadmapBrowser=new RoadmapBrowser($("work-browser-track"),()=>{this.item.close();this.key="";this.render();});
     $("work-browser-roadmap-state").onchange=()=>{this.item.close();this.key="";this.render();};
-    this.runs=new WorkRuns($("work-browser-runs"),()=>{this.key="";this.render();});
     $("browse-work").onclick=()=>this.open($("browse-work"));
     $("browse-work-header").onclick=()=>this.open($("browse-work-header"));
     $("work-browser-close").onclick=()=>$("work-browser").close();
@@ -37,7 +35,7 @@ export class WorkBrowser {
   observe(frame){
     if(addressKey(this.frame?.address)!==addressKey(frame?.address)){
       ++this.generation;this.revision=-1;this.key="";this.loading=false;this.snapshot=null;
-      this.$("work-browser-content").replaceChildren();this.runs.reset();this.$("work-browser-work-search").value="";this.workSearchPage=0;this.workSearchSelected=false;this.feedback.reset();this.$("work-browser-feedback-search").value="";this.$("work-browser-feedback-kind").value="all";this.$("work-browser-feedback-status").value="all";this.reasoning.reset();this.$("work-browser-reasoning-search").value="";this.roadmapBrowser.reset();this.searchPage=0;this.$("work-browser-search").value="";this.$("work-browser-roadmap-state").value="open";this.tabs.select("work");
+      this.$("work-browser-content").replaceChildren();this.execution.reset();this.feedback.reset();this.$("work-browser-feedback-search").value="";this.$("work-browser-feedback-kind").value="all";this.$("work-browser-feedback-status").value="all";this.reasoning.reset();this.$("work-browser-reasoning-search").value="";this.roadmapBrowser.reset();this.searchPage=0;this.$("work-browser-search").value="";this.$("work-browser-roadmap-state").value="open";this.tabs.select("work");
       if(this.$("work-browser").open)this.$("work-browser").close();
     }
     this.frame=frame;
@@ -113,8 +111,7 @@ export class WorkBrowser {
     this.$("work-feedback-search").hidden=this.area!=="feedback";
     this.$("work-reasoning-selection").hidden=this.area!=="reasoning"||!!this.reasoning.query.trim();
     this.$("work-reasoning-search").hidden=this.area!=="reasoning";
-    this.$("work-execution-search").hidden=this.area!=="work";
-    this.$("work-run-selection").hidden=this.area!=="work"||!!this.$("work-browser-work-search").value.trim()&&!this.workSearchSelected;
+    this.execution.show(this.area==="work");
     this.$("work-track-selection").hidden=this.area!=="roadmap";
     this.$("work-roadmap-search").hidden=this.area!=="roadmap";
     const content=this.$("work-browser-content");content.setAttribute("aria-labelledby","work-tab-"+this.area);
@@ -130,22 +127,6 @@ export class WorkBrowser {
       this.$("work-browser-state").textContent=observed.message;this.$("work-browser-state").dataset.current=String(observed.current);
       retainReading(content,()=>content.replaceChildren(observed.value?this.reasoning.render(observed.value):element("p","Reasoning records are unavailable. Use Refresh to try again.")));return;
     }
-    const observed=readState(this.snapshot.ship);
-    this.$("work-browser-state").textContent=observed.message;
-    this.$("work-browser-state").dataset.current=String(observed.current);
-    const query=this.$("work-browser-work-search").value.trim();
-    if(query&&!this.workSearchSelected&&observed.value){
-      retainReading(content,()=>content.replaceChildren(searchExecutions(observed.value,query,this.workSearchPage,page=>{this.workSearchPage=page;this.render();content.scrollTop=0;},id=>{this.runs.choice="run:"+id;this.workSearchSelected=true;this.key="";this.render();content.scrollTop=0;content.querySelector("h3")?.focus();})));return;
-    }
-    const run=this.runs.update(observed.value);
-    const key=JSON.stringify([query,this.workSearchSelected,this.runs.choice,run,!!observed.value]);
-    if(key===this.key)return;this.key=key;
-    const copy=value=>navigator.clipboard.writeText(value).catch(error=>{this.$("work-browser-state").textContent="Could not copy the text. "+String(error);});
-    const openLink=destination=>this.invoke("open_link",{destination}).catch(error=>{this.$("work-browser-state").textContent=String(error);});
-    retainReading(content,()=>content.replaceChildren(!observed.value?element("p","Work records are unavailable. Use Refresh to try again.","work-record-empty"):
-      this.runs.choice!=="current"&&!run?element("p","This saved work is no longer available. Choose another item.","work-record-empty"):renderRun(run,{copy,openLink})));
-    if(query&&this.workSearchSelected){
-      const back=element("button","Back to work results");back.dataset.focusKey="work-search-back";back.onclick=()=>{const id=run?.run_id;this.workSearchSelected=false;this.key="";this.render();[...content.querySelectorAll("[data-run-id]")].find(node=>node.dataset.runId===id)?.focus({preventScroll:true});};content.prepend(back);
-    }
+    this.execution.render(this.snapshot.ship);
   }
 }

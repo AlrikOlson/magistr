@@ -1,5 +1,5 @@
 {
-  "receipt": "e4ce5332016b94d502664887b852aee4009ae6d4176884edcc3cf5600e6dfdb3",
+  "receipt": "63ed4b34ca302f2431a53993f113cc8b3423fd8201179f96fff69dbfd72f8291",
   "images": {
     "welcome-dark.png": "196f05ebfbcfdacf73fe8a82ad187b73837dfd801f2a1e47c59f5c0863f9b216",
     "project-map-dark.png": "9bfb53f79bb4c5bc20d428239f65e12e83ca95825579c550ca0c522b2cdf9efe",
@@ -18,7 +18,8 @@
     "inspector-narrow-light.png": "ac07fd6fb2215d34ef88fc78cfafa6aae65867632b9df398328afafb583f27d1",
     "rename-light.png": "ad0f5715491f15f2235ddf8073d2a57d6e759c2e3c7dfec75dd8e85256403e27",
     "work-paused-dark.png": "a79d02738979c74cd380bb907ac98b612d4d5640c60c212454c63c40c9b0a372",
-    "work-plan-dark.png": "b02da8d27490cf87a699ee61d7e9349794f3ab591d1aec395d96635ecef84403",
+    "work-plan-dark.png": "e0053fe76f63b90206dc4576629041d888ca7e55013e3a08046cb10de0f1e5ef",
+    "work-task-filter-dark.png": "af72624cf0b79e6f000aa77de147e47fd2624dc231faae16d3ea658b1cb303f6",
     "roadmap-dark.png": "fb43410fb6d36dc3ea5581ee0702464a3e5f03ad724a58561759b1480cee2dae",
     "roadmap-item-dark.png": "f69faa7b090139fbe2a3021a67e3680b673e3796051fecb0e0a7aea6c9319c64",
     "roadmap-dependency-dark.png": "5b217b4d195f14fab2264632508d11664c32628669ae5c1dcf0230d1c4852a5a",
@@ -35,14 +36,14 @@
     "feedback-research-dark.png": "522cd46c3a93068be90702a3d438f0d20d0f026bcc70e61f92d5eefbeebd8533",
     "feedback-linked-reasoning-dark.png": "66bc56ccce7a215b06250a2e52096fbaa611919584a724a1aa1992b8a9bf88f2",
     "feedback-search-dark.png": "3724588eeb00e63f8d8c8e436f67b13ad51d3111530d414461f735a717254369",
-    "work-check-results-dark.png": "ae0d4cce5b1951f8a32d4c8d2c794c439155168bfd00d6d91b021fe9f7283157",
-    "work-activity-dark.png": "2f6484ba1a14d0a7096631403846b5eb948310c16b34373006252ba3af68806b",
-    "saved-work-dark.png": "0d2e163e1b936b3243c55b4956316394cfcb78c64ea417681fa744ff15abcc5e",
+    "work-check-results-dark.png": "eca614027112dc5773e1605662cbd26412acc1082d7056668c4be8c24d0f53ec",
+    "work-activity-dark.png": "7cda539091ca5234bf0fb4cdb1f880e92d5749aa5671629156cf95071bb4ac52",
+    "saved-work-dark.png": "5e3e57e83fe2e35e38074ef3281ead5851b9ef9f1723e1296d77c5bc5813dcc7",
     "work-history-search-dark.png": "e14c2601acca46132cc74760c9cde8918f0d83c1cbdac14f471b1d13adaeccfd",
-    "work-plan-light.png": "1739294096cde4f247412f6805b97702fe64bce2142ca4d2320efc06a4c043c5",
+    "work-plan-light.png": "32ca0744b054b815a7eb62330edc05d2a6a7046fedca6f6b8167ef5b3d8a777f",
     "roadmap-light.png": "ab690a397d7f0011f4553557d1635af9954db08129f8edc608a41633e336490e",
     "roadmap-minimum.png": "607f859165dc5034d3f213bef6fe5e96fc06b63749bf1a2fae3d3986290c72e8",
-    "work-plan-minimum.png": "7b0c393fef2906ab0d20ddefd250c4c05d25a9c51cfda9b373c8df4f708c8152",
+    "work-plan-minimum.png": "3bb6e05eec2b90f4c43130d25c0ab3f018453b08f9e9da205d7665c83a627c1c",
     "inspector-dark.png": "89564c80e02d674b79bfbadf60cb4ffdef3e62bfe218c2aecf69b805fda729ff",
     "inspector-light.png": "8ea0d6264d1f3294624ec0abfd8637392848ab053fd5b2ac52937f132574666c",
     "inspector-unknown-dark.png": "90ddd2b7f563656b430918be102a28456a40ba7538432751a31110273522e430",
@@ -127,8 +128,8 @@
     "workspace-compact-long-title.png": "5a9d1fe895fa847cb572d4dfd44aaf7a1102666f6e8ac77b3d494f1c7569f91d"
   },
   "inspected": [
-    "work-history-search-dark.png"
+    "work-task-filter-dark.png"
   ],
-  "notes": "Reviewed current/saved execution search with clear objective titles and actual status. Checks cover complete historic output and exact run selection after a new objective starts.",
+  "notes": "Reviewed filtered tasks with their original plan position retained. Full task status/type and check disclosures remain readable. Focused cases verify paging, live updates and resetting filters on a different execution.",
   "native_limit": "Current native OS-input, VoiceOver and live-provider behavior were not exercised."
 }

@@ -32,6 +32,9 @@ export async function workScene(app,capture){
   await app.getByRole("button",{name:"Work plan",exact:true}).click();
   await app.getByRole("heading",{name:"Prepare the desktop release",exact:true}).waitFor();
   await capture("work-plan-dark.png");
+  await app.getByLabel("Task status",{exact:true}).selectOption("active");
+  await app.locator(".work-tasks").evaluate(node=>node.scrollIntoView({block:"start"}));await capture("work-task-filter-dark.png");
+  await app.getByLabel("Task status",{exact:true}).selectOption("all");await app.locator("#work-browser-content").evaluate(node=>node.scrollTop=0);
   await roadmapScene(app,capture);await reasoningScene(app,capture);await feedbackScene(app,capture);
   const check=app.locator(".work-check").nth(1);await check.locator("summary").click();
   await check.evaluate(node=>node.scrollIntoView({block:"start"}));await capture("work-check-results-dark.png");
