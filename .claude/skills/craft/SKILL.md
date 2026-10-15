@@ -37,10 +37,17 @@ start an implementation loop by itself.
   Run only the affected scenarios and checks. Verify meaningful states,
   keyboard behavior, visual hierarchy and supported light/dark modes.
 - Every GUI iteration must capture and inspect updated screenshots of each changed
-  area before committing. Store them in the project's dated iteration evidence
-  folder with consistent view names, viewport, appearance, renderer, capture time,
+  area before committing. Capture directly into the project's dated iteration
+  evidence folder and open the images from that canonical location; never defer
+  archiving until after review. Use consistent view names, viewport, appearance, renderer, capture time,
   source hashes and review notes. Include the evidence in that iteration's commit.
   Preserve earlier captures; a final-only gallery does not satisfy this rule.
+- Visual review is a separate required gate. Follow the per-image review protocol
+  for each image: inspect composition and readable detail, record the user task,
+  specific observations and a verdict, and judge relationship layout
+  and routing as well as text and spacing. Keep a required `GUI visual review`
+  ship check failed while defects remain. Fix, recapture and inspect again before
+  completing the affected work or advancing to its next visual iteration.
 
 `/next` owns one implementation iteration; `/next-loop` owns bounded
 fresh-session handoffs, one chunk per agent session. `/roadmap-refresh` and `/signals` research and

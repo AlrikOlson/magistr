@@ -1,5 +1,5 @@
 import {test,expect} from "./fixture.mjs";
-async function open(app){await app.getByRole("button",{name:"Review the release plan",exact:true}).click();await app.getByRole("button",{name:"Work plan",exact:true}).click();await app.getByRole("tab",{name:"Roadmap",exact:true}).click();}
+async function open(app){await app.getByRole("button",{name:"Review the release plan",exact:true}).click();await app.getByRole("tab",{name:"Current and saved work",exact:true}).click();await app.getByRole("tab",{name:"Roadmap",exact:true}).click();}
 test("search spans closed work and complete structured fields, preserving query on return",async({app})=>{
   await open(app);await app.getByLabel("Search all roadmap",{exact:true}).fill("save complete");
   await app.getByRole("button",{name:"Store conversations and drafts",exact:true}).click();

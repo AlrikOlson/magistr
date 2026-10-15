@@ -4,7 +4,7 @@ import {resolve} from "node:path";
 import {captureIteration} from "./iteration_evidence.mjs";
 async function openWork(app,tab){
   await app.getByRole("button",{name:"Review the release plan",exact:true}).click();
-  await app.getByRole("button",{name:"Work plan",exact:true}).click();
+  await app.getByRole("tab",{name:"Current and saved work",exact:true}).click();
   if(tab)await app.getByRole("tab",{name:tab,exact:true}).click();
 }
 async function capture(app,name){
@@ -43,9 +43,9 @@ test("03 roadmap checklist states are compact static marks",async({app})=>{
   await openWork(app,"Roadmap");await app.getByRole("button",{name:"Restore the project conversation and draft",exact:true}).click();
   await app.setViewportSize({width:760,height:550});
   await app.getByLabel("Jump to section",{exact:true}).selectOption({label:"What changes"});
-  await expect(app.locator(".roadmap-checklist").getByRole("img",{name:"Completed",exact:true})).toBeVisible();
-  await expect(app.locator(".roadmap-checklist").getByRole("img",{name:"To do",exact:true})).toBeVisible();
-  await expect(app.locator(".roadmap-checklist input")).toHaveCount(0);
+  await expect(app.locator(".work-checklist").getByRole("img",{name:"Completed",exact:true})).toBeVisible();
+  await expect(app.locator(".work-checklist").getByRole("img",{name:"To do",exact:true})).toBeVisible();
+  await expect(app.locator(".work-checklist input")).toHaveCount(0);
   await expect(app.locator(".roadmap-requirements>header .work-record-count")).toHaveText("1");
   await capture(app,"03-checklists");
 });
@@ -55,16 +55,16 @@ test("04 related work shows counts and readable state rows",async({app})=>{
   await expect(app.locator(".roadmap-relations header .work-record-count")).toHaveText(["1","0"]);
   await app.locator(".roadmap-relations").scrollIntoViewIfNeeded();
   await capture(app,"04-relations");
-  await app.getByRole("button",{name:"Store conversations and drafts",exact:true}).click();
+  await app.getByRole("region",{name:"Required work",exact:true}).getByRole("button",{name:"Store conversations and drafts",exact:true}).click();
   await expect(app.getByRole("heading",{name:"Store conversations and drafts",exact:true})).toBeVisible();
 });
 test("05 roadmap status and readiness remain distinct",async({app})=>{
   await openWork(app,"Roadmap");await app.setViewportSize({width:760,height:550});
-  await expect(app.locator(".roadmap-lane>header h4")).toHaveText(["Ready","Waiting","Blocked"]);
-  await expect(app.locator(".roadmap-board")).toContainText("The release date needs approval.");
+  await expect(app.locator("#work-browser .surface-readiness span")).toHaveText(["1 ready","1 waiting","1 blocked"]);
+  await expect(app.locator("#work-browser .work-surface")).toContainText("The release date needs approval.");
   for(const theme of ["dark","light"]){
     await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);
-    expect(await app.locator(".roadmap-board").evaluate(node=>node.scrollWidth-node.clientWidth)).toBeLessThanOrEqual(1);
+    expect(await app.locator("#work-browser .work-surface").evaluate(node=>node.scrollWidth-node.clientWidth)).toBeLessThanOrEqual(1);
     await capture(app,"05-status-"+theme);
   }
 });
@@ -263,7 +263,7 @@ test("28 shared dialog surfaces retain their themed frame",async({app})=>{
   await app.setViewportSize({width:760,height:550});
   const shot=async(name)=>{for(const theme of ["dark","light"]){await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);await capture(app,"28-"+name+"-"+theme);}};
   for(const [button,name] of [["Settings","settings"],["Open project","picker"],["Find a conversation","finder"]]){await app.getByRole("button",{name:button,exact:true}).click();await expect(app.locator("dialog[open]")).toBeVisible();await shot(name);await app.keyboard.press("Escape");await expect(app.locator("dialog[open]")).toHaveCount(0);}
-  await showProjects(app);await app.getByRole("button",{name:"Review the release plan",exact:true}).click();await app.getByRole("button",{name:"Work plan",exact:true}).click();await shot("work");await app.keyboard.press("Escape");
+  await showProjects(app);await app.getByRole("button",{name:"Review the release plan",exact:true}).click();await app.getByRole("tab",{name:"Current and saved work",exact:true}).click();await shot("work");await app.keyboard.press("Escape");
   await app.locator("#conversation-menu-trigger").click();await app.getByRole("button",{name:"Rename conversation",exact:true}).click();await shot("rename");await app.keyboard.press("Escape");
   await app.evaluate(()=>window.__fixture.publish("release",{attachments:[{id:"image",name:"icon.png",size:32768,path:"ui/icon.png",content_hash:"image",preview:"http://magistr.test/icon.png"}],draft_revision:2,draft_saved_revision:2}));
   await app.getByRole("button",{name:"View icon.png",exact:true}).click();await shot("viewer");await app.keyboard.press("Escape");
@@ -284,37 +284,4 @@ test("30 project failures keep the selected folder and retry beside compact feed
   await expect(app.locator("#picker-error")).toBeFocused();await app.getByText("Show error details",{exact:true}).click();
   for(const theme of ["dark","light"]){await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);await expect(app.getByRole("button",{name:"Try again",exact:true})).toBeInViewport();await capture(app,"30-feedback-"+theme);}
   await app.evaluate(()=>window.__fixture.handlers.open_session=()=>window.__fixture.frames.get("release").address);await app.getByRole("button",{name:"Try again",exact:true}).click();await expect(app.locator("#project-picker")).toBeHidden();
-});
-test("31 project work opens from the shell without admission and returns to the draft",async({app})=>{
-  for(const theme of ["dark","light"]){await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);await capture(app,"31-directory-"+theme);}
-  await app.setViewportSize({width:760,height:550});await capture(app,"31-directory-compact");
-  const project=app.locator(".directory-project").first();await project.getByRole("button",{name:"Roadmap",exact:true}).click();
-  await expect(app.getByRole("tab",{name:"Roadmap",exact:true})).toHaveAttribute("aria-selected","true");await expect(app.locator("#work-browser")).toBeVisible();await expect(app.locator("dialog[open]")).toHaveCount(0);
-  expect(await app.evaluate(()=>window.__fixture.calls.filter(c=>c.command==="open_session").length)).toBe(0);
-  for(const [width,height,name] of [[1280,820,"wide"],[760,550,"compact"]]){await app.setViewportSize({width,height});for(const theme of ["dark","light"]){await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);await capture(app,"31-shell-"+name+"-"+theme);}}
-  await app.getByRole("button",{name:"Back to conversation",exact:true}).click();await expect(app.locator("#draft")).toHaveValue("Keep the project list visible, and let me return to the same paragraph.");
-  await expect(app.locator("#workspace")).toBeVisible();await app.getByRole("button",{name:"Reasoning",exact:true}).click();await expect(app.getByRole("tab",{name:"Reasoning",exact:true})).toHaveAttribute("aria-selected","true");
-  await app.keyboard.press("Escape");await expect(app.locator("#browse-reasoning-header")).toBeFocused();
-  await capture(app,"31-conversation-compact");await app.setViewportSize({width:1280,height:820});await capture(app,"31-conversation-wide");await showProjects(app);await capture(app,"31-project-navigation");
-});
-test("32 roadmap board makes readiness and dependency navigation tangible",async({app})=>{
-  await openWork(app,"Roadmap");
-  for(const [width,height,size] of [[1280,820,"wide"],[760,550,"compact"]]){await app.setViewportSize({width,height});for(const theme of ["dark","light"]){await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);await capture(app,"32-board-"+size+"-"+theme);}}
-  const ready=app.getByRole("region",{name:"Ready work",exact:true});await ready.locator("summary").click();await ready.getByRole("button",{name:"Store conversations and drafts",exact:true}).click();
-  await expect(app.getByRole("heading",{name:"Store conversations and drafts",exact:true})).toBeFocused();await app.getByRole("button",{name:"Back to track",exact:true}).click();await expect(ready.getByRole("button",{name:"Store conversations and drafts",exact:true})).toBeFocused();
-  await app.getByRole("button",{name:"Restore the project conversation and draft",exact:true}).click();
-  for(const theme of ["dark","light"]){await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);await capture(app,"32-dependencies-"+theme);}
-  await app.getByRole("region",{name:"Required work",exact:true}).getByRole("button",{name:"Store conversations and drafts",exact:true}).click();await expect(app.getByRole("heading",{name:"Store conversations and drafts",exact:true})).toBeVisible();
-  for(const theme of ["dark","light"]){await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);await capture(app,"32-dependent-"+theme);}
-});
-test("33 reasoning maps investigations and recorded links with complete evidence",async({app})=>{
-  await openWork(app,"Reasoning");await expect(app.locator(".reasoning-connection")).toHaveCount(2);
-  await expect(app.locator(".reasoning-map-lane h4")).toHaveText(["Main reasoning","Does reopening need another saved message?"]);
-  for(const [width,height,size] of [[1280,820,"wide"],[760,550,"compact"]]){await app.setViewportSize({width,height});for(const theme of ["dark","light"]){await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);await capture(app,"33-map-"+size+"-"+theme);}}
-  await app.getByRole("button",{name:"Keep each conversation with its saved message",exact:true}).click();
-  await expect(app.locator(".reasoning-step")).toContainText("Keep one writer and restore the recorded text.");
-  for(const theme of ["dark","light"]){await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);await capture(app,"33-decision-"+theme);await app.locator(".reasoning-evidence").scrollIntoViewIfNeeded();await capture(app,"33-evidence-"+theme);await app.locator("#work-browser-content").evaluate(node=>node.scrollTop=0);}
-  await app.getByRole("region",{name:"Related reasoning",exact:true}).getByRole("button",{name:"Inspect the installation result",exact:true}).click();await expect(app.getByRole("heading",{name:"Inspect the installation result",exact:true})).toBeFocused();
-  await app.getByRole("button",{name:"Back to previous step",exact:true}).click();await app.getByRole("button",{name:"Back to reasoning",exact:true}).click();
-  await app.getByLabel("Investigation",{exact:true}).selectOption("branch:storage");await capture(app,"33-investigation");await app.locator(".reasoning-investigation").getByRole("button",{name:"Step 41",exact:true}).first().click();await expect(app.getByRole("heading",{name:"Keep each conversation with its saved message",exact:true})).toBeFocused();await app.getByRole("button",{name:"Back to reasoning",exact:true}).click();await expect(app.getByLabel("Investigation",{exact:true})).toHaveValue("branch:storage");
 });

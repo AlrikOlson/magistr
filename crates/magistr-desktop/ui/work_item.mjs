@@ -1,4 +1,4 @@
-import { element,retainReading,saveReading } from "./work_dom.mjs";
+import { element,retainReading,saveReading,checklist } from "./work_dom.mjs";
 import { addressKey } from "./context.mjs";
 import { readState } from "./work_records.mjs";
 import { renderDocument } from "./transcript.mjs";
@@ -29,11 +29,7 @@ function renderItem(item,actions){
   for(const [index,section] of (record.content?.sections??[]).entries()){
     if(section.prose)article.append(documentPart(section.heading,section.prose,item.sections[index],record.id+":section:"+index,actions));
     else article.append(element("h4",section.heading));
-    if(section.list?.length){
-      const list=element("ul","","roadmap-checklist");
-      for(const entry of section.list){const row=element("li");if(entry.done!=null){const state=element("span",entry.done?"✓":"○","roadmap-checklist-state");state.setAttribute("role","img");state.setAttribute("aria-label",entry.done?"Completed":"To do");state.title=entry.done?"Completed":"To do";state.dataset.done=String(entry.done);row.append(state);}row.append(element("span",entry.text));list.append(row);}
-      article.append(list);
-    }
+    if(section.list?.length)article.append(checklist(section.list));
   }
   const requirements=element("section","","roadmap-requirements"),requirementsHead=element("header");requirementsHead.append(element("h4","Requirements"),element("span",String(record.acceptance.length),"work-record-count"));requirements.append(requirementsHead);
   const list=element("ol");

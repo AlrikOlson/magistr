@@ -1,7 +1,7 @@
 import { test,expect } from "./fixture.mjs";
 async function open(app){
   await app.getByRole("button",{name:"Review the release plan",exact:true}).click();
-  await app.getByRole("button",{name:"Work plan",exact:true}).click();
+  await app.getByRole("tab",{name:"Current and saved work",exact:true}).click();
   await expect(app.getByRole("heading",{name:"Prepare the desktop release",exact:true})).toBeVisible();
 }
 test("current work preserves its complete requirements and conversation draft",async({app})=>{
@@ -9,7 +9,7 @@ test("current work preserves its complete requirements and conversation draft",a
   await expect(app.locator(".work-tasks>li")).toHaveCount(3);
   await expect(app.locator("#work-browser-content")).toContainText("the previous build remains available");
   await app.keyboard.press("Escape");
-  await expect(app.getByRole("button",{name:"Work plan",exact:true})).toBeFocused();
+  await expect(app.getByRole("tab",{name:"Conversation",exact:true})).toBeFocused();
   await expect(app.locator("#draft")).toHaveValue("Keep the project list visible, and let me return to the same paragraph.");
 });
 test("work refresh follows owner revision and keeps stale records explicitly stale",async({app})=>{
@@ -85,7 +85,7 @@ test("saved work keeps its own tasks across new current work and deletion",async
 test("closed readers ignore late responses",async({app})=>{
   await app.getByRole("button",{name:"Review the release plan",exact:true}).click();
   await app.evaluate(()=>window.__fixture.handlers.read_workflow=args=>new Promise(resolve=>window.__fixture.finishRead=()=>resolve({address:args.address,revision:0,snapshot:window.__fixture.workflow})));
-  await app.getByRole("button",{name:"Work plan",exact:true}).click();
+  await app.getByRole("tab",{name:"Current and saved work",exact:true}).click();
   await expect(app.locator("#work-browser-state")).toHaveText("Reading work records…");
   await app.keyboard.press("Escape");
   await app.evaluate(()=>window.__fixture.finishRead());

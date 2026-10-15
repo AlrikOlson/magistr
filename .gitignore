@@ -57,9 +57,10 @@ vendor/
 # Public visual assets are reviewed source material, not disposable build output.
 !docs/assets/**/*.png
 !apps/website/public/**/*.png
-# Versioned screenshots; exclude unreviewed candidates
+# Versioned screenshots; iteration review status is recorded beside each capture
 !docs/evidence/desktop-current/*.png
 !docs/evidence/desktop-layout/*.png
+!docs/evidence/desktop-iterations/**/*.png
 !crates/magistr-desktop/ui/icon.png
 .magistr/desktop-native/
 .magistr/desktop-native-driver

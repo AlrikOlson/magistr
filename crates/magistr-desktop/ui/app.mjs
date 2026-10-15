@@ -84,7 +84,7 @@ const showProjectMap=map=>{
   $("projects-list-view").setAttribute("aria-pressed",String(!map));$("projects-map-view").setAttribute("aria-pressed",String(map));
 };
 const atlas=new ProjectAtlas($("project-atlas"),{
-  select:address=>select(address).catch(showError),open:openDirectory,
+  select:address=>select(address).catch(showError),work:openProjectWork,open:openDirectory,
   label:session=>session.conversation?.name??("Conversation "+labels.get(session.address.session)),
   list:()=>{showProjectMap(false);$("projects-list-view").focus();}
 });
@@ -98,7 +98,7 @@ for(const choice of document.querySelectorAll("[data-appearance-choice]"))choice
 $("settings").onclose=()=>$("open-settings").focus();
 $("agent-quick-settings").onclick=()=>{layout.show(true,true);$("agent-configuration").querySelector("select")?.focus();};
 $("close-details").onclick=()=>{layout.show(false);$("toggle-details").focus();};
-$("copy-summary").onclick=()=>{layout.show(true);$("working-copy").focus();};
+$("copy-summary").onclick=()=>{workBrowser.close(false);layout.show(true);$("working-copy").focus();};
 $("work-summary").onclick=()=>{layout.show(true);$("work-title").focus();};
 $("review-requests").onclick=()=>{layout.show(true);$("requests").querySelector(".request")?.focus();};
 $("conversation-actions").addEventListener("click",event=>{if(event.target.closest("button"))$("conversation-actions").open=false;});
@@ -142,8 +142,8 @@ function renderRail() {
   $("directory-empty").textContent=query.trim()?"No projects match your search.":"No projects yet. Choose a folder to get started.";
   $("sessions-empty").hidden=projects.length>0||sessions.length>0;
   if(selected){
-    const name=sessions.find(session=>session.address.session===selected.session)?.name??"Project";
-    $("project-name").textContent=name;
+    const name=projects.find(project=>String(project.id)===String(selected.project))?.name||sessions.find(session=>session.address.session===selected.session)?.name||"Project";
+    $("project-name").textContent=name;$("project-name").title=name;
   }
   for(const id of labels.keys())if(!sessions.some(session=>session.address.session===id))labels.delete(id);
   const waiting=sessions.flatMap(session=>session.pending.map(request=>({session,request})));

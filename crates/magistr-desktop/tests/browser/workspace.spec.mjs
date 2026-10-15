@@ -1,4 +1,5 @@
 import { test, expect, root, ui, workspaceSeed } from "./fixture.mjs";
+import { prepareIteration } from "./iteration_evidence.mjs";
 import { workScene } from "./work_fixture.mjs";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { resolve, relative } from "node:path";
@@ -7,16 +8,18 @@ import { sourceFolioScene, tableScene, patchScene, toolScene, outlineScene, edit
 
 test("workspace composition, appearances and narrow Details",async({app,browser})=>{
   test.setTimeout(60000);
-  const evidence=resolve(root,".magistr/desktop-layout");
+  const iteration=process.env.MAGISTR_GUI_ITERATION??new Date().toISOString().replace(/[:.TZ]/g,"-");
+  const evidence=resolve(await prepareIteration(root,iteration),"gallery");
   await mkdir(evidence,{recursive:true});
   const images={},viewports={},checks={};
   const capture=async name=>{
     await app.mouse.move(0,0);
     await app.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
-    const bytes=await app.screenshot({path:resolve(evidence,name),animations:"disabled"});
+    const bytes=await app.screenshot({animations:"disabled"});
+    await writeFile(resolve(evidence,name),bytes,{flag:"wx"});
     images[name]=createHash("sha256").update(bytes).digest("hex");viewports[name]=app.viewportSize();
   };
-  await expect(app.locator("#welcome-projects")).toContainText("/Projects/magistr");
+  await expect(app.locator(".directory-path").first()).toHaveValue("/Projects/magistr");
   await expect(app.getByRole("button",{name:"Choose a folder…",exact:true})).toBeVisible();
   await expect(app.locator(".directory-project-facts").first()).toContainText("Waiting for you");
   await expect(app.locator(".directory-project-facts").first().locator("dd")).toHaveText(["2","1"]);
@@ -361,7 +364,7 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
     const file=resolve(ui,name);
     sources[relative(root,file)]=createHash("sha256").update(await readFile(file)).digest("hex");
   }
-  for(const name of ["playwright.config.mjs","tauri.conf.json","tests/browser/fixture.mjs","tests/browser/workspace.spec.mjs","tests/browser/design_scenes.mjs","tests/browser/work_fixture.mjs","tests/browser/roadmap_fixture.mjs","tests/browser/reasoning_fixture.mjs","tests/browser/feedback_fixture.mjs"]) {
+  for(const name of ["playwright.config.mjs","tauri.conf.json","tests/browser/fixture.mjs","tests/browser/workspace.spec.mjs","tests/browser/iteration_evidence.mjs","tests/browser/design_scenes.mjs","tests/browser/work_fixture.mjs","tests/browser/roadmap_fixture.mjs","tests/browser/reasoning_fixture.mjs","tests/browser/feedback_fixture.mjs"]) {
     const file=resolve(root,"crates/magistr-desktop",name);
     sources[relative(root,file)]=createHash("sha256").update(await readFile(file)).digest("hex");
   }
@@ -369,5 +372,5 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
     renderer:"headless WebKit",version:browser.version(),captured_at:new Date().toISOString(),
     scope:"Production desktop HTML, CSS and JavaScript with isolated observation fixtures; no native OS input or Rust owner integration.",
     checks,source_hashes:sources,images,viewports,
-  },null,2)+"\n");
+  },null,2)+"\n",{flag:"wx"});
 });

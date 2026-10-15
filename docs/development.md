@@ -95,9 +95,12 @@ Cancel, setup review and compact folder entry, and writes captures and source
 hashes to `.magistr/desktop-project-opening`. It complements Playwright's WebKit
 build; neither test establishes native keyboard input or Tauri command integration.
 
-The workspace scenario writes captures and a source-bound receipt under
-`.magistr/desktop-layout`. Inspect intended visual changes before copying the
-captures and receipt into `docs/evidence/desktop-layout` and updating its review.
+The workspace scenario writes captures and a source-bound receipt directly under
+`docs/evidence/desktop-iterations/<iteration>/gallery/`. Set `MAGISTR_GUI_ITERATION`
+to a new dated folder, or let the gallery create a timestamped folder. Existing
+images cannot be overwritten. Open the archived images and record each review
+there before promoting accepted captures to `docs/evidence/desktop-layout` and
+updating its review.
 `./scripts/screenshot-gate.sh` checks current background layout evidence,
 contrast, icon, module index, and integrity of retained native evidence.
 

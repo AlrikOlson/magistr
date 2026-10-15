@@ -8,7 +8,7 @@ test("activity retains full authored content and artifacts delegate safe links",
     Object.defineProperty(navigator,"clipboard",{configurable:true,value:{writeText:async value=>{window.__copied=value;}}});
     fixture.handlers.open_link=()=>{};
   });
-  await app.getByRole("button",{name:"Work plan",exact:true}).click();
+  await app.getByRole("tab",{name:"Current and saved work",exact:true}).click();
   const activity=app.locator(".work-activity").first();await activity.locator("summary").click();
   await expect(activity).toContainText("Complete ending");
   await expect(activity).toContainText("Files mentioned");

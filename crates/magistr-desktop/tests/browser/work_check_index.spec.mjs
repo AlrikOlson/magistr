@@ -1,5 +1,5 @@
 import {test,expect} from "./fixture.mjs";
-async function open(app){await app.getByRole("button",{name:"Review the release plan",exact:true}).click();await app.getByRole("button",{name:"Work plan",exact:true}).click();await app.getByRole("radio",{name:"Checks",exact:true}).check();}
+async function open(app){await app.getByRole("button",{name:"Review the release plan",exact:true}).click();await app.getByRole("tab",{name:"Current and saved work",exact:true}).click();await app.getByRole("radio",{name:"Checks",exact:true}).check();}
 test("check index preserves attempts, task context and complete copied output",async({app})=>{
   await open(app);await expect(app.locator(".work-check")).toHaveCount(3);await expect(app.locator(".work-check-index")).toContainText("3 recorded check attempts");
   await app.getByLabel("Check results",{exact:true}).selectOption("failed");await expect(app.locator(".work-check")).toHaveCount(1);
