@@ -123,12 +123,13 @@ export const test=base.extend({
       if(url.origin!=="http://magistr.test"){await route.abort();return;}
       const file=resolve(ui,url.pathname==="/"?"index.html":"."+url.pathname);
       if(!file.startsWith(ui+"/")){await route.abort();return;}
-      const types={".html":"text/html",".css":"text/css",".mjs":"text/javascript",".png":"image/png"};
+      const types={".html":"text/html",".css":"text/css",".mjs":"text/javascript",".png":"image/png",".woff2":"font/woff2"};
       await route.fulfill({body:await readFile(file),contentType:types[extname(file)]??"text/plain"});
     });
     await page.addInitScript(install,workspaceSeed());
     await page.goto("http://magistr.test");
     await expect(page.locator("html")).toHaveAttribute("data-theme","dark");
+    await page.evaluate(()=>document.fonts.ready);
     await use(page);
     expect(errors).toEqual([]);
   },
