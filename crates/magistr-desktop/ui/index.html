@@ -23,11 +23,11 @@
 <main>
   <header class="work-header">
     <div class="work-heading"><p id="project-name">Magistr</p><h1 id="view-title" tabindex="-1">Your workspace</h1></div>
-    <div class="header-actions"><p id="status" role="status" aria-live="polite">Ready</p><button id="toggle-details" aria-controls="session-detail" aria-expanded="false" hidden>Details</button><details id="conversation-actions" class="header-menu" hidden><summary id="conversation-menu-trigger" aria-label="Conversation actions">···</summary><div class="header-menu-actions"><button id="rename-conversation">Rename conversation</button><button id="copy" disabled>Copy conversation</button><button id="reconnect" disabled hidden>Reconnect</button><button id="close-session" class="destructive" disabled>Close conversation</button></div></details></div>
+    <div class="header-actions"><p id="status" role="status" aria-live="polite">Ready</p><button id="toggle-details" data-leading-icon="panel" aria-controls="session-detail" aria-expanded="false" hidden>Details</button><details id="conversation-actions" class="header-menu" hidden><summary id="conversation-menu-trigger" aria-label="Conversation actions">···</summary><div class="header-menu-actions"><button id="rename-conversation">Rename conversation</button><button id="copy" disabled>Copy conversation</button><button id="reconnect" disabled hidden>Reconnect</button><button id="close-session" class="destructive" disabled>Close conversation</button></div></details></div>
   </header>
   <nav id="conversation-toolbar" class="conversation-toolbar" aria-label="Conversation controls" hidden>
-    <button id="copy-summary" aria-controls="session-detail" title="Choose a working copy"></button>
-    <div class="context-actions"><button id="review-requests" aria-controls="requests" hidden></button><button id="work-summary" aria-controls="work">Planned work</button></div>
+    <button id="copy-summary" data-leading-icon="branch" aria-controls="session-detail" title="Choose a working copy"></button>
+    <div class="context-actions"><button id="review-requests" data-leading-icon="shield" aria-controls="requests" hidden></button><button id="work-summary" data-leading-icon="clock" aria-controls="work">Planned work</button></div>
   </nav>
   <p id="error" class="error" role="alert" hidden></p>
   <section id="welcome" class="welcome" aria-label="Open a project">
