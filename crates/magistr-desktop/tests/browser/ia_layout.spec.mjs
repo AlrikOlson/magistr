@@ -268,3 +268,13 @@ test("28 shared dialog surfaces retain their themed frame",async({app})=>{
   await app.evaluate(()=>window.__fixture.publish("release",{attachments:[{id:"image",name:"icon.png",size:32768,path:"ui/icon.png",content_hash:"image",preview:"http://magistr.test/icon.png"}],draft_revision:2,draft_saved_revision:2}));
   await app.getByRole("button",{name:"View icon.png",exact:true}).click();await shot("viewer");await app.keyboard.press("Escape");
 });
+test("29 finder results keep current status beside the title and preserve keyboard selection",async({app})=>{
+  await app.getByRole("button",{name:"Review the release plan",exact:true}).click();await app.setViewportSize({width:760,height:550});
+  await app.getByRole("button",{name:"Find a conversation",exact:true}).click();
+  const row=app.locator('#switch-results button[aria-current="true"]');const title=await row.locator("strong").boundingBox(),current=await row.locator(".switch-current").boundingBox();expect(Math.abs(title.y-current.y)).toBeLessThan(8);
+  await expect(app.locator(".switch-group header>span").first()).toHaveText("2");
+  for(const theme of ["dark","light"]){await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);await capture(app,"29-finder-"+theme);}
+  await app.getByRole("searchbox",{name:"Find an open conversation",exact:true}).fill("sync");
+  await expect(app.locator("#switch-results mark")).toHaveText("sync");await app.locator("#switch-search").press("ArrowDown");await app.keyboard.press("Enter");
+  await expect(app.locator("#switch-picker")).toBeHidden();await expect(app.locator("#view-title")).toHaveText("Investigate sync failure");
+});
