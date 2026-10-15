@@ -17,6 +17,8 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
   };
   await expect(app.locator("#welcome-projects")).toContainText("/Projects/magistr");
   await expect(app.getByRole("button",{name:"Choose a folder…",exact:true})).toBeVisible();
+  await expect(app.locator(".directory-project-facts").first()).toContainText("Waiting for you");
+  await expect(app.locator(".directory-project-facts").first().locator("dd")).toHaveText(["2","1"]);
   await capture("welcome-dark.png");
   await app.getByRole("button",{name:"Settings",exact:true}).click();
   await app.getByLabel("Appearance",{exact:true}).selectOption("light");
