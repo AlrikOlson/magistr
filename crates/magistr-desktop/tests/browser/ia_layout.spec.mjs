@@ -235,3 +235,12 @@ test("25 requests keep the choices beside bounded complete details",async({app})
   await request.getByRole("button",{name:"Allow once",exact:false}).click();
   expect(await app.evaluate(()=>window.__fixture.calls.filter(call=>call.command==="session_action").at(-1).args.target.address.session)).toBe("sync");
 });
+test("26 authored messages preserve readable content in a denser layout",async({app})=>{
+  await app.getByRole("button",{name:"Review the release plan",exact:true}).click();await app.setViewportSize({width:760,height:550});await app.locator("#transcript").evaluate(node=>node.scrollTop=0);
+  const prompt=app.getByRole("article",{name:"You",exact:true});expect((await prompt.boundingBox()).height).toBeLessThan(150);
+  await expect(prompt).toContainText("Focus on what someone needs during a long working session.");expect(await app.locator(".message-body h2").evaluate(node=>parseFloat(getComputedStyle(node).fontSize))).toBeLessThanOrEqual(24);
+  for(const theme of ["dark","light"]){await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);await capture(app,"26-messages-"+theme);}
+  await app.evaluate(()=>Object.defineProperty(navigator,"clipboard",{configurable:true,value:{writeText:async text=>window.__copied=text}}));await prompt.getByRole("button",{name:"Copy message",exact:true}).click();
+  expect(await app.evaluate(()=>window.__copied)).toContain("Focus on what someone needs during a long working session.");
+  await app.setViewportSize({width:1280,height:820});await app.locator("#transcript").evaluate(node=>node.scrollTop=0);await capture(app,"26-messages-wide");
+});
