@@ -149,7 +149,7 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
   await app.setViewportSize({width:800,height:680});
   await app.getByRole("button",{name:"New conversation",exact:true}).click();
   await app.getByRole("button",{name:"Choose a model…",exact:true}).click();
-  await app.getByLabel("Model for this conversation",{exact:true}).selectOption("sonnet");
+  await app.getByRole("radio",{name:"Claude Sonnet",exact:true}).check();
   await capture("new-conversation-narrow-light.png");
   checks["new conversation exposes destination, agents and optional model choice"]=true;
   await app.getByRole("button",{name:"Cancel",exact:true}).click();

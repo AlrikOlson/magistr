@@ -1,5 +1,5 @@
 {
-  "receipt": "4493c1106a849a7c7700868aa39efd0ee419cb501feb62e02586a53f028517ac",
+  "receipt": "46174a38370d2e01c22787ce1fea38096c0e6b16462d32b49de00326d8e91397",
   "images": {
     "welcome-dark.png": "fa0bb2c36a671c5e08dba931c55cda81c8fdf959ab927aacaa1ff7aa5194bddc",
     "welcome-light.png": "c1adcd1c321a6da7d82c2a3f9ba9ddae55484c9a3f79799b8793f287cf11b30a",
@@ -23,8 +23,8 @@
     "setup-narrow-light.png": "5d4fc6f737e28ba262a9953d5d2e23e43c181f93c741f3757b0cd3566b7ed045",
     "open-project-dark.png": "078f6a3b4c3969ac4233905da30c3cf4187265e7131815031a18bea4b92f39cf",
     "setup-dark.png": "342171b3aef766854654e698c330af893289916b68a5da9ef34661b736bfe84b",
-    "new-conversation-dark.png": "67cac4fefd082337d247ccd08a9704871801622044ab6cb0d96827e3c04c7d4d",
-    "new-conversation-narrow-light.png": "15780cc3bb87a45d1600be1fb4009c61da50e72974b8892e070206d971469722",
+    "new-conversation-dark.png": "d57e1dc468dc4550adba9788f0cda5b0e94ebe1486cab6eb351f05d570551d06",
+    "new-conversation-narrow-light.png": "aa1735619fd73f98f583ec44bc45069913f2faba090f7591684280c9e93aee34",
     "find-conversation-narrow-light.png": "c0a2cdc06094f6e0e322d0fa6024f81c1ed1608d9a01f056dee38660ac2c0fe7",
     "find-conversation-dark.png": "c68c6eafcc14f89b719995d0c47cd0cfd7b9067235dd804f86621ac0f5600b6b",
     "reading-dark.png": "5580260a818f905348741fef312dbf654fd13da03000b486fc32c1197210fbeb",
@@ -52,7 +52,7 @@
     "tables-dark.png": "b4b15fdb62cd17325c8e700f04b4b5c441c91e3146204775683c8b46c343ebfd",
     "tables-light.png": "b0ae433219af44bd1983f44276172defb0083894d7d69cea6636614df28d1a68",
     "tables-compact.png": "2af09a757fc67686e3864030f61a5125a878d80cac6c5e6fc1e7103f3c5a4267",
-    "patch-dark.png": "8b1c68c6858b35f47a750ebd778905620a75b42b704eda297bf18c3b26e8d3bb",
+    "patch-dark.png": "79fb50bc49f50cdb9cd876bf6f8e6eb32fed0b5e9f0d8f82eb02a8d9fc9fa517",
     "patch-light.png": "f8e8337c97bca88b300be69cddf8a07fa05749ae599e097031c9e7eb7cd537f8",
     "patch-compact.png": "6301fd1330aa31cf7a4d685c383239efc8988ce9e0ab3309bb60c50e9cfee460",
     "result-dark.png": "9ccc32fcc570cdca6d6b00dbe1a3ae03a0a6cfcd10a5c3feef8e6ea344d06766",
@@ -81,8 +81,8 @@
   },
   "reviewed_on": "2026-10-15",
   "findings": [
-    "Permission review now separates the request heading, exact source document and equally weighted answer grid.",
-    "Reviewed structured request fields in dark and light, plus the four-choice compact composition. Exact-copy and addressed Deny behavior pass.",
-    "Structured source rendering is shared with tool output in source_details.mjs; it retains bounded parsing and original-text disclosure. Empty structures use valid non-list markup."
+    "Agent and model choices now sit in parallel visual columns; actual discovered models use native radio choices with complete names.",
+    "Reviewed dark agent selection and compact light model selection. The fixed start/cancel footer remains reachable while long choices scroll.",
+    "Discovery, stale results, refusal recovery and single admission tests pass with the new radio choice surface."
   ]
 }
