@@ -1,0 +1,78 @@
+{
+  "scope": "Clarify investigation selection and search",
+  "limitations": "Headless WebKit with isolated observations. Native OS input, assistive technology and Rust command integration were not exercised.",
+  "images": {
+    "reasoning--investigation-compact-dark.png": {
+      "sha256": "720236c27758a70577e445f582270df9f0faae461f6da9a38343412c4f2cd05e",
+      "task": "Choose an investigation and find reasoning while preserving the graph area.",
+      "observations": "Reasoning and Investigation labels remain visible alongside selectors in one row. The compact native select shortens the long chosen name, while the complete investigation title is readable above the 100% node; origin and conclusion links remain clear.",
+      "verdict": "pass"
+    },
+    "reasoning--investigation-compact-light.png": {
+      "sha256": "66601837a3ffcd96f3971201a39ee16cd038dfdca44d01dcb58e363944091bce",
+      "task": "Choose an investigation and find reasoning while preserving the graph area.",
+      "observations": "Reasoning and Investigation labels remain visible alongside selectors in one row. The compact native select shortens the long chosen name, while the complete investigation title is readable above the 100% node; origin and conclusion links remain clear.",
+      "verdict": "pass"
+    },
+    "reasoning--investigation-desktop-dark.png": {
+      "sha256": "79920d1dba90016b3e6587fa0629d7a7abe0d1c7cdc0b4ffaea6a973ad5d7ca0",
+      "task": "Choose an investigation and find reasoning while preserving the graph area.",
+      "observations": "Reasoning and Investigation labels remain visible alongside selectors in one row. The compact native select shortens the long chosen name, while the complete investigation title is readable above the 100% node; origin and conclusion links remain clear.",
+      "verdict": "pass"
+    },
+    "reasoning--investigation-desktop-light.png": {
+      "sha256": "1e74cc98f86b7d4cdb1cb646b15ee56a0b3c2646ca81f0cf76da19ede0697c3c",
+      "task": "Choose an investigation and find reasoning while preserving the graph area.",
+      "observations": "Reasoning and Investigation labels remain visible alongside selectors in one row. The compact native select shortens the long chosen name, while the complete investigation title is readable above the 100% node; origin and conclusion links remain clear.",
+      "verdict": "pass"
+    },
+    "reasoning--overview-compact-dark.png": {
+      "sha256": "331680b9d9fd73d4e82025dfdd5d9e46be2b5bf9d75f0a9227385bedf5080a5c",
+      "task": "Choose an investigation and find reasoning while preserving the graph area.",
+      "observations": "The two labeled selectors and search field fit one row at desktop and compact sizes. Both 100% reasoning nodes and their opposing investigation/conclusion arrows remain readable with clear attachment points.",
+      "verdict": "pass"
+    },
+    "reasoning--overview-compact-light.png": {
+      "sha256": "dd49d9bedf50e02eb6c4f58853a6097261993502c660a195d450ab162cb0d0ad",
+      "task": "Choose an investigation and find reasoning while preserving the graph area.",
+      "observations": "The two labeled selectors and search field fit one row at desktop and compact sizes. Both 100% reasoning nodes and their opposing investigation/conclusion arrows remain readable with clear attachment points.",
+      "verdict": "pass"
+    },
+    "reasoning--overview-desktop-dark.png": {
+      "sha256": "dae017cefda7be26941cebbdd6ad3e8b67b1bd78eb0fbac51fe314181358d22d",
+      "task": "Choose an investigation and find reasoning while preserving the graph area.",
+      "observations": "The two labeled selectors and search field fit one row at desktop and compact sizes. Both 100% reasoning nodes and their opposing investigation/conclusion arrows remain readable with clear attachment points.",
+      "verdict": "pass"
+    },
+    "reasoning--overview-desktop-light.png": {
+      "sha256": "10564479b64ddbc8962e2deddb9c6853c4594248063665ef50fcb3e49c670620",
+      "task": "Choose an investigation and find reasoning while preserving the graph area.",
+      "observations": "The two labeled selectors and search field fit one row at desktop and compact sizes. Both 100% reasoning nodes and their opposing investigation/conclusion arrows remain readable with clear attachment points.",
+      "verdict": "pass"
+    },
+    "reasoning--search-compact-dark.png": {
+      "sha256": "3b8ca2606c453e37a901c8737cefe2f1dfae2cb71f2359e5485f03a7a2af8b7d",
+      "task": "Choose an investigation and find reasoning while preserving the graph area.",
+      "observations": "Search occupies one compact row with a visible query and clear control. The installation result is readable below its count and heading, with no clipped text or overlapping focus outline.",
+      "verdict": "pass"
+    },
+    "reasoning--search-compact-light.png": {
+      "sha256": "3e65622559bb808929958145427d185fa9df1ee2361c55a4160c05947df00359",
+      "task": "Choose an investigation and find reasoning while preserving the graph area.",
+      "observations": "Search occupies one compact row with a visible query and clear control. The installation result is readable below its count and heading, with no clipped text or overlapping focus outline.",
+      "verdict": "pass"
+    },
+    "reasoning--search-desktop-dark.png": {
+      "sha256": "5d090870371bbb9d191a264ee0e55ba10d4e7d6119c8f9530f66fcdac3456bf5",
+      "task": "Choose an investigation and find reasoning while preserving the graph area.",
+      "observations": "Search occupies one compact row with a visible query and clear control. The installation result is readable below its count and heading, with no clipped text or overlapping focus outline.",
+      "verdict": "pass"
+    },
+    "reasoning--search-desktop-light.png": {
+      "sha256": "73dab4cd8cce92f8f3a391f3cfb24739aeb44ceab532327502ee0d000bdb53be",
+      "task": "Choose an investigation and find reasoning while preserving the graph area.",
+      "observations": "Search occupies one compact row with a visible query and clear control. The installation result is readable below its count and heading, with no clipped text or overlapping focus outline.",
+      "verdict": "pass"
+    }
+  }
+}

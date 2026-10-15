@@ -164,3 +164,9 @@
 #work-roadmap-search .work-filter{grid-template-columns:auto minmax(0,1fr);align-items:center;gap:6px}
 #work-roadmap-search .work-filter>label{position:absolute;clip-path:inset(50%);width:1px;height:1px;overflow:hidden}
 #work-roadmap-search .work-search-field{grid-column:1/-1}
+#work-reasoning-selection{flex:1 1 460px}
+#work-reasoning-selection .work-filter{grid-template-columns:auto minmax(0,1fr);align-items:center;gap:6px}
+#work-reasoning-selection .work-filter>label{position:static;clip-path:none;width:auto;height:auto;overflow:visible;font-size:11px}
+#work-reasoning-selection .work-filter:first-child{flex:0 1 210px}
+#work-reasoning-search{flex:1 1 200px}
+#work-reasoning-search .work-filter>label{position:absolute;clip-path:inset(50%);width:1px;height:1px;overflow:hidden}
