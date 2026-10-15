@@ -1,28 +1,28 @@
 {
-  "receipt": "4630dfa2561ea5673fadd97b17293bfa2005adf4b4756d827dd353bf9aebf1e9",
+  "receipt": "bc27b6954fdc9c9ec92644b364ff2991475ce7ebe4e50115b1b44b155b2ff650",
   "images": {
-    "welcome-dark.png": "d182278e0cae1d3b17fc4002e9a229961be62d3b5e980bf65850712d52337a4f",
-    "workspace-dark.png": "1a9719f22b73eac90b47bdb0255fa85cfb38c9f2c7edd1434183c8307d6a750e",
-    "settings-light.png": "37d7c30603de469a95dc84fdcdb0e536eebf001f361926885a33722fbd1f502b",
-    "workspace-light.png": "d707f9ad3a60a872eb2f3b11a65bd9677de9f3054a51c1327756b7ba6d9cf8fe",
-    "workspace-narrow.png": "4a81911343896b8ae7e01244ba092cd34ff647ddfa684c4c925282ff64df8ddb",
-    "details-narrow.png": "ec3875d6cc1b318d72516ea86fe9ea1225fb309673f989cc4d5efd26b238db7c",
-    "rename-light.png": "165784442946989758209120a45eab9e3fd1e651ef584810b361651e69bc2252",
-    "work-paused-dark.png": "b71058373109b4749bfab7fa2129eb890df86a96061136db9f178aab6c891ff3",
-    "history-dark.png": "deb3627142c8d601fb9c019bfe1dcc7c517a0fd7a489cfda252c094ebda07b12",
-    "history-narrow-light.png": "c3c57365fe68665af9c24ccec9dc0732f3dc24b0ed3287a81b85fb66374cf5e4",
-    "setup-narrow-light.png": "6ed0ecba20b4d72dbfe183f448491f0ceeccfb2425e2058783e9bd89c8a65220",
-    "open-project-dark.png": "80f886edf1451d2d01d906be5ef09661f727d5edf8e588546d94ba66fa027204",
-    "setup-dark.png": "b1290f7ffa90449ad4d637d9ab67cf3e296f98b2a2f712bc254414bbf8b327d9",
-    "new-conversation-dark.png": "b7e39b80547a01319f79597676f82d3b33ffe18c19cfe6ed6b2be46108b6a711",
-    "new-conversation-narrow-light.png": "91877c63856751ec2cde05102ec31fad8d458fff1f41dbf08d011f001b49876a",
-    "find-conversation-narrow-light.png": "d4b1c1a7caf74724640bc13b5c5af574a57dde671d87f0046b33816745507bf2",
-    "find-conversation-dark.png": "a9158fed3d845b7ca5b7501df82f7f02c89021c16eada4e0c8db9303fa0cfc24"
+    "welcome-dark.png": "2dd25326fb4d53d3dc502391c4b54560b514b36266075d4f4fb08886726ada70",
+    "workspace-dark.png": "b3498aa1a56f9d0c9dca8a5c2569eb5c023d411a98e49afb70367c7c083401f2",
+    "settings-light.png": "3698886b38d2f62f15d386566726bb49658a1a27756df22ca33374601cd335fe",
+    "workspace-light.png": "cf8d00ba749e38cc2cb6a8ac2aaaf3661629c4f4bf7ac5e437067cf52ca98c58",
+    "workspace-narrow.png": "fa505105191b162b3de7d062834c231b88adc788fc19ddff6ac7d876f9661865",
+    "details-narrow.png": "5fe68218d91cba9a0276dd008a79f9886f02825faeb5b3e2126d92f40422615e",
+    "rename-light.png": "ae2166d39d487d4310beeff88dce6181b362b6ca76eba1a4a53dd9aa433bfabc",
+    "work-paused-dark.png": "178ffeed41296ef646608ccfe32dd98bb8aeb60de1b025a5a6393342d034331d",
+    "history-dark.png": "5a52dd3dea300e6b7ed7ecf712dc4212498de1486da3d38fa62bf8cb91e547a4",
+    "history-narrow-light.png": "93873f17006014750408e475be51c6a62c81b1f438b4e480eadfe29f2e420284",
+    "setup-narrow-light.png": "3f758a7e7332f79d33d64e71cdd7779bcc991924faf3dabd54d918ed36c7a59f",
+    "open-project-dark.png": "5cfdc33fd6ce011c483d29cfa3d9a17bb10e469b7b51260048f90a57e36f6ecb",
+    "setup-dark.png": "7896940baeff7492275d7825760c2f7d550069966193cacb8adf34122f757e8d",
+    "new-conversation-dark.png": "31bc008fa92a4640bbfbacb6f93ff4bab4297aade9aa8c1072ee9cb63ef701bf",
+    "new-conversation-narrow-light.png": "3bec27058c1d1aecc6916bbd360dff01a48c8a637604bc7072e8a569b8a4de91",
+    "find-conversation-narrow-light.png": "603ab8625a0f9e1797f43d065c377bb188e2d0ea48d66b1ffb8a11bcb2971375",
+    "find-conversation-dark.png": "73a9fce21c327504368b01c432b5a0c1e4c155bb7614dcfa567150221b27495e"
   },
   "reviewed_on": "2026-10-15",
   "findings": [
-    "Inspected wide dark and compact light captures. Amber request cards separate conversation name and requested action, while selection remains violet.",
-    "Existing catalog data drives request/disconnection counts and live status colors. Three focused WebKit scenarios pass.",
+    "Inspected wide dark and compact light conversation headers. The larger title, quiet project breadcrumb, branch control and icon-labelled context actions establish a clear reading order.",
+    "Composition and the separate context-action scenarios verify details, request navigation and naming behavior.",
     "Production headless WebKit only; native input, IME, OS dialogs, VoiceOver and Windows verification were not run."
   ]
 }
