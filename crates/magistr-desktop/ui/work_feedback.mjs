@@ -1,5 +1,6 @@
 import {element} from "./work_dom.mjs";
 import {pageControls} from "./work_search.mjs";
+import {filterFeedback} from "./work_feedback_search.mjs";
 import {feedbackResearch} from "./work_feedback_research.mjs";
 import {prose} from "./work_prose.mjs";
 export const feedbackStatus={new:"New",triaged:"Reviewed",researched:"Researched",surfaced:"Raised for review",promoted:"Added to roadmap",dismissed:"Dismissed"};
@@ -22,7 +23,7 @@ export function feedbackDetail(record,actions){
 }
 export class FeedbackBrowser{
   constructor(root,changed,copy,openLink){this.root=root;this.changed=changed;this.actions={copy,openLink};this.reset();}
-  reset(){this.id=null;this.page=0;}
+  reset(){this.id=null;this.page=0;this.query="";this.kind="all";this.status="all";}
   open(id){this.originScroll=this.root.scrollTop;this.id=id;this.changed();this.root.scrollTop=0;this.root.querySelector("h3")?.focus({preventScroll:true});}
   back(){const id=this.id;this.id=null;this.changed();this.root.scrollTop=this.originScroll;[...this.root.querySelectorAll("[data-feedback-id]")].find(node=>node.dataset.feedbackId===id)?.focus({preventScroll:true});}
   render(records){
@@ -31,6 +32,7 @@ export class FeedbackBrowser{
       const back=element("button","Back to feedback");back.dataset.focusKey="feedback-back";back.onclick=()=>this.back();article.append(back);
       const record=records.find(record=>record.id===this.id);article.append(record?feedbackDetail(record,this.actions):element("h3","This feedback is no longer available."));return article;
     }
+    records=filterFeedback(records,this);
     article.append(element("h3","Feedback","roadmap-track-title"));
     const pages=pageControls(records.length,this.page,page=>{this.page=page;this.changed();this.root.scrollTop=0;});article.append(pages.nav);
     const list=element("ol","","roadmap-items");
@@ -38,6 +40,6 @@ export class FeedbackBrowser{
       const row=element("li"),button=element("button",feedbackTitle(record),"roadmap-item-open");button.dataset.feedbackId=record.id;button.dataset.focusKey="feedback:"+record.id;button.onclick=()=>this.open(record.id);
       row.append(button,element("span",feedbackKind[record.kind]+" · "+feedbackStatus[record.status]+" · "+record.from,"roadmap-item-state"));list.append(row);
     }
-    article.append(records.length?list:element("p","No feedback has been saved."));return article;
+    article.append(records.length?list:element("p",this.query.trim()||this.kind!=="all"||this.status!=="all"?"No feedback matches these filters.":"No feedback has been saved."));return article;
   }
 }

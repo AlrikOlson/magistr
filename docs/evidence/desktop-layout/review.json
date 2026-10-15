@@ -1,5 +1,5 @@
 {
-  "receipt": "f409621403bbe4297d5da0cb52ad75c692da8db7e87ff3f7701780c9299cc1c1",
+  "receipt": "0f8ec31e85184a917d5474769c3becd08ffbf8ddf26ef0fda0d38b4a2e79e408",
   "images": {
     "welcome-dark.png": "196f05ebfbcfdacf73fe8a82ad187b73837dfd801f2a1e47c59f5c0863f9b216",
     "project-map-dark.png": "9bfb53f79bb4c5bc20d428239f65e12e83ca95825579c550ca0c522b2cdf9efe",
@@ -29,9 +29,10 @@
     "reasoning-related-dark.png": "19d7cf5e4257edb9802005c671b12bd90ba7b05d01c8c129b1ac501a76130c57",
     "reasoning-investigation-dark.png": "c77582caebed9f6d060292aab3155b5ac881b659aa311e3a623459aa58577a06",
     "reasoning-search-dark.png": "01bb67300f3e1846e458554d845978a797c2a968b74d8a88955e8e2d339b57b8",
-    "feedback-dark.png": "a2765a687c7cd083228f627b1af536fc7541dfe4a6a055c7c45c0ac3af7a3d47",
-    "feedback-detail-dark.png": "4bcd79bf388f6fd4f37c6ae05297d63651ca8c43e92a73784f5f51aeb63a1cb0",
-    "feedback-research-dark.png": "48707132b0e99db39a46639d634c2486bc2d670c6aa193d03b2ca721864db7a9",
+    "feedback-dark.png": "3198cad042d705d1daec6b54bb8a03d78a167e4ccb3e5b9fbeca8984464722cc",
+    "feedback-detail-dark.png": "bd2eadb97907b998541632601a38828652ea59c8d1f26180afa60fdb71d1fed7",
+    "feedback-research-dark.png": "f6f17d43dfe6434acbea737d557f14eb4bf47b1aa4c2c091e55163715fd52b1d",
+    "feedback-search-dark.png": "3724588eeb00e63f8d8c8e436f67b13ad51d3111530d414461f735a717254369",
     "work-check-results-dark.png": "9e2d055308a823d3a6d37491df164814a95a1e9864f1b8a5c2754bc277f2221a",
     "work-activity-dark.png": "bccbdf70016a5b774a16c853b17805351404c14daef042a79f218f7eac4ad7aa",
     "saved-work-dark.png": "6e1f82985f535d619d3ce57cbeb5f9af01ba02d695d5d68039aefed0b0e4cc16",
@@ -123,8 +124,8 @@
     "workspace-compact-long-title.png": "5a9d1fe895fa847cb572d4dfd44aaf7a1102666f6e8ac77b3d494f1c7569f91d"
   },
   "inspected": [
-    "feedback-research-dark.png"
+    "feedback-search-dark.png"
   ],
-  "notes": "Reviewed research-note spacing and source controls. Complete summaries, reported confidence and recorded timestamps are legible; web opening is separated from exact reference copying.",
+  "notes": "Reviewed combined feedback kind and text search. Headless checks cover complete research text beyond previews, later pages, stable return focus and explicit no-match results.",
   "native_limit": "Current native OS-input, VoiceOver and live-provider behavior were not exercised."
 }
