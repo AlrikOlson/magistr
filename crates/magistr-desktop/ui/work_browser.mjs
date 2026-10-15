@@ -13,7 +13,7 @@ export class WorkBrowser {
   constructor($,invoke){
     this.$=$;this.invoke=invoke;this.frame=null;this.generation=0;this.revision=-1;this.loading=false;this.key="";
     this.area="work";this.searchPage=0;
-    this.feedback=new FeedbackBrowser($("work-browser-content"),()=>{this.key="";this.render();},value=>navigator.clipboard.writeText(value).catch(error=>{$("work-browser-state").textContent="Could not copy the text. "+String(error);}));
+    this.feedback=new FeedbackBrowser($("work-browser-content"),()=>{this.key="";this.render();},value=>navigator.clipboard.writeText(value).catch(error=>{$("work-browser-state").textContent="Could not copy the text. "+String(error);}),destination=>this.invoke("open_link",{destination}).catch(error=>{$("work-browser-state").textContent=String(error);}));
     this.reasoning=new ReasoningBrowser($("work-browser-reasoning"),$("work-browser-content"),()=>{this.key="";this.render();},value=>navigator.clipboard.writeText(value).catch(error=>{$("work-browser-state").textContent="Could not copy the text. "+String(error);}),$("work-browser-branch"));
     $("work-browser-reasoning-search").oninput=()=>{this.reasoning.query=$("work-browser-reasoning-search").value;this.reasoning.stepId=null;this.reasoning.trail=[];this.reasoning.page=0;this.key="";this.render();};
     $("work-browser-search").oninput=()=>{this.searchPage=0;this.item.close();this.key="";this.render();};
