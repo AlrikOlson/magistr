@@ -1,3 +1,4 @@
+import { renderOutline } from "./reply_outline.mjs";
 import { renderToolDetail } from "./tool_result.mjs";
 import { renderCodeBlock } from "./code_blocks.mjs";
 import { targetKey } from "./context.mjs";
@@ -180,7 +181,8 @@ export class Transcript {
       article.dataset.tool="true";
       row.details.append(row.summary,row.body);article.append(row.details);
     } else {
-      row.body=element(this.document,"div");row.body.className="message-body";article.append(row.body);
+      row.outline=element(this.document,"nav");row.outline.className="reply-contents";row.outline.setAttribute("aria-label","Reply contents");row.outline.hidden=true;
+      row.body=element(this.document,"div");row.body.className="message-body";article.append(row.outline,row.body);
       const files=element(this.document,"div");files.className="attachments";files.setAttribute("role","list");files.setAttribute("aria-label","Attached files");article.append(files);
       row.attachments=new AttachmentList(files);
     }
@@ -214,6 +216,7 @@ export class Transcript {
       row.attachments.apply(message.attachments??[]);
       const nodes=message.document?.nodes??[{tag:"p",text:message.text,children:[],start:0}];
       renderDocument(row.body,nodes,this.openLink,this.copy);
+      renderOutline(row.outline,row.body);
       for(const block of row.body.children)block.dataset.reading=message.id+":"+block.dataset.source;
       if(message.document?.limited) {
         const note=element(this.document,"p","This reply is shown as plain text because it contains extensive formatting.");note.className="gap";row.body.append(note);

@@ -1,5 +1,5 @@
 {
-  "receipt": "b5d3453edf32496da677915fea3b2654c004c2efb5e0bd502e197e4c380f4c8c",
+  "receipt": "3fad635ef0e5e311b32770eb64bbeb0d5120077ac48322e502c84892f03aaff9",
   "images": {
     "welcome-dark.png": "dbeb5de57311812ef5a669f046708a23927e7504e74d686194bb801dfd5b8dff",
     "welcome-light.png": "c77e2e937e8f1e98e3061d94a5bb15c40abbcda679712e2d99ed503e54c54991",
@@ -56,12 +56,15 @@
     "patch-light.png": "6b9729bd81b4d629e141c933154980b42667edf0894def70842dd0a65369bff3",
     "patch-compact.png": "13d75c7c266ece85d8ce9b6e72ee3013583aa533a17d3a8aa07e692ad8ae19b9",
     "result-dark.png": "e4420af9fc3e6834a8376a00c9a8947e17a4ef84cd23e619d0e1a08270c1cfb4",
-    "result-light.png": "275b959ef273f3b5d8e7c618daa07edc90dddf90b43ce25589d83c01f421ac57"
+    "result-light.png": "275b959ef273f3b5d8e7c618daa07edc90dddf90b43ce25589d83c01f421ac57",
+    "contents-dark.png": "c1658d62175c63c41e0f23195cde9c7c454245928ee245a9d35a795c5c7e906d",
+    "contents-light.png": "f65ab8fe271bc71c109248c71b6745cebbec4862985c5b14e5cda872028abbb0",
+    "contents-compact.png": "818729570c896b6615bfc328b240e7b2051926ac5b68245183724b6caa809699"
   },
   "reviewed_on": "2026-10-15",
   "findings": [
-    "4/20: Reviewed tool output sheets with field/value columns, bounded nested disclosures, semantic value colors and exact original-text access in both themes.",
-    "Seven WebKit scenarios pass, including exact per-result copying, nested disclosure, safe literal markup and existing held-selection/reading checks. Corrected a fixture that reused an agent message ID as a tool ID.",
-    "Reviewed affected plain tool and attachment captures. Native OS input and assistive technology were not rerun."
+    "5/20: Reviewed the two-column numbered contents surface for substantial replies, including compact layout. Short replies retain their direct reading layout.",
+    "Contents are derived from retained headings, capped at 24, and keyboard activation focuses the real section. Seven focused WebKit scenarios pass, including reading and selection continuity.",
+    "Native OS input and assistive technology were not rerun."
   ]
 }
