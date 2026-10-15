@@ -23,7 +23,7 @@ export class WorkBrowser {
     $("work-browser-feedback-search").oninput=filterFeedback;$("work-browser-feedback-kind").onchange=filterFeedback;$("work-browser-feedback-status").onchange=filterFeedback;
     $("work-browser-reasoning-search").oninput=()=>{this.reasoning.query=$("work-browser-reasoning-search").value;this.reasoning.stepId=null;this.reasoning.trail=[];this.reasoning.page=0;this.key="";this.render();};
     $("work-browser-search").oninput=()=>{this.searchPage=0;this.item.close();this.key="";this.render();};
-    this.item=new RoadmapItemReader($("work-browser-content"),invoke,()=>this.backToTrack());
+    this.item=new RoadmapItemReader($("work-browser-content"),invoke,()=>this.backToTrack(),()=>this.updateControls());
     this.tabs=new WorkTabs($("work-browser-tabs"),area=>this.selectArea(area));
     this.roadmapBrowser=new RoadmapBrowser($("work-browser-track"),()=>{this.item.close();this.key="";this.render();});
     $("work-browser-roadmap-state").onchange=()=>{this.item.close();this.key="";this.render();};
@@ -129,15 +129,18 @@ export class WorkBrowser {
     this.renderContent();
     if(this.readError){this.$("work-browser-state").textContent=(this.snapshot?"Showing the previous records. ":"")+"Could not read work records. "+this.readError;this.$("work-browser-state").dataset.current="false";}
   }
-  renderContent(){
+  updateControls(){
     this.$("work-browser-return").hidden=!this.returnTrail.length;
-    this.$("work-feedback-filters").hidden=this.area!=="feedback";
-    this.$("work-feedback-search").hidden=this.area!=="feedback";
-    this.$("work-reasoning-selection").hidden=this.area!=="reasoning"||!!this.reasoning.query.trim();
-    this.$("work-reasoning-search").hidden=this.area!=="reasoning";
+    this.$("work-feedback-filters").hidden=this.area!=="feedback"||!!this.feedback.id;
+    this.$("work-feedback-search").hidden=this.area!=="feedback"||!!this.feedback.id;
+    this.$("work-reasoning-selection").hidden=this.area!=="reasoning"||!!this.reasoning.query.trim()||!!this.reasoning.stepId;
+    this.$("work-reasoning-search").hidden=this.area!=="reasoning"||!!this.reasoning.stepId;
     this.execution.show(this.area==="work");
-    this.$("work-track-selection").hidden=this.area!=="roadmap";
-    this.$("work-roadmap-search").hidden=this.area!=="roadmap";
+    this.$("work-track-selection").hidden=this.area!=="roadmap"||!!this.item?.id;
+    this.$("work-roadmap-search").hidden=this.area!=="roadmap"||!!this.item?.id;
+  }
+  renderContent(){
+    this.updateControls();
     const content=this.$("work-browser-content");content.setAttribute("aria-labelledby","work-tab-"+this.area);
     if(!this.snapshot)return;
     if(this.area==="status"){

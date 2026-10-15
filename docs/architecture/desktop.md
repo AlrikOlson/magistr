@@ -353,6 +353,41 @@ The reader retains item identity, text selection, track return position and
 focus across updates, and ignores late reads after navigation.
 The reader never computes a second persisted plan.
 
+Execution search spans current and retained objectives, requirements, task actions,
+check output and artifact references. An exact run selection stays on its stable
+identity when new work starts. Task, check-attempt and activity views page at 50
+matching entries and retain original task positions and receipt identities; a
+failed attempt is not removed by a later pass. The check and activity indexes
+reuse the same renderers as task details.
+
+Roadmap search includes open, completed and retired records across tracks. Details
+show prerequisites, dependents and proposed values beside actual saved values;
+viewing a suggestion never applies it. Reasoning reads complete default and named
+histories, investigation membership, dependencies and revisions, with project-wide
+step references and exact source copying. Branch copies are not counted twice.
+Feedback includes full authored context, append-only research and sources, kind
+and status filters, and exact references to roadmap, reasoning and other feedback.
+An ambiguous unqualified execution reference remains explicitly unresolved.
+
+Record status presents each owner's independent observation, complete counts and
+public read diagnostics. A file timestamp means saved records last changed, never
+an inferred read time. A failed desktop refresh stays explicit across tabs until
+an accepted successful read or project change. Native family read states remain
+owned by their existing stores.
+
+Manual tab changes retain selected records and at most five transient reading
+bookmarks: scroll, disclosure identities and stamped text-selection coordinates.
+No authored text is stored in those bookmarks. The roadmap reader suspends pending
+application while hidden, retains its own selected identity and return trail,
+and rereads on return. Address and navigation generations reject late responses
+and restores. Changed selected text fails its stamp check rather than selecting
+substitute text. Collection filters are hidden while reading selected details;
+Back restores the collection controls, including when a selected record disappears.
+Short windows retain the same controls and a useful scrolling reading area.
+
+The [thirty-chunk delivery index](../evidence/desktop-layout/desktop-roadmap-delivery.md)
+records the delivered scope, commits and verification limits.
+
 The desktop opens conversations, reads current objectives and tasks, starts planned work and prepares projects. The CLI retains
 headless runs, initialization, validation and administrative commands; MCP
 roles serve workflow and source tools. Roadmap editing and browsing arbitrary working-copy changes remain later desktop work.
