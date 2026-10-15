@@ -1,7 +1,7 @@
 import {element} from "./work_dom.mjs";
 const status={backlog:"Backlog",pending:"Planned",in_progress:"In progress",blocked:"Blocked",done:"Completed",obsoleted:"Retired"};
 export function renderRelations(item,{navigate,current}){
-  const section=element("section","","roadmap-relations"),readiness=item.readiness;
+  const section=element("section","","roadmap-relations roadmap-dependencies"),readiness=item.readiness;
   const state=readiness.state==="ready"?"Ready to start.":readiness.state==="waiting"?"Waiting for required work.":readiness.state==="blocked"?(readiness.blocker?.reason??"Work is blocked."):"";
   if(state){const note=element("p",(current?"":"Last recorded state: ")+state,"roadmap-readiness");note.dataset.ready=String(current&&readiness.state==="ready");section.append(note);}
   for(const [kind,title,empty] of [["dependencies","Required work","No prerequisites were recorded."],["dependents","Work that depends on this","No dependent items were recorded."]]){
