@@ -339,7 +339,13 @@ The Roadmap view uses workstream_catalog and workstream_frontier from the shared
 workflow contracts against the same complete roadmap. Counts and readiness
 arrive with preserved ReadState; JavaScript only presents them. Track selection
 keeps closed, ungrouped and missing tracks distinct. Keyboard tabs retain focus
-outside refreshed content. The reader never computes a second persisted plan.
+outside refreshed content. Selected item reads map the same owner ReadState to
+an optional complete Chunk plus disposable Document trees. Removed records stay
+distinct from read failures. The existing Markdown renderer supplies semantic
+text, safe links and complete-source fallback when presentation limits are hit.
+The reader retains item identity, text selection, track return position and
+focus across updates, and ignores late reads after navigation.
+The reader never computes a second persisted plan.
 
 The desktop opens conversations, reads current objectives and tasks, starts planned work and prepares projects. The CLI retains
 headless runs, initialization, validation and administrative commands; MCP

@@ -4,19 +4,21 @@ import { element, retainReading } from "./work_dom.mjs";
 import { WorkRuns } from "./work_runs.mjs";
 import { WorkTabs } from "./work_tabs.mjs";
 import { RoadmapBrowser, renderRoadmap } from "./work_roadmap.mjs";
+import { RoadmapItemReader } from "./work_item.mjs";
 
 export class WorkBrowser {
   constructor($,invoke){
     this.$=$;this.invoke=invoke;this.frame=null;this.generation=0;this.revision=-1;this.loading=false;this.key="";
     this.area="work";
-    this.tabs=new WorkTabs($("work-browser-tabs"),area=>{this.area=area;this.key="";this.render();});
-    this.roadmapBrowser=new RoadmapBrowser($("work-browser-track"),()=>{this.key="";this.render();});
+    this.item=new RoadmapItemReader($("work-browser-content"),invoke,()=>this.backToTrack());
+    this.tabs=new WorkTabs($("work-browser-tabs"),area=>{this.item.close();this.area=area;this.key="";this.render();});
+    this.roadmapBrowser=new RoadmapBrowser($("work-browser-track"),()=>{this.item.close();this.key="";this.render();});
     this.runs=new WorkRuns($("work-browser-runs"),()=>{this.key="";this.render();});
     $("browse-work").onclick=()=>this.open($("browse-work"));
     $("browse-work-header").onclick=()=>this.open($("browse-work-header"));
     $("work-browser-close").onclick=()=>$("work-browser").close();
-    $("work-browser-refresh").onclick=()=>this.load();
-    $("work-browser").addEventListener("close",()=>{++this.generation;this.loading=false;this.trigger?.focus();});
+    $("work-browser-refresh").onclick=()=>{this.load();if(this.item.id)this.item.load();};
+    $("work-browser").addEventListener("close",()=>{++this.generation;this.loading=false;this.item.close();this.key="";this.trigger?.focus();});
   }
   observe(frame){
     if(addressKey(this.frame?.address)!==addressKey(frame?.address)){
@@ -32,7 +34,7 @@ export class WorkBrowser {
     if(!this.frame||this.frame.closed)return;
     this.trigger=trigger;
     this.$("work-browser-project").textContent=this.frame.address.workspace;
-    this.$("work-browser").showModal();this.$("work-browser-title").focus();this.load();
+    this.$("work-browser").showModal();this.render();this.$("work-browser-title").focus();this.load();
   }
   async load(){
     if(this.loading||!this.$("work-browser").open)return;
@@ -55,14 +57,20 @@ export class WorkBrowser {
       }
     }
   }
+  backToTrack(){
+    const id=this.item.id,scroll=this.item.originScroll;this.item.close();this.key="";this.render();
+    const root=this.$("work-browser-content");root.scrollTop=scroll;
+    [...root.querySelectorAll("[data-open-item]")].find(node=>node.dataset.openItem===id)?.focus({preventScroll:true});
+  }
   renderRoadmap(){
     const observed=readState(this.roadmap,"roadmap"),frontier=this.roadmapBrowser.update(observed.value);
     this.$("work-browser-state").textContent=observed.message;
     this.$("work-browser-state").dataset.current=String(observed.current);
+    if(this.item.id){this.item.observe(this.frame.address,this.revision);return;}
     const records=readState(this.snapshot.roadmap).value?.chunks??[];
     const key=JSON.stringify(["roadmap",this.roadmapBrowser.choice,observed.value,records]);if(key===this.key)return;this.key=key;
     const content=this.$("work-browser-content");
-    retainReading(content,()=>content.replaceChildren(observed.value?renderRoadmap(frontier,observed.value,records,this.roadmapBrowser.choice!==undefined):element("p","The roadmap is unavailable. Use Refresh to try again.","work-record-empty")));
+    retainReading(content,()=>content.replaceChildren(observed.value?renderRoadmap(frontier,observed.value,records,this.roadmapBrowser.choice!==undefined,id=>this.item.open(this.frame.address,id,this.revision)):element("p","The roadmap is unavailable. Use Refresh to try again.","work-record-empty")));
   }
   render(){
     this.$("work-run-selection").hidden=this.area!=="work";

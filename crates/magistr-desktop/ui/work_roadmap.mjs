@@ -15,7 +15,7 @@ export class RoadmapBrowser {
     return frontiers.find(f=>JSON.stringify(f.group)===this.choice);
   }
 }
-export function renderRoadmap(frontier,data,chunks,selected){
+export function renderRoadmap(frontier,data,chunks,selected,open){
   const article=element("article","","work-record");
   if(!frontier){article.append(element("h3",selected?"This track is no longer available.":"No roadmap items yet."));return article;}
   const history=(frontier.group===null?data.catalog.ungrouped_history:data.catalog.history[frontier.group])??{done:0,obsoleted:0};
@@ -30,7 +30,7 @@ export function renderRoadmap(frontier,data,chunks,selected){
   for(const item of frontier.items){
     const row=element("li"),chunk=byId.get(item.id),next=activity.next_ready===item.id;
     row.dataset.chunk=item.id;row.dataset.next=String(next);
-    row.append(element("strong",chunk?.title??item.name));
+    const title=element("button",chunk?.title??item.name,"roadmap-item-open");title.dataset.openItem=item.id;title.dataset.focusKey="roadmap-open:"+item.id;title.onclick=()=>open(item.id);row.append(title);
     const state=[statuses[item.status]??"Status unavailable",readiness[item.readiness.state]].filter(Boolean).join(" · ");
     row.append(element("span",state,"roadmap-item-state"));
     if(next)row.append(element("span","Next ready","roadmap-next"));

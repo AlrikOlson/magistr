@@ -58,6 +58,17 @@
 .work-artifacts header{display:flex;align-items:baseline;gap:16px;justify-content:space-between}.work-artifacts h5{font-size:12px;margin:0}.work-artifacts header span{font-size:10px;color:var(--muted)}
 .work-artifacts .work-artifact-reference{font:11px/1.7 ui-monospace,monospace;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--text)}
 .work-artifacts button{font-size:11px;margin:12px 8px 0 0}
+.roadmap-item-open{display:block;text-align:left;font-weight:600;font-size:14px;line-height:1.6;background:transparent;border:0;color:var(--text);padding:0 80px 0 0;white-space:pre-wrap;max-width:100%}.roadmap-item-open:hover{color:var(--accent)}
+.roadmap-back{font-size:12px;margin-bottom:14px}.roadmap-item-detail{padding-top:12px}
+.roadmap-item-summary{font-size:17px;line-height:1.7;margin-block:24px;white-space:pre-wrap}
+.roadmap-content-facts{display:flex;flex-wrap:wrap;gap:16px 32px;padding:18px;background:var(--panel);border:1px solid var(--separator);border-radius:6px}
+.roadmap-content-facts dt{font-size:10px;color:var(--muted)}.roadmap-content-facts dd{font-size:13px;margin:6px 0 0;white-space:pre-wrap}
+.roadmap-document{margin-block:28px}.roadmap-document>header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.roadmap-document h4,.roadmap-requirements h4{font-size:14px;margin:0}.roadmap-document>header button{font-size:10px}
+.roadmap-document .message-body,.roadmap-requirements{font-size:14px;line-height:1.8}
+.roadmap-requirements{margin-top:28px}.roadmap-requirements ol{padding-left:22px}.roadmap-requirements li{margin-block:14px}
+.roadmap-checklist{padding-left:18px}.roadmap-checklist li{font-size:14px;line-height:1.8;white-space:pre-wrap}
+.roadmap-checklist-state{display:inline-block;font-size:10px;border:1px solid var(--separator);padding:2px 5px;margin-right:8px;color:var(--muted);border-radius:4px}
 .work-record-empty{padding:28px;color:var(--muted)}
 #browse-work{width:100%;margin-bottom:16px}
 @media(max-width:800px){#work-browser{width:calc(100vw - 24px);max-height:calc(100dvh - 24px)}.work-browser-heading{padding:18px 22px}.work-browser-tools{padding:10px 22px}.work-browser-tabs{display:flex;gap:6px;padding:10px 30px;border-bottom:1px solid var(--separator);flex-shrink:0;background:var(--panel);overflow-x:auto}

@@ -20,6 +20,7 @@ mod links;
 mod preferences;
 mod projects;
 mod roadmap;
+mod roadmap_item;
 mod streams;
 mod wire;
 mod work;

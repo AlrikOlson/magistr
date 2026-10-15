@@ -6,8 +6,8 @@
 //! flat, closed set of shapes (`summary` + `facts` + `sections`) that every
 //! family may carry under the uniform payload key `content`, mirroring
 //! `contract/unified-record-envelope.schema.json` `$defs/StructuredContent`.
-//! The prose field stays required and stays the fallback — a writer that does
-//! not know this shape loses nothing, and legacy records simply omit it.
+//! Records retain their authored prose alongside optional structured content.
+//! Callers may author plain prose or provide a structured body for richer presentation.
 //!
 //! Deliberately NOT a rich-text tree: a section cannot contain sections, so
 //! every renderer is total. Limits match the schema so a payload accepted here

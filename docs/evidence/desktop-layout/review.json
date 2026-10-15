@@ -1,5 +1,5 @@
 {
-  "receipt": "75705b9d4d71f846c527b13635552607eb92540210baa5d7586ba6b9f957995d",
+  "receipt": "6870fa457d87e3b56667ec3fc298c0857f18f6ec36314b38ad5720ec102ccafb",
   "images": {
     "welcome-dark.png": "196f05ebfbcfdacf73fe8a82ad187b73837dfd801f2a1e47c59f5c0863f9b216",
     "project-map-dark.png": "9bfb53f79bb4c5bc20d428239f65e12e83ca95825579c550ca0c522b2cdf9efe",
@@ -19,12 +19,13 @@
     "rename-light.png": "ad0f5715491f15f2235ddf8073d2a57d6e759c2e3c7dfec75dd8e85256403e27",
     "work-paused-dark.png": "a79d02738979c74cd380bb907ac98b612d4d5640c60c212454c63c40c9b0a372",
     "work-plan-dark.png": "a94e499de64f8c96af03a6196aedb027e8450a6c30a250ccdcd96991135b9a41",
-    "roadmap-dark.png": "34d0f63fee27edd7491b87be8341a35324ba4d39c96d973a0f97d634dea8d37e",
+    "roadmap-dark.png": "4254ab747db88e625ba45f19b94ec2873bef754169b81ed505e41eb409c2290e",
+    "roadmap-item-dark.png": "ea6ae66ef18f56146402b15d7fca6b3fb0368d2fe0624bd33154a55859674e7f",
     "work-check-results-dark.png": "6a0390f311c4a76842ed7d4e4559547cf881ff62a76716e21dd99a01f590c843",
     "work-activity-dark.png": "0187963df625494fedeea7d3d95e3c4d4d8d49950829d5ee4ad8840342150d5f",
     "saved-work-dark.png": "9d4bc1b5f1c2edd7d48a25d9d3a7729b40b0623ee482945530e425e2506b616e",
     "work-plan-light.png": "bdabda2389284ad05ffcd03462a6220981fc379c5b4b9739816c0ca8553670f9",
-    "roadmap-light.png": "f786c33106502806c79813763a9ae1a9786fa3841fdd85de14b39bd3991842ef",
+    "roadmap-light.png": "0ff38acb312a6d02354ce42694498a1ec88e801ef3b360c5c5eb2830dc7335e6",
     "roadmap-minimum.png": "1d8af632ef025dc340227fdadb25e438dd6a09bdd732638dc255d3661cbbe024",
     "work-plan-minimum.png": "aa23b76d79cb31259bf98d47863f082c486d47b7b6b5c18d16e10519aba3c2e4",
     "inspector-dark.png": "89564c80e02d674b79bfbadf60cb4ffdef3e62bfe218c2aecf69b805fda729ff",
@@ -71,8 +72,8 @@
     "tables-light.png": "f1ee7ca0d66b2ab049e102a5bf9eb913977a71af18cf69c1cfc455e2ac86a4d6",
     "tables-compact.png": "b1c7232dec5db4be377871717ae0afd88381fd249f80687d6584e96f1c1259e7",
     "patch-dark.png": "e6ec8f194f3cd7b2691b07fa62b5933fdb8977eefcb06d1c5e5ed91f1b909576",
-    "patch-light.png": "33f3fd57018e64e902e8723ccb08fb22d0a6855e6d17d2537414d840347f138f",
-    "patch-comparison-dark.png": "8edf37365b50aff39946cf5809a46d44688184607a82aef16e7022200911ea3b",
+    "patch-light.png": "230ca8e1f26d52819aa7d2d5e54e02219c8b92e8ad3aee538e14738ac6d4122d",
+    "patch-comparison-dark.png": "b123658d32478531751b0e243cd888d45c5ae76cf574684ac796a431a0d6f15b",
     "patch-comparison-light.png": "2b35fd51750c85d77a7221e03aa248a673114c020aef393a2ead679d71e657ae",
     "patch-compact.png": "d1db1219b8836a04a58914ef5b60b8fbe510d67125715b8994f322c5b3781fa5",
     "result-dark.png": "ecc4b3b89cf52b424edaf6da03933083eae4bbbbb8e89fa72cf7d1ad51b88760",
@@ -111,10 +112,8 @@
     "workspace-compact-long-title.png": "5a9d1fe895fa847cb572d4dfd44aaf7a1102666f6e8ac77b3d494f1c7569f91d"
   },
   "inspected": [
-    "roadmap-dark.png",
-    "roadmap-light.png",
-    "roadmap-minimum.png"
+    "roadmap-item-dark.png"
   ],
-  "notes": "Roadmap overview: inspected current track readiness, complete item titles, owner counts and blockers in dark, light and minimum-window captures. Focused tests cover closed and ungrouped tracks, tab keys, stale reads and vanished track selection; Rust tests verify complete cross-track dependency policy. Other captures were regenerated, not individually re-inspected.",
+  "notes": "Roadmap detail delivery: inspected the selected item's title, authored summary/facts, description and structured section through the safe document renderer. Focused scenarios verify requirements/notes, exact copy, text selection through updates, return focus, missing versus unavailable records and ignored late reads. Other captures were refreshed by the workspace scenario.",
   "native_limit": "Current native OS-input, VoiceOver and live-provider behavior were not exercised."
 }
