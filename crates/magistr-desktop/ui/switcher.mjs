@@ -64,13 +64,13 @@ export class ConversationSwitcher {
       const copies=new Set(members.map(session=>session.address.workspace));
       matchedText(group.name,members[0].name,query);group.section.setAttribute("aria-label",members[0].name+" conversations");
       matchedText(group.detail,copies.size===1?members[0].address.workspace:copies.size+" working copies",query);
-      group.count.textContent=members.length+(members.length===1?" conversation":" conversations");
+      group.count.textContent=String(members.length);group.count.setAttribute("aria-label",members.length+(members.length===1?" conversation":" conversations"));
       const rows=members.map(session=>{
       const key=addressKey(session.address);used.add(key);let row=this.rows.get(key);
       if(!row) {
-        const button=document.createElement("button"),body=text("span",""),name=text("strong",""),context=text("small",""),state=text("span",""),current=text("small","Current conversation");
+        const button=document.createElement("button"),body=text("span",""),name=text("strong",""),context=text("small",""),state=text("span",""),current=text("small","Current");
         body.className="switch-body";
-        current.className="switch-current";body.append(name,context,current);state.className="switch-state";button.append(body,state);
+        current.className="switch-current";current.setAttribute("aria-label","Current conversation");body.append(name,current,context);state.className="switch-state";button.append(body,state);
         row={button,name,context,state,current,session};this.rows.set(key,row);
         button.onclick=()=>this.open(row.session);
       }
