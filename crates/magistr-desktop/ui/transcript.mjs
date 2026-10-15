@@ -152,7 +152,8 @@ export class Transcript {
     const header=element(this.document,"header"),role=element(this.document,"span",message.role);role.className="message-role";
     const emblem=element(this.document,"span");emblem.className="message-emblem";emblem.setAttribute("aria-hidden","true");
     emblem.dataset.icon=message.tool?"terminal":message.role==="Agent"?"spark":message.role==="You"?"chat":"clock";
-    role.prepend(emblem);
+    const avatar=element(this.document,"span");avatar.className="message-avatar";avatar.setAttribute("aria-hidden","true");avatar.append(emblem);
+    role.prepend(avatar);
     const copy=element(this.document,"button",message.tool?"Copy tool details":message.role==="Agent"?"Copy reply":"Copy message");
     const row={article,copy,message,revision:null};copy.onclick=()=>this.copy(row.message.text);
     header.append(role,copy);article.append(header);

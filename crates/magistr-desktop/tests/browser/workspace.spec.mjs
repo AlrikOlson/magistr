@@ -8,6 +8,7 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
   await mkdir(evidence,{recursive:true});
   const images={},checks={};
   const capture=async name=>{
+    await app.mouse.move(0,0);
     const bytes=await app.screenshot({path:resolve(evidence,name),animations:"disabled"});
     images[name]=createHash("sha256").update(bytes).digest("hex");
   };
