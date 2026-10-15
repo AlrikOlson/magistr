@@ -49,7 +49,7 @@ export class ProjectNavigation {
       select.onclick=()=>this.select(row.session.address);
       for(const [button,action] of [[stop,"cancel"],[reconnect,"reconnect"]])button.onclick=()=>{menu.open=false;this.act(row.session.target,action);};
       close.onclick=()=>{menu.open=false;this.close(row.session.address);};
-      menu.addEventListener("toggle",()=>{if(menu.open)for(const other of this.rows.values())if(other!==row)other.menu.open=false;});
+      menu.addEventListener("toggle",()=>{if(menu.open){for(const other of this.rows.values())if(other!==row)other.menu.open=false;actions.scrollIntoView({block:"nearest"});}});
     }
     row.session=session;
     const name=this.label(session);

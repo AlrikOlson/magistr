@@ -127,7 +127,7 @@ h2{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--mute
 .session-row::before{content:"";position:absolute;left:-10px;top:21px;width:7px;border-top:1px solid var(--separator);pointer-events:none}
 .session-row:has([aria-current=true])::before{border-color:var(--accent)}
 .session-row{position:relative;border-radius:8px}
-.session-select{width:100%;background:transparent;border:1px solid transparent;padding:6px 24px 6px 10px;min-height:46px;border-radius:6px}
+.session-select{width:100%;background:transparent;border:1px solid transparent;padding:6px 38px 6px 10px;min-height:46px;border-radius:6px}
 
 .session-row[data-state=waiting] .session-state{color:var(--warning)}.session-row[data-state=working] .session-state{color:var(--success)}.session-row[data-state=disconnected] .session-state{color:var(--danger)}
 .session-select:hover{background:var(--raised)}
@@ -141,12 +141,11 @@ h2{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--mute
 .session-row[data-state=disconnected] .session-state::before{border-radius:0;transform:rotate(45deg)}
 .project-symbol{color:var(--muted);width:15px;height:15px;flex-basis:15px}
 .project-heading .project-count{font-variant-numeric:tabular-nums;font-size:12px}
-@media(hover:hover){.session-more{opacity:0}.session-row:hover .session-more,.session-row:focus-within .session-more,.session-menu[open] .session-more{opacity:1}}
-.session-menu{position:absolute;right:4px;top:5px;z-index:2}.session-menu[open]{z-index:5}
-.session-more{display:grid;place-items:center;width:27px;height:28px;list-style:none;cursor:pointer;border-radius:5px;font-size:18px;letter-spacing:1px;color:var(--muted)}
+.session-menu{position:absolute;right:4px;top:5px;z-index:2}.session-menu[open]{position:static;padding:0 4px 6px}.session-menu[open]>.session-more{position:absolute;right:4px;top:5px}
+.session-more{display:grid;place-items:center;width:28px;height:28px;list-style:none;cursor:pointer;border-radius:5px;font-size:18px;letter-spacing:1px;color:var(--muted)}
 .session-more::-webkit-details-marker{display:none}
 .session-more:hover,.session-menu[open] .session-more{background:var(--base);color:var(--text)}
-.session-menu-actions{position:absolute;right:0;top:30px;width:190px;padding:6px;border:1px solid var(--separator);background:var(--base);box-shadow:var(--shadow);border-radius:10px;display:grid;gap:3px}
+.session-menu-actions{padding:4px;border:1px solid var(--separator);background:var(--base);border-radius:6px;display:grid;gap:3px}
 .session-menu-actions button{border-color:transparent;font-size:12px;background:transparent;min-height:34px}
 .session-menu-actions button:hover{background:var(--raised)}.destructive{color:var(--danger)}
 .project-open{margin:4px 8px;border-color:transparent;background:transparent;color:var(--accent);font-size:12px}
