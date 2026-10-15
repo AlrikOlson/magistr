@@ -2,6 +2,7 @@ import { element,retainReading } from "./work_dom.mjs";
 import { addressKey } from "./context.mjs";
 import { readState } from "./work_records.mjs";
 import { renderDocument } from "./transcript.mjs";
+import { roadmapProposals } from "./work_proposals.mjs";
 import { renderRelations } from "./work_relations.mjs";
 const statuses={backlog:"Backlog",pending:"Planned",in_progress:"In progress",blocked:"Blocked",done:"Completed",obsoleted:"Retired"};
 function documentPart(label,source,document,key,actions){
@@ -15,6 +16,7 @@ function renderItem(item,actions){
   const {record}=item,article=element("article","","work-record roadmap-item-detail");
   const title=element("h3",record.title,"roadmap-track-title");title.tabIndex=-1;title.dataset.focusKey="roadmap-item-title";article.append(title);
   article.append(element("p",[record.group??"Other work",statuses[record.status]??"Status unavailable"].join(" · "),"work-record-status"));
+  const proposals=roadmapProposals(record,actions);if(proposals)article.append(proposals);
   article.append(renderRelations(item,actions));
   if(record.content){
     article.append(element("p",record.content.summary,"roadmap-item-summary"));

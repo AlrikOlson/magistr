@@ -1,5 +1,5 @@
 {
-  "receipt": "629a0c0bcc91a3b8d53c48a3484ef001990978fe1094eaf8dced53021be27e68",
+  "receipt": "350b26ae260555f24e5ce2be046bf152c97545bc15f8cf9e6b270ff4b6fcc65f",
   "images": {
     "welcome-dark.png": "196f05ebfbcfdacf73fe8a82ad187b73837dfd801f2a1e47c59f5c0863f9b216",
     "project-map-dark.png": "9bfb53f79bb4c5bc20d428239f65e12e83ca95825579c550ca0c522b2cdf9efe",
@@ -22,6 +22,7 @@
     "roadmap-dark.png": "fb43410fb6d36dc3ea5581ee0702464a3e5f03ad724a58561759b1480cee2dae",
     "roadmap-item-dark.png": "f69faa7b090139fbe2a3021a67e3680b673e3796051fecb0e0a7aea6c9319c64",
     "roadmap-dependency-dark.png": "5b217b4d195f14fab2264632508d11664c32628669ae5c1dcf0230d1c4852a5a",
+    "roadmap-proposal-dark.png": "d484fd5b7cc78d550014f4823e6f4ac429e34575a33370496b5840ed5b18ad09",
     "roadmap-history-dark.png": "90cd82e8c3a7210cf5f1edb724e49aa5c15ebddcf625b916c66e0df9ddbe50bb",
     "roadmap-search-dark.png": "091c32f029842dbff4ceb2d3ef61f64fad4da795a4e03e347555d02eeaded124",
     "reasoning-dark.png": "b89ae424abe0000d25b95cccb14bfdaa90387d19722c64a2e86245a393e0009b",
@@ -85,8 +86,8 @@
     "tables-light.png": "f1ee7ca0d66b2ab049e102a5bf9eb913977a71af18cf69c1cfc455e2ac86a4d6",
     "tables-compact.png": "b1c7232dec5db4be377871717ae0afd88381fd249f80687d6584e96f1c1259e7",
     "patch-dark.png": "e6ec8f194f3cd7b2691b07fa62b5933fdb8977eefcb06d1c5e5ed91f1b909576",
-    "patch-light.png": "230ca8e1f26d52819aa7d2d5e54e02219c8b92e8ad3aee538e14738ac6d4122d",
-    "patch-comparison-dark.png": "b123658d32478531751b0e243cd888d45c5ae76cf574684ac796a431a0d6f15b",
+    "patch-light.png": "33f3fd57018e64e902e8723ccb08fb22d0a6855e6d17d2537414d840347f138f",
+    "patch-comparison-dark.png": "8edf37365b50aff39946cf5809a46d44688184607a82aef16e7022200911ea3b",
     "patch-comparison-light.png": "2b35fd51750c85d77a7221e03aa248a673114c020aef393a2ead679d71e657ae",
     "patch-compact.png": "d1db1219b8836a04a58914ef5b60b8fbe510d67125715b8994f322c5b3781fa5",
     "result-dark.png": "ecc4b3b89cf52b424edaf6da03933083eae4bbbbb8e89fa72cf7d1ad51b88760",
@@ -125,8 +126,8 @@
     "workspace-compact-long-title.png": "5a9d1fe895fa847cb572d4dfd44aaf7a1102666f6e8ac77b3d494f1c7569f91d"
   },
   "inspected": [
-    "feedback-linked-reasoning-dark.png"
+    "roadmap-proposal-dark.png"
   ],
-  "notes": "Reviewed feedback-to-reasoning navigation and the distinct Return to feedback control. Focused cases verify exact identity, restoring open research notes and safe unresolved references.",
+  "notes": "Reviewed the suggestion card with actual and suggested status visible, including the full reason and copyable source. Suggestions are explicitly distinguished from accepted plan changes.",
   "native_limit": "Current native OS-input, VoiceOver and live-provider behavior were not exercised."
 }
