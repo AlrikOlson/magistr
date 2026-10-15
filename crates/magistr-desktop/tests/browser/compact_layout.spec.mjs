@@ -23,3 +23,18 @@ test("work header leaves room for records in both appearances",async({app})=>{
     }
   }
 });
+
+test("work navigation fits and follows arrow-key focus",async({app})=>{
+  await openWork(app);
+  await app.setViewportSize({width:760,height:550});
+  const tabs=app.getByRole("tablist",{name:"Work view"});
+  expect(await tabs.evaluate(node=>node.scrollWidth-node.clientWidth)).toBeLessThanOrEqual(1);
+  expect((await tabs.boundingBox()).height).toBeLessThanOrEqual(45);
+  await app.getByRole("tab",{name:"Current and saved work",exact:true}).focus();
+  await app.keyboard.press("End");
+  await expect(app.getByRole("tab",{name:"Record status",exact:true})).toBeFocused();
+  await expect(app.getByRole("tab",{name:"Record status",exact:true})).toHaveAttribute("aria-selected","true");
+  await app.keyboard.press("Home");await app.keyboard.press("ArrowRight");
+  await expect(app.getByRole("tab",{name:"Roadmap",exact:true})).toBeFocused();
+  await capture(app,"02-navigation");
+});
