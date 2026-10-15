@@ -405,12 +405,20 @@ textarea::placeholder,input::placeholder{color:var(--muted);opacity:1}
 .error{padding:14px 16px;color:var(--danger);background:color-mix(in srgb,var(--danger) 5%,var(--base));border:1px solid color-mix(in srgb,var(--danger) 55%,var(--base));border-radius:8px;overflow-wrap:anywhere;font-size:13px;line-height:1.7}
 p.error{white-space:pre-wrap}#error{margin:12px 24px 0;max-height:20dvh;overflow:auto;flex-shrink:0}
 .welcome{margin:0 auto;width:min(100%,1320px);padding:32px var(--gutter);overflow:auto}
-.welcome-intro{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px 32px;padding-bottom:28px}
+.welcome-intro{position:relative;isolation:isolate;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:24px 32px;padding:34px;border:1px solid var(--surface-edge);border-radius:18px;background:var(--surface-wash),var(--panel);overflow:hidden;box-shadow:var(--inset-shadow);margin-bottom:28px}
+.welcome-copy{min-width:0;position:relative;z-index:1}.welcome-eyebrow{display:block;font:11px var(--font-code);color:var(--accent);letter-spacing:.045em;margin-bottom:20px}
+.welcome .welcome-subtitle{margin-top:18px;max-width:38ch;font-size:13px}
+.welcome-drawing{position:absolute;z-index:-1;right:12%;top:-60px;width:300px;height:300px;transform:rotate(-28deg);pointer-events:none;opacity:.65}
+.welcome-drawing i{position:absolute;inset:28px;border:1px solid color-mix(in srgb,var(--accent) 20%,transparent);border-radius:44px;background:linear-gradient(140deg,color-mix(in srgb,var(--accent) 8%,transparent),transparent 60%);box-shadow:inset 1px 1px 0 color-mix(in srgb,var(--text) 6%,transparent)}
+.welcome-drawing i:nth-child(2){inset:62px}.welcome-drawing i:nth-child(3){inset:96px}
+.welcome-drawing span{position:absolute;left:-90px;right:-90px;top:50%;border-top:1px solid color-mix(in srgb,var(--accent) 10%,transparent)}
+@media(max-width:1000px){.welcome-drawing{right:-50px;top:0;opacity:.4}.welcome-intro{padding:26px}}
+@media(max-height:600px){.welcome-intro{padding:20px 24px}.welcome-eyebrow{margin-bottom:10px}.welcome .welcome-subtitle{margin-top:10px}.welcome-drawing{width:220px;height:220px}.welcome-description br{display:none}}
 
 .welcome p{color:var(--muted);font-size:13px;line-height:1.7;margin:0}
-.welcome .welcome-description{font-size:clamp(22px,2.2vw,30px);font-weight:500;letter-spacing:-.035em;line-height:1.25;color:var(--text);max-width:26ch;align-self:center}
-.welcome .welcome-hint{grid-column:1/-1;font-size:12px}
-.welcome-actions{display:flex;flex-direction:column;gap:8px;align-self:start}
+.welcome .welcome-description{font-size:clamp(32px,3.8vw,54px);font-weight:550;letter-spacing:-.055em;line-height:1.04;color:var(--text);max-width:18ch;align-self:center}
+.welcome .welcome-hint{display:flex;align-items:center;gap:8px;grid-column:1/-1;font-size:11px;padding-top:18px;border-top:1px solid var(--separator);position:relative;z-index:1}.welcome-hint [data-icon]{width:14px;height:14px;flex-basis:14px;color:var(--muted)}
+.welcome-actions{display:flex;flex-direction:column;gap:8px;align-self:center;position:relative;z-index:1}
 .welcome-actions button{font-size:12px;min-height:40px;padding:10px 14px}
 .welcome-actions button:first-child{background:var(--button);color:var(--button-text);border-color:var(--button)}
 .welcome-actions button+button{background:transparent;border-color:transparent;color:var(--muted)}
