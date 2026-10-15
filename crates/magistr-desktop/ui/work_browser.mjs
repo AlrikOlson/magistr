@@ -13,8 +13,8 @@ import { RoadmapItemReader } from "./work_item.mjs";
 
 export class WorkBrowser {
   constructor($,invoke){
-    this.$=$;this.invoke=invoke;this.frame=null;this.generation=0;this.revision=-1;this.loading=false;this.key="";
-    this.area="work";this.searchPage=0;this.returnTrail=[];
+    this.$=$;this.invoke=invoke;this.frame=null;this.generation=0;this.revision=-1;this.loading=false;this.key="";this.readError="";
+    this.area="work";this.searchPage=0;this.returnTrail=[];this.places=new Map();this.navigation=0;
     this.execution=new WorkExecutionBrowser($,invoke,()=>this.render());
     $("work-browser-return").onclick=()=>this.returnToFeedback();
     this.feedback=new FeedbackBrowser($("work-browser-content"),()=>{this.key="";this.render();},value=>navigator.clipboard.writeText(value).catch(error=>{$("work-browser-state").textContent="Could not copy the text. "+String(error);}),destination=>this.invoke("open_link",{destination}).catch(error=>{$("work-browser-state").textContent=String(error);}), (references,label)=>renderReferences(references,{snapshot:this.snapshot,navigate:(target,focus)=>this.openReference(target,focus),copy:value=>navigator.clipboard.writeText(value).catch(error=>{$("work-browser-state").textContent=String(error);})},label));
@@ -24,18 +24,37 @@ export class WorkBrowser {
     $("work-browser-reasoning-search").oninput=()=>{this.reasoning.query=$("work-browser-reasoning-search").value;this.reasoning.stepId=null;this.reasoning.trail=[];this.reasoning.page=0;this.key="";this.render();};
     $("work-browser-search").oninput=()=>{this.searchPage=0;this.item.close();this.key="";this.render();};
     this.item=new RoadmapItemReader($("work-browser-content"),invoke,()=>this.backToTrack());
-    this.tabs=new WorkTabs($("work-browser-tabs"),area=>{if(!this.routing)this.returnTrail=[];this.item.close();this.area=area;this.key="";this.render();});
+    this.tabs=new WorkTabs($("work-browser-tabs"),area=>this.selectArea(area));
     this.roadmapBrowser=new RoadmapBrowser($("work-browser-track"),()=>{this.item.close();this.key="";this.render();});
     $("work-browser-roadmap-state").onchange=()=>{this.item.close();this.key="";this.render();};
     $("browse-work").onclick=()=>this.open($("browse-work"));
     $("browse-work-header").onclick=()=>this.open($("browse-work-header"));
     $("work-browser-close").onclick=()=>$("work-browser").close();
     $("work-browser-refresh").onclick=()=>{this.load();if(this.item.id)this.item.load();};
-    $("work-browser").addEventListener("close",()=>{++this.generation;this.loading=false;this.item.close();this.returnTrail=[];this.key="";this.trigger?.focus();});
+    $("work-browser").addEventListener("close",()=>{++this.generation;++this.navigation;this.places.clear();this.loading=false;this.item.close();this.returnTrail=[];this.key="";this.trigger?.focus();});
+  }
+  readingIdentity(){
+    if(this.area==="roadmap")return JSON.stringify([this.item.id,this.roadmapBrowser.choice,this.$("work-browser-roadmap-state").value,this.$("work-browser-search").value,this.searchPage]);
+    if(this.area==="work")return this.execution.readingIdentity();
+    if(this.area==="reasoning")return JSON.stringify([this.reasoning.choice,this.reasoning.stepId,this.reasoning.query,this.reasoning.page,this.reasoning.branches.choice]);
+    if(this.area==="feedback")return JSON.stringify([this.feedback.id,this.feedback.query,this.feedback.kind,this.feedback.status,this.feedback.page]);
+    return this.area;
+  }
+  selectArea(area){
+    if(area===this.area&&!this.routing)return;
+    const content=this.$("work-browser-content"),navigation=++this.navigation;
+    if(!this.routing&&this.snapshot&&this.$("work-browser").open){this.places.set(this.area,{identity:this.readingIdentity(),reading:saveReading(content)});this.returnTrail=[];}
+    if(this.routing)this.item.close();else if(area!=="roadmap")this.item.suspend();
+    this.area=area;this.key="";
+    const pending=area==="roadmap"&&this.item.id?this.item.resume(this.frame.address,this.revision):null;
+    this.render();
+    if(this.routing)return;
+    const restore=()=>{const saved=this.places.get(area);if(navigation!==this.navigation||!saved||saved.identity!==this.readingIdentity())return;restoreReading(content,{...saved.reading,focus:null});};
+    if(pending)pending.then(restore);else restore();
   }
   observe(frame){
     if(addressKey(this.frame?.address)!==addressKey(frame?.address)){
-      ++this.generation;this.revision=-1;this.key="";this.loading=false;this.snapshot=null;
+      ++this.generation;++this.navigation;this.places.clear();this.item.close();this.revision=-1;this.key="";this.loading=false;this.snapshot=null;this.readError="";
       this.$("work-browser-content").replaceChildren();this.execution.reset();this.feedback.reset();this.$("work-browser-feedback-search").value="";this.$("work-browser-feedback-kind").value="all";this.$("work-browser-feedback-status").value="all";this.reasoning.reset();this.$("work-browser-reasoning-search").value="";this.roadmapBrowser.reset();this.searchPage=0;this.$("work-browser-search").value="";this.$("work-browser-roadmap-state").value="open";this.tabs.select("work");
       if(this.$("work-browser").open)this.$("work-browser").close();
     }
@@ -58,10 +77,10 @@ export class WorkBrowser {
     try{
       const result=await this.invoke("read_workflow",{address});
       if(generation!==this.generation||addressKey(result.address)!==addressKey(this.frame?.address))return;
-      this.revision=result.revision;this.snapshot=result.snapshot;this.roadmap=result.roadmap;applied=true;
+      this.readError="";this.revision=result.revision;this.snapshot=result.snapshot;this.roadmap=result.roadmap;applied=true;
       this.render();
     }catch(error){
-      if(generation===this.generation)this.$("work-browser-state").textContent=(this.key?"Showing the previous records. ":"")+"Could not read work records. "+String(error);
+      if(generation===this.generation){this.readError=String(error);this.render();}
     }finally{
       if(generation===this.generation){
         this.loading=false;this.$("work-browser-refresh").disabled=false;
@@ -107,6 +126,10 @@ export class WorkBrowser {
     retainReading(content,()=>content.replaceChildren(observed.value?renderRoadmap(frontier,observed.value,records,this.roadmapBrowser.choice!==undefined,id=>this.item.open(this.frame.address,id,this.revision),mode):element("p","The roadmap is unavailable. Use Refresh to try again.","work-record-empty")));
   }
   render(){
+    this.renderContent();
+    if(this.readError){this.$("work-browser-state").textContent=(this.snapshot?"Showing the previous records. ":"")+"Could not read work records. "+this.readError;this.$("work-browser-state").dataset.current="false";}
+  }
+  renderContent(){
     this.$("work-browser-return").hidden=!this.returnTrail.length;
     this.$("work-feedback-filters").hidden=this.area!=="feedback";
     this.$("work-feedback-search").hidden=this.area!=="feedback";

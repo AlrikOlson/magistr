@@ -43,9 +43,15 @@ function renderItem(item,actions){
   return article;
 }
 export class RoadmapItemReader {
-  constructor(root,invoke,back){this.root=root;this.invoke=invoke;this.back=back;this.id=null;this.generation=0;this.loading=false;this.read=null;this.error="";this.trail=[];}
+  constructor(root,invoke,back){this.root=root;this.invoke=invoke;this.back=back;this.active=false;this.id=null;this.generation=0;this.loading=false;this.read=null;this.error="";this.trail=[];}
   setItem(id){++this.generation;this.id=id;this.loading=false;this.read=null;this.error="";}
-  close(){this.setItem(null);this.trail=[];}
+  close(){this.setItem(null);this.trail=[];this.active=false;}
+  suspend(){++this.generation;this.loading=false;this.active=false;}
+  resume(address,revision){
+    if(!this.id)return;
+    if(addressKey(address)!==addressKey(this.address)){this.close();return;}
+    this.active=true;this.wanted=Math.max(this.wanted,revision);return this.load();
+  }
   navigate(id,focus){
     if(id===this.id){this.root.querySelector("h3")?.focus();return;}
     this.trail.push({id:this.id,scroll:this.root.scrollTop,focus:focus??document.activeElement?.dataset.focusKey});if(this.trail.length>64)this.trail.shift();
@@ -59,14 +65,15 @@ export class RoadmapItemReader {
     [...this.root.querySelectorAll("[data-focus-key]")].find(node=>node.dataset.focusKey===previous.focus)?.focus({preventScroll:true});
   }
   open(address,id,revision){
-    this.close();this.address=address;this.id=id;this.originId=id;this.wanted=revision;this.originScroll=this.root.scrollTop;this.load(true);
+    this.close();this.active=true;this.address=address;this.id=id;this.originId=id;this.wanted=revision;this.originScroll=this.root.scrollTop;return this.load(true);
   }
   observe(address,revision){
+    if(!this.active)return;
     if(addressKey(address)!==addressKey(this.address)){this.close();return;}
     if(revision>this.wanted){this.wanted=revision;if(!this.loading)this.load();}
   }
   async load(focus=false){
-    if(!this.id||this.loading)return;
+    if(!this.active||!this.id||this.loading)return;
     const generation=++this.generation,id=this.id,address=this.address;let applied=false,readRevision=-1;
     this.loading=true;this.error="";this.render();
     try{
@@ -84,7 +91,7 @@ export class RoadmapItemReader {
   }
   async perform(action){try{await action();}catch(error){this.error=String(error);this.render();}}
   render(){
-    if(!this.id)return;
+    if(!this.active||!this.id)return;
     const observed=readState(this.read),shell=element("div"),back=element("button",this.trail.length?"Back to previous item":"Back to track");
     back.className="roadmap-back";back.dataset.focusKey="roadmap-back";back.onclick=()=>this.previous();shell.append(back);
     const state=element("p",this.error||(this.loading?"Reading this item…":observed.message),"roadmap-item-state");state.setAttribute("role","status");shell.append(state);

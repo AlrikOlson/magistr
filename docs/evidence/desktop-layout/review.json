@@ -1,5 +1,5 @@
 {
-  "receipt": "de691dd66fea13050121aacc643032580e1bf53534e3c823e052c8afecfdc20a",
+  "receipt": "981485a0783dba635190d30c7dd738f2d59f4273ab7bf0407fcef1dd6e803042",
   "images": {
     "welcome-dark.png": "196f05ebfbcfdacf73fe8a82ad187b73837dfd801f2a1e47c59f5c0863f9b216",
     "project-map-dark.png": "9bfb53f79bb4c5bc20d428239f65e12e83ca95825579c550ca0c522b2cdf9efe",
@@ -131,8 +131,8 @@
     "workspace-compact-long-title.png": "5a9d1fe895fa847cb572d4dfd44aaf7a1102666f6e8ac77b3d494f1c7569f91d"
   },
   "inspected": [
-    "work-record-status-dark.png"
+    "roadmap-item-dark.png"
   ],
-  "notes": "Reviewed independent record status, current/saved execution counts and direct navigation. Focused tests cover stale/missing/unavailable/unobserved distinctions, exact diagnostic copying, optional reasoning investigations and saved-file timestamps.",
+  "notes": "Reviewed roadmap details after keyboard/click tab-focus updates. Focused checks verify preserved execution disclosures and scroll, selected roadmap dependency trails, unchanged selection recovery, late-response guards and persistent refresh failures across views.",
   "native_limit": "Current native OS-input, VoiceOver and live-provider behavior were not exercised."
 }

@@ -3,7 +3,7 @@ export class WorkTabs {
   constructor(root,changed){
     this.buttons=[...root.querySelectorAll("[data-work-view]")];this.changed=changed;this.current="work";
     for(const button of this.buttons){
-      button.onclick=()=>this.select(button.dataset.workView);
+      button.onclick=()=>{this.select(button.dataset.workView);button.focus({preventScroll:true});};
       button.onkeydown=event=>{
         if(event.isComposing)return;
         const index=this.buttons.indexOf(button),keys={ArrowRight:(index+1)%this.buttons.length,ArrowLeft:(index+this.buttons.length-1)%this.buttons.length,Home:0,End:this.buttons.length-1};
