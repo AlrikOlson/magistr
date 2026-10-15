@@ -1,5 +1,5 @@
 {
-  "receipt": "086511200a266e3d4693d83b61774c073e97def1f6130a90f505929892132c2f",
+  "receipt": "a1c549889cfeb26b02b15e4e311f96ec6ba3a118f9f920f65b4031d9255ab79b",
   "images": {
     "welcome-dark.png": "196f05ebfbcfdacf73fe8a82ad187b73837dfd801f2a1e47c59f5c0863f9b216",
     "project-map-dark.png": "9bfb53f79bb4c5bc20d428239f65e12e83ca95825579c550ca0c522b2cdf9efe",
@@ -25,7 +25,8 @@
     "roadmap-history-dark.png": "e0268698c44103861381c9f1b980b3ffb5de0448d6a26b27e2c21c5e21eeac11",
     "roadmap-search-dark.png": "3ed73913aaa8c58bf0c9b111a813a8d41edbd20566e841f233e68874c254a6f9",
     "reasoning-dark.png": "3a04a58ecdba71beecf355ca070da2fb6931472ce7d786d423ce80865a8fbc9f",
-    "reasoning-step-dark.png": "5f609006253e8ff480effd76ca10f3a9820bee503c6ee6589efd957cd2f1d4d1",
+    "reasoning-step-dark.png": "bdedb3768e26afb1934e21d6aa1caa78acf0670f6da7d5b0589d2da073aa119f",
+    "reasoning-related-dark.png": "28dafc8722bd1fb7e459c9d358234ca22e92931ca0861d415c1a7d201c86c674",
     "reasoning-investigation-dark.png": "13c1ec67b561fad0790dc0fc78c66116db3f275c12c7632cd561600ffe7320a1",
     "work-check-results-dark.png": "933a4595515dfe642d410f5e0bbd79a0bcf6d1080473d3985e35d88e594beded",
     "work-activity-dark.png": "eb498673aeee9f2cb2c855fc53a1064ce9d2e3773711fc88b28b5f05a5e7d6cc",
@@ -78,8 +79,8 @@
     "tables-light.png": "f1ee7ca0d66b2ab049e102a5bf9eb913977a71af18cf69c1cfc455e2ac86a4d6",
     "tables-compact.png": "b1c7232dec5db4be377871717ae0afd88381fd249f80687d6584e96f1c1259e7",
     "patch-dark.png": "e6ec8f194f3cd7b2691b07fa62b5933fdb8977eefcb06d1c5e5ed91f1b909576",
-    "patch-light.png": "33f3fd57018e64e902e8723ccb08fb22d0a6855e6d17d2537414d840347f138f",
-    "patch-comparison-dark.png": "8edf37365b50aff39946cf5809a46d44688184607a82aef16e7022200911ea3b",
+    "patch-light.png": "230ca8e1f26d52819aa7d2d5e54e02219c8b92e8ad3aee538e14738ac6d4122d",
+    "patch-comparison-dark.png": "b123658d32478531751b0e243cd888d45c5ae76cf574684ac796a431a0d6f15b",
     "patch-comparison-light.png": "2b35fd51750c85d77a7221e03aa248a673114c020aef393a2ead679d71e657ae",
     "patch-compact.png": "d1db1219b8836a04a58914ef5b60b8fbe510d67125715b8994f322c5b3781fa5",
     "result-dark.png": "ecc4b3b89cf52b424edaf6da03933083eae4bbbbb8e89fa72cf7d1ad51b88760",
@@ -118,8 +119,8 @@
     "workspace-compact-long-title.png": "5a9d1fe895fa847cb572d4dfd44aaf7a1102666f6e8ac77b3d494f1c7569f91d"
   },
   "inspected": [
-    "reasoning-investigation-dark.png"
+    "reasoning-related-dark.png"
   ],
-  "notes": "Reviewed investigation view: recorded lifecycle, origin and conclusion are distinct from the complete step list. Tests verify same branch IDs in different sessions and missing-branch state.",
+  "notes": "Reviewed direct cross-session references: relation labels, full purpose and step number are readable. Headless checks exercise revision links, missing records and cyclic navigation with Back focus restoration.",
   "native_limit": "Current native OS-input, VoiceOver and live-provider behavior were not exercised."
 }
