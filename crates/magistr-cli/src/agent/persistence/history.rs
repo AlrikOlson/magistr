@@ -215,11 +215,8 @@ impl SessionHistory {
             record.resume_supported = transport
                 .agent_capabilities()
                 .is_some_and(|caps| caps.load_session);
-            if let Some(model) =
-                crate::agent::translate::current_model(transport.session_config_options())
-            {
-                record.model = Some(model);
-            }
+            record.model =
+                crate::agent::translate::current_model(transport.session_config_options());
         }
     }
 
@@ -270,11 +267,7 @@ impl SessionHistory {
                 let record = state.record.as_mut().expect("record checked");
                 record.provider_session_id = (!session_id.is_empty()).then(|| session_id.clone());
                 record.resume_supported = agent_capabilities.load_session;
-                if let Some(model) =
-                    crate::agent::translate::current_model(config_options.as_deref())
-                {
-                    record.model = Some(model);
-                }
+                record.model = crate::agent::translate::current_model(config_options.as_deref());
             }
             AcpEvent::SessionUpdate { update, .. } => match &**update {
                 SessionUpdate::AgentMessageChunk(chunk) if state.active_turn => {
@@ -284,11 +277,8 @@ impl SessionHistory {
                     }
                 }
                 SessionUpdate::ConfigOptionUpdate(update) => {
-                    if let Some(model) =
-                        crate::agent::translate::current_model(Some(&update.config_options))
-                    {
-                        state.record.as_mut().expect("record checked").model = Some(model);
-                    }
+                    state.record.as_mut().expect("record checked").model =
+                        crate::agent::translate::current_model(Some(&update.config_options));
                 }
                 SessionUpdate::ToolCall(call) => files(&mut state, &call.content),
                 SessionUpdate::ToolCallUpdate(update) => {

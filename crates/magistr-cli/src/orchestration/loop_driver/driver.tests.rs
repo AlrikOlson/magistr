@@ -3748,6 +3748,13 @@ async fn a_start_in_a_hosted_session_runs_a_judged_iteration_and_returns_to_conv
         "XDG_DATA_HOME" => Some(history_root.path().display().to_string()),
         _ => None,
     });
+    let inputs =
+        inputs.with_session_selection(crate::config::session_selection::SessionSelection {
+            agent: "scripted".into(),
+            model: None,
+            effort: None,
+            sources: Default::default(),
+        });
     let config = AgentConfig::new("", dir.path()).with_inputs(&inputs);
     let client = EngineClient::attach(engines.clone());
     let observation = Arc::new(
@@ -3792,10 +3799,25 @@ async fn a_start_in_a_hosted_session_runs_a_judged_iteration_and_returns_to_conv
     )
     .connected(Box::new(opening), false);
     let scripted = Arc::clone(&judge);
-    let work = HostedWork::new(config, connector, inbox, client, tapped).judged_by(Box::new(
-        move |_, native, _, _, _| native.then(|| Arc::clone(&scripted) as Arc<dyn Judge>),
-    ));
+    let work = HostedWork::new(config, connector, inbox, client, tapped)
+        .judged_by(Box::new(move |_, native, _, _, _| {
+            native.then(|| Arc::clone(&scripted) as Arc<dyn Judge>)
+        }))
+        .observing(Some(observation.clone()));
     let task = tokio::spawn(work.run(session, receiver));
+
+    commands
+        .send(Cmd::ForConversation {
+            id: a.conversation.clone(),
+            command: Box::new(Cmd::Configure {
+                id: "model".into(),
+                value: "fast".into(),
+            }),
+        })
+        .unwrap();
+    next_matching(&mut events, |event| {
+        matches!(event, Msg::Agent(AgentEvent::Configuration { model: Some(model), .. }) if model == "fast")
+    }).await;
 
     commands
         .send(Cmd::ForConversation {
@@ -3829,6 +3851,11 @@ async fn a_start_in_a_hosted_session_runs_a_judged_iteration_and_returns_to_conv
         ChunkStatus::Done
     );
     let state = checkpoint(dir.path());
+    assert_eq!(
+        state.session_selection.as_ref().unwrap().model.as_deref(),
+        Some("fast"),
+        "new work freezes the accepted current model"
+    );
     assert!(
         state
             .operations
@@ -3857,6 +3884,11 @@ async fn a_start_in_a_hosted_session_runs_a_judged_iteration_and_returns_to_conv
     assert!(observation.context_snapshot(&c).unwrap().replay().iter().any(
         |message| matches!(message, Msg::Agent(AgentEvent::Text(text)) if text == "did the thing")
     ));
+    assert_eq!(
+        observation.snapshot().model.as_deref(),
+        Some("fast"),
+        "the following conversation keeps the model used by the run"
+    );
     assert_ne!(d.conversation, a.conversation);
     assert_ne!(d.conversation, c);
     assert_eq!(d.address, a.address);

@@ -133,6 +133,34 @@ pub(crate) fn opener(log: Log) -> Open<Hosted> {
 pub(crate) fn registry(log: Log) -> SessionRegistry {
     SessionRegistry::start_with(opener(log), Box::new(|| Box::pin(async { Ok(()) })))
 }
+
+#[tokio::test]
+async fn a_host_that_ended_during_admission_is_not_returned_as_open() {
+    struct Ended;
+    impl Settle for Ended {
+        fn settle(self) -> Pin<Box<dyn Future<Output = Result<(), String>> + Send>> {
+            Box::pin(async { Ok(()) })
+        }
+    }
+    let registry = SessionRegistry::start_with(
+        Box::new(|opening| {
+            Box::pin(async move {
+                opening.observation.stop();
+                Ok((Ended, ProjectSeed::default()))
+            })
+        }),
+        Box::new(|| Box::pin(async { Ok(()) })),
+    );
+    let tmp = projects();
+    let client = registry.client();
+    let error = client
+        .open(tmp.path().join("first"), SessionOpening::Launch)
+        .await
+        .unwrap_err();
+    assert!(error.contains("ended while opening"), "{error}");
+    assert!(client.list().await.unwrap().is_empty());
+    registry.shutdown().await.unwrap();
+}
 pub(crate) fn projects() -> tempfile::TempDir {
     let tmp = tempfile::tempdir().unwrap();
     for name in ["first", "second", "held", "broken-close"] {
