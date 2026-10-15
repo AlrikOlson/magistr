@@ -225,6 +225,7 @@ function renderDraftStatus() {
   if(!target){$("draft-status").textContent="";$("retry-draft").hidden=true;$("discard-draft").disabled=true;return;}
   const status=drafts.status(target);
   $("draft-status").textContent=status.error?status.error:status.saving?"Saving draft…":"Draft saved";
+  $("composer").dataset.saveState=status.error?"error":status.saving?"saving":"saved";
   $("retry-draft").hidden=!status.error;
   $("discard-draft").disabled=!composerFrame||composerFrame.closed||submissions.pending(target)||attachmentWork.has(targetKey(target))||draftMutations.has(targetKey(target))||draftMutations.has(addressKey(selected))||(!$("draft").value&&!attachmentList.files.length);
 }
