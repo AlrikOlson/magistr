@@ -50,3 +50,14 @@ test("work filters group related fields and retain content space",async({app})=>
   expect(await app.locator("#work-browser").evaluate(node=>node.scrollWidth-node.clientWidth)).toBeLessThanOrEqual(1);
   expect((await app.locator("#work-browser-content").boundingBox()).height).toBeGreaterThan(220);
 });
+
+test("roadmap totals leave the first items visible",async({app})=>{
+  await openWork(app,"Roadmap");await app.setViewportSize({width:760,height:550});
+  for(const theme of ["dark","light"]){
+    await app.evaluate(theme=>document.documentElement.dataset.theme=theme,theme);
+    expect((await app.locator(".roadmap-facts").boundingBox()).height).toBeLessThan(55);
+    await expect(app.locator(".roadmap-facts dd")).toHaveText(["3","1","1","1","0","0"]);
+    await expect(app.getByRole("button",{name:"Build the desktop installer",exact:true})).toBeInViewport();
+    await capture(app,"04-totals-"+theme);
+  }
+});
