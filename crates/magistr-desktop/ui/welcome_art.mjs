@@ -8,22 +8,64 @@ precision mediump float;
 uniform vec2 resolution;
 uniform float time;
 uniform float light;
+mat2 turn(float a) { return mat2(cos(a), -sin(a), sin(a), cos(a)); }
+float sculpture(vec3 p) {
+  p.xy = turn(-0.38) * p.xy;
+  p.yz = turn(0.72) * p.yz;
+  p.xz = turn(0.25 + 0.12 * (1.0 - pow(1.0 - time / 4.0, 3.0))) * p.xz;
+  float angle = atan(p.z, p.x);
+  vec2 band = vec2(length(p.xz) - 0.69, p.y);
+  band = turn(angle * 1.5) * band;
+  vec2 edge = abs(band) - vec2(0.24, 0.075);
+  return (length(max(edge, 0.0)) + min(max(edge.x, edge.y), 0.0) - 0.045) * 0.7;
+}
+vec3 normalAt(vec3 p) {
+  vec2 e = vec2(0.004, -0.004);
+  return normalize(e.xyy * sculpture(p + e.xyy) + e.yyx * sculpture(p + e.yyx)
+    + e.yxy * sculpture(p + e.yxy) + e.xxx * sculpture(p + e.xxx));
+}
+vec3 environment(vec3 r) {
+  vec3 ink = vec3(0.12, 0.19, 0.33);
+  vec3 pearl = vec3(0.90, 0.92, 1.0);
+  vec3 c = mix(ink, pearl, smoothstep(-0.65, 0.65, r.y));
+  c = mix(c, vec3(0.68, 0.58, 1.0), smoothstep(0.15, 0.92, r.x) * 0.7);
+  c = mix(c, vec3(0.97, 0.72, 0.40), smoothstep(0.3, 0.95, -r.x) * 0.65);
+  c += vec3(0.55, 0.68, 0.85) * pow(max(0.0, dot(r, normalize(vec3(0.4, 0.8, 0.5)))), 24.0);
+  return c;
+}
 void main() {
-  vec2 p = (gl_FragCoord.xy * 2.0 - resolution) / min(resolution.x, resolution.y);
-  p = mat2(0.9, -0.43, 0.43, 0.9) * p;
-  p.y *= 1.2;
-  float a = atan(p.y, p.x);
-  float r = length(p);
-  float fold = r + 0.075 * sin(a * 3.0 + r * 4.0 + time * 0.17);
-  float band = exp(-pow((fold - 0.62) / 0.26, 4.0));
-  float threads = pow(0.5 + 0.5 * cos(fold * 185.0 + a * 2.0), 12.0);
-  float sheen = 0.38 + 0.62 * pow(0.5 + 0.5 * sin(a + 0.8), 2.0);
-  vec3 violet = mix(vec3(0.73,0.58,1.0), vec3(0.37,0.22,0.63), light);
-  vec3 blue = mix(vec3(0.36,0.79,0.90), vec3(0.12,0.45,0.58), light);
-  vec3 gold = mix(vec3(0.91,0.72,0.40), vec3(0.65,0.40,0.12), light);
-  vec3 color = mix(violet, blue, smoothstep(-0.2,0.9,sin(a)));
-  color = mix(color, gold, smoothstep(0.6,1.0,cos(a - 0.8)) * 0.8);
-  float alpha = band * (threads * sheen * 0.9 + 0.035);
+  vec2 uv = (gl_FragCoord.xy * 2.0 - resolution) / min(resolution.x, resolution.y);
+  vec3 origin = vec3(0.0, 0.0, 3.5);
+  vec3 ray = normalize(vec3(uv * 1.24, -2.8));
+  float travel = 0.0;
+  float distance = 1.0;
+  for (int i = 0; i < 72; i++) {
+    distance = sculpture(origin + ray * travel);
+    if (distance < 0.0025 || travel > 5.0) break;
+    travel += distance;
+  }
+  vec3 color;
+  float alpha;
+  if (travel < 5.0 && distance < 0.0025) {
+    vec3 p = origin + ray * travel;
+    vec3 n = normalAt(p);
+    vec3 reflected = reflect(ray, n);
+    float diffuse = max(0.0, dot(n, normalize(vec3(-0.4, 0.7, 1.0))));
+    float fresnel = pow(1.0 - max(0.0, dot(n, -ray)), 3.0);
+    float occlusion = clamp(sculpture(p + n * 0.10) / 0.07, 0.25, 1.0);
+    color = environment(reflected) * (0.54 + 0.46 * diffuse) * occlusion;
+    color += fresnel * vec3(0.22, 0.27, 0.40);
+    color *= 0.97 + 0.03 * sin(atan(p.z, p.x) * 220.0);
+    color = mix(color, color * 0.84 + vec3(0.04), light);
+    color = pow(clamp(color, 0.0, 1.0), vec3(0.8));
+    alpha = 1.0;
+  } else {
+    float shadow = exp(-dot(uv * vec2(1.2, 5.0) + vec2(0.0, 4.2),
+      uv * vec2(1.2, 5.0) + vec2(0.0, 4.2)));
+    color = vec3(0.02, 0.03, 0.08);
+    vec2 edge = min(gl_FragCoord.xy / resolution, 1.0 - gl_FragCoord.xy / resolution);
+    alpha = shadow * mix(0.35, 0.14, light) * smoothstep(0.0, 0.18, min(edge.x, edge.y));
+  }
   gl_FragColor = vec4(color * alpha, alpha);
 }
 `;
@@ -71,8 +113,8 @@ export function welcomeArt(canvas, surface) {
   function draw(time) {
     if (!program || !visible() || stopped) return;
     const scale = Math.min(devicePixelRatio || 1, 1.5);
-    const width = Math.min(900, Math.round(canvas.clientWidth * scale));
-    const height = Math.min(700, Math.round(canvas.clientHeight * scale));
+    const width = Math.min(640, Math.round(canvas.clientWidth * scale));
+    const height = Math.min(640, Math.round(canvas.clientHeight * scale));
     if (canvas.width !== width || canvas.height !== height) { canvas.width = width; canvas.height = height; }
     gl.viewport(0, 0, width, height);
     gl.uniform2f(program.resolution, width, height);
