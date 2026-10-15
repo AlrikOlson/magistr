@@ -153,6 +153,8 @@ only a validated URL and never an application or path. The lockfile adds 21
 packages: parser/unicase, opener/open and platform detection, plus Linux DBus
 and supporting packages. Existing locked versions are unchanged.
 
+Roadmap detail reads resolve prerequisites and dependents from the same complete native graph. Shared workflow policy supplies readiness, including missing and cross-track requirements. Local navigation retains at most 64 item identities and reading positions, then returns to the originating track; it stores no second roadmap.
+
 ## Interface
 
 The desktop has an authored visual system: ink and ivory materials, optical typography, distinct document and instrument compositions, and dimensional graphics grounded in current data. This direction follows the owner’s request for substantial design work, including shaders. Use hierarchy, alignment and space to connect each surface to its purpose; borders, accent marks and depth distinguish actual selection, requests, editable documents and measured instruments. Color always accompanies readable text or shape. Bundle Manrope for controls and body text, Newsreader for display headings and quotations, and use system monospace for source and paths. The Latin variable fonts and their SIL licenses are local assets; other scripts use the system fallback. Font loading swaps into the same native text layout without a network request. Inspect rendered dark, light and compact views whenever the system changes.

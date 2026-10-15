@@ -1,5 +1,5 @@
 {
-  "receipt": "6870fa457d87e3b56667ec3fc298c0857f18f6ec36314b38ad5720ec102ccafb",
+  "receipt": "ec2d2cd77270213680784d5e6681237ea379cfb3c246ad0e53fa77550e948091",
   "images": {
     "welcome-dark.png": "196f05ebfbcfdacf73fe8a82ad187b73837dfd801f2a1e47c59f5c0863f9b216",
     "project-map-dark.png": "9bfb53f79bb4c5bc20d428239f65e12e83ca95825579c550ca0c522b2cdf9efe",
@@ -20,7 +20,8 @@
     "work-paused-dark.png": "a79d02738979c74cd380bb907ac98b612d4d5640c60c212454c63c40c9b0a372",
     "work-plan-dark.png": "a94e499de64f8c96af03a6196aedb027e8450a6c30a250ccdcd96991135b9a41",
     "roadmap-dark.png": "4254ab747db88e625ba45f19b94ec2873bef754169b81ed505e41eb409c2290e",
-    "roadmap-item-dark.png": "ea6ae66ef18f56146402b15d7fca6b3fb0368d2fe0624bd33154a55859674e7f",
+    "roadmap-item-dark.png": "64dbe135eb7284318176058034646e47c922ea9def401b96b588822182ca99f8",
+    "roadmap-dependency-dark.png": "f6dea904ad7054c336dc4e2d661e32bc65e48ceb008abca236ecaeba016acd7b",
     "work-check-results-dark.png": "6a0390f311c4a76842ed7d4e4559547cf881ff62a76716e21dd99a01f590c843",
     "work-activity-dark.png": "0187963df625494fedeea7d3d95e3c4d4d8d49950829d5ee4ad8840342150d5f",
     "saved-work-dark.png": "9d4bc1b5f1c2edd7d48a25d9d3a7729b40b0623ee482945530e425e2506b616e",
@@ -112,8 +113,9 @@
     "workspace-compact-long-title.png": "5a9d1fe895fa847cb572d4dfd44aaf7a1102666f6e8ac77b3d494f1c7569f91d"
   },
   "inspected": [
+    "roadmap-dependency-dark.png",
     "roadmap-item-dark.png"
   ],
-  "notes": "Roadmap detail delivery: inspected the selected item's title, authored summary/facts, description and structured section through the safe document renderer. Focused scenarios verify requirements/notes, exact copy, text selection through updates, return focus, missing versus unavailable records and ignored late reads. Other captures were refreshed by the workspace scenario.",
+  "notes": "Reviewed prerequisite/dependent navigation: full titles, cross-track status, explicit empty groups and return controls remain legible. Headless interaction checks verify Back and missing-reference focus.",
   "native_limit": "Current native OS-input, VoiceOver and live-provider behavior were not exercised."
 }

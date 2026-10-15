@@ -2,6 +2,7 @@ import { element,retainReading } from "./work_dom.mjs";
 import { addressKey } from "./context.mjs";
 import { readState } from "./work_records.mjs";
 import { renderDocument } from "./transcript.mjs";
+import { renderRelations } from "./work_relations.mjs";
 const statuses={backlog:"Backlog",pending:"Planned",in_progress:"In progress",blocked:"Blocked",done:"Completed",obsoleted:"Retired"};
 function documentPart(label,source,document,key,actions){
   const section=element("section","","roadmap-document"),head=element("header");
@@ -14,6 +15,7 @@ function renderItem(item,actions){
   const {record}=item,article=element("article","","work-record roadmap-item-detail");
   const title=element("h3",record.title,"roadmap-track-title");title.tabIndex=-1;title.dataset.focusKey="roadmap-item-title";article.append(title);
   article.append(element("p",[record.group??"Other work",statuses[record.status]??"Status unavailable"].join(" · "),"work-record-status"));
+  article.append(renderRelations(item,actions));
   if(record.content){
     article.append(element("p",record.content.summary,"roadmap-item-summary"));
     const facts=element("dl","","roadmap-content-facts");
@@ -39,10 +41,23 @@ function renderItem(item,actions){
   return article;
 }
 export class RoadmapItemReader {
-  constructor(root,invoke,back){this.root=root;this.invoke=invoke;this.back=back;this.id=null;this.generation=0;this.loading=false;this.read=null;this.error="";}
-  close(){++this.generation;this.id=null;this.loading=false;this.read=null;this.error="";}
+  constructor(root,invoke,back){this.root=root;this.invoke=invoke;this.back=back;this.id=null;this.generation=0;this.loading=false;this.read=null;this.error="";this.trail=[];}
+  setItem(id){++this.generation;this.id=id;this.loading=false;this.read=null;this.error="";}
+  close(){this.setItem(null);this.trail=[];}
+  navigate(id,focus){
+    if(id===this.id){this.root.querySelector("h3")?.focus();return;}
+    this.trail.push({id:this.id,scroll:this.root.scrollTop,focus:focus??document.activeElement?.dataset.focusKey});if(this.trail.length>64)this.trail.shift();
+    this.setItem(id);this.load(true);
+  }
+  async previous(){
+    const previous=this.trail.pop();if(!previous){this.back();return;}
+    this.setItem(previous.id);const pending=this.load(),generation=this.generation;await pending;
+    if(this.generation!==generation)return;
+    this.root.scrollTop=previous.scroll;
+    [...this.root.querySelectorAll("[data-focus-key]")].find(node=>node.dataset.focusKey===previous.focus)?.focus({preventScroll:true});
+  }
   open(address,id,revision){
-    this.close();this.address=address;this.id=id;this.wanted=revision;this.originScroll=this.root.scrollTop;this.load(true);
+    this.close();this.address=address;this.id=id;this.originId=id;this.wanted=revision;this.originScroll=this.root.scrollTop;this.load(true);
   }
   observe(address,revision){
     if(addressKey(address)!==addressKey(this.address)){this.close();return;}
@@ -68,11 +83,11 @@ export class RoadmapItemReader {
   async perform(action){try{await action();}catch(error){this.error=String(error);this.render();}}
   render(){
     if(!this.id)return;
-    const observed=readState(this.read),shell=element("div"),back=element("button","Back to track");
-    back.className="roadmap-back";back.dataset.focusKey="roadmap-back";back.onclick=()=>this.back();shell.append(back);
+    const observed=readState(this.read),shell=element("div"),back=element("button",this.trail.length?"Back to previous item":"Back to track");
+    back.className="roadmap-back";back.dataset.focusKey="roadmap-back";back.onclick=()=>this.previous();shell.append(back);
     const state=element("p",this.error||(this.loading?"Reading this item…":observed.message),"roadmap-item-state");state.setAttribute("role","status");shell.append(state);
     if(this.error||!observed.current&&!this.loading){const retry=element("button","Retry");retry.onclick=()=>this.load();shell.append(retry);}
-    const actions={copy:value=>this.perform(()=>navigator.clipboard.writeText(value)),openLink:destination=>this.perform(()=>this.invoke("open_link",{destination}))};
+    const actions={navigate:(id,focus)=>this.navigate(id,focus),current:observed.current,copy:value=>this.perform(()=>navigator.clipboard.writeText(value)),openLink:destination=>this.perform(()=>this.invoke("open_link",{destination}))};
     if(observed.value)shell.append(renderItem(observed.value,actions));
     else if(!this.loading)shell.append(element("h3",observed.current?"This item is no longer available.":"This item cannot be read."));
     retainReading(this.root,()=>this.root.replaceChildren(shell));

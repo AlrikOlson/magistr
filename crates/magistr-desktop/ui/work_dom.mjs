@@ -10,6 +10,6 @@ export function retainReading(root,replace){
   const focus=root.contains(document.activeElement)?document.activeElement.dataset.focusKey:null,scroll=root.scrollTop;
   replace();
   for(const details of root.querySelectorAll("details[data-reading-key]"))details.open=open.includes(details.dataset.readingKey);
-  if(focus)for(const node of root.querySelectorAll("[data-focus-key]"))if(node.dataset.focusKey===focus){node.focus({preventScroll:true});break;}
+  if(focus){const target=[...root.querySelectorAll("[data-focus-key]")].find(node=>node.dataset.focusKey===focus);(target??root).focus({preventScroll:true});}
   restoreSelection(root,selection);root.scrollTop=scroll;
 }
