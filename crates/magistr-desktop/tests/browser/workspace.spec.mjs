@@ -137,6 +137,10 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
   await expect(app.getByRole("heading",{name:"Review project setup",exact:true})).toBeVisible();
   await app.getByRole("button",{name:"Read AGENTS.md",exact:true}).click();
   await capture("setup-dark.png");
+  await app.getByRole("button",{name:"After setup",exact:true}).click();
+  await capture("setup-after-dark.png");
+  await app.getByRole("button",{name:"Current file",exact:true}).click();
+  await capture("setup-current-dark.png");
   checks["setup review separates file approval from reading with fixed actions"]=true;
   await app.getByRole("button",{name:"Cancel",exact:true}).click();
   await app.getByRole("button",{name:"New conversation",exact:true}).click();
