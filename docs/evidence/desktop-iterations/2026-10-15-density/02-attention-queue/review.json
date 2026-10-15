@@ -1,0 +1,30 @@
+{
+  "scope": "Make waiting requests a compact actionable queue",
+  "limitations": "Headless WebKit with isolated observations. Native OS input, assistive technology and Rust command integration were not exercised.",
+  "images": {
+    "projects-desktop-dark.png": {
+      "sha256": "9fd18dab888de44f68999308ecc647cf9c83686c925ca1081fa982888af9e32b",
+      "task": "Find and open a waiting request without a tall alert panel displacing projects.",
+      "observations": "The waiting-request label and small count share a single heading line. The request title and check description remain readable with a clear arrow target; flatter edges and reduced padding free rail height. Dark and light text contrast remains clear. At 760×550 the queue fits above both project groups without clipping or overlap; no relationship geometry changed.",
+      "verdict": "pass"
+    },
+    "projects-desktop-light.png": {
+      "sha256": "ebc8525f5e91aa827171e179ffd23a365c49b4ff4962026ce4b5bd16af397076",
+      "task": "Find and open a waiting request without a tall alert panel displacing projects.",
+      "observations": "The waiting-request label and small count share a single heading line. The request title and check description remain readable with a clear arrow target; flatter edges and reduced padding free rail height. Dark and light text contrast remains clear. At 760×550 the queue fits above both project groups without clipping or overlap; no relationship geometry changed.",
+      "verdict": "pass"
+    },
+    "projects-compact-dark.png": {
+      "sha256": "5c2a1f5836e5ea0f94fa1d5620ee42125eb487db850cf045075838cec49183d8",
+      "task": "Find and open a waiting request without a tall alert panel displacing projects.",
+      "observations": "The waiting-request label and small count share a single heading line. The request title and check description remain readable with a clear arrow target; flatter edges and reduced padding free rail height. Dark and light text contrast remains clear. At 760×550 the queue fits above both project groups without clipping or overlap; no relationship geometry changed.",
+      "verdict": "pass"
+    },
+    "projects-compact-light.png": {
+      "sha256": "ccd0d74b7c29ad4b77b68136e52af029e028211fbe71674c1dd81972b535db25",
+      "task": "Find and open a waiting request without a tall alert panel displacing projects.",
+      "observations": "The waiting-request label and small count share a single heading line. The request title and check description remain readable with a clear arrow target; flatter edges and reduced padding free rail height. Dark and light text contrast remains clear. At 760×550 the queue fits above both project groups without clipping or overlap; no relationship geometry changed.",
+      "verdict": "pass"
+    }
+  }
+}
