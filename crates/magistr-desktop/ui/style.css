@@ -252,18 +252,18 @@ textarea::placeholder,input::placeholder{color:var(--muted);opacity:1}
 .request-actions button:hover{background:var(--panel)}.request-actions button:disabled{color:var(--muted)}
 .session-actions{display:grid;gap:8px}.session-actions button{font-size:12px}
 .error{padding:10px 14px;color:var(--danger);background:var(--panel);border-bottom:1px solid var(--separator);overflow-wrap:anywhere;font-size:13px}
-.welcome{margin:0 auto;width:min(100%,1040px);padding:44px;overflow:auto}
-.welcome-intro{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px 32px;padding-bottom:36px}
+.welcome{margin:0 auto;width:min(100%,1320px);padding:32px var(--gutter);overflow:auto}
+.welcome-intro{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px 32px;padding-bottom:28px}
 
 .welcome p{color:var(--muted);font-size:13px;line-height:1.7;margin:0}
-.welcome .welcome-description{font-size:18px;line-height:1.5;color:var(--text);max-width:40ch;align-self:center}
+.welcome .welcome-description{font-size:clamp(22px,2.2vw,30px);font-weight:500;letter-spacing:-.035em;line-height:1.25;color:var(--text);max-width:26ch;align-self:center}
 .welcome .welcome-hint{grid-column:1/-1;font-size:12px}
 .welcome-actions{display:flex;flex-direction:column;gap:8px;align-self:start}
 .welcome-actions button{font-size:12px;min-height:40px;padding:10px 14px}
 .welcome-actions button:first-child{background:var(--button);color:var(--button-text);border-color:var(--button)}
 .welcome-actions button+button{background:transparent;border-color:transparent;color:var(--muted)}
 
-.project-activity{display:grid;grid-template-columns:144px minmax(0,1fr);align-items:center;gap:40px;margin:0 0 44px;padding:28px 0;border-block:1px solid var(--separator)}
+.project-activity{display:grid;grid-template-columns:144px minmax(0,1fr);align-items:center;gap:40px;margin:0 0 32px;padding:24px 0;border-block:1px solid var(--separator)}
 .activity-wheel{display:grid;place-content:center;text-align:center;position:relative;isolation:isolate;width:144px;height:144px}
 .activity-wheel::before{content:"";position:absolute;inset:0;border-radius:50%;background:var(--activity-fill);mask:radial-gradient(circle,transparent 58%,black 59%);-webkit-mask:radial-gradient(circle,transparent 58%,black 59%);z-index:-1}
 .activity-material{position:absolute;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none}
@@ -278,16 +278,18 @@ textarea::placeholder,input::placeholder{color:var(--muted);opacity:1}
 .activity-wheel:not([data-material=rendered]) .activity-material{visibility:hidden}.activity-wheel[data-material=rendered]::before{display:none}
 .activity-wheel strong{font-size:32px}.activity-counts{grid-template-columns:1fr 1fr;gap:18px}.activity-body h2{margin-bottom:18px}}
 @media(forced-colors:active){.activity-wheel::before{background:none;border:2px solid CanvasText;mask:none;-webkit-mask:none}}
-.directory-project{border-top:1px solid var(--separator);padding:24px 0}
-.directory-project-heading{display:flex;justify-content:space-between;align-items:center;gap:20px}
-.directory-project-title{min-width:0}.directory-project-title h2{text-transform:none;color:var(--text);font-size:21px;font-weight:600;line-height:1.3;letter-spacing:-.025em;margin:0 0 6px}
+#welcome-projects{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:36px 40px;align-items:start}
+.directory-project{min-width:0;padding:0 0 20px}
+.directory-project-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;min-height:72px}
+.directory-project-title{min-width:0}.directory-project-title h2{text-transform:none;color:var(--text);font-size:25px;font-weight:550;line-height:1.2;letter-spacing:-.035em;margin:0 0 10px}
 .directory-project-title p{font:11px/1.5 var(--font-code);overflow-wrap:anywhere}
-.directory-open{flex-shrink:0;font-size:12px;padding:8px 12px;border-color:var(--separator);background:transparent}
-.welcome .directory-project-facts{font-size:12px;margin:16px 0 10px}
-.directory-conversations{display:grid;gap:4px}
-.directory-conversation{display:flex;align-items:baseline;justify-content:space-between;gap:24px;border-color:transparent;border-radius:4px;background:transparent;padding:10px 12px;margin-inline:-12px;font-size:14px;line-height:1.4}
+.directory-open{flex-shrink:0;font-size:11px;padding:7px 9px;border-color:transparent;background:transparent;color:var(--muted)}.directory-open::before{order:2;transform:rotate(45deg);width:14px;height:14px;flex-basis:14px}
+.welcome .directory-project-facts{font-size:11px;margin:12px 0;color:var(--muted)}
+.directory-conversations{display:grid;gap:0;border-top:1px solid var(--separator)}
+.directory-conversation{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:7px 12px;border:0;border-bottom:1px solid var(--separator);border-radius:0;background:transparent;padding:17px 2px;margin:0;font-size:15px;line-height:1.4;min-height:74px}
+.directory-conversation::after{content:"↗";grid-column:2;grid-row:1/3;font-size:18px;color:var(--muted);padding:4px}.directory-conversation-name{font-weight:550;letter-spacing:-.015em}.directory-conversation-state{grid-column:1;display:flex;align-items:center;gap:7px}.directory-conversation-state::before{content:"";width:6px;height:6px;flex-shrink:0;border:1px solid currentColor;border-radius:50%}.directory-conversation[data-state=waiting] .directory-conversation-state::before{border-radius:1px;background:currentColor}.directory-conversation[data-state=working] small{color:var(--success)}.directory-conversation[data-state=working] .directory-conversation-state::before{background:currentColor}.directory-conversation[data-state=disconnected] small{color:var(--danger)}
 .directory-conversation:hover{background:var(--panel)}
-.directory-conversation span{overflow-wrap:anywhere}.directory-conversation small{font-size:11px;color:var(--muted);white-space:nowrap}
+.directory-conversation span{overflow-wrap:anywhere}.directory-conversation small{font-size:11px;color:var(--muted);white-space:normal}
 .directory-conversation[data-attention=true] small{color:var(--warning)}
 @media(max-width:1000px){.welcome{padding:28px}.welcome-intro{grid-template-columns:1fr;gap:16px;padding-bottom:28px}.welcome-actions{flex-direction:row;flex-wrap:wrap}}
 @media(max-width:600px){.directory-project-heading{align-items:flex-start;flex-wrap:wrap;gap:12px}.directory-conversation{flex-wrap:wrap;gap:6px}}
