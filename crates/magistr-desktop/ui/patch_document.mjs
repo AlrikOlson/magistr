@@ -51,16 +51,32 @@ export function pairPatchRows(patch) {
   }
   flush();return result;
 }
+// Intraline emphasis is a view of the paired source, with Unicode boundaries intact.
+function changedParts(before,after) {
+  const left=Array.from(before),right=Array.from(after);
+  let start=0,end=0;
+  while(start<Math.min(left.length,right.length)&&left[start]===right[start])start++;
+  while(end<Math.min(left.length,right.length)-start&&left[left.length-1-end]===right[right.length-1-end])end++;
+  return [left,right].map(chars=>[chars.slice(0,start).join(""),chars.slice(start,chars.length-end).join(""),chars.slice(chars.length-end).join("")]);
+}
 export function paintPatchComparison(root,patch) {
   const document=root.ownerDocument,fragment=document.createDocumentFragment();
   for(const title of ["Before","After"]){const heading=document.createElement("div");heading.className="diff-column-title";heading.textContent=title;fragment.append(heading);}
   for(const row of pairPatchRows(patch)){
     if(row.label!==undefined){const label=document.createElement("div");label.className="diff-pair-label";label.textContent=row.label;fragment.append(label);continue;}
+    const emphasis=row.before?.kind==="removed"&&row.after?.kind==="added"?changedParts(row.before.text.slice(1),row.after.text.slice(1)):null;
     for(const [side,line] of [["before",row.before],["after",row.after]]){
       const cell=document.createElement("div");cell.className="diff-cell"+(line?" diff-cell-"+line.kind:" diff-cell-empty");
       const number=document.createElement("span");number.className="diff-line-number";number.setAttribute("aria-hidden","true");
       number.textContent=line?String(side==="before"?line.old:line.next):"";
-      const source=document.createElement("code");source.textContent=line?line.text.slice(1):"";cell.append(number,source);fragment.append(cell);
+      const source=document.createElement("code");
+      if(emphasis){
+        const [prefix,changed,suffix]=emphasis[side==="before"?0:1];
+        source.append(document.createTextNode(prefix));
+        if(changed){const mark=document.createElement("mark");mark.className="diff-ink";mark.textContent=changed;source.append(mark);}
+        source.append(document.createTextNode(suffix));
+      }else source.textContent=line?line.text.slice(1):"";
+      cell.dataset.side=side;cell.append(number,source);fragment.append(cell);
     }
   }
   root.replaceChildren(fragment);
