@@ -122,7 +122,7 @@ export class ProjectDirectory {
       let group=this.groups.get(project.id);
       if(!group){
         const root=node("section","directory-project"),heading=node("header","directory-project-heading");
-        const title=node("div","directory-project-title"),name=node("h2",""),path=node("p",""),facts=node("dl","directory-project-facts");
+        const title=node("div","directory-project-title"),name=node("h2",""),path=node("input","directory-path"),facts=node("dl","directory-project-facts");path.readOnly=true;
         const mark=node("span","project-monogram");mark.setAttribute("aria-hidden","true");
         const opened=node("div",""),waiting=node("div","");
         const openCount=node("dd","","0"),waitCount=node("dd","","0");
@@ -135,7 +135,7 @@ export class ProjectDirectory {
         group={root,name,path,facts,openCount,waitCount,open,list,empty,mark,project};this.groups.set(project.id,group);
         open.onclick=()=>this.open(group.project.directory);
       }
-      group.project=project;group.root.dataset.variant=projectVariant(project.id);group.name.textContent=project.name;group.path.textContent=project.directory;
+      group.project=project;group.root.dataset.variant=projectVariant(project.id);group.name.textContent=project.name;group.path.value=project.directory;group.path.setAttribute("aria-label","Project location for "+project.name);
       group.mark.textContent=Array.from(project.name.trim()).slice(0,2).join("").toLocaleUpperCase();
       group.open.setAttribute("aria-label","Open project "+project.name+" in "+project.directory);
       group.list.setAttribute("aria-label","Open conversations in "+project.name);
