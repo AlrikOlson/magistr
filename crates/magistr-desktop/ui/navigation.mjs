@@ -129,11 +129,12 @@ export class ProjectDirectory {
         const open=node("button","directory-open","Open project"),list=node("nav","directory-conversations");
         open.dataset.leadingIcon="arrow";
         const empty=node("p","directory-empty","No open conversations.");
-        title.append(mark,name,path);heading.append(title,open);root.append(heading,facts,list,empty);
+        const cover=node("div","directory-cover");
+        title.append(mark,name,path);heading.append(title,open);cover.append(heading,facts);root.append(cover,list,empty);
         group={root,name,path,facts,openCount,waitCount,open,list,empty,mark,project};this.groups.set(project.id,group);
         open.onclick=()=>this.open(group.project.directory);
       }
-      group.project=project;group.name.textContent=project.name;group.path.textContent=project.directory;
+      group.project=project;group.root.dataset.variant=projectVariant(project.id);group.name.textContent=project.name;group.path.textContent=project.directory;
       group.mark.textContent=Array.from(project.name.trim()).slice(0,2).join("").toLocaleUpperCase();
       group.open.setAttribute("aria-label","Open project "+project.name+" in "+project.directory);
       group.list.setAttribute("aria-label","Open conversations in "+project.name);
