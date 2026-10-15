@@ -86,3 +86,13 @@ test("07 work searches clear directly and restore the collection",async({app})=>
   }
   await app.getByLabel("Find a task",{exact:true}).fill("installer");await capture(app,"07-search-clear");
 });
+test("08 find shortcut selects the visible work search",async({app})=>{
+  await openWork(app,"Roadmap");
+  for(const [tab,label] of [["Roadmap","Search all roadmap"],["Reasoning","Search all reasoning"],["Feedback","Search feedback"],["Current and saved work","Find a task"]]){
+    await app.getByRole("tab",{name:tab,exact:true}).click();await app.keyboard.press("Control+f");await expect(app.getByLabel(label,{exact:true})).toBeFocused();
+    await app.getByLabel(label,{exact:true}).fill("installer");await app.keyboard.press("Meta+f");
+    expect(await app.getByLabel(label,{exact:true}).evaluate(input=>input.selectionEnd-input.selectionStart)).toBe(9);
+    await app.getByLabel(label,{exact:true}).fill("");
+  }
+  await capture(app,"08-find");
+});
