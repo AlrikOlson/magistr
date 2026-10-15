@@ -126,3 +126,14 @@ test("task metadata uses labeled facts and complete times",async({app})=>{
   await expect(row.locator(".work-inline-facts time")).toHaveAttribute("datetime","2026-10-15T08:12:00Z");
   await capture(app,"11-task-facts");
 });
+
+test("check outcomes stay aligned with long names",async({app})=>{
+  await openWork(app);await app.getByLabel("Show",{exact:true}).selectOption("checks");
+  await app.evaluate(()=>{const f=window.__fixture;f.workflow.ship.data.value.current.tasks[1].checks[0].name="Verify installation and complete restoration of the conversation, file attachments and unsent message";f.publish("release",{workflow_revision:1});});
+  await app.setViewportSize({width:760,height:550});
+  const summary=app.locator(".work-check summary").first();await summary.scrollIntoViewIfNeeded();
+  const title=await summary.locator("strong").boundingBox(),result=await summary.locator("span").boundingBox();
+  expect(title.x+title.width).toBeLessThan(result.x);
+  await summary.focus();await app.keyboard.press("Enter");await expect(app.locator(".work-check").first()).toHaveAttribute("open","");
+  await capture(app,"12-check-results");
+});
