@@ -1,0 +1,18 @@
+import {element} from "./work_dom.mjs";
+import {matchesText,pageControls} from "./work_search.mjs";
+import {renderCheck,checkNote} from "./work_checks.mjs";
+const outcomes={all:()=>true,failed:check=>!check.passed,passed:check=>check.passed,reported:check=>!check.verified,executed:check=>check.verified,required:check=>check.required,optional:check=>!check.required};
+export function renderCheckIndex(run,{copy},view){
+  const root=element("section","","work-record work-check-index"),title=element("h3","Checks");title.tabIndex=-1;title.dataset.focusKey="check-index-title";root.append(title);
+  if(!run){root.append(element("p","No work is selected."));return root;}
+  root.append(element("p",run.objective.description),element("p",checkNote,"work-check-note"));
+  const attempts=run.tasks.flatMap(task=>task.checks.map((check,index)=>({task,check,index})));
+  const matches=attempts.filter(({task,check})=>(outcomes[view.status]??outcomes.all)(check)&&matchesText([task.title,check.name,check.type,check.command,check.details,JSON.stringify(check.results??{}),JSON.stringify(check.report??{})].join("\n"),view.query));
+  root.append(element("p",attempts.length+" recorded check attempts","work-record-count"));
+  const page=pageControls(matches.length,view.page,view.change);root.append(page.nav);
+  for(const {task,check,index} of matches.slice(page.start,page.end)){
+    const row=element("section","","work-check-attempt");row.append(element("h4",task.title),renderCheck(run,task,check,index,copy));root.append(row);
+  }
+  if(!matches.length)root.append(element("p",attempts.length?"No check attempts match these filters.":"No checks have been recorded."));
+  return root;
+}
