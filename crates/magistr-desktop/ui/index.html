@@ -90,21 +90,21 @@
 </main>
 </div>
 <dialog id="switch-picker" aria-labelledby="switch-title">
-  <header class="switch-heading"><h2 id="switch-title">Find a conversation</h2><p>Return to an open conversation in any project.</p></header>
+  <header class="switch-heading dialog-heading"><h2 id="switch-title">Find a conversation</h2><p>Return to an open conversation in any project.</p></header>
   <div class="switch-search"><span data-icon="search" aria-hidden="true"></span><label for="switch-search" class="sr-only">Find an open conversation</label><input id="switch-search" type="search" placeholder="Search conversations or projects…" aria-controls="switch-results" aria-describedby="switch-hint"></div>
   <p id="switch-error" class="error" role="alert" tabindex="-1" hidden></p>
   <nav id="switch-results" aria-label="Matching conversations"></nav><p id="switch-empty" hidden></p>
-  <footer class="switch-footer"><div><p id="switch-count" role="status"></p><p id="switch-hint"><span><kbd>↓</kbd> Browse</span><span><kbd>Return</kbd> Open</span></p></div><button id="switch-close">Cancel</button></footer>
+  <footer class="switch-footer dialog-footer"><div><p id="switch-count" role="status"></p><p id="switch-hint"><span><kbd>↓</kbd> Browse</span><span><kbd>Return</kbd> Open</span></p></div><button id="switch-close">Cancel</button></footer>
 </dialog>
 <dialog id="rename-picker" aria-labelledby="rename-title">
-  <form id="name-form"><h2 id="rename-title">Rename conversation</h2><p>Give this conversation a name you’ll recognize later.</p>
-    <label for="conversation-name">Conversation name</label><input id="conversation-name" maxlength="120" required>
+  <form id="name-form"><header class="dialog-heading"><h2 id="rename-title">Rename conversation</h2><p>Give this conversation a name you’ll recognize later.</p></header>
+    <div class="dialog-body"><label for="conversation-name">Conversation name</label><input id="conversation-name" maxlength="120" required>
     <p id="rename-error" class="error" role="alert" hidden></p><p id="rename-status" role="status" hidden></p>
-    <div class="dialog-actions"><button id="rename-cancel" type="button">Cancel</button><button id="save-name" type="submit">Save name</button></div>
+    </div><footer class="dialog-footer"><div class="dialog-actions"><button id="rename-cancel" type="button">Cancel</button><button id="save-name" type="submit">Save name</button></div></footer>
   </form>
 </dialog>
 <dialog id="settings" aria-labelledby="settings-title">
-  <div class="settings-heading"><div class="dialog-symbol" aria-hidden="true"><span data-icon="settings"></span></div><h2 id="settings-title">Settings</h2><p>Make this workspace comfortable for you.</p></div>
+  <div class="settings-heading dialog-heading"><h2 id="settings-title">Settings</h2><p>Appearance, motion and keyboard shortcuts.</p></div>
   <div class="settings-content"><section class="settings-section" aria-label="Appearance and motion">
     <div class="appearance-preview" aria-hidden="true"><div class="preview-rail"><i></i><i></i><i></i></div><div class="preview-conversation"><div class="preview-title"></div><div class="preview-message"></div><div class="preview-lines"><i></i><i></i><i></i></div><div class="preview-composer"><i></i></div></div></div>
     <div class="settings-row"><div><label for="theme">Appearance</label><p>Use your system appearance, or choose one.</p></div><select id="theme" disabled><option value="system">System</option><option value="dark">Dark</option><option value="light">Light</option></select></div>
@@ -114,11 +114,11 @@
   <section class="settings-shortcuts" aria-label="Keyboard shortcuts"><h3>Keyboard shortcuts</h3>
     <dl><div><dt>Find a conversation</dt><dd><kbd id="settings-find-shortcut"></kbd></dd></div><div><dt>Open project</dt><dd><kbd id="open-project-shortcut"></kbd></dd></div><div><dt>New conversation</dt><dd><kbd id="new-session-shortcut"></kbd></dd></div><div><dt>Settings</dt><dd><kbd id="open-settings-shortcut"></kbd></dd></div><div><dt>Move between areas</dt><dd><kbd>F6</kbd></dd></div><div><dt>Move to the previous area</dt><dd><kbd>Shift F6</kbd></dd></div></dl>
   </section></div>
-  <div class="dialog-actions"><button id="settings-close">Done</button></div>
+  <footer class="dialog-footer"><div class="dialog-actions"><button id="settings-close">Done</button></div></footer>
 </dialog>
 <dialog id="project-picker" aria-labelledby="picker-title">
   <form id="project-form">
-    <header class="picker-heading"><div class="dialog-symbol" aria-hidden="true"><span data-icon="folder"></span></div><h2 id="picker-title" tabindex="-1">Open a project</h2><p id="picker-intro">Choose the folder you want to work in.</p></header>
+    <header class="picker-heading dialog-heading"><h2 id="picker-title" tabindex="-1">Open a project</h2><p id="picker-intro">Choose the folder you want to work in.</p></header>
     <div id="picker-folder-entry"><label for="project-folder">Project folder</label><div class="folder-input"><input id="project-folder" name="directory" required placeholder="/path/to/project"><button id="browse-folder" data-leading-icon="folder" type="button">Browse…</button></div><p>If this folder needs setup, you’ll review the changes before anything is written.</p></div>
     <div id="picker-destination" hidden><p id="setup-root" class="path" data-leading-icon="folder"></p><button id="change-folder" type="button">Change folder</button></div>
     <p id="picker-status" role="status" aria-live="polite" hidden></p><p id="picker-error" class="error" role="alert" tabindex="-1" hidden></p>
@@ -127,23 +127,23 @@
       <section id="setup-change" tabindex="0" aria-label="Selected file change"></section>
     </section>
     <section id="setup-result" aria-label="Setup results" hidden><h3 id="setup-result-title"></h3><p id="setup-record"></p><ul id="setup-outcomes"></ul></section>
-    <footer class="picker-footer"><p id="setup-count" role="status" hidden></p><div class="dialog-actions"><button id="picker-cancel" type="button">Cancel</button><button id="picker-submit" type="submit">Open project</button></div></footer>
+    <footer class="picker-footer dialog-footer"><p id="setup-count" role="status" hidden></p><div class="dialog-actions"><button id="picker-cancel" type="button">Cancel</button><button id="picker-submit" type="submit">Open project</button></div></footer>
   </form>
 </dialog>
 <dialog id="session-picker" aria-labelledby="session-picker-title">
   <form id="session-form">
-    <header class="picker-heading"><div class="dialog-symbol" aria-hidden="true"><span data-icon="chat"></span></div><h2 id="session-picker-title">New conversation</h2><p>Choose an agent to work with in this project.</p></header>
+    <header class="picker-heading dialog-heading"><h2 id="session-picker-title">New conversation</h2><p>Choose an agent to work with in this project.</p></header>
     <div class="session-destination"><span>In this project</span><strong id="session-destination-name" data-leading-icon="folder"></strong><p id="session-destination-path" class="path"></p></div>
     <div class="session-choices">
       <fieldset><legend>Agent</legend><div id="agent-choice"></div><p id="agent-choice-empty" hidden>No agents were found. Set up an agent on this computer, then check again.</p><button id="session-picker-retry" type="button" hidden>Check again</button></fieldset>
       <section id="session-model-section" aria-label="Model choice" hidden><div class="model-choice-heading"><h3>Model <span>Optional</span></h3><button id="choose-initial-model" type="button">Choose a model…</button></div><p id="model-choice-note">Use the default model, or check the available choices.</p><div id="initial-model-control" hidden><label for="initial-model">Model for this conversation</label><select id="initial-model"></select></div></section>
       <p id="session-picker-status" role="status" aria-live="polite" hidden></p><p id="session-picker-error" class="error" role="alert" tabindex="-1" hidden></p>
     </div>
-    <footer class="picker-footer"><div class="dialog-actions"><button id="session-picker-cancel" type="button">Cancel</button><button id="session-picker-open" data-leading-icon="arrow" type="submit">Start conversation</button></div></footer>
+    <footer class="picker-footer dialog-footer"><div class="dialog-actions"><button id="session-picker-cancel" type="button">Cancel</button><button id="session-picker-open" data-leading-icon="arrow" type="submit">Start conversation</button></div></footer>
   </form>
 </dialog>
 <dialog id="history-picker" aria-labelledby="history-title">
-  <header class="history-heading"><div><h2 id="history-title" data-leading-icon="history">Saved conversations</h2><p>Find a previous conversation and pick up where you left off.</p></div><button id="history-close" aria-label="Close saved conversations">×</button></header>
+  <header class="history-heading dialog-heading"><div><h2 id="history-title" data-leading-icon="history">Saved conversations</h2><p>Find a previous conversation and pick up where you left off.</p></div><button id="history-close" aria-label="Close saved conversations">×</button></header>
   <div class="history-search"><span data-icon="search" aria-hidden="true"></span><label for="history-search" class="sr-only">Search saved conversations</label><input id="history-search" type="search" placeholder="Search by name, project, agent or content"><button id="history-refresh" data-leading-icon="history">Refresh</button><p id="history-count" role="status"></p></div>
   <p id="history-error" class="error" role="alert" tabindex="-1" hidden></p>
   <div class="history-layout">
@@ -157,7 +157,7 @@
       </section>
     </div>
   </div>
-  <footer class="history-footer"><p id="history-resume-reason">Reading saved conversations does not start an agent.</p><button id="history-resume" data-leading-icon="arrow" disabled>Resume conversation</button></footer>
+  <footer class="history-footer dialog-footer"><p id="history-resume-reason">Reading saved conversations does not start an agent.</p><button id="history-resume" data-leading-icon="arrow" disabled>Resume conversation</button></footer>
 </dialog>
 <script type="module" src="app.mjs"></script>
 </body></html>
