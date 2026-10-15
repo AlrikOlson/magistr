@@ -1,5 +1,3 @@
-import { ActivityMaterial } from "./activity_material.mjs";
-
 // Summaries derive from the accepted session catalog; no activity is persisted here.
 export const activityKinds = [
   ["working", "Working", "success"],
@@ -29,13 +27,11 @@ export class ActivityOverview {
       const element = document.createElement(tag);
       element.className = className; element.textContent = text; return element;
     };
-    this.wheel = node("div", "activity-wheel");
-    this.wheel.setAttribute("aria-hidden", "true");
     this.total = node("strong", "");
-    const label = node("span", "", "open");
-    const totalLine = node("div", "activity-total");totalLine.append(this.total, label);this.wheel.append(totalLine);
-    const body = node("div", "activity-body");
-    body.append(node("h2", "", "Across your projects"));
+    const label = node("span", "", "open conversations");
+    const totalLine = node("div", "activity-total");totalLine.append(this.total,label);
+    const body = node("div", "activity-body"),heading=node("header","activity-heading");
+    heading.append(node("h2","","Across your projects"),totalLine);body.append(heading);
     const list = node("dl", "activity-counts");
     this.values = new Map();
     for (const [kind, title] of activityKinds) {
@@ -46,29 +42,20 @@ export class ActivityOverview {
     }
     this.spectrum = node("div", "activity-spectrum"); this.spectrum.setAttribute("aria-hidden", "true");
     for (const [kind] of activityKinds) { const segment = node("span", ""); segment.dataset.kind = kind; this.spectrum.append(segment); }
-    body.append(list, this.spectrum); root.append(this.wheel, body);
-    this.material = new ActivityMaterial(this.wheel);
+    body.append(list, this.spectrum); root.append(body);
   }
   render(sessions) {
     const counts = catalogActivity(sessions);
     const total = Object.values(counts).reduce((sum, value) => sum + value, 0);
     this.total.textContent = total.toLocaleString();
     this.root.setAttribute("aria-label", total + " open conversations across your projects");
-    let offset = 0;
-    const stops = [];
-    for (const [kind, , color] of activityKinds) {
+    for (const [kind] of activityKinds) {
       const count = counts[kind];
       this.values.get(kind).textContent = count.toLocaleString();
       this.values.get(kind).parentElement.dataset.empty = String(!count);
       this.values.get(kind).parentElement.style.setProperty("--share",total?`${count/total*100}%`:"0%");
-      if (!count) continue;
-      const next = offset + count / total * 100;
-      stops.push("var(--" + color + ") " + offset + "% " + next + "%");
-      offset = next;
     }
-    this.wheel.style.setProperty("--activity-fill", stops.length ? "conic-gradient(" + stops.join(",") + ")" : "var(--raised)");
     this.root.dataset.empty = String(!total);
     for (const segment of this.spectrum.children) { const count = counts[segment.dataset.kind]; segment.hidden = !count; segment.style.flexGrow = String(count); }
-    this.material.update(activityKinds.map(([kind]) => counts[kind]));
   }
 }

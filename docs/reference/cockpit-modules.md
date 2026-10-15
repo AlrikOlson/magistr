@@ -177,7 +177,6 @@ desktop workspace. Companion Rust tests live beside their owners.
 - `crates/magistr-desktop/tests/selection.mjs`
 - `crates/magistr-desktop/tests/session_controls.mjs`
 - `crates/magistr-desktop/tests/session_controls_fixture.py`
-- `crates/magistr-desktop/ui/activity_material.mjs` — bounded ray-marched activity torus, cached on-demand draws, theme/resize observation, context loss and GPU cleanup.
 - `crates/magistr-desktop/ui/activity.mjs` — current catalog activity counts and their visual overview; no extra session state.
 - `crates/magistr-desktop/ui/source_color.mjs` — bounded lexical color for explicitly named source languages; exact text stays intact.
 - `crates/magistr-desktop/ui/patch_document.mjs` — bounded patch line, position and change-count presentation.
