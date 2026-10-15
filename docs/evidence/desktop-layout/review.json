@@ -1,5 +1,5 @@
 {
-  "receipt": "0056c52ecd631d1a7dc5cad91fa576ce6fac066b8fe936e96f253d4898683d10",
+  "receipt": "d5b013cb67688f5b176efa9229565d4866207c122b71e470641a9ae04a007ab5",
   "images": {
     "welcome-dark.png": "8c5731fdb952bbbfa3dbf6a0d9629d0ac9c122fb975489512f05f9ee88cc15c6",
     "welcome-light.png": "61c6904d4301fa606a721eef7f7bc9966afa2100ea21fc2dd597c6500fb69863",
@@ -16,10 +16,10 @@
     "work-paused-dark.png": "0ac524e7772f4b354f70aa3b9c54c1b567fd41653bda268f17c5842b5b2ba818",
     "inspector-dark.png": "eb33d80142f83cd9ebe9e8e6d8b279bc573aa0ba689cbdc352fb2f468d552bad",
     "inspector-unknown-dark.png": "35801d017711190278492928ac00d5b54f7c9e890e510ab5cbe3c04f3a4fdd98",
-    "history-dark.png": "91053355e28fa9f03a53523468fd6853319949f201b26570c447a077eb7d076c",
-    "history-reading-dark.png": "f2411750f3bc1d8b9d11aee06e675902d13527d54ada743fe63074092ab15e4e",
-    "history-narrow-light.png": "b6116e21143442632889183ebccad5c0f33887e61a09e43bf44af45c75a6e59c",
-    "history-reading-narrow-light.png": "a0503ac0ce84a349a62f4f4be8b9ec75b5823cf8d1b12cdbfdeb4ad01e7dcc92",
+    "history-dark.png": "eb786fdb5ae417c9ca0b4535073fe924ad8278b31e3c9a2fe52be50130e96ce6",
+    "history-reading-dark.png": "7db48abb783736cf3d646e1efcea02541cb5f4bcb44bec44331d7361808e0c00",
+    "history-narrow-light.png": "d9be1f1e34c23d3083235d19d359fa6cbd064f8288fe2883e5a328dd0788742f",
+    "history-reading-narrow-light.png": "3abb96c98e1d60797c5b72f612ac5e31906c17864d978a474e559a49f1bf930c",
     "setup-narrow-light.png": "d6535954a15400abfe16ffa7b0cde3157bb882a10c5fdf478d593da4c19e4e13",
     "open-project-dark.png": "e6e6117cc529a32a48781474a68297ff852e04bc9b94c4480f2050a73ca6ec19",
     "setup-dark.png": "c736e4f4ba76c215926c400b1cd24ba2ea5f172ddabf12535fbd330e334b0e26",
@@ -33,14 +33,14 @@
     "code-light.png": "20ba40e69b7d593930cfcdbda222678d7d538b0fc314f6e6f6c6af6643fd7fc1",
     "tools-light.png": "9530fdabe98dff1d834218de8bb7c5c55b2bda3369245cddf7c9f87e8ccf1928",
     "tools-dark.png": "e15baf19500e26ab7ad40a94e24658eaef880b041f2b17a322ba795af0960748",
-    "attachments-dark.png": "c73d035a10e497e5a27a64bb13a6c1852b4ae60d9cd8c36492148ad15baff49e",
-    "attachments-narrow-light.png": "26b87b11bb21b951bb7200ebd8dc1b9249df47d0f401d0478e267b7e35d1b34a",
+    "attachments-dark.png": "ac368d52ce9b457ae0daf333fc1847605c11c2f924fdee920a6b37374089be84",
+    "attachments-narrow-light.png": "e94d209d5fac24c31cfb40c2865f09312a3de7204dc16878edad688b0fbbb4c1",
     "request-narrow-light.png": "4629858d68321e74e2ace85f10cac765b0d56022b2cc51f9c4d9f76af6455ea1",
     "request-dark.png": "4d2dfd55857d14f266bee83a41fa75f6ca7aae909d2300e65de0dc94affbb313"
   },
   "reviewed_on": "2026-10-15",
   "findings": [
-    "Agent selection now uses a compact radio list beside the optional model controls, with actual destination information above. Inspected dark default and compact light selected-model captures; all five admission/discovery scenarios passed.",
+    "Saved conversations now have a denser title/project/date list and a bounded reading measure. Inspected open-draft dark/light and collapsed-draft reading captures; labeled facts and save/discard status stay clear without metadata badges.",
     "Production headless WebKit only; native OS input, IME, VoiceOver and Windows were not run."
   ]
 }

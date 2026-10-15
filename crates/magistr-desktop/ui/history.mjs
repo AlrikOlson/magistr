@@ -53,11 +53,11 @@ export class HistoryBrowser {
       let row=this.rows.get(record.id);
       if(!row) {
         const button=text("button",""),project=text("small",""),name=text("strong",""),meta=text("span","");
-        project.dataset.leadingIcon="folder";button.append(project,name,meta);row={button,project,name,meta,record};this.rows.set(record.id,row);
+        button.append(name,project,meta);row={button,project,name,meta,record};this.rows.set(record.id,row);
         button.onclick=()=>this.choose(row.record);
       }
       row.record=record;row.project.textContent=record.workspace.split(/[\\/]/).filter(Boolean).at(-1);
-      row.name.textContent=historyName(record);row.meta.textContent=record.provider+" · "+new Date(record.updated_at).toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"});
+      row.name.textContent=historyName(record);row.meta.textContent=new Date(record.updated_at).toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"});
       row.button.setAttribute("aria-label",historyName(record));row.button.title=record.workspace;
       row.button.setAttribute("aria-current",String(record.id===this.current?.id));
       row.button.setAttribute("aria-busy",String(record.id===this.opening));
@@ -79,10 +79,12 @@ export class HistoryBrowser {
     const record=this.current;if(!record)return;
     this.$("history-empty").hidden=true;this.$("history-summary").hidden=false;
     this.$("history-name").textContent=historyName(record);this.$("history-project").textContent=record.workspace;
-    const turns=record.turns==="unknown"?"Turns not reported":record.turns+(record.turns==="1"?" turn":" turns");
-    const cost=record.cost==="unknown"?"Spending not reported":record.cost;
-    const saved=text("span",(record.ended_at?"Finished ":"Last saved ")+new Date(record.updated_at).toLocaleString());saved.className="history-saved-date";
-    this.$("history-details").replaceChildren(...[record.provider,turns,cost].map(value=>text("span",value)),saved);
+    const metrics=[["Agent",record.provider],["Turns",record.turns==="unknown"?"Not reported":record.turns],["Spending",record.cost==="unknown"?"Not reported":record.cost]];
+    this.$("history-details").replaceChildren(...metrics.map(([label,value])=>{
+      const item=text("div","");item.append(text("dt",label),text("dd",value));return item;
+    }));
+    const saved=text("time",new Date(record.ended_at??record.updated_at).toLocaleString());saved.dateTime=record.ended_at??record.updated_at;
+    this.$("history-saved-date").replaceChildren(document.createTextNode(record.ended_at?"Finished ":"Last saved "),saved);
     this.$("history-text").textContent=record.summary??"No reply summary was saved.";
   }
   update() {
