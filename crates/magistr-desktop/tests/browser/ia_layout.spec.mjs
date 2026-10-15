@@ -199,3 +199,13 @@ test("21 conversation toolbar groups work controls and preserves working-copy ac
   for(const theme of ["dark","light"]){await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);await capture(app,"21-toolbar-"+theme);}
   await app.getByRole("button",{name:"Working copy: main",exact:true}).click();await expect(app.locator("#session-detail")).toBeVisible();
 });
+test("22 status remains distinct across conversation states",async({app})=>{
+  await app.getByRole("button",{name:"Review the release plan",exact:true}).click();await app.setViewportSize({width:760,height:550});
+  for(const [state,label,theme,patch] of [
+    ["ready","Ready","dark",{status:"Ready",pending:[],activity:{active:false}}],
+    ["running","Working","dark",{status:"Working",activity:{active:true}}],
+    ["waiting","Waiting","light",{status:"Waiting",pending:[{id:7,title:"Review the change",detail:"Check the update",choices:[]}],activity:{active:false}}],
+    ["disconnected","Connection lost","light",{status:"Connection lost",pending:[],activity:{active:false}}]
+  ]){await app.evaluate(({patch,theme})=>{document.documentElement.dataset.theme=theme;window.__fixture.publish("release",patch);},{patch,theme});
+    await expect(app.locator("#status")).toHaveText(label);await expect(app.locator("#status")).toHaveAttribute("data-state",state);await expect(app.locator("#status")).toBeInViewport();await capture(app,"22-"+state+"-"+theme);}
+});
