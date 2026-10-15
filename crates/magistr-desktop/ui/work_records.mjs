@@ -45,7 +45,6 @@ export function renderRun(run,actions,view) {
     item.dataset.task=run.task_instances[task.id];item.dataset.status=task.status;
     item.value=run.tasks.indexOf(task)+1;item.dataset.position=String(item.value).padStart(2,"0");
     heading.append(element("strong",task.title),element("span",statusLabel(task.status),"work-record-status"));item.append(heading,taskFacts(task));
-    if(task.estimate)item.append(element("p","Estimate: "+task.estimate));
     if(task.blocked_reason)item.append(element("p",task.blocked_reason,"work-record-warning"));
     const checks=renderChecks(run,task,actions.copy);if(checks)item.append(checks);
     const activity=renderActivity(run,task,actions);if(activity)item.append(activity);
