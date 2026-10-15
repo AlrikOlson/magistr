@@ -1,5 +1,5 @@
 {
-  "receipt": "b85368d5aca97cc86e37e84f42075e0b8aed1f7ce6f135205f2c0392f773dd21",
+  "receipt": "36107b3b462e5ece5dd79585e6e741a9bb8e295149ff165ce79796f8640e01f6",
   "images": {
     "welcome-dark.png": "fa0bb2c36a671c5e08dba931c55cda81c8fdf959ab927aacaa1ff7aa5194bddc",
     "welcome-light.png": "c1adcd1c321a6da7d82c2a3f9ba9ddae55484c9a3f79799b8793f287cf11b30a",
@@ -31,11 +31,11 @@
     "code-dark.png": "96988d5068b03b68b3ebe0bd8cb14e3562af0399a45c1feb06601cd83ea3925f",
     "reading-light.png": "5aa52c252dd2568d04637913b22b9c5af5ec091f311e1e6cfa5551b293027950",
     "code-light.png": "1bb809a37866be9213b39e06c84d9997a99593c8d6a5347dd8c63a70a7895099",
-    "tools-light.png": "76a12c59c9383d7f3d3e6f478fba3ee0ff71c474ee0b68d0c132c3d6cc3b48b4",
-    "tools-dark.png": "39035d9a67bc67dabc3215c2a37cffb762ea7cdb2769716025ae75e0a8f84a02",
-    "attachments-dark.png": "590361cc9e1d55596e64113239f9a5192269e15d3936fe7e494aa147880063ba",
+    "tools-light.png": "afcbd9c00baa5fef97c9dba083c52d588bd72a8eaa2ede78dace9ec3aada46f2",
+    "tools-dark.png": "16993fd769ed0a09c02e0abe83fb136e86f3b2155ba9231434f9d2cc2097fabf",
+    "attachments-dark.png": "07e729c12224d95cfe8952f4d9794e9909cf6a2204706a25652dc41f16290c62",
     "image-inspection-dark.png": "ac813b5984ba51c3e0555ad9f92160324dc42d7db43aa524e8e28cc08e57fa8c",
-    "attachments-narrow-light.png": "5b19b4bd2cc0098b5100fae8f95e04f3e4a0484ab5e7016a4ae3fdf84412c8e3",
+    "attachments-narrow-light.png": "12151c12bc3bb689168769aa1131e36f2a22a722f51e010581349b0a57a7690c",
     "request-narrow-light.png": "7c916f726afebb34e6ee50ea0973773ed0fa070884e13354db3b2bcd50e2037c",
     "request-dark.png": "468c157a7244714654cb512f97b3074f69d7821a475f3dad0b74d6a80bbc2cdd",
     "minimum-workspace-dark.png": "0a7e19fea84c77e3b2b542f2489d2930c4663319ecd84b14aa99766f6526a279",
@@ -55,8 +55,8 @@
     "patch-dark.png": "8b1c68c6858b35f47a750ebd778905620a75b42b704eda297bf18c3b26e8d3bb",
     "patch-light.png": "9488e9ae47f95f36492f380b98f98f0651f98dfa19b19aa538d9ea4485de1938",
     "patch-compact.png": "6301fd1330aa31cf7a4d685c383239efc8988ce9e0ab3309bb60c50e9cfee460",
-    "result-dark.png": "1c218dcd12c07269d08e4140d5db515d41217180694d78df609b34ee9f8f3e1d",
-    "result-light.png": "2a71f3569a8d99e48d137051ad5775146c56b2e53d1bf8a1cb44894b49e097f6",
+    "result-dark.png": "9ccc32fcc570cdca6d6b00dbe1a3ae03a0a6cfcd10a5c3feef8e6ea344d06766",
+    "result-light.png": "a3eb1b02c4e09ebf156771f24a99326922e77a01991f5e0b637702effcc21226",
     "contents-dark.png": "ed4f16183033fdedfa31bebfcaaccc2d7a287b8ec663b09baf8e95c0c5eb8b1f",
     "contents-light.png": "f5d06c8c8e620f505155ed1151494c2f9014b6883844c7e62c50faf004a05843",
     "contents-compact.png": "12919677fe72b98df49906b24130af3f7273fb4d8eb88291e7ccec3ba1064f11",
@@ -71,12 +71,15 @@
     "image-stage-compact.png": "dd4bd23b39479617dbb6609718c79cfba5ab2bbd57d1bb6ba6cad257a1152ce8",
     "writing-dark.png": "d0dc11a3749a28a76fe458fb150f74b65a669ee783a6d01a8d3885401901ff41",
     "writing-light.png": "5c081bd4e78aebcfc6ab83f701e9c30b7ecdc9543754d0c5f5a2c08cdb42df03",
-    "writing-compact.png": "554befc7e3fe656c57c35a8d0b818c6b073aebf6d99338d9f03154d8dbe1db2e"
+    "writing-compact.png": "554befc7e3fe656c57c35a8d0b818c6b073aebf6d99338d9f03154d8dbe1db2e",
+    "execution-dark.png": "5034dcf26ac3a3f3880d2f4a0ba1a7f3c37a63ccd09b85c06729f7bd30dfda64",
+    "execution-light.png": "ddc5ace453c083ffad26947d129389732ce2bf9dc205dfeb28fc457bb8cf64c4",
+    "execution-compact.png": "1bd9786904532bc542af4a2915dbdd4040c71137fe0e9efaea7bff78d100dd1f"
   },
   "reviewed_on": "2026-10-15",
   "findings": [
-    "Reviewed the work run sheet in paused dark, idle compact light and empty-conversation light states.",
-    "The attempt counter and bounded ruler describe the current attempt, not estimated completion. Start choices and active-run controls remain distinct.",
-    "The existing four work-state tests and full recorded composition journey pass."
+    "Execution results now form a contiguous ledger with title, source preview, reported outcome, duration and independent disclosure.",
+    "Reviewed dark/light mixed-outcome ledgers and compact expansion. Finished, Failed and Running remain distinct; absent duration remains absent.",
+    "Corrected the renderer and fixtures to the Rust writer's Finished status. Reading-position and selection checks pass after correcting a stale textual test locator."
   ]
 }

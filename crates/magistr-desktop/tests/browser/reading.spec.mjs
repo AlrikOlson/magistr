@@ -4,14 +4,14 @@ async function longConversation(app) {
   await app.evaluate(()=>{
     const paragraphs=Array.from({length:45},(_,index)=>({tag:"p",start:index*100,text:"Section "+(index+1)+": Keep the project and conversation clear while work continues. Read the proposed change, keep the draft, and return to the same paragraph after checking another conversation. ".repeat(2),children:[]}));
     const events=[
-      {id:1,revision:1,role:"Tool",text:"Review the project checklist",tool:{title:"Read the release checklist",status:"Completed",details:[{label:"Result",source:"The project checklist is available for review."}],duration_ms:null,truncated_from:null,image_count:0}},
+      {id:1,revision:1,role:"Tool",text:"Review the project checklist",tool:{title:"Read the release checklist",status:"Finished",details:[{label:"Result",source:"The project checklist is available for review."}],duration_ms:null,truncated_from:null,image_count:0}},
       {id:2,revision:1,role:"Agent",text:paragraphs.map(p=>p.text).join("\n\n"),document:{nodes:paragraphs},attachments:[]}
     ];
     window.__fixture.publish("release",{events,retained:[1,2]});
   });
   await showProjects(app);
   await app.getByRole("button",{name:"Review the release plan",exact:true}).click();
-  await app.getByText("Read the release checklist · Completed",{exact:true}).click();
+  await app.getByText("Read the release checklist · Finished",{exact:true}).click();
   await app.locator('[data-reading="2:1500"]').evaluate(node=>node.scrollIntoView({block:"start"}));
   await expect(app.locator("#latest")).toBeVisible();
 }
