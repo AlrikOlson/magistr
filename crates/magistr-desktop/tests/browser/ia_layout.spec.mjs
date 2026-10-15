@@ -1,4 +1,4 @@
-import {test,expect,root} from "./fixture.mjs";
+import {test,expect,root,showProjects} from "./fixture.mjs";
 import {mkdir} from "node:fs/promises";
 import {resolve} from "node:path";
 import {captureIteration} from "./iteration_evidence.mjs";
@@ -182,4 +182,13 @@ test("19 long project locations stay selectable without displacing actions",asyn
   expect(await location.evaluate(node=>node.selectionEnd-node.selectionStart)).toBe(path.length);
   const project=app.locator(".directory-project").filter({has:location});await project.scrollIntoViewIfNeeded();expect((await project.locator(".directory-cover").boundingBox()).height).toBeLessThan(110);
   for(const theme of ["dark","light"]){await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);await capture(app,"19-path-"+theme);}
+});
+test("20 conversation actions are visible before hover and return keyboard focus",async({app})=>{
+  await app.getByRole("button",{name:"Review the release plan",exact:true}).click();
+  const more=app.getByLabel("Actions for Investigate sync failure",{exact:true});await app.mouse.move(1100,700);
+  expect(await more.evaluate(node=>getComputedStyle(node).opacity)).toBe("1");
+  await more.focus();await app.keyboard.press("Enter");await expect(app.getByRole("button",{name:"Close Investigate sync failure",exact:true})).toBeVisible();
+  for(const theme of ["dark","light"]){await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);await capture(app,"20-actions-"+theme);}
+  await app.keyboard.press("Escape");await expect(more).toBeFocused();await expect(app.getByRole("button",{name:"Close Investigate sync failure",exact:true})).toBeHidden();
+  await app.setViewportSize({width:760,height:550});await showProjects(app);await more.click();const action=app.getByRole("button",{name:"Close Investigate sync failure",exact:true});await expect(action).toBeInViewport();await capture(app,"20-actions-compact");
 });
