@@ -1,9 +1,9 @@
 {
-  "receipt": "ee31c521bdc189aaba4e95405cfb420d8c22d3fb6ed250c1c616ade8cea2f14f",
+  "receipt": "a139efccadebc9a90826011cf38722a164d54046c7357269ce7c0821d0f1fc97",
   "images": {
-    "welcome-dark.png": "b286a65dcd908e14a5db7c5fbf5c9519aad7acb1da8184deaf31579ca8332fed",
-    "welcome-light.png": "8aeb5150f7f3548d0923ac15b900f3dbda7d16563f4cdcd727503eedba4805b8",
-    "welcome-narrow-light.png": "22da120efb8c0fd06b486574f57eb70258be871c811491264b957b5a2c3201ff",
+    "welcome-dark.png": "c18e56fa3f76a5d9338c14ef21f1d94c761e09479a9597347b4a49080331713f",
+    "welcome-light.png": "d308a673ba367d31445b01bafd2fb739c75ddb35a884c19b5a36f51a34427c45",
+    "welcome-narrow-light.png": "2d9b29ab27ed91f164e2a4e45412c7240f76c70efeaf9d049ebc59f5535764de",
     "settings-dark.png": "28e85777a4a492e8acba7ab8ada055c7b9274695ea19902dcc5f7ab3c732bd6c",
     "workspace-dark.png": "860017ef246cd0bdfa443991acee3ad92675477adea2bfe47cb0c8725a6f59b5",
     "settings-light.png": "5a3adda11fc5684a4194cff23a5c7ac7f88d8be33964334ef83da3591f356e7f",
@@ -54,7 +54,7 @@
     "tables-dark.png": "faa31a29a0662d1eae1d271aaf7fe0c148b8a52e775832fdda2cef6fcba87ae3",
     "tables-light.png": "868a07dd7bece9c1b3a5d4243078d90684d9f34f35eb5a79a753fdac92316dd6",
     "tables-compact.png": "3be3caa260edf1c33f8f92a28e041edab981dbe210ecef7729a4327278bd0924",
-    "patch-dark.png": "1795bb83fd25ea704a6234b27700b7c4cf28e4899dca0d0ddeb19751eccf6948",
+    "patch-dark.png": "a9819c2981d8cb6d69f5e3815e5e2109be72466c32a983a67c3bd5555ffd3184",
     "patch-light.png": "aee662b2a2cdce853a87b5cbb5d5d3635578ee03640c1c758442662c6eb6348b",
     "patch-compact.png": "99b43981af50d7efca149196f5b5150c14e4c09eb9f8dddb24132c01d3aa0ba0",
     "result-dark.png": "718c3d4430cdde428747d340bbbf811658d6357f0b9f0abf803f025bae56bc3b",
@@ -90,5 +90,5 @@
     "workspace-compact-final-light.png": "46bae9eb182e02b0ede55859dbb07e857cc35164af52e3af2e3386e09d38b501",
     "workspace-compact-long-title.png": "bd5fe90987fbccd1d2c085a341bbacd5d193876b9aaddaadf5211d80144f9f33"
   },
-  "review": "Reviewed dark full-width and compact light directory. Project identity and exact counts form one column; actual conversations form an adjacent list. Empty projects have a truthful empty state. Catalog ownership/focus cases pass."
+  "review": "Reviewed actual dark/light shader captures. Nine WebKit cases verify catalog counts, context loss, successful WebGL draw without errors and zero redundant draws for unchanged content. Numeric labels remain outside the material. No native GPU performance claim."
 }

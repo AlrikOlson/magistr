@@ -33,7 +33,7 @@ export class ActivityOverview {
     this.wheel.setAttribute("aria-hidden", "true");
     this.total = node("strong", "");
     const label = node("span", "", "open");
-    this.wheel.append(this.total, label);
+    const totalLine = node("div", "activity-total");totalLine.append(this.total, label);this.wheel.append(totalLine);
     const body = node("div", "activity-body");
     body.append(node("h2", "", "Across your projects"));
     const list = node("dl", "activity-counts");
