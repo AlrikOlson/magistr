@@ -43,6 +43,7 @@
 .work-tasks>li[data-status=active]{background:var(--panel);box-shadow:inset 2px 0 var(--accent)}
 .work-task-heading{display:flex;align-items:baseline;justify-content:space-between;gap:8px 16px}
 .work-task-heading strong{font-size:13px;line-height:1.6}.work-task-heading span{flex-shrink:0;font-size:11px}
+.work-inline-facts{display:flex;flex-wrap:wrap;gap:3px 16px;margin:5px 0 0;font-size:11px;line-height:1.5}.work-inline-facts>div{display:flex;align-items:baseline;gap:6px;min-width:0}.work-inline-facts dt{color:var(--muted)}.work-inline-facts dd{margin:0;overflow-wrap:anywhere}
 .work-tasks p{font-size:12px;margin:8px 0 0;color:var(--muted)}
 .work-tasks .work-record-warning{color:var(--warning)}
 .work-check-attempt,.work-activity-entry{margin-block:24px}.work-check-attempt>h4,.work-activity-entry>h4{font-size:12px;margin:0}.work-check-note{font-size:11px;line-height:1.8;color:var(--muted)}
