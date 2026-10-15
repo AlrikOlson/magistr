@@ -87,6 +87,18 @@ function install(seed) {
     calls.push({command,args:JSON.parse(JSON.stringify(args))});
     if(window.__fixture.handlers[command])return window.__fixture.handlers[command](args);
     switch(command) {
+      case "read_roadmap_item":{
+        const state=window.__fixture.workflow.roadmap;
+        const wrap=value=>{
+          const record=value.chunks.find(record=>record.id===args.id);if(!record)return null;
+          const document=source=>({nodes:[{tag:"p",text:source,children:[],start:0}],limited:false});
+          return {record:structuredClone(record),description:document(record.description),notes:document(record.notes),
+            requirements:record.acceptance.map(document),sections:(record.content?.sections??[]).map(section=>document(section.prose??""))};
+        };
+        const item=state.state==="current"?{state:"current",data:{...state.data,value:wrap(state.data.value)}}:
+          state.state==="stale"?{state:"stale",data:{...state.data,last:{...state.data.last,value:wrap(state.data.last.value)}}}:state;
+        return {address:args.address,id:args.id,revision:frames.get(args.address.session).workflow_revision??0,item};
+      }
       case "read_workflow":return {address:args.address,revision:frames.get(args.address.session).workflow_revision??0,snapshot:structuredClone(window.__fixture.workflow),roadmap:structuredClone(window.__fixture.roadmap)};
       case "overview":return {directory:null,reduce_motion:false,sessions:sessions(),projects:seed.projects,attachment_limits:{file_bytes:8388608}};
       case "subscribe_catalog":catalog=args.channel;catalog.onmessage({stream:1,sequence:++stream,sessions:sessions()});return 1;

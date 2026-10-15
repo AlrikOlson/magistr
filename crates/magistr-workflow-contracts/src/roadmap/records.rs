@@ -413,8 +413,8 @@ pub struct Chunk {
     pub description: String,
     /// Structured body (contract `$defs/StructuredContent`): summary + facts +
     /// sections, written at the tool seam so the webapp renders the chunk as
-    /// UI instead of a prose wall. `description` stays the plain fallback;
-    /// legacy chunks simply omit this.
+    /// UI instead of a prose wall. `description` retains the authored prose;
+    /// structured content is an optional current authoring form.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub content: Option<crate::content::StructuredContent>,
     /// Free-form prose body carried verbatim from an imported source (the

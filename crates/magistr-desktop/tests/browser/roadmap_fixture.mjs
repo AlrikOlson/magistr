@@ -10,6 +10,9 @@ export function roadmapFixture(){
     {id:"foundation",name:"Foundation",title:"Store conversations and drafts",group:"Platform",status:"done",priority:10,deps:[],acceptance:[],description:"Save the complete conversation and its draft.",cross_refs:[],notes:""},
     {id:"guide",name:"Guide",title:"Improve the installation guide",group:null,status:"backlog",priority:150,deps:[],acceptance:[],description:"Explain installation.",cross_refs:[],notes:""}
   ];
+  chunks[0].content={version:1,summary:"Return to the work you left.",facts:[{label:"Applies to",value:"Project reopening"}],
+    sections:[{heading:"What changes",prose:"Keep the conversation and draft together when the project opens.",list:[{text:"Restore the saved conversation.",done:true},{text:"Keep unsent text ready to edit.",done:false}]}]};
+  chunks[0].notes="Check reopening with a long conversation and an unsent message.";
   const frontiers=[
     {group:"Desktop",activity,items:[
       {id:"reopen",name:"Reopening",priority:100,status:"pending",readiness:{state:"ready"}},
@@ -27,5 +30,9 @@ export async function roadmapScene(app,capture){
   await app.getByRole("tab",{name:"Roadmap",exact:true}).click();
   await app.getByRole("heading",{name:"Desktop",exact:true}).waitFor();
   await capture("roadmap-dark.png");
+  await app.getByRole("button",{name:"Restore the project conversation and draft",exact:true}).click();
+  await app.getByRole("heading",{name:"Restore the project conversation and draft",exact:true}).waitFor();
+  await capture("roadmap-item-dark.png");
+  await app.getByRole("button",{name:"Back to track",exact:true}).click();
   await app.getByRole("tab",{name:"Current and saved work",exact:true}).click();
 }
