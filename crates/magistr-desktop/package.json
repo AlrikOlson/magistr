@@ -9,10 +9,16 @@
   "scripts": {
     "start": "node ../../scripts/desktop.mjs open",
     "package": "node ../../scripts/desktop.mjs package",
-    "test:ui": "playwright test"
+    "test:ui": "playwright test",
+    "storybook": "storybook dev --host 127.0.0.1 --port 6006 --ci --no-open",
+    "build:storybook": "storybook build --output-dir ../../.magistr/desktop-storybook",
+    "test:stories": "playwright test --config playwright.stories.config.mjs"
   },
   "devDependencies": {
+    "@playwright/test": "1.64.1",
+    "@storybook/html-vite": "10.6.2",
     "@tauri-apps/cli": "2.12.2",
-    "@playwright/test": "1.64.1"
+    "storybook": "10.6.2",
+    "vite": "8.3.4"
   }
 }

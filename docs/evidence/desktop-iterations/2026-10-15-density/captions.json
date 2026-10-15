@@ -1,0 +1,447 @@
+{
+  "scope": "Caption correction for the 34 captures made before the Storybook catalog",
+  "images": [
+    {
+      "file": "01-project-bar/03-reasoning-compact.png",
+      "sha256": "7f809ab8027390b060fec6c533c0e3e68b07f4f52517e260ac7b7bddabecc3dc",
+      "caption": "Reasoning canvas with an investigation branch and its return to the main reasoning.",
+      "viewport": {
+        "width": 760,
+        "height": 550
+      },
+      "appearance": "light",
+      "review_target": "Keep project destinations together in one toolbar",
+      "original_visual_verdict": "pass",
+      "caption_audit": "Opened full frame and checked the visible screen, selected view, controls and content against this caption."
+    },
+    {
+      "file": "01-project-bar/03-shell-compact-dark.png",
+      "sha256": "b297126cdcead53b9806268b650aa910229d667dcb083dc623f5b0d4abaf0aa8",
+      "caption": "Desktop roadmap with five work items and two dependency connections.",
+      "viewport": {
+        "width": 760,
+        "height": 550
+      },
+      "appearance": "dark",
+      "review_target": "Keep project destinations together in one toolbar",
+      "original_visual_verdict": "pass",
+      "caption_audit": "Opened full frame and checked the visible screen, selected view, controls and content against this caption."
+    },
+    {
+      "file": "01-project-bar/03-shell-compact-light.png",
+      "sha256": "1101b7e36647bdfc00d945a71e3ba5cc71ff63b1e32eb93c5361c4af9763aad2",
+      "caption": "Desktop roadmap with five work items and two dependency connections.",
+      "viewport": {
+        "width": 760,
+        "height": 550
+      },
+      "appearance": "light",
+      "review_target": "Keep project destinations together in one toolbar",
+      "original_visual_verdict": "pass",
+      "caption_audit": "Opened full frame and checked the visible screen, selected view, controls and content against this caption."
+    },
+    {
+      "file": "01-project-bar/03-shell-conversation.png",
+      "sha256": "43da1fd5f1149af2cc1cd3da147c58b3f267eeaf89957dffabc8b16cb9c28860",
+      "caption": "Release plan conversation, agent reply and unsent message.",
+      "viewport": {
+        "width": 1280,
+        "height": 820
+      },
+      "appearance": "light",
+      "review_target": "Keep project destinations together in one toolbar",
+      "original_visual_verdict": "pass",
+      "caption_audit": "Opened full frame and checked the visible screen, selected view, controls and content against this caption."
+    },
+    {
+      "file": "01-project-bar/03-shell-roadmap-dark.png",
+      "sha256": "05e32d48c32357e13312074cd699cfce2ef7a3eda40bf270d603eae8e6633095",
+      "caption": "Desktop roadmap with five work items and two dependency connections.",
+      "viewport": {
+        "width": 1280,
+        "height": 820
+      },
+      "appearance": "dark",
+      "review_target": "Keep project destinations together in one toolbar",
+      "original_visual_verdict": "pass",
+      "caption_audit": "Opened full frame and checked the visible screen, selected view, controls and content against this caption."
+    },
+    {
+      "file": "01-project-bar/03-shell-roadmap-light.png",
+      "sha256": "2058e2057102182b8b695fce1a0475418f2d5dbca466af67b03c5355ba68f191",
+      "caption": "Desktop roadmap with five work items and two dependency connections.",
+      "viewport": {
+        "width": 1280,
+        "height": 820
+      },
+      "appearance": "light",
+      "review_target": "Keep project destinations together in one toolbar",
+      "original_visual_verdict": "pass",
+      "caption_audit": "Opened full frame and checked the visible screen, selected view, controls and content against this caption."
+    },
+    {
+      "file": "01-project-bar/conversation-compact-dark.png",
+      "sha256": "1b302f30411db5adf0266fc1eb1a3963aabb786e671cc8ae6a3b8c1aea5e6454",
+      "caption": "Release plan conversation, agent reply and unsent message.",
+      "viewport": {
+        "width": 760,
+        "height": 550
+      },
+      "appearance": "dark",
+      "review_target": "Keep project destinations together in one toolbar",
+      "original_visual_verdict": "pass",
+      "caption_audit": "Opened full frame and checked the visible screen, selected view, controls and content against this caption."
+    },
+    {
+      "file": "01-project-bar/conversation-compact-light.png",
+      "sha256": "137033b83cb43007b810876cf7d4d00b65919188baf42387eb50150923f457dd",
+      "caption": "Release plan conversation, agent reply and unsent message.",
+      "viewport": {
+        "width": 760,
+        "height": 550
+      },
+      "appearance": "light",
+      "review_target": "Keep project destinations together in one toolbar",
+      "original_visual_verdict": "pass",
+      "caption_audit": "Opened full frame and checked the visible screen, selected view, controls and content against this caption."
+    },
+    {
+      "file": "01-project-bar/conversation-desktop-dark.png",
+      "sha256": "bcc40c139ff7134191f05e13780a027e03dda7403b2b025ac6357faaff46a803",
+      "caption": "Release plan conversation, agent reply and unsent message.",
+      "viewport": {
+        "width": 1280,
+        "height": 820
+      },
+      "appearance": "dark",
+      "review_target": "Keep project destinations together in one toolbar",
+      "original_visual_verdict": "pass",
+      "caption_audit": "Opened full frame and checked the visible screen, selected view, controls and content against this caption."
+    },
+    {
+      "file": "01-project-bar/conversation-desktop-light.png",
+      "sha256": "6d16675384a6f35a8592ef234f9f48475189945ba28d4f7730d34f853f30b997",
+      "caption": "Release plan conversation, agent reply and unsent message.",
+      "viewport": {
+        "width": 1280,
+        "height": 820
+      },
+      "appearance": "light",
+      "review_target": "Keep project destinations together in one toolbar",
+      "original_visual_verdict": "pass",
+      "caption_audit": "Opened full frame and checked the visible screen, selected view, controls and content against this caption."
+    },
+    {
+      "file": "02-attention-queue/projects-compact-dark.png",
+      "sha256": "5c2a1f5836e5ea0f94fa1d5620ee42125eb487db850cf045075838cec49183d8",
+      "caption": "Expanded project navigation panel with a waiting request; the project directory is hidden.",
+      "viewport": {
+        "width": 760,
+        "height": 550
+      },
+      "appearance": "dark",
+      "review_target": "Make waiting requests a compact actionable queue",
+      "original_visual_verdict": "pass",
+      "caption_audit": "Opened full frame and checked the visible screen, selected view, controls and content against this caption."
+    },
+    {
+      "file": "02-attention-queue/projects-compact-light.png",
+      "sha256": "ccd0d74b7c29ad4b77b68136e52af029e028211fbe71674c1dd81972b535db25",
+      "caption": "Expanded project navigation panel with a waiting request; the project directory is hidden.",
+      "viewport": {
+        "width": 760,
+        "height": 550
+      },
+      "appearance": "light",
+      "review_target": "Make waiting requests a compact actionable queue",
+      "original_visual_verdict": "pass",
+      "caption_audit": "Opened full frame and checked the visible screen, selected view, controls and content against this caption."
+    },
+    {
+      "file": "02-attention-queue/projects-desktop-dark.png",
+      "sha256": "9fd18dab888de44f68999308ecc647cf9c83686c925ca1081fa982888af9e32b",
+      "caption": "Projects directory with project navigation and a waiting request in the sidebar.",
+      "viewport": {
+        "width": 1280,
+        "height": 820
+      },
+      "appearance": "dark",
+      "review_target": "Make waiting requests a compact actionable queue",
+      "original_visual_verdict": "pass",
+      "caption_audit": "Opened full frame and checked the visible screen, selected view, controls and content against this caption."
+    },
+    {
+      "file": "02-attention-queue/projects-desktop-light.png",
+      "sha256": "ebc8525f5e91aa827171e179ffd23a365c49b4ff4962026ce4b5bd16af397076",
+      "caption": "Projects directory with project navigation and a waiting request in the sidebar.",
+      "viewport": {
+        "width": 1280,
+        "height": 820
+      },
+      "appearance": "light",
+      "review_target": "Make waiting requests a compact actionable queue",
+      "original_visual_verdict": "pass",
+      "caption_audit": "Opened full frame and checked the visible screen, selected view, controls and content against this caption."
+    },
+    {
+      "file": "03-project-rail/projects-compact-dark.png",
+      "sha256": "43861220752b4c7f9b93c25d9d507941a4de7a78a776c27fd35798f84fbc67fd",
+      "caption": "Expanded project navigation panel with a waiting request; the project directory is hidden.",
+      "viewport": {
+        "width": 760,
+        "height": 550
+      },
+      "appearance": "dark",
+      "review_target": "Tighten project and conversation navigation",
+      "original_visual_verdict": "pass",
+      "caption_audit": "Opened full frame and checked the visible screen, selected view, controls and content against this caption."
+    },
+    {
+      "file": "03-project-rail/projects-compact-light.png",
+      "sha256": "e5934e54b3bd188feeff26c59fd0ad1d5a6fb2a4dc8fc841787f59037c27580d",
+      "caption": "Expanded project navigation panel with a waiting request; the project directory is hidden.",
+      "viewport": {
+        "width": 760,
+        "height": 550
+      },
+      "appearance": "light",
+      "review_target": "Tighten project and conversation navigation",
+      "original_visual_verdict": "pass",
+      "caption_audit": "Opened full frame and checked the visible screen, selected view, controls and content against this caption."
+    },
+    {
+      "file": "03-project-rail/projects-desktop-dark.png",
+      "sha256": "2b5226668c29ec727ee1ad10639a3eb30908c005e5b573b3038f1c96ebbb9ee3",
+      "caption": "Projects directory with project navigation and a waiting request in the sidebar.",
+      "viewport": {
+        "width": 1280,
+        "height": 820
+      },
+      "appearance": "dark",
+      "review_target": "Tighten project and conversation navigation",
+      "original_visual_verdict": "pass",
+      "caption_audit": "Opened full frame and checked the visible screen, selected view, controls and content against this caption."
+    },
+    {
+      "file": "03-project-rail/projects-desktop-light.png",
+      "sha256": "97eeaf991d834465637c00e331720fd87fd1726610dfa27f036d5a7d119d53a0",
+      "caption": "Projects directory with project navigation and a waiting request in the sidebar.",
+      "viewport": {
+        "width": 1280,
+        "height": 820
+      },
+      "appearance": "light",
+      "review_target": "Tighten project and conversation navigation",
+      "original_visual_verdict": "pass",
+      "caption_audit": "Opened full frame and checked the visible screen, selected view, controls and content against this caption."
+    },
+    {
+      "file": "04-project-directory/welcome-compact-dark.png",
+      "sha256": "320ae0becf42c5203cec3df6852b17c6d83bca31f5e6b7f8c05e57c800c3124b",
+      "caption": "Projects directory in list view; project counts and conversation rows.",
+      "viewport": {
+        "width": 760,
+        "height": 550
+      },
+      "appearance": "dark",
+      "review_target": "Align project facts beside their actions",
+      "original_visual_verdict": "fail: singular count label; corrected in revision-2",
+      "caption_audit": "Opened full frame and checked the visible screen, selected view, controls and content against this caption."
+    },
+    {
+      "file": "04-project-directory/welcome-compact-light.png",
+      "sha256": "203d205a6ec8128757bdf96b811512210b82ffbcd797763d16dd409073e16735",
+      "caption": "Projects directory in list view; project counts and conversation rows.",
+      "viewport": {
+        "width": 760,
+        "height": 550
+      },
+      "appearance": "light",
+      "review_target": "Align project facts beside their actions",
+      "original_visual_verdict": "fail: singular count label; corrected in revision-2",
+      "caption_audit": "Opened full frame and checked the visible screen, selected view, controls and content against this caption."
+    },
+    {
+      "file": "04-project-directory/welcome-desktop-dark.png",
+      "sha256": "7daa93d9bec5da5f19fb39d0df2ec2fc17e21401784d98e6f47f29b173e2d1c8",
+      "caption": "Projects directory in list view; project counts and conversation rows.",
+      "viewport": {
+        "width": 1280,
+        "height": 820
+      },
+      "appearance": "dark",
+      "review_target": "Align project facts beside their actions",
+      "original_visual_verdict": "fail: singular count label; corrected in revision-2",
+      "caption_audit": "Opened full frame and checked the visible screen, selected view, controls and content against this caption."
+    },
+    {
+      "file": "04-project-directory/welcome-desktop-light.png",
+      "sha256": "93f984a0141dbf054c9ee8f6db09ee6fd3fc02a976a698c9592ab654034d7567",
+      "caption": "Projects directory in list view; project counts and conversation rows.",
+      "viewport": {
+        "width": 1280,
+        "height": 820
+      },
+      "appearance": "light",
+      "review_target": "Align project facts beside their actions",
+      "original_visual_verdict": "fail: singular count label; corrected in revision-2",
+      "caption_audit": "Opened full frame and checked the visible screen, selected view, controls and content against this caption."
+    },
+    {
+      "file": "05-project-overview/welcome-compact-dark.png",
+      "sha256": "07cc2a728063f24abe7252acef8fa8bdf86db0743e45d749020c46bb6d030433",
+      "caption": "Projects directory in list view; project setup explanation collapsed.",
+      "viewport": {
+        "width": 760,
+        "height": 550
+      },
+      "appearance": "dark",
+      "review_target": "Turn the project opening area into a compact task strip",
+      "original_visual_verdict": "pass",
+      "caption_audit": "Opened full frame and checked the visible screen, selected view, controls and content against this caption."
+    },
+    {
+      "file": "05-project-overview/welcome-compact-light.png",
+      "sha256": "8163497521352d47630cbde7227eb99c55ef34ffee307c4739a554c4fea1cf00",
+      "caption": "Projects directory in list view; project setup explanation collapsed.",
+      "viewport": {
+        "width": 760,
+        "height": 550
+      },
+      "appearance": "light",
+      "review_target": "Turn the project opening area into a compact task strip",
+      "original_visual_verdict": "pass",
+      "caption_audit": "Opened full frame and checked the visible screen, selected view, controls and content against this caption."
+    },
+    {
+      "file": "05-project-overview/welcome-desktop-dark.png",
+      "sha256": "4efff32aceaf9e7ce631be9b9ed368ff696025264858b793015bcaf5120f6ef4",
+      "caption": "Projects directory in list view; project setup explanation collapsed.",
+      "viewport": {
+        "width": 1280,
+        "height": 820
+      },
+      "appearance": "dark",
+      "review_target": "Turn the project opening area into a compact task strip",
+      "original_visual_verdict": "pass",
+      "caption_audit": "Opened full frame and checked the visible screen, selected view, controls and content against this caption."
+    },
+    {
+      "file": "05-project-overview/welcome-desktop-light.png",
+      "sha256": "1d89055c68fa6dd1da2700aa56699f72055a3d3101c31a3a28f0c306df061a9d",
+      "caption": "Projects directory in list view; project setup explanation collapsed.",
+      "viewport": {
+        "width": 1280,
+        "height": 820
+      },
+      "appearance": "light",
+      "review_target": "Turn the project opening area into a compact task strip",
+      "original_visual_verdict": "pass",
+      "caption_audit": "Opened full frame and checked the visible screen, selected view, controls and content against this caption."
+    },
+    {
+      "file": "05-project-overview/welcome-setup-compact-dark.png",
+      "sha256": "a6056ae5d074791eba3ce4b52f2d107aa9a54282b6f0d18d54f096b6267b9214",
+      "caption": "Projects directory in list view; project setup explanation expanded.",
+      "viewport": {
+        "width": 760,
+        "height": 550
+      },
+      "appearance": "dark",
+      "review_target": "Turn the project opening area into a compact task strip",
+      "original_visual_verdict": "pass",
+      "caption_audit": "Opened full frame and checked the visible screen, selected view, controls and content against this caption."
+    },
+    {
+      "file": "05-project-overview/welcome-setup-compact-light.png",
+      "sha256": "a22d30504b16ec78f91ef1ae420cbb83655cfb606deb61112f35c196a76eb4f9",
+      "caption": "Projects directory in list view; project setup explanation expanded.",
+      "viewport": {
+        "width": 760,
+        "height": 550
+      },
+      "appearance": "light",
+      "review_target": "Turn the project opening area into a compact task strip",
+      "original_visual_verdict": "pass",
+      "caption_audit": "Opened full frame and checked the visible screen, selected view, controls and content against this caption."
+    },
+    {
+      "file": "05-project-overview/welcome-setup-desktop-dark.png",
+      "sha256": "43ad3ec2f73c6734e993953b2f1597370d86351489cea40d141991b6c44cacae",
+      "caption": "Projects directory in list view; project setup explanation expanded.",
+      "viewport": {
+        "width": 1280,
+        "height": 820
+      },
+      "appearance": "dark",
+      "review_target": "Turn the project opening area into a compact task strip",
+      "original_visual_verdict": "pass",
+      "caption_audit": "Opened full frame and checked the visible screen, selected view, controls and content against this caption."
+    },
+    {
+      "file": "05-project-overview/welcome-setup-desktop-light.png",
+      "sha256": "58a9885ad0229f3a21ca00dd978e6eab300f125263bfe473d2285ea2b88cf6b5",
+      "caption": "Projects directory in list view; project setup explanation expanded.",
+      "viewport": {
+        "width": 1280,
+        "height": 820
+      },
+      "appearance": "light",
+      "review_target": "Turn the project opening area into a compact task strip",
+      "original_visual_verdict": "pass",
+      "caption_audit": "Opened full frame and checked the visible screen, selected view, controls and content against this caption."
+    },
+    {
+      "file": "04-project-directory/revision-2/welcome-compact-dark.png",
+      "sha256": "ee1d13556469b7355e60b168e891f99ea111c669c3ab16e8e5418f60581480a4",
+      "caption": "Projects directory in list view; project counts and conversation rows.",
+      "viewport": {
+        "width": 760,
+        "height": 550
+      },
+      "appearance": "dark",
+      "review_target": "Align project facts beside their actions",
+      "original_visual_verdict": "pass",
+      "caption_audit": "Opened full frame and checked the visible screen, selected view, controls and content against this caption."
+    },
+    {
+      "file": "04-project-directory/revision-2/welcome-compact-light.png",
+      "sha256": "def1de5bc8dac963b82daa85d87ef139e8951da909535ca1c2a87cc90925968a",
+      "caption": "Projects directory in list view; project counts and conversation rows.",
+      "viewport": {
+        "width": 760,
+        "height": 550
+      },
+      "appearance": "light",
+      "review_target": "Align project facts beside their actions",
+      "original_visual_verdict": "pass",
+      "caption_audit": "Opened full frame and checked the visible screen, selected view, controls and content against this caption."
+    },
+    {
+      "file": "04-project-directory/revision-2/welcome-desktop-dark.png",
+      "sha256": "5578115d88c45e6d060f964e356a96f7ff7e36976cf9da76fa15bf1776903d72",
+      "caption": "Projects directory in list view; project counts and conversation rows.",
+      "viewport": {
+        "width": 1280,
+        "height": 820
+      },
+      "appearance": "dark",
+      "review_target": "Align project facts beside their actions",
+      "original_visual_verdict": "pass",
+      "caption_audit": "Opened full frame and checked the visible screen, selected view, controls and content against this caption."
+    },
+    {
+      "file": "04-project-directory/revision-2/welcome-desktop-light.png",
+      "sha256": "87d711b5c9036a297726b48714e7b6795087cd1d05b4cb6ca616e2d8f97f6faa",
+      "caption": "Projects directory in list view; project counts and conversation rows.",
+      "viewport": {
+        "width": 1280,
+        "height": 820
+      },
+      "appearance": "light",
+      "review_target": "Align project facts beside their actions",
+      "original_visual_verdict": "pass",
+      "caption_audit": "Opened full frame and checked the visible screen, selected view, controls and content against this caption."
+    }
+  ]
+}

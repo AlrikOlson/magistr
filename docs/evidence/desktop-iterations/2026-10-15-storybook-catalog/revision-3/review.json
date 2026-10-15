@@ -1,0 +1,146 @@
+{
+  "scope": "Storybook desktop catalog and verified capture identity",
+  "limitations": "Headless WebKit renders the production document with isolated native observations inside Storybook. This review verifies captions, composition, readable detail, focus visibility and relationships. Native OS input, Rust command integration and assistive technology were not exercised.",
+  "images": {
+    "conversation--release-plan-compact-dark.png": {
+      "sha256": "757408e9a98912901ecbf0e84108e664ba6d42e66db5debf45c8d9053f6f9672",
+      "task": "Read the agent reply and continue the conversation.",
+      "caption": "Release plan conversation with an unsent message",
+      "observations": "Conversation tab and release-plan title are visible; the reply is scrolled to its later paragraphs, with an unsent message and Send control retained below. The compact project bar remains separate from the title actions. dark appearance has readable labels and distinct controls.",
+      "verdict": "pass"
+    },
+    "conversation--release-plan-compact-light.png": {
+      "sha256": "ce4cb74d4988ff760891cd9f6289f67e9a7cfb388ee9d945bf17fb2f2408661c",
+      "task": "Read the agent reply and continue the conversation.",
+      "caption": "Release plan conversation with an unsent message",
+      "observations": "Conversation tab and release-plan title are visible; the reply is scrolled to its later paragraphs, with an unsent message and Send control retained below. The compact project bar remains separate from the title actions. light appearance has readable labels and distinct controls.",
+      "verdict": "pass"
+    },
+    "conversation--release-plan-desktop-dark.png": {
+      "sha256": "ab73d2904b8fcfd792d426b49b5085ded88291c5852c0e82c1bf559aebaa8e42",
+      "task": "Read the agent reply and continue the conversation.",
+      "caption": "Release plan conversation with an unsent message",
+      "observations": "Conversation tab and release-plan heading match the story. Agent reply, selected sidebar conversation and unsent message are readable; header actions remain beside the title. dark appearance has readable labels and distinct controls.",
+      "verdict": "pass"
+    },
+    "conversation--release-plan-desktop-light.png": {
+      "sha256": "869a50df073a840b5001452babd1ad760aeed13602768c4d1f883336834fdf7e",
+      "task": "Read the agent reply and continue the conversation.",
+      "caption": "Release plan conversation with an unsent message",
+      "observations": "Conversation tab and release-plan heading match the story. Agent reply, selected sidebar conversation and unsent message are readable; header actions remain beside the title. light appearance has readable labels and distinct controls.",
+      "verdict": "pass"
+    },
+    "projects-directory--list-compact-dark.png": {
+      "sha256": "93207cc997a92c560ac2adb9e60c0c7cdf8b2eb2ab7d5db7b5c4ebea11dd289c",
+      "task": "Choose a project or open a folder.",
+      "caption": "Projects directory; list view; project setup explanation collapsed",
+      "observations": "About project setup is collapsed. Projects heading, List selection, search and project facts match the caption. The Website project continues below the natural scroll viewport; the top controls and first project remain readable. dark appearance has readable labels and distinct controls.",
+      "verdict": "pass"
+    },
+    "projects-directory--list-compact-light.png": {
+      "sha256": "0a1baccc18e7354167cb26146ceee3b0ab141b73526495448d1d29573385f14f",
+      "task": "Choose a project or open a folder.",
+      "caption": "Projects directory; list view; project setup explanation collapsed",
+      "observations": "About project setup is collapsed. Projects heading, List selection, search and project facts match the caption. The Website project continues below the natural scroll viewport; the top controls and first project remain readable. light appearance has readable labels and distinct controls.",
+      "verdict": "pass"
+    },
+    "projects-directory--list-desktop-dark.png": {
+      "sha256": "d924e83ba3c527143b438983eb2908fd2cdaaf5408527cd180b46270acb5b018",
+      "task": "Choose a project or open a folder.",
+      "caption": "Projects directory; list view; project setup explanation collapsed",
+      "observations": "About project setup is collapsed. Projects heading, List selection, search and project facts match the caption. Both project groups and their conversation rows fit, with waiting requests distinguished in the sidebar. dark appearance has readable labels and distinct controls.",
+      "verdict": "pass"
+    },
+    "projects-directory--list-desktop-light.png": {
+      "sha256": "5141e4c4b4c80c840720be784e4fae5839340411877916b9a37a12e9e008b986",
+      "task": "Choose a project or open a folder.",
+      "caption": "Projects directory; list view; project setup explanation collapsed",
+      "observations": "About project setup is collapsed. Projects heading, List selection, search and project facts match the caption. Both project groups and their conversation rows fit, with waiting requests distinguished in the sidebar. light appearance has readable labels and distinct controls.",
+      "verdict": "pass"
+    },
+    "projects-directory--setup-expanded-compact-dark.png": {
+      "sha256": "cb2d00eac28e1e0889d1e2958baa0e61d9b34a869ad8982774a740a40a41e355",
+      "task": "Choose a project or open a folder.",
+      "caption": "Projects directory; list view; project setup explanation expanded",
+      "observations": "About project setup is expanded and its explanation is visible. Projects heading, List selection, search and project facts match the caption. The Website project continues below the natural scroll viewport; the top controls and first project remain readable. dark appearance has readable labels and distinct controls.",
+      "verdict": "pass"
+    },
+    "projects-directory--setup-expanded-compact-light.png": {
+      "sha256": "616757f308e2fa94d94bb9129b9612faaac735c9bb9f551e80ffa0d9800cc19a",
+      "task": "Choose a project or open a folder.",
+      "caption": "Projects directory; list view; project setup explanation expanded",
+      "observations": "About project setup is expanded and its explanation is visible. Projects heading, List selection, search and project facts match the caption. The Website project continues below the natural scroll viewport; the top controls and first project remain readable. light appearance has readable labels and distinct controls.",
+      "verdict": "pass"
+    },
+    "projects-directory--setup-expanded-desktop-dark.png": {
+      "sha256": "ef970f75d592fedbd602c3b8ddd8b4c8decd4eee24692230f76b84d2be09a3ac",
+      "task": "Choose a project or open a folder.",
+      "caption": "Projects directory; list view; project setup explanation expanded",
+      "observations": "About project setup is expanded and its explanation is visible. Projects heading, List selection, search and project facts match the caption. Both project groups and their conversation rows fit, with waiting requests distinguished in the sidebar. dark appearance has readable labels and distinct controls.",
+      "verdict": "pass"
+    },
+    "projects-directory--setup-expanded-desktop-light.png": {
+      "sha256": "5589b5b45e47452053afa6c2575fd04e363d4adca378bcb3ecd1b99ccdb655b7",
+      "task": "Choose a project or open a folder.",
+      "caption": "Projects directory; list view; project setup explanation expanded",
+      "observations": "About project setup is expanded and its explanation is visible. Projects heading, List selection, search and project facts match the caption. Both project groups and their conversation rows fit, with waiting requests distinguished in the sidebar. light appearance has readable labels and distinct controls.",
+      "verdict": "pass"
+    },
+    "projects-navigation--compact-panel-compact-dark.png": {
+      "sha256": "58b5ea4d0f2c78838ef2816cd7aa14bf065a75b276cb9d0ad18fab80e151e76d",
+      "task": "Review a waiting request and choose a conversation from the compact project panel.",
+      "caption": "Expanded project navigation panel with a waiting request; project directory hidden",
+      "observations": "The expanded Projects control exposes the full navigation panel, waiting request and two project columns. The directory is hidden. Focus is visibly on the Magistr group; its outline fits without clipping. dark appearance has readable labels and distinct controls.",
+      "verdict": "pass"
+    },
+    "projects-navigation--compact-panel-compact-light.png": {
+      "sha256": "398125a22acc79a148cc371a66c07cadb9747d8294c0c4007a8d772ba81f2a8a",
+      "task": "Review a waiting request and choose a conversation from the compact project panel.",
+      "caption": "Expanded project navigation panel with a waiting request; project directory hidden",
+      "observations": "The expanded Projects control exposes the full navigation panel, waiting request and two project columns. The directory is hidden. Focus is visibly on the Magistr group; its outline fits without clipping. light appearance has readable labels and distinct controls.",
+      "verdict": "pass"
+    },
+    "projects-navigation--sidebar-desktop-dark.png": {
+      "sha256": "d924e83ba3c527143b438983eb2908fd2cdaaf5408527cd180b46270acb5b018",
+      "task": "Review a waiting request and choose a project conversation from the sidebar.",
+      "caption": "Projects directory with project navigation and waiting request sidebar",
+      "observations": "The Projects directory occupies the main pane while the waiting request and two project groups occupy the sidebar. The caption identifies both visible areas; it does not label this as the compact panel. dark appearance has readable labels and distinct controls.",
+      "verdict": "pass"
+    },
+    "projects-navigation--sidebar-desktop-light.png": {
+      "sha256": "5141e4c4b4c80c840720be784e4fae5839340411877916b9a37a12e9e008b986",
+      "task": "Review a waiting request and choose a project conversation from the sidebar.",
+      "caption": "Projects directory with project navigation and waiting request sidebar",
+      "observations": "The Projects directory occupies the main pane while the waiting request and two project groups occupy the sidebar. The caption identifies both visible areas; it does not label this as the compact panel. light appearance has readable labels and distinct controls.",
+      "verdict": "pass"
+    },
+    "roadmap--overview-compact-dark.png": {
+      "sha256": "f5413eed027bfc45864d9cb66257d5536dd9b44cb66c48dd73a7ff51b8600b95",
+      "task": "Follow the dependencies between planned work.",
+      "caption": "Desktop roadmap with dependency connections",
+      "observations": "Roadmap tab is selected; five pieces and two dependency connections are visible at 100%. The solid and dashed routes attach to their item sides without crossings; zoom and arrangement controls remain below the work. Titles are readable at the native minimum size. dark appearance has readable labels and distinct controls.",
+      "verdict": "pass"
+    },
+    "roadmap--overview-compact-light.png": {
+      "sha256": "279543904250900c6402e428682c763c3ce1d4e13dff5d9a048103c9b6048b94",
+      "task": "Follow the dependencies between planned work.",
+      "caption": "Desktop roadmap with dependency connections",
+      "observations": "Roadmap tab is selected; five pieces and two dependency connections are visible at 100%. The solid and dashed routes attach to their item sides without crossings; zoom and arrangement controls remain below the work. Titles are readable at the native minimum size. light appearance has readable labels and distinct controls.",
+      "verdict": "pass"
+    },
+    "roadmap--overview-desktop-dark.png": {
+      "sha256": "16c412607cf9fde2a5eb992dab6cff6ca2329efc98346420e17848172693a076",
+      "task": "Follow the dependencies between planned work.",
+      "caption": "Desktop roadmap with dependency connections",
+      "observations": "Roadmap tab is selected; five pieces and two dependency connections are visible at 100%. The solid and dashed routes attach to their item sides without crossings; zoom and arrangement controls remain below the work. The desktop canvas retains its existing spacious placement. dark appearance has readable labels and distinct controls.",
+      "verdict": "pass"
+    },
+    "roadmap--overview-desktop-light.png": {
+      "sha256": "122dee849d771d6cee3fac677f8a0e305729ce33c5eee7361b2d1701ddfdd6a6",
+      "task": "Follow the dependencies between planned work.",
+      "caption": "Desktop roadmap with dependency connections",
+      "observations": "Roadmap tab is selected; five pieces and two dependency connections are visible at 100%. The solid and dashed routes attach to their item sides without crossings; zoom and arrangement controls remain below the work. The desktop canvas retains its existing spacious placement. light appearance has readable labels and distinct controls.",
+      "verdict": "pass"
+    }
+  }
+}
