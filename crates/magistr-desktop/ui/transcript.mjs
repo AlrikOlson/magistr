@@ -1,5 +1,5 @@
 import { renderOutline } from "./reply_outline.mjs";
-import { renderToolDetail } from "./tool_result.mjs";
+import { renderSourceDetail } from "./source_details.mjs";
 import { renderCodeBlock } from "./code_blocks.mjs";
 import { targetKey } from "./context.mjs";
 import { remember, captureSelection, restoreSelection } from "./reading.mjs";
@@ -213,7 +213,7 @@ export class Transcript {
         let section=row.body.children[index];
         if(!section||section.localName!=="section") {const next=element(this.document,"section");if(section)section.replaceWith(next);else row.body.append(next);section=next;}
         section.dataset.reading=message.id+":tool:"+index;
-        renderToolDetail(section,detail,this.copy);
+        renderSourceDetail(section,detail,this.copy);
       });
       while(row.body.children.length>specs.length)row.body.lastChild.remove();
       if(tool.truncated_from) {

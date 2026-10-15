@@ -15,18 +15,19 @@ function structured(document,value,depth,budget){
       }else definition.append(structured(document,item,depth+1,budget));
       node.append(term,definition);
     }
-    if(!node.children.length){const empty=document.createElement("dd");empty.textContent=Array.isArray(value)?"[]":"{}";node.append(empty);}
+    if(!node.children.length){const empty=document.createElement("span");empty.className="result-value";empty.textContent=Array.isArray(value)?"[]":"{}";return empty;}
   }else {node.className="result-value result-"+(value===null?"null":typeof value);node.textContent=JSON.stringify(value);}
   return node;
 }
-export function renderToolDetail(section,detail,copy){
+export function renderSourceDetail(section,detail,copy){
+  section.classList.add("source-details");
   const previous=views.get(section);
   if(previous?.source===detail.source&&previous?.label===detail.label)return;
   const document=section.ownerDocument,header=document.createElement("header"),title=document.createElement("h3");
   title.textContent=detail.label;
   const button=document.createElement("button");button.type="button";button.textContent="Copy";button.setAttribute("aria-label","Copy "+detail.label.toLowerCase());button.disabled=!copy;
   button.onclick=()=>copy?.(detail.source);header.append(title,button);
-  const content=document.createElement("div");content.className="tool-result";
+  const content=document.createElement("div");content.className="source-result";
   let fields=null;
   if(detail.source.length<=65536){
     try{const value=JSON.parse(detail.source);if(value&&typeof value==="object")fields=structured(document,value,0,{remaining:200});}catch{}

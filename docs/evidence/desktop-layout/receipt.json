@@ -1,7 +1,7 @@
 {
   "renderer": "headless WebKit",
   "version": "27.2",
-  "captured_at": "2026-10-15T04:58:18.618Z",
+  "captured_at": "2026-10-15T05:00:29.070Z",
   "scope": "Production desktop HTML, CSS and JavaScript with isolated observation fixtures; no native OS input or Rust owner integration.",
   "checks": {
     "project chooser presents actual projects and folder entry in both appearances": true,
@@ -31,12 +31,13 @@
     "sent attachments form a contact sheet with source previews and native image inspection": true,
     "image inspection provides fit and pixel zoom, backgrounds and compact controls": true,
     "expanded writing preserves native editor identity, text, caret and compact actions": true,
-    "execution ledger preserves reported outcomes, source input and independent result expansion": true
+    "execution ledger preserves reported outcomes, source input and independent result expansion": true,
+    "permission review preserves exact structured source, equal choices and addressed answers": true
   },
   "source_hashes": {
     "crates/magistr-desktop/ui/activity.mjs": "04ed81dd551940d90ccd7341374238a8feaa510d52c9fe929cf2ec448d700420",
     "crates/magistr-desktop/ui/activity_material.mjs": "c4264eacc9068313c77f4a379b15ab084bb27c3f48211c98299dfc977581f6c9",
-    "crates/magistr-desktop/ui/app.mjs": "776fd0c216a32b368f6ee634edcb9835ff6e63dce6c049fde1f7f812a396f45c",
+    "crates/magistr-desktop/ui/app.mjs": "3a21f181c787169b6b3b0df518eafb262e87c7defd37faca532273c2b3241ac5",
     "crates/magistr-desktop/ui/attachment_viewer.mjs": "90fe436ef3b1420434637d612440d3012c4574eda324d8a0957070b7c81da6f1",
     "crates/magistr-desktop/ui/attachments.mjs": "6234de3d8c07b1451ad08e14f5cc98075ff6a813b17d673d8337c5693de483da",
     "crates/magistr-desktop/ui/code_blocks.mjs": "1757064400603839feb3d108156a75582da48ca67f350439c7cfc885e5a1e02d",
@@ -62,19 +63,19 @@
     "crates/magistr-desktop/ui/selection.mjs": "fd844d9e146a9c5e1fb9ab6e2fc72c0273da66d4f59a70ce639877a87aff05fc",
     "crates/magistr-desktop/ui/session_controls.mjs": "738386755be2b65fd03899ae28e1b357b4313258d67b3edfaf72fe3fe37ff123",
     "crates/magistr-desktop/ui/source_color.mjs": "1ac22d15033a59af850c8583abdb8123ff8062c16e71d500327f5d5743d41057",
-    "crates/magistr-desktop/ui/style.css": "c9e1eedac3c92f8ed3f3a7285ab72c2bb09a99a018c0b9c4020b5a8e73789aeb",
+    "crates/magistr-desktop/ui/source_details.mjs": "f9cdc8d8534c28200818fae85a5c44225f9e340eba4e04c866e7d4f417e83deb",
+    "crates/magistr-desktop/ui/style.css": "475333c04772a4371af6b258e686c4218de03afc3bc77946ec633eb55b005c5e",
     "crates/magistr-desktop/ui/supervision.mjs": "509cd792877f397ac427789d491b4f51fd2840cc1b94ae05690d295519b75431",
     "crates/magistr-desktop/ui/switcher.mjs": "7e0d3655808443dd842be7a01abc8ddd6ccc018557a920bfe6e44383ec5d857e",
-    "crates/magistr-desktop/ui/tool_result.mjs": "531a8a89e26491d66b437bb2ed20d4a2117a35314c1e4d22b4837dae7c705b61",
-    "crates/magistr-desktop/ui/transcript.mjs": "b46ece76046809cbf50169f5702343fa725868ac1e71aefbcdbb86ee102577ae",
+    "crates/magistr-desktop/ui/transcript.mjs": "2b80cfacc4867a977b2b29a0345884f49cf28a84508f1f9ec06aa1a1f67b9d81",
     "crates/magistr-desktop/ui/work.mjs": "9adfbdaa890ad4b74f755155caabc7f8599f1a4b1e1ea604ce83babea714999f",
     "crates/magistr-desktop/ui/work_ruler.mjs": "5bf99080578af65bf57a77d88431a77fef2d12857b5aa23beea110f71874408d",
     "crates/magistr-desktop/ui/writing_surface.mjs": "77615012fe88c8de15049c79ee54fd019aafa5e562654548f1c93fcca83f760c",
     "crates/magistr-desktop/playwright.config.mjs": "e97c1f9951b494fa8049e323eae8fc372a2d1c2de74fd8edd9de706be82e0634",
     "crates/magistr-desktop/tauri.conf.json": "b8af99622336b041fe41255fe57d6225447631945d6a89c5a4f3dc1c7348b4b9",
     "crates/magistr-desktop/tests/browser/fixture.mjs": "eec391f04626f7f7387c5a416459f2a065597f85482074710b0c344dd91cbd29",
-    "crates/magistr-desktop/tests/browser/workspace.spec.mjs": "bbd71abfe05691935353cd7665a4758e85b2747dd7e9f66d0138f37370d579d3",
-    "crates/magistr-desktop/tests/browser/design_scenes.mjs": "7e11b06c2051655449f904eac43f13bea98cf2b5291c1b529ef2e055268b7b28"
+    "crates/magistr-desktop/tests/browser/workspace.spec.mjs": "564716855c136e5136aeeada55e362826ecdd161505451c8f68b098fb147c9ea",
+    "crates/magistr-desktop/tests/browser/design_scenes.mjs": "db30d2f963fb9ace4e859ab26fc689823c9762e4ef9516d4a1c13f02f1d23832"
   },
   "images": {
     "welcome-dark.png": "fa0bb2c36a671c5e08dba931c55cda81c8fdf959ab927aacaa1ff7aa5194bddc",
@@ -107,13 +108,13 @@
     "code-dark.png": "96988d5068b03b68b3ebe0bd8cb14e3562af0399a45c1feb06601cd83ea3925f",
     "reading-light.png": "5aa52c252dd2568d04637913b22b9c5af5ec091f311e1e6cfa5551b293027950",
     "code-light.png": "1bb809a37866be9213b39e06c84d9997a99593c8d6a5347dd8c63a70a7895099",
-    "tools-light.png": "afcbd9c00baa5fef97c9dba083c52d588bd72a8eaa2ede78dace9ec3aada46f2",
-    "tools-dark.png": "16993fd769ed0a09c02e0abe83fb136e86f3b2155ba9231434f9d2cc2097fabf",
-    "attachments-dark.png": "07e729c12224d95cfe8952f4d9794e9909cf6a2204706a25652dc41f16290c62",
+    "tools-light.png": "5756cb44662d3b0ad0c4b7c273b505b1279fb86df0c132acadd6c64b2aa1ebbd",
+    "tools-dark.png": "1ab1f187fbb2cd6c4a9079970766339e2b95fdff958cdb3ff539979be3cdae11",
+    "attachments-dark.png": "9e59ce174d8ed489d8553fde1e12f4f512e2c091679bdbdbde0bff965b410a56",
     "image-inspection-dark.png": "ac813b5984ba51c3e0555ad9f92160324dc42d7db43aa524e8e28cc08e57fa8c",
     "attachments-narrow-light.png": "12151c12bc3bb689168769aa1131e36f2a22a722f51e010581349b0a57a7690c",
-    "request-narrow-light.png": "7c916f726afebb34e6ee50ea0973773ed0fa070884e13354db3b2bcd50e2037c",
-    "request-dark.png": "468c157a7244714654cb512f97b3074f69d7821a475f3dad0b74d6a80bbc2cdd",
+    "request-narrow-light.png": "7d1cf4637bad75ee0da9203e85bcaab73f75c17cc2baa449aa02aaac01057094",
+    "request-dark.png": "42c96d0063fc0f17cba978e63b401be41a79020e69775ef6d92baaf92c8485e8",
     "minimum-workspace-dark.png": "0a7e19fea84c77e3b2b542f2489d2930c4663319ecd84b14aa99766f6526a279",
     "minimum-projects-dark.png": "9f982d706b2aa9ad4668022faf67544a24076d5f7ada6b900ecea53ce3359999",
     "minimum-workspace-light.png": "2e997580a98c6a55328070fa5c09a6c5145074948a25f332d23d3682da956bc8",
@@ -129,7 +130,7 @@
     "tables-light.png": "b0ae433219af44bd1983f44276172defb0083894d7d69cea6636614df28d1a68",
     "tables-compact.png": "2af09a757fc67686e3864030f61a5125a878d80cac6c5e6fc1e7103f3c5a4267",
     "patch-dark.png": "8b1c68c6858b35f47a750ebd778905620a75b42b704eda297bf18c3b26e8d3bb",
-    "patch-light.png": "9488e9ae47f95f36492f380b98f98f0651f98dfa19b19aa538d9ea4485de1938",
+    "patch-light.png": "f8e8337c97bca88b300be69cddf8a07fa05749ae599e097031c9e7eb7cd537f8",
     "patch-compact.png": "6301fd1330aa31cf7a4d685c383239efc8988ce9e0ab3309bb60c50e9cfee460",
     "result-dark.png": "9ccc32fcc570cdca6d6b00dbe1a3ae03a0a6cfcd10a5c3feef8e6ea344d06766",
     "result-light.png": "a3eb1b02c4e09ebf156771f24a99326922e77a01991f5e0b637702effcc21226",
@@ -150,7 +151,10 @@
     "writing-compact.png": "554befc7e3fe656c57c35a8d0b818c6b073aebf6d99338d9f03154d8dbe1db2e",
     "execution-dark.png": "5034dcf26ac3a3f3880d2f4a0ba1a7f3c37a63ccd09b85c06729f7bd30dfda64",
     "execution-light.png": "ddc5ace453c083ffad26947d129389732ce2bf9dc205dfeb28fc457bb8cf64c4",
-    "execution-compact.png": "1bd9786904532bc542af4a2915dbdd4040c71137fe0e9efaea7bff78d100dd1f"
+    "execution-compact.png": "1bd9786904532bc542af4a2915dbdd4040c71137fe0e9efaea7bff78d100dd1f",
+    "permission-dark.png": "10bde1717ca5a375de3eadaba759016497648451b405f53e900dc8b564351512",
+    "permission-light.png": "915aba75d00332a2af0dc01e44a122f539f68cf6cc2c7a12d9e3be37b6c26a86",
+    "permission-compact.png": "e5bbe69adc5750950ea0520cc5698623773a782f6e3351595a589c39a26603b9"
   },
   "viewports": {
     "welcome-dark.png": {
@@ -446,6 +450,18 @@
       "height": 820
     },
     "execution-compact.png": {
+      "width": 760,
+      "height": 550
+    },
+    "permission-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "permission-light.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "permission-compact.png": {
       "width": 760,
       "height": 550
     }

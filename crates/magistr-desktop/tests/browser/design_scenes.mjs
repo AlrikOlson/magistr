@@ -72,7 +72,7 @@ export async function toolScene(app,capture,expect){
   },source);
   await app.locator('article[data-tool]>details>summary').click();
   await expect(app.locator(".result-fields").first()).toContainText("duration_ms");
-  await expect(app.locator(".tool-result script")).toHaveCount(0);
+  await expect(app.locator(".source-result script")).toHaveCount(0);
   await app.getByRole("button",{name:"Copy result",exact:true}).click();
   expect(await app.evaluate(()=>window.__fixture.copied)).toBe(source);
   await app.locator(".result-fields summary").click();
@@ -200,4 +200,29 @@ export async function ledgerScene(app,capture,expect){
   await app.locator('[data-message="912"]').evaluate(node=>node.scrollIntoView({block:"start"}));
   expect(await app.evaluate(()=>document.documentElement.scrollWidth)).toBe(760);
   await capture("execution-compact.png");
+}
+export async function permissionScene(app,capture,expect){
+  await app.setViewportSize({width:1280,height:820});
+  await app.getByRole("button",{name:"Investigate sync failure",exact:true}).click();
+  const source=JSON.stringify({command:"cargo test -p magistr-application sync",directory:"/Projects/magistr",network:false},null,2);
+  await app.evaluate(source=>{
+    Object.defineProperty(navigator,"clipboard",{configurable:true,value:{writeText:async value=>{window.__fixture.copied=value;}}});
+    window.__fixture.publish("sync",{pending:[{id:811,title:"Run the focused sync checks",detail:source,choices:[
+      {option_id:"once",label:"Allow once"},{option_id:"always",label:"Always allow"},{option_id:"deny",label:"Deny"},{option_id:"never",label:"Always deny"}
+    ]}]});
+  },source);
+  await app.locator("#review-requests").click();
+  await expect(app.locator(".request .result-fields")).toContainText("network");
+  await app.getByRole("button",{name:"Copy request details",exact:true}).click();
+  expect(await app.evaluate(()=>window.__fixture.copied)).toBe(source);
+  await appearances(app,capture,"permission",".request");
+  await app.setViewportSize({width:760,height:550});
+  await app.locator("#review-requests").click();
+  await app.locator(".request-actions").evaluate(node=>node.scrollIntoView({block:"center"}));
+  const buttons=await app.locator(".request-actions button").count();expect(buttons).toBe(4);
+  expect(await app.evaluate(()=>document.documentElement.scrollWidth)).toBe(760);
+  await capture("permission-compact.png");
+  await app.getByRole("button",{name:"Deny",exact:true}).click();
+  const action=await app.evaluate(()=>window.__fixture.calls.filter(call=>call.command==="session_action").at(-1));
+  expect(action.args).toMatchObject({target:{address:{session:"sync"}},action:{action:"answer",id:811,option_id:"deny"}});
 }

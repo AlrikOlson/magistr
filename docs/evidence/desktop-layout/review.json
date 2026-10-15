@@ -1,5 +1,5 @@
 {
-  "receipt": "36107b3b462e5ece5dd79585e6e741a9bb8e295149ff165ce79796f8640e01f6",
+  "receipt": "4493c1106a849a7c7700868aa39efd0ee419cb501feb62e02586a53f028517ac",
   "images": {
     "welcome-dark.png": "fa0bb2c36a671c5e08dba931c55cda81c8fdf959ab927aacaa1ff7aa5194bddc",
     "welcome-light.png": "c1adcd1c321a6da7d82c2a3f9ba9ddae55484c9a3f79799b8793f287cf11b30a",
@@ -31,13 +31,13 @@
     "code-dark.png": "96988d5068b03b68b3ebe0bd8cb14e3562af0399a45c1feb06601cd83ea3925f",
     "reading-light.png": "5aa52c252dd2568d04637913b22b9c5af5ec091f311e1e6cfa5551b293027950",
     "code-light.png": "1bb809a37866be9213b39e06c84d9997a99593c8d6a5347dd8c63a70a7895099",
-    "tools-light.png": "afcbd9c00baa5fef97c9dba083c52d588bd72a8eaa2ede78dace9ec3aada46f2",
-    "tools-dark.png": "16993fd769ed0a09c02e0abe83fb136e86f3b2155ba9231434f9d2cc2097fabf",
-    "attachments-dark.png": "07e729c12224d95cfe8952f4d9794e9909cf6a2204706a25652dc41f16290c62",
+    "tools-light.png": "5756cb44662d3b0ad0c4b7c273b505b1279fb86df0c132acadd6c64b2aa1ebbd",
+    "tools-dark.png": "1ab1f187fbb2cd6c4a9079970766339e2b95fdff958cdb3ff539979be3cdae11",
+    "attachments-dark.png": "9e59ce174d8ed489d8553fde1e12f4f512e2c091679bdbdbde0bff965b410a56",
     "image-inspection-dark.png": "ac813b5984ba51c3e0555ad9f92160324dc42d7db43aa524e8e28cc08e57fa8c",
     "attachments-narrow-light.png": "12151c12bc3bb689168769aa1131e36f2a22a722f51e010581349b0a57a7690c",
-    "request-narrow-light.png": "7c916f726afebb34e6ee50ea0973773ed0fa070884e13354db3b2bcd50e2037c",
-    "request-dark.png": "468c157a7244714654cb512f97b3074f69d7821a475f3dad0b74d6a80bbc2cdd",
+    "request-narrow-light.png": "7d1cf4637bad75ee0da9203e85bcaab73f75c17cc2baa449aa02aaac01057094",
+    "request-dark.png": "42c96d0063fc0f17cba978e63b401be41a79020e69775ef6d92baaf92c8485e8",
     "minimum-workspace-dark.png": "0a7e19fea84c77e3b2b542f2489d2930c4663319ecd84b14aa99766f6526a279",
     "minimum-projects-dark.png": "9f982d706b2aa9ad4668022faf67544a24076d5f7ada6b900ecea53ce3359999",
     "minimum-workspace-light.png": "2e997580a98c6a55328070fa5c09a6c5145074948a25f332d23d3682da956bc8",
@@ -53,7 +53,7 @@
     "tables-light.png": "b0ae433219af44bd1983f44276172defb0083894d7d69cea6636614df28d1a68",
     "tables-compact.png": "2af09a757fc67686e3864030f61a5125a878d80cac6c5e6fc1e7103f3c5a4267",
     "patch-dark.png": "8b1c68c6858b35f47a750ebd778905620a75b42b704eda297bf18c3b26e8d3bb",
-    "patch-light.png": "9488e9ae47f95f36492f380b98f98f0651f98dfa19b19aa538d9ea4485de1938",
+    "patch-light.png": "f8e8337c97bca88b300be69cddf8a07fa05749ae599e097031c9e7eb7cd537f8",
     "patch-compact.png": "6301fd1330aa31cf7a4d685c383239efc8988ce9e0ab3309bb60c50e9cfee460",
     "result-dark.png": "9ccc32fcc570cdca6d6b00dbe1a3ae03a0a6cfcd10a5c3feef8e6ea344d06766",
     "result-light.png": "a3eb1b02c4e09ebf156771f24a99326922e77a01991f5e0b637702effcc21226",
@@ -74,12 +74,15 @@
     "writing-compact.png": "554befc7e3fe656c57c35a8d0b818c6b073aebf6d99338d9f03154d8dbe1db2e",
     "execution-dark.png": "5034dcf26ac3a3f3880d2f4a0ba1a7f3c37a63ccd09b85c06729f7bd30dfda64",
     "execution-light.png": "ddc5ace453c083ffad26947d129389732ce2bf9dc205dfeb28fc457bb8cf64c4",
-    "execution-compact.png": "1bd9786904532bc542af4a2915dbdd4040c71137fe0e9efaea7bff78d100dd1f"
+    "execution-compact.png": "1bd9786904532bc542af4a2915dbdd4040c71137fe0e9efaea7bff78d100dd1f",
+    "permission-dark.png": "10bde1717ca5a375de3eadaba759016497648451b405f53e900dc8b564351512",
+    "permission-light.png": "915aba75d00332a2af0dc01e44a122f539f68cf6cc2c7a12d9e3be37b6c26a86",
+    "permission-compact.png": "e5bbe69adc5750950ea0520cc5698623773a782f6e3351595a589c39a26603b9"
   },
   "reviewed_on": "2026-10-15",
   "findings": [
-    "Execution results now form a contiguous ledger with title, source preview, reported outcome, duration and independent disclosure.",
-    "Reviewed dark/light mixed-outcome ledgers and compact expansion. Finished, Failed and Running remain distinct; absent duration remains absent.",
-    "Corrected the renderer and fixtures to the Rust writer's Finished status. Reading-position and selection checks pass after correcting a stale textual test locator."
+    "Permission review now separates the request heading, exact source document and equally weighted answer grid.",
+    "Reviewed structured request fields in dark and light, plus the four-choice compact composition. Exact-copy and addressed Deny behavior pass.",
+    "Structured source rendering is shared with tool output in source_details.mjs; it retains bounded parsing and original-text disclosure. Empty structures use valid non-list markup."
   ]
 }
