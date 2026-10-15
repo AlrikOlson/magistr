@@ -150,6 +150,9 @@ export class Transcript {
     article.setAttribute("aria-label",message.role==="Agent"?"Agent reply":message.tool?"Tool activity":message.role);
     article.dataset.reading=String(message.id);
     const header=element(this.document,"header"),role=element(this.document,"span",message.role);role.className="message-role";
+    const emblem=element(this.document,"span");emblem.className="message-emblem";emblem.setAttribute("aria-hidden","true");
+    emblem.dataset.icon=message.tool?"terminal":message.role==="Agent"?"spark":message.role==="You"?"chat":"clock";
+    role.prepend(emblem);
     const copy=element(this.document,"button",message.tool?"Copy tool details":message.role==="Agent"?"Copy reply":"Copy message");
     const row={article,copy,message,revision:null};copy.onclick=()=>this.copy(row.message.text);
     header.append(role,copy);article.append(header);
