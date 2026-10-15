@@ -1,0 +1,30 @@
+{
+  "scope": "Show pending files in compact attachment rows",
+  "limitations": "Headless WebKit with isolated observations. Native OS input, assistive technology and Rust command integration were not exercised.",
+  "images": {
+    "conversation--staged-files-compact-dark.png": {
+      "sha256": "9aefe3c4d0ed8d53ee1f9033f4c1f2f3ee3bf3b7a3f7627c77d940af05c00823",
+      "task": "Review filenames, previews and removal actions without crowding out the draft.",
+      "observations": "Both staged files have readable names, sizes and paths, with removal controls and visible image thumbnail. The text preview story did not complete, so the required expanded state still needs capture and inspection.",
+      "verdict": "fail"
+    },
+    "conversation--staged-files-compact-light.png": {
+      "sha256": "e3ccd1f79f0ddbcb16405e28bd65ee160f0f8f3b92f97a76994660e2f3005b79",
+      "task": "Review filenames, previews and removal actions without crowding out the draft.",
+      "observations": "Both staged files have readable names, sizes and paths, with removal controls and visible image thumbnail. The text preview story did not complete, so the required expanded state still needs capture and inspection.",
+      "verdict": "fail"
+    },
+    "conversation--staged-files-desktop-dark.png": {
+      "sha256": "2b75acf6df1fee0064ab958f95f0ff470e603846023d4372e06aeeeb4768db61",
+      "task": "Review filenames, previews and removal actions without crowding out the draft.",
+      "observations": "Both staged files have readable names, sizes and paths, with removal controls and visible image thumbnail. The text preview story did not complete, so the required expanded state still needs capture and inspection.",
+      "verdict": "fail"
+    },
+    "conversation--staged-files-desktop-light.png": {
+      "sha256": "5e0a04bc30d7e534957d137cae8c7701e29ab02261b185bab387a5ac27e82ea0",
+      "task": "Review filenames, previews and removal actions without crowding out the draft.",
+      "observations": "Both staged files have readable names, sizes and paths, with removal controls and visible image thumbnail. The text preview story did not complete, so the required expanded state still needs capture and inspection.",
+      "verdict": "fail"
+    }
+  }
+}

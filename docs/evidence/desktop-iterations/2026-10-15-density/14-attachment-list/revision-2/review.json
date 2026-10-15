@@ -1,0 +1,54 @@
+{
+  "scope": "Show pending files in compact attachment rows",
+  "limitations": "Headless WebKit with isolated observations. Native OS input, assistive technology and Rust command integration were not exercised.",
+  "images": {
+    "conversation--file-preview-open-compact-dark.png": {
+      "sha256": "137acd2287790bf95fb9c27834fae05c183640139555e97f9291ec07a55382e2",
+      "task": "Review filenames, previews and removal actions without crowding out the draft.",
+      "observations": "FAIL: Opening Preview leaves the actual file text below the bounded attachment region. The preview is technically open but unreadable without another scroll; fix the attachment region sizing and inspect again.",
+      "verdict": "fail"
+    },
+    "conversation--file-preview-open-compact-light.png": {
+      "sha256": "8933c3453dc399655c3231bd31163a90c14b0626b7d20a7c1fa1ccadd23f1020",
+      "task": "Review filenames, previews and removal actions without crowding out the draft.",
+      "observations": "FAIL: Opening Preview leaves the actual file text below the bounded attachment region. The preview is technically open but unreadable without another scroll; fix the attachment region sizing and inspect again.",
+      "verdict": "fail"
+    },
+    "conversation--file-preview-open-desktop-dark.png": {
+      "sha256": "dd4c5a513b9426b04ca0134219935057e015dcf8e90c525ea230efe7935db5d9",
+      "task": "Review filenames, previews and removal actions without crowding out the draft.",
+      "observations": "FAIL: Opening Preview leaves the actual file text below the bounded attachment region. The preview is technically open but unreadable without another scroll; fix the attachment region sizing and inspect again.",
+      "verdict": "fail"
+    },
+    "conversation--file-preview-open-desktop-light.png": {
+      "sha256": "1200fc1e17e7347e96aad421eb4f7d4db80da38c0755e8de2328bbf1cbec7828",
+      "task": "Review filenames, previews and removal actions without crowding out the draft.",
+      "observations": "FAIL: Opening Preview leaves the actual file text below the bounded attachment region. The preview is technically open but unreadable without another scroll; fix the attachment region sizing and inspect again.",
+      "verdict": "fail"
+    },
+    "conversation--staged-files-compact-dark.png": {
+      "sha256": "9aefe3c4d0ed8d53ee1f9033f4c1f2f3ee3bf3b7a3f7627c77d940af05c00823",
+      "task": "Review filenames, previews and removal actions without crowding out the draft.",
+      "observations": "File names, metadata and removal controls are readable. The expanded preview state remains blocked, and ID-specific rules override the intended thumbnail reduction.",
+      "verdict": "fail"
+    },
+    "conversation--staged-files-compact-light.png": {
+      "sha256": "e3ccd1f79f0ddbcb16405e28bd65ee160f0f8f3b92f97a76994660e2f3005b79",
+      "task": "Review filenames, previews and removal actions without crowding out the draft.",
+      "observations": "File names, metadata and removal controls are readable. The expanded preview state remains blocked, and ID-specific rules override the intended thumbnail reduction.",
+      "verdict": "fail"
+    },
+    "conversation--staged-files-desktop-dark.png": {
+      "sha256": "2b75acf6df1fee0064ab958f95f0ff470e603846023d4372e06aeeeb4768db61",
+      "task": "Review filenames, previews and removal actions without crowding out the draft.",
+      "observations": "File names, metadata and removal controls are readable. The expanded preview state remains blocked, and ID-specific rules override the intended thumbnail reduction.",
+      "verdict": "fail"
+    },
+    "conversation--staged-files-desktop-light.png": {
+      "sha256": "5e0a04bc30d7e534957d137cae8c7701e29ab02261b185bab387a5ac27e82ea0",
+      "task": "Review filenames, previews and removal actions without crowding out the draft.",
+      "observations": "File names, metadata and removal controls are readable. The expanded preview state remains blocked, and ID-specific rules override the intended thumbnail reduction.",
+      "verdict": "fail"
+    }
+  }
+}

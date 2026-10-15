@@ -1,0 +1,54 @@
+{
+  "scope": "Show pending files in compact attachment rows",
+  "limitations": "Headless WebKit with isolated observations. Native OS input, assistive technology and Rust command integration were not exercised.",
+  "images": {
+    "conversation--file-preview-open-compact-dark.png": {
+      "sha256": "a665048659080e7ef9e863576dca3f7168e72dd99bf80cdef2bbc0ac12523681",
+      "task": "Review filenames, previews and removal actions without crowding out the draft.",
+      "observations": "FAIL: File text is now readable, but the expanded attachments leave too little transcript height and Latest reply overlaps the remaining text. Bound the preview to the available short-window height.",
+      "verdict": "fail"
+    },
+    "conversation--file-preview-open-compact-light.png": {
+      "sha256": "8331f556c24817a0f65172553e7ccbd9e8fc6a3de094206ef4f1bc2df59c552d",
+      "task": "Review filenames, previews and removal actions without crowding out the draft.",
+      "observations": "FAIL: File text is now readable, but the expanded attachments leave too little transcript height and Latest reply overlaps the remaining text. Bound the preview to the available short-window height.",
+      "verdict": "fail"
+    },
+    "conversation--file-preview-open-desktop-dark.png": {
+      "sha256": "6e003b4410a77e05da95cb93ffed0d73c8a50e80da23be84dcf74247e570ae7f",
+      "task": "Review filenames, previews and removal actions without crowding out the draft.",
+      "observations": "The text preview and removal control are readable; the iteration remains failed for the compact overlap.",
+      "verdict": "fail"
+    },
+    "conversation--file-preview-open-desktop-light.png": {
+      "sha256": "968d67bd86f5864184e7942fa672792871d828bdc4860c9fcaa88185ec45c34f",
+      "task": "Review filenames, previews and removal actions without crowding out the draft.",
+      "observations": "The text preview and removal control are readable; the iteration remains failed for the compact overlap.",
+      "verdict": "fail"
+    },
+    "conversation--staged-files-compact-dark.png": {
+      "sha256": "ec79b98a4ef3cfa2c6f3760f6ab4ccb47151f2deefa62f54e5c3bfcf40e2232b",
+      "task": "Review filenames, previews and removal actions without crowding out the draft.",
+      "observations": "Compact thumbnails and readable filenames are correctly applied; closed previews retain the draft and send controls.",
+      "verdict": "fail"
+    },
+    "conversation--staged-files-compact-light.png": {
+      "sha256": "ae8465dfbc13247a5b5c86c9de9bc5385c007299ac10fa3bc8557c0d5a3aa513",
+      "task": "Review filenames, previews and removal actions without crowding out the draft.",
+      "observations": "Compact thumbnails and readable filenames are correctly applied; closed previews retain the draft and send controls.",
+      "verdict": "fail"
+    },
+    "conversation--staged-files-desktop-dark.png": {
+      "sha256": "e9934e61eefd0d9eb4fdee5f443f4b9e9895302d25b60245deb75d50f61a9a9f",
+      "task": "Review filenames, previews and removal actions without crowding out the draft.",
+      "observations": "Compact thumbnails and readable filenames are correctly applied; closed previews retain the draft and send controls.",
+      "verdict": "fail"
+    },
+    "conversation--staged-files-desktop-light.png": {
+      "sha256": "a95479162c99621031a1ae47c9e6b92df93aed5c1020f63c514bdcce0c1c44b6",
+      "task": "Review filenames, previews and removal actions without crowding out the draft.",
+      "observations": "Compact thumbnails and readable filenames are correctly applied; closed previews retain the draft and send controls.",
+      "verdict": "fail"
+    }
+  }
+}

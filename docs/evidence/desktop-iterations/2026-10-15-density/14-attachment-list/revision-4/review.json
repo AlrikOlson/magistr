@@ -1,0 +1,54 @@
+{
+  "scope": "Show pending files in compact attachment rows",
+  "limitations": "Headless WebKit with isolated observations. Native OS input, assistive technology and Rust command integration were not exercised.",
+  "images": {
+    "conversation--file-preview-open-compact-dark.png": {
+      "sha256": "ea04b420308a7978edee91aa23439445a78eea729084f8e197014df0fe66c042",
+      "task": "Review filenames, previews and removal actions without crowding out the draft.",
+      "observations": "FAIL: The expanded file is readable but Latest reply still overlaps the transcript's lower padding. Measured grid track is 35.625 px while the transcript's vertical padding requires 48 px. Reduce the compact preview allowance to reserve that space.",
+      "verdict": "fail"
+    },
+    "conversation--file-preview-open-compact-light.png": {
+      "sha256": "cb5151ccad07f713d51de4878cfdc89b9e21fe05a4aed6b3ce7ebafaf1b41b03",
+      "task": "Review filenames, previews and removal actions without crowding out the draft.",
+      "observations": "FAIL: The expanded file is readable but Latest reply still overlaps the transcript's lower padding. Measured grid track is 35.625 px while the transcript's vertical padding requires 48 px. Reduce the compact preview allowance to reserve that space.",
+      "verdict": "fail"
+    },
+    "conversation--file-preview-open-desktop-dark.png": {
+      "sha256": "6e003b4410a77e05da95cb93ffed0d73c8a50e80da23be84dcf74247e570ae7f",
+      "task": "Review filenames, previews and removal actions without crowding out the draft.",
+      "observations": "File controls and content are readable; compact expanded-state overlap remains blocking.",
+      "verdict": "fail"
+    },
+    "conversation--file-preview-open-desktop-light.png": {
+      "sha256": "968d67bd86f5864184e7942fa672792871d828bdc4860c9fcaa88185ec45c34f",
+      "task": "Review filenames, previews and removal actions without crowding out the draft.",
+      "observations": "File controls and content are readable; compact expanded-state overlap remains blocking.",
+      "verdict": "fail"
+    },
+    "conversation--staged-files-compact-dark.png": {
+      "sha256": "ec79b98a4ef3cfa2c6f3760f6ab4ccb47151f2deefa62f54e5c3bfcf40e2232b",
+      "task": "Review filenames, previews and removal actions without crowding out the draft.",
+      "observations": "File controls and content are readable; compact expanded-state overlap remains blocking.",
+      "verdict": "fail"
+    },
+    "conversation--staged-files-compact-light.png": {
+      "sha256": "ae8465dfbc13247a5b5c86c9de9bc5385c007299ac10fa3bc8557c0d5a3aa513",
+      "task": "Review filenames, previews and removal actions without crowding out the draft.",
+      "observations": "File controls and content are readable; compact expanded-state overlap remains blocking.",
+      "verdict": "fail"
+    },
+    "conversation--staged-files-desktop-dark.png": {
+      "sha256": "e9934e61eefd0d9eb4fdee5f443f4b9e9895302d25b60245deb75d50f61a9a9f",
+      "task": "Review filenames, previews and removal actions without crowding out the draft.",
+      "observations": "File controls and content are readable; compact expanded-state overlap remains blocking.",
+      "verdict": "fail"
+    },
+    "conversation--staged-files-desktop-light.png": {
+      "sha256": "a95479162c99621031a1ae47c9e6b92df93aed5c1020f63c514bdcce0c1c44b6",
+      "task": "Review filenames, previews and removal actions without crowding out the draft.",
+      "observations": "File controls and content are readable; compact expanded-state overlap remains blocking.",
+      "verdict": "fail"
+    }
+  }
+}

@@ -112,3 +112,12 @@ export const ReplySectionSelected={parameters:{desktop:{...outlineState,caption:
  verify:context=>{outlineState.verify(context);const h=context.ui.getByRole("heading",{name:"Verification results",exact:true}),t=context.doc.querySelector("#transcript").getBoundingClientRect(),r=h.getBoundingClientRect();context.expect(context.doc.activeElement).toBe(h);context.expect(r.top).toBeGreaterThanOrEqual(t.top);context.expect(r.bottom).toBeLessThanOrEqual(t.bottom);},
 }}};
 
+const attachmentSeed=seed=>{seed.frames[0].attachments=[{id:"notes",name:"release-notes.md",size:820,path:"docs/release-notes.md",content_hash:"notes",excerpt:"# Release checklist\n\nVerify reopening and unsent messages."},{id:"screen",name:"app-icon.png",size:32768,path:"ui/icon.png",content_hash:"screen",preview:"/desktop-assets/icon.png"}];};
+const attachmentState={caption:"Release conversation with a text file and image staged beside its draft",task:"Check attached filenames, sizes and previews before sending.",seed:attachmentSeed,arrange:openRelease,
+ verify:context=>{conversationVisible(context);context.expect(context.doc.querySelectorAll("#composer .attachment").length).toBe(2);context.expect(context.visible(context.doc,'[aria-label="Remove release-notes.md"]')).toBe(true);}};
+export const StagedFiles={parameters:{desktop:attachmentState}};
+export const FilePreviewOpen={parameters:{desktop:{...attachmentState,caption:"Release conversation with the staged text file preview expanded",task:"Read an attached text file without losing the draft or removal control.",
+ arrange:async context=>{await openRelease(context);await context.userEvent.click(context.ui.getByLabelText("Preview release-notes.md",{exact:true}));},
+ verify:context=>{attachmentState.verify(context);context.expect(context.doc.querySelector("#composer .attachment details").open).toBe(true);},
+}}};
+
