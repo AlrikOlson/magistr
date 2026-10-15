@@ -12,7 +12,7 @@ export function workPresentation(frame, pending=false) {
   const detail=run?(phase==="ended"?run.phase.reason:
     "Attempt "+run.iteration+" of "+run.limit+". "+(paused?"Continue or run one more item.":
     "Changes to the run take effect after this item. Stop in the message box cancels the current reply.")):"Choose one item or up to ten items from the roadmap.";
-  return {status,detail,active,paused,stopped,
+  return {status,detail,active,paused,stopped,attempt:run?{current:run.iteration,limit:run.limit}:null,
     canStart:!!frame?.target&&!frame.closed&&!active&&!pending&&!frame.activity?.active&&!frame.activity?.configuration_in_progress&&!frame.activity?.cancellation_requested,
     error:frame?.work_error??frame?.work_admission?.error??null};
 }
@@ -29,6 +29,10 @@ export class WorkPanel {
     if(pending!==undefined&&(frame.closed||(frame.work_admission?.sequence??0)>pending))this.pending.delete(key);
     const view=workPresentation(frame,this.pending.has(key));
     this.$("work-status").textContent=view.status;this.$("work-detail").textContent=view.detail;
+    this.$("work").dataset.phase=frame?.work?.phase?.kind??"idle";
+    this.$("work-attempt").hidden=!view.attempt;
+    this.$("work-attempt-current").textContent=view.attempt?.current??"";
+    this.$("work-attempt-limit").textContent=view.attempt?" / "+view.attempt.limit:"";
     this.$("work-error").textContent=view.error??"";this.$("work-error").hidden=!view.error;
     for(const id of ["work-next","work-loop"]) {this.$(id).disabled=!view.canStart;this.$(id).hidden=view.active||this.pending.has(key);}
     for(const id of ["work-pause","work-resume","work-step","work-abort"]) {

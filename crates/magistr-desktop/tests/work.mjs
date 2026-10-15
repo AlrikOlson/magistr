@@ -8,6 +8,7 @@ test("a pending click never claims work started; a refusal remains distinct",()=
   const f=frame();
   assert.equal(workPresentation(f,true).status,"Requesting work…");
   assert.equal(workPresentation(f,true).active,false);
+  assert.equal(workPresentation(f,true).attempt,null);
   f.work_admission={sequence:2,error:"Already running.",run_id:null};
   assert.equal(workPresentation(f).error,"Already running.");
   assert.equal(workPresentation(f).active,false);
@@ -17,6 +18,7 @@ test("pause and stop requests describe future boundaries; paused work can step",
   assert.match(workPresentation(f).status,/then pausing/);
   assert.equal(workPresentation(f).paused,false);
   f.work=run("paused");assert.equal(workPresentation(f).paused,true);
+  assert.deepEqual(workPresentation(f).attempt,{current:1,limit:10});
   f.work=run("running","abort");assert.equal(workPresentation(f).stopped,true);
   f.work={...run("ended"),phase:{kind:"ended",reason:"Finished."}};
   assert.equal(workPresentation(f).detail,"Finished.");
@@ -24,7 +26,7 @@ test("pause and stop requests describe future boundaries; paused work can step",
 });
 test("delayed controls preserve the captured run across conversation and resident changes",async()=>{
   const elements=new Map(),calls=[];
-  const $=id=>{if(!elements.has(id))elements.set(id,{});return elements.get(id);};
+  const $=id=>{if(!elements.has(id))elements.set(id,{dataset:{}});return elements.get(id);};
   let finish;const delivered=new Promise(resolve=>finish=resolve);
   const panel=new WorkPanel($,async(name,args)=>{calls.push({name,args});await delivered;},()=>{});
   const f=frame();f.work=run("running");panel.render(f);
@@ -35,7 +37,7 @@ test("delayed controls preserve the captured run across conversation and residen
   assert.deepEqual(calls[0].args.target.address,address);
 });
 test("launch admission clears pending state only after the owner's newer result",async()=>{
-  const elements=new Map();const $=id=>{if(!elements.has(id))elements.set(id,{});return elements.get(id);};
+  const elements=new Map();const $=id=>{if(!elements.has(id))elements.set(id,{dataset:{}});return elements.get(id);};
   const panel=new WorkPanel($,async()=>{},()=>{}),f=frame();panel.render(f);
   await panel.start("next");
   assert.equal($("work-status").textContent,"Requesting work…");
