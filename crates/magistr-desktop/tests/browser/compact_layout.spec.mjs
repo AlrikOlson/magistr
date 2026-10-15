@@ -304,3 +304,19 @@ test("conversation catalogs show compact rows with complete accessible names",as
   expect((await app.locator("#history-list button").first().boundingBox()).height).toBeLessThan(180);
   await capture(app,"29-saved-conversations");
 });
+
+test("project dialogs keep headings compact and form actions visible",async({app})=>{
+  await app.getByRole("button",{name:"Open project",exact:true}).click();
+  expect((await app.locator("#project-picker .dialog-heading").boundingBox()).height).toBeLessThan(120);
+  await expect(app.getByLabel("Project folder",{exact:true})).toBeFocused();
+  await capture(app,"30-open-project");await app.keyboard.press("Escape");
+  await app.getByRole("button",{name:"Review the release plan",exact:true}).click();
+  await app.getByRole("button",{name:"New conversation",exact:true}).click();
+  for(const width of [1280,760]){
+    await app.setViewportSize({width,height:width===760?550:820});
+    await expect(app.getByRole("radio",{name:"API Agent",exact:true})).toBeInViewport();
+    await expect(app.getByRole("button",{name:"Start conversation",exact:true})).toBeInViewport();
+    expect(await app.locator("#session-picker").evaluate(node=>node.scrollWidth-node.clientWidth)).toBeLessThanOrEqual(1);
+    await capture(app,"30-new-conversation-"+width);
+  }
+});
