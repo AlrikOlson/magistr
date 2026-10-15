@@ -1,5 +1,5 @@
 {
-  "receipt": "1050798d2a85e2724a74ee00f6283d855fb4dda7f2005ab855cb69d9d01a392f",
+  "receipt": "438eb58034c73c2fc3a43dcdb8e9770a6a2d9b4b39f38e997440e21d9e3688f8",
   "images": {
     "welcome-dark.png": "c18e56fa3f76a5d9338c14ef21f1d94c761e09479a9597347b4a49080331713f",
     "welcome-light.png": "d308a673ba367d31445b01bafd2fb739c75ddb35a884c19b5a36f51a34427c45",
@@ -30,9 +30,9 @@
     "find-conversation-narrow-light.png": "a3a30a490a9961d0300e5363365bdbb76617fb298187eed7281c80b8ce6f4314",
     "find-conversation-dark.png": "d0d34f63402fc08c08b1322cfeb28e4f07b58562eeb1dfc908e902678f1776fc",
     "reading-dark.png": "f376967edb3d170f825222559184ff25f9369f530e3eba6c704ed24a06011b03",
-    "code-dark.png": "888a0967b768742f8c63122cbb93efb8a7ffcee6970beb76c5cd1393094e1aea",
+    "code-dark.png": "f6ca0dc6e7bad381291d1427e39f0ab6e26bf7244d7370e3d044604990e9da78",
     "reading-light.png": "8ec3d04b94aa63bfd8b8b83ab133f0c04c8547e5fac8cfe8eb2c137a1065c84b",
-    "code-light.png": "ad050f87049d74b80ed034ac7f30eea1e2f961d9e83824885800e48ea421c3fd",
+    "code-light.png": "bbf460cf7044f1999077db58cbe5a21585fca47cdbc70656ff3bc7e04f536d6c",
     "tools-light.png": "8ee18f599f0eed46add1eb3e1838a5e74abd5a78e6f7a46c8719bb9ca0aa3c41",
     "tools-dark.png": "8f5def2878fa396e5303a3a2c1fd84ae7cebe621fe870b12ad91625e6216ff39",
     "attachments-dark.png": "48e5f13422f08f93d84b99d9ffb87578305c0f4be0efdaddd8085a7bc2644dd9",
@@ -52,11 +52,11 @@
     "empty-conversation-dark.png": "0d382256e7651ddb1ad864049bdd018e5ef1e22c08dbf7c12d533194d75dfae6",
     "empty-conversation-light.png": "9dc4cac2174261e82db28c87f37a1d93ec257ac38866c4cecedad3f00ca4bf32",
     "tables-dark.png": "6cfaf98f4499f5ca1918a4b94ffded85081bd66775df9ac7b751f10591da44ac",
-    "tables-light.png": "68a0c705d327dc675b2fd56436ea111e6b01fb820e986fa24f2e7d856212779f",
+    "tables-light.png": "7efeb4f0735f4369c7fae15323004523219be066e17c67fa5f12b5cca941591e",
     "tables-compact.png": "bd82361016d6284c3869c419aaa626f6b22310e814bfa1a737399ae0abaf159b",
-    "patch-dark.png": "165fb0e19328a047fa536ccea8244ba06c36f2b19c5925bdb5553325036e4dac",
-    "patch-light.png": "23faede374f9bda536cc30d85879af21bcc69578944040f0612a74d405c56bb6",
-    "patch-compact.png": "1e944dd0240f4338bbbdb13851acb7e8674ee0c83a2e9d442a4a6360e7550c40",
+    "patch-dark.png": "39f018c453a1dc4fa007abdce506867fc4c7d1e5d8cf1221171f3d8110f4f032",
+    "patch-light.png": "d4bfd061c6e1f5083378877913e7dc3cb3cfde38a9beaa74abc109e2aa5d6cb6",
+    "patch-compact.png": "ff7f77e12282d2148e196440279669e76e7213f61a62a7165dab7342cdb26d77",
     "result-dark.png": "718c3d4430cdde428747d340bbbf811658d6357f0b9f0abf803f025bae56bc3b",
     "result-light.png": "a7b6d6ad03cd09696e26ab6a3e1853796aeb917a8b88897d39bb5f6f46fc008d",
     "contents-dark.png": "907bd8196ed52d4d0d08d55af08c3b04896e0f51ebcf6c841ccd081560fd2706",
@@ -90,5 +90,5 @@
     "workspace-compact-final-light.png": "cf0660be6d4cd9833a7bebf556c4a3cb20907ab04622974b81800fc4180c40c0",
     "workspace-compact-long-title.png": "c937d7ecc8a49952c92e0fae474346c91fae0f7f4725a62a3c3644bd58feb772"
   },
-  "review": "Reviewed dark reply, light editorial content and long-response contents. Author identity, typography and a wide-screen marginal contents index share one semantic document; seven reading/selection/WebKit cases pass."
+  "review": "Reviewed source workbench in dark/light. Bounded scroll, source typography, language header and wrap controls preserve exact source copy and selected text. Three focused WebKit cases pass."
 }
