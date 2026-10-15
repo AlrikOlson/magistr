@@ -1,5 +1,5 @@
 {
-  "receipt": "a17bbe239332cfe9e737e01429a5794412fb1d3c0c5cfb884fac7471a136aa30",
+  "receipt": "559c946d1c188b6cf41781321f5803791aa5cb13f95f693ef4075b8ee37961f3",
   "images": {
     "welcome-dark.png": "dbeb5de57311812ef5a669f046708a23927e7504e74d686194bb801dfd5b8dff",
     "welcome-light.png": "c77e2e937e8f1e98e3061d94a5bb15c40abbcda679712e2d99ed503e54c54991",
@@ -27,14 +27,14 @@
     "new-conversation-narrow-light.png": "02dc8c2d1f758668d87c505fdda81ff9c15f8845af2de8fe1a2419063e7e80bc",
     "find-conversation-narrow-light.png": "127a48bae5ba907e047800e60c8538293e21e0b740c0bd705dabea12feac7df6",
     "find-conversation-dark.png": "563f1966a379bfe0669ba15f89af8e367063c1e827c0034bfcbec52508f1f072",
-    "reading-dark.png": "b8bc3c7cede6153c8bdc5676b4c9d5a2a28fbb77e828ae7269df67f66bbaeec1",
-    "code-dark.png": "b1179f46cbc98fc39b25016ca402ce2a2355e78d3db80c93fec4fb8368b86949",
-    "reading-light.png": "6e0380386f229fad56e1ac6ddc00f6c29dfe5fb39583970bec5d6694b6e98f4e",
-    "code-light.png": "7e1f3245c65764a3677a69151c8472fb40884e234cb7d707aea19ca136c805b1",
+    "reading-dark.png": "50c0c922c70b9659d509a1e8d3948c0550fb10c75e063c1709d88c2fc967555c",
+    "code-dark.png": "66463e0a7edf45eb6ef3dc4c99c2722e7a58bfc3823df5c90370bddc9910f3d4",
+    "reading-light.png": "fcf3aa5025a87285f9e7530bc3e99aa1042f8243ad8a6d9e808eb6ef4835857e",
+    "code-light.png": "d1dd81d1aa42df4ef7bcf822c0535402e7941c1105b5c399f6088a558c6d1567",
     "tools-light.png": "2a19ed589968aa8db02bd63f64f674fab0e9e78dea25360d9c31f87e47c2eeea",
     "tools-dark.png": "78f87a95cb4ccebbc223116de1789d3b448e90c94bc18564fbccebba0e36e47e",
-    "attachments-dark.png": "d025eb60b52a75e963d0ce41c9b5051a3916a7c51c8109092d9baf081d8960b1",
-    "attachments-narrow-light.png": "35abebd0f2bae92981cacc1fe5ee37aa0825871eba21b44b5b170255e3d789b3",
+    "attachments-dark.png": "73b63a6c50a63d225d4af1fabffc4284db1f7dde51dab444c14fac927d48d628",
+    "attachments-narrow-light.png": "70c4e1534b5940a2f99141b5b59aee732472f07e1c5fc70061801c72d59ba499",
     "request-narrow-light.png": "b0d5f74f81eabec4d5348ead6742c4f6d3226525131cc1aa2d3426ed78025ec6",
     "request-dark.png": "84102c64ac77bea57cc68f98c54bd76a42a7a0a93360ab444cebccd3c51ff872",
     "minimum-workspace-dark.png": "e8b9e89f745533ffb078542f9d2e257374277c92e9665cfe47a088adc0cdb427",
@@ -49,8 +49,8 @@
   },
   "reviewed_on": "2026-10-15",
   "findings": [
-    "Reviewed the larger document hierarchy and quotation treatment in dark and light reading captures. Authored messages use a narrower surface, while replies have a deliberate 744-pixel measure and more distinct heading scales.",
-    "Six focused WebKit reading/workspace scenarios passed, including selection retention, current background updates and reading-anchor restoration through resize.",
-    "Renderer and DOM evidence only; native OS input and assistive technology were not run. Workflow records remain preserved and unreadable."
+    "Reviewed the framed code documents in both appearances. A fixed caption, exact line count and nonselectable line gutter separate source from prose; long source remains scrollable.",
+    "Seven focused WebKit scenarios passed, including exact multilingual code copying, literal hostile markup, stable source nodes and selected text during an incoming revision.",
+    "Background clipboard stub and DOM selection only; native clipboard, IME and assistive technology were not exercised. Native workflow state remains inaccessible."
   ]
 }
