@@ -411,7 +411,7 @@ function showWelcome(note="") {
   selected=null;view=null;composerFrame=null;attachmentList.clear();selection.clear();requestsKey="";railKey="";
   $("workspace").hidden=true;$("welcome").hidden=false;layout.enable(false);
   $("conversation-toolbar").hidden=true;$("conversation-actions").hidden=true;$("conversation-actions").open=false;conversationName.render(null);workPanel.render(null);
-  $("project-name").textContent="Magistr";$("view-title").textContent="Projects";$("status").textContent="";$("status").hidden=true;
+  $("project-name").textContent="Magistr";$("view-title").textContent="Projects";$("view-title").removeAttribute("title");$("status").textContent="";$("status").hidden=true;
   $("draft").value="";$("requests").replaceChildren();transcriptView.clear();
   for(const id of ["draft","send","stop","new-session","close-session","copy","reconnect","add-files"])$(id).disabled=true;
   $("welcome-note").textContent=note;$("welcome-note").hidden=!note;
@@ -494,6 +494,7 @@ $("close-session").onclick=()=>selected&&closeAddress(selected);
 
 function renderConfiguration(frame) {
   $("view-title").textContent=frame.conversation?.name??(frame.conversation?.purpose==="roadmap"?"Planning":"Conversation");
+  $("view-title").title=$("view-title").textContent;
   conversationName.render(frame);
   $("agent-provider").textContent=frame.conversation?.provider_label??"Agent information is unavailable.";
   const key=JSON.stringify([frame.target,frame.configuration]);

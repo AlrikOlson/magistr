@@ -178,7 +178,7 @@ article.you{background:var(--panel);padding:18px 24px;border-radius:12px 12px 4p
 .message-body h1,.message-body h2,.message-body h3,.message-body h4,.message-body h5,.message-body h6{color:var(--text);font-weight:650;letter-spacing:-.015em;text-transform:none;line-height:1.35;margin:22px 0 10px}
 .message-body h1{font-size:34px;font-weight:550;line-height:1.15;letter-spacing:-.045em}.message-body h2{font-size:28px;font-weight:550;line-height:1.2;letter-spacing:-.035em;margin:36px 0 16px}.message-body h3{font-size:19px;letter-spacing:-.025em;font-weight:600;margin:32px 0 14px}.message-body h4,.message-body h5,.message-body h6{font-size:16px}.message-body>:first-child{margin-top:0}
 .message-body ul,.message-body ol{padding-left:25px;margin:20px 0 24px}.message-body li{margin:10px 0;padding-left:8px}.message-body ol::marker{font-variant-numeric:tabular-nums}.message-body li::marker{font-size:.9em}.message-body li p{margin-bottom:6px}.message-body li::marker{color:var(--muted)}.message-body ul ul{margin:8px 0}
-.message-body blockquote{margin:30px 0;padding:22px 28px;color:var(--text);background:color-mix(in srgb,var(--panel) 60%,transparent);border-block:1px solid var(--separator);border-radius:0;font:italic 21px/1.6 Georgia,"Times New Roman",serif;letter-spacing:-.01em}
+.message-body blockquote{margin:30px 0;padding:22px 28px;color:var(--text);background:color-mix(in srgb,var(--panel) 60%,transparent);border-block:1px solid var(--separator);border-radius:0;font:italic 21px/1.6 var(--font-ui);letter-spacing:-.01em}
 .message-body blockquote p:last-child{margin:0}.message-body blockquote blockquote{font-size:18px;margin:18px 0 0;padding:16px 20px;background:var(--base)}.message-body blockquote code{font-style:normal}
 .message-body li{padding-left:10px;margin-block:13px}.message-body li::marker{font-weight:600;font-size:12px;color:var(--accent)}.message-body ol{list-style-type:decimal-leading-zero}.message-body ol ol{list-style-type:lower-alpha}.message-body ul ul{list-style-type:circle}
 .message-body li>ul,.message-body li>ol{margin:10px 0 16px;padding-left:24px;border-left:1px solid var(--separator)}.message-body li>ul>li,.message-body li>ol>li{margin-block:7px;font-size:.94em}
@@ -626,12 +626,37 @@ dialog h3{margin:20px 0 10px;font-size:17px}.dialog-actions{display:flex;justify
 }
 
 @media(max-height:600px){
-  .work-header{min-height:60px;padding-block:10px}.work-heading h1{font-size:20px}.work-header #project-name{font-size:11px;margin-bottom:3px}
-  .conversation-toolbar{padding:0;min-height:30px}
-  #composer{padding-top:6px;padding-bottom:8px}.composer-heading{padding:8px 12px 0}
-  #draft{min-height:58px;max-height:160px;padding:8px 12px;line-height:1.5}
-  .composer-actions{padding:4px 8px}.composer-footer{padding-top:4px;min-height:26px}
-  #latest{margin-top:2px;margin-bottom:6px;padding-block:5px}
+  .work-header{min-height:60px;padding-block:6px;gap:6px 20px}.work-heading h1{font-size:20px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.work-header #project-name{font-size:11px;margin-bottom:3px}
+  .conversation-toolbar{padding:0;min-height:28px}
+  #composer{padding-top:6px;padding-bottom:8px}.composer-heading{padding:4px 12px 0}
+  #draft{min-height:44px;height:48px;max-height:120px;padding:6px 12px;line-height:1.5;font-size:14px}
+  .composer-actions{padding:3px 8px}.composer-actions>button{min-height:30px}.composer-actions #send{min-height:30px}.composer-footer{padding-top:2px;min-height:24px}
+  #latest{margin-top:0;margin-bottom:4px;padding-block:3px;min-height:26px}
   .composer-box .attachments{max-height:90px}
 }
+/* Workspace composition follows the room available, using the same live nodes. */
+@media(min-width:1600px){
+  :root{--reading-width:800px}
+  .shell{grid-template-columns:288px minmax(0,1fr)}
+  .rail{padding:30px 20px 20px}
+  .work-header{padding-inline:48px}.work-heading h1{font-size:36px}
+  .workspace[data-details=true]{grid-template-columns:minmax(0,1fr) 356px}
+  .transcript{padding-block:44px}
+  #composer{padding-bottom:24px}
+  .detail{padding:24px}.detail-title{top:-24px}
+}
+@media(min-width:681px) and (max-width:900px){
+  .rail-projects{width:min(100%,900px)}
+  .rail-scroll #projects{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;align-items:start}
+  .rail-scroll .project-heading{font-size:14px}
+}
+@media(max-height:600px){
+  .welcome{padding-top:20px}
+  .welcome-intro{grid-template-columns:minmax(0,1fr) auto;gap:12px 24px;padding-bottom:20px}
+  .welcome-actions{flex-direction:column}
+  .welcome .welcome-description{font-size:23px}
+  .project-activity{padding-block:18px;margin-bottom:24px}
+  .activity-body h2{margin-bottom:16px}.activity-counts{row-gap:16px}
+}
+
 

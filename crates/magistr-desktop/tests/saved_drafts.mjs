@@ -20,7 +20,7 @@ function harness() {
     const listeners = new Map();
     return {
       value: "", textContent: "", disabled: false, hidden: false,
-      children: [], ownerDocument: document, parent: null, attributes: {},
+      children: [], ownerDocument: document, parent: null, attributes: {}, dataset: {},
       addEventListener: (name, listener) => listeners.set(name, listener),
       setAttribute(name, value) { this.attributes[name] = value; },
       replaceChildren(...children) {for(const child of this.children)child.parent=null;this.children=[];this.append(...children);},
