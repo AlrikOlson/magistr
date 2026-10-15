@@ -142,3 +142,15 @@ export const KeyboardShortcuts={parameters:{desktop:{...Settings.parameters.desk
  arrange:async context=>{await Settings.parameters.desktop.arrange(context);context.doc.querySelector(".settings-shortcuts").scrollIntoView({block:"start"});},
  verify:context=>{Settings.parameters.desktop.verify(context);const r=context.doc.querySelector(".settings-shortcuts").getBoundingClientRect();context.expect(r.top).toBeGreaterThanOrEqual(0);context.expect(r.bottom).toBeLessThan(context.doc.querySelector("#settings-close").getBoundingClientRect().top);},
 }}};
+export const SavedHistory={parameters:{desktop:{
+ caption:"Saved conversations with the release conversation selected and its unsent message",
+ task:"Choose a saved conversation and review its unsent message and details.",
+ arrange:async context=>{await context.userEvent.click(context.ui.getByRole("button",{name:"Saved conversations",exact:true}));await context.waitFor(()=>context.expect(context.doc.querySelector("#history-summary").hidden).toBe(false));},
+ verify:({doc,expect,visible})=>{expect(doc.querySelector("#history-picker").open).toBe(true);expect(visible(doc,"#history-name")).toBe(true);expect(doc.querySelector("#saved-draft").open).toBe(true);},
+}}};
+export const SavedReply={parameters:{desktop:{...SavedHistory.parameters.desktop,
+ caption:"Saved conversations with the sync review selected and its last reply",
+ task:"Read the last reply from a previous conversation before resuming.",
+ arrange:async context=>{await SavedHistory.parameters.desktop.arrange(context);await context.userEvent.click(context.doc.querySelectorAll("#history-list>button")[1]);await context.waitFor(()=>context.expect(context.doc.querySelector("#history-name").textContent).toBe("Review the sync retry"));context.doc.querySelector("#history-text").scrollIntoView({block:"nearest"});},
+ verify:({doc,expect})=>{expect(doc.querySelector("#history-name").textContent).toBe("Review the sync retry");expect(doc.querySelector("#saved-draft").open).toBe(false);expect(doc.querySelector("#history-text").getBoundingClientRect().bottom).toBeLessThanOrEqual(doc.querySelector(".history-footer").getBoundingClientRect().top);},
+}}};

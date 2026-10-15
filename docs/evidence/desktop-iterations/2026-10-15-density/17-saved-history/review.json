@@ -1,0 +1,42 @@
+{
+  "scope": "Improve the saved conversation catalog",
+  "limitations": "Headless WebKit with isolated observations. Native OS input, assistive technology and Rust command integration were not exercised.",
+  "images": {
+    "conversation--saved-history-compact-dark.png": {
+      "sha256": "0d43dcaa5ff9d34d88acd502dd631c608694aa09c6f5c147b1e744a9f8d8d7af",
+      "task": "Scan saved conversations and their facts beside the complete saved reply.",
+      "observations": "Title, project, metadata and selection are legible in both appearances. Compact history exposes the draft but its actions fall below the scroll boundary; the selected reply is pushed entirely below the fold. Excess spacing around the draft disclosure and saved-reply heading blocks the intended compact reading task.",
+      "verdict": "fail"
+    },
+    "conversation--saved-history-compact-light.png": {
+      "sha256": "f13d9883586b243659bf009b10b9604ae62bfce6516ce3ab383ebc2c4c08d305",
+      "task": "Scan saved conversations and their facts beside the complete saved reply.",
+      "observations": "Title, project, metadata and selection are legible in both appearances. Compact history exposes the draft but its actions fall below the scroll boundary; the selected reply is pushed entirely below the fold. Excess spacing around the draft disclosure and saved-reply heading blocks the intended compact reading task.",
+      "verdict": "fail"
+    },
+    "conversation--saved-history-desktop-dark.png": {
+      "sha256": "96f68b1b285365ef63bb28b0e194c72c18f78b017670a28122d354028f58ed03",
+      "task": "Scan saved conversations and their facts beside the complete saved reply.",
+      "observations": "Title, project, metadata and selection are legible in both appearances. Compact history exposes the draft but its actions fall below the scroll boundary; the selected reply is pushed entirely below the fold. Excess spacing around the draft disclosure and saved-reply heading blocks the intended compact reading task.",
+      "verdict": "fail"
+    },
+    "conversation--saved-history-desktop-light.png": {
+      "sha256": "0af25ccffce45f8f6f05f9ba209829d5187ca15bae0cd247906dcd1754d5d1fb",
+      "task": "Scan saved conversations and their facts beside the complete saved reply.",
+      "observations": "Title, project, metadata and selection are legible in both appearances. Compact history exposes the draft but its actions fall below the scroll boundary; the selected reply is pushed entirely below the fold. Excess spacing around the draft disclosure and saved-reply heading blocks the intended compact reading task.",
+      "verdict": "fail"
+    },
+    "conversation--saved-reply-desktop-dark.png": {
+      "sha256": "0dfa555c1dc25d833d5dc22989012d349d93b2afdb42e13b026322918eb80c47",
+      "task": "Scan saved conversations and their facts beside the complete saved reply.",
+      "observations": "Title, project, metadata and selection are legible in both appearances. Compact history exposes the draft but its actions fall below the scroll boundary; the selected reply is pushed entirely below the fold. Excess spacing around the draft disclosure and saved-reply heading blocks the intended compact reading task.",
+      "verdict": "fail"
+    },
+    "conversation--saved-reply-desktop-light.png": {
+      "sha256": "654f54ae1146a64af2113609e8e2ed64eaba9d1e93d3543208050817596f41ed",
+      "task": "Scan saved conversations and their facts beside the complete saved reply.",
+      "observations": "Title, project, metadata and selection are legible in both appearances. Compact history exposes the draft but its actions fall below the scroll boundary; the selected reply is pushed entirely below the fold. Excess spacing around the draft disclosure and saved-reply heading blocks the intended compact reading task.",
+      "verdict": "fail"
+    }
+  }
+}

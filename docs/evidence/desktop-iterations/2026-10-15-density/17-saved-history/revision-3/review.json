@@ -1,0 +1,54 @@
+{
+  "scope": "Improve the saved conversation catalog",
+  "limitations": "Headless WebKit with isolated observations. Native OS input, assistive technology and Rust command integration were not exercised.",
+  "images": {
+    "conversation--saved-history-compact-dark.png": {
+      "sha256": "b7f65d25fb1f9732d76e8a28959b5e8881ea0fda54545a0df5c92f406c47afc8",
+      "task": "Scan saved conversations and their facts beside the complete saved reply.",
+      "observations": "The selected release title leads project/date and inline facts. Its complete draft text is readable without an oversized title or doubled compact gutter. Search and Resume remain separated from the independently scrolling reading pane; draft actions and later reply content are reached by scrolling.",
+      "verdict": "pass"
+    },
+    "conversation--saved-history-compact-light.png": {
+      "sha256": "b3aa43824718f7dd91f1a438f5ffbac2ff92a4f687c903429759686e2656e03d",
+      "task": "Scan saved conversations and their facts beside the complete saved reply.",
+      "observations": "The selected release title leads project/date and inline facts. Its complete draft text is readable without an oversized title or doubled compact gutter. Search and Resume remain separated from the independently scrolling reading pane; draft actions and later reply content are reached by scrolling.",
+      "verdict": "pass"
+    },
+    "conversation--saved-history-desktop-dark.png": {
+      "sha256": "b00762005d88a62ac8338e7ce4b19f07034573feaa8baeba7ba37f62e795a539",
+      "task": "Scan saved conversations and their facts beside the complete saved reply.",
+      "observations": "The selected release title leads project/date and inline facts. Its complete draft text is readable without an oversized title or doubled compact gutter. Search and Resume remain separated from the independently scrolling reading pane; draft actions and later reply content are reached by scrolling.",
+      "verdict": "pass"
+    },
+    "conversation--saved-history-desktop-light.png": {
+      "sha256": "9e8697382177fbd1906884da401efb134952cb3b60ce9b71fc42bbd800251a9d",
+      "task": "Scan saved conversations and their facts beside the complete saved reply.",
+      "observations": "The selected release title leads project/date and inline facts. Its complete draft text is readable without an oversized title or doubled compact gutter. Search and Resume remain separated from the independently scrolling reading pane; draft actions and later reply content are reached by scrolling.",
+      "verdict": "pass"
+    },
+    "conversation--saved-reply-compact-dark.png": {
+      "sha256": "3f40f985aca2b6b4517081a7bd7be9333a3d66872d9ea0ee09b18877310f6407",
+      "task": "Scan saved conversations and their facts beside the complete saved reply.",
+      "observations": "The sync conversation remains selected in the list and its complete reply is legible above the fixed Resume action. Compact is scrolled within the reading pane; the heading crosses its top boundary while selection and search remain available. The collapsed draft is one compact row.",
+      "verdict": "pass"
+    },
+    "conversation--saved-reply-compact-light.png": {
+      "sha256": "0fecb87a7efe74a946507769006e93aded1b436a1a04c28d84ef1284189de63d",
+      "task": "Scan saved conversations and their facts beside the complete saved reply.",
+      "observations": "The sync conversation remains selected in the list and its complete reply is legible above the fixed Resume action. Compact is scrolled within the reading pane; the heading crosses its top boundary while selection and search remain available. The collapsed draft is one compact row.",
+      "verdict": "pass"
+    },
+    "conversation--saved-reply-desktop-dark.png": {
+      "sha256": "74fcb46c1abc013ea7c536e1d9c49648b75a581e3238a605a6d13e8e0f224dcc",
+      "task": "Scan saved conversations and their facts beside the complete saved reply.",
+      "observations": "The sync conversation remains selected in the list and its complete reply is legible above the fixed Resume action. Compact is scrolled within the reading pane; the heading crosses its top boundary while selection and search remain available. The collapsed draft is one compact row.",
+      "verdict": "pass"
+    },
+    "conversation--saved-reply-desktop-light.png": {
+      "sha256": "9a67c8e10e0e25d9df39b4b5deab8fec626f02179fa46b0d92fab5011dccee10",
+      "task": "Scan saved conversations and their facts beside the complete saved reply.",
+      "observations": "The sync conversation remains selected in the list and its complete reply is legible above the fixed Resume action. Compact is scrolled within the reading pane; the heading crosses its top boundary while selection and search remain available. The collapsed draft is one compact row.",
+      "verdict": "pass"
+    }
+  }
+}
