@@ -23,6 +23,9 @@ export class AttemptRuler {
       mark.style.setProperty("--attempt-angle",((number-1)/attempt.limit*360)+"deg");
       nodes.push(mark); previous = number;
     }
+    this.root.style.setProperty("--attempt-step",marks.length?(360/attempt.limit)+"deg":"360deg");
+    this.root.style.setProperty("--current-angle",marks.length&&attempt.current>0?((attempt.current-1)/attempt.limit*360)+"deg":"0deg");
+    this.root.dataset.current=String(!!marks.length&&attempt.current>0);
     this.root.replaceChildren(...nodes);
   }
 }
