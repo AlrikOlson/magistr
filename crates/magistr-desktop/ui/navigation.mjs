@@ -85,8 +85,9 @@ export class ProjectNavigation {
         const icon=node("span","project-monogram");icon.setAttribute("aria-hidden","true");
         const strip=node("div","project-status-strip");strip.setAttribute("aria-hidden","true");
         for(const [kind] of activityKinds){const part=node("span","");part.dataset.kind=kind;strip.append(part);}
-        heading.append(icon,name,count);root.append(heading,strip,path,body,open);
-        const work=projectWorkLinks(this.work,()=>group.project);root.insertBefore(work,body);
+        heading.append(icon,name,count);
+        const work=projectWorkLinks(this.work,()=>group.project),tools=node("div","project-tools");
+        tools.append(strip,work);root.append(heading,tools,path,body,open);
         group={root,heading,name,count,path,body,open,strip,icon,project,work};this.groups.set(project.id,group);
         open.onclick=()=>this.open(group.project.directory);
       }

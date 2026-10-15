@@ -1,0 +1,30 @@
+{
+  "scope": "Tighten project and conversation navigation",
+  "limitations": "Headless WebKit with isolated observations. Native OS input, assistive technology and Rust command integration were not exercised.",
+  "images": {
+    "projects-desktop-dark.png": {
+      "sha256": "2b5226668c29ec727ee1ad10639a3eb30908c005e5b573b3038f1c96ebbb9ee3",
+      "task": "Scan grouped projects, workspace actions and open conversations with stable selection.",
+      "observations": "Project status strips and Open workspace actions share one row, so conversations sit closer to their project heading. The compact browser begins directly below the application bar; both project columns and action targets fit with readable labels. Branch rules attach consistently to the conversation rows, count and disclosure controls remain separate, and neither appearance clips content.",
+      "verdict": "pass"
+    },
+    "projects-desktop-light.png": {
+      "sha256": "97eeaf991d834465637c00e331720fd87fd1726610dfa27f036d5a7d119d53a0",
+      "task": "Scan grouped projects, workspace actions and open conversations with stable selection.",
+      "observations": "Project status strips and Open workspace actions share one row, so conversations sit closer to their project heading. The compact browser begins directly below the application bar; both project columns and action targets fit with readable labels. Branch rules attach consistently to the conversation rows, count and disclosure controls remain separate, and neither appearance clips content.",
+      "verdict": "pass"
+    },
+    "projects-compact-dark.png": {
+      "sha256": "43861220752b4c7f9b93c25d9d507941a4de7a78a776c27fd35798f84fbc67fd",
+      "task": "Scan grouped projects, workspace actions and open conversations with stable selection.",
+      "observations": "Project status strips and Open workspace actions share one row, so conversations sit closer to their project heading. The compact browser begins directly below the application bar; both project columns and action targets fit with readable labels. Branch rules attach consistently to the conversation rows, count and disclosure controls remain separate, and neither appearance clips content.",
+      "verdict": "pass"
+    },
+    "projects-compact-light.png": {
+      "sha256": "e5934e54b3bd188feeff26c59fd0ad1d5a6fb2a4dc8fc841787f59037c27580d",
+      "task": "Scan grouped projects, workspace actions and open conversations with stable selection.",
+      "observations": "Project status strips and Open workspace actions share one row, so conversations sit closer to their project heading. The compact browser begins directly below the application bar; both project columns and action targets fit with readable labels. Branch rules attach consistently to the conversation rows, count and disclosure controls remain separate, and neither appearance clips content.",
+      "verdict": "pass"
+    }
+  }
+}
