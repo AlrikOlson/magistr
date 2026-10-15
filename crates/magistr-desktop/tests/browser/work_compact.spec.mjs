@@ -1,6 +1,6 @@
 import {test,expect} from "./fixture.mjs";
 async function open(app){await app.getByRole("button",{name:"Review the release plan",exact:true}).click();await app.getByRole("button",{name:"Work plan",exact:true}).click();}
-async function readingSpace(app,minimum){const size=await app.locator("#work-browser-content").evaluate(node=>({height:node.clientHeight,overflow:node.scrollWidth-node.clientWidth}));expect(size.height).toBeGreaterThanOrEqual(minimum);expect(size.overflow).toBeLessThanOrEqual(1);await expect(app.getByRole("button",{name:"Close planned work",exact:true})).toBeInViewport();}
+async function readingSpace(app,minimum){const size=await app.locator("#work-browser-content").evaluate(node=>({height:node.clientHeight,overflow:node.scrollWidth-node.clientWidth}));expect(size.height).toBeGreaterThanOrEqual(minimum);expect(size.overflow).toBeLessThanOrEqual(1);await expect(app.getByRole("button",{name:"Back to conversation",exact:true})).toBeInViewport();}
 test("selected details leave useful reading space and Back restores collection controls",async({app})=>{
   await open(app);await app.setViewportSize({width:760,height:550});await readingSpace(app,160);
   await app.getByRole("tab",{name:"Roadmap",exact:true}).click();await app.getByRole("button",{name:"Restore the project conversation and draft",exact:true}).click();await expect(app.locator(".roadmap-item-detail")).toBeVisible();await expect(app.getByLabel("Track",{exact:true})).toBeHidden();await expect(app.getByLabel("Search all roadmap",{exact:true})).toBeHidden();await readingSpace(app,270);

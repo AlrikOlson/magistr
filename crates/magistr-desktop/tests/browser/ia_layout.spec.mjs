@@ -285,3 +285,15 @@ test("30 project failures keep the selected folder and retry beside compact feed
   for(const theme of ["dark","light"]){await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);await expect(app.getByRole("button",{name:"Try again",exact:true})).toBeInViewport();await capture(app,"30-feedback-"+theme);}
   await app.evaluate(()=>window.__fixture.handlers.open_session=()=>window.__fixture.frames.get("release").address);await app.getByRole("button",{name:"Try again",exact:true}).click();await expect(app.locator("#project-picker")).toBeHidden();
 });
+test("31 project work opens from the shell without admission and returns to the draft",async({app})=>{
+  for(const theme of ["dark","light"]){await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);await capture(app,"31-directory-"+theme);}
+  await app.setViewportSize({width:760,height:550});await capture(app,"31-directory-compact");
+  const project=app.locator(".directory-project").first();await project.getByRole("button",{name:"Roadmap",exact:true}).click();
+  await expect(app.getByRole("tab",{name:"Roadmap",exact:true})).toHaveAttribute("aria-selected","true");await expect(app.locator("#work-browser")).toBeVisible();await expect(app.locator("dialog[open]")).toHaveCount(0);
+  expect(await app.evaluate(()=>window.__fixture.calls.filter(c=>c.command==="open_session").length)).toBe(0);
+  for(const [width,height,name] of [[1280,820,"wide"],[760,550,"compact"]]){await app.setViewportSize({width,height});for(const theme of ["dark","light"]){await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);await capture(app,"31-shell-"+name+"-"+theme);}}
+  await app.getByRole("button",{name:"Back to conversation",exact:true}).click();await expect(app.locator("#draft")).toHaveValue("Keep the project list visible, and let me return to the same paragraph.");
+  await expect(app.locator("#workspace")).toBeVisible();await app.getByRole("button",{name:"Reasoning",exact:true}).click();await expect(app.getByRole("tab",{name:"Reasoning",exact:true})).toHaveAttribute("aria-selected","true");
+  await app.keyboard.press("Escape");await expect(app.locator("#browse-reasoning-header")).toBeFocused();
+  await capture(app,"31-conversation-compact");await app.setViewportSize({width:1280,height:820});await capture(app,"31-conversation-wide");await showProjects(app);await capture(app,"31-project-navigation");
+});

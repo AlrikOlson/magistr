@@ -12,8 +12,8 @@ import { searchRoadmap } from "./work_roadmap_search.mjs";
 import { RoadmapItemReader } from "./work_item.mjs";
 
 export class WorkBrowser {
-  constructor($,invoke){
-    this.$=$;this.invoke=invoke;this.frame=null;this.generation=0;this.revision=-1;this.loading=false;this.key="";this.readError="";
+  constructor($,invoke,changed){
+    this.$=$;this.invoke=invoke;this.changed=changed;this.frame=null;this.generation=0;this.revision=-1;this.loading=false;this.key="";this.readError="";
     this.area="work";this.searchPage=0;this.returnTrail=[];this.places=new Map();this.navigation=0;
     this.execution=new WorkExecutionBrowser($,invoke,()=>this.render());
     $("work-browser-return").onclick=()=>this.returnToFeedback();
@@ -41,9 +41,11 @@ export class WorkBrowser {
     $("work-browser-roadmap-state").onchange=()=>{this.item.close();this.key="";this.render();};
     $("browse-work").onclick=()=>this.open($("browse-work"));
     $("browse-work-header").onclick=()=>this.open($("browse-work-header"));
-    $("work-browser-close").onclick=()=>$("work-browser").close();
+    $("work-browser-close").onclick=()=>this.close();
+    for(const area of ["roadmap","reasoning"])$("browse-"+area+"-header").onclick=()=>this.open($("browse-"+area+"-header"),area);
+    $("work-browser").addEventListener("keydown",event=>{if(event.key==="Escape"&&!event.isComposing&&!event.defaultPrevented){event.preventDefault();this.close();}});
     $("work-browser-refresh").onclick=()=>{this.load();if(this.item.id)this.item.load();};
-    $("work-browser").addEventListener("close",()=>{++this.generation;++this.navigation;this.places.clear();this.loading=false;this.item.close();this.returnTrail=[];this.key="";this.trigger?.focus();});
+
   }
   readingIdentity(){
     if(this.area==="roadmap")return JSON.stringify([this.item.id,this.roadmapBrowser.choice,this.$("work-browser-roadmap-state").value,this.$("work-browser-search").value,this.searchPage]);
@@ -55,7 +57,7 @@ export class WorkBrowser {
   selectArea(area){
     if(area===this.area&&!this.routing)return;
     const content=this.$("work-browser-content"),navigation=++this.navigation;
-    if(!this.routing&&this.snapshot&&this.$("work-browser").open){this.places.set(this.area,{identity:this.readingIdentity(),reading:saveReading(content)});this.returnTrail=[];}
+    if(!this.routing&&this.snapshot&&!this.$("work-browser").hidden){this.places.set(this.area,{identity:this.readingIdentity(),reading:saveReading(content)});this.returnTrail=[];}
     if(this.routing)this.item.close();else if(area!=="roadmap")this.item.suspend();
     this.area=area;this.key="";
     const pending=area==="roadmap"&&this.item.id?this.item.resume(this.frame.address,this.revision):null;
@@ -68,20 +70,29 @@ export class WorkBrowser {
     if(addressKey(this.frame?.address)!==addressKey(frame?.address)){
       ++this.generation;++this.navigation;this.places.clear();this.item.close();this.revision=-1;this.key="";this.loading=false;this.snapshot=null;this.readError="";
       this.$("work-browser-content").replaceChildren();this.execution.reset();this.feedback.reset();this.$("work-browser-feedback-search").value="";this.$("work-browser-feedback-kind").value="all";this.$("work-browser-feedback-status").value="all";this.reasoning.reset();this.$("work-browser-reasoning-search").value="";this.roadmapBrowser.reset();this.searchPage=0;this.$("work-browser-search").value="";this.$("work-browser-roadmap-state").value="open";this.tabs.select("work");
-      if(this.$("work-browser").open)this.$("work-browser").close();
+      this.close(false);
     }
     this.frame=frame;
-    for(const id of ["browse-work","browse-work-header"])this.$(id).disabled=!frame||frame.closed;
-    if(this.$("work-browser").open&&!this.loading&&(frame.workflow_revision??0)>this.revision)this.load();
+    for(const id of ["browse-work","browse-work-header","browse-roadmap-header","browse-reasoning-header"])this.$(id).disabled=!frame||frame.closed;
+    if(!this.$("work-browser").hidden&&!this.loading&&(frame.workflow_revision??0)>this.revision)this.load();
   }
-  open(trigger){
+  open(trigger,area){
     if(!this.frame||this.frame.closed)return;
     this.trigger=trigger;
     this.$("work-browser-project").textContent=this.frame.address.workspace;
-    this.$("work-browser").showModal();this.render();this.$("work-browser-title").focus();this.load();
+    this.$("work-browser").hidden=false;
+    if(area)this.tabs.select(area);
+    if(this.area==="roadmap"&&this.item.id)this.item.resume(this.frame.address,this.revision);
+    this.render();this.$("work-browser-title").focus();this.load();
+  }
+  close(focus=true){
+    if(this.$("work-browser").hidden)return;
+    ++this.generation;++this.navigation;this.loading=false;this.item.suspend();
+    this.$("work-browser").hidden=true;this.changed(this.area,false);
+    if(focus){const target=this.trigger?.isConnected&&this.trigger.getClientRects().length?this.trigger:this.$("browse-work-header");target.focus({preventScroll:true});}
   }
   async load(){
-    if(this.loading||!this.$("work-browser").open)return;
+    if(this.loading||this.$("work-browser").hidden)return;
     const address=this.frame.address,generation=++this.generation;let applied=false;
     this.loading=true;this.$("work-browser-refresh").disabled=true;
     this.$("work-browser-state").textContent="Reading work records…";
@@ -138,6 +149,7 @@ export class WorkBrowser {
     retainReading(content,()=>content.replaceChildren(observed.value?renderRoadmap(frontier,observed.value,records,this.roadmapBrowser.choice!==undefined,id=>this.item.open(this.frame.address,id,this.revision),mode):element("p","The roadmap is unavailable. Use Refresh to try again.","work-record-empty")));
   }
   render(){
+    this.changed(this.area,!this.$("work-browser").hidden);
     for(const {input,clear} of this.searchFields)clear.hidden=!input.value;
     this.renderContent();
     if(this.readError){this.$("work-browser-state").textContent=(this.snapshot?"Showing the previous records. ":"")+"Could not read work records. "+this.readError;this.$("work-browser-state").dataset.current="false";}
