@@ -295,3 +295,16 @@ export async function workspaceScaleScene(app,capture,expect){
   expect((await app.locator("#view-title").boundingBox()).height).toBeLessThanOrEqual(49);
   await capture("workspace-compact-long-title.png");
 }
+export async function sourceFolioScene(app,capture,expect){
+  const source=Array.from({length:5},(_,i)=>`async function saveDraft${i}(target, text) {
+  const revision = await drafts.read(target);
+  if (revision.text === text) return revision;
+  const saved = await drafts.write(target, text);
+  if (!saved) throw new Error("Could not save the draft.");
+  return saved;
+}
+`).join("\n");
+  await showDocument(app,[{tag:"pre",language:"javascript",text:source,start:0}],925);
+  await appearances(app,capture,"source-folio",".code-caption");
+  expect(await app.locator(".code-document code").textContent()).toBe(source);
+}

@@ -2,7 +2,7 @@ import { test, expect, root, ui, workspaceSeed } from "./fixture.mjs";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { resolve, relative } from "node:path";
 import { createHash } from "node:crypto";
-import { tableScene, patchScene, toolScene, outlineScene, editorialScene, galleryScene, viewerScene, writingScene, ledgerScene, permissionScene, historyScene, workspaceScaleScene } from "./design_scenes.mjs";
+import { sourceFolioScene, tableScene, patchScene, toolScene, outlineScene, editorialScene, galleryScene, viewerScene, writingScene, ledgerScene, permissionScene, historyScene, workspaceScaleScene } from "./design_scenes.mjs";
 
 test("workspace composition, appearances and narrow Details",async({app,browser})=>{
   test.setTimeout(60000);
@@ -327,6 +327,8 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
     await capture("empty-conversation-"+theme+".png");
   }
   checks["empty conversations have a readable introduction and a visible composer"]=true;
+  await sourceFolioScene(app,capture,expect);
+  checks["long source folios keep exact text and a bounded source overview"]=true;
   await tableScene(app,capture,expect);
   checks["comparison tables preserve headers, column alignment and contained compact scrolling"]=true;
   await patchScene(app,capture,expect);
