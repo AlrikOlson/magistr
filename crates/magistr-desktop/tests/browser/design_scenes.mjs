@@ -63,3 +63,24 @@ export async function patchScene(app,capture,expect){
   expect(await app.evaluate(()=>document.documentElement.scrollWidth)).toBe(760);
   await capture("patch-compact.png");
 }
+export async function toolScene(app,capture,expect){
+  await showDocument(app,[],902);
+  const source=JSON.stringify({file:"src/draft.rs",checks:42,passed:true,duration_ms:1840,changes:{added:2,removed:1},notes:"<script>literal source</script>"},null,2);
+  await app.evaluate(source=>{
+    Object.defineProperty(navigator,"clipboard",{configurable:true,value:{writeText:async text=>{window.__fixture.copied=text;}}});
+    window.__fixture.publish("release",{events:[{id:903,revision:1,role:"Tool",text:source,tool:{title:"Verify saved drafts",status:"Completed",duration_ms:1840,details:[{label:"Result",source}]}}],retained:[903]});
+  },source);
+  await app.locator('article[data-tool]>details>summary').click();
+  await expect(app.locator(".result-fields").first()).toContainText("duration_ms");
+  await expect(app.locator(".tool-result script")).toHaveCount(0);
+  await app.getByRole("button",{name:"Copy result",exact:true}).click();
+  expect(await app.evaluate(()=>window.__fixture.copied)).toBe(source);
+  await app.locator(".result-fields summary").click();
+  await expect(app.locator(".result-fields").first()).toContainText("removed");
+  await app.locator(".result-fields summary").click();
+  await appearances(app,capture,"result");
+  await app.getByText("Original text",{exact:true}).click();
+  expect(await app.locator(".result-original pre").textContent()).toBe(source);
+  await app.setViewportSize({width:760,height:550});
+  expect(await app.evaluate(()=>document.documentElement.scrollWidth)).toBe(760);
+}

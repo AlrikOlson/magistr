@@ -2,7 +2,7 @@ import { test, expect, root, ui, workspaceSeed } from "./fixture.mjs";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { resolve, relative } from "node:path";
 import { createHash } from "node:crypto";
-import { tableScene, patchScene } from "./design_scenes.mjs";
+import { tableScene, patchScene, toolScene } from "./design_scenes.mjs";
 
 test("workspace composition, appearances and narrow Details",async({app,browser})=>{
   const evidence=resolve(root,".magistr/desktop-layout");
@@ -10,6 +10,7 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
   const images={},viewports={},checks={};
   const capture=async name=>{
     await app.mouse.move(0,0);
+    await app.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
     const bytes=await app.screenshot({path:resolve(evidence,name),animations:"disabled"});
     images[name]=createHash("sha256").update(bytes).digest("hex");viewports[name]=app.viewportSize();
   };
@@ -301,6 +302,8 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
   checks["comparison tables preserve headers, column alignment and contained compact scrolling"]=true;
   await patchScene(app,capture,expect);
   checks["patch documents preserve source bytes, old/new positions and actual change totals"]=true;
+  await toolScene(app,capture,expect);
+  checks["structured tool sheets retain nested values, bounded rendering and exact copy"]=true;
   const sources={};
   for(const name of (await readdir(ui)).sort()){
     const file=resolve(ui,name);
