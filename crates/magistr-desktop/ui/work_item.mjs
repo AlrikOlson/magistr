@@ -14,8 +14,9 @@ function documentPart(label,source,document,key,actions){
 }
 function renderItem(item,actions){
   const {record}=item,article=element("article","","work-record roadmap-item-detail");
-  const title=element("h3",record.title,"roadmap-track-title");title.tabIndex=-1;title.dataset.focusKey="roadmap-item-title";article.append(title);
-  article.append(element("p",[record.group??"Other work",statuses[record.status]??"Status unavailable"].join(" · "),"work-record-status"));
+  const heading=element("header","","roadmap-item-heading");
+  const title=element("h3",record.title,"roadmap-track-title");title.tabIndex=-1;title.dataset.focusKey="roadmap-item-title";heading.append(title);
+  heading.append(element("p",[record.group??"Other work",statuses[record.status]??"Status unavailable"].join(" · "),"work-record-status"));article.append(heading);
   const proposals=roadmapProposals(record,actions);if(proposals)article.append(proposals);
   article.append(renderRelations(item,actions));
   if(record.content){
@@ -93,8 +94,8 @@ export class RoadmapItemReader {
   render(){
     if(!this.active||!this.id)return;
     const observed=readState(this.read),shell=element("div"),back=element("button",this.trail.length?"Back to previous item":"Back to track");
-    back.className="roadmap-back";back.dataset.focusKey="roadmap-back";back.onclick=()=>this.previous();shell.append(back);
-    const state=element("p",this.error||(this.loading?"Reading this item…":observed.message),"roadmap-item-state");state.setAttribute("role","status");shell.append(state);
+    back.className="roadmap-back";back.dataset.focusKey="roadmap-back";back.onclick=()=>this.previous();const navigation=element("div","","work-record-navigation");navigation.append(back);shell.append(navigation);
+    const state=element("p",this.error||(this.loading?"Reading this item…":observed.message),"roadmap-item-state");state.setAttribute("role","status");navigation.append(state);
     if(this.error||!observed.current&&!this.loading){const retry=element("button","Retry");retry.onclick=()=>this.load();shell.append(retry);}
     const actions={navigate:(id,focus)=>this.navigate(id,focus),current:observed.current,copy:value=>this.perform(()=>navigator.clipboard.writeText(value)),openLink:destination=>this.perform(()=>this.invoke("open_link",{destination}))};
     if(observed.value)shell.append(renderItem(observed.value,actions));

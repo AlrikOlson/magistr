@@ -69,3 +69,11 @@ test("roadmap rows expose readiness and blockers without oversized cards",async(
   await expect(rows.last()).toBeInViewport();
   await capture(app,"05-roadmap-rows");
 });
+
+test("roadmap detail keeps metadata beside the title",async({app})=>{
+  await openWork(app,"Roadmap");await app.setViewportSize({width:760,height:550});
+  await app.getByRole("button",{name:"Restore the project conversation and draft",exact:true}).click();
+  expect((await app.locator(".roadmap-item-heading").boundingBox()).height).toBeLessThan(65);
+  await expect(app.locator(".roadmap-item-heading")).toContainText("Desktop · Planned");
+  await capture(app,"06-roadmap-detail");
+});
