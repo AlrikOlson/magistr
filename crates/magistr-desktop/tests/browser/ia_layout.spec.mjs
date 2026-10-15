@@ -105,3 +105,13 @@ test("09 work subviews use directly selectable native controls",async({app})=>{
   expect(await app.locator(".work-browser-filters").evaluate(node=>node.scrollWidth-node.clientWidth)).toBeLessThanOrEqual(1);
   await capture(app,"09-subviews");
 });
+test("10 task overview shows actual progress without repeated totals",async({app})=>{
+  await openWork(app);await app.setViewportSize({width:760,height:550});
+  const overview=app.locator(".work-task-overview");await overview.scrollIntoViewIfNeeded();
+  await expect(overview.locator("dt")).toHaveText(["Total","Completed","In progress","Planned"]);
+  await expect(overview.locator("dd")).toHaveText(["3","1","1","1"]);
+  await expect(app.locator(".work-record-section>.work-pages")).toHaveCount(0);
+  await capture(app,"10-task-overview");
+  await app.getByLabel("Task status",{exact:true}).selectOption("active");
+  await expect(app.locator(".work-tasks>li")).toHaveCount(1);await expect(overview.locator("dd").first()).toHaveText("3");
+});

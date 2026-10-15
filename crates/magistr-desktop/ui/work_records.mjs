@@ -1,5 +1,5 @@
 // Presentation of the workflow owner's read states and authored records.
-import { element } from "./work_dom.mjs";
+import { element,inlineFacts } from "./work_dom.mjs";
 import { renderChecks } from "./work_checks.mjs";
 import { taskWindow,taskFacts } from "./work_task_view.mjs";
 import { renderActivity } from "./work_activity.mjs";
@@ -38,8 +38,10 @@ export function renderRun(run,actions,view) {
   article.append(head);
   for(const section of [authoredList("Requirements",run.objective.acceptance_criteria,run.run_id+":requirements"),authoredList("Constraints",run.objective.constraints,run.run_id+":constraints")])if(section)article.append(section);
   const tasks=element("section","","work-record-section"),list=element("ol","","work-tasks");
-  tasks.append(element("h3","Tasks"),element("p",run.tasks.length+" "+(run.tasks.length===1?"task":"tasks"),"work-record-count"));
-  const window=taskWindow(run.tasks,view);tasks.append(window.navigation);
+  const overview=element("header","","work-task-overview"),counts=new Map();
+  for(const task of run.tasks)counts.set(task.status,(counts.get(task.status)??0)+1);
+  overview.append(element("h3","Tasks"),inlineFacts([["Total",run.tasks.length],...["completed","active","planned","blocked","skipped"].filter(status=>counts.has(status)).map(status=>[statusLabel(status),counts.get(status)])]));tasks.append(overview);
+  const window=taskWindow(run.tasks,view);if(view.query.trim()||view.status!=="all"||window.navigation.dataset.paged==="true")tasks.append(window.navigation);
   for(const task of window.tasks){
     const item=element("li"),heading=element("div","","work-task-heading");
     item.dataset.task=run.task_instances[task.id];item.dataset.status=task.status;
