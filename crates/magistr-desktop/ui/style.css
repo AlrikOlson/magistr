@@ -190,6 +190,13 @@ article.you{background:var(--panel);padding:18px 24px;border-radius:12px 12px 4p
 .code-gutter{flex-shrink:0;padding:18px 12px 18px 16px;min-width:44px;border-right:1px solid var(--separator);font:12px/1.8 var(--font-code);text-align:right;color:var(--muted);user-select:none}
 .code-gutter::before{content:attr(data-lines);white-space:pre}
 .message-body .code-document pre{min-width:0;flex:1;margin:0;padding:18px 16px;border:0;border-radius:0;background:transparent;font:12px/1.8 var(--font-code);scrollbar-width:thin}
+.table-document{margin:24px 0 32px;overflow:auto;max-width:100%;max-height:clamp(130px,calc(100dvh - 420px),440px);border:1px solid var(--separator);border-radius:10px;background:var(--panel);scrollbar-width:thin}
+.table-document table{border-collapse:separate;border-spacing:0;width:100%;font-size:13px;line-height:1.65;font-variant-numeric:tabular-nums}
+.table-document th,.table-document td{padding:14px 18px;min-width:100px;vertical-align:top;border-bottom:1px solid var(--separator)}
+.table-document th{text-align:left;background:var(--raised);font-size:11px;font-weight:650;color:var(--text);position:sticky;top:0;white-space:nowrap}
+.table-document tr:nth-child(2n+1) td{background:color-mix(in srgb,var(--raised) 40%,var(--panel))}
+.table-document tr:last-child td{border-bottom:0}.table-document td:first-child{font-weight:550}.table-document th+th,.table-document td+td{border-left:1px solid var(--separator)}
+.table-document td code{white-space:nowrap}.table-document:focus-visible{outline-offset:3px}
 .source-keyword{color:var(--accent);font-weight:600}.source-string{color:var(--success)}.source-literal{color:var(--warning)}.source-comment{color:var(--muted);font-style:italic}
 .code-title{text-transform:lowercase;font-weight:650;letter-spacing:.02em}.code-document:focus-within{border-color:var(--accent)}
 .code-document pre:focus-visible{outline-offset:-3px}.code-document figcaption button:focus-visible{outline-offset:0}

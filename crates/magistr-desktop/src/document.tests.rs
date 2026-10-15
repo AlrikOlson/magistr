@@ -1,6 +1,24 @@
 use super::*;
 
 #[test]
+fn tables_preserve_headers_alignment_and_inline_content() {
+    let doc = Document::parse(
+        "| Name | Count | Status |\n| :--- | ---: | :---: |\n| **Drafts** | 42 | saved |\n",
+    );
+    let table = &doc.nodes[0];
+    assert_eq!(table.tag, "table");
+    let head = &table.children[0];
+    assert_eq!(head.tag, "thead");
+    assert_eq!(head.children[0].tag, "tr");
+    assert_eq!(head.children[0].children[1].tag, "th");
+    assert_eq!(head.children[0].children[1].alignment, Some("right"));
+    let row = &table.children[1];
+    assert_eq!(row.tag, "tr");
+    assert_eq!(row.children[0].children[0].tag, "strong");
+    assert_eq!(row.children[2].alignment, Some("center"));
+}
+
+#[test]
 fn commonmark_decodes_text_and_keeps_semantic_reading_structure() {
     let source = "# 日本 &amp; café\r\n\r\n- **one**\n- two\n\n\x60\x60\x60rust\nlet x = \"<script>\";\n\x60\x60\x60\n\n[read](https://example.com/)";
     let doc = Document::parse(source);

@@ -3,7 +3,7 @@ import { targetKey } from "./context.mjs";
 import { remember, captureSelection, restoreSelection } from "./reading.mjs";
 // Native selection and reading position belong to this semantic document view.
 import { AttachmentList } from "./attachments.mjs";
-const tags=new Set(["p","h1","h2","h3","h4","h5","h6","blockquote","pre","ol","ul","li","em","strong","s","a","span","code","hr","br"]);
+const tags=new Set(["p","h1","h2","h3","h4","h5","h6","blockquote","pre","ol","ul","li","em","strong","s","a","span","code","hr","br","table","thead","tbody","tr","th","td"]);
 const element=(document,tag,value="")=>{const node=document.createElement(tag);node.textContent=value;return node;};
 export function selectedWithin(selection,node) {
   if(!selection||selection.isCollapsed||!selection.rangeCount)return false;
@@ -19,7 +19,7 @@ export function renderDocument(parent,nodes,openLink,copy) {
   const document=parent.ownerDocument;
   nodes.forEach((source,index)=>{
     const tag=source.tag==="text"?"text":tags.has(source.tag)?source.tag:"span";
-    const hostTag=tag==="pre"?"figure":tag;
+    const hostTag=tag==="pre"?"figure":tag==="table"?"div":tag;
     let node=parent.childNodes[index];
     if(!node||(tag==="text"?node.nodeType!==3:node.localName!==hostTag)) {
       const next=tag==="text"?document.createTextNode(""):document.createElement(hostTag);
@@ -28,6 +28,14 @@ export function renderDocument(parent,nodes,openLink,copy) {
     if(tag==="text") {if(node.data!==source.text)node.data=source.text;return;}
     node.dataset.source=String(source.start);
     if(tag==="pre"){renderCodeBlock(node,source,copy);return;}
+    if(tag==="table"){
+      node.className="table-document";node.tabIndex=0;node.setAttribute("role","region");node.setAttribute("aria-label","Table");
+      let table=node.firstElementChild;
+      if(!table){table=document.createElement("table");node.append(table);}
+      renderDocument(table,source.children??[],openLink,copy);return;
+    }
+    if(tag==="th")node.scope="col";
+    if(tag==="th"||tag==="td")node.style.textAlign=["left","center","right"].includes(source.alignment)?source.alignment:"";
     if(tag==="a") {
       const safe=allowedDestination(source.destination??"");
       if(safe) {node.href=source.destination;node.title=source.destination;node.rel="noreferrer noopener";

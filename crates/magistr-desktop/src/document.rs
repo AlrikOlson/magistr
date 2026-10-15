@@ -1,6 +1,6 @@
 //! CommonMark becomes a bounded, typed semantic tree, never authored HTML.
 //! Canonical source stays beside this expendable presentation for exact copy.
-use pulldown_cmark::{CodeBlockKind, Event, Options, Parser, Tag};
+use pulldown_cmark::{Alignment, CodeBlockKind, Event, Options, Parser, Tag};
 use serde::Serialize;
 
 const MAX_NODES: usize = 4096;
@@ -15,6 +15,7 @@ pub(crate) struct Node {
     pub(crate) start: usize,
     pub(crate) number: Option<u64>,
     pub(crate) language: Option<String>,
+    pub(crate) alignment: Option<&'static str>,
 }
 impl Node {
     fn element(tag: &'static str, start: usize) -> Self {
@@ -26,6 +27,7 @@ impl Node {
             start,
             number: None,
             language: None,
+            alignment: None,
         }
     }
     fn text(text: impl Into<String>, start: usize) -> Self {
@@ -54,8 +56,12 @@ impl Document {
     pub(crate) fn parse(source: &str) -> Self {
         let mut stack = vec![Node::element("div", 0)];
         let mut count = 0;
-        for (event, range) in
-            Parser::new_ext(source, Options::ENABLE_STRIKETHROUGH).into_offset_iter()
+        let mut columns = Vec::new();
+        for (event, range) in Parser::new_ext(
+            source,
+            Options::ENABLE_STRIKETHROUGH | Options::ENABLE_TABLES,
+        )
+        .into_offset_iter()
         {
             count += 1;
             if count > MAX_NODES || stack.len() > MAX_DEPTH {
@@ -72,6 +78,13 @@ impl Document {
                     let mut node = Node::element(
                         match &tag {
                             Tag::Paragraph => "p",
+                            Tag::Table(_) => "table",
+                            Tag::TableHead => "thead",
+                            Tag::TableRow => "tr",
+                            Tag::TableCell if stack.last().is_some_and(|n| n.tag == "thead") => {
+                                "th"
+                            }
+                            Tag::TableCell => "td",
                             Tag::Heading { level, .. } => match *level as u8 {
                                 1 => "h1",
                                 2 => "h2",
@@ -105,6 +118,18 @@ impl Document {
                             })
                             .map(str::to_owned);
                     }
+                    if let Tag::Table(alignments) = &tag {
+                        columns.clone_from(alignments);
+                    }
+                    if matches!(tag, Tag::TableCell) {
+                        let column = stack.last().map_or(0, |n| n.children.len());
+                        node.alignment = match columns.get(column) {
+                            Some(Alignment::Left) => Some("left"),
+                            Some(Alignment::Center) => Some("center"),
+                            Some(Alignment::Right) => Some("right"),
+                            _ => None,
+                        };
+                    }
                     if let Tag::List(start) = &tag {
                         node.number = *start;
                     }
@@ -118,9 +143,14 @@ impl Document {
                     stack.push(node);
                 }
                 Event::End(_) => {
-                    if let Some(node) = stack.pop()
+                    if let Some(mut node) = stack.pop()
                         && let Some(parent) = stack.last_mut()
                     {
+                        if node.tag == "thead" {
+                            let mut row = Node::element("tr", node.start);
+                            row.children = std::mem::take(&mut node.children);
+                            node.children.push(row);
+                        }
                         parent.children.push(node);
                     }
                 }

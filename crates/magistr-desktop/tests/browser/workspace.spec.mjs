@@ -2,6 +2,7 @@ import { test, expect, root, ui, workspaceSeed } from "./fixture.mjs";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { resolve, relative } from "node:path";
 import { createHash } from "node:crypto";
+import { tableScene } from "./design_scenes.mjs";
 
 test("workspace composition, appearances and narrow Details",async({app,browser})=>{
   const evidence=resolve(root,".magistr/desktop-layout");
@@ -296,12 +297,14 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
     await capture("empty-conversation-"+theme+".png");
   }
   checks["empty conversations have a readable introduction and a visible composer"]=true;
+  await tableScene(app,capture,expect);
+  checks["comparison tables preserve headers, column alignment and contained compact scrolling"]=true;
   const sources={};
   for(const name of (await readdir(ui)).sort()){
     const file=resolve(ui,name);
     sources[relative(root,file)]=createHash("sha256").update(await readFile(file)).digest("hex");
   }
-  for(const name of ["playwright.config.mjs","tauri.conf.json","tests/browser/fixture.mjs","tests/browser/workspace.spec.mjs"]) {
+  for(const name of ["playwright.config.mjs","tauri.conf.json","tests/browser/fixture.mjs","tests/browser/workspace.spec.mjs","tests/browser/design_scenes.mjs"]) {
     const file=resolve(root,"crates/magistr-desktop",name);
     sources[relative(root,file)]=createHash("sha256").update(await readFile(file)).digest("hex");
   }
