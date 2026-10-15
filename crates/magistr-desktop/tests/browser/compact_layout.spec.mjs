@@ -230,3 +230,15 @@ test("project conversation rows retain selection in a compact list",async({app})
   await expect(app.getByRole("button",{name:"Update the home page",exact:true})).toBeInViewport();
   await capture(app,"23-project-conversations");
 });
+
+test("conversation heading preserves controls with less vertical space",async({app})=>{
+  await app.getByRole("button",{name:"Review the release plan",exact:true}).click();
+  for(const width of [1280,760]){
+    await app.setViewportSize({width,height:width===760?550:820});
+    expect((await app.locator(".work-header").boundingBox()).height).toBeLessThan(110);
+    await expect(app.getByRole("heading",{name:"Review the release plan",exact:true})).toBeInViewport();
+    await expect(app.getByRole("button",{name:"Work plan",exact:true})).toBeInViewport();
+    expect(await app.locator(".work-header").evaluate(node=>node.scrollWidth-node.clientWidth)).toBeLessThanOrEqual(1);
+    await capture(app,"24-conversation-"+width);
+  }
+});
