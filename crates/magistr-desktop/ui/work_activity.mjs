@@ -19,7 +19,7 @@ export function renderAction(action,copy){
 export function renderArtifact(run,task,artifact,index,{copy,openLink}){
   const identity=activityIdentity(run,task);
   const row=element("article"),heading=element("header");
-  heading.append(element("h5",artifact.description||types[artifact.type]||"Produced item"),element("span",types[artifact.type]||"Item"));
+  heading.append(element("span",types[artifact.type]||"Item","work-artifact-type"),element("h5",artifact.description||"Saved reference"));
   row.append(heading,element("p",artifact.ref,"work-artifact-reference"));
   const copyButton=element("button","Copy reference");copyButton.dataset.focusKey=identity+":artifact:"+index;
   copyButton.onclick=()=>copy(artifact.ref);const controls=element("div","","work-artifact-actions");controls.append(copyButton);row.append(controls);

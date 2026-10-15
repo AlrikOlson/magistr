@@ -129,3 +129,10 @@ test("12 activity kinds sit beside dated entries",async({app})=>{
   const kind=await row.locator(".work-action-kind").boundingBox(),body=await row.locator(".work-action-description").boundingBox();expect(kind.x+kind.width).toBeLessThan(body.x);
   await capture(app,"12-activity-kinds");
 });
+test("13 produced items identify type beside their title",async({app})=>{
+  await openWork(app);await app.getByRole("radio",{name:"Activity and produced items",exact:true}).check();await app.getByLabel("Entries",{exact:true}).selectOption("items");
+  await app.setViewportSize({width:760,height:550});const item=app.locator(".work-artifacts article").first();await item.scrollIntoViewIfNeeded();
+  await expect(item.locator(".work-artifact-type")).not.toBeEmpty();
+  const type=await item.locator(".work-artifact-type").boundingBox(),title=await item.locator("h5").boundingBox();expect(type.x+type.width).toBeLessThan(title.x);
+  await expect(item.getByRole("button",{name:"Copy reference",exact:true})).toBeVisible();await capture(app,"13-artifact-types");
+});
