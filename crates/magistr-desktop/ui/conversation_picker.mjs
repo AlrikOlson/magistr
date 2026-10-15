@@ -60,7 +60,9 @@ export class ConversationPicker {
         const label=document.createElement("label"),input=document.createElement("input");
         input.type="radio";input.name="agent";input.value=choice.id;input.checked=choice.id===this.provider;
         input.onchange=()=>{++this.generation;this.provider=input.value;this.stage="ready";this.clearModels();this.$("session-picker-error").hidden=true;this.render();};
-        label.append(input,text("span",choice.label));return label;
+        const emblem=text("span",choice.label.trim().slice(0,1).toLocaleUpperCase());emblem.className="agent-emblem";emblem.setAttribute("aria-hidden","true");
+        const name=text("span",choice.label);name.className="agent-name";
+        label.append(emblem,input,name);return label;
       }));
       this.stage="ready";this.render();
       (this.$("agent-choice").querySelector("input:checked")??this.$("session-picker-retry")).focus();
