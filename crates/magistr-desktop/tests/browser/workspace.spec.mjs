@@ -2,7 +2,7 @@ import { test, expect, root, ui, workspaceSeed } from "./fixture.mjs";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { resolve, relative } from "node:path";
 import { createHash } from "node:crypto";
-import { tableScene, patchScene, toolScene, outlineScene, editorialScene, galleryScene, viewerScene } from "./design_scenes.mjs";
+import { tableScene, patchScene, toolScene, outlineScene, editorialScene, galleryScene, viewerScene, writingScene } from "./design_scenes.mjs";
 
 test("workspace composition, appearances and narrow Details",async({app,browser})=>{
   test.setTimeout(60000);
@@ -313,6 +313,8 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
   checks["sent attachments form a contact sheet with source previews and native image inspection"]=true;
   await viewerScene(app,capture,expect);
   checks["image inspection provides fit and pixel zoom, backgrounds and compact controls"]=true;
+  await writingScene(app,capture,expect);
+  checks["expanded writing preserves native editor identity, text, caret and compact actions"]=true;
   const sources={};
   for(const name of (await readdir(ui)).sort()){
     const file=resolve(ui,name);

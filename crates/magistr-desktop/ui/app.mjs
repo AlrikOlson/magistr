@@ -15,6 +15,7 @@ import { Drafts } from "./drafts.mjs";
 import { Preferences, effectiveMotion } from "./preferences.mjs";
 import { SavedDraftEditor } from "./saved_drafts.mjs";
 import { Submissions, shouldSaveDraft, reconcileDraft, conversationOwner } from "./session_controls.mjs";
+import { attachWritingSurface } from "./writing_surface.mjs";
 import { attachComposer } from "./composer.mjs";
 import { AttachmentList, clipboardFiles, sizeLabel } from "./attachments.mjs";
 import { Selection } from "./selection.mjs";
@@ -439,6 +440,7 @@ $("draft").addEventListener("paste",event=>{
 document.addEventListener("dragover",event=>event.preventDefault());
 document.addEventListener("drop",event=>event.preventDefault());
 attachComposer($("draft"),$("composer"));
+attachWritingSurface($("composer"),$("draft"),$("expand-composer"),$("transcript"),$("latest"));
 $("composer").onsubmit=async event=>{
   event.preventDefault();const target=currentTarget();if(!target||submissions.pending(target)||attachmentWork.has(targetKey(target))||draftMutations.has(targetKey(target))||draftMutations.has(addressKey(selected)))return;
   const input=attachmentList.input($("draft").value);

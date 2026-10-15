@@ -163,3 +163,22 @@ export async function viewerScene(app,capture,expect){
   await capture("image-stage-compact.png");
   await app.getByRole("button",{name:"Close image",exact:true}).click();
 }
+export async function writingScene(app,capture,expect){
+  await app.setViewportSize({width:1280,height:820});
+  const draft=app.getByLabel("Message the agent",{exact:true});
+  const text="Review the release plan\n\nFocus on the changes that help someone work for a full afternoon:\n\n• Keep every draft through navigation and restarts.\n• Make the review evidence readable.\n• Give images enough room for close inspection.\n\nStart with the draft writer and record the focused checks.";
+  await draft.fill(text);
+  await draft.evaluate(node=>{window.__originalEditor=node;node.setSelectionRange(7,18,"backward");});
+  await app.getByRole("button",{name:"Expand editor",exact:true}).click();
+  await expect(draft).toBeFocused();
+  expect(await draft.evaluate(node=>node===window.__originalEditor&&node.selectionStart===7&&node.selectionEnd===18)).toBe(true);
+  const bounds=await draft.boundingBox();expect(bounds.height).toBeGreaterThan(350);
+  await appearances(app,capture,"writing");
+  await app.setViewportSize({width:760,height:550});
+  const send=await app.getByRole("button",{name:"Send",exact:true}).boundingBox();
+  expect(send.y+send.height).toBeLessThan(550);
+  await capture("writing-compact.png");
+  await draft.focus();await app.keyboard.press("Escape");
+  await expect(app.getByRole("button",{name:"Expand editor",exact:true})).toBeFocused();
+  await expect(draft).toHaveValue(text);
+}
