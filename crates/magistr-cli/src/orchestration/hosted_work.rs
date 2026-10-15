@@ -48,6 +48,7 @@ pub(crate) struct HostedWork {
     connector: Connector,
     inbox: Inbox,
     engines: EngineClient,
+    observation: Option<Arc<crate::application::session_observation::SessionObservation>>,
     /// The engine feed, tapped beside the inbox: a running driver counts the
     /// chunks its iteration completes from it; between runs it is drained.
     feed: UnboundedReceiver<Msg>,
@@ -80,10 +81,19 @@ impl HostedWork {
             connector,
             inbox,
             engines,
+            observation: None,
             feed,
             judge: Box::new(session_judge_for),
             admitted: Arc::default(),
         }
+    }
+
+    pub(crate) fn observing(
+        mut self,
+        observation: Option<Arc<crate::application::session_observation::SessionObservation>>,
+    ) -> Self {
+        self.observation = observation;
+        self
     }
 
     /// Decide who judges a started run (tests script the verdicts).
@@ -100,7 +110,7 @@ impl HostedWork {
         opening: InteractiveSession,
         mut commands: Commands,
     ) -> Result<(), String> {
-        let mut session = self.admitting(opening);
+        let mut session = self.admitting(opening, self.config.history.clone());
         loop {
             let exit = {
                 let phase = session.run(&mut commands, None, false);
@@ -119,7 +129,8 @@ impl HostedWork {
                 Some(commands) => commands,
                 None => return Ok(()),
             };
-            let config = self.conversation();
+            self.config = self.conversation();
+            let config = self.config.clone();
             let (transport, spec) = self
                 .connector
                 .connect(config.clone())
@@ -142,18 +153,39 @@ impl HostedWork {
                     Some(self.engines.clone()),
                 )
                 .connected(Box::new(handle), false),
+                self.config.history.clone(),
             );
         }
     }
 
     /// `session`, asking this host before it gives the conversation up to a
     /// start: the run is opened here, and kept for the work phase.
-    fn admitting(&self, session: InteractiveSession) -> InteractiveSession {
+    fn admitting(
+        &self,
+        session: InteractiveSession,
+        history: crate::agent::persistence::SessionHistory,
+    ) -> InteractiveSession {
         let dir = self.config.cwd.clone();
         let engines = self.engines.clone();
         let admitted = Arc::clone(&self.admitted);
         let selection = self.config.inputs().session_selection().cloned();
+        let observation = self.observation.clone();
         session.admitting_work(move |action| {
+            let mut selection = selection.clone();
+            if let Some(selection) = &mut selection {
+                // Read the configuration the user is looking at when work is
+                // admitted, including model changes and parked conversations.
+                selection.model = observation
+                    .as_ref()
+                    .map_or_else(
+                        || history.current_model(),
+                        |observation| observation.snapshot().model,
+                    )
+                    .filter(|model| !model.eq_ignore_ascii_case("default"));
+                selection
+                    .sources
+                    .insert("model".into(), "current conversation".into());
+            }
             let prepared = prepare(&dir, &engines, action, selection.as_ref())?;
             *admitted.lock().unwrap_or_else(PoisonError::into_inner) = Some(prepared);
             Ok(())
@@ -168,6 +200,8 @@ impl HostedWork {
         config.history = crate::agent::persistence::SessionHistory::new();
         config.resume = None;
         config.continue_conversation = false;
+        config.model = None;
+        config.effort = None;
         config
     }
 
@@ -187,7 +221,11 @@ impl HostedWork {
             return Some(commands);
         };
         let dir = self.config.cwd.clone();
-        let inputs = self.config.inputs().for_project(&dir);
+        let mut inputs = self.config.inputs().for_project(&dir);
+        if let Some(selection) = &prepared.iter_loop.state().session_selection {
+            inputs = inputs.with_session_selection(selection.clone());
+        }
+        self.config = self.config.clone().with_inputs(&inputs);
         let auto_pause = inputs
             .user_config()
             .map(|cfg| cfg.value.general.auto_pause_or_default())

@@ -541,6 +541,7 @@ impl SessionObservation {
         let saved = history.load_draft().await?;
         let mut snapshot = empty_snapshot(self.state.borrow().address.clone());
         snapshot.conversation = Some(conversation);
+        snapshot.model = history.current_model();
         snapshot.seed.draft = Some(saved.text);
         snapshot.attachments = saved.attachments;
         snapshot.draft_revision = saved.status.revision;

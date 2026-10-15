@@ -1231,7 +1231,7 @@ impl<H: Settle> Serving<H> {
                     Ok((host, mut seed)) => {
                         seed.session_address = Some(address.clone());
                         observation.seed(seed);
-                        if quitting {
+                        if quitting || observation.snapshot().closed {
                             observation.stop();
                             self.pending.spawn(async move {
                                 Completed::Closed {
@@ -1239,7 +1239,12 @@ impl<H: Settle> Serving<H> {
                                     result: settle_host(host, observation).await,
                                 }
                             });
-                            let _ = reply.send(Err("The application is closing.".into()));
+                            let reason = if quitting {
+                                "The application is closing."
+                            } else {
+                                "The session ended while opening. Try opening it again."
+                            };
+                            let _ = reply.send(Err(reason.into()));
                         } else {
                             self.sessions.insert(
                                 address.clone(),

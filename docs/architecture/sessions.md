@@ -276,7 +276,18 @@ arrive before terminal raw mode; messages received during startup stay queued.
 The terminal consumes those channels through `Runtime::with_channels` and
 resizes the model to the actual terminal before drawing.
 
-Call `shutdown().await` when the surface closes. Dropping the host also requests
+After provider admission, the host freezes the model accepted by the provider,
+using the conversation history owner's bound configuration. A personal model
+preference that was not offered never becomes an exact model requirement for
+later sessions. Each new hosted work run captures the active conversation's
+current accepted model, including changes made in the conversation controls;
+the checkpoint, iteration provider and following conversation use that same
+selection. An unfinished run retains its existing frozen settings.
+
+Call `shutdown().await` when the surface closes. A host that ends unexpectedly
+publishes its error and closes the existing session observation, so the registry
+retires it and flushes its retained drafts instead of leaving a ready session
+with a closed command queue. Dropping the host also requests
 closure; its cleanup task retains the project until the coordinator settles,
 then joins the feeds, stops owner endpoints and shuts down the workspace. The
 coordinator gets five seconds before it is aborted and joined. Keep the Tokio

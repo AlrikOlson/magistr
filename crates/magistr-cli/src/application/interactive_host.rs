@@ -70,6 +70,7 @@ impl InteractiveHost {
         observation: Option<std::sync::Arc<super::session_observation::SessionObservation>>,
     ) -> eyre::Result<(Self, ProjectSeed)> {
         let spec = config.clone().resolve();
+        let observing = observation.clone();
         Self::connect(
             config,
             resources,
@@ -90,7 +91,8 @@ impl InteractiveHost {
                     .map(|session| Box::new(session) as Box<dyn SessionHandle>)
                     .map_err(eyre::Report::from)
             },
-            move |source| Connector::live(source).observing(observation),
+            move |source| Connector::live(source).observing(observing),
+            observation,
         )
         .await
     }
@@ -106,6 +108,7 @@ impl InteractiveHost {
         commands: Commands,
         connect: F,
         sessions: impl FnOnce(magistr_application::effects::SourceRoute) -> Connector,
+        observation: Option<std::sync::Arc<super::session_observation::SessionObservation>>,
     ) -> eyre::Result<(Self, ProjectSeed)>
     where
         F: FnOnce(ResolvedSessionSpec, Connector) -> Fut,
@@ -120,12 +123,7 @@ impl InteractiveHost {
                 return Err(startup_error(error.into(), cleanup));
             }
         };
-        let inputs = config
-            .inputs()
-            .as_ref()
-            .clone()
-            .with_session_selection(spec.selection());
-        let config = config.with_inputs(&inputs);
+        let mut selection = spec.selection();
         let project = crate::commands::galaxy_data::project_name(spec.cwd());
         let dir = spec.cwd().display().to_string();
         let supervision = crate::commands::run::supervision_seed(
@@ -145,6 +143,21 @@ impl InteractiveHost {
                 return Err(startup_error(error, cleanup));
             }
         };
+        // The history owner binds the accepted provider configuration before
+        // returning the handle. A requested default may not have been offered.
+        selection.model = config
+            .history
+            .current_model()
+            .filter(|model| !model.eq_ignore_ascii_case("default"));
+        selection
+            .sources
+            .insert("model".into(), "current conversation".into());
+        let inputs = config
+            .inputs()
+            .as_ref()
+            .clone()
+            .with_session_selection(selection);
+        let config = config.with_inputs(&inputs);
         let opening = !config.prompt.trim().is_empty();
         let seed = resources.engines.snapshot_reads().read(None, true).await;
         let workspace_files = crate::commands::workspace_files::workspace_files(&config.cwd);
@@ -172,12 +185,21 @@ impl InteractiveHost {
             inbox.clone(),
             resources.engines.clone(),
             tapped,
-        );
+        )
+        .observing(observation.clone());
         let (forward, receiver) = Commands::bounded(32);
         let relay = OwnedTask(tokio::spawn(work.run(session, receiver)));
         let (stop, stopped) = oneshot::channel();
         let task = tokio::spawn(async move {
-            let result = serve(commands, forward, stopped, relay, inbox).await;
+            let result = serve(commands, forward, stopped, relay, inbox.clone()).await;
+            if let Err(error) = &result {
+                inbox.send(magistr_cockpit::cockpit::Msg::Agent(
+                    magistr_application::sessions::AgentEvent::Error(error.clone()),
+                ));
+            }
+            if let Some(observation) = observation {
+                observation.stop();
+            }
             feed.abort_and_join().await;
             reseed.abort_and_join().await;
             history_feed.abort_and_join().await;
@@ -347,7 +369,10 @@ async fn serve(
         tokio::select! {
             biased;
             _ = &mut stopped => break,
-            result = &mut relay.0 => return joined(result),
+            result = &mut relay.0 => {
+                joined(result)?;
+                return Err("The session ended. Reopen it to continue.".into());
+            },
             command = commands.next() => {
                 match command {
                     None | Some(Cmd::Quit) => break,

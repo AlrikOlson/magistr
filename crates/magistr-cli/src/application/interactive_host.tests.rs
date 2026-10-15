@@ -157,6 +157,7 @@ async fn started(
         commands,
         |_, _| async { Ok(Box::new(session) as Box<dyn SessionHandle>) },
         Connector::live,
+        None,
     )
     .await
     .unwrap();
@@ -200,6 +201,7 @@ async fn startup_failure_releases_source_and_project_owners() {
             commands,
             |_, _| async { Err(eyre::eyre!("provider unavailable")) },
             Connector::live,
+            None,
         )
         .await;
         let error = result.err().expect("startup refused");
@@ -273,6 +275,7 @@ async fn unreadable_work_records_are_reported_without_preventing_chat_startup() 
         commands,
         |_, _| async { Ok(Box::new(session) as Box<dyn SessionHandle>) },
         Connector::live,
+        None,
     )
     .await
     .unwrap();
@@ -307,6 +310,164 @@ async fn explicit_shutdown_works_while_the_surface_keeps_its_sender() {
     assert!(probe.dropped.load(Ordering::SeqCst));
     assert!(sender.is_closed());
     EngineClient::with_config(native).unwrap();
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn later_sessions_use_the_model_accepted_by_the_opening_provider() {
+    use magistr_acp::{AcpTransport, test_support::FakeAcpAgent};
+
+    let (_dir, config, _native, resources) = fixture().await;
+    let mut defaults = crate::config::user_config::UserConfig::default();
+    defaults.models.claude = Some("unavailable-preference".into());
+    let spec = ResolvedSessionSpec::resolve_with_runtime(
+        config.clone(),
+        &defaults,
+        crate::agent::AgentRuntime {
+            path: "not-spawned".into(),
+            args: vec![],
+            auth: crate::agent::AuthMethod::Implicit,
+            provider: "claude".into(),
+        },
+    );
+    let history_inputs = config.inputs().as_ref().clone();
+    let (chosen, mut choices) = mpsc::unbounded_channel();
+    let (inbox, _events) = Inbox::channel();
+    let (sender, commands) = Commands::channel();
+    let (host, _) = InteractiveHost::connect(
+        config,
+        resources,
+        spec,
+        inbox,
+        commands,
+        |spec, connector| async move {
+            spec.history()
+                .begin(&history_inputs, spec.cwd(), "claude", spec.model())
+                .await?;
+            let (channel, _, agent) = FakeAcpAgent::new().spawn();
+            let mut transport = AcpTransport::new_with_args("not-spawned".into(), vec![], None)?
+                .session_model_preferred(spec.model().map(str::to_owned));
+            transport.connect_over(channel).await?;
+            assert_eq!(transport.session_config_options().unwrap().len(), 1);
+            let session = connector
+                .start_session(
+                    transport,
+                    spec,
+                    magistr_application::sessions::SessionOptions::new(),
+                )
+                .await?;
+            drop(agent);
+            Ok(Box::new(session) as Box<dyn SessionHandle>)
+        },
+        move |_| {
+            Connector::new(move |config| {
+                chosen
+                    .send(config.inputs().session_selection().cloned())
+                    .unwrap();
+                async {
+                    Err(crate::error::MagistrError::Other(
+                        "selection captured".into(),
+                    ))
+                }
+            })
+        },
+        None,
+    )
+    .await
+    .unwrap();
+
+    sender
+        .send(Cmd::RoadmapPrompt("Plan the next step".into()))
+        .unwrap();
+    let selected = tokio::time::timeout(Duration::from_secs(5), choices.recv())
+        .await
+        .unwrap()
+        .unwrap()
+        .unwrap();
+    assert_eq!(selected.agent, "claude");
+    assert_eq!(
+        selected.model, None,
+        "the provider accepted its default, not the unavailable preference"
+    );
+    assert!(
+        !sender.is_closed(),
+        "a refused planning connection keeps the host usable"
+    );
+    host.shutdown().await.unwrap();
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn a_failed_host_closes_its_observation_and_keeps_the_draft() {
+    use crate::application::session_observation::{SessionObservation, SessionStatus};
+    use magistr_cockpit_runtime::channel::ObservationSink;
+
+    let (_dir, config, native, resources) = fixture().await;
+    let observation = Arc::new(SessionObservation::new(
+        magistr_domain::identity::SessionAddress {
+            project: "project".into(),
+            workspace: config.cwd.display().to_string(),
+            session: "resident".into(),
+        },
+    ));
+    let conversation = magistr_application::sessions::Conversation {
+        id: config.history.id(),
+        purpose: config.history.purpose(),
+        name: None,
+        provider: "claude".into(),
+    };
+    observation.bind_context_for_test(conversation.clone());
+    observation.activate_context(&conversation.id).unwrap();
+    observation
+        .draft_for(&conversation.id, "Keep this unsent message".into())
+        .unwrap();
+    let (tx, rx) = mpsc::unbounded_channel();
+    let probe = Probe::default();
+    probe.finish.notify_one();
+    let session = Session {
+        probe,
+        conversation: conversation.clone(),
+        _source: resources.admitted.workspace.source_route(),
+        tx,
+        rx,
+    };
+    let spec = resolved(&config);
+    let (sender, commands) = Commands::channel();
+    let (host, _) = InteractiveHost::connect(
+        config,
+        resources,
+        spec,
+        Inbox::observed(observation.clone()),
+        commands,
+        |_, _| async { Ok(Box::new(session) as Box<dyn SessionHandle>) },
+        |_| Connector::new(|_| async { panic!("controlled host failure") }),
+        Some(observation.clone()),
+    )
+    .await
+    .unwrap();
+    sender
+        .send(Cmd::RoadmapPrompt("Open planning".into()))
+        .unwrap();
+    tokio::time::timeout(Duration::from_secs(5), observation.closed())
+        .await
+        .unwrap();
+    let snapshot = observation.snapshot();
+    assert!(snapshot.closed);
+    assert_eq!(snapshot.status, SessionStatus::Failed);
+    assert_eq!(snapshot.conversation.as_ref().unwrap().id, conversation.id);
+    assert_eq!(
+        snapshot.seed.draft.as_deref(),
+        Some("Keep this unsent message")
+    );
+    assert!(snapshot.replay().iter().any(|message| {
+        matches!(message, Msg::Agent(AgentEvent::Error(error)) if error.contains("controlled host failure"))
+    }));
+    assert!(sender.is_closed());
+    assert!(
+        host.shutdown()
+            .await
+            .unwrap_err()
+            .contains("controlled host failure")
+    );
+    wait_for_release(&native).await;
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -377,7 +538,7 @@ async fn a_closed_relay_returns_the_undelivered_command_to_the_surface() {
         if text.text == "Keep this draft" && error.contains("closed"))
     );
     finish.notify_one();
-    task.await.unwrap().unwrap();
+    assert!(task.await.unwrap().unwrap_err().contains("session ended"));
 }
 #[tokio::test(flavor = "multi_thread")]
 async fn same_copy_sessions_share_source_owner_and_keep_separate_workflow_executions() {
