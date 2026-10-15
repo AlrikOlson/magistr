@@ -439,11 +439,11 @@ dialog{--dialog-gutter:28px;max-height:calc(100dvh - 48px);overflow:hidden;borde
 dialog::backdrop{background:color-mix(in srgb,var(--canvas) 65%,transparent)}dialog h2{font-size:27px;line-height:1.2;font-weight:620;color:var(--text);text-transform:none;letter-spacing:-.035em;margin-bottom:10px}
 dialog p{color:var(--muted);margin-bottom:18px;line-height:1.65}dialog label{display:block;margin-bottom:8px;font-size:12px;font-weight:550}dialog input,dialog select{width:100%;min-height:40px;background:var(--panel);border-radius:8px;padding:9px 12px}dialog input:focus,dialog select:focus{background:var(--base)}dialog input[type=checkbox],dialog input[type=radio]{min-height:16px}dialog button{font-size:12px}
 dialog h3{margin:20px 0 10px;font-size:17px}.dialog-actions{display:flex;justify-content:flex-end;gap:10px;margin:0;flex-shrink:0;background:transparent}.dialog-actions button{min-height:38px;padding:8px 15px;border-radius:8px}.dialog-actions button:first-child:not(:last-child){border-color:var(--separator);background:var(--panel)}
-#settings{width:960px;padding:0}.settings-content{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;padding:8px var(--dialog-gutter) 28px}
+#settings{width:960px;padding:0}.settings-content{display:grid;grid-template-columns:minmax(0,1fr) 218px;gap:32px;padding:8px var(--dialog-gutter) 28px}.settings-content .settings-shortcuts{border-left:1px solid var(--separator);padding-left:24px}
 .settings-section{min-width:0}
-.appearance-comparison{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin:4px 0 12px}
-.appearance-option{display:block;min-width:0;border:1px solid var(--separator);border-radius:10px;background:var(--panel);padding:10px;text-align:left}.appearance-option[aria-pressed=true]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}.appearance-caption{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:14px 2px 4px}.appearance-caption strong{font-size:13px;font-weight:600}.appearance-selected{font-size:10px;color:var(--accent);visibility:hidden}.appearance-option[aria-pressed=true] .appearance-selected{visibility:visible}.appearance-system{position:relative}.appearance-system .appearance-preview:last-child{position:absolute;inset:0;clip-path:inset(0 0 0 50%)}
-.appearance-preview{height:150px;display:grid;grid-template-columns:29% 1fr;background:var(--base);color:var(--text);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.appearance-comparison{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:4px 0 24px}
+.appearance-option{display:block;min-width:0;border:1px solid var(--separator);border-radius:10px;background:var(--panel);padding:7px;text-align:left;box-shadow:var(--shadow-soft)}.appearance-option[aria-pressed=true]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}.appearance-caption{display:flex;align-items:flex-start;flex-direction:column;gap:7px;padding:14px 5px 8px}.appearance-caption strong{font-size:15px;font-weight:500}.appearance-selected{font-size:10px;color:var(--accent);visibility:hidden}.appearance-option[aria-pressed=true] .appearance-selected{visibility:visible}.appearance-system{position:relative}.appearance-system .appearance-preview:last-child{position:absolute;inset:0;clip-path:inset(0 0 0 50%)}
+.appearance-preview{height:158px;display:grid;grid-template-columns:29% 1fr;background:var(--base);color:var(--text);border:1px solid var(--line);border-radius:8px;overflow:hidden}
 .preview-rail{padding:12px 7px;background:var(--panel);border-right:1px solid color-mix(in srgb,var(--text) 15%,transparent);display:flex;flex-direction:column;gap:10px}
 .appearance-preview i{display:block;height:3px;background:var(--muted);border-radius:2px;opacity:.65}
 .preview-rail .preview-brand{width:12px;height:12px;border-radius:4px;background:var(--accent);opacity:1;margin-bottom:10px}
@@ -458,7 +458,7 @@ dialog h3{margin:20px 0 10px;font-size:17px}.dialog-actions{display:flex;justify
 
 .settings-content h3{font-size:20px;font-weight:600;letter-spacing:-.025em;color:var(--text);margin:0 0 24px}
 .settings-row{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:20px 0}
-.settings-section .settings-row:first-of-type{padding-top:0}.settings-section .settings-row:first-of-type select{width:180px}.settings-shortcuts dl{display:grid;grid-template-columns:1fr 1fr;column-gap:32px}.settings-content .settings-shortcuts h3{font-size:16px;margin-bottom:8px}
+.settings-section .settings-row:first-of-type{padding-top:0}.settings-section .settings-row:first-of-type select{width:180px}.settings-shortcuts dl{display:grid;grid-template-columns:1fr;column-gap:32px}.settings-content .settings-shortcuts h3{font-size:16px;margin-bottom:8px}.settings-content .settings-shortcuts dl>div{align-items:flex-start;flex-direction:column;gap:10px;padding:15px 0}.settings-section .settings-row:has(#reduce-motion){padding:16px 18px;border:1px solid var(--separator);border-radius:8px;background:var(--panel)}
 .settings-row+.settings-row{border-top:1px solid var(--separator)}
 
 .settings-row label{margin:0 0 4px;font-size:14px;font-weight:600}.settings-row p{margin:0;font-size:12px}
@@ -656,6 +656,7 @@ dialog h3{margin:20px 0 10px;font-size:17px}.dialog-actions{display:flex;justify
 .switch-group header>p{grid-column:1/-1;font:10px/1.5 var(--font-code);overflow-wrap:anywhere;margin:0;color:var(--muted)}
 
 #preferences-note{font-size:12px;margin:0;line-height:1.6}#preferences-note:empty{display:none}
+@media(max-width:800px){.settings-content{grid-template-columns:1fr;gap:24px}.settings-content .settings-shortcuts{border:0;border-top:1px solid var(--separator);padding:18px 0 0}.settings-shortcuts dl{grid-template-columns:1fr 1fr}.settings-content .settings-shortcuts dl>div{flex-direction:row;align-items:center}.appearance-caption{flex-direction:row}.appearance-preview{height:120px}}
 @media(max-width:680px){.settings-content{grid-template-columns:1fr;gap:32px;padding-top:0}.settings-content h3{margin-bottom:16px}.settings-shortcuts dl>div{padding-block:10px}}
 
 @media(max-width:900px){

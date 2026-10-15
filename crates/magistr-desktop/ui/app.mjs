@@ -1,3 +1,4 @@
+import { SurfaceMotion } from "./motion.mjs";
 import { ActivityOverview } from "./activity.mjs";
 import { renderSourceDetail } from "./source_details.mjs";
 import { ConversationSwitcher } from "./switcher.mjs";
@@ -36,6 +37,8 @@ const history=new HistoryBrowser($,invoke,{drafts:savedDraftEditor,sessions:()=>
 }});
 let forcedMotion=false;
 const systemMotion=matchMedia("(prefers-reduced-motion: reduce)");
+const surfaceMotion=new SurfaceMotion(document);
+window.addEventListener("pagehide",()=>surfaceMotion.dispose(),{once:true});
 const preferences=new Preferences(invoke,()=>renderPreferences());
 systemMotion.addEventListener("change",()=>renderPreferences());
 const selection=new Selection();
