@@ -116,6 +116,7 @@ desktop workspace. Companion Rust tests live beside their owners.
 - `crates/magistr-desktop/tests/draft_persistence_journey.py`
 - `crates/magistr-desktop/src/launch.rs`
 - `crates/magistr-desktop/src/main.rs`
+- `crates/magistr-desktop/src/environment.rs` — bounded macOS login-shell command path before runtime startup; protocol children inherit it.
 - `crates/magistr-desktop/src/projects.rs`
 - `crates/magistr-desktop/tests/projects.mjs`
 - `crates/magistr-desktop/ui/projects.mjs`

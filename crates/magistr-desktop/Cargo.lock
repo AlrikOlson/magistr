@@ -3780,6 +3780,7 @@ dependencies = [
  "magistr-cli",
  "magistr-cockpit",
  "magistr-domain",
+ "magistr-process",
  "magistr-workspace",
  "pulldown-cmark",
  "serde",

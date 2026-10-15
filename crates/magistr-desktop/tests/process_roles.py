@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Exercise the actual desktop executable's protocol roles in disposable projects."""
 import json
+import os
 from pathlib import Path
 import queue
 import struct
@@ -10,6 +11,7 @@ import tempfile
 import threading
 
 BINARY = str(Path(sys.argv[1]).resolve())
+ENVIRONMENT = dict(os.environ)
 
 
 class Rpc:
@@ -17,7 +19,7 @@ class Rpc:
         self.stderr = tempfile.TemporaryFile()
         self.child = subprocess.Popen(
             [BINARY, *args], cwd=cwd, stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE, stderr=self.stderr, text=True, env=env,
+            stdout=subprocess.PIPE, stderr=self.stderr, text=True, env=ENVIRONMENT if env is None else env,
         )
         self.lines = queue.Queue()
         self.reader = threading.Thread(target=self.read, daemon=True)
@@ -75,7 +77,7 @@ def frame(value):
 def worker(root):
     result = subprocess.run(
         [BINARY, "--workspace-worker"], cwd=root,
-        input=frame({"v": 1, "kind": "shutdown"}), capture_output=True, timeout=20,
+        input=frame({"v": 1, "kind": "shutdown"}), capture_output=True, timeout=20, env=ENVIRONMENT,
     )
     assert result.returncode == 0, result.stderr
     size = struct.unpack("<I", result.stdout[:4])[0]
@@ -121,11 +123,17 @@ def main():
             result = subprocess.run([BINARY, *args], cwd=root, capture_output=True, timeout=15)
             assert result.returncode == code, result.stderr
         assert not list(root.iterdir()), "argument handling must not admit a project"
+        shell = root / "unexpected-shell"
+        marker = root / "shell-started"
+        shell.write_text(f'#!/bin/sh\nprintf unexpected > "{marker}"\nexit 99\n')
+        shell.chmod(0o755)
+        ENVIRONMENT["SHELL"] = str(shell)
         worker(root)
         acp(root)
         (root / "sample.rs").write_text("pub fn desktop_source() {}\n")
         mcp(root, "magistr", "roadmap_status")
         mcp(root, "workbench-mcp", "read")
+        assert not marker.exists(), "protocol children must never load a login shell"
     print("PASS: desktop argv, worker readiness/shutdown, ACP turn and both MCP endpoints")
 
 

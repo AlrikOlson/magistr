@@ -49,7 +49,7 @@ test("cancelled reads cannot reopen a chooser and folder picker errors remain vi
   await app.getByRole("button",{name:"Open project",exact:true}).click();
   await app.evaluate(()=>window.__fixture.handlers.pick_folder=()=>{throw Error("The folder picker is unavailable. Enter a path instead.");});
   await app.getByRole("button",{name:"Browse…",exact:true}).click();
-  await expect(app.locator("#picker-error")).toContainText("Enter a path instead.");
+  await expect(app.locator("#picker-error-message")).toContainText("Enter a path instead.");
   await expect(app.getByLabel("Project folder",{exact:true})).toBeEnabled();
 });
 test("a ready folder returns to its resident conversation without starting another agent",async({app})=>{
@@ -61,4 +61,59 @@ test("a ready folder returns to its resident conversation without starting anoth
   await expect(app.getByRole("heading",{name:"Review the release plan",exact:true})).toBeVisible();
   await expect(app.getByLabel("Message the agent",{exact:true})).toBeFocused();
   expect(await app.evaluate(()=>window.__fixture.calls.filter(c=>c.command==="open_session"))).toHaveLength(0);
+});
+test("startup errors preserve the folder, disclose exact details and retry without duplicate admission",async({app})=>{
+  await app.setViewportSize({width:760,height:550});
+  const detail="The agent could not start.\n\n"+Array.from({length:30},(_,i)=>"Attempt "+(i+1)+": a detailed provider diagnostic.").join("\n");
+  await app.evaluate(detail=>{
+    window.__fixture.handlers.preview_project=({directory})=>({kind:"ready",directory});
+    window.__fixture.handlers.open_session=()=>{throw detail;};
+  },detail);
+  await app.getByRole("button",{name:"Open project",exact:true}).click();
+  await app.getByLabel("Project folder",{exact:true}).fill("/Projects/new-project");
+  await app.locator("#picker-submit").click();
+  await expect(app.locator("#picker-error")).toHaveText("Couldn’t start the conversation");
+  await expect(app.locator("#picker-error")).toBeFocused();
+  await expect(app.getByLabel("Project folder",{exact:true})).toHaveValue("/Projects/new-project");
+  await expect(app.locator("#picker-error-source")).toBeHidden();
+  await app.getByText("Show error details",{exact:true}).click();
+  await expect(app.locator("#picker-error-source")).toHaveText(detail);
+  for(const id of ["picker-submit","picker-cancel"]){
+    const rect=await app.locator("#"+id).boundingBox();expect(rect.y).toBeGreaterThan(0);expect(rect.y+rect.height).toBeLessThan(550);
+  }
+  expect(await app.locator("#project-picker").evaluate(node=>node.scrollWidth<=node.clientWidth)).toBe(true);
+  await app.evaluate(()=>window.__fixture.handlers.open_session=()=>new Promise(resolve=>window.finishAdmission=resolve));
+  await app.getByRole("button",{name:"Try again",exact:true}).click();
+  await expect(app.locator("#picker-submit")).toBeDisabled();
+  await expect(app.locator("#picker-failure")).toBeHidden();
+  expect(await app.evaluate(()=>window.__fixture.calls.filter(c=>c.command==="open_session").length)).toBe(2);
+  await app.evaluate(()=>window.finishAdmission(window.__fixture.frames.get("release").address));
+  await expect(app.locator("#project-picker")).toBeHidden();
+  await expect(app.getByLabel("Message the agent",{exact:true})).toBeFocused();
+});
+
+test("short folder errors stay readable and cancellation restores focus",async({app})=>{
+  await app.evaluate(()=>window.__fixture.handlers.preview_project=()=>{throw "This folder no longer exists. Choose another folder.";});
+  await app.getByRole("button",{name:"Open project",exact:true}).click();
+  await app.getByLabel("Project folder",{exact:true}).fill("/missing");
+  await app.locator("#picker-submit").click();
+  await expect(app.locator("#picker-error")).toHaveText("Couldn’t check this folder");
+  await expect(app.locator("#picker-error-message")).toHaveText("This folder no longer exists. Choose another folder.");
+  await expect(app.locator("#picker-error-details")).toBeHidden();
+  await app.keyboard.press("Escape");
+  await expect(app.getByRole("button",{name:"Open project",exact:true})).toBeFocused();
+});
+
+test("a short multiline diagnostic keeps its original line breaks in the disclosure",async({app})=>{
+  const detail="Sign-in expired.\n\nOpen the agent and sign in.";
+  await app.evaluate(detail=>{
+    window.__fixture.handlers.preview_project=({directory})=>({kind:"ready",directory});
+    window.__fixture.handlers.open_session=()=>{throw detail;};
+  },detail);
+  await app.getByRole("button",{name:"Open project",exact:true}).click();
+  await app.getByLabel("Project folder",{exact:true}).fill("/Projects/new-project");
+  await app.locator("#picker-submit").click();
+  await expect(app.locator("#picker-error-message")).toBeHidden();
+  await app.getByText("Show error details",{exact:true}).click();
+  expect(await app.locator("#picker-error-source").textContent()).toBe(detail);
 });

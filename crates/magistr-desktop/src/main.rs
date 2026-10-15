@@ -12,6 +12,8 @@ mod conversations;
 mod credit;
 mod document;
 mod drafts;
+#[cfg(target_os = "macos")]
+mod environment;
 mod exit;
 mod launch;
 mod links;
@@ -34,6 +36,21 @@ fn main() -> eyre::Result<()> {
         None
     } else {
         Some(Desktop::parse_from(argv))
+    };
+    #[cfg(target_os = "macos")]
+    let environment_error = if cli.as_ref().is_some_and(|cli| cli.child.is_none()) {
+        match environment::command_path() {
+            Ok(path) => {
+                // SAFETY: this is ordinary desktop startup on the main thread,
+                // before Tokio, Tauri, logging or any other threads are started.
+                // The shell reader has synchronously settled its child group.
+                unsafe { std::env::set_var("PATH", path) };
+                None
+            }
+            Err(error) => Some(error),
+        }
+    } else {
+        None
     };
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
@@ -64,6 +81,10 @@ fn main() -> eyre::Result<()> {
         )
         .with_writer(std::io::stderr)
         .init();
+    #[cfg(target_os = "macos")]
+    if let Some(error) = environment_error {
+        tracing::warn!(%error, "Could not load the login shell command path; using the inherited path");
+    }
     // block_on polls this future on the calling (main) thread. The native loop
     // stays here while the multithread scheduler services the admitted host.
     tauri::async_runtime::set(runtime.handle().clone());
