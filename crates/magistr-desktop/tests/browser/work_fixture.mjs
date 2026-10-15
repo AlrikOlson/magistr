@@ -41,6 +41,8 @@ export async function workScene(app,capture){
   await app.getByLabel("Show",{exact:true}).selectOption("activity");await app.getByLabel("Entries",{exact:true}).selectOption("items");
   await app.locator(".work-activity-entry").first().evaluate(node=>node.scrollIntoView({block:"start"}));await capture("work-activity-index-dark.png");
   await app.getByLabel("Entries",{exact:true}).selectOption("all");await app.getByLabel("Show",{exact:true}).selectOption("tasks");await app.locator("#work-browser-content").evaluate(node=>node.scrollTop=0);
+  await app.getByRole("tab",{name:"Record status",exact:true}).click();await app.locator("#work-browser-content").evaluate(node=>node.scrollTop=0);await capture("work-record-status-dark.png");
+  await app.getByRole("tab",{name:"Current and saved work",exact:true}).click();
   await roadmapScene(app,capture);await reasoningScene(app,capture);await feedbackScene(app,capture);
   const check=app.locator(".work-check").nth(1);await check.locator("summary").click();
   await check.evaluate(node=>node.scrollIntoView({block:"start"}));await capture("work-check-results-dark.png");

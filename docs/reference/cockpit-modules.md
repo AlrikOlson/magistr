@@ -51,6 +51,7 @@ desktop workspace. Companion Rust tests live beside their owners.
 - `crates/magistr-desktop/ui/work_roadmap_search.mjs` — complete roadmap search and stable item navigation.
 - `crates/magistr-desktop/ui/work_relations.mjs` — complete dependency/dependent navigation and owner readiness.
 - `crates/magistr-desktop/ui/work_roadmap.mjs` — track selection and owner-provided readiness.
+- `crates/magistr-desktop/ui/work_status.mjs` — independent record observations, complete counts and saved-file provenance.
 - `crates/magistr-desktop/ui/work_tabs.mjs` — accessible work-view tab navigation.
 - `crates/magistr-desktop/ui/work_browser.mjs` — refresh, address guards and current-plan reading.
 - `crates/magistr-desktop/ui/work_records.mjs` — authored work and observation-state presentation.
