@@ -16,7 +16,7 @@ import { Drafts } from "./drafts.mjs";
 import { Preferences, effectiveMotion } from "./preferences.mjs";
 import { SavedDraftEditor } from "./saved_drafts.mjs";
 import { Submissions, shouldSaveDraft, reconcileDraft, conversationOwner } from "./session_controls.mjs";
-import { attachWritingSurface } from "./writing_surface.mjs";
+import { attachWritingSurface, renderWritingMeasure } from "./writing_surface.mjs";
 import { attachComposer } from "./composer.mjs";
 import { AttachmentList, clipboardFiles, sizeLabel } from "./attachments.mjs";
 import { Selection } from "./selection.mjs";
@@ -229,6 +229,7 @@ function renderPreferences() {
   $("retry-preferences").hidden=!preferences.error;
 }
 function renderDraftStatus() {
+  renderWritingMeasure($("draft"),$("draft-measure"));
   const target=currentTarget();
   if(!target){$("draft-status").textContent="";$("retry-draft").hidden=true;$("discard-draft").disabled=true;return;}
   const status=drafts.status(target);
