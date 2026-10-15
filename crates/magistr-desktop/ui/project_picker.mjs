@@ -86,7 +86,7 @@ export class ProjectPicker {
       this.$("setup-record").textContent=state.result.setup_record;
       const outcomes={applied:"Applied",skipped:"Kept",refused:"Cannot change",failed:"Failed"};
       this.$("setup-outcomes").replaceChildren(...state.result.files.map(file=>{
-        const row=node("li","");row.append(node("strong",file.path),node("span",outcomes[file.outcome]+(file.detail?" · "+file.detail:"")));return row;
+        const row=node("li","");row.dataset.outcome=file.outcome;row.append(node("strong",file.path),node("span",outcomes[file.outcome]+(file.detail?" · "+file.detail:"")));return row;
       }));
     }
     if(["review","partial"].includes(state.stage)){this.$("picker-title").focus();}
@@ -101,6 +101,7 @@ export class ProjectPicker {
     this.review=preview.review;
     this.rows=preview.files.map((file,index)=>{
       const row=node("div","","setup-file"),button=node("button","","setup-file-open");button.type="button";
+      row.dataset.action=file.action;
       button.append(node("span",file.path),node("small",file.action));
       button.setAttribute("aria-label","Read "+file.path);
       button.onclick=()=>this.readFile(index);
