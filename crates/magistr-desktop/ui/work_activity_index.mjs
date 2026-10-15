@@ -2,12 +2,11 @@ import {element} from "./work_dom.mjs";
 import {matchesText,pageControls} from "./work_search.mjs";
 import {renderAction,renderArtifact} from "./work_activity.mjs";
 export function renderActivityIndex(run,actions,view){
-  const root=element("section","","work-record work-activity-index"),title=element("h3","Activity and produced items");title.tabIndex=-1;title.dataset.focusKey="activity-index-title";root.append(title);
+  const root=element("section","","work-record work-activity-index"),title=element("h3","Activity and produced items","roadmap-track-title");title.tabIndex=-1;title.dataset.focusKey="activity-index-title";root.append(title);
   if(!run){root.append(element("p","No work is selected."));return root;}
-  root.append(element("p",run.objective.description),element("p","Recorded activity and references, grouped by task.","work-record-count"));
+  root.append(element("p",run.objective.description,"work-index-objective"));
   const entries=run.tasks.flatMap(task=>[...task.actions.map((record,index)=>({task,record,index,kind:"activity"})),...task.artifacts.map((record,index)=>({task,record,index,kind:"items"}))]);
   const matches=entries.filter(({task,record,kind})=>(view.status==="all"||view.status===kind)&&matchesText([task.title,record.description,record.result,record.ref,record.type,...record.files_touched??[],...record.tools_used??[]].join("\n"),view.query));
-  root.append(element("p",entries.length+" recorded entries","work-record-count"));
   const page=pageControls(matches.length,view.page,view.change);root.append(page.nav);
   for(const {task,record,index,kind} of matches.slice(page.start,page.end)){
     const row=element("section","","work-activity-entry");row.append(element("h4",task.title));
