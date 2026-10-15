@@ -1,4 +1,4 @@
-// A bounded, on-demand WebGL material for the catalog ring. HTML owns all meaning.
+// A bounded, on-demand beveled instrument with studio lighting. HTML owns all meaning.
 const vertex = `
 attribute vec2 position;
 varying vec2 point;
@@ -13,12 +13,14 @@ uniform float empty;
 uniform float segments;
 vec3 model(vec3 p) {
   // Orthographic camera: the chart's angular proportions remain source-owned.
-  float c = 0.82, s = 0.5724;
+  float c = 0.78, s = 0.6258;
   return vec3(p.x, c * p.y - s * p.z, s * p.y + c * p.z);
 }
 float surface(vec3 p) {
   vec3 q = model(p);
-  return length(vec2(length(q.xy) - 0.66, q.z)) - 0.145;
+  // A rounded rectangular cross-section gives the ring a face, rim and thickness.
+  vec2 edge = abs(vec2(length(q.xy) - 0.62, q.z)) - vec2(0.115, 0.065);
+  return min(max(edge.x, edge.y), 0.0) + length(max(edge, 0.0)) - 0.045;
 }
 void main() {
   vec3 origin = vec3(point.x * 1.03, (point.y - 0.23) * 1.03, 2.4);
@@ -33,7 +35,13 @@ void main() {
     travel += max(distance, 0.001);
     if (travel > 4.0) break;
   }
-  if (!found) discard;
+  if (!found) {
+    // A soft contact shadow anchors the instrument without another draw pass.
+    vec2 floorPoint = vec2(point.x / 0.78, (point.y + 0.05) / 0.40);
+    float shadow = exp(-dot(floorPoint, floorPoint) * 2.4) * 0.22;
+    gl_FragColor = vec4(vec3(0.0), shadow);
+    return;
+  }
   vec3 q = model(hit);
   float angle = fract(atan(q.x, q.y) / 6.2831853 + 1.0);
   float gap = 1.0;
@@ -51,9 +59,17 @@ void main() {
     surface(hit + e.yxy) - surface(hit - e.yxy), surface(hit + e.yyx) - surface(hit - e.yyx)));
   vec3 light = normalize(vec3(-0.5, 0.7, 1.5));
   float diffuse = max(dot(normal, light), 0.0);
-  float specular = pow(max(dot(normal, normalize(light - direction)), 0.0), 45.0);
-  float rim = pow(1.0 - max(dot(normal, -direction), 0.0), 3.0);
-  vec3 material = color * (0.48 + 0.52 * diffuse) + vec3(specular * 0.3 + rim * 0.08);
+  vec3 reflected = reflect(direction, normal);
+  float key = pow(max(dot(reflected, normalize(vec3(-0.6, 0.8, 1.4))), 0.0), 28.0);
+  float strip = pow(max(dot(reflected, normalize(vec3(0.9, -0.2, 1.0))), 0.0), 70.0);
+  float fresnel = pow(1.0 - max(dot(normal, -direction), 0.0), 3.0);
+  float inner = smoothstep(0.44, 0.72, length(q.xy));
+  float occlusion = 0.76 + 0.24 * inner;
+  // Fine radial brushing is material, never an activity or progress signal.
+  float brushed = 0.985 + 0.015 * sin(length(q.xy) * 950.0);
+  vec3 enamel = color * (0.38 + 0.62 * diffuse) * occlusion * brushed;
+  vec3 coating = vec3(0.82, 0.88, 1.0) * (key * 0.48 + strip * 0.42 + fresnel * 0.18);
+  vec3 material = enamel + coating;
   gl_FragColor = vec4(material, gap);
 }
 `;
