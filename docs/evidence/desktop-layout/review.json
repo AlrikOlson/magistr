@@ -1,28 +1,28 @@
 {
-  "receipt": "5258d20699c7d28ca348469d4ff05c94be4c1c8f1c9e0d3d94c1531288ff02ab",
+  "receipt": "3586906ad6028ae169a856a2c885118ebadafd0d30c694d7a4035ffbad56c0fe",
   "images": {
-    "welcome-dark.png": "6e1007ab0721675fa23a90f30fa656ecd9c8958103606c059ef3d402c6485d35",
-    "workspace-dark.png": "4ec51040d90cce254d8621ac11e33986046f3253417646894e0830db951947b4",
-    "settings-light.png": "17361dc3e044b829a3811f05b9c84c4ee67b5afd62c108b3e63f9efbc7065762",
-    "workspace-light.png": "b59655ba74408af1d05b1c1f695d819882405cd54de1e57d3b82976d9d346881",
-    "workspace-narrow.png": "f9d51615bd25f0c0d8b42a2ff8523c5b63b28b5d910d5621aefd6ef554ef2a67",
-    "details-narrow.png": "5eb986dfb9bb5fb19ca1ff10e8b2bd59fddd04c092734f07c1790cfaa8e2e675",
-    "rename-light.png": "0c284ce3c6b95be7eadbd5b6c757e5be2d825601efd55d2045a224bef1aeebad",
-    "work-paused-dark.png": "05a9d8b89669941315fbe748b2c3091a4f18d54e3daa6fa65cd20c6e44d500b5",
-    "history-dark.png": "09df7bb88aa077bf0e2093a93a7428da3cb766259bb1d29785b6b84d4fd4cae9",
-    "history-narrow-light.png": "ee3f196f30b6b247134f0c5a2a9d8433aeebf419f13cf2c6f3a88496247bab04",
-    "setup-narrow-light.png": "036593aeea261faf925f5726b965c40d780739cbd174c50c4750686c4f7a8e50",
-    "open-project-dark.png": "e2436482754cd9636f86af00bb8cab3d3cbaad554e7e3587079c0d4f962db4bd",
-    "setup-dark.png": "11944e12ed6c576b5a454522d8ab22a61d8ea68053aca6c7bfa59d8e75128923",
-    "new-conversation-dark.png": "8d57617f7fd6379f148e27da34e7b27a8607a465b360d9293f4971cba84a1738",
-    "new-conversation-narrow-light.png": "3a9763276ea1b1fbcca74b1b870b0763d2b98ddab71d57f61bc4a4f8f8ad9bbe",
-    "find-conversation-narrow-light.png": "229d83ea783710e392343d3456e4aa8fd3bbcb32b2867cdd65af018f14f62b14",
-    "find-conversation-dark.png": "2c2da0bf788a75debe943f2437ff4297a53a81856cd494fe903773cc314df018"
+    "welcome-dark.png": "eec7365ec8ae3d4c2350a7528b6b743d8dd0551d3c43c154e40a3e4baa914f7b",
+    "workspace-dark.png": "cd6fe4be602c86f393d426de0e898d94232187ff730741d8190a653f23585485",
+    "settings-light.png": "c3f4e477260e7b90b237ebde4de7232dfb315ab68b56a103d060185419f7d472",
+    "workspace-light.png": "832a0a5b977f1bd9fe36b47261b410869c9157df70250a0201a21defbd00eed9",
+    "workspace-narrow.png": "317fdb5bf6d3b96fffe9fb7c34449e37cf0266fd670b356f3e41b538eb750117",
+    "details-narrow.png": "bf27c53ebd339aa4305630e6a77d8863d964012e98065d08a50c977e4f5aa509",
+    "rename-light.png": "f7cd44343d858c4be316fb521484854a9463ef6ba7c25d41a3241523448d6c41",
+    "work-paused-dark.png": "8c2e795f29e9cd6c836b0b34fb3cc95d83b7bb14dc4310b81b6bcac26c0d35fe",
+    "history-dark.png": "487b785d2aa440c217d52af876baf2fdf83175907f55df4f331ae758dcdd38e2",
+    "history-narrow-light.png": "a20ac32652f917f0bc2665e4c678fccc2587d6d895c267e9ec4258e946d3c50d",
+    "setup-narrow-light.png": "7dc2f40570f33c67fa8daab4e07e26039d7873b68fc4cc12c4b705aaca7ce33c",
+    "open-project-dark.png": "4206c31b7fecc66a2b36f340daa624d3d00879ad01c67fbd5fa3b8fc214a9a1e",
+    "setup-dark.png": "36487d773bd92be41a7a923fa2828d7b14d52d3360eb7c652d2c82ecd70919ec",
+    "new-conversation-dark.png": "a44fdc9bb3308c172f10b9d02ce805b42ae51e02e634b6300692cf71a3861294",
+    "new-conversation-narrow-light.png": "6780dded92a0017dd871e473affc8c7c8f5279db3856c83f172da397042a20a2",
+    "find-conversation-narrow-light.png": "619967f81663901f842b7dba63f6d94e79b74ffa09f45ee0ef52467d066ba4a1",
+    "find-conversation-dark.png": "3d92a2b9f1bf5909ebd286960b94a73a3d339854293fd21f29bb13f5b9f2f1c3"
   },
   "reviewed_on": "2026-10-15",
   "findings": [
-    "Inspected wide dark and compact light workspace captures. The inset working surface separates content from navigation without reducing the compact editor below its tested width.",
-    "Consistent vector masks replace platform-dependent navigation glyphs; contrast, source identity and icon integrity pass.",
+    "Inspected the project rail in the wide dark capture. Monograms, count capsules and branch rules clarify project grouping; selected conversations have an inset violet edge distinct from their status marker.",
+    "Three WebKit scenarios verify composition, stable project selection, background actions and Settings focus/draft retention.",
     "Production headless WebKit only; native input, IME, OS dialogs, VoiceOver and Windows verification were not run."
   ]
 }
