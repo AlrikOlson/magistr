@@ -64,7 +64,7 @@
 .work-surface[data-overview=true] .decision-piece-index,.work-surface[data-overview=true] .decision-piece-outcome{display:none}
 .work-surface[data-overview=true] .decision-piece>strong{font-size:calc(12px / var(--view-scale));-webkit-line-clamp:2}
 #work-browser-inspector .reasoning-evidence{display:block}
-#work-browser-inspector .reasoning-step>h3{font-size:16px;line-height:1.4;margin-top:16px}
+#work-browser-inspector .reasoning-step>h3{font-size:16px;line-height:1.4;margin:12px 0 8px}
 #work-browser-inspector .reasoning-relationship-grid{grid-template-columns:1fr}
 .thread-route{flex-wrap:wrap;gap:4px 8px}.thread-route>span{margin-right:auto}.thread-heading{min-height:64px}.thread-route button{padding:2px 0;border:0;color:var(--accent);min-height:22px}
 .reasoning-overview-heading.surface-heading{margin:0}
