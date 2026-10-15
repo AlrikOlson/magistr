@@ -2,7 +2,7 @@ import { test, expect, root, ui, workspaceSeed } from "./fixture.mjs";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { resolve, relative } from "node:path";
 import { createHash } from "node:crypto";
-import { tableScene, patchScene, toolScene, outlineScene, editorialScene, galleryScene, viewerScene, writingScene, ledgerScene, permissionScene } from "./design_scenes.mjs";
+import { tableScene, patchScene, toolScene, outlineScene, editorialScene, galleryScene, viewerScene, writingScene, ledgerScene, permissionScene, historyScene } from "./design_scenes.mjs";
 
 test("workspace composition, appearances and narrow Details",async({app,browser})=>{
   test.setTimeout(60000);
@@ -322,6 +322,8 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
   checks["execution ledger preserves reported outcomes, source input and independent result expansion"]=true;
   await permissionScene(app,capture,expect);
   checks["permission review preserves exact structured source, equal choices and addressed answers"]=true;
+  await historyScene(app,capture,expect);
+  checks["saved replies share document typography and retain exact source copy"]=true;
   const sources={};
   for(const name of (await readdir(ui)).sort()){
     const file=resolve(ui,name);

@@ -1,4 +1,5 @@
 import { resumeReason } from "./session_controls.mjs";
+import { renderDocument } from "./transcript.mjs";
 export const historyName=record=>record.name??((record.purpose==="roadmap"?"Planning in ":"Conversation in ")+record.workspace.split(/[\\/]/).filter(Boolean).at(-1));
 export function matchesHistory(record,query) {
   const words=query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
@@ -23,6 +24,7 @@ export class HistoryBrowser {
       (this.returnToComposer?this.$("draft"):this.$("saved-conversations")).focus();
     };
     this.$("history-resume").onclick=()=>this.resumeCurrent();
+    this.$("history-copy").onclick=()=>navigator.clipboard.writeText(this.current?.summary??"").catch(error=>this.error(error));
   }
   error(error) {this.$("history-error").textContent=error?.message??String(error);this.$("history-error").hidden=false;}
   async open() {
@@ -86,7 +88,11 @@ export class HistoryBrowser {
     }));
     const saved=text("time",new Date(record.ended_at??record.updated_at).toLocaleString());saved.dateTime=record.ended_at??record.updated_at;
     this.$("history-saved-date").replaceChildren(document.createTextNode(record.ended_at?"Finished ":"Last saved "),saved);
-    this.$("history-text").textContent=record.summary??"No reply summary was saved.";
+    this.$("history-copy").disabled=!record.summary;
+    if(record.document)renderDocument(this.$("history-text"),record.document.nodes,
+      destination=>this.invoke("open_link",{destination}).catch(error=>this.error(error)),
+      value=>navigator.clipboard.writeText(value).catch(error=>this.error(error)));
+    else this.$("history-text").textContent="No reply summary was saved.";
   }
   update() {
     this.$("history-refresh").disabled=this.loading||this.resuming||this.closing;

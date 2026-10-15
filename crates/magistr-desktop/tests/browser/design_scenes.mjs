@@ -226,3 +226,30 @@ export async function permissionScene(app,capture,expect){
   const action=await app.evaluate(()=>window.__fixture.calls.filter(call=>call.command==="session_action").at(-1));
   expect(action.args).toMatchObject({target:{address:{session:"sync"}},action:{action:"answer",id:811,option_id:"deny"}});
 }
+export async function historyScene(app,capture,expect){
+  await app.setViewportSize({width:1280,height:820});
+  const source="## Ready to review\n\nThe draft stays with its conversation.\n\n- Check the installer.\n- Keep the previous build available.";
+  await app.evaluate(source=>{const record=window.__fixture.history[0];record.summary=source;record.document={nodes:[
+    {tag:"h2",start:0,text:"Ready to review"},
+    {tag:"p",start:20,text:"The draft stays with its conversation."},
+    {tag:"ul",start:60,children:[{tag:"li",start:60,text:"Check the installer."},{tag:"li",start:84,text:"Keep the previous build available."}]}
+  ]};},source);
+  for(const theme of ["dark","light"]){
+    await app.getByRole("button",{name:"Settings",exact:true}).click();
+    await app.getByLabel("Appearance",{exact:true}).selectOption(theme);
+    await app.getByRole("button",{name:"Done",exact:true}).click();
+    await app.getByRole("button",{name:"Saved conversations",exact:true}).click();
+    await expect(app.locator("#history-text h2")).toHaveText("Ready to review");
+    await expect(app.locator("#history-text li")).toHaveCount(2);
+    await app.locator(".saved-reply").evaluate(node=>node.scrollIntoView({block:"start"}));
+    await app.getByRole("button",{name:"Copy saved reply",exact:true}).click();
+    expect(await app.evaluate(()=>window.__fixture.copied)).toBe(source);
+    await capture("saved-document-"+theme+".png");
+    if(theme==="light"){
+      await app.setViewportSize({width:760,height:550});
+      await app.locator(".saved-reply").evaluate(node=>node.scrollIntoView({block:"start"}));
+      await capture("saved-document-compact.png");
+    }
+    await app.getByRole("button",{name:"Close saved conversations",exact:true}).click();
+  }
+}

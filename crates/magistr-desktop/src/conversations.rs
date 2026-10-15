@@ -43,6 +43,7 @@ pub(crate) struct SavedConversation {
     updated_at: String,
     ended_at: Option<String>,
     summary: Option<String>,
+    document: Option<crate::document::Document>,
     cost: String,
     turns: String,
     resume_reason: Option<String>,
@@ -71,6 +72,10 @@ fn saved(record: SessionRecord, available: &[AgentRuntime]) -> SavedConversation
         model: record.model,
         updated_at: record.updated_at.to_rfc3339(),
         ended_at: record.ended_at.map(|date| date.to_rfc3339()),
+        document: record
+            .summary
+            .as_deref()
+            .map(crate::document::Document::parse),
         summary: record.summary,
         resume_reason,
     }

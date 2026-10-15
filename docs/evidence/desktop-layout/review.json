@@ -1,5 +1,5 @@
 {
-  "receipt": "46174a38370d2e01c22787ce1fea38096c0e6b16462d32b49de00326d8e91397",
+  "receipt": "6b319de7adfe8e54774611b147abb431f078613dca46c8a84387ea1474eb6da1",
   "images": {
     "welcome-dark.png": "fa0bb2c36a671c5e08dba931c55cda81c8fdf959ab927aacaa1ff7aa5194bddc",
     "welcome-light.png": "c1adcd1c321a6da7d82c2a3f9ba9ddae55484c9a3f79799b8793f287cf11b30a",
@@ -16,10 +16,10 @@
     "work-paused-dark.png": "5e0a330aca83878ae91a734fb250fc48d56be48d9328d3672b944ac8e5ea0bdc",
     "inspector-dark.png": "282f8f8e3d82d3ffbb7c186f14b37f2cba9dab7cfdc758373b0bca9a2df68794",
     "inspector-unknown-dark.png": "0f495452367554353620ef068d70bc62768f48f2d03d4f1622c636b040a5b9d2",
-    "history-dark.png": "ab3f31a651b1cea6e16fcf235c0bdb25c14375d61564ae44229d151aeaa12281",
-    "history-reading-dark.png": "3206e10431dc85afc3c4a8e6e55b0ac120a2524ee038d314fb1490d5c3d58e9f",
-    "history-narrow-light.png": "6554b664e8ca2beb5df93758843602ece8f26f58b83a3d938100553376d67306",
-    "history-reading-narrow-light.png": "d47acdb54399ef63cc5fbe4e5e6a74cc2abaaef37efd4cf9b3480962913681c9",
+    "history-dark.png": "0cc95ba6e77048b984e3201d83e370625d3aaba5a4d868a0d45b422ca41a3ee7",
+    "history-reading-dark.png": "91985413f4933781e1ea3c18efcc23223f039cd70a374bc7632ab1ea99dbc4b8",
+    "history-narrow-light.png": "a88ae817281ee44d181f2aabf4cb1bd84b473c15a769d37218f0a582bd61be58",
+    "history-reading-narrow-light.png": "e06a05febf4c7bc1f2960a8afa7ce7c908f28fdf7d465ac7f624d69d485b90b3",
     "setup-narrow-light.png": "5d4fc6f737e28ba262a9953d5d2e23e43c181f93c741f3757b0cd3566b7ed045",
     "open-project-dark.png": "078f6a3b4c3969ac4233905da30c3cf4187265e7131815031a18bea4b92f39cf",
     "setup-dark.png": "342171b3aef766854654e698c330af893289916b68a5da9ef34661b736bfe84b",
@@ -77,12 +77,15 @@
     "execution-compact.png": "1bd9786904532bc542af4a2915dbdd4040c71137fe0e9efaea7bff78d100dd1f",
     "permission-dark.png": "10bde1717ca5a375de3eadaba759016497648451b405f53e900dc8b564351512",
     "permission-light.png": "915aba75d00332a2af0dc01e44a122f539f68cf6cc2c7a12d9e3be37b6c26a86",
-    "permission-compact.png": "e5bbe69adc5750950ea0520cc5698623773a782f6e3351595a589c39a26603b9"
+    "permission-compact.png": "e5bbe69adc5750950ea0520cc5698623773a782f6e3351595a589c39a26603b9",
+    "saved-document-dark.png": "e235844d0693382cd046ea2a340973a60bb022b0bd0343a4aee4a26d8b2cfbcb",
+    "saved-document-light.png": "d8155fdb8dcc48e2f726dac6a5fe7cdb5e71c350b889c46e9f177d9f76a17c93",
+    "saved-document-compact.png": "08f2d13d043cfc6894adfe18954d38f3541e445616b0d46f9ecc67c87102148d"
   },
   "reviewed_on": "2026-10-15",
   "findings": [
-    "Agent and model choices now sit in parallel visual columns; actual discovered models use native radio choices with complete names.",
-    "Reviewed dark agent selection and compact light model selection. The fixed start/cancel footer remains reachable while long choices scroll.",
-    "Discovery, stale results, refusal recovery and single admission tests pass with the new radio choice surface."
+    "Saved conversations now present a distinct reading sheet and use the same bounded Rust document projection and renderer as live replies.",
+    "Reviewed rich saved headings, paragraphs and lists in dark and compact light; exact-source copying and saved-draft ownership remain intact.",
+    "The focused saved-conversation Rust test, formatting and six WebKit scenarios pass. The binary test target was used after correcting an invalid initial --lib invocation."
   ]
 }
