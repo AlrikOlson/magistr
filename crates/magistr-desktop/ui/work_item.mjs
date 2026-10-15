@@ -31,11 +31,11 @@ function renderItem(item,actions){
     else article.append(element("h4",section.heading));
     if(section.list?.length){
       const list=element("ul","","roadmap-checklist");
-      for(const entry of section.list){const row=element("li");if(entry.done!=null)row.append(element("span",entry.done?"Completed":"To do","roadmap-checklist-state"));row.append(element("span",entry.text));list.append(row);}
+      for(const entry of section.list){const row=element("li");if(entry.done!=null){const state=element("span",entry.done?"✓":"○","roadmap-checklist-state");state.setAttribute("role","img");state.setAttribute("aria-label",entry.done?"Completed":"To do");state.title=entry.done?"Completed":"To do";state.dataset.done=String(entry.done);row.append(state);}row.append(element("span",entry.text));list.append(row);}
       article.append(list);
     }
   }
-  const requirements=element("section","","roadmap-requirements");requirements.append(element("h4","Requirements"));
+  const requirements=element("section","","roadmap-requirements"),requirementsHead=element("header");requirementsHead.append(element("h4","Requirements"),element("span",String(record.acceptance.length),"work-record-count"));requirements.append(requirementsHead);
   const list=element("ol");
   for(const [index,value] of record.acceptance.entries()){const row=element("li","","message-body");row.dataset.reading=record.id+":requirement:"+index;renderDocument(row,item.requirements[index].nodes,actions.openLink,actions.copy);list.append(row);}
   requirements.append(record.acceptance.length?list:element("p","No requirements have been recorded."));article.append(requirements);
