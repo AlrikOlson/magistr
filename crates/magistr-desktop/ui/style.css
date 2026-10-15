@@ -276,13 +276,15 @@ textarea::placeholder,input::placeholder{color:var(--muted);opacity:1}
 @media(forced-colors:active){.attempt-mark[data-current=true]{border:2px solid Highlight;color:Highlight}}
 .work-actions{display:flex;flex-wrap:wrap;gap:8px;padding-top:4px}.work-actions button{flex:1 1 110px;font-size:12px;padding:10px 12px;text-align:center;justify-content:center;min-height:40px}#work-resume,#work-pause{flex-basis:100%}#work-abort{color:var(--danger);background:transparent;border-color:color-mix(in srgb,var(--danger) 35%,transparent)}#work-next,#work-resume{background:var(--button);color:var(--button-text);border-color:var(--button)}
 #requests:empty{display:none}
-.request{display:grid;gap:20px;padding:24px 0;border-top:1px solid var(--separator);margin-bottom:24px}
+.request{display:grid;gap:20px;padding:20px;border:1px solid var(--line);border-radius:12px;background:var(--base);margin-bottom:24px}
+.request-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}.request-heading h2{margin:0}.request-position{color:var(--muted);font:11px var(--font-code);white-space:nowrap}
 .request:last-child{margin-bottom:0}.request h2{color:var(--warning)}.request h2[data-leading-icon]::before{color:var(--warning)}
 .request h3{font-size:24px;font-weight:600;line-height:1.25;letter-spacing:-.035em;margin:0;overflow-wrap:anywhere;max-width:32ch}
-.request-detail{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:2;font:12px/1.8 var(--font-code);padding:16px;border:1px solid var(--separator);border-radius:4px;background:var(--panel);margin:0;max-height:min(32dvh,300px);overflow:auto;scroll-padding:16px}
-.request-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:10px}
-.request-actions button{display:flex;align-items:center;justify-content:center;width:100%;padding:11px 14px;min-height:44px;font-size:13px;line-height:1.4;text-align:center;background:var(--base);border-color:var(--line)}
-.request-actions button:hover{background:var(--panel)}.request-actions button:disabled{color:var(--muted)}
+.request-source{margin:0;border:1px solid var(--separator);border-radius:6px;overflow:hidden}.request-source figcaption{padding:9px 12px;background:var(--panel);border-bottom:1px solid var(--separator);color:var(--muted);font-size:11px;font-weight:600}
+.request-detail{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:2;font:12px/1.8 var(--font-code);padding:12px;border:0;border-radius:0;background:var(--base);margin:0;max-height:min(32dvh,300px);overflow:auto;scroll-padding:16px}
+.request-actions{display:grid;grid-template-columns:1fr;gap:8px}
+.request-actions button{display:flex;align-items:center;justify-content:space-between;width:100%;padding:11px 14px;min-height:44px;font-size:13px;line-height:1.4;text-align:center;background:var(--base);border-color:var(--line)}
+.request-choice-arrow{color:var(--muted);font-size:18px;margin-left:12px}.request-actions button:hover{background:var(--panel);border-color:var(--focus)}.request-actions button:disabled{color:var(--muted)}
 .session-actions{display:grid;gap:8px}.session-actions button{font-size:12px}
 .error{padding:10px 14px;color:var(--danger);background:var(--panel);border-bottom:1px solid var(--separator);overflow-wrap:anywhere;font-size:13px}
 .welcome{margin:0 auto;width:min(100%,1320px);padding:32px var(--gutter);overflow:auto}

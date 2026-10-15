@@ -356,20 +356,25 @@ function render(frame) {
   $("reconnect").disabled=frame.closed||frame.status!=="Connection lost"||frame.activity?.can_resume!==true;
   $("reconnect").hidden=$("reconnect").disabled;
   const pendingKey=JSON.stringify([frame.target,view.pending]);
-  if(pendingKey!==requestsKey) {$("requests").replaceChildren(...view.pending.map(request=>{
+  if(pendingKey!==requestsKey) {$("requests").replaceChildren(...view.pending.map((request,index)=>{
     const section=document.createElement("section");section.className="request";section.dataset.request=String(request.id);section.tabIndex=-1;section.setAttribute("aria-label","Request: "+request.title);
     const heading=text("h2","Waiting for you");heading.dataset.leadingIcon="shield";
-    section.append(heading,text("h3",request.title));
+    const banner=text("div","");banner.className="request-heading";
+    const position=text("span",String(index+1).padStart(2,"0")+" / "+String(view.pending.length).padStart(2,"0"));position.className="request-position";position.setAttribute("aria-label","Request "+(index+1)+" of "+view.pending.length);
+    banner.append(heading,position);section.append(banner,text("h3",request.title));
     if(request.detail){
-      const details=text("pre",request.detail);details.className="request-detail";details.tabIndex=0;details.setAttribute("aria-label","Request details");section.append(details);
+      const details=text("pre",request.detail);details.className="request-detail";details.tabIndex=0;details.setAttribute("aria-label","Request details");const figure=text("figure","");figure.className="request-source";figure.append(text("figcaption","Details"),details);section.append(figure);
     }
     const actions=text("div","");actions.className="request-actions";actions.setAttribute("role","group");actions.setAttribute("aria-label","Answer this request");
-    for(const choice of request.choices) actions.append(button(choice.label,async event=>{
+    for(const choice of request.choices) {
+      const answer=button(choice.label,async event=>{
       const target=frame.target;const trigger=event.currentTarget;
       trigger.disabled=true;
       try {await invoke("session_action",{target,action:{action:"answer",id:request.id,option_id:choice.option_id}});}
       catch(error){trigger.disabled=false;contextError(target,error);}
-    }));
+      });
+      const arrow=text("span","→");arrow.className="request-choice-arrow";arrow.setAttribute("aria-hidden","true");answer.append(arrow);actions.append(answer);
+    }
     section.append(actions);return section;
   }));requestsKey=pendingKey;}
   if(view.requestId!==null) {
