@@ -32,6 +32,7 @@ desktop workspace. Companion Rust tests live beside their owners.
 - `crates/magistr-desktop/src/workflow.rs` — addressed on-demand workflow reads from the session owner.
 - `crates/magistr-desktop/ui/work_browser.mjs` — refresh, address guards and current-plan reading.
 - `crates/magistr-desktop/ui/work_records.mjs` — authored work and observation-state presentation.
+- `crates/magistr-desktop/ui/work_runs.mjs` — stable current/saved execution selection.
 
 - `crates/magistr-cockpit-runtime/src/channel/arrivals.rs`
 - `crates/magistr-cockpit-runtime/src/channel/commands.rs`

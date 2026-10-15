@@ -6,10 +6,13 @@
 .work-browser-tools{display:flex;align-items:center;gap:16px;padding:12px 30px;background:var(--panel);border-bottom:1px solid var(--separator);flex-shrink:0}
 #work-browser-state{font-size:12px;line-height:1.6;margin:0;flex:1;white-space:pre-wrap}
 #work-browser-state[data-current=false]{color:var(--warning)}
+.work-run-selection{display:flex;align-items:center;gap:20px;padding:12px 30px;border-bottom:1px solid var(--separator);flex-shrink:0;background:var(--base)}
+.work-run-selection label{font-size:12px;white-space:nowrap}.work-run-selection select{min-width:0;flex:1;font-size:12px}
 #work-browser-content{overflow:auto;min-height:0;padding:28px 36px 40px;scrollbar-gutter:stable}
 .work-record{max-width:780px;margin-inline:auto;overflow-wrap:anywhere}
 .work-record-heading{border-bottom:1px solid var(--separator);padding-bottom:24px;margin-bottom:26px}
 .work-record-heading h3{font:500 28px/1.35 Newsreader,serif;white-space:pre-wrap;margin:12px 0 0}
+.work-record-dates{display:flex;flex-wrap:wrap;gap:20px;margin:18px 0 0;font-size:11px;color:var(--muted)}.work-record-dates dt{display:inline}.work-record-dates dd{display:inline;margin-left:6px}
 .work-record-status{font:600 11px/1.5 Manrope,sans-serif;color:var(--accent)}
 .work-record-section{margin-block:28px}
 .work-record-section>h3{font-size:14px;margin:0 0 12px}
@@ -26,4 +29,6 @@
 .work-tasks .work-record-warning{color:var(--warning)}
 .work-record-empty{padding:28px;color:var(--muted)}
 #browse-work{width:100%;margin-bottom:16px}
-@media(max-width:800px){#work-browser{width:calc(100vw - 24px);max-height:calc(100dvh - 24px)}.work-browser-heading{padding:18px 22px}.work-browser-tools{padding:10px 22px}#work-browser-content{padding:24px 22px}.work-task-heading{display:block}.work-task-heading span{display:block;margin-top:8px}}
+@media(max-width:800px){#work-browser{width:calc(100vw - 24px);max-height:calc(100dvh - 24px)}.work-browser-heading{padding:18px 22px}.work-browser-tools{padding:10px 22px}.work-run-selection{display:flex;align-items:center;gap:20px;padding:12px 30px;border-bottom:1px solid var(--separator);flex-shrink:0;background:var(--base)}
+.work-run-selection label{font-size:12px;white-space:nowrap}.work-run-selection select{min-width:0;flex:1;font-size:12px}
+#work-browser-content{padding:24px 22px}.work-task-heading{display:block}.work-task-heading span{display:block;margin-top:8px}}

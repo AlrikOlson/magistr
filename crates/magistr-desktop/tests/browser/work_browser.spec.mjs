@@ -52,6 +52,36 @@ test("missing, unreadable and failed refresh remain distinct",async({app})=>{
   await expect(app.locator("#work-browser-state")).toContainText("Could not read work records.");
   await expect(app.getByRole("button",{name:"Refresh",exact:true})).toBeEnabled();
 });
+test("saved work keeps its own tasks across new current work and deletion",async({app})=>{
+  await open(app);
+  const picker=app.getByLabel("Work to inspect",{exact:true});
+  await picker.selectOption("run:previous-run");
+  await expect(app.getByRole("heading",{name:"Improve project reopening",exact:true})).toBeVisible();
+  await expect(app.locator(".work-tasks>li").first()).toHaveAttribute("data-task","earlier-review");
+  await expect(app.locator("#work-browser-content")).toContainText("Finished");
+  await app.evaluate(()=>{
+    const fixture=window.__fixture,ship=fixture.workflow.ship.data.value;
+    ship.retained.push(ship.current);ship.current=structuredClone(ship.current);
+    ship.current.run_id="new-run";ship.current.objective.description="A new objective";
+    fixture.publish("release",{workflow_revision:1});
+  });
+  await expect(app.getByRole("heading",{name:"Improve project reopening",exact:true})).toBeVisible();
+  await expect(picker).toHaveValue("run:previous-run");
+  await picker.selectOption("current");
+  await expect(app.getByRole("heading",{name:"A new objective",exact:true})).toBeVisible();
+  await picker.selectOption("run:previous-run");
+  await app.evaluate(()=>{
+    window.__fixture.workflow.ship.data.value.retained=[];
+    window.__fixture.publish("release",{workflow_revision:2});
+  });
+  await expect(app.locator("#work-browser-content")).toContainText("This saved work is no longer available.");
+  await expect(picker).toHaveValue("run:previous-run");
+  await picker.focus();await expect(picker).toBeFocused();
+  // WebKit headless does not drive the OS select popup. Use DOM selection here.
+  await picker.selectOption("current");
+  await expect(picker).toHaveValue("current");
+  await expect(app.getByRole("heading",{name:"A new objective",exact:true})).toBeVisible();
+});
 test("closed readers ignore late responses",async({app})=>{
   await app.getByRole("button",{name:"Review the release plan",exact:true}).click();
   await app.evaluate(()=>window.__fixture.handlers.read_workflow=args=>new Promise(resolve=>window.__fixture.finishRead=()=>resolve({address:args.address,revision:0,snapshot:window.__fixture.workflow})));
