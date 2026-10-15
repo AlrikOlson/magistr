@@ -383,6 +383,14 @@ show prerequisites, dependents and proposed values beside actual saved values;
 viewing a suggestion never applies it. Reasoning reads complete default and named
 histories, investigation membership, dependencies and revisions, with project-wide
 step references and exact source copying. Branch copies are not counted twice.
+The reasoning overview arranges the current page in investigation lanes with
+outcome previews. SVG connectors project only recorded branch origins, conclusions,
+revisions and dependencies; adjacency alone never creates an edge. Semantic step
+buttons and labeled relationship links remain the interaction surface. A single
+view-owned resize observer updates disposable geometry and is cleared before
+replacement. Selected decisions lead with the full outcome and related steps,
+then complete context, rationale and reasoning. Investigation origin/conclusion
+links preserve the filtered map and exact focus on return.
 Feedback includes full authored context, append-only research and sources, kind
 and status filters, and exact references to roadmap, reasoning and other feedback.
 An ambiguous unqualified execution reference remains explicitly unresolved.

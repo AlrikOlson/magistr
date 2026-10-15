@@ -45,6 +45,7 @@ desktop workspace. Companion Rust tests live beside their owners.
 - `crates/magistr-desktop/ui/work_feedback_search.mjs` — complete feedback search and saved kind/status filters.
 - `crates/magistr-desktop/ui/work_feedback_research.mjs` — append-only research notes, reported confidence and source references.
 - `crates/magistr-desktop/ui/work_feedback.mjs` — complete feedback browsing and stable record details.
+- `crates/magistr-desktop/ui/work_reasoning_map.mjs` — disposable investigation-lane geometry over recorded relationships and semantic step buttons.
 - `crates/magistr-desktop/ui/work_reasoning.mjs` — complete reasoning sessions, step selection and pages.
 - `crates/magistr-desktop/ui/work_reasoning_step.mjs` — complete authored reasoning fields and exact copying.
 - `crates/magistr-desktop/ui/work_search.mjs` — complete-record matching and bounded result pages.

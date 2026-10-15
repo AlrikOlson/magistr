@@ -9,7 +9,7 @@ export function reasoningLinks(step,sessions,navigate){
   for(const record of records)for(const edge of record.step.dependencies??[])if(dependencyNumber(edge)===step.step_number)links.push([({supports:"Supported by",refutes:"Refuted by",depends_on:"Required by"})[edge.relation]??"Referenced by",record.step.step_number]);
   const section=element("section","","roadmap-relations reasoning-links");section.setAttribute("aria-label","Related reasoning");section.append(element("h4","Related reasoning"));
   if(!links.length){section.append(element("p","No related steps were recorded."));return section;}
-  const list=element("ul");
+  const list=element("ul","","reasoning-relation-cards");
   for(const [index,[label,number]] of links.entries()){
     const record=byNumber.get(number),row=element("li");row.append(element("span",label,"roadmap-relation-state"));
     if(record){const button=element("button",record.step.purpose);button.dataset.focusKey="related-step:"+index+":"+number;button.onclick=()=>navigate(record,button.dataset.focusKey);row.append(button);}

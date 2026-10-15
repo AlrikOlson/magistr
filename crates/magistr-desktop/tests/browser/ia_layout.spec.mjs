@@ -307,3 +307,14 @@ test("32 roadmap board makes readiness and dependency navigation tangible",async
   await app.getByRole("region",{name:"Required work",exact:true}).getByRole("button",{name:"Store conversations and drafts",exact:true}).click();await expect(app.getByRole("heading",{name:"Store conversations and drafts",exact:true})).toBeVisible();
   for(const theme of ["dark","light"]){await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);await capture(app,"32-dependent-"+theme);}
 });
+test("33 reasoning maps investigations and recorded links with complete evidence",async({app})=>{
+  await openWork(app,"Reasoning");await expect(app.locator(".reasoning-connection")).toHaveCount(2);
+  await expect(app.locator(".reasoning-map-lane h4")).toHaveText(["Main reasoning","Does reopening need another saved message?"]);
+  for(const [width,height,size] of [[1280,820,"wide"],[760,550,"compact"]]){await app.setViewportSize({width,height});for(const theme of ["dark","light"]){await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);await capture(app,"33-map-"+size+"-"+theme);}}
+  await app.getByRole("button",{name:"Keep each conversation with its saved message",exact:true}).click();
+  await expect(app.locator(".reasoning-step")).toContainText("Keep one writer and restore the recorded text.");
+  for(const theme of ["dark","light"]){await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);await capture(app,"33-decision-"+theme);await app.locator(".reasoning-evidence").scrollIntoViewIfNeeded();await capture(app,"33-evidence-"+theme);await app.locator("#work-browser-content").evaluate(node=>node.scrollTop=0);}
+  await app.getByRole("region",{name:"Related reasoning",exact:true}).getByRole("button",{name:"Inspect the installation result",exact:true}).click();await expect(app.getByRole("heading",{name:"Inspect the installation result",exact:true})).toBeFocused();
+  await app.getByRole("button",{name:"Back to previous step",exact:true}).click();await app.getByRole("button",{name:"Back to reasoning",exact:true}).click();
+  await app.getByLabel("Investigation",{exact:true}).selectOption("branch:storage");await capture(app,"33-investigation");await app.locator(".reasoning-investigation").getByRole("button",{name:"Step 41",exact:true}).first().click();await expect(app.getByRole("heading",{name:"Keep each conversation with its saved message",exact:true})).toBeFocused();await app.getByRole("button",{name:"Back to reasoning",exact:true}).click();await expect(app.getByLabel("Investigation",{exact:true})).toHaveValue("branch:storage");
+});
