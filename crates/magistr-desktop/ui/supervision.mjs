@@ -8,9 +8,13 @@ export class Catalog {
   }
   waiting(){return this.sessions.flatMap(session=>session.pending.map(request=>({address:session.address,...request})));}
 }
-export function usageText(usage) {
-  const context=usage?.used!=null&&usage?.size!=null?usage.used.toLocaleString()+" / "+usage.size.toLocaleString()+" context tokens":"Context use not reported";
-  return context+" · "+(usage?.cost_cents==null?"Spending not reported":"$"+(usage.cost_cents/100).toFixed(2));
+export function usagePresentation(usage) {
+  const known=usage?.used!=null&&usage?.size>0;
+  return {
+    context:known?usage.used.toLocaleString()+" / "+usage.size.toLocaleString()+" tokens":"Context use not reported",
+    percent:known?Math.round(usage.used/usage.size*100)+"%":"Not reported",
+    spending:usage?.cost_cents==null?"Not reported":"$"+(usage.cost_cents/100).toFixed(2)
+  };
 }
 export function capabilityText(activity) {
   if(activity?.can_resume==null||activity?.can_send_images==null)return "Agent features are unavailable.";
