@@ -1,5 +1,5 @@
 {
-  "receipt": "41d8bf4e2254b0db97ac5a0626595e671b652304db65d54b022713e5d77cd300",
+  "receipt": "174afeaf47d92fba02376d75a7ef922e3cebf863d196ee4f0e19be6825656cf3",
   "images": {
     "welcome-dark.png": "dbeb5de57311812ef5a669f046708a23927e7504e74d686194bb801dfd5b8dff",
     "welcome-light.png": "c77e2e937e8f1e98e3061d94a5bb15c40abbcda679712e2d99ed503e54c54991",
@@ -33,9 +33,9 @@
     "code-light.png": "88e1226487888ba4ac39f15c49587c365bcbc0261b3ddc07b082cc3fb2155515",
     "tools-light.png": "a8614b0be9b948dab1ba591539095aef46bcce21b06eadce8de3c23c19a447e7",
     "tools-dark.png": "38f77fdbc732c75fdd847281e4b060deca65d9cfde1f3ad41f738b4a6a97dcb0",
-    "attachments-dark.png": "045583a42e5ba3335d55cd4a6a09d189327399270121e5b108898ef64d861979",
+    "attachments-dark.png": "e7a4ef133f8e8c06bdf3d0e1708bc92a7e7bf5b18229a128df314c595536f1cb",
     "image-inspection-dark.png": "2bd0507ddc7cf102c12225db1fff741d4b39f56973edbc565e0185c7e17a3311",
-    "attachments-narrow-light.png": "c0c999a41f812a5463deb5005e990a2e725563c14c0b3a069a5501208aea728e",
+    "attachments-narrow-light.png": "f01928da4fde56b91e54dca230f58a4277c5d1347e4ad3d4cb9b6e1c329c1b3c",
     "request-narrow-light.png": "cb72a0a32dea45a851309596729d72fb59b5c024c49053530df02119ee42b544",
     "request-dark.png": "3eb198add49e96889a7c59d6ef2b5245ed3224de5e582fe09381d7bdfc2e8447",
     "minimum-workspace-dark.png": "92813cc7b60fee6f0749b733fc36f30c5633ad068062dc7c0141af207570ae57",
@@ -62,12 +62,15 @@
     "contents-compact.png": "818729570c896b6615bfc328b240e7b2051926ac5b68245183724b6caa809699",
     "editorial-dark.png": "d9ada606f5dfd8162b8f8f0b4b0d5f9d58310187ffcd8360409acf494e4f8a89",
     "editorial-light.png": "ba26a2abc7a326fc8d35ac75035b8365cded6ac246d0af5bf0801520d2c2033b",
-    "editorial-compact.png": "56d67f3debbd5fb1251e5eb38fcde8bc94aee8ce0744907874cb2a1a8f9b3387"
+    "editorial-compact.png": "56d67f3debbd5fb1251e5eb38fcde8bc94aee8ce0744907874cb2a1a8f9b3387",
+    "gallery-dark.png": "a998fb4ab5e3d379a90ddf45eab5e45f5e3e8dcaa4167c2f724107b1717ef2ed",
+    "gallery-light.png": "be7b0b0474f5e375419c7c26d511333e4a3c2bdef04356190a6216ca5f67d211",
+    "gallery-compact.png": "4d92eda9cb8b4d00862c8be003c9eff2327c6d082728842dfa3fd585e3927794"
   },
   "reviewed_on": "2026-10-15",
   "findings": [
-    "6/20: Reviewed serif quotations, separate nested-list rhythm and authored completion markers in dark/light and compact layouts. The quote remains selectable source text.",
-    "Six focused Rust document tests, current WebKit composition journey, desktop formatting and Clippy pass. Task markers have semantic completed/not-completed labels and no misleading editable control.",
-    "Reviewed affected reading and code captures. Native OS input and assistive technology were not rerun."
+    "7/20: Reviewed sent-file contact sheets with contained image thumbnails, document excerpts, filename captions and separate size/path metadata in dark/light and compact windows.",
+    "The visual review exposed an intrinsic image-size overflow; corrected the owning thumbnail layout and added a bounding-box assertion. Four attachment identity/paste tests and three WebKit scenarios pass.",
+    "Image inspection, unavailable previews and source focus remain intact. Native OS input and assistive technology were not rerun."
   ]
 }
