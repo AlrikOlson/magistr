@@ -353,3 +353,74 @@ fn failed_session_reads_retain_the_previous_sessions_identity_until_recovery() {
     assert_eq!(recovered.value.steps[0].thought, "Evidence from beta");
     assert!(observer.think_step(1).unwrap().is_none());
 }
+
+#[test]
+fn complete_execution_history_survives_new_work_and_failed_reads() {
+    use crate::native::{TaskType, VerificationMode};
+    let (_temp, config, writer) = fixture();
+    writer
+        .ship_set_objective_with_verification(
+            "Finished work".into(),
+            vec![],
+            vec![],
+            "first".into(),
+            VerificationMode::Focused,
+        )
+        .unwrap();
+    writer
+        .ship_add_task("verify".into(), "Verify it".into(), TaskType::Test, None)
+        .unwrap();
+    writer.ship_start_task("verify").unwrap();
+    let check = writer
+        .ship_record_gate(
+            Some("verify"),
+            "focused",
+            "true".into(),
+            0,
+            "actual result".into(),
+            true,
+            None,
+        )
+        .unwrap()
+        .value;
+    writer.ship_complete_task("verify", vec![]).unwrap();
+    writer.ship_finalize(vec![], None).unwrap();
+    let reader = NativeReader::open_for_project(&config, "workstream-read".into());
+    let previous = reader.ship_snapshot().unwrap().current.unwrap();
+    writer
+        .ship_set_objective_with_verification(
+            "Next work".into(),
+            vec![],
+            vec![],
+            "first".into(),
+            VerificationMode::Focused,
+        )
+        .unwrap();
+    let reopened = NativeReader::open_for_project(&config, "workstream-read".into());
+    assert_eq!(
+        reopened.ship_run(&previous.run_id).unwrap(),
+        Some(previous.clone())
+    );
+    assert!(reopened.ship_run("absent").unwrap().is_none());
+    assert_eq!(reopened.ship_tasks().unwrap().len(), 0);
+    let receipt = reopened
+        .ship_receipt(check.receipt_id.as_ref().unwrap())
+        .unwrap()
+        .unwrap();
+    assert_eq!(receipt.target.run_id, previous.run_id);
+    let path = config
+        .persistence_config()
+        .data_dir
+        .join("ship")
+        .join("executions")
+        .join(config.execution_context().key())
+        .join("sessions")
+        .join("workstream-read.json");
+    let bytes = std::fs::read(&path).unwrap();
+    std::fs::write(&path, b"invalid").unwrap();
+    assert!(reopened.ship_run(&previous.run_id).is_err());
+    assert!(reopened.ship_run("absent").is_err());
+    assert!(reopened.ship_receipt(&receipt.id).unwrap().is_some());
+    std::fs::write(&path, bytes).unwrap();
+    assert_eq!(reopened.ship_run(&previous.run_id).unwrap(), Some(previous));
+}

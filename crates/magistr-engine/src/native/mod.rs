@@ -107,7 +107,7 @@ pub use magistr_frame::MagistrFrame;
 pub use magistr_workflow::think::ConfigSource;
 pub use magistr_workflow_contracts::{
     NativeSnapshot, Observed, ReadError, ReadErrorKind, ReadSource, ReadState, RoadmapData,
-    ShipData, StoreStamp, ThinkData,
+    ShipData, ShipRun, StoreStamp, ThinkData,
 };
 pub use mcp_acceptor::McpAcceptor;
 pub use native_config::NativeConfig;

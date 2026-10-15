@@ -354,8 +354,17 @@ impl NativeReader {
             .value)
     }
 
+    /// Resolve a selected or retained execution by its stable run identity.
+    /// Missing work is distinct from a failed owner read.
+    pub fn ship_run(
+        &self,
+        run_id: &str,
+    ) -> Result<Option<magistr_workflow_contracts::ShipRun>, String> {
+        Ok(self.ship_snapshot()?.run(run_id).cloned())
+    }
+
     pub fn ship_objective(&self) -> Result<Option<Objective>, String> {
-        Ok(self.ship_snapshot()?.objective)
+        Ok(self.ship_snapshot()?.current.map(|run| run.objective))
     }
 
     pub fn ship_active_task_id(&self) -> Result<Option<String>, String> {
@@ -373,7 +382,10 @@ impl NativeReader {
     }
 
     pub fn ship_tasks(&self) -> Result<Vec<Task>, String> {
-        Ok(self.ship_snapshot()?.tasks)
+        Ok(self
+            .ship_snapshot()?
+            .current
+            .map_or_else(Vec::new, |run| run.tasks))
     }
 
     // ── Signal ─────────────────────────────────────────────────────────

@@ -575,15 +575,15 @@ fn repeated_validated_reads_pick_up_another_writers_changes() {
         host.roadmap_next().unwrap().map(|c| c.id).as_deref(),
         Some("only-on-disk")
     );
-    assert_eq!(host.ship_snapshot().unwrap().tasks.len(), 1);
+    assert_eq!(host.ship_snapshot().unwrap().tasks().len(), 1);
 
     assert_eq!(
         host.roadmap_next().unwrap().map(|c| c.id).as_deref(),
         Some("only-on-disk")
     );
-    assert_eq!(host.ship_snapshot().unwrap().tasks.len(), 1);
+    assert_eq!(host.ship_snapshot().unwrap().tasks().len(), 1);
     assert_eq!(
-        host.ship_snapshot().unwrap().objective.unwrap().scope,
+        host.ship_snapshot().unwrap().objective().unwrap().scope,
         "chunk:only-on-disk"
     );
 }
@@ -955,26 +955,28 @@ fn a_snapshot_reads_every_family_whole_with_its_source() {
             .current()
             .unwrap()
             .value
-            .objective
+            .objective()
             .as_ref()
             .map(|o| o.scope.as_str()),
         Some("chunk:base")
     );
-    assert_eq!(snapshot.ship.current().unwrap().value.tasks.len(), 1);
+    assert_eq!(snapshot.ship.current().unwrap().value.tasks().len(), 1);
     assert_eq!(
-        snapshot.ship.current().unwrap().value.tasks[0]
+        snapshot.ship.current().unwrap().value.tasks()[0]
             .actions
             .len(),
         1,
         "actions ride their task"
     );
     assert_eq!(
-        snapshot.ship.current().unwrap().value.tasks[0].checks.len(),
+        snapshot.ship.current().unwrap().value.tasks()[0]
+            .checks
+            .len(),
         1,
         "checks ride their task"
     );
     assert_eq!(
-        snapshot.ship.current().unwrap().value.tasks[0].checks[0].exit_code,
+        snapshot.ship.current().unwrap().value.tasks()[0].checks[0].exit_code,
         Some(0),
         "the exit code ship_status would have dropped"
     );

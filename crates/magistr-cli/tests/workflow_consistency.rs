@@ -273,7 +273,7 @@ fn shared_ship_capabilities_and_observers_retain_a_recorded_gate() {
             .current()
             .unwrap()
             .value
-            .tasks
+            .tasks()
             .len(),
         1
     );

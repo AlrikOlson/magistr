@@ -27,6 +27,28 @@ pub(crate) struct PersistedState {
 }
 
 impl PersistedState {
+    pub(crate) fn into_observation(self) -> magistr_workflow_contracts::ShipData {
+        use magistr_workflow_contracts::{ShipData, ShipRun};
+        ShipData {
+            current: self.objective.map(|objective| ShipRun {
+                run_id: self.execution.run_id,
+                task_instances: self.execution.tasks,
+                objective,
+                tasks: self.tasks,
+            }),
+            retained: self
+                .saved_cycles
+                .into_iter()
+                .map(|cycle| ShipRun {
+                    run_id: cycle.execution.run_id,
+                    task_instances: cycle.execution.tasks,
+                    objective: cycle.objective,
+                    tasks: cycle.tasks,
+                })
+                .collect(),
+        }
+    }
+
     pub(crate) fn empty(project_id: String) -> Self {
         Self {
             schema_version: SCHEMA_VERSION,
@@ -60,6 +82,15 @@ impl PersistedState {
             return Err(ReadError::new(
                 ReadErrorKind::Identity,
                 "The saved work could not be matched to this project.",
+            ));
+        }
+        let runs = std::iter::once(&self.execution)
+            .chain(self.saved_cycles.iter().map(|cycle| &cycle.execution));
+        let mut identities = std::collections::BTreeSet::new();
+        if !runs.into_iter().all(|run| identities.insert(&run.run_id)) {
+            return Err(ReadError::new(
+                ReadErrorKind::Identity,
+                "The saved work contains duplicate work records.",
             ));
         }
         if !self.execution.has_task_instances(&self.tasks)

@@ -278,17 +278,16 @@ impl PersistedState {
                 let tasks = std::mem::take(&mut self.tasks);
                 if matches!(
                     objective.status,
-                    ObjectiveStatus::Defined | ObjectiveStatus::Active
+                    ObjectiveStatus::Completed | ObjectiveStatus::Abandoned
                 ) {
-                    self.saved_cycles.push(SavedCycle {
-                        objective,
-                        tasks,
-                        next_action_id: self.next_action_id,
-                        execution: self.execution.clone(),
-                    });
-                } else {
                     cleared = tasks.len();
                 }
+                self.saved_cycles.push(SavedCycle {
+                    objective,
+                    tasks,
+                    next_action_id: self.next_action_id,
+                    execution: self.execution.clone(),
+                });
             }
             self.advance_selection();
             if let Some(index) = self.saved_cycles.iter().position(|cycle| {
@@ -315,9 +314,14 @@ impl PersistedState {
         );
         if prior_finished {
             cleared = self.tasks.len();
-            self.selection_revision += 1;
+            self.advance_selection();
+            self.saved_cycles.push(SavedCycle {
+                objective: self.objective.take().expect("finished objective"),
+                tasks: std::mem::take(&mut self.tasks),
+                next_action_id: self.next_action_id,
+                execution: self.execution.clone(),
+            });
             self.next_action_id = 1;
-            self.tasks.clear();
             self.execution = ExecutionIdentity::fresh();
         }
         let created_at = self

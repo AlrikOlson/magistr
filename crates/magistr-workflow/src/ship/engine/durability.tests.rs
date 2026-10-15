@@ -321,3 +321,131 @@ fn partial_application_with_discarded_proof_remains_uncertain() {
     assert_eq!(receipt.outcome, Some(outcome()));
     assert!(receipt.settlement.is_none());
 }
+
+#[test]
+fn finished_cycles_survive_reselection_and_reused_local_task_ids() {
+    let (_directory, persistence, mut engine) = disk();
+    engine
+        .record_action(
+            None,
+            ActionType::Code,
+            "original action".into(),
+            vec!["src/main.rs".into()],
+            vec![],
+            "finished".into(),
+            None,
+        )
+        .unwrap();
+    let admission = admit(&mut engine);
+    engine
+        .settle_admitted_check(admission.clone(), outcome(), None)
+        .unwrap();
+    engine.complete_task("verify", vec![]).unwrap();
+    engine.finalize(vec![], Some("finished".into())).unwrap();
+    let original = engine.persisted_state();
+    for scope in ["scope", "another"] {
+        engine
+            .set_objective("Next".into(), vec![], vec![], scope.into())
+            .unwrap();
+        engine
+            .add_task(
+                "verify".into(),
+                "New task".into(),
+                TaskType::Test,
+                None,
+                None,
+            )
+            .unwrap();
+        engine.start_task("verify").unwrap();
+        engine.complete_task("verify", vec![]).unwrap();
+        engine.finalize(vec![], None).unwrap();
+    }
+    let restored = ShipEngine::new("project".into()).with_persistence(persistence);
+    assert_eq!(restored.saved_cycles.len(), 2);
+    let retained = &restored.saved_cycles[0];
+    assert_eq!(retained.objective, original.objective.unwrap());
+    assert_eq!(retained.tasks, original.tasks);
+    assert_eq!(retained.execution.run_id, original.execution.run_id);
+    assert_eq!(retained.execution.tasks, original.execution.tasks);
+    assert_ne!(retained.execution.run_id, restored.execution.run_id);
+    assert_ne!(
+        retained.execution.tasks["verify"],
+        restored.execution.tasks["verify"]
+    );
+    assert_eq!(
+        restored
+            .receipts
+            .get(&admission.receipt_id)
+            .unwrap()
+            .unwrap()
+            .outcome,
+        Some(outcome())
+    );
+}
+
+#[test]
+fn switching_back_resumes_only_unfinished_work_and_keeps_finished_history() {
+    let (_directory, _persistence, mut engine) = disk();
+    let unfinished = engine.execution.run_id.clone();
+    engine
+        .set_objective("Other".into(), vec![], vec![], "other".into())
+        .unwrap();
+    engine.finalize(vec![], None).unwrap();
+    let finished = engine.execution.run_id.clone();
+    engine
+        .set_objective("Ignored replacement".into(), vec![], vec![], "scope".into())
+        .unwrap();
+    assert_eq!(engine.execution.run_id, unfinished);
+    assert_eq!(engine.tasks[0].status, TaskStatus::Active);
+    assert_eq!(engine.saved_cycles.len(), 1);
+    assert_eq!(engine.saved_cycles[0].execution.run_id, finished);
+    engine
+        .set_objective("New other".into(), vec![], vec![], "other".into())
+        .unwrap();
+    assert_ne!(engine.execution.run_id, finished);
+    assert_eq!(engine.saved_cycles.len(), 2);
+}
+
+#[test]
+fn finished_observations_keep_lanes_and_receipt_references_separate() {
+    let (_directory, persistence, mut engine) = disk();
+    let admission = admit(&mut engine);
+    engine
+        .settle_admitted_check(admission.clone(), outcome(), None)
+        .unwrap();
+    engine.complete_task("verify", vec![]).unwrap();
+    engine.finalize(vec![], None).unwrap();
+    let old = engine.observe().unwrap().value.current.unwrap();
+    engine
+        .set_objective("Next".into(), vec![], vec![], "next".into())
+        .unwrap();
+    let second_store = persistence.clone().for_execution("another");
+    let mut other = ShipEngine::new("project".into()).with_persistence(second_store);
+    other
+        .set_objective("Another lane".into(), vec![], vec![], "scope".into())
+        .unwrap();
+    let observed = engine.observe().unwrap();
+    assert_eq!(observed.value.run(&old.run_id), Some(&old));
+    assert_eq!(observed.value.retained.len(), 1);
+    assert!(other.observe().unwrap().value.retained.is_empty());
+    assert!(other.receipts.get(&admission.receipt_id).unwrap().is_none());
+    engine.compact_receipts(|| Ok(Default::default())).unwrap();
+    assert!(
+        engine
+            .receipts
+            .get(&admission.receipt_id)
+            .unwrap()
+            .is_some()
+    );
+    let path = persistence.path_for("project");
+    let bytes = std::fs::read(&path).unwrap();
+    let mut invalid: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    invalid["saved_cycles"][0]["execution"]["run_id"] = invalid["execution"]["run_id"].clone();
+    std::fs::write(&path, serde_json::to_vec(&invalid).unwrap()).unwrap();
+    assert_eq!(
+        engine.observe().unwrap_err().kind,
+        magistr_workflow_contracts::ReadErrorKind::Identity
+    );
+    std::fs::write(&path, bytes).unwrap();
+    assert_eq!(engine.observe().unwrap().value, observed.value);
+}
