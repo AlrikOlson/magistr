@@ -29,7 +29,7 @@ for block in blocks:
     # CSS #fff is expanded to the same sRGB value.
     colors={key:("#"+value[1]*2+value[2]*2+value[3]*2 if len(value)==4 else value) for key,value in colors.items()}
     for background in ("base","panel","raised"):
-        for foreground in ("text","muted","accent","danger"):
+        for foreground in ("text","muted","accent","danger","success","warning"):
             contrast=ratio(colors[foreground],colors[background])
             assert contrast>=4.5,(foreground,background,round(contrast,2))
         for foreground in ("focus","line"):

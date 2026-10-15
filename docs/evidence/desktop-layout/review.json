@@ -1,16 +1,18 @@
 {
-  "receipt": "85afa77ded51e6fc22838b8db7ac0fab28ae46b45f16c2867069017e6899ce06",
+  "receipt": "5863c2fc18431eed4de6a406f6cc342db9c7dbd0e4f45297135cc93bae58e004",
   "images": {
     "welcome-dark.png": "bc080b6182778502db060cdcca7ad7481072a3ad456b32e47fbf80e7e576863e",
     "welcome-light.png": "69c0147e434476040e82e648ce514e66c6aab7c7ac1b3325ed437b81500365ef",
-    "welcome-narrow-light.png": "44c78ea2a5d64356c359f5050bee6da883a49eaddac38e2333c357ded78b21fe",
+    "welcome-narrow-light.png": "20fe0af423635c01ba72092ff5b77fa2a3196e1616d62e3733998111c28de21d",
+    "settings-dark.png": "2844d38c834c4f96f0c695225c9a8332a689950661dffea6efa9f056f46b27a9",
     "workspace-dark.png": "04635239cd40b14be57bf029435fb83f8e9e9cc0535a21efc45242b638898c01",
-    "settings-light.png": "b2a0a7cbf8af55e639bf6b7bc40a52d7e9e6de03ee90be26aec0e13930e02d1c",
+    "settings-light.png": "f48099c838f79e284c1f37b0c94d46645d378ba77e96bea2cef11a255819e78c",
     "workspace-light.png": "d6f353d8359aea79c396ac38f28ca00f91d32600b689a3d852f094de21aa41e6",
     "workspace-narrow.png": "fd7dcd8470d6dc7d6ff5bfec2a5d84a046fef81f6e6aa355cb9a8c99527ea888",
+    "settings-narrow-light.png": "6cb6e157235c0f7e5530f4c4ef13ad061a7418ed5ca5662d21051c64edcb563d",
     "details-narrow.png": "6e80d4cbb7466f553eb2d837342ff8bc4658f232e415658fd79bab703fc4d8c8",
     "rename-light.png": "0e3169c9383e48482f29ff3bd13dceea3ad6f4b9e4e0bb44856dd10830b94288",
-    "work-paused-dark.png": "73701ecf9f6fca247ed9faf56238741537a906158de833229ea05d19b4a7aa19",
+    "work-paused-dark.png": "30a5a2bf80da9a26a8917ceac146929e8b090d9f3025b9320be87fb57f6f6b36",
     "history-dark.png": "3f747095ce057d416be91d64cafd5f27de401048e0a6851529b32e605119ddf4",
     "history-reading-dark.png": "624d1a2e8bc3816942256315d1ab6110e7e6f789764f807ee4e5e717233591f7",
     "history-narrow-light.png": "2f1a24a75a405a814b0299de977f33dc5f5541e3191ea37e90ed55f70af8c6ae",
@@ -18,8 +20,8 @@
     "setup-narrow-light.png": "e8f4cfadfe4bbe873a88606734264d6f7085dccc34ce29db684d03188c1da1b3",
     "open-project-dark.png": "509f659b84a66c11cb9264d4e5d7c2ffc2fab5baff4bfbdf75e6eb9c653d4501",
     "setup-dark.png": "773ea44f03cea3a156269cb42b3bd0452d8f374e110e0f88786c172b98cef280",
-    "new-conversation-dark.png": "9d0a8eb2b3c0030eeedc775c9204c8f649e01df897eab25419713797c2b2a0c0",
-    "new-conversation-narrow-light.png": "d7ba33e33e7b11b1e76d3537880fe360eeca093c39405dafdd5bc3464e4c5056",
+    "new-conversation-dark.png": "eebb2c2614ca9bbafdc902c0d3f0dd68097f8c3f5e503e2ed57e8bd5f1dad7a6",
+    "new-conversation-narrow-light.png": "279c9618a50febfe2ecefd159a34cce94640db855e3565c4788a053124ef3fd9",
     "find-conversation-narrow-light.png": "3caa91d83ffd96237de4c82c05f3b88b8536393bcfe2252fa7076d26f0f9d2e1",
     "find-conversation-dark.png": "88e2e684c211ae5eed47b130489f446280b6851b56cabf24ea16db003ac721dc",
     "reading-dark.png": "6c310f96aac2953e2b3f55b107d9bf82a1351bb81850f2d6d62d9c26edd481fd",
@@ -27,14 +29,15 @@
     "tools-light.png": "cf7c62f774159abf9da274286a9ab4e8e65d2d8b309108ca3eaea676167e30dd",
     "tools-dark.png": "e0aa8711744faf1ec2b8525d224fc88da1a559a7d4c10c1b51f7e3bf5520505d",
     "attachments-dark.png": "bc1d6c65d86afca7175b122fbaaffc9e1cc4b8315d6a4194fc16329831e26e41",
-    "attachments-narrow-light.png": "65279db81b6c4565269d256d8f395d83901e48702f1787ac5da1a6d8bd110cab",
+    "attachments-narrow-light.png": "3ef3f5c07c74f67f34c8d1e37df5e9aec184782106ba71e89f6d2c7afba90196",
     "request-narrow-light.png": "e42c8fccaca9e1ca0481c0b880f33240c5264584016a1c67a41379c3b2ea0536",
     "request-dark.png": "0eeaa86e45c5724c3edd7c18021507e4c96dfc83b34ed6dca69938e39ff5b422"
   },
   "reviewed_on": "2026-10-15",
   "findings": [
-    "Reviewed dark and compact light finder: prominent search field, project monograms, distinct current and attention badges, and visible keyboard focus.",
-    "Five focused WebKit scenarios passed for switching, failed draft save, cancel focus, keyboard navigation and compact layout.",
+    "Reviewed dark, light and compact settings captures: live token-based preview, native motion checkbox styled as a toggle, shortcut keycaps and all controls visible at 800 by 680.",
+    "Focused WebKit layout, keyboard and actual WebGL lifetime checks passed. Extended palette checks cover success and warning alongside existing semantic colors.",
+    "The current embedded frontend compiled and packaged successfully as a local macOS debug app and disk image. No foreground native journey was run.",
     "Production headless WebKit only; native input, IME, OS dialogs, VoiceOver and Windows verification were not run."
   ]
 }

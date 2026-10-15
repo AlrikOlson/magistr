@@ -104,8 +104,9 @@
   </form>
 </dialog>
 <dialog id="settings" aria-labelledby="settings-title">
-  <div class="settings-heading"><h2 id="settings-title">Settings</h2><p>Make this workspace comfortable for you.</p></div>
+  <div class="settings-heading"><div class="dialog-symbol" aria-hidden="true"><span data-icon="settings"></span></div><h2 id="settings-title">Settings</h2><p>Make this workspace comfortable for you.</p></div>
   <div class="settings-content"><section class="settings-section" aria-label="Appearance and motion">
+    <div class="appearance-preview" aria-hidden="true"><div class="preview-rail"><i></i><i></i><i></i></div><div class="preview-conversation"><div class="preview-title"></div><div class="preview-message"></div><div class="preview-lines"><i></i><i></i><i></i></div><div class="preview-composer"><i></i></div></div></div>
     <div class="settings-row"><div><label for="theme">Appearance</label><p>Use your system appearance, or choose one.</p></div><select id="theme" disabled><option value="system">System</option><option value="dark">Dark</option><option value="light">Light</option></select></div>
     <div class="settings-row"><div><label for="reduce-motion">Reduce motion</label><p>Keep movement to a minimum.</p></div><input id="reduce-motion" type="checkbox" disabled></div>
   </section>
