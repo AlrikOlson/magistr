@@ -1,0 +1,150 @@
+{
+  "scope": "Align verification and activity records",
+  "limitations": "Headless WebKit with isolated observations. Native OS input, assistive technology and Rust command integration were not exercised.",
+  "images": {
+    "work--activity-compact-dark.png": {
+      "sha256": "e0eb2e7d58df2bc3d7e7f888d29c0e8bcc66ad0aa860921bcf7d17097e3d1d2c",
+      "task": "Compare checks and actions using clear metadata and compact expandable entries.",
+      "observations": "Activity uses a compact heading and objective, then a narrow timestamp column beside readable description, result and mentioned references. Desktop shows all three records; compact begins with the full code-change record and scrolls to produced items.",
+      "verdict": "pass"
+    },
+    "work--activity-compact-light.png": {
+      "sha256": "3b9bc455245f86678c9ea066fc92be8331075928b893aa823c2304962ee44cc8",
+      "task": "Compare checks and actions using clear metadata and compact expandable entries.",
+      "observations": "Activity uses a compact heading and objective, then a narrow timestamp column beside readable description, result and mentioned references. Desktop shows all three records; compact begins with the full code-change record and scrolls to produced items.",
+      "verdict": "pass"
+    },
+    "work--activity-desktop-dark.png": {
+      "sha256": "136518fb5c326ab6db5583e62ae6a74749485ab022abde98848955be839b8fa0",
+      "task": "Compare checks and actions using clear metadata and compact expandable entries.",
+      "observations": "Activity uses a compact heading and objective, then a narrow timestamp column beside readable description, result and mentioned references. Desktop shows all three records; compact begins with the full code-change record and scrolls to produced items.",
+      "verdict": "pass"
+    },
+    "work--activity-desktop-light.png": {
+      "sha256": "c2f3e4576a686876e9ee4207548d5e1daaaf89675a9c8777f685d009ab1d916f",
+      "task": "Compare checks and actions using clear metadata and compact expandable entries.",
+      "observations": "Activity uses a compact heading and objective, then a narrow timestamp column beside readable description, result and mentioned references. Desktop shows all three records; compact begins with the full code-change record and scrolls to produced items.",
+      "verdict": "pass"
+    },
+    "work--checks-compact-dark.png": {
+      "sha256": "2f90ebf94abbf575aedaba59739c53b723c85fe42ac30ab5de64e6bd5e35eb0b",
+      "task": "Compare checks and actions using clear metadata and compact expandable entries.",
+      "observations": "All three attempts fit beneath one installer-task heading. Failed, passed and reported badges remain distinct, aligned and readable. The compact view shows the count, explanatory note and complete collapsed rows together.",
+      "verdict": "pass"
+    },
+    "work--checks-compact-light.png": {
+      "sha256": "f2c4ec3064fc8d439c9439eb24bff9fe8feb522a775c7837cb23447c0cff064b",
+      "task": "Compare checks and actions using clear metadata and compact expandable entries.",
+      "observations": "All three attempts fit beneath one installer-task heading. Failed, passed and reported badges remain distinct, aligned and readable. The compact view shows the count, explanatory note and complete collapsed rows together.",
+      "verdict": "pass"
+    },
+    "work--checks-desktop-dark.png": {
+      "sha256": "cb4e8fa955c3eb43d883e163ea72f426404b0b264f1d2855221784c0be921d80",
+      "task": "Compare checks and actions using clear metadata and compact expandable entries.",
+      "observations": "All three attempts fit beneath one installer-task heading. Failed, passed and reported badges remain distinct, aligned and readable. The compact view shows the count, explanatory note and complete collapsed rows together.",
+      "verdict": "pass"
+    },
+    "work--checks-desktop-light.png": {
+      "sha256": "82a6de0a0c2df336586a178700fa9fc0472d7d718e0f56b20dfc1180861bbfa6",
+      "task": "Compare checks and actions using clear metadata and compact expandable entries.",
+      "observations": "All three attempts fit beneath one installer-task heading. Failed, passed and reported badges remain distinct, aligned and readable. The compact view shows the count, explanatory note and complete collapsed rows together.",
+      "verdict": "pass"
+    },
+    "work--failed-check-compact-dark.png": {
+      "sha256": "8a92cfddf4de636d7cea1a6ad2bed20e6174cd7b0070344d925be5dd7a90dc5f",
+      "task": "Compare checks and actions using clear metadata and compact expandable entries.",
+      "observations": "The expanded failure shows its status, required flag, timestamp, exit code, command, test counts and failure text without overlapping controls. Desktop shows full output; compact preserves a readable scrollable continuation with Copy controls beside source headings.",
+      "verdict": "pass"
+    },
+    "work--failed-check-compact-light.png": {
+      "sha256": "96b2b656a9eb8ac3f7e0e7c56d0d565eb3c96257b9ad8e8ede141fb44117079b",
+      "task": "Compare checks and actions using clear metadata and compact expandable entries.",
+      "observations": "The expanded failure shows its status, required flag, timestamp, exit code, command, test counts and failure text without overlapping controls. Desktop shows full output; compact preserves a readable scrollable continuation with Copy controls beside source headings.",
+      "verdict": "pass"
+    },
+    "work--failed-check-desktop-dark.png": {
+      "sha256": "ff92d669faa2e147a27c327065f659e790acee43996431d27f04896811d459b2",
+      "task": "Compare checks and actions using clear metadata and compact expandable entries.",
+      "observations": "The expanded failure shows its status, required flag, timestamp, exit code, command, test counts and failure text without overlapping controls. Desktop shows full output; compact preserves a readable scrollable continuation with Copy controls beside source headings.",
+      "verdict": "pass"
+    },
+    "work--failed-check-desktop-light.png": {
+      "sha256": "e860d4a41251d2a72b76ea2da4783864a737fbf5b2c187d2ac9faf657f327425",
+      "task": "Compare checks and actions using clear metadata and compact expandable entries.",
+      "observations": "The expanded failure shows its status, required flag, timestamp, exit code, command, test counts and failure text without overlapping controls. Desktop shows full output; compact preserves a readable scrollable continuation with Copy controls beside source headings.",
+      "verdict": "pass"
+    },
+    "work--plan-compact-dark.png": {
+      "sha256": "6807be93c48786814f65892c2773e38e45ca5080eebc61141693734f2605c839",
+      "task": "Compare checks and actions using clear metadata and compact expandable entries.",
+      "observations": "Embedded check summaries use tighter rows with readable names and distinct status badges. They stay inside the active task and leave a clear boundary before its Activity disclosure and the next planned task; compact uses normal vertical scrolling.",
+      "verdict": "pass"
+    },
+    "work--plan-compact-light.png": {
+      "sha256": "bc5fe53167555e3f36dc69cd1f5d8811e78acabfeda090291b26a015600b524e",
+      "task": "Compare checks and actions using clear metadata and compact expandable entries.",
+      "observations": "Embedded check summaries use tighter rows with readable names and distinct status badges. They stay inside the active task and leave a clear boundary before its Activity disclosure and the next planned task; compact uses normal vertical scrolling.",
+      "verdict": "pass"
+    },
+    "work--plan-desktop-dark.png": {
+      "sha256": "b00de0fddd5d85389b9c26d543793e8d3532c9ec894b2bb46ba7c1e21281ce9a",
+      "task": "Compare checks and actions using clear metadata and compact expandable entries.",
+      "observations": "Embedded check summaries use tighter rows with readable names and distinct status badges. They stay inside the active task and leave a clear boundary before its Activity disclosure and the next planned task; compact uses normal vertical scrolling.",
+      "verdict": "pass"
+    },
+    "work--plan-desktop-light.png": {
+      "sha256": "0df4d6a2626d7a067cfbf8808e975231fa9e6b115ac1886c436a93e20e7e62db",
+      "task": "Compare checks and actions using clear metadata and compact expandable entries.",
+      "observations": "Embedded check summaries use tighter rows with readable names and distinct status badges. They stay inside the active task and leave a clear boundary before its Activity disclosure and the next planned task; compact uses normal vertical scrolling.",
+      "verdict": "pass"
+    },
+    "work--produced-items-compact-dark.png": {
+      "sha256": "75bbc2d4e1fc7f270c43dfad1fad0a9c5d66543bd8ce6c41f76d46ca0ea670d5",
+      "task": "Compare checks and actions using clear metadata and compact expandable entries.",
+      "observations": "Both produced references fit in the compact view. Type, description and full reference align at left; Copy reference and Open link remain separate accessible controls at right with visible focus on the filter.",
+      "verdict": "pass"
+    },
+    "work--produced-items-compact-light.png": {
+      "sha256": "76b762990a9de3de4fd19c472ed06ea5ab7ac0ec4e5779776f55e97d1a982461",
+      "task": "Compare checks and actions using clear metadata and compact expandable entries.",
+      "observations": "Both produced references fit in the compact view. Type, description and full reference align at left; Copy reference and Open link remain separate accessible controls at right with visible focus on the filter.",
+      "verdict": "pass"
+    },
+    "work--produced-items-desktop-dark.png": {
+      "sha256": "e01e6ef83fdbf7ea18de638014d0b824a8bc2c6ba54178ba3edc2b3a8a1ee3ba",
+      "task": "Compare checks and actions using clear metadata and compact expandable entries.",
+      "observations": "Both produced references fit in the compact view. Type, description and full reference align at left; Copy reference and Open link remain separate accessible controls at right with visible focus on the filter.",
+      "verdict": "pass"
+    },
+    "work--produced-items-desktop-light.png": {
+      "sha256": "3ca1cb851cff2e97e450460d2439db7a1323da2cc38de7b394a18111ba0617ad",
+      "task": "Compare checks and actions using clear metadata and compact expandable entries.",
+      "observations": "Both produced references fit in the compact view. Type, description and full reference align at left; Copy reference and Open link remain separate accessible controls at right with visible focus on the filter.",
+      "verdict": "pass"
+    },
+    "work--task-activity-compact-dark.png": {
+      "sha256": "339c3a191f466947f4778014ed05b6d8f69dcd49097e0e938e06e17369637726",
+      "task": "Compare checks and actions using clear metadata and compact expandable entries.",
+      "observations": "Expanded task activity keeps timestamp/type in a narrow left column and description, complete result and references in the reading column. Desktop also shows both produced items; compact scrolls through them without horizontal clipping.",
+      "verdict": "pass"
+    },
+    "work--task-activity-compact-light.png": {
+      "sha256": "1b9343218d9f4740ca56362b5d63c52a2736fccae1f78ab4547ea38405352052",
+      "task": "Compare checks and actions using clear metadata and compact expandable entries.",
+      "observations": "Expanded task activity keeps timestamp/type in a narrow left column and description, complete result and references in the reading column. Desktop also shows both produced items; compact scrolls through them without horizontal clipping.",
+      "verdict": "pass"
+    },
+    "work--task-activity-desktop-dark.png": {
+      "sha256": "1c39ddae3d06186c6e9620723677b82189eff6ef899edf290716ed403d2618f6",
+      "task": "Compare checks and actions using clear metadata and compact expandable entries.",
+      "observations": "Expanded task activity keeps timestamp/type in a narrow left column and description, complete result and references in the reading column. Desktop also shows both produced items; compact scrolls through them without horizontal clipping.",
+      "verdict": "pass"
+    },
+    "work--task-activity-desktop-light.png": {
+      "sha256": "dc778c965f68e88353d523f46843127f388844dedf96e35fe47e0cfb700bd873",
+      "task": "Compare checks and actions using clear metadata and compact expandable entries.",
+      "observations": "Expanded task activity keeps timestamp/type in a narrow left column and description, complete result and references in the reading column. Desktop also shows both produced items; compact scrolls through them without horizontal clipping.",
+      "verdict": "pass"
+    }
+  }
+}
