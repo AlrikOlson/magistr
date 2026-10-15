@@ -10,7 +10,7 @@ export class AttemptRuler {
     const marks = attempt ? visibleAttempts(attempt.current, attempt.limit) : [];
     const key = JSON.stringify([marks, attempt?.current, phase]);
     if (key === this.key) return;
-    this.key = key; this.root.hidden = !marks.length; this.root.dataset.phase = phase ?? "idle";this.root.dataset.circular=String(!!marks.length&&attempt.limit<=20);
+    this.key = key; this.root.hidden = !marks.length; this.root.dataset.phase = phase ?? "idle";
     const document = this.root.ownerDocument, nodes = [];
     let previous = 0;
     for (const number of marks) {
@@ -20,12 +20,9 @@ export class AttemptRuler {
       const mark = document.createElement("span");
       mark.className = "attempt-mark"; mark.textContent = String(number);
       mark.dataset.current = String(number === attempt.current);
-      mark.style.setProperty("--attempt-angle",((number-1)/attempt.limit*360)+"deg");
       nodes.push(mark); previous = number;
     }
-    this.root.style.setProperty("--attempt-step",marks.length?(360/attempt.limit)+"deg":"360deg");
-    this.root.style.setProperty("--current-angle",marks.length&&attempt.current>0?((attempt.current-1)/attempt.limit*360)+"deg":"0deg");
-    this.root.dataset.current=String(!!marks.length&&attempt.current>0);
+    this.root.style.setProperty("--attempt-columns", String(Math.min(nodes.length, 10) || 1));
     this.root.replaceChildren(...nodes);
   }
 }
