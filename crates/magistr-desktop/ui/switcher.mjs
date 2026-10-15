@@ -4,7 +4,7 @@ const text=(tag,value)=>{const node=document.createElement(tag);node.textContent
 // Current catalog projection only; selection and draft admission remain with the application.
 export class ConversationSwitcher {
   constructor(element,{sessions,selected,ready,select,label}) {
-    Object.assign(this,{ $:element,sessions,selected,ready,select,label });this.rows=new Map();this.pending=false;
+    Object.assign(this,{ $:element,sessions,selected,ready,select,label });this.rows=new Map();this.groups=new Map();this.pending=false;
     element("find-conversation").onclick=()=>this.show();
     element("switch-close").onclick=()=>this.close();
     element("switch-picker").oncancel=event=>{event.preventDefault();this.close();};
@@ -36,8 +36,23 @@ export class ConversationSwitcher {
     if(!this.$("switch-picker").open)return;
     const query=this.$("switch-search").value.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
     const sessions=this.sessions().filter(session=>query.every(word=>[this.label(session),session.name,session.address.workspace].join(" ").toLocaleLowerCase().includes(word)));
-    const previous=document.activeElement,used=new Set();
-    const nodes=sessions.map(session=>{
+    const previous=document.activeElement,used=new Set(),groups=new Map();
+    for(const session of sessions){
+      const key=JSON.stringify(session.address.project);
+      if(!groups.has(key))groups.set(key,[]);groups.get(key).push(session);
+    }
+    const nodes=[...groups].map(([project,members])=>{
+      let group=this.groups.get(project);
+      if(!group){
+        const section=text("section",""),heading=text("header",""),name=text("h3",""),detail=text("p",""),count=text("span",""),list=text("div","");
+        section.className="switch-group";heading.append(name,count,detail);section.append(heading,list);
+        group={section,name,detail,count,list};this.groups.set(project,group);
+      }
+      const copies=new Set(members.map(session=>session.address.workspace));
+      group.name.textContent=members[0].name;group.section.setAttribute("aria-label",members[0].name+" conversations");
+      group.detail.textContent=copies.size===1?members[0].address.workspace:copies.size+" working copies";
+      group.count.textContent=members.length+(members.length===1?" conversation":" conversations");
+      const rows=members.map(session=>{
       const key=addressKey(session.address);used.add(key);let row=this.rows.get(key);
       if(!row) {
         const button=document.createElement("button"),body=text("span",""),name=text("strong",""),context=text("small",""),state=text("span","");
@@ -46,17 +61,23 @@ export class ConversationSwitcher {
         row={button,name,context,state,session};this.rows.set(key,row);
         button.onclick=()=>this.open(row.session);
       }
-      row.session=session;row.name.textContent=this.label(session);row.context.textContent=session.name+" · "+session.address.workspace;
+      row.session=session;row.name.textContent=this.label(session);row.context.textContent=session.address.workspace;row.context.hidden=copies.size===1;
       row.state.textContent=session.closed?"Closing":session.pending.length?"Needs your attention":key===addressKey(this.selected())?"Current":session.status;
       row.button.setAttribute("aria-label","Open "+this.label(session)+" in "+session.name);
       row.button.dataset.attention=String(session.pending.length>0);row.button.disabled=this.pending||session.closed;row.button.setAttribute("aria-current",String(key===addressKey(this.selected())));
-      return row.button;
+        return row.button;
+      });
+      rows.forEach((node,index)=>{if(group.list.children[index]!==node)group.list.insertBefore(node,group.list.children[index]??null);});
+      while(group.list.children.length>rows.length)group.list.lastChild.remove();
+      return group.section;
     });
     const root=this.$("switch-results");
     nodes.forEach((node,index)=>{if(root.children[index]!==node)root.insertBefore(node,root.children[index]??null);});
     while(root.children.length>nodes.length)root.lastChild.remove();
+    for(const key of this.groups.keys())if(!groups.has(key))this.groups.delete(key);
     for(const key of this.rows.keys())if(!used.has(key))this.rows.delete(key);
     if(previous!==document.body&&!previous.isConnected)this.$("switch-search").focus();
+    else if(previous!==document.body&&previous.isConnected&&!previous.disabled&&document.activeElement!==previous)previous.focus({preventScroll:true});
     this.$("switch-empty").hidden=sessions.length>0;
     this.$("switch-empty").textContent=!this.ready()?"Loading conversations…":query.length?"No open conversations match your search.":"Open a project to start a conversation.";
     this.$("switch-count").textContent=this.pending?"Opening conversation…":sessions.length+(sessions.length===1?" conversation":" conversations");

@@ -59,3 +59,20 @@ test("a failed draft save keeps the switcher and current draft available for ret
   await expect(app.locator("#switch-picker")).toBeHidden();
   await expect(app.getByRole("heading",{name:"Investigate sync failure",exact:true})).toBeFocused();
 });
+test("search groups real projects and preserves keyboard focus through catalog updates",async({app})=>{
+  await app.getByRole("button",{name:"Find a conversation",exact:true}).click();
+  await expect(app.locator(".switch-group")).toHaveCount(2);
+  await expect(app.getByRole("region",{name:"Magistr conversations",exact:true}).getByRole("button")).toHaveCount(2);
+  await app.keyboard.press("ArrowDown");
+  const first=app.getByRole("button",{name:"Open Review the release plan in Magistr",exact:true});
+  await expect(first).toBeFocused();
+  await app.evaluate(()=>window.__fixture.publish("release",{status:"Working"}));
+  await expect(first).toBeFocused();await expect(first).toContainText("Working");
+  await app.keyboard.press("End");
+  await expect(app.getByRole("button",{name:"Open Update the home page in Website",exact:true})).toBeFocused();
+  await app.keyboard.press("Home");await expect(first).toBeFocused();
+  await app.getByLabel("Find an open conversation",{exact:true}).fill("magistr");
+  await expect(app.locator(".switch-group")).toHaveCount(1);
+  await expect(app.locator("#switch-count")).toHaveText("2 conversations");
+});
+
