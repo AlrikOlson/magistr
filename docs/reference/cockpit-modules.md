@@ -45,19 +45,23 @@ desktop workspace. Companion Rust tests live beside their owners.
 - `crates/magistr-desktop/ui/work_feedback_search.mjs` — complete feedback search and saved kind/status filters.
 - `crates/magistr-desktop/ui/work_feedback_research.mjs` — append-only research notes, reported confidence and source references.
 - `crates/magistr-desktop/ui/work_feedback.mjs` — complete feedback browsing and stable record details.
-- `crates/magistr-desktop/ui/work_reasoning_map.mjs` — disposable investigation-lane geometry over recorded relationships and semantic step buttons.
+- `crates/magistr-desktop/ui/work_reasoning_map.mjs` — interactive investigation threads and recorded decision relationships over the shared camera.
 - `crates/magistr-desktop/ui/work_reasoning.mjs` — complete reasoning sessions, step selection and pages.
 - `crates/magistr-desktop/ui/work_reasoning_step.mjs` — complete authored reasoning fields and exact copying.
 - `crates/magistr-desktop/ui/work_search.mjs` — complete-record matching and bounded result pages.
 - `crates/magistr-desktop/ui/work_roadmap_search.mjs` — complete roadmap search and stable item navigation.
 - `crates/magistr-desktop/ui/work_relations.mjs` — complete dependency/dependent navigation and owner readiness.
 - `crates/magistr-desktop/ui/work_roadmap.mjs` — track selection and owner-provided readiness.
+- `crates/magistr-desktop/ui/work_roadmap_surface.mjs` — work pieces and actual prerequisite geometry.
+- `crates/magistr-desktop/ui/work_surface.mjs` — shared camera, semantic selection and arrangement controls.
+- `crates/magistr-desktop/ui/work_surface_input.mjs` — cancellable pointer and keyboard camera input.
+- `crates/magistr-desktop/ui/work_surface_paint.mjs` — disposable canvas relationship geometry.
 - `crates/magistr-desktop/ui/work_status.mjs` — independent record observations, complete counts and saved-file provenance.
 - `crates/magistr-desktop/ui/work_tabs.mjs` — accessible work-view tab navigation.
 - `crates/magistr-desktop/ui/work_browser.mjs` — refresh, address guards and bounded cross-view reading coordinates.
 - `crates/magistr-desktop/ui/work_records.mjs` — authored work and observation-state presentation.
 - `crates/magistr-desktop/ui/work_runs.mjs` — stable current/saved execution selection.
-- `crates/magistr-desktop/ui/work_dom.mjs` — workflow DOM and reading-state retention.
+- `crates/magistr-desktop/ui/work_dom.mjs` — workflow DOM, shared read-only checklist markers and reading-state retention.
 - `crates/magistr-desktop/ui/work_check_index.mjs` — complete check-attempt search and outcome filters.
 - `crates/magistr-desktop/ui/work_checks.mjs` — executed/reported checks and complete output.
 - `crates/magistr-desktop/ui/work_activity_index.mjs` — task-scoped complete activity and produced-item search.
@@ -134,6 +138,7 @@ desktop workspace. Companion Rust tests live beside their owners.
 - `crates/magistr-desktop/ui/reading.mjs` — bounded semantic reading and native editor position bookmarks; no durable content cache.
 - `crates/magistr-desktop/tests/browser/reading.spec.mjs` — background switching, resize, tool disclosure, selection and editor continuity.
 - `crates/magistr-desktop/ui/source_details.mjs` — shared bounded JSON documents for tool results and permission requests, with exact original text.
+- `crates/magistr-desktop/tests/browser/reply_outline.spec.mjs` — visible compact reading content and focus through the on-demand reply outline.
 - `crates/magistr-desktop/ui/reply_outline.mjs` — contents derived from real reply headings.
 - `crates/magistr-desktop/ui/transcript.mjs`
 - `crates/magistr-desktop/tests/transcript.mjs`
@@ -184,7 +189,7 @@ desktop workspace. Companion Rust tests live beside their owners.
 - `crates/magistr-desktop/ui/code_blocks.mjs` — stable framed source documents, nonselectable line gutters and exact code copying.
 - `crates/magistr-desktop/ui/attachment_viewer.mjs` — fit/actual-size image inspection from owned attachment previews with focus restoration and removal handling.
 - `crates/magistr-desktop/tests/browser/atlas.spec.mjs` — spatial catalog bounds, focus and addressed navigation.
-- `crates/magistr-desktop/ui/project_atlas.mjs` — bounded spatial catalog view with stable native controls.
+- `crates/magistr-desktop/ui/project_atlas.mjs` — catalog-derived project and conversation pieces on the shared surface, with membership lines and resident workspace entry.
 - `crates/magistr-desktop/ui/app.mjs`
 - `crates/magistr-desktop/ui/history.mjs` — searchable saved-record browser, independent reading/list surfaces and guarded resume feedback.
 - `crates/magistr-desktop/tests/browser/history.spec.mjs` — background filtering, draft recovery, loading cancellation and refused resume.
@@ -216,3 +221,8 @@ desktop workspace. Companion Rust tests live beside their owners.
 - `crates/magistr-desktop/tests/work.mjs`
 - `crates/magistr-desktop/tests/work_fixture.py`
 - `crates/magistr-desktop/tests/work_journey.py`
+- `crates/magistr-desktop/ui/work_surface_routes.mjs` — obstacle-aware orthogonal routes and distinct attachment points.
+- `crates/magistr-desktop/ui/work_roadmap_layout.mjs` — prerequisite alignment and frontier placement.
+- `crates/magistr-desktop/ui/work_roadmap_context.mjs` — bounded graph neighborhoods with explicit prerequisite bundles.
+- `crates/magistr-desktop/tests/browser/surface_routes.spec.mjs` — rendered route clearance, legibility, branches and shared prerequisites.
+- `crates/magistr-desktop/tests/browser/freeform_workspace.spec.mjs` — camera, arrangement, inspection and shell continuity.

@@ -29,7 +29,7 @@ export function workSnapshot(){
     roadmap:{state:"unobserved"},think:reasoningFixture(),signals:feedbackFixture()};
 }
 export async function workScene(app,capture){
-  await app.getByRole("button",{name:"Work plan",exact:true}).click();
+  await app.getByRole("tab",{name:"Current and saved work",exact:true}).click();
   await app.getByRole("heading",{name:"Prepare the desktop release",exact:true}).waitFor();
   await capture("work-plan-dark.png");
   await app.getByLabel("Task status",{exact:true}).selectOption("active");
@@ -55,20 +55,20 @@ export async function workScene(app,capture){
   await app.getByLabel("Search work history",{exact:true}).fill("installer");await capture("work-history-search-dark.png");
   await app.getByLabel("Search work history",{exact:true}).fill("");
   await app.getByLabel("Work to inspect",{exact:true}).selectOption("current");
-  await app.getByRole("button",{name:"Back to conversation",exact:true}).click();
+  await app.getByRole("tab",{name:"Conversation",exact:true}).click();
   await app.getByRole("button",{name:"Settings",exact:true}).click();
   await app.getByLabel("Appearance",{exact:true}).selectOption("light");
   await app.getByRole("button",{name:"Done",exact:true}).click();
-  await app.getByRole("button",{name:"Work plan",exact:true}).click();
+  await app.getByRole("tab",{name:"Current and saved work",exact:true}).click();
   await capture("work-plan-light.png");
   await app.getByRole("tab",{name:"Roadmap",exact:true}).click();await capture("roadmap-light.png");
   await app.setViewportSize({width:760,height:550});await capture("roadmap-minimum.png");
   await app.getByRole("tab",{name:"Current and saved work",exact:true}).click();
   await app.setViewportSize({width:760,height:550});await capture("work-plan-minimum.png");
   await app.getByRole("tab",{name:"Roadmap",exact:true}).click();await app.getByRole("button",{name:"Restore the project conversation and draft",exact:true}).click();await app.locator(".roadmap-item-detail").waitFor();await capture("roadmap-detail-minimum-light.png");
-  await app.getByRole("tab",{name:"Reasoning",exact:true}).click();await app.locator(".reasoning-step").waitFor();await capture("reasoning-detail-minimum-light.png");
+  await app.getByRole("tab",{name:"Reasoning",exact:true}).click();await app.getByRole("button",{name:"Keep each conversation with its saved message",exact:true}).click();await app.locator(".reasoning-step").waitFor();await capture("reasoning-detail-minimum-light.png");
   await app.getByRole("tab",{name:"Feedback",exact:true}).click();await app.getByRole("button",{name:"Keep my place when reopening a project",exact:true}).click();await capture("feedback-detail-minimum-light.png");
-  await app.getByRole("button",{name:"Back to conversation",exact:true}).click();
+  await app.getByRole("tab",{name:"Conversation",exact:true}).click();
   await app.setViewportSize({width:1280,height:820});
   await app.getByRole("button",{name:"Settings",exact:true}).click();
   await app.getByLabel("Appearance",{exact:true}).selectOption("dark");

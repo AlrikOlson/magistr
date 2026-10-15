@@ -1,0 +1,792 @@
+{
+  "renderer": "headless WebKit",
+  "version": "27.2",
+  "captured_at": "2026-10-15T18:53:37.097Z",
+  "scope": "Production desktop HTML, CSS and JavaScript with isolated observation fixtures; no native OS input or Rust owner integration.",
+  "checks": {
+    "project chooser presents actual projects and folder entry in both appearances": true,
+    "selected conversation, owning folder and saved draft are visible": true,
+    "dark navigation actions stay within the window": true,
+    "light navigation actions stay within the window": true,
+    "narrow conversation retains a useful reading and editing width": true,
+    "Details and Escape preserve the draft and restore focus": true,
+    "current objective, requirements and tasks remain readable in both appearances and the minimum window": true,
+    "capacity meter distinguishes reported values, real zero and absent usage": true,
+    "work summary opens exact controls and naming has its own dialog": true,
+    "saved history has fixed heading, search, independent panes and resume action": true,
+    "setup review separates file approval from reading with fixed actions": true,
+    "new conversation exposes destination, agents and optional model choice": true,
+    "conversation finding and documented keyboard navigation keep focus visible": true,
+    "rich document typography renders headings, quotations, code and inline source": true,
+    "tool cards distinguish result, failure and duration without losing disclosure": true,
+    "file cards retain preview, path, size and named removal at compact width": true,
+    "permission decisions present exact requested command and equal-weight choices": true,
+    "native minimum window keeps full-width editing, project browsing and dialog actions reachable": true,
+    "project opening failures preserve the folder, disclose readable details and retain retry at the native minimum": true,
+    "empty conversations have a readable introduction and a visible composer": true,
+    "long source folios keep exact text and a bounded source overview": true,
+    "comparison tables preserve headers, column alignment and contained compact scrolling": true,
+    "patch documents preserve source bytes, old/new positions and actual change totals": true,
+    "structured tool sheets retain nested values, bounded rendering and exact copy": true,
+    "reply contents derive from real headings and land keyboard focus on the chosen section": true,
+    "editorial quotes and nested task lists retain semantic source and authored order": true,
+    "sent attachments form a contact sheet with source previews and native image inspection": true,
+    "image inspection provides fit and pixel zoom, backgrounds and compact controls": true,
+    "expanded writing preserves native editor identity, text, caret and compact actions": true,
+    "execution ledger preserves reported outcomes, source input and independent result expansion": true,
+    "permission review preserves exact structured source, equal choices and addressed answers": true,
+    "saved replies share document typography and retain exact source copy": true,
+    "wide workspace and compact composition preserve reading area, actions and complete long titles": true
+  },
+  "source_hashes": {
+    "crates/magistr-desktop/ui/activity.mjs": "fbb34fa91ddf52640980c23764364d0507e6b0074cb615b1a82b717c15b9c9a2",
+    "crates/magistr-desktop/ui/app.mjs": "b02b42762b25fcc0a76c77d5c191c89b53fd898222e0d7626cdf602357a8c1c8",
+    "crates/magistr-desktop/ui/attachment_viewer.mjs": "bb2cb3f29f932ebec50505346d0b5b5f80bb9f79df552c65f02ddd104668d0e7",
+    "crates/magistr-desktop/ui/attachments.mjs": "e9b415159f0ed96fc29b119a27876614adcdf5ddb26267de36f1211e2d4674ce",
+    "crates/magistr-desktop/ui/code_blocks.mjs": "edb0802ae35ae30a8fbddc0ba405c19d8a11e137aed0b506d883af52ff703ea4",
+    "crates/magistr-desktop/ui/composer.mjs": "9accf554a6a2f6e7c029f4972fa4221e40d755546693c8343cbd528ef2a00bc0",
+    "crates/magistr-desktop/ui/context.mjs": "9476a17db8e8c3032bd081dbdcd6088e9338ca2c41f9b455278243f5c98e4bcd",
+    "crates/magistr-desktop/ui/conversation.mjs": "ee2753fdfa58093276bbb4e0b329d5eac03f2d04c79cdde4f6b131a26caf0651",
+    "crates/magistr-desktop/ui/conversation_actions.mjs": "61ba724f9c8858883c4e3b1dbdb381d6ddd1588e5331679c3cfd2a8702aca86a",
+    "crates/magistr-desktop/ui/conversation_picker.mjs": "af9014bb67ee2c567d9f36bd6318e2b0f7b76d95efe001a2531f11536ed5efdb",
+    "crates/magistr-desktop/ui/drafts.mjs": "6d5dab26f19fb14f67a79077b5927adff41f3dea78186ace91cc7cc5246888b4",
+    "crates/magistr-desktop/ui/history.mjs": "f3be21643ee5b90ed1510bd2b76bc77f8e471c39471d14b1fb8df8a66a90aa32",
+    "crates/magistr-desktop/ui/icon.png": "392002a92fdd8dc81923944cd5abd170d0867fe8eb3701d71d4df4aea083dd10",
+    "crates/magistr-desktop/ui/index.html": "bd15cfc7f8b5eeda40ad2f5b283b1d696389ce98889a9d190512eea03a2640b4",
+    "crates/magistr-desktop/ui/keyboard.mjs": "a7406a1d75bc358a7fd8799808eed44257d8945b00a3f8154d218d6c5c4eba39",
+    "crates/magistr-desktop/ui/layout.mjs": "4c65e6a206688e27e386fa95c59eba488ef8ddcd725bfa300f0fd419baa8a072",
+    "crates/magistr-desktop/ui/manrope-LICENSE.txt": "58172e0c0fac2cda8a37b348164bb55e44b0e69051e557e92b1d3f6910141f7b",
+    "crates/magistr-desktop/ui/manrope-latin.woff2": "e310b55a7fd9677f5e3555e6c6c4d064fa1f1d24393f0ddbe217cea12a8c432f",
+    "crates/magistr-desktop/ui/motion.mjs": "ac4aceb2fccfc6e9a7e33f4dd9551bbc13a9d2abf9b69495d9ff6fdd9de7c348",
+    "crates/magistr-desktop/ui/navigation.mjs": "52c1828ceea350c525f7976af938d073246ebd57833c166c8041bee44b6653e9",
+    "crates/magistr-desktop/ui/newsreader-LICENSE.txt": "fdfad38143ec470553cae82a1e45320bdd1b9ec70415d37bd0171051d8a4ded8",
+    "crates/magistr-desktop/ui/newsreader-latin.woff2": "01817351be3edfc1714fe6d60ddea6a22a169a5ebd033b50c7f9495e5d9c386a",
+    "crates/magistr-desktop/ui/patch_document.mjs": "06580fc4003dec11be69842a482a3ba72582f731c7eefecbfbc07dd0f6084905",
+    "crates/magistr-desktop/ui/preferences.mjs": "119dfd44c2fbdf82da45e0973c6a12bbf3a284ffabf416f766e1315a47cad2d5",
+    "crates/magistr-desktop/ui/project_atlas.mjs": "c7485ea634377a1ce08fdeddedf31d10973d67008afe3524055471767b52eb22",
+    "crates/magistr-desktop/ui/project_picker.mjs": "d0cc1f6ee0cff0d2ebecaf096152defc8c796f8866ce825a6829ece4581d6aa7",
+    "crates/magistr-desktop/ui/projects.mjs": "6954a73efb398bf0deb6b395a3221880c20d84ca88d40c5110572ba1a4529e9d",
+    "crates/magistr-desktop/ui/reading.mjs": "4cb834867d9354bf47a12fdc0a34048612e3e8ef77c1fb1bf04999dcb7a1be9f",
+    "crates/magistr-desktop/ui/reply_outline.mjs": "73f2e0dfe8d6a2dfcce833219ed28f3394f92ee916ea732dbb37928cf533e8f2",
+    "crates/magistr-desktop/ui/saved_drafts.mjs": "a0bfc036bfe1f48fa005fb42da66ea31fd608f656df57a8501ee504b59779ca0",
+    "crates/magistr-desktop/ui/selection.mjs": "fd844d9e146a9c5e1fb9ab6e2fc72c0273da66d4f59a70ce639877a87aff05fc",
+    "crates/magistr-desktop/ui/session_controls.mjs": "738386755be2b65fd03899ae28e1b357b4313258d67b3edfaf72fe3fe37ff123",
+    "crates/magistr-desktop/ui/source_color.mjs": "1ac22d15033a59af850c8583abdb8123ff8062c16e71d500327f5d5743d41057",
+    "crates/magistr-desktop/ui/source_details.mjs": "de1f946be54171ef1f99fd303fa3148c3a26234b0bcec3732e542d413c6153aa",
+    "crates/magistr-desktop/ui/style.css": "eb62d8f0c4cbaf023612257f47b8c0195c5f617c4bcf8ac457b7c46a5f897fd6",
+    "crates/magistr-desktop/ui/supervision.mjs": "509cd792877f397ac427789d491b4f51fd2840cc1b94ae05690d295519b75431",
+    "crates/magistr-desktop/ui/switcher.mjs": "12ff6d03d58301fdbce41a75db313171da63e0f9e96af7aed6bb7a254e984017",
+    "crates/magistr-desktop/ui/transcript.mjs": "df0929eb16d76c728ba7bd8ee42df06aeda1509effe16c7f2755e6a5c504d1c6",
+    "crates/magistr-desktop/ui/work.mjs": "9adfbdaa890ad4b74f755155caabc7f8599f1a4b1e1ea604ce83babea714999f",
+    "crates/magistr-desktop/ui/work_activity.mjs": "9b5d17505b69cbb1ad8eba3d5354b8ec4edba191325d30aa7ae05f96f7a41190",
+    "crates/magistr-desktop/ui/work_activity_index.mjs": "350b25b3d25412d3a0918d8a842b776a6fcb631b374cd149cf0cfff50f3612e3",
+    "crates/magistr-desktop/ui/work_browser.css": "82e3b62f27afacbf573ac65fc6143f511fb9d8f50ef3212a8bf8cc7714efd1c8",
+    "crates/magistr-desktop/ui/work_browser.mjs": "74f044cc3fdd57744a351d351b5d3d21acf4a7e91b8d57575f8c16365c314c3b",
+    "crates/magistr-desktop/ui/work_check_index.mjs": "3120512552609e29f9d84d995f5c5204137c6458eb571c289bfd0f3a46fe68a3",
+    "crates/magistr-desktop/ui/work_checks.mjs": "7e2ab97e7297c024b75178021428c7a7bf670aac2a6bcd2ecff5866b5b9e33fb",
+    "crates/magistr-desktop/ui/work_dom.mjs": "ceff65a6b0481a874d63558e83969d6f73cc179adaec156940da29c15661b54b",
+    "crates/magistr-desktop/ui/work_execution.mjs": "c079f1479914e00354e6ad1aaa9e7aeb44ff00cd3503eda5be86a1c8e206ce33",
+    "crates/magistr-desktop/ui/work_execution_search.mjs": "611d873f3cf0d68a73718c1605eaa82df86467a68daeff9acf5e1c62f2e7ab4a",
+    "crates/magistr-desktop/ui/work_feedback.mjs": "47da8bf83faabed3ac43e6a3fd0aad4340f8c36b0fc8a5ddb1ab6035f45b05e7",
+    "crates/magistr-desktop/ui/work_feedback_research.mjs": "82d0f831798b71214a8a0aee760667255accb12048ba1c50d4a956306dec5321",
+    "crates/magistr-desktop/ui/work_feedback_search.mjs": "bad8f635fd7ac5f4381fcb51d5f8968caac5494f3e1b025b8d862c6b5aa48f7a",
+    "crates/magistr-desktop/ui/work_item.mjs": "a619068ae3acb3ad14ebf1350f08eca167adf96d8997626eae9a06dbccb53b17",
+    "crates/magistr-desktop/ui/work_proposals.mjs": "cbbfbeabd502c78ab14a47feb4e5ec1abdcc85cf73960318094f21bebea2d54c",
+    "crates/magistr-desktop/ui/work_prose.mjs": "47a9017b6c329557d7155dffb672a7339c0be91f4e538ebd0e4adc2bf1468405",
+    "crates/magistr-desktop/ui/work_reasoning.mjs": "0f86cb3ed414f74aa43630bb5a0e7d7c995318f9662c20f9eef63440c43f65d4",
+    "crates/magistr-desktop/ui/work_reasoning_branch.mjs": "0481f40e0ba67e350a2337bb63e1ecfcd5ecc458cb3a2ed1888e70d117dfa841",
+    "crates/magistr-desktop/ui/work_reasoning_links.mjs": "ad6a66fbaabf305a55d0179f325dbf7c531472ddab311ee6bf9c8db13ed715de",
+    "crates/magistr-desktop/ui/work_reasoning_map.mjs": "f02bd0c7a4264d0259b204f29aacfebbbfc15ef855de4cba16d1bb8ab2f3226a",
+    "crates/magistr-desktop/ui/work_reasoning_search.mjs": "d20c7168c6c694c8e41f4b94b1490611351f5dc50b6b44e65ef3f3b5a240fc33",
+    "crates/magistr-desktop/ui/work_reasoning_step.mjs": "25319b6a3c23d9e4337a64548e25c0509e8779aefee109b7547c4c80e6868d0b",
+    "crates/magistr-desktop/ui/work_records.mjs": "89b0ae9ed1107a1ea79925ae5ae779032a82c0f656996a5c2630b6eff9f4a10d",
+    "crates/magistr-desktop/ui/work_references.mjs": "f5964e5e80fc2d1b3bed5fc3ddcde0af5d6c4d0e4acadd47e90c922be2f3dfb8",
+    "crates/magistr-desktop/ui/work_relations.mjs": "80c57ea276c7b462fe9a3759553f6a73ecf184abda93a85544d8276ebece27df",
+    "crates/magistr-desktop/ui/work_roadmap.mjs": "a5b6634264775911fe16d4393341b9c0a4594d910232c87858bf8320cf8d4b88",
+    "crates/magistr-desktop/ui/work_roadmap_context.mjs": "555e7eb036f242259f21c9147c77d9fd06085baaf625a117f5741a065d77969b",
+    "crates/magistr-desktop/ui/work_roadmap_layout.mjs": "3bc14ac37c751c85be0526a48b0d70fdd9bd856bb764c22da9ca31028966aa47",
+    "crates/magistr-desktop/ui/work_roadmap_search.mjs": "d55c17d1f5d25524a08bda96e51afb8e5eb3ec613b50283cad75cfca5cdd9b81",
+    "crates/magistr-desktop/ui/work_roadmap_surface.mjs": "4a7a98178cd491c0376cbdb986f4b0d331f2d40c8365032c9ca9b474d59c616d",
+    "crates/magistr-desktop/ui/work_ruler.mjs": "19caaaddfa867366589c3be073e5be862bfaf2df0bf22b8bdc26a80e6f1f031d",
+    "crates/magistr-desktop/ui/work_runs.mjs": "f47c595065436c2a39c54a2d7cded02be75a5ae1f54e90f2111d6464e210afae",
+    "crates/magistr-desktop/ui/work_search.mjs": "6d84e1dde9c35b4870ab01fe70c7985f00358e1e72e5143ae4bb261fde4bd402",
+    "crates/magistr-desktop/ui/work_status.mjs": "7ae803091e07bc8bf38e01ba24691cdebd3c78a99bf1dbd9b6f512122d8a1b84",
+    "crates/magistr-desktop/ui/work_surface.css": "566ab5d2ba73e3e0d5fc8d3d22b9dfe29d1249553f8b9b81c5eb7073a42e9d69",
+    "crates/magistr-desktop/ui/work_surface.mjs": "17b9a8fb1e3ea003be43f1d69107852709aec8f1ebbef8e58ff6e0463e9bbf4f",
+    "crates/magistr-desktop/ui/work_surface_input.mjs": "a75b7f883f439cc211132cef8bb095c1c289d8e900856589424cf986712d6a8c",
+    "crates/magistr-desktop/ui/work_surface_paint.mjs": "67e76742e1e1bd81b58500d1fbaf40d429d73ecc3587f7589f18c45b67f00741",
+    "crates/magistr-desktop/ui/work_surface_routes.mjs": "d2d226718b2688a6ab8e1fe95f0184ebd673ff52333e3ce5adbbf4c75c22f771",
+    "crates/magistr-desktop/ui/work_tabs.mjs": "1d8f148ad2408138bf95009db56b43bd7d8a83c7f16774b19aa832238cd0c61d",
+    "crates/magistr-desktop/ui/work_task_view.mjs": "b1d50f0b300bf0e386f5f0ad38eb5e7711f6b023e0155097ae0a5713460b125d",
+    "crates/magistr-desktop/ui/writing_surface.mjs": "a34379f33c19ea2a67d9ed29893eb182b7593ec7ec8d8eeeada73ed709b773ca",
+    "crates/magistr-desktop/playwright.config.mjs": "e97c1f9951b494fa8049e323eae8fc372a2d1c2de74fd8edd9de706be82e0634",
+    "crates/magistr-desktop/tauri.conf.json": "b8af99622336b041fe41255fe57d6225447631945d6a89c5a4f3dc1c7348b4b9",
+    "crates/magistr-desktop/tests/browser/fixture.mjs": "1027618d9d2f82ad3303db437f6815e24d3c1a571c1e343538d005c1b0ae7be7",
+    "crates/magistr-desktop/tests/browser/workspace.spec.mjs": "d6b4a2f513d06269b5e64bb7b93e9356a76ca309c7f36b348e960510815acdb5",
+    "crates/magistr-desktop/tests/browser/iteration_evidence.mjs": "2e5f3ec20aa00b68d81c4590d53717b66d08cfd2c5a60ad143dc6611ce6e6acb",
+    "crates/magistr-desktop/tests/browser/design_scenes.mjs": "0ac0250c04e2cdd567746c876b7a57580cb26cdd7e2acfaebafb2de9a2630921",
+    "crates/magistr-desktop/tests/browser/work_fixture.mjs": "43e0723cfda879a8190b9bda3b5e8e23ef8913638c9a0d27f69b9b6ed5586294",
+    "crates/magistr-desktop/tests/browser/roadmap_fixture.mjs": "e8929d623a089fdc0f6c9ba8fb5c7fbe57f649696ac1ca1def30a89bcfcb7a0b",
+    "crates/magistr-desktop/tests/browser/reasoning_fixture.mjs": "88536adadc7a54ea3041433f4c2b837b47138fac500cb32e3d32f55c29ee9471",
+    "crates/magistr-desktop/tests/browser/feedback_fixture.mjs": "f894b82aa327558ef3a4a47dae98538fe64abeb3c6675840ede59ee5b6779bd3"
+  },
+  "images": {
+    "welcome-dark.png": "1925c595aa0de8c3a57b14d30317516a1d5a6195cc71915c7ba4553d16e6875c",
+    "project-map-dark.png": "39427d0c7b35c1a946cff34511b36f3b4ca5941f1cb1aaac699aff83839b631f",
+    "directory-dark.png": "5775929e003ec22c797a177c687395638f8df92f511ddfce3eb31e2703027804",
+    "welcome-light.png": "4b0f7f4d56f67e066222cce019c9772afab1866480f583587631e599cf7497ad",
+    "project-map-light.png": "0127c1da9e252b4c8ad6b8cf6b5236c21b8cf2ac6e46ceeb9edb3c0efcd8eb1b",
+    "directory-light.png": "4b0f7f4d56f67e066222cce019c9772afab1866480f583587631e599cf7497ad",
+    "welcome-narrow-light.png": "d437b45c4c93731c7d8b26207fa21f3f054e32e2cc428aa8cd6e29d601480aeb",
+    "settings-dark.png": "5c18c7fe6ded41a369cd0d96f145a7b7c45275c0157884e6835aea0288b81ecc",
+    "workspace-dark.png": "1071b5bc86319046f132dad6ad096afd50ad117269d5cd49bcdc484be0accbc1",
+    "settings-light.png": "da8bf972ea158093b14c7b5854123d74a1e00ac4c2f421917b2c8339f3a15073",
+    "workspace-light.png": "a4aeaea6b6cb57a7792a569a2e41a012dca3cfb8be96ce2f320065a7ae1bdf94",
+    "workspace-narrow.png": "df23b691999203a122d501b9a11c8d84f797ca338ce84675443a62b8b24f8f85",
+    "settings-narrow-light.png": "1b9324cde0cda637f198463087467439adc39fcd840e94b003a82691b292df37",
+    "details-narrow.png": "452d91f77133fdcf8c048b00604328b9c405630171472e16b6d2a2519e684d42",
+    "inspector-narrow-light.png": "ecd619fbb47dff87e4d8e1df72b3ca9014777e25db7f28d8977742cd457e7c8f",
+    "rename-light.png": "ec34e49ac829467a2cf01ad0192bd6ac4cc13a4780b24479905c16744ce73570",
+    "work-paused-dark.png": "a1500a8ac0b676202d084f3a6997a7e21714d1fc06dbfbe72aee367868538086",
+    "work-plan-dark.png": "72ad863921e40695a3ae691836e6116cf1411704b2efec67aabc04f5bd0b229c",
+    "work-task-filter-dark.png": "9868016526c61f93f49be0cdd5acf3a4881a12c67d2799e4b3e2abad7998e8e4",
+    "work-check-index-dark.png": "444970f315533b12a5b487e25f61b4870d8b4d725d95a3ede4b3e427bd03c5f7",
+    "work-activity-index-dark.png": "6475c1bdd0d35b6e9099a17975199748edfcd7f9e19057f8831bfee006b1584c",
+    "work-record-status-dark.png": "d586a5ca62d0146c352aeffec48fd329de17abf3eb026940f4462ce3a26b8c63",
+    "roadmap-dark.png": "3b90d8294dd57c047de7a1d8d8974e6bdbf2a288180f3f8e548225c49c835a86",
+    "roadmap-item-dark.png": "7d502229465747bf7c6ca08e3600e2b2c1a1d16237dc14b96e9b6208e36c7a9e",
+    "roadmap-dependency-dark.png": "bcbf9096e555693f0244ca05635e93481f3cc2e0a00db882a888898ee70945dd",
+    "roadmap-proposal-dark.png": "6c180e314083a83f5e1147971b700abcf85c0a0b604a94352e3f6018bad1aca6",
+    "roadmap-history-dark.png": "3952d6c120f9be2da4b6971f34bfd3f1418da4a9605387d10ceef36bcf95d1a6",
+    "roadmap-search-dark.png": "42358e2c79a3b666c8b3b53b616ddc453223c3ad907ccc3d6cc8d3b09381ac3d",
+    "reasoning-dark.png": "2ffba1c23caf8dc8cc00dffb90a3f44d7a0611d058323f8c39a6532710619326",
+    "reasoning-step-dark.png": "92a260a0d33b1cc202670464b1b9ef74a2e6afc0a643f22408c9bf71a9ba1a81",
+    "reasoning-related-dark.png": "ae4b878086dbd3f3ce33de58a283d8c002a03de7c5f7109843cb54c6683c247d",
+    "reasoning-investigation-dark.png": "d949c9792e2dc6ebc2abe39ee55d74d7a1a2ad4ad56fcf192233c64277e2cc8a",
+    "reasoning-search-dark.png": "9bdc652e8cdd069776eccf56e5deb857831c856a6eab3141073848d8899dde88",
+    "feedback-dark.png": "e373abaf35695da9ee51dfa4e020be3a57d87384eef51ae55822676617f48a59",
+    "feedback-detail-dark.png": "40b87332ec93d88fefe7cc1f6983412ce9d07116667718f6e7c77366be779146",
+    "feedback-research-dark.png": "fad36b6652e2d83fe79e63f6dc1937eded9b305b78fb126cd8ebdf2bbd41def5",
+    "feedback-linked-reasoning-dark.png": "90e8e49580eba26cfac95774a39425ea93ae07f4f6b2d4851029303e5ae86188",
+    "feedback-search-dark.png": "ec45850a4181f69e414d0cf23c6cde77e3bf81f1e553399ed3b55e30ce23adf8",
+    "work-check-results-dark.png": "5f486d15c410affa309aada6f916551bc64fbaea3aa733e289d0190430883d67",
+    "work-activity-dark.png": "828695b75d65119610dc79251b50099572236d0879eb47673d3c3f25a7516f68",
+    "saved-work-dark.png": "890ffdeec6538f4f6e7e479ca97383718da93747dc1110ef2b5890c9c5f2d38e",
+    "work-history-search-dark.png": "f7b1c7298a0887d67718783323f3d0befa78960c5f6a35ba7141e415abe1b5ed",
+    "work-plan-light.png": "1c31aa15290a163d20970ecb7cb6f184fa02c0ce6cccf09d3652dddf443f382f",
+    "roadmap-light.png": "65c6f1c2f1a2552513fca60a379a5b336c2104c2f362c0775144709afaaf2b76",
+    "roadmap-minimum.png": "178918dd41eabb175b1cbf7e5280d9e2ec31f0da4a3ca6dabca6a1bb2c0f2ad6",
+    "work-plan-minimum.png": "dc44390cd60cdb8130d218acd14a894495ae6fa9df28380774d4e9162cdbde04",
+    "roadmap-detail-minimum-light.png": "98e9c9a686592550cdb367c62464264bce3ac38cbc2489ac247fb0289ea75d3d",
+    "reasoning-detail-minimum-light.png": "8ee1dc46e2b8b424ece9e508097a30cc43ad73ad9685aaeb4639d37b538430a1",
+    "feedback-detail-minimum-light.png": "683d6a5bdf5f0f235a9c8009ec634be5effbb81a627c3c2ab77e209f074e2b78",
+    "inspector-dark.png": "d43301b89d2649fe3a5c353b31758bd049781a77b083c8f2f30f3b623f69a3aa",
+    "inspector-light.png": "fb51b273b97608a5fe8622d03ec51c988dd26daa1f29c2d4a974fa62edfe5f62",
+    "inspector-unknown-dark.png": "2b4053ddf0f04960ea37c987e8e86c8c4e85696edff50fd2fca916e16d400383",
+    "history-dark.png": "8a4a8862f1f186bdfc443a43828d13bbc87d5d242be59bce686c8bb173d62997",
+    "history-reading-dark.png": "7600587bc6e250d80ec36c2174f8e19f07a10140ebad7a21f815153e47365028",
+    "history-narrow-light.png": "262912d2ab73dea39983ca1acc729aa19e8ebcfd09c879971100b46e79b5ab7f",
+    "history-reading-narrow-light.png": "374f98df8b30f4ed43e998edc843faabac9b886c74500c700544af74ee9d6115",
+    "setup-narrow-light.png": "099c82510d36e72d71cc2e5cad006daa969be872046f480a8b94be6d1745d4cd",
+    "open-project-dark.png": "6166233b2c8a4fd3a8d5d72cdedd22f5f2b105a556779c46f5947adf77625c27",
+    "setup-dark.png": "7a8fcd35c084c5dfd4c330098129631899433a5858a6036f3d012b622a13a655",
+    "setup-after-dark.png": "442486c56e9a2c5789007192c0033924fbab6ea3a513a2a97f75d079a4a79e0f",
+    "setup-current-dark.png": "eb9d4fa65cb7f5ae1b16ce7b244d4890892d72a17c6f7ae0d28c55ca51f042d8",
+    "new-conversation-dark.png": "83562aff23156eaa14477ea03ca8d3d95281be7b605f19b4f49831ad23a68753",
+    "new-conversation-narrow-light.png": "41780e26807a567bf1eb60f8289bf09ea28d65cea0098061a3d0db5e100a3837",
+    "find-conversation-narrow-light.png": "70cd8c11e9300587e33223a3c0ffdd4e65a1b2826d02cda6e3b592236c856db6",
+    "find-conversation-dark.png": "2950c50f26c35e9ca0ec9bb8f8f9938616fe9ed6ae9de7ef0487106b41221889",
+    "reading-dark.png": "9b180a564b5e704f10835e70ef52af50375d2e046ea0763b2795cd8265cae94b",
+    "code-dark.png": "f4eae5432cd5b12f7b5fe9cb891c7c2b4374d1c785fdd1e870e22ecbb54830cf",
+    "reading-light.png": "3d47fbbc22d714613af315d26a80bb420bc4f480e9e2ea3bb60504ce4bc8d701",
+    "code-light.png": "b32969b09731426cca271882b197b97a3b6ef3db58a5d2d572c41a089b5baf2c",
+    "tools-light.png": "f05a3ca2d159ef02c5273aaf3f9c8ed37a96d7be1d9e0495bb20ef10e608c3ba",
+    "tools-dark.png": "2dc7af34e60422450cd231e6a8c31ba7ed668b410f167f6f3ba6e3c31fdc89ac",
+    "attachments-dark.png": "8963b17660c8a18ac68073a29b15ac1c85befc883111fadf5ea56e3352c660d0",
+    "image-inspection-dark.png": "53b6fe402270f8a2ac2fa50386f6d5ff86536532debcf3bdb0122911e9802f60",
+    "attachments-narrow-light.png": "ce592945b583dd04be8e78697cf86d80ea27aec0966bee30ec0afd4b660ea0bd",
+    "request-narrow-light.png": "bd90e9d7d9c4c93278d71151bc560ad46f09c5b0136ba0b1ddede82d670d9fa1",
+    "request-dark.png": "e5071e54d1f449d21ebbfde0b63f86d4b0abd293e41086393b35ff89d7b5e3b6",
+    "minimum-workspace-dark.png": "81f68fd89b0c369c72fe74beb8ebaabdd5ff127ac7a17e8f902c515a9a570a36",
+    "minimum-projects-dark.png": "e1f74d841659a67ac8cbe88e616f5ca8ea4568b54ee1ed9ba03e2a74460bcbae",
+    "minimum-workspace-light.png": "397cd3df0f747eec97daebd2d818324af94c1fbb92dbba3ed7a036bbc1878618",
+    "minimum-projects-light.png": "fb1af5b2936cec73742d955971f932ef7733724142ed7d7ec000d59867f15533",
+    "minimum-settings-light.png": "550761ce0ad835c983881c222108a9484c01f76ae8c30e2972badd7eeedcf80b",
+    "open-project-error-dark.png": "e4b73921592ee32b82fbcf6ef3a8f805fdf78a188981646ed7eb153b7276e1de",
+    "open-project-error-details-dark.png": "e72895a127051c1c5dd335708acb490436792574a2c72ae02c56265f401f388e",
+    "open-project-error-light.png": "f4d1a53caa91e95edd792d25fa7805a69c387b8e109eee197f3010247940db9e",
+    "open-project-error-details-light.png": "d82314531f428e49977e8d285aa75a4e11593c6a5a8e7c70822065cdb9d3c507",
+    "empty-conversation-dark.png": "6f6c3eccc11c17d037458a2fe92e72c267dc33401f3081499290aa3523530df6",
+    "empty-conversation-light.png": "bb2d3d5cb035e5149eec77c74ff500db82393f593e097634cff220bd8b9acd4e",
+    "source-folio-dark.png": "4b6ff40d9a9e81b752b8c1da514f84edb97e51f996ca81d547abf223b6491cc3",
+    "source-folio-light.png": "0f845c9bf599f1f1cbd034b5365f5bf5e44bb5a48a8ef60e44603875168973ed",
+    "tables-dark.png": "d66805b1e8f1c4d83d23e57f1bbd8fe82bdc0c9afdd7b9425b2bf527c8934ae2",
+    "tables-light.png": "aee950d49426ee32b7407844a4a57a831d64a51a46df5230f492148c2b238bbd",
+    "tables-compact.png": "e78a8b403af17b2c2754a1242dc764fd5d55970a16748447393edfa36b0adbfd",
+    "patch-dark.png": "dc7b6ed932c4bd2385cf894a9b4d1edbab0372a654d231f5dcb5aa1f7a0f7bd8",
+    "patch-light.png": "701f5cfc717b8b83817453460b2f19e7a2160517e5a03b58007e03af47e059ec",
+    "patch-comparison-dark.png": "2ca64a86a5c6aae7c9dbb03e128b79f835019d5e7d7b95ce26ee98dacbc55494",
+    "patch-comparison-light.png": "4b5c65c398a382d568683dc932e2a9826916b6533c03be862c43ed8aa8a497dd",
+    "patch-compact.png": "d90ec26fc3b6ccc2806bf87a5e2a4f514990d63c4efebb46a250108c8d9221c3",
+    "result-dark.png": "94a594686e15a5d586dc658b68e175b0454b444286ad94e17b27aee496e54415",
+    "result-light.png": "d937ca7a74ef83e48084d86a0d8cba215ad6957701ead87b984f5e86dc25cc10",
+    "records-dark.png": "5b644ccfb485926f4c59beea16ba858b0a4f82a4f367156cf5fab474506480b6",
+    "records-light.png": "c4a28e6fe893dcb99355e746187d507815a7ed6f739d9edfb40129fbde3af45a",
+    "contents-dark.png": "ec130f34d200dc17b74accafbfe7d4953682d02d22924742baf48cb4d87d6ec2",
+    "contents-light.png": "ce5febb66b2a0f73598145d2c8cb17c06cb11900552e74151e713ca1e37c0349",
+    "contents-compact.png": "1fe8f5326bcfc4434711cc61da4340288ed01b86fdb550f1df0e1ecd5be086f7",
+    "editorial-dark.png": "aa878c66ebb6a032e13d614f78b3427ea847501fd7ee02068b81283dc8af8cac",
+    "editorial-light.png": "3aaa7affeba0660fa45f927a9dcfa38e0ce687acbca35bf32c54c246cd4fe0cb",
+    "editorial-compact.png": "d9faa95b2fa5aafedcaa36701bfcc4618dbd4ffd0e84e427b75b03802b18ecb6",
+    "gallery-dark.png": "fc826ceb58eda5fcef40b93150d7c1ce29729250de709f277172de840b0b8c6a",
+    "gallery-light.png": "08a4901fe65a41aa340b8164a9675d4e1bed78ef1148298b0ee39ef943521168",
+    "gallery-compact.png": "e23b69646fe9f497ca633564b69018aebb011cdfc53561a073865706a938db0d",
+    "image-stage-dark.png": "2ed90798f49aa16a1809c8f128bda04a6a726b8dc79f7deff20fcf74bac71f00",
+    "image-stage-light.png": "b479ae499ea7f7c918f524315f885333786b0ed28d332f9447758f493eb22af7",
+    "image-stage-compact.png": "63a287f29392fb979fe13b742cbce7f4110882f3b22c3d97f6b8af27a36bd28c",
+    "writing-dark.png": "1e28f9e6cfb95e155a9f907eb294bb5b4430021fda8d143d78f1334af1a1dd02",
+    "writing-light.png": "c4725d4adbc86d8c331aa9d72c0407e4c28b68590b86db00386bb3422271c0c8",
+    "writing-compact.png": "62100ffc3be087aaf2cf5b7e0dd9ae6e329e8d146f84c30b06b9820304ee48cb",
+    "execution-dark.png": "849d81e59f55597afc8ea83816b036f97cba4224b1eae51dc8915583ff17a7b6",
+    "execution-light.png": "ad1e20ab3884aad7505b8527b96ffc107bb2ccf13bfb2706cecc067945f200e7",
+    "execution-compact.png": "62c73c990adb73d7f621966f46233cf67c69169cc274558f0cb08f337c2db814",
+    "permission-dark.png": "225b0f90a3d85e4da11338074df99b5462b60e56d856d9893c3c6774726096aa",
+    "permission-light.png": "8d3df5618578bcbceacf3172794739b224279cd7b4120b8cfa3e3f4e51696516",
+    "permission-compact.png": "68347a3ee0c8d04e8ae1c76b43fdfe45a75e38a516af81404df2f762970c904e",
+    "saved-document-dark.png": "8171868a536e429656bd09e7d425ef4aee5191b20ba6084436601b9619e50b2c",
+    "saved-document-light.png": "3b66589038d5dd1efb62b799648db043e1c27578ec0d93781e72aa723d85b7e7",
+    "saved-document-compact.png": "b0c678679a145758f9c59ee59ac2abab27b7a95990c0a3181fa8e150909b222e",
+    "workspace-wide-dark.png": "1e04fca5878d02c70dab6e2a2d8fbe97ce41556fc9eb7df56df9d538b81e2153",
+    "workspace-wide-light.png": "362634318154e4aa0b9a02d945ed5b7c8ee484c155cc9b93b08e09068f86d557",
+    "workspace-wide-details-light.png": "51aaf541f773c6535b385be51c94ea8626c3468ef42a6bca0c3e38eaaa67fc70",
+    "workspace-compact-final-dark.png": "9f02976beb85e311122ff74b755ed14f92d7b5bc6cbda4e4ccec196f4e390c01",
+    "workspace-compact-final-light.png": "0b213cd78b54f31385d21d1563cf64b53b3ba458b428f396ec56992f33322bc5",
+    "workspace-compact-long-title.png": "fcc2520d7ab9cdd54e98d600c982470502c5fe48fa6e665ea6a363345556c468"
+  },
+  "viewports": {
+    "welcome-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "project-map-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "directory-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "welcome-light.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "project-map-light.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "directory-light.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "welcome-narrow-light.png": {
+      "width": 800,
+      "height": 680
+    },
+    "settings-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "workspace-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "settings-light.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "workspace-light.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "workspace-narrow.png": {
+      "width": 800,
+      "height": 680
+    },
+    "settings-narrow-light.png": {
+      "width": 800,
+      "height": 680
+    },
+    "details-narrow.png": {
+      "width": 800,
+      "height": 680
+    },
+    "inspector-narrow-light.png": {
+      "width": 800,
+      "height": 680
+    },
+    "rename-light.png": {
+      "width": 800,
+      "height": 680
+    },
+    "work-paused-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "work-plan-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "work-task-filter-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "work-check-index-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "work-activity-index-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "work-record-status-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "roadmap-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "roadmap-item-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "roadmap-dependency-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "roadmap-proposal-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "roadmap-history-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "roadmap-search-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "reasoning-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "reasoning-step-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "reasoning-related-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "reasoning-investigation-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "reasoning-search-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "feedback-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "feedback-detail-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "feedback-research-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "feedback-linked-reasoning-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "feedback-search-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "work-check-results-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "work-activity-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "saved-work-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "work-history-search-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "work-plan-light.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "roadmap-light.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "roadmap-minimum.png": {
+      "width": 760,
+      "height": 550
+    },
+    "work-plan-minimum.png": {
+      "width": 760,
+      "height": 550
+    },
+    "roadmap-detail-minimum-light.png": {
+      "width": 760,
+      "height": 550
+    },
+    "reasoning-detail-minimum-light.png": {
+      "width": 760,
+      "height": 550
+    },
+    "feedback-detail-minimum-light.png": {
+      "width": 760,
+      "height": 550
+    },
+    "inspector-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "inspector-light.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "inspector-unknown-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "history-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "history-reading-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "history-narrow-light.png": {
+      "width": 800,
+      "height": 680
+    },
+    "history-reading-narrow-light.png": {
+      "width": 800,
+      "height": 680
+    },
+    "setup-narrow-light.png": {
+      "width": 800,
+      "height": 680
+    },
+    "open-project-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "setup-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "setup-after-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "setup-current-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "new-conversation-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "new-conversation-narrow-light.png": {
+      "width": 800,
+      "height": 680
+    },
+    "find-conversation-narrow-light.png": {
+      "width": 800,
+      "height": 680
+    },
+    "find-conversation-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "reading-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "code-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "reading-light.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "code-light.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "tools-light.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "tools-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "attachments-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "image-inspection-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "attachments-narrow-light.png": {
+      "width": 800,
+      "height": 680
+    },
+    "request-narrow-light.png": {
+      "width": 800,
+      "height": 680
+    },
+    "request-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "minimum-workspace-dark.png": {
+      "width": 760,
+      "height": 550
+    },
+    "minimum-projects-dark.png": {
+      "width": 760,
+      "height": 550
+    },
+    "minimum-workspace-light.png": {
+      "width": 760,
+      "height": 550
+    },
+    "minimum-projects-light.png": {
+      "width": 760,
+      "height": 550
+    },
+    "minimum-settings-light.png": {
+      "width": 760,
+      "height": 550
+    },
+    "open-project-error-dark.png": {
+      "width": 760,
+      "height": 550
+    },
+    "open-project-error-details-dark.png": {
+      "width": 760,
+      "height": 550
+    },
+    "open-project-error-light.png": {
+      "width": 760,
+      "height": 550
+    },
+    "open-project-error-details-light.png": {
+      "width": 760,
+      "height": 550
+    },
+    "empty-conversation-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "empty-conversation-light.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "source-folio-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "source-folio-light.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "tables-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "tables-light.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "tables-compact.png": {
+      "width": 760,
+      "height": 550
+    },
+    "patch-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "patch-light.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "patch-comparison-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "patch-comparison-light.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "patch-compact.png": {
+      "width": 760,
+      "height": 550
+    },
+    "result-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "result-light.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "records-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "records-light.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "contents-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "contents-light.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "contents-compact.png": {
+      "width": 760,
+      "height": 550
+    },
+    "editorial-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "editorial-light.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "editorial-compact.png": {
+      "width": 760,
+      "height": 550
+    },
+    "gallery-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "gallery-light.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "gallery-compact.png": {
+      "width": 760,
+      "height": 550
+    },
+    "image-stage-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "image-stage-light.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "image-stage-compact.png": {
+      "width": 760,
+      "height": 550
+    },
+    "writing-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "writing-light.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "writing-compact.png": {
+      "width": 760,
+      "height": 550
+    },
+    "execution-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "execution-light.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "execution-compact.png": {
+      "width": 760,
+      "height": 550
+    },
+    "permission-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "permission-light.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "permission-compact.png": {
+      "width": 760,
+      "height": 550
+    },
+    "saved-document-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "saved-document-light.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "saved-document-compact.png": {
+      "width": 760,
+      "height": 550
+    },
+    "workspace-wide-dark.png": {
+      "width": 1920,
+      "height": 1080
+    },
+    "workspace-wide-light.png": {
+      "width": 1920,
+      "height": 1080
+    },
+    "workspace-wide-details-light.png": {
+      "width": 1920,
+      "height": 1080
+    },
+    "workspace-compact-final-dark.png": {
+      "width": 760,
+      "height": 550
+    },
+    "workspace-compact-final-light.png": {
+      "width": 760,
+      "height": 550
+    },
+    "workspace-compact-long-title.png": {
+      "width": 760,
+      "height": 550
+    }
+  }
+}

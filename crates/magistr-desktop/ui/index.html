@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Magistr</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="work_browser.css"></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Magistr</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="work_browser.css"><link rel="stylesheet" href="work_surface.css"></head>
 <body>
 <div id="desktop-shell" class="shell">
 <aside id="project-rail" class="rail" aria-label="Projects and sessions">
@@ -24,12 +24,12 @@
   </footer>
 </aside>
 <main id="workspace-main">
+<section id="project-context" class="project-context" hidden><div class="project-context-heading"><p id="project-name" data-leading-icon="folder">Magistr</p><div class="working-location"><button id="copy-summary" data-leading-icon="branch" aria-controls="session-detail" title="Choose a working copy"></button><p id="header-location" class="header-location"></p></div><div class="work-browser-tools"><p id="work-browser-state" role="status"></p><button id="work-browser-return" hidden>Return to feedback</button><button id="work-browser-refresh">Refresh</button></div></div><nav id="work-browser-tabs" class="work-browser-tabs" role="tablist" aria-label="Project views"><button id="work-tab-conversation" role="tab" aria-selected="false" aria-controls="workspace" data-work-view="conversation">Conversation</button><button id="work-tab-work" aria-label="Current and saved work" role="tab" aria-selected="true" aria-controls="work-browser-content" data-work-view="work">Work</button><button id="work-tab-roadmap" role="tab" aria-selected="false" aria-controls="work-browser-content" tabindex="-1" data-work-view="roadmap">Roadmap</button><button id="work-tab-reasoning" role="tab" aria-selected="false" aria-controls="work-browser-content" tabindex="-1" data-work-view="reasoning">Reasoning</button><button id="work-tab-feedback" role="tab" aria-selected="false" aria-controls="work-browser-content" tabindex="-1" data-work-view="feedback">Feedback</button><button id="work-tab-status" aria-label="Record status" role="tab" aria-selected="false" aria-controls="work-browser-content" tabindex="-1" data-work-view="status">Sources</button></nav></section>
   <header class="work-header">
-    <div class="work-heading"><div class="work-titles"><p id="project-name" data-leading-icon="folder">Magistr</p><h1 id="view-title" tabindex="-1">Your workspace</h1></div></div>
+    <div class="work-heading"><div class="work-titles"><h1 id="view-title" tabindex="-1">Your workspace</h1></div></div>
     <div class="header-actions"><p id="status" role="status" aria-live="polite">Ready</p><button id="toggle-details" data-leading-icon="panel" aria-controls="session-detail" aria-expanded="false" hidden>Details</button><details id="conversation-actions" class="header-menu" hidden><summary id="conversation-menu-trigger" aria-label="Conversation actions">···</summary><div class="header-menu-actions"><button id="rename-conversation">Rename conversation</button><button id="copy" disabled>Copy conversation</button><button id="reconnect" disabled hidden>Reconnect</button><button id="close-session" class="destructive" disabled>Close conversation</button></div></details></div>
   <nav id="conversation-toolbar" class="conversation-toolbar" aria-label="Conversation controls" hidden>
-    <div class="working-location"><button id="copy-summary" data-leading-icon="branch" aria-controls="session-detail" title="Choose a working copy"></button><p id="header-location" class="header-location"></p></div>
-    <div class="context-actions" role="group" aria-label="Work and requests"><button id="browse-work-header" aria-controls="work-browser" disabled>Work plan</button><button id="browse-roadmap-header" aria-controls="work-browser" disabled>Roadmap</button><button id="browse-reasoning-header" aria-controls="work-browser" disabled>Reasoning</button><button id="review-requests" data-leading-icon="shield" aria-controls="requests" hidden></button><button id="work-summary" data-leading-icon="clock" aria-controls="work">Planned work</button></div>  </nav>
+    <div class="context-actions" role="group" aria-label="Work and requests"><button id="review-requests" data-leading-icon="shield" aria-controls="requests" hidden></button><button id="work-summary" data-leading-icon="clock" aria-controls="work">Planned work</button></div>  </nav>
   </header>
   <p id="error" class="error" role="alert" tabindex="-1" hidden></p>
   <section id="welcome" class="welcome" aria-label="Open a project">
@@ -42,7 +42,7 @@
     <p id="directory-empty" hidden>No projects yet. Choose a folder to get started.</p>
     <p id="welcome-note" role="status" hidden></p>
   </section>
-  <div id="workspace" class="workspace" hidden>
+  <div id="workspace" class="workspace" role="tabpanel" aria-labelledby="work-tab-conversation" hidden>
     <section id="conversation" class="conversation" aria-label="Conversation">
       <div id="transcript" class="transcript" tabindex="0" aria-label="Messages"></div>
       <button id="latest" data-leading-icon="arrow" hidden>Latest reply</button>
@@ -93,8 +93,7 @@
 
     </aside>  </div>
 <section id="work-browser" hidden aria-labelledby="work-browser-title">
-  <header class="work-browser-heading"><div><h2 id="work-browser-title" tabindex="-1">Project work</h2><p id="work-browser-project"></p></div><div class="work-browser-tools"><p id="work-browser-state" role="status"></p><button id="work-browser-return" hidden>Return to feedback</button><button id="work-browser-refresh">Refresh</button></div><button id="work-browser-close" aria-label="Back to conversation">← Conversation</button></header>
-  <nav id="work-browser-tabs" class="work-browser-tabs" role="tablist" aria-label="Work view"><button id="work-tab-work" role="tab" aria-selected="true" aria-controls="work-browser-content" data-work-view="work">Current and saved work</button><button id="work-tab-roadmap" role="tab" aria-selected="false" aria-controls="work-browser-content" tabindex="-1" data-work-view="roadmap">Roadmap</button><button id="work-tab-reasoning" role="tab" aria-selected="false" aria-controls="work-browser-content" tabindex="-1" data-work-view="reasoning">Reasoning</button><button id="work-tab-feedback" role="tab" aria-selected="false" aria-controls="work-browser-content" tabindex="-1" data-work-view="feedback">Feedback</button><button id="work-tab-status" role="tab" aria-selected="false" aria-controls="work-browser-content" tabindex="-1" data-work-view="status">Record status</button></nav>
+  <header class="work-browser-heading"><h2 id="work-browser-title" class="sr-only" tabindex="-1">Project work</h2></header>
   <div class="work-browser-filters">
   <div id="work-reasoning-selection" class="work-run-selection" hidden><div class="work-filter"><label for="work-browser-reasoning">Reasoning to inspect</label><select id="work-browser-reasoning"></select></div><div class="work-filter"><label for="work-browser-branch">Investigation</label><select id="work-browser-branch"></select></div></div>
   <div id="work-reasoning-search" class="work-run-selection" hidden><div class="work-filter"><label for="work-browser-reasoning-search">Search all reasoning</label><input id="work-browser-reasoning-search" type="search" autocomplete="off" placeholder="Find a recorded decision"></div></div>
@@ -108,7 +107,7 @@
   <div id="work-track-selection" class="work-run-selection" hidden><div class="work-filter"><label for="work-browser-track">Track</label><select id="work-browser-track"></select></div><div class="work-filter"><label for="work-browser-roadmap-state">Items</label><select id="work-browser-roadmap-state"><option value="open">Open work</option><option value="closed">Completed and retired</option></select></div></div>
   <div id="work-roadmap-search" class="work-run-selection" hidden><div class="work-filter"><label for="work-browser-search">Search all roadmap</label><input id="work-browser-search" type="search" placeholder="Find work in any track" autocomplete="off"></div></div>
   </div>
-  <div id="work-browser-content" role="tabpanel" aria-labelledby="work-tab-work" tabindex="0"></div>
+  <div id="work-browser-body"><div id="work-browser-content" role="tabpanel" aria-labelledby="work-tab-work" tabindex="0"></div><aside id="work-browser-inspector" aria-label="Selected work" tabindex="-1" hidden></aside></div>
 </section>
 </main>
 </div>

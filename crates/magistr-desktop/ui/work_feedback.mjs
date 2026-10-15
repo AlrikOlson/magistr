@@ -1,4 +1,4 @@
-import {element,inlineFacts} from "./work_dom.mjs";
+import {element,inlineFacts,checklist} from "./work_dom.mjs";
 import {pageControls} from "./work_search.mjs";
 import {filterFeedback} from "./work_feedback_search.mjs";
 import {feedbackResearch} from "./work_feedback_research.mjs";
@@ -18,7 +18,7 @@ export function feedbackDetail(record,actions){
     const facts=element("dl","","roadmap-content-facts");for(const fact of record.content.facts??[]){const pair=element("div");pair.append(element("dt",fact.label),element("dd",fact.value));facts.append(pair);}if(facts.children.length)article.append(facts);
     for(const [index,section] of (record.content.sections??[]).entries()){
       if(section.prose)article.append(prose(section.heading,section.prose,record.id+":section:"+index,copy));else article.append(element("h4",section.heading));
-      const list=element("ul","","roadmap-checklist");for(const entry of section.list??[]){const row=element("li");if(entry.done!=null)row.append(element("span",entry.done?"Completed":"To do","roadmap-checklist-state"));row.append(element("span",entry.text));list.append(row);}article.append(list);
+      if(section.list?.length)article.append(checklist(section.list));
     }
   }
   const references=actions.references(record.cross_refs);if(references)article.append(references);

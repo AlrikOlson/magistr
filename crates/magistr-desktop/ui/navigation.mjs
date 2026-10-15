@@ -20,7 +20,7 @@ export function projectVariant(id) {
 }
 function projectWorkLinks(work,project){
   const nav=node("nav","project-work-links");nav.setAttribute("aria-label","Project work");
-  for(const [area,label] of [["work","Work"],["roadmap","Roadmap"],["reasoning","Reasoning"]]){const button=node("button","",label);button.dataset.workArea=area;button.onclick=()=>work(project(),area,button);nav.append(button);}
+  for(const [area,label] of [["roadmap","Open workspace"]]){const button=node("button","",label);button.dataset.workArea=area;button.onclick=()=>work(project(),area,button);nav.append(button);}
   return nav;
 }
 const node=(tag,className,value="")=>{const el=document.createElement(tag);el.className=className;el.textContent=value;return el;};

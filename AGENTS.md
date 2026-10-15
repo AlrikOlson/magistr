@@ -79,14 +79,29 @@ templates as well as generated skills so `magistr init` and repair preserve it.
 Scope changes and commits to the requested task; preserve other sessions' work.
 
 Every GUI iteration must save updated screenshots of every area it changes before
-completion or commit. Keep them in a dated, named iteration folder under
-`docs/evidence/desktop-iterations/`, with consistent view names, viewport sizes,
-appearance, renderer, source hashes and capture time. Inspect the images and
+completion or commit. Capture directly into a dated, named iteration folder under
+`docs/evidence/desktop-iterations/`; open and review images from that location,
+never from an ignored scratch directory. Keep consistent view names and record viewport
+sizes, appearance, renderer, source hashes and capture time. Inspect the images and
 record what was checked and any limitations alongside them. Include the evidence
 in the iteration's commit and link it in the receipt. Cover affected meaningful
 states and supported light/dark and compact layouts; do not substitute old images,
 a final-only gallery or test assertions for that iteration's screenshots.
 Never overwrite earlier iterations or label an unreviewed capture as reviewed.
+
+Visual review is a separate required gate, not a consequence of passing tests.
+For each capture, open the full frame and inspect readable detail; record its
+filename, the user's task, concrete observations and a pass/fail verdict in the
+iteration review. Judge layout, hierarchy, spacing, typography, contrast, control
+placement and relationships, including connection attachment points, routing,
+crossings and branch/merge clarity. Inspect compact and desktop sizes, both
+appearances, relevant dense/empty/selected states, and transitions that affect
+focus or placement. Unreadable default zoom, clipping, overlap, ambiguous lines
+or excessive empty geometry are blocking defects. Record a required
+`ship_check(name: "GUI visual review", type: "review")` as failed while any such
+defect is open; do not complete the affected work or start its next visual
+iteration. Fix, recapture and inspect again before recording a pass. A hash,
+test assertion or screenshot file proves neither inspection nor visual quality.
 
 Desktop checks run in the background by default. Use focused headless WebKit
 scenarios for HTML/CSS/JavaScript layout and interaction, plus the affected unit

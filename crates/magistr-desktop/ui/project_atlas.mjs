@@ -1,70 +1,51 @@
-import { addressKey } from "./context.mjs";
-import { projectGroups, projectVariant } from "./navigation.mjs";
-import { sessionActivity } from "./activity.mjs";
+import {addressKey} from "./context.mjs";
+import {projectGroups} from "./navigation.mjs";
+import {sessionActivity} from "./activity.mjs";
+import {element} from "./work_dom.mjs";
+import {WorkSurface} from "./work_surface.mjs";
 
-// A bounded spatial view of the same catalog. Nodes hold presentation, never session state.
-const positions = [[50,14],[82,36],[82,78],[50,90],[18,78],[18,36]];
-const node = (tag, name, value="") => { const el=document.createElement(tag);el.className=name;el.textContent=value;return el; };
-function place(parent, children) {
-  children.forEach((child,index)=>{if(parent.children[index]!==child)parent.insertBefore(child,parent.children[index]??null);});
-  while(parent.children.length>children.length)parent.lastChild.remove();
-}
-export class ProjectAtlas {
-  constructor(root,{select,open,label,list}) {
-    Object.assign(this,{root,select,open,label,list});this.groups=new Map();this.rows=new Map();
-    this.board=node("div","atlas-board");this.more=node("button","atlas-more");
-    this.more.onclick=list;root.append(this.board,this.more);
+// Membership comes from the catalog; positions and camera are only local view state.
+export class ProjectAtlas{
+  constructor(root,{select,work,open,label,list}){
+    Object.assign(this,{root,select,work,open,label,list});this.controls=new Map();
+    this.surface=new WorkSurface("Projects");this.more=element("button","","atlas-more");this.more.onclick=list;
+    root.append(this.surface.root,this.more);
   }
-  render(projects,sessions,query="") {
-    const all=projectGroups(projects,sessions.filter(session=>!session.closed),query,this.label);
-    const groups=all.slice(0,8), used=new Set();
-    const cards=groups.map(project=>{
-      let card=this.groups.get(project.id);
-      if(!card){
-        const root=node("section","atlas-project"),heading=node("header","atlas-heading");
-        const title=node("h3",""),path=node("p",""),stage=node("nav","atlas-stage");
-        const lines=document.createElementNS("http://www.w3.org/2000/svg","svg");
-        lines.setAttribute("viewBox","0 0 100 100");lines.setAttribute("preserveAspectRatio","none");lines.setAttribute("aria-hidden","true");
-        const hub=node("button","atlas-hub"),mark=node("span","project-monogram"),count=node("span","atlas-hub-count");
-        mark.setAttribute("aria-hidden","true");hub.append(mark,count);
-        const nodes=node("div","atlas-nodes"),more=node("button","atlas-more");
-        more.onclick=this.list;stage.append(lines,hub,nodes);heading.append(title,path);root.append(heading,stage,more);
-        card={root,title,path,stage,lines,hub,mark,count,nodes,more,project};this.groups.set(project.id,card);
-        hub.onclick=()=>this.open(card.project.directory);
-      }
-      card.project=project;card.root.dataset.variant=projectVariant(project.id);
-      card.title.textContent=project.name;card.path.textContent=project.directory;
-      card.mark.textContent=Array.from(project.name.trim()).slice(0,2).join("").toLocaleUpperCase();
-      card.count.textContent=project.sessions.length+" open";
-      card.hub.setAttribute("aria-label","Open project "+project.name+" from map");
-      card.stage.setAttribute("aria-label","Conversation map for "+project.name);
-      const visible=project.sessions.slice(0,6), edges=[];
-      const controls=visible.map((session,index)=>{
-        const key=addressKey(session.address);used.add(key);
-        let row=this.rows.get(key);
-        if(!row){
-          const button=node("button","atlas-node"),name=node("span",""),state=node("small","");
-          button.append(name,state);row={button,name,state,session};this.rows.set(key,row);
-          button.onclick=()=>this.select(row.session.address);
-        }
-        row.session=session;row.name.textContent=this.label(session);
-        row.state.textContent=session.pending?.length?"Needs your answer":session.status;
-        row.button.dataset.state=sessionActivity(session);
-        row.button.setAttribute("aria-label","Open "+this.label(session)+" from project map");
-        const [x,y]=positions[index];row.button.style.left=x+"%";row.button.style.top=y+"%";
-        const edge=document.createElementNS("http://www.w3.org/2000/svg","path");
-        edge.setAttribute("d",`M50 52 Q50 ${y} ${x} ${y}`);edges.push(edge);
-        return row.button;
+  piece(id,kind,label,detail,footer){
+    let button=this.controls.get(id);
+    if(!button){button=element("button","","atlas-piece atlas-"+kind);button.append(element("strong"),element("span","","atlas-piece-detail"),element("small"));this.controls.set(id,button);}
+    button.children[0].textContent=label;button.children[1].textContent=detail;button.children[2].textContent=footer;
+    button.title=[label,detail,footer].filter(Boolean).join("\n");return button;
+  }
+  render(projects,sessions,query=""){
+    const all=projectGroups(projects,sessions.filter(session=>!session.closed),query,this.label),groups=all.slice(0,8),nodes=[],edges=[],actions=new Map();
+    const focused=this.root.contains(document.activeElement)?document.activeElement.dataset.focusKey:null;
+    let y=0;
+    for(const project of groups){
+      const id="project:"+project.id,visible=project.sessions.slice(0,6),extra=project.sessions.length>visible.length;
+      const rows=visible.length+Number(extra),height=Math.max(104,rows*88-12);
+      const button=this.piece(id,"project",project.name,project.directory,project.sessions.length?"Open workspace · "+project.sessions.length+" "+(project.sessions.length===1?"conversation":"conversations"):"Open project");
+      button.setAttribute("aria-label",(project.sessions.length?"Open workspace for ":"Open project ")+project.name+" from map");
+      nodes.push({id,label:project.name,x:0,y:y+(height-104)/2,w:260,h:104,element:button});
+      actions.set(id,()=>project.sessions.length?this.work(project,"roadmap",button):this.open(project.directory));
+      visible.forEach((session,index)=>{
+        const child="conversation:"+addressKey(session.address),label=this.label(session),state=session.pending?.length?"Needs your answer":session.status;
+        const piece=this.piece(child,"conversation",label,state,"Open conversation");piece.dataset.state=sessionActivity(session);
+        piece.setAttribute("aria-label","Open "+label+" from project map");
+        nodes.push({id:child,label,x:376,y:y+index*88,w:280,h:76,element:piece});
+        edges.push({from:id,to:child,kind:"membership",label:label+" belongs to "+project.name});
+        actions.set(child,()=>this.select(session.address));
       });
-      // Only decorative connectors are rebuilt; native button identity and focus survive updates.
-      card.lines.replaceChildren(...edges);place(card.nodes,controls);
-      card.more.hidden=project.sessions.length<=visible.length;
-      card.more.textContent="View all "+project.sessions.length+" conversations in List";
-      return card.root;
-    });
-    place(this.board,cards);
+      if(extra){
+        const child=id+":more",label="View all "+project.sessions.length+" conversations in List",piece=this.piece(child,"more",String(project.sessions.length-visible.length)+" more conversations",project.name,"View in List");
+        piece.setAttribute("aria-label",label);nodes.push({id:child,label,x:376,y:y+visible.length*88,w:280,h:76,element:piece});
+        edges.push({from:id,to:child,kind:"membership",label:"More conversations in "+project.name});actions.set(child,this.list);
+      }
+      y+=height+48;
+    }
+    this.surface.update({key:"projects:"+query,nodes,edges,focusId:nodes[0]?.id,onSelect:id=>actions.get(id)?.()});
     this.more.hidden=all.length<=groups.length;this.more.textContent="View all "+all.length+" projects in List";
-    for(const key of this.rows.keys())if(!used.has(key))this.rows.delete(key);
-    for(const key of this.groups.keys())if(!groups.some(project=>project.id===key))this.groups.delete(key);
+    for(const id of this.controls.keys())if(!actions.has(id))this.controls.delete(id);
+    if(focused)this.root.querySelector('[data-focus-key="'+CSS.escape(focused)+'"]')?.focus({preventScroll:true});
   }
 }

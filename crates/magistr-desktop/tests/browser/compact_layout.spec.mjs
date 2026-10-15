@@ -3,7 +3,7 @@ import {mkdir} from "node:fs/promises";
 import {resolve} from "node:path";
 export async function openWork(app,tab){
   await app.getByRole("button",{name:"Review the release plan",exact:true}).click();
-  await app.getByRole("button",{name:"Work plan",exact:true}).click();
+  await app.getByRole("tab",{name:"Current and saved work",exact:true}).click();
   if(tab)await app.getByRole("tab",{name:tab,exact:true}).click();
 }
 export async function capture(app,name){
@@ -27,14 +27,14 @@ test("work header leaves room for records in both appearances",async({app})=>{
 test("work navigation fits and follows arrow-key focus",async({app})=>{
   await openWork(app);
   await app.setViewportSize({width:760,height:550});
-  const tabs=app.getByRole("tablist",{name:"Work view"});
+  const tabs=app.getByRole("tablist",{name:"Project views"});
   expect(await tabs.evaluate(node=>node.scrollWidth-node.clientWidth)).toBeLessThanOrEqual(1);
   expect((await tabs.boundingBox()).height).toBeLessThanOrEqual(45);
   await app.getByRole("tab",{name:"Current and saved work",exact:true}).focus();
   await app.keyboard.press("End");
   await expect(app.getByRole("tab",{name:"Record status",exact:true})).toBeFocused();
   await expect(app.getByRole("tab",{name:"Record status",exact:true})).toHaveAttribute("aria-selected","true");
-  await app.keyboard.press("Home");await app.keyboard.press("ArrowRight");
+  await app.keyboard.press("Home");await app.keyboard.press("ArrowRight");await app.keyboard.press("ArrowRight");
   await expect(app.getByRole("tab",{name:"Roadmap",exact:true})).toBeFocused();
   await capture(app,"02-navigation");
 });
@@ -55,20 +55,18 @@ test("roadmap totals leave the first items visible",async({app})=>{
   await openWork(app,"Roadmap");await app.setViewportSize({width:760,height:550});
   for(const theme of ["dark","light"]){
     await app.evaluate(theme=>document.documentElement.dataset.theme=theme,theme);
-    expect((await app.locator(".roadmap-facts").boundingBox()).height).toBeLessThan(55);
-    await expect(app.locator(".roadmap-facts dd")).toHaveText(["3","1","1","1","0","0"]);
+    expect((await app.locator("#work-browser .surface-heading").boundingBox()).height).toBeLessThan(55);
+    await expect(app.locator("#work-browser .surface-readiness span")).toHaveText(["1 ready","1 waiting","1 blocked"]);
     await expect(app.getByRole("button",{name:"Build the desktop installer",exact:true})).toBeInViewport();
     await capture(app,"04-totals-"+theme);
   }
 });
 
-test("roadmap lanes keep readiness and blockers visible together",async({app})=>{
-  await openWork(app,"Roadmap");await app.setViewportSize({width:760,height:550});
-  const rows=app.locator(".roadmap-items>li");await expect(rows).toHaveCount(3);
-  await expect(app.locator(".roadmap-lane>header h4")).toHaveText(["Ready","Waiting","Blocked"]);
-  const first=await rows.first().boundingBox(),last=await rows.last().boundingBox();expect(Math.abs(first.y-last.y)).toBeLessThan(2);
-  await expect(rows.last()).toBeInViewport();
-  await capture(app,"05-roadmap-rows");
+test("roadmap aligns prerequisites and shows each work state",async({app})=>{
+  await openWork(app,"Roadmap");await app.setViewportSize({width:760,height:550});await app.getByRole("button",{name:"Fit all",exact:true}).click();
+  await expect(app.locator(".work-piece")).toHaveCount(5);await expect(app.locator("#work-browser .surface-connection")).toHaveCount(2);
+  const required=await app.locator('[data-node="foundation"]').boundingBox(),next=await app.locator('[data-node="reopen"]').boundingBox();expect(Math.abs(required.y-next.y)).toBeLessThan(2);
+  await expect(app.locator('.work-piece[data-state="blocked"]')).toContainText("The release date needs approval.");await capture(app,"05-roadmap-paths");
 });
 
 test("roadmap detail keeps metadata beside the title",async({app})=>{
@@ -88,13 +86,13 @@ test("requirements remain complete in compact numbered rows",async({app})=>{
   await capture(app,"07-requirements");
 });
 
-test("dependency groups share a compact comparison row",async({app})=>{
+test("dependency groups remain readable within the inspector",async({app})=>{
   await openWork(app,"Roadmap");await app.setViewportSize({width:760,height:550});
   await app.getByRole("button",{name:"Restore the project conversation and draft",exact:true}).click();
   const required=await app.getByRole("region",{name:"Required work",exact:true}).boundingBox();
   const dependent=await app.getByRole("region",{name:"Work that depends on this",exact:true}).boundingBox();
-  expect(Math.abs(required.y-dependent.y)).toBeLessThan(2);
-  expect((await app.locator(".roadmap-relations").boundingBox()).height).toBeLessThan(165);
+  expect(dependent.y).toBeGreaterThan(required.y);
+  expect((await app.locator(".roadmap-relations").boundingBox()).height).toBeLessThan(240);
   await capture(app,"08-dependencies");
 });
 
@@ -169,11 +167,10 @@ test("small result sets show counts and larger sets retain paging",async({app})=
   await expect(app.locator(".roadmap-items>li")).toHaveCount(21);
 });
 
-test("reasoning rows align sequence beside the decision",async({app})=>{
-  await openWork(app,"Reasoning");await app.setViewportSize({width:760,height:550});
-  const row=app.locator(".reasoning-row").first(),number=await row.locator(".reasoning-step-number").boundingBox(),button=await row.locator("button").boundingBox();
-  expect(number.x+number.width).toBeLessThan(button.x);
-  await capture(app,"16-reasoning-rows");
+test("reasoning pieces retain step identity and readable titles",async({app})=>{
+  await openWork(app,"Reasoning");await app.setViewportSize({width:760,height:550});await app.getByRole("button",{name:"Fit all",exact:true}).click();
+  await expect(app.locator(".decision-piece")).toHaveCount(2);await expect(app.locator(".decision-piece-index").first()).toContainText("Step 41");
+  await capture(app,"16-reasoning-pieces");
 });
 
 test("reasoning presents the outcome before supporting details",async({app})=>{
@@ -187,8 +184,8 @@ test("reasoning presents the outcome before supporting details",async({app})=>{
 test("investigation summary keeps its origin and conclusion together",async({app})=>{
   await openWork(app,"Reasoning");await app.getByLabel("Investigation",{exact:true}).selectOption("branch:storage");
   await app.setViewportSize({width:760,height:550});
-  const summary=app.locator(".reasoning-investigation");expect((await summary.boundingBox()).height).toBeLessThan(130);
-  await expect(summary.locator("dd").first()).toHaveText("Step 41");await expect(summary.locator("dd").nth(1)).toHaveText("Step 41");
+  const summary=app.locator(".thread-heading");expect((await summary.boundingBox()).height).toBeLessThan(130);
+  await expect(summary.getByRole("button",{name:"Origin · 41",exact:true})).toBeVisible();await expect(summary.getByRole("button",{name:"Conclusion · 41",exact:true})).toBeVisible();
   await capture(app,"18-investigation");
 });
 
@@ -238,18 +235,20 @@ test("conversation heading preserves controls with less vertical space",async({a
     await app.setViewportSize({width,height:width===760?550:820});
     expect((await app.locator(".work-header").boundingBox()).height).toBeLessThan(110);
     await expect(app.getByRole("heading",{name:"Review the release plan",exact:true})).toBeInViewport();
-    await expect(app.getByRole("button",{name:"Work plan",exact:true})).toBeInViewport();
+    await expect(app.getByRole("tab",{name:"Current and saved work",exact:true})).toBeInViewport();
     expect(await app.locator(".work-header").evaluate(node=>node.scrollWidth-node.clientWidth)).toBeLessThanOrEqual(1);
     await capture(app,"24-conversation-"+width);
   }
 });
 
 test("project directory is visible below a compact activity summary",async({app})=>{
-  for(const width of [1280,760]){
+  for(const width of [1280,800,760]){
     await app.setViewportSize({width,height:width===760?550:820});
     expect((await app.locator(".welcome-stage").boundingBox()).height).toBeLessThan(180);
     await expect(app.getByRole("button",{name:"Continue Review the release plan in Magistr",exact:true})).toBeInViewport();
     expect((await app.locator(".directory-project").first().boundingBox()).y).toBeLessThan(360);
+    const gaps=await app.locator(".activity-count").evaluateAll(nodes=>nodes.map(node=>{const label=node.querySelector("dt"),value=node.querySelector("dd"),range=document.createRange();range.selectNodeContents(label);const a=range.getBoundingClientRect(),b=value.getBoundingClientRect();return {label:label.textContent,gap:b.left-a.right};}));
+    expect(gaps.every(row=>row.gap>=5.5),JSON.stringify(gaps)).toBe(true);
     await capture(app,"25-project-directory-"+width);
   }
 });

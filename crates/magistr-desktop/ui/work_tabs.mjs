@@ -12,9 +12,10 @@ export class WorkTabs {
       };
     }
   }
-  select(view){
+  mark(view){
     this.current=view;
     for(const button of this.buttons){const active=button.dataset.workView===view;button.setAttribute("aria-selected",String(active));button.tabIndex=active?0:-1;}
-    this.changed(view);
   }
+  select(view){this.mark(view);this.changed(view);}
+
 }

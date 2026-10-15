@@ -5,7 +5,8 @@ import { element, retainReading, saveReading, restoreReading } from "./work_dom.
 import { WorkExecutionBrowser } from "./work_execution.mjs";
 import { WorkTabs } from "./work_tabs.mjs";
 import {renderRecordStatus,recordStatusMessage} from "./work_status.mjs";
-import { RoadmapBrowser, renderRoadmap } from "./work_roadmap.mjs";
+import { RoadmapBrowser } from "./work_roadmap.mjs";
+import {RoadmapSurface} from "./work_roadmap_surface.mjs";
 import { FeedbackBrowser } from "./work_feedback.mjs";
 import { ReasoningBrowser } from "./work_reasoning.mjs";
 import { searchRoadmap } from "./work_roadmap_search.mjs";
@@ -18,12 +19,13 @@ export class WorkBrowser {
     this.execution=new WorkExecutionBrowser($,invoke,()=>this.render());
     $("work-browser-return").onclick=()=>this.returnToFeedback();
     this.feedback=new FeedbackBrowser($("work-browser-content"),()=>{this.key="";this.render();},value=>navigator.clipboard.writeText(value).catch(error=>{$("work-browser-state").textContent="Could not copy the text. "+String(error);}),destination=>this.invoke("open_link",{destination}).catch(error=>{$("work-browser-state").textContent=String(error);}), (references,label)=>renderReferences(references,{snapshot:this.snapshot,navigate:(target,focus)=>this.openReference(target,focus),copy:value=>navigator.clipboard.writeText(value).catch(error=>{$("work-browser-state").textContent=String(error);})},label));
-    this.reasoning=new ReasoningBrowser($("work-browser-reasoning"),$("work-browser-content"),()=>{this.key="";this.render();},value=>navigator.clipboard.writeText(value).catch(error=>{$("work-browser-state").textContent="Could not copy the text. "+String(error);}),$("work-browser-branch"));
+    this.reasoning=new ReasoningBrowser($("work-browser-reasoning"),$("work-browser-content"),()=>{this.key="";this.render();},value=>navigator.clipboard.writeText(value).catch(error=>{$("work-browser-state").textContent="Could not copy the text. "+String(error);}),$("work-browser-branch"),$("work-browser-inspector"));
     const filterFeedback=()=>{this.feedback.id=null;this.feedback.page=0;this.feedback.query=$("work-browser-feedback-search").value;this.feedback.kind=$("work-browser-feedback-kind").value;this.feedback.status=$("work-browser-feedback-status").value;this.key="";this.render();};
     $("work-browser-feedback-search").oninput=filterFeedback;$("work-browser-feedback-kind").onchange=filterFeedback;$("work-browser-feedback-status").onchange=filterFeedback;
     $("work-browser-reasoning-search").oninput=()=>{this.reasoning.query=$("work-browser-reasoning-search").value;this.reasoning.stepId=null;this.reasoning.trail=[];this.reasoning.page=0;this.key="";this.render();};
     $("work-browser-search").oninput=()=>{this.searchPage=0;this.item.close();this.key="";this.render();};
-    this.item=new RoadmapItemReader($("work-browser-content"),invoke,()=>this.backToTrack(),()=>this.updateControls());
+    this.roadmapSurface=new RoadmapSurface(()=>{this.key="";this.render();});
+    this.item=new RoadmapItemReader($("work-browser-inspector"),invoke,()=>this.backToTrack(),()=>{this.updateControls();this.roadmapSurface.surface.selected=this.item?.id;this.roadmapSurface.surface.render();if(this.tabs&&this.area==="roadmap"&&this.snapshot){this.key="";this.renderRoadmap();}});
     this.tabs=new WorkTabs($("work-browser-tabs"),area=>this.selectArea(area));
     this.roadmapBrowser=new RoadmapBrowser($("work-browser-track"),()=>{this.item.close();this.key="";this.render();});
     this.searchFields=[...$("work-browser").querySelectorAll('input[type="search"]')].map(input=>{
@@ -33,17 +35,14 @@ export class WorkBrowser {
       clear.onclick=()=>{input.value="";input.dispatchEvent(new Event("input",{bubbles:true}));input.focus();};
       input.addEventListener("input",()=>{clear.hidden=!input.value;});return {input,clear};
     });
-    $("work-browser").addEventListener("keydown",event=>{
-      if(event.isComposing||event.altKey||event.shiftKey||!(event.metaKey||event.ctrlKey)||event.key.toLowerCase()!=="f")return;
+    $("workspace-main").addEventListener("keydown",event=>{
+      if(this.$("work-browser").hidden||event.isComposing||event.altKey||event.shiftKey||!(event.metaKey||event.ctrlKey)||event.key.toLowerCase()!=="f")return;
       const field=this.searchFields.findLast(({input})=>input.getClientRects().length&&!input.disabled);
       if(!field)return;event.preventDefault();event.stopPropagation();field.input.focus();field.input.select();
     });
     $("work-browser-roadmap-state").onchange=()=>{this.item.close();this.key="";this.render();};
     $("browse-work").onclick=()=>this.open($("browse-work"));
-    $("browse-work-header").onclick=()=>this.open($("browse-work-header"));
-    $("work-browser-close").onclick=()=>this.close();
-    for(const area of ["roadmap","reasoning"])$("browse-"+area+"-header").onclick=()=>this.open($("browse-"+area+"-header"),area);
-    $("work-browser").addEventListener("keydown",event=>{if(event.key==="Escape"&&!event.isComposing&&!event.defaultPrevented){event.preventDefault();this.close();}});
+    $("workspace-main").addEventListener("keydown",event=>{if(!this.$("work-browser").hidden&&event.key==="Escape"&&!event.isComposing&&!event.defaultPrevented){event.preventDefault();this.close();}});
     $("work-browser-refresh").onclick=()=>{this.load();if(this.item.id)this.item.load();};
 
   }
@@ -55,41 +54,44 @@ export class WorkBrowser {
     return this.area;
   }
   selectArea(area){
-    if(area===this.area&&!this.routing)return;
+    if(area==="conversation"){this.close(false);this.tabs.mark("conversation");return;}
+    const wasHidden=this.$("work-browser").hidden;
+    if(wasHidden&&this.frame&&!this.frame.closed){this.$("work-browser").hidden=false;this.load();}
+    if(area===this.area&&!this.routing){this.render();return;}
     const content=this.$("work-browser-content"),navigation=++this.navigation;
-    if(!this.routing&&this.snapshot&&!this.$("work-browser").hidden){this.places.set(this.area,{identity:this.readingIdentity(),reading:saveReading(content)});this.returnTrail=[];}
+    if(!this.routing&&this.snapshot&&!this.$("work-browser").hidden){this.places.set(this.area,{identity:this.readingIdentity(),reading:saveReading(content),inspector:saveReading(this.$("work-browser-inspector"))});this.returnTrail=[];}
     if(this.routing)this.item.close();else if(area!=="roadmap")this.item.suspend();
     this.area=area;this.key="";
     const pending=area==="roadmap"&&this.item.id?this.item.resume(this.frame.address,this.revision):null;
     this.render();
     if(this.routing)return;
-    const restore=()=>{const saved=this.places.get(area);if(navigation!==this.navigation||!saved||saved.identity!==this.readingIdentity())return;restoreReading(content,{...saved.reading,focus:null});};
+    const restore=()=>{const saved=this.places.get(area);if(navigation!==this.navigation||!saved||saved.identity!==this.readingIdentity())return;restoreReading(content,{...saved.reading,focus:null});if(saved.inspector)restoreReading(this.$("work-browser-inspector"),{...saved.inspector,focus:null});};
     if(pending)pending.then(restore);else restore();
   }
   observe(frame){
     if(addressKey(this.frame?.address)!==addressKey(frame?.address)){
       ++this.generation;++this.navigation;this.places.clear();this.item.close();this.revision=-1;this.key="";this.loading=false;this.snapshot=null;this.readError="";
-      this.$("work-browser-content").replaceChildren();this.execution.reset();this.feedback.reset();this.$("work-browser-feedback-search").value="";this.$("work-browser-feedback-kind").value="all";this.$("work-browser-feedback-status").value="all";this.reasoning.reset();this.$("work-browser-reasoning-search").value="";this.roadmapBrowser.reset();this.searchPage=0;this.$("work-browser-search").value="";this.$("work-browser-roadmap-state").value="open";this.tabs.select("work");
+      this.$("work-browser-content").replaceChildren();this.execution.reset();this.feedback.reset();this.$("work-browser-feedback-search").value="";this.$("work-browser-feedback-kind").value="all";this.$("work-browser-feedback-status").value="all";this.reasoning.reset();this.$("work-browser-reasoning-search").value="";this.roadmapBrowser.reset();this.roadmapSurface.reset();this.searchPage=0;this.$("work-browser-search").value="";this.$("work-browser-roadmap-state").value="open";this.tabs.mark("conversation");
       this.close(false);
     }
     this.frame=frame;
-    for(const id of ["browse-work","browse-work-header","browse-roadmap-header","browse-reasoning-header"])this.$(id).disabled=!frame||frame.closed;
+    this.$("browse-work").disabled=!frame||frame.closed;this.$("project-context").hidden=!frame;
+    for(const button of this.tabs.buttons)button.disabled=!frame||frame.closed;
     if(!this.$("work-browser").hidden&&!this.loading&&(frame.workflow_revision??0)>this.revision)this.load();
   }
   open(trigger,area){
     if(!this.frame||this.frame.closed)return;
     this.trigger=trigger;
-    this.$("work-browser-project").textContent=this.frame.address.workspace;
     this.$("work-browser").hidden=false;
-    if(area)this.tabs.select(area);
+    this.tabs.select(area??this.area);
     if(this.area==="roadmap"&&this.item.id)this.item.resume(this.frame.address,this.revision);
     this.render();this.$("work-browser-title").focus();this.load();
   }
   close(focus=true){
     if(this.$("work-browser").hidden)return;
     ++this.generation;++this.navigation;this.loading=false;this.item.suspend();
-    this.$("work-browser").hidden=true;this.changed(this.area,false);
-    if(focus){const target=this.trigger?.isConnected&&this.trigger.getClientRects().length?this.trigger:this.$("browse-work-header");target.focus({preventScroll:true});}
+    this.$("work-browser").hidden=true;this.tabs.mark("conversation");this.changed(this.area,false);
+    if(focus){const target=this.trigger?.isConnected&&this.trigger.getClientRects().length?this.trigger:this.$("work-tab-conversation");target.focus({preventScroll:true});}
   }
   async load(){
     if(this.loading||this.$("work-browser").hidden)return;
@@ -121,7 +123,7 @@ export class WorkBrowser {
     if(target.kind==="think"){this.reasoning.query="";this.$("work-browser-reasoning-search").value="";this.reasoning.choice=target.session;this.reasoning.stepId=target.id;this.reasoning.trail=[];this.reasoning.branches.reset();this.tabs.select("reasoning");}
     if(target.kind==="signal"){this.feedback.id=target.id;this.tabs.select("feedback");}
     this.routing=false;this.$("work-browser-return").hidden=false;
-    this.$("work-browser-content").scrollTop=0;this.$("work-browser-content").querySelector("h3")?.focus({preventScroll:true});
+    this.$("work-browser-content").scrollTop=0;(this.$("work-browser-inspector").hidden?this.$("work-browser-content"):this.$("work-browser-inspector")).querySelector("h3")?.focus({preventScroll:true});
   }
   returnToFeedback(){
     const previous=this.returnTrail.pop();if(!previous)return;
@@ -129,6 +131,7 @@ export class WorkBrowser {
     this.$("work-browser-feedback-search").value=previous.query;this.$("work-browser-feedback-kind").value=previous.kind;this.$("work-browser-feedback-status").value=previous.status;
     this.routing=true;this.tabs.select("feedback");this.routing=false;restoreReading(this.$("work-browser-content"),previous.reading);
   }
+  openRoadmapItem(id){const origin=saveReading(this.$("work-browser-content"));origin.focus=this.$("work-browser-search").value.trim()?"roadmap-open:"+id:"surface:"+id;this.item.open(this.frame.address,id,this.revision);this.item.originReading=origin;this.key="";this.render();}
   backToTrack(){
     const id=this.item.originId,scroll=this.item.originScroll,reading=this.item.originReading;this.item.close();this.key="";this.render();
     const root=this.$("work-browser-content");if(reading){restoreReading(root,reading);return;}root.scrollTop=scroll;
@@ -138,15 +141,15 @@ export class WorkBrowser {
     const observed=readState(this.roadmap,"roadmap"),frontier=this.roadmapBrowser.update(observed.value);
     this.$("work-browser-state").textContent=observed.message;
     this.$("work-browser-state").dataset.current=String(observed.current);
-    if(this.item.id){this.item.observe(this.frame.address,this.revision);return;}
+    if(this.item.id)this.item.observe(this.frame.address,this.revision);
     const records=readState(this.snapshot.roadmap).value?.chunks??[];
     const mode=this.$("work-browser-roadmap-state").value,query=this.$("work-browser-search").value.trim();
-    const key=JSON.stringify(["roadmap",this.roadmapBrowser.choice,mode,query,this.searchPage,observed.value,records]);if(key===this.key)return;this.key=key;
+    const key=JSON.stringify(["roadmap",this.roadmapBrowser.choice,mode,query,this.searchPage,observed.value,records,this.item.id]);if(key===this.key)return;this.key=key;
     const content=this.$("work-browser-content");
     if(query&&observed.value){
-      retainReading(content,()=>content.replaceChildren(searchRoadmap(records,query,this.searchPage,page=>{this.searchPage=page;this.key="";this.render();content.scrollTop=0;},id=>this.item.open(this.frame.address,id,this.revision))));return;
+      retainReading(content,()=>content.replaceChildren(searchRoadmap(records,query,this.searchPage,page=>{this.searchPage=page;this.key="";this.render();content.scrollTop=0;},id=>this.openRoadmapItem(id))));return;
     }
-    retainReading(content,()=>content.replaceChildren(observed.value?renderRoadmap(frontier,observed.value,records,this.roadmapBrowser.choice!==undefined,id=>this.item.open(this.frame.address,id,this.revision),mode):element("p","The roadmap is unavailable. Use Refresh to try again.","work-record-empty")));
+    retainReading(content,()=>content.replaceChildren(observed.value?this.roadmapSurface.render(frontier,observed.value,records,this.roadmapBrowser.choice!==undefined,id=>this.openRoadmapItem(id),mode,this.item.id):element("p","The roadmap is unavailable. Use Refresh to try again.","work-record-empty")));
   }
   render(){
     this.changed(this.area,!this.$("work-browser").hidden);
@@ -155,14 +158,15 @@ export class WorkBrowser {
     if(this.readError){this.$("work-browser-state").textContent=(this.snapshot?"Showing the previous records. ":"")+"Could not read work records. "+this.readError;this.$("work-browser-state").dataset.current="false";}
   }
   updateControls(){
+    this.$("work-browser-inspector").hidden=!((this.area==="roadmap"&&this.item?.id)||(this.area==="reasoning"&&this.reasoning.stepId));
     this.$("work-browser-return").hidden=!this.returnTrail.length;
     this.$("work-feedback-filters").hidden=this.area!=="feedback"||!!this.feedback.id;
     this.$("work-feedback-search").hidden=this.area!=="feedback"||!!this.feedback.id;
-    this.$("work-reasoning-selection").hidden=this.area!=="reasoning"||!!this.reasoning.query.trim()||!!this.reasoning.stepId;
-    this.$("work-reasoning-search").hidden=this.area!=="reasoning"||!!this.reasoning.stepId;
+    this.$("work-reasoning-selection").hidden=this.area!=="reasoning"||!!this.reasoning.query.trim();
+    this.$("work-reasoning-search").hidden=this.area!=="reasoning";
     this.execution.show(this.area==="work");
-    this.$("work-track-selection").hidden=this.area!=="roadmap"||!!this.item?.id;
-    this.$("work-roadmap-search").hidden=this.area!=="roadmap"||!!this.item?.id;
+    this.$("work-track-selection").hidden=this.area!=="roadmap";
+    this.$("work-roadmap-search").hidden=this.area!=="roadmap";
   }
   renderContent(){
     this.updateControls();
@@ -180,6 +184,7 @@ export class WorkBrowser {
     }
     if(this.area==="reasoning"){
       const observed=readState(this.snapshot.think,"reasoning");
+      if(!observed.value){this.$("work-browser-inspector").hidden=true;this.$("work-browser-inspector").replaceChildren();}
       this.$("work-browser-state").textContent=observed.message;this.$("work-browser-state").dataset.current=String(observed.current);
       retainReading(content,()=>content.replaceChildren(observed.value?this.reasoning.render(observed.value):element("p","Reasoning records are unavailable. Use Refresh to try again.")));return;
     }

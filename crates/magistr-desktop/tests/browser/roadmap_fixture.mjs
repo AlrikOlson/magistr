@@ -34,7 +34,7 @@ export async function roadmapScene(app,capture){
   await app.getByRole("button",{name:"Restore the project conversation and draft",exact:true}).click();
   await app.getByRole("heading",{name:"Restore the project conversation and draft",exact:true}).waitFor();
   await capture("roadmap-item-dark.png");
-  await app.getByRole("button",{name:"Store conversations and drafts",exact:true}).click();
+  await app.getByRole("region",{name:"Required work",exact:true}).getByRole("button",{name:"Store conversations and drafts",exact:true}).click();
   await app.getByRole("heading",{name:"Store conversations and drafts",exact:true}).waitFor();
   await capture("roadmap-dependency-dark.png");
   await app.getByRole("button",{name:"Back to previous item",exact:true}).click();

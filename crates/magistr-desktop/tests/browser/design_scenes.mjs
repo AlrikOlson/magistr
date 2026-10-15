@@ -102,7 +102,7 @@ export async function outlineScene(app,capture,expect){
     {tag:"p",start:index*100+10,text:"Keep the current work visible. Each conversation retains its own draft, selected text and reading position. Review the evidence before continuing. ".repeat(3)}
   ]),904);
   await expect(app.getByRole("navigation",{name:"Reply contents",exact:true})).toBeVisible();
-  await expect(app.locator(".reply-contents button")).toHaveCount(4);
+  await expect(app.locator(".reply-contents li button")).toHaveCount(4);
   await appearances(app,capture,"contents");
   await app.getByRole("button",{name:"Verification results",exact:true}).click();
   await expect(app.getByRole("heading",{name:"Verification results",exact:true})).toBeFocused();
@@ -113,7 +113,13 @@ export async function outlineScene(app,capture,expect){
   await app.setViewportSize({width:760,height:550});
   await app.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
   await app.locator("#transcript").evaluate(node=>node.scrollTop=0);
+  await expect(app.getByRole("button",{name:"Reply sections",exact:true})).toHaveAttribute("aria-expanded","false");
+  await expect(app.getByRole("heading",{name:"What is ready",exact:true})).toBeInViewport();
   await capture("contents-compact.png");
+  await app.getByRole("button",{name:"Reply sections",exact:true}).click();
+  await app.getByRole("button",{name:"Verification results",exact:true}).click();
+  await expect(app.getByRole("heading",{name:"Verification results",exact:true})).toBeFocused();
+  await expect(app.getByRole("button",{name:"Reply sections",exact:true})).toHaveAttribute("aria-expanded","false");
 }
 export async function editorialScene(app,capture,expect){
   await showDocument(app,[

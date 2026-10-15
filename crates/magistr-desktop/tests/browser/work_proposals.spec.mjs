@@ -1,6 +1,6 @@
 import {test,expect} from "./fixture.mjs";
 test("suggestions preserve current values and show complete reasons without applying them",async({app})=>{
-  await app.getByRole("button",{name:"Review the release plan",exact:true}).click();await app.getByRole("button",{name:"Work plan",exact:true}).click();await app.getByRole("tab",{name:"Roadmap",exact:true}).click();
+  await app.getByRole("button",{name:"Review the release plan",exact:true}).click();await app.getByRole("tab",{name:"Current and saved work",exact:true}).click();await app.getByRole("tab",{name:"Roadmap",exact:true}).click();
   await app.evaluate(()=>{Object.defineProperty(navigator,"clipboard",{configurable:true,value:{writeText:async value=>window.__copied=value}});const f=window.__fixture,c=f.workflow.roadmap.data.value.chunks[2];c.title_proposal={suggested_title:"New title <script>literal</script>",reason:"A clearer name. 日本語",source:"ext:tracker/42",proposed_at:"2026-10-15T08:00:00Z"};c.reprioritize={suggested_priority:50,reason:"Move this earlier.",proposed_at:"2026-10-15T08:00:00Z"};f.publish("release",{workflow_revision:1});});
   await app.getByRole("button",{name:"Publish the desktop release",exact:true}).click();
   const proposals=app.getByRole("region",{name:"Suggested changes",exact:true});await expect(proposals).toContainText("These suggestions have not changed the plan.");await expect(proposals.locator("dd")).toHaveText(["Publish the desktop release","New title <script>literal</script>","Blocked","Planned","120","50"]);

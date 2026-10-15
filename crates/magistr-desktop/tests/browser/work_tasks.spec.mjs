@@ -1,5 +1,5 @@
 import {test,expect} from "./fixture.mjs";
-async function open(app){await app.getByRole("button",{name:"Review the release plan",exact:true}).click();await app.getByRole("button",{name:"Work plan",exact:true}).click();}
+async function open(app){await app.getByRole("button",{name:"Review the release plan",exact:true}).click();await app.getByRole("tab",{name:"Current and saved work",exact:true}).click();}
 test("large task plans stay bounded and filters follow actual status updates",async({app})=>{
   await open(app);await app.evaluate(()=>{const f=window.__fixture,run=f.workflow.ship.data.value.current,base=run.tasks[0];run.tasks=Array.from({length:123},(_,n)=>({...base,id:"task-"+n,title:"Review "+n,status:n===122?"blocked":"planned",blocked_reason:n===122?"Need the result":null,started_at:"2026-10-15T08:00:00Z"}));run.task_instances=Object.fromEntries(run.tasks.map(t=>[t.id,"instance-"+t.id]));f.publish("release",{workflow_revision:1});});
   await expect(app.locator(".work-tasks>li")).toHaveCount(50);await app.getByRole("button",{name:"Next page",exact:true}).click();await app.getByRole("button",{name:"Next page",exact:true}).click();await expect(app.locator(".work-tasks>li")).toHaveCount(23);

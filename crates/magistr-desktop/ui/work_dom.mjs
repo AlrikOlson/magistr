@@ -4,6 +4,15 @@ export function element(tag,value="",className=""){
   const node=document.createElement(tag);node.textContent=value;
   if(className)node.className=className;return node;
 }
+export function checklist(entries){
+  const list=element("ul","","work-checklist");
+  for(const entry of entries){
+    const row=element("li");
+    if(entry.done!=null){const label=entry.done?"Completed":"To do",state=element("span",entry.done?"✓":"○","work-checklist-state");state.setAttribute("role","img");state.setAttribute("aria-label",label);state.title=label;state.dataset.done=String(entry.done);row.append(state);}
+    row.append(element("span",entry.text));list.append(row);
+  }
+  return list;
+}
 export function inlineFacts(entries){
   const facts=element("dl","","work-inline-facts");
   for(const [label,value] of entries){
