@@ -1,7 +1,7 @@
 {
   "renderer": "headless WebKit",
   "version": "27.2",
-  "captured_at": "2026-10-15T06:32:10.655Z",
+  "captured_at": "2026-10-15T06:33:19.434Z",
   "scope": "Production desktop HTML, CSS and JavaScript with isolated observation fixtures; no native OS input or Rust owner integration.",
   "checks": {
     "project chooser presents actual projects and folder entry in both appearances": true,
@@ -38,7 +38,7 @@
   },
   "source_hashes": {
     "crates/magistr-desktop/ui/activity.mjs": "5e5773f5672a3ef2a54dfacf05c64755d7fef4716e7b0e04fd3c6f6ab748152d",
-    "crates/magistr-desktop/ui/activity_material.mjs": "7e7b7d1808221c056c80ac34ff8084d4e06a5d3acdc4a55625fb647e4478e55e",
+    "crates/magistr-desktop/ui/activity_material.mjs": "1a1b3d6044444f5dca6daf047f11ebf96e25eb9fc9acba1689520ca90fc18781",
     "crates/magistr-desktop/ui/app.mjs": "b7e26ebee99848170410498438a3a080eb14cf888f7e56d544aee9aa9de01a36",
     "crates/magistr-desktop/ui/attachment_viewer.mjs": "c2565e16738b60b2e15867c4e83793dc79b1f52873423086c5aaf5105e087a05",
     "crates/magistr-desktop/ui/attachments.mjs": "e9b415159f0ed96fc29b119a27876614adcdf5ddb26267de36f1211e2d4674ce",
@@ -67,7 +67,7 @@
     "crates/magistr-desktop/ui/session_controls.mjs": "738386755be2b65fd03899ae28e1b357b4313258d67b3edfaf72fe3fe37ff123",
     "crates/magistr-desktop/ui/source_color.mjs": "1ac22d15033a59af850c8583abdb8123ff8062c16e71d500327f5d5743d41057",
     "crates/magistr-desktop/ui/source_details.mjs": "7440e8f01b1080bb59f83dbe00a3c83a4495c75cd05e825674e44fd9173805f7",
-    "crates/magistr-desktop/ui/style.css": "700e208fcb3f12bddc5af6b5f6409931feb2e2d25b46a256ce0a4cbb2a343c2b",
+    "crates/magistr-desktop/ui/style.css": "87c8de8b4419f3740023dcec7f63eefbfec6eb008f9f6be59f20d228cd533a1f",
     "crates/magistr-desktop/ui/supervision.mjs": "509cd792877f397ac427789d491b4f51fd2840cc1b94ae05690d295519b75431",
     "crates/magistr-desktop/ui/switcher.mjs": "7e0d3655808443dd842be7a01abc8ddd6ccc018557a920bfe6e44383ec5d857e",
     "crates/magistr-desktop/ui/transcript.mjs": "df0929eb16d76c728ba7bd8ee42df06aeda1509effe16c7f2755e6a5c504d1c6",
@@ -81,9 +81,9 @@
     "crates/magistr-desktop/tests/browser/design_scenes.mjs": "9a76ce9e4df1ed11db024c917c901e4e536c1a85f3cc166d950f87898515280a"
   },
   "images": {
-    "welcome-dark.png": "53ef082d68d48074f27a9e64b0829a922d027f0608b82b3ac3c3b5cf4e965a47",
-    "welcome-light.png": "471290cd5084c782d878f0f6dfd7e4ccd57febc2fefbf20c9a5074d3bb5df740",
-    "welcome-narrow-light.png": "7b138c09df17023596907e1d19c9b3e3a5d6b517c20fdd308e1b04a83310bf5f",
+    "welcome-dark.png": "f3f54560e2fad31f7a9e7b8ab8bfe60e9bde8f5de869b8e63e9fb40c315f04c1",
+    "welcome-light.png": "e547fa1ab9560bb2114b26962da8893d994fffc40c77e73e7d2970237458ed97",
+    "welcome-narrow-light.png": "623f2baf463f681fcc33314b98252cef9e7b86722b3f15366fd25fe99907a7d8",
     "settings-dark.png": "c575e02edd98aea14f6b405ea241504549cd96f1a024895234c7df973d40702d",
     "workspace-dark.png": "5febfe297da48b6b3c1edf65bb3396472fdd3c8aaa5c7ae1b14e215fe7586624",
     "settings-light.png": "ab54cc33346438faba21d03a4cee1dc7e8590ce9754b713f24c6ac5758e396c2",

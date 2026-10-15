@@ -1,9 +1,9 @@
 {
-  "receipt": "41974624df3bd0f3f0ed9876b316038fd1b6bcaaa0d9da4c3e60f0af083f178b",
+  "receipt": "bb985500c733bc1b7ccdd63c66b4b63bbbaee03261f11951a84075509bcc64e3",
   "images": {
-    "welcome-dark.png": "53ef082d68d48074f27a9e64b0829a922d027f0608b82b3ac3c3b5cf4e965a47",
-    "welcome-light.png": "471290cd5084c782d878f0f6dfd7e4ccd57febc2fefbf20c9a5074d3bb5df740",
-    "welcome-narrow-light.png": "7b138c09df17023596907e1d19c9b3e3a5d6b517c20fdd308e1b04a83310bf5f",
+    "welcome-dark.png": "f3f54560e2fad31f7a9e7b8ab8bfe60e9bde8f5de869b8e63e9fb40c315f04c1",
+    "welcome-light.png": "e547fa1ab9560bb2114b26962da8893d994fffc40c77e73e7d2970237458ed97",
+    "welcome-narrow-light.png": "623f2baf463f681fcc33314b98252cef9e7b86722b3f15366fd25fe99907a7d8",
     "settings-dark.png": "c575e02edd98aea14f6b405ea241504549cd96f1a024895234c7df973d40702d",
     "workspace-dark.png": "5febfe297da48b6b3c1edf65bb3396472fdd3c8aaa5c7ae1b14e215fe7586624",
     "settings-light.png": "ab54cc33346438faba21d03a4cee1dc7e8590ce9754b713f24c6ac5758e396c2",
@@ -97,8 +97,8 @@
   },
   "inspected": [
     "welcome-dark.png",
-    "welcome-narrow-light.png"
+    "welcome-light.png"
   ],
-  "notes": "Inspected landing hierarchy, decorative geometric illustration, folder action and compact wrapping. Counts remain separately readable.",
+  "notes": "Inspected beveled ring face, studio reflections, contact shadow and proportions in both palettes. WebKit verifies context loss recovery and suppresses redraws for unchanged inputs; no animation loop.",
   "native_limit": "Background WebKit only; native input and assistive technology not exercised."
 }
