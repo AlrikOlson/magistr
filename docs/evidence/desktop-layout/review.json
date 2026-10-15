@@ -1,9 +1,9 @@
 {
-  "receipt": "f08ba84065ad0e98c01314eb53d91ca720387c2e2170a6715a3ff45ef1679aaa",
+  "receipt": "f1e26aa7af281b53d26962b22c7933039cdadc1c72f7cb01c69c448bd84794da",
   "images": {
-    "welcome-dark.png": "8c5731fdb952bbbfa3dbf6a0d9629d0ac9c122fb975489512f05f9ee88cc15c6",
-    "welcome-light.png": "61c6904d4301fa606a721eef7f7bc9966afa2100ea21fc2dd597c6500fb69863",
-    "welcome-narrow-light.png": "f2436ea9614fdddb66e609faceff3974be67615a7143ac8fd3f70503e8a35f8f",
+    "welcome-dark.png": "e2617b08a47b9424b41508120191e14aa640dc2e080029980be12ec98f685656",
+    "welcome-light.png": "5aa93956ba5a10175815eeacc1ce2710c9133a878a4744723af4624e83a21ce2",
+    "welcome-narrow-light.png": "22defce8ec6a8f63111068d2d421d90e7bf473fe92432d7583f6d9ebbc3eab2f",
     "settings-dark.png": "b196dc2c1f48fe089cd435d761ae7597bc619e7fb9c1af712fe4129868d43b86",
     "workspace-dark.png": "ee8d314db9b587613b6f0c8f49d6f2ff71540c8c0e1f262833b7691e0068f8b4",
     "settings-light.png": "a5a25547334a83e513a68120bb24c09a9c9c9dda87cdeb03387c592bb4303ec4",
@@ -40,7 +40,7 @@
   },
   "reviewed_on": "2026-10-15",
   "findings": [
-    "Settings now pairs actual display controls with an aligned keyboard reference and removes the ornamental mock-workspace preview. Inspected dark, light and compact light; appearance changes and keyboard dialog behavior pass.",
+    "Replaced the discarded landing sculpture with a live project directory. Reviewed dark and compact light: real project names, paths, resident conversations, answer counts and direct continuation controls occupy one plane with simple row separators.",
     "Production headless WebKit only; native OS input, IME, VoiceOver and Windows were not run."
   ]
 }

@@ -42,3 +42,20 @@ test("Settings returns focus and keeps the conversation draft",async({app})=>{
   await app.getByRole("button",{name:"Agent settings",exact:true}).click();
   await expect(app.getByLabel("Model",{exact:true})).toBeFocused();
 });
+test("the project directory reflects live conversations and opens the selected owner",async({app})=>{
+  const directory=app.locator("#welcome-projects"),project=directory.locator(".directory-project").first();
+  await expect(project.locator(".directory-project-facts")).toHaveText("2 open conversations · 1 needs your answer");
+  const target=app.getByRole("button",{name:"Continue Investigate sync failure in Magistr",exact:true});
+  await target.focus();
+  await app.evaluate(()=>window.__fixture.publish("sync",{pending:[],status:"Ready"}));
+  await expect(project.locator(".directory-project-facts")).toHaveText("2 open conversations");
+  await expect(target).toBeFocused();await expect(target).toContainText("Ready");
+  await app.evaluate(()=>window.__fixture.publish("release",{closed:true}));
+  await expect(project.locator(".directory-project-facts")).toHaveText("1 open conversation");
+  await expect(project.locator(".directory-conversation")).toHaveCount(1);
+  await target.click();
+  await expect(app.getByRole("heading",{name:"Investigate sync failure",exact:true})).toBeVisible();
+  const call=await app.evaluate(()=>window.__fixture.calls.filter(call=>call.command==="subscribe_session").at(-1));
+  expect(call.args.address.session).toBe("sync");
+});
+

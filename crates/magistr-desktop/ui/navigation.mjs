@@ -96,3 +96,48 @@ export class ProjectNavigation {
     row?.root.scrollIntoView({block:"nearest",inline:"nearest"});
   }
 }
+
+// A second presentation of the same catalog, updated with the rail on every observation.
+export class ProjectDirectory {
+  constructor(root,{select,open,label}) {
+    Object.assign(this,{root,select,open,label});this.groups=new Map();this.rows=new Map();
+  }
+  render(projects,sessions) {
+    const groups=projectGroups(projects,sessions.filter(session=>!session.closed)),usedRows=new Set();
+    const elements=groups.map(project=>{
+      let group=this.groups.get(project.id);
+      if(!group){
+        const root=node("section","directory-project"),heading=node("header","directory-project-heading");
+        const title=node("div","directory-project-title"),name=node("h2",""),path=node("p",""),facts=node("p","directory-project-facts");
+        const open=node("button","directory-open","Open project"),list=node("nav","directory-conversations");
+        title.append(name,path);heading.append(title,open);root.append(heading,facts,list);
+        group={root,name,path,facts,open,list,project};this.groups.set(project.id,group);
+        open.onclick=()=>this.open(group.project.directory);
+      }
+      group.project=project;group.name.textContent=project.name;group.path.textContent=project.directory;
+      group.open.setAttribute("aria-label","Open project "+project.name+" in "+project.directory);
+      group.list.setAttribute("aria-label","Open conversations in "+project.name);
+      const count=project.sessions.length,waiting=project.sessions.filter(session=>session.pending.length).length;
+      group.facts.textContent=(count?count+(count===1?" open conversation":" open conversations"):"No open conversations")+(waiting?" · "+waiting+(waiting===1?" needs":" need")+" your answer":"");
+      const rows=project.sessions.map(session=>{
+        const key=addressKey(session.address);usedRows.add(key);let row=this.rows.get(key);
+        if(!row){
+          const button=node("button","directory-conversation"),name=node("span",""),state=node("small","");
+          button.append(name,state);row={button,name,state,session};this.rows.set(key,row);
+          button.onclick=()=>this.select(row.session.address);
+        }
+        row.session=session;row.name.textContent=this.label(session);
+        row.state.textContent=session.pending.length?"Needs your answer":session.status;
+        row.button.dataset.attention=String(session.pending.length>0);
+        row.button.setAttribute("aria-label","Continue "+this.label(session)+" in "+project.name);
+        row.button.title=session.address.workspace;return row.button;
+      });
+      place(group.list,rows);group.list.hidden=!rows.length;return group.root;
+    });
+    place(this.root,elements);
+    for(const key of this.rows.keys())if(!usedRows.has(key))this.rows.delete(key);
+    for(const key of this.groups.keys())if(!groups.some(project=>project.id===key))this.groups.delete(key);
+    return groups.length;
+  }
+}
+
