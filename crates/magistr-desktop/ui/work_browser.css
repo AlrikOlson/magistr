@@ -71,7 +71,7 @@
 .work-artifacts header{display:flex;align-items:baseline;gap:16px;justify-content:space-between}.work-artifacts h5{font-size:12px;margin:0}.work-artifacts header span{font-size:10px;color:var(--muted)}
 .work-artifacts .work-artifact-reference{font:11px/1.7 ui-monospace,monospace;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--text)}
 .work-artifacts button{font-size:11px;min-height:30px;padding:5px 8px;margin:0}
-.roadmap-item-open{display:block;text-align:left;font-weight:600;font-size:14px;line-height:1.6;background:transparent;border:0;color:var(--text);padding:0 80px 0 0;white-space:pre-wrap;max-width:100%}.roadmap-item-open:hover{color:var(--accent)}
+.roadmap-item-open{display:block;text-align:left;font-weight:600;font-size:14px;line-height:1.6;background:transparent;border:0;color:var(--text);padding:0;white-space:pre-wrap;max-width:100%}.roadmap-items [data-next=true] .roadmap-item-open{padding-right:80px}.roadmap-item-open:hover{color:var(--accent)}
 .work-record-navigation{display:flex;align-items:center;gap:12px;margin-bottom:14px}.roadmap-back{font-size:12px;flex-shrink:0}.roadmap-item-detail{padding-top:0}.roadmap-item-heading{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 16px}.roadmap-item-heading h3{flex:1 1 350px;margin:0}.roadmap-item-heading .work-record-status{white-space:nowrap}
 .roadmap-item-summary{font-size:14px;line-height:1.6;margin-block:14px;white-space:pre-wrap}
 .roadmap-content-facts{display:flex;flex-wrap:wrap;gap:6px 20px;padding:10px 0;border-block:1px solid var(--separator)}.roadmap-content-facts>div{display:flex;align-items:baseline;gap:8px}
@@ -106,7 +106,7 @@
 }
 
 .work-run-selection input{flex:1}
-.work-pages{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:16px 0;color:var(--muted);font-size:.85rem}
+.work-pages{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:10px 0;color:var(--muted);font-size:11px}.work-pages[data-paged=false]{justify-content:flex-start;margin:6px 0}.work-pages button{font-size:11px;min-height:30px;padding:5px 8px}
 .work-pages span{text-align:center}
 @media(max-width:800px){.work-pages{gap:6px;font-size:.75rem}}
 
