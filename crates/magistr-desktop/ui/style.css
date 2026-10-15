@@ -229,11 +229,12 @@ article.you{background:var(--panel);padding:20px 24px;border:1px solid var(--sep
 .reply-contents button:hover{color:var(--accent);text-decoration:underline;text-underline-offset:4px}.message-body h1,.message-body h2,.message-body h3{scroll-margin-top:24px}
 @media(max-width:800px){.reply-contents{padding-block:14px}.reply-contents ol{gap:6px 18px}}
 .table-document{margin:24px 0 32px;overflow:auto;max-width:100%;max-height:clamp(130px,calc(100dvh - 420px),440px);border:1px solid var(--separator);border-radius:10px;background:var(--panel);scrollbar-width:thin}
+.table-note{position:sticky;left:0;margin:0!important;padding:9px 16px;font:10px/1.5 var(--font-code);color:var(--muted);background:var(--panel);border-bottom:1px solid var(--separator)}
 .table-document table{border-collapse:separate;border-spacing:0;width:100%;font-size:13px;line-height:1.65;font-variant-numeric:tabular-nums}
-.table-document th,.table-document td{padding:14px 18px;min-width:100px;vertical-align:top;border-bottom:1px solid var(--separator)}
-.table-document th{text-align:left;background:var(--raised);font-size:11px;font-weight:600;color:var(--text);position:sticky;top:0;white-space:nowrap}
-.table-document tr:nth-child(2n+1) td{background:color-mix(in srgb,var(--raised) 40%,var(--panel))}
-.table-document tr:last-child td{border-bottom:0}.table-document td:first-child{font-weight:550}.table-document th+th,.table-document td+td{border-left:1px solid var(--separator)}
+.table-document th,.table-document td{padding:16px 20px;min-width:110px;vertical-align:top;border-bottom:1px solid var(--separator);background:var(--base)}
+.table-document th{text-align:left;background:var(--panel);font-size:12px;font-weight:600;color:var(--muted);position:sticky;top:0;z-index:2;white-space:nowrap;border-bottom:2px solid var(--surface-edge)}
+.table-document tr:nth-child(2n+1) td{background:var(--panel)}.table-document tr:hover td{background:var(--raised)}
+.table-document tr:last-child td{border-bottom:0}.table-document td:first-child{font-weight:550;position:sticky;left:0;z-index:1;box-shadow:1px 0 var(--separator);min-width:150px}.table-document th:first-child{left:0;z-index:3;box-shadow:1px 0 var(--separator)}.table-document [data-align=right]{font-family:var(--font-code);font-variant-numeric:tabular-nums}.table-document td[data-align=right]{color:var(--accent);font-weight:550}
 .table-document td code{white-space:nowrap}.table-document:focus-visible{outline-offset:3px}
 .patch-document .code-surface pre{padding:12px 0}.patch-document .code-title{text-transform:none}
 .patch-line{display:block;position:relative;padding:0 20px 0 108px;min-height:1.8em;width:max-content;min-width:100%;white-space:pre}

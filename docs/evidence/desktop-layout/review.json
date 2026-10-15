@@ -1,5 +1,5 @@
 {
-  "receipt": "438eb58034c73c2fc3a43dcdb8e9770a6a2d9b4b39f38e997440e21d9e3688f8",
+  "receipt": "a65fb07f4bbe906734d7aea500a02c1f084e790a81e84ba0d8c5ab5954644338",
   "images": {
     "welcome-dark.png": "c18e56fa3f76a5d9338c14ef21f1d94c761e09479a9597347b4a49080331713f",
     "welcome-light.png": "d308a673ba367d31445b01bafd2fb739c75ddb35a884c19b5a36f51a34427c45",
@@ -51,10 +51,10 @@
     "open-project-error-details-light.png": "4d08e18f241d73aacc1ecf1e14c44f6a2f87f01409b5a1e8954de005b1d60e48",
     "empty-conversation-dark.png": "0d382256e7651ddb1ad864049bdd018e5ef1e22c08dbf7c12d533194d75dfae6",
     "empty-conversation-light.png": "9dc4cac2174261e82db28c87f37a1d93ec257ac38866c4cecedad3f00ca4bf32",
-    "tables-dark.png": "6cfaf98f4499f5ca1918a4b94ffded85081bd66775df9ac7b751f10591da44ac",
-    "tables-light.png": "7efeb4f0735f4369c7fae15323004523219be066e17c67fa5f12b5cca941591e",
-    "tables-compact.png": "bd82361016d6284c3869c419aaa626f6b22310e814bfa1a737399ae0abaf159b",
-    "patch-dark.png": "39f018c453a1dc4fa007abdce506867fc4c7d1e5d8cf1221171f3d8110f4f032",
+    "tables-dark.png": "651ab0e1a1c7490348d508c5a859124d352fd7efe0939b0dac14bdff9121e18c",
+    "tables-light.png": "038c8917e550f11160badd6344b737ed36ed1eb0b01d260b47a4518163d53cb7",
+    "tables-compact.png": "09a166dac8bbac152d9618ed6eeaa3c0bfaee07593a67ac5cbd0b82948a0e800",
+    "patch-dark.png": "40fb846ec64ddfb0061740b481f13e0f71211588eb2934955086082d25b0735b",
     "patch-light.png": "d4bfd061c6e1f5083378877913e7dc3cb3cfde38a9beaa74abc109e2aa5d6cb6",
     "patch-compact.png": "ff7f77e12282d2148e196440279669e76e7213f61a62a7165dab7342cdb26d77",
     "result-dark.png": "718c3d4430cdde428747d340bbbf811658d6357f0b9f0abf803f025bae56bc3b",
@@ -90,5 +90,5 @@
     "workspace-compact-final-light.png": "cf0660be6d4cd9833a7bebf556c4a3cb20907ab04622974b81800fc4180c40c0",
     "workspace-compact-long-title.png": "c937d7ecc8a49952c92e0fae474346c91fae0f7f4725a62a3c3644bd58feb772"
   },
-  "review": "Reviewed source workbench in dark/light. Bounded scroll, source typography, language header and wrap controls preserve exact source copy and selected text. Three focused WebKit cases pass."
+  "review": "Reviewed dark and compact light tables. Actual dimensions, anchored row/column headers, numeric typography and alternating rows retain semantic cells and authored alignment. Source-bound WebKit composition passes."
 }
