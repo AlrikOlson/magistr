@@ -154,3 +154,15 @@ export const SavedReply={parameters:{desktop:{...SavedHistory.parameters.desktop
  arrange:async context=>{await SavedHistory.parameters.desktop.arrange(context);await context.userEvent.click(context.doc.querySelectorAll("#history-list>button")[1]);await context.waitFor(()=>context.expect(context.doc.querySelector("#history-name").textContent).toBe("Review the sync retry"));context.doc.querySelector("#history-text").scrollIntoView({block:"nearest"});},
  verify:({doc,expect})=>{expect(doc.querySelector("#history-name").textContent).toBe("Review the sync retry");expect(doc.querySelector("#saved-draft").open).toBe(false);expect(doc.querySelector("#history-text").getBoundingClientRect().bottom).toBeLessThanOrEqual(doc.querySelector(".history-footer").getBoundingClientRect().top);},
 }}};
+export const Finder={parameters:{desktop:{
+ caption:"Conversation finder grouped by Magistr and Website",
+ task:"Choose an open conversation using its project and current state.",
+ arrange:async context=>{await openRelease(context);await context.userEvent.click(context.ui.getByRole("button",{name:"Find a conversation",exact:true}));},
+ verify:({doc,expect})=>{expect(doc.querySelector("#switch-picker").open).toBe(true);expect(doc.querySelectorAll(".switch-group").length).toBe(2);expect(doc.querySelector("#switch-results").textContent).toContain("Investigate sync failure");},
+}}};
+export const FinderMatch={parameters:{desktop:{...Finder.parameters.desktop,
+ caption:"Conversation finder filtered to the sync conversation",
+ task:"Find a named conversation with a highlighted match.",
+ arrange:async context=>{await Finder.parameters.desktop.arrange(context);await context.userEvent.type(context.doc.querySelector("#switch-search"),"sync");},
+ verify:({doc,expect})=>{expect(doc.querySelectorAll("#switch-results button").length).toBe(1);expect(doc.querySelector("#switch-results mark").textContent).toBe("sync");},
+}}};

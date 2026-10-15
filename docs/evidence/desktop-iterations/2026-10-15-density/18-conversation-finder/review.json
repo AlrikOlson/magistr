@@ -1,0 +1,54 @@
+{
+  "scope": "Align conversation search results and states",
+  "limitations": "Headless WebKit with isolated observations. Native OS input, assistive technology and Rust command integration were not exercised.",
+  "images": {
+    "conversation--finder-compact-dark.png": {
+      "sha256": "7f0ced0222200561944a123cc00e04b20dbd3a18910f4415e8baf15c804f20ed",
+      "task": "Find a conversation with readable project groups and clear selection.",
+      "observations": "Project name and path share a readable baseline; counts stay at the trailing edge. Conversation titles, Current marker and state pills remain distinct. Both full and filtered results fit compact height with keyboard hints and Cancel visible; the sync match is underlined and highlighted. No clipping or overlap.",
+      "verdict": "pass"
+    },
+    "conversation--finder-compact-light.png": {
+      "sha256": "3a03df7af4e5a2524cc06170f334ec6f6b2574461016166b4bbbce210b42d559",
+      "task": "Find a conversation with readable project groups and clear selection.",
+      "observations": "Project name and path share a readable baseline; counts stay at the trailing edge. Conversation titles, Current marker and state pills remain distinct. Both full and filtered results fit compact height with keyboard hints and Cancel visible; the sync match is underlined and highlighted. No clipping or overlap.",
+      "verdict": "pass"
+    },
+    "conversation--finder-desktop-dark.png": {
+      "sha256": "354655966c450e9f2a02926bc71ed740855187e6bbecf083c4cb1388a3701e06",
+      "task": "Find a conversation with readable project groups and clear selection.",
+      "observations": "Project name and path share a readable baseline; counts stay at the trailing edge. Conversation titles, Current marker and state pills remain distinct. Both full and filtered results fit compact height with keyboard hints and Cancel visible; the sync match is underlined and highlighted. No clipping or overlap.",
+      "verdict": "pass"
+    },
+    "conversation--finder-desktop-light.png": {
+      "sha256": "9ed791d5b03f7d67df8e4ead7e46880b33ec2ba1c2d946f426f9e6ea04deb7ee",
+      "task": "Find a conversation with readable project groups and clear selection.",
+      "observations": "Project name and path share a readable baseline; counts stay at the trailing edge. Conversation titles, Current marker and state pills remain distinct. Both full and filtered results fit compact height with keyboard hints and Cancel visible; the sync match is underlined and highlighted. No clipping or overlap.",
+      "verdict": "pass"
+    },
+    "conversation--finder-match-compact-dark.png": {
+      "sha256": "90ddedb7f32948f127d2ec2d6f89883b9ab116af5fc0b5c00d96d0e13b49bd29",
+      "task": "Find a conversation with readable project groups and clear selection.",
+      "observations": "Project name and path share a readable baseline; counts stay at the trailing edge. Conversation titles, Current marker and state pills remain distinct. Both full and filtered results fit compact height with keyboard hints and Cancel visible; the sync match is underlined and highlighted. No clipping or overlap.",
+      "verdict": "pass"
+    },
+    "conversation--finder-match-compact-light.png": {
+      "sha256": "bc30d903fdb567f861e95d17415dac0cf03726431f729ef64b06e38479c5a3bf",
+      "task": "Find a conversation with readable project groups and clear selection.",
+      "observations": "Project name and path share a readable baseline; counts stay at the trailing edge. Conversation titles, Current marker and state pills remain distinct. Both full and filtered results fit compact height with keyboard hints and Cancel visible; the sync match is underlined and highlighted. No clipping or overlap.",
+      "verdict": "pass"
+    },
+    "conversation--finder-match-desktop-dark.png": {
+      "sha256": "cbba79c96aa41791f16c9b267fa98ec1b815693c27bf6a66703290664222b408",
+      "task": "Find a conversation with readable project groups and clear selection.",
+      "observations": "Project name and path share a readable baseline; counts stay at the trailing edge. Conversation titles, Current marker and state pills remain distinct. Both full and filtered results fit compact height with keyboard hints and Cancel visible; the sync match is underlined and highlighted. No clipping or overlap.",
+      "verdict": "pass"
+    },
+    "conversation--finder-match-desktop-light.png": {
+      "sha256": "2fdb3a67eb725d5d3e0026dbc7685c7966f3f8cdcf26638d55815a7d80cc8efc",
+      "task": "Find a conversation with readable project groups and clear selection.",
+      "observations": "Project name and path share a readable baseline; counts stay at the trailing edge. Conversation titles, Current marker and state pills remain distinct. Both full and filtered results fit compact height with keyboard hints and Cancel visible; the sync match is underlined and highlighted. No clipping or overlap.",
+      "verdict": "pass"
+    }
+  }
+}
