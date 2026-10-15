@@ -372,7 +372,7 @@ function render(frame) {
       const source=text("section","");source.className="request-source";
       renderSourceDetail(source,{label:"Request details",source:request.detail},value=>navigator.clipboard.writeText(value).catch(showError));section.append(source);
     }
-    const actions=text("div","");actions.className="request-actions";actions.setAttribute("role","group");actions.setAttribute("aria-label","Answer this request");
+    const actions=text("div","");actions.className="request-actions";actions.setAttribute("role","group");actions.setAttribute("aria-label","Answer this request");actions.append(text("h4","Your answer"));
     for(const choice of request.choices) {
       const answer=button(choice.label,async event=>{
       const target=frame.target;const trigger=event.currentTarget;

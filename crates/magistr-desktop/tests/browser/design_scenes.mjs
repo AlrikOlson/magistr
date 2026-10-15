@@ -235,7 +235,7 @@ export async function permissionScene(app,capture,expect){
   await appearances(app,capture,"permission",".request");
   await app.setViewportSize({width:760,height:550});
   await app.locator("#review-requests").click();
-  await app.locator(".request-actions").evaluate(node=>node.scrollIntoView({block:"center"}));
+  await app.locator(".request").evaluate(node=>node.scrollIntoView({block:"start"}));
   const buttons=await app.locator(".request-actions button").count();expect(buttons).toBe(4);
   expect(await app.evaluate(()=>document.documentElement.scrollWidth)).toBe(760);
   await capture("permission-compact.png");
