@@ -209,3 +209,11 @@ test("22 status remains distinct across conversation states",async({app})=>{
   ]){await app.evaluate(({patch,theme})=>{document.documentElement.dataset.theme=theme;window.__fixture.publish("release",patch);},{patch,theme});
     await expect(app.locator("#status")).toHaveText(label);await expect(app.locator("#status")).toHaveAttribute("data-state",state);await expect(app.locator("#status")).toBeInViewport();await capture(app,"22-"+state+"-"+theme);}
 });
+test("23 composer shortcuts stay available in a compact footer",async({app})=>{
+  await app.getByRole("button",{name:"Review the release plan",exact:true}).click();await app.setViewportSize({width:760,height:550});
+  const help=app.locator(".compose-help");await expect(help.locator(".compose-hint")).toBeHidden();
+  for(const theme of ["dark","light"]){await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);
+    await help.locator("summary").click();await expect(help).toContainText("New line");await expect(help.locator(".compose-hint")).toBeInViewport();await capture(app,"23-shortcuts-"+theme);await help.locator("summary").click();}
+  await app.getByLabel("Message the agent",{exact:true}).fill("First");await app.getByLabel("Message the agent",{exact:true}).press("Shift+Enter");await app.getByLabel("Message the agent",{exact:true}).press("A");
+  await expect(app.getByLabel("Message the agent",{exact:true})).toHaveValue("First\nA");
+});
