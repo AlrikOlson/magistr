@@ -221,3 +221,12 @@ test("application navigation leaves room for project lists",async({app})=>{
   await expect(app.getByRole("button",{name:"Settings",exact:true})).toBeInViewport();
   await capture(app,"22-navigation");
 });
+
+test("project conversation rows retain selection in a compact list",async({app})=>{
+  await app.getByRole("button",{name:"Review the release plan",exact:true}).click();
+  const selected=app.locator(".session-select[aria-current=true]");
+  expect((await selected.boundingBox()).height).toBeLessThan(52);
+  await expect(app.locator('.session-row[data-state=waiting] .session-state')).toContainText("Needs your attention");
+  await expect(app.getByRole("button",{name:"Update the home page",exact:true})).toBeInViewport();
+  await capture(app,"23-project-conversations");
+});
