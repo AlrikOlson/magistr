@@ -26,8 +26,9 @@ export function renderCodeBlock(figure, source, copy) {
     const gutter = create("span", "code-gutter"); gutter.setAttribute("aria-hidden", "true");
     const pre = create("pre", ""); pre.tabIndex = 0; pre.setAttribute("aria-label", "Code");
     const code = create("code", "");
-    pre.append(code); surface.append(gutter, pre); caption.append(title, count, wrap, compare, button);
-    figure.append(caption, surface, comparison); state = { title, count, button, wrap, compare, comparison, surface, gutter, code }; states.set(figure, state);
+    const overview = create("div", "code-overview"); overview.setAttribute("aria-hidden", "true");
+    pre.append(code); surface.append(gutter, pre, overview); caption.append(title, count, wrap, compare, button);
+    figure.append(caption, surface, comparison); state = { title, count, button, wrap, compare, comparison, surface, gutter, code, overview }; states.set(figure, state);
   }
   const text = sourceText(source);
   const lines = text ? text.split("\n").length - Number(text.endsWith("\n")) : 0;
@@ -42,6 +43,19 @@ export function renderCodeBlock(figure, source, copy) {
   state.gutter.hidden = !!patch || lines > 1000;
   const numbers = lines > 1000 ? "" : Array.from({ length: lines }, (_, i) => i + 1).join("\n");
   if (state.gutter.dataset.lines !== numbers) state.gutter.dataset.lines = numbers;
+  state.overview.hidden = !!patch || lines < 24 || lines > 1000 || text.length > 65536;
+  if (!state.overview.hidden) {
+    const rows = text.split("\n"), stride = Math.ceil(lines / 120), marks = [];
+    for (let index = 0; index < lines; index += stride) {
+      const row = rows[index], indent = row.length - row.trimStart().length;
+      const mark = figure.ownerDocument.createElement("i");
+      mark.style.top = (index / lines * 100) + "%";
+      mark.style.left = Math.min(35, indent / 120 * 100) + "%";
+      mark.style.width = Math.min(100 - Math.min(35, indent / 120 * 100), row.trim().length / 120 * 100) + "%";
+      marks.push(mark);
+    }
+    state.overview.replaceChildren(...marks);
+  } else state.overview.replaceChildren();
   state.button.disabled = !copy || !text;
   state.button.onclick = () => copy?.(text);
 }

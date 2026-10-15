@@ -55,3 +55,17 @@ test("homogeneous result records form a bounded table and keep original source",
   await app.getByText("Original text",{exact:true}).click();
   expect(await app.locator(".result-original pre").textContent()).toBe(source);
 });
+test("long source folios retain exact text and bound their overview",async({app})=>{
+  await app.getByRole("button",{name:"Review the release plan",exact:true}).click();
+  const source=Array.from({length:600},(_,i)=>"    const value"+i+" = "+i+";").join("\n");
+  await app.evaluate(source=>{
+    Object.defineProperty(navigator,"clipboard",{value:{writeText:async text=>{window.__fixture.copied=text;}}});
+    window.__fixture.publish("release",{events:[{id:755,revision:1,role:"Agent",text:source,document:{nodes:[{tag:"pre",language:"javascript",text:source}]}}],retained:[755]});
+  },source);
+  expect(await app.locator(".code-overview i").count()).toBeLessThanOrEqual(120);
+  expect(await app.locator(".code-overview").textContent()).toBe("");
+  await app.getByRole("button",{name:"Copy code",exact:true}).click();
+  expect(await app.evaluate(()=>window.__fixture.copied)).toBe(source);
+  await app.getByRole("button",{name:"Wrap lines",exact:true}).click();
+  await expect(app.locator(".code-overview")).toBeHidden();
+});
