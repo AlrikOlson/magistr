@@ -181,6 +181,7 @@ export class Transcript {
     if(message.tool) {
       const tool=message.tool;
       row.toolTitle.textContent=tool.title;row.toolStatus.textContent=tool.status;
+      row.toolStatus.dataset.leadingIcon=tool.status==="Completed"?"check":tool.status==="Failed"?"close":"clock";
       row.article.dataset.status=tool.status.toLowerCase();
       row.toolDuration.textContent=tool.duration_ms==null?"":(tool.duration_ms/1000).toLocaleString(undefined,{maximumFractionDigits:2})+" s";
       row.toolDuration.hidden=tool.duration_ms==null;
@@ -192,6 +193,7 @@ export class Transcript {
         let section=row.body.children[index];
         if(!section||section.localName!=="section") {const next=element(this.document,"section");next.append(element(this.document,"h3"),element(this.document,"pre"));if(section)section.replaceWith(next);else row.body.append(next);section=next;}
         section.dataset.reading=message.id+":tool:"+index;
+        section.children[1].tabIndex=0;section.children[1].setAttribute("aria-label",detail.label);
         if(section.children[0].textContent!==detail.label)section.children[0].textContent=detail.label;
         if(section.children[1].textContent!==detail.source)section.children[1].textContent=detail.source;
       });

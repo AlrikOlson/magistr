@@ -1,5 +1,5 @@
 {
-  "receipt": "559c946d1c188b6cf41781321f5803791aa5cb13f95f693ef4075b8ee37961f3",
+  "receipt": "802fc9411d4948bcb2a3abf6095c9ce20864e92e6fcc6570223de179965b73a3",
   "images": {
     "welcome-dark.png": "dbeb5de57311812ef5a669f046708a23927e7504e74d686194bb801dfd5b8dff",
     "welcome-light.png": "c77e2e937e8f1e98e3061d94a5bb15c40abbcda679712e2d99ed503e54c54991",
@@ -31,10 +31,10 @@
     "code-dark.png": "66463e0a7edf45eb6ef3dc4c99c2722e7a58bfc3823df5c90370bddc9910f3d4",
     "reading-light.png": "fcf3aa5025a87285f9e7530bc3e99aa1042f8243ad8a6d9e808eb6ef4835857e",
     "code-light.png": "d1dd81d1aa42df4ef7bcf822c0535402e7941c1105b5c399f6088a558c6d1567",
-    "tools-light.png": "2a19ed589968aa8db02bd63f64f674fab0e9e78dea25360d9c31f87e47c2eeea",
-    "tools-dark.png": "78f87a95cb4ccebbc223116de1789d3b448e90c94bc18564fbccebba0e36e47e",
-    "attachments-dark.png": "73b63a6c50a63d225d4af1fabffc4284db1f7dde51dab444c14fac927d48d628",
-    "attachments-narrow-light.png": "70c4e1534b5940a2f99141b5b59aee732472f07e1c5fc70061801c72d59ba499",
+    "tools-light.png": "42a333973a0c82ff851eadd376b32494537d753f5e18ecd0ae0bf90d5fc1c635",
+    "tools-dark.png": "e12d620dffdbf58f16cf2c5767051a43848464abefdf135893c21f8a0046c633",
+    "attachments-dark.png": "bb6189d5f257ec1f4aae4bd594681baffd05a8ad68e8120c1f14da9f173760a9",
+    "attachments-narrow-light.png": "d1e4efc2117b8d58d5c85423677736446ad82bd0075729004bfbb827af47d7ba",
     "request-narrow-light.png": "b0d5f74f81eabec4d5348ead6742c4f6d3226525131cc1aa2d3426ed78025ec6",
     "request-dark.png": "84102c64ac77bea57cc68f98c54bd76a42a7a0a93360ab444cebccd3c51ff872",
     "minimum-workspace-dark.png": "e8b9e89f745533ffb078542f9d2e257374277c92e9665cfe47a088adc0cdb427",
@@ -49,8 +49,8 @@
   },
   "reviewed_on": "2026-10-15",
   "findings": [
-    "Reviewed the framed code documents in both appearances. A fixed caption, exact line count and nonselectable line gutter separate source from prose; long source remains scrollable.",
-    "Seven focused WebKit scenarios passed, including exact multilingual code copying, literal hostile markup, stable source nodes and selected text during an incoming revision.",
-    "Background clipboard stub and DOM selection only; native clipboard, IME and assistive technology were not exercised. Native workflow state remains inaccessible."
+    "Reviewed the tool result composition: each operation has a clear title and shaped result label, with aligned command/result fields and a separate duration. Source disclosures retain exact selectable content and keyboard-scrollable outputs.",
+    "Seven focused WebKit reading and workspace scenarios passed, including stable open disclosures and held selections.",
+    "Headless DOM evidence only; native interaction was not run. Native workflow records are unavailable and preserved."
   ]
 }
