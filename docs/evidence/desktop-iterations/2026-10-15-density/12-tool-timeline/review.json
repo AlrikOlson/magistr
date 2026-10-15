@@ -1,0 +1,54 @@
+{
+  "scope": "Make tool activity easier to scan",
+  "limitations": "Headless WebKit with isolated observations. Native OS input, assistive technology and Rust command integration were not exercised.",
+  "images": {
+    "conversation--failed-tool-details-compact-dark.png": {
+      "sha256": "a6b7a5a3aeb9289ef537652af8a09a1ca4dd7eae97e8390a8fdb1706924f7780",
+      "task": "See tool title, result and duration together with complete details on demand.",
+      "observations": "The opened failed check retains its title, Failed badge, 2.4 s duration, readable result and copy actions. The compact layout keeps the markers beside their rows without crowding the main controls. Connector endpoints align; there are no crossings or detached branches. Dark statuses and text are readable.",
+      "verdict": "pass"
+    },
+    "conversation--failed-tool-details-compact-light.png": {
+      "sha256": "d5b96b6133be1e8db88d54ab77a7a2b23ed01664ec950272e16c495c32d24e35",
+      "task": "See tool title, result and duration together with complete details on demand.",
+      "observations": "The opened failed check retains its title, Failed badge, 2.4 s duration, readable result and copy actions. The compact layout keeps the markers beside their rows without crowding the main controls. Connector endpoints align; there are no crossings or detached branches. Light statuses and text are readable.",
+      "verdict": "pass"
+    },
+    "conversation--failed-tool-details-desktop-dark.png": {
+      "sha256": "a2e0b280cbe41ca7dfba17d86abe9d26f015da1170c8a21d6b023665971bec91",
+      "task": "See tool title, result and duration together with complete details on demand.",
+      "observations": "The opened failed check retains its title, Failed badge, 2.4 s duration, readable result and copy actions. The desktop timeline runs between the numbered markers and stays outside the cards. Connector endpoints align; there are no crossings or detached branches. Dark statuses and text are readable.",
+      "verdict": "pass"
+    },
+    "conversation--failed-tool-details-desktop-light.png": {
+      "sha256": "412cd9df4cc6ec5f4af74ba4b726565d1ace39904fa2e409cf87e2a01ecbb39e",
+      "task": "See tool title, result and duration together with complete details on demand.",
+      "observations": "The opened failed check retains its title, Failed badge, 2.4 s duration, readable result and copy actions. The desktop timeline runs between the numbered markers and stays outside the cards. Connector endpoints align; there are no crossings or detached branches. Light statuses and text are readable.",
+      "verdict": "pass"
+    },
+    "conversation--tool-activity-compact-dark.png": {
+      "sha256": "1871e6c84435c35214b8800dbfd395463d279ec9fed627c82aa67799aa94a09b",
+      "task": "See tool title, result and duration together with complete details on demand.",
+      "observations": "Finished and Failed rows are clearly separated, with duration below each status and a disclosure at the right. The compact layout keeps the markers beside their rows without crowding the main controls. Connector endpoints align; there are no crossings or detached branches. Dark statuses and text are readable.",
+      "verdict": "pass"
+    },
+    "conversation--tool-activity-compact-light.png": {
+      "sha256": "e9a3466df9c04c8b68843c832fdea0438f8a7661522185662ab77b8b34e2b1bd",
+      "task": "See tool title, result and duration together with complete details on demand.",
+      "observations": "Finished and Failed rows are clearly separated, with duration below each status and a disclosure at the right. The compact layout keeps the markers beside their rows without crowding the main controls. Connector endpoints align; there are no crossings or detached branches. Light statuses and text are readable.",
+      "verdict": "pass"
+    },
+    "conversation--tool-activity-desktop-dark.png": {
+      "sha256": "8257e99e876ab095de46ca8a515553750fff5734151c646acc7de5e3ed96b384",
+      "task": "See tool title, result and duration together with complete details on demand.",
+      "observations": "Finished and Failed rows are clearly separated, with duration below each status and a disclosure at the right. The desktop timeline runs between the numbered markers and stays outside the cards. Connector endpoints align; there are no crossings or detached branches. Dark statuses and text are readable.",
+      "verdict": "pass"
+    },
+    "conversation--tool-activity-desktop-light.png": {
+      "sha256": "6238f377fbdc696034f085644fd09b078968642fffbbe358d7598943cc7a6ffa",
+      "task": "See tool title, result and duration together with complete details on demand.",
+      "observations": "Finished and Failed rows are clearly separated, with duration below each status and a disclosure at the right. The desktop timeline runs between the numbered markers and stays outside the cards. Connector endpoints align; there are no crossings or detached branches. Light statuses and text are readable.",
+      "verdict": "pass"
+    }
+  }
+}
