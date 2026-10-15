@@ -1,5 +1,5 @@
 {
-  "receipt": "6cd02d88c3900e74d178492e962ccfd8c6fbd26985400812760566fe77d528a5",
+  "receipt": "2937efe62b03a72c880b8a250378dd046bfac90b20be87e73add3376c4d00a61",
   "images": {
     "welcome-dark.png": "196f05ebfbcfdacf73fe8a82ad187b73837dfd801f2a1e47c59f5c0863f9b216",
     "project-map-dark.png": "9bfb53f79bb4c5bc20d428239f65e12e83ca95825579c550ca0c522b2cdf9efe",
@@ -19,16 +19,17 @@
     "rename-light.png": "ad0f5715491f15f2235ddf8073d2a57d6e759c2e3c7dfec75dd8e85256403e27",
     "work-paused-dark.png": "a79d02738979c74cd380bb907ac98b612d4d5640c60c212454c63c40c9b0a372",
     "work-plan-dark.png": "a94e499de64f8c96af03a6196aedb027e8450a6c30a250ccdcd96991135b9a41",
-    "roadmap-dark.png": "20c5082444e290883ff27b8331bbb9c7e9f42cf9465aaa376e1db458adbecc6d",
-    "roadmap-item-dark.png": "0177193679e2d019808875ca99b40e5ff0e92be30b18d6cee48592a73276b871",
-    "roadmap-dependency-dark.png": "633b021f836a7a0b4f22b95ea1b6e4ac99e83c1898f6459795e4101d84b3a629",
-    "roadmap-history-dark.png": "86b2b1c46aaee144df85b64418d93cef067c300a5571be77c5cb60d747360236",
+    "roadmap-dark.png": "2d8a5c791cc609accc607066c8f3b8af99533d9d4b99ae7237d48ac37c184e2c",
+    "roadmap-item-dark.png": "31cbcfa53ddfa7c9b7e6d40c702982baf4205cd751b2b1c164edb697581928db",
+    "roadmap-dependency-dark.png": "a08aab09d28831e23f63249a9a64f7dcd26fda10a16a0cae3074f410208fc44a",
+    "roadmap-history-dark.png": "5c633437573c48d860f78c0f04bbc211f1da9a26067f3e9d8d7de009358208f7",
+    "roadmap-search-dark.png": "856fa6ed39b949a89fff282ddec4e802395a9eb491fd1fe214dcaab234165499",
     "work-check-results-dark.png": "6a0390f311c4a76842ed7d4e4559547cf881ff62a76716e21dd99a01f590c843",
     "work-activity-dark.png": "0187963df625494fedeea7d3d95e3c4d4d8d49950829d5ee4ad8840342150d5f",
     "saved-work-dark.png": "9d4bc1b5f1c2edd7d48a25d9d3a7729b40b0623ee482945530e425e2506b616e",
     "work-plan-light.png": "bdabda2389284ad05ffcd03462a6220981fc379c5b4b9739816c0ca8553670f9",
-    "roadmap-light.png": "7ada3753e9d53636cabebd9441f34c96b11d5618f3320050ea34ff2fef6a74fe",
-    "roadmap-minimum.png": "1c0eafb16ce28ebd6a70f3bd7c5e27633f3a0e45f48c8ba0ca8c79728f376ac0",
+    "roadmap-light.png": "c1240c3a95c2c7222ebbb74f0ec91a69bbce22e89d408eedd98c802cace5cc9f",
+    "roadmap-minimum.png": "bee5987c0ac6b0d91df694f8d19bac4e8ac2eecf825e3e6f81e1e0216e28ad3d",
     "work-plan-minimum.png": "aa23b76d79cb31259bf98d47863f082c486d47b7b6b5c18d16e10519aba3c2e4",
     "inspector-dark.png": "89564c80e02d674b79bfbadf60cb4ffdef3e62bfe218c2aecf69b805fda729ff",
     "inspector-light.png": "8ea0d6264d1f3294624ec0abfd8637392848ab053fd5b2ac52937f132574666c",
@@ -73,9 +74,9 @@
     "tables-dark.png": "454e65e487f1350fb1311fca332a58fec70f761bb011376b12fc162ce00aecf3",
     "tables-light.png": "f1ee7ca0d66b2ab049e102a5bf9eb913977a71af18cf69c1cfc455e2ac86a4d6",
     "tables-compact.png": "b1c7232dec5db4be377871717ae0afd88381fd249f80687d6584e96f1c1259e7",
-    "patch-dark.png": "0b422d0c5d7d13ad7b7c8d9a91b109e7525fa99533a09df95cf7db76e4ecfb89",
-    "patch-light.png": "33f3fd57018e64e902e8723ccb08fb22d0a6855e6d17d2537414d840347f138f",
-    "patch-comparison-dark.png": "8edf37365b50aff39946cf5809a46d44688184607a82aef16e7022200911ea3b",
+    "patch-dark.png": "e6ec8f194f3cd7b2691b07fa62b5933fdb8977eefcb06d1c5e5ed91f1b909576",
+    "patch-light.png": "230ca8e1f26d52819aa7d2d5e54e02219c8b92e8ad3aee538e14738ac6d4122d",
+    "patch-comparison-dark.png": "b123658d32478531751b0e243cd888d45c5ae76cf574684ac796a431a0d6f15b",
     "patch-comparison-light.png": "2b35fd51750c85d77a7221e03aa248a673114c020aef393a2ead679d71e657ae",
     "patch-compact.png": "d1db1219b8836a04a58914ef5b60b8fbe510d67125715b8994f322c5b3781fa5",
     "result-dark.png": "ecc4b3b89cf52b424edaf6da03933083eae4bbbbb8e89fa72cf7d1ad51b88760",
@@ -88,8 +89,8 @@
     "editorial-dark.png": "f996238260017f698679424561c828d2ca3bd1f3de56ea9b5824133d5a19c870",
     "editorial-light.png": "3c228ca2dc7b17eca2c9632201427646cfeb195bff2b3fdbea287912259f94ad",
     "editorial-compact.png": "73f3f6565f23ab2090e26e204b7f88afc60f1cde641dc01419d9453459fea431",
-    "gallery-dark.png": "99e285b2fcb664997c54b9786c49ff22c522257b36ff9a6ffd282243dd580f08",
-    "gallery-light.png": "9922e577db373f81732bcfb0abafc102353c7167b8e9b0be16c30c19f4deb68c",
+    "gallery-dark.png": "9c2cc68860629c4bb806c42dc3094adefda5d7863939889476e9f79c9ea98b2b",
+    "gallery-light.png": "363ee26f2888219ac48e9492a9bdb26b3fafe281eb2119ce9469f344a40f49b1",
     "gallery-compact.png": "7dc04de3275273f14d0a85e7b97486177aedfb55734db7ee4bdce6cefc6618b6",
     "image-stage-dark.png": "e64738c9810290a38f670b829f99ba5926aa19f64bfc153ba5de2ff5ffa7d8ff",
     "image-stage-light.png": "bbbb348ffdb29485e59f92dfffa69044f435c9ef3a0d537723b9924c392868ba",
@@ -114,8 +115,8 @@
     "workspace-compact-long-title.png": "5a9d1fe895fa847cb572d4dfd44aaf7a1102666f6e8ac77b3d494f1c7569f91d"
   },
   "inspected": [
-    "roadmap-history-dark.png"
+    "roadmap-search-dark.png"
   ],
-  "notes": "Reviewed the closed-track view: completed work is selectable, full titles and status remain clear, and the current/history choice shares the track controls.",
+  "notes": "Reviewed cross-track search including a completed item. Query, full titles, track/status and page controls remain readable; headless checks cover complete authored fields, Unicode and later pages.",
   "native_limit": "Current native OS-input, VoiceOver and live-provider behavior were not exercised."
 }

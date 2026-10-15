@@ -92,3 +92,8 @@
 .work-run-selection{display:flex;align-items:center;gap:20px;padding:12px 30px;border-bottom:1px solid var(--separator);flex-shrink:0;background:var(--base)}
 .work-run-selection label{font-size:12px;white-space:nowrap}.work-run-selection select{min-width:0;flex:1;font-size:12px}
 #work-browser-content{padding:24px 22px}.work-task-heading{display:block}.work-task-heading span{display:block;margin-top:8px}}
+
+.work-run-selection input{flex:1;min-width:8rem}
+.work-pages{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:16px 0;color:var(--muted);font-size:.85rem}
+.work-pages span{text-align:center}
+@media(max-width:800px){.work-run-selection{flex-wrap:wrap}.work-pages{gap:6px;font-size:.75rem}}
