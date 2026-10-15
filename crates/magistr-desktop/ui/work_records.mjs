@@ -23,7 +23,8 @@ export function renderRun(run,actions) {
   if(!run){article.append(element("h3","No current work"),element("p","Start planned work to see its objective and tasks here."));return article;}
   article.dataset.run=run.run_id;
   const head=element("header","","work-record-heading");
-  head.append(element("p",statusLabel(run.objective.status),"work-record-status"),element("h3",run.objective.description));
+  const title=element("h3",run.objective.description);title.tabIndex=-1;title.dataset.focusKey="run-title";
+  head.append(element("p",statusLabel(run.objective.status),"work-record-status"),title);
   const dates=element("dl","","work-record-dates");
   for(const [label,value] of [["Started",run.objective.created_at],["Finished",run.objective.completed_at]]){
     if(!value)continue;
