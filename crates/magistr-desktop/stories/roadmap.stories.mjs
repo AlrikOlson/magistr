@@ -46,3 +46,10 @@ export const DependentItem={parameters:{desktop:{
  arrange:async context=>{await SelectedItem.parameters.desktop.arrange(context);await context.userEvent.click(context.doc.querySelector(".roadmap-relations [data-focus-key=\"dependencies:foundation\"]"));},
  verify:({doc,expect})=>{expect(doc.querySelector("#work-browser-inspector h3")?.textContent).toBe("Store conversations and drafts");expect(doc.querySelector(".roadmap-relations [data-focus-key=\"dependents:reopen\"]").textContent).toBe("Restore the project conversation and draft");},
 }}};
+export const Requirements={parameters:{desktop:{
+ caption:"Reopening item with completed and outstanding checklist entries and three requirements",
+ task:"Review the checklist and complete authored requirements.",
+ seed:seed=>{seed.workflow.roadmap.data.value.chunks.find(item=>item.id==="reopen").acceptance.push("Switching projects preserves each unsent message.", "Keyboard focus returns to the conversation you opened.");},
+ arrange:async context=>{await SelectedItem.parameters.desktop.arrange(context);context.doc.querySelector(".roadmap-requirements").scrollIntoView({block:"end"});},
+ verify:({doc,expect})=>{const panel=doc.querySelector("#work-browser-inspector").getBoundingClientRect(),list=doc.querySelector(".roadmap-requirements");expect(list.querySelectorAll("li").length).toBe(3);expect(list.getBoundingClientRect().bottom).toBeLessThanOrEqual(panel.bottom);expect(doc.querySelector(".work-checklist").getBoundingClientRect().top).toBeGreaterThanOrEqual(panel.top);},
+}}};

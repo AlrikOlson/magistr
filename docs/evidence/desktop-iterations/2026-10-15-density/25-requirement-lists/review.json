@@ -1,0 +1,54 @@
+{
+  "scope": "Make authored requirements and checklist marks compact",
+  "limitations": "Headless WebKit with isolated observations. Native OS input, assistive technology and Rust command integration were not exercised.",
+  "images": {
+    "roadmap--dependent-item-compact-dark.png": {
+      "sha256": "ec09bf4ea72dc13b88b440d5d73dbe863371be8101463c374890a69bd28403eb",
+      "task": "Review requirements and checklist completion without large repeated cards.",
+      "observations": "The empty Requirements heading carries a compact None value without an extra paragraph. It fits in the compact opening view, with description, dependency navigation and selected-node context still clear.",
+      "verdict": "pass"
+    },
+    "roadmap--dependent-item-compact-light.png": {
+      "sha256": "e263e52c76e123c89a47f50cf3ad5db0d88c98f488639364954757b4f423a602",
+      "task": "Review requirements and checklist completion without large repeated cards.",
+      "observations": "The empty Requirements heading carries a compact None value without an extra paragraph. It fits in the compact opening view, with description, dependency navigation and selected-node context still clear.",
+      "verdict": "pass"
+    },
+    "roadmap--dependent-item-desktop-dark.png": {
+      "sha256": "ea83925ebca39bd96da0b661ad4acf63626f62923ae47631fe239b6d315b9613",
+      "task": "Review requirements and checklist completion without large repeated cards.",
+      "observations": "The empty Requirements heading carries a compact None value without an extra paragraph. It fits in the compact opening view, with description, dependency navigation and selected-node context still clear.",
+      "verdict": "pass"
+    },
+    "roadmap--dependent-item-desktop-light.png": {
+      "sha256": "53cb598320a0428d2c893959f8dfd2d2fcd70c713732766b91ab14fdff7b7424",
+      "task": "Review requirements and checklist completion without large repeated cards.",
+      "observations": "The empty Requirements heading carries a compact None value without an extra paragraph. It fits in the compact opening view, with description, dependency navigation and selected-node context still clear.",
+      "verdict": "pass"
+    },
+    "roadmap--requirements-compact-dark.png": {
+      "sha256": "ab4d3e592d612f9f6086c152c7722ddbfced36eb4824913c38b15cff5a0fd257",
+      "task": "Review requirements and checklist completion without large repeated cards.",
+      "observations": "The scrolled detail shows both completed and outstanding checklist marks and all three numbered requirements at readable 13px text. Wrapped lines align under their text, separators distinguish requirements, and all changed list content fits within the compact panel. Earlier content is above the scroll position.",
+      "verdict": "pass"
+    },
+    "roadmap--requirements-compact-light.png": {
+      "sha256": "7cae34bf747095b9229b5216c874037bbcd9edb0d572f6787042e818be1d1384",
+      "task": "Review requirements and checklist completion without large repeated cards.",
+      "observations": "The scrolled detail shows both completed and outstanding checklist marks and all three numbered requirements at readable 13px text. Wrapped lines align under their text, separators distinguish requirements, and all changed list content fits within the compact panel. Earlier content is above the scroll position.",
+      "verdict": "pass"
+    },
+    "roadmap--requirements-desktop-dark.png": {
+      "sha256": "bd61334248cfb34e95600ed565e0d13e2ad9432a57bc0f7c965d9f56cc9a0e66",
+      "task": "Review requirements and checklist completion without large repeated cards.",
+      "observations": "The scrolled detail shows both completed and outstanding checklist marks and all three numbered requirements at readable 13px text. Wrapped lines align under their text, separators distinguish requirements, and all changed list content fits within the compact panel. Earlier content is above the scroll position.",
+      "verdict": "pass"
+    },
+    "roadmap--requirements-desktop-light.png": {
+      "sha256": "704b27a17f6037f4a40581b7bbccf29565863847b4b521cd20c81cdbe4baf6f5",
+      "task": "Review requirements and checklist completion without large repeated cards.",
+      "observations": "The scrolled detail shows both completed and outstanding checklist marks and all three numbered requirements at readable 13px text. Wrapped lines align under their text, separators distinguish requirements, and all changed list content fits within the compact panel. Earlier content is above the scroll position.",
+      "verdict": "pass"
+    }
+  }
+}
