@@ -34,7 +34,8 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
   await app.getByRole("button",{name:"Review the release plan",exact:true}).click();
   await expect(app.getByRole("heading",{name:"Review the release plan",exact:true})).toBeVisible();
   await expect(app.getByLabel("Message the agent",{exact:true})).toHaveValue("Keep the project list visible, and let me return to the same paragraph.");
-  checks["selected conversation and saved draft are visible"]=true;
+  await expect(app.locator("#header-location")).toHaveText("/Projects/magistr");
+  checks["selected conversation, owning folder and saved draft are visible"]=true;
   for(const theme of ["dark","light"]) {
     await app.getByRole("button",{name:"Settings",exact:true}).click();
     await app.getByLabel("Appearance",{exact:true}).selectOption(theme);
