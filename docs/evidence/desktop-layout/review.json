@@ -1,5 +1,5 @@
 {
-  "receipt": "a9913a2f9a3a3a61137b826e82873d209a1467a47e7f84075c3623de03d6c5ca",
+  "receipt": "0c3fc80251bc6f0f6eb23a35880b88e6b10678a5e3fad2e6f4649ed1a330de5e",
   "images": {
     "welcome-dark.png": "c18e56fa3f76a5d9338c14ef21f1d94c761e09479a9597347b4a49080331713f",
     "welcome-light.png": "d308a673ba367d31445b01bafd2fb739c75ddb35a884c19b5a36f51a34427c45",
@@ -33,11 +33,11 @@
     "code-dark.png": "f6ca0dc6e7bad381291d1427e39f0ab6e26bf7244d7370e3d044604990e9da78",
     "reading-light.png": "8ec3d04b94aa63bfd8b8b83ab133f0c04c8547e5fac8cfe8eb2c137a1065c84b",
     "code-light.png": "bbf460cf7044f1999077db58cbe5a21585fca47cdbc70656ff3bc7e04f536d6c",
-    "tools-light.png": "8ee18f599f0eed46add1eb3e1838a5e74abd5a78e6f7a46c8719bb9ca0aa3c41",
-    "tools-dark.png": "8f5def2878fa396e5303a3a2c1fd84ae7cebe621fe870b12ad91625e6216ff39",
-    "attachments-dark.png": "48e5f13422f08f93d84b99d9ffb87578305c0f4be0efdaddd8085a7bc2644dd9",
+    "tools-light.png": "e1e315defa2135e3937cdefe7702b39d6d1a2547929d05a586d71cca3f1b99f2",
+    "tools-dark.png": "bb82554071183563518995422b6331f3b370de22c4a010924af38c03824b7029",
+    "attachments-dark.png": "60e6b456eb8f7118a995f1f7976c75a526cff27884e7a2b2e0ef83a61761606b",
     "image-inspection-dark.png": "43aa79f9937d1bba3184dbcd1be08acb31f56ed30f2a7404e7502cdb1564b597",
-    "attachments-narrow-light.png": "0ac971eaa3dda9d32b13c8dd0996c8d1c80d0ab1f5d5186278b90910b19f628b",
+    "attachments-narrow-light.png": "6c40a03c38a7711936e346cc8d18ad9ef8eb83d79a232deb33a3abae3616355a",
     "request-narrow-light.png": "13d6fd7dc50fbf5089c949450160d50d1f702262b29b1873284e745b3d829b25",
     "request-dark.png": "2dd962c508ae99050570560894f7727b0f488a7690184bb3300b6b33aec136d2",
     "minimum-workspace-dark.png": "f14d9f1b713aeb219807844386c87ee39c1a45a95bdd5fb24d8dfc2ccb7dca7f",
@@ -59,10 +59,10 @@
     "patch-comparison-dark.png": "60a711fc720c1eda2459a75cae5184fd3d1726ce6b9afbe5f2960f34f20df33e",
     "patch-comparison-light.png": "1e643c5cffa661c7681b1cedcec506c2a343abdb237fbcca43c85740d7fbc564",
     "patch-compact.png": "ac161fa4a75712cdca9cc950a75ffbb5b64de880f05902403bd1b11bce00563a",
-    "result-dark.png": "59cf7ab2196d662c2e6444d7c36d0c99e4b00a12f99f2ab1c971506f6182c03b",
-    "result-light.png": "58dccf9d9ab215fdfc4a5242a514edbf0d9f2dc57549389514c965d256f50b5b",
-    "records-dark.png": "91d59a4a14406e6b78b8fceeec258835bebc4f66fc4845ea50aa474acdd4cce5",
-    "records-light.png": "d9eef0a46649e06f1b321b4c869b01a0ba5766f5127c7a5df6c87f919f20ba0a",
+    "result-dark.png": "b4f4d436fc16b69f61adbeb7ee7c46b723c52e505de66c0819924779c2da0fbc",
+    "result-light.png": "8dcc0f9fb526b66f68efab348e458ade6bfbd6bb4e1cd8c435e0f9dfd2977709",
+    "records-dark.png": "eeb463b8a8f09200cbb28da3b2cf2888fd5a2c395f9a3528b8cf5111029f2931",
+    "records-light.png": "3724f45a4d318758345d388d287161c5bf1bd2e5e71a6f2dbca8550c6f7c3f9c",
     "contents-dark.png": "907bd8196ed52d4d0d08d55af08c3b04896e0f51ebcf6c841ccd081560fd2706",
     "contents-light.png": "f7a9d5ef612665685c5c09b549a712b19ceb73d21627abe764f8b3593cc69327",
     "contents-compact.png": "70b109d3c2c44ccc4c42648bed0b970fafbf9c9ac36e8b70b6d7b4fa052b8130",
@@ -78,9 +78,9 @@
     "writing-dark.png": "d3d2373a3f4ba397332fec88f0ecb07193b1a8f1474982c05f68ead3db74ddb3",
     "writing-light.png": "7d7e85193330305d1c6376f8a91645b5ed441f7eed3b07fdde70b72ca3c50534",
     "writing-compact.png": "a72d58ac8942e3a0a267d6c05e73230fc97851ead7df09b98bb6fd874d2a4335",
-    "execution-dark.png": "1c0fd3aef655329109a4b492c6fea8d4ac566f2d663f197498af0741a0f9d3e7",
-    "execution-light.png": "aa4001248fc485bd6c7924c0154bfe173887f8911dc448304aeca9b4349b4b07",
-    "execution-compact.png": "b34fd9670d27d6a55f31fa5602dc6b00f1273fedf2fc5393230c8fe217d55471",
+    "execution-dark.png": "bb2ffa7d603e09183fde1bd645a95af48a15bbbe6b9e590625572965bb91a888",
+    "execution-light.png": "08da3a30b16def8e569c5df3b5773ecbdce9fe6a06d82958ae17f0c61eb37d5b",
+    "execution-compact.png": "21713ab0a3e26821141f5507ac41d5861d8d6e17a434f07615d05a0b559d705c",
     "permission-dark.png": "8040219fa4acd3b92b588d6aed3fa7e79f3eb00b3dad54b6f1830b4afe326c72",
     "permission-light.png": "94ae1c408f6a2826f16bfe75baa926a9c9a31ab1552f83905997baf340daf5f8",
     "permission-compact.png": "ee639b89210822cd15b885e19374fdde50f2909a629fe8635d2a34d4cba29d85",
@@ -94,5 +94,5 @@
     "workspace-compact-final-light.png": "cf0660be6d4cd9833a7bebf556c4a3cb20907ab04622974b81800fc4180c40c0",
     "workspace-compact-long-title.png": "c937d7ecc8a49952c92e0fae474346c91fae0f7f4725a62a3c3644bd58feb772"
   },
-  "review": "Reviewed structured fields and homogeneous record tables in dark/light. Literal markup, nulls, booleans, numbers and original JSON stay exact. Four focused WebKit cases and bounded rendering pass."
+  "review": "Reviewed actual execution ledger in dark and compact light. Source-derived tool icons, aligned duration/status, compact closed rows and expanded result sheets preserve addressed disclosures and exact source. Seven WebKit reading cases pass."
 }

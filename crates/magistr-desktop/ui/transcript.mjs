@@ -177,12 +177,13 @@ export class Transcript {
     header.append(role,copy);article.append(header);
     if(message.tool) {
       row.details=element(this.document,"details");row.summary=element(this.document,"summary");row.body=element(this.document,"div");row.body.className="tool-body";
+      row.toolIcon=element(this.document,"span");row.toolIcon.className="tool-kind";row.toolIcon.setAttribute("aria-hidden","true");row.toolIcon.dataset.icon="terminal";
       row.toolTitle=element(this.document,"span");row.toolTitle.className="tool-title";
       row.toolStatus=element(this.document,"span");row.toolStatus.className="tool-status";
       row.toolDuration=element(this.document,"span");row.toolDuration.className="tool-duration";
       const separator=element(this.document,"span"," · ");separator.className="sr-only";
       row.toolPreview=element(this.document,"code");row.toolPreview.className="tool-preview";
-      row.summary.append(row.toolTitle,separator,row.toolStatus,row.toolDuration,row.toolPreview);
+      row.summary.append(row.toolIcon,row.toolTitle,separator,row.toolStatus,row.toolDuration,row.toolPreview);
       article.dataset.tool="true";
       row.details.append(row.summary,row.body);article.append(row.details);
     } else {
@@ -201,6 +202,7 @@ export class Transcript {
       row.toolStatus.dataset.leadingIcon=tool.status==="Finished"?"check":tool.status==="Failed"?"close":"clock";
       const location=tool.details.find(detail=>["Location","File"].includes(detail.label));
       const input=tool.details.find(detail=>detail.label==="Input");
+      row.toolIcon.dataset.icon=location?"file":input?"terminal":"check";
       let preview=location?.source??input?.source??"";
       if(!location&&input){try{const value=JSON.parse(input.source);preview=typeof(value.command??value.cmd)==="string"?(value.command??value.cmd):"";}catch{}}
       row.toolPreview.textContent=preview.split("\n")[0].slice(0,240);row.toolPreview.hidden=!row.toolPreview.textContent;
