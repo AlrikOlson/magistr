@@ -1,0 +1,54 @@
+{
+  "scope": "Keep permission choices close to their request",
+  "limitations": "Headless WebKit with isolated observations. Native OS input, assistive technology and Rust command integration were not exercised.",
+  "images": {
+    "conversation--long-permission-request-compact-dark.png": {
+      "sha256": "5df87e99b3327f810bcf4fa941d686258d753c6a535791f83fc2c1d2e94ccdf1",
+      "task": "Read a request and decide using clearly grouped controls and details.",
+      "observations": "Both choices remain visible as equal controls beside compact request details and below the desktop sidebar details. The request title is readable and follows its waiting state. Long text scrolls within the source region without displacing choices; focus outline and warning contrast remain clear. No overlap or inaccessible action.",
+      "verdict": "pass"
+    },
+    "conversation--long-permission-request-compact-light.png": {
+      "sha256": "383005b890b337600b2ad1d07d839c9f411047618c85da2e566977873028c90a",
+      "task": "Read a request and decide using clearly grouped controls and details.",
+      "observations": "Both choices remain visible as equal controls beside compact request details and below the desktop sidebar details. The request title is readable and follows its waiting state. Long text scrolls within the source region without displacing choices; focus outline and warning contrast remain clear. No overlap or inaccessible action.",
+      "verdict": "pass"
+    },
+    "conversation--long-permission-request-desktop-dark.png": {
+      "sha256": "77789731817dc84e8dd3f3c18ece56b02f9519dd5e62d9949d1961e333f61c18",
+      "task": "Read a request and decide using clearly grouped controls and details.",
+      "observations": "Both choices remain visible as equal controls beside compact request details and below the desktop sidebar details. The request title is readable and follows its waiting state. Long text scrolls within the source region without displacing choices; focus outline and warning contrast remain clear. No overlap or inaccessible action.",
+      "verdict": "pass"
+    },
+    "conversation--long-permission-request-desktop-light.png": {
+      "sha256": "79f9fb62a96198892a14a429557f5828d67be1836a379e23344a9c2ef74c8eff",
+      "task": "Read a request and decide using clearly grouped controls and details.",
+      "observations": "Both choices remain visible as equal controls beside compact request details and below the desktop sidebar details. The request title is readable and follows its waiting state. Long text scrolls within the source region without displacing choices; focus outline and warning contrast remain clear. No overlap or inaccessible action.",
+      "verdict": "pass"
+    },
+    "conversation--permission-request-compact-dark.png": {
+      "sha256": "be670487720c3866d7fb2f14a6ad18056ba62f1e86f264c7f1003e73b5afdac7",
+      "task": "Read a request and decide using clearly grouped controls and details.",
+      "observations": "Both choices remain visible as equal controls beside compact request details and below the desktop sidebar details. The request title is readable and follows its waiting state. Long text scrolls within the source region without displacing choices; focus outline and warning contrast remain clear. No overlap or inaccessible action.",
+      "verdict": "pass"
+    },
+    "conversation--permission-request-compact-light.png": {
+      "sha256": "96534ac929ef566d155038d021ecf333a4f35323465e6e2403c1a8364080fa1a",
+      "task": "Read a request and decide using clearly grouped controls and details.",
+      "observations": "Both choices remain visible as equal controls beside compact request details and below the desktop sidebar details. The request title is readable and follows its waiting state. Long text scrolls within the source region without displacing choices; focus outline and warning contrast remain clear. No overlap or inaccessible action.",
+      "verdict": "pass"
+    },
+    "conversation--permission-request-desktop-dark.png": {
+      "sha256": "27c7dcce30027c76d776827a3d1a381afdeb51014f5d93c3313728480f3f7af8",
+      "task": "Read a request and decide using clearly grouped controls and details.",
+      "observations": "Both choices remain visible as equal controls beside compact request details and below the desktop sidebar details. The request title is readable and follows its waiting state. Long text scrolls within the source region without displacing choices; focus outline and warning contrast remain clear. No overlap or inaccessible action.",
+      "verdict": "pass"
+    },
+    "conversation--permission-request-desktop-light.png": {
+      "sha256": "b0c05c2c4ba327d3c550d48d6c150470c0ccb49b0e4c97a4c04f2668439ffba2",
+      "task": "Read a request and decide using clearly grouped controls and details.",
+      "observations": "Both choices remain visible as equal controls beside compact request details and below the desktop sidebar details. The request title is readable and follows its waiting state. Long text scrolls within the source region without displacing choices; focus outline and warning contrast remain clear. No overlap or inaccessible action.",
+      "verdict": "pass"
+    }
+  }
+}
