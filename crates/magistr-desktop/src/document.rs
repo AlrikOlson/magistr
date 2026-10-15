@@ -1,6 +1,6 @@
 //! CommonMark becomes a bounded, typed semantic tree, never authored HTML.
 //! Canonical source stays beside this expendable presentation for exact copy.
-use pulldown_cmark::{Event, Options, Parser, Tag};
+use pulldown_cmark::{CodeBlockKind, Event, Options, Parser, Tag};
 use serde::Serialize;
 
 const MAX_NODES: usize = 4096;
@@ -14,6 +14,7 @@ pub(crate) struct Node {
     pub(crate) destination: Option<String>,
     pub(crate) start: usize,
     pub(crate) number: Option<u64>,
+    pub(crate) language: Option<String>,
 }
 impl Node {
     fn element(tag: &'static str, start: usize) -> Self {
@@ -24,6 +25,7 @@ impl Node {
             destination: None,
             start,
             number: None,
+            language: None,
         }
     }
     fn text(text: impl Into<String>, start: usize) -> Self {
@@ -91,6 +93,18 @@ impl Document {
                         },
                         range.start,
                     );
+                    if let Tag::CodeBlock(CodeBlockKind::Fenced(info)) = &tag {
+                        node.language = info
+                            .split_whitespace()
+                            .next()
+                            .filter(|name| {
+                                name.len() <= 32
+                                    && name.bytes().all(|byte| {
+                                        byte.is_ascii_alphanumeric() || b"_+-".contains(&byte)
+                                    })
+                            })
+                            .map(str::to_owned);
+                    }
                     if let Tag::List(start) = &tag {
                         node.number = *start;
                     }

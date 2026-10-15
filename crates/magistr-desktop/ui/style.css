@@ -190,6 +190,8 @@ article.you{background:var(--panel);padding:18px 24px;border-radius:12px 12px 4p
 .code-gutter{flex-shrink:0;padding:18px 12px 18px 16px;min-width:44px;border-right:1px solid var(--separator);font:12px/1.8 var(--font-code);text-align:right;color:var(--muted);user-select:none}
 .code-gutter::before{content:attr(data-lines);white-space:pre}
 .message-body .code-document pre{min-width:0;flex:1;margin:0;padding:18px 16px;border:0;border-radius:0;background:transparent;font:12px/1.8 var(--font-code);scrollbar-width:thin}
+.source-keyword{color:var(--accent);font-weight:600}.source-string{color:var(--success)}.source-literal{color:var(--warning)}.source-comment{color:var(--muted);font-style:italic}
+.code-title{text-transform:lowercase;font-weight:650;letter-spacing:.02em}.code-document:focus-within{border-color:var(--accent)}
 .code-document pre:focus-visible{outline-offset:-3px}.code-document figcaption button:focus-visible{outline-offset:0}
 .transcript summary{cursor:pointer;color:var(--text);font-weight:600;overflow-wrap:anywhere}
 .tool-body{padding-top:12px}.tool-body h3{font-size:12px;color:var(--muted);margin:12px 0 5px}.tool-body pre{background:var(--base)}

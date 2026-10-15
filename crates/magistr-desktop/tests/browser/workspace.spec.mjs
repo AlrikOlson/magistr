@@ -166,7 +166,7 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
       {tag:"p",text:"Keep the saved message and the visible conversation in sync. The change belongs in the draft writer, with a focused check for interrupted navigation.",start:40},
       {tag:"blockquote",children:[{tag:"p",text:"Save the incoming draft before replacing the visible conversation.",start:200}],start:200},
       {tag:"h3",text:"Apply the change",start:280},
-      {tag:"pre",children:[{tag:"code",text:"const saved = await drafts.flush(target);\nif (saved) {\n  await selectConversation(next);\n}",start:310}],start:310},
+      {tag:"pre",language:"javascript",children:[{tag:"code",text:"const saved = await drafts.flush(target);\nif (saved) {\n  await selectConversation(next);\n}",start:310}],start:310},
       {tag:"p",children:[{tag:"text",text:"Verify the ",start:410},{tag:"code",text:"save_draft",start:421},{tag:"text",text:" result before changing the selection.",start:431}],start:410}
     ];
     window.__fixture.publish("release",{events:[{id:90,revision:1,role:"Agent",text:"A small, recoverable change",document:{nodes},attachments:[]}],retained:[90]});

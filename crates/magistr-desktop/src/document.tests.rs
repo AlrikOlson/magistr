@@ -20,6 +20,7 @@ fn commonmark_decodes_text_and_keeps_semantic_reading_structure() {
     );
     assert!(json.contains("https://example.com/"));
     assert!(json.contains("strong"));
+    assert_eq!(doc.nodes[2].language.as_deref(), Some("rust"));
 }
 
 #[test]
