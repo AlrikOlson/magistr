@@ -80,7 +80,7 @@
 #work-browser-state{font-size:10px}.work-browser-filters{padding:7px 16px;gap:8px 12px}
 .work-run-selection{flex-basis:240px;gap:8px}.work-run-selection label{font-size:10px}
 #workspace-main>.work-header{min-height:52px;padding:10px 22px;gap:8px}
-#workspace-main>.work-header h1{font-size:17px;line-height:1.4}
+#workspace-main>.work-header h1{font-size:16px;line-height:1.35;max-width:none;text-wrap:pretty;display:block;overflow:visible}
 #conversation-toolbar{margin:0;padding:0;border:0;min-height:0;flex:0 0 auto;width:auto}
 #conversation-toolbar .context-actions{border:0;padding:0}
 #work-browser-inspector .roadmap-relations>section{grid-column:auto;grid-row:auto}
@@ -109,7 +109,7 @@
 @media(max-width:900px){.project-context .work-browser-tools #work-browser-state[data-current=true]{display:none}.project-context-heading .working-location{justify-content:end}.project-context #work-browser-refresh{font-size:10px}}
 #workspace-main>.work-header{display:flex;align-items:center;flex-wrap:nowrap}
 #workspace-main>.work-header .work-heading{flex:1}
-#workspace-main>.work-header .header-actions{order:3;width:auto;flex-shrink:0}
+#workspace-main>.work-header .header-actions{order:3;width:auto;flex-shrink:0;gap:6px}
 #conversation-toolbar{display:flex}
 #conversation-toolbar .context-actions{white-space:nowrap}
 @media(max-width:900px){#workspace-main>.work-header{padding:8px 16px;gap:8px}#workspace-main>.work-header h1{font-size:15px}#conversation-toolbar button{font-size:10px;padding:4px 6px}.header-actions{gap:5px}}
