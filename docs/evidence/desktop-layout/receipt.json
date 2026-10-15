@@ -1,7 +1,7 @@
 {
   "renderer": "headless WebKit",
   "version": "27.2",
-  "captured_at": "2026-10-15T05:38:12.654Z",
+  "captured_at": "2026-10-15T05:39:57.846Z",
   "scope": "Production desktop HTML, CSS and JavaScript with isolated observation fixtures; no native OS input or Rust owner integration.",
   "checks": {
     "project chooser presents actual projects and folder entry in both appearances": true,
@@ -42,7 +42,7 @@
     "crates/magistr-desktop/ui/app.mjs": "e56dddd0003d4a00148be8e3e79dade6ffb187086be0c003ed51072f0523da8b",
     "crates/magistr-desktop/ui/attachment_viewer.mjs": "90fe436ef3b1420434637d612440d3012c4574eda324d8a0957070b7c81da6f1",
     "crates/magistr-desktop/ui/attachments.mjs": "6234de3d8c07b1451ad08e14f5cc98075ff6a813b17d673d8337c5693de483da",
-    "crates/magistr-desktop/ui/code_blocks.mjs": "c47db02a1cbfd0eb5022046c156d98191fe5f2d06397cefb67400befac5ba43f",
+    "crates/magistr-desktop/ui/code_blocks.mjs": "5cfcd355c911793c100b42379de4e93080e50ae60e15cadf3bcf793d333cdded",
     "crates/magistr-desktop/ui/composer.mjs": "9accf554a6a2f6e7c029f4972fa4221e40d755546693c8343cbd528ef2a00bc0",
     "crates/magistr-desktop/ui/context.mjs": "9476a17db8e8c3032bd081dbdcd6088e9338ca2c41f9b455278243f5c98e4bcd",
     "crates/magistr-desktop/ui/conversation.mjs": "ee2753fdfa58093276bbb4e0b329d5eac03f2d04c79cdde4f6b131a26caf0651",
@@ -55,7 +55,7 @@
     "crates/magistr-desktop/ui/keyboard.mjs": "ee034c0d7649b19a00bdcb7daddd4a3a9bd84f40a1f6a062a82a2babc922f270",
     "crates/magistr-desktop/ui/layout.mjs": "4c65e6a206688e27e386fa95c59eba488ef8ddcd725bfa300f0fd419baa8a072",
     "crates/magistr-desktop/ui/navigation.mjs": "41b5e00f74dc486c64251ee99be7fc441b62f75a6a4ffc7ff6ca4902f90f926e",
-    "crates/magistr-desktop/ui/patch_document.mjs": "15bc65476f7c5de99a1c54ac7b84b715d52f2c26e4300a319ee19603442f0320",
+    "crates/magistr-desktop/ui/patch_document.mjs": "a01eff03bc884709ea7b720d5f4755e721c78475cc38f063e1d2fa90e9207e2e",
     "crates/magistr-desktop/ui/preferences.mjs": "119dfd44c2fbdf82da45e0973c6a12bbf3a284ffabf416f766e1315a47cad2d5",
     "crates/magistr-desktop/ui/project_picker.mjs": "d0cc1f6ee0cff0d2ebecaf096152defc8c796f8866ce825a6829ece4581d6aa7",
     "crates/magistr-desktop/ui/projects.mjs": "6954a73efb398bf0deb6b395a3221880c20d84ca88d40c5110572ba1a4529e9d",
@@ -66,7 +66,7 @@
     "crates/magistr-desktop/ui/session_controls.mjs": "738386755be2b65fd03899ae28e1b357b4313258d67b3edfaf72fe3fe37ff123",
     "crates/magistr-desktop/ui/source_color.mjs": "1ac22d15033a59af850c8583abdb8123ff8062c16e71d500327f5d5743d41057",
     "crates/magistr-desktop/ui/source_details.mjs": "f9cdc8d8534c28200818fae85a5c44225f9e340eba4e04c866e7d4f417e83deb",
-    "crates/magistr-desktop/ui/style.css": "516465b199f028429444700e7b193782541b20469ca247d86c6bc21316f7feb1",
+    "crates/magistr-desktop/ui/style.css": "e51ee48139ec75b0927f11a70813f00f829da80c0abbd3a8ed8df49ef654359f",
     "crates/magistr-desktop/ui/supervision.mjs": "509cd792877f397ac427789d491b4f51fd2840cc1b94ae05690d295519b75431",
     "crates/magistr-desktop/ui/switcher.mjs": "7e0d3655808443dd842be7a01abc8ddd6ccc018557a920bfe6e44383ec5d857e",
     "crates/magistr-desktop/ui/transcript.mjs": "0d39fcf47ea06eb8278954ef22fce9ef4640d53caa464e4b1e2b8f9c870a5d04",
@@ -77,7 +77,7 @@
     "crates/magistr-desktop/tauri.conf.json": "b8af99622336b041fe41255fe57d6225447631945d6a89c5a4f3dc1c7348b4b9",
     "crates/magistr-desktop/tests/browser/fixture.mjs": "967bbba1b8ac1d644db6d9f083dc6336338654e7b5ad3f0ea0e96057f800416a",
     "crates/magistr-desktop/tests/browser/workspace.spec.mjs": "73a2fca916d51b69fddd1704a355a72a0b5dfb574a8e2a285198e2b90e9b2685",
-    "crates/magistr-desktop/tests/browser/design_scenes.mjs": "89430092d12e1fa41453c3b56ae6cb467d69c8aa66e8b4da390a5b6f876515a3"
+    "crates/magistr-desktop/tests/browser/design_scenes.mjs": "d0c06da5ce4e9d0f0ead861b4fa315f8ac598af6a578fba5ae82849bd9e185b7"
   },
   "images": {
     "welcome-dark.png": "c18e56fa3f76a5d9338c14ef21f1d94c761e09479a9597347b4a49080331713f",
@@ -130,12 +130,14 @@
     "open-project-error-details-light.png": "4d08e18f241d73aacc1ecf1e14c44f6a2f87f01409b5a1e8954de005b1d60e48",
     "empty-conversation-dark.png": "0d382256e7651ddb1ad864049bdd018e5ef1e22c08dbf7c12d533194d75dfae6",
     "empty-conversation-light.png": "9dc4cac2174261e82db28c87f37a1d93ec257ac38866c4cecedad3f00ca4bf32",
-    "tables-dark.png": "651ab0e1a1c7490348d508c5a859124d352fd7efe0939b0dac14bdff9121e18c",
-    "tables-light.png": "038c8917e550f11160badd6344b737ed36ed1eb0b01d260b47a4518163d53cb7",
+    "tables-dark.png": "923117d29382e5bb8c331cae658cae4ec92808c60f265b5ad40030f3268fb573",
+    "tables-light.png": "85b4d2df9f384641bbca3480daf5c8f92ab61462d75a585ac3901a4412e04ed8",
     "tables-compact.png": "09a166dac8bbac152d9618ed6eeaa3c0bfaee07593a67ac5cbd0b82948a0e800",
-    "patch-dark.png": "40fb846ec64ddfb0061740b481f13e0f71211588eb2934955086082d25b0735b",
-    "patch-light.png": "d4bfd061c6e1f5083378877913e7dc3cb3cfde38a9beaa74abc109e2aa5d6cb6",
-    "patch-compact.png": "ff7f77e12282d2148e196440279669e76e7213f61a62a7165dab7342cdb26d77",
+    "patch-dark.png": "77c6798661132f07a133007da6b78e87d3cc4f975aa2f6c126faaa08fca148a3",
+    "patch-light.png": "29f46393a0039b4178529e50bbef9c5ee0b3242036c20799921499cc2364308f",
+    "patch-comparison-dark.png": "60a711fc720c1eda2459a75cae5184fd3d1726ce6b9afbe5f2960f34f20df33e",
+    "patch-comparison-light.png": "1e643c5cffa661c7681b1cedcec506c2a343abdb237fbcca43c85740d7fbc564",
+    "patch-compact.png": "ac161fa4a75712cdca9cc950a75ffbb5b64de880f05902403bd1b11bce00563a",
     "result-dark.png": "718c3d4430cdde428747d340bbbf811658d6357f0b9f0abf803f025bae56bc3b",
     "result-light.png": "a7b6d6ad03cd09696e26ab6a3e1853796aeb917a8b88897d39bb5f6f46fc008d",
     "contents-dark.png": "907bd8196ed52d4d0d08d55af08c3b04896e0f51ebcf6c841ccd081560fd2706",
@@ -387,6 +389,14 @@
       "height": 820
     },
     "patch-light.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "patch-comparison-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "patch-comparison-light.png": {
       "width": 1280,
       "height": 820
     },

@@ -57,6 +57,9 @@ export async function patchScene(app,capture,expect){
   await expect(app.locator(".code-count")).toHaveText("+2 added · −1 removed");
   await expect(app.locator(".patch-added").first()).toHaveAttribute("data-position","         13");
   await appearances(app,capture,"patch",".patch-document");
+  await app.getByRole("button",{name:"Side by side",exact:true}).click();
+  await appearances(app,capture,"patch-comparison",".patch-document");
+  await app.getByRole("button",{name:"Side by side",exact:true}).click();
   await app.setViewportSize({width:760,height:550});
   await app.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
   await app.locator(".patch-document").evaluate(node=>node.scrollIntoView({block:"start"}));

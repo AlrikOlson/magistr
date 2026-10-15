@@ -34,3 +34,34 @@ export function paintPatch(node,text){
   }
   return patch;
 }
+
+// Pair adjacent removal/addition runs by position within each hunk, never across hunks.
+export function pairPatchRows(patch) {
+  const result=[],removed=[],added=[];
+  const flush=()=>{
+    for(let i=0;i<Math.max(removed.length,added.length);i++)result.push({before:removed[i]??null,after:added[i]??null});
+    removed.length=0;added.length=0;
+  };
+  for(const row of patch.rows){
+    if(row.kind==="removed"){removed.push(row);continue;}
+    if(row.kind==="added"){added.push(row);continue;}
+    flush();
+    if(row.kind==="context"&&row.old!==""&&row.next!=="")result.push({before:row,after:row});
+    else result.push({label:row.text,kind:row.kind});
+  }
+  flush();return result;
+}
+export function paintPatchComparison(root,patch) {
+  const document=root.ownerDocument,fragment=document.createDocumentFragment();
+  for(const title of ["Before","After"]){const heading=document.createElement("div");heading.className="diff-column-title";heading.textContent=title;fragment.append(heading);}
+  for(const row of pairPatchRows(patch)){
+    if(row.label!==undefined){const label=document.createElement("div");label.className="diff-pair-label";label.textContent=row.label;fragment.append(label);continue;}
+    for(const [side,line] of [["before",row.before],["after",row.after]]){
+      const cell=document.createElement("div");cell.className="diff-cell"+(line?" diff-cell-"+line.kind:" diff-cell-empty");
+      const number=document.createElement("span");number.className="diff-line-number";number.setAttribute("aria-hidden","true");
+      number.textContent=line?String(side==="before"?line.old:line.next):"";
+      const source=document.createElement("code");source.textContent=line?line.text.slice(1):"";cell.append(number,source);fragment.append(cell);
+    }
+  }
+  root.replaceChildren(fragment);
+}
