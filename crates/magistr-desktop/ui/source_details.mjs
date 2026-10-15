@@ -2,15 +2,26 @@ import { paintSource } from "./source_color.mjs";
 const views=new WeakMap();
 function structured(document,value,depth,budget){
   if(--budget.remaining<0||depth>5)throw Error("Too much structure");
+  if(Array.isArray(value)&&value.length>0&&value.length<=40){
+    const keys=Object.keys(value[0]??{});
+    const comparable=keys.length>0&&keys.length<=8&&value.every(row=>row&&typeof row==="object"&&!Array.isArray(row)&&Object.keys(row).length===keys.length&&keys.every(key=>Object.hasOwn(row,key)&&(row[key]===null||typeof row[key]!=="object")));
+    if(comparable){
+      const region=document.createElement("div");region.className="result-records";region.tabIndex=0;region.setAttribute("role","region");region.setAttribute("aria-label","Records");
+      const table=document.createElement("table"),head=document.createElement("thead"),headers=document.createElement("tr"),body=document.createElement("tbody");
+      for(const key of keys){const th=document.createElement("th");th.scope="col";th.textContent=key;headers.append(th);}head.append(headers);
+      for(const row of value){const tr=document.createElement("tr");for(const key of keys){const td=document.createElement("td");td.append(structured(document,row[key],depth+1,budget));tr.append(td);}body.append(tr);}
+      table.append(head,body);region.append(table);return region;
+    }
+  }
   const node=document.createElement(value&&typeof value==="object"?"dl":"span");
   if(value&&typeof value==="object"){
     node.className="result-fields";
     for(const [key,item] of Object.entries(value)){
       const term=document.createElement("dt"),definition=document.createElement("dd");
-      term.textContent=Array.isArray(value)?String(Number(key)+1):key;
+      term.textContent=Array.isArray(value)?String(Number(key)+1):key;term.dataset.kind=Array.isArray(item)?"array":item===null?"null":typeof item;
       if(item&&typeof item==="object"){
         const details=document.createElement("details"),summary=document.createElement("summary");
-        summary.textContent=Object.keys(item).length+(Array.isArray(item)?" items":" fields");details.open=false;
+        summary.textContent=(Array.isArray(item)?"Array · ":"Object · ")+Object.keys(item).length+(Array.isArray(item)?" items":" fields");details.open=false;
         details.append(summary,structured(document,item,depth+1,budget));definition.append(details);
       }else definition.append(structured(document,item,depth+1,budget));
       node.append(term,definition);

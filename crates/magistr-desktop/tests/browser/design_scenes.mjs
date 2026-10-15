@@ -86,6 +86,14 @@ export async function toolScene(app,capture,expect){
   expect(await app.locator(".result-original pre").textContent()).toBe(source);
   await app.setViewportSize({width:760,height:550});
   expect(await app.evaluate(()=>document.documentElement.scrollWidth)).toBe(760);
+  await app.setViewportSize({width:1280,height:820});
+  await app.evaluate(()=>{
+    const source=JSON.stringify({checks:[{name:"Formatting",result:"Passed",seconds:1.2},{name:"Draft persistence",result:"Passed",seconds:3.8},{name:"Native input",result:"Not run",seconds:null}]});
+    window.__fixture.publish("release",{events:[{id:903,revision:2,role:"Tool",text:source,tool:{title:"Review check results",status:"Finished",details:[{label:"Result",source}]}}],retained:[903]});
+  });
+  await app.locator(".result-fields summary").click();
+  await expect(app.getByRole("region",{name:"Records",exact:true})).toBeVisible();
+  await appearances(app,capture,"records");
 }
 export async function outlineScene(app,capture,expect){
   const names=["What is ready","What needs attention","Verification results","Next steps"];
