@@ -1,5 +1,5 @@
 import { addressKey } from "./context.mjs";
-import { sessionActivity } from "./activity.mjs";
+import { sessionActivity, catalogActivity, activityKinds } from "./activity.mjs";
 
 // A view of the existing project catalog and resident sessions, never another registry.
 export function projectGroups(projects,sessions) {
@@ -72,14 +72,19 @@ export class ProjectNavigation {
         const heading=node("summary","project-heading"),name=node("span","project-title"),count=node("span","project-count");
         const path=node("small","project-path"),body=node("div","project-conversations"),open=node("button","project-open","Open project");
         const icon=node("span","project-symbol");icon.dataset.icon="folder";icon.setAttribute("aria-hidden","true");
-        heading.append(icon,name,count);root.append(heading,path,body,open);
-        group={root,heading,name,count,path,body,open,project};this.groups.set(project.id,group);
+        const strip=node("div","project-status-strip");strip.setAttribute("aria-hidden","true");
+        for(const [kind] of activityKinds){const part=node("span","");part.dataset.kind=kind;strip.append(part);}
+        heading.append(icon,name,count);root.append(heading,strip,path,body,open);
+        group={root,heading,name,count,path,body,open,strip,project};this.groups.set(project.id,group);
         open.onclick=()=>this.open(group.project.directory);
       }
       group.project=project;group.name.textContent=project.name;
       group.root.dataset.selected=String(project.sessions.some(session=>addressKey(session.address)===addressKey(selected)));
       group.heading.title=project.directory;group.heading.setAttribute("aria-label",project.name+" · "+project.directory);
       group.count.textContent=String(project.sessions.length);group.count.hidden=!project.sessions.length;
+      const counts=catalogActivity(project.sessions);
+      group.strip.hidden=!project.sessions.length;
+      for(const part of group.strip.children){const count=counts[part.dataset.kind];part.style.flex=String(count);part.hidden=!count;}
       group.path.textContent=project.directory;group.path.hidden=names.get(project.name)<2;
       group.open.hidden=project.sessions.length>0;
       const rows=project.sessions.map(session=>{

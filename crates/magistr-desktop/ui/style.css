@@ -84,21 +84,23 @@ h1,h2,p{margin:0}h1,h2,h3{font-feature-settings:"ss01";text-wrap:balance;font-we
 h2{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:600}
 [hidden]{display:none!important}.sr-only{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 .shell{display:grid;grid-template-columns:264px minmax(0,1fr);height:100vh;height:100dvh;overflow:clip;background:var(--panel);padding:0;gap:0}
-.rail{min-height:0;overflow:clip;display:flex;flex-direction:column;padding:24px 16px 14px;gap:20px;border-right:1px solid var(--separator)}
-.brand{display:flex;align-items:center;gap:10px;font-size:20px;letter-spacing:-.045em;padding:0 6px 12px}.brand strong{font-weight:600}.mark{width:32px;height:32px;border-radius:7px}
+.rail{min-height:0;overflow:clip;display:flex;flex-direction:column;padding:24px 18px 14px;gap:18px;border-right:1px solid var(--separator);background:var(--chrome)}
+.brand{display:flex;align-items:center;gap:12px;font-size:23px;letter-spacing:-.035em;padding:0 6px 18px}.brand strong{font-weight:600}.mark{width:32px;height:32px;border-radius:7px}
 .rail-projects{display:flex;flex-direction:column;gap:18px;flex:1;min-height:0;overflow:clip}.compact-icon{display:none}
 .rail-primary{flex-shrink:0;display:flex;flex-direction:column;gap:6px}
 .rail-primary button{border-color:transparent;background:transparent;padding:9px 12px;font-size:13px}
 .rail #open-project{display:flex;justify-content:space-between;color:var(--muted)}.rail #open-project span{font-size:11px}
-.rail #new-session{order:-1;display:flex;align-items:center;gap:10px;background:var(--base);border-color:var(--separator);font-weight:600;min-height:42px}
-.rail #new-session span{font-size:18px;line-height:16px;margin-right:5px;color:var(--accent)}
+.rail #new-session{order:-1;display:flex;align-items:center;gap:10px;background:var(--button);color:var(--button-text);border-color:var(--button);font-weight:600;min-height:44px;box-shadow:var(--control-shadow)}
+.rail #new-session span{font-size:18px;line-height:16px;margin-right:5px;color:currentColor}
 .rail-primary button:hover,.rail footer button:hover{background:var(--raised)}
 .rail-scroll{min-height:0;overflow:auto;padding:3px;flex:1;scrollbar-gutter:stable}
 .rail nav{display:flex;flex-direction:column;gap:6px}
 .rail h2{font-size:11px;margin:0 8px 12px;letter-spacing:0;text-transform:none}
 .rail small{display:block;color:var(--muted);font-size:11px}
 .empty-note{font-size:12px;color:var(--muted);padding:0 8px}
-.project-group{min-width:0;margin-bottom:18px}
+.project-group{min-width:0;margin-bottom:20px}
+.project-status-strip{display:flex;gap:3px;height:3px;margin:0 9px 10px;opacity:.8}.project-status-strip span{background:var(--line);border-radius:2px}.project-status-strip [data-kind=working]{background:var(--success)}.project-status-strip [data-kind=waiting]{background:var(--warning)}.project-status-strip [data-kind=disconnected]{background:var(--danger)}
+.project-group:not([open])>.project-status-strip{display:none}
 
 .project-group[data-selected=true]>.project-heading{color:var(--text)}
 .project-heading{display:flex;align-items:center;gap:8px;min-height:36px;padding:7px;cursor:pointer;border-radius:6px;color:var(--text);font-size:12px;font-weight:600;list-style:none}
@@ -110,11 +112,11 @@ h2{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--mute
 .project-path{padding:0 8px 8px;overflow-wrap:anywhere;line-height:1.4}
 .project-conversations{display:flex;flex-direction:column;gap:3px;margin:4px 0 8px}
 .session-row{position:relative;border-radius:8px}
-.session-select{width:100%;background:transparent;border:1px solid transparent;padding:12px 32px 12px 12px;min-height:66px;border-radius:8px}
+.session-select{width:100%;background:transparent;border:1px solid transparent;padding:10px 32px 10px 12px;min-height:60px;border-radius:7px}
 
 .session-row[data-state=waiting] .session-state{color:var(--warning)}.session-row[data-state=working] .session-state{color:var(--success)}.session-row[data-state=disconnected] .session-state{color:var(--danger)}
 .session-select:hover{background:var(--raised)}
-.session-select[aria-current=true]{background:var(--raised);border-color:var(--separator);color:var(--text)}
+.session-select[aria-current=true]{background:var(--base);border-color:var(--surface-edge);color:var(--text);box-shadow:0 2px 8px color-mix(in srgb,var(--canvas) 12%,transparent)}
 
 .session-title{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:13px;line-height:1.45;font-weight:550}
 .session-state{margin-top:6px;font-size:11px!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:13px;position:relative}
@@ -133,13 +135,13 @@ h2{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--mute
 .session-menu-actions button{border-color:transparent;font-size:12px;background:transparent;min-height:34px}
 .session-menu-actions button:hover{background:var(--raised)}.destructive{color:var(--danger)}
 .project-open{margin:4px 8px;border-color:transparent;background:transparent;color:var(--accent);font-size:12px}
-.rail footer{flex-shrink:0;border-top:1px solid var(--separator);padding:10px 2px 0;display:grid;gap:3px}
+.rail footer{flex-shrink:0;border-top:1px solid var(--separator);padding:12px 2px 0;display:grid;gap:4px}
 .rail footer button{border-color:transparent;background:transparent;font-size:12px;padding:8px 10px;color:var(--muted)}
 .rail footer button{display:flex;align-items:center;gap:10px}.rail footer button [data-icon]{color:var(--muted)}
-.attention-dock{padding:14px 6px;border-block:1px solid var(--separator);flex-shrink:0}
+.attention-dock{padding:16px 12px;border:1px solid var(--separator);border-radius:9px;background:var(--base);flex-shrink:0}
 .rail .attention-dock h2{display:flex;align-items:center;gap:6px;margin:0 0 10px;font-size:11px;letter-spacing:0;color:var(--warning);text-transform:none}
 .attention-dock h2 [data-icon]{width:15px;height:15px;flex-basis:15px}
-#attention-total{margin-left:auto;font-variant-numeric:tabular-nums;font-size:18px;font-weight:500;line-height:1}
+#attention-total{margin-left:auto;font-variant-numeric:tabular-nums;font-size:25px;font-weight:450;line-height:1}
 #attention strong,#attention span{display:block}#attention strong{font-size:13px;font-weight:550;margin-bottom:5px}#attention span{font-size:11px;color:var(--muted);line-height:1.5}
 #attention-disconnected{font-size:12px;color:var(--danger);margin-top:6px}
 #attention{max-height:18vh;overflow:auto}#attention button{font-size:12px;background:transparent;border-color:transparent;padding:4px;line-height:1.5;overflow-wrap:anywhere;min-height:32px}#attention button:hover{background:var(--panel)}
