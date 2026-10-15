@@ -94,7 +94,7 @@ h2{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--mute
 .rail-primary{flex-shrink:0;display:flex;flex-direction:column;gap:6px}
 .rail-primary button{border-color:transparent;background:transparent;padding:9px 12px;font-size:13px}
 .rail #open-project{display:flex;justify-content:space-between;color:var(--muted)}.rail #open-project span{font-size:11px}
-.rail #new-session{order:-1;display:flex;align-items:center;gap:10px;background:var(--button);color:var(--button-text);border-color:var(--button);font-weight:600;min-height:44px;box-shadow:var(--control-shadow)}
+.rail #new-session{order:-1;display:flex;align-items:center;gap:10px;background:var(--button);color:var(--button-text);border-color:var(--button);font-weight:600;min-height:44px;box-shadow:inset 0 1px 0 #ffffff30,0 3px 10px color-mix(in srgb,var(--button) 12%,transparent);border-radius:10px}
 .rail #new-session span{font-size:18px;line-height:16px;margin-right:5px;color:currentColor}
 .rail-primary button:hover,.rail footer button:hover{background:var(--raised)}
 .rail-scroll{min-height:0;overflow:auto;padding:3px;flex:1;scrollbar-gutter:stable}
@@ -145,13 +145,16 @@ h2{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--mute
 .rail footer{flex-shrink:0;border-top:1px solid var(--separator);padding:12px 2px 0;display:grid;gap:4px}
 .rail footer button{border-color:transparent;background:transparent;font-size:12px;padding:8px 10px;color:var(--muted)}
 .rail footer button{display:flex;align-items:center;gap:10px}.rail footer button [data-icon]{color:var(--muted)}
-.attention-dock{padding:16px 12px;border:1px solid var(--separator);border-radius:9px;background:var(--base);flex-shrink:0}
-.rail .attention-dock h2{display:flex;align-items:center;gap:6px;margin:0 0 10px;font-size:11px;letter-spacing:0;color:var(--warning);text-transform:none}
+.attention-dock{position:relative;padding:18px 14px 14px;border:1px solid color-mix(in srgb,var(--warning) 28%,var(--separator));border-radius:12px;background:linear-gradient(145deg,color-mix(in srgb,var(--warning) 8%,var(--base)),var(--base) 70%);flex-shrink:0;box-shadow:var(--inset-shadow);overflow:hidden}
+.attention-dock::before{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:var(--warning);pointer-events:none}
+.rail .attention-dock h2{display:flex;align-items:center;gap:7px;margin:0 0 14px;padding-bottom:14px;border-bottom:1px solid color-mix(in srgb,var(--warning) 18%,transparent);font-size:11px;letter-spacing:.01em;color:var(--warning);text-transform:none}
 .attention-dock h2 [data-icon]{width:15px;height:15px;flex-basis:15px}
-#attention-total{margin-left:auto;font-variant-numeric:tabular-nums;font-size:25px;font-weight:450;line-height:1}
+#attention-total{margin-left:auto;display:grid;place-items:center;min-width:30px;height:30px;padding:0 7px;border:1px solid color-mix(in srgb,var(--warning) 28%,transparent);border-radius:8px;background:color-mix(in srgb,var(--warning) 8%,var(--base));font-variant-numeric:tabular-nums;font-size:20px;font-weight:550;line-height:1}
 #attention strong,#attention span{display:block}#attention strong{font-size:13px;font-weight:550;margin-bottom:5px}#attention span{font-size:11px;color:var(--muted);line-height:1.5}
 #attention-disconnected{font-size:12px;color:var(--danger);margin-top:6px}
-#attention{max-height:18vh;overflow:auto}#attention button{font-size:12px;background:transparent;border-color:transparent;padding:4px;line-height:1.5;overflow-wrap:anywhere;min-height:32px}#attention button:hover{background:var(--panel)}
+#attention{max-height:18vh;overflow:auto}#attention button{position:relative;width:100%;font-size:12px;background:transparent;border-color:transparent;padding:6px 20px 6px 2px;line-height:1.5;overflow-wrap:anywhere;min-height:40px;text-align:left}
+#attention button::after{content:"↗";position:absolute;right:2px;top:7px;color:var(--warning);font:16px var(--font-ui)}
+#attention button+button{margin-top:10px;border-top:1px solid var(--separator);border-radius:0;padding-top:14px}#attention button:hover{background:color-mix(in srgb,var(--warning) 7%,var(--base))}
 main{min-width:0;min-height:0;display:flex;flex-direction:column;background:var(--base);overflow:clip;border:1px solid var(--surface-edge);border-radius:20px;box-shadow:var(--inset-shadow)}
 @media(max-width:900px){.shell{padding:0}main{border:0;border-radius:0;box-shadow:none}}
 @media(forced-colors:active){main{border-color:CanvasText}}
@@ -734,4 +737,3 @@ dialog h3{margin:20px 0 10px;font-size:17px}.dialog-actions{display:flex;justify
   .project-activity{padding-block:18px;margin-bottom:24px}
   .activity-body h2{margin-bottom:16px}.activity-counts{row-gap:16px}
 }
-
