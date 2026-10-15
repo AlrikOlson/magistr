@@ -25,6 +25,14 @@ export function renderRun(run) {
   article.dataset.run=run.run_id;
   const head=element("header","","work-record-heading");
   head.append(element("p",statusLabel(run.objective.status),"work-record-status"),element("h3",run.objective.description));
+  const dates=element("dl","","work-record-dates");
+  for(const [label,value] of [["Started",run.objective.created_at],["Finished",run.objective.completed_at]]){
+    if(!value)continue;
+    const date=new Date(value);if(Number.isNaN(date.getTime()))continue;
+    const pair=element("div"),time=element("time",date.toLocaleString());time.dateTime=value;
+    const description=element("dd");description.append(time);pair.append(element("dt",label),description);dates.append(pair);
+  }
+  if(dates.children.length)head.append(dates);
   article.append(head);
   for(const section of [authoredList("Requirements",run.objective.acceptance_criteria),authoredList("Constraints",run.objective.constraints)])if(section)article.append(section);
   const tasks=element("section","","work-record-section"),list=element("ol","","work-tasks");

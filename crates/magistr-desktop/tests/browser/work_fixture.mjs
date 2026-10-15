@@ -8,13 +8,20 @@ export function workSnapshot(){
       {id:"build",title:"Build and inspect the installer",status:"active",type:"implement",estimate:"One focused pass",actions:[],checks:[],artifacts:[]},
       {id:"verify",title:"Verify reopening and rollback",status:"planned",type:"test",estimate:null,actions:[],checks:[],artifacts:[]}
     ]};
-  return {ship:{state:"current",data:{source:{kind:"memory"},value:{current,retained:[]}}},
+  const previous=structuredClone(current);previous.run_id="previous-run";
+  previous.objective={...previous.objective,description:"Improve project reopening",status:"completed",created_at:"2026-10-14T08:00:00Z",completed_at:"2026-10-14T09:00:00Z"};
+  previous.tasks=previous.tasks.map(task=>({...task,title:"Earlier: "+task.title,status:"completed"}));
+  previous.task_instances={review:"earlier-review",build:"earlier-build",verify:"earlier-verify"};
+  return {ship:{state:"current",data:{source:{kind:"memory"},value:{current,retained:[previous]}}},
     roadmap:{state:"unobserved"},think:{state:"unobserved"},signals:{state:"unobserved"}};
 }
 export async function workScene(app,capture){
   await app.getByRole("button",{name:"Work plan",exact:true}).click();
   await app.getByRole("heading",{name:"Prepare the desktop release",exact:true}).waitFor();
   await capture("work-plan-dark.png");
+  await app.getByLabel("Work to inspect",{exact:true}).selectOption("run:previous-run");
+  await capture("saved-work-dark.png");
+  await app.getByLabel("Work to inspect",{exact:true}).selectOption("current");
   await app.getByRole("button",{name:"Close planned work",exact:true}).click();
   await app.getByRole("button",{name:"Settings",exact:true}).click();
   await app.getByLabel("Appearance",{exact:true}).selectOption("light");

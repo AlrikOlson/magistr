@@ -1,9 +1,11 @@
 import { addressKey } from "./context.mjs";
 import { readState, renderRun, element } from "./work_records.mjs";
+import { WorkRuns } from "./work_runs.mjs";
 
 export class WorkBrowser {
   constructor($,invoke){
     this.$=$;this.invoke=invoke;this.frame=null;this.generation=0;this.revision=-1;this.loading=false;this.key="";
+    this.runs=new WorkRuns($("work-browser-runs"),()=>{this.key="";this.render();});
     $("browse-work").onclick=()=>this.open($("browse-work"));
     $("browse-work-header").onclick=()=>this.open($("browse-work-header"));
     $("work-browser-close").onclick=()=>$("work-browser").close();
@@ -13,7 +15,7 @@ export class WorkBrowser {
   observe(frame){
     if(addressKey(this.frame?.address)!==addressKey(frame?.address)){
       ++this.generation;this.revision=-1;this.key="";this.loading=false;this.snapshot=null;
-      this.$("work-browser-content").replaceChildren();
+      this.$("work-browser-content").replaceChildren();this.runs.reset();
       if(this.$("work-browser").open)this.$("work-browser").close();
     }
     this.frame=frame;
@@ -51,9 +53,11 @@ export class WorkBrowser {
     const observed=readState(this.snapshot.ship);
     this.$("work-browser-state").textContent=observed.message;
     this.$("work-browser-state").dataset.current=String(observed.current);
-    const key=JSON.stringify(observed.value);
+    const run=this.runs.update(observed.value);
+    const key=JSON.stringify([this.runs.choice,run,!!observed.value]);
     if(key===this.key)return;this.key=key;
     const content=this.$("work-browser-content");
-    content.replaceChildren(observed.value?renderRun(observed.value.current):element("p","Work records are unavailable. Use Refresh to try again.","work-record-empty"));
+    content.replaceChildren(!observed.value?element("p","Work records are unavailable. Use Refresh to try again.","work-record-empty"):
+      this.runs.choice!=="current"&&!run?element("p","This saved work is no longer available. Choose another item.","work-record-empty"):renderRun(run));
   }
 }

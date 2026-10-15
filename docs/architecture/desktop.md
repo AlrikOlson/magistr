@@ -322,7 +322,10 @@ The Planned work reader asks the resident session for its complete validated
 workflow snapshot on demand. SessionObservation increments workflow_revision
 only when records or their provenance change; streaming frames carry this
 revision rather than the full project history. Conversation switches preserve
-that owner revision. The reader keeps drafts in place, rejects late responses
+that owner revision. Saved work uses each execution's stable run identity;
+selecting current work follows new objectives, while selecting a saved run stays
+on that run. A removed selection remains explicitly unavailable. The reader
+keeps drafts in place, rejects late responses
 from another address and presents stale, unavailable and missing states from
 ReadState. It never computes a second persisted plan.
 
