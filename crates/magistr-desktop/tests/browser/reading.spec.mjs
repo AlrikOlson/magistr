@@ -1,4 +1,4 @@
-import { test, expect } from "./fixture.mjs";
+import { test, expect, showProjects } from "./fixture.mjs";
 
 async function longConversation(app) {
   await app.evaluate(()=>{
@@ -9,6 +9,7 @@ async function longConversation(app) {
     ];
     window.__fixture.publish("release",{events,retained:[1,2]});
   });
+  await showProjects(app);
   await app.getByRole("button",{name:"Review the release plan",exact:true}).click();
   await app.getByText("Read the release checklist · Completed",{exact:true}).click();
   await app.locator('[data-reading="2:1500"]').evaluate(node=>node.scrollIntoView({block:"start"}));
@@ -24,11 +25,13 @@ test("return to the same paragraph, valid text selection and open tool with curr
   });
   const selected=await app.evaluate(()=>getSelection().toString());
   await expect.poll(()=>app.evaluate(()=>getSelection().toString())).toBe(selected);
+  await showProjects(app);
   await app.getByRole("button",{name:"Investigate sync failure",exact:true}).click();
   await app.evaluate(()=>{
     const frame=window.__fixture.frames.get("release");
     window.__fixture.publish("release",{events:[...frame.events,{id:3,revision:1,role:"Agent",text:"The background review has finished.",attachments:[]}],retained:[1,2,3]});
   });
+  await showProjects(app);
   await app.getByRole("button",{name:"Review the release plan",exact:true}).click();
   await expect(app.locator('article[data-message="1"] details')).toHaveAttribute("open","");
   await expect(app.locator('article[data-message="3"]')).toContainText("background review has finished");
@@ -39,17 +42,22 @@ test("return to the same paragraph, valid text selection and open tool with curr
   await expect(app.locator("#latest")).toBeHidden();
 });
 test("editor caret, direction and scroll restore only against the same current draft",async({app})=>{
+  await showProjects(app);
   await app.getByRole("button",{name:"Review the release plan",exact:true}).click();
   const editor=app.getByLabel("Message the agent",{exact:true}),draft=Array.from({length:35},(_,i)=>"Draft line "+i+": preserve this work.").join("\n");
   await editor.fill(draft);await expect(app.locator("#draft-status")).toHaveText("Draft saved");
   await editor.evaluate(node=>{node.setSelectionRange(250,310,"backward");node.scrollTop=170;});
   const before=await editor.evaluate(node=>({start:node.selectionStart,end:node.selectionEnd,direction:node.selectionDirection,top:node.scrollTop}));
+  await showProjects(app);
   await app.getByRole("button",{name:"Investigate sync failure",exact:true}).click();
+  await showProjects(app);
   await app.getByRole("button",{name:"Review the release plan",exact:true}).click();
   await expect(editor).toHaveValue(draft);
   expect(await editor.evaluate(node=>({start:node.selectionStart,end:node.selectionEnd,direction:node.selectionDirection,top:node.scrollTop}))).toEqual(before);
+  await showProjects(app);
   await app.getByRole("button",{name:"Investigate sync failure",exact:true}).click();
   await app.evaluate(()=>window.__fixture.publish("release",{draft:"A newer owner draft.",draft_revision:50,draft_saved_revision:50}));
+  await showProjects(app);
   await app.getByRole("button",{name:"Review the release plan",exact:true}).click();
   await expect(editor).toHaveValue("A newer owner draft.");
   expect(await editor.evaluate(node=>node.selectionStart)).not.toBe(before.start);
@@ -68,8 +76,10 @@ test("Details, resize and Latest preserve deliberate reading while pruned select
   await app.locator('[data-reading="2:1500"]').evaluate(node=>{
     const range=document.createRange();range.selectNodeContents(node);getSelection().removeAllRanges();getSelection().addRange(range);
   });
+  await showProjects(app);
   await app.getByRole("button",{name:"Investigate sync failure",exact:true}).click();
   await app.evaluate(()=>window.__fixture.publish("release",{events:[{id:3,revision:1,role:"Agent",text:"Only the newest reply is available.",attachments:[]}],retained:[3],dropped:2}));
+  await showProjects(app);
   await app.getByRole("button",{name:"Review the release plan",exact:true}).click();
   await expect(app.locator("#transcript")).toContainText("Some earlier messages are unavailable.");
   expect(await app.evaluate(()=>getSelection().toString())).toBe("");
@@ -91,3 +101,25 @@ test("an observation before resize restoration preserves the last stable reading
   });
   await expect.poll(async()=>Math.abs(await offset(app)-before)).toBeLessThan(3);
 });
+test("compact project browsing preserves reading and draft selection through background updates",async({app})=>{
+  await longConversation(app);
+  await app.setViewportSize({width:760,height:550});
+  await app.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+  const editor=app.getByLabel("Message the agent",{exact:true});
+  await editor.fill("Keep this message while I browse projects.");
+  await expect(app.locator("#draft-status")).toHaveText("Draft saved");
+  await editor.evaluate(node=>node.setSelectionRange(5,17,"backward"));
+  const before=await offset(app);
+  await app.getByRole("button",{name:"Projects",exact:true}).click();
+  await expect(app.locator("#workspace-main")).toBeHidden();
+  await app.evaluate(()=>{
+    const frame=window.__fixture.frames.get("release");
+    window.__fixture.publish("release",{events:[...frame.events,{id:3,revision:1,role:"Agent",text:"Background work finished.",attachments:[]}],retained:[1,2,3]});
+  });
+  await app.keyboard.press("Escape");
+  await expect(editor).toBeVisible();
+  await expect.poll(async()=>Math.abs(await offset(app)-before)).toBeLessThan(3);
+  await expect(editor).toHaveValue("Keep this message while I browse projects.");
+  expect(await editor.evaluate(node=>[node.selectionStart,node.selectionEnd,node.selectionDirection])).toEqual([5,17,"backward"]);
+});
+

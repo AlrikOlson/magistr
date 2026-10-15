@@ -75,13 +75,18 @@ expected_sources={str(file.relative_to(ROOT)) for file in UI.iterdir() if file.i
 assert expected_sources.issubset(current["source_hashes"]),"Background layout omits a UI source"
 for file,expected in current["source_hashes"].items():
     assert sha(ROOT/file)==expected,"Background layout is stale for "+file+"; run the affected headless scenario and review its captures"
+window=json.loads((ROOT/"crates/magistr-desktop/tauri.conf.json").read_text())["app"]["windows"][0]
+minimum=(window["minWidth"],window["minHeight"])
 for name,expected in current["images"].items():
     data=(layout/name).read_bytes()
     assert data[:8]==b"\x89PNG\r\n\x1a\n"
     width,height=struct.unpack(">II",data[16:24])
-    assert width>=800 and height>=680,(name,width,height)
+    assert width>=minimum[0] and height>=minimum[1],(name,width,height)
+    assert current["viewports"][name]=={"width":width,"height":height},"Capture dimensions do not match the recorded viewport: "+name
     assert sha(layout/name)==expected==reviewed["images"][name],"Background capture changed after review: "+name
-print("PASS: current headless WebKit layout, reviewed captures, contrast, icon and reduced motion")
+for name in ("minimum-workspace-dark.png","minimum-workspace-light.png","minimum-projects-dark.png","minimum-projects-light.png","minimum-settings-light.png"):
+    assert current["viewports"][name]=={"width":minimum[0],"height":minimum[1]},"Capture the actual native minimum: "+name
+print("PASS: current headless WebKit layout, native minimum size, reviewed captures, contrast, icon and reduced motion")
 for name,record in (("window",receipt),("draft recovery",drafts),("work",work)):
     changed=[file for file,expected in record["source_hashes"].items() if not (ROOT/file).is_file() or sha(ROOT/file)!=expected]
     if args.native_current:

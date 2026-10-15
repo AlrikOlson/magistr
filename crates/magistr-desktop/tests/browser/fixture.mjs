@@ -133,3 +133,11 @@ export const test=base.extend({
   },
 });
 export { expect };
+export async function showProjects(app) {
+  if(app.viewportSize().width<=900){
+    const toggle=app.getByRole("button",{name:"Projects",exact:true});
+    await expect(toggle).toBeVisible();
+    if(await toggle.getAttribute("aria-expanded")==="false")await toggle.click();
+  }
+  await expect(app.locator("#project-navigation")).toBeVisible();
+}

@@ -59,3 +59,19 @@ test("the project directory reflects live conversations and opens the selected o
   expect(call.args.address.session).toBe("sync");
 });
 
+test("a failed save returns from compact projects to the retained draft and visible error",async({app})=>{
+  await app.setViewportSize({width:760,height:550});
+  await app.getByRole("button",{name:"Projects",exact:true}).click();
+  await app.getByRole("button",{name:"Review the release plan",exact:true}).click();
+  await app.evaluate(()=>window.__fixture.handlers.save_draft=()=>{throw Error("Could not save this message.");});
+  const editor=app.getByLabel("Message the agent",{exact:true});
+  await editor.fill("Keep this exact draft.");
+  await app.getByRole("button",{name:"Projects",exact:true}).click();
+  await app.getByRole("button",{name:"Investigate sync failure",exact:true}).click();
+  await expect(app.locator("#workspace-main")).toBeVisible();
+  await expect(app.locator("#error")).toBeFocused();await expect(app.locator("#error")).toContainText("Could not save");
+  await expect(editor).toHaveValue("Keep this exact draft.");
+  await expect(app.getByRole("heading",{name:"Review the release plan",exact:true})).toBeVisible();
+  await app.evaluate(()=>delete window.__fixture.handlers.save_draft);
+});
+
