@@ -1,0 +1,78 @@
+{
+  "scope": "Tighten current work and task summaries",
+  "limitations": "Headless WebKit with isolated observations. Native OS input, assistive technology and Rust command integration were not exercised.",
+  "images": {
+    "work--blocked-task-compact-dark.png": {
+      "sha256": "0ae95d3d106ff23b57a6dfc09c318ce24cd92dc3b874edf4a57eacc61b93a341",
+      "task": "Inspect an execution and its tasks using aligned state and fact rows.",
+      "observations": "The objective and started date form a compact header. Completed and Blocked badges are distinct; the complete signing-certificate blocker is readable in the compact opening view. Task numbering, type and estimate align below each title.",
+      "verdict": "pass"
+    },
+    "work--blocked-task-compact-light.png": {
+      "sha256": "46653c25a57ac427908addbe8f85b755df7e04f14917ef4e7fc6fc9e30c3d147",
+      "task": "Inspect an execution and its tasks using aligned state and fact rows.",
+      "observations": "The objective and started date form a compact header. Completed and Blocked badges are distinct; the complete signing-certificate blocker is readable in the compact opening view. Task numbering, type and estimate align below each title.",
+      "verdict": "pass"
+    },
+    "work--blocked-task-desktop-dark.png": {
+      "sha256": "40f80fe138eb692ca88c0cde593e147fee50e7b7b4577ba2bbe227a78d423267",
+      "task": "Inspect an execution and its tasks using aligned state and fact rows.",
+      "observations": "The objective and started date form a compact header. Completed and Blocked badges are distinct; the complete signing-certificate blocker is readable in the compact opening view. Task numbering, type and estimate align below each title.",
+      "verdict": "pass"
+    },
+    "work--blocked-task-desktop-light.png": {
+      "sha256": "58aac6060135d3af28aff3e16eb25ba4549f0ff949d7423858cb2bcf2db85e7d",
+      "task": "Inspect an execution and its tasks using aligned state and fact rows.",
+      "observations": "The objective and started date form a compact header. Completed and Blocked badges are distinct; the complete signing-certificate blocker is readable in the compact opening view. Task numbering, type and estimate align below each title.",
+      "verdict": "pass"
+    },
+    "work--plan-compact-dark.png": {
+      "sha256": "6807be93c48786814f65892c2773e38e45ca5080eebc61141693734f2605c839",
+      "task": "Inspect an execution and its tasks using aligned state and fact rows.",
+      "observations": "The current objective, status and date use a tight hierarchy. Completed, In progress and Planned badges are visually distinct on desktop; the compact opening view shows completed and active task headings, with later task content available by scrolling. No badges overlap titles or metadata.",
+      "verdict": "pass"
+    },
+    "work--plan-compact-light.png": {
+      "sha256": "bc5fe53167555e3f36dc69cd1f5d8811e78acabfeda090291b26a015600b524e",
+      "task": "Inspect an execution and its tasks using aligned state and fact rows.",
+      "observations": "The current objective, status and date use a tight hierarchy. Completed, In progress and Planned badges are visually distinct on desktop; the compact opening view shows completed and active task headings, with later task content available by scrolling. No badges overlap titles or metadata.",
+      "verdict": "pass"
+    },
+    "work--plan-desktop-dark.png": {
+      "sha256": "9267708bf931bbe67a862b660898ed78c907752231e858e5a6d33e4ac426f361",
+      "task": "Inspect an execution and its tasks using aligned state and fact rows.",
+      "observations": "The current objective, status and date use a tight hierarchy. Completed, In progress and Planned badges are visually distinct on desktop; the compact opening view shows completed and active task headings, with later task content available by scrolling. No badges overlap titles or metadata.",
+      "verdict": "pass"
+    },
+    "work--plan-desktop-light.png": {
+      "sha256": "90e9a807604947e6dd7e4f0eea200d1f380e84351a62c5b8858cd6435f59ef1c",
+      "task": "Inspect an execution and its tasks using aligned state and fact rows.",
+      "observations": "The current objective, status and date use a tight hierarchy. Completed, In progress and Planned badges are visually distinct on desktop; the compact opening view shows completed and active task headings, with later task content available by scrolling. No badges overlap titles or metadata.",
+      "verdict": "pass"
+    },
+    "work--requirements-compact-dark.png": {
+      "sha256": "83fddf5e2c529d25844fab4f58c7869ccb417ed7f0c6ad0347e5aaef2317fe7a",
+      "task": "Inspect an execution and its tasks using aligned state and fact rows.",
+      "observations": "Both expanded requirements remain readable with a clear disclosure focus outline. Objective status and date are aligned above, and task status badges remain distinct below. Compact content scrolls normally without horizontal overflow.",
+      "verdict": "pass"
+    },
+    "work--requirements-compact-light.png": {
+      "sha256": "81f8c0a3ccc8fa34977c28e0a2319ef5a9b91d9bcec9203153862d4b00f8c242",
+      "task": "Inspect an execution and its tasks using aligned state and fact rows.",
+      "observations": "Both expanded requirements remain readable with a clear disclosure focus outline. Objective status and date are aligned above, and task status badges remain distinct below. Compact content scrolls normally without horizontal overflow.",
+      "verdict": "pass"
+    },
+    "work--requirements-desktop-dark.png": {
+      "sha256": "db5e91b1b30047e6be6e4847d0e244abe6afe1185fb53321b053fe514177b3bc",
+      "task": "Inspect an execution and its tasks using aligned state and fact rows.",
+      "observations": "Both expanded requirements remain readable with a clear disclosure focus outline. Objective status and date are aligned above, and task status badges remain distinct below. Compact content scrolls normally without horizontal overflow.",
+      "verdict": "pass"
+    },
+    "work--requirements-desktop-light.png": {
+      "sha256": "619d1077b4670abb4b9cc6ad274a4e6a89335641f5e86e1720aef3754bdfdef8",
+      "task": "Inspect an execution and its tasks using aligned state and fact rows.",
+      "observations": "Both expanded requirements remain readable with a clear disclosure focus outline. Objective status and date are aligned above, and task status badges remain distinct below. Compact content scrolls normally without horizontal overflow.",
+      "verdict": "pass"
+    }
+  }
+}
