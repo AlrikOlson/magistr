@@ -1,27 +1,19 @@
 import { ProjectOpening } from "./projects.mjs";
+import { patchLines } from "./patch_document.mjs";
+import { paintSource } from "./source_color.mjs";
 
 const node=(tag,value,className="")=>{const element=document.createElement(tag);element.textContent=value;element.className=className;return element;};
 
 
 export function sourceLines(value,diff=false) {
-  let before=0,after=0,leftBefore=0,leftAfter=0;
-  return (value.match(/[^\n]*\n|[^\n]+$/g)??[]).map((text,index)=>{
-    if(!diff)return {text,before:null,after:index+1,kind:""};
-    const row={text,before:null,after:null,kind:""};
-    const hunk=/^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/.exec(text);
-    if(hunk) {
-      before=Number(hunk[1]);after=Number(hunk[3]);leftBefore=Number(hunk[2]??1);leftAfter=Number(hunk[4]??1);row.kind="diff-hunk";
-    } else if(text[0]===" "&&leftBefore>0&&leftAfter>0) {
-      row.before=before++;row.after=after++;leftBefore--;leftAfter--;
-    } else if(text[0]==="-"&&leftBefore>0) {
-      row.before=before++;leftBefore--;row.kind="diff-removed";
-    } else if(text[0]==="+"&&leftAfter>0) {
-      row.after=after++;leftAfter--;row.kind="diff-added";
-    }
-    return row;
-  });
+  if(diff){
+    const patch=patchLines(value);
+    return patch?patch.rows.map(row=>({text:row.text,before:row.old===""?null:row.old,after:row.next===""?null:row.next,kind:["added","removed","hunk"].includes(row.kind)?"diff-"+row.kind:""})):[{text:value,before:null,after:null,kind:""}];
+  }
+  const lines=value.match(/[^\n]*\n|[^\n]+$/g)??[];
+  return lines.length>2000?[{text:value,before:null,after:null,kind:""}]:lines.map((text,index)=>({text,before:null,after:index+1,kind:""}));
 }
-function sourceView(value,diff=false) {
+function sourceView(value,diff=false,language="") {
   const pre=node("pre","","setup-source"+(diff?" setup-diff":""));
   pre.tabIndex=0;pre.setAttribute("aria-label",diff?"File changes":"File contents");
   for(const row of sourceLines(value,diff)) {
@@ -29,7 +21,8 @@ function sourceView(value,diff=false) {
     for(const number of diff?[row.before,row.after]:[row.after]) {
       const gutter=node("span","","source-number");gutter.dataset.line=number??"";gutter.setAttribute("aria-hidden","true");line.append(gutter);
     }
-    line.append(node("span",row.text,"source-text"));pre.append(line);
+    const source=node("span",row.text,"source-text");if(!diff)paintSource(source,row.text,language);
+    line.append(source);pre.append(line);
   }
   return pre;
 }
@@ -171,17 +164,27 @@ export class ProjectPicker {
     const heading=node("header","","setup-change-heading");
     heading.append(node("p",file.path,"setup-file-path"),node("h3",file.path.split("/").at(-1)),node("p",file.action+" · "+file.ownership,"setup-change-meta"));body.append(heading);
     if(file.reason)body.append(node("p",file.reason,"setup-reason"));
-    const sheet=node("figure","","setup-code-sheet"),caption=node("figcaption","");sheet.append(caption);
-    if(file.diff) {
-      caption.append(node("span","Changes"));
-      const lines=sourceLines(file.diff,true),added=lines.filter(line=>line.kind==="diff-added").length,removed=lines.filter(line=>line.kind==="diff-removed").length;
-      const counts=node("span","","setup-delta");counts.append(node("span","+"+added,"added"),node("span","−"+removed,"removed"));counts.setAttribute("aria-label",added+" lines added, "+removed+" lines removed");caption.append(counts);
-      sheet.append(sourceView(file.diff,true));
-    } else {
-      const value=file.selectable?(file.action==="Remove file"?file.before:file.after):(file.before??file.after);
-      caption.append(node("span",file.selectable?(file.action==="Remove file"?"Contents to remove":"Contents after setup"):"Current contents"));
-      sheet.append(value?sourceView(value):node("p","This file is empty."));
-    }
-    body.append(sheet);
+    const tabs=node("div","","setup-source-modes");tabs.setAttribute("role","group");tabs.setAttribute("aria-label","File view");
+    const modes=[];
+    if(file.diff)modes.push(["changes","Changes"]);
+    if(file.before!==null&&file.before!==undefined)modes.push(["before","Current file"]);
+    if(file.selectable&&file.action!=="Remove file")modes.push(["after","After setup"]);
+    const sheet=node("figure","","setup-code-sheet");
+    const choices=modes.map(([mode,label])=>{const button=node("button",label);button.type="button";button.onclick=()=>show(mode);tabs.append(button);return {button,mode};});
+    const show=mode=>{
+      for(const choice of choices)choice.button.setAttribute("aria-pressed",String(choice.mode===mode));
+      const caption=node("figcaption","");sheet.replaceChildren(caption);
+      if(mode==="changes"){
+        caption.append(node("span","Changes"));
+        const patch=patchLines(file.diff);
+        if(patch){const counts=node("span","","setup-delta");counts.append(node("span","+"+patch.added,"added"),node("span","−"+patch.removed,"removed"));counts.setAttribute("aria-label",patch.added+" lines added, "+patch.removed+" lines removed");caption.append(counts);}
+        sheet.append(sourceView(file.diff,true));
+      }else{
+        const value=mode==="before"?file.before:file.after;
+        caption.append(node("span",mode==="before"?"Current contents":"Contents after setup"));
+        sheet.append(value?sourceView(value,false,file.path.split(".").at(-1)):node("p","This file is empty."));
+      }
+    };
+    body.append(tabs,sheet);show(modes[0]?.[0]??"before");
   }
 }

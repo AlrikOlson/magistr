@@ -1,5 +1,5 @@
 {
-  "receipt": "8300bbd4c4ad2e26ac791e216c882f3fd82703ef660baba61aaea35a80295979",
+  "receipt": "093e549e2a19cd53c3aaab78e9ae3380532fcd85594587a86c3bb84c0d4f563c",
   "images": {
     "welcome-dark.png": "fa0bb2c36a671c5e08dba931c55cda81c8fdf959ab927aacaa1ff7aa5194bddc",
     "welcome-light.png": "c1adcd1c321a6da7d82c2a3f9ba9ddae55484c9a3f79799b8793f287cf11b30a",
@@ -20,9 +20,11 @@
     "history-reading-dark.png": "91985413f4933781e1ea3c18efcc23223f039cd70a374bc7632ab1ea99dbc4b8",
     "history-narrow-light.png": "a88ae817281ee44d181f2aabf4cb1bd84b473c15a769d37218f0a582bd61be58",
     "history-reading-narrow-light.png": "e06a05febf4c7bc1f2960a8afa7ce7c908f28fdf7d465ac7f624d69d485b90b3",
-    "setup-narrow-light.png": "5d4fc6f737e28ba262a9953d5d2e23e43c181f93c741f3757b0cd3566b7ed045",
+    "setup-narrow-light.png": "0c1e25dfb806f09d4feac58a6c9d3811ed0b5974cac25fe619e3976f5f582f2b",
     "open-project-dark.png": "078f6a3b4c3969ac4233905da30c3cf4187265e7131815031a18bea4b92f39cf",
-    "setup-dark.png": "342171b3aef766854654e698c330af893289916b68a5da9ef34661b736bfe84b",
+    "setup-dark.png": "45ace66295af92bd26b7e0d13cdd67008283a5e2c9cc9930908986caada3e4f9",
+    "setup-after-dark.png": "b63cfff948498f90525e9e63c8e16cd94dc6d64e48cebd7ed108ac5655b15bb1",
+    "setup-current-dark.png": "8d47a3126e897d21ea6bfcaf096d30a7b7bf71f3ed4085338ea723eea936ae36",
     "new-conversation-dark.png": "d57e1dc468dc4550adba9788f0cda5b0e94ebe1486cab6eb351f05d570551d06",
     "new-conversation-narrow-light.png": "aa1735619fd73f98f583ec44bc45069913f2faba090f7591684280c9e93aee34",
     "find-conversation-narrow-light.png": "c0a2cdc06094f6e0e322d0fa6024f81c1ed1608d9a01f056dee38660ac2c0fe7",
@@ -53,7 +55,7 @@
     "tables-light.png": "b0ae433219af44bd1983f44276172defb0083894d7d69cea6636614df28d1a68",
     "tables-compact.png": "2af09a757fc67686e3864030f61a5125a878d80cac6c5e6fc1e7103f3c5a4267",
     "patch-dark.png": "8b1c68c6858b35f47a750ebd778905620a75b42b704eda297bf18c3b26e8d3bb",
-    "patch-light.png": "f8e8337c97bca88b300be69cddf8a07fa05749ae599e097031c9e7eb7cd537f8",
+    "patch-light.png": "9488e9ae47f95f36492f380b98f98f0651f98dfa19b19aa538d9ea4485de1938",
     "patch-compact.png": "6301fd1330aa31cf7a4d685c383239efc8988ce9e0ab3309bb60c50e9cfee460",
     "result-dark.png": "9ccc32fcc570cdca6d6b00dbe1a3ae03a0a6cfcd10a5c3feef8e6ea344d06766",
     "result-light.png": "a3eb1b02c4e09ebf156771f24a99326922e77a01991f5e0b637702effcc21226",
@@ -84,8 +86,8 @@
   },
   "reviewed_on": "2026-10-15",
   "findings": [
-    "Settings now gives System, Dark and Light full visual preview choices, with selected-state treatment, a separate motion row and a two-column keyboard reference.",
-    "Reviewed desktop dark/light and minimum-window settings. The footer remains fixed while the settings body scrolls.",
-    "All previews write through the existing Preferences owner; saving, retry, motion preservation and system appearance checks pass."
+    "Setup review now offers Changes, Current file and After setup views using the same approved preview record.",
+    "Reviewed dark changes/resulting-file views and compact light review; switching the document does not change which files are approved.",
+    "The setup source view now reuses the bounded patch projection used by transcript patches. Seven source/workflow tests and seven WebKit scenarios pass."
   ]
 }
