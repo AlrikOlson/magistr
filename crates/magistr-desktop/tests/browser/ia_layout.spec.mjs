@@ -252,3 +252,19 @@ test("27 tool summaries align status and retain complete expandable results",asy
   for(const theme of ["dark","light"]){await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);await app.locator("article[data-tool]").scrollIntoViewIfNeeded();await capture(app,"27-tool-"+theme);}
   await summary.click();await expect(app.locator(".tool-body")).toBeHidden();
 });
+test("28 saved conversation titles lead compact comparable metadata",async({app})=>{
+  await app.evaluate(()=>window.__fixture.history[0].turns="1");await app.getByRole("button",{name:"Saved conversations",exact:true}).click();await app.setViewportSize({width:760,height:550});
+  const row=app.locator("#history-list>button").first();await expect(row).toContainText("1 turn");
+  const title=await row.locator("strong").boundingBox(),project=await row.locator("small").boundingBox();expect(title.y).toBeLessThan(project.y);
+  for(const theme of ["dark","light"]){await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);await capture(app,"28-history-"+theme);}
+  await app.locator("#history-list>button").nth(1).click();await expect(app.locator("#history-name")).toHaveText("Review the sync retry");
+});
+test("28 shared dialog surfaces retain their themed frame",async({app})=>{
+  await app.setViewportSize({width:760,height:550});
+  const shot=async(name)=>{for(const theme of ["dark","light"]){await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);await capture(app,"28-"+name+"-"+theme);}};
+  for(const [button,name] of [["Settings","settings"],["Open project","picker"],["Find a conversation","finder"]]){await app.getByRole("button",{name:button,exact:true}).click();await expect(app.locator("dialog[open]")).toBeVisible();await shot(name);await app.keyboard.press("Escape");await expect(app.locator("dialog[open]")).toHaveCount(0);}
+  await showProjects(app);await app.getByRole("button",{name:"Review the release plan",exact:true}).click();await app.getByRole("button",{name:"Work plan",exact:true}).click();await shot("work");await app.keyboard.press("Escape");
+  await app.locator("#conversation-menu-trigger").click();await app.getByRole("button",{name:"Rename conversation",exact:true}).click();await shot("rename");await app.keyboard.press("Escape");
+  await app.evaluate(()=>window.__fixture.publish("release",{attachments:[{id:"image",name:"icon.png",size:32768,path:"ui/icon.png",content_hash:"image",preview:"http://magistr.test/icon.png"}],draft_revision:2,draft_saved_revision:2}));
+  await app.getByRole("button",{name:"View icon.png",exact:true}).click();await shot("viewer");await app.keyboard.press("Escape");
+});
