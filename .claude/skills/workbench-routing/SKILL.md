@@ -326,3 +326,4 @@ row is a retry loop; a run of `RUN_REDIRECTED` means agents are still reaching f
 through `run`; `CONFIRM_MISMATCH` churn means the confirm flow above is unclear. When you see one,
 revise the row or the recovery line that should have prevented it, by hand, and let `lint:skill`
 confirm the tables still agree with the product.
+<!-- vendored verbatim from workbench-mcp@acab4d5 — re-run `magistr init` after upgrading workbench-mcp -->
