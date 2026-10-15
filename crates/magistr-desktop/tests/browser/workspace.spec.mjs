@@ -2,9 +2,10 @@ import { test, expect, root, ui, workspaceSeed } from "./fixture.mjs";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { resolve, relative } from "node:path";
 import { createHash } from "node:crypto";
-import { tableScene, patchScene, toolScene } from "./design_scenes.mjs";
+import { tableScene, patchScene, toolScene, outlineScene } from "./design_scenes.mjs";
 
 test("workspace composition, appearances and narrow Details",async({app,browser})=>{
+  test.setTimeout(60000);
   const evidence=resolve(root,".magistr/desktop-layout");
   await mkdir(evidence,{recursive:true});
   const images={},viewports={},checks={};
@@ -304,6 +305,8 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
   checks["patch documents preserve source bytes, old/new positions and actual change totals"]=true;
   await toolScene(app,capture,expect);
   checks["structured tool sheets retain nested values, bounded rendering and exact copy"]=true;
+  await outlineScene(app,capture,expect);
+  checks["reply contents derive from real headings and land keyboard focus on the chosen section"]=true;
   const sources={};
   for(const name of (await readdir(ui)).sort()){
     const file=resolve(ui,name);

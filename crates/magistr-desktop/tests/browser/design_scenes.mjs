@@ -84,3 +84,23 @@ export async function toolScene(app,capture,expect){
   await app.setViewportSize({width:760,height:550});
   expect(await app.evaluate(()=>document.documentElement.scrollWidth)).toBe(760);
 }
+export async function outlineScene(app,capture,expect){
+  const names=["What is ready","What needs attention","Verification results","Next steps"];
+  await showDocument(app,names.flatMap((text,index)=>[
+    {tag:"h2",start:index*100,text},
+    {tag:"p",start:index*100+10,text:"Keep the current work visible. Each conversation retains its own draft, selected text and reading position. Review the evidence before continuing. ".repeat(3)}
+  ]),904);
+  await expect(app.getByRole("navigation",{name:"Reply contents",exact:true})).toBeVisible();
+  await expect(app.locator(".reply-contents button")).toHaveCount(4);
+  await appearances(app,capture,"contents");
+  await app.getByRole("button",{name:"Verification results",exact:true}).click();
+  await expect(app.getByRole("heading",{name:"Verification results",exact:true})).toBeFocused();
+  const position=await app.getByRole("heading",{name:"Verification results",exact:true}).boundingBox();
+  const reading=await app.locator("#transcript").boundingBox();
+  expect(position.y).toBeGreaterThanOrEqual(reading.y);
+  expect(position.y).toBeLessThan(reading.y+70);
+  await app.setViewportSize({width:760,height:550});
+  await app.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+  await app.locator("#transcript").evaluate(node=>node.scrollTop=0);
+  await capture("contents-compact.png");
+}
