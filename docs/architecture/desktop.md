@@ -356,7 +356,12 @@ claims. Web references use the existing native link policy; local references
 are selectable and copyable without inventing a filesystem-opening command.
 The Roadmap view uses workstream_catalog and workstream_frontier from the shared
 workflow contracts against the same complete roadmap. Counts and readiness
-arrive with preserved ReadState; JavaScript only presents them. Track selection
+arrive with preserved ReadState; JavaScript only presents them in readiness lanes.
+Cards show authored checklist progress, requirements and expandable prerequisite
+links. Completion uses the owner's open/completed totals and does not count retired
+items as completed. Item details arrange recorded prerequisites, the selected item
+and dependents as a connected path. Returning restores the originating card,
+expanded links and focus. Track selection
 keeps closed, ungrouped and missing tracks distinct. Keyboard tabs retain focus
 outside refreshed content. Selected item reads map the same owner ReadState to
 an optional complete Chunk plus disposable Document trees. Removed records stay

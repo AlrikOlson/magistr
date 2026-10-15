@@ -130,8 +130,8 @@ export class WorkBrowser {
     this.routing=true;this.tabs.select("feedback");this.routing=false;restoreReading(this.$("work-browser-content"),previous.reading);
   }
   backToTrack(){
-    const id=this.item.originId,scroll=this.item.originScroll;this.item.close();this.key="";this.render();
-    const root=this.$("work-browser-content");root.scrollTop=scroll;
+    const id=this.item.originId,scroll=this.item.originScroll,reading=this.item.originReading;this.item.close();this.key="";this.render();
+    const root=this.$("work-browser-content");if(reading){restoreReading(root,reading);return;}root.scrollTop=scroll;
     [...root.querySelectorAll("[data-open-item]")].find(node=>node.dataset.openItem===id)?.focus({preventScroll:true});
   }
   renderRoadmap(){

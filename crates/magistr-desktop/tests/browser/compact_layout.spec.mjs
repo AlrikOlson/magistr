@@ -62,10 +62,11 @@ test("roadmap totals leave the first items visible",async({app})=>{
   }
 });
 
-test("roadmap rows expose readiness and blockers without oversized cards",async({app})=>{
+test("roadmap lanes keep readiness and blockers visible together",async({app})=>{
   await openWork(app,"Roadmap");await app.setViewportSize({width:760,height:550});
   const rows=app.locator(".roadmap-items>li");await expect(rows).toHaveCount(3);
-  expect((await rows.first().boundingBox()).height).toBeLessThan(80);
+  await expect(app.locator(".roadmap-lane>header h4")).toHaveText(["Ready","Waiting","Blocked"]);
+  const first=await rows.first().boundingBox(),last=await rows.last().boundingBox();expect(Math.abs(first.y-last.y)).toBeLessThan(2);
   await expect(rows.last()).toBeInViewport();
   await capture(app,"05-roadmap-rows");
 });

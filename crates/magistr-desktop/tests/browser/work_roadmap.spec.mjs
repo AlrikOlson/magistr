@@ -11,7 +11,7 @@ test("roadmap uses owner counts, full titles, closed tracks and ungrouped work",
   await expect(app.locator(".roadmap-items>li")).toHaveCount(3);
   await expect(app.locator(".roadmap-items>li").first()).toContainText("Restore the project conversation and draft");
   await expect(app.locator(".roadmap-items [data-next=true]")).toContainText("Next ready");
-  await expect(app.locator(".roadmap-items")).toContainText("The release date needs approval.");
+  await expect(app.locator(".roadmap-board")).toContainText("The release date needs approval.");
   await app.getByLabel("Track",{exact:true}).selectOption('"Platform"');
   await expect(app.locator(".roadmap-facts dd")).toHaveText(["0","0","0","0","1","0"]);
   await expect(app.locator("#work-browser-content")).toContainText("This track has no unfinished items.");
