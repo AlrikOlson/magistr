@@ -25,3 +25,15 @@ test("01 roadmap sections navigate complete content and retain focus",async({app
   await app.evaluate(()=>window.__fixture.publish("release",{workflow_revision:1}));
   await expect(app.getByRole("heading",{name:"Requirements",exact:true})).toBeFocused();
 });
+test("02 roadmap prose uses compact readable documents",async({app})=>{
+  await openWork(app,"Roadmap");await app.getByRole("button",{name:"Restore the project conversation and draft",exact:true}).click();
+  await app.setViewportSize({width:760,height:550});
+  for(const theme of ["dark","light"]){
+    await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);
+    await app.getByLabel("Jump to section",{exact:true}).selectOption({label:"Description"});
+    const section=app.locator(".roadmap-document").first();
+    expect((await section.boundingBox()).height).toBeLessThan(95);
+    await expect(section).toContainText("Keep the last conversation available when opening a project.");
+    await capture(app,"02-documents-"+theme);
+  }
+});
