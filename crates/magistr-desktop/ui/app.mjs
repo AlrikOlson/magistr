@@ -337,15 +337,17 @@ function render(frame) {
   const pendingKey=JSON.stringify([frame.target,view.pending]);
   if(pendingKey!==requestsKey) {$("requests").replaceChildren(...view.pending.map(request=>{
     const section=document.createElement("section");section.className="request";section.dataset.request=String(request.id);section.tabIndex=-1;section.setAttribute("aria-label","Request: "+request.title);
-    section.append(text("h2","Waiting for you"),text("h3",request.title));
+    const heading=text("h2","Waiting for you");heading.dataset.leadingIcon="shield";
+    section.append(heading,text("h3",request.title));
     if(request.detail)section.append(text("pre",request.detail));
-    for(const choice of request.choices) section.append(button(choice.label,async event=>{
+    const actions=text("div","");actions.className="request-actions";
+    for(const choice of request.choices) actions.append(button(choice.label,async event=>{
       const target=frame.target;const trigger=event.currentTarget;
       trigger.disabled=true;
       try {await invoke("session_action",{target,action:{action:"answer",id:request.id,option_id:choice.option_id}});}
       catch(error){trigger.disabled=false;contextError(target,error);}
     }));
-    return section;
+    section.append(actions);return section;
   }));requestsKey=pendingKey;}
   if(view.requestId!==null) {
     const target=sameTarget(frame.target,view.requestTarget)&&$("requests").querySelector('[data-request="'+view.requestId+'"]');
