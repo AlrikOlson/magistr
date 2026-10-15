@@ -34,7 +34,7 @@ test("return to the same paragraph, valid text selection and open tool with curr
   await expect(app.locator('article[data-message="3"]')).toContainText("background review has finished");
   expect(Math.abs(await offset(app)-before)).toBeLessThan(3);
   expect(await app.evaluate(()=>getSelection().toString())).toBe(selected);
-  await app.getByRole("button",{name:"Latest reply ↓",exact:true}).click();
+  await app.getByRole("button",{name:"Latest reply",exact:true}).click();
   expect(await app.evaluate(()=>getSelection().toString())).toBe("");
   await expect(app.locator("#latest")).toBeHidden();
 });

@@ -57,7 +57,7 @@ def exercise_rich_conversation(*, call, pid, evidence, results, send, wait,
         checks["selected reply remains unchanged while other retained records update"] = True
         checks["selected reading position remains stable under sustained updates"] = True
 
-        observed["latest_keyboard"] = call("rich-keyboard", pid, "Latest reply ↓", "activate")
+        observed["latest_keyboard"] = call("rich-keyboard", pid, "Latest reply", "activate")
         wait("native Latest clears selection and reveals the owner's pending reply revision",
              text_has(LATE_TEXT.strip()))
         observed["latest_before"] = call("rich-tail", pid)
