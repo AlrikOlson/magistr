@@ -1,0 +1,54 @@
+{
+  "scope": "Turn the project opening area into a compact task strip",
+  "limitations": "Headless WebKit with isolated observations. Native OS input, assistive technology and Rust command integration were not exercised.",
+  "images": {
+    "welcome-desktop-dark.png": {
+      "sha256": "4efff32aceaf9e7ce631be9b9ed368ff696025264858b793015bcaf5120f6ef4",
+      "task": "Choose a project or folder while keeping current activity visible.",
+      "observations": "The folder actions and four labeled activity counts fit a compact opening strip. Setup guidance is discoverable through its native disclosure. The project list moves upward by roughly one row of content; counts remain readable, zeros explicit, focus visible, and no controls overlap in either appearance or size.",
+      "verdict": "pass"
+    },
+    "welcome-desktop-light.png": {
+      "sha256": "1d89055c68fa6dd1da2700aa56699f72055a3d3101c31a3a28f0c306df061a9d",
+      "task": "Choose a project or folder while keeping current activity visible.",
+      "observations": "The folder actions and four labeled activity counts fit a compact opening strip. Setup guidance is discoverable through its native disclosure. The project list moves upward by roughly one row of content; counts remain readable, zeros explicit, focus visible, and no controls overlap in either appearance or size.",
+      "verdict": "pass"
+    },
+    "welcome-compact-dark.png": {
+      "sha256": "07cc2a728063f24abe7252acef8fa8bdf86db0743e45d749020c46bb6d030433",
+      "task": "Choose a project or folder while keeping current activity visible.",
+      "observations": "The folder actions and four labeled activity counts fit a compact opening strip. Setup guidance is discoverable through its native disclosure. The project list moves upward by roughly one row of content; counts remain readable, zeros explicit, focus visible, and no controls overlap in either appearance or size.",
+      "verdict": "pass"
+    },
+    "welcome-compact-light.png": {
+      "sha256": "8163497521352d47630cbde7227eb99c55ef34ffee307c4739a554c4fea1cf00",
+      "task": "Choose a project or folder while keeping current activity visible.",
+      "observations": "The folder actions and four labeled activity counts fit a compact opening strip. Setup guidance is discoverable through its native disclosure. The project list moves upward by roughly one row of content; counts remain readable, zeros explicit, focus visible, and no controls overlap in either appearance or size.",
+      "verdict": "pass"
+    },
+    "welcome-setup-desktop-dark.png": {
+      "sha256": "43ad3ec2f73c6734e993953b2f1597370d86351489cea40d141991b6c44cacae",
+      "task": "Choose a project or folder while keeping current activity visible.",
+      "observations": "The expanded setup explanation is directly under its disclosure, stays on one short line, and does not collide with activity or folder controls. Four activity labels with actual counts remain aligned and distinguishable. Project list is closer to the opening actions in both appearances and sizes; scrolling remains natural.",
+      "verdict": "pass"
+    },
+    "welcome-setup-desktop-light.png": {
+      "sha256": "58a9885ad0229f3a21ca00dd978e6eab300f125263bfe473d2285ea2b88cf6b5",
+      "task": "Choose a project or folder while keeping current activity visible.",
+      "observations": "The expanded setup explanation is directly under its disclosure, stays on one short line, and does not collide with activity or folder controls. Four activity labels with actual counts remain aligned and distinguishable. Project list is closer to the opening actions in both appearances and sizes; scrolling remains natural.",
+      "verdict": "pass"
+    },
+    "welcome-setup-compact-dark.png": {
+      "sha256": "a6056ae5d074791eba3ce4b52f2d107aa9a54282b6f0d18d54f096b6267b9214",
+      "task": "Choose a project or folder while keeping current activity visible.",
+      "observations": "The expanded setup explanation is directly under its disclosure, stays on one short line, and does not collide with activity or folder controls. Four activity labels with actual counts remain aligned and distinguishable. Project list is closer to the opening actions in both appearances and sizes; scrolling remains natural.",
+      "verdict": "pass"
+    },
+    "welcome-setup-compact-light.png": {
+      "sha256": "a22d30504b16ec78f91ef1ae420cbb83655cfb606deb61112f35c196a76eb4f9",
+      "task": "Choose a project or folder while keeping current activity visible.",
+      "observations": "The expanded setup explanation is directly under its disclosure, stays on one short line, and does not collide with activity or folder controls. Four activity labels with actual counts remain aligned and distinguishable. Project list is closer to the opening actions in both appearances and sizes; scrolling remains natural.",
+      "verdict": "pass"
+    }
+  }
+}

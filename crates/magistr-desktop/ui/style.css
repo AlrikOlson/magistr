@@ -446,11 +446,11 @@ textarea::placeholder,input::placeholder{color:var(--muted);opacity:1}
 .error{padding:14px 16px;color:var(--danger);background:color-mix(in srgb,var(--danger) 5%,var(--base));border:1px solid color-mix(in srgb,var(--danger) 55%,var(--base));border-radius:8px;overflow-wrap:anywhere;font-size:13px;line-height:1.7}
 p.error{white-space:pre-wrap}#error{margin:12px 24px 0;max-height:20dvh;overflow:auto;flex-shrink:0}
 .welcome{margin:0 auto;width:min(100%,1320px);padding:20px var(--gutter);overflow:auto}
-.welcome-stage{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,1fr);gap:24px;align-items:center;padding:0 0 16px;margin-bottom:16px;border-bottom:1px solid var(--separator)}
-.welcome-intro{display:flex;flex-direction:column;gap:12px;align-items:flex-start;min-width:0}
+.welcome-stage{display:grid;grid-template-columns:minmax(0,.8fr) minmax(300px,1.2fr);gap:20px;align-items:center;padding:0 0 12px;margin-bottom:12px;border-bottom:1px solid var(--separator)}
+.welcome-intro{display:flex;flex-direction:column;gap:6px;align-items:flex-start;min-width:0}
 .welcome-copy{min-width:0}.welcome .welcome-subtitle{font-size:14px;color:var(--text)}
 .welcome p{color:var(--muted);font-size:13px;line-height:1.6;margin:0}
-.welcome .welcome-hint{display:flex;gap:7px;font-size:11px;max-width:42ch;align-items:flex-start}.welcome-hint [data-icon]{width:14px;height:14px;flex-basis:14px;color:var(--muted)}
+.welcome .welcome-hint{font-size:11px;max-width:42ch;color:var(--muted)}.welcome-hint summary{cursor:pointer;min-height:24px;padding-block:3px}.welcome-hint p{font-size:11px;margin-top:4px}.welcome-hint [data-icon]{width:14px;height:14px;flex-basis:14px;color:var(--muted)}
 .welcome-actions{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .welcome-actions button{font-size:12px;min-height:36px;padding:7px 10px}
 .welcome-actions button:first-child{background:var(--button);color:var(--button-text);border-color:var(--button)}
@@ -460,15 +460,15 @@ p.error{white-space:pre-wrap}#error{margin:12px 24px 0;max-height:20dvh;overflow
 .activity-heading h2{margin:0}.activity-total{display:flex;align-items:baseline;gap:5px;font-size:11px;color:var(--muted)}.activity-total strong{font-size:14px;color:var(--text);font-variant-numeric:tabular-nums}
 .activity-body{width:100%;min-width:0}
 .activity-body h2{font-size:12px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--text);margin:0 0 8px}
-.activity-counts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px;margin:0}
-.activity-count{--tone:var(--muted);display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;gap:6px;min-width:0;position:relative;padding-left:11px}
+.activity-counts{display:flex;flex-wrap:wrap;gap:6px 16px;margin:0}
+.activity-count{--tone:var(--muted);display:flex;align-items:baseline;gap:6px;min-width:0;position:relative;padding-left:11px}
 .activity-count::before{content:"";width:5px;height:5px;border:1px solid var(--tone);border-radius:50%;position:absolute;top:6px;left:0}
 .activity-count[data-kind=working]{--tone:var(--success)}.activity-count[data-kind=waiting]{--tone:var(--warning)}.activity-count[data-kind=disconnected]{--tone:var(--danger)}
 .activity-count[data-kind=working]::before{background:var(--tone)}.activity-count[data-kind=waiting]::before{border-radius:0;background:var(--tone)}.activity-count[data-kind=disconnected]::before{border-radius:0;transform:rotate(45deg)}
 .activity-count dt{font-size:11px;line-height:1.5;color:var(--muted)}
-.activity-count dd{font-size:16px;font-weight:600;line-height:1.2;margin:0;font-variant-numeric:tabular-nums;color:var(--tone)}
+.activity-count dd{font-size:13px;font-weight:600;line-height:1.2;margin:0;font-variant-numeric:tabular-nums;color:var(--tone)}
 .activity-count[data-empty=true] dd{color:var(--muted)}
-.activity-spectrum{display:flex;gap:3px;height:4px;margin-top:12px;border-radius:1px;overflow:hidden;background:var(--separator)}
+.activity-spectrum{display:flex;gap:3px;height:3px;margin-top:8px;border-radius:1px;overflow:hidden;background:var(--separator)}
 .activity-spectrum span{min-width:2px;background:var(--muted)}.activity-spectrum [data-kind=working]{background:var(--success)}.activity-spectrum [data-kind=waiting]{background:var(--warning)}.activity-spectrum [data-kind=disconnected]{background:var(--danger)}
 @media(max-width:600px){.welcome-stage{grid-template-columns:1fr;gap:16px}}
 @media(forced-colors:active){.activity-spectrum{display:none}}
