@@ -1,0 +1,54 @@
+{
+  "scope": "Reduce the space used by reply navigation",
+  "limitations": "Headless WebKit with isolated observations. Native OS input, assistive technology and Rust command integration were not exercised.",
+  "images": {
+    "conversation--reply-sections-compact-dark.png": {
+      "sha256": "8aefcd80be18b7c69a0d0e8bc6d65f659636fac56b61e7933bbd8d6bdc334198",
+      "task": "Move through reply sections using a concise outline that preserves content width.",
+      "observations": "The navigator occupies one small disclosure row; the first heading and body text retain the full reading column. At 760 px navigation stays above the scrollable reply and does not overlap the composer. Dark appearance has clear text and focus contrast.",
+      "verdict": "pass"
+    },
+    "conversation--reply-sections-compact-light.png": {
+      "sha256": "5ea411135185b55ca50f327e84a3f00ae8464e34301bbb2d2247eb908a1cb6fd",
+      "task": "Move through reply sections using a concise outline that preserves content width.",
+      "observations": "The navigator occupies one small disclosure row; the first heading and body text retain the full reading column. At 760 px navigation stays above the scrollable reply and does not overlap the composer. Light appearance has clear text and focus contrast.",
+      "verdict": "pass"
+    },
+    "conversation--reply-sections-desktop-dark.png": {
+      "sha256": "f908244efde037e0678e6b608b1a98e135bb036cfa1bf1b43e7195e0597d2b72",
+      "task": "Move through reply sections using a concise outline that preserves content width.",
+      "observations": "The navigator occupies one small disclosure row; the first heading and body text retain the full reading column. At desktop size the former narrow side column is gone, reducing wrapping in the reply. Dark appearance has clear text and focus contrast.",
+      "verdict": "pass"
+    },
+    "conversation--reply-sections-desktop-light.png": {
+      "sha256": "116f88e94bc473bcff57e57b545621ad6ae14bd4ab0616bd537dec6046c4e317",
+      "task": "Move through reply sections using a concise outline that preserves content width.",
+      "observations": "The navigator occupies one small disclosure row; the first heading and body text retain the full reading column. At desktop size the former narrow side column is gone, reducing wrapping in the reply. Light appearance has clear text and focus contrast.",
+      "verdict": "pass"
+    },
+    "conversation--reply-sections-open-compact-dark.png": {
+      "sha256": "c5f0c9cabd281b1a1454deb787da185ae6db600241ea50d595d038c9f45a8282",
+      "task": "Move through reply sections using a concise outline that preserves content width.",
+      "observations": "The expanded navigator shows four distinct section controls in two compact columns, with a visible focus ring on the toggle. At 760 px navigation stays above the scrollable reply and does not overlap the composer. Dark appearance has clear text and focus contrast.",
+      "verdict": "pass"
+    },
+    "conversation--reply-sections-open-compact-light.png": {
+      "sha256": "0d2d2fe4c6c9fe4068dfaa06bec52d7c83c040aa02a599880e1653e7dc8eb75f",
+      "task": "Move through reply sections using a concise outline that preserves content width.",
+      "observations": "The expanded navigator shows four distinct section controls in two compact columns, with a visible focus ring on the toggle. At 760 px navigation stays above the scrollable reply and does not overlap the composer. Light appearance has clear text and focus contrast.",
+      "verdict": "pass"
+    },
+    "conversation--reply-sections-open-desktop-dark.png": {
+      "sha256": "1e37ac8f5b1b057165915d05cd90e48a41a6e6a3e189402534cfd7dc4a2f2623",
+      "task": "Move through reply sections using a concise outline that preserves content width.",
+      "observations": "The expanded navigator shows four distinct section controls in two compact columns, with a visible focus ring on the toggle. At desktop size the former narrow side column is gone, reducing wrapping in the reply. Dark appearance has clear text and focus contrast.",
+      "verdict": "pass"
+    },
+    "conversation--reply-sections-open-desktop-light.png": {
+      "sha256": "65253091a5bcca96469cf0e8e0d4f50456afded010117ea8eb1403c45e679eb9",
+      "task": "Move through reply sections using a concise outline that preserves content width.",
+      "observations": "The expanded navigator shows four distinct section controls in two compact columns, with a visible focus ring on the toggle. At desktop size the former narrow side column is gone, reducing wrapping in the reply. Light appearance has clear text and focus contrast.",
+      "verdict": "pass"
+    }
+  }
+}

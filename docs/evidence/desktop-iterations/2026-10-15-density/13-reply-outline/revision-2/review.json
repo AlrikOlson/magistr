@@ -1,0 +1,78 @@
+{
+  "scope": "Reduce the space used by reply navigation",
+  "limitations": "Headless WebKit with isolated observations. Native OS input, assistive technology and Rust command integration were not exercised.",
+  "images": {
+    "conversation--reply-section-selected-compact-dark.png": {
+      "sha256": "0cb29bf3f3dc122b051f27a4d2684e0351ce3bf6d4f8ee5971e9abddb3910b84",
+      "task": "Move through reply sections using a concise outline that preserves content width.",
+      "observations": "Verification results is fully visible, focused with a clear outline, and followed by readable body text; the section navigator has closed. Compact placement stays above the composer without overlap. Text and focus contrast are clear in dark appearance.",
+      "verdict": "pass"
+    },
+    "conversation--reply-section-selected-compact-light.png": {
+      "sha256": "fc09131a00fe25606f424fbe2f270310e1ea4567ce73a4724c79ba3b5191a450",
+      "task": "Move through reply sections using a concise outline that preserves content width.",
+      "observations": "Verification results is fully visible, focused with a clear outline, and followed by readable body text; the section navigator has closed. Compact placement stays above the composer without overlap. Text and focus contrast are clear in light appearance.",
+      "verdict": "pass"
+    },
+    "conversation--reply-section-selected-desktop-dark.png": {
+      "sha256": "00f63227a97a46aff7ebcbb7feed23bf6158d580cfcf2ad2cb984d88e2705fb9",
+      "task": "Move through reply sections using a concise outline that preserves content width.",
+      "observations": "Verification results is fully visible, focused with a clear outline, and followed by readable body text; the section navigator has closed. Desktop prose uses the full reading column without a permanent outline rail. Text and focus contrast are clear in dark appearance.",
+      "verdict": "pass"
+    },
+    "conversation--reply-section-selected-desktop-light.png": {
+      "sha256": "665df42ff197a3710a834dfccdd1ca34dc9d5b9182f94d0f6866dff2311efbe6",
+      "task": "Move through reply sections using a concise outline that preserves content width.",
+      "observations": "Verification results is fully visible, focused with a clear outline, and followed by readable body text; the section navigator has closed. Desktop prose uses the full reading column without a permanent outline rail. Text and focus contrast are clear in light appearance.",
+      "verdict": "pass"
+    },
+    "conversation--reply-sections-compact-dark.png": {
+      "sha256": "8aefcd80be18b7c69a0d0e8bc6d65f659636fac56b61e7933bbd8d6bdc334198",
+      "task": "Move through reply sections using a concise outline that preserves content width.",
+      "observations": "One disclosure row leaves the full reading width available for the reply heading and paragraphs. Compact placement stays above the composer without overlap. Text and focus contrast are clear in dark appearance.",
+      "verdict": "pass"
+    },
+    "conversation--reply-sections-compact-light.png": {
+      "sha256": "5ea411135185b55ca50f327e84a3f00ae8464e34301bbb2d2247eb908a1cb6fd",
+      "task": "Move through reply sections using a concise outline that preserves content width.",
+      "observations": "One disclosure row leaves the full reading width available for the reply heading and paragraphs. Compact placement stays above the composer without overlap. Text and focus contrast are clear in light appearance.",
+      "verdict": "pass"
+    },
+    "conversation--reply-sections-desktop-dark.png": {
+      "sha256": "f908244efde037e0678e6b608b1a98e135bb036cfa1bf1b43e7195e0597d2b72",
+      "task": "Move through reply sections using a concise outline that preserves content width.",
+      "observations": "One disclosure row leaves the full reading width available for the reply heading and paragraphs. Desktop prose uses the full reading column without a permanent outline rail. Text and focus contrast are clear in dark appearance.",
+      "verdict": "pass"
+    },
+    "conversation--reply-sections-desktop-light.png": {
+      "sha256": "116f88e94bc473bcff57e57b545621ad6ae14bd4ab0616bd537dec6046c4e317",
+      "task": "Move through reply sections using a concise outline that preserves content width.",
+      "observations": "One disclosure row leaves the full reading width available for the reply heading and paragraphs. Desktop prose uses the full reading column without a permanent outline rail. Text and focus contrast are clear in light appearance.",
+      "verdict": "pass"
+    },
+    "conversation--reply-sections-open-compact-dark.png": {
+      "sha256": "c5f0c9cabd281b1a1454deb787da185ae6db600241ea50d595d038c9f45a8282",
+      "task": "Move through reply sections using a concise outline that preserves content width.",
+      "observations": "Four section controls fit in two compact rows, with clear numbering and focus on the toggle. Compact placement stays above the composer without overlap. Text and focus contrast are clear in dark appearance.",
+      "verdict": "pass"
+    },
+    "conversation--reply-sections-open-compact-light.png": {
+      "sha256": "0d2d2fe4c6c9fe4068dfaa06bec52d7c83c040aa02a599880e1653e7dc8eb75f",
+      "task": "Move through reply sections using a concise outline that preserves content width.",
+      "observations": "Four section controls fit in two compact rows, with clear numbering and focus on the toggle. Compact placement stays above the composer without overlap. Text and focus contrast are clear in light appearance.",
+      "verdict": "pass"
+    },
+    "conversation--reply-sections-open-desktop-dark.png": {
+      "sha256": "1e37ac8f5b1b057165915d05cd90e48a41a6e6a3e189402534cfd7dc4a2f2623",
+      "task": "Move through reply sections using a concise outline that preserves content width.",
+      "observations": "Four section controls fit in two compact rows, with clear numbering and focus on the toggle. Desktop prose uses the full reading column without a permanent outline rail. Text and focus contrast are clear in dark appearance.",
+      "verdict": "pass"
+    },
+    "conversation--reply-sections-open-desktop-light.png": {
+      "sha256": "65253091a5bcca96469cf0e8e0d4f50456afded010117ea8eb1403c45e679eb9",
+      "task": "Move through reply sections using a concise outline that preserves content width.",
+      "observations": "Four section controls fit in two compact rows, with clear numbering and focus on the toggle. Desktop prose uses the full reading column without a permanent outline rail. Text and focus contrast are clear in light appearance.",
+      "verdict": "pass"
+    }
+  }
+}

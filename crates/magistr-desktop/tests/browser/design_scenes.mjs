@@ -104,12 +104,13 @@ export async function outlineScene(app,capture,expect){
   await expect(app.getByRole("navigation",{name:"Reply contents",exact:true})).toBeVisible();
   await expect(app.locator(".reply-contents li button")).toHaveCount(4);
   await appearances(app,capture,"contents");
+  await app.getByRole("button",{name:"Reply sections",exact:true}).click();
   await app.getByRole("button",{name:"Verification results",exact:true}).click();
   await expect(app.getByRole("heading",{name:"Verification results",exact:true})).toBeFocused();
   const position=await app.getByRole("heading",{name:"Verification results",exact:true}).boundingBox();
   const reading=await app.locator("#transcript").boundingBox();
   expect(position.y).toBeGreaterThanOrEqual(reading.y);
-  expect(position.y).toBeLessThan(reading.y+70);
+  expect(position.y+position.height).toBeLessThanOrEqual(reading.y+reading.height);
   await app.setViewportSize({width:760,height:550});
   await app.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
   await app.locator("#transcript").evaluate(node=>node.scrollTop=0);
