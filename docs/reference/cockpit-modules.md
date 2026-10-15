@@ -143,6 +143,7 @@ desktop workspace. Companion Rust tests live beside their owners.
 - `crates/magistr-desktop/ui/activity_material.mjs` — bounded on-demand WebGL ring, theme/resize observation, context loss and GPU cleanup.
 - `crates/magistr-desktop/ui/activity.mjs` — current catalog activity counts and their visual overview; no extra session state.
 - `crates/magistr-desktop/ui/source_color.mjs` — bounded lexical color for explicitly named source languages; exact text stays intact.
+- `crates/magistr-desktop/ui/patch_document.mjs` — bounded patch line, position and change-count presentation.
 - `crates/magistr-desktop/ui/code_blocks.mjs` — stable framed source documents, nonselectable line gutters and exact code copying.
 - `crates/magistr-desktop/ui/attachment_viewer.mjs` — fit/actual-size image inspection from owned attachment previews with focus restoration and removal handling.
 - `crates/magistr-desktop/ui/app.mjs`
