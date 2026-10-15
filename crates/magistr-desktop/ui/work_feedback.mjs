@@ -1,4 +1,4 @@
-import {element} from "./work_dom.mjs";
+import {element,inlineFacts} from "./work_dom.mjs";
 import {pageControls} from "./work_search.mjs";
 import {filterFeedback} from "./work_feedback_search.mjs";
 import {feedbackResearch} from "./work_feedback_research.mjs";
@@ -9,8 +9,10 @@ export const feedbackTitle=record=>record.content?.summary||(record.body.length>
 export function feedbackDetail(record,actions){
   const {copy}=actions;
   const article=element("article","","work-record feedback-detail"),title=element("h3",feedbackTitle(record),"roadmap-track-title");title.tabIndex=-1;title.dataset.focusKey="feedback-title";article.append(title);
-  article.append(element("p",feedbackKind[record.kind]+" · "+feedbackStatus[record.status],"work-record-status"),element("p","From "+record.from));
-  for(const [label,value] of [["Received",record.created],["Raised for review",record.surfaced_at],["Reminder set for",record.snooze_until]])if(value)article.append(element("p",label+" "+new Date(value).toLocaleString()+".","roadmap-relation-state"));
+  article.append(element("p",feedbackKind[record.kind]+" · "+feedbackStatus[record.status],"work-record-status"));
+  const metadata=[["From",record.from]];
+  for(const [label,value] of [["Received",record.created],["Raised for review",record.surfaced_at],["Reminder set for",record.snooze_until]])if(value)metadata.push([label,new Date(value).toLocaleString()]);
+  article.append(inlineFacts(metadata));
   article.append(prose("Feedback",record.body,record.id+":body",copy));
   if(record.content){
     const facts=element("dl","","roadmap-content-facts");for(const fact of record.content.facts??[]){const pair=element("div");pair.append(element("dt",fact.label),element("dd",fact.value));facts.append(pair);}if(facts.children.length)article.append(facts);

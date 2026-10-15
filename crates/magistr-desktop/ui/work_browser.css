@@ -118,7 +118,6 @@
 .work-browser-tabs{overflow-x:auto;flex-shrink:0}
 
 .feedback-row{display:grid;grid-template-columns:72px minmax(0,1fr) auto;align-items:baseline;gap:12px}.feedback-kind{font-size:11px;color:var(--muted)}.feedback-row>.work-record-status{max-width:130px;text-align:right}
-.feedback-research details>section,.feedback-research details>p{margin:16px}
-.feedback-sources article+article{margin-top:20px}
-.feedback-sources button+button{margin-left:8px}
+.feedback-research>h4{font-size:13px;margin:18px 0 8px}.feedback-research details>section,.feedback-research details>p{margin:12px}
+.feedback-sources article{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px;border-bottom:1px solid var(--separator);padding:8px 0}.feedback-sources .work-artifact-reference{font:11px/1.5 var(--font-code);overflow-wrap:anywhere;margin:0}.feedback-sources .work-artifact-actions{grid-row:1}.feedback-sources button{font-size:11px;min-height:30px;padding:5px 8px}
 .feedback-detail.work-record{padding-left:0;padding-right:0}
