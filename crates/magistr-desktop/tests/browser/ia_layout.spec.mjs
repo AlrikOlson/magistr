@@ -151,3 +151,11 @@ test("15 feedback research exposes sources and compact facts",async({app})=>{
   await expect(note.locator("summary")).toContainText(/source/);await expect(note.locator("time")).toHaveAttribute("datetime",/.+/);
   for(const theme of ["dark","light"]){await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);await note.scrollIntoViewIfNeeded();await capture(app,"15-research-"+theme);}
 });
+test("16 project rows keep conversations in a compact shared column",async({app})=>{
+  for(const theme of ["dark","light"]){await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);await app.setViewportSize({width:760,height:550});
+    const project=app.locator(".directory-project").first();await project.scrollIntoViewIfNeeded();
+    const cover=await project.locator(".directory-cover").boundingBox(),list=await project.locator(".directory-conversations").boundingBox();expect(list.y).toBeGreaterThanOrEqual(cover.y+cover.height-1);
+    expect(await project.evaluate(node=>node.scrollWidth-node.clientWidth)).toBeLessThanOrEqual(1);await capture(app,"16-directory-"+theme);
+  }
+  await app.getByRole("button",{name:"Continue Review the release plan in Magistr",exact:true}).click();await expect(app.getByRole("heading",{name:"Review the release plan",exact:true})).toBeVisible();
+});
