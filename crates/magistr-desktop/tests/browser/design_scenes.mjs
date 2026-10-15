@@ -147,7 +147,11 @@ export async function galleryScene(app,capture,expect){
   const stage=await app.locator(".transcript [data-kind=image] .attachment-visual").boundingBox();
   expect(thumbnail.height).toBeLessThanOrEqual(stage.height);
   await app.locator(".transcript .attachment img").evaluate(node=>node.decode());
-  await appearances(app,capture,"gallery",".transcript .attachments");
+  await appearances(app,async name=>{
+    await app.locator("#transcript").evaluate(node=>node.scrollTop=node.scrollHeight);
+    await expect(app.getByRole("button",{name:"Latest reply",exact:true})).toBeHidden();
+    await capture(name);
+  },"gallery");
   await app.getByRole("button",{name:"View icon.png",exact:true}).click();
   await expect(app.locator("#attachment-metadata")).toContainText("×");
   await app.getByRole("button",{name:"Close image",exact:true}).click();

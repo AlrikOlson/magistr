@@ -28,11 +28,11 @@ export class ReasoningBrowser{
     this.select.value=this.choice??"";this.select.disabled=!sessions.length;
     if(this.query.trim()&&!this.stepId)return searchReasoning(sessions,this.query,this.page,page=>{this.page=page;this.changed();this.root.scrollTop=0;},record=>{this.choice=keyOf(record.history);this.branches.reset();this.choose(record.step);});
     const history=sessions.find(history=>keyOf(history)===this.choice),article=element("article","","work-record");
+    if(this.stepId){const back=element("button",this.trail.length?"Back to previous step":"Back to reasoning");back.dataset.focusKey="reasoning-back";back.onclick=()=>this.back();article.append(back);}
     if(!history){article.append(element("h3",this.choice===undefined?"No reasoning has been saved.":"This reasoning is no longer available."));return article;}
     const filtered=this.branches.update(history);
     if(filtered.missing){article.append(element("h3","This investigation is no longer available."));return article;}
     if(this.stepId){
-      const back=element("button",this.trail.length?"Back to previous step":"Back to reasoning");back.dataset.focusKey="reasoning-back";back.onclick=()=>this.back();article.append(back);
       const step=history.steps.find(step=>step.record_id===this.stepId);
       if(step){
         const detail=reasoningStep(step,this.copy);detail.insertBefore(reasoningLinks(step,sessions,(record,focus)=>this.jump(record,focus)),detail.children[2]??null);article.append(detail);

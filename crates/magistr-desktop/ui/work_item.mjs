@@ -43,8 +43,8 @@ function renderItem(item,actions){
   return article;
 }
 export class RoadmapItemReader {
-  constructor(root,invoke,back){this.root=root;this.invoke=invoke;this.back=back;this.active=false;this.id=null;this.generation=0;this.loading=false;this.read=null;this.error="";this.trail=[];}
-  setItem(id){++this.generation;this.id=id;this.loading=false;this.read=null;this.error="";}
+  constructor(root,invoke,back,changed){this.root=root;this.invoke=invoke;this.back=back;this.changed=changed;this.active=false;this.id=null;this.generation=0;this.loading=false;this.read=null;this.error="";this.trail=[];}
+  setItem(id){++this.generation;this.id=id;this.loading=false;this.read=null;this.error="";this.changed();}
   close(){this.setItem(null);this.trail=[];this.active=false;}
   suspend(){++this.generation;this.loading=false;this.active=false;}
   resume(address,revision){
@@ -65,7 +65,7 @@ export class RoadmapItemReader {
     [...this.root.querySelectorAll("[data-focus-key]")].find(node=>node.dataset.focusKey===previous.focus)?.focus({preventScroll:true});
   }
   open(address,id,revision){
-    this.close();this.active=true;this.address=address;this.id=id;this.originId=id;this.wanted=revision;this.originScroll=this.root.scrollTop;return this.load(true);
+    this.close();this.active=true;this.address=address;this.id=id;this.originId=id;this.wanted=revision;this.originScroll=this.root.scrollTop;this.changed();return this.load(true);
   }
   observe(address,revision){
     if(!this.active)return;
