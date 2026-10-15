@@ -4,6 +4,7 @@ import { element, retainReading } from "./work_dom.mjs";
 import { WorkRuns } from "./work_runs.mjs";
 import { WorkTabs } from "./work_tabs.mjs";
 import { RoadmapBrowser, renderRoadmap } from "./work_roadmap.mjs";
+import { ReasoningBrowser } from "./work_reasoning.mjs";
 import { searchRoadmap } from "./work_roadmap_search.mjs";
 import { RoadmapItemReader } from "./work_item.mjs";
 
@@ -11,6 +12,7 @@ export class WorkBrowser {
   constructor($,invoke){
     this.$=$;this.invoke=invoke;this.frame=null;this.generation=0;this.revision=-1;this.loading=false;this.key="";
     this.area="work";this.searchPage=0;
+    this.reasoning=new ReasoningBrowser($("work-browser-reasoning"),$("work-browser-content"),()=>{this.key="";this.render();},value=>navigator.clipboard.writeText(value).catch(error=>{$("work-browser-state").textContent="Could not copy the text. "+String(error);}));
     $("work-browser-search").oninput=()=>{this.searchPage=0;this.item.close();this.key="";this.render();};
     this.item=new RoadmapItemReader($("work-browser-content"),invoke,()=>this.backToTrack());
     this.tabs=new WorkTabs($("work-browser-tabs"),area=>{this.item.close();this.area=area;this.key="";this.render();});
@@ -26,7 +28,7 @@ export class WorkBrowser {
   observe(frame){
     if(addressKey(this.frame?.address)!==addressKey(frame?.address)){
       ++this.generation;this.revision=-1;this.key="";this.loading=false;this.snapshot=null;
-      this.$("work-browser-content").replaceChildren();this.runs.reset();this.roadmapBrowser.reset();this.searchPage=0;this.$("work-browser-search").value="";this.$("work-browser-roadmap-state").value="open";this.tabs.select("work");
+      this.$("work-browser-content").replaceChildren();this.runs.reset();this.reasoning.reset();this.roadmapBrowser.reset();this.searchPage=0;this.$("work-browser-search").value="";this.$("work-browser-roadmap-state").value="open";this.tabs.select("work");
       if(this.$("work-browser").open)this.$("work-browser").close();
     }
     this.frame=frame;
@@ -80,12 +82,18 @@ export class WorkBrowser {
     retainReading(content,()=>content.replaceChildren(observed.value?renderRoadmap(frontier,observed.value,records,this.roadmapBrowser.choice!==undefined,id=>this.item.open(this.frame.address,id,this.revision),mode):element("p","The roadmap is unavailable. Use Refresh to try again.","work-record-empty")));
   }
   render(){
+    this.$("work-reasoning-selection").hidden=this.area!=="reasoning";
     this.$("work-run-selection").hidden=this.area!=="work";
     this.$("work-track-selection").hidden=this.area!=="roadmap";
     this.$("work-roadmap-search").hidden=this.area!=="roadmap";
     const content=this.$("work-browser-content");content.setAttribute("aria-labelledby","work-tab-"+this.area);
     if(!this.snapshot)return;
     if(this.area==="roadmap"){this.renderRoadmap();return;}
+    if(this.area==="reasoning"){
+      const observed=readState(this.snapshot.think,"reasoning");
+      this.$("work-browser-state").textContent=observed.message;this.$("work-browser-state").dataset.current=String(observed.current);
+      retainReading(content,()=>content.replaceChildren(observed.value?this.reasoning.render(observed.value):element("p","Reasoning records are unavailable. Use Refresh to try again.")));return;
+    }
     const observed=readState(this.snapshot.ship);
     this.$("work-browser-state").textContent=observed.message;
     this.$("work-browser-state").dataset.current=String(observed.current);

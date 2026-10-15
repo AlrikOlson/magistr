@@ -97,3 +97,8 @@
 .work-pages{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:16px 0;color:var(--muted);font-size:.85rem}
 .work-pages span{text-align:center}
 @media(max-width:800px){.work-run-selection{flex-wrap:wrap}.work-pages{gap:6px;font-size:.75rem}}
+
+.reasoning-prose{margin:24px 0}.reasoning-prose header{display:flex;align-items:center;justify-content:space-between;gap:12px}.reasoning-prose h4{font-size:1rem}
+.reasoning-text{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.7}
+.reasoning-step.work-record{padding-left:0;padding-right:0}
+.work-browser-tabs{overflow-x:auto;flex-shrink:0}
