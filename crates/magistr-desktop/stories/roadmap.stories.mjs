@@ -24,3 +24,15 @@ export const ArrangeItem={parameters:{desktop:{...Overview.parameters.desktop,
  arrange:async context=>{await Overview.parameters.desktop.arrange(context);await context.userEvent.click(context.doc.querySelector('.surface-node[data-node="reopen"] .surface-grip'));},
  verify:context=>{Overview.parameters.desktop.verify(context);context.expect(visible(context.doc,".surface-arrange")).toBe(true);},
 }}};
+export const SelectedItem={parameters:{desktop:{
+ caption:"Roadmap with the reopening item selected",
+ task:"Read the selected item’s title, state and purpose beside its dependency graph.",
+ arrange:async context=>{await Overview.parameters.desktop.arrange(context);await context.userEvent.click(context.ui.getByRole("button",{name:"Restore the project conversation and draft",exact:true}));},
+ verify:({doc,expect})=>{expect(visible(doc,"#work-browser-inspector .roadmap-item-heading")).toBe(true);expect(doc.querySelector("#work-browser-inspector h3").textContent).toBe("Restore the project conversation and draft");expect(doc.querySelector(".roadmap-item-heading").textContent).toContain("Return to the work you left.");},
+}}};
+export const BlockedItem={parameters:{desktop:{
+ caption:"Roadmap with the release item blocked by an approval",
+ task:"Read why work is blocked and the proposed change.",
+ arrange:async context=>{await Overview.parameters.desktop.arrange(context);await context.userEvent.click(context.ui.getByRole("button",{name:"Publish the desktop release",exact:true}));},
+ verify:({doc,expect})=>{expect(doc.querySelector("#work-browser-inspector h3")?.textContent).toBe("Publish the desktop release");expect(doc.querySelector("#work-browser-inspector").textContent).toContain("The release date needs approval.");},
+}}};

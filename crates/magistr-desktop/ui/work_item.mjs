@@ -16,11 +16,12 @@ function renderItem(item,actions){
   const {record}=item,article=element("article","","work-record roadmap-item-detail");
   const heading=element("header","","roadmap-item-heading");
   const title=element("h3",record.title,"roadmap-track-title");title.tabIndex=-1;title.dataset.focusKey="roadmap-item-title";heading.append(title);
-  heading.append(element("p",[record.group??"Other work",statuses[record.status]??"Status unavailable"].join(" · "),"work-record-status"));article.append(heading);
-  const proposals=roadmapProposals(record,actions);if(proposals)article.append(proposals);
+  heading.append(element("p",[record.group??"Other work",statuses[record.status]??"Status unavailable"].join(" · "),"work-record-status"));
+  if(record.content?.summary)heading.append(element("p",record.content.summary,"roadmap-item-summary"));
+  article.append(heading);
   article.append(renderRelations(item,actions));
+  const proposals=roadmapProposals(record,actions);if(proposals)article.append(proposals);
   if(record.content){
-    article.append(element("p",record.content.summary,"roadmap-item-summary"));
     const facts=element("dl","","roadmap-content-facts");
     for(const fact of record.content.facts??[]){const pair=element("div");pair.append(element("dt",fact.label),element("dd",fact.value));facts.append(pair);}
     if(facts.children.length)article.append(facts);
