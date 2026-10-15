@@ -72,3 +72,15 @@ test("project destinations keep the draft and camera in place across the shell",
   await app.getByRole("tab",{name:"Conversation",exact:true}).click();await expect(app.locator("#draft")).toHaveValue("Keep the project list visible, and let me return to the same paragraph.");
   expect(await app.evaluate(()=>window.__fixture.calls.filter(c=>["open_session","session_action"].includes(c.command)).length)).toBe(0);
 });
+for(const area of ["Roadmap","Reasoning","Projects"])test(area+" keyboard focus reveals a lower item without counting the footer twice",async({app})=>{
+  if(area==="Projects")await app.getByRole("button",{name:"Map",exact:true}).click();else await open(app,area);
+  await app.setViewportSize({width:760,height:550});
+  const surface=app.getByRole("region",{name:area+" canvas",exact:true}),piece=surface.locator(".work-piece:enabled,.decision-piece:enabled,.atlas-piece:enabled").last();
+  await app.getByRole("button",{name:"Actual size",exact:true}).click();await surface.focus();
+  for(let i=0;i<3;i++)await surface.press("ArrowUp");
+  const view=await surface.boundingBox(),hidden=await piece.boundingBox();expect(hidden.y+hidden.height).toBeGreaterThan(view.y+view.height);
+  await piece.focus();await expect(piece).toBeFocused();
+  const revealed=await piece.boundingBox(),gap=view.y+view.height-revealed.y-revealed.height;
+  expect(gap).toBeGreaterThanOrEqual(12);expect(gap).toBeLessThanOrEqual(20);expect(revealed.y).toBeGreaterThanOrEqual(view.y+12);
+  for(const theme of ["dark","light"]){await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);await capture(app,"22-focus-"+area.toLowerCase()+"-"+theme);}
+});

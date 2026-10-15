@@ -1,6 +1,6 @@
 # Desktop restart evidence
 
-**The accepted final interface is [iteration 21](21-final-gallery/review.md), including its [131-image gallery](21-final-gallery/gallery/review.md).** The [dense graph and project-map review](19-canvas-footer/review.md) and [reply outline correction](20-reply-outline/review.md) supply focused interaction states. Earlier attempts and rejected findings remain intact.
+**The current accepted interface is [iteration 22](22-focus-reveal/review.md), including its [131-image gallery](22-focus-reveal/gallery/review.md).** Iteration 21 remains the reviewed baseline before the bounded focus-reveal correction. The [dense graph and project-map review](19-canvas-footer/review.md) and [reply outline correction](20-reply-outline/review.md) supply focused interaction states. Earlier attempts and rejected findings remain intact.
 
 The archive records the full review history, including rejected work and reviewer corrections. The project name in iterations 09–10 is visible; the earlier missing-name finding was incorrect and is withdrawn. Read each folder’s review before using it as evidence of a resolved defect.
 
@@ -37,3 +37,4 @@ New iteration captures write directly into this archive and refuse to overwrite 
 | [19-canvas-footer](19-canvas-footer/review.md) | Accepted focused graph and project-map states; view controls have a separate footer and Actual size reveals the first relevant item. |
 | [20-reply-outline](20-reply-outline/review.md) | Three compact reply-outline states inspected and accepted. |
 | [21-final-gallery](21-final-gallery/review.md) | Accepted: 131 gallery images and 17 focused shell/graph captures, with per-image review and explicit exact-hash reuse. |
+| [22-focus-reveal](22-focus-reveal/review.md) | Accepted: shared camera bottom-margin correction; six new focus states, fresh dense graph/project captures and the current gallery. 16 focused tests pass. |

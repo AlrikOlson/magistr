@@ -1,7 +1,7 @@
 {
   "renderer": "headless WebKit",
   "version": "27.2",
-  "captured_at": "2026-10-15T19:21:34.552Z",
+  "captured_at": "2026-10-15T19:32:58.062Z",
   "scope": "Production desktop HTML, CSS and JavaScript with isolated observation fixtures; no native OS input or Rust owner integration.",
   "checks": {
     "project chooser presents actual projects and folder entry in both appearances": true,
@@ -112,7 +112,7 @@
     "crates/magistr-desktop/ui/work_search.mjs": "6d84e1dde9c35b4870ab01fe70c7985f00358e1e72e5143ae4bb261fde4bd402",
     "crates/magistr-desktop/ui/work_status.mjs": "7ae803091e07bc8bf38e01ba24691cdebd3c78a99bf1dbd9b6f512122d8a1b84",
     "crates/magistr-desktop/ui/work_surface.css": "e900c669937176a60be7d8f2ede8112eb419ff33cc66d018594bcf01e03f3e94",
-    "crates/magistr-desktop/ui/work_surface.mjs": "4fa198ac45d48d59103f30ed18ba23718f0f2862103fb21e5a0203d74fb9285f",
+    "crates/magistr-desktop/ui/work_surface.mjs": "247d8d3888154a8a1943b106388bf360d2d9a5ce7a4173ccfe19d125ad421dd5",
     "crates/magistr-desktop/ui/work_surface_input.mjs": "a75b7f883f439cc211132cef8bb095c1c289d8e900856589424cf986712d6a8c",
     "crates/magistr-desktop/ui/work_surface_paint.mjs": "57a6c8400d41d65a201b6cdf6d14b7a8601e92530db638a69be7b1de5b8e3c5f",
     "crates/magistr-desktop/ui/work_surface_routes.mjs": "10a4851eef683750ba68e5d316b1eba72fb86873a3fae593484e91699b7d5847",
@@ -225,8 +225,8 @@
     "tables-compact.png": "e78a8b403af17b2c2754a1242dc764fd5d55970a16748447393edfa36b0adbfd",
     "patch-dark.png": "dc7b6ed932c4bd2385cf894a9b4d1edbab0372a654d231f5dcb5aa1f7a0f7bd8",
     "patch-light.png": "701f5cfc717b8b83817453460b2f19e7a2160517e5a03b58007e03af47e059ec",
-    "patch-comparison-dark.png": "3a5a2fb8252b6683f195534ad4619cc2b9471b7ed421722beae1ea538a781b68",
-    "patch-comparison-light.png": "6c257587de9838f45d3c4dd152fbe77025369965e1d92cae19c894690b1b9e98",
+    "patch-comparison-dark.png": "2ca64a86a5c6aae7c9dbb03e128b79f835019d5e7d7b95ce26ee98dacbc55494",
+    "patch-comparison-light.png": "4b5c65c398a382d568683dc932e2a9826916b6533c03be862c43ed8aa8a497dd",
     "patch-compact.png": "d90ec26fc3b6ccc2806bf87a5e2a4f514990d63c4efebb46a250108c8d9221c3",
     "result-dark.png": "94a594686e15a5d586dc658b68e175b0454b444286ad94e17b27aee496e54415",
     "result-light.png": "d937ca7a74ef83e48084d86a0d8cba215ad6957701ead87b984f5e86dc25cc10",

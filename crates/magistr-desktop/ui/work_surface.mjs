@@ -60,7 +60,7 @@ export class WorkSurface{
   reveal(node){
     const {x,y,scale}=this.camera,left=x+node.x*scale,top=y+node.y*scale,right=left+node.w*scale,bottom=top+node.h*scale;
     if(left<16)this.camera.x+=16-left;else if(right>this.viewport.clientWidth-16)this.camera.x-=right-this.viewport.clientWidth+16;
-    if(top<16)this.camera.y+=16-top;else if(bottom>this.viewport.clientHeight-16)this.camera.y-=bottom-this.viewport.clientHeight+76;this.render();
+    if(top<16)this.camera.y+=16-top;else if(bottom>this.viewport.clientHeight-16)this.camera.y-=bottom-this.viewport.clientHeight+16;this.render();
   }
   focusNeighbor(node,key){
     const horizontal=key==="ArrowLeft"||key==="ArrowRight",sign=key==="ArrowLeft"||key==="ArrowUp"?-1:1;
