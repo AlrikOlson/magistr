@@ -1,6 +1,6 @@
-:root{color-scheme:dark;--base:#181920;--panel:#20212b;--raised:#2b2d3a;--text:#eef0f6;--muted:#b7bece;--line:#7d879f;--accent:#c5b0ff;--button:#c5b0ff;--button-text:#201732;--danger:#ffb3bc;--focus:#d8caff}
-:root[data-theme=light]{color-scheme:light;--base:#fff;--panel:#f5f4f7;--raised:#eae6f2;--text:#232536;--muted:#565c70;--line:#81798f;--accent:#604095;--button:#604095;--button-text:#fff;--danger:#a32140;--focus:#604095}
-@media(prefers-color-scheme:light){:root:not([data-theme=dark]){color-scheme:light;--base:#fff;--panel:#f5f4f7;--raised:#eae6f2;--text:#232536;--muted:#565c70;--line:#81798f;--accent:#604095;--button:#604095;--button-text:#fff;--danger:#a32140;--focus:#604095}}
+:root{color-scheme:dark;--base:#17191f;--panel:#20232b;--raised:#2c303b;--text:#f0f1f5;--muted:#b7bdcc;--line:#818ba2;--accent:#c7b5ff;--button:#c7b5ff;--button-text:#24193b;--danger:#ffb7c2;--focus:#dfd1ff;--success:#a0dbc0;--warning:#eac88b;--canvas:#111318;--shadow:0 18px 54px #0005;--shadow-soft:0 4px 18px #0002}
+:root[data-theme=light]{color-scheme:light;--base:#fdfcfa;--panel:#f3f1ee;--raised:#e8e5ed;--text:#262630;--muted:#5c5c6b;--line:#817989;--accent:#624195;--button:#624195;--button-text:#ffffff;--danger:#a42544;--focus:#624195;--success:#216647;--warning:#785310;--canvas:#e8e6e3;--shadow:0 18px 54px #30254024;--shadow-soft:0 4px 18px #30254012}
+@media(prefers-color-scheme:light){:root:not([data-theme=dark]){color-scheme:light;--base:#fdfcfa;--panel:#f3f1ee;--raised:#e8e5ed;--text:#262630;--muted:#5c5c6b;--line:#817989;--accent:#624195;--button:#624195;--button-text:#ffffff;--danger:#a42544;--focus:#624195;--success:#216647;--warning:#785310;--canvas:#e8e6e3;--shadow:0 18px 54px #30254024;--shadow-soft:0 4px 18px #30254012}}
 
 #find-conversation{display:flex;align-items:center;justify-content:space-between;gap:6px;border-color:var(--separator);color:var(--muted);background:var(--base);font-size:12px;padding:8px 10px;flex-shrink:0}
 kbd{font:inherit;font-size:11px;line-height:1.4;color:var(--muted);white-space:nowrap}#find-conversation kbd{font-size:10px}
@@ -19,9 +19,26 @@ kbd{font:inherit;font-size:11px;line-height:1.4;color:var(--muted);white-space:n
 .settings-shortcuts dl{margin:0}.settings-shortcuts dl>div{display:flex;justify-content:space-between;gap:20px;padding:5px 0;font-size:12px}.settings-shortcuts dd{margin:0}
 @media(max-width:1100px){#find-conversation{font-size:11px}#find-conversation kbd{font-size:9px}}
 
-:root{--separator:color-mix(in srgb,var(--text) 15%,transparent);--reading-width:760px}
+:root{
+  --separator:color-mix(in srgb,var(--text) 13%,transparent);
+  --tint:color-mix(in srgb,var(--accent) 9%,var(--base));
+  --reading-width:760px;
+  --radius-small:6px;--radius-medium:10px;--radius-large:16px;
+  --font-ui:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --font-code:ui-monospace,SFMono-Regular,Consolas,monospace;
+}
+::selection{background:color-mix(in srgb,var(--accent) 30%,transparent);color:var(--text)}
+html{font-synthesis:none;text-rendering:optimizeLegibility}
+body{accent-color:var(--accent)}
+button{font-weight:500}
+button:active:not(:disabled){filter:brightness(.93)}
+:where(button,input,select,textarea,summary){-webkit-tap-highlight-color:transparent}
+:where(input,select,textarea):disabled{cursor:default}
+:where(.rail-scroll,.transcript,.detail,dialog){scrollbar-color:var(--line) transparent;scrollbar-width:thin}
+:root[data-theme=light] .brand .mark{box-shadow:0 1px 5px #0002}
+
 *{box-sizing:border-box}
-body{margin:0;background:var(--base);color:var(--text);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+body{margin:0;background:var(--base);color:var(--text);font:14px/1.5 var(--font-ui)}
 button,input,select,textarea{font:inherit;color:inherit}
 button,select,input{border:1px solid var(--line);border-radius:6px;background:var(--base);padding:7px 10px;min-height:32px}
 select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 14px) 50%,calc(100% - 10px) 50%;background-size:4px 4px;background-repeat:no-repeat;padding-right:28px}
