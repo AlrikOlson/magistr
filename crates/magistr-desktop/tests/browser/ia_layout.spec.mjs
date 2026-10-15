@@ -122,3 +122,10 @@ test("11 checks present labeled facts with complete recorded times",async({app})
   await expect(check.locator(".work-check-facts time")).toHaveAttribute("datetime",/.+/);
   await app.setViewportSize({width:760,height:550});await check.scrollIntoViewIfNeeded();await capture(app,"11-check-facts");
 });
+test("12 activity kinds sit beside dated entries",async({app})=>{
+  await openWork(app);await app.getByRole("radio",{name:"Activity and produced items",exact:true}).check();await app.getByLabel("Entries",{exact:true}).selectOption("activity");
+  await app.setViewportSize({width:760,height:550});const row=app.locator(".work-action-list>li").first();await row.scrollIntoViewIfNeeded();
+  await expect(row.locator(".work-action-kind")).not.toBeEmpty();await expect(row.locator("time")).toHaveAttribute("datetime",/.+/);
+  const kind=await row.locator(".work-action-kind").boundingBox(),body=await row.locator(".work-action-description").boundingBox();expect(kind.x+kind.width).toBeLessThan(body.x);
+  await capture(app,"12-activity-kinds");
+});

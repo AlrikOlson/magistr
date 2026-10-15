@@ -1,12 +1,13 @@
 import { element } from "./work_dom.mjs";
 import { renderSourceDetail } from "./source_details.mjs";
 const types={commit:"Commit",pr:"Pull request",file:"File",config:"Configuration",deployment:"Deployment",release:"Release"};
+const actionLabels={code:"Code change",test:"Check",debug:"Investigation",research:"Research",config:"Configuration",refactor:"Code cleanup",review:"Review"};
 const activityIdentity=(run,task)=>JSON.stringify([run.run_id,run.task_instances[task.id],"activity"]);
 export function renderAction(action,copy){
   const row=element("li"),date=new Date(action.timestamp);
   row.dataset.action=String(action.id);
   if(!Number.isNaN(date.getTime())){const time=element("time",date.toLocaleString());time.dateTime=action.timestamp;row.append(time);}
-  row.append(element("p",action.description,"work-action-description"));
+  row.append(element("span",actionLabels[action.type]??"Activity","work-action-kind"),element("p",action.description,"work-action-description"));
   if(action.result){const result=element("section");renderSourceDetail(result,{label:"Result",source:action.result},copy);row.append(result);}
   for(const [label,values] of [["Files mentioned",action.files_touched],["Tools mentioned",action.tools_used]]){
     if(!values?.length)continue;
