@@ -1,7 +1,7 @@
 {
   "renderer": "headless WebKit",
   "version": "27.2",
-  "captured_at": "2026-10-15T06:33:19.434Z",
+  "captured_at": "2026-10-15T06:34:34.736Z",
   "scope": "Production desktop HTML, CSS and JavaScript with isolated observation fixtures; no native OS input or Rust owner integration.",
   "checks": {
     "project chooser presents actual projects and folder entry in both appearances": true,
@@ -55,7 +55,7 @@
     "crates/magistr-desktop/ui/keyboard.mjs": "ee034c0d7649b19a00bdcb7daddd4a3a9bd84f40a1f6a062a82a2babc922f270",
     "crates/magistr-desktop/ui/layout.mjs": "4c65e6a206688e27e386fa95c59eba488ef8ddcd725bfa300f0fd419baa8a072",
     "crates/magistr-desktop/ui/motion.mjs": "ac4aceb2fccfc6e9a7e33f4dd9551bbc13a9d2abf9b69495d9ff6fdd9de7c348",
-    "crates/magistr-desktop/ui/navigation.mjs": "30b16c52e095859dff95978184ad36fb088911b9bdebb8cbb2da80cd916ec977",
+    "crates/magistr-desktop/ui/navigation.mjs": "c3c69aa266453996064f92742e832edd515a2871fc0d0ca572b0ecbda5e57041",
     "crates/magistr-desktop/ui/patch_document.mjs": "a01eff03bc884709ea7b720d5f4755e721c78475cc38f063e1d2fa90e9207e2e",
     "crates/magistr-desktop/ui/preferences.mjs": "119dfd44c2fbdf82da45e0973c6a12bbf3a284ffabf416f766e1315a47cad2d5",
     "crates/magistr-desktop/ui/project_picker.mjs": "d0cc1f6ee0cff0d2ebecaf096152defc8c796f8866ce825a6829ece4581d6aa7",
@@ -67,7 +67,7 @@
     "crates/magistr-desktop/ui/session_controls.mjs": "738386755be2b65fd03899ae28e1b357b4313258d67b3edfaf72fe3fe37ff123",
     "crates/magistr-desktop/ui/source_color.mjs": "1ac22d15033a59af850c8583abdb8123ff8062c16e71d500327f5d5743d41057",
     "crates/magistr-desktop/ui/source_details.mjs": "7440e8f01b1080bb59f83dbe00a3c83a4495c75cd05e825674e44fd9173805f7",
-    "crates/magistr-desktop/ui/style.css": "87c8de8b4419f3740023dcec7f63eefbfec6eb008f9f6be59f20d228cd533a1f",
+    "crates/magistr-desktop/ui/style.css": "1f8967a16cc47bf23ece2da2e0f1727de1743d0baab6ced4e62eab69bd7287bc",
     "crates/magistr-desktop/ui/supervision.mjs": "509cd792877f397ac427789d491b4f51fd2840cc1b94ae05690d295519b75431",
     "crates/magistr-desktop/ui/switcher.mjs": "7e0d3655808443dd842be7a01abc8ddd6ccc018557a920bfe6e44383ec5d857e",
     "crates/magistr-desktop/ui/transcript.mjs": "df0929eb16d76c728ba7bd8ee42df06aeda1509effe16c7f2755e6a5c504d1c6",
@@ -77,12 +77,14 @@
     "crates/magistr-desktop/playwright.config.mjs": "e97c1f9951b494fa8049e323eae8fc372a2d1c2de74fd8edd9de706be82e0634",
     "crates/magistr-desktop/tauri.conf.json": "b8af99622336b041fe41255fe57d6225447631945d6a89c5a4f3dc1c7348b4b9",
     "crates/magistr-desktop/tests/browser/fixture.mjs": "967bbba1b8ac1d644db6d9f083dc6336338654e7b5ad3f0ea0e96057f800416a",
-    "crates/magistr-desktop/tests/browser/workspace.spec.mjs": "1deaa3aa3fd44e417a9ffbcc08fe5a93226243d77fbfba2b5bddb2927d4a172a",
+    "crates/magistr-desktop/tests/browser/workspace.spec.mjs": "67a971988427419a532c678cf1b1928f73d68045a08caba3414ca995a8c84d15",
     "crates/magistr-desktop/tests/browser/design_scenes.mjs": "9a76ce9e4df1ed11db024c917c901e4e536c1a85f3cc166d950f87898515280a"
   },
   "images": {
-    "welcome-dark.png": "f3f54560e2fad31f7a9e7b8ab8bfe60e9bde8f5de869b8e63e9fb40c315f04c1",
-    "welcome-light.png": "e547fa1ab9560bb2114b26962da8893d994fffc40c77e73e7d2970237458ed97",
+    "welcome-dark.png": "dc232490ea5d7805bfbce4a7b8c75ac278f863bd7e10b03b83f578f5c0b5fff6",
+    "directory-dark.png": "816f80f48a1a180971803d1886c44e0b3fef86738f63d9942c3f157969889b02",
+    "welcome-light.png": "b3326112a992632217d00342f5e169c9a5e9a5470de60935e474a523e2aedbf5",
+    "directory-light.png": "5e768ec75f91f8f37ead96a1b75726a9b0272c0dc8fe320033526ab08889f351",
     "welcome-narrow-light.png": "623f2baf463f681fcc33314b98252cef9e7b86722b3f15366fd25fe99907a7d8",
     "settings-dark.png": "c575e02edd98aea14f6b405ea241504549cd96f1a024895234c7df973d40702d",
     "workspace-dark.png": "5febfe297da48b6b3c1edf65bb3396472fdd3c8aaa5c7ae1b14e215fe7586624",
@@ -180,7 +182,15 @@
       "width": 1280,
       "height": 820
     },
+    "directory-dark.png": {
+      "width": 1280,
+      "height": 820
+    },
     "welcome-light.png": {
+      "width": 1280,
+      "height": 820
+    },
+    "directory-light.png": {
       "width": 1280,
       "height": 820
     },

@@ -117,17 +117,19 @@ export class ProjectDirectory {
       if(!group){
         const root=node("section","directory-project"),heading=node("header","directory-project-heading");
         const title=node("div","directory-project-title"),name=node("h2",""),path=node("p",""),facts=node("dl","directory-project-facts");
+        const mark=node("span","project-monogram");mark.setAttribute("aria-hidden","true");
         const opened=node("div",""),waiting=node("div","");
         const openCount=node("dd","","0"),waitCount=node("dd","","0");
         opened.append(node("dt","","Open conversations"),openCount);waiting.append(node("dt","","Waiting for you"),waitCount);facts.append(opened,waiting);
         const open=node("button","directory-open","Open project"),list=node("nav","directory-conversations");
         open.dataset.leadingIcon="arrow";
         const empty=node("p","directory-empty","No open conversations.");
-        title.append(name,path);heading.append(title,open);root.append(heading,facts,list,empty);
-        group={root,name,path,facts,openCount,waitCount,open,list,empty,project};this.groups.set(project.id,group);
+        title.append(mark,name,path);heading.append(title,open);root.append(heading,facts,list,empty);
+        group={root,name,path,facts,openCount,waitCount,open,list,empty,mark,project};this.groups.set(project.id,group);
         open.onclick=()=>this.open(group.project.directory);
       }
       group.project=project;group.name.textContent=project.name;group.path.textContent=project.directory;
+      group.mark.textContent=Array.from(project.name.trim()).slice(0,2).join("").toLocaleUpperCase();
       group.open.setAttribute("aria-label","Open project "+project.name+" in "+project.directory);
       group.list.setAttribute("aria-label","Open conversations in "+project.name);
       const count=project.sessions.length,waiting=project.sessions.filter(session=>session.pending.length).length;

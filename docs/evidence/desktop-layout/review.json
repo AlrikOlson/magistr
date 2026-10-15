@@ -1,8 +1,10 @@
 {
-  "receipt": "bb985500c733bc1b7ccdd63c66b4b63bbbaee03261f11951a84075509bcc64e3",
+  "receipt": "c61256a14034a718a23216eb62f051438edd1084f1c41c60d78ed5ac57e59a0d",
   "images": {
-    "welcome-dark.png": "f3f54560e2fad31f7a9e7b8ab8bfe60e9bde8f5de869b8e63e9fb40c315f04c1",
-    "welcome-light.png": "e547fa1ab9560bb2114b26962da8893d994fffc40c77e73e7d2970237458ed97",
+    "welcome-dark.png": "dc232490ea5d7805bfbce4a7b8c75ac278f863bd7e10b03b83f578f5c0b5fff6",
+    "directory-dark.png": "816f80f48a1a180971803d1886c44e0b3fef86738f63d9942c3f157969889b02",
+    "welcome-light.png": "b3326112a992632217d00342f5e169c9a5e9a5470de60935e474a523e2aedbf5",
+    "directory-light.png": "5e768ec75f91f8f37ead96a1b75726a9b0272c0dc8fe320033526ab08889f351",
     "welcome-narrow-light.png": "623f2baf463f681fcc33314b98252cef9e7b86722b3f15366fd25fe99907a7d8",
     "settings-dark.png": "c575e02edd98aea14f6b405ea241504549cd96f1a024895234c7df973d40702d",
     "workspace-dark.png": "5febfe297da48b6b3c1edf65bb3396472fdd3c8aaa5c7ae1b14e215fe7586624",
@@ -96,9 +98,9 @@
     "workspace-compact-long-title.png": "32e32147b949f79597b44af31ff1fde644f7406be3b1ca58215467cdafef3c0c"
   },
   "inspected": [
-    "welcome-dark.png",
-    "welcome-light.png"
+    "directory-dark.png",
+    "directory-light.png"
   ],
-  "notes": "Inspected beveled ring face, studio reflections, contact shadow and proportions in both palettes. WebKit verifies context loss recovery and suppresses redraws for unchanged inputs; no animation loop.",
+  "notes": "Inspected project identity, working directory, live counts and conversation tracks in both appearances. Added source-bound directory captures to the existing journey.",
   "native_limit": "Background WebKit only; native input and assistive technology not exercised."
 }
