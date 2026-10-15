@@ -214,3 +214,10 @@ test("record availability places each action beside its status",async({app})=>{
   expect((await family.boundingBox()).height).toBeLessThan(140);
   await capture(app,"21-record-status");
 });
+
+test("application navigation leaves room for project lists",async({app})=>{
+  expect((await app.locator(".brand").boundingBox()).height).toBeLessThan(42);
+  expect((await app.locator("#find-conversation").boundingBox()).y).toBeLessThan(175);
+  await expect(app.getByRole("button",{name:"Settings",exact:true})).toBeInViewport();
+  await capture(app,"22-navigation");
+});
