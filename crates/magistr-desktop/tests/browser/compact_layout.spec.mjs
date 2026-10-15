@@ -167,3 +167,10 @@ test("small result sets show counts and larger sets retain paging",async({app})=
   await app.getByRole("button",{name:"Next page",exact:true}).click();
   await expect(app.locator(".roadmap-items>li")).toHaveCount(21);
 });
+
+test("reasoning rows align sequence beside the decision",async({app})=>{
+  await openWork(app,"Reasoning");await app.setViewportSize({width:760,height:550});
+  const row=app.locator(".reasoning-row").first(),number=await row.locator(".reasoning-step-number").boundingBox(),button=await row.locator("button").boundingBox();
+  expect(number.x+number.width).toBeLessThan(button.x);
+  await capture(app,"16-reasoning-rows");
+});
