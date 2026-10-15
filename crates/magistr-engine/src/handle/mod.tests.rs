@@ -1,7 +1,7 @@
 use super::*;
 use crate::{
-    BudgetConfig, CostEvent, ProjectContext, RoadmapProgress, SessionCommand, SessionStatus,
-    WorkflowCommand, WorkflowConfig, WorkflowPhase,
+    BudgetConfig, CostEvent, RoadmapProgress, SessionCommand, SessionStatus, WorkflowCommand,
+    WorkflowConfig, WorkflowPhase,
 };
 
 fn test_config() -> WorkflowConfig {
@@ -160,21 +160,6 @@ fn spec_complete_detection() {
 }
 
 // ── Project context ─────────────────────────────────────────────────
-
-#[test]
-fn set_and_get_project_context() {
-    let handle = test_handle();
-    let ctx = ProjectContext::new(
-        vec!["abc1234 feat: stuff".into()],
-        20,
-        12,
-        vec!["src/lib.rs".into()],
-        None,
-        None,
-    );
-    handle.set_project_context(ctx.clone());
-    assert_eq!(handle.project_context(), ctx);
-}
 
 // ── Event subscription ──────────────────────────────────────────────
 

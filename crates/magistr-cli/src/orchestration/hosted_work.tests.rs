@@ -141,21 +141,18 @@ async fn a_held_loop_owner_lock_refuses_the_loop_in_words_and_stays_open() {
 }
 
 #[test]
-fn both_admitted_modes_exclude_every_start_before_cleanup_or_checkpoint_writes() {
+fn both_admitted_modes_exclude_every_start_before_checkpoint_writes() {
     use magistr_cockpit::cockpit::LoopScope;
     for first in [LaunchAction::Next, LaunchAction::Loop(LoopScope::AllTracks)] {
         let dir = project();
         let engines = EngineClient::with_config(store(dir.path())).unwrap();
         let admitted = prepare(dir.path(), &engines, &first, None).unwrap();
-        let plan = dir.path().join(".magistr/current-plan.md");
-        std::fs::write(&plan, "owned work").unwrap();
         let saved = std::fs::read(dir.path().join(".magistr/loop-state.json")).unwrap();
         for other in [LaunchAction::Next, LaunchAction::Loop(LoopScope::AllTracks)] {
             let error = prepare(dir.path(), &engines, &other, None)
                 .err()
                 .expect("lease refusal");
             assert!(error.contains("already running"), "{error}");
-            assert_eq!(std::fs::read_to_string(&plan).unwrap(), "owned work");
             assert_eq!(
                 std::fs::read(dir.path().join(".magistr/loop-state.json")).unwrap(),
                 saved

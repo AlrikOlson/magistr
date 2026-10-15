@@ -34,7 +34,6 @@ pub async fn cmd_next_headless(
         return Ok(());
     }
 
-    wf.cleanup().suggest()?;
     let prompt = wf.build_prompt().suggest()?;
 
     let config = workflow_agent_config(&prompt, &dir, backend)

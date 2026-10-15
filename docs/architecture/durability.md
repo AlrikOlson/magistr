@@ -115,10 +115,10 @@ and operations. Malformed checkpoints and terminal runs with unresolved
 effects refuse a fresh start without replacing the saved checkpoint.
 Archival failure also leaves the previous checkpoint in place.
 
-Starting a command does not delete `current-plan.md` or `current-task.md`:
-even a cancelled run can have unfinished work. Their existing cleanup stays
-at the iteration boundary. Refused recovery therefore preserves both the
-checkpoint and the context needed to continue it.
+Native execution state owns the objective and task plan. Command startup and
+iteration boundaries leave those records with their owner; loop cancellation
+does not imply task completion. Refused recovery preserves both the checkpoint
+and the native work needed to continue it.
 
 `tests/next_loop_recovery.rs` executes all three command handlers in isolated
 child processes and checks their checkpoint, archive and saved context.

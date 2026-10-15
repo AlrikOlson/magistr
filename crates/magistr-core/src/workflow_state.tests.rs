@@ -4,7 +4,6 @@ use super::*;
 fn workflow_state_default() {
     let state = WorkflowState::default();
     assert!(state.workflow_phase.is_none());
-    assert!(!state.plan_file_written);
     assert!(state.gate_results.is_empty());
     assert!(state.gate_results_history.is_empty());
     assert_eq!(state.consecutive_failures, 0);

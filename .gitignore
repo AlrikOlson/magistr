@@ -6,8 +6,6 @@
 .cargo/
 
 # Runtime state
-.magistr/current-plan.md
-.magistr/current-task.md
 .magistr/iteration-log.md
 .magistr/loop-state.json
 .magistr/session-state.json
@@ -18,8 +16,6 @@
 .magistr/*.log
 
 # Claude state files
-.claude/current-plan.md
-.claude/current-task.md
 .claude/iteration-log.md
 .claude/iterations.log
 .claude/session-state.json

@@ -1,8 +1,9 @@
 use crate::agent;
-use crate::error::ResultExt;
+use crate::error::{MagistrError, ResultExt};
 use crate::utils::format as fmt;
 use crate::workflow;
 use color_eyre::eyre;
+use magistr_engine::native::ObjectiveStatus;
 
 pub async fn cmd_next_continue(
     dir: &std::path::Path,
@@ -13,61 +14,33 @@ pub async fn cmd_next_continue(
     let dir = super::canonicalize_dir(dir)?;
     let work_lease = magistr_core::workflow::loop_lease::LoopLease::acquire(&dir).suggest()?;
     work_lease.require_settled(&dir).suggest()?;
-    let inputs = super::workflow_inputs(&inputs.for_project(&dir), false)?;
-
-    let wf = workflow::WorkflowConfig::load(&dir).suggest()?;
-
-    // Look for an active plan to resume
-    let active = workflow::plans::find_active_plan(&dir).suggest()?;
-
-    let plan = match active {
-        Some(p) => {
-            eprintln!(
-                "{} Resuming plan: {}",
-                fmt::cyan("→"),
-                fmt::bold(&p.task_name)
-            );
-            eprintln!("  {}", fmt::dim(&format!("Plan ID: {}", p.id)));
-            p
-        }
-        None => {
-            eprintln!(
-                "{}",
-                fmt::warning("No active plan found. Run `magistr next` to create one.")
-            );
-            return Ok(());
-        }
-    };
-
-    let summary = wf.spec_summary().suggest()?;
-    eprintln!(
-        "{}",
-        fmt::info(&format!("Spec progress: {}", summary.status_line()))
-    );
-
-    if summary.all_done() {
-        // Mark the plan as completed
-        workflow::plans::update_status(&dir, &plan.id, workflow::plans::PlanStatus::Completed)
-            .suggest()?;
-        eprintln!(
-            "{}",
-            fmt::success("All spec items complete. Plan marked as completed.")
-        );
+    let inputs = inputs.for_project(&dir);
+    let reader = magistr_engine::NativeReader::open(inputs.workflow());
+    let work = reader
+        .ship_snapshot()
+        .map_err(MagistrError::Workflow)
+        .suggest()?;
+    let Some(plan) = work.current.filter(|run| {
+        matches!(
+            run.objective.status,
+            ObjectiveStatus::Defined | ObjectiveStatus::Active
+        )
+    }) else {
+        eprintln!("{}", fmt::warning("No unfinished work is selected."));
         return Ok(());
-    }
-
-    // Build a prompt that includes the existing plan as context
-    let mut prompt = wf.build_prompt().suggest()?;
-    prompt.push_str("\n\n## Existing Plan (resume from here)\n\n");
-    prompt.push_str(
-        "A previous plan was created for this work. Resume execution from where it left off:\n\n",
-    );
-    prompt.push_str(&plan.content);
-
+    };
     eprintln!(
-        "{}\n",
-        fmt::info("Continuing research-plan-execute-verify cycle...")
+        "{} Continuing: {}",
+        fmt::cyan("→"),
+        fmt::bold(&plan.objective.description)
     );
+    let inputs = super::workflow_inputs(&inputs, false)?;
+    let wf = workflow::WorkflowConfig::load(&dir)
+        .suggest()?
+        .with_native(Some(reader));
+    let summary = wf.spec_summary().suggest()?;
+    let mut prompt = workflow::prompt::build_next_prompt(&wf.project_config, &summary);
+    prompt.push_str("\n\nContinue this execution's selected unfinished objective and plan. Read ship_status first and retain its existing tasks and evidence. Do not select new work or infer objective completion from overall roadmap counts.");
 
     let workspace =
         crate::commands::run::admit_workspace(&inputs, |line| eprintln!("{line}")).await;
@@ -86,3 +59,7 @@ pub async fn cmd_next_continue(
     }
     ran
 }
+
+#[cfg(test)]
+#[path = "cmd_next_continue.tests.rs"]
+mod tests;

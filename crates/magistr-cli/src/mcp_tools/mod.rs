@@ -69,7 +69,7 @@ pub fn build_server(project_root: PathBuf) -> SdkMcpServer {
             "properties": {
                 "path": {
                     "type": "string",
-                    "description": "Relative path to delete (e.g. '.claude/rules/old-rule.md' or '.magistr/current-plan.md')"
+                    "description": "Relative path to delete (e.g. '.claude/rules/old-rule.md')"
                 },
                 "recursive": {
                     "type": "boolean",

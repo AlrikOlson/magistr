@@ -1,6 +1,4 @@
 # magistr ephemeral state
 .workbench/
 .magistr/scope/
-.magistr/current-plan.md
-.magistr/current-task.md
 .magistr/loop-state.json

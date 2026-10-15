@@ -11,7 +11,6 @@
 //! - **Cost governance** — `CostGovernor`, `BudgetConfig`, `BudgetStatus`, `CostEvent`
 //! - **Workflow policies** — `GovernancePolicy`, `PolicyEngine`, `PolicyRule`, `PolicyEffect`
 //! - **Roadmap tracking** — `RoadmapManager`, `RoadmapProgress`, `RoadmapEvent`
-//! - **Project context** — `ProjectContext` (immutable snapshot)
 //! - **Engine handle** — `EngineHandle` (thread-safe entry point composing all services)
 //! - **Quality gates** — `GateKind`, `GateStatus`, `GateOutcome`
 //! - **Workflow guards** — `WorkflowGuard`, `GuardResult`, `GuardsConfig`, `ShipGuardState`
@@ -35,7 +34,6 @@ pub mod native;
 #[cfg(any(test, feature = "experimental-peer"))]
 pub mod peer;
 pub mod policy;
-pub mod project;
 pub mod prompt;
 pub mod roadmap;
 pub mod session;
@@ -66,7 +64,6 @@ pub use policy::{
     GovernancePolicy, ModelTier, ModelTierRule, PolicyCondition, PolicyDecision, PolicyEffect,
     PolicyEngine, PolicyRequest, PolicyRule, RiskTier,
 };
-pub use project::ProjectContext;
 pub use prompt::PromptConfig;
 pub use roadmap::{RoadmapEvent, RoadmapManager, RoadmapProgress};
 pub use session::{

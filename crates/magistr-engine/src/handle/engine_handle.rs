@@ -7,7 +7,6 @@ use tokio::sync::broadcast;
 use crate::cost::{BudgetConfig, CostGovernor};
 use crate::error::{EngineError, Result};
 use crate::native::{NativeReader, NativeRoadmapSnapshot};
-use crate::project::ProjectContext;
 use crate::roadmap::RoadmapEvent;
 use crate::roadmap::{RoadmapManager, RoadmapProgress};
 use crate::session::{
@@ -29,7 +28,6 @@ struct EngineState {
     workflow: WorkflowEngine,
     cost_governor: CostGovernor,
     roadmap: RoadmapManager,
-    project_context: ProjectContext,
 }
 
 /// Default broadcast channel capacity.
@@ -94,7 +92,6 @@ impl EngineHandle {
             workflow,
             cost_governor: CostGovernor::new(budget_config),
             roadmap: RoadmapManager::empty(),
-            project_context: ProjectContext::empty(),
         };
         Self {
             state: Arc::new(Mutex::new(state)),
@@ -477,17 +474,6 @@ impl EngineHandle {
     }
 
     // ── Project context ─────────────────────────────────────────────────
-
-    /// Update the project context snapshot.
-    pub fn set_project_context(&self, ctx: ProjectContext) {
-        self.lock().project_context = ctx;
-    }
-
-    /// Get the current project context snapshot.
-    #[must_use]
-    pub fn project_context(&self) -> ProjectContext {
-        self.lock().project_context.clone()
-    }
 
     // ── Internal ────────────────────────────────────────────────────────
 

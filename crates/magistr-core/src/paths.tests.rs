@@ -20,12 +20,6 @@ fn project_json_path() {
 }
 
 #[test]
-fn plan_path() {
-    let dir = Path::new("/tmp/test");
-    assert_eq!(plan(dir), dir.join(MAGISTR_DIR).join(PLAN_FILE));
-}
-
-#[test]
 fn claude_dir_path() {
     let dir = Path::new("/tmp/test");
     assert_eq!(claude_dir(dir), dir.join(CLAUDE_DIR));
@@ -46,12 +40,6 @@ fn settings_json_path() {
     );
 }
 
-#[test]
-fn loop_state_path() {
-    let path = loop_state("my-project");
-    assert!(path.to_string_lossy().contains("my-project"));
-}
-
 // ── Safety invariants ───────────────────────────────────────────────────────
 
 #[test]
@@ -62,8 +50,6 @@ fn paths_for_a_standalone_project_stay_in_its_directory() {
     let paths = [
         magistr_dir(dir),
         project_json(dir).unwrap(),
-        plan(dir),
-        task(dir),
         iteration_log(dir),
         memory(dir),
         session_state(dir),
@@ -93,7 +79,6 @@ fn no_path_contains_traversal() {
     let paths = [
         magistr_dir(dir),
         project_json(dir).unwrap(),
-        plan(dir),
         claude_dir(dir),
         rules_dir(dir),
     ];

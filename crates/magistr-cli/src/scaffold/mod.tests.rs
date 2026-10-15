@@ -1159,17 +1159,12 @@ fn scaffolded_skills_have_discoverable_frontmatter() {
 // Cross-host workflow and relative-reference contracts live in workflow_skills.tests.rs.
 
 #[test]
-fn scaffolded_skills_and_rules_do_not_name_the_retired_roadmap_tools_or_plan_file() {
+fn scaffolded_skills_and_rules_use_current_roadmap_tools() {
     let files = scaffold_files(&test_vars());
     for f in files.iter().filter(|f| f.path.starts_with(".claude/")) {
         assert!(
             !f.content.contains("magistr_roadmap"),
             "{} still names a retired magistr roadmap tool",
-            f.path
-        );
-        assert!(
-            !f.content.contains("current-plan.md"),
-            "{} still relies on the plan file; the plan is ship_plan",
             f.path
         );
     }

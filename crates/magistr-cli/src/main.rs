@@ -290,7 +290,7 @@ async fn main() -> eyre::Result<()> {
         }
         Command::Costs { query } => commands::session::cmd_costs(&query, &inputs),
         Command::Plans { dir, status, limit } => {
-            commands::misc::cmd_plans(&dir, status, limit, &*renderer)
+            commands::misc::cmd_plans(&dir, status, limit, &*renderer, &inputs)
         }
         Command::Sessions {
             project,

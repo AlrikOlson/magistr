@@ -7,7 +7,6 @@
 //! remain in the CLI crate — this module contains all pure domain logic.
 
 pub mod clean_tree_guard;
-pub mod context_builder;
 pub mod format_result;
 pub mod formatter;
 pub mod gate_cache;
@@ -17,12 +16,9 @@ pub mod guards;
 pub mod iteration;
 pub mod loop_lease;
 pub mod native_summary;
-pub mod plan;
 pub mod plan_guard;
-pub mod plans;
 pub mod process_alive;
 pub mod process_start;
-pub mod project_context;
 pub mod prompt;
 pub mod reconciliation;
 pub mod rollback;
@@ -153,11 +149,6 @@ impl WorkflowConfig {
     /// Get the state prefix for loop state files.
     pub fn state_prefix(&self) -> &str {
         &self.project_config.state_prefix
-    }
-
-    /// Clean up workflow state files.
-    pub fn cleanup(&self) -> Result<()> {
-        plan::cleanup_state(&self.project_dir)
     }
 }
 

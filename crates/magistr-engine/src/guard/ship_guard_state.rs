@@ -8,8 +8,7 @@ use magistr_workflow::ship::domain::task::Task;
 /// holds the engine (mcp-serve, a test) reads them and hands the guard
 /// this value.
 ///
-/// The rule it encodes replaces the old "`.magistr/current-plan.md` exists"
-/// check: an objective must be set and at least one task planned before the
+/// An objective must be set and at least one task planned before the
 /// first source edit (`execute`), and at least one quality gate must be
 /// recorded before the iteration is declared `done`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]

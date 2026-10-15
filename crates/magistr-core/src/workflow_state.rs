@@ -16,8 +16,6 @@ use super::workflow_phase::WorkflowPhase;
 pub struct WorkflowState {
     /// Current workflow phase (Research/Plan/Execute/Verify).
     pub workflow_phase: Option<WorkflowPhase>,
-    /// Whether `.magistr/current-plan.md` has been written during this session.
-    pub plan_file_written: bool,
     /// Quality gate results (populated after agent turn in workflow mode).
     pub gate_results: Vec<GateResult>,
     /// Gate results history across iterations (last N runs) for sparkline display.
