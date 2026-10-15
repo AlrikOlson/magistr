@@ -102,3 +102,8 @@
 .reasoning-text{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.7}
 .reasoning-step.work-record{padding-left:0;padding-right:0}
 .work-browser-tabs{overflow-x:auto;flex-shrink:0}
+
+.feedback-research details>section,.feedback-research details>p{margin:16px}
+.feedback-sources article+article{margin-top:20px}
+.feedback-sources button+button{margin-left:8px}
+.feedback-detail.work-record{padding-left:0;padding-right:0}
