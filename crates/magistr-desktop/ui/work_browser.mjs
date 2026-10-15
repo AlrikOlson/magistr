@@ -12,7 +12,7 @@ export class WorkBrowser {
   constructor($,invoke){
     this.$=$;this.invoke=invoke;this.frame=null;this.generation=0;this.revision=-1;this.loading=false;this.key="";
     this.area="work";this.searchPage=0;
-    this.reasoning=new ReasoningBrowser($("work-browser-reasoning"),$("work-browser-content"),()=>{this.key="";this.render();},value=>navigator.clipboard.writeText(value).catch(error=>{$("work-browser-state").textContent="Could not copy the text. "+String(error);}));
+    this.reasoning=new ReasoningBrowser($("work-browser-reasoning"),$("work-browser-content"),()=>{this.key="";this.render();},value=>navigator.clipboard.writeText(value).catch(error=>{$("work-browser-state").textContent="Could not copy the text. "+String(error);}),$("work-browser-branch"));
     $("work-browser-search").oninput=()=>{this.searchPage=0;this.item.close();this.key="";this.render();};
     this.item=new RoadmapItemReader($("work-browser-content"),invoke,()=>this.backToTrack());
     this.tabs=new WorkTabs($("work-browser-tabs"),area=>{this.item.close();this.area=area;this.key="";this.render();});
