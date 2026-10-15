@@ -66,12 +66,13 @@
       <div class="detail-title"><h2 id="detail-title" tabindex="-1">Conversation details</h2><button id="close-details" aria-label="Close Details">×</button></div>
       <section id="requests" aria-label="Requests waiting for you"></section>
       <section id="work" aria-label="Planned work">
-        <h2 id="work-title" tabindex="-1">Planned work</h2>
+        <h2 id="work-title" tabindex="-1" data-leading-icon="clock">Planned work</h2>
+        <div id="work-attempt" class="work-attempt" hidden><span>Attempt</span><div><strong id="work-attempt-current"></strong><span id="work-attempt-limit"></span></div></div>
         <p id="work-status" role="status" aria-live="polite">No work is running.</p>
         <p id="work-detail"></p><p id="work-error" class="error" role="alert" hidden></p>
         <div class="work-actions">
           <button id="work-next" disabled>Work on next item</button><button id="work-loop" disabled>Start 10 items</button>
-          <button id="work-pause" hidden>Pause after this item</button><button id="work-resume" hidden>Continue work</button>
+          <button id="work-pause" data-leading-icon="pause" hidden>Pause after this item</button><button id="work-resume" data-leading-icon="arrow" hidden>Continue work</button>
           <button id="work-step" hidden>One more item</button><button id="work-abort" hidden>Finish item and stop</button>
         </div>
       </section>
