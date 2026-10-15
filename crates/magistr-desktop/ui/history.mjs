@@ -56,12 +56,12 @@ export class HistoryBrowser {
       let row=this.rows.get(record.id);
       if(!row) {
         const button=text("button",""),project=text("small",""),name=text("strong",""),meta=text("time",""),excerpt=text("span",""),facts=text("span","");
-        excerpt.className="history-excerpt";facts.className="history-row-facts";button.append(project,meta,name,excerpt,facts);row={button,project,name,meta,excerpt,facts,record};this.rows.set(record.id,row);
+        excerpt.className="history-excerpt";facts.className="history-row-facts";button.append(name,project,meta,excerpt,facts);row={button,project,name,meta,excerpt,facts,record};this.rows.set(record.id,row);
         button.onclick=()=>this.choose(row.record);
       }
       row.record=record;row.project.textContent=record.workspace.split(/[\\/]/).filter(Boolean).at(-1);
       row.name.textContent=historyName(record);row.meta.textContent=new Date(record.updated_at).toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"});
-      row.meta.dateTime=record.updated_at;row.facts.textContent=[record.provider,record.turns==="unknown"?null:record.turns+(record.turns===1?" turn":" turns")].filter(value=>value!=null&&value!=="").join(" · ");row.excerpt.textContent=record.document?documentExcerpt(record.document.nodes):"";row.excerpt.hidden=!record.document;
+      row.meta.dateTime=record.updated_at;row.facts.textContent=[record.provider,record.turns==="unknown"?null:record.turns+(String(record.turns)==="1"?" turn":" turns")].filter(value=>value!=null&&value!=="").join(" · ");row.excerpt.textContent=record.document?documentExcerpt(record.document.nodes):"";row.excerpt.hidden=!record.document;
       row.button.setAttribute("aria-label",historyName(record));row.button.title=record.workspace;
       row.button.setAttribute("aria-current",String(record.id===this.current?.id));
       row.button.setAttribute("aria-busy",String(record.id===this.opening));
