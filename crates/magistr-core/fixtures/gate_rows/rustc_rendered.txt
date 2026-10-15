@@ -2,7 +2,7 @@
 error[E0308]: mismatched types
   --> src/tui/app.rs:1756:27
    |
-1756 |             plan_written: self.domain.workflow.plan_file_written,
+1756 |             work_active: self.domain.workflow.workflow_phase.is_some(),
    |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `String`, found `bool`
    |
    = note: expected type `String`

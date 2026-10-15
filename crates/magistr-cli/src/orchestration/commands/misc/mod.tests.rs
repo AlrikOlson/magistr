@@ -36,10 +36,11 @@ fn cmd_detect_succeeds_with_unknown_on_empty_dir() {
 
 #[test]
 fn cmd_plans_empty_returns_ok() {
-    // Edge case: no plans directory exists yet — should return Ok.
+    // A missing native execution is empty, not an error.
     let tmp = tempfile::TempDir::new().unwrap();
     let renderer = SilentRenderer::new();
-    let result = cmd_plans(tmp.path(), None, 10, &renderer);
+    let inputs = crate::config::inputs::ProjectInputs::from_lookup(tmp.path(), |_| None);
+    let result = cmd_plans(tmp.path(), None, 10, &renderer, &inputs);
     assert!(
         result.is_ok(),
         "plans should succeed on empty dir: {result:?}"

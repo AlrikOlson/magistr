@@ -311,7 +311,6 @@ pub async fn cmd_next_loop_headless(
             emit_loop_stop(&format, "no_commits", &mut stdout)?;
             break;
         }
-        wf.cleanup()?;
     }
 
     // Summary report

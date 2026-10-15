@@ -1,8 +1,7 @@
 //! Iteration loop orchestration for `magistr next-loop`.
 //!
 //! Manages iteration state (count, max, last commit SHA, spec status) with
-//! JSON persistence to `.magistr/loop-state.json` for crash recovery. Replaces
-//! the ad-hoc `LoopState` in `plan.rs` and `/tmp`-based state files.
+//! JSON persistence to `.magistr/loop-state.json` for crash recovery.
 //!
 //! The `IterationLoop` is backend-agnostic — it manages state and checks,
 //! while the caller (TUI or CLI) manages agent sessions.

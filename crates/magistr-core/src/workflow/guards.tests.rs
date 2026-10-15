@@ -79,7 +79,6 @@ fn plan_guard_steers_when_no_ship_plan() {
         GuardAction::SteerPrompt(msg) => {
             assert!(msg.contains("ship_set_objective"), "{msg}");
             assert!(msg.contains("ship_plan"), "{msg}");
-            assert!(!msg.contains("current-plan.md"), "{msg}");
         }
         other => panic!("expected steer, got {other:?}"),
     }

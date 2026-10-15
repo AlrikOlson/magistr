@@ -87,15 +87,15 @@ and production command admission are subsequent architecture work. The
 [application contracts](application.md) now reuse these identities for scoped
 use cases, with concrete adapters supplied by hosts.
 
-## Compatibility and run rules
+## Run rules
 
 Engine policy and gate modules re-export the domain's types **and module paths**.
 Existing imports therefore use the same definitions, rather than copied models.
 The engine retains configuration, lifecycle hooks, tracing and effect adapters.
 Core and engine now re-export the same
 [`WorkflowPhase`](../../crates/magistr-domain/src/workflow/workflow_phase.rs),
-[`IterationStatus`](../../crates/magistr-domain/src/workflow/iteration_status.rs)
-and [`ProjectContext`](../../crates/magistr-domain/src/project.rs) values.
+and [`IterationStatus`](../../crates/magistr-domain/src/workflow/iteration_status.rs)
+values.
 Phase labels are explicit: the domain supplies `Researching`, for example, and
 the [core notification adapter](../../crates/magistr-core/src/workflow_state.rs)
 adds progress punctuation. Equal and forward phase transitions remain accepted,
@@ -123,16 +123,13 @@ observation does not clear another terminal reason.
 [`IterationLoop`](../../crates/magistr-core/src/workflow/iteration.rs) and
 [`WorkflowEngine`](../../crates/magistr-engine/src/workflow/workflow_engine.rs)
 delegate admission and settlement decisions to `RunState`. Core's loop-state
-DTO retains its old iteration/max fields as validated projections and preserves
-the historical `success` JSON spelling for canonical `Committed`. The domain
-iteration projection retains `u32` spec counts; core spec/context collections
-retain `usize` counts. `WorkflowPhase::step_index` and `ProjectContext` use the
-existing core `usize` API width without narrowing adapter observations.
+DTO exposes iteration/max fields as validated projections. The domain
+iteration projection uses `u32` spec counts; core spec collections retain `usize`
+counts. `WorkflowPhase::step_index` uses `usize` without narrowing observations.
 
-The [context builder](../../crates/magistr-core/src/workflow/context_builder.rs)
-still gathers Git/filesystem/native observations and formats prompts. Supplying
-its shared `ProjectContext` to the engine requires no model conversion and does
-not establish an execution cycle.
+Live session setup reads native execution state for current-work context. The
+objective and tasks remain owned by the workflow service; there is no independent
+project-context snapshot or file-plan archive.
 
 ## Recovery boundaries
 

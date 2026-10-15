@@ -24,24 +24,6 @@ fn project_json_in_magistr_dir() {
 }
 
 #[test]
-fn plan_in_magistr_dir() {
-    let dir = Path::new("/home/user/project");
-    assert_eq!(
-        plan(dir),
-        PathBuf::from("/home/user/project/.magistr/current-plan.md")
-    );
-}
-
-#[test]
-fn task_in_magistr_dir() {
-    let dir = Path::new("/tmp/proj");
-    assert_eq!(
-        task(dir),
-        PathBuf::from("/tmp/proj/.magistr/current-task.md")
-    );
-}
-
-#[test]
 fn memory_in_magistr_dir() {
     let dir = Path::new("/tmp/proj");
     assert_eq!(memory(dir), PathBuf::from("/tmp/proj/.magistr/memory.md"));
@@ -75,11 +57,6 @@ fn claude_dir_construction() {
 fn rules_dir_construction() {
     let dir = Path::new("/tmp/proj");
     assert_eq!(rules_dir(dir), PathBuf::from("/tmp/proj/.claude/rules"));
-}
-
-#[test]
-fn loop_state_path() {
-    assert_eq!(loop_state("myapp"), PathBuf::from("/tmp/myapp-next-loop"));
 }
 
 #[test]
@@ -129,8 +106,6 @@ fn project_paths_all_methods() {
     let paths = ProjectPaths::new("/p");
     assert_eq!(paths.magistr_dir(), PathBuf::from("/p/.magistr"));
     assert!(paths.project_json().is_err());
-    assert_eq!(paths.plan(), PathBuf::from("/p/.magistr/current-plan.md"));
-    assert_eq!(paths.task(), PathBuf::from("/p/.magistr/current-task.md"));
     assert_eq!(
         paths.iteration_log(),
         PathBuf::from("/p/.magistr/iteration-log.md")

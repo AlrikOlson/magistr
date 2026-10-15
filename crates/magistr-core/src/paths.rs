@@ -5,7 +5,7 @@
 //!
 //! ## Ownership model
 //!
-//! - **`.magistr/`** — Magistr-owned state (config, plans, memory, session state)
+//! - **`.magistr/`** — Magistr-owned state (config, memory, session state)
 //! - **`.claude/`** — Claude Code native config (settings, rules, skills)
 //!
 use std::path::{Path, PathBuf};
@@ -21,8 +21,6 @@ pub const CLAUDE_DIR: &str = ".claude";
 // ── Magistr-owned filenames ─────────────────────────────────────────────────
 
 pub const PROJECT_JSON: &str = "project.json";
-pub const PLAN_FILE: &str = "current-plan.md";
-pub const TASK_FILE: &str = "current-task.md";
 pub const ITERATION_LOG: &str = "iteration-log.md";
 pub const MEMORY_FILE: &str = "memory.md";
 pub const SESSION_STATE: &str = "session-state.json";
@@ -51,16 +49,6 @@ pub fn project_json(project_dir: &Path) -> crate::error::Result<PathBuf> {
     let location = magistr_engine::native::ProjectLocation::resolve(project_dir)
         .map_err(|error| crate::error::MagistrError::io(project_dir, error))?;
     Ok(magistr_dir(&location.authority_root).join(PROJECT_JSON))
-}
-
-/// `.magistr/current-plan.md` — active iteration plan.
-pub fn plan(project_dir: &Path) -> PathBuf {
-    magistr_dir(project_dir).join(PLAN_FILE)
-}
-
-/// `.magistr/current-task.md` — active task name.
-pub fn task(project_dir: &Path) -> PathBuf {
-    magistr_dir(project_dir).join(TASK_FILE)
 }
 
 /// `.magistr/iteration-log.md` — cumulative iteration summaries.
@@ -148,18 +136,6 @@ impl ProjectPaths {
     /// The project's shared configuration; other paths stay in this working copy.
     pub fn project_json(&self) -> crate::error::Result<PathBuf> {
         project_json(&self.root)
-    }
-
-    /// `.magistr/current-plan.md` — active iteration plan.
-    #[must_use]
-    pub fn plan(&self) -> PathBuf {
-        plan(&self.root)
-    }
-
-    /// `.magistr/current-task.md` — active task name.
-    #[must_use]
-    pub fn task(&self) -> PathBuf {
-        task(&self.root)
     }
 
     /// `.magistr/iteration-log.md` — cumulative iteration summaries.
@@ -253,13 +229,6 @@ impl AsRef<Path> for ProjectPaths {
     fn as_ref(&self) -> &Path {
         &self.root
     }
-}
-
-// ── Next-loop state (in /tmp, not project-local) ────────────────────────────
-
-/// Path to the next-loop state file in `/tmp`.
-pub fn loop_state(state_prefix: &str) -> PathBuf {
-    PathBuf::from(format!("/tmp/{state_prefix}-next-loop"))
 }
 
 #[cfg(test)]

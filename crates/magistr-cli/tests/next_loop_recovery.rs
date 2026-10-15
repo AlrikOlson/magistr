@@ -219,8 +219,22 @@ fn project() -> tempfile::TempDir {
     )
     .unwrap();
     std::fs::write(dir.path().join("spec.md"), "- [ ] saved work\n").unwrap();
-    std::fs::write(dir.path().join(".magistr/current-plan.md"), PLAN).unwrap();
-    std::fs::write(dir.path().join(".magistr/current-task.md"), TASK).unwrap();
+    let native = context_inputs(dir.path()).workflow().clone();
+    let writer = magistr_engine::ProjectAuthority::admit(&native, magistr_engine::WriterRole::Host)
+        .unwrap()
+        .open();
+    writer
+        .ship_set_objective(PLAN.into(), vec![], vec![], "saved-work".into())
+        .unwrap();
+    writer
+        .ship_add_task(
+            "saved-task".into(),
+            TASK.into(),
+            magistr_engine::TaskType::Implement,
+            None,
+        )
+        .unwrap();
+    writer.ship_start_task("saved-task").unwrap();
     dir
 }
 
@@ -232,14 +246,21 @@ fn saved(dir: &Path) -> IterationState {
     serde_json::from_slice(&std::fs::read(checkpoint(dir)).unwrap()).unwrap()
 }
 
+fn context_inputs(dir: &Path) -> ProjectInputs {
+    ProjectInputs::from_lookup(dir, |key| {
+        (key == "THINK_AND_SHIP_DATA_DIR").then(|| dir.join("workflow-data").display().to_string())
+    })
+}
+
 fn assert_context_kept(dir: &Path) {
+    let reader = magistr_engine::NativeReader::open(context_inputs(dir).workflow());
+    let run = reader.ship_snapshot().unwrap().current.unwrap();
+    assert_eq!(run.objective.description, PLAN);
+    assert_eq!(run.tasks.len(), 1);
+    assert_eq!(run.tasks[0].title, TASK);
     assert_eq!(
-        std::fs::read_to_string(dir.join(".magistr/current-plan.md")).unwrap(),
-        PLAN
-    );
-    assert_eq!(
-        std::fs::read_to_string(dir.join(".magistr/current-task.md")).unwrap(),
-        TASK
+        run.tasks[0].status,
+        magistr_engine::native::TaskStatus::Active
     );
 }
 
@@ -302,7 +323,7 @@ async fn entry_fixture_child() {
     let dir = PathBuf::from(dir);
     let entry = std::env::var("MAGISTR_RECOVERY_ENTRY").unwrap();
     // The command preflight has selected settings; these startup scenarios never launch an agent.
-    let inputs = ProjectInputs::from_lookup(&dir, |_| None).with_session_selection(selection());
+    let inputs = context_inputs(&dir).with_session_selection(selection());
     let profile = PermissionProfile::Cautious;
     let result = match entry.as_str() {
         "interactive" => {

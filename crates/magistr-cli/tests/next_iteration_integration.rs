@@ -111,7 +111,6 @@ async fn phase_blocked(client: &Client, phase: &str, expect: &str) {
     );
     let reason = first_text(&result);
     assert!(reason.contains(expect), "{phase} reason: {reason}");
-    assert!(!reason.contains("current-plan.md"), "{reason}");
 }
 
 async fn phase_ok(client: &Client, phase: &str) {
@@ -160,8 +159,11 @@ async fn headless_iteration_is_guarded_on_ship_state_and_cross_referenced() {
     let next = ok(&client, "roadmap_next", json!({})).await;
     assert_eq!(next["id"], CHUNK, "{next}");
     let started = ok(&client, "roadmap_start_chunk", json!({"id": CHUNK})).await;
-    assert_eq!(started["chunk"]["status"], "in_progress", "{started}");
-    assert_eq!(started["backref"], format!("chunk:{CHUNK}"));
+    assert_eq!(
+        started["value"]["chunk"]["status"], "in_progress",
+        "{started}"
+    );
+    assert_eq!(started["value"]["backref"], format!("chunk:{CHUNK}"));
 
     // ── Research and plan are always open; execute is not ──────────────
     phase_ok(&client, "research").await;
@@ -249,17 +251,19 @@ async fn headless_iteration_is_guarded_on_ship_state_and_cross_referenced() {
         json!({"id": CHUNK, "ship_ref": format!("task:{TASK}")}),
     )
     .await;
-    assert_eq!(done["status"], "done", "{done}");
+    assert_eq!(done["value"]["status"], "done", "{done}");
     let finalized = ok(
         &client,
         "ship_finalize",
         json!({"summary": "fixture shipped"}),
     )
     .await;
-    assert_eq!(finalized["status"], "shipped", "{finalized}");
-    assert_eq!(finalized["tasks"]["completed"], 1, "{finalized}");
+    assert_eq!(finalized["value"]["status"], "shipped", "{finalized}");
+    assert_eq!(finalized["value"]["tasks"]["completed"], 1, "{finalized}");
     assert!(
-        finalized["warnings"].as_array().is_some_and(Vec::is_empty),
+        finalized["value"]["warnings"]
+            .as_array()
+            .is_some_and(Vec::is_empty),
         "no unverified or failed required checks: {finalized}"
     );
     ok(
@@ -323,13 +327,21 @@ async fn headless_iteration_is_guarded_on_ship_state_and_cross_referenced() {
     assert_ne!(signals, Value::Null);
 
     // ── Persisted under the temp store, one file per family ────────────
-    for family in ["roadmap", "ship", "think", "signal"] {
+    for family in ["roadmap", "think", "signal"] {
         assert!(
             has_session_file(&data_dir, family),
             "{family} session file missing"
         );
     }
-    assert!(!root.join(".magistr/current-plan.md").exists());
+
+    let config = magistr_core::evidence::writer_config(&root, |_| None).with_data_dir(&data_dir);
+    let execution = magistr_engine::NativeReader::open(&config)
+        .ship_snapshot()
+        .unwrap();
+    assert_eq!(
+        execution.current.unwrap().objective.status,
+        magistr_engine::native::ObjectiveStatus::Completed
+    );
 
     let _ = client.cancel().await;
     server.abort();

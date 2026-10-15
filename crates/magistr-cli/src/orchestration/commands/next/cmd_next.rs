@@ -31,9 +31,6 @@ pub async fn cmd_next(
         return Ok(());
     }
 
-    // Clean up leftover state from previous runs
-    wf.cleanup().suggest()?;
-
     let prompt = wf.build_prompt().suggest()?;
     eprintln!(
         "{}\n",

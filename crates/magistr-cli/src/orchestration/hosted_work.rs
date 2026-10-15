@@ -285,9 +285,6 @@ fn prepare(
                     .map_err(|error| error.to_string())?;
             }
             iter_loop.persist().map_err(|error| error.to_string())?;
-            if !iter_loop.is_recovered() {
-                wf.cleanup().map_err(|error| error.to_string())?;
-            }
             Ok(Prepared {
                 wf,
                 iter_loop,

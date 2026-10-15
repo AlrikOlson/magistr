@@ -88,7 +88,6 @@ fn tool_guide_does_not_contain_stale_references() {
         "iris",
         "ministr",
         "magistr_roadmap",
-        "current-plan.md",
     ] {
         assert!(
             !guide.contains(stale),

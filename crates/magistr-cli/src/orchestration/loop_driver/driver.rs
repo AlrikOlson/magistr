@@ -2452,7 +2452,7 @@ impl LoopDriver {
         }
     }
 
-    /// Advance the loop, persist when asked, clear the workflow's files.
+    /// Advance the loop and persist its checkpoint when requested.
     fn advance(&mut self) {
         self.iter_loop.advance();
         if self.persist
@@ -2460,7 +2460,6 @@ impl LoopDriver {
         {
             self.note(format!("could not persist the loop's state: {e}"));
         }
-        let _ = self.wf.cleanup();
     }
 
     fn decide(&mut self, command: RunCommand) {

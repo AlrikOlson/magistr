@@ -89,6 +89,12 @@ pass does not certify the source currently being edited. Receipt compaction keep
 receipts belonging to retained runs. Explicit execution reset clears this aggregate;
 ordinary objective selection does not.
 
+`magistr plans` reads current and retained runs through that same reader, including
+their full task details in machine output. `next --continue` requires selected
+unfinished work and leaves completion to the workflow owner. Overall roadmap
+counts cannot complete an objective. File-plan archives and their cleanup are
+not part of the execution lifecycle.
+
 Reasoning reads use the active session of a shared owner, or the captured
 configured session of a detached owner. `ThinkData::session_id` names that
 scope; `None` names the one default project archive. A retained value keeps its

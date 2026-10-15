@@ -181,9 +181,6 @@ pub async fn cmd_next_loop(
                 }
             }
         }
-
-        // Clean up plan state for next iteration
-        wf.cleanup()?;
     }
 
     // Clean up

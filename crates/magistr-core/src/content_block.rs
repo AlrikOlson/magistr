@@ -18,7 +18,7 @@ pub enum ContentBlock {
     /// The assistant wants to invoke a tool.
     ToolUse {
         id: String,
-        /// Human-readable display title (e.g. "Write .magistr/current-plan.md").
+        /// Human-readable display title (e.g. "Update src/lib.rs").
         name: String,
         input: serde_json::Value,
         /// ACP tool kind (read, edit, execute, search, etc.) for icon display.

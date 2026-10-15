@@ -426,7 +426,7 @@ impl NativeEngines {
     // ── Ship ───────────────────────────────────────────────────────────
 
     /// Define the objective (the `ship_set_objective` verb); answers how
-    /// many stale tasks a fresh cycle cleared.
+    /// many tasks a fresh cycle retained from the preceding objective.
     pub fn ship_set_objective(
         &self,
         description: String,

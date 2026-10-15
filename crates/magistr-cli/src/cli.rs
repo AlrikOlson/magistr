@@ -158,7 +158,7 @@ pub enum Command {
         #[arg(default_value = ".")]
         dir: PathBuf,
 
-        /// Resume from the most recent active plan instead of creating a new one
+        /// Continue the selected unfinished objective and task plan
         #[arg(long, short = 'c', conflicts_with = "headless")]
         r#continue: bool,
 
@@ -306,7 +306,7 @@ pub enum Command {
         dir: PathBuf,
     },
 
-    /// List past plans with status (active, completed, abandoned)
+    /// List current and retained work plans
     Plans {
         /// Project directory (defaults to current directory)
         #[arg(default_value = ".")]
