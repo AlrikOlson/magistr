@@ -55,7 +55,12 @@ export class AttachmentList {
         if (file.preview) {
           const image = this.document.createElement("img"); image.src = file.preview; image.alt = "Preview of " + file.name;
           item.append(image);
-        } else if (file.excerpt !== undefined) {
+        } else {
+          const badge=this.document.createElement("span");badge.className="attachment-badge";badge.setAttribute("aria-hidden","true");
+          badge.textContent=file.name.includes(".")?file.name.split(".").at(-1).slice(0,5).toLocaleUpperCase():"FILE";
+          item.append(badge);
+        }
+        if (!file.preview && file.excerpt !== undefined) {
           const preview = this.document.createElement("details"), summary = this.document.createElement("summary"), excerpt = this.document.createElement("pre");
           summary.textContent = "Preview"; summary.setAttribute("aria-label", "Preview " + file.name);
           excerpt.textContent = file.excerpt || "This file is empty."; preview.append(summary, excerpt); content.append(preview);
@@ -63,7 +68,7 @@ export class AttachmentList {
         item.append(content);
         let remove=null;
         if(this.remove) {
-          remove=this.document.createElement("button"); remove.type="button"; remove.textContent="Remove";
+          remove=this.document.createElement("button"); remove.type="button"; remove.textContent="×";
           remove.setAttribute("aria-label","Remove "+file.name); remove.onclick=()=>this.remove(file.id); item.append(remove);
         }
         row={item,remove}; this.rows.set(file.id,row);

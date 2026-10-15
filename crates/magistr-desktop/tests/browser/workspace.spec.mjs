@@ -159,6 +159,22 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
     await capture("tools-"+theme+".png");
   }
   checks["tool cards distinguish result, failure and duration without losing disclosure"]=true;
+  await app.evaluate(()=>{
+    const frame=window.__fixture.frames.get("release");
+    window.__fixture.publish("release",{attachments:[
+      {id:"notes",name:"release-notes.md",size:2460,path:"docs/release-notes.md",content_hash:"notes",excerpt:"# Release notes\n\nKeep the draft when changing conversations."},
+      {id:"icon",name:"icon.png",size:32768,path:"ui/icon.png",content_hash:"image",preview:"http://magistr.test/icon.png"}
+    ],draft_revision:frame.draft_revision+1,draft_saved_revision:frame.draft_revision+1});
+  });
+  await expect(app.getByRole("list",{name:"Files to send",exact:true})).toBeVisible();
+  await capture("attachments-dark.png");
+  await app.getByRole("button",{name:"Settings",exact:true}).click();
+  await app.getByLabel("Appearance",{exact:true}).selectOption("light");
+  await app.getByRole("button",{name:"Done",exact:true}).click();
+  await app.setViewportSize({width:800,height:680});
+  await expect(app.getByRole("button",{name:"Remove release-notes.md",exact:true})).toBeVisible();
+  await capture("attachments-narrow-light.png");
+  checks["file cards retain preview, path, size and named removal at compact width"]=true;
   const sources={};
   for(const name of (await readdir(ui)).sort()){
     const file=resolve(ui,name);
