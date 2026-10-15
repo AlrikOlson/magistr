@@ -192,3 +192,10 @@ test("20 conversation actions are visible before hover and return keyboard focus
   await app.keyboard.press("Escape");await expect(more).toBeFocused();await expect(app.getByRole("button",{name:"Close Investigate sync failure",exact:true})).toBeHidden();
   await app.setViewportSize({width:760,height:550});await showProjects(app);await more.click();const action=app.getByRole("button",{name:"Close Investigate sync failure",exact:true});await expect(action).toBeInViewport();await capture(app,"20-actions-compact");
 });
+test("21 conversation toolbar groups work controls and preserves working-copy access",async({app})=>{
+  await app.getByRole("button",{name:"Review the release plan",exact:true}).click();await app.setViewportSize({width:760,height:550});
+  const toolbar=app.getByRole("navigation",{name:"Conversation controls",exact:true});await expect(toolbar.getByRole("group",{name:"Work and requests",exact:true})).toBeVisible();
+  expect(await toolbar.evaluate(node=>node.scrollWidth-node.clientWidth)).toBeLessThanOrEqual(1);
+  for(const theme of ["dark","light"]){await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);await capture(app,"21-toolbar-"+theme);}
+  await app.getByRole("button",{name:"Working copy: main",exact:true}).click();await expect(app.locator("#session-detail")).toBeVisible();
+});
