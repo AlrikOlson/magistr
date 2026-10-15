@@ -29,9 +29,14 @@ export class WorkBrowser {
     this.searchFields=[...$("work-browser").querySelectorAll('input[type="search"]')].map(input=>{
       const field=element("div","","work-search-field"),clear=element("button","×","work-search-clear");
       clear.type="button";clear.setAttribute("aria-label","Clear "+input.labels[0].textContent.toLowerCase());clear.title="Clear search";clear.hidden=!input.value;
-      input.before(field);field.append(input,clear);
+      input.title="Find in this view (⌘F or Ctrl+F)";input.before(field);field.append(input,clear);
       clear.onclick=()=>{input.value="";input.dispatchEvent(new Event("input",{bubbles:true}));input.focus();};
       input.addEventListener("input",()=>{clear.hidden=!input.value;});return {input,clear};
+    });
+    $("work-browser").addEventListener("keydown",event=>{
+      if(event.isComposing||event.altKey||event.shiftKey||!(event.metaKey||event.ctrlKey)||event.key.toLowerCase()!=="f")return;
+      const field=this.searchFields.findLast(({input})=>input.getClientRects().length&&!input.disabled);
+      if(!field)return;event.preventDefault();event.stopPropagation();field.input.focus();field.input.select();
     });
     $("work-browser-roadmap-state").onchange=()=>{this.item.close();this.key="";this.render();};
     $("browse-work").onclick=()=>this.open($("browse-work"));
