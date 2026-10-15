@@ -110,6 +110,7 @@ desktop workspace. Companion Rust tests live beside their owners.
 - `crates/magistr-desktop/src/preferences.rs`
 - `crates/magistr-desktop/ui/drafts.mjs`
 - `crates/magistr-desktop/ui/preferences.mjs`
+- `crates/magistr-desktop/ui/motion.mjs` — finite dialog and writing-surface entrances, cancellation when reduced motion applies, and disposal.
 - `crates/magistr-desktop/ui/saved_drafts.mjs`
 - `crates/magistr-desktop/tests/drafts.mjs`
 - `crates/magistr-desktop/tests/preferences.mjs`
