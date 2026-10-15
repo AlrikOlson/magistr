@@ -66,3 +66,13 @@ test("05 roadmap status and readiness remain distinct",async({app})=>{
     await capture(app,"05-status-"+theme);
   }
 });
+test("06 track choices show owner counts and preserve the selection",async({app})=>{
+  await openWork(app,"Roadmap");
+  const tracks=app.getByLabel("Track",{exact:true});
+  await expect(tracks.locator('option[value=\'"Desktop"\']')).toHaveText("Desktop · 3 open");
+  await tracks.selectOption('"Platform"');
+  await expect(tracks.locator("option:checked")).toHaveText("Platform · Past work");
+  await app.evaluate(()=>window.__fixture.publish("release",{workflow_revision:1}));
+  await expect(tracks).toHaveValue('"Platform"');
+  await capture(app,"06-tracks");
+});
