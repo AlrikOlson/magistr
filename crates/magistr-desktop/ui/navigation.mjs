@@ -12,6 +12,11 @@ export function projectGroups(projects,sessions) {
   }
   return [...groups.values()];
 }
+// Stable visual identity derives only from the canonical project id.
+export function projectVariant(id) {
+  let hash=0;for(const character of id)hash=(Math.imul(hash,31)+character.codePointAt(0))>>>0;
+  return String(hash%4);
+}
 const node=(tag,className,value="")=>{const el=document.createElement(tag);el.className=className;el.textContent=value;return el;};
 function place(parent,children) {
   children.forEach((child,index)=>{if(parent.children[index]!==child)parent.insertBefore(child,parent.children[index]??null);});
@@ -78,7 +83,7 @@ export class ProjectNavigation {
         group={root,heading,name,count,path,body,open,strip,icon,project};this.groups.set(project.id,group);
         open.onclick=()=>this.open(group.project.directory);
       }
-      group.project=project;group.name.textContent=project.name;
+      group.project=project;group.root.dataset.variant=projectVariant(project.id);group.name.textContent=project.name;
       group.icon.textContent=Array.from(project.name.trim()).slice(0,2).join("").toLocaleUpperCase();
       group.root.dataset.selected=String(project.sessions.some(session=>addressKey(session.address)===addressKey(selected)));
       group.heading.title=project.directory;group.heading.setAttribute("aria-label",project.name+" · "+project.directory);
