@@ -103,6 +103,12 @@ there before promoting accepted captures to `docs/evidence/desktop-layout` and
 updating its review.
 `./scripts/screenshot-gate.sh` checks current background layout evidence,
 contrast, icon, module index, and integrity of retained native evidence.
+For a bounded change, record a per-image `review.json` beside the iteration captures
+and run `python3 scripts/interface-index-gate.py` followed by
+`python3 scripts/desktop-visual-gate.py --iteration <dated-folder>`.
+This checks that iteration's current source hashes, image bytes, review verdicts,
+and both appearances at desktop and native minimum sizes. It keeps the native
+archive checks and does not claim unrelated historical captures are current.
 
 Native OS-input journeys require a reserved desktop and explicit user
 authorization for that run. They fail before side effects without
