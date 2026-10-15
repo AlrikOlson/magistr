@@ -186,21 +186,21 @@ article.you{background:var(--panel);padding:18px 24px;border-radius:12px 12px 4p
 .code-document pre:focus-visible{outline-offset:-3px}.code-document figcaption button:focus-visible{outline-offset:0}
 .transcript summary{cursor:pointer;color:var(--text);font-weight:600;overflow-wrap:anywhere}
 .tool-body{padding-top:12px}.tool-body h3{font-size:12px;color:var(--muted);margin:12px 0 5px}.tool-body pre{background:var(--base)}
-.transcript article[data-tool]{padding:14px 0;font-size:13px;border-top:1px solid var(--separator);margin-left:0}
+.transcript article[data-tool]{padding:0;font-size:13px;border:1px solid var(--surface-edge);border-radius:10px;background:var(--panel);margin-left:0;overflow:hidden}
 
-.transcript article[data-tool]>header{margin-bottom:5px}.transcript article[data-tool] .message-role{font-size:11px;color:var(--muted)}.transcript article[data-tool]>header button{font-size:11px}
-.transcript article[data-tool] summary{display:flex;align-items:center;gap:10px;list-style:none;font-size:13px;font-weight:550;min-height:32px}
+.transcript article[data-tool]>header{margin:0;padding:12px 18px 0}.transcript article[data-tool] .message-role{font-size:11px;color:var(--muted)}.transcript article[data-tool]>header button{font-size:11px}
+.transcript article[data-tool] summary{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px 16px;list-style:none;font-size:13px;font-weight:550;min-height:64px;padding:14px 18px 18px}
 .transcript article[data-tool] summary::-webkit-details-marker{display:none}
-.transcript article[data-tool] summary::after{content:"";width:6px;height:6px;border-right:1.5px solid var(--muted);border-bottom:1.5px solid var(--muted);transform:rotate(-45deg);margin-left:4px;flex-shrink:0}
+.transcript article[data-tool] summary::after{content:"";width:6px;height:6px;border-right:1.5px solid var(--muted);border-bottom:1.5px solid var(--muted);transform:rotate(-45deg);margin-left:4px;flex-shrink:0;grid-column:2;grid-row:1;justify-self:end}
 .transcript article[data-tool] details[open]>summary::after{transform:rotate(45deg)}
-.tool-title{flex:1;min-width:0;font-size:14px;font-weight:550;letter-spacing:-.015em}.tool-status{font-size:11px;color:var(--muted);white-space:nowrap}
+.tool-title{min-width:0;font-size:18px;font-weight:550;letter-spacing:-.025em;line-height:1.35;grid-column:1;grid-row:1}.tool-status{font-size:11px;color:var(--muted);white-space:nowrap;grid-column:1;grid-row:2;justify-self:start}.tool-status::before{width:13px;height:13px;flex-basis:13px}
 [data-status=completed] .tool-status{color:var(--success)}
 [data-status=failed] .tool-status{color:var(--danger)}
-[data-status=running] .tool-status{color:var(--accent)}.tool-duration{color:var(--muted);font:11px var(--font-code);white-space:nowrap}
-.tool-body{margin-top:8px}.tool-body section{margin:12px 0}
-.tool-body h3{font-size:12px;font-weight:500;color:var(--muted);margin:0 0 8px}
-.tool-body pre{margin:0;padding:12px 14px;font-size:12px;background:var(--panel)}
-@media(max-width:680px){.tool-duration{display:none}}
+[data-status=running] .tool-status{color:var(--accent)}.tool-duration{color:var(--muted);font:11px var(--font-code);white-space:nowrap;grid-column:2;grid-row:2}
+.tool-body{margin:0;padding:0;border-top:1px solid var(--separator)}.tool-body section{display:grid;grid-template-columns:82px minmax(0,1fr);gap:16px;margin:0;padding:18px}.tool-body section+section{border-top:1px solid var(--separator)}
+.tool-body h3{font-size:11px;font-weight:500;color:var(--muted);margin:0;padding-top:2px}
+.tool-body pre{margin:0;padding:0;font-size:12px;background:transparent;border-radius:0;max-height:320px;line-height:1.8}.tool-body pre:focus-visible{outline-offset:0}.tool-body>.gap{margin:16px;font-size:11px}
+@media(max-width:680px){.tool-body section{grid-template-columns:minmax(0,1fr);gap:10px}.tool-title{font-size:16px}}
 .transcript article.failed summary{color:var(--text)}.transcript article.error{border:1px solid var(--danger);border-radius:8px}
 .gap{border:1px dashed var(--line);border-radius:8px;padding:12px 16px;color:var(--muted);margin-bottom:24px;font-size:12px;text-align:center;background:var(--panel)}
 #composer{grid-area:3/1;padding:8px max(24px,calc((100% - var(--reading-width))/2)) 16px;background:var(--base)}
