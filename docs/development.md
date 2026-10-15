@@ -85,7 +85,15 @@ npm --prefix crates/magistr-desktop exec playwright install webkit
 npm --prefix crates/magistr-desktop run test:ui -- workspace.spec.mjs
 # Example of a focused unit check:
 node --test crates/magistr-desktop/tests/drafts.mjs
+# macOS system WebKit: project-opening layout, no visible window or OS input:
+swift crates/magistr-desktop/tests/project_dialog.swift
 ```
+
+The macOS project-dialog check uses the production assets in a hidden WKWebView
+with scripted admission results. It covers pending opening, startup errors,
+Cancel, setup review and compact folder entry, and writes captures and source
+hashes to `.magistr/desktop-project-opening`. It complements Playwright's WebKit
+build; neither test establishes native keyboard input or Tauri command integration.
 
 The workspace scenario writes captures and a source-bound receipt under
 `.magistr/desktop-layout`. Inspect intended visual changes before copying the

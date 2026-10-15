@@ -59,6 +59,11 @@ Project-opening failures retain the selected folder and identify the failed
 operation. Short reasons stay visible; multiline or lengthy diagnostics are
 selectable under a bounded native disclosure. Retry repeats the normal
 readiness/admission path, and pending admission disables duplicate submission.
+The ordinary project dialog sizes its form from its content; only the explicitly
+sized setup review fills its height. A percentage-height form inside an auto-height
+dialog collapses in macOS WebKit, clipping the controls while its backdrop blocks
+the window. The background `tests/project_dialog.swift` scenario exercises the
+installed system renderer without showing a window or sending OS input.
 
 The UI never launches a provider or writes a second session registry. Every
 frame carries project, canonical workspace and resident session identity. Every
