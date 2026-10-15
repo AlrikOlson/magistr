@@ -345,8 +345,10 @@ function render(frame) {
     const section=document.createElement("section");section.className="request";section.dataset.request=String(request.id);section.tabIndex=-1;section.setAttribute("aria-label","Request: "+request.title);
     const heading=text("h2","Waiting for you");heading.dataset.leadingIcon="shield";
     section.append(heading,text("h3",request.title));
-    if(request.detail)section.append(text("pre",request.detail));
-    const actions=text("div","");actions.className="request-actions";
+    if(request.detail){
+      const details=text("pre",request.detail);details.className="request-detail";details.tabIndex=0;details.setAttribute("aria-label","Request details");section.append(details);
+    }
+    const actions=text("div","");actions.className="request-actions";actions.setAttribute("role","group");actions.setAttribute("aria-label","Answer this request");
     for(const choice of request.choices) actions.append(button(choice.label,async event=>{
       const target=frame.target;const trigger=event.currentTarget;
       trigger.disabled=true;

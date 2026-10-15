@@ -1,5 +1,5 @@
 {
-  "receipt": "8a28b0da56e0daf4fadb63219829dc070cdf2cbed271a3d9771a4b2587e616a5",
+  "receipt": "dd01b12095d1d2f0e9ed87ce402b46d930cd9e741e675996d5915ca2d04590e6",
   "images": {
     "welcome-dark.png": "8c5731fdb952bbbfa3dbf6a0d9629d0ac9c122fb975489512f05f9ee88cc15c6",
     "welcome-light.png": "61c6904d4301fa606a721eef7f7bc9966afa2100ea21fc2dd597c6500fb69863",
@@ -33,14 +33,14 @@
     "code-light.png": "20ba40e69b7d593930cfcdbda222678d7d538b0fc314f6e6f6c6af6643fd7fc1",
     "tools-light.png": "9530fdabe98dff1d834218de8bb7c5c55b2bda3369245cddf7c9f87e8ccf1928",
     "tools-dark.png": "e15baf19500e26ab7ad40a94e24658eaef880b041f2b17a322ba795af0960748",
-    "attachments-dark.png": "ac368d52ce9b457ae0daf333fc1847605c11c2f924fdee920a6b37374089be84",
-    "attachments-narrow-light.png": "26b87b11bb21b951bb7200ebd8dc1b9249df47d0f401d0478e267b7e35d1b34a",
-    "request-narrow-light.png": "22a9afa68192fba1e23e89f0e82a62b5ecf833b617a6863ff38d87f85cee575b",
-    "request-dark.png": "41483353bb5fcc8980c4d6037fc99cf01e553043f29e7675ed15045101f693d5"
+    "attachments-dark.png": "c73d035a10e497e5a27a64bb13a6c1852b4ae60d9cd8c36492148ad15baff49e",
+    "attachments-narrow-light.png": "e94d209d5fac24c31cfb40c2865f09312a3de7204dc16878edad688b0fbbb4c1",
+    "request-narrow-light.png": "4629858d68321e74e2ace85f10cac765b0d56022b2cc51f9c4d9f76af6455ea1",
+    "request-dark.png": "4d2dfd55857d14f266bee83a41fa75f6ca7aae909d2300e65de0dc94affbb313"
   },
   "reviewed_on": "2026-10-15",
   "findings": [
-    "Rebuilt planned work around the actual state, a single current-attempt row and distinct continuation controls. Inspected paused dark and idle compact light captures; titles remain clear of the sticky Details heading.",
+    "Permission requests now give the exact request title and source text room to read, with paired equal-weight decisions. Inspected dark and compact light captures; keyboard and exact-target Details checks pass.",
     "Production headless WebKit only; native OS input, IME, VoiceOver and Windows were not run."
   ]
 }
