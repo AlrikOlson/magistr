@@ -162,6 +162,9 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
     await app.locator("#transcript").evaluate(node=>node.scrollTop=0);
     await expect(app.getByRole("heading",{name:"A small, recoverable change",exact:true})).toBeVisible();
     await capture("reading-"+theme+".png");
+    await app.locator(".message-body pre").scrollIntoViewIfNeeded();
+    await expect(app.locator(".message-body pre code")).toContainText("await drafts.flush(target)");
+    await capture("code-"+theme+".png");
   }
   checks["rich document typography renders headings, quotations, code and inline source"]=true;
   await app.evaluate(()=>{
