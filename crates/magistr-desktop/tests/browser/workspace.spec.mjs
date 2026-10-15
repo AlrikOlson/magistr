@@ -361,7 +361,7 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
     const file=resolve(ui,name);
     sources[relative(root,file)]=createHash("sha256").update(await readFile(file)).digest("hex");
   }
-  for(const name of ["playwright.config.mjs","tauri.conf.json","tests/browser/fixture.mjs","tests/browser/workspace.spec.mjs","tests/browser/design_scenes.mjs","tests/browser/work_fixture.mjs","tests/browser/roadmap_fixture.mjs"]) {
+  for(const name of ["playwright.config.mjs","tauri.conf.json","tests/browser/fixture.mjs","tests/browser/workspace.spec.mjs","tests/browser/design_scenes.mjs","tests/browser/work_fixture.mjs","tests/browser/roadmap_fixture.mjs","tests/browser/reasoning_fixture.mjs"]) {
     const file=resolve(root,"crates/magistr-desktop",name);
     sources[relative(root,file)]=createHash("sha256").update(await readFile(file)).digest("hex");
   }

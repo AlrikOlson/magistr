@@ -21,7 +21,7 @@ test("roadmap uses owner counts, full titles, closed tracks and ungrouped work",
   await expect(app.getByRole("tab",{name:"Current and saved work",exact:true})).toBeFocused();
   await expect(app.locator("#work-run-selection")).toBeVisible();
   await expect(app.locator("#work-track-selection")).toBeHidden();
-  await app.keyboard.press("End");
+  await app.keyboard.press("ArrowRight");
   await expect(app.getByRole("tab",{name:"Roadmap",exact:true})).toBeFocused();
   await expect(app.getByLabel("Track",{exact:true})).toHaveValue("null");
 });
