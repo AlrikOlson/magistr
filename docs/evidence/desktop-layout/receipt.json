@@ -1,7 +1,7 @@
 {
   "renderer": "headless WebKit",
   "version": "27.2",
-  "captured_at": "2026-10-15T06:30:45.519Z",
+  "captured_at": "2026-10-15T06:32:10.655Z",
   "scope": "Production desktop HTML, CSS and JavaScript with isolated observation fixtures; no native OS input or Rust owner integration.",
   "checks": {
     "project chooser presents actual projects and folder entry in both appearances": true,
@@ -51,7 +51,7 @@
     "crates/magistr-desktop/ui/drafts.mjs": "6d5dab26f19fb14f67a79077b5927adff41f3dea78186ace91cc7cc5246888b4",
     "crates/magistr-desktop/ui/history.mjs": "5753875cc59d138c417af5aa374779c853f51c30a67e91e8d10a0d3719bf3b32",
     "crates/magistr-desktop/ui/icon.png": "392002a92fdd8dc81923944cd5abd170d0867fe8eb3701d71d4df4aea083dd10",
-    "crates/magistr-desktop/ui/index.html": "969ddc6c7c4e04c66c076602e795588446c6b8d301d7eecca9b8d450bd7f23db",
+    "crates/magistr-desktop/ui/index.html": "b26c180d69f285648f42f4f01315e771cf075ad64201504056e0d9eda59b95d9",
     "crates/magistr-desktop/ui/keyboard.mjs": "ee034c0d7649b19a00bdcb7daddd4a3a9bd84f40a1f6a062a82a2babc922f270",
     "crates/magistr-desktop/ui/layout.mjs": "4c65e6a206688e27e386fa95c59eba488ef8ddcd725bfa300f0fd419baa8a072",
     "crates/magistr-desktop/ui/motion.mjs": "ac4aceb2fccfc6e9a7e33f4dd9551bbc13a9d2abf9b69495d9ff6fdd9de7c348",
@@ -67,7 +67,7 @@
     "crates/magistr-desktop/ui/session_controls.mjs": "738386755be2b65fd03899ae28e1b357b4313258d67b3edfaf72fe3fe37ff123",
     "crates/magistr-desktop/ui/source_color.mjs": "1ac22d15033a59af850c8583abdb8123ff8062c16e71d500327f5d5743d41057",
     "crates/magistr-desktop/ui/source_details.mjs": "7440e8f01b1080bb59f83dbe00a3c83a4495c75cd05e825674e44fd9173805f7",
-    "crates/magistr-desktop/ui/style.css": "3f4b623e52a40b2c03e220d30957b495897d4f290e6ec04db1a6e8a6a280fd3f",
+    "crates/magistr-desktop/ui/style.css": "700e208fcb3f12bddc5af6b5f6409931feb2e2d25b46a256ce0a4cbb2a343c2b",
     "crates/magistr-desktop/ui/supervision.mjs": "509cd792877f397ac427789d491b4f51fd2840cc1b94ae05690d295519b75431",
     "crates/magistr-desktop/ui/switcher.mjs": "7e0d3655808443dd842be7a01abc8ddd6ccc018557a920bfe6e44383ec5d857e",
     "crates/magistr-desktop/ui/transcript.mjs": "df0929eb16d76c728ba7bd8ee42df06aeda1509effe16c7f2755e6a5c504d1c6",
@@ -81,9 +81,9 @@
     "crates/magistr-desktop/tests/browser/design_scenes.mjs": "9a76ce9e4df1ed11db024c917c901e4e536c1a85f3cc166d950f87898515280a"
   },
   "images": {
-    "welcome-dark.png": "83577bcb63cbef7df3eb4c3b8f197a4fc178fc0bd8c368ffa1a0ac239a6655db",
-    "welcome-light.png": "2a7825fe5634b24153d91bb3516de008a00ce2dad5e7c8e91596fcce10569231",
-    "welcome-narrow-light.png": "d7f9b495062fb4be48b3e9db43448e1382e696e3e335476eb437c4e49af2f262",
+    "welcome-dark.png": "53ef082d68d48074f27a9e64b0829a922d027f0608b82b3ac3c3b5cf4e965a47",
+    "welcome-light.png": "471290cd5084c782d878f0f6dfd7e4ccd57febc2fefbf20c9a5074d3bb5df740",
+    "welcome-narrow-light.png": "7b138c09df17023596907e1d19c9b3e3a5d6b517c20fdd308e1b04a83310bf5f",
     "settings-dark.png": "c575e02edd98aea14f6b405ea241504549cd96f1a024895234c7df973d40702d",
     "workspace-dark.png": "5febfe297da48b6b3c1edf65bb3396472fdd3c8aaa5c7ae1b14e215fe7586624",
     "settings-light.png": "ab54cc33346438faba21d03a4cee1dc7e8590ce9754b713f24c6ac5758e396c2",
@@ -132,7 +132,7 @@
     "open-project-error-details-light.png": "60af427de9e5d47f19ad8b63a34a359f0c7412a7f0d0afa4576cbddda9adc79e",
     "empty-conversation-dark.png": "17ba0106aac12609bfb060bf66e3588a4cad93415961b4aef4588a5c57202f8d",
     "empty-conversation-light.png": "9adb59a8937a9ae5c32f38a4a098dc7fdc2a96ed6da9c440a149046cd57e2e52",
-    "tables-dark.png": "ad30fb4c8b7108a58c6177d499d24ae09a8a11bff93c96650900237b1105ca43",
+    "tables-dark.png": "a69855799fa6a3544f6e27144759b66611596d5fab1d2952a8a51869aafd142f",
     "tables-light.png": "a2a99adf5c64a82d129dede904eb3fa3bd9bb6a82a189047c4df0d0b333cc61c",
     "tables-compact.png": "9d68bc3901dd0710302ac9cdff44daf5936fad877308119028ebb906a8d8aba6",
     "patch-dark.png": "db911c499a6c82c48116d49bc5210bd9f13979d99bddde992c24ef269dfb8276",

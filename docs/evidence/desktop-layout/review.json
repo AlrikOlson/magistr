@@ -1,9 +1,9 @@
 {
-  "receipt": "f1c12938d1d9932ac5592d4b6516678c40d57ada971b5cf0842cb62cdd2cfade",
+  "receipt": "41974624df3bd0f3f0ed9876b316038fd1b6bcaaa0d9da4c3e60f0af083f178b",
   "images": {
-    "welcome-dark.png": "83577bcb63cbef7df3eb4c3b8f197a4fc178fc0bd8c368ffa1a0ac239a6655db",
-    "welcome-light.png": "2a7825fe5634b24153d91bb3516de008a00ce2dad5e7c8e91596fcce10569231",
-    "welcome-narrow-light.png": "d7f9b495062fb4be48b3e9db43448e1382e696e3e335476eb437c4e49af2f262",
+    "welcome-dark.png": "53ef082d68d48074f27a9e64b0829a922d027f0608b82b3ac3c3b5cf4e965a47",
+    "welcome-light.png": "471290cd5084c782d878f0f6dfd7e4ccd57febc2fefbf20c9a5074d3bb5df740",
+    "welcome-narrow-light.png": "7b138c09df17023596907e1d19c9b3e3a5d6b517c20fdd308e1b04a83310bf5f",
     "settings-dark.png": "c575e02edd98aea14f6b405ea241504549cd96f1a024895234c7df973d40702d",
     "workspace-dark.png": "5febfe297da48b6b3c1edf65bb3396472fdd3c8aaa5c7ae1b14e215fe7586624",
     "settings-light.png": "ab54cc33346438faba21d03a4cee1dc7e8590ce9754b713f24c6ac5758e396c2",
@@ -52,7 +52,7 @@
     "open-project-error-details-light.png": "60af427de9e5d47f19ad8b63a34a359f0c7412a7f0d0afa4576cbddda9adc79e",
     "empty-conversation-dark.png": "17ba0106aac12609bfb060bf66e3588a4cad93415961b4aef4588a5c57202f8d",
     "empty-conversation-light.png": "9adb59a8937a9ae5c32f38a4a098dc7fdc2a96ed6da9c440a149046cd57e2e52",
-    "tables-dark.png": "ad30fb4c8b7108a58c6177d499d24ae09a8a11bff93c96650900237b1105ca43",
+    "tables-dark.png": "a69855799fa6a3544f6e27144759b66611596d5fab1d2952a8a51869aafd142f",
     "tables-light.png": "a2a99adf5c64a82d129dede904eb3fa3bd9bb6a82a189047c4df0d0b333cc61c",
     "tables-compact.png": "9d68bc3901dd0710302ac9cdff44daf5936fad877308119028ebb906a8d8aba6",
     "patch-dark.png": "db911c499a6c82c48116d49bc5210bd9f13979d99bddde992c24ef269dfb8276",
@@ -96,9 +96,9 @@
     "workspace-compact-long-title.png": "32e32147b949f79597b44af31ff1fde644f7406be3b1ca58215467cdafef3c0c"
   },
   "inspected": [
-    "workspace-dark.png",
-    "minimum-workspace-light.png"
+    "welcome-dark.png",
+    "welcome-narrow-light.png"
   ],
-  "notes": "Inspected project breadcrumb, stronger title, status capsule and working-copy control. Minimum layout preserves source reading and send controls.",
+  "notes": "Inspected landing hierarchy, decorative geometric illustration, folder action and compact wrapping. Counts remain separately readable.",
   "native_limit": "Background WebKit only; native input and assistive technology not exercised."
 }
