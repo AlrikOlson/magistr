@@ -93,6 +93,16 @@
  .work-browser-heading{min-height:28px;padding:3px 12px}.surface-heading{padding:9px 14px}
  .surface-heading h3{font-size:14px}.surface-heading p{display:none}
 }
+@media(min-width:901px){
+ .project-context{display:flex;align-items:center;flex-wrap:wrap;gap:0 12px;padding-inline:16px;min-height:46px}
+ .project-context-heading{display:contents}
+ .project-context #project-name{order:0;max-width:160px;overflow:hidden;text-overflow:ellipsis}
+ .project-context .work-browser-tabs{order:1;padding:0;gap:0;flex:1;min-width:390px}
+ .project-context .work-browser-tabs button{min-height:44px;padding:8px 10px}
+ .project-context .working-location{order:2;flex:0 1 auto;max-width:200px}
+ .project-context .header-location{display:none}
+ .project-context .work-browser-tools{order:3;flex-shrink:0}
+}
 .project-context .work-browser-tools{margin-left:auto;flex-shrink:0}.project-context:has(#work-tab-conversation[aria-selected=true]) .work-browser-tools{display:none}
 .work-browser-heading{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip-path:inset(50%);border:0}
 .project-context .header-location{max-width:22vw}.project-context-heading .working-location{flex:1}
