@@ -1,5 +1,5 @@
 {
-  "receipt": "63ed4b34ca302f2431a53993f113cc8b3423fd8201179f96fff69dbfd72f8291",
+  "receipt": "aba6e3bed85ff486c1a47d604d22c93d9257b3bbd901cf14d1a54d170b524705",
   "images": {
     "welcome-dark.png": "196f05ebfbcfdacf73fe8a82ad187b73837dfd801f2a1e47c59f5c0863f9b216",
     "project-map-dark.png": "9bfb53f79bb4c5bc20d428239f65e12e83ca95825579c550ca0c522b2cdf9efe",
@@ -18,8 +18,9 @@
     "inspector-narrow-light.png": "ac07fd6fb2215d34ef88fc78cfafa6aae65867632b9df398328afafb583f27d1",
     "rename-light.png": "ad0f5715491f15f2235ddf8073d2a57d6e759c2e3c7dfec75dd8e85256403e27",
     "work-paused-dark.png": "a79d02738979c74cd380bb907ac98b612d4d5640c60c212454c63c40c9b0a372",
-    "work-plan-dark.png": "e0053fe76f63b90206dc4576629041d888ca7e55013e3a08046cb10de0f1e5ef",
-    "work-task-filter-dark.png": "af72624cf0b79e6f000aa77de147e47fd2624dc231faae16d3ea658b1cb303f6",
+    "work-plan-dark.png": "3a6ebf294c278ae313dbdb1ccb8f308401d18f383fea8246cec608c823052099",
+    "work-task-filter-dark.png": "86f540683e3f5632ff826184d2c019d7548b9b4fb09917dd8f203edb7a182044",
+    "work-check-index-dark.png": "ab27d432d4f4407d4bad4fa1e3568a94958ea267276be9bff7087787d7e3b939",
     "roadmap-dark.png": "fb43410fb6d36dc3ea5581ee0702464a3e5f03ad724a58561759b1480cee2dae",
     "roadmap-item-dark.png": "f69faa7b090139fbe2a3021a67e3680b673e3796051fecb0e0a7aea6c9319c64",
     "roadmap-dependency-dark.png": "5b217b4d195f14fab2264632508d11664c32628669ae5c1dcf0230d1c4852a5a",
@@ -36,14 +37,14 @@
     "feedback-research-dark.png": "522cd46c3a93068be90702a3d438f0d20d0f026bcc70e61f92d5eefbeebd8533",
     "feedback-linked-reasoning-dark.png": "66bc56ccce7a215b06250a2e52096fbaa611919584a724a1aa1992b8a9bf88f2",
     "feedback-search-dark.png": "3724588eeb00e63f8d8c8e436f67b13ad51d3111530d414461f735a717254369",
-    "work-check-results-dark.png": "eca614027112dc5773e1605662cbd26412acc1082d7056668c4be8c24d0f53ec",
-    "work-activity-dark.png": "7cda539091ca5234bf0fb4cdb1f880e92d5749aa5671629156cf95071bb4ac52",
-    "saved-work-dark.png": "5e3e57e83fe2e35e38074ef3281ead5851b9ef9f1723e1296d77c5bc5813dcc7",
+    "work-check-results-dark.png": "e243bb37e65c9ef9dd1885f5fa84f04f6d5450a9ee8a62a2e539405ba5b239bf",
+    "work-activity-dark.png": "1244fafc2a22bf674f9e2d0702773866023019f23d3c2afda1117b20341afb08",
+    "saved-work-dark.png": "99113661baadf14fddef0de44c465e4c080a9d496f5cc5f34d03004aba55a14b",
     "work-history-search-dark.png": "e14c2601acca46132cc74760c9cde8918f0d83c1cbdac14f471b1d13adaeccfd",
-    "work-plan-light.png": "32ca0744b054b815a7eb62330edc05d2a6a7046fedca6f6b8167ef5b3d8a777f",
+    "work-plan-light.png": "738d44fdd2553baffc57125ae0aca14031c7a54876b3f491f5c70717120503fc",
     "roadmap-light.png": "ab690a397d7f0011f4553557d1635af9954db08129f8edc608a41633e336490e",
     "roadmap-minimum.png": "607f859165dc5034d3f213bef6fe5e96fc06b63749bf1a2fae3d3986290c72e8",
-    "work-plan-minimum.png": "3bb6e05eec2b90f4c43130d25c0ab3f018453b08f9e9da205d7665c83a627c1c",
+    "work-plan-minimum.png": "30bb43b04847088b1b00f30a42774288618416a409c5606a9b61a62d430065f3",
     "inspector-dark.png": "89564c80e02d674b79bfbadf60cb4ffdef3e62bfe218c2aecf69b805fda729ff",
     "inspector-light.png": "8ea0d6264d1f3294624ec0abfd8637392848ab053fd5b2ac52937f132574666c",
     "inspector-unknown-dark.png": "90ddd2b7f563656b430918be102a28456a40ba7538432751a31110273522e430",
@@ -128,8 +129,8 @@
     "workspace-compact-long-title.png": "5a9d1fe895fa847cb572d4dfd44aaf7a1102666f6e8ac77b3d494f1c7569f91d"
   },
   "inspected": [
-    "work-task-filter-dark.png"
+    "work-check-index-dark.png"
   ],
-  "notes": "Reviewed filtered tasks with their original plan position retained. Full task status/type and check disclosures remain readable. Focused cases verify paging, live updates and resetting filters on a different execution.",
+  "notes": "Reviewed full failed check output in the aggregate check view with task context, outcome selection and readable controls. The recorded-attempt explanation remains above the list; focused tests cover exact copying and paging.",
   "native_limit": "Current native OS-input, VoiceOver and live-provider behavior were not exercised."
 }

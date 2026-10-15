@@ -35,6 +35,9 @@ export async function workScene(app,capture){
   await app.getByLabel("Task status",{exact:true}).selectOption("active");
   await app.locator(".work-tasks").evaluate(node=>node.scrollIntoView({block:"start"}));await capture("work-task-filter-dark.png");
   await app.getByLabel("Task status",{exact:true}).selectOption("all");await app.locator("#work-browser-content").evaluate(node=>node.scrollTop=0);
+  await app.getByLabel("Show",{exact:true}).selectOption("checks");await app.getByLabel("Check results",{exact:true}).selectOption("failed");
+  await app.locator(".work-check").locator("summary").click();await app.locator(".work-check").evaluate(node=>node.scrollIntoView({block:"start"}));await capture("work-check-index-dark.png");
+  await app.getByLabel("Check results",{exact:true}).selectOption("all");await app.getByLabel("Show",{exact:true}).selectOption("tasks");await app.locator("#work-browser-content").evaluate(node=>node.scrollTop=0);
   await roadmapScene(app,capture);await reasoningScene(app,capture);await feedbackScene(app,capture);
   const check=app.locator(".work-check").nth(1);await check.locator("summary").click();
   await check.evaluate(node=>node.scrollIntoView({block:"start"}));await capture("work-check-results-dark.png");
