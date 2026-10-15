@@ -28,6 +28,23 @@ test("activity material keeps the semantic counts through graphics context loss"
   await expect(app.locator(".activity-wheel strong")).toHaveText("3");
 });
 
+test("dimensional material redraws only when its displayed data changes",async({app})=>{
+  const canvas=app.locator(".activity-material");
+  const available=await canvas.evaluate(node=>!!node.getContext("webgl"));
+  test.skip(!available,"WebGL unavailable in this renderer");
+  await expect(app.locator(".activity-wheel")).toHaveAttribute("data-material","rendered");
+  await canvas.evaluate(node=>{
+    const gl=node.getContext("webgl"),draw=gl.drawArrays.bind(gl);
+    window.__draws=0;gl.drawArrays=(...args)=>{window.__draws++;return draw(...args);};
+  });
+  await app.evaluate(()=>window.__fixture.publish("release",{status:"Ready"}));
+  await app.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+  expect(await app.evaluate(()=>window.__draws)).toBe(0);
+  await app.evaluate(()=>window.__fixture.publish("release",{activity:{active:true}}));
+  await expect.poll(()=>app.evaluate(()=>window.__draws)).toBeGreaterThan(0);
+  expect(await canvas.evaluate(node=>node.getContext("webgl").getError())).toBe(0);
+});
+
 test("project groups preserve selection and addressed background actions",async({app})=>{
   const projects=app.getByRole("navigation",{name:"Projects",exact:true});
   await expect(projects.locator(".project-group")).toHaveCount(2);
