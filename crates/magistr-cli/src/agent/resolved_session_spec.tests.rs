@@ -449,6 +449,147 @@ fn application_execution_binds_every_tool_child_instead_of_configured_stale_ids(
     );
 }
 
+#[test]
+fn native_work_context_is_fresh_addressed_and_failure_is_not_absence() {
+    use magistr_engine::native::{NativeReader, ProjectAuthority, TaskType, WriterRole};
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path().join("project");
+    std::fs::create_dir(&root).unwrap();
+    let data = temp.path().join("workflow");
+    let inputs = crate::config::inputs::ProjectInputs::from_lookup(&root, |key| match key {
+        "THINK_AND_SHIP_DATA_DIR" => Some(data.to_string_lossy().into_owned()),
+        "MAGISTR_EXECUTION_ID" => Some("selected".into()),
+        _ => None,
+    });
+    let native = inputs.workflow();
+    let writer = ProjectAuthority::admit(native, WriterRole::Host)
+        .unwrap()
+        .open();
+    let resolve = |execution: Option<&str>| {
+        let mut config = AgentConfig::new("Resume", &root)
+            .with_inputs(&inputs)
+            .resume("saved-conversation")
+            .system_prompt("Project instructions");
+        config.execution_id = execution.map(str::to_owned);
+        ResolvedSessionSpec::resolve_with_runtime(
+            config,
+            &UserConfig::default(),
+            runtime("scripted"),
+        )
+    };
+    let absent = resolve(None).unwrap();
+    assert!(
+        absent
+            .config
+            .system_prompt
+            .unwrap()
+            .contains("\"current\": null")
+    );
+    writer
+        .ship_set_objective(
+            "Read the selected plan".into(),
+            vec!["Keep full authored requirements".into()],
+            vec!["Preserve unrelated changes".into()],
+            "chunk:context".into(),
+        )
+        .unwrap();
+    writer
+        .ship_add_task(
+            "edit".into(),
+            "Implement native context".into(),
+            TaskType::Implement,
+            None,
+        )
+        .unwrap();
+    writer.ship_start_task("edit").unwrap();
+    let run = NativeReader::open(native)
+        .ship_snapshot()
+        .unwrap()
+        .current
+        .unwrap();
+    let first = resolve(None).unwrap();
+    let prompt = first.config.system_prompt.as_deref().unwrap();
+    for value in [
+        "Project instructions",
+        "Read the selected plan",
+        "Keep full authored requirements",
+        "Preserve unrelated changes",
+        "Implement native context",
+        "\"active_task\": \"edit\"",
+        run.run_id.as_str(),
+        run.task_instances["edit"].as_str(),
+        "ship_status",
+    ] {
+        assert!(prompt.contains(value), "missing {value}: {prompt}");
+    }
+    assert_eq!(first.config.execution_id.as_deref(), Some("selected"));
+    assert!(matches!(first.session_mode(), AcpSessionMode::Load { .. }));
+    let other = resolve(Some("another")).unwrap();
+    assert!(
+        other
+            .config
+            .system_prompt
+            .unwrap()
+            .contains("\"current\": null")
+    );
+
+    writer.ship_complete_task("edit", vec![]).unwrap();
+    let resumed = resolve(None).unwrap().config.system_prompt.unwrap();
+    assert!(resumed.contains("\"active_task\": null"));
+    assert!(resumed.contains("\"status\": \"completed\""));
+    assert!(
+        prompt.contains("\"active_task\": \"edit\""),
+        "the earlier observation stays frozen"
+    );
+
+    let path = data
+        .join("ship")
+        .join("executions")
+        .join(native.execution_context().key())
+        .join("sessions")
+        .join(format!("{}.json", native.resolve_project_id()));
+    let valid = std::fs::read(&path).unwrap();
+    std::fs::write(&path, b"{ unreadable work").unwrap();
+    let failure = resolve(None)
+        .err()
+        .expect("bad current work must refuse startup");
+    assert!(
+        failure
+            .to_string()
+            .contains("Could not read the current work")
+    );
+    assert!(
+        resolve(Some("another")).is_ok(),
+        "failure belongs to the selected execution"
+    );
+    std::fs::write(&path, valid).unwrap();
+    assert!(
+        resolve(None)
+            .unwrap()
+            .config
+            .system_prompt
+            .unwrap()
+            .contains("Read the selected plan")
+    );
+
+    let second = temp.path().join("other-project");
+    std::fs::create_dir(&second).unwrap();
+    let other_inputs = inputs.for_project(&second);
+    let other = ResolvedSessionSpec::resolve_with_runtime(
+        AgentConfig::new("Hello", &second).with_inputs(&other_inputs),
+        &UserConfig::default(),
+        runtime("scripted"),
+    )
+    .unwrap();
+    assert!(
+        other
+            .config
+            .system_prompt
+            .unwrap()
+            .contains("\"current\": null")
+    );
+}
+
 struct NoSourceWrites;
 
 impl magistr_application::effects::SourceWriter for NoSourceWrites {

@@ -17,6 +17,7 @@ pub mod observation;
 pub mod permission_request;
 mod probe;
 mod purpose_policy;
+mod work_context;
 pub use probe::{probe_all_providers, probe_models};
 pub mod probe_model;
 pub mod provider_model_set;

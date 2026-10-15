@@ -80,6 +80,7 @@ impl ResolvedSessionSpec {
         validate_continuation(&config)?;
         config.cwd = std::fs::canonicalize(&config.cwd)
             .map_err(|error| MagistrError::io(&config.cwd, error))?;
+        super::work_context::apply(&mut config)?;
         let mut provenance =
             super::session_defaults::session_defaults(&mut config, defaults, &runtime)?;
         let governance = crate::team::TeamConfig::load(&config.cwd)?

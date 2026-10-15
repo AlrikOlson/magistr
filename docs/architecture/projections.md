@@ -108,9 +108,18 @@ another is stale or unavailable; there is no global file revision or
 cross-family transaction. Derived workstream
 views preserve the roadmap's read state and source.
 
-Attaching a native reader does not read workflow files or prevent an ordinary
-conversation from opening. Direct decision readers require a current successful
-read and return errors otherwise. Work selection, status decisions and
+Attaching a native reader does not itself read workflow files. Shared session
+resolution reads current work before provider startup using the workflow inputs
+captured in `ProjectInputs`, the canonical working copy and the selected execution.
+The same execution is bound into tool subprocesses. One ship observation supplies
+the objective, authored requirements and complete task plan with stable identities;
+missing work is explicit and a failed read refuses startup. Fresh and resumed
+sessions get a new observation, while an already resolved session keeps its snapshot.
+Purpose policy continues to restrict planning conversations. Recovery instructions
+require a fresh `ship_status` read after provider compaction; the current transport
+has no compaction callback that refreshes instructions automatically.
+
+Direct decision readers require a current successful read and return errors otherwise. Work selection, status decisions and
 checkpoint capture cannot interpret retained stale records as current or
 failures as an empty roadmap.
 Checkpoint progress and roadmap identity come from the same validated
