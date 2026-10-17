@@ -228,7 +228,10 @@ desktop workspace. Companion Rust tests live beside their owners.
 - `crates/magistr-desktop/tests/browser/freeform_workspace.spec.mjs` — camera, arrangement, inspection and shell continuity.
 ## Desktop review catalog
 
-- `crates/magistr-desktop/.storybook/main.mjs` — HTML/Vite catalog and production static assets.
+- `crates/magistr-desktop/.storybook/main.mjs` — HTML/Vite catalog, production static assets and generated-output watch exclusions.
+- `crates/magistr-desktop/tests/storybook_watch.test.mjs` — real Vite watcher excludes native build output while detecting UI, story and fixture changes.
+- `crates/magistr-desktop/playwright.stories-dev.config.mjs` — development server checks and optional canonical story captures.
+- `crates/magistr-desktop/tests/browser/storybook.dev.spec.mjs` — manager loading and verified sidebar story switching under bounded waits.
 - `crates/magistr-desktop/stories/desktop.mjs` — isolated production document, shared observations and visible-state verification.
 - `crates/magistr-desktop/tests/browser/observations.mjs` — deterministic native observations shared by stories and interaction fixtures.
 - `crates/magistr-desktop/tests/browser/storybook.spec.mjs` — verified story identities, viewport/appearance capture and wrong-screen rejection.

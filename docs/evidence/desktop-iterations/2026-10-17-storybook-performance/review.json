@@ -1,0 +1,102 @@
+{
+  "scope": "Storybook development performance and representative rendered states",
+  "limitations": "Headless WebKit against the Storybook development server with isolated native observations. These captures cover four representative stories, both appearances and desktop/compact sizes; native OS input, assistive technology and Rust command integration were not exercised.",
+  "images": {
+    "conversation--release-plan-compact-dark.png": {
+      "sha256": "3d497f524ec31609cce416c40fe36ec622cf69ae10008fdffa1b4e9f02376ded",
+      "task": "Read the agent reply and continue the conversation.",
+      "observations": "The compact conversation shows the selected destination, readable reply excerpt, Latest control and complete unsent-message composer. The transcript continues outside its scroll viewport; composer controls remain separate and legible. Dark surfaces retain readable text and distinct lavender focus. Caption matches the visible state; no new clipping or overlap from development rendering.",
+      "verdict": "pass"
+    },
+    "conversation--release-plan-compact-light.png": {
+      "sha256": "0846cc09378cab0eedc09dba7952b308f852cb930aa0361d333addeb83d8e98b",
+      "task": "Read the agent reply and continue the conversation.",
+      "observations": "The compact conversation shows the selected destination, readable reply excerpt, Latest control and complete unsent-message composer. The transcript continues outside its scroll viewport; composer controls remain separate and legible. Light surfaces retain readable text and distinct purple focus. Caption matches the visible state; no new clipping or overlap from development rendering.",
+      "verdict": "pass"
+    },
+    "conversation--release-plan-desktop-dark.png": {
+      "sha256": "98235a030a00ca31fa24554b8d4e63a237ddd0ae3e8c8332c16055bdc0a5a825",
+      "task": "Read the agent reply and continue the conversation.",
+      "observations": "The desktop conversation retains its sidebar, title/actions, readable reply hierarchy, Latest control and unsent-message composer. The current reply continues below the transcript viewport; no toolbar or composer control overlaps another. Dark surfaces retain readable text and distinct lavender focus. Caption matches the visible state; no new clipping or overlap from development rendering.",
+      "verdict": "pass"
+    },
+    "conversation--release-plan-desktop-light.png": {
+      "sha256": "f525a27172f5db07faf79f36ddb95e45605b561195eb3c2be97965477f01ba6b",
+      "task": "Read the agent reply and continue the conversation.",
+      "observations": "The desktop conversation retains its sidebar, title/actions, readable reply hierarchy, Latest control and unsent-message composer. The current reply continues below the transcript viewport; no toolbar or composer control overlaps another. Light surfaces retain readable text and distinct purple focus. Caption matches the visible state; no new clipping or overlap from development rendering.",
+      "verdict": "pass"
+    },
+    "feedback--research-compact-dark.png": {
+      "sha256": "6488b665dbcc621f0ddde6bdcb549da5ee7944bbbf7c1a5c351551d878e4dcfb",
+      "task": "Inspect evidence behind a feedback item.",
+      "observations": "The expanded research disclosure shows its summary, recorded facts, reasoning reference and both source rows. Focus is visible on the disclosure. Earlier feedback is partly above the scroll boundary, while the complete research note and its actions fit. Dark surfaces retain readable text and distinct lavender focus. Caption matches the visible state; no new clipping or overlap from development rendering.",
+      "verdict": "pass"
+    },
+    "feedback--research-compact-light.png": {
+      "sha256": "78368a611b48c0bea166610f90ef016aad58b8b26b87590643faa92064fe4fc0",
+      "task": "Inspect evidence behind a feedback item.",
+      "observations": "The expanded research disclosure shows its summary, recorded facts, reasoning reference and both source rows. Focus is visible on the disclosure. Earlier feedback is partly above the scroll boundary, while the complete research note and its actions fit. Light surfaces retain readable text and distinct purple focus. Caption matches the visible state; no new clipping or overlap from development rendering.",
+      "verdict": "pass"
+    },
+    "feedback--research-desktop-dark.png": {
+      "sha256": "7bff78fabc4bbc89a076d3988f6ad559fd8c9aeed6df95f373f722c8abd9f394",
+      "task": "Inspect evidence behind a feedback item.",
+      "observations": "The expanded research disclosure shows its summary, recorded facts, reasoning reference and both source rows. Focus is visible on the disclosure. Earlier feedback is partly above the scroll boundary, while the complete research note and its actions fit. Dark surfaces retain readable text and distinct lavender focus. Caption matches the visible state; no new clipping or overlap from development rendering.",
+      "verdict": "pass"
+    },
+    "feedback--research-desktop-light.png": {
+      "sha256": "61347d5b9ff09d007031634b489dd93681e4a0e85c8ba503fa022b46c1abc6f0",
+      "task": "Inspect evidence behind a feedback item.",
+      "observations": "The expanded research disclosure shows its summary, recorded facts, reasoning reference and both source rows. Focus is visible on the disclosure. Earlier feedback is partly above the scroll boundary, while the complete research note and its actions fit. Light surfaces retain readable text and distinct purple focus. Caption matches the visible state; no new clipping or overlap from development rendering.",
+      "verdict": "pass"
+    },
+    "projects-directory--list-compact-dark.png": {
+      "sha256": "93207cc997a92c560ac2adb9e60c0c7cdf8b2eb2ab7d5db7b5c4ebea11dd289c",
+      "task": "Choose a project or open a folder.",
+      "observations": "Projects heading, folder action, activity strip, search and both project headers are readable; the second project's conversation continues below the scroll boundary. This is the directory list, with navigation collapsed. Dark surfaces retain readable text and distinct lavender focus. Caption matches the visible state; no new clipping or overlap from development rendering.",
+      "verdict": "pass"
+    },
+    "projects-directory--list-compact-light.png": {
+      "sha256": "0a1baccc18e7354167cb26146ceee3b0ab141b73526495448d1d29573385f14f",
+      "task": "Choose a project or open a folder.",
+      "observations": "Projects heading, folder action, activity strip, search and both project headers are readable; the second project's conversation continues below the scroll boundary. This is the directory list, with navigation collapsed. Light surfaces retain readable text and distinct purple focus. Caption matches the visible state; no new clipping or overlap from development rendering.",
+      "verdict": "pass"
+    },
+    "projects-directory--list-desktop-dark.png": {
+      "sha256": "2cd0ed1a1cef64bc5dea33589322123e0d7f5086e53af4930fc430f4792dcde1",
+      "task": "Choose a project or open a folder.",
+      "observations": "The directory list shows two projects and three conversations, with counts aligned beside actions. The waiting conversation and attention queue are distinct; folder action focus is visible and setup is collapsed. Dark surfaces retain readable text and distinct lavender focus. Caption matches the visible state; no new clipping or overlap from development rendering.",
+      "verdict": "pass"
+    },
+    "projects-directory--list-desktop-light.png": {
+      "sha256": "a50a67c6337215103ed4d7b6eaf744a97d6f1d83fa47e75952250ffd23e6aba1",
+      "task": "Choose a project or open a folder.",
+      "observations": "The directory list shows two projects and three conversations, with counts aligned beside actions. The waiting conversation and attention queue are distinct; folder action focus is visible and setup is collapsed. Light surfaces retain readable text and distinct purple focus. Caption matches the visible state; no new clipping or overlap from development rendering.",
+      "verdict": "pass"
+    },
+    "roadmap--overview-compact-dark.png": {
+      "sha256": "c0e24e5d3e33909234a95de04e2c793a93485b0ecc91ab8db490b51e9a799bf7",
+      "task": "Follow the dependencies between planned work.",
+      "observations": "The roadmap shows five readable items at 100%, the selected Roadmap tab and labeled filters. Solid and dashed dependencies attach to the correct card sides without crossings. Zoom/arrange/move controls remain below the cards; the independent blocked item has no invented connection. Dark surfaces retain readable text and distinct lavender focus. Caption matches the visible state; no new clipping or overlap from development rendering.",
+      "verdict": "pass"
+    },
+    "roadmap--overview-compact-light.png": {
+      "sha256": "447c16384917486c77f35836f54f610037a18789d07b524fb4f06e813c4271e5",
+      "task": "Follow the dependencies between planned work.",
+      "observations": "The roadmap shows five readable items at 100%, the selected Roadmap tab and labeled filters. Solid and dashed dependencies attach to the correct card sides without crossings. Zoom/arrange/move controls remain below the cards; the independent blocked item has no invented connection. Light surfaces retain readable text and distinct purple focus. Caption matches the visible state; no new clipping or overlap from development rendering.",
+      "verdict": "pass"
+    },
+    "roadmap--overview-desktop-dark.png": {
+      "sha256": "4be1e01a285024a35ecfb0c5493d14eb7b18080f200eb2658e7c4c508c4fd033",
+      "task": "Follow the dependencies between planned work.",
+      "observations": "The roadmap shows five readable items at 100%, the selected Roadmap tab and labeled filters. Solid and dashed dependencies attach to the correct card sides without crossings. Zoom/arrange/move controls remain below the cards; the independent blocked item has no invented connection. Dark surfaces retain readable text and distinct lavender focus. Caption matches the visible state; no new clipping or overlap from development rendering.",
+      "verdict": "pass"
+    },
+    "roadmap--overview-desktop-light.png": {
+      "sha256": "bd7fc7a62b381c18fa79833429f06fbfd438b91cc6f423f46017284af03da200",
+      "task": "Follow the dependencies between planned work.",
+      "observations": "The roadmap shows five readable items at 100%, the selected Roadmap tab and labeled filters. Solid and dashed dependencies attach to the correct card sides without crossings. Zoom/arrange/move controls remain below the cards; the independent blocked item has no invented connection. Light surfaces retain readable text and distinct purple focus. Caption matches the visible state; no new clipping or overlap from development rendering.",
+      "verdict": "pass"
+    }
+  }
+}
