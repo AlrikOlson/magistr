@@ -102,6 +102,14 @@ and share native observations with the browser interaction tests. Appearance is
 selectable in the catalog. Sidebar and compact project navigation are distinct
 stories; a story's assertions must pass before it can be captured.
 
+The Vite watcher excludes native `target/`, generated `gen/` and Python cache
+folders. Rust build output must never be watched by the interface catalog.
+Run `npm --prefix crates/magistr-desktop run test:stories:dev` to check the actual
+development server, including manager loading and sidebar story switching.
+`node --test crates/magistr-desktop/tests/storybook_watch.test.mjs` verifies that
+source changes are still observed and generated output is excluded. Static
+build checks alone cannot detect excessive development file watching.
+
 For a focused iteration, select exact IDs from Storybook's `index.json`:
 
 ```sh
@@ -113,6 +121,9 @@ npm --prefix crates/magistr-desktop run test:stories
 Comma-separated story IDs capture several related states. The runner builds
 Storybook, serves the static catalog locally, and exercises each selected story
 in headless WebKit at 1280 × 820 and 760 × 550 in dark and light appearance.
+To capture from the development server instead, use the same selection and
+iteration variables with `npm --prefix crates/magistr-desktop run test:stories:dev`.
+It reuses the same state assertions and capture writer.
 Stories restricted to a sidebar or compact panel run at their applicable size.
 It verifies the visible state again immediately before capture. Filenames derive
 from the story ID, size and appearance; receipts include the caption, task,
