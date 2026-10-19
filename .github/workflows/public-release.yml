@@ -36,8 +36,11 @@ jobs:
         run: df -h .
       - name: Check formatting
         run: cargo fmt --all -- --check
-      - name: Check release artifact validation
-        run: python3 -B scripts/cli-release.tests.py
+      - name: Check release versions and artifact validation
+        run: |
+          python3 -B scripts/version.py check
+          python3 -B scripts/version.tests.py
+          python3 -B scripts/cli-release.tests.py
       - name: Check workspace
         run: cargo check --workspace --all-targets --locked
       - name: Install cargo-nextest

@@ -2,16 +2,16 @@
 include = ["src/**", "Cargo.toml", "Cargo.lock", "LICENSE*", "PROVENANCE.md", "!**/.DS_Store", "!**/__pycache__/**", "!**/*.pyc", "!**/*.pyo"]
 repository = "https://github.com/AlrikOlson/magistr"
 name = "magistr-cockpit"
-version = "0.1.0"
+version.workspace = true
 edition = "2024"
 description = "Presentation-neutral session observations and semantic effect ports"
 license = "MIT"
 rust-version = "1.95"
 
 [dependencies]
-magistr-workflow-contracts = { version = "=0.1.0", path = "../magistr-workflow-contracts" }
-magistr-domain = { version = "=0.1.0", path = "../magistr-domain" }
-magistr-application = { version = "=0.1.0", path = "../magistr-application" }
+magistr-workflow-contracts = { workspace = true }
+magistr-domain = { workspace = true }
+magistr-application = { workspace = true }
 serde_json = "1"
 serde = { version = "1", features = ["derive"] }
 

@@ -1,6 +1,5 @@
 {
   "productName": "Magistr",
-  "version": "0.1.0",
   "identifier": "dev.magistr.desktop",
   "build": {
     "frontendDist": "ui"

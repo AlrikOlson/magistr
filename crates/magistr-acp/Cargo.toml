@@ -2,7 +2,7 @@
 include = ["src/**", "Cargo.toml", "Cargo.lock", "LICENSE*", "PROVENANCE.md", "!**/.DS_Store", "!**/__pycache__/**", "!**/*.pyc", "!**/*.pyo"]
 repository = "https://github.com/AlrikOlson/magistr"
 name = "magistr-acp"
-version = "0.1.0"
+version.workspace = true
 edition = "2024"
 description = "Magistr's ACP (Agent Client Protocol) transport: spawns an ACP agent, drives the session, and bridges permission, filesystem and terminal requests"
 license = "MIT"
@@ -16,8 +16,8 @@ test-support = ["dep:serde"]
 
 [dependencies]
 serde = { version = "1", features = ["derive"], optional = true }
-magistr-application = { version = "=0.1.0", path = "../magistr-application" }
-magistr-process = { version = "=0.1.0", path = "../magistr-process" }
+magistr-application = { workspace = true }
+magistr-process = { workspace = true }
 agent-client-protocol = "2.0"
 base64 = "0.22"
 futures = "0.3"

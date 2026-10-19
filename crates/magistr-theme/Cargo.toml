@@ -2,7 +2,7 @@
 include = ["src/**", "Cargo.toml", "Cargo.lock", "LICENSE*", "PROVENANCE.md", "!**/.DS_Store", "!**/__pycache__/**", "!**/*.pyc", "!**/*.pyo"]
 repository = "https://github.com/AlrikOlson/magistr"
 name = "magistr-theme"
-version = "0.1.0"
+version.workspace = true
 edition = "2024"
 description = "Rendering-agnostic theme definitions for Magistr — palettes, semantic mappings, TOML parsing, CSS generation. Shared between desktop and command-line consumers frontends."
 license = "MIT"

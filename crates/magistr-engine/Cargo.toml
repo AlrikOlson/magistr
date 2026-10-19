@@ -2,7 +2,7 @@
 include = ["src/**", "Cargo.toml", "Cargo.lock", "LICENSE*", "PROVENANCE.md", "build.rs", "!**/.DS_Store", "!**/__pycache__/**", "!**/*.pyc", "!**/*.pyo"]
 repository = "https://github.com/AlrikOlson/magistr"
 name = "magistr-engine"
-version = "0.1.0"
+version.workspace = true
 edition = "2024"
 # magistr needs 1.89 (std::fs::File advisory locking).
 rust-version = "1.89"
@@ -14,8 +14,8 @@ license = "MIT"
 experimental-peer = []
 
 [dependencies]
-magistr-workflow-contracts = { version = "=0.1.0", path = "../magistr-workflow-contracts" }
-magistr-domain = { version = "=0.1.0", path = "../magistr-domain" }
+magistr-workflow-contracts = { workspace = true }
+magistr-domain = { workspace = true }
 chrono = { version = "0.4", features = ["serde"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -24,7 +24,7 @@ thiserror = "2"
 tokio = { version = "1", features = ["sync", "net", "io-util", "rt", "time"] }
 # First-party workflow source; the admitted Magistr owner uses the existing
 # native store. No ambient checkout, registry fallback, or second writer.
-magistr-workflow = { version = "=0.1.0", path = "../magistr-workflow" }
+magistr-workflow = { workspace = true }
 tracing = "0.1"
 tokio-util = { version = "0.7", features = ["rt"] }
 

@@ -25,6 +25,8 @@ jobs:
           python-version: '3.12'
       - name: Check native platform
         run: test "$(uname -m)" = arm64
+      - name: Check release versions
+        run: python3 -B scripts/version.py check
       - name: Build publishable artifacts
         run: python3 scripts/distribution.py prepare --out target/cli-distribution
       - name: Verify extracted Cargo installation

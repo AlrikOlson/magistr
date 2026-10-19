@@ -18,6 +18,7 @@ import tarfile
 import tempfile
 import tomllib
 from distribution_licenses import collect as collect_notices
+from version import check as check_version
 
 ROOT=Path(__file__).resolve().parents[1]
 def run(args, cwd=ROOT, **kwargs):
@@ -43,6 +44,7 @@ def write_json(path,data):
     path.write_text(json.dumps(data,indent=2)+"\n")
 
 def prepare(args):
+    check_version(ROOT)
     if platform.system()!="Darwin" or platform.machine()!="arm64":
         raise SystemExit("Prepare the first-release native package on Apple Silicon macOS.")
     dest=args.out.resolve();dest.mkdir(parents=True,exist_ok=True)
@@ -103,6 +105,7 @@ def prepare(args):
 
 def verify_source(args):
     """Refuse publication if this checkout does not reproduce the verified Cargo archives."""
+    check_version(ROOT)
     artifacts=args.out.resolve()
     records=json.loads((artifacts/"cargo-inventory.json").read_text())
     command=["cargo","package","--locked","--allow-dirty","--no-verify"]

@@ -9,6 +9,32 @@ Rust, Bun, download hook or source checkout.
 
 Desktop distribution and other operating systems are separate release work.
 
+## Version management
+
+The authoritative product version is `workspace.package.version` in the root
+`Cargo.toml`. Keep the first public release at `0.1.0`; `1.0.0` signals a
+stable public API. See [Semantic Versioning](https://semver.org/).
+
+Use one command for a release version change:
+
+```sh
+python3 scripts/version.py set 0.2.0
+python3 scripts/version.py check
+```
+
+All Rust workspace crates inherit the version. The command updates the generated
+registry requirements, npm and Claude plugin manifests, the separate desktop
+Cargo manifest, and both Cargo lockfiles. Tauri reads its Cargo version; the
+website reads the generated npm version. Private website and desktop build tools
+have no separate release version. Protocol versions, dependency versions and
+historical verification receipts retain their own meanings.
+
+After editing the canonical field directly, run `python3 scripts/version.py sync`.
+Version changes need Cargo's dependencies available locally; the command uses the
+existing lockfiles offline and does not upgrade external dependencies. CI and
+package preparation refuse drift. Review and commit the generated changes before
+preparing packages. `python3 scripts/version.py show` prints the current version.
+
 ## Prepare and verify
 
 From the exact source revision intended for release on macOS arm64:
@@ -90,7 +116,7 @@ The first upload therefore uses the **verified tarball from that hosted run**
 with the owner's npm login and interactive 2FA; do not publish a placeholder:
 
 ```sh
-npm publish target/cli-distribution/magistr-0.1.0.tgz --access public
+npm publish target/cli-distribution/magistr-*.tgz --access public
 ```
 
 This command is the public first release and must only run after authorization.

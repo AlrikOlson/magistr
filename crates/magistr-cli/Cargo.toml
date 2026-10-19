@@ -1,7 +1,7 @@
 [package]
 include = ["src/**", "Cargo.toml", "Cargo.lock", "LICENSE*", "PROVENANCE.md", "build.rs", "templates/**", "assets/**", "!**/.DS_Store", "!**/__pycache__/**", "!**/*.pyc", "!**/*.pyo"]
 name = "magistr-cli"
-version = "0.1.0"
+version.workspace = true
 edition = "2024"
 description = "Roadmap and workflow management for coding agents"
 license = "MIT"
@@ -21,24 +21,24 @@ name = "magistr"
 path = "src/main.rs"
 
 [dependencies]
-magistr-application = { version = "=0.1.0", path = "../magistr-application" }
-magistr-domain = { version = "=0.1.0", path = "../magistr-domain" }
-magistr-core = { version = "=0.1.0", path = "../magistr-core" }
-magistr-workspace = { version = "=0.1.0", path = "../magistr-workspace" }
-magistr-process = { version = "=0.1.0", path = "../magistr-process" }
-magistr-engine = { version = "=0.1.0", path = "../magistr-engine" }
+magistr-application = { workspace = true }
+magistr-domain = { workspace = true }
+magistr-core = { workspace = true }
+magistr-workspace = { workspace = true }
+magistr-process = { workspace = true }
+magistr-engine = { workspace = true }
 rmcp = { version = "3.1", features = ["server", "client", "transport-io"] }
-magistr-workflow = { version = "=0.1.0", path = "../magistr-workflow" }
+magistr-workflow = { workspace = true }
 agent-client-protocol = "2.0"
 chrono = { version = "0.4", features = ["serde"] }
 clap = { version = "4", features = ["derive"] }
 clap_complete = "4"
 clap_mangen = "0.2"
-magistr-acp = { version = "=0.1.0", path = "../magistr-acp" }
-magistr-acp-agent = { version = "=0.1.0", path = "../magistr-acp-agent" }
-magistr-mcp = { version = "=0.1.0", path = "../magistr-mcp" }
-magistr-cockpit = { version = "=0.1.0", path = "../magistr-cockpit" }
-magistr-cockpit-runtime = { version = "=0.1.0", path = "../magistr-cockpit-runtime" }
+magistr-acp = { workspace = true }
+magistr-acp-agent = { workspace = true }
+magistr-mcp = { workspace = true }
+magistr-cockpit = { workspace = true }
+magistr-cockpit-runtime = { workspace = true }
 libc = "0.2"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
@@ -71,7 +71,7 @@ name = "workspace_bench"
 harness = false
 
 [dev-dependencies]
-magistr-acp = { version = "=0.1.0", path = "../magistr-acp", features = ["test-support"] }
+magistr-acp = { workspace = true, features = ["test-support"] }
 assert_cmd = "2"
 # The served workspace suites drive the binary as a real MCP client over its
 # own stdio (a tokio child's pipes are already a transport) and validate every

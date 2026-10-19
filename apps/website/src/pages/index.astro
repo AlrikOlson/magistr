@@ -1,4 +1,5 @@
 ---
+import { version } from "../../../../npm/magistr/package.json";
 import Base from "../layouts/Base.astro";
 import Nav from "../components/Nav.astro";
 import captures from "../../public/screenshots/captures.json";
@@ -11,7 +12,7 @@ const screenshot = (name: string) => {
 
 const jsonLd = [
   {"@context":"https://schema.org","@type":"WebSite","name":"Magistr","url":"https://magistr.dev"},
-  {"@context":"https://schema.org","@type":"SoftwareApplication","name":"Magistr","softwareVersion":"0.1.0","description":"Roadmap and workflow management for coding agents.","url":"https://magistr.dev","applicationCategory":"DeveloperApplication","operatingSystem":"macOS, Linux, Windows","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"downloadUrl":"https://github.com/AlrikOlson/magistr/releases","softwareRequirements":"Rust 1.95 or later","license":"https://github.com/AlrikOlson/magistr/blob/main/LICENSE"}
+  {"@context":"https://schema.org","@type":"SoftwareApplication","name":"Magistr","softwareVersion":version,"description":"Roadmap and workflow management for coding agents.","url":"https://magistr.dev","applicationCategory":"DeveloperApplication","operatingSystem":"macOS, Linux, Windows","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"downloadUrl":"https://github.com/AlrikOlson/magistr/releases","softwareRequirements":"Rust 1.95 or later","license":"https://github.com/AlrikOlson/magistr/blob/main/LICENSE"}
 ];
 
 /** The current desktop in both appearances. */
@@ -29,7 +30,7 @@ const docs = [
   <main id="main-content">
     <section class="hero section-shell">
       <div class="hero-copy">
-        <p class="eyebrow"><span class="status-dot"></span> Pre-release · v0.1.0</p>
+        <p class="eyebrow"><span class="status-dot"></span> Pre-release · v{version}</p>
         <h1>Roadmap and workflow management <span>for coding agents.</span></h1>
         <p class="hero-lede">Magistr keeps a project's roadmap, runs one focused work item at a time, and records the reasoning, the changes and the checks along the way — in the project, not in a chat transcript.</p>
         <div class="hero-actions">

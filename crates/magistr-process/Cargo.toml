@@ -2,7 +2,7 @@
 include = ["src/**", "Cargo.toml", "Cargo.lock", "LICENSE*", "PROVENANCE.md", "!**/.DS_Store", "!**/__pycache__/**", "!**/*.pyc", "!**/*.pyo"]
 repository = "https://github.com/AlrikOlson/magistr"
 name = "magistr-process"
-version = "0.1.0"
+version.workspace = true
 edition = "2024"
 rust-version = "1.89"
 description = "Magistr's one owned-process mechanism: a child in its own process group, bounded capture, a timeout and a cancel that end the whole group"
