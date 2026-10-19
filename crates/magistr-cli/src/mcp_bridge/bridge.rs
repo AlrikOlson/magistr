@@ -63,8 +63,12 @@ impl<L: BridgeLink, P: SessionPolicy> Bridge<L, P> {
 
     /// Relay until the client closes its side. An embedded owner is then shut
     /// down in order; an attached socket is dropped.
-    pub(crate) async fn run(mut self) -> eyre::Result<()> {
-        let (stdin, mut stdout) = stdio()?;
+    /// Serve an internal client with the same admission, session and recovery rules.
+    pub(crate) async fn run_transport(
+        mut self,
+        stdin: impl tokio::io::AsyncRead + Unpin,
+        mut stdout: impl tokio::io::AsyncWrite + Unpin,
+    ) -> eyre::Result<()> {
         let mut client = BufReader::new(stdin).lines();
         loop {
             tokio::select! {
@@ -238,7 +242,7 @@ async fn write_line(stdout: &mut (impl AsyncWriteExt + Unpin), line: &str) -> ey
 }
 
 #[cfg(unix)]
-fn stdio() -> eyre::Result<(
+pub(crate) fn stdio() -> eyre::Result<(
     crate::mcp_tools::owner_stdio::ProxyStdio,
     crate::mcp_tools::owner_stdio::ProxyStdio,
 )> {
@@ -247,6 +251,6 @@ fn stdio() -> eyre::Result<(
 }
 
 #[cfg(not(unix))]
-fn stdio() -> eyre::Result<(tokio::io::Stdin, tokio::io::Stdout)> {
+pub(crate) fn stdio() -> eyre::Result<(tokio::io::Stdin, tokio::io::Stdout)> {
     Ok((tokio::io::stdin(), tokio::io::stdout()))
 }

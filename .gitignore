@@ -100,6 +100,14 @@ secrets.json
 *.pfx
 
 # ── magistr managed ── DO NOT EDIT between markers ──
+.workbench/
+.magistr/scope/
+.magistr/loop-state.json
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
 *~
+/target/
 **/*.rs.bk
 # ── end magistr ──

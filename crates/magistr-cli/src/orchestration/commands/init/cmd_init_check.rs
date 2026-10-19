@@ -1,6 +1,6 @@
 //! `magistr init --check` — the read-only report of what magistr would
 //! change: the drift between the configured archetypes and the tree, and
-//! the startup repair the next `magistr mcp-serve` applies.
+//! the changes an explicit `magistr repair` would apply.
 
 use super::{PlanDetail, check_report_json, print_plan_plain};
 use crate::detect;
@@ -11,7 +11,7 @@ use crate::utils::format as fmt;
 use crate::validate;
 use color_eyre::eyre;
 
-/// Report drift and the pending startup repair without writing. With a
+/// Report drift and the pending repair without writing. With a
 /// machine-readable renderer the whole report is one JSON object on
 /// stdout; otherwise it is printed on stderr, the repair plan with its
 /// diffs and every refused path with its reason.
@@ -33,8 +33,7 @@ pub fn cmd_init_check(dir: &std::path::Path, renderer: &dyn OutputRenderer) -> e
     }
     let tree = detect::build_project_tree(&dir).suggest()?;
     let report = scaffold::drift::detect_drift(&archetypes, &tree);
-    // Planned only: the plan is applied by `magistr mcp-serve`, never here.
-    let repair = scaffold::repair::plan(&dir);
+    let repair = scaffold::repair::plan(&dir).suggest()?;
 
     if renderer.is_machine_readable() {
         let json = check_report_json(&report, &repair, PlanDetail::Full);
@@ -111,24 +110,22 @@ fn print_drift_plain(report: &scaffold::drift::DriftReport) {
     );
 }
 
-/// The startup repair plan: what the next `magistr mcp-serve` writes to
+/// The repair plan: what the explicit `magistr repair` writes to
 /// the files magistr owns outright, and what it will not touch and why.
 fn print_repair_plain(repair: &scaffold::ChangePlan) {
     if repair.files.is_empty() {
         eprintln!(
             "{}",
-            fmt::success(
-                "Startup repair: nothing pending — owned files are at this magistr's version"
-            )
+            fmt::success("Repair: nothing pending — owned files are at this magistr's version")
         );
         return;
     }
     print_plan_plain(
         repair,
-        "🔧 Startup repair (planned — applied at the next `magistr mcp-serve`, nothing is written now)",
+        "🔧 Repair (planned — applied at the explicit `magistr repair`, nothing is written now)",
         Some(&format!(
-            "The repair runs at the next {} start; a refused path is left as it is until its reason is resolved.",
-            fmt::bold("magistr mcp-serve")
+            "Run {} to review and apply the repair; refused paths are left untouched.",
+            fmt::bold("magistr repair")
         )),
     );
 }

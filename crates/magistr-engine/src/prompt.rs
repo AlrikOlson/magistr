@@ -122,13 +122,15 @@ pub(crate) const NEXT_WORKFLOW_INSTRUCTIONS: &str = r#"## Workflow
 Follow the Research-Plan-Execute-Verify workflow from the project rules.
 Call `magistr_set_phase` at each phase transition to record the current workflow phase.
 
-The roadmap, the plan and the gates live in think-and-ship (served by the `magistr` MCP server):
+The roadmap, plan and gates live in native Magistr state. Start with `context`; use `discover` for advanced operation schemas and `execute` with `magistr.call(name, args)` to call them. Common work uses the direct tools below:
+
+Choose `verification: "focused"` for bounded work and run the relevant checks. A full suite requires an explicit request or a stated cross-cutting risk.
 
 - `roadmap_status` + `ship_status` → recover the selected chunk and matching unfinished objective first
 - `roadmap_next` → select pending work only when there is no resumable in-progress chunk; `roadmap_start_chunk(id)` starts a pending chunk once
-- `ship_set_objective` + `ship_plan` → create a missing objective and plan; keep the matching unfinished objective and saved plan when resuming
+- `ship_set_objective` + `plan_work` → create a missing objective and plan; keep the matching unfinished objective and saved plan when resuming
 - `think_record_step` → record the plan, material findings and investigations as work proceeds, then the verified outcome
-- `ship_check` / `magistr_gate` → every quality gate, recorded with its real exit code
+- `check_work` / `magistr_gate` → every quality gate, recorded with its real exit code
 - `roadmap_complete_chunk(id, ship_ref: "task:<id>")` + `ship_finalize` → done
 
 ### Execute Phase — restrictions
@@ -140,16 +142,16 @@ During Execute, implement and test the change, recording material findings and i
 
 ### Verify Phase — /next-specific steps
 
-After quality gates pass (each recorded through `ship_check`), complete these additional steps:
+After quality gates pass (each recorded through `check_work`), complete these additional steps:
 
 1. **Update the roadmap** (MANDATORY)
    - `roadmap_complete_chunk(id: "<chunk>", ship_ref: "task:<verify task>")` for the chunk you implemented
    - `roadmap_add_chunk(status: "backlog", ...)` for work you discovered — never auto-promote it to pending
    - `roadmap_update_chunk` when the chunk's description or acceptance no longer matches reality
-   - Do NOT edit ROADMAP.md directly — it is a generated view (`roadmap_export`)
+   - Preserve the project's roadmap export policy. When `roadmap_exports` is false, never generate ROADMAP.md or ROADMAP.json or invoke `roadmap_export`.
 2. **Finalize** — record the final synthesis with `think_record_step`, linking the findings used and any unresolved questions; then close the objective with `ship_finalize(summary: ...)`
 3. **Commit** with a conventional commit message (`feat:`, `fix:`, `refactor:`, `test:`)
-   - Include ROADMAP.md when the project keeps a regenerated copy in git
+   - Include only files within the authorized change; preserve other sessions' work
 4. **Append summary** to `.magistr/iteration-log.md`
 5. **Mark done** — call `magistr_set_phase(phase: "done")`
 6. **Report** what was done, quality gate status, and what's next (`roadmap_next`)
@@ -175,7 +177,7 @@ Keep plan entry statuses up to date — the native execution plan retains each t
 - Mark entries as `completed` when you finish them
 - Only one entry should be `in_progress` at a time
 - Update the plan with every phase transition — all entries from the previous phase should be `completed` before starting the next phase
-- On resume, continue an already active task without calling `ship_start` again; do not restart completed entries or discard their actions and check results
+- On resume, continue an already active task without calling `start_work` again; do not restart completed entries or discard their actions and check results
 "#;
 
 #[cfg(test)]

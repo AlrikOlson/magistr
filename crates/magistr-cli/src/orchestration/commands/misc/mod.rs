@@ -1,5 +1,5 @@
 //! Miscellaneous commands: detect, reset, completions, man-pages,
-//! learn, memory, plugins, roadmap, mcp-proxy, mcp-serve, acp-agent.
+//! learn, memory, plugins, roadmap, mcp-proxy, mcp, acp-agent.
 
 use crate::detect;
 
@@ -39,9 +39,7 @@ mod cmd_learn;
 mod cmd_login;
 mod cmd_logout;
 mod cmd_man_pages;
-mod cmd_mcp_launch;
 mod cmd_mcp_proxy;
-mod cmd_mcp_serve;
 mod cmd_memory;
 mod cmd_plans;
 mod cmd_plugins;
@@ -73,9 +71,7 @@ pub use cmd_learn::cmd_learn;
 pub use cmd_login::cmd_login;
 pub use cmd_logout::cmd_logout;
 pub use cmd_man_pages::cmd_man_pages;
-pub use cmd_mcp_launch::cmd_mcp_launch;
 pub use cmd_mcp_proxy::cmd_mcp_proxy;
-pub use cmd_mcp_serve::cmd_mcp_serve;
 pub use cmd_memory::cmd_memory;
 pub use cmd_plans::cmd_plans;
 pub use cmd_plugins::cmd_plugins;

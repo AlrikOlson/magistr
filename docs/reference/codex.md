@@ -24,23 +24,16 @@ Setup adds the following artifacts:
 | `.agents/skills/*/SKILL.md` | Nine project skills |
 | `.agents/skills/craft/references/runtime.md` | Workflow contract and Codex adapter |
 
-The skills are `craft`, `init`, `next`, `next-loop`, `roadmap`, `roadmap-refresh`,
-`signals`, `validate`, and `workbench-routing`. Project MCP settings use the
-`magistr` server, which embeds think-and-ship, and Workbench for workspace work.
-The duplicate standalone `think-and-ship` server is disabled.
+The skills are `craft`, `init`, `next`, `next-loop`, `roadmap`,
+`roadmap-refresh`, `signals`, `validate` and `workbench-routing`.
+One `magistr` connection serves workflow and workspace operations. Cargo
+installations use `magistr mcp --dir .`; npm installations use a pinned npx
+invocation. Source tools are direct; `discover` and `execute` provide advanced
+operations. Shared conventions live in `.magistr/conventions.md`.
 
-Both transports use portable `magistr mcp-launch` commands. The `workbench-mcp`
-entry is the retained name of Magistr's native workspace bridge: the same
-binary serves it, so no external executable, checkout or Bun runtime is
-consulted, and a second Codex thread's launch attaches to the first thread's
-workspace owner instead of being refused.
-
-Start a new Codex session after setup. Project configuration depends on Codex's
-project trust settings. Inspect `roadmap_status`, `ship_status`, and
-`workbench_status` through existing connections. Every workspace launch reaches
-the one admitted owner; a workspace whose `.workbench/server.lock` still holds
-the retained legacy server's record needs `magistr workspace migrate` once,
-with that server stopped.
+Start a new trusted Codex session after setup. Inspect `context`, then discover
+`ship_status` and `workbench_status` as needed. Concurrent connections attach to
+the existing owners; each working copy keeps its own workspace journal.
 
 For native `magistr next` and `magistr next-loop`, see
 [agent settings](agent-settings.md). Those preferences select sessions Magistr
@@ -146,8 +139,8 @@ state are retained.
 `magistr codex-remove . --dry-run` prints the removal plan without writing:
 every path with its action (remove, overwrite, preserved, refused), who owns
 it and why it is kept when it is. `--json` prints the same plan as one
-object. `magistr init --check` likewise prints the startup repair plan the
-next `magistr mcp-serve` applies, including the Codex target's repair.
+object. `magistr init --check` likewise prints the explicit repair plan the
+explicit `magistr repair` applies, including the Codex target's repair.
 
 `magistr reset` deletes local project configuration and workflow state, including
 legacy state directories, after confirmation.

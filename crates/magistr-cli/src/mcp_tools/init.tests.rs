@@ -52,22 +52,10 @@ async fn check_mode_reports_the_startup_repair_plan_and_its_refusals_without_wri
     assert!(report["clean"].is_boolean());
     let repair = &report["repair"];
     assert_eq!(repair["operation"], "repair");
-    assert!(repair["summary"]["refused"].as_u64().unwrap() >= 1);
     let entries = repair["files"].as_array().unwrap();
-    let refused = entries
-        .iter()
-        .find(|e| e["path"] == ".claude/skills/next/SKILL.md")
-        .unwrap();
-    assert_eq!(refused["action"], "refused");
-    assert_eq!(refused["intent"], "refuse");
-    assert_eq!(
-        refused["reason"],
-        format!("depends on {runtime}, which is not available")
-    );
-    assert!(refused["diff"].is_null(), "the tool answer is a summary");
-    let preserved = entries.iter().find(|e| e["path"] == runtime).unwrap();
-    assert_eq!(preserved["action"], "preserved");
-    assert_eq!(preserved["expected"], "absent");
+    let runtime_change = entries.iter().find(|e| e["path"] == runtime).unwrap();
+    assert_eq!(runtime_change["action"], "create");
+    assert_eq!(runtime_change["expected"], "absent");
 
     assert!(!root.join(runtime).exists(), "a check writes nothing");
     assert_eq!(std::fs::read_to_string(&skill).unwrap(), skill_before);

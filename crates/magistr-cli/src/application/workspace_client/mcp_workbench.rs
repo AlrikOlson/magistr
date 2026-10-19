@@ -72,8 +72,11 @@ impl McpWorkbench {
     /// Whether the launch line names Magistr's native owner bridge.
     fn is_native_bridge(&self) -> bool {
         matches!(self.args.as_slice(),
-            [verb, target] | [verb, target, _]
-                if verb == "mcp-launch" && target == "workbench-mcp")
+            [verb, flag, _] if verb == "mcp" && flag == "--dir")
+            || matches!(self.args.as_slice(), [yes, package, version, binary, verb, flag, _]
+                if self.command == "npx" && yes == "--yes" && package == "--package"
+                    && version.starts_with("magistr@") && binary == "magistr"
+                    && verb == "mcp" && flag == "--dir")
     }
 
     /// The connected server, connecting on the first call.

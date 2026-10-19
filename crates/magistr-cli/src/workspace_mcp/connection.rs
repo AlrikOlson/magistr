@@ -63,7 +63,7 @@ impl WorkspaceConnection {
                     }
                     let attached = OwnerClient::attach_workspace(
                         &options.root,
-                        CallerIdentity::this_process("workspace serve"),
+                        CallerIdentity::this_process("magistr mcp"),
                         remaining.min(Duration::from_millis(250)),
                     )
                     .await;

@@ -1,5 +1,5 @@
 // Independent adapter contract runner. This is not Claude's test harness.
-import { fixture, answer } from './fixtures.js'
+import { fixture, answer, decodeRequest, compositionReply } from './fixtures.js'
 let instance = 0
 export const elements = Object.fromEntries(
   ['Box', 'Text', 'Button', 'Input', 'Select'].map((type) => [
@@ -77,11 +77,27 @@ export async function host(options = {}) {
       call: async (server, tool, args) => {
         active++
         maxActive = Math.max(active, maxActive)
-        calls.push({ server, tool, args })
+        const operation = decodeRequest(tool, args)
+        calls.push({
+          server,
+          tool: operation.tool,
+          args: operation.args,
+          request: { tool, args },
+        })
         try {
-          return await (options.read
-            ? options.read(f, server, tool, args)
-            : { structuredContent: answer(f, server, tool, args) })
+          const reply = await (options.read
+            ? options.read(f, server, operation.tool, operation.args)
+            : {
+                structuredContent: answer(
+                  f,
+                  server,
+                  operation.tool,
+                  operation.args,
+                ),
+              })
+          return tool === 'execute'
+            ? compositionReply(operation.tool, reply)
+            : reply
         } finally {
           active--
         }
@@ -91,21 +107,28 @@ export async function host(options = {}) {
       call: async (e) => {
         calls.push({ mutation: e })
         if (options.mutate) return options.mutate(f, e)
-        if (e.tool === 'mcp__magistr__ship_start') {
+        const operation = decodeRequest(e.tool.replace('mcp__magistr__', ''), e)
+        const reply = (value) =>
+          e.tool === 'mcp__magistr__execute'
+            ? compositionReply(operation.tool, value)
+            : value
+        if (operation.tool === 'start_work') {
           f.task.status = 'active'
           f.ship.active_task = f.task
           f.context.phase_task = f.task.id
           return { result: { id: f.task.id, status: 'active' } }
         }
-        if (e.tool === 'mcp__magistr__roadmap_start_chunk') {
+        if (operation.tool === 'roadmap_start_chunk') {
           f.work.status = 'in_progress'
-          return { result: { id: f.work.id, status: f.work.status } }
+          return reply({ result: { id: f.work.id, status: f.work.status } })
         }
-        if (e.tool === 'mcp__magistr__roadmap_focus_set') {
-          f.focus = { group: e.group, mode: e.mode }
-          return { result: { lane: e.lane, focus: f.focus } }
+        if (operation.tool === 'roadmap_focus_set') {
+          f.focus = { group: operation.args.group, mode: operation.args.mode }
+          return reply({
+            result: { lane: operation.args.lane, focus: f.focus },
+          })
         }
-        return {
+        return reply({
           result: {
             passed: true,
             recorded: true,
@@ -113,7 +136,7 @@ export async function host(options = {}) {
             output: 'Finished',
             receipt: 'example-check',
           },
-        }
+        })
       },
     },
     ui: {

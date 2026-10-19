@@ -1,17 +1,28 @@
 # Magistr shared runtime contract
 
-The native **magistr** MCP server owns `roadmap_*`, `think_*`, `ship_*`,
-`signal_*`, `tracker_*`, and `magistr_*` state. Use the connected server's
-advertised tool names and input schemas. Do not select a standalone
-think-and-ship server or start a second copy over the same project store.
+Use the single **magistr** MCP connection. Common tasks have direct typed tools:
+`context`, `search`, `read`, `edit`, `write`, `plan_work`, `start_work`,
+`record_progress`, `check_work`, and `finish_work`.
 
-Use **workbench-mcp** for workspace navigation and edits: `workbench_status`,
-`map`, `search`, `read`, `edit`, `files`, `script`, `run`, and `undo`. Follow
-[workbench-routing](../../workbench-routing/SKILL.md) for routing and recovery.
-Historical `ministr_*` or `iris_*` instructions map to these tools; inspect
-callers and both sides of shared interfaces. Git remains a shell operation.
-If workbench is unavailable, explain the failure and use a focused development
-fallback permitted by the project; do not bypass explicit tool policy denials.
+Find every other operation with `discover`, then request its exact schema with
+`discover({"operation":"name"})`. Execute it with
+`execute({"source":"return magistr.call('name', { /* schema arguments */ });"})`.
+This includes `roadmap_*`, `think_*`, `signal_*`, `tracker_*`, the remaining
+`ship_*` and `magistr_*` operations, and workspace `map`, `files`, `run`,
+`undo`, `script` and health. Names in the instructions below refer to catalog
+operations; use direct tools where advertised and `execute` for the rest.
+
+All calls preserve the owning service's authorization, permissions, confirmations,
+journals and source checks. Composed effects run sequentially, stop on failure
+and return receipts. Read those receipts and fresh state; never replay a partly
+applied composition. No automatic replay or rollback occurs.
+One workflow authority serves each project; one workspace authority serves each
+working copy. Do not launch a separate workflow or workspace MCP connection.
+
+Follow [workbench-routing](../../workbench-routing/SKILL.md) for workspace routing
+and recovery. Inspect callers and both sides of shared interfaces. Git remains
+a shell operation. If the connection is unavailable, explain the failure and
+use a focused fallback permitted by the project; never bypass a policy denial.
 
 Read project instructions, `.magistr/project.json`, and applicable conventions
 before choosing commands. Use the host's available web search and page-open
@@ -32,7 +43,7 @@ tooling.
 
 ## State and evidence
 
-- The native roadmap is authoritative and execution tasks live in `ship_plan`.
+- The native roadmap is authoritative and execution tasks live in `plan_work`.
   Read `roadmap_status`, `roadmap_next`, and targeted `roadmap_get` records;
   avoid dumping the complete roadmap.
 - Read `.magistr/project.json` and project instructions for roadmap export
@@ -49,12 +60,12 @@ tooling.
   `ship_status` again and take task IDs and references from those live records.
   Resume a matching scope without repeating setup. An unrelated unfinished
   objective alone is not a blocker; never reset or finalize it to make room.
-- `ship_plan` task types are `research`, `implement`, `test`, `review`,
-  `config`, and `docs`. Change lifecycle with `ship_start` and `ship_complete`;
-  keep only one task active. Record material actions with `ship_record`.
+- `plan_work` task types are `research`, `implement`, `test`, `review`,
+  `config`, and `docs`. Change lifecycle with `start_work` and `finish_work`;
+  keep only one task active. Record material actions with `record_progress`.
 - Omit `step_number` in `think_record_step` to allocate it. Link the returned
   step; total step count is not the next number. Use `think_step` to link a
-  `ship_record` action to reasoning.
+  `record_progress` action to reasoning.
 - Select verification by the changed behavior, affected dependencies, and
   acceptance criteria. Explicitly set `verification: "focused"` for bounded
   changes, including code and roadmap chunks, and record the relevant checks.
@@ -73,7 +84,7 @@ tooling.
   context was missing, recover the existing verification task and rerun the
   affected gates once to retry recording. If recording still fails, preserve
   the checkpoint and report the blocker; do not repeat green unrecorded runs.
-- For targeted `ship_check`, supply the actual `command` and check type:
+- For targeted `check_work`, supply the actual `command` and check type:
   `test`, `lint`, `typecheck`, `build`, `review`, or `manual`. The server must
   execute it. Never manufacture checks with `passed: true` or copied shell
   summaries. Inspect native errors and lifecycle refusals before proceeding.

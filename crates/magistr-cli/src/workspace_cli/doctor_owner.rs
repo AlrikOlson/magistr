@@ -20,7 +20,7 @@ use serde_json::{Value, json};
 pub(crate) const PROBE_DEADLINE: Duration = Duration::from_secs(1);
 
 const SOURCE: &str = ".workbench/server.generation + server.lock record (read-only; the lock is never taken) + one bounded probe handshake on the owner endpoint (admits nothing, mints nothing, is not counted as a session)";
-const MIGRATE: &str = "stop every workspace owner, then run `magistr workspace migrate <root>`; a waiting bridge admits on its next request";
+const RESTORE: &str = "restore workspace state from a known-good backup while all workspace owners are stopped; never remove a live owner\'s lock";
 
 /// Observe ownership of the workspace at `root` whose state lives in
 /// `state_dir`, with the probe bounded by `deadline`.
@@ -85,30 +85,12 @@ fn lock_record(lock: &Path, findings: &mut Vec<DoctorFinding>) -> Value {
             ));
             json!({ "kind": "native" })
         }
-        Ok(LockRecord::Legacy {
-            host,
-            pid,
-            pid_alive,
-        }) => {
-            let alive = match pid_alive {
-                Some(true) => "alive on this host, so the legacy server may still run",
-                Some(false) => "not running on this host",
-                None => "not judged here: the record names another host or no process",
-            };
-            findings.push(DoctorFinding::unhealthy(
-                "server.lock",
-                DoctorDataClass::Durable,
-                format!("legacy server record (host {host:?}, pid {pid}, {alive}); native admission is refused until it is migrated"),
-                MIGRATE,
-            ));
-            json!({ "kind": "legacy", "host": host, "pid": pid, "pidAlive": pid_alive })
-        }
         Ok(LockRecord::Unrecognized) => {
             findings.push(DoctorFinding::unhealthy(
                 "server.lock",
                 DoctorDataClass::Durable,
-                "empty or unrecognized lock record; native admission is refused until it is migrated",
-                MIGRATE,
+                "empty or unrecognized lock record; admission is refused",
+                RESTORE,
             ));
             json!({ "kind": "unrecognized" })
         }

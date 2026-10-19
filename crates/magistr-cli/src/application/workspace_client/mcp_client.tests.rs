@@ -119,7 +119,7 @@ fn a_spawned_server_is_handshaken_and_called() {
     let dir = tempfile::tempdir().expect("a temporary directory");
     let server = fake_server(
         dir.path(),
-        r#"{"v":1,"ok":true,"results":[{"kind":"file"}]}"#,
+        r#"{"ok":true,"receipts":[],"value":{"v":1,"ok":true,"results":[{"kind":"file"}]}}"#,
     );
     let mut client = McpClient::connect("sh", &[sh_arg(&server)], &[], None)
         .expect("the fake server completes the handshake");

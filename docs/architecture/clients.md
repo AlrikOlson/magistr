@@ -25,7 +25,7 @@ and the [workspace owner](workspace-owner.md):
 | `magistr next`, `magistr next-loop` | NativeReader for progress; the agent's MCP tools use the project owner. IterationLoop owns no workflow lease. | Admitted workspace shared across attempts | Streamed/headless command composition; next_loop_recovery and mcp_project_owner suites |
 | Hosted work driver | Host supplies NativeEngines explicitly for mutations, judging and AdmittedCheck; IterationLoop receives its reader | The host's admitted source resource | HostedWork and loop_driver suites |
 | Workflow MCP | One Service writer when admitted, otherwise attachment to the current authority | Lock-free evidence for gates | MagistrService and mcp_bridge; mcp_project_owner and mcp_service_owner |
-| Source MCP and `workspace serve` | None | One WorkspaceService when admitted, otherwise an attached bridge | HostedWorkspace; workspace_attachment and workspace_cli_verbs |
+| Source operations through `magistr mcp` | None | One WorkspaceService when admitted, otherwise an attached bridge | HostedWorkspace; workspace_attachment and workspace_cli_verbs |
 | Workspace journal, snapshot and doctor | Read-only checkpoint inspection | Lock-free source readers | Workspace CLI; workspace_cli_verbs |
 | Roadmap queries and guard | NativeReader | None | Native workflow reader; main/system-contract and command suites |
 

@@ -25,7 +25,7 @@ fn command_help_keeps_the_supported_process_roles() {
         .expect("CLI help");
     assert!(output.status.success());
     let help = String::from_utf8(output.stdout).expect("help text");
-    for command in ["run", "next", "next-loop", "mcp-launch", "workspace"] {
+    for command in ["run", "next", "next-loop", "mcp", "workspace"] {
         assert!(help.contains(command), "{command}");
     }
     assert!(!help.to_lowercase().contains("tui"), "{help}");

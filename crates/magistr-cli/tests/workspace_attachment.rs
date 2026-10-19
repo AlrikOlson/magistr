@@ -11,8 +11,6 @@ use workspace_attachment_support::{
     Connection, WAIT, assert_ok, binary, command, deny_admission, edit, file_text, generation,
     magistr, read_text, restore_admission, workspace,
 };
-#[cfg(unix)]
-use workspace_attachment_support::{dead_legacy_record, hostname, migrate};
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn a_second_process_initializes_against_the_live_workspace_owner() {
@@ -586,70 +584,35 @@ async fn a_bridge_outlives_a_native_owner_without_an_endpoint_and_admits_once_th
     deferred.close().await;
 }
 
-/// The marker still holds the legacy server's record: the bridge starts,
-/// answers `initialize` and the tool listing from the shared definition,
-/// refuses calls typed with the migration as the named action, and after
-/// `magistr workspace migrate` its next call admits — the handshake and the
-/// listing it gave are the ones a live owner gives.
-#[cfg(unix)]
+/// Unknown lock bytes are preserved until a known-good native marker is restored.
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
-async fn a_bridge_against_an_unmigrated_marker_serves_discovery_and_admits_after_migration() {
+async fn a_bridge_preserves_an_unknown_marker_and_reconnects_after_restore() {
     let dir = workspace();
-    let state = dir.path().join(".workbench");
-    std::fs::create_dir(&state).expect("state");
-    let lock = state.join("server.lock");
-    let record = dead_legacy_record();
-    std::fs::write(&lock, &record).expect("legacy record");
+    let initial = Connection::open(dir.path()).await;
+    initial.close().await;
+    let native = deny_admission(dir.path());
+    let record = std::fs::read(dir.path().join(".workbench/server.lock")).unwrap();
     let mut deferred = Connection::open(dir.path()).await;
     deferred.assert_tools().await;
-    let listed_before = tokio::time::timeout(WAIT, deferred.client.peer().list_tools(None))
-        .await
-        .expect("bounded tools/list")
-        .expect("the shared definition lists");
     let refused = deferred.call("workbench_status", json!({})).await;
-    assert_eq!(refused["ok"], false, "{refused}");
     assert_eq!(refused["error"]["code"], "ENGINE_UNAVAILABLE", "{refused}");
-    assert_eq!(refused["error"]["recovery"], "retry", "{refused}");
-    let message = refused["error"]["message"].as_str().expect("message");
-    assert!(message.contains("magistr workspace migrate"), "{message}");
-    deferred.assert_alive();
     assert!(
-        !state.join("server.generation").exists(),
-        "a refused admission mints nothing"
+        refused["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("unrecognized"),
+        "{refused}"
     );
-    assert_eq!(std::fs::read_to_string(&lock).expect("preserved"), record);
-
-    let migrated = migrate(dir.path()).await;
+    deferred.assert_alive();
     assert_eq!(
-        migrated.status.code(),
-        Some(0),
-        "{}",
-        String::from_utf8_lossy(&migrated.stderr)
+        std::fs::read(dir.path().join(".workbench/server.lock")).unwrap(),
+        record
     );
-    assert_ok(&deferred.call("workbench_status", json!({})).await);
-    assert_eq!(
-        generation(dir.path()),
-        1,
-        "the bridge admitted on its next call"
-    );
-    assert_ok(&deferred.call("read", json!({"file": "shared.txt"})).await);
-
-    let live = Connection::open(dir.path()).await;
-    assert_eq!(
-        deferred.client.peer().peer_info(),
-        live.client.peer().peer_info(),
-        "the deferred handshake is the owner's handshake"
-    );
-    let listed_after = tokio::time::timeout(WAIT, live.client.peer().list_tools(None))
-        .await
-        .expect("bounded tools/list")
-        .expect("the owner lists");
-    assert_eq!(
-        serde_json::to_value(&listed_before).expect("listing"),
-        serde_json::to_value(&listed_after).expect("listing"),
-        "the deferred listing is the owner's listing"
-    );
-    live.close().await;
+    assert_eq!(generation(dir.path()), 1);
+    restore_admission(dir.path(), &native);
+    assert_ok(&deferred.call("read", json!({"file":"shared.txt"})).await);
+    assert_eq!(generation(dir.path()), 2);
+    deferred.assert_tools().await;
     deferred.close().await;
 }
 

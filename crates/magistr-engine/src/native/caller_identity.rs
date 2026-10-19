@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 /// The attaching process as it names itself in the handshake: its pid and
-/// the surface it is (`cockpit`, `mcp-serve`, ...). Declared, not proven —
+/// the surface it is (`cockpit`, `mcp`, ...). Declared, not proven —
 /// the proof is the socket's peer credential, which the owner checks
 /// against its own uid before it reads a byte of this. The identity is
 /// kept for the owner's diagnostics and refusals, not for authority.

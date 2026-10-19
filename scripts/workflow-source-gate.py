@@ -53,14 +53,14 @@ def check(root):
     for skill in SKILLS:
         required_file(CRATE / "skills" / skill / "SKILL.md")
     # The standalone surfaces retired by arch-14f4 stay deleted: no binary, no
-    # CLI, no skill embedding, no examples, no crates.io packaging.
+    # CLI, no skill embedding, no examples. The library is release-coupled to the published CLI.
     for relative in RETIRED:
         require(not (root / CRATE / relative).exists(), f"retired standalone surface is back: {CRATE / relative}")
     manifest_text = (root / CRATE / "Cargo.toml").read_text()
     require("[[bin]]" not in manifest_text, "the workflow crate must not declare a binary")
     manifest = tomllib.loads(manifest_text)
     require(manifest["package"]["name"] == PACKAGE, f"the workflow package must be named {PACKAGE}")
-    require(manifest["package"].get("publish") is False, "the workflow package is repository-local and never published")
+    require(manifest["package"].get("publish") is not False, "the workflow library must be publishable with the CLI")
     require(manifest["lib"]["name"] == "magistr_workflow", "the workflow library must carry the Magistr name")
     license_path = root / SUBSYSTEM / "LICENSE"
     if license_path.is_file():

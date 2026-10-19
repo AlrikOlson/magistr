@@ -9,7 +9,7 @@ use std::fmt;
 // ── Built-in servers ──────────────────────────────────────────────────
 
 /// MCP servers that magistr always registers — not user-selectable, always present.
-pub(crate) const BUILTIN_MCP_SERVERS: &[&str] = &["magistr", "workbench-mcp"];
+pub(crate) const BUILTIN_MCP_SERVERS: &[&str] = &["magistr"];
 
 // ── Types ──────────────────────────────────────────────────────────────
 

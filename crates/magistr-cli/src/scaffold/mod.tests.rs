@@ -87,6 +87,10 @@ fn generate_creates_all_scaffold_files() {
     let dir = tmp.path();
 
     let template_vars = vars([
+        (
+            "selected_agents",
+            "claude,codex,cursor,copilot,cline,windsurf,aider",
+        ),
         ("project_name", "test-project"),
         ("project_description", "A test project"),
         ("language", "rust"),
@@ -251,7 +255,7 @@ fn mcp_json_has_project_root() {
     let mcp = std::fs::read_to_string(dir.join(".mcp.json")).unwrap();
     let parsed: serde_json::Value = serde_json::from_str(&mcp).unwrap();
 
-    let args = parsed["mcpServers"]["workbench-mcp"]["args"]
+    let args = parsed["mcpServers"]["magistr"]["args"]
         .as_array()
         .expect("args should be an array");
 
@@ -650,8 +654,8 @@ fn preview_summary_counts() {
 
     // project.json and the identity declaration preserved, 1 overwrite,
     // rest unchanged.
-    assert_eq!(result.preserved(), 2);
-    assert_eq!(result.overwrites(), 1);
+    assert_eq!(result.preserved(), 3);
+    assert_eq!(result.overwrites(), 0);
     assert_eq!(result.creates(), 0);
     let total = result.creates() + result.overwrites() + result.unchanged() + result.preserved();
     assert!(
@@ -690,7 +694,7 @@ fn merge_mcp_json_creates_file_when_absent() {
     let content = std::fs::read_to_string(dir.join(".mcp.json")).unwrap();
     let parsed: serde_json::Value = serde_json::from_str(&content).unwrap();
     assert!(parsed["mcpServers"]["magistr"].is_object());
-    assert!(parsed["mcpServers"]["workbench-mcp"].is_object());
+    assert!(parsed["mcpServers"].get("workbench-mcp").is_none());
 }
 
 #[test]
@@ -727,7 +731,7 @@ fn merge_mcp_json_preserves_user_servers() {
     assert!(parsed["mcpServers"]["my-custom-server"].is_object());
     // Magistr servers added
     assert!(parsed["mcpServers"]["magistr"].is_object());
-    assert!(parsed["mcpServers"]["workbench-mcp"].is_object());
+    assert!(parsed["mcpServers"].get("workbench-mcp").is_none());
 }
 
 #[test]
@@ -884,12 +888,16 @@ fn merge_mcp_json_handles_malformed_existing_file() {
     tv.insert("workbench_args".into(), "\"/tmp/project\"".into());
     tv.insert("project_root".into(), "/tmp/project".into());
 
-    // Should recover gracefully.
+    let plan = mcp_json_change(dir, &tv).unwrap();
+    assert!(matches!(
+        plan.action,
+        FileAction::Refused(Refusal::InvalidContent { .. })
+    ));
     merge_mcp_json(dir, &tv).unwrap();
-
-    let content = std::fs::read_to_string(dir.join(".mcp.json")).unwrap();
-    let parsed: serde_json::Value = serde_json::from_str(&content).unwrap();
-    assert!(parsed["mcpServers"]["magistr"].is_object());
+    assert_eq!(
+        std::fs::read_to_string(dir.join(".mcp.json")).unwrap(),
+        "not valid json"
+    );
 }
 
 // ── Gitignore merge tests ──────────────────────────────────────
@@ -1224,7 +1232,7 @@ fn init_in_the_canonical_skill_repo_preserves_byte_equality() {
         .expect("dogfood copy written");
     assert_eq!(written, canonical, "byte-equality with the canonical file");
     assert!(
-        !written.contains("vendored verbatim"),
+        !written.contains("maintained with Magistr"),
         "no provenance marker in the canonical repo"
     );
 }
@@ -1263,7 +1271,7 @@ fn init_outside_the_canonical_repo_keeps_the_provenance_marker() {
     let written = std::fs::read_to_string(dir.join(".claude/skills/workbench-routing/SKILL.md"))
         .expect("skill written");
     assert!(
-        written.contains("vendored verbatim"),
+        written.contains("maintained with Magistr"),
         "provenance marker stays where no byte-equality contract exists"
     );
 }
@@ -1281,7 +1289,7 @@ fn merge_mcp_json_preserves_a_working_tree_entry() {
         dir.join(".mcp.json"),
         serde_json::to_string_pretty(&serde_json::json!({
             "mcpServers": {
-                "workbench-mcp": {
+                "magistr": {
                     "command": "bun",
                     "args": ["run", "src/main.ts", "."],
                     "type": "stdio"
@@ -1294,20 +1302,17 @@ fn merge_mcp_json_preserves_a_working_tree_entry() {
 
     let mut tv = HashMap::new();
     tv.insert("project_root".into(), ".".into());
-    tv.insert("workbench_command".into(), "workbench-mcp".into());
+    tv.insert("workbench_command".into(), "magistr".into());
     tv.insert("workbench_args".into(), r#"".""#.into());
     merge_mcp_json(dir, &tv).unwrap();
 
     let content = std::fs::read_to_string(dir.join(".mcp.json")).unwrap();
     let parsed: serde_json::Value = serde_json::from_str(&content).unwrap();
     assert_eq!(
-        parsed["mcpServers"]["workbench-mcp"]["command"], "bun",
+        parsed["mcpServers"]["magistr"]["command"], "bun",
         "the working-tree entry survives: {content}"
     );
-    assert_eq!(
-        parsed["mcpServers"]["workbench-mcp"]["args"][1],
-        "src/main.ts"
-    );
+    assert_eq!(parsed["mcpServers"]["magistr"]["args"][1], "src/main.ts");
     // magistr's own entry is still written beside it.
     assert!(parsed["mcpServers"]["magistr"].is_object());
     assert!(content.ends_with('\n'), "trailing newline");
@@ -1331,7 +1336,7 @@ fn merge_mcp_json_rewrites_a_stale_absolute_entry() {
                 },
                 "magistr": {
                     "command": "magistr",
-                    "args": ["mcp-serve", dir.to_string_lossy()],
+                    "args": ["mcp", "--dir", dir.to_string_lossy()],
                     "type": "stdio"
                 }
             }
@@ -1348,7 +1353,7 @@ fn merge_mcp_json_rewrites_a_stale_absolute_entry() {
 
     let content = std::fs::read_to_string(dir.join(".mcp.json")).unwrap();
     let parsed: serde_json::Value = serde_json::from_str(&content).unwrap();
-    assert_eq!(parsed["mcpServers"]["workbench-mcp"]["args"][0], ".");
+    assert!(parsed["mcpServers"].get("workbench-mcp").is_none());
     assert_eq!(parsed["mcpServers"]["magistr"]["args"][2], ".");
 }
 
@@ -1363,7 +1368,7 @@ fn reset_then_init_keeps_a_working_tree_entry_through_remove_and_merge() {
         dir.join(".mcp.json"),
         serde_json::to_string_pretty(&serde_json::json!({
             "mcpServers": {
-                "workbench-mcp": {
+                "magistr": {
                     "command": "bun",
                     "args": ["run", "src/main.ts", "."],
                     "type": "stdio"
@@ -1378,14 +1383,14 @@ fn reset_then_init_keeps_a_working_tree_entry_through_remove_and_merge() {
 
     let mut tv = HashMap::new();
     tv.insert("project_root".into(), ".".into());
-    tv.insert("workbench_command".into(), "workbench-mcp".into());
+    tv.insert("workbench_command".into(), "magistr".into());
     tv.insert("workbench_args".into(), r#"".""#.into());
     merge_mcp_json(dir, &tv).unwrap();
 
     let content = std::fs::read_to_string(dir.join(".mcp.json")).unwrap();
     let parsed: serde_json::Value = serde_json::from_str(&content).unwrap();
     assert_eq!(
-        parsed["mcpServers"]["workbench-mcp"]["command"], "bun",
+        parsed["mcpServers"]["magistr"]["command"], "bun",
         "the dogfood entry survives reset followed by init: {content}"
     );
 }
@@ -1421,73 +1426,33 @@ fn the_gitignore_separator_does_not_accumulate_across_re_inits() {
 #[test]
 fn mcp_json_serializes_literal_paths_without_template_injection() {
     let tmp = tempfile::tempdir().unwrap();
-    let root = "C:/spaces 雪/with \"quote\"/back\\slash\nliteral";
-    let vars = HashMap::from([
-        ("project_root".into(), root.into()),
-        (
-            "workbench_command".into(),
-            "/launcher with \"quotes\"".into(),
-        ),
-        (
-            "workbench_args".into(),
-            serde_json::to_string(root).unwrap(),
-        ),
-    ]);
-    let (preview, action) = preview_mcp_json(tmp.path(), &vars).unwrap();
-    assert_eq!(action, FileAction::Create);
-    merge_mcp_json(tmp.path(), &vars).unwrap();
-    assert_eq!(
-        preview,
-        std::fs::read_to_string(tmp.path().join(".mcp.json")).unwrap()
-    );
-    let doc: serde_json::Value = serde_json::from_str(&preview).unwrap();
-    assert_eq!(doc["mcpServers"]["magistr"]["args"][2], root);
-    assert_eq!(
-        doc["mcpServers"]["workbench-mcp"]["command"],
-        "/launcher with \"quotes\""
-    );
-    assert_eq!(doc["mcpServers"]["workbench-mcp"]["args"][0], root);
-}
-
-#[test]
-fn portable_defaults_remain_upgradeable_but_custom_launches_survive() {
-    let tmp = tempfile::tempdir().unwrap();
-    let defaults = HashMap::new();
-    merge_mcp_json(tmp.path(), &defaults).unwrap();
-    let vars = HashMap::from([("workbench_command".into(), "chosen-launcher".into())]);
+    let root = "spaces 雪/with \"quote\"/back\\slash\nliteral";
+    let vars = HashMap::from([("project_root".into(), root.into())]);
     let (proposed, action) = preview_mcp_json(tmp.path(), &vars).unwrap();
-    assert_eq!(action, FileAction::Overwrite);
+    assert_eq!(action, FileAction::Create);
     merge_mcp_json(tmp.path(), &vars).unwrap();
     assert_eq!(
         std::fs::read_to_string(tmp.path().join(".mcp.json")).unwrap(),
         proposed
     );
     let doc: serde_json::Value = serde_json::from_str(&proposed).unwrap();
-    assert_eq!(
-        doc["mcpServers"]["workbench-mcp"]["command"],
-        "chosen-launcher"
-    );
-    assert_eq!(
-        doc["mcpServers"]["workbench-mcp"]["args"],
-        serde_json::json!(["."])
-    );
-    merge_mcp_json(tmp.path(), &defaults).unwrap();
-    assert_eq!(
-        std::fs::read_to_string(tmp.path().join(".mcp.json")).unwrap(),
-        proposed
-    );
+    assert_eq!(doc["mcpServers"]["magistr"]["args"][2], root);
+    assert_eq!(doc["mcpServers"].as_object().unwrap().len(), 1);
 }
 
 #[test]
-fn malformed_explicit_mcp_arguments_fail_before_scaffold_writes() {
-    for fragment in ["1", "\"unterminated", "{\"key\":true}"] {
-        let tmp = tempfile::tempdir().unwrap();
-        let mut vars = test_vars();
-        vars.insert("workbench_args".into(), fragment.into());
-        assert!(preview(tmp.path(), &vars, &HashMap::new(), &SetupSeeds::default()).is_err());
-        assert!(generate(tmp.path(), &vars, &HashMap::new(), &SetupSeeds::default()).is_err());
-        assert_eq!(std::fs::read_dir(tmp.path()).unwrap().count(), 0);
-    }
+fn customized_current_launch_preserves_arguments_environment_and_metadata() {
+    let tmp = tempfile::tempdir().unwrap();
+    let entry = serde_json::json!({"type":"stdio","command":"my-launcher","args":["a b"],"env":{"LOCAL":"yes"},"timeout":123});
+    std::fs::write(
+        tmp.path().join(".mcp.json"),
+        serde_json::json!({"mcpServers":{"magistr":entry}}).to_string(),
+    )
+    .unwrap();
+    merge_mcp_json(tmp.path(), &HashMap::new()).unwrap();
+    let result: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(tmp.path().join(".mcp.json")).unwrap()).unwrap();
+    assert_eq!(result["mcpServers"]["magistr"], entry);
 }
 
 /// A file that already ends with a blank line gets no second one — the

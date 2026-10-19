@@ -2,6 +2,8 @@
 
 #[path = "support/magistr_command.rs"]
 mod magistr_command;
+#[path = "support/unified.rs"]
+mod unified;
 
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
@@ -74,7 +76,7 @@ impl Fixture {
             .iter()
             .map(|arg| arg.as_str().expect("string argument"))
             .collect();
-        assert_eq!(args, ["mcp-launch", target, "."]);
+        assert_eq!(args, ["mcp", "--dir", "."]);
         let home = self.temporary.path().join("home");
         std::fs::create_dir_all(&home).expect("isolated home");
         // Select the binary under test in place of the installed `magistr`;
@@ -83,8 +85,6 @@ impl Fixture {
         command
             .args(args)
             .current_dir(cwd)
-            .env("HOME", &home)
-            .env("USERPROFILE", &home)
             .env("XDG_CONFIG_HOME", home.join("config"))
             .env("XDG_DATA_HOME", home.join("data"))
             .env("THINK_AND_SHIP_DATA_DIR", home.join("think-and-ship"))
@@ -129,14 +129,15 @@ async fn connect(mut command: Command) -> (Client, Child) {
 }
 
 async fn call(client: &Client, name: &str, arguments: Value) -> Value {
-    let mut request = CallToolRequestParams::new(name.to_owned());
+    let (public, arguments, composed) = unified::request(name, arguments);
+    let mut request = CallToolRequestParams::new(public);
     request.arguments = arguments.as_object().cloned();
     let result = timeout(DEADLINE, client.peer().call_tool(request))
         .await
         .expect("tool call deadline")
         .expect("tool response");
     assert_ne!(result.is_error, Some(true), "{name}: {result:?}");
-    let body = text_json(&result);
+    let body = unified::value(text_json(&result), composed);
     assert_ne!(body["ok"], false, "{name}: {body}");
     body
 }
@@ -184,12 +185,7 @@ async fn generated_magistr_launch_serves_native_tools_after_relocation_from_root
             .await
             .expect("tools/list deadline")
             .expect("list all native tools");
-        for name in [
-            "think_record_step",
-            "ship_status",
-            "roadmap_status",
-            "magistr_gate",
-        ] {
+        for name in ["context", "plan_work", "discover", "execute"] {
             assert!(tools.iter().any(|tool| tool.name == name), "missing {name}");
         }
         let status = call(&client, "roadmap_status", json!({})).await;
@@ -202,10 +198,7 @@ async fn generated_magistr_launch_serves_native_tools_after_relocation_from_root
 #[tokio::test]
 async fn generated_workbench_launch_reads_and_searches_relocated_workspace_from_root_and_nested_cwd()
  {
-    // The retained `workbench-mcp` alias launches this binary's native
-    // workspace bridge: nothing installed, on PATH or in a checkout is
-    // consulted. Each launch gets its own workspace so one owner's shutdown
-    // cannot leave the following probe attaching to its predecessor.
+    // Both native owners are reached through the generated connection.
     for nested in [false, true] {
         let fixture = Fixture::relocated();
         let cwd = if nested {
@@ -213,7 +206,7 @@ async fn generated_workbench_launch_reads_and_searches_relocated_workspace_from_
         } else {
             fixture.root.clone()
         };
-        let mut command = fixture.command("workbench-mcp", &cwd);
+        let mut command = fixture.command("magistr", &cwd);
         command
             .env("WORKBENCH_NETWORK_FS", "0")
             .env_remove("WORKBENCH_MCP")
@@ -223,7 +216,7 @@ async fn generated_workbench_launch_reads_and_searches_relocated_workspace_from_
             .await
             .expect("tools/list deadline")
             .expect("list Workbench tools");
-        for name in ["read", "search", "workbench_status"] {
+        for name in ["read", "search", "execute"] {
             assert!(tools.iter().any(|tool| tool.name == name), "missing {name}");
         }
         let read = call(&client, "read", json!({"file": "src/lib.rs"})).await;

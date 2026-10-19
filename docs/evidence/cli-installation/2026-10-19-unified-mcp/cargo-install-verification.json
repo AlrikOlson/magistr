@@ -1,0 +1,25 @@
+{
+  "passed": true,
+  "platform": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
+  "version": "0.1.0",
+  "capturedAt": "2026-10-19T18:53:30.125506+00:00",
+  "artifacts": {
+    "magistr-domain-0.1.0.crate": "d5ff6d0f4bc27d62e1c2a86056b69b052a4a1028528d083d8f4d3da9f55abb92",
+    "magistr-application-0.1.0.crate": "30fb0892e5d788e303d9423a95114c1a5b2efc5014859ceacad9235d25dc8d12",
+    "magistr-process-0.1.0.crate": "e8228c6787dbc51c7a43153f4849b40ba1bb8ecd558a8a4c40bbb07e82a5b339",
+    "magistr-acp-0.1.0.crate": "19f2be1b1e518b13318f8e8a3bfb1d05f1abef409dcc6e7f8ce10e0d92cce9f1",
+    "magistr-acp-agent-0.1.0.crate": "8c062f9751d12dd177a5b207c0f7adb2b7d5582dffc314985d1e57167f14dbed",
+    "magistr-workflow-contracts-0.1.0.crate": "954fe4fb8f3b82aeedbf1082b250ebb7cf73468a32bd3a4a42f168f454c5c1b3",
+    "magistr-cockpit-0.1.0.crate": "aa0ed36eec638c6ab9682deecc2365c06f7a9a23fdb84af15a41ceae71f64ee7",
+    "magistr-cockpit-runtime-0.1.0.crate": "2bd7c1a62878ff60d184926f71ffa0a222b6b1b8eaabb8ac15f7f048b96f27e9",
+    "magistr-workflow-0.1.0.crate": "10cbbedbb43037a219502f2c5c46f2b6d98c5a22a1ca913bd045b426fa861d76",
+    "magistr-engine-0.1.0.crate": "5297d0b55e4ca441d466c7ced74f5e118c57475ad7ced2a4644f2b2378c36554",
+    "magistr-workspace-0.1.0.crate": "78641237117b27b2e2fbef93eb7d11dfde93a3501abbc9874794fb28684e2e92",
+    "magistr-core-0.1.0.crate": "30d3530ef7ab6bac730a96af08d322a10e12cee0bea014893a59aa7d12ab2472",
+    "magistr-mcp-0.1.0.crate": "fbfda9f8d76251665c17d9d3a67524ae74f804d531114ac2d6d5bbe6bd73c5dd",
+    "magistr-cli-0.1.0.crate": "65f34fcc9253709c3c12d1b6adb3615e10e8e74791f601e8c1ca61e611ce9b74"
+  },
+  "registry": "checksum-verified vendored registry, including unpublished packages",
+  "profile": "release",
+  "checkoutRequired": false
+}

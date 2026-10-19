@@ -44,6 +44,7 @@ pub mod plugin;
 pub mod scaffold;
 pub mod team;
 pub mod tools;
+pub mod unified_mcp;
 pub mod utils;
 pub mod workspace_cli;
 pub mod workspace_mcp;

@@ -3,6 +3,8 @@
 
 #[path = "support/magistr_command.rs"]
 mod magistr_command;
+#[path = "support/unified.rs"]
+mod unified;
 
 use std::path::Path;
 
@@ -22,7 +24,7 @@ struct Server {
 
 impl Server {
     async fn spawn(root: &Path, data: &Path, socket: &Path) -> Self {
-        Self::spawn_as(root, data, socket, "default", &["mcp-serve"]).await
+        Self::spawn_as(root, data, socket, "default", &["mcp"]).await
     }
 
     async fn spawn_as(
@@ -100,22 +102,23 @@ impl Server {
         arguments: Value,
         expected_error: bool,
     ) -> Value {
+        let (public, arguments, composed) = unified::request(name, arguments);
         self.send(json!({"jsonrpc":"2.0","id":2,"method":"tools/call",
-            "params":{"name":name,"arguments":arguments}}))
+            "params":{"name":public,"arguments":arguments}}))
             .await;
         loop {
             let response = self.response().await.expect("tool response");
             if response["id"] == 2 {
                 let result = &response["result"];
                 assert_eq!(result["isError"] == true, expected_error, "{response}");
-                return result.get("structuredContent").cloned().unwrap_or_else(|| {
-                    serde_json::from_str(
-                        result["content"][0]["text"].as_str().unwrap_or_else(|| {
-                            panic!("Missing tool result for {name}: {response}")
-                        }),
-                    )
-                    .expect("structured JSON")
-                });
+                let body =
+                    result.get("structuredContent").cloned().unwrap_or_else(|| {
+                        serde_json::from_str(result["content"][0]["text"].as_str().unwrap_or_else(
+                            || panic!("Missing tool result for {name}: {response}"),
+                        ))
+                        .expect("structured JSON")
+                    });
+                return unified::value(body, composed);
             }
         }
     }
@@ -291,7 +294,7 @@ async fn simultaneous_stdio_start_has_one_owner_and_kill_allows_fresh_restart() 
             }),
         )
         .await;
-    assert_eq!(added["id"], "acknowledged", "{added}");
+    assert_eq!(added["value"]["id"], "acknowledged", "{added}");
     let roadmap = data.join("roadmap/sessions/owner-test.json");
     let acknowledged = std::fs::read(&roadmap).expect("persisted mutation");
     // A later server attaches to the owner's endpoint and speaks the
@@ -307,7 +310,7 @@ async fn simultaneous_stdio_start_has_one_owner_and_kill_allows_fresh_restart() 
             json!({"id":"attached", "title":"Written through the owner", "group":"Tests"}),
         )
         .await;
-    assert_eq!(through["id"], "attached", "{through}");
+    assert_eq!(through["value"]["id"], "attached", "{through}");
     // The owner's cached engines carried it out: no reload, no second writer.
     let seen = owner.call("roadmap_get", json!({"ids":["attached"]})).await;
     assert_eq!(seen["records"][0]["id"], "attached", "{seen}");
@@ -403,7 +406,7 @@ async fn owner_crash_during_a_check_refuses_once_and_does_not_replay_the_command
     .expect("script");
     survivor
         .send(json!({"jsonrpc":"2.0","id":77,"method":"tools/call",
-        "params":{"name":"ship_check","arguments":{"type":"test","name":"interrupted-check",
+        "params":{"name":"check_work","arguments":{"type":"test","name":"interrupted-check",
             "command":format!("sh '{}'", script.display())}}}))
         .await;
     timeout(Duration::from_secs(10), async {
@@ -534,7 +537,7 @@ async fn a_reader_command_answers_beside_the_running_owner_without_a_lease() {
             json!({"id":"visible", "title":"Seen by the reader", "group":"Tests"}),
         )
         .await;
-    assert_eq!(added["id"], "visible", "{added}");
+    assert_eq!(added["value"]["id"], "visible", "{added}");
 
     let lease = data.join("roadmap/sessions/owner-test.project-owner.lock");
     let before = std::fs::read(&lease).expect("the service owns the project");
@@ -623,7 +626,7 @@ async fn linked_worktrees_share_one_workflow_owner_and_keep_source_checks_and_re
     std::fs::write(main.join("source.txt"), "original\n").expect("source");
     std::fs::write(
         main.join("workbench.toml"),
-        "[edit]\nconfirm_mode = \"token\"\n",
+        "[edit]\nconfirm_mode = \"token\"\nforce_confirm = true\n",
     )
     .expect("configuration");
     git(&main, &["init", "-b", "main"]);
@@ -641,9 +644,9 @@ async fn linked_worktrees_share_one_workflow_owner_and_keep_source_checks_and_re
     let data = temp.path().join("data");
     let socket = temp.path().join("feed.sock");
 
-    let mut a = Server::spawn_as(&main, &data, &socket, "task-a", &["mcp-serve"]).await;
+    let mut a = Server::spawn_as(&main, &data, &socket, "task-a", &["mcp"]).await;
     ready(&mut a).await;
-    let mut b = Server::spawn_as(&linked, &data, &socket, "task-b", &["mcp-serve"]).await;
+    let mut b = Server::spawn_as(&linked, &data, &socket, "task-b", &["mcp"]).await;
     ready(&mut b).await;
     begin_work(&mut a, "chunk:a").await;
     begin_work(&mut b, "chunk:b").await;
@@ -668,22 +671,10 @@ async fn linked_worktrees_share_one_workflow_owner_and_keep_source_checks_and_re
         );
     }
 
-    let mut source_a = Server::spawn_as(
-        &main,
-        &data,
-        &socket,
-        "same-source-session",
-        &["workspace", "serve"],
-    )
-    .await;
-    let mut source_b = Server::spawn_as(
-        &linked,
-        &data,
-        &socket,
-        "same-source-session",
-        &["workspace", "serve"],
-    )
-    .await;
+    let mut source_a =
+        Server::spawn_as(&main, &data, &socket, "same-source-session", &["mcp"]).await;
+    let mut source_b =
+        Server::spawn_as(&linked, &data, &socket, "same-source-session", &["mcp"]).await;
     ready(&mut source_a).await;
     ready(&mut source_b).await;
     // Equal client-supplied session names still cannot transfer an approval
@@ -723,9 +714,9 @@ async fn linked_worktrees_share_one_workflow_owner_and_keep_source_checks_and_re
                 json!({"type":"test","name":"source","command":"cat source.txt"}),
             )
             .await;
-        assert_eq!(check["passed"], true, "{check}");
+        assert_eq!(check["check"]["value"]["passed"], true, "{check}");
         assert!(
-            check["details"]
+            check["check"]["value"]["details"]
                 .as_str()
                 .expect("details")
                 .contains(expected),
@@ -792,7 +783,7 @@ async fn linked_worktrees_share_one_workflow_owner_and_keep_source_checks_and_re
             .expect("new generation")
             > generation
     );
-    let mut recovered_a = Server::spawn_as(&main, &data, &socket, "task-a", &["mcp-serve"]).await;
+    let mut recovered_a = Server::spawn_as(&main, &data, &socket, "task-a", &["mcp"]).await;
     ready(&mut recovered_a).await;
     assert_eq!(
         recovered_a.call("ship_status", json!({})).await["objective"]["scope"],
@@ -805,8 +796,7 @@ async fn linked_worktrees_share_one_workflow_owner_and_keep_source_checks_and_re
     ProjectAuthority::admit(&cfg, WriterRole::Host).expect("all workflow connections released");
     let nested = linked.join("app");
     std::fs::create_dir(&nested).expect("nested project");
-    let mut nested_source =
-        Server::spawn_as(&nested, &data, &socket, "nested", &["workspace", "serve"]).await;
+    let mut nested_source = Server::spawn_as(&nested, &data, &socket, "nested", &["mcp"]).await;
     ready(&mut nested_source).await;
     nested_source.call("workbench_status", json!({})).await;
     assert!(

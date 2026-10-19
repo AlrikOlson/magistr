@@ -36,7 +36,7 @@ pub(crate) struct InterviewResult {
     pub description: String,
     /// Which AI agent configs to generate (e.g. "cursor", "copilot").
     pub selected_agents: Vec<String>,
-    /// Additional MCP servers to include (beyond magistr + workbench-mcp).
+    /// Additional MCP servers to include (beyond Magistr).
     pub selected_mcp_servers: Vec<String>,
     /// Quality-gate command overrides from the gate preview (None = preset).
     pub quality_gate: Option<RecommendedQualityGate>,
@@ -61,16 +61,8 @@ impl InterviewResult {
     /// Stack-aware defaults — the `--yes` answer set, identical to what the
     /// interview produces when every prompt is answered with Enter.
     pub(crate) fn defaults_for(stack: &Stack) -> Self {
-        let selected_mcp_servers =
-            registry::recommend(stack.language.as_str(), stack.framework.as_str())
-                .into_iter()
-                .filter(|e| e.default_enabled)
-                .map(|e| e.key.to_string())
-                .collect();
-        Self {
-            selected_mcp_servers,
-            ..Self::default()
-        }
+        let _ = stack;
+        Self::default()
     }
 
     /// Convert into the pipeline's selection carrier.
@@ -81,6 +73,7 @@ impl InterviewResult {
             selected_agents: self.selected_agents.clone(),
             selected_mcp_servers: self.selected_mcp_servers.clone(),
             quality_gate: self.quality_gate.clone(),
+            lifecycle_hooks: (!self.include_hooks).then(Vec::new),
             ..ScaffoldSelections::default()
         }
     }
@@ -100,13 +93,31 @@ struct AgentDef {
     default: bool,
 }
 
-/// All supported agents (Claude Code config is always generated).
+/// Supported project integrations; only selected agents receive files.
 const ALL_AGENTS: &[AgentDef] = &[
+    AgentDef {
+        id: "codex",
+        label: "Codex",
+        description: "Project instructions, skills and MCP connection",
+        default: true,
+    },
+    AgentDef {
+        id: "claude",
+        label: "Claude Code",
+        description: "Project instructions, skills and MCP connection",
+        default: true,
+    },
+    AgentDef {
+        id: "portable",
+        label: "Another MCP agent",
+        description: "Standard MCP configuration and portable instructions",
+        default: false,
+    },
     AgentDef {
         id: "cursor",
         label: "Cursor",
         description: ".cursor/rules/ MDC files",
-        default: true,
+        default: false,
     },
     AgentDef {
         id: "copilot",
@@ -130,12 +141,6 @@ const ALL_AGENTS: &[AgentDef] = &[
         id: "aider",
         label: "Aider",
         description: ".aider.conf.yml configuration",
-        default: false,
-    },
-    AgentDef {
-        id: "codex",
-        label: "Codex",
-        description: ".codex/config.toml, AGENTS.md, and .agents/skills",
         default: false,
     },
 ];
@@ -196,6 +201,12 @@ pub(crate) fn run_interview(
         .map(|&i| ALL_AGENTS[i].id.to_string())
         .collect();
 
+    if selected_agents.is_empty() {
+        return Err(crate::error::MagistrError::Config(
+            "Select at least one agent, or choose Another MCP agent.".into(),
+        ));
+    }
+
     // Step 4: MCP server recommendations
     eprintln!("\n{}  {}", fmt::bold("Step 3/5"), fmt::dim("MCP Servers"));
     eprintln!("{}", fmt::dim(&"─".repeat(40)));
@@ -212,7 +223,7 @@ pub(crate) fn run_interview(
         eprintln!(
             "{}",
             fmt::dim(&format!(
-                "Recommended for {lang} + {fw} (magistr + workbench-mcp always included):"
+                "Recommended for {lang} + {fw} (Magistr included):"
             ))
         );
         let labels: Vec<String> = recommended
@@ -220,7 +231,7 @@ pub(crate) fn run_interview(
             .map(|r| format!("{} — {}", r.name, r.description))
             .collect();
         let label_refs: Vec<&str> = labels.iter().map(|s| s.as_str()).collect();
-        let defaults: Vec<bool> = recommended.iter().map(|r| r.default_enabled).collect();
+        let defaults = vec![false; recommended.len()];
         let picks = prompt_multi_select(reader, &label_refs, &defaults)?;
         picks
             .iter()
@@ -276,7 +287,7 @@ pub(crate) fn run_interview(
     eprintln!("  Stack:      {lang} + {fw}");
     eprintln!("  Type:       {}", PROJECT_TYPES[project_type]);
     eprintln!("  Agents:     {}", selected_agents.join(", "));
-    let mcp_display: Vec<String> = ["magistr", "workbench-mcp"]
+    let mcp_display: Vec<String> = ["magistr"]
         .iter()
         .map(|s| s.to_string())
         .chain(selected_mcp_servers.iter().cloned())
@@ -294,12 +305,6 @@ pub(crate) fn run_interview(
             "preset"
         }
     );
-
-    if !prompt_yes_no(reader, "\nProceed with scaffolding?", true)? {
-        return Err(crate::error::MagistrError::Cancelled(
-            "Cancelled by user".into(),
-        ));
-    }
 
     Ok(InterviewResult {
         project_type: PROJECT_TYPES[project_type].to_string(),
@@ -458,7 +463,11 @@ fn prompt_text_default(reader: &mut impl BufRead, question: &str, default: &str)
 }
 
 /// Prompt for yes/no. Returns bool.
-fn prompt_yes_no(reader: &mut impl BufRead, question: &str, default: bool) -> Result<bool> {
+pub(crate) fn prompt_yes_no(
+    reader: &mut impl BufRead,
+    question: &str,
+    default: bool,
+) -> Result<bool> {
     let hint = if default { "Y/n" } else { "y/N" };
     eprint!("  {question} {} ", fmt::dim(&format!("[{hint}]:")));
     io::stderr().flush().ok();

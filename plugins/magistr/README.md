@@ -13,9 +13,9 @@ host restrictions.
 
 You need Claude Code **2.1.287 or later**, with third-party Mods available to your
 account and permitted by your organization. You also need the project's connected
-`magistr` and `workbench-mcp` servers. Build/install Magistr from this revision
-so its tool list includes `magistr_context`. That query supplies phase, check
-choices and task evidence. Older servers can still supply the other views.
+`magistr` connection, launched with `magistr mcp --dir <project>`. Its `context`
+query supplies phase, check choices and task evidence. Advanced workflow and
+workspace queries use bounded `execute` requests on the same connection.
 
 From a Magistr checkout:
 
@@ -33,7 +33,7 @@ connections, **/magistr diagnose** to check the views, and **/magistr** to open
 the pane. For a session-only trial, use `claude --plugin-dir ./plugins/magistr`.
 
 The plugin installs no servers and changes no project instructions or guards.
-Set up the native servers with Magistr's existing project setup. A second workflow
+Set up the connection with `magistr init`. A second workflow
 connection cannot attach to an occupied Service owner on Windows yet. Keep the
 owner running; the pane reports the failed connection. A fresh project without
 an existing owner can use the normal startup path.

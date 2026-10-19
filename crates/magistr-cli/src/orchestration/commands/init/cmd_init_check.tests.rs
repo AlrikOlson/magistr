@@ -44,10 +44,18 @@ fn check_reports_the_pending_repair_without_writing() {
     std::fs::remove_file(dir.join(".claude/skills/craft/references/runtime.md")).unwrap();
     let before = files(dir);
 
-    let repair = scaffold::repair::plan(dir);
-    assert_eq!(repair.overwrites(), 1, "{repair:?}");
-    assert!(repair.refusals() >= 1, "{repair:?}");
-    assert_eq!(repair.preserved(), 1, "{repair:?}");
+    let repair = scaffold::repair::plan(dir).unwrap();
+    assert_eq!(
+        repair.get(".claude/rules/tools.md").unwrap().action,
+        scaffold::FileAction::Preserved
+    );
+    assert_eq!(
+        repair
+            .get(".claude/skills/craft/references/runtime.md")
+            .unwrap()
+            .action,
+        scaffold::FileAction::Create
+    );
 
     cmd_init_check(dir, &JsonRenderer::new()).unwrap();
     assert_eq!(files(dir), before, "the JSON check writes nothing");

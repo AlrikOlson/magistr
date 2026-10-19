@@ -1,13 +1,16 @@
 //! Validated, revision-checked edits to personal configuration. Readers and
 //! writers share this document so comments and unrelated preferences survive.
 
-use std::fs::{self, File, TryLockError};
+use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
 use toml_edit::{DocumentMut, Item, Table, Value};
 
 use super::{UserConfig, UserConfigError};
+
+#[path = "user_config_lock.rs"]
+mod user_config_lock;
 
 /// An exact observation of personal settings and the bytes that established it.
 #[derive(Debug)]
@@ -63,18 +66,7 @@ impl UserConfigDocument {
         fs::create_dir_all(parent)
             .map_err(|error| UserConfigError::Io(parent.to_owned(), error))?;
         let lock_path = lock_path(&self.path);
-        let lock = File::options()
-            .read(true)
-            .write(true)
-            .create(true)
-            .truncate(false)
-            .open(&lock_path)
-            .map_err(|error| UserConfigError::Io(lock_path.clone(), error))?;
-        match lock.try_lock() {
-            Ok(()) => {}
-            Err(TryLockError::WouldBlock) => return Err(UserConfigError::Busy(self.path.clone())),
-            Err(TryLockError::Error(error)) => return Err(UserConfigError::Io(lock_path, error)),
-        }
+        let _lock = user_config_lock::UserConfigLock::acquire(&lock_path, &self.path)?;
         if read_original(&self.path)? != self.original {
             return Err(UserConfigError::Conflict(self.path.clone()));
         }

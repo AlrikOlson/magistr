@@ -9,7 +9,10 @@ pub use super::check_status::CheckStatus;
 pub use super::doctor_check::DoctorCheck;
 
 /// Run all doctor checks against a project directory.
-pub fn run_all(dir: &Path) -> Vec<DoctorCheck> {
+pub fn run_all(dir: &Path, claude_selected: bool) -> Vec<DoctorCheck> {
+    if !claude_selected {
+        return vec![check_project_json(dir)];
+    }
     vec![
         check_claude_md_exists(dir),
         check_claude_md_size(dir),

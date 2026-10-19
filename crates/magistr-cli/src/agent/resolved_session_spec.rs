@@ -138,6 +138,16 @@ impl ResolvedSessionSpec {
             config.model.as_deref(),
         )?;
         let mut mcp_servers = resolved_mcp_servers(&config.cwd)?;
+        if config.history.purpose() == SessionPurpose::Roadmap {
+            for server in &mut mcp_servers {
+                if let McpServer::Stdio(server) = server
+                    && server.name == "magistr"
+                {
+                    // Purpose is enforced on each catalog operation, including composition.
+                    server.args.extend(["--access".into(), "planning".into()]);
+                }
+            }
+        }
         if let Some(execution) = &config.execution_id {
             for server in &mut mcp_servers {
                 if let McpServer::Stdio(server) = server {
@@ -426,7 +436,9 @@ fn resolved_mcp_servers(root: &Path) -> Result<Vec<McpServer>> {
     let path = root.join(".mcp.json");
     let raw = match std::fs::read_to_string(&path) {
         Ok(raw) => raw,
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            return add_native_connection(root, Vec::new());
+        }
         Err(error) => return Err(MagistrError::io(&path, error)),
     };
     let invalid = |detail: &str| {
@@ -464,7 +476,31 @@ fn resolved_mcp_servers(root: &Path) -> Result<Vec<McpServer>> {
             )));
         }
     }
-    Ok(super::mcp_servers::mcp_servers_from_value(&doc))
+    add_native_connection(root, super::mcp_servers::mcp_servers_from_value(&doc))
+}
+
+fn add_native_connection(root: &Path, mut servers: Vec<McpServer>) -> Result<Vec<McpServer>> {
+    // A native host owns its Magistr connection even for a Codex-only project,
+    // whose selected integration has no Claude .mcp.json file.
+    if crate::paths::project_json(root)?.is_file()
+        && !servers
+            .iter()
+            .any(|s| matches!(s, McpServer::Stdio(s) if s.name == "magistr"))
+    {
+        let executable = std::env::current_exe().map_err(|e| MagistrError::io(root, e))?;
+        servers.push(McpServer::Stdio(
+            agent_client_protocol::schema::v1::McpServerStdio::new(
+                "magistr",
+                executable.to_string_lossy().into_owned(),
+            )
+            .args(vec![
+                "mcp".into(),
+                "--dir".into(),
+                root.to_string_lossy().into_owned(),
+            ]),
+        ));
+    }
+    Ok(servers)
 }
 
 #[cfg(test)]

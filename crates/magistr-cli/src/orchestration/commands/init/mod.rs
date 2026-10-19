@@ -1,7 +1,4 @@
-//! Init-related commands: init, init --smart, init --dry-run, init --check,
-//! init TUI, init interactive — and the one rendering every read-only
-//! preview of an administrative change plan shares (the setup dry run, the
-//! startup repair under `--check` and the Codex removal dry run).
+//! Guided setup and read-only previews of administrative changes.
 
 use crate::scaffold;
 use crate::scaffold::drift::DriftReport;
@@ -48,7 +45,7 @@ pub(crate) fn plan_json(plan: &scaffold::ChangePlan, detail: PlanDetail) -> serd
 }
 
 /// The `--check` report: the drift between the configured archetypes and
-/// the tree, and the startup repair the next `magistr mcp-serve` applies,
+/// the tree, and the changes an explicit `magistr repair` would apply,
 /// as [`plan_json`]. The same object answers the CLI's `--json` and the
 /// `magistr_init` tool's `check` mode.
 pub(crate) fn check_report_json(
@@ -189,19 +186,13 @@ pub(crate) fn print_plan_plain(plan: &scaffold::ChangePlan, heading: &str, foote
     }
 }
 
-mod cmd_init;
 mod cmd_init_check;
 mod cmd_init_dry_run;
-mod cmd_init_interactive;
 mod cmd_init_interview;
-mod cmd_init_smart;
 
-pub use cmd_init::cmd_init;
 pub use cmd_init_check::cmd_init_check;
 pub use cmd_init_dry_run::cmd_init_dry_run;
-pub use cmd_init_interactive::cmd_init_interactive;
 pub use cmd_init_interview::cmd_init_interview;
-pub use cmd_init_smart::cmd_init_smart;
 
 #[cfg(test)]
 #[path = "mod.tests.rs"]

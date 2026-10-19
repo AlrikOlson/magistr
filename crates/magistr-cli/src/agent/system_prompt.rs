@@ -3,8 +3,6 @@
 //! Loads project configuration from `.magistr/project.json` and builds
 //! a structured system prompt that gives the agent context about the project.
 
-pub use super::init_prompt::build_init_prompt;
-
 use std::path::Path;
 
 use crate::types::ProjectConfig;

@@ -68,10 +68,15 @@ Consequently these agreed acceptance criteria remain unverified:
 The native objective and integration chunk must remain open until those checks
 pass. The package is a preview, not a verified finished release.
 
-## Connection boundary on this Windows machine
+## Connection boundary at capture time
 
-Existing Claude registrations launch `magistr mcp-launch magistr .` and
-`magistr mcp-launch workbench-mcp .`. Claude reports the workflow connection
+Current installations use one `magistr mcp --dir .` connection. The first CLI
+distribution targets Apple Silicon macOS; the following is retained Windows
+historical evidence, not a current installation recipe.
+
+This historical Windows check predates the unified endpoint. At capture time,
+Claude registrations launched `magistr mcp-launch magistr .` and
+`magistr mcp-launch workbench-mcp .`. Claude reported the workflow connection
 closed while another Service owner holds the project; source connection approval
 is pending. Workflow MCP attachment remains Unix-only. Windows workspace
 attachment has an authenticated named-pipe path, which is a different capability.

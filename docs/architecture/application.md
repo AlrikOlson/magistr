@@ -149,7 +149,7 @@ admission and settlement inside this module and the writer itself.
 
 | Consumer | Workflow capability | Workspace capability | Through |
 | --- | --- | --- | --- |
-| `magistr_gate` in `magistr mcp-serve` | `NativeEngines` (Service role, the same writer the MCP session serves) | `WorkspaceEvidence` attached in `MagistrService::new` | `AdmittedCheck::admit` before the pty run, `settle` with the run's `CheckExecution` after; the answer carries the receipt id, source revision and freshness |
+| `magistr_gate` in `magistr mcp` | `NativeEngines` (Service role, the same writer the MCP session serves) | `WorkspaceEvidence` attached in `MagistrService::new` | `AdmittedCheck::admit` before the pty run, `settle` with the run's `CheckExecution` after; the answer carries the receipt id, source revision and freshness |
 | Hosted loop driver gates | `NativeEngines` (Host role via `writer_config`), one admitted verification task for the set; the set is `required_gates()` of the same capability | the same capability on the host's config | `AdmittedCheck` per gate, refusing a superseded verification target |
 | Native `ship_check` (agent) | `ShipUseCases::admit_check` / `settle_check` inside the workflow crate | the workflow's composed `EvidencePort` | the workflow's own async runner; the stale reply carries the receipt |
 | `roadmap_complete_chunk` (MCP, owner command, cockpit Complete, loop judge) | `RoadmapUseCases` with the ship family as completion authority | `required_gates()` and a fresh observation at completion | `verify_completion` before the transition; refusals name every outstanding gate |
@@ -167,7 +167,7 @@ checkout's one workspace owner for the run. Admitted, it holds a
 `HostedWorkspace`: it opens `WorkspaceService` on
 the same open options the bridge composes (this binary as the worker, the host
 environment's configuration layers, the embedded interpreter), serves the
-existing owner endpoint so every `workbench-mcp` bridge the agent or the
+existing owner endpoint so every workspace bridge in `magistr mcp` the agent or the
 cockpit spawns attaches to this process, and hands the session a
 `WorkspaceSourceWriter` — one explicit journal session over the service's
 `write` verb — as its `SourceRoute`. Refused, it holds a `SourceRefusal`:

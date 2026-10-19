@@ -43,27 +43,17 @@ pub enum Command {
         #[arg(default_value = ".")]
         dir: PathBuf,
 
-        /// Select additional scaffold targets; repeat or separate with commas.
-        /// Claude configuration is always included; Codex is opt-in.
-        /// AI --interactive setup selects targets through its recommendations.
-        #[arg(long = "agent", value_delimiter = ',', value_parser = ["cursor", "copilot", "cline", "windsurf", "aider", "codex"], conflicts_with_all = ["interactive", "ci", "check"])]
+        /// Select one or more agents; repeat or separate with commas.
+        #[arg(long = "agent", value_delimiter = ',', value_parser = ["codex", "claude", "portable", "cursor", "copilot", "cline", "windsurf", "aider"], conflicts_with_all = ["ci", "check"])]
         agents: Vec<String>,
 
-        /// Use AI agent for interactive project interview
-        #[arg(long, short = 'i')]
-        interactive: bool,
-
         /// Accept every interview default without prompting (CI-safe, no tty needed)
-        #[arg(long, short = 'y', conflicts_with_all = ["interactive", "smart", "dry_run", "from", "ci", "check"])]
+        #[arg(long, short = 'y', conflicts_with_all = ["dry_run", "ci", "check"])]
         yes: bool,
 
         /// Reinitialize in place, preserving project config and state (CI mode overwrites its generated file)
         #[arg(long, short = 'f')]
         force: bool,
-
-        /// Enhanced detection with confidence scores per category
-        #[arg(long, short = 's')]
-        smart: bool,
 
         /// Preview scaffold without writing files — show what would be created/changed
         #[arg(long, short = 'n', conflicts_with = "force")]
@@ -71,15 +61,15 @@ pub enum Command {
 
         /// Initialize from a preset file or URL (.magistr-preset.toml).
         /// Accepts a local path or http(s):// URL.
-        #[arg(long, conflicts_with_all = ["smart", "dry_run"])]
+        #[arg(long, conflicts_with_all = ["dry_run"])]
         from: Option<String>,
 
         /// Generate CI workflow file (.github/workflows/quality-gates.yml) from detected stack
-        #[arg(long, conflicts_with_all = ["interactive", "dry_run", "from"])]
+        #[arg(long, conflicts_with_all = ["dry_run", "from"])]
         ci: bool,
 
         /// Compare current filesystem state against existing config and report drift
-        #[arg(long, conflicts_with_all = ["interactive", "force", "dry_run", "from", "ci"])]
+        #[arg(long, conflicts_with_all = ["force", "dry_run", "from", "ci"])]
         check: bool,
     },
 
@@ -96,6 +86,26 @@ pub enum Command {
         /// Detect all projects in a repo and show as a tree
         #[arg(long, short = 't')]
         tree: bool,
+    },
+
+    /// Review and repair selected agent setup, preserving customizations
+    Repair {
+        #[arg(default_value = ".")]
+        dir: PathBuf,
+        #[arg(long)]
+        dry_run: bool,
+        #[arg(long, short = 'y')]
+        yes: bool,
+    },
+
+    /// Remove generated agent setup while keeping project settings and work
+    Remove {
+        #[arg(default_value = ".")]
+        dir: PathBuf,
+        #[arg(long)]
+        dry_run: bool,
+        #[arg(long, short = 'y')]
+        yes: bool,
     },
 
     /// Remove Magistr project configuration and state after confirmation
@@ -514,14 +524,17 @@ pub enum Command {
         cmd: Vec<String>,
     },
 
-    /// Launch a built-in MCP endpoint with runtime dependency resolution.
-    McpLaunch {
-        /// Native workflow server or Workbench navigation server
-        #[arg(value_enum)]
-        target: crate::mcp_target::McpTarget,
-        /// Workspace directory; discovers the nearest project within this repository
-        #[arg(default_value = ".")]
+    /// Connect coding agents to Magistr's project and source tools over stdio.
+    Mcp {
+        /// Limit this connection to planning or inspection; native permissions still apply.
+        #[arg(long, value_enum, default_value = "full")]
+        access: crate::unified_mcp::Access,
+        /// Project directory
+        #[arg(long, default_value = ".")]
         dir: PathBuf,
+        /// Workspace configuration for a newly admitted owner (repeatable key=value)
+        #[arg(long = "config", value_name = "KEY=VALUE")]
+        config: Vec<String>,
     },
 
     /// Launch Codex with this project's managed skill selection.
@@ -547,16 +560,6 @@ pub enum Command {
         /// action, ownership and reason (JSON with --json)
         #[arg(long, short = 'n')]
         dry_run: bool,
-    },
-
-    /// Run magistr's built-in MCP server (stdio) for file management tools.
-    /// Added to .mcp.json so agents can call magistr_delete, magistr_list
-    /// during iterations without needing bash rm.
-    #[command(hide = true)]
-    McpServe {
-        /// Project directory (defaults to current directory)
-        #[arg(default_value = ".")]
-        dir: std::path::PathBuf,
     },
 
     /// Serve magistr's own ACP agent on stdio for the provider named — the
@@ -606,19 +609,6 @@ pub enum WorkspaceAction {
         #[command(subcommand)]
         action: crate::working_copy_action::WorkingCopyAction,
     },
-    /// Serve MCP over stdio for the workspace at DIR. One live server per
-    /// workspace: a second is refused with exit 75 while the first runs.
-    Serve {
-        /// Workspace root (defaults to the current directory)
-        #[arg(default_value = ".")]
-        dir: PathBuf,
-
-        /// Highest-precedence configuration for this server process
-        /// (repeatable key=value, e.g. --config edit.confirm_mode=token)
-        #[arg(long = "config", value_name = "KEY=VALUE")]
-        config: Vec<String>,
-    },
-
     /// Read-only health report over the .workbench artifacts (environment,
     /// index, config provenance, plugins, quarantine, crashes), the live
     /// owner (one bounded probe: generation, build, attached connections)
@@ -678,16 +668,6 @@ pub enum WorkspaceAction {
     /// Seed run's `[commands]` allowlist into workbench.toml from
     /// lockfile/manifest detection; an existing table is never touched.
     Init {
-        /// Workspace root (defaults to the current directory)
-        #[arg(default_value = ".")]
-        dir: PathBuf,
-    },
-
-    /// Move an obsolete legacy or empty `.workbench/server.lock` aside so
-    /// the native owner can admit the workspace. Refuses (exit 75) while
-    /// the record's process is alive on this host or was written on another
-    /// host; never touches a native marker, the journal, the key or the index.
-    Migrate {
         /// Workspace root (defaults to the current directory)
         #[arg(default_value = ".")]
         dir: PathBuf,

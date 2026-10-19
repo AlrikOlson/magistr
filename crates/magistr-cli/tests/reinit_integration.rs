@@ -1,7 +1,7 @@
 //! Reinitialization uses the same ownership decisions as generation and preview.
 use std::path::Path;
 
-use magistr::commands::{config, init};
+use magistr::commands::config;
 use magistr::detect::detect_stack;
 use magistr::scaffold::{FileAction, pipeline::ScaffoldPipeline};
 use tempfile::TempDir;
@@ -28,8 +28,8 @@ fn read(dir: &Path, path: &str) -> String {
     std::fs::read_to_string(dir.join(path)).unwrap()
 }
 
-#[tokio::test]
-async fn force_reinit_preserves_state_config_and_customized_scaffold() {
+#[test]
+fn reinit_preserves_state_config_and_customized_scaffold() {
     let tmp = fixture();
     let dir = tmp.path();
     let mut config: serde_json::Value =
@@ -59,25 +59,32 @@ async fn force_reinit_preserves_state_config_and_customized_scaffold() {
         ".magistr/scaffold-manifest.json",
         &manifest_value.to_string(),
     );
-    write(dir, "tools/mcp-launcher", "local executable");
-    let custom_mcp =
-        serde_json::json!({"command":"tools/mcp-launcher","args":["mcp-serve","--project","."]});
+    let custom_mcp = serde_json::json!({"command":env!("CARGO_BIN_EXE_magistr"),"args":["mcp","--dir",".","--access","read-only"]});
     let mut mcp: serde_json::Value = serde_json::from_str(&read(dir, ".mcp.json")).unwrap();
     mcp["mcpServers"]["magistr"] = custom_mcp.clone();
     write(dir, ".mcp.json", &mcp.to_string());
     std::fs::remove_file(dir.join(".claude/skills/next/SKILL.md")).unwrap();
 
-    // A capture with no home: the interview composes built-in layers only.
-    let inputs = magistr::config::inputs::ProjectInputs::from_lookup(dir, |_| None);
     for _ in 0..2 {
-        init::cmd_init_interview(dir, true, true, &[], &inputs)
-            .await
+        let output = std::process::Command::new(env!("CARGO_BIN_EXE_magistr"))
+            .arg("init")
+            .arg(dir)
+            .arg("--yes")
+            .env("THINK_AND_SHIP_DATA_DIR", dir.join("workflow-state"))
+            .env("XDG_CONFIG_HOME", dir.join("user-config"))
+            .env("XDG_DATA_HOME", dir.join("user-data"))
+            .output()
             .unwrap();
-        assert_eq!(
-            read(dir, "configured-check.txt").trim(),
-            "configured",
-            "post-init checks use the preserved commands"
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
         );
+        assert!(
+            !dir.join("configured-check.txt").exists(),
+            "setup does not execute project work"
+        );
+        assert!(read(dir, "CLAUDE.md").contains("echo configured > configured-check.txt"));
         assert_eq!(
             read(dir, ".magistr/project.json"),
             project,
@@ -136,13 +143,13 @@ fn reinit_preserves_explicit_mcp_overrides_in_preview_and_generation() {
     for entry in [
         serde_json::json!({"command":"my-workbench","args":["--workspace","."]}),
         serde_json::json!({"command":"/not/installed/yet/workbench","args":["."]}),
-        serde_json::json!({"command":"workbench-mcp","args":["."],"env":{"CUSTOM":"keep"}}),
+        serde_json::json!({"command":"magistr","args":["."],"env":{"CUSTOM":"keep"}}),
         serde_json::json!({"type":"http","url":"https://example.invalid/mcp"}),
     ] {
         let tmp = fixture();
         let dir = tmp.path();
         let mut mcp: serde_json::Value = serde_json::from_str(&read(dir, ".mcp.json")).unwrap();
-        mcp["mcpServers"]["workbench-mcp"] = entry.clone();
+        mcp["mcpServers"]["magistr"] = entry.clone();
         write(dir, ".mcp.json", &mcp.to_string());
         let pipeline = ScaffoldPipeline::headless(detect_stack(dir).unwrap());
         let preview = pipeline.preview(dir).unwrap();
@@ -152,10 +159,10 @@ fn reinit_preserves_explicit_mcp_overrides_in_preview_and_generation() {
             .find(|f| f.path == ".mcp.json")
             .unwrap();
         let preview_doc: serde_json::Value = serde_json::from_str(&file.new_content).unwrap();
-        assert_eq!(preview_doc["mcpServers"]["workbench-mcp"], entry);
+        assert_eq!(preview_doc["mcpServers"]["magistr"], entry);
         pipeline.generate(dir).unwrap();
         let after: serde_json::Value = serde_json::from_str(&read(dir, ".mcp.json")).unwrap();
-        assert_eq!(after["mcpServers"]["workbench-mcp"], entry);
+        assert_eq!(after["mcpServers"]["magistr"], entry);
     }
 }
 

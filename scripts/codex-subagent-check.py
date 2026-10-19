@@ -9,7 +9,7 @@ subagent thread and the second server exited 75 on the exclusive lock.
 This is that reproduction against Magistr's native owner: the REAL
 `codex exec` under an isolated CODEX_HOME whose only MCP server is a shell
 wrapper that logs every launch with pid and exit code before exec'ing
-`magistr mcp-launch workbench-mcp <ws>` on a disposable workspace. The prompt
+`magistr mcp --dir <ws>` on a disposable workspace. The prompt
 makes the parent call `read`, spawn one subagent that calls `read`, and answer
 through `--output-schema`. Three witnesses decide: the parent's
 `mcp_tool_call` events, the schema-shaped final answer, and the wrapper's
@@ -36,7 +36,7 @@ import tempfile
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
-SERVER_NAME = "workbench-mcp"
+SERVER_NAME = "magistr"
 FILE_UNDER_TEST = "src/a.ts"
 FILE_CONTENT = "export const a = 1;\n"
 
@@ -199,7 +199,7 @@ def main() -> int:
             [
                 "#!/bin/sh",
                 f'echo "$(date +%H:%M:%S) LAUNCH pid=$$ ppid=$PPID" >> "{launch_log}"',
-                f'"{magistr}" mcp-launch {SERVER_NAME} "{ws}" 2>>"{server_stderr}"',
+                f'"{magistr}" mcp --dir "{ws}" 2>>"{server_stderr}"',
                 "code=$?",
                 f'echo "$(date +%H:%M:%S) EXIT pid=$$ code=$code" >> "{launch_log}"',
                 "exit $code",

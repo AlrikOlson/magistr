@@ -300,10 +300,11 @@ fn installed_codex_discovers_relocated_project_and_generated_mcp_tools() {
             config["config"]["mcp_servers"]["think-and-ship"]["enabled"], false,
             "effective fixture config: {config}"
         );
-        for name in ["magistr", "workbench-mcp"] {
+        {
+            let name = "magistr";
             let endpoint = &config["config"]["mcp_servers"][name];
             assert_eq!(endpoint["command"], "magistr");
-            assert_eq!(endpoint["args"], json!(["mcp-launch", name, "."]));
+            assert_eq!(endpoint["args"], json!(["mcp", "--dir", "."]));
         }
         let discovered = skills(&mut server, cwd);
         for name in [
@@ -360,21 +361,10 @@ fn installed_codex_discovers_relocated_project_and_generated_mcp_tools() {
     drop(outside);
 
     let configuration: toml::Table = project_config.parse().expect("generated TOML");
-    for (name, required_tools) in [
-        (
-            "magistr",
-            &[
-                "roadmap_status",
-                "ship_status",
-                "think_record_step",
-                "magistr_gate",
-            ][..],
-        ),
-        (
-            "workbench-mcp",
-            &["workbench_status", "map", "search", "read", "edit"][..],
-        ),
-    ] {
+    for (name, required_tools) in [(
+        "magistr",
+        &["context", "search", "read", "edit", "discover", "execute"][..],
+    )] {
         let endpoint = &configuration["mcp_servers"][name];
         let mut command = Command::new(endpoint["command"].as_str().expect("command"));
         command.args(
@@ -398,10 +388,10 @@ fn installed_codex_discovers_relocated_project_and_generated_mcp_tools() {
         for required in required_tools {
             assert!(tool_names.contains(required), "{name} lacks {required}");
         }
-        if name == "workbench-mcp" {
+        {
             let status = server.request(
                 "tools/call",
-                json!({"name":"workbench_status","arguments":{}}),
+                json!({"name":"execute","arguments":{"source":"return magistr.call(\"workbench_status\", {});"}}),
             );
             assert_ne!(
                 status.get("isError"),
@@ -420,8 +410,7 @@ fn installed_codex_discovers_relocated_project_and_generated_mcp_tools() {
             let search = server.request("tools/call", json!({"name":"search","arguments":{"query":"portable_codex_acceptance","mode":"lexical","path":"acceptance.txt","budget":1000}}));
             assert_workbench(&search, "acceptance.txt");
 
-            // A second connection must fail on this disposable workspace's
-            // held lock; its existing owner must remain available afterwards.
+            // A second connection attaches to the same native owner.
             let mut second = Command::new(endpoint["command"].as_str().expect("command"));
             second
                 .args(
@@ -431,43 +420,16 @@ fn installed_codex_discovers_relocated_project_and_generated_mcp_tools() {
                         .iter()
                         .map(|value| value.as_str().expect("argument")),
                 )
-                .current_dir(&nested)
-                .stdin(Stdio::piped())
-                .stdout(Stdio::null())
-                .stderr(Stdio::piped());
+                .current_dir(&nested);
             environment(&mut second);
-            let mut second = second.spawn().expect("second disposable Workbench launch");
-            if let Some(mut input) = second.stdin.take() {
-                let _ = writeln!(
-                    input,
-                    "{}",
-                    json!({"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"lock_probe","version":"1"}}})
-                );
-                // Keep stdin alive until the explicit lock refusal arrives.
-                let deadline = Instant::now() + Duration::from_secs(10);
-                loop {
-                    if second.try_wait().expect("second status").is_some() {
-                        break;
-                    }
-                    if Instant::now() >= deadline {
-                        let _ = second.kill();
-                        let _ = second.wait();
-                        panic!(
-                            "Second Workbench launch did not report its held lock within 10 seconds"
-                        );
-                    }
-                    std::thread::sleep(Duration::from_millis(20));
-                }
-            }
-            let refusal = second.wait_with_output().expect("lock refusal");
-            assert!(!refusal.status.success(), "held-lock launch must fail");
-            assert!(
-                String::from_utf8_lossy(&refusal.stderr)
-                    .to_lowercase()
-                    .contains("lock"),
-                "lock refusal must be explicit: {}",
-                String::from_utf8_lossy(&refusal.stderr)
+            let mut second = Rpc::start(second);
+            second.mcp_initialize();
+            let read = second.request(
+                "tools/call",
+                json!({"name":"read","arguments":{"file":"acceptance.txt","budget":1000}}),
             );
+            assert_workbench(&read, "portable_codex_acceptance");
+            drop(second);
             let read = server.request(
                 "tools/call",
                 json!({"name":"read","arguments":{"file":"acceptance.txt","budget":1000}}),

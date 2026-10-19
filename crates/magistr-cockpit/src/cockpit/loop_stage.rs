@@ -7,7 +7,7 @@ use std::fmt;
 /// no provider turn is streaming.
 ///
 /// The stages exist because the engine feed dies with every agent —
-/// its socket is bound by the agent's own `magistr mcp-serve` — so a
+/// its socket is bound by the agent's own `magistr mcp` — so a
 /// cockpit that only knew the feed would read every gap between agents
 /// as a lost connection (`loop-gap-not-a-fault`). The driver knows what
 /// it is doing in the gap; this is it saying so.

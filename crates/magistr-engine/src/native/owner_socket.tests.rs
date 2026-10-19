@@ -44,3 +44,20 @@ fn a_deep_store_falls_back_to_the_runtime_directory_and_stays_stable() {
     assert_ne!(first, owner_socket_path(&cfg, "other", WriterRole::Host));
     assert_eq!(first, owner_socket_path(&cfg, "lease", WriterRole::Service));
 }
+
+#[cfg(unix)]
+#[test]
+fn store_aliases_share_one_rendezvous_before_and_after_creation() {
+    let tmp = tempfile::tempdir().unwrap();
+    let real = tmp.path().join("real");
+    std::fs::create_dir(&real).unwrap();
+    let alias = tmp.path().join("alias");
+    std::os::unix::fs::symlink(&real, &alias).unwrap();
+    let deep = "d".repeat(120);
+    let a = config(&tmp).with_data_dir(real.join(&deep));
+    let b = config(&tmp).with_data_dir(alias.join(".").join(&deep));
+    let before = owner_socket_path(&a, "lease", WriterRole::Host);
+    assert_eq!(before, owner_socket_path(&b, "lease", WriterRole::Service));
+    std::fs::create_dir_all(real.join(&deep).join("roadmap/sessions")).unwrap();
+    assert_eq!(before, owner_socket_path(&b, "lease", WriterRole::Service));
+}

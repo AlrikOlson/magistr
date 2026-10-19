@@ -13,7 +13,7 @@ pub enum AttachKind {
     /// carried out by the owner's own writer.
     Commands,
     /// The owner's MCP session, spoken over the same socket once the
-    /// handshake is done: a second `magistr mcp-serve` proxies its stdio
+    /// handshake is done: a second `magistr mcp` proxies its stdio
     /// here.
     Mcp,
     /// A diagnostic handshake: after the welcome the owner writes one

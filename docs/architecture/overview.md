@@ -52,7 +52,7 @@ The CLI's MCP service embeds the repository-local
 [think-and-ship source](../../subsystems/workflow/PROVENANCE.md). Its roadmap,
 reasoning, execution, and signal tools share native project state. The
 workspace tools are served by the same binary's native workspace bridge
-(`magistr mcp-launch workbench-mcp`), every client of a workspace reaching its
+(`magistr mcp --dir`), every client of a workspace reaching its
 one admitted owner. The
 [project authority](project-authority.md)
 controls cooperating MCP owners; a second process must not open an independent

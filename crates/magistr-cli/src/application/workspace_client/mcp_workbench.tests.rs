@@ -282,7 +282,7 @@ fn an_undo_answer_that_reverted_is_ok() {
 fn a_server_that_cannot_be_connected_to_is_refused_once_and_remembered() {
     let mut workbench = McpWorkbench::new(
         "magistr-no-such-workbench-server",
-        vec!["mcp-launch".into(), "workbench-mcp".into(), ".".into()],
+        vec!["mcp".into(), "--dir".into(), ".".into()],
         Vec::new(),
     );
     let first = workbench.map().expect_err("the command does not exist");
@@ -298,7 +298,7 @@ fn magistrs_own_launch_line_lists_through_the_owner_connection() {
     let cli = stub_cli(tmp.path(), "", "", 0);
     let requests = tmp.path().join("requests.txt");
     std::fs::write(&cli, format!(r#"#!/bin/sh
-[ "$1" = "mcp-launch" ] && [ "$2" = "workbench-mcp" ] || exit 64
+[ "$1" = "mcp" ] && [ "$2" = "--dir" ] || exit 64
 while IFS= read -r line; do
   printf '%s\n' "$line" >> "$REQUESTS"
   case "$line" in
@@ -306,14 +306,14 @@ while IFS= read -r line; do
       echo '{{"jsonrpc":"2.0","id":1,"result":{{"protocolVersion":"2025-06-18","capabilities":{{}}}}}}'
       ;;
     *'"method":"tools/call"'*)
-      printf '%s\n' '{{"jsonrpc":"2.0","id":2,"result":{{"structuredContent":{JOURNAL_BODY}}}}}'
+      printf '%s\n' '{{"jsonrpc":"2.0","id":2,"result":{{"structuredContent":{{"ok":true,"receipts":[],"value":{JOURNAL_BODY}}}}}}}'
       ;;
   esac
 done
 "#)).expect("bridge");
     let mut workbench = McpWorkbench::new(
         cli,
-        vec!["mcp-launch".into(), "workbench-mcp".into(), ".".into()],
+        vec!["mcp".into(), "--dir".into(), ".".into()],
         vec![("REQUESTS".into(), requests.to_string_lossy().into_owned())],
     );
     let entries = workbench.journal().expect("the owner's journal answers");
@@ -335,9 +335,9 @@ done
         .iter()
         .find(|call| call["method"] == "tools/call")
         .expect("call");
-    assert_eq!(call["params"]["name"], "undo");
-    assert_eq!(call["params"]["arguments"]["action"], "list");
-    assert_eq!(call["params"]["arguments"]["scope"], "workspace");
-    assert_eq!(call["params"]["arguments"]["diff"], true);
-    assert_eq!(call["params"]["arguments"]["limit"], 200);
+    assert_eq!(call["params"]["name"], "execute");
+    let source = call["params"]["arguments"]["source"].as_str().unwrap();
+    for expected in ["undo", "list", "workspace", "diff", "200"] {
+        assert!(source.contains(expected), "{source}");
+    }
 }

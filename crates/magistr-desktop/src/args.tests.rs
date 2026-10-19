@@ -36,10 +36,9 @@ fn child_roles_keep_paths_and_tool_arguments_and_reject_session_options() {
     assert!(
         matches!(cli.child, Some(Child::AcpAgent { provider, allow_tool }) if provider == "codex" && allow_tool == ["Read"])
     );
-    let cli = Desktop::try_parse_from(["desktop", "mcp-launch", "workbench-mcp", "/tmp/a project"])
-        .unwrap();
+    let cli = Desktop::try_parse_from(["desktop", "mcp", "--dir", "/tmp/a project"]).unwrap();
     assert!(
-        matches!(cli.child, Some(Child::McpLaunch { target: McpTarget::Workbench, dir }) if dir == std::path::Path::new("/tmp/a project"))
+        matches!(cli.child, Some(Child::Mcp { dir, access: Access::Full, .. }) if dir == std::path::Path::new("/tmp/a project"))
     );
     for args in [
         vec!["desktop", "acp-agent"],

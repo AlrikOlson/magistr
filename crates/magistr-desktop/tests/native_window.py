@@ -550,7 +550,7 @@ def main():
             except ProcessLookupError:continue
             raise AssertionError("Provider remains after Quit: "+str(child))
         # Admission after Quit must acquire the released project owner.
-        reopened=run(executable,"mcp-launch","workbench-mcp",first,input="",env=env,timeout=20)
+        reopened=run(executable,"mcp","--dir",first,input="",env=env,timeout=20)
         results["checks"]["quit settles providers and releases owner"]=True
         database=parent/"data/magistr/sessions.db"
         with sqlite3.connect(database) as history:

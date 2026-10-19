@@ -8,10 +8,11 @@ Show the requested Magistr view using the connected project's advertised MCP too
 This is read-only. Do not start or complete tasks, run checks, select a workstream,
 edit source, submit prompts or start an implementation loop.
 
-Use ship_status for current work and recorded checks, roadmap_status for readiness
+Start with `context`. Use `discover` for schemas and `execute` with
+`magistr.call(name, args)` for advanced read operations. Use ship_status for current work and recorded checks, roadmap_status for readiness
 and blockers, think_engine_status(verbose: true) and think_get_step for findings,
 and Workbench undo(action: "list", limit: 20, diff: true) for recorded changes.
-Read task details with magistr_context(task_id: ...) only when advertised.
+Read task details with `context(task_id: ...)`.
 Use exact titles in explanations, keeping internal identifiers out of prose.
 Link relevant source paths and recorded evidence.
 

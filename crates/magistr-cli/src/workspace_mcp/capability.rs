@@ -15,7 +15,7 @@ use super::tool_surface;
 use crate::mcp_tools::protocol_cap;
 
 /// The protocol eras this server will negotiate or advertise: everything
-/// below 2026-07-28, as `magistr mcp-serve` caps them too, so every Claude
+/// below 2026-07-28, as `magistr mcp` caps them too, so every Claude
 /// client accepts the result shapes.
 const SERVED_PROTOCOL_VERSIONS: &[ProtocolVersion] = &[
     ProtocolVersion::V_2024_11_05,

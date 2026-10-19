@@ -9,7 +9,7 @@ use magistr_workflow::think::{ConfigSource, ThinkConfigResolution};
 
 const PERSIST_VAR: &str = "THINK_AND_SHIP_PERSIST";
 const BROADCAST_VAR: &str = "THINK_AND_SHIP_BROADCAST_PATH";
-/// The socket `magistr mcp-serve` binds under `.magistr/` when no
+/// The socket `magistr mcp` binds under `.magistr/` when no
 /// `THINK_AND_SHIP_BROADCAST_PATH` is set, and in-process hosts (desktop, CLI)
 /// subscribe to.
 const PROJECT_SOCKET: &str = "think-and-ship.sock";
@@ -412,7 +412,7 @@ impl NativeConfig {
     }
 
     /// The project's default broadcast socket — the well-known rendezvous
-    /// between `magistr mcp-serve` (which binds it when the environment names
+    /// between `magistr mcp` (which binds it when the environment names
     /// no other socket) and the in-process hosts that subscribe to it.
     ///
     /// `<project_root>/.magistr/think-and-ship.sock` whenever that fits the
@@ -439,7 +439,7 @@ impl NativeConfig {
 
     /// The socket a subscriber (TUI native feed, GUI) should connect to: the
     /// environment's `THINK_AND_SHIP_BROADCAST_PATH` when set, else
-    /// [`Self::project_socket_path`] — exactly what `magistr mcp-serve` binds.
+    /// [`Self::project_socket_path`] — exactly what `magistr mcp` binds.
     #[must_use]
     pub fn feed_socket_path(&self) -> PathBuf {
         self.broadcast_path

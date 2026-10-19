@@ -65,7 +65,7 @@ impl Default for Stack {
 
 /// Full stack detection with per-category confidence scores.
 ///
-/// Used by `magistr init --smart` and `magistr detect --smart` to show
+/// Used by `magistr detect --smart` to show
 /// detection confidence and flag low-confidence results.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SmartStack {

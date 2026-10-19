@@ -10,26 +10,14 @@ use crate::config::inputs::ProjectInputs;
 use crate::mcp_bridge::Bridge;
 
 /// Pinned interpreter embedded in the shipping binary.
-const QJS_WASI: &[u8] =
-    include_bytes!("../../../../subsystems/workspace/reference/vendor/qjs/qjs-wasi.wasm");
+const QJS_WASI: &[u8] = include_bytes!("../../assets/qjs/qjs-wasi.wasm");
 
-/// Serve one native workspace — the project the captured inputs are rooted
-/// at — to this process's stdio client through the bridge: the first
-/// invocation admits and owns the service, later ones attach to it over the
-/// shared owner endpoint, and any of them survives the owner going away by
-/// reconnecting on the next request. A startup refusal of the temporary
-/// kind — the lock is held by an owner that published no endpoint yet, or
-/// the marker awaits `magistr workspace migrate` — does not end the process
-/// either: the bridge serves discovery itself and reconnects on the next
-/// request, so the refusal is answered typed and outlived without a
-/// restart. Every other refusal (missing root, durable data of a newer
-/// binary, overrides against a live owner) is still a startup error with
-/// its retained exit code. The launcher may name the session identity the
-/// bridge stamps (the captured `WORKBENCH_SESSION_ID`); otherwise one is
-/// minted for the life of this process.
-pub async fn run_workspace_stdio_server(
+/// Internal workspace transport admitted by the unified MCP endpoint.
+pub(crate) async fn run_transport(
     inputs: &ProjectInputs,
     config: &[String],
+    input: impl tokio::io::AsyncRead + Unpin,
+    output: impl tokio::io::AsyncWrite + Unpin,
 ) -> eyre::Result<()> {
     let flags = SessionFlags::parse(config);
     if !flags.errors.is_empty() {
@@ -49,7 +37,9 @@ pub async fn run_workspace_stdio_server(
         None => mint_session_identity("bridge").map_err(|error| eyre::eyre!("{error}"))?,
     };
     let capability = Capability::new(options.offers_script());
-    Bridge::new(options, identity, capability, link).run().await
+    Bridge::new(options, identity, capability, link)
+        .run_transport(input, output)
+        .await
 }
 
 /// The open options every Magistr owner of the captured project composes —

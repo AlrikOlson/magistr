@@ -9,29 +9,29 @@ recommended design rather than a choice of workarounds. The full rule is
 Follow [AGENTS.md](AGENTS.md) and the
 [Rust conventions](.claude/rules/conventions.md).
 Use the project skills in `.claude/skills/` and the configured Magistr and
-Workbench servers. Build commands and required checks are in
+workspace tools through the same connection. Build commands and required checks are in
 `.magistr/project.json`; setup instructions are in
 [development](docs/development.md).
 
 <!-- think-and-ship -->
 # think-and-ship
 
-The four tool families below are served **in-process by the `magistr` MCP server** (`magistr mcp-serve`) over one think-and-ship store. Do not also configure a standalone `think-and-ship serve` on this project: two processes over one store each hold their own copy of the execution and roadmap state (persistence is merge-on-save, never reload-on-read), so a write through one is invisible to the other's guards until restart. `magistr init` retires such an entry.
+The `magistr` MCP connection (`magistr mcp --dir .`) provides source tools and the native workflow. Start with `context`. Use direct `search`, `read`, `edit`, `write`, `plan_work`, `start_work`, `record_progress`, `check_work`, and `finish_work` for common work. Use read-only `discover` to inspect advanced operation schemas, then `execute` with synchronous `magistr.call(name, args)`. Compositions stop on failure and return receipts; inspect completed effects before recovery. One workflow owner serves the project, and one workspace owner serves each working copy.
 
 ## Tool families
 
 | Family | Purpose | Key tools |
 |--------|---------|-----------|
 | **think_*** | Reasoning trace: record steps, branch hypotheses, pin conclusions | `think_record_step`, `think_pin_step`, `think_trace_checkpoint` |
-| **ship_*** | Execution trace: objectives, tasks, actions, quality gates | `ship_set_objective`, `ship_plan`, `ship_start`, `ship_record`, `ship_check`, `ship_finalize` |
-| **roadmap_*** | The long-horizon plan-of-plans driving both | `roadmap_status`, `roadmap_next`, `roadmap_start_chunk`, `roadmap_complete_chunk`, `roadmap_export` |
+| **ship_*** | Execution trace: objectives, tasks, actions, quality gates | `ship_set_objective`, `plan_work`, `start_work`, `record_progress`, `check_work`, `ship_finalize` |
+| **roadmap_*** | The long-horizon plan-of-plans driving both | `roadmap_status`, `roadmap_next`, `roadmap_start_chunk`, `roadmap_complete_chunk` |
 | **signal_*** | Stakeholder signals: capture, research, surface, promote to the roadmap | `signal_capture`, `signal_pending`, `signal_research`, `signal_promote` |
 
 ## Cross-referencing
 
 Link reasoning to execution:
 - On `think_record_step`, pass `execution_ref: "task:<id>"` to point at a ship_* task.
-- On `ship_record`, pass `think_step: <N>` to point back at the motivating think_* step.
+- On `record_progress`, pass `think_step: <N>` to point back at the motivating think_* step.
 
 Both halves resolve the same project identity from the working directory so
 traces auto-correlate.
@@ -41,10 +41,10 @@ traces auto-correlate.
 First read `ship_status` and, for roadmap work, `roadmap_status`. Resume a matching unfinished objective and keep its plan, task statuses, actions, checks, and reasoning. Continue an already active task without starting it again; do not restart completed tasks. Select the authorized scope with `ship_set_objective` when another scope is selected, then read `ship_status` again. Scope selection saves unrelated unfinished work and restores a saved objective and plan unchanged; never reset or finalize unrelated work to make room. For `/next`, follow the selected chunk and the recovery contract in `.claude/skills/next/SKILL.md`; pending work is considered only when no authorized in-progress work remains.
 
 1. `ship_set_objective` — select the authorized scope or define a new goal; resume a matching unfinished scope without repeating setup
-2. `ship_plan` — keep existing tasks and add only missing work
+2. `plan_work` — keep existing tasks and add only missing work
 3. `think_record_step` — record the question, current evidence, and planned next check
-4. `ship_start` a pending task, or continue the active task; then `ship_record` → `ship_complete` — do the work, recording findings and changed conclusions as evidence arrives
-5. `ship_check` — execute and record the relevant checks
+4. `start_work` a pending task, or continue the active task; then `record_progress` → `finish_work` — do the work, recording findings and changed conclusions as evidence arrives
+5. `check_work` — execute and record the relevant checks
 6. `think_record_step` — synthesize the findings, link the steps used, and state remaining uncertainty
 7. `ship_finalize` — finalize the objective after its acceptance criteria and checks pass
 
@@ -90,7 +90,7 @@ read while the work is happening.
 
 ## Verification
 
-This is a Rust project. Use these commands to verify changes:
+This is a Rust project. Select focused checks for the changed behavior. These are the configured full commands; run all of them only for an explicit full-suite request or a concrete cross-cutting risk:
 
 - `cargo check --workspace --all-targets`
 - `cargo nextest run --workspace`

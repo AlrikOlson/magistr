@@ -17,29 +17,8 @@ impl CodexSetup {
             .is_some_and(|o| o.selected)
     }
 
-    pub(super) fn prepare_vars(dir: &Path, vars: &mut HashMap<String, String>) {
-        if Self::is_present(dir) {
-            let selected = vars.entry("selected_agents".into()).or_default();
-            if selected.is_empty() {
-                *selected = super::emitters::all_emitters()
-                    .iter()
-                    .filter(|e| e.id() != "codex")
-                    .map(|e| e.id())
-                    .collect::<Vec<_>>()
-                    .join(",");
-            }
-            if !selected.split(',').any(|v| v == "codex") {
-                if !selected.is_empty() {
-                    selected.push(',');
-                }
-                selected.push_str("codex");
-            }
-        }
-    }
-
     pub(super) fn selected(vars: &HashMap<String, String>) -> bool {
-        vars.get("selected_agents")
-            .is_some_and(|v| v.split(',').any(|s| s == "codex"))
+        super::agent_selected(vars, "codex")
     }
 
     pub(super) fn plan(
@@ -56,10 +35,8 @@ impl CodexSetup {
         let manifest = ScaffoldManifest::load(dir);
         let owned = manifest.codex.unwrap_or_default();
         let native_only = Self::native_only(dir)?;
-        // Recognized legacy Claude links are migration inputs, not write targets.
-        let links = super::codex_skill_links::CodexSkillLinks::capture(dir)?;
         for f in super::workflow_skills::WorkflowSkills::codex_files() {
-            links.read(dir, f.path)?;
+            Self::read(dir, f.path)?;
         }
         Self::read(dir, ".codex/run")?;
         let mut result = Vec::new();
@@ -148,56 +125,6 @@ impl CodexSetup {
 
     pub(super) fn is_shared(path: &str) -> bool {
         path == CONFIG || path == AGENTS
-    }
-
-    /// The repair a present Codex target needs: its shared components
-    /// (repair mode, so nothing is added) and its owned files that exist,
-    /// each judged against the manifest and the canonical inputs. Repair
-    /// never creates; a customized file is preserved.
-    pub(super) fn repair_plan(dir: &Path) -> Result<Vec<PlannedChange>> {
-        if !Self::is_present(dir) {
-            return Ok(Vec::new());
-        }
-        let vars = HashMap::from([("selected_agents".into(), "codex".into())]);
-        let mut changes = Self::plan(dir, &vars, true)?;
-        let links = super::codex_skill_links::CodexSkillLinks::capture(dir)?;
-        let manifest = ScaffoldManifest::load(dir);
-        let canonical = super::canonical::CanonicalSource::capture(dir);
-        for f in super::scaffold_files(&vars)
-            .into_iter()
-            .filter(|f| Self::owned_path(f.path) && !links.covers(f.path))
-        {
-            let Some(current) = Self::read(dir, f.path)? else {
-                continue;
-            };
-            let ownership = if canonical.is_canonical(f.path) {
-                super::Ownership::Canonical
-            } else {
-                super::Ownership::judge(f.policy, f.path, Some(&current), &manifest)
-            };
-            let content = match canonical.resolve(f.path, f.content) {
-                Ok(content) => content,
-                Err(refusal) => {
-                    changes.push(PlannedChange::refused(
-                        f.path,
-                        refusal,
-                        Some(current),
-                        ownership,
-                    ));
-                    continue;
-                }
-            };
-            if manifest.is_customized(f.path, &current) {
-                changes.push(PlannedChange::preserved(
-                    f.path,
-                    Some(current),
-                    super::Ownership::Customized,
-                ));
-                continue;
-            }
-            changes.push(PlannedChange::merged(f.path, Some(current), content).owned_by(ownership));
-        }
-        Ok(changes)
     }
 
     /// The owned removal of a present Codex target: its shared components
@@ -375,7 +302,7 @@ fn instructions(native_only: bool) -> String {
         "The native roadmap is authoritative. Read .magistr/project.json before exporting a view: roadmap_exports=false forbids ROADMAP.md/ROADMAP.json and all file exports. Otherwise export only when the project requests a view."
     };
     format!(
-        "{START}\n## Magistr in Codex\n\nLaunch with `magistr codex-launch --project-root . --` or `./.codex/run`. The native launcher resolves dependencies and applies the documented Codex skill-discovery behavior. Use `magistr codex-launch --project-root . --diagnose` for read-only diagnostics.\n\nUse the configured `magistr` MCP server for roadmap_*, think_*, ship_*, signal_* and magistr_* tools. It embeds think-and-ship; do not start a standalone workflow server. Use Workbench map/search/read/edit/files/run/script/undo for workspace content; follow .agents/skills/workbench-routing/SKILL.md. A held Workbench lock belongs to its existing connection: do not kill the owner or launch a competing probe.\n\nUse the nine project skills: $next, $next-loop, $validate, $roadmap, $roadmap-refresh, $signals, $craft, $init and $workbench-routing. $next runs one chunk in this Codex session. $next-loop is a bounded fresh-session handoff: finish one chunk, write the handoff, stop, and resume the bound only in a new Codex session. Read .magistr/project.json for commands and required custom gates and .claude/rules/conventions.md for shared project conventions. Claude hooks are additional enforcement only; Codex must explicitly run and record required gates.\n\n{policy}\n\nPreserve existing objectives and worktree changes. Follow the requested scope; setup, review and planning do not authorize starting a roadmap chunk. $next implements one ready chunk; $next-loop is bounded. Recovery, acceptance, recorded checks and an atomic commit are required before completing work.\n{END}"
+        "{START}\n## Magistr in Codex\n\nLaunch with `magistr codex-launch --project-root . --` or `./.codex/run`. The native launcher resolves dependencies and applies the documented Codex skill-discovery behavior. Use `magistr codex-launch --project-root . --diagnose` for read-only diagnostics.\n\nUse the configured `magistr` MCP server for workflow and workspace tools. Start with `context`; use `discover` to inspect advanced operation schemas and `execute` with `magistr.call(name, args)` to call them. Use direct search/read/edit/write for source. Composed changes stop on failure; inspect receipts before recovery. Do not start a second workflow or workspace server; follow .agents/skills/workbench-routing/SKILL.md. A held Workbench lock belongs to its existing connection: do not kill the owner or launch a competing probe.\n\nUse the nine project skills: $next, $next-loop, $validate, $roadmap, $roadmap-refresh, $signals, $craft, $init and $workbench-routing. $next runs one chunk in this Codex session. $next-loop is a bounded fresh-session handoff: finish one chunk, write the handoff, stop, and resume the bound only in a new Codex session. Read .magistr/project.json for commands and required custom gates and .magistr/conventions.md for shared project conventions. Claude hooks are additional enforcement only; Codex must explicitly run and record required gates.\n\n{policy}\n\nPreserve existing objectives and worktree changes. Follow the requested scope; setup, review and planning do not authorize starting a roadmap chunk. $next implements one ready chunk; $next-loop is bounded. Recovery, acceptance, recorded checks and an atomic commit are required before completing work.\n{END}"
     )
 }
 

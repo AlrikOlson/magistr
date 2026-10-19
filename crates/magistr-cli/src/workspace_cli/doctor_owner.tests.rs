@@ -230,13 +230,12 @@ async fn records_never_certify_liveness_and_legacy_markers_name_the_migration() 
     assert_eq!(section.detail["probe"]["liveness"], "unanswered");
     std::fs::remove_file(&socket).expect("unlink");
 
-    // A legacy record: unhealthy, with the migration named and the pid
-    // reported as a hint.
+    // An unrecognized record is unhealthy without interpreting process ids.
     std::fs::write(
         state.join(ServerLock::FILE_NAME),
         format!(r#"{{"pid":{},"host":"elsewhere"}}"#, std::process::id()),
     )
-    .expect("legacy");
+    .expect("unknown record");
     let section = observe(&root).await;
     let lock = section
         .findings
@@ -245,15 +244,14 @@ async fn records_never_certify_liveness_and_legacy_markers_name_the_migration() 
         .expect("lock finding");
     assert_eq!(lock.severity, DoctorSeverity::Unhealthy);
     assert!(
-        lock.symptom.contains("legacy server record"),
+        lock.symptom.contains("unrecognized lock record"),
         "{}",
         lock.symptom
     );
-    assert!(lock.symptom.contains("not judged here"), "{}", lock.symptom);
     assert!(
         lock.remediation
             .as_deref()
-            .is_some_and(|r| r.contains("magistr workspace migrate")),
+            .is_some_and(|r| r.contains("known-good backup")),
         "{:?}",
         lock.remediation
     );

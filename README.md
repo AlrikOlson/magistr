@@ -16,26 +16,32 @@ records the reasoning, changes and checks alongside the project.
 
 ## Install and initialize
 
-Requires Git and Rust 1.95 or later. There is no registry package yet.
+The first supported installation target is Apple Silicon macOS. Registry
+publication is pending; these are the prepared release commands:
 
 ```sh
-git clone https://github.com/AlrikOlson/magistr.git
-cd magistr
-cargo install --locked --path crates/magistr-cli
-magistr --version
+npm install -g magistr
+# Or, with Rust 1.95+:
+cargo install magistr-cli --locked
 ```
 
-In your project:
+For the current source build, use `cargo install --locked --path crates/magistr-cli`.
+The npm package includes a native binary; it needs no Rust, Bun or source checkout.
+
+In your project, run `magistr init` (or `npx magistr init`). Select Codex, Claude
+Code, both, or another MCP agent. Review the detected verification commands and
+proposed file changes. Setup checks the connection and gives you a planning prompt.
+It does not start implementation. For unattended setup:
 
 ```sh
-magistr init . --agent codex --yes
-./.codex/run
+magistr init . --agent codex,claude --yes
+magistr doctor .
 ```
 
-Claude Code setup is always written; `--agent` also accepts `codex`, `copilot`,
-`cursor`, `cline`, `windsurf` and `aider`. `magistr init` writes the project
-configuration and the selected agent's workflow commands. `$next` or `/next`
-resumes or implements one ready work item and stops.
+One `magistr mcp --dir .` connection provides workflow and verified source tools.
+Common tools are direct; `discover` and `execute` expose the complete operation
+catalog. See [installation, upgrades and removal](docs/getting-started.md) and
+[release preparation](docs/releasing-cli.md).
 
 ## Desktop
 

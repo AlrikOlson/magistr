@@ -40,7 +40,7 @@
 //! `subsystems/workflow/PROVENANCE.md`); the standalone binary was retired
 //! with the rehome. Magistr composes the four engines in process, once per
 //! admitted writer, and serves the families through its own `magistr
-//! mcp-serve`. In a conversation, the agent records a step before it acts and
+//! mcp`. In a conversation, the agent records a step before it acts and
 //! an outcome after — and the next session can read both back.
 //!
 //! # Using it as a library

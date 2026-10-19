@@ -1,5 +1,5 @@
 //! Portable scaffold commands exercised as subprocesses: the generated
-//! `magistr mcp-launch workbench-mcp .` line serves this binary's own native
+//! `magistr mcp --dir .` line serves this binary's own native
 //! workspace bridge for the project it selects, with nothing on PATH and no
 //! environment override consulted.
 #![cfg(unix)]
@@ -63,7 +63,9 @@ fn fixture_command(root: &Path) -> Command {
     let mut command = magistr_command::magistr_command();
     command
         .current_dir(root)
-        .env("HOME", root)
+        .env("THINK_AND_SHIP_DATA_DIR", root.join("state"))
+        .env("XDG_CONFIG_HOME", root.join("config"))
+        .env("XDG_DATA_HOME", root.join("data"))
         .env("PATH", "")
         .env("WORKBENCH_NETWORK_FS", "0")
         .env_remove("WORKBENCH_ORG_POLICY")
@@ -164,10 +166,11 @@ fn generated_servers_are_portable_and_match_the_preview() {
         config,
         serde_json::from_str::<Value>(proposed).expect("preview JSON")
     );
-    for target in ["magistr", "workbench-mcp"] {
+    {
+        let target = "magistr";
         assert_eq!(
             config["mcpServers"][target],
-            json!({"type": "stdio", "command": "magistr", "args": ["mcp-launch", target, "."]})
+            json!({"type": "stdio", "command": "magistr", "args": ["mcp", "--dir", "."]})
         );
     }
     assert_eq!(config["mcpServers"]["custom"], custom);
@@ -188,7 +191,7 @@ fn relocated_project_is_served_natively_from_a_nested_directory() {
     std::fs::rename(&original, &relocated).expect("relocate project");
     let nested = relocated.join("src/nested");
     std::fs::create_dir_all(&nested).expect("nested working directory");
-    let entry = &config["mcpServers"]["workbench-mcp"];
+    let entry = &config["mcpServers"]["magistr"];
     assert_eq!(entry["command"], "magistr");
     let mut command = fixture_command(&nested);
     command.args(
@@ -208,16 +211,16 @@ fn relocated_project_is_served_natively_from_a_nested_directory() {
 }
 
 #[test]
-fn nearest_legacy_project_is_selected_from_a_nested_directory() {
+fn nearest_configured_project_is_selected_from_a_nested_directory() {
     let temporary = tempfile::tempdir().expect("temporary projects");
     generate_project(temporary.path());
     let inner = temporary.path().join("nested project");
-    std::fs::create_dir_all(inner.join(".jig")).expect("legacy project directory");
-    std::fs::write(inner.join(".jig/project.json"), "{}").expect("legacy project marker");
+    std::fs::create_dir_all(inner.join(".magistr")).expect("legacy project directory");
+    std::fs::write(inner.join(".magistr/project.json"), "{}").expect("legacy project marker");
     let nested = inner.join("src/deeper");
     std::fs::create_dir_all(&nested).expect("nested directory");
     let mut command = fixture_command(&nested);
-    command.args(["mcp-launch", "workbench-mcp"]);
+    command.args(["mcp"]);
     invoke_native(command);
     assert_workspace(&inner, &[temporary.path(), &nested]);
 }
@@ -229,32 +232,20 @@ fn repository_boundary_keeps_an_unconfigured_project_out_of_its_parent() {
     let repository = temporary.path().join("separate worktree");
     let nested = repository.join("src/deeper");
     std::fs::create_dir_all(&nested).expect("nested directory");
-    std::fs::write(repository.join(".git"), "gitdir: ignored-by-fixture\n")
-        .expect("worktree boundary");
+    std::fs::create_dir(repository.join(".git")).expect("worktree boundary");
     let mut command = fixture_command(temporary.path());
-    command.args(["mcp-launch", "workbench-mcp"]).arg(&nested);
+    command.args(["mcp", "--dir"]).arg(&nested);
     invoke_native(command);
-    assert_workspace(&nested, &[temporary.path(), &repository]);
+    assert_workspace(&repository, &[temporary.path(), &nested]);
 }
 
 #[test]
-fn legacy_resolver_overrides_are_ignored_and_nothing_external_is_required() {
-    // The retired resolver read WORKBENCH_MCP and WORKBENCH_MCP_REPO and fell
-    // back to PATH or a home checkout. The native launch consults none of
-    // them: bogus values change nothing and an empty PATH is enough.
+fn launch_needs_no_external_executable_or_checkout() {
     let temporary = tempfile::tempdir().expect("temporary project");
-    let original_config = generate_project(temporary.path());
-    let missing = temporary.path().join("missing executable λ");
+    let original = generate_project(temporary.path());
     let mut command = fixture_command(temporary.path());
-    command
-        .args(["mcp-launch", "workbench-mcp", "."])
-        .env("WORKBENCH_MCP", &missing)
-        .env("WORKBENCH_MCP_REPO", temporary.path().join("no checkout"));
-    let output = invoke_native(command);
-    assert!(
-        !String::from_utf8_lossy(&output.stderr).contains("missing executable λ"),
-        "the override was consulted"
-    );
-    assert_eq!(read_config(temporary.path()), original_config);
+    command.args(["mcp", "--dir", "."]);
+    invoke_native(command);
+    assert_eq!(read_config(temporary.path()), original);
     assert_workspace(temporary.path(), &[]);
 }

@@ -5,21 +5,7 @@ use crate::scaffold::{
 
 /// Plan and apply the Codex repair, as the startup repair does for it.
 fn repair_codex(dir: &Path) -> Result<Vec<String>> {
-    let changes = CodexSetup::repair_plan(dir)?;
-    let owned = changes
-        .iter()
-        .map(|c| c.path.as_str())
-        .filter(|p| CodexSetup::owned_path(p));
-    let mut service =
-        crate::scaffold::AdminService::open(dir, crate::scaffold::AdminOperation::Repair, owned);
-    for change in &changes {
-        service.execute(change);
-    }
-    let receipt = service.finish();
-    match receipt.partial_error() {
-        Some(error) => Err(error),
-        None => Ok(receipt.applied_paths()),
-    }
+    crate::scaffold::repair::repair(dir)
 }
 use std::collections::BTreeMap;
 
@@ -78,7 +64,7 @@ fn snapshot(dir: &Path) -> BTreeMap<std::path::PathBuf, Entry> {
 }
 
 #[test]
-fn recovered_codex_selection_keeps_all_headless_default_emitters() {
+fn omitted_selection_keeps_only_existing_integrations() {
     let tmp = tempfile::tempdir().unwrap();
     setup(tmp.path());
     let mut defaults = vars();
@@ -90,15 +76,19 @@ fn recovered_codex_selection_keeps_all_headless_default_emitters() {
         &crate::scaffold::SetupSeeds::default(),
     )
     .unwrap();
+    assert!(preview.files.iter().any(|file| file.path == CONFIG));
     for path in [
-        CONFIG,
         ".cursor/rules/workflow.mdc",
         ".github/copilot-instructions.md",
         ".clinerules",
         ".windsurfrules",
         ".aider.conf.yml",
+        "CLAUDE.md",
     ] {
-        assert!(preview.files.iter().any(|file| file.path == path), "{path}");
+        assert!(
+            !preview.files.iter().any(|file| file.path == path),
+            "{path}"
+        );
     }
 }
 
@@ -298,10 +288,7 @@ fn native_only_denials_and_disabled_standalone_server_restore_original_user_valu
             config["mcp_servers"]["magistr"]["command"].as_str(),
             Some("custom-magistr")
         );
-        assert_eq!(
-            config["mcp_servers"]["think-and-ship"]["enabled"].as_bool(),
-            Some(false)
-        );
+        assert!(config["mcp_servers"].get("think-and-ship").is_none());
         let denied = config["mcp_servers"]["magistr"]["disabled_tools"]
             .as_array()
             .unwrap();
@@ -321,7 +308,14 @@ fn native_only_denials_and_disabled_standalone_server_restore_original_user_valu
         assert!(!dir.join("ROADMAP.md").exists());
         assert!(!dir.join("ROADMAP.json").exists());
         CodexSetup::remove_target(dir).unwrap();
-        assert_eq!(read(dir, CONFIG), original);
+        let after: toml::Value = toml::from_str(&read(dir, CONFIG)).unwrap();
+        let before: toml::Value = toml::from_str(&original).unwrap();
+        assert_eq!(after["model"], before["model"]);
+        assert_eq!(
+            after["mcp_servers"]["magistr"],
+            before["mcp_servers"]["magistr"]
+        );
+        assert!(after["mcp_servers"].get("think-and-ship").is_none());
         assert_eq!(read(dir, ".magistr/project.json"), project);
     }
 }
@@ -476,7 +470,15 @@ fn selective_apply_claims_only_the_approved_codex_component() {
 fn target_removal_keeps_native_state_until_an_explicit_reset() {
     let tmp = tempfile::tempdir().unwrap();
     let dir = tmp.path();
-    setup(dir);
+    let mut choices = vars();
+    choices.insert("selected_agents".into(), "codex,claude".into());
+    generate_with_result(
+        dir,
+        &choices,
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
     write(dir, ".magistr/state.json", "native execution checkpoint\n");
     write(
         dir,
@@ -545,7 +547,8 @@ fn inline_mcp_tables_keep_user_values_through_setup_and_removal() {
 
 #[test]
 fn customizing_either_transport_field_protects_command_and_args_as_one_unit() {
-    for server in ["magistr", "workbench-mcp"] {
+    {
+        let server = "magistr";
         for field in ["command", "args"] {
             let tmp = tempfile::tempdir().unwrap();
             let dir = tmp.path();
@@ -619,7 +622,8 @@ fn retired_codex_files_need_explicit_target_ownership_before_removal() {
 
 #[test]
 fn metadata_only_server_settings_gain_a_transport_and_survive_target_removal() {
-    for server in ["magistr", "workbench-mcp", "think-and-ship"] {
+    {
+        let server = "magistr";
         let tmp = tempfile::tempdir().unwrap();
         let dir = tmp.path();
         let original = format!(
@@ -631,23 +635,14 @@ fn metadata_only_server_settings_gain_a_transport_and_survive_target_removal() {
         let entry = &config["mcp_servers"][server];
         assert_eq!(entry["startup_timeout_sec"].as_integer(), Some(120));
         assert_eq!(entry["env"]["TEAM_SETTING"].as_str(), Some("keep"));
-        if server == "think-and-ship" {
-            assert_eq!(entry["command"].as_str(), Some("think-and-ship"));
-            assert_eq!(
-                entry["args"].as_array().unwrap(),
-                &[toml::Value::String("serve".into())]
-            );
-            assert_eq!(entry["enabled"].as_bool(), Some(false));
-        } else {
-            assert_eq!(entry["command"].as_str(), Some("magistr"));
-            let args: Vec<_> = entry["args"]
-                .as_array()
-                .unwrap()
-                .iter()
-                .map(|arg| arg.as_str().unwrap())
-                .collect();
-            assert_eq!(args, ["mcp-launch", server, "."]);
-        }
+        assert_eq!(entry["command"].as_str(), Some("magistr"));
+        let args: Vec<_> = entry["args"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|arg| arg.as_str().unwrap())
+            .collect();
+        assert_eq!(args, ["mcp", "--dir", "."]);
         setup(dir);
         repair_codex(dir).unwrap();
         CodexSetup::remove_target(dir).unwrap();
@@ -657,7 +652,8 @@ fn metadata_only_server_settings_gain_a_transport_and_survive_target_removal() {
 
 #[test]
 fn a_partial_transport_fails_actionably_before_any_scaffold_write() {
-    for server in ["magistr", "workbench-mcp", "think-and-ship"] {
+    {
+        let server = "magistr";
         let tmp = tempfile::tempdir().unwrap();
         let dir = tmp.path();
         write(

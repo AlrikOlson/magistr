@@ -419,7 +419,7 @@ fn changed_project_policy_cannot_substitute_a_workflows_saved_model() {
 #[test]
 fn application_execution_binds_every_tool_child_instead_of_configured_stale_ids() {
     let tmp = tempfile::tempdir().unwrap();
-    std::fs::write(tmp.path().join(".mcp.json"), serde_json::json!({ "mcpServers": { "magistr": { "command": "magistr", "args": ["mcp-launch", "magistr", "."], "env": { "MAGISTR_EXECUTION_ID": "wrong", "WORKBENCH_SESSION_ID": "wrong", "CUSTOM": "kept" } } } }).to_string()).unwrap();
+    std::fs::write(tmp.path().join(".mcp.json"), serde_json::json!({ "mcpServers": { "magistr": { "command": "magistr", "args": ["mcp", "--dir", "."], "env": { "MAGISTR_EXECUTION_ID": "wrong", "WORKBENCH_SESSION_ID": "wrong", "CUSTOM": "kept" } } } }).to_string()).unwrap();
     let inputs = crate::config::inputs::ProjectInputs::from_lookup(tmp.path(), |_| None);
     let mut config = AgentConfig::new("", tmp.path()).with_inputs(&inputs);
     config.execution_id = Some("resident-one".into());
@@ -610,6 +610,14 @@ fn saved_purpose_applies_startup_restrictions_without_replacing_identity_or_resu
     use crate::agent::persistence::SessionHistory;
     use magistr_application::sessions::SessionPurpose;
     let dir = tempfile::tempdir().unwrap();
+    std::fs::write(
+        dir.path().join(".mcp.json"),
+        serde_json::json!({
+            "mcpServers":{"magistr":crate::mcp_target::McpTarget.mcp_entry(".")}
+        })
+        .to_string(),
+    )
+    .unwrap();
     let mut config = AgentConfig::new("new planning request", dir.path())
         .model("saved-model")
         .resume("provider-planning-context")
@@ -640,15 +648,32 @@ fn saved_purpose_applies_startup_restrictions_without_replacing_identity_or_resu
         spec.config.allowed_tools,
         crate::agent::ToolPermissions::for_roadmap_request().into_strings()
     );
+    let server = spec
+        .mcp_servers
+        .iter()
+        .find_map(|server| match server {
+            agent_client_protocol::schema::v1::McpServer::Stdio(server)
+                if server.name == "magistr" =>
+            {
+                Some(server)
+            }
+            _ => None,
+        })
+        .expect("unified planning connection");
+    assert!(
+        server
+            .args
+            .ends_with(&["--access".into(), "planning".into()])
+    );
     let instructions = spec.config.system_prompt.as_deref().unwrap();
     assert!(instructions.starts_with("Project context"));
     assert!(instructions.contains("Do not implement code"));
     let (mut policy, _) = spec.into_session_policy();
     for (name, expected) in [
         ("Write", PolicyDecision::Deny),
-        ("mcp__workbench_mcp__edit", PolicyDecision::Deny),
-        ("mcp__magistr__ship_start", PolicyDecision::Deny),
-        ("mcp__magistr__roadmap_add_chunk", PolicyDecision::Allow),
+        ("mcp__magistr__edit", PolicyDecision::Deny),
+        ("mcp__magistr__start_work", PolicyDecision::Deny),
+        ("mcp__magistr__execute", PolicyDecision::Allow),
     ] {
         let (response_tx, _) = tokio::sync::oneshot::channel();
         let request = magistr_acp::AcpPermissionRequest {
@@ -661,4 +686,18 @@ fn saved_purpose_applies_startup_restrictions_without_replacing_identity_or_resu
         };
         assert_eq!(policy.decide(&policy_request(&request)), expected, "{name}");
     }
+}
+
+#[test]
+fn native_hosts_supply_the_connection_for_codex_only_setup() {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::create_dir(dir.path().join(".magistr")).unwrap();
+    std::fs::write(dir.path().join(".magistr/project.json"), "{}").unwrap();
+    let servers = resolved_mcp_servers(dir.path()).unwrap();
+    assert_eq!(servers.len(), 1);
+    let McpServer::Stdio(server) = &servers[0] else {
+        panic!("native stdio")
+    };
+    assert_eq!(server.name, "magistr");
+    assert_eq!(&server.args[..2], &["mcp", "--dir"]);
 }

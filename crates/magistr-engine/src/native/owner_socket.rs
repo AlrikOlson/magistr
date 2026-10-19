@@ -22,7 +22,7 @@ use super::writer_role::WriterRole;
 /// too deep falls back to `/tmp`.
 #[must_use]
 pub fn owner_socket_path(tas: &NativeConfig, project_id: &str, role: WriterRole) -> PathBuf {
-    let lock = lock_path(tas, project_id, role);
+    let lock = canonical_location(lock_path(tas, project_id, role));
     let beside = PathBuf::from(format!("{}.sock", lock.display()));
     if fits_sun_path(&beside) {
         return beside;
@@ -34,6 +34,28 @@ pub fn owner_socket_path(tas: &NativeConfig, project_id: &str, role: WriterRole)
         return short;
     }
     PathBuf::from("/tmp").join(name)
+}
+
+/// Resolve existing ancestors before hashing a rendezvous. A symlink or "."
+/// spelling must find the same owner even when the store itself is not yet created.
+fn canonical_location(path: PathBuf) -> PathBuf {
+    let mut ancestor = path.as_path();
+    let mut suffix = Vec::new();
+    loop {
+        if let Ok(mut canonical) = ancestor.canonicalize() {
+            for component in suffix.iter().rev() {
+                canonical.push(component);
+            }
+            return canonical;
+        }
+        match (ancestor.parent(), ancestor.file_name()) {
+            (Some(parent), Some(name)) => {
+                suffix.push(name);
+                ancestor = parent;
+            }
+            _ => return path,
+        }
+    }
 }
 
 /// The first sixteen hex digits of the SHA-256 of `text`.

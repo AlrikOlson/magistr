@@ -15,9 +15,6 @@ impl PreviewContext {
             path.hash(&mut hash);
             super::CodexSetup::read(dir, path)?.hash(&mut hash);
         }
-        super::codex_skill_links::CodexSkillLinks::capture(dir)?
-            .fingerprint()
-            .hash(&mut hash);
         Ok(format!("{:016x}", hash.finish()))
     }
 }

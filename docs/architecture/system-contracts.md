@@ -51,18 +51,17 @@ tests for the first group are in the [client inventory](clients.md#client-invent
 | `magistr --help` | none | none | none |
 | `magistr-desktop --dir /path/to/project` | admitted host or owner attachment | admitted/attached per working copy | resident SessionRegistry |
 | `magistr roadmap` show, next, status, export | reader | none | none |
-| `magistr roadmap generate` | none here; the agent's `mcp-serve` writes | admitted for the run | `AgentSession` |
-| `magistr run` plain and `--headless` | none here; the agent's `mcp-serve` writes | admitted for the run | `AgentSession` |
+| `magistr roadmap generate` | none here; the agent's `mcp` writes | admitted for the run | `AgentSession` |
+| `magistr run` plain and `--headless` | none here; the agent's `mcp` writes | admitted for the run | `AgentSession` |
 | `magistr next` | reader; the agent's MCP tools use the project owner | admitted for the run | supervisor per attempt |
 | `magistr next-loop` | NativeReader for progress; loop-owner lock for the checkpoint; agent MCP tools use the project owner | admitted per loop | supervisor per attempt |
 | `magistr resolve-dispatch` | none; rewrites the loop checkpoint under the loop-owner lock | none | none |
-| `magistr mcp-serve` | Service writer, or stdio proxy to the owner when held | lock-free evidence only | none |
-| `magistr mcp-launch` `magistr` or `workbench-mcp` | as `mcp-serve`, or none | the owner when free, else an attached bridge | none |
+| `magistr mcp` | Service writer or attached workflow bridge | Workspace owner when free, otherwise attached workspace bridge | none |
 | `magistr mcp-proxy` (hidden) | none; filters a foreign MCP server's stdout | none | none |
 | `magistr workspace` serve | none | the owner when free, else an attached bridge | none |
 | `magistr workspace` journal, snapshot, doctor | none (doctor reads the checkpoint as it lies) | lock-free readers; doctor adds one bounded probe | none |
 | `magistr workspace` init, key, migrate | none | file administration; no service opened | none |
-| `magistr acp-agent` (hidden) | none; its tools arrive through `mcp-serve` and the bridge | none | the provider side of one session |
+| `magistr acp-agent` (hidden) | none; its tools arrive through `mcp` and the bridge | none | the provider side of one session |
 | `magistr codex-launch`, `magistr codex-remove` | none in the wrapper | none | the external runtime; removal is an administrative plan |
 | `magistr guard` | reader | none | none |
 | `magistr validate` | none; runs gates and records nothing | none | none |

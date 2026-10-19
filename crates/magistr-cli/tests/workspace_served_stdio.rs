@@ -1,9 +1,12 @@
-//! `magistr workspace serve` as a real subprocess over its own stdio: the
+//! `magistr mcp` as a real subprocess over its own stdio: the
 //! shipping artifact driven by an rmcp client — initialize, tools/list,
 //! status, search and an applied edit — and the retained process-level
 //! refusals (64 usage, 66 missing root, 75 a legacy lock requiring migration).
 #[path = "support/magistr_command.rs"]
 mod magistr_command;
+
+#[path = "support/unified.rs"]
+mod unified;
 
 use std::{path::Path, process::Stdio, time::Duration};
 
@@ -46,8 +49,8 @@ fn workspace() -> tempfile::TempDir {
 fn served(root: &Path) -> std::process::Command {
     let mut command = magistr_command();
     command
-        .arg("workspace")
-        .arg("serve")
+        .arg("mcp")
+        .arg("--dir")
         .arg(root)
         .env("WORKBENCH_NETWORK_FS", "0");
     command
@@ -72,15 +75,7 @@ async fn the_binary_serves_the_workspace_over_its_own_stdio() {
         .tools;
     let names: Vec<&str> = tools.iter().map(|tool| tool.name.as_ref()).collect();
     for expected in [
-        "workbench_status",
-        "map",
-        "read",
-        "search",
-        "edit",
-        "files",
-        "undo",
-        "script",
-        "run",
+        "context", "discover", "read", "search", "edit", "write", "execute",
     ] {
         assert!(names.contains(&expected), "{names:?} lacks {expected}");
     }
@@ -88,10 +83,14 @@ async fn the_binary_serves_the_workspace_over_its_own_stdio() {
     let call = |name: &'static str, args: Value| {
         let peer = client.peer().clone();
         async move {
+            let (name, args, composed) = unified::request(name, args);
             let mut request = CallToolRequestParams::new(name);
             request.arguments = args.as_object().cloned();
             let result = peer.call_tool(request).await.expect("tool call");
-            result.structured_content.expect("structured envelope")
+            unified::value(
+                result.structured_content.expect("structured envelope"),
+                composed,
+            )
         }
     };
     let status = call("workbench_status", json!({})).await;
@@ -128,12 +127,12 @@ async fn the_binary_serves_the_workspace_over_its_own_stdio() {
 }
 
 #[test]
-fn a_missing_root_and_a_malformed_config_are_refused_with_the_retained_exit_codes() {
+fn missing_roots_and_malformed_configuration_are_refused() {
     let dir = tempfile::tempdir().expect("scratch");
     let missing = served(&dir.path().join("absent")).output().expect("run");
-    assert_eq!(missing.status.code(), Some(66));
+    assert!(!missing.status.success());
     assert!(
-        String::from_utf8_lossy(&missing.stderr).contains("workspace root does not exist"),
+        String::from_utf8_lossy(&missing.stderr).contains("No such file"),
         "{}",
         String::from_utf8_lossy(&missing.stderr)
     );
@@ -151,17 +150,19 @@ async fn session_call(
     name: &'static str,
     args: Value,
 ) -> Value {
+    let (name, args, composed) = unified::request(name, args);
     let mut request = CallToolRequestParams::new(name);
     request.arguments = args.as_object().cloned();
     let mut meta = RequestMetaObject::new();
     meta.insert("workbench/sessionId".into(), json!("process-crash-session"));
     request.meta = Some(meta);
-    tokio::time::timeout(Duration::from_secs(30), client.peer().call_tool(request))
+    let body = tokio::time::timeout(Duration::from_secs(30), client.peer().call_tool(request))
         .await
         .expect("bounded tool response")
         .expect("tool call")
         .structured_content
-        .expect("structured envelope")
+        .expect("structured envelope");
+    unified::value(body, composed)
 }
 
 fn recorded_generation(root: &Path) -> u64 {
@@ -186,7 +187,7 @@ async fn owner_process_crash_releases_admission_and_fences_its_confirmation_on_r
     let request = json!({"op": "move", "from": "pending.txt", "to": "moved.txt"});
     let preview = session_call(&first, "files", request.clone()).await;
     assert_eq!(preview["error"]["code"], "CONFIRM_REQUIRED", "{preview}");
-    let token = preview["error"]["confirmToken"]
+    let confirmation = preview["error"]["confirmToken"]
         .as_str()
         .expect("token")
         .to_owned();
@@ -223,7 +224,7 @@ async fn owner_process_crash_releases_admission_and_fences_its_confirmation_on_r
         key
     );
     let mut confirmed = request.clone();
-    confirmed["confirm"] = json!(token);
+    confirmed["confirm"] = json!(confirmation);
     let refused = session_call(&replacement, "files", confirmed).await;
     assert_eq!(refused["error"]["code"], "CONFIRM_MISMATCH", "{refused}");
     assert_eq!(
@@ -239,7 +240,7 @@ async fn owner_process_crash_releases_admission_and_fences_its_confirmation_on_r
 
     let fresh = session_call(&replacement, "files", request.clone()).await;
     assert_eq!(fresh["error"]["code"], "CONFIRM_REQUIRED", "{fresh}");
-    assert_ne!(fresh["error"]["confirmToken"], json!(token));
+    assert_ne!(fresh["error"]["confirmToken"], json!(confirmation));
     let mut confirmed = request;
     confirmed["confirm"] = fresh["error"]["confirmToken"].clone();
     let applied = session_call(&replacement, "files", confirmed).await;
@@ -261,17 +262,13 @@ async fn owner_process_crash_releases_admission_and_fences_its_confirmation_on_r
 }
 
 #[test]
-fn legacy_lock_refusal_preserves_the_record_and_never_opens_workspace_stores() {
+fn unknown_lock_refusal_preserves_the_record_and_never_opens_workspace_stores() {
     let dir = workspace();
     let state = dir.path().join(".workbench");
     std::fs::create_dir(&state).expect("state");
-    // The legacy owner takes no OS lock. Its pid can be live or dead:
-    // neither grants a native process permission to migrate its record.
-    let bytes = format!(r#"{{"pid":{},"host":"legacy-host"}}"#, std::process::id());
-    std::fs::write(state.join("server.lock"), &bytes).expect("legacy owner");
-    // Since audit-260912-20 the refused bridge serves discovery instead of
-    // exiting 75: it writes no MCP frame for a client that sends nothing,
-    // names the migration on stderr, and ends cleanly on the client's EOF.
+    let bytes = "unknown owner record";
+    std::fs::write(state.join("server.lock"), bytes).expect("unknown record");
+    // Refused admission must leave source and owner state untouched.
     let result = served(dir.path())
         .stdin(Stdio::null())
         .output()
@@ -279,7 +276,7 @@ fn legacy_lock_refusal_preserves_the_record_and_never_opens_workspace_stores() {
     assert_eq!(result.status.code(), Some(0), "{result:?}");
     assert!(result.stdout.is_empty(), "no MCP frame without a request");
     let diagnostic = String::from_utf8_lossy(&result.stderr);
-    assert!(diagnostic.contains("migration"), "{diagnostic}");
+    assert!(diagnostic.contains("unrecognized"), "{diagnostic}");
     assert!(diagnostic.contains("serving discovery"), "{diagnostic}");
     assert_eq!(
         std::fs::read_to_string(state.join("server.lock")).expect("preserved"),

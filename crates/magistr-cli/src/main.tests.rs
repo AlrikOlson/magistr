@@ -167,17 +167,8 @@ fn cli_parses_man_pages() {
 }
 
 #[test]
-fn cli_parses_init_interactive() {
-    let cli = parse_cli(["magistr", "init", "--interactive"]).unwrap();
-    match cli.command.unwrap() {
-        cli::Command::Init { interactive, .. } => assert!(interactive),
-        _ => panic!("expected Init command"),
-    }
-}
-
-#[test]
 fn cli_accepts_explicit_codex_scaffold_selection() {
-    for mode in ["--yes", "--smart", "--dry-run"] {
+    for mode in ["--yes", "--dry-run"] {
         let parsed = parse_cli(["magistr", "init", mode, "--agent", "codex"]);
         assert!(
             parsed.is_ok(),
@@ -269,22 +260,11 @@ fn cli_codex_removal_dry_run_is_a_preview() {
 }
 
 #[test]
-fn cli_parses_init_interactive_short() {
-    let cli = parse_cli(["magistr", "init", "-i"]).unwrap();
-    match cli.command.unwrap() {
-        cli::Command::Init { interactive, .. } => assert!(interactive),
-        _ => panic!("expected Init command"),
-    }
-}
-
-#[test]
-fn cli_parses_init_no_interactive_default() {
+fn cli_parses_guided_init_default() {
     let cli = parse_cli(["magistr", "init"]).unwrap();
     match cli.command.unwrap() {
-        cli::Command::Init {
-            interactive, force, ..
-        } => {
-            assert!(!interactive);
+        cli::Command::Init { yes, force, .. } => {
+            assert!(!yes);
             assert!(!force);
         }
         _ => panic!("expected Init command"),
@@ -305,20 +285,6 @@ fn cli_parses_init_force_short() {
     let cli = parse_cli(["magistr", "init", "-f"]).unwrap();
     match cli.command.unwrap() {
         cli::Command::Init { force, .. } => assert!(force),
-        _ => panic!("expected Init command"),
-    }
-}
-
-#[test]
-fn cli_parses_init_force_with_interactive() {
-    let cli = parse_cli(["magistr", "init", "-f", "-i"]).unwrap();
-    match cli.command.unwrap() {
-        cli::Command::Init {
-            force, interactive, ..
-        } => {
-            assert!(force);
-            assert!(interactive);
-        }
         _ => panic!("expected Init command"),
     }
 }

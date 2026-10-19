@@ -90,7 +90,10 @@ test('focus replies preserve closed and missing choices without claiming current
     const value = { ...base, focus, focus_state: { state, group: focus.group } }
     if (state === 'closed') {
       const history = { done: 1, obsoleted: 0 }
-      value.workstreams = { ...base.workstreams, history: { [focus.group]: history } }
+      value.workstreams = {
+        ...base.workstreams,
+        history: { [focus.group]: history },
+      }
       value.frontier = { state, group: focus.group, history }
     } else value.frontier = { state, query: focus.group }
     const m = initial()
@@ -110,7 +113,8 @@ test('focus replies preserve closed and missing choices without claiming current
     { ...base, focus_state: { state: 'current', group: 'Search' } },
     { ...base, focus, focus_state: { state: 'unset' } },
     { ...base, focus, focus_state: { state: 'current', group: 'Search' } },
-  ]) assert.throws(() => validate('focus', { structuredContent: bad }))
+  ])
+    assert.throws(() => validate('focus', { structuredContent: bad }))
 })
 
 test('phase requires matching work and task; checks distinguish recorded evidence and optional failure', () => {

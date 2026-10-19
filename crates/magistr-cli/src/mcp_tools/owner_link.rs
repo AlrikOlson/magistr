@@ -88,7 +88,7 @@ impl BridgeLink for Link {
                             &config,
                             config.resolve_project_id(),
                             WriterRole::Service,
-                            CallerIdentity::this_process("mcp-serve"),
+                            CallerIdentity::this_process("mcp"),
                             remaining.min(Duration::from_millis(250)),
                         )
                     })

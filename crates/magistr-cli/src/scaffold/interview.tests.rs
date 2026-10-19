@@ -54,29 +54,21 @@ fn sample_tree() -> ProjectTree {
 // ── Defaults ───────────────────────────────────────────────────────────
 
 #[test]
-fn default_selects_cursor_only() {
+fn default_selects_codex_and_claude() {
     let result = InterviewResult::default();
-    assert_eq!(result.selected_agents, vec!["cursor"]);
+    assert_eq!(result.selected_agents, vec!["codex", "claude"]);
     assert!(result.include_hooks);
     assert!(result.quality_gate.is_none());
     assert_eq!(result.project_type, "cli");
 }
 
 #[test]
-fn defaults_for_uses_registry_default_enabled() {
-    let result = InterviewResult::defaults_for(&sample_stack());
+fn defaults_do_not_install_external_connections() {
     assert!(
-        result
+        InterviewResult::defaults_for(&sample_stack())
             .selected_mcp_servers
-            .contains(&"context7".to_string()),
-        "context7 is default_enabled for every stack: {:?}",
-        result.selected_mcp_servers
+            .is_empty()
     );
-    // Servers not marked default_enabled must not be pre-selected.
-    for key in &result.selected_mcp_servers {
-        let entry = registry::find(key).expect("selected server exists in catalog");
-        assert!(entry.default_enabled, "{key} is not default_enabled");
-    }
 }
 
 #[test]
@@ -88,17 +80,11 @@ fn all_agents_have_unique_ids() {
 }
 
 #[test]
-fn codex_is_an_explicit_interview_choice() {
-    let script = "\n\n\n6\n\n\n\n\n";
+fn codex_can_be_selected_without_claude() {
+    let script = "\n\n\n2\n\n\n\n";
     let mut reader = Cursor::new(script.as_bytes().to_vec());
-    let result =
-        run_interview(&mut reader, &sample_stack(), &sample_preset()).expect("interview completes");
-    assert_eq!(result.selected_agents, vec!["cursor", "codex"]);
-    assert!(
-        !InterviewResult::default()
-            .selected_agents
-            .contains(&"codex".to_owned())
-    );
+    let result = run_interview(&mut reader, &sample_stack(), &sample_preset()).unwrap();
+    assert_eq!(result.selected_agents, vec!["codex"]);
 }
 
 #[test]
@@ -163,26 +149,18 @@ fn declining_the_stack_cancels() {
 }
 
 #[test]
-fn declining_the_final_confirm_cancels() {
-    let mut reader = Cursor::new(b"\n\n\n\n\n\n\nn\n".to_vec());
-    let err = run_interview(&mut reader, &sample_stack(), &sample_preset())
-        .expect_err("declining the final confirm cancels the interview");
-    assert!(matches!(err, crate::error::MagistrError::Cancelled(_)));
-}
-
-#[test]
 fn custom_answers_flow_into_the_result() {
     // stack yes, project type 3 (api), description, agents +copilot (toggle 2),
     // mcp defaults, hooks no, customize gates yes, keep check, override test,
     // keep lint, confirm.
-    let script = "\n3\nMy API\n2\n\nn\ny\n\ncargo nextest run\n\n\n";
+    let script = "\n3\nMy API\n5\n\nn\ny\n\ncargo nextest run\n\n\n";
     let mut reader = Cursor::new(script.as_bytes().to_vec());
     let stack = sample_stack();
     let result = run_interview(&mut reader, &stack, &sample_preset()).expect("interview completes");
 
     assert_eq!(result.project_type, "api");
     assert_eq!(result.description, "My API");
-    assert!(result.selected_agents.contains(&"cursor".to_string()));
+    assert!(result.selected_agents.contains(&"codex".to_string()));
     assert!(result.selected_agents.contains(&"copilot".to_string()));
     assert!(!result.include_hooks);
     let gate = result.quality_gate.expect("customized gate");
@@ -329,8 +307,8 @@ fn golden_rust_interview_defaults_match_yes() {
     // Wizard-default parity: the cursor agent config and a default-enabled
     // MCP server are part of the scaffold.
     assert!(
-        files_a.iter().any(|f| f.contains(".cursor")),
-        "cursor agent config expected in {files_a:?}"
+        files_a.iter().any(|f| f.contains(".codex")),
+        "Codex agent config expected in {files_a:?}"
     );
     assert!(json_a.contains("\"language\""));
 }

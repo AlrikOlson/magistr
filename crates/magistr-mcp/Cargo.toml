@@ -1,10 +1,11 @@
 [package]
+include = ["src/**", "Cargo.toml", "Cargo.lock", "LICENSE*", "PROVENANCE.md"]
+repository = "https://github.com/AlrikOlson/magistr"
 name = "magistr-mcp"
 version = "0.1.0"
 edition = "2024"
 description = "In-process MCP tool server: tool definitions, JSON-RPC protocol types and schema-validated dispatch for Magistr's magistr_* tools"
 license = "MIT"
-publish = false
 
 [lib]
 name = "magistr_mcp"

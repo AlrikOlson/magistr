@@ -71,9 +71,11 @@ fn main() -> eyre::Result<()> {
                     provider,
                     allow_tool,
                 } => magistr::commands::misc::cmd_acp_agent(&provider, &allow_tool).await,
-                Child::McpLaunch { target, dir } => {
-                    magistr::commands::misc::cmd_mcp_launch(target, &dir).await
-                }
+                Child::Mcp {
+                    dir,
+                    config,
+                    access,
+                } => magistr::unified_mcp::run_stdio_server(dir, &config, access).await,
             }
         });
     }

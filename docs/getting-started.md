@@ -1,86 +1,99 @@
 # Getting started
 
-Magistr builds with Rust 1.95 or later. The release includes the CLI, terminal
-interface, and MCP tools.
+The first CLI/npm release targets Apple Silicon macOS. Publication is pending;
+the commands below describe the prepared packages. Install and sign in to Codex
+or Claude Code separately.
 
-## Build
-
-From the repository root:
+## Install
 
 ```sh
-cargo install --locked --path crates/magistr-cli
-magistr --help
+npm install -g magistr
+magistr --version
 ```
 
-Cargo installs `magistr` into its binary directory, usually `~/.cargo/bin`.
-Add that directory to `PATH` if needed. Install and sign in to your chosen agent
-runtime separately before using its Magistr integration.
+The npm package includes the version-matched native binary. No Rust, Bun, source
+checkout or install-time build is required. You can also use `npx magistr init`
+without a global installation. npm-generated connections use a pinned
+`npx --yes --package magistr@VERSION magistr mcp --dir .` command, so later
+connections do not depend on an ephemeral cache path. After an npm upgrade,
+run repair to update the pinned version.
+
+With Rust 1.95 or later and the macOS command-line build tools:
+
+```sh
+cargo install magistr-cli --locked
+```
+
+For unpublished source, clone the repository and run
+`cargo install --locked --path crates/magistr-cli`. Cargo's binary directory
+(usually `~/.cargo/bin`) must be on PATH.
 
 ## Configure a project
 
-Run initialization in the project you want to work on:
+Run `magistr init` in the project. It detects the stack, lets you select one or
+more agents, shows verification commands and proposed file changes, then applies
+the reviewed setup. Only selected integrations are generated. It preserves
+customized instructions, settings, unrelated MCP connections and native work.
 
 ```sh
-magistr init .
+magistr init . --agent codex,claude --yes
+magistr init . --agent portable --dry-run --json
 ```
 
-Initialization detects the stack and creates agent instructions, workflow
-skills, and project configuration. Quality commands and required custom checks
-live in `.magistr/project.json`.
+`--yes` accepts defaults. `--dry-run` only previews changes. Repeated init is
+safe; it preserves project identity, saved work and custom settings. Existing
+generated files are refreshed when their content is unchanged.
 
-For Codex, select it explicitly:
+Codex uses `.codex/config.toml`, `AGENTS.md`, `.agents/skills`,
+`.magistr/conventions.md` and `./.codex/run`. Claude Code uses `.mcp.json`,
+`CLAUDE.md` and `.claude/skills`. The portable option writes standard
+`.mcp.json` and `.magistr/instructions.md`; copy that connection into your
+agent's MCP settings if it does not read the file. See the
+[Codex reference](reference/codex.md) for launcher behavior.
+
+Setup completes with an actual MCP handshake and read-only context check.
+Unavailable agents produce an installation/sign-in diagnostic; they do not
+prevent preparing their files. Start a new trusted agent session to load the
+connection. Begin with the printed prompt to inspect the project and propose
+a plan. Setup never starts roadmap implementation.
+
+## Use the connection
+
+All tools use one connection: `magistr mcp --dir /path/to/project`. Common
+tools are `context`, `search`, `read`, `edit`, `write`, `plan_work`,
+`start_work`, `record_progress`, `check_work` and `finish_work`.
+
+Use `discover` to find additional operations and inspect their schemas.
+Use `execute` with synchronous `magistr.call(name, args)` to invoke them.
+This covers roadmap, reasoning, feedback, resumption, file operations, commands,
+undo, scripting, indexing and health. Every call keeps the native permissions,
+confirmation and source checks. Compositions stop on failure and return receipts;
+inspect those receipts and current state before continuing.
+
+Use `$next` in Codex or `/next` in Claude Code when you explicitly want to
+implement one ready roadmap item. Invoke the same skill after interruption to
+recover the saved work. Verification is chosen for the change and recorded.
+
+## Upgrade, diagnose, repair or remove
 
 ```sh
-magistr init . --agent codex --yes
-./.codex/run
+npm install -g magistr@latest
+# Or:
+cargo install magistr-cli --locked --force
+magistr doctor .
+magistr repair . --dry-run
+magistr repair . --yes
+magistr remove . --dry-run
+magistr remove . --yes
 ```
 
-`--yes` accepts setup defaults. The base scaffold includes Claude configuration;
-additional targets can be combined, such as `--agent codex,cursor`.
+Repair and removal use the same reviewed change-plan service as setup. MCP
+startup never repairs project files. Removal deletes unchanged generated
+integration files and removes owned configuration entries while keeping custom
+files, unrelated connections, project configuration and native work. Review
+the removal receipt for preserved files. To uninstall the executable, use
+`npm uninstall -g magistr` or `cargo uninstall magistr-cli`.
 
-Use the [Codex reference](reference/codex.md) for prerequisites, configuration
-precedence, diagnostics, and removal. The launcher starts Codex directly;
-Magistr's [Codex session provider](architecture/sessions.md#codex) is a separate integration.
-
-## Work on a project
-
-Use `$next` in Codex to finish an interrupted roadmap item or start one ready
-item. Use `$next-loop` for a single-item handoff: finish one item, end the
-current session, then invoke `$next-loop` again from the next session. Use
-`$validate` to run the project's checks. Claude Code uses the same skill names
-with a `/` prefix.
-
-After an interruption, invoke the same command again. Magistr resumes work
-already in progress before starting another item, keeping its plan, completed
-tasks, and check results. Unfinished work on another task stays saved while
-Magistr selects the requested work. Returning to that task restores its plan
-and evidence. The MCP tools `roadmap_status` and `ship_status` report progress.
-
-If `magistr next-loop` stops because an earlier agent's outcome is unknown,
-inspect it with `magistr workspace doctor . --json`. Check that the loop and
-its agents have stopped, then use `magistr resolve-dispatch --help` to record
-what happened to the specific attempt. Mark failed work `failed` so it can be
-retried; mark finished work `completed` so it is not sent to another agent.
-Your saved plan, task and other progress are kept. See the
-[recovery guide](architecture/durability.md#resolving-an-interrupted-agent)
-for an example and the checks required before resolving work.
-
-## Refresh or remove setup
-
-Refresh generated Codex files in place:
-
-```sh
-magistr init . --agent codex --force --yes
-```
-
-Refresh preserves project configuration, workflow identity and state, and
-customized files. To preview files and diffs without applying them, use
-`magistr init . --agent codex --dry-run --json`. A terminal-only `--dry-run` can
-open the selective-apply interface; it cannot be combined with `--yes` or `--force`.
-
-`magistr codex-remove .` removes unchanged, recorded Codex integration files while
-retaining project state; `magistr codex-remove . --dry-run` prints that plan
-without writing. `magistr init . --check` reports configuration drift and the
-startup repair the next `magistr mcp-serve` would apply, also without
-writing. `magistr reset` deletes local configuration and workflow state,
-including legacy state directories, after confirmation.
+`magistr doctor` reports missing setup, malformed configuration, unavailable
+selected agents and connection failures with recovery commands. Do not stop
+another session's workspace owner to diagnose a connection.

@@ -6,7 +6,7 @@ mod link;
 mod session;
 mod session_policy;
 
-pub(crate) use bridge::Bridge;
+pub(crate) use bridge::{Bridge, stdio};
 pub(crate) use frames::Frames;
 pub(crate) use link::BridgeLink;
 pub(crate) use session::{ClientSession, Inbound};

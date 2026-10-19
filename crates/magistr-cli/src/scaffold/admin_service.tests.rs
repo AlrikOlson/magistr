@@ -1,4 +1,5 @@
 use super::*;
+use crate::scaffold::Refusal;
 use crate::scaffold::manifest::content_hash;
 use crate::scaffold::{ChangePlan, Ownership};
 use tempfile::TempDir;
@@ -228,7 +229,7 @@ fn a_write_that_fails_leaves_the_target_intact_and_the_rest_still_applies() {
     // A parent that is a file is found by revalidation, before any write.
     assert!(matches!(
         receipt.get("scripts/run.sh").unwrap().outcome,
-        ApplyOutcome::Failed(ApplyFailure::Blocked(Refusal::Unreadable { .. }))
+        ApplyOutcome::Failed(ApplyFailure::Blocked(Refusal::NotRegularFile))
     ));
     assert_eq!(read(dir, "scripts"), "not a directory\n");
     assert!(matches!(

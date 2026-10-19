@@ -34,11 +34,11 @@ mod codex_config;
 mod codex_emitter;
 mod codex_ownership;
 mod codex_setup;
-mod codex_skill_links;
 pub(crate) mod existing_config;
 mod expected;
 mod file_action;
 mod generate;
+pub mod integrations;
 mod intent;
 mod managed_content;
 pub(crate) mod manifest;
@@ -124,6 +124,15 @@ pub(crate) struct ScaffoldFile {
 
 pub(crate) use conventions::resolve_conventions;
 
+pub(crate) fn agent_selected(vars: &HashMap<String, String>, agent: &str) -> bool {
+    vars.get("selected_agents")
+        .filter(|value| !value.is_empty())
+        .map(String::as_str)
+        .unwrap_or("codex,claude")
+        .split(',')
+        .any(|id| id == agent)
+}
+
 /// Build the list of all scaffold files with their content.
 pub(crate) fn scaffold_files(vars: &HashMap<String, String>) -> Vec<ScaffoldFile> {
     let mut files = vec![
@@ -179,15 +188,29 @@ pub(crate) fn scaffold_files(vars: &HashMap<String, String>) -> Vec<ScaffoldFile
         // Note: .mcp.json is a shared merge (`mcp_json_change`), not a scaffold file.
     ];
 
-    files.extend(workflow_skills::WorkflowSkills::claude_files());
+    if agent_selected(vars, "claude") {
+        files.extend(workflow_skills::WorkflowSkills::claude_files());
+    } else {
+        files.retain(|file| file.path != "CLAUDE.md" && !file.path.starts_with(".claude/"));
+    }
+    if agent_selected(vars, "codex") || agent_selected(vars, "portable") {
+        files.push(ScaffoldFile {
+            path: ".magistr/conventions.md",
+            content: resolve_conventions(vars).full_document(),
+            policy: UpdatePolicy::PreserveCustomized,
+        });
+    }
+    if agent_selected(vars, "portable") {
+        files.push(ScaffoldFile {
+            path: ".magistr/instructions.md",
+            content: tool_guide::build_tool_guide(),
+            policy: UpdatePolicy::PreserveCustomized,
+        });
+    }
 
     // ── Agent-agnostic emitters (filtered by selected_agents if set) ──
-    let selected = vars.get("selected_agents").cloned().unwrap_or_default();
     for emitter in emitters::all_emitters() {
-        if emitter.id() == "codex" && !CodexSetup::selected(vars) {
-            continue;
-        }
-        if !selected.is_empty() && !selected.split(',').any(|a| a == emitter.id()) {
+        if !agent_selected(vars, emitter.id()) {
             continue;
         }
         files.extend(emitter.files(vars));
@@ -207,11 +230,29 @@ pub(crate) fn is_executable_path(path: &str) -> bool {
 /// off a directory, a symlink or an unreadable file. Unreadable is not
 /// evidence of absence.
 pub(crate) fn read_target(dir: &Path, path: &str) -> std::result::Result<Option<String>, Refusal> {
-    let full = target_root::target_root(dir, path)
-        .map_err(|error| Refusal::Unreadable {
-            cause: error.to_string(),
-        })?
-        .join(path);
+    let root = target_root::target_root(dir, path).map_err(|error| Refusal::Unreadable {
+        cause: error.to_string(),
+    })?;
+    let mut full = root;
+    let mut components = Path::new(path).components().peekable();
+    while let Some(component) = components.next() {
+        let std::path::Component::Normal(name) = component else {
+            return Err(Refusal::NotRegularFile);
+        };
+        full.push(name);
+        match std::fs::symlink_metadata(&full) {
+            Ok(meta) if meta.is_symlink() || (components.peek().is_some() && !meta.is_dir()) => {
+                return Err(Refusal::NotRegularFile);
+            }
+            Ok(_) => {}
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+            Err(error) => {
+                return Err(Refusal::Unreadable {
+                    cause: error.to_string(),
+                });
+            }
+        }
+    }
     match std::fs::symlink_metadata(&full) {
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
         Err(error) => Err(Refusal::Unreadable {
@@ -255,17 +296,22 @@ pub(crate) fn legacy_rule_removals(dir: &Path) -> Vec<PlannedChange> {
 }
 
 /// MCP server keys that magistr manages. Used for both merge and removal.
-pub(super) const MAGISTR_MCP_SERVERS: &[&str] = &["magistr", "workbench-mcp"];
+pub(super) const MAGISTR_MCP_SERVERS: &[&str] = &["magistr"];
 
 /// MCP server keys magistr used to manage — or never should have been
 /// configured beside it — stripped whenever `.mcp.json` is merged or the
 /// scaffold is removed, so a re-init retires them. `think-and-ship` is here
-/// because `magistr mcp-serve` serves the same four families in-process over
+/// because `magistr mcp` serves the same four families in-process over
 /// the same store: a standalone `think-and-ship serve` on the same project
 /// is a second process holding its own copy of the execution and roadmap
 /// state (tas-ship-state-two-servers).
-pub(super) const LEGACY_MCP_SERVERS: &[&str] =
-    &["magistr-scope", "iris", "ministr", "think-and-ship"];
+pub(super) const LEGACY_MCP_SERVERS: &[&str] = &[
+    "magistr-scope",
+    "iris",
+    "ministr",
+    "think-and-ship",
+    "workbench-mcp",
+];
 
 /// Whether an MCP server entry launches something from inside the working
 /// tree: its command or one of its arguments names an existing *file* in the
@@ -296,30 +342,7 @@ pub(super) fn is_working_tree_entry(dir: &Path, entry: &serde_json::Value) -> bo
 /// Recognize only the plain launch lines this scaffold emitted. Everything else
 /// is an explicit override, including a launcher that is not installed yet.
 fn is_generated_mcp_entry(dir: &Path, key: &str, entry: &serde_json::Value) -> bool {
-    let Some(object) = entry.as_object() else {
-        return false;
-    };
-    if object.len() != 3 || entry.get("type").and_then(|v| v.as_str()) != Some("stdio") {
-        return false;
-    }
-    let Some(command) = entry.get("command").and_then(|v| v.as_str()) else {
-        return false;
-    };
-    let Some(args) = entry.get("args").and_then(|v| v.as_array()) else {
-        return false;
-    };
-    let root = match (key, command, args.as_slice()) {
-        ("magistr", "magistr", [verb, root]) if verb.as_str() == Some("mcp-serve") => root,
-        ("workbench-mcp", "workbench-mcp", [root]) => root,
-        ("magistr" | "workbench-mcp", "magistr", [verb, target, root])
-            if verb.as_str() == Some("mcp-launch") && target.as_str() == Some(key) =>
-        {
-            root
-        }
-        _ => return false,
-    };
-    root.as_str()
-        .is_some_and(|root| root == "." || Path::new(root) == dir)
+    key == "magistr" && crate::mcp_target::McpTarget.owns_entry(dir, entry)
 }
 
 /// The extra MCP entries the interview selected, keyed by server name.
@@ -363,15 +386,37 @@ pub(crate) fn mcp_json_change(dir: &Path, vars: &HashMap<String, String>) -> Res
         }
     };
 
-    let mut doc = match &existing_str {
+    let mut doc: serde_json::Value = match &existing_str {
         None => serde_json::json!({ "mcpServers": {} }),
-        Some(text) => {
-            serde_json::from_str(text).unwrap_or_else(|_| serde_json::json!({ "mcpServers": {} }))
-        }
+        Some(text) => match serde_json::from_str(text) {
+            Ok(value) => value,
+            Err(error) => {
+                return Ok(PlannedChange::refused(
+                    ".mcp.json",
+                    Refusal::InvalidContent {
+                        cause: error.to_string(),
+                    },
+                    existing_str,
+                    Ownership::Shared,
+                ));
+            }
+        },
     };
-    let obj = doc
-        .as_object_mut()
-        .unwrap_or_else(|| unreachable!("parsed JSON is always an object due to fallback above"));
+    if !doc.is_object()
+        || doc
+            .get("mcpServers")
+            .is_some_and(|value| !value.is_object())
+    {
+        return Ok(PlannedChange::refused(
+            ".mcp.json",
+            Refusal::InvalidContent {
+                cause: "expected an object with an mcpServers object".into(),
+            },
+            existing_str,
+            Ownership::Shared,
+        ));
+    }
+    let obj = doc.as_object_mut().expect("validated MCP object");
     let servers = obj
         .entry("mcpServers")
         .or_insert_with(|| serde_json::json!({}));

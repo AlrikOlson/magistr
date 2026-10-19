@@ -109,7 +109,7 @@ fn stdio_servers_become_the_mcp_config_document() {
     let mut s = spec();
     s.mcp_servers = vec![McpServer::Stdio(
         McpServerStdio::new("magistr", "/usr/local/bin/magistr")
-            .args(vec!["mcp-serve".to_owned()])
+            .args(vec!["mcp".to_owned(), "--dir".to_owned(), ".".to_owned()])
             .env(vec![EnvVariable::new("MAGISTR_LOG", "debug")]),
     )];
     let args = s.args();
@@ -122,7 +122,7 @@ fn stdio_servers_become_the_mcp_config_document() {
         doc,
         serde_json::json!({"mcpServers": {"magistr": {
             "command": "/usr/local/bin/magistr",
-            "args": ["mcp-serve"],
+            "args": ["mcp", "--dir", "."],
             "env": {"MAGISTR_LOG": "debug"},
         }}})
     );

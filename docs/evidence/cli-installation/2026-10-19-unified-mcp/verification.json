@@ -1,0 +1,2285 @@
+{
+  "objective": "delivery:unified-mcp-installation",
+  "verification": "focused",
+  "recordedAttempts": 40,
+  "latestChecksPassed": 33,
+  "receipts": [
+    {
+      "task": "unified-endpoint",
+      "id": "150ae796-5c64-4a21-b1a6-4b2e1e7b98c4",
+      "target": {
+        "project_id": "magistr-5a5bc6",
+        "execution": {
+          "working_copy": "/Users/alrik/Code/magistr",
+          "execution_id": "default",
+          "owner_generation": 28
+        },
+        "run_id": "3235550e-17c7-446e-aaea-72d6cb290a29",
+        "task_id": "unified-endpoint",
+        "task_instance": "0ec220dc-fb12-4838-9a9d-48454d6e7b5f"
+      },
+      "attempt": 1,
+      "gate": "Unified MCP and source-owner interfaces",
+      "check_type": "test",
+      "command": "cargo test -q -p magistr-cli --test mcp_project_owner --test workspace_served_stdio --test workspace_cli_verbs --test workspace_attachment --test mcp_launch_protocol --test mcp_launch_integration",
+      "required": true,
+      "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
+      "source": {
+        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_generation": 137,
+        "scheme": "magistr-source-snapshot/1",
+        "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
+        "revision": "0aa3885ed1fa042cdb7ad3dcb4ee10cd31eba0d4d14a5e57af7427879f565304",
+        "source_digest": "b4d6e235560e76d24f498f8ac5296f074ee745d9a728ab0fd9238ca69f88ae11",
+        "config_digest": "230c9646b0664826967c560ac3110d36f89f35616fc134367ea3abc6eb80d7b1",
+        "consistency": "optimistic",
+        "captured_at_ms": 1792432152928
+      },
+      "admitted_at": "2026-10-19T17:49:12.939423+00:00",
+      "stage": "settled",
+      "recorded_at": "2026-10-19T18:06:26.375955+00:00",
+      "settled_at": "2026-10-19T18:06:26.414218+00:00",
+      "duration_ms": 1033436,
+      "outcome": {
+        "passed": false,
+        "details": "$ cargo test -q -p magistr-cli --test mcp_project_owner --test workspace_served_stdio --test workspace_cli_verbs --test workspace_attachment --test mcp_launch_protocol --test mcp_launch_integration\n[exit 101]\n…(truncated 4637 chars)…\ne source snippets.\"\n\nthread 'launcher_tests::the_cockpit_port_reaches_the_live_owner_through_the_projects_mcp_json' (16908097) panicked at crates/magistr-cli/tests/workspace_attachment_support/launcher.tests.rs:59:6:\ncockpit port task: JoinError::Panic(Id(107), \"map through the live owner: \\\"the workbench stopped answering: Run with RUST_BACKTRACE=full to include source snippets.\\\"\", ...)\n\n---- a_bridge_outlives_a_native_owner_without_an_endpoint_and_admits_once_the_lock_is_released stdout ----\n\nthread 'a_bridge_outlives_a_native_owner_without_an_endpoint_and_admits_once_the_lock_is_released' (16908082) panicked at crates/magistr-cli/tests/workspace_attachment_support/../support/unified.rs:50:5:\nComposition did not reach the requested operation: {\"ok\":false,\"receipts\":[],\"failure\":{\"v\":1,\"ok\":false,\"error\":{\"code\":\"ENGINE_UNAVAILABLE\",\"recovery\":\"retry\",\"message\":\"the workspace owner is unavailable; the next call reconnects: another workspace server already owns this workspace (lock: /private/var/folders/ml/51b226t50rxf09jwljnq7tn00000gn/T/.tmp6gLntN/.workbench/server.lock); workspace attachment timed out after 5 seconds\"},\"notes\":[\"effect unknown: read back the affected object or operation receipt before retrying a write; the bridge keeps its session identity\",\"owner: another workspace server already owns this workspace (lock: /private/var/folders/ml/51b226t50rxf09jwljnq7tn00000gn/T/.tmp6gLntN/.workbench/server.lock); workspace attachment timed out after 5 seconds\"]},\"automaticReplay\":false}\n\n\nfailures:\n    a_bridge_outlives_a_native_owner_without_an_endpoint_and_admits_once_the_lock_is_released\n    a_bridge_preserves_an_unknown_marker_and_reconnects_after_restore\n    a_symlinked_root_uses_the_canonical_owners_endpoint\n    canonical_aliases_attach_but_independent_roots_keep_distinct_owners\n    launcher_tests::the_cockpit_port_reaches_the_live_owner_through_the_projects_mcp_json\n    owner_loss_answers_calls_typed_and_keeps_the_tool_surface_until_an_owner_returns\n\ntest result: FAILED. 15 passed; 6 failed; 0 ignored; 0 measured; 0 filtered out; finished in 20.17s\n\nmagistr workspace: workspace owner lock /private/var/folders/ml/51b226t50rxf09jwljnq7tn00000gn/T/.tmpYOvnuh/.workbench/server.lock has an unrecognized format; admission refused before opening workspace stores. Restore the workspace state from a known-good backup while all workspace owners are stopped. Never remove a live owner's lock; serving discovery until an owner is reachable\nmagistr workspace: another workspace server already owns this workspace (lock: /private/var/folders/ml/51b226t50rxf09jwljnq7tn00000gn/T/.tmp6gLntN/.workbench/server.lock); workspace attachment timed out after 5 seconds; serving discovery until an owner is reachable\nError: \n   0: \u001b[91mmagistr: cannot acquire project owner at /private/var/folders/ml/51b226t50rxf09jwljnq7tn00000gn/T/.tmpCqPF7q/.magistr/workflow-owner.lock: another Magistr writer holds this resource; startup refused before opening project engines. Close the existing writer before retrying; do not delete its lock file.; project attachment timed out after 5 seconds\u001b[0m\n\nLocation:\n   \u001b[35mcrates/magistr-cli/src/mcp_tools/mod.rs\u001b[0m:\u001b[35m173\u001b[0m\n\nBacktrace omitted. Run with RUST_BACKTRACE=1 environment variable to display it.\nRun with RUST_BACKTRACE=full to include source snippets.\nError: \n   0: \u001b[91mmagistr: cannot acquire project owner at /private/var/folders/ml/51b226t50rxf09jwljnq7tn00000gn/T/.tmp6V2Cak/.magistr/workflow-owner.lock: another Magistr writer holds this resource; startup refused before opening project engines. Close the existing writer before retrying; do not delete its lock file.; project attachment timed out after 5 seconds\u001b[0m\n\nLocation:\n   \u001b[35mcrates/magistr-cli/src/mcp_tools/mod.rs\u001b[0m:\u001b[35m173\u001b[0m\n\nBacktrace omitted. Run with RUST_BACKTRACE=1 environment variable to display it.\nRun with RUST_BACKTRACE=full to include source snippets.\nerror: test failed, to rerun pass `-p magistr-cli --test workspace_attachment`",
+        "verified": true,
+        "command": "cargo test -q -p magistr-cli --test mcp_project_owner --test workspace_served_stdio --test workspace_cli_verbs --test workspace_attachment --test mcp_launch_protocol --test mcp_launch_integration",
+        "exit_code": 101,
+        "execution": {
+          "kind": "exited",
+          "code": 101
+        },
+        "report": null,
+        "results": null
+      },
+      "freshness": {
+        "freshness": "unchanged"
+      },
+      "settlement": {
+        "settlement": "applied"
+      }
+    },
+    {
+      "task": "unified-endpoint",
+      "id": "0eaa05a3-ef77-47a0-8dc9-b00712805444",
+      "target": {
+        "project_id": "magistr-5a5bc6",
+        "execution": {
+          "working_copy": "/Users/alrik/Code/magistr",
+          "execution_id": "default",
+          "owner_generation": 28
+        },
+        "run_id": "3235550e-17c7-446e-aaea-72d6cb290a29",
+        "task_id": "unified-endpoint",
+        "task_instance": "0ec220dc-fb12-4838-9a9d-48454d6e7b5f"
+      },
+      "attempt": 2,
+      "gate": "Unified MCP and source-owner interfaces",
+      "check_type": "test",
+      "command": "cargo test -q -p magistr-cli --test mcp_project_owner --test workspace_served_stdio --test workspace_cli_verbs --test workspace_attachment --test mcp_launch_protocol --test mcp_launch_integration",
+      "required": true,
+      "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
+      "source": {
+        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_generation": 137,
+        "scheme": "magistr-source-snapshot/1",
+        "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
+        "revision": "cf1ea99b3aa757b72b80698c3d9ccdda0887385efc7c3b59e716a93bb6d53ed4",
+        "source_digest": "6e73f8deedd5d001af51b4f2f4936550708a74979bd92bad4627735f37b58b06",
+        "config_digest": "230c9646b0664826967c560ac3110d36f89f35616fc134367ea3abc6eb80d7b1",
+        "consistency": "optimistic",
+        "captured_at_ms": 1792434538633
+      },
+      "admitted_at": "2026-10-19T18:28:58.681378+00:00",
+      "stage": "settled",
+      "recorded_at": "2026-10-19T18:30:07.001322+00:00",
+      "settled_at": "2026-10-19T18:30:07.147197+00:00",
+      "duration_ms": 68319,
+      "outcome": {
+        "passed": true,
+        "details": "$ cargo test -q -p magistr-cli --test mcp_project_owner --test workspace_served_stdio --test workspace_cli_verbs --test workspace_attachment --test mcp_launch_protocol --test mcp_launch_integration\n[exit 0]\n\nrunning 5 tests\n.....\ntest result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.38s\n\n\nrunning 2 tests\n..\ntest result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.39s\n\n\nrunning 8 tests\n........\ntest result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 21.37s\n\n\nrunning 21 tests\n.....................\ntest result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 24.96s\n\n\nrunning 11 tests\n...........\ntest result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.15s\n\n\nrunning 4 tests\n....\ntest result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 8.62s\n\nmagistr workspace: workspace owner lock /private/var/folders/ml/51b226t50rxf09jwljnq7tn00000gn/T/.tmpLcJakb/.workbench/server.lock has an unrecognized format; admission refused before opening workspace stores. Restore the workspace state from a known-good backup while all workspace owners are stopped. Never remove a live owner's lock; serving discovery until an owner is reachable\nmagistr workspace: another workspace server already owns this workspace (lock: /private/var/folders/ml/51b226t50rxf09jwljnq7tn00000gn/T/.tmpxGhdSj/.workbench/server.lock); workspace attachment timed out after 5 seconds; serving discovery until an owner is reachable",
+        "verified": true,
+        "command": "cargo test -q -p magistr-cli --test mcp_project_owner --test workspace_served_stdio --test workspace_cli_verbs --test workspace_attachment --test mcp_launch_protocol --test mcp_launch_integration",
+        "exit_code": 0,
+        "execution": {
+          "kind": "exited",
+          "code": 0
+        },
+        "report": null,
+        "results": null
+      },
+      "freshness": {
+        "freshness": "unchanged"
+      },
+      "settlement": {
+        "settlement": "applied"
+      }
+    },
+    {
+      "task": "unified-endpoint",
+      "id": "1ca6c692-8da6-4e9e-b0e1-5566cbd91bce",
+      "target": {
+        "project_id": "magistr-5a5bc6",
+        "execution": {
+          "working_copy": "/Users/alrik/Code/magistr",
+          "execution_id": "default",
+          "owner_generation": 28
+        },
+        "run_id": "3235550e-17c7-446e-aaea-72d6cb290a29",
+        "task_id": "unified-endpoint",
+        "task_instance": "0ec220dc-fb12-4838-9a9d-48454d6e7b5f"
+      },
+      "attempt": 1,
+      "gate": "Focused Rust lint",
+      "check_type": "test",
+      "command": "cargo clippy -q -p magistr-cli -p magistr-core -p magistr-engine -p magistr-acp-agent --all-targets --locked -- -D warnings",
+      "required": true,
+      "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
+      "source": {
+        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_generation": 137,
+        "scheme": "magistr-source-snapshot/1",
+        "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
+        "revision": "cf1ea99b3aa757b72b80698c3d9ccdda0887385efc7c3b59e716a93bb6d53ed4",
+        "source_digest": "6e73f8deedd5d001af51b4f2f4936550708a74979bd92bad4627735f37b58b06",
+        "config_digest": "230c9646b0664826967c560ac3110d36f89f35616fc134367ea3abc6eb80d7b1",
+        "consistency": "optimistic",
+        "captured_at_ms": 1792434626784
+      },
+      "admitted_at": "2026-10-19T18:30:26.790420+00:00",
+      "stage": "settled",
+      "recorded_at": "2026-10-19T18:30:34.468417+00:00",
+      "settled_at": "2026-10-19T18:30:34.522599+00:00",
+      "duration_ms": 7677,
+      "outcome": {
+        "passed": true,
+        "details": "$ cargo clippy -q -p magistr-cli -p magistr-core -p magistr-engine -p magistr-acp-agent --all-targets --locked -- -D warnings\n[exit 0]\n",
+        "verified": true,
+        "command": "cargo clippy -q -p magistr-cli -p magistr-core -p magistr-engine -p magistr-acp-agent --all-targets --locked -- -D warnings",
+        "exit_code": 0,
+        "execution": {
+          "kind": "exited",
+          "code": 0
+        },
+        "report": null,
+        "results": null
+      },
+      "freshness": {
+        "freshness": "unchanged"
+      },
+      "settlement": {
+        "settlement": "applied"
+      }
+    },
+    {
+      "task": "unified-endpoint",
+      "id": "08e257d9-1283-4500-b503-f1af7dbf787a",
+      "target": {
+        "project_id": "magistr-5a5bc6",
+        "execution": {
+          "working_copy": "/Users/alrik/Code/magistr",
+          "execution_id": "default",
+          "owner_generation": 28
+        },
+        "run_id": "3235550e-17c7-446e-aaea-72d6cb290a29",
+        "task_id": "unified-endpoint",
+        "task_instance": "0ec220dc-fb12-4838-9a9d-48454d6e7b5f"
+      },
+      "attempt": 1,
+      "gate": "Scaffolding and current interface",
+      "check_type": "test",
+      "command": "cargo test -q -p magistr-cli --test reinit_integration --test workbench_scaffold_integration --test current_interface",
+      "required": true,
+      "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
+      "source": {
+        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_generation": 137,
+        "scheme": "magistr-source-snapshot/1",
+        "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
+        "revision": "cf1ea99b3aa757b72b80698c3d9ccdda0887385efc7c3b59e716a93bb6d53ed4",
+        "source_digest": "6e73f8deedd5d001af51b4f2f4936550708a74979bd92bad4627735f37b58b06",
+        "config_digest": "230c9646b0664826967c560ac3110d36f89f35616fc134367ea3abc6eb80d7b1",
+        "consistency": "optimistic",
+        "captured_at_ms": 1792434635772
+      },
+      "admitted_at": "2026-10-19T18:30:35.778044+00:00",
+      "stage": "settled",
+      "recorded_at": "2026-10-19T18:30:44.629732+00:00",
+      "settled_at": "2026-10-19T18:30:44.665258+00:00",
+      "duration_ms": 8851,
+      "outcome": {
+        "passed": true,
+        "details": "$ cargo test -q -p magistr-cli --test reinit_integration --test workbench_scaffold_integration --test current_interface\n[exit 0]\n\nrunning 2 tests\n..\ntest result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s\n\n\nrunning 7 tests\n.......\ntest result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.33s\n\n\nrunning 1 test\n.\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s",
+        "verified": true,
+        "command": "cargo test -q -p magistr-cli --test reinit_integration --test workbench_scaffold_integration --test current_interface",
+        "exit_code": 0,
+        "execution": {
+          "kind": "exited",
+          "code": 0
+        },
+        "report": null,
+        "results": null
+      },
+      "freshness": {
+        "freshness": "unchanged"
+      },
+      "settlement": {
+        "settlement": "applied"
+      }
+    },
+    {
+      "task": "unified-endpoint",
+      "id": "7426610d-2296-431a-a979-f110fdad414e",
+      "target": {
+        "project_id": "magistr-5a5bc6",
+        "execution": {
+          "working_copy": "/Users/alrik/Code/magistr",
+          "execution_id": "default",
+          "owner_generation": 28
+        },
+        "run_id": "3235550e-17c7-446e-aaea-72d6cb290a29",
+        "task_id": "unified-endpoint",
+        "task_instance": "0ec220dc-fb12-4838-9a9d-48454d6e7b5f"
+      },
+      "attempt": 1,
+      "gate": "CLI native ownership, catalog and setup units",
+      "check_type": "test",
+      "command": "cargo test -q -p magistr-cli --lib --locked",
+      "required": true,
+      "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
+      "source": {
+        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_generation": 137,
+        "scheme": "magistr-source-snapshot/1",
+        "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
+        "revision": "146dea908771c0d2eab5bd70c9e60ee571acb20ad3cd801e86ed198f8167a0e3",
+        "source_digest": "c8ce7d4dddcabf01518c31980d730581316bd373792fa88625b64028a84af37c",
+        "config_digest": "230c9646b0664826967c560ac3110d36f89f35616fc134367ea3abc6eb80d7b1",
+        "consistency": "optimistic",
+        "captured_at_ms": 1792434800094
+      },
+      "admitted_at": "2026-10-19T18:33:20.099856+00:00",
+      "stage": "settled",
+      "recorded_at": "2026-10-19T18:33:57.192025+00:00",
+      "settled_at": "2026-10-19T18:33:57.228069+00:00",
+      "duration_ms": 37092,
+      "outcome": {
+        "passed": true,
+        "details": "$ cargo test -q -p magistr-cli --lib --locked\n[exit 0]\n…(truncated 3902 chars)…\n\"override_allowed\": false\n      }\n    ]\n  }\n}\n{\n  \"status\": \"ok\",\n  \"data\": {\n    \"governed\": true,\n    \"policy\": {\n      \"tool_denylist\": [\n        \"WebFetch\"\n      ],\n      \"protected_paths\": [\n        \"*.env\"\n      ],\n      \"required_gates\": [\n        \"test\"\n      ],\n      \"allow_gate_bypass\": false,\n      \"approved_models\": [\n        \"claude-*\"\n      ],\n      \"max_model_tier\": \"standard\"\n    },\n    \"compiled_rules\": [\n      {\n        \"id\": \"tool-denylist:WebFetch\",\n        \"description\": \"tool 'WebFetch' is on the org denylist\",\n        \"condition\": {\n          \"type\": \"tool\",\n          \"pattern\": \"WebFetch\"\n        },\n        \"effect\": \"deny\",\n        \"override_allowed\": false\n      },\n      {\n        \"id\": \"protected-path:*.env\",\n        \"description\": \"'*.env' is a protected path\",\n        \"condition\": {\n          \"type\": \"path\",\n          \"pattern\": \"*.env\"\n        },\n        \"effect\": \"deny\",\n        \"override_allowed\": true\n      },\n      {\n        \"id\": \"model-allowlist\",\n        \"description\": \"only these models are approved: claude-*\",\n        \"condition\": {\n          \"type\": \"all_of\",\n          \"conditions\": [\n            {\n              \"type\": \"model\",\n              \"pattern\": \"*\"\n            },\n            {\n              \"type\": \"not\",\n              \"condition\": {\n                \"type\": \"any_of\",\n                \"conditions\": [\n                  {\n                    \"type\": \"model\",\n                    \"pattern\": \"claude-*\"\n                  }\n                ]\n              }\n            }\n          ]\n        },\n        \"effect\": \"deny\",\n        \"override_allowed\": false\n      }\n    ]\n  }\n}\n....................................... 1218/2920\n....................................................................................... 1305/2920\n....................................................................................... 1392/2920\n....................................................................................... 1479/2920\n....................................................................................... 1566/2920\n....................................................................................... 1653/2920\n....................................................................................... 1740/2920\n....................................................................................... 1827/2920\n....................................................................................... 1914/2920\n....................................................................................... 2001/2920\n....................................................................................... 2088/2920\n....................................................................................... 2175/2920\n....................................................................................... 2262/2920\n....................................................................................... 2349/2920\n....................................................................................... 2436/2920\n....................................................................................... 2523/2920\n....................................................................................... 2610/2920\n....................................................................................... 2697/2920\n....................................................................................... 2784/2920\n..................................................................\nrunning 1 test\ntest utils::shutdown::tests::the_first_request_is_the_only_one_and_reaches_every_observer ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 2919 filtered out; finished in 0.00s\n\n..................... 2871/2920\n.................................................\ntest result: ok. 2920 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 25.59s\n\ncancelled: cancelled\ndone: 1 turns, 1.5s, cost: unknown, provider conversation: workflow",
+        "verified": true,
+        "command": "cargo test -q -p magistr-cli --lib --locked",
+        "exit_code": 0,
+        "execution": {
+          "kind": "exited",
+          "code": 0
+        },
+        "report": null,
+        "results": null
+      },
+      "freshness": {
+        "freshness": "changed",
+        "paths": [
+          ".github/workflows/cli-packages.yml (Modified)",
+          "docs/releasing-cli.md (Modified)",
+          "npm/magistr/licenses/gleam-lang__tree-sitter-gleam/066704e4826699e754d351e3bbe12bf2e51de9d8/LICENSE (Added)",
+          "npm/magistr/licenses/manifest.json (Added)",
+          "npm/magistr/licenses/tree-sitter__tree-sitter-java/94703d5a6bed02b98e438d7cad1136c01a60ba2c/LICENSE (Added)",
+          "npm/magistr/licenses/tree-sitter__tree-sitter-json/ee35a6ebefcef0c5c416c0d1ccec7370cfca5a24/LICENSE (Added)",
+          "npm/magistr/licenses/tree-sitter__tree-sitter-ruby/71bd32fb7607035768799732addba884a37a6210/LICENSE (Added)",
+          "npm/magistr/licenses/tree-sitter__tree-sitter-typescript/f975a621f4e7f532fe322e13c4f79495e0a7b2e7/LICENSE (Added)",
+          "scripts/__pycache__/distribution_licenses.cpython-314.pyc (Added)",
+          "scripts/distribution_licenses.py (Modified)"
+        ]
+      },
+      "settlement": {
+        "settlement": "applied"
+      }
+    },
+    {
+      "task": "unified-endpoint",
+      "id": "d9753846-c884-4bb4-b811-8ab6dcea6f43",
+      "target": {
+        "project_id": "magistr-5a5bc6",
+        "execution": {
+          "working_copy": "/Users/alrik/Code/magistr",
+          "execution_id": "default",
+          "owner_generation": 28
+        },
+        "run_id": "3235550e-17c7-446e-aaea-72d6cb290a29",
+        "task_id": "unified-endpoint",
+        "task_instance": "0ec220dc-fb12-4838-9a9d-48454d6e7b5f"
+      },
+      "attempt": 1,
+      "gate": "Shared settings lock and agent integration",
+      "check_type": "test",
+      "command": "cargo test -q -p magistr-core config:: --locked",
+      "required": true,
+      "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
+      "source": {
+        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_generation": 137,
+        "scheme": "magistr-source-snapshot/1",
+        "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
+        "revision": "2bacb009a59739c34dcb03ab3b1bce93599d20ed1740361caeed745a84f3f1df",
+        "source_digest": "4db2d9a92c9d0437a8baa863acbec545bbf2994ac26279e94bf9e64fecf1c147",
+        "config_digest": "230c9646b0664826967c560ac3110d36f89f35616fc134367ea3abc6eb80d7b1",
+        "consistency": "optimistic",
+        "captured_at_ms": 1792434846043
+      },
+      "admitted_at": "2026-10-19T18:34:06.049759+00:00",
+      "stage": "settled",
+      "recorded_at": "2026-10-19T18:34:07.713530+00:00",
+      "settled_at": "2026-10-19T18:34:07.755185+00:00",
+      "duration_ms": 1663,
+      "outcome": {
+        "passed": true,
+        "details": "$ cargo test -q -p magistr-core config:: --locked\n[exit 0]\n\nrunning 231 tests\n....................................................................................... 87/231\n....................................................................................... 174/231\n.........................................................\ntest result: ok. 231 passed; 0 failed; 0 ignored; 0 measured; 884 filtered out; finished in 0.10s",
+        "verified": true,
+        "command": "cargo test -q -p magistr-core config:: --locked",
+        "exit_code": 0,
+        "execution": {
+          "kind": "exited",
+          "code": 0
+        },
+        "report": null,
+        "results": null
+      },
+      "freshness": {
+        "freshness": "unchanged"
+      },
+      "settlement": {
+        "settlement": "applied"
+      }
+    },
+    {
+      "task": "unified-endpoint",
+      "id": "ce59a9bc-12db-49f8-8778-a6a811d8a87e",
+      "target": {
+        "project_id": "magistr-5a5bc6",
+        "execution": {
+          "working_copy": "/Users/alrik/Code/magistr",
+          "execution_id": "default",
+          "owner_generation": 28
+        },
+        "run_id": "3235550e-17c7-446e-aaea-72d6cb290a29",
+        "task_id": "unified-endpoint",
+        "task_instance": "0ec220dc-fb12-4838-9a9d-48454d6e7b5f"
+      },
+      "attempt": 1,
+      "gate": "Workflow rendezvous path aliases",
+      "check_type": "test",
+      "command": "cargo test -q -p magistr-engine native::owner_socket --locked",
+      "required": true,
+      "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
+      "source": {
+        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_generation": 137,
+        "scheme": "magistr-source-snapshot/1",
+        "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
+        "revision": "2bacb009a59739c34dcb03ab3b1bce93599d20ed1740361caeed745a84f3f1df",
+        "source_digest": "4db2d9a92c9d0437a8baa863acbec545bbf2994ac26279e94bf9e64fecf1c147",
+        "config_digest": "230c9646b0664826967c560ac3110d36f89f35616fc134367ea3abc6eb80d7b1",
+        "consistency": "optimistic",
+        "captured_at_ms": 1792434848965
+      },
+      "admitted_at": "2026-10-19T18:34:08.971106+00:00",
+      "stage": "settled",
+      "recorded_at": "2026-10-19T18:34:12.778852+00:00",
+      "settled_at": "2026-10-19T18:34:12.883153+00:00",
+      "duration_ms": 3807,
+      "outcome": {
+        "passed": true,
+        "details": "$ cargo test -q -p magistr-engine native::owner_socket --locked\n[exit 0]\n\nrunning 3 tests\n...\ntest result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 553 filtered out; finished in 0.01s\n\n\nrunning 0 tests\n\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s",
+        "verified": true,
+        "command": "cargo test -q -p magistr-engine native::owner_socket --locked",
+        "exit_code": 0,
+        "execution": {
+          "kind": "exited",
+          "code": 0
+        },
+        "report": null,
+        "results": null
+      },
+      "freshness": {
+        "freshness": "unchanged"
+      },
+      "settlement": {
+        "settlement": "applied"
+      }
+    },
+    {
+      "task": "unified-endpoint",
+      "id": "8d45e15c-26ba-4803-919b-ff92427e41e4",
+      "target": {
+        "project_id": "magistr-5a5bc6",
+        "execution": {
+          "working_copy": "/Users/alrik/Code/magistr",
+          "execution_id": "default",
+          "owner_generation": 28
+        },
+        "run_id": "3235550e-17c7-446e-aaea-72d6cb290a29",
+        "task_id": "unified-endpoint",
+        "task_instance": "0ec220dc-fb12-4838-9a9d-48454d6e7b5f"
+      },
+      "attempt": 1,
+      "gate": "Claude native agent transport",
+      "check_type": "test",
+      "command": "cargo test -q -p magistr-acp-agent claude:: --locked",
+      "required": true,
+      "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
+      "source": {
+        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_generation": 137,
+        "scheme": "magistr-source-snapshot/1",
+        "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
+        "revision": "2bacb009a59739c34dcb03ab3b1bce93599d20ed1740361caeed745a84f3f1df",
+        "source_digest": "4db2d9a92c9d0437a8baa863acbec545bbf2994ac26279e94bf9e64fecf1c147",
+        "config_digest": "230c9646b0664826967c560ac3110d36f89f35616fc134367ea3abc6eb80d7b1",
+        "consistency": "optimistic",
+        "captured_at_ms": 1792434854172
+      },
+      "admitted_at": "2026-10-19T18:34:14.178144+00:00",
+      "stage": "settled",
+      "recorded_at": "2026-10-19T18:34:20.641235+00:00",
+      "settled_at": "2026-10-19T18:34:20.725017+00:00",
+      "duration_ms": 6463,
+      "outcome": {
+        "passed": true,
+        "details": "$ cargo test -q -p magistr-acp-agent claude:: --locked\n[exit 0]\n\nrunning 49 tests\n.................................................\ntest result: ok. 49 passed; 0 failed; 0 ignored; 0 measured; 72 filtered out; finished in 0.01s\n\n\nrunning 0 tests\n\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n\nrunning 0 tests\n\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n\nrunning 0 tests\n\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 0.00s\n\n\nrunning 0 tests\n\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 21 filtered out; finished in 0.00s\n\n\nrunning 0 tests\n\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 10 filtered out; finished in 0.00s\n\n\nrunning 0 tests\n\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 23 filtered out; finished in 0.00s\n\n\nrunning 0 tests\n\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s\n\n\nrunning 0 tests\n\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.00s",
+        "verified": true,
+        "command": "cargo test -q -p magistr-acp-agent claude:: --locked",
+        "exit_code": 0,
+        "execution": {
+          "kind": "exited",
+          "code": 0
+        },
+        "report": null,
+        "results": null
+      },
+      "freshness": {
+        "freshness": "unchanged"
+      },
+      "settlement": {
+        "settlement": "applied"
+      }
+    },
+    {
+      "task": "unified-endpoint",
+      "id": "838ff324-7856-4372-b349-01da3ff9179e",
+      "target": {
+        "project_id": "magistr-5a5bc6",
+        "execution": {
+          "working_copy": "/Users/alrik/Code/magistr",
+          "execution_id": "default",
+          "owner_generation": 28
+        },
+        "run_id": "3235550e-17c7-446e-aaea-72d6cb290a29",
+        "task_id": "unified-endpoint",
+        "task_instance": "0ec220dc-fb12-4838-9a9d-48454d6e7b5f"
+      },
+      "attempt": 1,
+      "gate": "Desktop command dispatch",
+      "check_type": "test",
+      "command": "cargo test -q --manifest-path crates/magistr-desktop/Cargo.toml --locked args::",
+      "required": true,
+      "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
+      "source": {
+        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_generation": 137,
+        "scheme": "magistr-source-snapshot/1",
+        "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
+        "revision": "2bacb009a59739c34dcb03ab3b1bce93599d20ed1740361caeed745a84f3f1df",
+        "source_digest": "4db2d9a92c9d0437a8baa863acbec545bbf2994ac26279e94bf9e64fecf1c147",
+        "config_digest": "230c9646b0664826967c560ac3110d36f89f35616fc134367ea3abc6eb80d7b1",
+        "consistency": "optimistic",
+        "captured_at_ms": 1792434861920
+      },
+      "admitted_at": "2026-10-19T18:34:21.926343+00:00",
+      "stage": "settled",
+      "recorded_at": "2026-10-19T18:34:25.801081+00:00",
+      "settled_at": "2026-10-19T18:34:25.878917+00:00",
+      "duration_ms": 3874,
+      "outcome": {
+        "passed": true,
+        "details": "$ cargo test -q --manifest-path crates/magistr-desktop/Cargo.toml --locked args::\n[exit 0]\n\nrunning 7 tests\n.......\ntest result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 38 filtered out; finished in 0.01s\n\n\nrunning 0 tests\n\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s",
+        "verified": true,
+        "command": "cargo test -q --manifest-path crates/magistr-desktop/Cargo.toml --locked args::",
+        "exit_code": 0,
+        "execution": {
+          "kind": "exited",
+          "code": 0
+        },
+        "report": null,
+        "results": null
+      },
+      "freshness": {
+        "freshness": "unchanged"
+      },
+      "settlement": {
+        "settlement": "applied"
+      }
+    },
+    {
+      "task": "unified-endpoint",
+      "id": "8ec674a7-3e70-45bf-8168-d015d99323fb",
+      "target": {
+        "project_id": "magistr-5a5bc6",
+        "execution": {
+          "working_copy": "/Users/alrik/Code/magistr",
+          "execution_id": "default",
+          "owner_generation": 28
+        },
+        "run_id": "3235550e-17c7-446e-aaea-72d6cb290a29",
+        "task_id": "unified-endpoint",
+        "task_instance": "0ec220dc-fb12-4838-9a9d-48454d6e7b5f"
+      },
+      "attempt": 1,
+      "gate": "structure",
+      "check_type": "lint",
+      "command": "./scripts/lint-structure.sh",
+      "required": true,
+      "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
+      "source": {
+        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_generation": 137,
+        "scheme": "magistr-source-snapshot/1",
+        "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
+        "revision": "2bacb009a59739c34dcb03ab3b1bce93599d20ed1740361caeed745a84f3f1df",
+        "source_digest": "4db2d9a92c9d0437a8baa863acbec545bbf2994ac26279e94bf9e64fecf1c147",
+        "config_digest": "230c9646b0664826967c560ac3110d36f89f35616fc134367ea3abc6eb80d7b1",
+        "consistency": "optimistic",
+        "captured_at_ms": 1792434873518
+      },
+      "admitted_at": "2026-10-19T18:34:33.524080+00:00",
+      "stage": "settled",
+      "recorded_at": "2026-10-19T18:37:57.855960+00:00",
+      "settled_at": "2026-10-19T18:37:57.889258+00:00",
+      "duration_ms": 204331,
+      "outcome": {
+        "passed": true,
+        "details": "OK: native and reference Rust remain within reviewed per-file structure limits\nOK: structure lint passed\n",
+        "verified": true,
+        "command": "./scripts/lint-structure.sh",
+        "exit_code": 0,
+        "execution": {
+          "kind": "exited",
+          "code": 0
+        },
+        "report": null,
+        "results": null
+      },
+      "freshness": {
+        "freshness": "unchanged"
+      },
+      "settlement": {
+        "settlement": "applied"
+      }
+    },
+    {
+      "task": "unified-endpoint",
+      "id": "42c9a0ed-e4c8-4dab-881d-0e26266fa771",
+      "target": {
+        "project_id": "magistr-5a5bc6",
+        "execution": {
+          "working_copy": "/Users/alrik/Code/magistr",
+          "execution_id": "default",
+          "owner_generation": 28
+        },
+        "run_id": "3235550e-17c7-446e-aaea-72d6cb290a29",
+        "task_id": "unified-endpoint",
+        "task_instance": "0ec220dc-fb12-4838-9a9d-48454d6e7b5f"
+      },
+      "attempt": 1,
+      "gate": "workspace-source",
+      "check_type": "lint",
+      "command": "./scripts/workspace-source-gate.sh",
+      "required": true,
+      "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
+      "source": {
+        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_generation": 137,
+        "scheme": "magistr-source-snapshot/1",
+        "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
+        "revision": "2bacb009a59739c34dcb03ab3b1bce93599d20ed1740361caeed745a84f3f1df",
+        "source_digest": "4db2d9a92c9d0437a8baa863acbec545bbf2994ac26279e94bf9e64fecf1c147",
+        "config_digest": "230c9646b0664826967c560ac3110d36f89f35616fc134367ea3abc6eb80d7b1",
+        "consistency": "optimistic",
+        "captured_at_ms": 1792435078934
+      },
+      "admitted_at": "2026-10-19T18:37:58.940630+00:00",
+      "stage": "settled",
+      "recorded_at": "2026-10-19T18:38:01.073672+00:00",
+      "settled_at": "2026-10-19T18:38:01.115692+00:00",
+      "duration_ms": 2133,
+      "outcome": {
+        "passed": true,
+        "details": "OK: audited reference inputs retained; magistr-workspace is a local native library without NAPI\nOK: native and reference Rust remain within reviewed per-file structure limits\n.........\n----------------------------------------------------------------------\nRan 9 tests in 0.307s\n\nOK\n",
+        "verified": true,
+        "command": "./scripts/workspace-source-gate.sh",
+        "exit_code": 0,
+        "execution": {
+          "kind": "exited",
+          "code": 0
+        },
+        "report": null,
+        "results": null
+      },
+      "freshness": {
+        "freshness": "unchanged"
+      },
+      "settlement": {
+        "settlement": "applied"
+      }
+    },
+    {
+      "task": "unified-endpoint",
+      "id": "9a9c0143-df45-46b0-9cf8-0857a7097c17",
+      "target": {
+        "project_id": "magistr-5a5bc6",
+        "execution": {
+          "working_copy": "/Users/alrik/Code/magistr",
+          "execution_id": "default",
+          "owner_generation": 28
+        },
+        "run_id": "3235550e-17c7-446e-aaea-72d6cb290a29",
+        "task_id": "unified-endpoint",
+        "task_instance": "0ec220dc-fb12-4838-9a9d-48454d6e7b5f"
+      },
+      "attempt": 1,
+      "gate": "workflow-source",
+      "check_type": "lint",
+      "command": "./scripts/workflow-source-gate.sh",
+      "required": true,
+      "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
+      "source": {
+        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_generation": 137,
+        "scheme": "magistr-source-snapshot/1",
+        "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
+        "revision": "2bacb009a59739c34dcb03ab3b1bce93599d20ed1740361caeed745a84f3f1df",
+        "source_digest": "4db2d9a92c9d0437a8baa863acbec545bbf2994ac26279e94bf9e64fecf1c147",
+        "config_digest": "230c9646b0664826967c560ac3110d36f89f35616fc134367ea3abc6eb80d7b1",
+        "consistency": "optimistic",
+        "captured_at_ms": 1792435082154
+      },
+      "admitted_at": "2026-10-19T18:38:02.160024+00:00",
+      "stage": "settled",
+      "recorded_at": "2026-10-19T18:38:03.824093+00:00",
+      "settled_at": "2026-10-19T18:38:03.871391+00:00",
+      "duration_ms": 1664,
+      "outcome": {
+        "passed": true,
+        "details": "OK: workflow source is one Magistr-named workspace member without its standalone surfaces; imported inputs and native-only roadmap policy retained\nOK: imported Rust structure stays within its per-file baseline; new violations are rejected\n",
+        "verified": true,
+        "command": "./scripts/workflow-source-gate.sh",
+        "exit_code": 0,
+        "execution": {
+          "kind": "exited",
+          "code": 0
+        },
+        "report": null,
+        "results": null
+      },
+      "freshness": {
+        "freshness": "unchanged"
+      },
+      "settlement": {
+        "settlement": "applied"
+      }
+    },
+    {
+      "task": "unified-endpoint",
+      "id": "89e9b032-b337-4f55-b0a0-83a1b900d874",
+      "target": {
+        "project_id": "magistr-5a5bc6",
+        "execution": {
+          "working_copy": "/Users/alrik/Code/magistr",
+          "execution_id": "default",
+          "owner_generation": 28
+        },
+        "run_id": "3235550e-17c7-446e-aaea-72d6cb290a29",
+        "task_id": "unified-endpoint",
+        "task_instance": "0ec220dc-fb12-4838-9a9d-48454d6e7b5f"
+      },
+      "attempt": 1,
+      "gate": "native-write-path",
+      "check_type": "lint",
+      "command": "./scripts/native-write-path-gate.sh",
+      "required": true,
+      "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
+      "source": {
+        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_generation": 137,
+        "scheme": "magistr-source-snapshot/1",
+        "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
+        "revision": "2bacb009a59739c34dcb03ab3b1bce93599d20ed1740361caeed745a84f3f1df",
+        "source_digest": "4db2d9a92c9d0437a8baa863acbec545bbf2994ac26279e94bf9e64fecf1c147",
+        "config_digest": "230c9646b0664826967c560ac3110d36f89f35616fc134367ea3abc6eb80d7b1",
+        "consistency": "optimistic",
+        "captured_at_ms": 1792435084914
+      },
+      "admitted_at": "2026-10-19T18:38:04.919895+00:00",
+      "stage": "settled",
+      "recorded_at": "2026-10-19T18:38:34.801775+00:00",
+      "settled_at": "2026-10-19T18:38:34.860140+00:00",
+      "duration_ms": 29881,
+      "outcome": {
+        "passed": true,
+        "details": "OK: one native write path — engines composed in magistr-engine/native, typed application verbs beneath transports, checks admitted through the composition boundary with the evidence capability, owners opened and attached only on the inventoried paths, no MCP roundtrips, no direct file write in the ACP host, administrative writes only through the administrative service.\n",
+        "verified": true,
+        "command": "./scripts/native-write-path-gate.sh",
+        "exit_code": 0,
+        "execution": {
+          "kind": "exited",
+          "code": 0
+        },
+        "report": null,
+        "results": null
+      },
+      "freshness": {
+        "freshness": "unchanged"
+      },
+      "settlement": {
+        "settlement": "applied"
+      }
+    },
+    {
+      "task": "unified-endpoint",
+      "id": "674e6906-0de3-4a6c-9c83-5016261ac1c0",
+      "target": {
+        "project_id": "magistr-5a5bc6",
+        "execution": {
+          "working_copy": "/Users/alrik/Code/magistr",
+          "execution_id": "default",
+          "owner_generation": 28
+        },
+        "run_id": "3235550e-17c7-446e-aaea-72d6cb290a29",
+        "task_id": "unified-endpoint",
+        "task_instance": "0ec220dc-fb12-4838-9a9d-48454d6e7b5f"
+      },
+      "attempt": 1,
+      "gate": "Rust formatting",
+      "check_type": "test",
+      "command": "cargo fmt --all -- --check",
+      "required": true,
+      "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
+      "source": {
+        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_generation": 137,
+        "scheme": "magistr-source-snapshot/1",
+        "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
+        "revision": "2bacb009a59739c34dcb03ab3b1bce93599d20ed1740361caeed745a84f3f1df",
+        "source_digest": "4db2d9a92c9d0437a8baa863acbec545bbf2994ac26279e94bf9e64fecf1c147",
+        "config_digest": "230c9646b0664826967c560ac3110d36f89f35616fc134367ea3abc6eb80d7b1",
+        "consistency": "optimistic",
+        "captured_at_ms": 1792435115952
+      },
+      "admitted_at": "2026-10-19T18:38:35.958621+00:00",
+      "stage": "settled",
+      "recorded_at": "2026-10-19T18:38:38.446724+00:00",
+      "settled_at": "2026-10-19T18:38:38.479988+00:00",
+      "duration_ms": 2488,
+      "outcome": {
+        "passed": true,
+        "details": "$ cargo fmt --all -- --check\n[exit 0]\n",
+        "verified": true,
+        "command": "cargo fmt --all -- --check",
+        "exit_code": 0,
+        "execution": {
+          "kind": "exited",
+          "code": 0
+        },
+        "report": null,
+        "results": null
+      },
+      "freshness": {
+        "freshness": "unchanged"
+      },
+      "settlement": {
+        "settlement": "applied"
+      }
+    },
+    {
+      "task": "unified-endpoint",
+      "id": "94b05371-d573-4af2-bc94-693714132a0d",
+      "target": {
+        "project_id": "magistr-5a5bc6",
+        "execution": {
+          "working_copy": "/Users/alrik/Code/magistr",
+          "execution_id": "default",
+          "owner_generation": 28
+        },
+        "run_id": "3235550e-17c7-446e-aaea-72d6cb290a29",
+        "task_id": "unified-endpoint",
+        "task_instance": "0ec220dc-fb12-4838-9a9d-48454d6e7b5f"
+      },
+      "attempt": 1,
+      "gate": "Desktop dispatcher formatting",
+      "check_type": "test",
+      "command": "cargo fmt --manifest-path crates/magistr-desktop/Cargo.toml -- --check",
+      "required": true,
+      "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
+      "source": {
+        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_generation": 137,
+        "scheme": "magistr-source-snapshot/1",
+        "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
+        "revision": "2bacb009a59739c34dcb03ab3b1bce93599d20ed1740361caeed745a84f3f1df",
+        "source_digest": "4db2d9a92c9d0437a8baa863acbec545bbf2994ac26279e94bf9e64fecf1c147",
+        "config_digest": "230c9646b0664826967c560ac3110d36f89f35616fc134367ea3abc6eb80d7b1",
+        "consistency": "optimistic",
+        "captured_at_ms": 1792435119599
+      },
+      "admitted_at": "2026-10-19T18:38:39.605017+00:00",
+      "stage": "settled",
+      "recorded_at": "2026-10-19T18:38:40.795601+00:00",
+      "settled_at": "2026-10-19T18:38:40.828896+00:00",
+      "duration_ms": 1190,
+      "outcome": {
+        "passed": true,
+        "details": "$ cargo fmt --manifest-path crates/magistr-desktop/Cargo.toml -- --check\n[exit 0]\n",
+        "verified": true,
+        "command": "cargo fmt --manifest-path crates/magistr-desktop/Cargo.toml -- --check",
+        "exit_code": 0,
+        "execution": {
+          "kind": "exited",
+          "code": 0
+        },
+        "report": null,
+        "results": null
+      },
+      "freshness": {
+        "freshness": "unchanged"
+      },
+      "settlement": {
+        "settlement": "applied"
+      }
+    },
+    {
+      "task": "hybrid-catalog",
+      "id": "e933dc80-7ab2-4033-9030-df4d990ac1ec",
+      "target": {
+        "project_id": "magistr-5a5bc6",
+        "execution": {
+          "working_copy": "/Users/alrik/Code/magistr",
+          "execution_id": "default",
+          "owner_generation": 28
+        },
+        "run_id": "3235550e-17c7-446e-aaea-72d6cb290a29",
+        "task_id": "hybrid-catalog",
+        "task_instance": "b5a795ee-41ed-4508-8c27-828a9e3a4876"
+      },
+      "attempt": 1,
+      "gate": "Unified capabilities and failure isolation",
+      "check_type": "test",
+      "command": "env MAGISTR_TEST_BINARY=target/release/magistr python3 -B scripts/unified-mcp-check.py",
+      "required": true,
+      "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
+      "source": {
+        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_generation": 137,
+        "scheme": "magistr-source-snapshot/1",
+        "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
+        "revision": "2bacb009a59739c34dcb03ab3b1bce93599d20ed1740361caeed745a84f3f1df",
+        "source_digest": "4db2d9a92c9d0437a8baa863acbec545bbf2994ac26279e94bf9e64fecf1c147",
+        "config_digest": "230c9646b0664826967c560ac3110d36f89f35616fc134367ea3abc6eb80d7b1",
+        "consistency": "optimistic",
+        "captured_at_ms": 1792435135180
+      },
+      "admitted_at": "2026-10-19T18:38:55.186330+00:00",
+      "stage": "settled",
+      "recorded_at": "2026-10-19T18:38:58.987377+00:00",
+      "settled_at": "2026-10-19T18:38:59.020851+00:00",
+      "duration_ms": 3801,
+      "outcome": {
+        "passed": true,
+        "details": "$ env MAGISTR_TEST_BINARY=target/release/magistr python3 -B scripts/unified-mcp-check.py\n[exit 0]\ntest_bounds_and_confirmation (__main__.UnifiedMcp.test_bounds_and_confirmation) ... ok\ntest_cancellation_stops_a_native_command (__main__.UnifiedMcp.test_cancellation_stops_a_native_command) ... ok\ntest_catalog_and_schema_coverage (__main__.UnifiedMcp.test_catalog_and_schema_coverage) ... ok\ntest_owner_restart_never_replays_mutations (__main__.UnifiedMcp.test_owner_restart_never_replays_mutations) ... ok\ntest_planning_authority_checks_each_composed_effect (__main__.UnifiedMcp.test_planning_authority_checks_each_composed_effect) ... ok\ntest_safe_edits_partial_failure_and_session_undo (__main__.UnifiedMcp.test_safe_edits_partial_failure_and_session_undo) ... ok\ntest_separate_worktrees_keep_workspace_ownership (__main__.UnifiedMcp.test_separate_worktrees_keep_workspace_ownership) ... ok\ntest_workflow_completion_and_startup_does_not_repair (__main__.UnifiedMcp.test_workflow_completion_and_startup_does_not_repair) ... ok\n\n----------------------------------------------------------------------\nRan 8 tests in 2.691s\n\nOK",
+        "verified": true,
+        "command": "env MAGISTR_TEST_BINARY=target/release/magistr python3 -B scripts/unified-mcp-check.py",
+        "exit_code": 0,
+        "execution": {
+          "kind": "exited",
+          "code": 0
+        },
+        "report": null,
+        "results": null
+      },
+      "freshness": {
+        "freshness": "unchanged"
+      },
+      "settlement": {
+        "settlement": "applied"
+      }
+    },
+    {
+      "task": "hybrid-catalog",
+      "id": "cb0b2f85-a465-4dba-a3b3-1b99857a59c3",
+      "target": {
+        "project_id": "magistr-5a5bc6",
+        "execution": {
+          "working_copy": "/Users/alrik/Code/magistr",
+          "execution_id": "default",
+          "owner_generation": 28
+        },
+        "run_id": "3235550e-17c7-446e-aaea-72d6cb290a29",
+        "task_id": "hybrid-catalog",
+        "task_instance": "b5a795ee-41ed-4508-8c27-828a9e3a4876"
+      },
+      "attempt": 1,
+      "gate": "Saved codex baseline evaluation",
+      "check_type": "test",
+      "command": "python3 -B scripts/agent-mcp-eval.py --candidate target/release/magistr --baseline /Users/alrik/.cargo/bin/magistr --out /tmp/magistr-agent-eval-20261019-batched --host codex --surface baseline --verify-existing",
+      "required": true,
+      "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
+      "source": {
+        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_generation": 137,
+        "scheme": "magistr-source-snapshot/1",
+        "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
+        "revision": "db7d8675d830a79fa8c8bed46d1ce008ca4fe180e31b6438db5aa3a4e38c0401",
+        "source_digest": "41407f3f534f501c7eaaca2dfb46bca1106561a5007dc6a58ec2b9ff12a37bd4",
+        "config_digest": "230c9646b0664826967c560ac3110d36f89f35616fc134367ea3abc6eb80d7b1",
+        "consistency": "optimistic",
+        "captured_at_ms": 1792435179258
+      },
+      "admitted_at": "2026-10-19T18:39:39.264013+00:00",
+      "stage": "settled",
+      "recorded_at": "2026-10-19T18:39:40.373004+00:00",
+      "settled_at": "2026-10-19T18:39:40.418119+00:00",
+      "duration_ms": 1108,
+      "outcome": {
+        "passed": true,
+        "details": "$ python3 -B scripts/agent-mcp-eval.py --candidate target/release/magistr --baseline /Users/alrik/.cargo/bin/magistr --out /tmp/magistr-agent-eval-20261019-batched --host codex --surface baseline --verify-existing\n[exit 0]\n{\"objectiveCompleted\": true, \"tasksCompleted\": true, \"recordedCheckPassed\": true, \"feedbackSaved\": true, \"futureRoadmapSaved\": true, \"decisionRecordsSaved\": true, \"testUnchanged\": true, \"independentSourceCheckPassed\": true, \"sourceSha256\": \"291406d7db5697791d44efbc0383c79888b821e3c92e074cec166a829c999c35\", \"testSha256\": \"3f623240777eb4a5307a680e51c74b10758d894d9aef0b5147baa218f2a06681\", \"verificationCommands\": [\"python3 -m unittest -q\", \"python3 -m unittest -q\"], \"taskCount\": 1, \"passed\": true}",
+        "verified": true,
+        "command": "python3 -B scripts/agent-mcp-eval.py --candidate target/release/magistr --baseline /Users/alrik/.cargo/bin/magistr --out /tmp/magistr-agent-eval-20261019-batched --host codex --surface baseline --verify-existing",
+        "exit_code": 0,
+        "execution": {
+          "kind": "exited",
+          "code": 0
+        },
+        "report": null,
+        "results": null
+      },
+      "freshness": {
+        "freshness": "unchanged"
+      },
+      "settlement": {
+        "settlement": "applied"
+      }
+    },
+    {
+      "task": "hybrid-catalog",
+      "id": "e8dace08-4b69-42dd-81d5-9741939f6673",
+      "target": {
+        "project_id": "magistr-5a5bc6",
+        "execution": {
+          "working_copy": "/Users/alrik/Code/magistr",
+          "execution_id": "default",
+          "owner_generation": 28
+        },
+        "run_id": "3235550e-17c7-446e-aaea-72d6cb290a29",
+        "task_id": "hybrid-catalog",
+        "task_instance": "b5a795ee-41ed-4508-8c27-828a9e3a4876"
+      },
+      "attempt": 1,
+      "gate": "Saved codex hybrid evaluation",
+      "check_type": "test",
+      "command": "python3 -B scripts/agent-mcp-eval.py --candidate target/release/magistr --baseline /Users/alrik/.cargo/bin/magistr --out /tmp/magistr-agent-eval-20261019-batched --host codex --surface hybrid --verify-existing",
+      "required": true,
+      "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
+      "source": {
+        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_generation": 137,
+        "scheme": "magistr-source-snapshot/1",
+        "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
+        "revision": "db7d8675d830a79fa8c8bed46d1ce008ca4fe180e31b6438db5aa3a4e38c0401",
+        "source_digest": "41407f3f534f501c7eaaca2dfb46bca1106561a5007dc6a58ec2b9ff12a37bd4",
+        "config_digest": "230c9646b0664826967c560ac3110d36f89f35616fc134367ea3abc6eb80d7b1",
+        "consistency": "optimistic",
+        "captured_at_ms": 1792435181455
+      },
+      "admitted_at": "2026-10-19T18:39:41.460814+00:00",
+      "stage": "settled",
+      "recorded_at": "2026-10-19T18:39:42.569619+00:00",
+      "settled_at": "2026-10-19T18:39:42.603073+00:00",
+      "duration_ms": 1108,
+      "outcome": {
+        "passed": true,
+        "details": "$ python3 -B scripts/agent-mcp-eval.py --candidate target/release/magistr --baseline /Users/alrik/.cargo/bin/magistr --out /tmp/magistr-agent-eval-20261019-batched --host codex --surface hybrid --verify-existing\n[exit 0]\n{\"objectiveCompleted\": true, \"tasksCompleted\": true, \"recordedCheckPassed\": true, \"feedbackSaved\": true, \"futureRoadmapSaved\": true, \"decisionRecordsSaved\": true, \"testUnchanged\": true, \"independentSourceCheckPassed\": true, \"sourceSha256\": \"644c44a76f1f310cecaf5fb2e8c04cdd1d5baedb1c6ebfd2396a851c6d69e760\", \"testSha256\": \"3f623240777eb4a5307a680e51c74b10758d894d9aef0b5147baa218f2a06681\", \"verificationCommands\": [\"python3 -m unittest -q\"], \"taskCount\": 1, \"passed\": true}",
+        "verified": true,
+        "command": "python3 -B scripts/agent-mcp-eval.py --candidate target/release/magistr --baseline /Users/alrik/.cargo/bin/magistr --out /tmp/magistr-agent-eval-20261019-batched --host codex --surface hybrid --verify-existing",
+        "exit_code": 0,
+        "execution": {
+          "kind": "exited",
+          "code": 0
+        },
+        "report": null,
+        "results": null
+      },
+      "freshness": {
+        "freshness": "unchanged"
+      },
+      "settlement": {
+        "settlement": "applied"
+      }
+    },
+    {
+      "task": "hybrid-catalog",
+      "id": "474f4f72-1224-4077-844e-36c836e2956b",
+      "target": {
+        "project_id": "magistr-5a5bc6",
+        "execution": {
+          "working_copy": "/Users/alrik/Code/magistr",
+          "execution_id": "default",
+          "owner_generation": 28
+        },
+        "run_id": "3235550e-17c7-446e-aaea-72d6cb290a29",
+        "task_id": "hybrid-catalog",
+        "task_instance": "b5a795ee-41ed-4508-8c27-828a9e3a4876"
+      },
+      "attempt": 1,
+      "gate": "Saved claude baseline evaluation",
+      "check_type": "test",
+      "command": "python3 -B scripts/agent-mcp-eval.py --candidate target/release/magistr --baseline /Users/alrik/.cargo/bin/magistr --out /tmp/magistr-agent-eval-20261019-decisions --host claude --surface baseline --verify-existing",
+      "required": true,
+      "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
+      "source": {
+        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_generation": 137,
+        "scheme": "magistr-source-snapshot/1",
+        "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
+        "revision": "db7d8675d830a79fa8c8bed46d1ce008ca4fe180e31b6438db5aa3a4e38c0401",
+        "source_digest": "41407f3f534f501c7eaaca2dfb46bca1106561a5007dc6a58ec2b9ff12a37bd4",
+        "config_digest": "230c9646b0664826967c560ac3110d36f89f35616fc134367ea3abc6eb80d7b1",
+        "consistency": "optimistic",
+        "captured_at_ms": 1792435183653
+      },
+      "admitted_at": "2026-10-19T18:39:43.659204+00:00",
+      "stage": "settled",
+      "recorded_at": "2026-10-19T18:39:44.768495+00:00",
+      "settled_at": "2026-10-19T18:39:44.798623+00:00",
+      "duration_ms": 1109,
+      "outcome": {
+        "passed": true,
+        "details": "$ python3 -B scripts/agent-mcp-eval.py --candidate target/release/magistr --baseline /Users/alrik/.cargo/bin/magistr --out /tmp/magistr-agent-eval-20261019-decisions --host claude --surface baseline --verify-existing\n[exit 0]\n{\"objectiveCompleted\": true, \"tasksCompleted\": true, \"recordedCheckPassed\": true, \"feedbackSaved\": true, \"futureRoadmapSaved\": true, \"decisionRecordsSaved\": true, \"testUnchanged\": true, \"independentSourceCheckPassed\": true, \"sourceSha256\": \"26f4eb47832a79bcc3583b308efb98333f3ab4152e2b9b63827b8e0a4688a693\", \"testSha256\": \"3f623240777eb4a5307a680e51c74b10758d894d9aef0b5147baa218f2a06681\", \"verificationCommands\": [\"python3 -m unittest -q\"], \"taskCount\": 2, \"passed\": true}",
+        "verified": true,
+        "command": "python3 -B scripts/agent-mcp-eval.py --candidate target/release/magistr --baseline /Users/alrik/.cargo/bin/magistr --out /tmp/magistr-agent-eval-20261019-decisions --host claude --surface baseline --verify-existing",
+        "exit_code": 0,
+        "execution": {
+          "kind": "exited",
+          "code": 0
+        },
+        "report": null,
+        "results": null
+      },
+      "freshness": {
+        "freshness": "unchanged"
+      },
+      "settlement": {
+        "settlement": "applied"
+      }
+    },
+    {
+      "task": "hybrid-catalog",
+      "id": "992ba729-7fe3-4de0-8420-770a15ff4462",
+      "target": {
+        "project_id": "magistr-5a5bc6",
+        "execution": {
+          "working_copy": "/Users/alrik/Code/magistr",
+          "execution_id": "default",
+          "owner_generation": 28
+        },
+        "run_id": "3235550e-17c7-446e-aaea-72d6cb290a29",
+        "task_id": "hybrid-catalog",
+        "task_instance": "b5a795ee-41ed-4508-8c27-828a9e3a4876"
+      },
+      "attempt": 1,
+      "gate": "Saved claude hybrid evaluation",
+      "check_type": "test",
+      "command": "python3 -B scripts/agent-mcp-eval.py --candidate target/release/magistr --baseline /Users/alrik/.cargo/bin/magistr --out /tmp/magistr-agent-eval-20261019-decisions --host claude --surface hybrid --verify-existing",
+      "required": true,
+      "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
+      "source": {
+        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_generation": 137,
+        "scheme": "magistr-source-snapshot/1",
+        "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
+        "revision": "db7d8675d830a79fa8c8bed46d1ce008ca4fe180e31b6438db5aa3a4e38c0401",
+        "source_digest": "41407f3f534f501c7eaaca2dfb46bca1106561a5007dc6a58ec2b9ff12a37bd4",
+        "config_digest": "230c9646b0664826967c560ac3110d36f89f35616fc134367ea3abc6eb80d7b1",
+        "consistency": "optimistic",
+        "captured_at_ms": 1792435185850
+      },
+      "admitted_at": "2026-10-19T18:39:45.856473+00:00",
+      "stage": "settled",
+      "recorded_at": "2026-10-19T18:39:46.963458+00:00",
+      "settled_at": "2026-10-19T18:39:46.998141+00:00",
+      "duration_ms": 1106,
+      "outcome": {
+        "passed": true,
+        "details": "$ python3 -B scripts/agent-mcp-eval.py --candidate target/release/magistr --baseline /Users/alrik/.cargo/bin/magistr --out /tmp/magistr-agent-eval-20261019-decisions --host claude --surface hybrid --verify-existing\n[exit 0]\n{\"objectiveCompleted\": true, \"tasksCompleted\": true, \"recordedCheckPassed\": true, \"feedbackSaved\": true, \"futureRoadmapSaved\": true, \"decisionRecordsSaved\": true, \"testUnchanged\": true, \"independentSourceCheckPassed\": true, \"sourceSha256\": \"8dd119d94421d4f3fa69e71a1d0e78e067ae9edb6df095a64a1770aca853684d\", \"testSha256\": \"3f623240777eb4a5307a680e51c74b10758d894d9aef0b5147baa218f2a06681\", \"verificationCommands\": [\"python3 -m unittest -q\"], \"taskCount\": 2, \"passed\": true}",
+        "verified": true,
+        "command": "python3 -B scripts/agent-mcp-eval.py --candidate target/release/magistr --baseline /Users/alrik/.cargo/bin/magistr --out /tmp/magistr-agent-eval-20261019-decisions --host claude --surface hybrid --verify-existing",
+        "exit_code": 0,
+        "execution": {
+          "kind": "exited",
+          "code": 0
+        },
+        "report": null,
+        "results": null
+      },
+      "freshness": {
+        "freshness": "unchanged"
+      },
+      "settlement": {
+        "settlement": "applied"
+      }
+    },
+    {
+      "task": "guided-onboarding",
+      "id": "219856af-7325-4005-91c1-1c2c48aed7fe",
+      "target": {
+        "project_id": "magistr-5a5bc6",
+        "execution": {
+          "working_copy": "/Users/alrik/Code/magistr",
+          "execution_id": "default",
+          "owner_generation": 28
+        },
+        "run_id": "3235550e-17c7-446e-aaea-72d6cb290a29",
+        "task_id": "guided-onboarding",
+        "task_instance": "13a1a185-4d1b-49b8-b8b1-8118c83439f4"
+      },
+      "attempt": 1,
+      "gate": "Guided onboarding repair and removal",
+      "check_type": "test",
+      "command": "env MAGISTR_TEST_BINARY=target/release/magistr python3 -B scripts/onboarding-check.py",
+      "required": true,
+      "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
+      "source": {
+        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_generation": 137,
+        "scheme": "magistr-source-snapshot/1",
+        "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
+        "revision": "332f78452535cc8314e22f23d3e2a7c113cc277a629575527ded48f97f9eb402",
+        "source_digest": "1ea32b56b9f0686d48b488ecb6ffd8767c92e0ca440569b13cc5d0c9b1fbd141",
+        "config_digest": "230c9646b0664826967c560ac3110d36f89f35616fc134367ea3abc6eb80d7b1",
+        "consistency": "optimistic",
+        "captured_at_ms": 1792435240757
+      },
+      "admitted_at": "2026-10-19T18:40:40.763667+00:00",
+      "stage": "settled",
+      "recorded_at": "2026-10-19T18:40:44.158253+00:00",
+      "settled_at": "2026-10-19T18:40:44.194845+00:00",
+      "duration_ms": 3394,
+      "outcome": {
+        "passed": true,
+        "details": "$ env MAGISTR_TEST_BINARY=target/release/magistr python3 -B scripts/onboarding-check.py\n[exit 0]\ntest_codex_only_repeated_setup_and_read_only_preview (__main__.Onboarding.test_codex_only_repeated_setup_and_read_only_preview) ... ok\ntest_custom_launcher_is_preserved_and_actually_checked (__main__.Onboarding.test_custom_launcher_is_preserved_and_actually_checked) ... ok\ntest_doctor_reports_actionable_missing_setup (__main__.Onboarding.test_doctor_reports_actionable_missing_setup) ... ok\ntest_malformed_custom_settings_fail_before_any_setup (__main__.Onboarding.test_malformed_custom_settings_fail_before_any_setup) ... ok\ntest_multiple_agents_preserve_custom_configuration_and_external_connections (__main__.Onboarding.test_multiple_agents_preserve_custom_configuration_and_external_connections) ... ok\ntest_unavailable_agent_and_portable_setup (__main__.Onboarding.test_unavailable_agent_and_portable_setup) ... ok\n\n----------------------------------------------------------------------\nRan 6 tests in 2.095s\n\nOK",
+        "verified": true,
+        "command": "env MAGISTR_TEST_BINARY=target/release/magistr python3 -B scripts/onboarding-check.py",
+        "exit_code": 0,
+        "execution": {
+          "kind": "exited",
+          "code": 0
+        },
+        "report": null,
+        "results": null
+      },
+      "freshness": {
+        "freshness": "unchanged"
+      },
+      "settlement": {
+        "settlement": "applied"
+      }
+    },
+    {
+      "task": "guided-onboarding",
+      "id": "285fdf3a-6c21-44d3-bf2e-8646d8463dec",
+      "target": {
+        "project_id": "magistr-5a5bc6",
+        "execution": {
+          "working_copy": "/Users/alrik/Code/magistr",
+          "execution_id": "default",
+          "owner_generation": 28
+        },
+        "run_id": "3235550e-17c7-446e-aaea-72d6cb290a29",
+        "task_id": "guided-onboarding",
+        "task_instance": "13a1a185-4d1b-49b8-b8b1-8118c83439f4"
+      },
+      "attempt": 1,
+      "gate": "Plugin selected integration startup",
+      "check_type": "test",
+      "command": "node --test plugins/magistr/tests/native.native.mjs",
+      "required": true,
+      "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
+      "source": {
+        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_generation": 137,
+        "scheme": "magistr-source-snapshot/1",
+        "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
+        "revision": "332f78452535cc8314e22f23d3e2a7c113cc277a629575527ded48f97f9eb402",
+        "source_digest": "1ea32b56b9f0686d48b488ecb6ffd8767c92e0ca440569b13cc5d0c9b1fbd141",
+        "config_digest": "230c9646b0664826967c560ac3110d36f89f35616fc134367ea3abc6eb80d7b1",
+        "consistency": "optimistic",
+        "captured_at_ms": 1792435245279
+      },
+      "admitted_at": "2026-10-19T18:40:45.285026+00:00",
+      "stage": "settled",
+      "recorded_at": "2026-10-19T18:41:11.600322+00:00",
+      "settled_at": "2026-10-19T18:41:11.635124+00:00",
+      "duration_ms": 26315,
+      "outcome": {
+        "passed": true,
+        "details": "$ node --test plugins/magistr/tests/native.native.mjs\n[exit 0]\n✔ native service preserves work identity and refuses unreadable persisted records (25200.505292ms)\nℹ tests 1\nℹ suites 0\nℹ pass 1\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 25228.08125",
+        "verified": true,
+        "command": "node --test plugins/magistr/tests/native.native.mjs",
+        "exit_code": 0,
+        "execution": {
+          "kind": "exited",
+          "code": 0
+        },
+        "report": null,
+        "results": null
+      },
+      "freshness": {
+        "freshness": "unchanged"
+      },
+      "settlement": {
+        "settlement": "applied"
+      }
+    },
+    {
+      "task": "distribution",
+      "id": "391938bc-eb04-4fef-8ea0-1e98b7dd79bb",
+      "target": {
+        "project_id": "magistr-5a5bc6",
+        "execution": {
+          "working_copy": "/Users/alrik/Code/magistr",
+          "execution_id": "default",
+          "owner_generation": 28
+        },
+        "run_id": "3235550e-17c7-446e-aaea-72d6cb290a29",
+        "task_id": "distribution",
+        "task_instance": "37f22507-6fc7-4cbd-8c78-686d68aa218d"
+      },
+      "attempt": 1,
+      "gate": "Prepare source-matched Cargo and npm artifacts",
+      "check_type": "test",
+      "command": "python3 -B scripts/distribution.py prepare --out target/cli-distribution",
+      "required": true,
+      "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
+      "source": {
+        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_generation": 137,
+        "scheme": "magistr-source-snapshot/1",
+        "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
+        "revision": "8b232b9ca2127aaedc0c9f60885da7c93a569aca979cd3d7e5e3fdc1c7755762",
+        "source_digest": "043a5fd6e3489e073b3de5a8621319ee618ad0edfa336415df8e83cd29f0da92",
+        "config_digest": "230c9646b0664826967c560ac3110d36f89f35616fc134367ea3abc6eb80d7b1",
+        "consistency": "optimistic",
+        "captured_at_ms": 1792435299960
+      },
+      "admitted_at": "2026-10-19T18:41:39.966846+00:00",
+      "stage": "settled",
+      "recorded_at": "2026-10-19T18:41:51.467959+00:00",
+      "settled_at": "2026-10-19T18:41:51.501857+00:00",
+      "duration_ms": 11501,
+      "outcome": {
+        "passed": true,
+        "details": "$ python3 -B scripts/distribution.py prepare --out target/cli-distribution\n[exit 0]\n…(truncated 17286 chars)…\n\nwarning: ignoring test `reinit_integration` as `tests/reinit_integration.rs` is not included in the published package\nwarning: ignoring test `roadmap_export_policy` as `tests/roadmap_export_policy.rs` is not included in the published package\nwarning: ignoring test `session_integration` as `tests/session_integration.rs` is not included in the published package\nwarning: ignoring test `shared_permissions` as `tests/shared_permissions.rs` is not included in the published package\nwarning: ignoring test `source_pipeline_routing` as `tests/source_pipeline_routing.rs` is not included in the published package\nwarning: ignoring test `structure_lint` as `tests/structure_lint.rs` is not included in the published package\nwarning: ignoring test `team_integration` as `tests/team_integration.rs` is not included in the published package\nwarning: ignoring test `validation_project_gates` as `tests/validation_project_gates.rs` is not included in the published package\nwarning: ignoring test `workbench_scaffold_integration` as `tests/workbench_scaffold_integration.rs` is not included in the published package\nwarning: ignoring test `workflow_agent_selection` as `tests/workflow_agent_selection.rs` is not included in the published package\nwarning: ignoring test `workflow_consistency` as `tests/workflow_consistency.rs` is not included in the published package\nwarning: ignoring test `workflow_integration` as `tests/workflow_integration.rs` is not included in the published package\nwarning: ignoring test `working_copy_cli` as `tests/working_copy_cli.rs` is not included in the published package\nwarning: ignoring test `workspace_attachment` as `tests/workspace_attachment.rs` is not included in the published package\nwarning: ignoring test `workspace_cli_verbs` as `tests/workspace_cli_verbs.rs` is not included in the published package\nwarning: ignoring test `workspace_editing` as `tests/workspace_editing.rs` is not included in the published package\nwarning: ignoring test `workspace_extensions` as `tests/workspace_extensions.rs` is not included in the published package\nwarning: ignoring test `workspace_index` as `tests/workspace_index.rs` is not included in the published package\nwarning: ignoring test `workspace_lang_packs` as `tests/workspace_lang_packs.rs` is not included in the published package\nwarning: ignoring test `workspace_queries_conformance` as `tests/workspace_queries_conformance.rs` is not included in the published package\nwarning: ignoring test `workspace_queries_read` as `tests/workspace_queries_read.rs` is not included in the published package\nwarning: ignoring test `workspace_queries_search` as `tests/workspace_queries_search.rs` is not included in the published package\nwarning: ignoring test `workspace_release_smoke` as `tests/workspace_release_smoke.rs` is not included in the published package\nwarning: ignoring test `workspace_script` as `tests/workspace_script.rs` is not included in the published package\nwarning: ignoring test `workspace_served` as `tests/workspace_served.rs` is not included in the published package\nwarning: ignoring test `workspace_served_reference` as `tests/workspace_served_reference.rs` is not included in the published package\nwarning: ignoring test `workspace_served_stdio` as `tests/workspace_served_stdio.rs` is not included in the published package\nwarning: ignoring test `workspace_sessions` as `tests/workspace_sessions.rs` is not included in the published package\nwarning: ignoring test `workspace_transactions` as `tests/workspace_transactions.rs` is not included in the published package\nwarning: ignoring test `workspace_worker_lsp` as `tests/workspace_worker_lsp.rs` is not included in the published package\nwarning: ignoring test `workspace_workers` as `tests/workspace_workers.rs` is not included in the published package\nwarning: ignoring benchmark `workspace_bench` as `benches/workspace_bench.rs` is not included in the published package\n    Updating crates.io index\n    Packaged 1016 files, 6.4MiB (1.7MiB compressed)",
+        "verified": true,
+        "command": "python3 -B scripts/distribution.py prepare --out target/cli-distribution",
+        "exit_code": 0,
+        "execution": {
+          "kind": "exited",
+          "code": 0
+        },
+        "report": null,
+        "results": null
+      },
+      "freshness": {
+        "freshness": "unchanged"
+      },
+      "settlement": {
+        "settlement": "applied"
+      }
+    },
+    {
+      "task": "distribution",
+      "id": "c5aa5587-124c-4d87-9c98-a509a85562d0",
+      "target": {
+        "project_id": "magistr-5a5bc6",
+        "execution": {
+          "working_copy": "/Users/alrik/Code/magistr",
+          "execution_id": "default",
+          "owner_generation": 28
+        },
+        "run_id": "3235550e-17c7-446e-aaea-72d6cb290a29",
+        "task_id": "distribution",
+        "task_instance": "37f22507-6fc7-4cbd-8c78-686d68aa218d"
+      },
+      "attempt": 1,
+      "gate": "Install extracted Cargo archives",
+      "check_type": "test",
+      "command": "python3 -B scripts/distribution.py verify-cargo --out target/cli-distribution --build-dir /tmp/magistr-package-install-build",
+      "required": true,
+      "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
+      "source": {
+        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_generation": 137,
+        "scheme": "magistr-source-snapshot/1",
+        "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
+        "revision": "8b232b9ca2127aaedc0c9f60885da7c93a569aca979cd3d7e5e3fdc1c7755762",
+        "source_digest": "043a5fd6e3489e073b3de5a8621319ee618ad0edfa336415df8e83cd29f0da92",
+        "config_digest": "230c9646b0664826967c560ac3110d36f89f35616fc134367ea3abc6eb80d7b1",
+        "consistency": "optimistic",
+        "captured_at_ms": 1792435313739
+      },
+      "admitted_at": "2026-10-19T18:41:53.744972+00:00",
+      "stage": "settled",
+      "recorded_at": "2026-10-19T18:43:47.012113+00:00",
+      "settled_at": "2026-10-19T18:43:47.153516+00:00",
+      "duration_ms": 113267,
+      "outcome": {
+        "passed": true,
+        "details": "$ python3 -B scripts/distribution.py verify-cargo --out target/cli-distribution --build-dir /tmp/magistr-package-install-build\n[exit 0]\n…(truncated 163135 chars)…\ntocol-derive v2.0.0\n   Compiling rustix-linux-procfs v0.1.1\n   Compiling hashlink v0.12.2\n   Compiling fsevent-sys v4.1.0\n   Compiling quick-xml v0.41.0\n   Compiling serde_yml v0.0.12\n   Compiling notify-types v2.1.0\n   Compiling fallible-streaming-iterator v0.1.9\n   Compiling rustix v0.38.44\n   Compiling fallible-iterator v0.3.0\n   Compiling outref v0.5.2\n   Compiling vsimd v0.8.0\n   Compiling arraydeque v0.5.1\n   Compiling eyre v0.6.12\n   Compiling shell-words v1.1.1\n   Compiling color-spantrace v0.3.0\n   Compiling uuid-simd v0.8.0\n   Compiling saphyr-parser v0.0.12\n   Compiling clap v4.6.0\n   Compiling magistr-workflow v0.1.0\n   Compiling notify v8.2.0\n   Compiling grep v0.4.1\n   Compiling referencing v0.28.3\n   Compiling ast-grep-core v0.45.2\n   Compiling fraction v0.15.3\n   Compiling fancy-regex v0.14.0\n   Compiling toml v1.0.6+spec-1.1.0\n   Compiling ignore v0.4.30\n   Compiling agent-client-protocol v2.0.0\n   Compiling tracing-error v0.2.1\n   Compiling ed25519 v2.2.3\n   Compiling ureq-proto v0.5.3\n   Compiling pkcs1 v0.7.5\n   Compiling email_address v0.2.9\n   Compiling addr2line v0.25.1\n   Compiling libyml v0.0.5\n   Compiling utf-8 v0.7.6\n   Compiling bytecount v0.6.9\n   Compiling similar v2.7.0\n   Compiling indenter v0.3.4\n   Compiling num-cmp v0.1.0\n   Compiling ureq v3.2.0\n   Compiling jsonschema v0.28.3\n   Compiling backtrace v0.3.76\n   Compiling rsa v0.9.10\n   Compiling ed25519-dalek v2.1.1\n   Compiling magistr-cockpit v0.1.0\n   Compiling p256 v0.13.2\n   Compiling p384 v0.13.1\n   Compiling toml_edit v0.25.4+spec-1.1.0\n   Compiling xattr v1.6.1\n   Compiling filetime v0.2.27\n   Compiling shell-escape v0.1.5\n   Compiling glob v0.3.3\n   Compiling roff v1.1.0\n   Compiling home v0.5.11\n   Compiling which v6.0.3\n   Compiling clap_mangen v0.2.33\n   Compiling wiggle v48.0.2\n   Compiling wasmtime-wasi-io v48.0.2\n   Compiling tar v0.4.45\n   Compiling jsonwebtoken v11.0.0\n   Compiling magistr-cockpit-runtime v0.1.0\n   Compiling rusqlite v0.40.2\n   Compiling wasmtime-wasi v48.0.2\n   Compiling color-eyre v0.6.5\n   Compiling magistr-mcp v0.1.0\n   Compiling magistr-acp v0.1.0\n   Compiling magistr-acp-agent v0.1.0\n   Compiling clap_complete v4.6.0\n   Compiling magistr-workspace v0.1.0\n   Compiling magistr-core v0.1.0\n   Compiling magistr-cli v0.1.0 (/var/folders/ml/51b226t50rxf09jwljnq7tn00000gn/T/magistr clean cargo _p04d4w8/install-source/magistr-cli-0.1.0)\n    Finished `release` profile [optimized] target(s) in 1m 42s\n  Installing /var/folders/ml/51b226t50rxf09jwljnq7tn00000gn/T/magistr clean cargo _p04d4w8/installed/bin/magistr\n   Installed package `magistr-cli v0.1.0 (/var/folders/ml/51b226t50rxf09jwljnq7tn00000gn/T/magistr clean cargo _p04d4w8/install-source/magistr-cli-0.1.0)` (executable `magistr`)\nwarning: be sure to add `/var/folders/ml/51b226t50rxf09jwljnq7tn00000gn/T/magistr clean cargo _p04d4w8/installed/bin` to your PATH to be able to run the installed binaries\n\u001b[36m→\u001b[0m Detecting stack in /private/var/folders/ml/51b226t50rxf09jwljnq7tn00000gn/T/magistr clean cargo _p04d4w8/project with spaces...\n\u001b[1mProposed project setup\u001b[0m\n\n  \u001b[32m+ .magistr/.gitignore\u001b[0m  (create)\n  \u001b[32m+ .magistr/project.json\u001b[0m  (create)\n  \u001b[32m+ .magistr/conventions.md\u001b[0m  (create)\n  \u001b[32m+ .magistr/instructions.md\u001b[0m  (create)\n  \u001b[32m+ .mcp.json\u001b[0m  (create)\n  \u001b[32m+ .gitignore\u001b[0m  (create)\n  \u001b[32m+ .think-and-ship/project.json\u001b[0m  (create)\n\u001b[1mSummary:\u001b[0m 7 create, 0 overwrite, 0 remove, 0 unchanged, 0 preserved, 0 refused\n\u001b[32m✓\u001b[0m .magistr/.gitignore\n\u001b[32m✓\u001b[0m .magistr/project.json\n\u001b[32m✓\u001b[0m .magistr/conventions.md\n\u001b[32m✓\u001b[0m .magistr/instructions.md\n\u001b[32m✓\u001b[0m .mcp.json\n\u001b[32m✓\u001b[0m .gitignore\n\u001b[32m✓\u001b[0m .think-and-ship/project.json\n\n\u001b[1mmagistr scaffolded successfully\u001b[0m\n  Project: project with spaces\n  Stack:   unknown + none\n  Files:   7 generated\nMCP connection and read-only context check passed.\nStarter prompt: Read the project context and source, then propose the first plan. Wait for my instruction before implementing it.",
+        "verified": true,
+        "command": "python3 -B scripts/distribution.py verify-cargo --out target/cli-distribution --build-dir /tmp/magistr-package-install-build",
+        "exit_code": 0,
+        "execution": {
+          "kind": "exited",
+          "code": 0
+        },
+        "report": null,
+        "results": null
+      },
+      "freshness": {
+        "freshness": "changed",
+        "paths": [
+          ".agents/skills/roadmap-refresh/SKILL.md (Modified)",
+          ".agents/skills/signals/SKILL.md (Modified)",
+          ".agents/skills/workbench-routing/SKILL.md (Modified)",
+          ".claude/hooks/magistr-guard.sh (Modified)",
+          ".claude/rules/workflow.md (Modified)",
+          ".claude/skills/roadmap-refresh/SKILL.md (Modified)",
+          ".claude/skills/signals/SKILL.md (Modified)",
+          ".claude/skills/workbench-routing/SKILL.md (Modified)",
+          "crates/magistr-cli/templates/CLAUDE.md.tmpl (Modified)",
+          "crates/magistr-cli/templates/hooks/magistr-guard.sh (Modified)",
+          "crates/magistr-cli/templates/skills/workbench-routing/SKILL.md (Modified)",
+          "crates/magistr-cli/templates/workflows/roadmap-refresh.md (Modified)",
+          "crates/magistr-cli/templates/workflows/signals.md (Modified)",
+          "docs/architecture/claude-mod.md (Modified)",
+          "plugins/magistr/README.md (Modified)",
+          "plugins/magistr/hooks/mcp.js (Added)",
+          "plugins/magistr/hooks/register.js (Modified)"
+        ]
+      },
+      "settlement": {
+        "settlement": "applied"
+      }
+    },
+    {
+      "task": "distribution",
+      "id": "9dd3dc57-0761-4557-a04d-669b3d0fbb1d",
+      "target": {
+        "project_id": "magistr-5a5bc6",
+        "execution": {
+          "working_copy": "/Users/alrik/Code/magistr",
+          "execution_id": "default",
+          "owner_generation": 28
+        },
+        "run_id": "3235550e-17c7-446e-aaea-72d6cb290a29",
+        "task_id": "distribution",
+        "task_instance": "37f22507-6fc7-4cbd-8c78-686d68aa218d"
+      },
+      "attempt": 1,
+      "gate": "Install packed npm artifact",
+      "check_type": "test",
+      "command": "python3 -B scripts/distribution.py verify-npm --out target/cli-distribution",
+      "required": true,
+      "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
+      "source": {
+        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_generation": 137,
+        "scheme": "magistr-source-snapshot/1",
+        "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
+        "revision": "b00fe38affda5c7b7d7edf757987bc12ce9c531e956f6e78cd81efacbbd75dbe",
+        "source_digest": "632404468810321eb00901eaed46323bf026eaf4535351c3dbd60d0e278a534b",
+        "config_digest": "230c9646b0664826967c560ac3110d36f89f35616fc134367ea3abc6eb80d7b1",
+        "consistency": "optimistic",
+        "captured_at_ms": 1792435428368
+      },
+      "admitted_at": "2026-10-19T18:43:48.374684+00:00",
+      "stage": "settled",
+      "recorded_at": "2026-10-19T18:43:54.112060+00:00",
+      "settled_at": "2026-10-19T18:43:54.161734+00:00",
+      "duration_ms": 5737,
+      "outcome": {
+        "passed": false,
+        "details": "$ python3 -B scripts/distribution.py verify-npm --out target/cli-distribution\n[exit 1]\nnpm notice\nnpm notice New major version of npm available! 11.19.0 -> 12.2.0\nnpm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0\nnpm notice To update run: npm install -g npm@12.2.0\nnpm notice\n\u001b[36m→\u001b[0m Detecting stack in /private/var/folders/ml/51b226t50rxf09jwljnq7tn00000gn/T/magistr clean npm xb3vcy97/npx project...\n\u001b[1mProposed project setup\u001b[0m\n\n  \u001b[32m+ .magistr/.gitignore\u001b[0m  (create)\n  \u001b[32m+ .magistr/project.json\u001b[0m  (create)\n  \u001b[32m+ .magistr/conventions.md\u001b[0m  (create)\n  \u001b[32m+ .magistr/instructions.md\u001b[0m  (create)\n  \u001b[32m+ .mcp.json\u001b[0m  (create)\n  \u001b[32m+ .gitignore\u001b[0m  (create)\n  \u001b[32m+ .think-and-ship/project.json\u001b[0m  (create)\n\u001b[1mSummary:\u001b[0m 7 create, 0 overwrite, 0 remove, 0 unchanged, 0 preserved, 0 refused\n\u001b[32m✓\u001b[0m .magistr/.gitignore\n\u001b[32m✓\u001b[0m .magistr/project.json\n\u001b[32m✓\u001b[0m .magistr/conventions.md\n\u001b[32m✓\u001b[0m .magistr/instructions.md\n\u001b[32m✓\u001b[0m .mcp.json\n\u001b[32m✓\u001b[0m .gitignore\n\u001b[32m✓\u001b[0m .think-and-ship/project.json\n\n\u001b[1mmagistr scaffolded successfully\u001b[0m\n  Project: npx project\n  Stack:   unknown + none\n  Files:   7 generated\nMCP connection and read-only context check passed.\nStarter prompt: Read the project context and source, then propose the first plan. Wait for my instruction before implementing it.\n\u001b[36m→\u001b[0m Detecting stack in /private/var/folders/ml/51b226t50rxf09jwljnq7tn00000gn/T/magistr clean npm xb3vcy97/global project...\n\u001b[1mProposed project setup\u001b[0m\n\n  \u001b[32m+ .magistr/.gitignore\u001b[0m  (create)\n  \u001b[32m+ .magistr/project.json\u001b[0m  (create)\n  \u001b[32m+ .magistr/conventions.md\u001b[0m  (create)\n  \u001b[32m+ .magistr/instructions.md\u001b[0m  (create)\n  \u001b[32m+ .mcp.json\u001b[0m  (create)\n  \u001b[32m+ .gitignore\u001b[0m  (create)\n  \u001b[32m+ .think-and-ship/project.json\u001b[0m  (create)\n\u001b[1mSummary:\u001b[0m 7 create, 0 overwrite, 0 remove, 0 unchanged, 0 preserved, 0 refused\n\u001b[32m✓\u001b[0m .magistr/.gitignore\n\u001b[32m✓\u001b[0m .magistr/project.json\n\u001b[32m✓\u001b[0m .magistr/conventions.md\n\u001b[32m✓\u001b[0m .magistr/instructions.md\n\u001b[32m✓\u001b[0m .mcp.json\n\u001b[32m✓\u001b[0m .gitignore\n\u001b[32m✓\u001b[0m .think-and-ship/project.json\n\n\u001b[1mmagistr scaffolded successfully\u001b[0m\n  Project: global project\n  Stack:   unknown + none\n  Files:   7 generated\nMCP connection and read-only context check passed.\nStarter prompt: Read the project context and source, then propose the first plan. Wait for my instruction before implementing it.\nTraceback (most recent call last):\n  File \"/Users/alrik/Code/magistr/scripts/distribution.py\", line 271, in <module>\n    if __name__==\"__main__\":main()\n                            ~~~~^^\n  File \"/Users/alrik/Code/magistr/scripts/distribution.py\", line 269, in main\n    elif args.action==\"verify-npm\":verify_npm(args)\n                                   ~~~~~~~~~~^^^^^^\n  File \"/Users/alrik/Code/magistr/scripts/distribution.py\", line 252, in verify_npm\n    assert not any(n.endswith(\".rs\") or \"/node_modules/\" in n for n in names)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError",
+        "verified": true,
+        "command": "python3 -B scripts/distribution.py verify-npm --out target/cli-distribution",
+        "exit_code": 1,
+        "execution": {
+          "kind": "exited",
+          "code": 1
+        },
+        "report": null,
+        "results": null
+      },
+      "freshness": {
+        "freshness": "unchanged"
+      },
+      "settlement": {
+        "settlement": "applied"
+      }
+    },
+    {
+      "task": "distribution",
+      "id": "f35e1a21-5e00-4879-968a-5bacecbece80",
+      "target": {
+        "project_id": "magistr-5a5bc6",
+        "execution": {
+          "working_copy": "/Users/alrik/Code/magistr",
+          "execution_id": "default",
+          "owner_generation": 28
+        },
+        "run_id": "3235550e-17c7-446e-aaea-72d6cb290a29",
+        "task_id": "distribution",
+        "task_instance": "37f22507-6fc7-4cbd-8c78-686d68aa218d"
+      },
+      "attempt": 1,
+      "gate": "Cargo publication source identity",
+      "check_type": "test",
+      "command": "python3 -B scripts/distribution.py verify-source --out target/cli-distribution",
+      "required": true,
+      "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
+      "source": {
+        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_generation": 137,
+        "scheme": "magistr-source-snapshot/1",
+        "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
+        "revision": "b00fe38affda5c7b7d7edf757987bc12ce9c531e956f6e78cd81efacbbd75dbe",
+        "source_digest": "632404468810321eb00901eaed46323bf026eaf4535351c3dbd60d0e278a534b",
+        "config_digest": "230c9646b0664826967c560ac3110d36f89f35616fc134367ea3abc6eb80d7b1",
+        "consistency": "optimistic",
+        "captured_at_ms": 1792435435236
+      },
+      "admitted_at": "2026-10-19T18:43:55.243151+00:00",
+      "stage": "settled",
+      "recorded_at": "2026-10-19T18:44:03.054209+00:00",
+      "settled_at": "2026-10-19T18:44:03.096092+00:00",
+      "duration_ms": 7811,
+      "outcome": {
+        "passed": false,
+        "details": "$ python3 -B scripts/distribution.py verify-source --out target/cli-distribution\n[exit 1]\n…(truncated 17142 chars)…\nnit_integration.rs` is not included in the published package\nwarning: ignoring test `roadmap_export_policy` as `tests/roadmap_export_policy.rs` is not included in the published package\nwarning: ignoring test `session_integration` as `tests/session_integration.rs` is not included in the published package\nwarning: ignoring test `shared_permissions` as `tests/shared_permissions.rs` is not included in the published package\nwarning: ignoring test `source_pipeline_routing` as `tests/source_pipeline_routing.rs` is not included in the published package\nwarning: ignoring test `structure_lint` as `tests/structure_lint.rs` is not included in the published package\nwarning: ignoring test `team_integration` as `tests/team_integration.rs` is not included in the published package\nwarning: ignoring test `validation_project_gates` as `tests/validation_project_gates.rs` is not included in the published package\nwarning: ignoring test `workbench_scaffold_integration` as `tests/workbench_scaffold_integration.rs` is not included in the published package\nwarning: ignoring test `workflow_agent_selection` as `tests/workflow_agent_selection.rs` is not included in the published package\nwarning: ignoring test `workflow_consistency` as `tests/workflow_consistency.rs` is not included in the published package\nwarning: ignoring test `workflow_integration` as `tests/workflow_integration.rs` is not included in the published package\nwarning: ignoring test `working_copy_cli` as `tests/working_copy_cli.rs` is not included in the published package\nwarning: ignoring test `workspace_attachment` as `tests/workspace_attachment.rs` is not included in the published package\nwarning: ignoring test `workspace_cli_verbs` as `tests/workspace_cli_verbs.rs` is not included in the published package\nwarning: ignoring test `workspace_editing` as `tests/workspace_editing.rs` is not included in the published package\nwarning: ignoring test `workspace_extensions` as `tests/workspace_extensions.rs` is not included in the published package\nwarning: ignoring test `workspace_index` as `tests/workspace_index.rs` is not included in the published package\nwarning: ignoring test `workspace_lang_packs` as `tests/workspace_lang_packs.rs` is not included in the published package\nwarning: ignoring test `workspace_queries_conformance` as `tests/workspace_queries_conformance.rs` is not included in the published package\nwarning: ignoring test `workspace_queries_read` as `tests/workspace_queries_read.rs` is not included in the published package\nwarning: ignoring test `workspace_queries_search` as `tests/workspace_queries_search.rs` is not included in the published package\nwarning: ignoring test `workspace_release_smoke` as `tests/workspace_release_smoke.rs` is not included in the published package\nwarning: ignoring test `workspace_script` as `tests/workspace_script.rs` is not included in the published package\nwarning: ignoring test `workspace_served` as `tests/workspace_served.rs` is not included in the published package\nwarning: ignoring test `workspace_served_reference` as `tests/workspace_served_reference.rs` is not included in the published package\nwarning: ignoring test `workspace_served_stdio` as `tests/workspace_served_stdio.rs` is not included in the published package\nwarning: ignoring test `workspace_sessions` as `tests/workspace_sessions.rs` is not included in the published package\nwarning: ignoring test `workspace_transactions` as `tests/workspace_transactions.rs` is not included in the published package\nwarning: ignoring test `workspace_worker_lsp` as `tests/workspace_worker_lsp.rs` is not included in the published package\nwarning: ignoring test `workspace_workers` as `tests/workspace_workers.rs` is not included in the published package\nwarning: ignoring benchmark `workspace_bench` as `benches/workspace_bench.rs` is not included in the published package\n    Updating crates.io index\n    Packaged 1016 files, 6.4MiB (1.7MiB compressed)\nCheckout differs from verified Cargo package: magistr-cli",
+        "verified": true,
+        "command": "python3 -B scripts/distribution.py verify-source --out target/cli-distribution",
+        "exit_code": 1,
+        "execution": {
+          "kind": "exited",
+          "code": 1
+        },
+        "report": null,
+        "results": null
+      },
+      "freshness": {
+        "freshness": "unchanged"
+      },
+      "settlement": {
+        "settlement": "applied"
+      }
+    },
+    {
+      "task": "distribution",
+      "id": "25d51fb3-0818-42f2-8fbb-33a9bfa9f544",
+      "target": {
+        "project_id": "magistr-5a5bc6",
+        "execution": {
+          "working_copy": "/Users/alrik/Code/magistr",
+          "execution_id": "default",
+          "owner_generation": 28
+        },
+        "run_id": "3235550e-17c7-446e-aaea-72d6cb290a29",
+        "task_id": "distribution",
+        "task_instance": "37f22507-6fc7-4cbd-8c78-686d68aa218d"
+      },
+      "attempt": 1,
+      "gate": "Current generated instructions",
+      "check_type": "test",
+      "command": "cargo test -q -p magistr-cli --lib scaffold:: --locked",
+      "required": true,
+      "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
+      "source": {
+        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_generation": 137,
+        "scheme": "magistr-source-snapshot/1",
+        "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
+        "revision": "61d4475135961c12199a3801db4421b1c21ddf8c77d2984fa72825f040b855f8",
+        "source_digest": "8d2aeeb31e043431bc281065414ce4d2b4ee2e9ba76fa6901bd38abd65f3ed07",
+        "config_digest": "230c9646b0664826967c560ac3110d36f89f35616fc134367ea3abc6eb80d7b1",
+        "consistency": "optimistic",
+        "captured_at_ms": 1792435520637
+      },
+      "admitted_at": "2026-10-19T18:45:20.644004+00:00",
+      "stage": "settled",
+      "recorded_at": "2026-10-19T18:45:30.997004+00:00",
+      "settled_at": "2026-10-19T18:45:31.077670+00:00",
+      "duration_ms": 10353,
+      "outcome": {
+        "passed": false,
+        "details": "$ cargo test -q -p magistr-cli --lib scaffold:: --locked\n[exit 101]\n\nrunning 393 tests\n....................................................................................... 87/393\n....................................................................................... 174/393\n....................................................................................... 261/393\n....................................................................................... 348/393\n............................................ 392/393\nscaffold::tool_guide::tests::tool_guide_snapshot --- FAILED\n\nfailures:\n\n---- scaffold::tool_guide::tests::tool_guide_snapshot stdout ----\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Snapshot Summary ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nSnapshot file: crates/magistr-cli/src/scaffold/snapshots/magistr__scaffold__tool_guide__tests__tools_md.snap\nSnapshot: tools_md\nSource: crates/magistr-cli/src/scaffold/tool_guide.tests.rs:36\n────────────────────────────────────────────────────────────────────────────────\nExpression: build_tool_guide()\n────────────────────────────────────────────────────────────────────────────────\n-old snapshot\n+new results\n────────────┬───────────────────────────────────────────────────────────────────\n   82    82 │   merged when its findings informed the result. Use `abandoned` only for an\n   83    83 │   investigation stopped without using its findings, and record why.\n   84    84 │ - Correct an earlier conclusion with `revises_step` and `revision_reason`;\n   85    85 │   preserve the earlier record. Link related execution through `execution_ref`\n   86       │-  and `record_progress.think_step`. Use meaningful names in prose rather than raw\n         86 │+  and `ship_record.think_step`. Use meaningful names in prose rather than raw\n   87    87 │   identifiers. Omit confidence unless there is a defensible basis for it.\n   88    88 │ - Before closing, review investigations opened for this work. Record their\n   89    89 │   conclusions and actual use, or leave them active with an explicit unresolved\n   90    90 │   question and next action. Do not mark unfinished investigations merged.\n────────────┴───────────────────────────────────────────────────────────────────\nTo update snapshots run `cargo insta review`\nStopped on the first failure. Run `cargo insta test` to run all snapshots.\n\nthread 'scaffold::tool_guide::tests::tool_guide_snapshot' (17202683) panicked at /Users/alrik/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/insta-1.46.3/src/runtime.rs:719:13:\nsnapshot assertion for 'tools_md' failed in line 36\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n\n\nfailures:\n    scaffold::tool_guide::tests::tool_guide_snapshot\n\ntest result: FAILED. 392 passed; 1 failed; 0 ignored; 0 measured; 2527 filtered out; finished in 0.64s\n\nstored new snapshot /Users/alrik/Code/magistr/crates/magistr-cli/src/scaffold/snapshots/magistr__scaffold__tool_guide__tests__tools_md.snap.new\nerror: test failed, to rerun pass `-p magistr-cli --lib`",
+        "verified": true,
+        "command": "cargo test -q -p magistr-cli --lib scaffold:: --locked",
+        "exit_code": 101,
+        "execution": {
+          "kind": "exited",
+          "code": 101
+        },
+        "report": null,
+        "results": null
+      },
+      "freshness": {
+        "freshness": "changed",
+        "paths": [
+          "crates/magistr-cli/src/scaffold/snapshots/magistr__scaffold__tool_guide__tests__tools_md.snap.new (Added)"
+        ]
+      },
+      "settlement": {
+        "settlement": "applied"
+      }
+    },
+    {
+      "task": "distribution",
+      "id": "6605b510-f85c-46d9-ac2a-96de83b7b020",
+      "target": {
+        "project_id": "magistr-5a5bc6",
+        "execution": {
+          "working_copy": "/Users/alrik/Code/magistr",
+          "execution_id": "default",
+          "owner_generation": 28
+        },
+        "run_id": "3235550e-17c7-446e-aaea-72d6cb290a29",
+        "task_id": "distribution",
+        "task_instance": "37f22507-6fc7-4cbd-8c78-686d68aa218d"
+      },
+      "attempt": 1,
+      "gate": "Shared agent prompt contract",
+      "check_type": "test",
+      "command": "cargo test -q -p magistr-engine prompt --locked",
+      "required": true,
+      "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
+      "source": {
+        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_generation": 137,
+        "scheme": "magistr-source-snapshot/1",
+        "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
+        "revision": "87b6878726f7a891fc3336a1c385b05b3e71262b6790403752cff572b0a4e00b",
+        "source_digest": "81c48eafa1dd0667444046649da5d4c77246c429e3ea50340f1a1e81b7998b73",
+        "config_digest": "230c9646b0664826967c560ac3110d36f89f35616fc134367ea3abc6eb80d7b1",
+        "consistency": "optimistic",
+        "captured_at_ms": 1792435600553
+      },
+      "admitted_at": "2026-10-19T18:46:40.559930+00:00",
+      "stage": "settled",
+      "recorded_at": "2026-10-19T18:46:43.503477+00:00",
+      "settled_at": "2026-10-19T18:46:43.580068+00:00",
+      "duration_ms": 2943,
+      "outcome": {
+        "passed": true,
+        "details": "$ cargo test -q -p magistr-engine prompt --locked\n[exit 0]\n\nrunning 12 tests\n............\ntest result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 544 filtered out; finished in 0.00s\n\n\nrunning 0 tests\n\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s",
+        "verified": true,
+        "command": "cargo test -q -p magistr-engine prompt --locked",
+        "exit_code": 0,
+        "execution": {
+          "kind": "exited",
+          "code": 0
+        },
+        "report": null,
+        "results": null
+      },
+      "freshness": {
+        "freshness": "unchanged"
+      },
+      "settlement": {
+        "settlement": "applied"
+      }
+    },
+    {
+      "task": "distribution",
+      "id": "54c7b430-d888-43f7-b9b6-6a5baeb813eb",
+      "target": {
+        "project_id": "magistr-5a5bc6",
+        "execution": {
+          "working_copy": "/Users/alrik/Code/magistr",
+          "execution_id": "default",
+          "owner_generation": 28
+        },
+        "run_id": "3235550e-17c7-446e-aaea-72d6cb290a29",
+        "task_id": "distribution",
+        "task_instance": "37f22507-6fc7-4cbd-8c78-686d68aa218d"
+      },
+      "attempt": 2,
+      "gate": "Current generated instructions",
+      "check_type": "test",
+      "command": "cargo test -q -p magistr-cli --lib scaffold:: --locked",
+      "required": true,
+      "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
+      "source": {
+        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_generation": 137,
+        "scheme": "magistr-source-snapshot/1",
+        "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
+        "revision": "87b6878726f7a891fc3336a1c385b05b3e71262b6790403752cff572b0a4e00b",
+        "source_digest": "81c48eafa1dd0667444046649da5d4c77246c429e3ea50340f1a1e81b7998b73",
+        "config_digest": "230c9646b0664826967c560ac3110d36f89f35616fc134367ea3abc6eb80d7b1",
+        "consistency": "optimistic",
+        "captured_at_ms": 1792435604691
+      },
+      "admitted_at": "2026-10-19T18:46:44.697981+00:00",
+      "stage": "settled",
+      "recorded_at": "2026-10-19T18:46:54.161010+00:00",
+      "settled_at": "2026-10-19T18:46:54.236906+00:00",
+      "duration_ms": 9463,
+      "outcome": {
+        "passed": true,
+        "details": "$ cargo test -q -p magistr-cli --lib scaffold:: --locked\n[exit 0]\n\nrunning 393 tests\n....................................................................................... 87/393\n....................................................................................... 174/393\n....................................................................................... 261/393\n....................................................................................... 348/393\n.............................................\ntest result: ok. 393 passed; 0 failed; 0 ignored; 0 measured; 2527 filtered out; finished in 0.67s",
+        "verified": true,
+        "command": "cargo test -q -p magistr-cli --lib scaffold:: --locked",
+        "exit_code": 0,
+        "execution": {
+          "kind": "exited",
+          "code": 0
+        },
+        "report": null,
+        "results": null
+      },
+      "freshness": {
+        "freshness": "unchanged"
+      },
+      "settlement": {
+        "settlement": "applied"
+      }
+    },
+    {
+      "task": "distribution",
+      "id": "0232d46d-e6fd-43d6-8f6b-0f2a5b9a4f47",
+      "target": {
+        "project_id": "magistr-5a5bc6",
+        "execution": {
+          "working_copy": "/Users/alrik/Code/magistr",
+          "execution_id": "default",
+          "owner_generation": 28
+        },
+        "run_id": "3235550e-17c7-446e-aaea-72d6cb290a29",
+        "task_id": "distribution",
+        "task_instance": "37f22507-6fc7-4cbd-8c78-686d68aa218d"
+      },
+      "attempt": 1,
+      "gate": "Claude plugin unified adapter contracts",
+      "check_type": "test",
+      "command": "node --test plugins/magistr/tests/*.contract.mjs",
+      "required": true,
+      "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
+      "source": {
+        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_generation": 137,
+        "scheme": "magistr-source-snapshot/1",
+        "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
+        "revision": "87b6878726f7a891fc3336a1c385b05b3e71262b6790403752cff572b0a4e00b",
+        "source_digest": "81c48eafa1dd0667444046649da5d4c77246c429e3ea50340f1a1e81b7998b73",
+        "config_digest": "230c9646b0664826967c560ac3110d36f89f35616fc134367ea3abc6eb80d7b1",
+        "consistency": "optimistic",
+        "captured_at_ms": 1792435615396
+      },
+      "admitted_at": "2026-10-19T18:46:55.402962+00:00",
+      "stage": "settled",
+      "recorded_at": "2026-10-19T18:46:56.541647+00:00",
+      "settled_at": "2026-10-19T18:46:56.577817+00:00",
+      "duration_ms": 1138,
+      "outcome": {
+        "passed": true,
+        "details": "$ node --test plugins/magistr/tests/*.contract.mjs\n[exit 0]\n✔ checks and workstream choices read back their acknowledged results (5.185417ms)\n✔ mismatched source and workflow folders refuse actions (1.548667ms)\n✔ interrupted commands fence delayed replies without cancelling the native owner (1.28175ms)\n✔ entry command, all navigation, evidence and source inspection use read-only MCP (1.138542ms)\n✔ text fallback works without a drawing surface or when pane admission is denied (1.6305ms)\n✔ explicit confirmations use the normal permission path once and never start a coding loop (1.423958ms)\n✔ cancel, closing the pane and changing the owner prevent an unadmitted request (2.824083ms)\n✔ refusal and malformed mutation replies cannot be presented as success (3.843833ms)\n✔ a request crossing clear stays latched and needs successful read-back (1.545375ms)\n✔ stale detail replies never replace the latest selection (0.944541ms)\n✔ timeouts retain the raw call bound, stale observations and recover after reconnect (1.062417ms)\n✔ tool observation preserves object identity, unrelated panes and another plugin band (1.050625ms)\n✔ headless confirmation refusal and session end remain transparent (0.834375ms)\n✔ observers ignore their own calls and coalesce acknowledged calls from other plugins (0.815958ms)\n✔ confirmation cannot use a changed task, active task or configured command (3.269375ms)\n✔ missing, incompatible and mismatched replies leave useful honest views and refuse actions (3.203875ms)\n✔ text details describe recorded work and findings without exposing response fields (0.9855ms)\n✔ a command collision passes the event through without hijacking another plugin (0.37125ms)\n✔ the finding field keeps typed text and refuses invalid numbers before requesting details (0.787875ms)\n✔ check limits are reviewed exactly and invalid limits never submit (1.963292ms)\n✔ wire decoding accepts canonical MCP and normal tool replies and rejects incompatible data (1.765875ms)\n✔ focus replies preserve closed and missing choices without claiming current work (0.787667ms)\n✔ phase requires matching work and task; checks distinguish recorded evidence and optional failure (0.071667ms)\n✔ rendering is deterministic, bounded, narrow and composes an existing band (0.397166ms)\n✔ runtime effects stay in the entry module and exclude models, files, processes and permission approval (2.402125ms)\n✔ wire validation covers every rendered collection and preserves Windows and Unix folder identity (0.354292ms)\n✔ adapter documentation remains discoverable and points to existing local evidence (0.7275ms)\nℹ tests 27\nℹ suites 0\nℹ pass 27\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 70.43375",
+        "verified": true,
+        "command": "node --test plugins/magistr/tests/*.contract.mjs",
+        "exit_code": 0,
+        "execution": {
+          "kind": "exited",
+          "code": 0
+        },
+        "report": null,
+        "results": null
+      },
+      "freshness": {
+        "freshness": "unchanged"
+      },
+      "settlement": {
+        "settlement": "applied"
+      }
+    },
+    {
+      "task": "distribution",
+      "id": "4d5af259-4f16-4689-8551-2f5544159b4b",
+      "target": {
+        "project_id": "magistr-5a5bc6",
+        "execution": {
+          "working_copy": "/Users/alrik/Code/magistr",
+          "execution_id": "default",
+          "owner_generation": 28
+        },
+        "run_id": "3235550e-17c7-446e-aaea-72d6cb290a29",
+        "task_id": "distribution",
+        "task_instance": "37f22507-6fc7-4cbd-8c78-686d68aa218d"
+      },
+      "attempt": 1,
+      "gate": "Claude plugin native unified transport",
+      "check_type": "test",
+      "command": "node --test plugins/magistr/tests/native.native.mjs",
+      "required": true,
+      "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
+      "source": {
+        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_generation": 137,
+        "scheme": "magistr-source-snapshot/1",
+        "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
+        "revision": "87b6878726f7a891fc3336a1c385b05b3e71262b6790403752cff572b0a4e00b",
+        "source_digest": "81c48eafa1dd0667444046649da5d4c77246c429e3ea50340f1a1e81b7998b73",
+        "config_digest": "230c9646b0664826967c560ac3110d36f89f35616fc134367ea3abc6eb80d7b1",
+        "consistency": "optimistic",
+        "captured_at_ms": 1792435617612
+      },
+      "admitted_at": "2026-10-19T18:46:57.618426+00:00",
+      "stage": "settled",
+      "recorded_at": "2026-10-19T18:47:25.983891+00:00",
+      "settled_at": "2026-10-19T18:47:26.021106+00:00",
+      "duration_ms": 28365,
+      "outcome": {
+        "passed": true,
+        "details": "$ node --test plugins/magistr/tests/native.native.mjs\n[exit 0]\n✔ native service preserves work identity and refuses unreadable persisted records (27029.504917ms)\nℹ tests 1\nℹ suites 0\nℹ pass 1\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 27056.833625",
+        "verified": true,
+        "command": "node --test plugins/magistr/tests/native.native.mjs",
+        "exit_code": 0,
+        "execution": {
+          "kind": "exited",
+          "code": 0
+        },
+        "report": null,
+        "results": null
+      },
+      "freshness": {
+        "freshness": "unchanged"
+      },
+      "settlement": {
+        "settlement": "applied"
+      }
+    },
+    {
+      "task": "distribution",
+      "id": "aa40ef43-2181-44f8-a96e-35f3adbd8d25",
+      "target": {
+        "project_id": "magistr-5a5bc6",
+        "execution": {
+          "working_copy": "/Users/alrik/Code/magistr",
+          "execution_id": "default",
+          "owner_generation": 28
+        },
+        "run_id": "3235550e-17c7-446e-aaea-72d6cb290a29",
+        "task_id": "distribution",
+        "task_instance": "37f22507-6fc7-4cbd-8c78-686d68aa218d"
+      },
+      "attempt": 1,
+      "gate": "Claude plugin formatting",
+      "check_type": "test",
+      "command": "npm --prefix plugins/magistr run format:check",
+      "required": true,
+      "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
+      "source": {
+        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_generation": 137,
+        "scheme": "magistr-source-snapshot/1",
+        "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
+        "revision": "87b6878726f7a891fc3336a1c385b05b3e71262b6790403752cff572b0a4e00b",
+        "source_digest": "81c48eafa1dd0667444046649da5d4c77246c429e3ea50340f1a1e81b7998b73",
+        "config_digest": "230c9646b0664826967c560ac3110d36f89f35616fc134367ea3abc6eb80d7b1",
+        "consistency": "optimistic",
+        "captured_at_ms": 1792435647163
+      },
+      "admitted_at": "2026-10-19T18:47:27.169447+00:00",
+      "stage": "settled",
+      "recorded_at": "2026-10-19T18:47:28.673005+00:00",
+      "settled_at": "2026-10-19T18:47:28.710796+00:00",
+      "duration_ms": 1503,
+      "outcome": {
+        "passed": false,
+        "details": "$ npm --prefix plugins/magistr run format:check\n[exit 1]\n\n> format:check\n> npx --yes prettier@3.9.9 --check \"hooks/*.js\" \"tests/*.{js,mjs,ts}\"\n\nChecking formatting...\n[warn] hooks/wire.js\n[warn] tests/wire.contract.mjs\n[warn] Code style issues found in 2 files. Run Prettier with --write to fix.",
+        "verified": true,
+        "command": "npm --prefix plugins/magistr run format:check",
+        "exit_code": 1,
+        "execution": {
+          "kind": "exited",
+          "code": 1
+        },
+        "report": null,
+        "results": null
+      },
+      "freshness": {
+        "freshness": "unchanged"
+      },
+      "settlement": {
+        "settlement": "applied"
+      }
+    },
+    {
+      "task": "distribution",
+      "id": "0bcafed1-29c3-4e35-bc45-278d48043178",
+      "target": {
+        "project_id": "magistr-5a5bc6",
+        "execution": {
+          "working_copy": "/Users/alrik/Code/magistr",
+          "execution_id": "default",
+          "owner_generation": 28
+        },
+        "run_id": "3235550e-17c7-446e-aaea-72d6cb290a29",
+        "task_id": "distribution",
+        "task_instance": "37f22507-6fc7-4cbd-8c78-686d68aa218d"
+      },
+      "attempt": 2,
+      "gate": "Claude plugin formatting",
+      "check_type": "test",
+      "command": "npm --prefix plugins/magistr run format:check",
+      "required": true,
+      "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
+      "source": {
+        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_generation": 137,
+        "scheme": "magistr-source-snapshot/1",
+        "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
+        "revision": "7b79c949e7016286eb3b01e897b03bf8189c4038375b152cbfb24ba24e11e451",
+        "source_digest": "b433c08568075860851404103588999e4709d745cec68efe0782bcee378e3c1f",
+        "config_digest": "230c9646b0664826967c560ac3110d36f89f35616fc134367ea3abc6eb80d7b1",
+        "consistency": "optimistic",
+        "captured_at_ms": 1792435701801
+      },
+      "admitted_at": "2026-10-19T18:48:21.808005+00:00",
+      "stage": "settled",
+      "recorded_at": "2026-10-19T18:48:23.312588+00:00",
+      "settled_at": "2026-10-19T18:48:23.350126+00:00",
+      "duration_ms": 1504,
+      "outcome": {
+        "passed": true,
+        "details": "$ npm --prefix plugins/magistr run format:check\n[exit 0]\n\n> format:check\n> npx --yes prettier@3.9.9 --check \"hooks/*.js\" \"tests/*.{js,mjs,ts}\"\n\nChecking formatting...\nAll matched files use Prettier code style!",
+        "verified": true,
+        "command": "npm --prefix plugins/magistr run format:check",
+        "exit_code": 0,
+        "execution": {
+          "kind": "exited",
+          "code": 0
+        },
+        "report": null,
+        "results": null
+      },
+      "freshness": {
+        "freshness": "unchanged"
+      },
+      "settlement": {
+        "settlement": "applied"
+      }
+    },
+    {
+      "task": "distribution",
+      "id": "82587337-015e-4305-a33b-c3a9a87877d1",
+      "target": {
+        "project_id": "magistr-5a5bc6",
+        "execution": {
+          "working_copy": "/Users/alrik/Code/magistr",
+          "execution_id": "default",
+          "owner_generation": 28
+        },
+        "run_id": "3235550e-17c7-446e-aaea-72d6cb290a29",
+        "task_id": "distribution",
+        "task_instance": "37f22507-6fc7-4cbd-8c78-686d68aa218d"
+      },
+      "attempt": 2,
+      "gate": "Prepare source-matched Cargo and npm artifacts",
+      "check_type": "test",
+      "command": "python3 -B scripts/distribution.py prepare --out target/cli-distribution",
+      "required": true,
+      "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
+      "source": {
+        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_generation": 137,
+        "scheme": "magistr-source-snapshot/1",
+        "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
+        "revision": "7b79c949e7016286eb3b01e897b03bf8189c4038375b152cbfb24ba24e11e451",
+        "source_digest": "b433c08568075860851404103588999e4709d745cec68efe0782bcee378e3c1f",
+        "config_digest": "230c9646b0664826967c560ac3110d36f89f35616fc134367ea3abc6eb80d7b1",
+        "consistency": "optimistic",
+        "captured_at_ms": 1792435704383
+      },
+      "admitted_at": "2026-10-19T18:48:24.389771+00:00",
+      "stage": "settled",
+      "recorded_at": "2026-10-19T18:51:39.182752+00:00",
+      "settled_at": "2026-10-19T18:51:39.232914+00:00",
+      "duration_ms": 194792,
+      "outcome": {
+        "passed": true,
+        "details": "$ python3 -B scripts/distribution.py prepare --out target/cli-distribution\n[exit 0]\n…(truncated 33135 chars)…\n\nwarning: ignoring test `reinit_integration` as `tests/reinit_integration.rs` is not included in the published package\nwarning: ignoring test `roadmap_export_policy` as `tests/roadmap_export_policy.rs` is not included in the published package\nwarning: ignoring test `session_integration` as `tests/session_integration.rs` is not included in the published package\nwarning: ignoring test `shared_permissions` as `tests/shared_permissions.rs` is not included in the published package\nwarning: ignoring test `source_pipeline_routing` as `tests/source_pipeline_routing.rs` is not included in the published package\nwarning: ignoring test `structure_lint` as `tests/structure_lint.rs` is not included in the published package\nwarning: ignoring test `team_integration` as `tests/team_integration.rs` is not included in the published package\nwarning: ignoring test `validation_project_gates` as `tests/validation_project_gates.rs` is not included in the published package\nwarning: ignoring test `workbench_scaffold_integration` as `tests/workbench_scaffold_integration.rs` is not included in the published package\nwarning: ignoring test `workflow_agent_selection` as `tests/workflow_agent_selection.rs` is not included in the published package\nwarning: ignoring test `workflow_consistency` as `tests/workflow_consistency.rs` is not included in the published package\nwarning: ignoring test `workflow_integration` as `tests/workflow_integration.rs` is not included in the published package\nwarning: ignoring test `working_copy_cli` as `tests/working_copy_cli.rs` is not included in the published package\nwarning: ignoring test `workspace_attachment` as `tests/workspace_attachment.rs` is not included in the published package\nwarning: ignoring test `workspace_cli_verbs` as `tests/workspace_cli_verbs.rs` is not included in the published package\nwarning: ignoring test `workspace_editing` as `tests/workspace_editing.rs` is not included in the published package\nwarning: ignoring test `workspace_extensions` as `tests/workspace_extensions.rs` is not included in the published package\nwarning: ignoring test `workspace_index` as `tests/workspace_index.rs` is not included in the published package\nwarning: ignoring test `workspace_lang_packs` as `tests/workspace_lang_packs.rs` is not included in the published package\nwarning: ignoring test `workspace_queries_conformance` as `tests/workspace_queries_conformance.rs` is not included in the published package\nwarning: ignoring test `workspace_queries_read` as `tests/workspace_queries_read.rs` is not included in the published package\nwarning: ignoring test `workspace_queries_search` as `tests/workspace_queries_search.rs` is not included in the published package\nwarning: ignoring test `workspace_release_smoke` as `tests/workspace_release_smoke.rs` is not included in the published package\nwarning: ignoring test `workspace_script` as `tests/workspace_script.rs` is not included in the published package\nwarning: ignoring test `workspace_served` as `tests/workspace_served.rs` is not included in the published package\nwarning: ignoring test `workspace_served_reference` as `tests/workspace_served_reference.rs` is not included in the published package\nwarning: ignoring test `workspace_served_stdio` as `tests/workspace_served_stdio.rs` is not included in the published package\nwarning: ignoring test `workspace_sessions` as `tests/workspace_sessions.rs` is not included in the published package\nwarning: ignoring test `workspace_transactions` as `tests/workspace_transactions.rs` is not included in the published package\nwarning: ignoring test `workspace_worker_lsp` as `tests/workspace_worker_lsp.rs` is not included in the published package\nwarning: ignoring test `workspace_workers` as `tests/workspace_workers.rs` is not included in the published package\nwarning: ignoring benchmark `workspace_bench` as `benches/workspace_bench.rs` is not included in the published package\n    Updating crates.io index\n    Packaged 1016 files, 6.4MiB (1.7MiB compressed)",
+        "verified": true,
+        "command": "python3 -B scripts/distribution.py prepare --out target/cli-distribution",
+        "exit_code": 0,
+        "execution": {
+          "kind": "exited",
+          "code": 0
+        },
+        "report": null,
+        "results": null
+      },
+      "freshness": {
+        "freshness": "unchanged"
+      },
+      "settlement": {
+        "settlement": "applied"
+      }
+    },
+    {
+      "task": "distribution",
+      "id": "b07c6dcc-3810-403a-a767-1095695e4310",
+      "target": {
+        "project_id": "magistr-5a5bc6",
+        "execution": {
+          "working_copy": "/Users/alrik/Code/magistr",
+          "execution_id": "default",
+          "owner_generation": 28
+        },
+        "run_id": "3235550e-17c7-446e-aaea-72d6cb290a29",
+        "task_id": "distribution",
+        "task_instance": "37f22507-6fc7-4cbd-8c78-686d68aa218d"
+      },
+      "attempt": 2,
+      "gate": "Install extracted Cargo archives",
+      "check_type": "test",
+      "command": "python3 -B scripts/distribution.py verify-cargo --out target/cli-distribution --build-dir /tmp/magistr-package-install-build",
+      "required": true,
+      "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
+      "source": {
+        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_generation": 137,
+        "scheme": "magistr-source-snapshot/1",
+        "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
+        "revision": "7b79c949e7016286eb3b01e897b03bf8189c4038375b152cbfb24ba24e11e451",
+        "source_digest": "b433c08568075860851404103588999e4709d745cec68efe0782bcee378e3c1f",
+        "config_digest": "230c9646b0664826967c560ac3110d36f89f35616fc134367ea3abc6eb80d7b1",
+        "consistency": "optimistic",
+        "captured_at_ms": 1792435900410
+      },
+      "admitted_at": "2026-10-19T18:51:40.417004+00:00",
+      "stage": "settled",
+      "recorded_at": "2026-10-19T18:53:32.974808+00:00",
+      "settled_at": "2026-10-19T18:53:33.102116+00:00",
+      "duration_ms": 112557,
+      "outcome": {
+        "passed": true,
+        "details": "$ python3 -B scripts/distribution.py verify-cargo --out target/cli-distribution --build-dir /tmp/magistr-package-install-build\n[exit 0]\n…(truncated 163135 chars)…\ntocol-derive v2.0.0\n   Compiling rustix-linux-procfs v0.1.1\n   Compiling hashlink v0.12.2\n   Compiling fsevent-sys v4.1.0\n   Compiling quick-xml v0.41.0\n   Compiling serde_yml v0.0.12\n   Compiling notify-types v2.1.0\n   Compiling rustix v0.38.44\n   Compiling fallible-iterator v0.3.0\n   Compiling outref v0.5.2\n   Compiling color-spantrace v0.3.0\n   Compiling arraydeque v0.5.1\n   Compiling vsimd v0.8.0\n   Compiling eyre v0.6.12\n   Compiling fallible-streaming-iterator v0.1.9\n   Compiling shell-words v1.1.1\n   Compiling saphyr-parser v0.0.12\n   Compiling uuid-simd v0.8.0\n   Compiling magistr-workflow v0.1.0\n   Compiling clap v4.6.0\n   Compiling notify v8.2.0\n   Compiling grep v0.4.1\n   Compiling referencing v0.28.3\n   Compiling fraction v0.15.3\n   Compiling ast-grep-core v0.45.2\n   Compiling fancy-regex v0.14.0\n   Compiling toml v1.0.6+spec-1.1.0\n   Compiling ignore v0.4.30\n   Compiling agent-client-protocol v2.0.0\n   Compiling tracing-error v0.2.1\n   Compiling ed25519 v2.2.3\n   Compiling ureq-proto v0.5.3\n   Compiling pkcs1 v0.7.5\n   Compiling email_address v0.2.9\n   Compiling addr2line v0.25.1\n   Compiling libyml v0.0.5\n   Compiling similar v2.7.0\n   Compiling indenter v0.3.4\n   Compiling num-cmp v0.1.0\n   Compiling utf-8 v0.7.6\n   Compiling bytecount v0.6.9\n   Compiling ureq v3.2.0\n   Compiling jsonschema v0.28.3\n   Compiling backtrace v0.3.76\n   Compiling rsa v0.9.10\n   Compiling ed25519-dalek v2.1.1\n   Compiling magistr-cockpit v0.1.0\n   Compiling p384 v0.13.1\n   Compiling p256 v0.13.2\n   Compiling toml_edit v0.25.4+spec-1.1.0\n   Compiling xattr v1.6.1\n   Compiling filetime v0.2.27\n   Compiling home v0.5.11\n   Compiling wiggle v48.0.2\n   Compiling wasmtime-wasi-io v48.0.2\n   Compiling roff v1.1.0\n   Compiling glob v0.3.3\n   Compiling shell-escape v0.1.5\n   Compiling clap_mangen v0.2.33\n   Compiling wasmtime-wasi v48.0.2\n   Compiling tar v0.4.45\n   Compiling which v6.0.3\n   Compiling rusqlite v0.40.2\n   Compiling magistr-cockpit-runtime v0.1.0\n   Compiling jsonwebtoken v11.0.0\n   Compiling color-eyre v0.6.5\n   Compiling magistr-mcp v0.1.0\n   Compiling magistr-acp-agent v0.1.0\n   Compiling magistr-acp v0.1.0\n   Compiling clap_complete v4.6.0\n   Compiling magistr-workspace v0.1.0\n   Compiling magistr-core v0.1.0\n   Compiling magistr-cli v0.1.0 (/var/folders/ml/51b226t50rxf09jwljnq7tn00000gn/T/magistr clean cargo 3p0t0na0/install-source/magistr-cli-0.1.0)\n    Finished `release` profile [optimized] target(s) in 1m 41s\n  Installing /var/folders/ml/51b226t50rxf09jwljnq7tn00000gn/T/magistr clean cargo 3p0t0na0/installed/bin/magistr\n   Installed package `magistr-cli v0.1.0 (/var/folders/ml/51b226t50rxf09jwljnq7tn00000gn/T/magistr clean cargo 3p0t0na0/install-source/magistr-cli-0.1.0)` (executable `magistr`)\nwarning: be sure to add `/var/folders/ml/51b226t50rxf09jwljnq7tn00000gn/T/magistr clean cargo 3p0t0na0/installed/bin` to your PATH to be able to run the installed binaries\n\u001b[36m→\u001b[0m Detecting stack in /private/var/folders/ml/51b226t50rxf09jwljnq7tn00000gn/T/magistr clean cargo 3p0t0na0/project with spaces...\n\u001b[1mProposed project setup\u001b[0m\n\n  \u001b[32m+ .magistr/.gitignore\u001b[0m  (create)\n  \u001b[32m+ .magistr/project.json\u001b[0m  (create)\n  \u001b[32m+ .magistr/conventions.md\u001b[0m  (create)\n  \u001b[32m+ .magistr/instructions.md\u001b[0m  (create)\n  \u001b[32m+ .mcp.json\u001b[0m  (create)\n  \u001b[32m+ .gitignore\u001b[0m  (create)\n  \u001b[32m+ .think-and-ship/project.json\u001b[0m  (create)\n\u001b[1mSummary:\u001b[0m 7 create, 0 overwrite, 0 remove, 0 unchanged, 0 preserved, 0 refused\n\u001b[32m✓\u001b[0m .magistr/.gitignore\n\u001b[32m✓\u001b[0m .magistr/project.json\n\u001b[32m✓\u001b[0m .magistr/conventions.md\n\u001b[32m✓\u001b[0m .magistr/instructions.md\n\u001b[32m✓\u001b[0m .mcp.json\n\u001b[32m✓\u001b[0m .gitignore\n\u001b[32m✓\u001b[0m .think-and-ship/project.json\n\n\u001b[1mmagistr scaffolded successfully\u001b[0m\n  Project: project with spaces\n  Stack:   unknown + none\n  Files:   7 generated\nMCP connection and read-only context check passed.\nStarter prompt: Read the project context and source, then propose the first plan. Wait for my instruction before implementing it.",
+        "verified": true,
+        "command": "python3 -B scripts/distribution.py verify-cargo --out target/cli-distribution --build-dir /tmp/magistr-package-install-build",
+        "exit_code": 0,
+        "execution": {
+          "kind": "exited",
+          "code": 0
+        },
+        "report": null,
+        "results": null
+      },
+      "freshness": {
+        "freshness": "unchanged"
+      },
+      "settlement": {
+        "settlement": "applied"
+      }
+    },
+    {
+      "task": "distribution",
+      "id": "cf0b23c6-281f-45d8-a9ad-6db75ae6c04c",
+      "target": {
+        "project_id": "magistr-5a5bc6",
+        "execution": {
+          "working_copy": "/Users/alrik/Code/magistr",
+          "execution_id": "default",
+          "owner_generation": 28
+        },
+        "run_id": "3235550e-17c7-446e-aaea-72d6cb290a29",
+        "task_id": "distribution",
+        "task_instance": "37f22507-6fc7-4cbd-8c78-686d68aa218d"
+      },
+      "attempt": 2,
+      "gate": "Install packed npm artifact",
+      "check_type": "test",
+      "command": "python3 -B scripts/distribution.py verify-npm --out target/cli-distribution",
+      "required": true,
+      "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
+      "source": {
+        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_generation": 137,
+        "scheme": "magistr-source-snapshot/1",
+        "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
+        "revision": "7b79c949e7016286eb3b01e897b03bf8189c4038375b152cbfb24ba24e11e451",
+        "source_digest": "b433c08568075860851404103588999e4709d745cec68efe0782bcee378e3c1f",
+        "config_digest": "230c9646b0664826967c560ac3110d36f89f35616fc134367ea3abc6eb80d7b1",
+        "consistency": "optimistic",
+        "captured_at_ms": 1792436014191
+      },
+      "admitted_at": "2026-10-19T18:53:34.198027+00:00",
+      "stage": "settled",
+      "recorded_at": "2026-10-19T18:53:40.099221+00:00",
+      "settled_at": "2026-10-19T18:53:40.151086+00:00",
+      "duration_ms": 5901,
+      "outcome": {
+        "passed": true,
+        "details": "$ python3 -B scripts/distribution.py verify-npm --out target/cli-distribution\n[exit 0]\nnpm notice\nnpm notice New major version of npm available! 11.19.0 -> 12.2.0\nnpm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0\nnpm notice To update run: npm install -g npm@12.2.0\nnpm notice\n\u001b[36m→\u001b[0m Detecting stack in /private/var/folders/ml/51b226t50rxf09jwljnq7tn00000gn/T/magistr clean npm 284ul86o/npx project...\n\u001b[1mProposed project setup\u001b[0m\n\n  \u001b[32m+ .magistr/.gitignore\u001b[0m  (create)\n  \u001b[32m+ .magistr/project.json\u001b[0m  (create)\n  \u001b[32m+ .magistr/conventions.md\u001b[0m  (create)\n  \u001b[32m+ .magistr/instructions.md\u001b[0m  (create)\n  \u001b[32m+ .mcp.json\u001b[0m  (create)\n  \u001b[32m+ .gitignore\u001b[0m  (create)\n  \u001b[32m+ .think-and-ship/project.json\u001b[0m  (create)\n\u001b[1mSummary:\u001b[0m 7 create, 0 overwrite, 0 remove, 0 unchanged, 0 preserved, 0 refused\n\u001b[32m✓\u001b[0m .magistr/.gitignore\n\u001b[32m✓\u001b[0m .magistr/project.json\n\u001b[32m✓\u001b[0m .magistr/conventions.md\n\u001b[32m✓\u001b[0m .magistr/instructions.md\n\u001b[32m✓\u001b[0m .mcp.json\n\u001b[32m✓\u001b[0m .gitignore\n\u001b[32m✓\u001b[0m .think-and-ship/project.json\n\n\u001b[1mmagistr scaffolded successfully\u001b[0m\n  Project: npx project\n  Stack:   unknown + none\n  Files:   7 generated\nMCP connection and read-only context check passed.\nStarter prompt: Read the project context and source, then propose the first plan. Wait for my instruction before implementing it.\n\u001b[36m→\u001b[0m Detecting stack in /private/var/folders/ml/51b226t50rxf09jwljnq7tn00000gn/T/magistr clean npm 284ul86o/global project...\n\u001b[1mProposed project setup\u001b[0m\n\n  \u001b[32m+ .magistr/.gitignore\u001b[0m  (create)\n  \u001b[32m+ .magistr/project.json\u001b[0m  (create)\n  \u001b[32m+ .magistr/conventions.md\u001b[0m  (create)\n  \u001b[32m+ .magistr/instructions.md\u001b[0m  (create)\n  \u001b[32m+ .mcp.json\u001b[0m  (create)\n  \u001b[32m+ .gitignore\u001b[0m  (create)\n  \u001b[32m+ .think-and-ship/project.json\u001b[0m  (create)\n\u001b[1mSummary:\u001b[0m 7 create, 0 overwrite, 0 remove, 0 unchanged, 0 preserved, 0 refused\n\u001b[32m✓\u001b[0m .magistr/.gitignore\n\u001b[32m✓\u001b[0m .magistr/project.json\n\u001b[32m✓\u001b[0m .magistr/conventions.md\n\u001b[32m✓\u001b[0m .magistr/instructions.md\n\u001b[32m✓\u001b[0m .mcp.json\n\u001b[32m✓\u001b[0m .gitignore\n\u001b[32m✓\u001b[0m .think-and-ship/project.json\n\n\u001b[1mmagistr scaffolded successfully\u001b[0m\n  Project: global project\n  Stack:   unknown + none\n  Files:   7 generated\nMCP connection and read-only context check passed.\nStarter prompt: Read the project context and source, then propose the first plan. Wait for my instruction before implementing it.",
+        "verified": true,
+        "command": "python3 -B scripts/distribution.py verify-npm --out target/cli-distribution",
+        "exit_code": 0,
+        "execution": {
+          "kind": "exited",
+          "code": 0
+        },
+        "report": null,
+        "results": null
+      },
+      "freshness": {
+        "freshness": "changed",
+        "paths": [
+          "scripts/__pycache__/distribution_licenses.cpython-314.pyc (Modified)"
+        ]
+      },
+      "settlement": {
+        "settlement": "applied"
+      }
+    },
+    {
+      "task": "distribution",
+      "id": "31a683ce-5cfe-4c15-a2c1-59ca8b4ee040",
+      "target": {
+        "project_id": "magistr-5a5bc6",
+        "execution": {
+          "working_copy": "/Users/alrik/Code/magistr",
+          "execution_id": "default",
+          "owner_generation": 28
+        },
+        "run_id": "3235550e-17c7-446e-aaea-72d6cb290a29",
+        "task_id": "distribution",
+        "task_instance": "37f22507-6fc7-4cbd-8c78-686d68aa218d"
+      },
+      "attempt": 2,
+      "gate": "Cargo publication source identity",
+      "check_type": "test",
+      "command": "python3 -B scripts/distribution.py verify-source --out target/cli-distribution",
+      "required": true,
+      "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
+      "source": {
+        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_generation": 137,
+        "scheme": "magistr-source-snapshot/1",
+        "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
+        "revision": "aa5645d72a582b40f46b274a0e2a869f918185c82d15267e4462d81f2702b32a",
+        "source_digest": "047862a0f36e7605c8b121eb33c4480afabab8003b92cbeb8a5a15279298839a",
+        "config_digest": "230c9646b0664826967c560ac3110d36f89f35616fc134367ea3abc6eb80d7b1",
+        "consistency": "optimistic",
+        "captured_at_ms": 1792436021347
+      },
+      "admitted_at": "2026-10-19T18:53:41.353707+00:00",
+      "stage": "settled",
+      "recorded_at": "2026-10-19T18:53:48.149663+00:00",
+      "settled_at": "2026-10-19T18:53:48.193193+00:00",
+      "duration_ms": 6795,
+      "outcome": {
+        "passed": true,
+        "details": "$ python3 -B scripts/distribution.py verify-source --out target/cli-distribution\n[exit 0]\n…(truncated 17084 chars)…\n\nwarning: ignoring test `reinit_integration` as `tests/reinit_integration.rs` is not included in the published package\nwarning: ignoring test `roadmap_export_policy` as `tests/roadmap_export_policy.rs` is not included in the published package\nwarning: ignoring test `session_integration` as `tests/session_integration.rs` is not included in the published package\nwarning: ignoring test `shared_permissions` as `tests/shared_permissions.rs` is not included in the published package\nwarning: ignoring test `source_pipeline_routing` as `tests/source_pipeline_routing.rs` is not included in the published package\nwarning: ignoring test `structure_lint` as `tests/structure_lint.rs` is not included in the published package\nwarning: ignoring test `team_integration` as `tests/team_integration.rs` is not included in the published package\nwarning: ignoring test `validation_project_gates` as `tests/validation_project_gates.rs` is not included in the published package\nwarning: ignoring test `workbench_scaffold_integration` as `tests/workbench_scaffold_integration.rs` is not included in the published package\nwarning: ignoring test `workflow_agent_selection` as `tests/workflow_agent_selection.rs` is not included in the published package\nwarning: ignoring test `workflow_consistency` as `tests/workflow_consistency.rs` is not included in the published package\nwarning: ignoring test `workflow_integration` as `tests/workflow_integration.rs` is not included in the published package\nwarning: ignoring test `working_copy_cli` as `tests/working_copy_cli.rs` is not included in the published package\nwarning: ignoring test `workspace_attachment` as `tests/workspace_attachment.rs` is not included in the published package\nwarning: ignoring test `workspace_cli_verbs` as `tests/workspace_cli_verbs.rs` is not included in the published package\nwarning: ignoring test `workspace_editing` as `tests/workspace_editing.rs` is not included in the published package\nwarning: ignoring test `workspace_extensions` as `tests/workspace_extensions.rs` is not included in the published package\nwarning: ignoring test `workspace_index` as `tests/workspace_index.rs` is not included in the published package\nwarning: ignoring test `workspace_lang_packs` as `tests/workspace_lang_packs.rs` is not included in the published package\nwarning: ignoring test `workspace_queries_conformance` as `tests/workspace_queries_conformance.rs` is not included in the published package\nwarning: ignoring test `workspace_queries_read` as `tests/workspace_queries_read.rs` is not included in the published package\nwarning: ignoring test `workspace_queries_search` as `tests/workspace_queries_search.rs` is not included in the published package\nwarning: ignoring test `workspace_release_smoke` as `tests/workspace_release_smoke.rs` is not included in the published package\nwarning: ignoring test `workspace_script` as `tests/workspace_script.rs` is not included in the published package\nwarning: ignoring test `workspace_served` as `tests/workspace_served.rs` is not included in the published package\nwarning: ignoring test `workspace_served_reference` as `tests/workspace_served_reference.rs` is not included in the published package\nwarning: ignoring test `workspace_served_stdio` as `tests/workspace_served_stdio.rs` is not included in the published package\nwarning: ignoring test `workspace_sessions` as `tests/workspace_sessions.rs` is not included in the published package\nwarning: ignoring test `workspace_transactions` as `tests/workspace_transactions.rs` is not included in the published package\nwarning: ignoring test `workspace_worker_lsp` as `tests/workspace_worker_lsp.rs` is not included in the published package\nwarning: ignoring test `workspace_workers` as `tests/workspace_workers.rs` is not included in the published package\nwarning: ignoring benchmark `workspace_bench` as `benches/workspace_bench.rs` is not included in the published package\n    Updating crates.io index\n    Packaged 1016 files, 6.4MiB (1.7MiB compressed)",
+        "verified": true,
+        "command": "python3 -B scripts/distribution.py verify-source --out target/cli-distribution",
+        "exit_code": 0,
+        "execution": {
+          "kind": "exited",
+          "code": 0
+        },
+        "report": null,
+        "results": null
+      },
+      "freshness": {
+        "freshness": "unchanged"
+      },
+      "settlement": {
+        "settlement": "applied"
+      }
+    },
+    {
+      "task": "distribution",
+      "id": "205d8e31-00a9-4e21-91b8-03b131385f58",
+      "target": {
+        "project_id": "magistr-5a5bc6",
+        "execution": {
+          "working_copy": "/Users/alrik/Code/magistr",
+          "execution_id": "default",
+          "owner_generation": 28
+        },
+        "run_id": "3235550e-17c7-446e-aaea-72d6cb290a29",
+        "task_id": "distribution",
+        "task_instance": "37f22507-6fc7-4cbd-8c78-686d68aa218d"
+      },
+      "attempt": 1,
+      "gate": "Final release binary protocol",
+      "check_type": "test",
+      "command": "env MAGISTR_TEST_BINARY=target/release/magistr python3 -B scripts/unified-mcp-check.py",
+      "required": true,
+      "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
+      "source": {
+        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_generation": 137,
+        "scheme": "magistr-source-snapshot/1",
+        "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
+        "revision": "a2477c0863d1af7424ac8871ce84a4670eb53fb36fdde7b6868d10dbc6097390",
+        "source_digest": "6a08f2cf4d9b5090d216d4a7d5c01909d5c44a611f4ff8bf149d9d775fddcd49",
+        "config_digest": "230c9646b0664826967c560ac3110d36f89f35616fc134367ea3abc6eb80d7b1",
+        "consistency": "optimistic",
+        "captured_at_ms": 1792436045961
+      },
+      "admitted_at": "2026-10-19T18:54:05.968076+00:00",
+      "stage": "settled",
+      "recorded_at": "2026-10-19T18:54:09.721881+00:00",
+      "settled_at": "2026-10-19T18:54:09.759709+00:00",
+      "duration_ms": 3753,
+      "outcome": {
+        "passed": true,
+        "details": "$ env MAGISTR_TEST_BINARY=target/release/magistr python3 -B scripts/unified-mcp-check.py\n[exit 0]\ntest_bounds_and_confirmation (__main__.UnifiedMcp.test_bounds_and_confirmation) ... ok\ntest_cancellation_stops_a_native_command (__main__.UnifiedMcp.test_cancellation_stops_a_native_command) ... ok\ntest_catalog_and_schema_coverage (__main__.UnifiedMcp.test_catalog_and_schema_coverage) ... ok\ntest_owner_restart_never_replays_mutations (__main__.UnifiedMcp.test_owner_restart_never_replays_mutations) ... ok\ntest_planning_authority_checks_each_composed_effect (__main__.UnifiedMcp.test_planning_authority_checks_each_composed_effect) ... ok\ntest_safe_edits_partial_failure_and_session_undo (__main__.UnifiedMcp.test_safe_edits_partial_failure_and_session_undo) ... ok\ntest_separate_worktrees_keep_workspace_ownership (__main__.UnifiedMcp.test_separate_worktrees_keep_workspace_ownership) ... ok\ntest_workflow_completion_and_startup_does_not_repair (__main__.UnifiedMcp.test_workflow_completion_and_startup_does_not_repair) ... ok\n\n----------------------------------------------------------------------\nRan 8 tests in 2.642s\n\nOK",
+        "verified": true,
+        "command": "env MAGISTR_TEST_BINARY=target/release/magistr python3 -B scripts/unified-mcp-check.py",
+        "exit_code": 0,
+        "execution": {
+          "kind": "exited",
+          "code": 0
+        },
+        "report": null,
+        "results": null
+      },
+      "freshness": {
+        "freshness": "unchanged"
+      },
+      "settlement": {
+        "settlement": "applied"
+      }
+    },
+    {
+      "task": "distribution",
+      "id": "0e15d866-d9e8-4e6a-a760-17571bfe05bc",
+      "target": {
+        "project_id": "magistr-5a5bc6",
+        "execution": {
+          "working_copy": "/Users/alrik/Code/magistr",
+          "execution_id": "default",
+          "owner_generation": 28
+        },
+        "run_id": "3235550e-17c7-446e-aaea-72d6cb290a29",
+        "task_id": "distribution",
+        "task_instance": "37f22507-6fc7-4cbd-8c78-686d68aa218d"
+      },
+      "attempt": 1,
+      "gate": "Final release binary onboarding",
+      "check_type": "test",
+      "command": "env MAGISTR_TEST_BINARY=target/release/magistr python3 -B scripts/onboarding-check.py",
+      "required": true,
+      "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
+      "source": {
+        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_generation": 137,
+        "scheme": "magistr-source-snapshot/1",
+        "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
+        "revision": "a2477c0863d1af7424ac8871ce84a4670eb53fb36fdde7b6868d10dbc6097390",
+        "source_digest": "6a08f2cf4d9b5090d216d4a7d5c01909d5c44a611f4ff8bf149d9d775fddcd49",
+        "config_digest": "230c9646b0664826967c560ac3110d36f89f35616fc134367ea3abc6eb80d7b1",
+        "consistency": "optimistic",
+        "captured_at_ms": 1792436050809
+      },
+      "admitted_at": "2026-10-19T18:54:10.815719+00:00",
+      "stage": "settled",
+      "recorded_at": "2026-10-19T18:54:13.819840+00:00",
+      "settled_at": "2026-10-19T18:54:13.858555+00:00",
+      "duration_ms": 3004,
+      "outcome": {
+        "passed": true,
+        "details": "$ env MAGISTR_TEST_BINARY=target/release/magistr python3 -B scripts/onboarding-check.py\n[exit 0]\ntest_codex_only_repeated_setup_and_read_only_preview (__main__.Onboarding.test_codex_only_repeated_setup_and_read_only_preview) ... ok\ntest_custom_launcher_is_preserved_and_actually_checked (__main__.Onboarding.test_custom_launcher_is_preserved_and_actually_checked) ... ok\ntest_doctor_reports_actionable_missing_setup (__main__.Onboarding.test_doctor_reports_actionable_missing_setup) ... ok\ntest_malformed_custom_settings_fail_before_any_setup (__main__.Onboarding.test_malformed_custom_settings_fail_before_any_setup) ... ok\ntest_multiple_agents_preserve_custom_configuration_and_external_connections (__main__.Onboarding.test_multiple_agents_preserve_custom_configuration_and_external_connections) ... ok\ntest_unavailable_agent_and_portable_setup (__main__.Onboarding.test_unavailable_agent_and_portable_setup) ... ok\n\n----------------------------------------------------------------------\nRan 6 tests in 1.903s\n\nOK",
+        "verified": true,
+        "command": "env MAGISTR_TEST_BINARY=target/release/magistr python3 -B scripts/onboarding-check.py",
+        "exit_code": 0,
+        "execution": {
+          "kind": "exited",
+          "code": 0
+        },
+        "report": null,
+        "results": null
+      },
+      "freshness": {
+        "freshness": "unchanged"
+      },
+      "settlement": {
+        "settlement": "applied"
+      }
+    },
+    {
+      "task": "distribution",
+      "id": "86a6a77c-e187-4022-80fc-26163350093f",
+      "target": {
+        "project_id": "magistr-5a5bc6",
+        "execution": {
+          "working_copy": "/Users/alrik/Code/magistr",
+          "execution_id": "default",
+          "owner_generation": 28
+        },
+        "run_id": "3235550e-17c7-446e-aaea-72d6cb290a29",
+        "task_id": "distribution",
+        "task_instance": "37f22507-6fc7-4cbd-8c78-686d68aa218d"
+      },
+      "attempt": 1,
+      "gate": "Current local CLI build",
+      "check_type": "test",
+      "command": "cargo build -q --locked -p magistr-cli --bin magistr",
+      "required": true,
+      "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
+      "source": {
+        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_generation": 137,
+        "scheme": "magistr-source-snapshot/1",
+        "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
+        "revision": "5075a044bdae5ce22a7b6cac5901ec7fc5e3c35dde84b39d31c53e4b37efeac8",
+        "source_digest": "ca075b31717e7f63ebcf3ebede1dc29b6ae88c147922589026e2c2e77a97a38c",
+        "config_digest": "230c9646b0664826967c560ac3110d36f89f35616fc134367ea3abc6eb80d7b1",
+        "consistency": "optimistic",
+        "captured_at_ms": 1792436055108
+      },
+      "admitted_at": "2026-10-19T18:54:15.114804+00:00",
+      "stage": "settled",
+      "recorded_at": "2026-10-19T18:54:24.961018+00:00",
+      "settled_at": "2026-10-19T18:54:25.021511+00:00",
+      "duration_ms": 9846,
+      "outcome": {
+        "passed": true,
+        "details": "$ cargo build -q --locked -p magistr-cli --bin magistr\n[exit 0]\n",
+        "verified": true,
+        "command": "cargo build -q --locked -p magistr-cli --bin magistr",
+        "exit_code": 0,
+        "execution": {
+          "kind": "exited",
+          "code": 0
+        },
+        "report": null,
+        "results": null
+      },
+      "freshness": {
+        "freshness": "unchanged"
+      },
+      "settlement": {
+        "settlement": "applied"
+      }
+    }
+  ]
+}

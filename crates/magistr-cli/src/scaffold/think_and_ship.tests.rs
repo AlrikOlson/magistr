@@ -8,7 +8,7 @@ use std::path::Path;
 fn upsert_claude_md_section(dir: &Path, vars: &HashMap<String, String>) -> Result<bool> {
     let path = dir.join("CLAUDE.md");
     let existing = std::fs::read_to_string(&path).unwrap_or_default();
-    let next = with_claude_md_section(&existing, vars);
+    let next = with_claude_md_section(&existing, vars)?;
     if next == existing {
         return Ok(false);
     }
@@ -106,30 +106,28 @@ fn upsert_refreshes_between_markers_and_keeps_both_sides() {
 }
 
 #[test]
-fn upsert_bounds_a_legacy_unterminated_section_at_the_next_heading() {
+fn an_unclosed_section_is_refused_without_changing_user_text() {
     let tmp = tempfile::TempDir::new().unwrap();
-    let legacy = format!("{CLAUDE_MD_MARKER}\n# think-and-ship\n\nold body\n\n# Mine\n\nkept.\n");
-    std::fs::write(tmp.path().join("CLAUDE.md"), &legacy).unwrap();
-    assert!(upsert_claude_md_section(tmp.path(), &rust_vars()).unwrap());
-    let text = std::fs::read_to_string(tmp.path().join("CLAUDE.md")).unwrap();
-    assert!(!text.contains("old body"));
-    assert!(text.contains("<!-- /think-and-ship -->\n# Mine\n\nkept.\n"));
-    assert_eq!(text.matches("# think-and-ship").count(), 1);
+    let broken = format!("{CLAUDE_MD_MARKER}\n# User text\n");
+    std::fs::write(tmp.path().join("CLAUDE.md"), &broken).unwrap();
+    assert!(upsert_claude_md_section(tmp.path(), &rust_vars()).is_err());
+    assert_eq!(
+        std::fs::read_to_string(tmp.path().join("CLAUDE.md")).unwrap(),
+        broken
+    );
 }
 
 #[test]
-fn the_section_names_the_magistr_server_and_forbids_a_second_process() {
+fn the_section_names_the_public_catalog_and_native_owners() {
     let section = build_section(&rust_vars());
-    assert!(
-        section.contains("in-process by the `magistr` MCP server"),
-        "the one process over the store is named: {section}"
-    );
-    assert!(
-        section.contains("Do not also configure a standalone `think-and-ship serve`"),
-        "{section}"
-    );
-    assert!(
-        !section.contains("One MCP server is configured: **think-and-ship**"),
-        "the old line named the wrong process"
-    );
+    for name in [
+        "magistr mcp --dir .",
+        "discover",
+        "execute",
+        "plan_work",
+        "check_work",
+        "One workflow owner",
+    ] {
+        assert!(section.contains(name), "{name}");
+    }
 }

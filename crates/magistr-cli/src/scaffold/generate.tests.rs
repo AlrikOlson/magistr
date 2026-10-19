@@ -396,7 +396,11 @@ fn reinit_updates_overwrite_policy_files_when_template_changes() {
     let tools_path = tmp.path().join(".claude/rules/tools.md");
     std::fs::write(&tools_path, "old version of tool guide").unwrap();
 
-    // Reinit — should overwrite tools.md even though user "changed" it
+    let mut manifest = super::super::manifest::ScaffoldManifest::load(tmp.path());
+    manifest.record(".claude/rules/tools.md", "old version of tool guide");
+    manifest.save(tmp.path()).unwrap();
+
+    // Recorded generated content can be refreshed by the current template.
     let result = generate_with_result(
         tmp.path(),
         &vars,

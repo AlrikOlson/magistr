@@ -4,17 +4,16 @@ use std::collections::{BTreeSet, HashSet};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
-use super::codex_skill_links::CodexSkillLinks;
 use super::manifest::ScaffoldManifest;
 use super::{
     AdminOperation, ApplyFailure, ApplyOutcome, ApplyReceipt, ChangeReceipt, Expected, FileAction,
-    ManifestOutcome, PlannedChange, Refusal,
+    ManifestOutcome, PlannedChange,
 };
 
 /// Applies a [`ChangePlan`](super::ChangePlan) one change at a time and
 /// answers an [`ApplyReceipt`].
 ///
-/// Setup and generation, selective apply from a dry run, startup repair and
+/// Setup and generation, selective apply from a dry run, explicit repair and
 /// owned Codex removal all execute their plan through this service, so an
 /// administrative write is always an explicit act for a named
 /// [`AdminOperation`] — never something an agent session's source writes can
@@ -35,7 +34,6 @@ pub struct AdminService<'a> {
     dir: &'a Path,
     manifest: ScaffoldManifest,
     manifest_dirty: bool,
-    links: CodexSkillLinks,
     /// Paths whose whole-file ownership is recorded in the manifest after a
     /// successful write. Merged shared files are never among them.
     owned: HashSet<String>,
@@ -55,19 +53,10 @@ impl<'a> AdminService<'a> {
             dir,
             manifest: ScaffoldManifest::load(dir),
             manifest_dirty: false,
-            links: CodexSkillLinks::default(),
             owned: owned.into_iter().map(Into::into).collect(),
             removed_parents: BTreeSet::new(),
             receipt: ApplyReceipt::new(operation),
         }
-    }
-
-    /// Read the paths a legacy Codex skill link covers through their Claude
-    /// source, as the plan did.
-    #[must_use]
-    pub(super) fn with_links(mut self, links: CodexSkillLinks) -> Self {
-        self.links = links;
-        self
     }
 
     /// The manifest as the service holds it.
@@ -82,23 +71,9 @@ impl<'a> AdminService<'a> {
         &mut self.manifest
     }
 
-    /// Detach the legacy Codex skill links among `paths` before any
-    /// generated write lands under them.
-    pub(crate) fn migrate_links(&self, paths: &[&str]) -> crate::error::Result<()> {
-        self.links.migrate(self.dir, paths)
-    }
-
     /// What is at `path` now, read the way the plan read it.
     fn observe(&self, path: &str) -> Result<Expected, ApplyFailure> {
-        let current = if self.links.covers(path) {
-            self.links.read(self.dir, path).map_err(|error| {
-                ApplyFailure::Blocked(Refusal::Unreadable {
-                    cause: error.to_string(),
-                })
-            })?
-        } else {
-            super::read_target(self.dir, path).map_err(ApplyFailure::Blocked)?
-        };
+        let current = super::read_target(self.dir, path).map_err(ApplyFailure::Blocked)?;
         Ok(Expected::of(current.as_deref()))
     }
 
@@ -214,22 +189,7 @@ impl<'a> AdminService<'a> {
 
     fn write(&mut self, change: &PlannedChange) -> ApplyOutcome {
         let path = change.path.as_str();
-        if self.links.covers(path) {
-            // The plan read this path's upgrade input through the legacy
-            // link, and the same plan may have rewritten that Claude source
-            // already. The link was verified unchanged when it was detached;
-            // what must hold now is that nothing has landed in its place.
-            match super::read_target(self.dir, path) {
-                Ok(None) => {}
-                Ok(found) => {
-                    return ApplyOutcome::Failed(ApplyFailure::Stale {
-                        expected: Expected::Absent,
-                        found: Expected::of(found.as_deref()),
-                    });
-                }
-                Err(refusal) => return ApplyOutcome::Failed(ApplyFailure::Blocked(refusal)),
-            }
-        } else if let Err(failure) = self.revalidate(change) {
+        if let Err(failure) = self.revalidate(change) {
             return ApplyOutcome::Failed(failure);
         }
         let full = match super::target_root::target_root(self.dir, path) {

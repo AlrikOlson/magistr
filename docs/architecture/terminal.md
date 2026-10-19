@@ -35,8 +35,7 @@ process, read its output, wait, cancel and release it through the admitted
 effect adapter. `magistr-process` owns PTYs, Unix process groups and reaping.
 This capability is independent of the Magistr interface.
 
-`magistr mcp-serve` serves native workflow tools. `magistr mcp-launch` serves
-workflow and source clients. The private `--workspace-worker` role handles
+`magistr mcp --dir <project>` serves workflow and source tools through one connection. The private `--workspace-worker` role handles
 bounded parser and sandbox requests; `acp-agent` serves the selected provider.
 Both CLI and desktop executables dispatch these roles before initializing a
 window or project. Protocol stdout contains only protocol frames.

@@ -2,7 +2,7 @@
 //! arch-14-verification-receipts): an admitted Host writer over the native
 //! workflow store — on the writer config production admits it on, carrying
 //! this workspace's evidence capability — and an admitted `WorkspaceService`
-//! over a disposable workspace, composed the way `magistr mcp-serve` and the
+//! over a disposable workspace, composed the way `magistr mcp` and the
 //! loop compose them. No fake port, no MCP roundtrip, no second owner.
 //!
 //! Every completion here goes through `roadmap_complete_chunk` on the

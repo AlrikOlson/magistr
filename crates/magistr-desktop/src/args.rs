@@ -5,7 +5,7 @@ use color_eyre::eyre::{self, Context as _};
 use magistr::agent::AgentConfig;
 use magistr::commands::run::resolve_permission_profile;
 use magistr::config::inputs::ProjectInputs;
-use magistr::mcp_target::McpTarget;
+use magistr::unified_mcp::Access;
 use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
 
@@ -54,10 +54,13 @@ pub(crate) enum Child {
         allow_tool: Vec<String>,
     },
     #[command(hide = true)]
-    McpLaunch {
-        #[arg(value_enum)]
-        target: McpTarget,
+    Mcp {
+        #[arg(long, default_value = ".")]
         dir: PathBuf,
+        #[arg(long = "config", value_name = "KEY=VALUE")]
+        config: Vec<String>,
+        #[arg(long, value_enum, default_value = "full")]
+        access: Access,
     },
 }
 

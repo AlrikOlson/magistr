@@ -114,16 +114,32 @@ impl McpClient {
         arguments: Value,
         timeout: Duration,
     ) -> Result<Value, String> {
+        let advanced = !matches!(tool, "search" | "read" | "edit" | "write");
+        let (name, arguments) = if advanced {
+            let source = format!(
+                "return magistr.call({}, {});",
+                serde_json::to_string(tool).map_err(|e| e.to_string())?,
+                arguments
+            );
+            ("execute", json!({"source":source,"maxOperations":1}))
+        } else {
+            (tool, arguments)
+        };
         let id = self.request(
             "tools/call",
             json!({
-                "name": tool,
+                "name": name,
                 "arguments": arguments,
                 "_meta": { "workbench/sessionId": "magistr-cockpit" },
             }),
         )?;
         let result = self.answer(id, timeout)?;
-        envelope(&result)
+        let result = envelope(&result)?;
+        if advanced {
+            Ok(result["value"].clone())
+        } else {
+            Ok(result)
+        }
     }
 
     /// `initialize`, then the `initialized` notification — the order the

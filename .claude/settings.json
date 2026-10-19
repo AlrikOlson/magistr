@@ -64,8 +64,7 @@
 			"mcp__mcp-image",
 			"mcp__sequentialthinking",
 			"mcp__think-and-ship",
-			"mcp__serpapi",
-			"mcp__workbench-mcp"
+			"mcp__serpapi"
 		],
 		"deny": ["Glob", "Grep", "mcp__magistr__roadmap_export"]
 	}

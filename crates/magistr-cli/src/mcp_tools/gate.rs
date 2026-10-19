@@ -52,7 +52,7 @@ pub(super) fn gate_json(run: &crate::utils::gate::GateRun) -> serde_json::Value 
     })
 }
 
-// One resolver for every consumer — this tool, the mcp-serve service,
+// One resolver for every consumer — this tool, the mcp service,
 // project validation and the verification evidence a chunk must present —
 // lives in magistr-core, so none of them can disagree about what a gate
 // runs.
@@ -121,7 +121,7 @@ pub(super) fn build_gate_tool(project_root: PathBuf) -> SdkMcpTool {
 
                 // One resolver for every path: the specs already carry the
                 // polyglot rules (per-stack coverage, dedup, cd-prefixed
-                // subdirectory commands), so this tool and the mcp-serve
+                // subdirectory commands), so this tool and the mcp
                 // service cannot disagree about what a gate runs.
                 let cfg = match archetype_filter {
                     Some(arch_id) => {
@@ -153,7 +153,7 @@ pub(super) fn build_gate_tool(project_root: PathBuf) -> SdkMcpTool {
                     let dir = root.clone();
                     handles.push(tokio::spawn(async move {
                         // The standalone tool has no feed socket to stream
-                        // on; `magistr mcp-serve`'s service is the caller
+                        // on; `magistr mcp`'s service is the caller
                         // that broadcasts a gate's bytes.
                         let mut result =
                             run_gate_command(&spec.command, &dir, timeout_secs, |_| {}).await?;

@@ -59,7 +59,7 @@ fn host(cfg: &NativeConfig, project_id: &str) -> NativeEngines {
         .open()
 }
 
-/// The agent's `magistr mcp-serve` on the same store: the other admitted
+/// The agent's `magistr mcp` on the same store: the other admitted
 /// writer role, holding its own cached engines.
 fn service(cfg: &NativeConfig, project_id: &str) -> NativeEngines {
     ProjectAuthority::admit_for_project(cfg, project_id.into(), WriterRole::Service)
@@ -1162,7 +1162,7 @@ fn signal_queries_observe_another_writers_capture() {
     let host = reader(&cfg, "reload-signal");
     let server = service(&cfg, "reload-signal");
 
-    // The agent's `magistr mcp-serve` captures while the host is open.
+    // The agent's `magistr mcp` captures while the host is open.
     let captured = server
         .signal_capture(SignalKind::Idea, "alice".into(), "faster".into())
         .expect("capture");

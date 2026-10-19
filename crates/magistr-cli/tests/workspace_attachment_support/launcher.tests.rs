@@ -1,15 +1,13 @@
-//! Production launch and discovery reach the native workspace owner: the
-//! retained `workbench-mcp` launch alias is this binary's bridge, the
-//! cockpit's port reaches the live owner through `.mcp.json`, and the
-//! legacy lock record migrates only through the explicit, refusing verb.
+//! The unified launch serves both owners without external source dependencies.
+//! The cockpit uses the same configured endpoint.
 use super::*;
 
-/// `magistr mcp-launch workbench-mcp <root>` with nothing else on PATH: no
+/// `magistr mcp --dir <root>` with nothing else on PATH: no
 /// Bun, no checkout, no external executable can be what answers.
 fn launch(root: &std::path::Path, empty_path: &std::path::Path) -> tokio::process::Command {
     let mut command = magistr();
     command
-        .args(["mcp-launch", "workbench-mcp"])
+        .args(["mcp", "--dir"])
         .arg(root)
         .env("PATH", empty_path)
         .env_remove("WORKBENCH_MCP")
@@ -18,7 +16,7 @@ fn launch(root: &std::path::Path, empty_path: &std::path::Path) -> tokio::proces
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
-async fn the_workbench_launch_alias_serves_the_native_bridge_and_a_second_launch_attaches() {
+async fn the_unified_launch_serves_the_native_bridge_and_a_second_launch_attaches() {
     let dir = workspace();
     let empty = tempfile::tempdir().expect("an empty PATH directory");
     let owner = Connection::open_with(launch(dir.path(), empty.path())).await;
@@ -38,10 +36,11 @@ async fn the_cockpit_port_reaches_the_live_owner_through_the_projects_mcp_json()
     let dir = workspace();
     std::fs::write(
         dir.path().join(".mcp.json"),
-        json!({"mcpServers": {"workbench-mcp": {
+        json!({"mcpServers": {"magistr": {
             "command": binary(),
-            "args": ["mcp-launch", "workbench-mcp", "."],
+            "args": ["mcp", "--dir", "."],
             "type": "stdio",
+            "env": {"THINK_AND_SHIP_DATA_DIR": dir.path().join("workflow-state"), "THINK_AND_SHIP_BROADCAST_PATH": ""},
         }}})
         .to_string(),
     )
@@ -70,53 +69,5 @@ async fn the_cockpit_port_reaches_the_live_owner_through_the_projects_mcp_json()
         1,
         "the cockpit attached, never admitted"
     );
-    owner.close().await;
-}
-
-#[cfg(unix)]
-#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
-async fn workspace_migrate_refuses_a_live_legacy_record_and_moves_a_dead_one_aside() {
-    let dir = workspace();
-    let state = dir.path().join(".workbench");
-    std::fs::create_dir(&state).expect("state");
-    let lock = state.join("server.lock");
-    let live = format!(
-        r#"{{"pid":{},"host":"{}"}}"#,
-        std::process::id(),
-        hostname()
-    );
-    std::fs::write(&lock, &live).expect("live legacy record");
-    let refused = migrate(dir.path()).await;
-    assert_eq!(refused.status.code(), Some(75));
-    assert!(String::from_utf8_lossy(&refused.stderr).contains("alive"));
-    assert_eq!(std::fs::read_to_string(&lock).expect("preserved"), live);
-
-    let record = dead_legacy_record();
-    std::fs::write(&lock, &record).expect("dead legacy record");
-    let migrated = migrate(dir.path()).await;
-    assert_eq!(
-        migrated.status.code(),
-        Some(0),
-        "{}",
-        String::from_utf8_lossy(&migrated.stderr)
-    );
-    assert!(!lock.exists());
-    let backups: Vec<_> = std::fs::read_dir(&state)
-        .expect("state listing")
-        .filter_map(Result::ok)
-        .filter(|entry| {
-            entry
-                .file_name()
-                .to_string_lossy()
-                .starts_with("server.lock.legacy-")
-        })
-        .collect();
-    assert_eq!(backups.len(), 1);
-    assert_eq!(
-        std::fs::read_to_string(backups[0].path()).expect("backup"),
-        record
-    );
-    let owner = Connection::open(dir.path()).await;
-    assert_eq!(generation(dir.path()), 1);
     owner.close().await;
 }

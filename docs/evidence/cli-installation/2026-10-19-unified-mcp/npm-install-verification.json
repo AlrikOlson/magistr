@@ -1,0 +1,15 @@
+{
+  "passed": true,
+  "version": "0.1.0",
+  "platform": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
+  "rustOrBunOnPath": false,
+  "capturedAt": "2026-10-19T18:53:38.741476+00:00",
+  "artifactSha256": "c522404a679b133572c0b3fb059062cdf40413e3fbb955abf4f69c9c57db0138",
+  "globalInstall": true,
+  "npxInit": true,
+  "pinnedConfigFreshCache": true,
+  "nativeMcpAndWorker": true,
+  "usageExitCode": 2,
+  "sigterm": true,
+  "removal": true
+}

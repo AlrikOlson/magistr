@@ -1,4 +1,3 @@
-use crate::commands;
 use crate::config;
 use crate::detect;
 use crate::error::{self, ResultExt};
@@ -14,7 +13,7 @@ use color_eyre::eyre;
 /// the same answer set an interview accepts when every prompt gets Enter.
 pub async fn cmd_init_interview(
     dir: &std::path::Path,
-    force: bool,
+    _force: bool,
     yes: bool,
     agents: &[String],
     inputs: &crate::config::inputs::ProjectInputs,
@@ -26,8 +25,6 @@ pub async fn cmd_init_interview(
 
     // Re-init must keep the agent choices the project already expressed.
     let had_agents = scaffold::agents_present(&dir);
-
-    commands::misc::ensure_no_existing_scaffold(&dir, force)?;
 
     eprintln!(
         "{}",
@@ -93,10 +90,8 @@ pub async fn cmd_init_interview(
         // The defaults, widened by what the project already supports —
         // an interactive run asks instead, and an answer is a choice.
         let mut defaults = scaffold::interview::InterviewResult::defaults_for(&stack);
-        for agent in &had_agents {
-            if !defaults.selected_agents.contains(agent) {
-                defaults.selected_agents.push(agent.clone());
-            }
+        if !had_agents.is_empty() {
+            defaults.selected_agents = had_agents.clone();
         }
         defaults
     } else {
@@ -110,7 +105,6 @@ pub async fn cmd_init_interview(
             Err(e) => return Err(e).suggest(),
         }
     };
-    let include_hooks = result.include_hooks;
     let selections = result.to_selections();
 
     let pipeline = match &tree {
@@ -124,17 +118,18 @@ pub async fn cmd_init_interview(
     .with_inputs(inputs)
     .with_agents(agents);
 
-    eprintln!("{}", fmt::info("Scaffolding agent configuration..."));
-    let is_new_config = !crate::paths::project_json(&dir)?.exists();
-    let written = pipeline.generate(&dir).suggest()?;
+    let prepared = pipeline.prepare(&dir).suggest()?;
+    super::print_plan_plain(prepared.changes(), "Proposed project setup", None);
+    if !yes
+        && !scaffold::interview::prompt_yes_no(&mut stdin.lock(), "Apply these changes?", true)
+            .suggest()?
+    {
+        eprintln!("Setup cancelled. No files changed.");
+        return Ok(());
+    }
+    let written = prepared.apply().suggest()?;
     for path in &written {
         eprintln!("{}", fmt::success(path));
-    }
-
-    // Declining on a fresh setup removes the preset hooks just injected.
-    // Reinitialization keeps the existing project's explicit hook choices.
-    if is_new_config && !include_hooks {
-        strip_lifecycle_hooks(&dir);
     }
 
     // Validate tool availability
@@ -147,7 +142,15 @@ pub async fn cmd_init_interview(
         }
     }
 
-    commands::misc::print_post_scaffold_validation(&dir).await;
+    crate::unified_mcp::check_connection(&dir).await?;
+    for agent in &pipeline.selections.selected_agents {
+        if matches!(agent.as_str(), "codex" | "claude") && which::which(agent).is_err() {
+            eprintln!(
+                "{} is not installed. Its project setup is ready; install the agent and open this project.",
+                agent
+            );
+        }
+    }
 
     eprintln!();
     eprintln!("{}", fmt::bold("magistr scaffolded successfully"));
@@ -155,22 +158,9 @@ pub async fn cmd_init_interview(
     eprintln!("  Stack:   {} + {}", stack.language, stack.framework);
     eprintln!("  Files:   {} generated", written.len());
 
+    eprintln!("MCP connection and read-only context check passed.");
+    eprintln!(
+        "Starter prompt: Read the project context and source, then propose the first plan. Wait for my instruction before implementing it."
+    );
     Ok(())
-}
-
-/// Remove the lifecycle hooks `generate()` wrote into project.json.
-fn strip_lifecycle_hooks(dir: &std::path::Path) {
-    let Ok(config_path) = crate::paths::project_json(dir) else {
-        return;
-    };
-    let Ok(content) = std::fs::read_to_string(&config_path) else {
-        return;
-    };
-    let Ok(mut config) = serde_json::from_str::<crate::types::ProjectConfig>(&content) else {
-        return;
-    };
-    config.lifecycle_hooks.clear();
-    if let Ok(json) = serde_json::to_string_pretty(&config) {
-        let _ = std::fs::write(&config_path, json);
-    }
 }

@@ -1402,7 +1402,7 @@ async fn a_native_iteration_requests_a_coordinated_workflow_read() {
         )
         .expect("add chunk");
 
-    // The agent's `magistr mcp-serve` captures a signal after the loop's
+    // The agent's `magistr mcp` captures a signal after the loop's
     // engines were opened, with no broadcast feed attached — so only the
     // iteration's own re-seed can put it in front of the cockpit.
     let server = agent_side(&engines);
@@ -1528,7 +1528,7 @@ async fn a_not_yet_verdict_continues_the_loop_with_its_reason_on_the_stage() {
 }
 
 /// The agent finds its chunk blocked on something outside the repo and
-/// records it through its own `magistr mcp-serve` — a second handle on
+/// records it through its own `magistr mcp` — a second handle on
 /// the store, written once the driver has picked the target and is
 /// connecting for the turn. The judge is not asked about a chunk nobody
 /// could have worked, and the stage does not promise it again: the next
@@ -2305,7 +2305,7 @@ fn the_loop_resolves_its_gates_through_the_evidence_capability() {
 }
 
 /// A ship trace with one active task, the way the agent's own
-/// `magistr mcp-serve` leaves one behind for the loop's gates to record
+/// `magistr mcp` leaves one behind for the loop's gates to record
 /// into.
 fn engines_with_active_task(dir: &Path) -> NativeEngines {
     let engines = engines_with_work(dir);

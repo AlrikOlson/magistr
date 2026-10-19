@@ -1930,7 +1930,7 @@ impl LoopDriver {
     /// to stop the loop; red twice is real.
     async fn gates(&mut self, started: Instant, ticks: &mut Interval) -> Option<Vec<GateOutcome>> {
         // The agent is gone and its feed with it (the socket is the
-        // agent's own mcp-serve's): the stage is what the cockpit shows
+        // agent's own mcp's): the stage is what the cockpit shows
         // in its place.
         self.post(LoopEvent::Stage(LoopStage::Gates));
         let cancel = CancellationToken::new();
@@ -2420,7 +2420,7 @@ impl LoopDriver {
         // one present. The feed's `chunk_completed` frames are what the
         // driver saw this iteration; the chunk the prompt was built for,
         // now reading Done in the store the agent's own `magistr
-        // mcp-serve` wrote, is the route `judged` already trusts.
+        // mcp` wrote, is the route `judged` already trusts.
         let mut ids = self.completed.clone();
         if let Some(target) = self.target.clone()
             && !ids.contains(&target)

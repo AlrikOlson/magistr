@@ -124,23 +124,19 @@ fn generate_with_receipt(
     generated_overrides: &HashMap<String, String>,
     seeds: &SetupSeeds,
 ) -> Result<(GenerateResult, ApplyReceipt)> {
-    let SetupPlan {
-        plan,
-        vars,
-        links,
-        owned,
-    } = SetupPlan::compute(dir, template_vars, generated_overrides, seeds)?;
+    apply_prepared(
+        dir,
+        SetupPlan::compute(dir, template_vars, generated_overrides, seeds)?,
+    )
+}
 
-    // All configuration and link preflights have passed. Detach legacy links
-    // before creating directories or writing either host's generated files.
-    let paths: Vec<&str> = plan
-        .files
-        .iter()
-        .filter(|f| owned.contains(f.path.as_str()))
-        .map(|f| f.path.as_str())
-        .collect();
-    let mut service = AdminService::open(dir, plan.operation, owned).with_links(links);
-    service.migrate_links(&paths)?;
+pub(super) fn apply_prepared(
+    dir: &Path,
+    prepared: SetupPlan,
+) -> Result<(GenerateResult, ApplyReceipt)> {
+    let SetupPlan { plan, vars, owned } = prepared;
+
+    let mut service = AdminService::open(dir, plan.operation, owned);
     for change in &plan.files {
         let receipt = service.execute(change);
         if receipt.outcome.is_failed() {

@@ -1,0 +1,4869 @@
+{
+  "id": "magistr@0.1.0",
+  "name": "magistr",
+  "version": "0.1.0",
+  "size": 33250777,
+  "unpackedSize": 110720663,
+  "shasum": "c3adc6c9e5b7b38b9759af2bb6457fb7ede73525",
+  "integrity": "sha512-hbUJnsb3wGSQdCS/FgHOPCea/H5ac4iGBpWHjt5xeMqkg9nGRG13SSrgxxqyu9gYEZmJqMTUfVacggrtYUCkHQ==",
+  "filename": "magistr-0.1.0.tgz",
+  "files": [
+    {
+      "path": "LICENSE",
+      "size": 1068,
+      "mode": 420
+    },
+    {
+      "path": "README.md",
+      "size": 1028,
+      "mode": 384
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/addr2line-0.25.1-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/addr2line-0.25.1-LICENSE-MIT",
+      "size": 1069,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/addr2line-0.26.1-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/addr2line-0.26.1-LICENSE-MIT",
+      "size": 1069,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/adler2-2.0.1-LICENSE-0BSD",
+      "size": 665,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/adler2-2.0.1-LICENSE-APACHE",
+      "size": 10860,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/adler2-2.0.1-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/aead-0.5.2-LICENSE-APACHE",
+      "size": 10850,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/aead-0.5.2-LICENSE-MIT",
+      "size": 1112,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/agent-client-protocol-2.0.0-agentclientprotocol__rust-sdk__ce023279824149008659dd8f4b8b70266a7e8210__LICENSE",
+      "size": 10783,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/agent-client-protocol-derive-2.0.0-agentclientprotocol__rust-sdk__ce023279824149008659dd8f4b8b70266a7e8210__LICENSE",
+      "size": 10783,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/agent-client-protocol-schema-1.5.0-agentclientprotocol__agent-client-protocol__d0549a115750a0a25c1c5631dd72e0d248859aa4__LICENSE",
+      "size": 10782,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/ahash-0.8.12-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/ahash-0.8.12-LICENSE-MIT",
+      "size": 1057,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/aho-corasick-1.1.4-COPYING",
+      "size": 126,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/aho-corasick-1.1.4-LICENSE-MIT",
+      "size": 1081,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/allocator-api2-0.2.21-LICENSE-APACHE",
+      "size": 9899,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/allocator-api2-0.2.21-LICENSE-MIT",
+      "size": 1046,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/ambient-authority-0.0.2-COPYRIGHT",
+      "size": 897,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/ambient-authority-0.0.2-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/ambient-authority-0.0.2-LICENSE-Apache-2.0_WITH_LLVM-exception",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/ambient-authority-0.0.2-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/anstream-1.0.0-LICENSE-APACHE",
+      "size": 11358,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/anstream-1.0.0-LICENSE-MIT",
+      "size": 1062,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/anstyle-1.0.14-LICENSE-APACHE",
+      "size": 11358,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/anstyle-1.0.14-LICENSE-MIT",
+      "size": 1062,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/anstyle-parse-1.0.0-LICENSE-APACHE",
+      "size": 11358,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/anstyle-parse-1.0.0-LICENSE-MIT",
+      "size": 1062,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/anstyle-query-1.1.5-LICENSE-APACHE",
+      "size": 11358,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/anstyle-query-1.1.5-LICENSE-MIT",
+      "size": 1062,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/anyhow-1.0.104-LICENSE-APACHE",
+      "size": 9723,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/anyhow-1.0.104-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/arbitrary-1.4.2-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/arbitrary-1.4.2-LICENSE-MIT",
+      "size": 1074,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/arraydeque-0.5.1-LICENSE",
+      "size": 1101,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/ast-grep-core-0.45.2-ast-grep__ast-grep__c41e023a64060c9f263c23320aa5ff67be4bc474__LICENSE",
+      "size": 1077,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/async-channel-2.5.0-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/async-channel-2.5.0-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/async-io-2.6.0-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/async-io-2.6.0-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/async-lock-3.4.1-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/async-lock-3.4.1-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/async-process-2.5.0-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/async-process-2.5.0-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/async-signal-0.2.13-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/async-signal-0.2.13-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/async-task-4.7.1-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/async-task-4.7.1-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/async-trait-0.1.89-LICENSE-APACHE",
+      "size": 9723,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/async-trait-0.1.89-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/atomic-waker-1.1.2-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/atomic-waker-1.1.2-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/atomic-waker-1.1.2-LICENSE-THIRD-PARTY",
+      "size": 1849,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/autocfg-1.5.0-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/autocfg-1.5.0-LICENSE-MIT",
+      "size": 1054,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/backtrace-0.3.76-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/backtrace-0.3.76-LICENSE-MIT",
+      "size": 1057,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/base16ct-0.2.0-LICENSE-APACHE",
+      "size": 10849,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/base16ct-0.2.0-LICENSE-MIT",
+      "size": 1143,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/base64-0.22.1-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/base64-0.22.1-LICENSE-MIT",
+      "size": 1076,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/base64-0.23.1-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/base64-0.23.1-LICENSE-MIT",
+      "size": 1093,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/base64ct-1.6.0-LICENSE-APACHE",
+      "size": 10849,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/base64ct-1.6.0-LICENSE-MIT",
+      "size": 1143,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/bit-set-0.8.0-LICENSE-APACHE",
+      "size": 10850,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/bit-set-0.8.0-LICENSE-MIT",
+      "size": 1071,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/bit-set-0.11.1-LICENSE-APACHE",
+      "size": 10850,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/bit-set-0.11.1-LICENSE-MIT",
+      "size": 1071,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/bit-vec-0.8.0-LICENSE-APACHE",
+      "size": 10850,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/bit-vec-0.8.0-LICENSE-MIT",
+      "size": 1071,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/bit-vec-0.10.1-LICENSE-APACHE",
+      "size": 10850,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/bit-vec-0.10.1-LICENSE-MIT",
+      "size": 1071,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/bitflags-1.3.2-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/bitflags-1.3.2-LICENSE-MIT",
+      "size": 1071,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/bitflags-2.11.0-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/bitflags-2.11.0-LICENSE-MIT",
+      "size": 1071,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/block-buffer-0.10.4-LICENSE-APACHE",
+      "size": 10849,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/block-buffer-0.10.4-LICENSE-MIT",
+      "size": 1082,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/blocking-1.6.2-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/blocking-1.6.2-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/borrow-or-share-0.2.4-LICENSE",
+      "size": 904,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/borsh-1.8.1-LICENSE-APACHE",
+      "size": 11334,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/borsh-1.8.1-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/borsh-derive-1.8.1-LICENSE-APACHE",
+      "size": 11334,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/borsh-derive-1.8.1-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/bs58-0.5.1-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/bs58-0.5.1-LICENSE-MIT",
+      "size": 1082,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/bstr-1.12.1-COPYING",
+      "size": 262,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/bstr-1.12.1-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/bstr-1.12.1-LICENSE-MIT",
+      "size": 1086,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/bumpalo-3.20.2-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/bumpalo-3.20.2-LICENSE-MIT",
+      "size": 1059,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/bytecount-0.6.9-LICENSE.Apache2",
+      "size": 11357,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/bytecount-0.6.9-LICENSE.MIT",
+      "size": 1068,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/bytes-1.11.1-LICENSE",
+      "size": 1055,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/cap-primitives-4.0.3-COPYRIGHT",
+      "size": 885,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/cap-primitives-4.0.3-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/cap-primitives-4.0.3-LICENSE-Apache-2.0_WITH_LLVM-exception",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/cap-primitives-4.0.3-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/cc-1.2.57-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/cc-1.2.57-LICENSE-MIT",
+      "size": 1057,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/cfg_aliases-0.2.2-LICENSE",
+      "size": 1076,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/cfg_aliases-0.2.2-NOTICES.md",
+      "size": 1472,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/cfg-if-1.0.4-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/cfg-if-1.0.4-LICENSE-MIT",
+      "size": 1057,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/chacha20-0.9.1-LICENSE-APACHE",
+      "size": 10849,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/chacha20-0.9.1-LICENSE-MIT",
+      "size": 1082,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/chacha20-0.10.2-LICENSE-APACHE",
+      "size": 10849,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/chacha20-0.10.2-LICENSE-MIT",
+      "size": 1082,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/chacha20poly1305-0.10.1-LICENSE-APACHE",
+      "size": 10849,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/chacha20poly1305-0.10.1-LICENSE-MIT",
+      "size": 1077,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/chrono-0.4.44-LICENSE.txt",
+      "size": 12307,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/cipher-0.4.4-LICENSE-APACHE",
+      "size": 10849,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/cipher-0.4.4-LICENSE-MIT",
+      "size": 1070,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/clap_builder-4.6.0-LICENSE-APACHE",
+      "size": 11358,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/clap_builder-4.6.0-LICENSE-MIT",
+      "size": 1062,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/clap_complete-4.6.0-LICENSE-APACHE",
+      "size": 11358,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/clap_complete-4.6.0-LICENSE-MIT",
+      "size": 1062,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/clap_derive-4.6.0-LICENSE-APACHE",
+      "size": 11358,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/clap_derive-4.6.0-LICENSE-MIT",
+      "size": 1062,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/clap_lex-1.1.0-LICENSE-APACHE",
+      "size": 11358,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/clap_lex-1.1.0-LICENSE-MIT",
+      "size": 1062,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/clap_mangen-0.2.33-LICENSE-APACHE",
+      "size": 11358,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/clap_mangen-0.2.33-LICENSE-MIT",
+      "size": 1062,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/clap-4.6.0-LICENSE-APACHE",
+      "size": 11358,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/clap-4.6.0-LICENSE-MIT",
+      "size": 1062,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/cobs-0.3.0-LICENSE-APACHE",
+      "size": 11358,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/cobs-0.3.0-LICENSE-MIT",
+      "size": 1066,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/color-eyre-0.6.5-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/color-eyre-0.6.5-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/color-spantrace-0.3.0-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/color-spantrace-0.3.0-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/colorchoice-1.0.5-LICENSE-APACHE",
+      "size": 11358,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/colorchoice-1.0.5-LICENSE-MIT",
+      "size": 1062,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/concurrent-queue-2.5.0-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/concurrent-queue-2.5.0-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/const-oid-0.9.6-LICENSE-APACHE",
+      "size": 10849,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/const-oid-0.9.6-LICENSE-MIT",
+      "size": 1082,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/convert_case-0.10.0-LICENSE",
+      "size": 1062,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/cordyceps-0.3.5-LICENSE",
+      "size": 1070,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/core-foundation-sys-0.8.7-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/core-foundation-sys-0.8.7-LICENSE-MIT",
+      "size": 1067,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/cpp_demangle-0.5.1-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/cpp_demangle-0.5.1-LICENSE-MIT",
+      "size": 1071,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/cpufeatures-0.2.17-LICENSE-APACHE",
+      "size": 10849,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/cpufeatures-0.2.17-LICENSE-MIT",
+      "size": 1082,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/cranelift-assembler-x64-0.123.15-bytecodealliance__wasmtime__5dbbe86472adcbec799e16ad85433095f3b11d67__LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/cranelift-assembler-x64-0.135.2-bytecodealliance__wasmtime__e9f1ea232fd245aea338ab3eb7d73487ae75cab1__LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/cranelift-assembler-x64-meta-0.123.15-bytecodealliance__wasmtime__5dbbe86472adcbec799e16ad85433095f3b11d67__LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/cranelift-assembler-x64-meta-0.135.2-bytecodealliance__wasmtime__e9f1ea232fd245aea338ab3eb7d73487ae75cab1__LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/cranelift-bforest-0.123.15-LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/cranelift-bforest-0.135.2-LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/cranelift-bitset-0.123.15-bytecodealliance__wasmtime__5dbbe86472adcbec799e16ad85433095f3b11d67__LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/cranelift-bitset-0.135.2-bytecodealliance__wasmtime__e9f1ea232fd245aea338ab3eb7d73487ae75cab1__LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/cranelift-codegen-0.123.15-LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/cranelift-codegen-0.135.2-LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/cranelift-codegen-meta-0.123.15-LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/cranelift-codegen-meta-0.135.2-LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/cranelift-codegen-shared-0.123.15-LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/cranelift-codegen-shared-0.135.2-LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/cranelift-control-0.123.15-LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/cranelift-control-0.135.2-LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/cranelift-entity-0.123.15-LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/cranelift-entity-0.135.2-LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/cranelift-frontend-0.123.15-LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/cranelift-frontend-0.135.2-LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/cranelift-isle-0.123.15-bytecodealliance__wasmtime__5dbbe86472adcbec799e16ad85433095f3b11d67__LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/cranelift-isle-0.135.2-bytecodealliance__wasmtime__e9f1ea232fd245aea338ab3eb7d73487ae75cab1__LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/cranelift-native-0.123.15-LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/cranelift-native-0.135.2-LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/cranelift-srcgen-0.123.15-bytecodealliance__wasmtime__5dbbe86472adcbec799e16ad85433095f3b11d67__LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/cranelift-srcgen-0.135.2-bytecodealliance__wasmtime__e9f1ea232fd245aea338ab3eb7d73487ae75cab1__LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/crc32fast-1.5.0-LICENSE-APACHE",
+      "size": 11358,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/crc32fast-1.5.0-LICENSE-MIT",
+      "size": 1097,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/crossbeam-deque-0.8.7-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/crossbeam-deque-0.8.7-LICENSE-MIT",
+      "size": 1099,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/crossbeam-epoch-0.9.20-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/crossbeam-epoch-0.9.20-LICENSE-MIT",
+      "size": 1099,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/crossbeam-utils-0.8.21-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/crossbeam-utils-0.8.21-LICENSE-MIT",
+      "size": 1099,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/crypto-bigint-0.5.5-LICENSE-APACHE",
+      "size": 10849,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/crypto-bigint-0.5.5-LICENSE-MIT",
+      "size": 1077,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/crypto-common-0.1.7-LICENSE-APACHE",
+      "size": 10849,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/crypto-common-0.1.7-LICENSE-MIT",
+      "size": 1065,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/curve25519-dalek-4.1.3-LICENSE",
+      "size": 3362,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/darling_core-0.23.0-LICENSE",
+      "size": 1067,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/darling_core-0.24.1-LICENSE",
+      "size": 1067,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/darling_macro-0.23.0-LICENSE",
+      "size": 1067,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/darling_macro-0.24.1-LICENSE",
+      "size": 1067,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/darling-0.23.0-LICENSE",
+      "size": 1067,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/darling-0.24.1-LICENSE",
+      "size": 1067,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/debugid-0.8.0-LICENSE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/defmt-1.1.1-LICENSE-APACHE",
+      "size": 10850,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/defmt-1.1.1-LICENSE-MIT",
+      "size": 1053,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/defmt-macros-1.1.1-LICENSE-APACHE",
+      "size": 10850,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/defmt-macros-1.1.1-LICENSE-MIT",
+      "size": 1053,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/defmt-parser-1.0.0-knurling-rs__defmt__4a8cdb44891ed57b8ff5a023b6bec7137c48708f__LICENSE-APACHE",
+      "size": 10850,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/defmt-parser-1.0.0-knurling-rs__defmt__4a8cdb44891ed57b8ff5a023b6bec7137c48708f__LICENSE-MIT",
+      "size": 1053,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/der-0.7.10-LICENSE-APACHE",
+      "size": 10849,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/der-0.7.10-LICENSE-MIT",
+      "size": 1082,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/deranged-0.5.8-LICENSE-Apache",
+      "size": 11349,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/deranged-0.5.8-LICENSE-MIT",
+      "size": 1062,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/derive_more-2.1.1-LICENSE",
+      "size": 1080,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/derive_more-impl-2.1.1-LICENSE",
+      "size": 1080,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/diatomic-waker-0.2.3-LICENSE-APACHE",
+      "size": 10851,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/diatomic-waker-0.2.3-LICENSE-MIT",
+      "size": 1098,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/digest-0.10.7-LICENSE-APACHE",
+      "size": 10849,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/digest-0.10.7-LICENSE-MIT",
+      "size": 1057,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/directories-next-2.0.0-LICENSE-APACHE",
+      "size": 9694,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/directories-next-2.0.0-LICENSE-MIT",
+      "size": 1071,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/dirs-sys-next-0.1.2-LICENSE-APACHE",
+      "size": 9694,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/dirs-sys-next-0.1.2-LICENSE-MIT",
+      "size": 1069,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/displaydoc-0.2.5-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/displaydoc-0.2.5-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/dyn-clone-1.0.20-LICENSE-APACHE",
+      "size": 9723,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/dyn-clone-1.0.20-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/ecdsa-0.16.9-LICENSE-APACHE",
+      "size": 10846,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/ecdsa-0.16.9-LICENSE-MIT",
+      "size": 1070,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/ed25519-2.2.3-LICENSE-APACHE",
+      "size": 10846,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/ed25519-2.2.3-LICENSE-MIT",
+      "size": 1070,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/ed25519-dalek-2.1.1-LICENSE",
+      "size": 1497,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/either-1.15.0-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/either-1.15.0-LICENSE-MIT",
+      "size": 1043,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/elliptic-curve-0.13.8-LICENSE-APACHE",
+      "size": 10849,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/elliptic-curve-0.13.8-LICENSE-MIT",
+      "size": 1070,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/email_address-0.2.9-LICENSE",
+      "size": 1071,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/embedded-io-0.4.0-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/embedded-io-0.4.0-LICENSE-MIT",
+      "size": 1067,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/embedded-io-0.6.1-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/embedded-io-0.6.1-LICENSE-MIT",
+      "size": 1067,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/encoding_rs_io-0.1.8-COPYING",
+      "size": 260,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/encoding_rs_io-0.1.8-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/encoding_rs_io-0.1.8-LICENSE-MIT",
+      "size": 1081,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/encoding_rs-0.8.41-COPYRIGHT",
+      "size": 713,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/encoding_rs-0.8.41-LICENSE-APACHE",
+      "size": 11358,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/encoding_rs-0.8.41-LICENSE-MIT",
+      "size": 1053,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/encoding_rs-0.8.41-LICENSE-WHATWG",
+      "size": 1501,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/equivalent-1.0.2-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/equivalent-1.0.2-LICENSE-MIT",
+      "size": 1049,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/errno-0.3.14-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/errno-0.3.14-LICENSE-MIT",
+      "size": 1054,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/event-listener-5.4.1-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/event-listener-5.4.1-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/event-listener-strategy-0.5.4-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/event-listener-strategy-0.5.4-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/eyre-0.6.12-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/eyre-0.6.12-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/fallible-iterator-0.3.0-LICENSE-APACHE",
+      "size": 11358,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/fallible-iterator-0.3.0-LICENSE-MIT",
+      "size": 1078,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/fallible-streaming-iterator-0.1.9-LICENSE-APACHE",
+      "size": 11358,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/fallible-streaming-iterator-0.1.9-LICENSE-MIT",
+      "size": 1086,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/fancy-regex-0.14.0-LICENSE",
+      "size": 1081,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/fastrand-2.3.0-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/fastrand-2.3.0-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/ff-0.13.1-LICENSE-APACHE",
+      "size": 10848,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/ff-0.13.1-LICENSE-MIT",
+      "size": 1076,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/filetime-0.2.27-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/filetime-0.2.27-LICENSE-MIT",
+      "size": 1057,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/find-msvc-tools-0.1.9-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/find-msvc-tools-0.1.9-LICENSE-MIT",
+      "size": 1057,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/fixedbitset-0.4.2-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/fixedbitset-0.4.2-LICENSE-MIT",
+      "size": 1048,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/fixedbitset-0.5.7-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/fixedbitset-0.5.7-LICENSE-MIT",
+      "size": 1048,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/flate2-1.1.9-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/flate2-1.1.9-LICENSE-MIT",
+      "size": 1062,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/fluent-uri-0.3.2-LICENSE",
+      "size": 1066,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/fnv-1.0.7-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 416
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/fnv-1.0.7-LICENSE-MIT",
+      "size": 1056,
+      "mode": 416
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/foldhash-0.1.5-LICENSE",
+      "size": 856,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/foldhash-0.2.0-LICENSE",
+      "size": 856,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/form_urlencoded-1.2.2-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/form_urlencoded-1.2.2-LICENSE-MIT",
+      "size": 1072,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/fraction-0.15.3-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/fraction-0.15.3-LICENSE-MIT",
+      "size": 1071,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/fs-set-times-0.20.3-COPYRIGHT",
+      "size": 877,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/fs-set-times-0.20.3-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/fs-set-times-0.20.3-LICENSE-Apache-2.0_WITH_LLVM-exception",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/fs-set-times-0.20.3-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/fsevent-sys-4.1.0-LICENSE",
+      "size": 1082,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/futures-0.3.32-LICENSE-APACHE",
+      "size": 10874,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/futures-0.3.32-LICENSE-MIT",
+      "size": 1094,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/futures-buffered-0.2.13-LICENSE",
+      "size": 1081,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/futures-channel-0.3.32-LICENSE-APACHE",
+      "size": 10874,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/futures-channel-0.3.32-LICENSE-MIT",
+      "size": 1094,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/futures-concurrency-7.6.3-LICENSE-APACHE",
+      "size": 10757,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/futures-concurrency-7.6.3-LICENSE-MIT",
+      "size": 1079,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/futures-core-0.3.32-LICENSE-APACHE",
+      "size": 10874,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/futures-core-0.3.32-LICENSE-MIT",
+      "size": 1094,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/futures-executor-0.3.32-LICENSE-APACHE",
+      "size": 10874,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/futures-executor-0.3.32-LICENSE-MIT",
+      "size": 1094,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/futures-io-0.3.32-LICENSE-APACHE",
+      "size": 10874,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/futures-io-0.3.32-LICENSE-MIT",
+      "size": 1094,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/futures-lite-2.6.1-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/futures-lite-2.6.1-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/futures-lite-2.6.1-LICENSE-THIRD-PARTY",
+      "size": 1849,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/futures-macro-0.3.32-LICENSE-APACHE",
+      "size": 10874,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/futures-macro-0.3.32-LICENSE-MIT",
+      "size": 1094,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/futures-sink-0.3.32-LICENSE-APACHE",
+      "size": 10874,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/futures-sink-0.3.32-LICENSE-MIT",
+      "size": 1094,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/futures-task-0.3.32-LICENSE-APACHE",
+      "size": 10874,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/futures-task-0.3.32-LICENSE-MIT",
+      "size": 1094,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/futures-util-0.3.32-LICENSE-APACHE",
+      "size": 10874,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/futures-util-0.3.32-LICENSE-MIT",
+      "size": 1094,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/fxprof-processed-profile-0.8.1-mstange__samply__1b8952b3607299fbdbc38d32cdeec2814bdb87b7__LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/fxprof-processed-profile-0.8.1-mstange__samply__1b8952b3607299fbdbc38d32cdeec2814bdb87b7__LICENSE-MIT",
+      "size": 1067,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/generic-array-0.14.7-LICENSE",
+      "size": 1107,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/getrandom-0.2.17-LICENSE-APACHE",
+      "size": 10849,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/getrandom-0.2.17-LICENSE-MIT",
+      "size": 1130,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/getrandom-0.3.4-LICENSE-APACHE",
+      "size": 10849,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/getrandom-0.3.4-LICENSE-MIT",
+      "size": 1130,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/getrandom-0.4.2-LICENSE-APACHE",
+      "size": 10849,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/getrandom-0.4.2-LICENSE-MIT",
+      "size": 1130,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/gimli-0.32.3-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/gimli-0.32.3-LICENSE-MIT",
+      "size": 1071,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/gimli-0.33.0-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/gimli-0.33.0-LICENSE-MIT",
+      "size": 1071,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/glob-0.3.3-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/glob-0.3.3-LICENSE-MIT",
+      "size": 1071,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/globset-0.4.19-COPYING",
+      "size": 126,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/globset-0.4.19-LICENSE-MIT",
+      "size": 1081,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/grep-0.4.1-COPYING",
+      "size": 126,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/grep-0.4.1-LICENSE-MIT",
+      "size": 1081,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/grep-cli-0.1.12-LICENSE-MIT",
+      "size": 1081,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/grep-matcher-0.1.9-LICENSE-MIT",
+      "size": 1081,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/grep-printer-0.3.1-LICENSE-MIT",
+      "size": 1081,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/grep-regex-0.1.14-LICENSE-MIT",
+      "size": 1081,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/grep-searcher-0.1.17-LICENSE-MIT",
+      "size": 1081,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/group-0.13.0-COPYRIGHT",
+      "size": 615,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/group-0.13.0-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/group-0.13.0-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/h2-0.4.19-LICENSE",
+      "size": 1054,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/hashbrown-0.12.3-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/hashbrown-0.12.3-LICENSE-MIT",
+      "size": 1060,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/hashbrown-0.15.5-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/hashbrown-0.15.5-LICENSE-MIT",
+      "size": 1060,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/hashbrown-0.16.1-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/hashbrown-0.16.1-LICENSE-MIT",
+      "size": 1060,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/hashbrown-0.17.1-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/hashbrown-0.17.1-LICENSE-MIT",
+      "size": 1060,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/hashlink-0.12.2-LICENSE-APACHE",
+      "size": 10849,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/hashlink-0.12.2-LICENSE-MIT",
+      "size": 1133,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/heck-0.5.0-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/heck-0.5.0-LICENSE-MIT",
+      "size": 1071,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/hex-0.4.3-LICENSE-APACHE",
+      "size": 11358,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/hex-0.4.3-LICENSE-MIT",
+      "size": 1125,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/hkdf-0.12.4-LICENSE-APACHE",
+      "size": 10848,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/hkdf-0.12.4-LICENSE-MIT",
+      "size": 1108,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/hmac-0.12.1-LICENSE-APACHE",
+      "size": 10849,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/hmac-0.12.1-LICENSE-MIT",
+      "size": 1057,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/home-0.5.11-LICENSE-APACHE",
+      "size": 10860,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/home-0.5.11-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/http-1.4.0-LICENSE-APACHE",
+      "size": 10835,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/http-1.4.0-LICENSE-MIT",
+      "size": 1059,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/http-body-1.0.1-LICENSE",
+      "size": 1083,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/http-body-util-0.1.3-LICENSE",
+      "size": 1083,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/httparse-1.10.1-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/httparse-1.10.1-LICENSE-MIT",
+      "size": 1063,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/httpdate-1.0.3-LICENSE-APACHE",
+      "size": 10255,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/httpdate-1.0.3-LICENSE-MIT",
+      "size": 1051,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/hyper-1.8.1-LICENSE",
+      "size": 1062,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/hyper-rustls-0.27.7-LICENSE",
+      "size": 292,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/hyper-rustls-0.27.7-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/hyper-rustls-0.27.7-LICENSE-ISC",
+      "size": 775,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/hyper-rustls-0.27.7-LICENSE-MIT",
+      "size": 1082,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/hyper-util-0.1.20-LICENSE",
+      "size": 1062,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/iana-time-zone-0.1.65-LICENSE-APACHE",
+      "size": 10832,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/iana-time-zone-0.1.65-LICENSE-MIT",
+      "size": 1059,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/icu_collections-2.1.1-LICENSE",
+      "size": 2195,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/icu_locale_core-2.1.1-LICENSE",
+      "size": 2195,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/icu_normalizer_data-2.1.1-LICENSE",
+      "size": 2195,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/icu_normalizer-2.1.1-LICENSE",
+      "size": 2195,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/icu_properties_data-2.1.2-LICENSE",
+      "size": 2195,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/icu_properties-2.1.2-LICENSE",
+      "size": 2195,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/icu_provider-2.1.1-LICENSE",
+      "size": 2195,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/id-arena-2.3.0-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/id-arena-2.3.0-LICENSE-MIT",
+      "size": 1057,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/ident_case-1.0.1-LICENSE",
+      "size": 1036,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/idna_adapter-1.2.1-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/idna_adapter-1.2.1-LICENSE-MIT",
+      "size": 1062,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/idna-1.1.0-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/idna-1.1.0-LICENSE-MIT",
+      "size": 1072,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/ignore-0.4.30-COPYING",
+      "size": 126,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/ignore-0.4.30-LICENSE-MIT",
+      "size": 1081,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/indenter-0.3.4-LICENSE-APACHE",
+      "size": 9723,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/indenter-0.3.4-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/indexmap-1.9.3-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/indexmap-1.9.3-LICENSE-MIT",
+      "size": 1049,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/indexmap-2.14.2-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/indexmap-2.14.2-LICENSE-MIT",
+      "size": 1049,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/inout-0.1.4-LICENSE-APACHE",
+      "size": 10849,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/inout-0.1.4-LICENSE-MIT",
+      "size": 1110,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/io-extras-0.19.0-COPYRIGHT",
+      "size": 865,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/io-extras-0.19.0-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/io-extras-0.19.0-LICENSE-Apache-2.0_WITH_LLVM-exception",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/io-extras-0.19.0-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/io-lifetimes-2.0.4-COPYRIGHT",
+      "size": 877,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/io-lifetimes-2.0.4-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/io-lifetimes-2.0.4-LICENSE-Apache-2.0_WITH_LLVM-exception",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/io-lifetimes-2.0.4-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/io-lifetimes-3.0.1-COPYRIGHT",
+      "size": 877,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/io-lifetimes-3.0.1-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/io-lifetimes-3.0.1-LICENSE-Apache-2.0_WITH_LLVM-exception",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/io-lifetimes-3.0.1-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/ipnet-2.12.0-LICENSE-APACHE",
+      "size": 11352,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/ipnet-2.12.0-LICENSE-MIT",
+      "size": 1062,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/iri-string-0.7.10-LICENSE-APACHE.txt",
+      "size": 11358,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/iri-string-0.7.10-LICENSE-MIT.txt",
+      "size": 1060,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/is_terminal_polyfill-1.70.2-LICENSE-APACHE",
+      "size": 11358,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/is_terminal_polyfill-1.70.2-LICENSE-MIT",
+      "size": 1062,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/itertools-0.14.0-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/itertools-0.14.0-LICENSE-MIT",
+      "size": 1043,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/itoa-1.0.17-LICENSE-APACHE",
+      "size": 9723,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/itoa-1.0.17-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/jiff-0.2.35-COPYING",
+      "size": 126,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/jiff-0.2.35-LICENSE-MIT",
+      "size": 1081,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/jiff-core-0.1.0-COPYING",
+      "size": 126,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/jiff-core-0.1.0-LICENSE-MIT",
+      "size": 1081,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/jobserver-0.1.35-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/jobserver-0.1.35-LICENSE-MIT",
+      "size": 1057,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/jsonschema-0.28.3-Stranger6667__jsonschema__f50299a35b7c5e6b637207152909135cbf8a089d__LICENSE",
+      "size": 1075,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/jsonwebtoken-11.0.0-LICENSE",
+      "size": 1084,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/lazy_static-1.5.0-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/lazy_static-1.5.0-LICENSE-MIT",
+      "size": 1071,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/leb128-0.2.7-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/leb128-0.2.7-LICENSE-MIT",
+      "size": 1071,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/leb128fmt-0.1.0-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/leb128fmt-0.1.0-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/libc-0.2.189-LICENSE-APACHE",
+      "size": 9723,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/libc-0.2.189-LICENSE-MIT",
+      "size": 1066,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/libm-0.2.16-LICENSE.txt",
+      "size": 14088,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/libsqlite3-sys-0.38.2-LICENSE",
+      "size": 1067,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/libsqlite3-sys-0.38.2-sqlcipher__LICENSE",
+      "size": 1467,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/libyml-0.0.5-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/litemap-0.8.1-LICENSE",
+      "size": 2195,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/lock_api-0.4.14-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/lock_api-0.4.14-LICENSE-MIT",
+      "size": 1071,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/log-0.4.29-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/log-0.4.29-LICENSE-MIT",
+      "size": 1071,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/lru-slab-0.1.2-LICENSE-APACHE",
+      "size": 11358,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/lru-slab-0.1.2-LICENSE-MIT",
+      "size": 1067,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/lru-slab-0.1.2-LICENSE-ZLIB",
+      "size": 864,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/mach2-0.4.3-LICENSE-APACHE",
+      "size": 9723,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/mach2-0.4.3-LICENSE-BSD",
+      "size": 1320,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/mach2-0.4.3-LICENSE-MIT",
+      "size": 1077,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/mach2-0.6.0-LICENSE-APACHE",
+      "size": 9723,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/mach2-0.6.0-LICENSE-BSD",
+      "size": 1320,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/mach2-0.6.0-LICENSE-MIT",
+      "size": 1077,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/magistr-acp-0.1.0-LICENSE",
+      "size": 1068,
+      "mode": 384
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/magistr-acp-agent-0.1.0-LICENSE",
+      "size": 1068,
+      "mode": 384
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/magistr-application-0.1.0-LICENSE",
+      "size": 1068,
+      "mode": 384
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/magistr-cli-0.1.0-assets__qjs__LICENSE",
+      "size": 1212,
+      "mode": 384
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/magistr-cli-0.1.0-LICENSE",
+      "size": 1068,
+      "mode": 384
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/magistr-cockpit-0.1.0-LICENSE",
+      "size": 1068,
+      "mode": 384
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/magistr-cockpit-runtime-0.1.0-LICENSE",
+      "size": 1068,
+      "mode": 384
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/magistr-core-0.1.0-LICENSE",
+      "size": 1068,
+      "mode": 384
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/magistr-domain-0.1.0-LICENSE",
+      "size": 1068,
+      "mode": 384
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/magistr-engine-0.1.0-LICENSE",
+      "size": 1068,
+      "mode": 384
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/magistr-mcp-0.1.0-LICENSE",
+      "size": 1068,
+      "mode": 384
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/magistr-process-0.1.0-LICENSE",
+      "size": 1068,
+      "mode": 384
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/magistr-workflow-0.1.0-LICENSE",
+      "size": 1068,
+      "mode": 384
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/magistr-workflow-contracts-0.1.0-LICENSE",
+      "size": 1068,
+      "mode": 384
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/magistr-workspace-0.1.0-LICENSE",
+      "size": 11358,
+      "mode": 384
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/matchers-0.2.0-LICENSE",
+      "size": 1057,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/maybe-owned-0.3.4-LICENSE-APACHE",
+      "size": 10834,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/maybe-owned-0.3.4-LICENSE-MIT",
+      "size": 1058,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/memchr-2.8.0-COPYING",
+      "size": 126,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/memchr-2.8.0-LICENSE-MIT",
+      "size": 1081,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/memmap2-0.9.11-LICENSE-APACHE",
+      "size": 10835,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/memmap2-0.9.11-LICENSE-MIT",
+      "size": 1091,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/miniz_oxide-0.8.9-LICENSE",
+      "size": 1213,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/miniz_oxide-0.8.9-LICENSE-APACHE.md",
+      "size": 10174,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/miniz_oxide-0.8.9-LICENSE-MIT.md",
+      "size": 1212,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/miniz_oxide-0.8.9-LICENSE-ZLIB.md",
+      "size": 984,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/mio-1.2.3-LICENSE",
+      "size": 1082,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/multiversion_no_op-1.0.0-COPYRIGHT",
+      "size": 644,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/multiversion_no_op-1.0.0-LICENSE-APACHE",
+      "size": 11358,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/multiversion_no_op-1.0.0-LICENSE-MIT",
+      "size": 1053,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/notify-8.2.0-LICENSE-CC0",
+      "size": 7007,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/notify-types-2.1.0-LICENSE-APACHE",
+      "size": 10839,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/notify-types-2.1.0-LICENSE-MIT",
+      "size": 1063,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/nu-ansi-term-0.50.3-LICENSE",
+      "size": 1157,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/num-0.4.3-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/num-0.4.3-LICENSE-MIT",
+      "size": 1071,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/num-bigint-0.4.6-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/num-bigint-0.4.6-LICENSE-MIT",
+      "size": 1071,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/num-bigint-dig-0.8.6-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/num-bigint-dig-0.8.6-LICENSE-MIT",
+      "size": 1071,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/num-cmp-0.1.0-LICENSE.txt",
+      "size": 20512,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/num-complex-0.4.6-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/num-complex-0.4.6-LICENSE-MIT",
+      "size": 1071,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/num-conv-0.2.2-LICENSE-Apache",
+      "size": 10174,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/num-conv-0.2.2-LICENSE-MIT",
+      "size": 1050,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/num-integer-0.1.46-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/num-integer-0.1.46-LICENSE-MIT",
+      "size": 1071,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/num-iter-0.1.45-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/num-iter-0.1.45-LICENSE-MIT",
+      "size": 1071,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/num-rational-0.4.2-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/num-rational-0.4.2-LICENSE-MIT",
+      "size": 1071,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/num-traits-0.2.19-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/num-traits-0.2.19-LICENSE-MIT",
+      "size": 1071,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/object-0.37.3-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/object-0.37.3-LICENSE-MIT",
+      "size": 1064,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/object-0.39.1-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/object-0.39.1-LICENSE-MIT",
+      "size": 1064,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/once_cell-1.21.4-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/once_cell-1.21.4-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/opaque-debug-0.3.1-LICENSE-APACHE",
+      "size": 10849,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/opaque-debug-0.3.1-LICENSE-MIT",
+      "size": 1082,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/outref-0.5.2-LICENSE",
+      "size": 1062,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/owo-colors-4.3.0-LICENSE",
+      "size": 1092,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/p256-0.13.2-LICENSE-APACHE",
+      "size": 10849,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/p256-0.13.2-LICENSE-MIT",
+      "size": 1070,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/p384-0.13.1-LICENSE-APACHE",
+      "size": 10849,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/p384-0.13.1-LICENSE-MIT",
+      "size": 1070,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/parking_lot_core-0.9.12-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/parking_lot_core-0.9.12-LICENSE-MIT",
+      "size": 1071,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/parking_lot-0.12.5-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/parking_lot-0.12.5-LICENSE-MIT",
+      "size": 1071,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/parking-2.2.1-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/parking-2.2.1-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/parking-2.2.1-LICENSE-THIRD-PARTY",
+      "size": 451,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/pastey-0.2.3-LICENSE-APACHE",
+      "size": 9723,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/pastey-0.2.3-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/pem-rfc7468-0.7.0-LICENSE-APACHE",
+      "size": 10849,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/pem-rfc7468-0.7.0-LICENSE-MIT",
+      "size": 1077,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/percent-encoding-2.3.2-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/percent-encoding-2.3.2-LICENSE-MIT",
+      "size": 1072,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/petgraph-0.6.5-assets__LICENSE.md",
+      "size": 281,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/petgraph-0.6.5-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/petgraph-0.6.5-LICENSE-MIT",
+      "size": 1043,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/pin-project-1.1.13-LICENSE-APACHE",
+      "size": 10174,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/pin-project-1.1.13-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/pin-project-internal-1.1.13-LICENSE-APACHE",
+      "size": 10174,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/pin-project-internal-1.1.13-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/pin-project-lite-0.2.17-LICENSE-APACHE",
+      "size": 10174,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/pin-project-lite-0.2.17-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/pin-utils-0.1.0-LICENSE-APACHE",
+      "size": 10841,
+      "mode": 416
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/pin-utils-0.1.0-LICENSE-MIT",
+      "size": 1065,
+      "mode": 416
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/piper-0.2.5-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/piper-0.2.5-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/pkcs1-0.7.5-LICENSE-APACHE",
+      "size": 10849,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/pkcs1-0.7.5-LICENSE-MIT",
+      "size": 1082,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/pkcs8-0.10.2-LICENSE-APACHE",
+      "size": 10849,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/pkcs8-0.10.2-LICENSE-MIT",
+      "size": 1082,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/pkg-config-0.3.32-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/pkg-config-0.3.32-LICENSE-MIT",
+      "size": 1057,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/polling-3.11.0-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/polling-3.11.0-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/poly1305-0.8.0-LICENSE-APACHE",
+      "size": 10849,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/poly1305-0.8.0-LICENSE-MIT",
+      "size": 1070,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/postcard-1.1.3-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/postcard-1.1.3-LICENSE-MIT",
+      "size": 1063,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/potential_utf-0.1.4-LICENSE",
+      "size": 2195,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/powerfmt-0.2.0-LICENSE-Apache",
+      "size": 11349,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/powerfmt-0.2.0-LICENSE-MIT",
+      "size": 1062,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/ppv-lite86-0.2.21-LICENSE-APACHE",
+      "size": 10854,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/ppv-lite86-0.2.21-LICENSE-MIT",
+      "size": 1076,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/primeorder-0.13.6-LICENSE-APACHE",
+      "size": 10849,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/primeorder-0.13.6-LICENSE-MIT",
+      "size": 1070,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/proc-macro-crate-3.5.0-LICENSE-APACHE",
+      "size": 10860,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/proc-macro-crate-3.5.0-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/proc-macro2-1.0.106-LICENSE-APACHE",
+      "size": 9723,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/proc-macro2-1.0.106-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/pulley-interpreter-36.0.15-bytecodealliance__wasmtime__5dbbe86472adcbec799e16ad85433095f3b11d67__LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/pulley-interpreter-48.0.2-bytecodealliance__wasmtime__e9f1ea232fd245aea338ab3eb7d73487ae75cab1__LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/pulley-macros-36.0.15-bytecodealliance__wasmtime__5dbbe86472adcbec799e16ad85433095f3b11d67__LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/pulley-macros-48.0.2-bytecodealliance__wasmtime__e9f1ea232fd245aea338ab3eb7d73487ae75cab1__LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/quick-xml-0.41.0-LICENSE-MIT.md",
+      "size": 1105,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/QuickJS-ng-0.16.2-LICENSE",
+      "size": 1212,
+      "mode": 384
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/QuickJS-ng-PROVENANCE.md",
+      "size": 461,
+      "mode": 384
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/quinn-0.11.9-LICENSE-APACHE",
+      "size": 11357,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/quinn-0.11.9-LICENSE-MIT",
+      "size": 1064,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/quinn-proto-0.11.14-LICENSE-APACHE",
+      "size": 11357,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/quinn-proto-0.11.14-LICENSE-MIT",
+      "size": 1064,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/quinn-udp-0.5.14-LICENSE-APACHE",
+      "size": 11357,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/quinn-udp-0.5.14-LICENSE-MIT",
+      "size": 1064,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/quote-1.0.45-LICENSE-APACHE",
+      "size": 9723,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/quote-1.0.45-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rand_chacha-0.3.1-COPYRIGHT",
+      "size": 569,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rand_chacha-0.3.1-LICENSE-APACHE",
+      "size": 10849,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rand_chacha-0.3.1-LICENSE-MIT",
+      "size": 1117,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rand_chacha-0.9.0-COPYRIGHT",
+      "size": 569,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rand_chacha-0.9.0-LICENSE-APACHE",
+      "size": 9724,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rand_chacha-0.9.0-LICENSE-MIT",
+      "size": 1117,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rand_core-0.6.4-COPYRIGHT",
+      "size": 569,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rand_core-0.6.4-LICENSE-APACHE",
+      "size": 10282,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rand_core-0.6.4-LICENSE-MIT",
+      "size": 1117,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rand_core-0.9.5-COPYRIGHT",
+      "size": 569,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rand_core-0.9.5-LICENSE-APACHE",
+      "size": 10282,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rand_core-0.9.5-LICENSE-MIT",
+      "size": 1117,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rand_core-0.10.1-COPYRIGHT",
+      "size": 478,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rand_core-0.10.1-LICENSE-APACHE",
+      "size": 10282,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rand_core-0.10.1-LICENSE-MIT",
+      "size": 1076,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rand-0.8.5-COPYRIGHT",
+      "size": 569,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rand-0.8.5-LICENSE-APACHE",
+      "size": 9724,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rand-0.8.5-LICENSE-MIT",
+      "size": 1117,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rand-0.9.2-COPYRIGHT",
+      "size": 569,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rand-0.9.2-LICENSE-APACHE",
+      "size": 9724,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rand-0.9.2-LICENSE-MIT",
+      "size": 1117,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rand-0.10.2-COPYRIGHT",
+      "size": 569,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rand-0.10.2-LICENSE-APACHE",
+      "size": 9724,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rand-0.10.2-LICENSE-MIT",
+      "size": 1117,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rayon-1.12.0-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rayon-1.12.0-LICENSE-MIT",
+      "size": 1071,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rayon-core-1.13.0-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rayon-core-1.13.0-LICENSE-MIT",
+      "size": 1071,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/ref-cast-1.0.25-LICENSE-APACHE",
+      "size": 9723,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/ref-cast-1.0.25-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/ref-cast-impl-1.0.25-LICENSE-APACHE",
+      "size": 9723,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/ref-cast-impl-1.0.25-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/referencing-0.28.3-Stranger6667__jsonschema__f50299a35b7c5e6b637207152909135cbf8a089d__LICENSE",
+      "size": 1075,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/regalloc2-0.12.2-LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/regalloc2-0.15.2-LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/regex-1.12.3-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/regex-1.12.3-LICENSE-MIT",
+      "size": 1071,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/regex-automata-0.4.18-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/regex-automata-0.4.18-LICENSE-MIT",
+      "size": 1071,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/regex-syntax-0.8.10-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/regex-syntax-0.8.10-LICENSE-MIT",
+      "size": 1071,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/regex-syntax-0.8.10-src__unicode_tables__LICENSE-UNICODE",
+      "size": 2847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/reqwest-0.12.28-LICENSE-APACHE",
+      "size": 10833,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/reqwest-0.12.28-LICENSE-MIT",
+      "size": 1063,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rfc6979-0.4.0-LICENSE-APACHE",
+      "size": 10846,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rfc6979-0.4.0-LICENSE-MIT",
+      "size": 1070,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/ring-0.17.14-LICENSE",
+      "size": 499,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/ring-0.17.14-LICENSE-BoringSSL",
+      "size": 14870,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/ring-0.17.14-LICENSE-other-bits",
+      "size": 731,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/ring-0.17.14-src__polyfill__once_cell__LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/ring-0.17.14-src__polyfill__once_cell__LICENSE-MIT",
+      "size": 1022,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/ring-0.17.14-third_party__fiat__LICENSE",
+      "size": 638,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rmcp-3.1.4-modelcontextprotocol__rust-sdk__4a738b9dd99eaca418b614afa433a0cbdaf8d056__LICENSE",
+      "size": 12227,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rmcp-macros-3.1.4-modelcontextprotocol__rust-sdk__4a738b9dd99eaca418b614afa433a0cbdaf8d056__LICENSE",
+      "size": 12227,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/roff-1.1.0-LICENSE-APACHE",
+      "size": 11358,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/roff-1.1.0-LICENSE-MIT",
+      "size": 1062,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rsa-0.9.10-LICENSE-APACHE",
+      "size": 10846,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rsa-0.9.10-LICENSE-MIT",
+      "size": 1022,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rusqlite-0.40.2-LICENSE",
+      "size": 1067,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rustc_version-0.4.1-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rustc_version-0.4.1-LICENSE-MIT",
+      "size": 1071,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rustc-demangle-0.1.27-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rustc-demangle-0.1.27-LICENSE-MIT",
+      "size": 1057,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rustc-hash-2.1.1-LICENSE-APACHE",
+      "size": 9722,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rustc-hash-2.1.1-LICENSE-MIT",
+      "size": 1022,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rustix-0.38.44-COPYRIGHT",
+      "size": 853,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rustix-0.38.44-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rustix-0.38.44-LICENSE-Apache-2.0_WITH_LLVM-exception",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rustix-0.38.44-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rustix-1.1.4-COPYRIGHT",
+      "size": 853,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rustix-1.1.4-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rustix-1.1.4-LICENSE-Apache-2.0_WITH_LLVM-exception",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rustix-1.1.4-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rustix-linux-procfs-0.1.1-COPYRIGHT",
+      "size": 905,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rustix-linux-procfs-0.1.1-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rustix-linux-procfs-0.1.1-LICENSE-Apache-2.0_WITH_LLVM-exception",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rustix-linux-procfs-0.1.1-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rustls-0.23.37-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rustls-0.23.37-LICENSE-ISC",
+      "size": 775,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rustls-0.23.37-LICENSE-MIT",
+      "size": 1082,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rustls-pki-types-1.14.0-LICENSE-APACHE",
+      "size": 10835,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rustls-pki-types-1.14.0-LICENSE-MIT",
+      "size": 1080,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rustls-webpki-0.103.9-LICENSE",
+      "size": 916,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rustversion-1.0.22-LICENSE-APACHE",
+      "size": 9723,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/rustversion-1.0.22-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/ryu-1.0.23-LICENSE-APACHE",
+      "size": 9723,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/ryu-1.0.23-LICENSE-BOOST",
+      "size": 1338,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/same-file-1.0.6-COPYING",
+      "size": 126,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/same-file-1.0.6-LICENSE-MIT",
+      "size": 1081,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/saphyr-parser-0.0.12-LICENSE",
+      "size": 722,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/schemars_derive-1.2.1-LICENSE",
+      "size": 1068,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/schemars-0.9.0-LICENSE",
+      "size": 1068,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/schemars-1.2.1-LICENSE",
+      "size": 1068,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/scopeguard-1.2.0-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/scopeguard-1.2.0-LICENSE-MIT",
+      "size": 1097,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/sec1-0.7.3-LICENSE-APACHE",
+      "size": 10849,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/sec1-0.7.3-LICENSE-MIT",
+      "size": 1082,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/semver-1.0.27-LICENSE-APACHE",
+      "size": 9723,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/semver-1.0.27-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/serde_core-1.0.229-LICENSE-APACHE",
+      "size": 9723,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/serde_core-1.0.229-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/serde_derive_internals-0.29.1-LICENSE-APACHE",
+      "size": 9723,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/serde_derive_internals-0.29.1-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/serde_derive-1.0.229-LICENSE-APACHE",
+      "size": 9723,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/serde_derive-1.0.229-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/serde_json-1.0.151-LICENSE-APACHE",
+      "size": 9723,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/serde_json-1.0.151-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/serde_spanned-1.0.4-LICENSE-APACHE",
+      "size": 11358,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/serde_spanned-1.0.4-LICENSE-MIT",
+      "size": 1062,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/serde_urlencoded-0.7.1-LICENSE-APACHE",
+      "size": 9723,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/serde_urlencoded-0.7.1-LICENSE-MIT",
+      "size": 1058,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/serde_with_macros-3.22.0-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/serde_with_macros-3.22.0-LICENSE-MIT",
+      "size": 1043,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/serde_with-3.22.0-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/serde_with-3.22.0-LICENSE-MIT",
+      "size": 1043,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/serde_yaml-0.9.34+deprecated-LICENSE-APACHE",
+      "size": 9723,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/serde_yaml-0.9.34+deprecated-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/serde_yml-0.0.12-LICENSE-APACHE",
+      "size": 9723,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/serde_yml-0.0.12-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/serde-1.0.229-LICENSE-APACHE",
+      "size": 9723,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/serde-1.0.229-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/sha2-0.10.9-LICENSE-APACHE",
+      "size": 10849,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/sha2-0.10.9-LICENSE-MIT",
+      "size": 1138,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/sharded-slab-0.1.7-LICENSE",
+      "size": 1057,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/shell-escape-0.1.5-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/shell-escape-0.1.5-LICENSE-MIT",
+      "size": 1071,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/shell-words-1.1.1-LICENSE-APACHE",
+      "size": 10708,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/shell-words-1.1.1-LICENSE-MIT",
+      "size": 1058,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/shlex-1.3.0-LICENSE-APACHE",
+      "size": 566,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/shlex-1.3.0-LICENSE-MIT",
+      "size": 1092,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/signal-hook-registry-1.4.8-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/signal-hook-registry-1.4.8-LICENSE-MIT",
+      "size": 1068,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/signature-2.2.0-LICENSE-APACHE",
+      "size": 10849,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/signature-2.2.0-LICENSE-MIT",
+      "size": 1070,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/simd-adler32-0.3.8-LICENSE.md",
+      "size": 1078,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/simdutf8-0.1.5-LICENSE-Apache",
+      "size": 10173,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/simdutf8-0.1.5-LICENSE-MIT",
+      "size": 1035,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/similar-2.7.0-LICENSE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/slab-0.4.12-LICENSE",
+      "size": 1055,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/smallvec-1.15.1-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/smallvec-1.15.1-LICENSE-MIT",
+      "size": 1072,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/socket2-0.6.3-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/socket2-0.6.3-LICENSE-MIT",
+      "size": 1057,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/spin-0.9.9-LICENSE",
+      "size": 1084,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/spin-0.10.1-LICENSE",
+      "size": 1084,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/spki-0.7.3-LICENSE-APACHE",
+      "size": 10849,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/spki-0.7.3-LICENSE-MIT",
+      "size": 1082,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/stable_deref_trait-1.2.1-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/stable_deref_trait-1.2.1-LICENSE-MIT",
+      "size": 1056,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/streaming-iterator-0.1.9-LICENSE-APACHE",
+      "size": 11358,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/streaming-iterator-0.1.9-LICENSE-MIT",
+      "size": 1058,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/strsim-0.11.1-LICENSE",
+      "size": 1166,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/strum_macros-0.28.0-LICENSE",
+      "size": 1072,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/strum-0.28.0-LICENSE",
+      "size": 1072,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/subtle-2.6.1-LICENSE",
+      "size": 1582,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/syn-2.0.117-LICENSE-APACHE",
+      "size": 9723,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/syn-2.0.117-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/syn-3.0.4-LICENSE-APACHE",
+      "size": 9723,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/syn-3.0.4-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/sync_wrapper-1.0.2-LICENSE",
+      "size": 10174,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/synstructure-0.13.2-LICENSE",
+      "size": 1052,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/tar-0.4.45-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/tar-0.4.45-LICENSE-MIT",
+      "size": 1070,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/target-lexicon-0.13.5-LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/tempfile-3.27.0-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/tempfile-3.27.0-LICENSE-MIT",
+      "size": 1056,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/termcolor-1.4.1-COPYING",
+      "size": 126,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/termcolor-1.4.1-LICENSE-MIT",
+      "size": 1081,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/thiserror-1.0.69-LICENSE-APACHE",
+      "size": 9723,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/thiserror-1.0.69-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/thiserror-2.0.20-LICENSE-APACHE",
+      "size": 9723,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/thiserror-2.0.20-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/thiserror-impl-1.0.69-LICENSE-APACHE",
+      "size": 9723,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/thiserror-impl-1.0.69-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/thiserror-impl-2.0.20-LICENSE-APACHE",
+      "size": 9723,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/thiserror-impl-2.0.20-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/thread_local-1.1.9-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/thread_local-1.1.9-LICENSE-MIT",
+      "size": 1071,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/time-0.3.55-LICENSE-Apache",
+      "size": 10174,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/time-0.3.55-LICENSE-MIT",
+      "size": 1057,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/time-core-0.1.9-LICENSE-Apache",
+      "size": 10174,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/time-core-0.1.9-LICENSE-MIT",
+      "size": 1057,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/time-macros-0.2.32-LICENSE-Apache",
+      "size": 10174,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/time-macros-0.2.32-LICENSE-MIT",
+      "size": 1057,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/tinystr-0.8.2-LICENSE",
+      "size": 2195,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/tinyvec_macros-0.1.1-LICENSE-APACHE.md",
+      "size": 11350,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/tinyvec_macros-0.1.1-LICENSE-MIT.md",
+      "size": 1062,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/tinyvec_macros-0.1.1-LICENSE-ZLIB.md",
+      "size": 864,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/tinyvec-1.12.0-LICENSE-APACHE.md",
+      "size": 11358,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/tinyvec-1.12.0-LICENSE-MIT.md",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/tinyvec-1.12.0-LICENSE-ZLIB.md",
+      "size": 851,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/tokio-1.53.1-LICENSE",
+      "size": 1070,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/tokio-macros-2.7.2-LICENSE",
+      "size": 1102,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/tokio-rustls-0.26.4-LICENSE-APACHE",
+      "size": 10832,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/tokio-rustls-0.26.4-LICENSE-MIT",
+      "size": 1056,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/tokio-stream-0.1.18-LICENSE",
+      "size": 1070,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/tokio-util-0.7.18-LICENSE",
+      "size": 1070,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/toml_datetime-0.7.5+spec-1.1.0-LICENSE-APACHE",
+      "size": 11358,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/toml_datetime-0.7.5+spec-1.1.0-LICENSE-MIT",
+      "size": 1062,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/toml_datetime-1.0.0+spec-1.1.0-LICENSE-APACHE",
+      "size": 11358,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/toml_datetime-1.0.0+spec-1.1.0-LICENSE-MIT",
+      "size": 1062,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/toml_edit-0.25.4+spec-1.1.0-LICENSE-APACHE",
+      "size": 11358,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/toml_edit-0.25.4+spec-1.1.0-LICENSE-MIT",
+      "size": 1062,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/toml_parser-1.0.9+spec-1.1.0-LICENSE-APACHE",
+      "size": 11358,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/toml_parser-1.0.9+spec-1.1.0-LICENSE-MIT",
+      "size": 1062,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/toml_writer-1.0.6+spec-1.1.0-LICENSE-APACHE",
+      "size": 11358,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/toml_writer-1.0.6+spec-1.1.0-LICENSE-MIT",
+      "size": 1062,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/toml-0.9.12+spec-1.1.0-LICENSE-APACHE",
+      "size": 11358,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/toml-0.9.12+spec-1.1.0-LICENSE-MIT",
+      "size": 1062,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/toml-1.0.6+spec-1.1.0-LICENSE-APACHE",
+      "size": 11358,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/toml-1.0.6+spec-1.1.0-LICENSE-MIT",
+      "size": 1062,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/tower-0.5.3-LICENSE",
+      "size": 1062,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/tower-http-0.6.8-LICENSE",
+      "size": 1067,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/tower-layer-0.3.3-LICENSE",
+      "size": 1062,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/tower-service-0.3.3-LICENSE",
+      "size": 1062,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/tracing-0.1.44-LICENSE",
+      "size": 1062,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/tracing-attributes-0.1.31-LICENSE",
+      "size": 1062,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/tracing-core-0.1.36-LICENSE",
+      "size": 1062,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/tracing-core-0.1.36-src__spin__LICENSE",
+      "size": 1085,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/tracing-error-0.2.1-LICENSE",
+      "size": 1062,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/tracing-log-0.2.0-LICENSE",
+      "size": 1062,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/tracing-subscriber-0.3.23-LICENSE",
+      "size": 1062,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/tree-sitter-0.26.13-LICENSE",
+      "size": 1080,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/tree-sitter-0.26.13-src__unicode__LICENSE",
+      "size": 21001,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/tree-sitter-bash-0.25.1-LICENSE",
+      "size": 1080,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/tree-sitter-c-0.24.2-LICENSE",
+      "size": 1080,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/tree-sitter-c-sharp-0.23.5-LICENSE",
+      "size": 1133,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/tree-sitter-cpp-0.23.4-tree-sitter__tree-sitter-cpp__f41e1a044c8a84ea9fa8577fdd2eab92ec96de02__LICENSE",
+      "size": 1080,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/tree-sitter-gleam-1.0.0-gleam-lang__tree-sitter-gleam__066704e4826699e754d351e3bbe12bf2e51de9d8__LICENSE",
+      "size": 11358,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/tree-sitter-go-0.25.0-LICENSE",
+      "size": 1080,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/tree-sitter-java-0.23.5-tree-sitter__tree-sitter-java__94703d5a6bed02b98e438d7cad1136c01a60ba2c__LICENSE",
+      "size": 1069,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/tree-sitter-javascript-0.25.0-LICENSE",
+      "size": 1080,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/tree-sitter-json-0.24.8-tree-sitter__tree-sitter-json__ee35a6ebefcef0c5c416c0d1ccec7370cfca5a24__LICENSE",
+      "size": 1080,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/tree-sitter-language-0.1.7-LICENSE",
+      "size": 1080,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/tree-sitter-python-0.25.0-LICENSE",
+      "size": 1080,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/tree-sitter-ruby-0.23.1-tree-sitter__tree-sitter-ruby__71bd32fb7607035768799732addba884a37a6210__LICENSE",
+      "size": 1075,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/tree-sitter-rust-0.24.2-LICENSE",
+      "size": 1080,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/tree-sitter-typescript-0.23.2-tree-sitter__tree-sitter-typescript__f975a621f4e7f532fe322e13c4f79495e0a7b2e7__LICENSE",
+      "size": 1080,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/try-lock-0.2.5-LICENSE",
+      "size": 1096,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/typenum-1.19.0-LICENSE",
+      "size": 17,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/typenum-1.19.0-LICENSE-APACHE",
+      "size": 10835,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/typenum-1.19.0-LICENSE-MIT",
+      "size": 1083,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/unicode-ident-1.0.24-LICENSE-APACHE",
+      "size": 9723,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/unicode-ident-1.0.24-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/unicode-ident-1.0.24-LICENSE-UNICODE",
+      "size": 1995,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/unicode-segmentation-1.12.0-COPYRIGHT",
+      "size": 321,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/unicode-segmentation-1.12.0-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/unicode-segmentation-1.12.0-LICENSE-MIT",
+      "size": 1071,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/unicode-width-0.2.2-COPYRIGHT",
+      "size": 321,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/unicode-width-0.2.2-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/unicode-width-0.2.2-LICENSE-MIT",
+      "size": 1071,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/unicode-xid-0.2.6-COPYRIGHT",
+      "size": 321,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/unicode-xid-0.2.6-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/unicode-xid-0.2.6-LICENSE-MIT",
+      "size": 1071,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/universal-hash-0.5.1-LICENSE-APACHE",
+      "size": 10849,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/universal-hash-0.5.1-LICENSE-MIT",
+      "size": 1070,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/unsafe-libyaml-0.2.11-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/untrusted-0.9.0-LICENSE.txt",
+      "size": 769,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/ureq-3.2.0-LICENSE-APACHE",
+      "size": 11357,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/ureq-3.2.0-LICENSE-MIT",
+      "size": 1072,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/ureq-proto-0.5.3-LICENSE-MIT.txt",
+      "size": 1055,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/url-2.5.8-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/url-2.5.8-LICENSE-MIT",
+      "size": 1072,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/utf-8-0.7.6-LICENSE-APACHE",
+      "size": 9723,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/utf-8-0.7.6-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/utf8_iter-1.0.4-COPYRIGHT",
+      "size": 1742,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/utf8_iter-1.0.4-LICENSE-APACHE",
+      "size": 11358,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/utf8_iter-1.0.4-LICENSE-MIT",
+      "size": 1053,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/utf8parse-0.2.2-LICENSE-APACHE",
+      "size": 9723,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/utf8parse-0.2.2-LICENSE-MIT",
+      "size": 1052,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/uuid-1.22.0-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/uuid-1.22.0-LICENSE-MIT",
+      "size": 1157,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/uuid-simd-0.8.0-Nugine__simd__d74c030d9dc4f3cae02146d1f497ff62726ef09a__LICENSE",
+      "size": 1062,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/vcpkg-0.2.15-LICENSE-APACHE",
+      "size": 11050,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/vcpkg-0.2.15-LICENSE-MIT",
+      "size": 1082,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/version_check-0.9.5-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/version_check-0.9.5-LICENSE-MIT",
+      "size": 1085,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/vsimd-0.8.0-Nugine__simd__d74c030d9dc4f3cae02146d1f497ff62726ef09a__LICENSE",
+      "size": 1062,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/walkdir-2.5.0-COPYING",
+      "size": 126,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/walkdir-2.5.0-LICENSE-MIT",
+      "size": 1081,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/want-0.3.1-LICENSE",
+      "size": 1063,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasm-compose-0.254.0-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasm-compose-0.254.0-LICENSE-Apache-2.0_WITH_LLVM-exception",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasm-compose-0.254.0-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasm-encoder-0.236.1-bytecodealliance__wasm-tools__9dd8df4fdc53597af7534b6a4d4c11d9065690d3__LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasm-encoder-0.236.1-bytecodealliance__wasm-tools__9dd8df4fdc53597af7534b6a4d4c11d9065690d3__LICENSE-Apache-2.0_WITH_LLVM-exception",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasm-encoder-0.236.1-bytecodealliance__wasm-tools__9dd8df4fdc53597af7534b6a4d4c11d9065690d3__LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasm-encoder-0.254.0-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasm-encoder-0.254.0-LICENSE-Apache-2.0_WITH_LLVM-exception",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasm-encoder-0.254.0-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasm-encoder-0.257.1-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasm-encoder-0.257.1-LICENSE-Apache-2.0_WITH_LLVM-exception",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasm-encoder-0.257.1-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasm-metadata-0.254.0-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasm-metadata-0.254.0-LICENSE-Apache-2.0_WITH_LLVM-exception",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasm-metadata-0.254.0-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasmparser-0.236.1-bytecodealliance__wasm-tools__9dd8df4fdc53597af7534b6a4d4c11d9065690d3__LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasmparser-0.236.1-bytecodealliance__wasm-tools__9dd8df4fdc53597af7534b6a4d4c11d9065690d3__LICENSE-Apache-2.0_WITH_LLVM-exception",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasmparser-0.236.1-bytecodealliance__wasm-tools__9dd8df4fdc53597af7534b6a4d4c11d9065690d3__LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasmparser-0.254.0-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasmparser-0.254.0-LICENSE-Apache-2.0_WITH_LLVM-exception",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasmparser-0.254.0-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasmparser-0.257.1-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasmparser-0.257.1-LICENSE-Apache-2.0_WITH_LLVM-exception",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasmparser-0.257.1-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasmprinter-0.236.1-bytecodealliance__wasm-tools__9dd8df4fdc53597af7534b6a4d4c11d9065690d3__LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasmprinter-0.236.1-bytecodealliance__wasm-tools__9dd8df4fdc53597af7534b6a4d4c11d9065690d3__LICENSE-Apache-2.0_WITH_LLVM-exception",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasmprinter-0.236.1-bytecodealliance__wasm-tools__9dd8df4fdc53597af7534b6a4d4c11d9065690d3__LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasmprinter-0.254.0-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasmprinter-0.254.0-LICENSE-Apache-2.0_WITH_LLVM-exception",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasmprinter-0.254.0-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasmtime-36.0.15-LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasmtime-48.0.2-LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasmtime-c-api-impl-36.0.15-bytecodealliance__wasmtime__5dbbe86472adcbec799e16ad85433095f3b11d67__LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasmtime-environ-36.0.15-LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasmtime-environ-48.0.2-LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasmtime-internal-asm-macros-36.0.15-bytecodealliance__wasmtime__5dbbe86472adcbec799e16ad85433095f3b11d67__LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasmtime-internal-c-api-macros-36.0.15-bytecodealliance__wasmtime__5dbbe86472adcbec799e16ad85433095f3b11d67__LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasmtime-internal-cache-48.0.2-LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasmtime-internal-component-macro-48.0.2-bytecodealliance__wasmtime__e9f1ea232fd245aea338ab3eb7d73487ae75cab1__LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasmtime-internal-component-util-48.0.2-bytecodealliance__wasmtime__e9f1ea232fd245aea338ab3eb7d73487ae75cab1__LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasmtime-internal-core-48.0.2-bytecodealliance__wasmtime__e9f1ea232fd245aea338ab3eb7d73487ae75cab1__LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasmtime-internal-cranelift-36.0.15-LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasmtime-internal-cranelift-48.0.2-LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasmtime-internal-fiber-36.0.15-LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasmtime-internal-fiber-48.0.2-LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasmtime-internal-jit-debug-36.0.15-bytecodealliance__wasmtime__5dbbe86472adcbec799e16ad85433095f3b11d67__LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasmtime-internal-jit-debug-48.0.2-bytecodealliance__wasmtime__e9f1ea232fd245aea338ab3eb7d73487ae75cab1__LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasmtime-internal-jit-icache-coherence-36.0.15-bytecodealliance__wasmtime__5dbbe86472adcbec799e16ad85433095f3b11d67__LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasmtime-internal-jit-icache-coherence-48.0.2-bytecodealliance__wasmtime__e9f1ea232fd245aea338ab3eb7d73487ae75cab1__LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasmtime-internal-math-36.0.15-bytecodealliance__wasmtime__5dbbe86472adcbec799e16ad85433095f3b11d67__LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasmtime-internal-slab-36.0.15-bytecodealliance__wasmtime__5dbbe86472adcbec799e16ad85433095f3b11d67__LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasmtime-internal-unwinder-36.0.15-LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasmtime-internal-unwinder-48.0.2-LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasmtime-internal-versioned-export-macros-36.0.15-bytecodealliance__wasmtime__5dbbe86472adcbec799e16ad85433095f3b11d67__LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasmtime-internal-versioned-export-macros-48.0.2-bytecodealliance__wasmtime__e9f1ea232fd245aea338ab3eb7d73487ae75cab1__LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasmtime-internal-winch-36.0.15-LICENSE",
+      "size": 12242,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasmtime-internal-wit-bindgen-48.0.2-bytecodealliance__wasmtime__e9f1ea232fd245aea338ab3eb7d73487ae75cab1__LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasmtime-wasi-48.0.2-LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wasmtime-wasi-io-48.0.2-bytecodealliance__wasmtime__e9f1ea232fd245aea338ab3eb7d73487ae75cab1__LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wast-35.0.2-bytecodealliance__wasm-tools__61b23615e3784c6e1aad8904e3832bb55ce9356e__LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wast-257.0.1-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wast-257.0.1-LICENSE-Apache-2.0_WITH_LLVM-exception",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wast-257.0.1-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wat-1.257.1-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wat-1.257.1-LICENSE-Apache-2.0_WITH_LLVM-exception",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wat-1.257.1-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/webpki-roots-1.0.6-LICENSE",
+      "size": 2371,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/which-6.0.3-LICENSE.txt",
+      "size": 1075,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wiggle-48.0.2-LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wiggle-generate-48.0.2-LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wiggle-macro-48.0.2-LICENSE",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/winch-codegen-36.0.15-LICENSE",
+      "size": 12242,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/winnow-0.7.15-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wit-component-0.254.0-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wit-component-0.254.0-LICENSE-Apache-2.0_WITH_LLVM-exception",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wit-component-0.254.0-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wit-parser-0.254.0-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wit-parser-0.254.0-LICENSE-Apache-2.0_WITH_LLVM-exception",
+      "size": 12243,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/wit-parser-0.254.0-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/witx-0.9.1-LICENSE",
+      "size": 581,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/Workspace-PROVENANCE.md",
+      "size": 520,
+      "mode": 384
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/writeable-0.6.2-LICENSE",
+      "size": 2195,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/xattr-1.6.1-LICENSE-APACHE",
+      "size": 10847,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/xattr-1.6.1-LICENSE-MIT",
+      "size": 1056,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/yoke-0.8.1-LICENSE",
+      "size": 2195,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/yoke-derive-0.8.1-LICENSE",
+      "size": 2195,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/zerocopy-0.8.42-LICENSE-APACHE",
+      "size": 11350,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/zerocopy-0.8.42-LICENSE-BSD",
+      "size": 1275,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/zerocopy-0.8.42-LICENSE-MIT",
+      "size": 1060,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/zerofrom-0.1.6-LICENSE",
+      "size": 2195,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/zerofrom-derive-0.1.6-LICENSE",
+      "size": 2195,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/zeroize_derive-1.5.0-LICENSE-APACHE",
+      "size": 11358,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/zeroize_derive-1.5.0-LICENSE-MIT",
+      "size": 1082,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/zeroize-1.8.2-LICENSE-APACHE",
+      "size": 11358,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/zeroize-1.8.2-LICENSE-MIT",
+      "size": 1095,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/zerotrie-0.2.3-LICENSE",
+      "size": 2195,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/zerovec-0.11.5-LICENSE",
+      "size": 2195,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/zerovec-derive-0.11.2-LICENSE",
+      "size": 2195,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/zmij-1.0.21-LICENSE-MIT",
+      "size": 1023,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/zstd-0.13.3-LICENSE",
+      "size": 1080,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/zstd-safe-7.3.0-LICENSE",
+      "size": 1501,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/zstd-sys-2.1.0+zstd.1.5.7-LICENSE",
+      "size": 1501,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/zstd-sys-2.1.0+zstd.1.5.7-LICENSE.BSD-3-Clause",
+      "size": 1614,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/zstd-sys-2.1.0+zstd.1.5.7-zstd__COPYING",
+      "size": 18091,
+      "mode": 420
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES/zstd-sys-2.1.0+zstd.1.5.7-zstd__LICENSE",
+      "size": 1549,
+      "mode": 420
+    },
+    {
+      "path": "bin/magistr",
+      "size": 105065168,
+      "mode": 493
+    },
+    {
+      "path": "inventory.json",
+      "size": 303057,
+      "mode": 420
+    },
+    {
+      "path": "package.json",
+      "size": 570,
+      "mode": 420
+    }
+  ],
+  "entryCount": 971,
+  "bundled": []
+}

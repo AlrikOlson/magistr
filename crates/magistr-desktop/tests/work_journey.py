@@ -13,14 +13,16 @@ from process_roles import Rpc
 
 
 def seed(journey):
-    with Rpc(["mcp-launch", "magistr", str(journey.first)], journey.first, env=journey.env) as rpc:
+    with Rpc(["mcp", "--dir", str(journey.first)], journey.first, env=journey.env) as rpc:
         rpc.request("initialize", {"protocolVersion": "2025-03-26", "capabilities": {},
                                   "clientInfo": {"name": "work-journey", "version": "1"}})
         rpc.send({"jsonrpc": "2.0", "method": "notifications/initialized"})
-        result = rpc.request("tools/call", {"name": "roadmap_add_chunk", "arguments": {
+        args = {
             "id": "sample", "name": "Improve the sample", "title": "Improve the sample function.",
             "description": "Exercise the work owner in an isolated project.",
-            "acceptance": ["The sample function is reviewed."], "priority": 1}})
+            "acceptance": ["The sample function is reviewed."], "priority": 1}
+        result = rpc.request("tools/call", {"name": "execute", "arguments": {
+            "source": "return magistr.call('roadmap_add_chunk', " + json.dumps(args) + ");"}})
         assert not result.get("isError"), result
 
 
