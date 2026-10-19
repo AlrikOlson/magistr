@@ -10,6 +10,13 @@ on:
 permissions:
   contents: read
 
+# Fresh runners do not reuse incremental caches or debug builds for debugging.
+# Keep the complete check/test/lint sequence within their available storage.
+env:
+  CARGO_INCREMENTAL: '0'
+  CARGO_PROFILE_DEV_DEBUG: '0'
+  CARGO_PROFILE_TEST_DEBUG: '0'
+
 concurrency:
   group: public-release-${{ github.ref }}
   cancel-in-progress: true
@@ -25,6 +32,8 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
+      - name: Record available build storage
+        run: df -h .
       - name: Check formatting
         run: cargo fmt --all -- --check
       - name: Check workspace
@@ -37,6 +46,11 @@ jobs:
         run: cargo nextest run --workspace --locked
       - name: Run Clippy
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - name: Record Rust build storage
+        if: always()
+        run: |
+          df -h .
+          test ! -d target || du -sh target
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
@@ -92,6 +106,8 @@ jobs:
       - name: Install desktop test dependencies
         working-directory: crates/magistr-desktop
         run: npm ci
+      - name: Record available desktop build storage
+        run: df -h .
       - name: Format desktop
         run: cargo fmt --manifest-path crates/magistr-desktop/Cargo.toml -- --check
       - name: Check desktop
@@ -102,6 +118,11 @@ jobs:
         run: cargo clippy --manifest-path crates/magistr-desktop/Cargo.toml --all-targets --locked -- -D warnings
       - name: Test desktop and protocol roles
         run: cargo nextest run --manifest-path crates/magistr-desktop/Cargo.toml --locked
+      - name: Record desktop build storage
+        if: always()
+        run: |
+          df -h .
+          test ! -d crates/magistr-desktop/target || du -sh crates/magistr-desktop/target
       - name: Test desktop input and stream contracts
         run: node --test crates/magistr-desktop/tests/*.mjs
       - name: Check current visual evidence, contrast and icon
