@@ -1,5 +1,5 @@
 //! `magistr workspace doctor [bundle|config]`: the read-only doctor plane.
-//! `doctor` prints the report — the six retained probes over the
+//! `doctor` prints the report — the filesystem and configuration probes over the
 //! `.magistr/workspace` artifacts, then the `owner` section this host composes from
 //! the durable records and one bounded probe of the owner endpoint, and
 //! the `operations` section from the run checkpoint — `doctor bundle`

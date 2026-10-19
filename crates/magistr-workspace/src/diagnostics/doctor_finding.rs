@@ -7,7 +7,7 @@ use super::{DoctorDataClass, DoctorSeverity};
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DoctorFinding {
-    /// What was probed: `native-index.db`, `quarantine.jsonl`, `config`, …
+    /// What was probed: `native-index.db`, `plugin-health.json`, `config`, …
     pub store: String,
     pub data_class: DoctorDataClass,
     pub severity: DoctorSeverity,

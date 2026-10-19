@@ -18,21 +18,12 @@ fn options(root: &Path) -> DoctorOptions {
         .with_now_unix_ms(1_787_356_800_000)
 }
 
-/// A healthy native index (a real cache, opened then released), one
-/// quarantine record plus a torn line, one breaker record and a sideloaded
-/// plugin entry.
+/// A healthy native index (a real cache, opened then released), one breaker
+/// record and a sideloaded plugin entry.
 fn seed_state_dir(root: &Path) -> std::path::PathBuf {
     let state = root.join(".magistr/workspace");
     std::fs::create_dir_all(&state).expect("state dir");
     drop(IndexCache::open(&state, "WAL").expect("native index"));
-    std::fs::write(
-        state.join("quarantine.jsonl"),
-        format!(
-            "{}\nthis line is torn and not json\n",
-            serde_json::json!({ "path": "weird.bin", "strikes": 3, "quarantined": true, "lastCrash": "SIGSEGV", "at": 1755000000000_u64 })
-        ),
-    )
-    .expect("quarantine");
     std::fs::write(
         state.join("plugin-health.json"),
         serde_json::to_string_pretty(&serde_json::json!({ "breaches": [{ "plugin": "acme.bad", "componentHash": "deadbeef", "reason": "guest trap", "at": "2026-08-21T00:00:00Z" }] })).expect("json"),
@@ -58,7 +49,7 @@ fn section(run: &DoctorRun, id: DoctorSectionId) -> &DoctorSection {
 }
 
 #[test]
-fn all_six_sections_with_sources_provenance_quarantine_and_breaker_visibility() {
+fn filesystem_sections_with_sources_provenance_and_breaker_visibility() {
     let dir = workspace();
     seed_state_dir(dir.path());
     let mut flags = serde_json::Map::new();
@@ -77,8 +68,6 @@ fn all_six_sections_with_sources_provenance_quarantine_and_breaker_visibility() 
             DoctorSectionId::Index,
             DoctorSectionId::Config,
             DoctorSectionId::Plugins,
-            DoctorSectionId::Quarantine,
-            DoctorSectionId::Crashes,
         ]
     );
     for section in &run.report.sections {
@@ -87,13 +76,14 @@ fn all_six_sections_with_sources_provenance_quarantine_and_breaker_visibility() 
     let text = run.render();
     assert!(text.contains("effective config (value ← deciding layer):"));
     assert!(text.contains("budgets.default = 9999  (session)"));
-    assert!(text.contains("weird.bin quarantined after 3 strike(s)"));
-    assert!(text.contains("INPUT_QUARANTINED clears when the file changes"));
+    assert!(text.contains("worker and watcher health is not checked by this report"));
+    assert_eq!(
+        section(&run, DoctorSectionId::Environment).findings[1].severity,
+        DoctorSeverity::Info
+    );
     assert!(text.contains("schema 1, quick_check ok"));
-    assert!(text.contains("crash strike record(s)"));
     assert!(text.contains("generated 2026-08-22T00:00:00.000Z by magistr-workspace 0.0.0-test"));
-    assert!(text.ends_with("result: findings present (exit 1)"));
-    assert!(run.report.findings_present);
+    assert_eq!(run.report.findings_present, cfg!(feature = "sandbox"));
     for section in &run.report.sections {
         for finding in &section.findings {
             if finding.severity == DoctorSeverity::Unhealthy {
@@ -106,10 +96,6 @@ fn all_six_sections_with_sources_provenance_quarantine_and_breaker_visibility() 
             }
         }
     }
-    assert_eq!(
-        section(&run, DoctorSectionId::Quarantine).detail["malformedLines"],
-        1
-    );
     #[cfg(feature = "sandbox")]
     {
         assert!(text.contains("acme.bad breakered since"));
@@ -277,9 +263,9 @@ fn a_host_section_is_appended_in_order_and_its_unhealthy_finding_flips_the_resul
         .iter()
         .map(|section| section.id)
         .collect();
-    assert_eq!(ids.len(), 8);
-    assert_eq!(ids[6], DoctorSectionId::Owner);
-    assert_eq!(ids[7], DoctorSectionId::Operations);
+    assert_eq!(ids.len(), 6);
+    assert_eq!(ids[4], DoctorSectionId::Owner);
+    assert_eq!(ids[5], DoctorSectionId::Operations);
     let text = run.render();
     let owner = text.find("[owner]").expect("owner section");
     let operations = text.find("[operations]").expect("operations section");

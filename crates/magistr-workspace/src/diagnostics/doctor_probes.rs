@@ -4,7 +4,6 @@
 use std::{path::Path, time::Duration};
 
 use rusqlite::{Connection, OpenFlags};
-use serde::Serialize;
 use serde_json::{Value, json};
 
 use super::{DoctorDataClass, DoctorFinding, DoctorOptions, DoctorSection, DoctorSectionId};
@@ -54,9 +53,10 @@ pub(super) fn environment(options: &DoctorOptions) -> DoctorSection {
                 detection.method
             ),
         ),
-        DoctorFinding::healthy(
-            "watcher",
-            "watcher status is in memory: a live composition reports it through status; no watcher record is published to disk",
+        DoctorFinding::info(
+            "runtime",
+            DoctorDataClass::NotApplicable,
+            "worker and watcher health is not checked by this report; ask your connected agent to check workspace health",
         ),
     ];
     let detail = json!({
@@ -352,117 +352,5 @@ pub(super) fn plugins(_root: &Path, _state_dir: &Path) -> DoctorSection {
             "extension host not compiled into this build; plugins.json and plugin-health.json were not inspected",
         )],
         json!({ "inventory": [], "unhealthy": [], "compiled": false }),
-    )
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub(super) struct QuarantineEntry {
-    path: String,
-    strikes: u64,
-    quarantined: bool,
-    last_crash: String,
-    at: u64,
-}
-
-pub(super) fn quarantine(state_dir: &Path) -> (DoctorSection, Vec<QuarantineEntry>) {
-    let source = ".magistr/workspace/quarantine.jsonl (retained durable record; the native worker's own ledger is per-session, in memory)";
-    let path = state_dir.join("quarantine.jsonl");
-    if !path.exists() {
-        return (
-            section(
-                DoctorSectionId::Quarantine,
-                source,
-                vec![DoctorFinding::healthy(
-                    "quarantine.jsonl",
-                    "no quarantine records",
-                )],
-                json!({ "entries": [], "malformedLines": 0 }),
-            ),
-            Vec::new(),
-        );
-    }
-    let mut entries = Vec::new();
-    let mut malformed_lines = 0;
-    for line in std::fs::read_to_string(&path)
-        .unwrap_or_default()
-        .split('\n')
-    {
-        if line.trim().is_empty() {
-            continue;
-        }
-        // Append-only logs can tear; a bad line is counted, never fatal.
-        match serde_json::from_str::<Value>(line) {
-            Ok(parsed) if parsed.get("path").and_then(Value::as_str).is_some() => {
-                entries.push(QuarantineEntry {
-                    path: parsed["path"].as_str().unwrap_or_default().to_owned(),
-                    strikes: parsed.get("strikes").and_then(Value::as_u64).unwrap_or(0),
-                    quarantined: parsed.get("quarantined").and_then(Value::as_bool) == Some(true),
-                    last_crash: parsed
-                        .get("lastCrash")
-                        .and_then(Value::as_str)
-                        .unwrap_or("unknown")
-                        .to_owned(),
-                    at: parsed.get("at").and_then(Value::as_u64).unwrap_or(0),
-                });
-            }
-            _ => malformed_lines += 1,
-        }
-    }
-    let mut findings: Vec<DoctorFinding> = entries
-        .iter()
-        .filter(|entry| entry.quarantined)
-        .map(|entry| {
-            DoctorFinding::unhealthy(
-                "quarantine.jsonl",
-                DoctorDataClass::NotApplicable,
-                format!(
-                    "{} quarantined after {} strike(s); last crash: {}",
-                    entry.path, entry.strikes, entry.last_crash
-                ),
-                "inspect, fix, or remove the file — INPUT_QUARANTINED clears when the file changes (SDD §6.2)",
-            )
-        })
-        .collect();
-    if findings.is_empty() {
-        findings.push(DoctorFinding::healthy(
-            "quarantine.jsonl",
-            format!("{} record(s), none currently quarantined", entries.len()),
-        ));
-    }
-    let detail = json!({ "entries": entries, "malformedLines": malformed_lines });
-    (
-        section(DoctorSectionId::Quarantine, source, findings, detail),
-        entries,
-    )
-}
-
-pub(super) fn crashes(entries: &[QuarantineEntry]) -> DoctorSection {
-    // Honest sourcing: quarantine strikes are the only persisted crash
-    // evidence; the worker's crash ledger is in memory and per session.
-    let evidence: Vec<Value> = entries
-        .iter()
-        .map(|entry| json!({ "path": entry.path, "lastCrash": entry.last_crash, "at": entry.at }))
-        .collect();
-    let finding = if evidence.is_empty() {
-        DoctorFinding::healthy("crashes", "no engine-crash evidence recorded")
-    } else {
-        DoctorFinding::info(
-            "crashes",
-            DoctorDataClass::NotApplicable,
-            format!(
-                "{} crash strike record(s); see quarantine section for the affected inputs",
-                evidence.len()
-            ),
-        )
-    };
-    section(
-        DoctorSectionId::Crashes,
-        "derived from .magistr/workspace/quarantine.jsonl strikes (no standalone crash ledger on disk)",
-        vec![finding],
-        json!({
-            "evidence": evidence,
-            "note": "crash evidence is derived from quarantine strikes; the native worker's ledger is in memory and per session",
-        }),
     )
 }
