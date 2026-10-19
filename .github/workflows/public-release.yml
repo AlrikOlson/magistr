@@ -36,6 +36,8 @@ jobs:
         run: df -h .
       - name: Check formatting
         run: cargo fmt --all -- --check
+      - name: Check release artifact validation
+        run: python3 -B scripts/cli-release.tests.py
       - name: Check workspace
         run: cargo check --workspace --all-targets --locked
       - name: Install cargo-nextest
@@ -43,7 +45,7 @@ jobs:
         with:
           tool: cargo-nextest
       - name: Run workspace tests
-        run: cargo nextest run --workspace --locked
+        run: cargo nextest run --workspace --locked --profile ci
       - name: Run Clippy
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - name: Record Rust build storage

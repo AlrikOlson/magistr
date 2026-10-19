@@ -27,14 +27,19 @@ impl Project {
     fn new(frozen: bool) -> Self {
         let tmp = TempDir::new().expect("tempdir");
         let root = tmp.path().join("proj");
-        let data_dir = tmp.path().join("tas-data");
+        let data_dir = tmp.path().join("workflow-data");
         std::fs::create_dir_all(root.join(".magistr")).expect("mkdir");
         std::fs::create_dir_all(root.join("crates/magistr-gui/src")).expect("mkdir");
         std::fs::write(root.join("crates/magistr-gui/src/App.svelte"), "<div />\n").expect("write");
         std::fs::write(
             root.join(".magistr/project.json"),
             r#"{"project": {"name": "t", "description": "", "type": "cli"},
+                "stack": {"language": "rust", "framework": "none", "package_manager": "cargo",
+                    "test_framework": "cargo-test", "linter": "clippy", "formatter": "rustfmt"},
                 "quality_gate": {"check": "true", "test": "true", "lint": "true"},
+                "format": {"extensions": ["rs"], "command": "true"},
+                "testing": {"companion_pattern": "{name}.tests.rs", "test_dir": "alongside"},
+                "reference_repos": [], "state_prefix": "t",
                 "roadmap_backend": "native"}"#,
         )
         .expect("write");
@@ -162,8 +167,6 @@ fn stop_hook_allows_completed_work_with_unrelated_changes_and_exports_disabled()
             .unwrap()
             .stdout
     };
-    let before = status();
-    assert!(!before.is_empty());
     {
         let engines = project.engines();
         engines
@@ -176,6 +179,10 @@ fn stop_hook_allows_completed_work_with_unrelated_changes_and_exports_disabled()
             .unwrap();
         engines.ship_finalize(vec![], None).unwrap();
     }
+    // Establish the baseline after the writer has created its ownership files.
+    // The stop hook itself must not change project files or Git status.
+    let before = status();
+    assert!(!before.is_empty());
     let script = Path::new(env!("CARGO_MANIFEST_DIR")).join("templates/hooks/magistr-guard.sh");
     let out = project.run(
         Command::new("sh")

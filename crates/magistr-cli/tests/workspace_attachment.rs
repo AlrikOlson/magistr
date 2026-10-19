@@ -535,7 +535,7 @@ async fn a_bridge_outlives_a_native_owner_without_an_endpoint_and_admits_once_th
 {
     let dir = workspace();
     let state = dir.path().join(".magistr/workspace");
-    std::fs::create_dir(&state).expect("owner state directory");
+    std::fs::create_dir_all(&state).expect("owner state directory");
     let held = magistr_workspace::service::ServerLock::acquire(state.join("server.lock"))
         .expect("hold native admission without an attachment listener");
     let marker = std::fs::read(held.path()).expect("native marker");

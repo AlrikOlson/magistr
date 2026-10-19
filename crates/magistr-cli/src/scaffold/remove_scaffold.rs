@@ -6,7 +6,7 @@ use super::emitters;
 use super::manifest::ScaffoldManifest;
 use super::owned_removal::OwnedRemoval;
 use super::{
-    GITIGNORE_SECTION_END, GITIGNORE_SECTION_START, MAGISTR_MCP_SERVERS, is_working_tree_entry,
+    GITIGNORE_SECTION_END, GITIGNORE_SECTION_START, MAGISTR_MCP_SERVERS, is_generated_mcp_entry,
 };
 
 /// Remove unchanged, recorded scaffold files from shared agent directories.
@@ -15,9 +15,8 @@ use super::{
 /// survive, as do non-regular entries and paths traversing symlinks. Only empty
 /// parents of removed files are pruned. CLAUDE.md and ROADMAP.md remain user-owned.
 ///
-/// This is still the explicit reset operation: it removes the entire .magistr
-/// and legacy .jig namespaces, and managed MCP/gitignore entries. It is not a
-/// state-preserving upgrade; initialization never calls it.
+/// Explicit reset removes the .magistr namespace and generated MCP/gitignore
+/// entries. Initialization never calls it.
 pub fn remove_scaffold(dir: &Path) -> Result<()> {
     // Capture ownership once, before removing the namespace holding the manifest.
     let manifest = ScaffoldManifest::load(dir);
@@ -49,17 +48,13 @@ pub fn remove_scaffold(dir: &Path) -> Result<()> {
     if magistr_dir.exists() {
         std::fs::remove_dir_all(&magistr_dir).map_err(|e| MagistrError::io(&magistr_dir, e))?;
     }
-    let legacy_dir = dir.join(".jig");
-    if legacy_dir.exists() {
-        std::fs::remove_dir_all(&legacy_dir).map_err(|e| MagistrError::io(&legacy_dir, e))?;
-    }
-    remove_jig_mcp_entries(dir)?;
+    remove_magistr_mcp_entries(dir)?;
     remove_magistr_gitignore_entries(dir)?;
     Ok(())
 }
 
 /// Remove only magistr-managed MCP server entries from `.mcp.json`.
-fn remove_jig_mcp_entries(dir: &Path) -> Result<()> {
+fn remove_magistr_mcp_entries(dir: &Path) -> Result<()> {
     let mcp_path = dir.join(".mcp.json");
     if !mcp_path.exists() {
         return Ok(());
@@ -79,17 +74,14 @@ fn remove_jig_mcp_entries(dir: &Path) -> Result<()> {
         if let Some(servers) = obj.get_mut("mcpServers").and_then(|v| v.as_object_mut()) {
             let before = servers.len();
             for key in MAGISTR_MCP_SERVERS {
-                // A managed key whose entry launches from the working tree
-                // (the dogfooding case) is the user's deliberate choice, not
-                // magistr's output — removal must leave it, or a re-init's
-                // merge never even sees the entry it is meant to preserve.
+                // The name alone does not establish ownership. Use the same
+                // launch-line check as setup and integration removal.
                 if servers
                     .get(*key)
-                    .is_some_and(|e| is_working_tree_entry(dir, e))
+                    .is_some_and(|entry| is_generated_mcp_entry(dir, key, entry))
                 {
-                    continue;
+                    servers.remove(*key);
                 }
-                servers.remove(*key);
             }
             servers.len() != before
         } else {

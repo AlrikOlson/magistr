@@ -28,6 +28,7 @@ use tokio::sync::mpsc;
 fn workspace(tmp: &tempfile::TempDir) -> PathBuf {
     let root = tmp.path().join("workspace");
     std::fs::create_dir_all(root.join(".git")).expect("repository marker");
+    std::fs::create_dir_all(root.join(".magistr")).expect("project configuration");
     std::fs::create_dir_all(root.join("src")).expect("src");
     std::fs::write(root.join("src/lib.rs"), "pub fn one() -> u32 {\n    1\n}\n").expect("source");
     std::fs::write(root.join("notes.txt"), "alpha\n").expect("note");
@@ -372,21 +373,23 @@ async fn a_held_workspace_refuses_the_second_hosts_writes_and_invents_no_receipt
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn a_marker_needing_migration_refuses_admission_and_the_write() {
+async fn an_unrecognized_owner_record_refuses_admission_and_the_write() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let root = workspace(&tmp);
     let state = root.join(".magistr/workspace");
     std::fs::create_dir(&state).expect("state");
-    // A retained legacy owner's record: it takes no OS lock, and a native
-    // host must never migrate it on its own.
-    let marker = format!(r#"{{"pid":{},"host":"legacy-host"}}"#, std::process::id());
-    std::fs::write(state.join("server.lock"), &marker).expect("legacy owner");
+    // Unknown bytes must never be treated as an available workspace.
+    let marker = "unrecognized owner record";
+    std::fs::write(state.join("server.lock"), marker).expect("owner record");
 
     let admission = WorkspaceAdmission::admit_with(options(&root)).await;
     let WorkspaceAdmission::Refused(SourceRefusal::NotAdmitted(reason)) = &admission else {
-        panic!("a legacy marker is a refusal: {}", admission.report());
+        panic!(
+            "an unrecognized record is a refusal: {}",
+            admission.report()
+        );
     };
-    assert!(reason.contains("migration"), "{reason}");
+    assert!(reason.contains("unrecognized format"), "{reason}");
     let root = root.canonicalize().expect("canonical");
     refused_write_leaves_the_tree_alone(
         &root,

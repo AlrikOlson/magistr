@@ -33,8 +33,8 @@ run before a window is created and keep protocol-only stdout.
 
 Root workspace check/Clippy and focused shared-crate tests cover removal and the
 changed dependency closure. Desktop CI explicitly runs its own formatter, check,
-build, Clippy, Nextest, Node input/stream tests and current visual gate on macOS
-and Linux. The real macOS journey retains light/dark/narrow screenshots, native
+build, Clippy, Nextest, Node input/stream tests and current visual gate on macOS.
+Linux runs the shared Rust and website gates. The real macOS journey retains light/dark/narrow screenshots, native
 accessibility and clipboard observations, four-session settlement and child
 cleanup. Windows runtime settlement and deeper native IME observation remain
 separate work.
@@ -58,14 +58,14 @@ tests for the first group are in the [client inventory](clients.md#client-invent
 | `magistr resolve-dispatch` | none; rewrites the loop checkpoint under the loop-owner lock | none | none |
 | `magistr mcp` | Service writer or attached workflow bridge | Workspace owner when free, otherwise attached workspace bridge | none |
 | `magistr mcp-proxy` (hidden) | none; filters a foreign MCP server's stdout | none | none |
-| `magistr workspace` serve | none | the owner when free, else an attached bridge | none |
 | `magistr workspace` journal, snapshot, doctor | none (doctor reads the checkpoint as it lies) | lock-free readers; doctor adds one bounded probe | none |
-| `magistr workspace` init, key, migrate | none | file administration; no service opened | none |
+| `magistr workspace` init, key | none | file administration; no service opened | none |
 | `magistr acp-agent` (hidden) | none; its tools arrive through `mcp` and the bridge | none | the provider side of one session |
 | `magistr codex-launch`, `magistr codex-remove` | none in the wrapper | none | the external runtime; removal is an administrative plan |
 | `magistr guard` | reader | none | none |
 | `magistr validate` | none; runs gates and records nothing | none | none |
-| `magistr init`, `magistr reset`, `magistr import`, `magistr export`, `magistr preset`, `magistr plugins` | none | none | interactive `init` starts an `AgentSession` with an admitted workspace |
+| `magistr init`, `magistr repair`, `magistr remove` | setup checks use read-only context through MCP | administrative plan; connection checks use the workspace owner | none; setup offers a planning prompt |
+| `magistr reset`, `magistr import`, `magistr export`, `magistr preset`, `magistr plugins` | none | none | none |
 | `magistr detect`, `magistr lint`, `magistr doctor`, `magistr config`, `magistr archetypes`, `magistr policy`, `magistr team` | none | none | none |
 | `magistr models` | none | none | a zero-turn provider probe |
 | `magistr learn`, `magistr memory`, `magistr plans`, `magistr sessions`, `magistr costs`, `magistr permissions` | none; machine-local and project-local records | none | none |

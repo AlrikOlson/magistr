@@ -1,0 +1,83 @@
+name: Publish CLI packages
+
+on:
+  workflow_dispatch:
+    inputs:
+      package_run:
+        description: Successful CLI packages run ID containing the reviewed artifacts
+        required: true
+        type: string
+      registry:
+        description: Registry to publish (first npm publication is manual; see docs/releasing-cli.md)
+        required: true
+        type: choice
+        options: [cargo, npm]
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: cli-publication
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    environment: cli-release
+    runs-on: macos-15
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Select verified source revision
+        id: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PACKAGE_RUN: ${{ inputs.package_run }}
+          RELEASE_REPOSITORY: ${{ github.repository }}
+        run: |
+          source_sha=$(python3 scripts/cli-release.py select --repository "$RELEASE_REPOSITORY" --run-id "$PACKAGE_RUN")
+          echo "sha=$source_sha" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.source.outputs.sha }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: cli-distribution
+          path: target/cli-distribution
+          run-id: ${{ inputs.package_run }}
+          github-token: ${{ github.token }}
+      - name: Verify reviewed artifacts and installation receipts
+        env:
+          SOURCE_SHA: ${{ steps.source.outputs.sha }}
+        run: python3 scripts/cli-release.py verify --out target/cli-distribution --source "$SOURCE_SHA"
+      - uses: dtolnay/rust-toolchain@stable
+        if: inputs.registry == 'cargo'
+      - name: Match checkout to verified Cargo packages
+        if: inputs.registry == 'cargo'
+        run: python3 scripts/distribution.py verify-source --out target/cli-distribution
+      - name: Publish Cargo dependencies in order
+        if: inputs.registry == 'cargo'
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: |
+          set -euo pipefail
+          : "${CARGO_REGISTRY_TOKEN:?Set CARGO_REGISTRY_TOKEN in the cli-release environment}"
+          while IFS= read -r package; do
+            cargo publish --locked --package "$package"
+          done < target/cli-distribution/publication-order.txt
+      - uses: actions/setup-node@v6
+        if: inputs.registry == 'npm'
+        with:
+          node-version: '24'
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - name: Publish npm with trusted publishing
+        if: inputs.registry == 'npm'
+        run: npm publish target/cli-distribution/magistr-*.tgz --access public

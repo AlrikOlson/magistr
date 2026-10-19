@@ -124,13 +124,12 @@ fn the_core_never_names_an_effectful_producer_handle() {
         "WorkflowConfig",
         "Connector",
         "connect_transport",
-        "run_command",
     ];
     let mut offenders = offenders(&files, &forbidden);
     for file in &files {
         let source = std::fs::read_to_string(file).expect("read source");
-        if names_command_handle(&source) {
-            offenders.push(format!("{}: Commands producer handle", file.display()));
+        if names_producer_handle(&source) {
+            offenders.push(format!("{}: runtime producer handle", file.display()));
         }
     }
     assert!(
@@ -143,7 +142,9 @@ fn the_core_never_names_an_effectful_producer_handle() {
 /// `Commands` also names a visible menu and a Widget variant. Inspect Rust
 /// paths, imports and macro identifiers so copy and variant declarations remain
 /// legal while every direct or renamed producer import is still rejected.
-fn names_command_handle(source: &str) -> bool {
+/// `run_command::RunCommand` is a semantic value; the `run_command` function
+/// is an effect, identified by the final path segment rather than module text.
+fn names_producer_handle(source: &str) -> bool {
     use syn::visit::Visit;
 
     #[derive(Default)]
@@ -154,6 +155,7 @@ fn names_command_handle(source: &str) -> bool {
 
     impl Handles {
         fn path(&mut self, names: &[String]) {
+            self.found |= names.last().is_some_and(|name| name == "run_command");
             self.found |= names.iter().enumerate().any(|(index, name)| {
                 name == "Commands"
                     && !index.checked_sub(1).is_some_and(|previous| {
@@ -195,6 +197,14 @@ fn names_command_handle(source: &str) -> bool {
             for (index, token) in tokens.iter().enumerate() {
                 match token {
                     TokenTree::Group(group) => self.tokens(group.stream()),
+                    TokenTree::Ident(ident) if ident == "run_command" => {
+                        let module_path = matches!(
+                            (tokens.get(index + 1), tokens.get(index + 2)),
+                            (Some(TokenTree::Punct(a)), Some(TokenTree::Punct(b)))
+                                if a.as_char() == ':' && b.as_char() == ':'
+                        );
+                        self.found |= !module_path;
+                    }
                     TokenTree::Ident(ident) if ident == "Commands" => {
                         let qualifier = index.checked_sub(3).and_then(|start| {
                             match (&tokens[start], &tokens[start + 1], &tokens[start + 2]) {
@@ -257,6 +267,9 @@ fn names_command_handle(source: &str) -> bool {
 #[test]
 fn command_producer_paths_and_renamed_imports_remain_forbidden() {
     for source in [
+        "fn run() { run_command(); }",
+        "use driver::run_command as execute; fn run() { execute(); }",
+        "fn run() { invoke!(driver::run_command()); }",
         "fn run(commands: Commands) {}",
         "fn run(commands: crate::channel::Commands) {}",
         "type Handle = Option<Commands>;",
@@ -271,8 +284,14 @@ fn command_producer_paths_and_renamed_imports_remain_forbidden() {
         "fn run() { invoke!(Commands::new()); }",
         "fn run() { invoke!({ crate::channel::Commands::new() }); }",
     ] {
-        assert!(names_command_handle(source), "{source}");
+        assert!(names_producer_handle(source), "{source}");
     }
+}
+
+#[test]
+fn semantic_run_command_module_and_value_are_not_effectful_producers() {
+    let source = "pub mod run_command; pub use run_command::RunCommand;";
+    assert!(!names_producer_handle(source));
 }
 
 /// Shared semantic conversation, workflow and session contracts.

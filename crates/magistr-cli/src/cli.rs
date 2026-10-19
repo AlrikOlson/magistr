@@ -590,8 +590,7 @@ pub enum Command {
         action: Option<MemoryAction>,
     },
 
-    /// The native workspace tools — search, map, read, edit, files, undo,
-    /// script, run and workspace_status — served over MCP for one workspace
+    /// Manage working copies, inspect workspace health and review saved changes
     Workspace {
         #[command(subcommand)]
         action: WorkspaceAction,
@@ -609,11 +608,9 @@ pub enum WorkspaceAction {
         #[command(subcommand)]
         action: crate::working_copy_action::WorkingCopyAction,
     },
-    /// Read-only health report over the .workspace artifacts (environment,
-    /// index, config provenance, plugins, quarantine, crashes), the live
-    /// owner (one bounded probe: generation, build, attached connections)
-    /// and the run checkpoint's operation settlement. No lock is taken, so
-    /// it runs beside a live server. Exit 0 healthy, 1 findings.
+    /// Check workspace health, configuration and active connections without
+    /// changing files or interrupting an active session. Exit 0 when healthy,
+    /// 1 when findings need attention.
     Doctor {
         #[command(subcommand)]
         mode: Option<WorkspaceDoctorMode>,
