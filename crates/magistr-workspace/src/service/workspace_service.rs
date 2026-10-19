@@ -259,10 +259,9 @@ impl WorkspaceService {
         })
     }
 
-    /// The retained status row; ranking-signal and lang-pack state ride the
-    /// notes.
-    #[must_use]
-    pub fn status(&self) -> WorkspaceResponse<StatusRow> {
+    /// Observe the worker and index owned by this service; plugin state
+    /// and runtime degradations ride the notes.
+    pub async fn status(&self) -> WorkspaceResponse<StatusRow> {
         #[allow(unused_mut)]
         let mut notes = self.notes.clone();
         #[cfg(feature = "sandbox")]
@@ -275,6 +274,8 @@ impl WorkspaceService {
             &self.root,
             &self.detection,
             self.applied_journal_mode.clone(),
+            self.worker.status().await,
+            self.index.status(),
         )
         .respond(notes)
     }

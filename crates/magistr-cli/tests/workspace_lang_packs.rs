@@ -155,7 +155,7 @@ async fn the_gleam_pack_is_registered_selected_and_restored_after_a_forced_worke
         Some("rust"),
         "bundled languages are never shadowed"
     );
-    let WorkspaceResponse::Success { notes, .. } = service.status() else {
+    let WorkspaceResponse::Success { notes, .. } = service.status().await else {
         panic!("status");
     };
     assert!(
@@ -271,7 +271,7 @@ async fn a_pack_that_fails_to_register_is_a_row_and_a_breach_and_selects_nothing
         None,
         "an unhealthy registration selects nothing"
     );
-    let WorkspaceResponse::Success { notes, .. } = service.status() else {
+    let WorkspaceResponse::Success { notes, .. } = service.status().await else {
         panic!("status");
     };
     assert!(

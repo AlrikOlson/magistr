@@ -4,14 +4,14 @@ use serde::Serialize;
 
 use crate::{
     contracts::{Budget, EnvelopeVersion, Freshness, ResultSet, WorkspaceResponse},
-    diagnostics::EnvelopeVersions,
-    index::watch::NetworkDetection,
+    diagnostics::{EnvelopeVersions, IndexHealth, WorkerHealth},
+    index::{IndexStatus, watch::NetworkDetection},
+    query::budget,
+    worker::WorkerStatus,
 };
 
-/// The retained `workspace_status` result: deterministic for a fixed
-/// workspace and environment — no pids, generations or timestamps — so
-/// fresh processes answer byte-identically (the retained statelessness
-/// gate). Degradations ride the envelope notes, schema-free.
+/// One observation of the admitted workspace and its owned runtime.
+/// Worker and index snapshots describe current health, not source completion.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StatusRow {
@@ -23,6 +23,8 @@ pub struct StatusRow {
     pub network_fs: bool,
     pub detection_method: String,
     pub envelope: EnvelopeVersions,
+    pub worker: WorkerHealth,
+    pub index: IndexHealth,
 }
 
 impl StatusRow {
@@ -31,6 +33,8 @@ impl StatusRow {
         root: &Path,
         detection: &NetworkDetection,
         applied_journal_mode: impl Into<String>,
+        worker: WorkerStatus,
+        index: IndexStatus,
     ) -> Self {
         Self {
             root: root.display().to_string(),
@@ -42,18 +46,45 @@ impl StatusRow {
                 min: EnvelopeVersion::MIN.get(),
                 latest: EnvelopeVersion::LATEST.get(),
             },
+            worker: worker.into(),
+            index: index.into(),
         }
     }
 
-    /// The retained status envelope: warm, one token requested and used.
+    /// Include runtime degradations and measure the single observation.
     #[must_use]
-    pub fn respond(self, notes: Vec<String>) -> WorkspaceResponse<Self> {
+    pub fn respond(self, mut notes: Vec<String>) -> WorkspaceResponse<Self> {
+        if self.worker.stopped {
+            notes.push(
+                "worker stopped: parsing and structural queries are unavailable until it restarts"
+                    .into(),
+            );
+        } else if self.worker.consecutive_failures > 0 {
+            notes.push(format!(
+                "worker restarting after {} consecutive failure(s)",
+                self.worker.consecutive_failures
+            ));
+        }
+        if self.worker.quarantined > 0 {
+            notes.push(format!(
+                "{} input(s) blocked after repeated worker failures; fix the affected input before retrying",
+                self.worker.quarantined
+            ));
+        }
+        notes.extend(self.index.notes.iter().cloned());
+        if let Some(error) = &self.index.last_error {
+            notes.push(format!("index: {error}"));
+        }
+        let used = match budget::tokens(&self) {
+            Ok(used) => used,
+            Err(error) => return budget::failure(error),
+        };
         WorkspaceResponse::Success {
             version: EnvelopeVersion::LATEST,
             freshness: Freshness::Warm,
             budget: Budget {
-                requested: 1,
-                used: 1,
+                requested: used,
+                used,
             },
             results: ResultSet::complete(vec![self]),
             notes: (!notes.is_empty()).then_some(notes),
