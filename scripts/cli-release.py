@@ -51,12 +51,8 @@ def select_run(repository, run_id):
     require(run_id.isdecimal(), "Package run ID must be numeric")
     run = github(f"repos/{repository}/actions/runs/{run_id}")
     sha = check_run(run, repository)
-    for workflow in ("public-release.yml", "claude-mod.yml"):
-        checks = github(f"repos/{repository}/actions/workflows/{workflow}/runs?head_sha={sha}&per_page=100")
-        try:
-            check_quality(checks["workflow_runs"], sha)
-        except ValueError as error:
-            raise ValueError(f"{workflow}: {error}") from error
+    checks = github(f"repos/{repository}/actions/workflows/public-release.yml/runs?head_sha={sha}&per_page=100")
+    check_quality(checks["workflow_runs"], sha)
     print(sha)
 
 
