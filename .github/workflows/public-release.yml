@@ -83,14 +83,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Check out source
         uses: actions/checkout@v4
-      - name: Install Linux WebView dependencies
-        if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential libxdo-dev libssl-dev librsvg2-dev libayatana-appindicator3-dev
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -134,7 +131,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Check out source
