@@ -30,7 +30,6 @@ mod tool_span;
 mod trace_recorder;
 mod utc_timestamp;
 mod worker_health;
-mod workspace_status;
 
 pub use bundle_redaction::redact_bundle_text;
 pub use doctor_bundle::DoctorBundle;
@@ -55,4 +54,3 @@ pub use trace_recorder::TraceRecorder;
 pub(crate) use utc_timestamp::now_unix_ms;
 pub use utc_timestamp::utc_timestamp;
 pub use worker_health::WorkerHealth;
-pub use workspace_status::WorkspaceStatus;

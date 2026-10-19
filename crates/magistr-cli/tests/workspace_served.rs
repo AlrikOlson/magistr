@@ -457,6 +457,10 @@ async fn conformance_initialize_tool_list_negotiation_and_the_index_task() {
     );
     assert_eq!(plain["results"][0]["journalMode"], "WAL");
     assert_eq!(plain["results"][0]["networkFs"], false);
+    assert!(plain["results"][0]["worker"]["quarantined"].is_u64());
+    assert!(plain["results"][0]["worker"]["stopped"].is_boolean());
+    assert!(plain["results"][0]["index"]["generation"].is_u64());
+    assert!(plain["results"][0]["index"]["freshness"].is_string());
     // Pinned to a future max: answered in the highest mutual version.
     let pinned = envelope(
         &call_with_meta(
@@ -554,14 +558,13 @@ async fn conformance_initialize_tool_list_negotiation_and_the_index_task() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
-async fn status_is_byte_identical_across_fresh_owners_and_a_second_owner_is_refused() {
+async fn status_observes_each_owner_and_negotiates_each_request() {
     let dir = workspace(&[("src/app.ts", APP_TS)]);
     let metas: [Option<RequestMetaObject>; 3] = [
         None,
         Some(meta(&[("magistr/maxEnvelopeVersion", json!(1))])),
         Some(meta(&[("magistr/maxEnvelopeVersion", json!("garbled"))])),
     ];
-    let mut answers: Vec<Vec<String>> = Vec::new();
     for round in 0..2 {
         let service = open(dir.path(), &[]).await;
         if round == 0 {
@@ -573,29 +576,22 @@ async fn status_is_byte_identical_across_fresh_owners_and_a_second_owner_is_refu
             assert_eq!(refused.exit_code(), 75);
         }
         let (client, server) = serve(&service, TestClient::plain()).await;
-        let mut texts = Vec::new();
-        for meta in metas.iter().cloned() {
+        for (index, meta) in metas.iter().cloned().enumerate() {
             let result = call_with_meta(&client, "workspace_status", json!({}), meta)
                 .await
                 .expect("status");
-            texts.push(
-                result
-                    .content
-                    .iter()
-                    .find_map(|block| block.as_text().map(|text| text.text.clone()))
-                    .expect("text"),
-            );
+            let observed = envelope(&result);
+            assert_eq!(observed["v"], 1);
+            if index == 2 {
+                assert_eq!(error_code(&observed), "UNSUPPORTED_VERSION");
+            } else {
+                assert_eq!(observed["ok"], true);
+                assert_eq!(observed["results"][0]["worker"]["stopped"], false);
+                assert_eq!(observed["results"][0]["worker"]["quarantined"], 0);
+                assert!(observed["results"][0]["index"]["generation"].is_u64());
+            }
         }
-        answers.push(texts);
         close(client, server, service).await;
-    }
-    assert_eq!(
-        answers[0], answers[1],
-        "no in-memory session state leaks into an envelope"
-    );
-    for text in &answers[0] {
-        let parsed: Value = serde_json::from_str(text).expect("json");
-        assert_eq!(parsed["v"], 1);
     }
 }
 

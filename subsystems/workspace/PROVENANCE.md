@@ -8,6 +8,12 @@ When the intended Magistr design changes, update current contracts and tests
 together. Preserve attribution and accurate provenance without treating the
 imported behavior as frozen.
 
+Current diagnostics use the workspace owner's worker and index snapshots. The
+filesystem doctor does not read a quarantine log without a current writer.
+Native schema, catalog and served MCP tests define the current public contract;
+the former server-to-server wire-equivalence test is removed. Historical import
+notes below describe the original adaptations, not current API requirements.
+
 This directory preserves the Workbench implementation used to establish
 Magistr's native workspace subsystem. It is an internal source fork, not a new
 deployment of the standalone Workbench server.

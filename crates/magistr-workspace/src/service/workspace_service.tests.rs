@@ -189,36 +189,46 @@ async fn a_second_owner_is_refused_while_the_first_is_alive() {
 }
 
 #[tokio::test]
-async fn status_is_byte_identical_across_fresh_owners_and_wears_the_retained_row() {
+async fn status_observes_the_owned_runtime_and_changes_when_the_worker_stops() {
     let dir = workspace();
-    let mut sealed = Vec::new();
-    for _ in 0..2 {
-        let service = WorkspaceService::open(options(dir.path()))
-            .await
-            .expect("owner");
-        sealed.push(
-            ResponseAdapter::seal(&service.status())
-                .expect("sealed")
-                .json()
-                .to_owned(),
-        );
-        service.shutdown().await.expect("shutdown");
-    }
-    assert_eq!(sealed[0], sealed[1]);
-    let envelope: Value = serde_json::from_str(&sealed[0]).expect("json");
+    let service = WorkspaceService::open(options(dir.path()))
+        .await
+        .expect("owner");
+    let response = service.status().await;
+    let sealed = ResponseAdapter::seal(&response).expect("sealed");
+    let envelope = sealed.structured();
     let row = &envelope["results"][0];
     assert_eq!(row["journalMode"], "WAL");
-    assert_eq!(
-        row["appliedJournalMode"], "wal",
-        "SQLite's own answer, verbatim"
-    );
+    assert_eq!(row["appliedJournalMode"], "wal", "SQLite's measured answer");
     assert_eq!(row["networkFs"], false);
     assert_eq!(row["detectionMethod"], "env-override");
     assert_eq!(row["envelope"], serde_json::json!({"min": 1, "latest": 1}));
-    assert!(
-        envelope.get("notes").is_none(),
-        "a healthy local workspace has no notes"
+    assert_eq!(row["worker"]["stopped"], false);
+    assert_eq!(
+        row["worker"]["pid"],
+        Value::Null,
+        "observation does not start the worker"
     );
+    assert_eq!(row["worker"]["quarantined"], 0);
+    assert!(row["index"]["generation"].is_u64());
+    assert!(row["index"]["freshness"].is_string());
+
+    service
+        .worker
+        .shutdown()
+        .await
+        .expect("stop the owned worker");
+    let WorkspaceResponse::Success { results, notes, .. } = service.status().await else {
+        panic!("status");
+    };
+    assert!(results.rows()[0].worker.stopped);
+    assert!(
+        notes
+            .expect("stopped worker")
+            .iter()
+            .any(|note| note.contains("worker stopped"))
+    );
+    service.shutdown().await.expect("shutdown");
 }
 
 #[tokio::test]
@@ -290,7 +300,7 @@ async fn a_network_workspace_degrades_to_truncate_and_says_so_on_every_envelope(
     )
     .await
     .expect("owner");
-    let WorkspaceResponse::Success { results, notes, .. } = service.status() else {
+    let WorkspaceResponse::Success { results, notes, .. } = service.status().await else {
         panic!("status");
     };
     assert_eq!(results.rows()[0].journal_mode, "TRUNCATE");

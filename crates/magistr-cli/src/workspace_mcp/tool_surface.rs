@@ -14,9 +14,9 @@ write, undo and script mutate through the verified write pipeline behind the con
 executes one declared command with no shell. Every result is a versioned ResponseEnvelope \
 (text and structuredContent carry the same sealed JSON); degradations ride its `notes`.";
 
-const STATUS: &str = "Workspace health: root, SQLite journal mode (WAL, or TRUNCATE when the \
-workspace sits on a network filesystem), and the supported envelope versions. Every result is a \
-versioned ResponseEnvelope; degradations ride its `notes`.";
+const STATUS: &str = "Current workspace health: storage, worker restarts and blocked inputs, \
+index progress and errors, and supported envelope versions. Reads snapshots from the active \
+workspace; does not start another worker. Degradations are included in notes.";
 
 const MAP: &str = "Workspace orientation — replaces ls -R and orientation greps (SDD §9.2). A \
 pruned directory tree (Tier-0 capable, no index required), per-file symbol outlines when the \
