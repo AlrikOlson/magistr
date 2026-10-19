@@ -2,21 +2,21 @@
 include = ["src/**", "Cargo.toml", "Cargo.lock", "LICENSE*", "PROVENANCE.md", "presets/**", "!**/.DS_Store", "!**/__pycache__/**", "!**/*.pyc", "!**/*.pyo"]
 repository = "https://github.com/AlrikOlson/magistr"
 name = "magistr-core"
-version = "0.1.0"
+version.workspace = true
 edition = "2024"
 description = "Frontend-agnostic domain types for Magistr — shared between desktop, CLI, and remote-attach consumers. Zero ratatui dependencies."
 license = "MIT"
 
 [dependencies]
-magistr-domain = { version = "=0.1.0", path = "../magistr-domain" }
-magistr-process = { version = "=0.1.0", path = "../magistr-process" }
+magistr-domain = { workspace = true }
+magistr-process = { workspace = true }
 chrono = { version = "0.4", features = ["serde"] }
 glob = "0.3"
 ignore = "0.4"
-magistr-engine = { version = "=0.1.0", path = "../magistr-engine" }
+magistr-engine = { workspace = true }
 # The workspace's source-snapshot capability: the host's verification
 # evidence is composed here from it and the project's gate configuration.
-magistr-workspace = { version = "=0.1.0", path = "../magistr-workspace" }
+magistr-workspace = { workspace = true }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_yml = "0.0.12"

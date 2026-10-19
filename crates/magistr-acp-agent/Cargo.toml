@@ -2,7 +2,7 @@
 include = ["src/**", "Cargo.toml", "Cargo.lock", "LICENSE*", "PROVENANCE.md", "!**/.DS_Store", "!**/__pycache__/**", "!**/*.pyc", "!**/*.pyo"]
 repository = "https://github.com/AlrikOlson/magistr"
 name = "magistr-acp-agent"
-version = "0.1.0"
+version.workspace = true
 edition = "2024"
 description = "Magistr's ACP (Agent Client Protocol) agent side: the session registry, turn queue, permission relay and cancel plumbing every Provider stands on, served by `magistr acp-agent`"
 license = "MIT"

@@ -121,9 +121,9 @@ claude plugin marketplace update magistr
 claude plugin update magistr@magistr --scope user
 ```
 
-Restart Claude to apply the update. Maintainers bump the plugin version for
-installed releases; local source edits do not replace a versioned installed
-cache. Use `--plugin-dir` while developing. Repair by validating the source and
+Restart Claude to apply the update. The plugin shares Magistr's release version;
+maintainers change it with `python3 scripts/version.py set <version>`. Local source
+edits do not replace a versioned installed cache. Use `--plugin-dir` while developing. Repair by validating the source and
 reinstalling through Claude's plugin manager; do not copy over project settings,
 managed files or user edits.
 

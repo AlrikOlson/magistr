@@ -1,7 +1,7 @@
 # Release inventory
 
-Magistr has not been officially publicly released. v0.1.0 is the current
-development version, not evidence of a public release. This inventory describes
+Magistr has not been officially publicly released. The development version is
+defined in the root Cargo workspace, and does not establish a public release. This inventory describes
 current capabilities and planned package contents. The
 [pre-release policy](../AGENTS.md#before-public-release) governs all interfaces,
 configuration and stored formats until the owner declares official public release.

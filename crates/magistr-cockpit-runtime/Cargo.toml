@@ -2,17 +2,17 @@
 include = ["src/**", "Cargo.toml", "Cargo.lock", "LICENSE*", "PROVENANCE.md", "!**/.DS_Store", "!**/__pycache__/**", "!**/*.pyc", "!**/*.pyo"]
 repository = "https://github.com/AlrikOlson/magistr"
 name = "magistr-cockpit-runtime"
-version = "0.1.0"
+version.workspace = true
 edition = "2024"
 description = "Shared cockpit message transport and background jobs"
 license = "MIT"
 
 [dependencies]
-magistr-cockpit = { version = "=0.1.0", path = "../magistr-cockpit" }
-magistr-application = { version = "=0.1.0", path = "../magistr-application" }
+magistr-cockpit = { workspace = true }
+magistr-application = { workspace = true }
 tokio = { version = "1", features = ["rt", "sync", "macros", "time"] }
 
 [dev-dependencies]
 toml = "1.0.6"
-magistr-domain = { version = "=0.1.0", path = "../magistr-domain" }
+magistr-domain = { workspace = true }
 tokio = { version = "1", features = ["rt-multi-thread"] }

@@ -1,6 +1,6 @@
 {
   "name": "magistr",
-  "version": "0.1.6",
+  "version": "0.1.0",
   "description": "See your work, checks, findings and changes in Claude Code.",
   "author": {
     "name": "Magistr contributors"

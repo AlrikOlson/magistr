@@ -2,10 +2,10 @@
 include = ["src/**", "Cargo.toml", "Cargo.lock", "LICENSE*", "PROVENANCE.md", "!**/.DS_Store", "!**/__pycache__/**", "!**/*.pyc", "!**/*.pyo"]
 repository = "https://github.com/AlrikOlson/magistr"
 name = "magistr-application"
-version = "0.1.0"
+version.workspace = true
 edition = "2024"
 description = "Typed Magistr use cases and adapter-owned effect ports"
 license = "MIT"
 
 [dependencies]
-magistr-domain = { version = "=0.1.0", path = "../magistr-domain" }
+magistr-domain = { workspace = true }
