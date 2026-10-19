@@ -42,6 +42,8 @@ pub struct McpClient {
     lines: Mutex<Receiver<String>>,
     /// The server's last words, for the reason a call could not be made.
     stderr: Arc<Mutex<Vec<String>>>,
+    /// Completion of stderr collection, so EOF diagnostics cannot race its reader.
+    stderr_done: Mutex<Receiver<()>>,
     next_id: u64,
 }
 
@@ -87,15 +89,23 @@ impl McpClient {
             return Err(format!("{command} was started without its pipes"));
         };
         let (tx, lines) = channel();
+        let stderr_tx = tx.clone();
         thread::spawn(move || pump(stdout, &tx));
         let kept = Arc::new(Mutex::new(Vec::new()));
         let keeping = Arc::clone(&kept);
-        thread::spawn(move || keep(stderr, &keeping));
+        let (done, stderr_done) = channel();
+        thread::spawn(move || {
+            keep(stderr, &keeping);
+            let _ = done.send(());
+            // A disconnected output channel means both pipes have been drained.
+            drop(stderr_tx);
+        });
         let mut client = Self {
             child,
             stdin,
             lines: Mutex::new(lines),
             stderr: kept,
+            stderr_done: Mutex::new(stderr_done),
             next_id: 1,
         };
         client.handshake()?;
@@ -226,6 +236,11 @@ impl McpClient {
     /// difference between "the workbench stopped answering" and the
     /// reason it stopped.
     fn why(&self, what: &str) -> String {
+        // A broken stdin can be observed before the output reader reports EOF.
+        // Drain trailing diagnostics, bounded because a descendant may hold stderr.
+        if let Ok(done) = self.stderr_done.lock() {
+            let _ = done.recv_timeout(Duration::from_secs(1));
+        }
         let last = self
             .stderr
             .lock()
