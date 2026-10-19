@@ -70,6 +70,10 @@ def prepare(args):
         target=dest/source.name;shutil.copy2(source,target)
         with tarfile.open(target) as t:
             files=[m.name for m in t if m.isfile()]
+        junk=[name for name in files if
+              any(part in {".DS_Store", "__pycache__", "node_modules", "target"}
+                  for part in Path(name).parts) or name.endswith((".pyc", ".pyo"))]
+        if junk:raise SystemExit("Local build or desktop metadata in Cargo package: "+", ".join(junk))
         archives.append({"package":p["name"],"version":version,"file":target.name,
                          "sha256":sha(target),"bytes":target.stat().st_size,"files":files})
     with tempfile.TemporaryDirectory(prefix="magistr npm stage ") as temp:

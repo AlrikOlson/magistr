@@ -1,5 +1,5 @@
 [package]
-include = ["src/**", "Cargo.toml", "Cargo.lock", "LICENSE*", "PROVENANCE.md"]
+include = ["src/**", "Cargo.toml", "Cargo.lock", "LICENSE*", "PROVENANCE.md", "!**/.DS_Store", "!**/__pycache__/**", "!**/*.pyc", "!**/*.pyo"]
 repository = "https://github.com/AlrikOlson/magistr"
 name = "magistr-workflow-contracts"
 version = "0.1.0"

@@ -1,5 +1,5 @@
 [package]
-include = ["src/**", "Cargo.toml", "Cargo.lock", "LICENSE*", "PROVENANCE.md", "schemas/**", "wit/**", "fixtures/**", "!fixtures/**/target/**"]
+include = ["src/**", "Cargo.toml", "Cargo.lock", "LICENSE*", "PROVENANCE.md", "schemas/**", "wit/**", "fixtures/**", "!fixtures/**/target/**", "!**/.DS_Store", "!**/__pycache__/**", "!**/*.pyc", "!**/*.pyo"]
 description = "Magistr workspace services"
 repository = "https://github.com/AlrikOlson/magistr"
 name = "magistr-workspace"
