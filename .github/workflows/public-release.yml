@@ -89,6 +89,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Install desktop test dependencies
+        working-directory: crates/magistr-desktop
+        run: npm ci
       - name: Format desktop
         run: cargo fmt --manifest-path crates/magistr-desktop/Cargo.toml -- --check
       - name: Check desktop
