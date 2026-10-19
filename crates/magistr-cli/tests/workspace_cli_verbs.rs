@@ -64,16 +64,11 @@ fn seeded() -> tempfile::TempDir {
     dir
 }
 
-/// Seeded findings: a quarantined input and a breakered plugin whose
-/// inventory names it.
+/// A corrupt derived index is a real diagnostic finding; probing preserves it.
 fn seed_findings(root: &Path) {
     let state = root.join(".magistr/workspace");
     std::fs::create_dir_all(&state).expect("state dir");
-    std::fs::write(
-        state.join("quarantine.jsonl"),
-        "{\"path\":\"weird.bin\",\"strikes\":3,\"quarantined\":true,\"lastCrash\":\"SIGSEGV\",\"at\":1755000000000}\nthis line is torn and not json\n",
-    )
-    .expect("quarantine");
+    std::fs::write(state.join("native-index.db"), b"corrupt index").expect("index");
 }
 
 fn run(args: &[&str], cwd: &Path) -> Output {
@@ -164,8 +159,8 @@ fn journal_and_doctor_run_beside_a_live_owner_without_taking_or_disturbing_the_l
     assert_eq!(seqs(&envelope(&listed)), [2, 1]);
     let report = run(&["doctor", root], dir.path());
     assert_eq!(code(&report), Some(1), "{}", stderr(&report));
-    assert!(stdout(&report).contains("[quarantine]"));
-    assert!(stdout(&report).contains("weird.bin quarantined after 3 strike(s)"));
+    assert!(stdout(&report).contains("[index]"));
+    assert!(stdout(&report).contains("unreadable as a database"));
     let target = dir.path().join("bundle.tar.gz");
     let bundle = run(
         &[
@@ -179,7 +174,7 @@ fn journal_and_doctor_run_beside_a_live_owner_without_taking_or_disturbing_the_l
     );
     assert_eq!(code(&bundle), Some(1), "{}", stderr(&bundle));
     assert!(target.is_file());
-    assert!(stderr(&bundle).contains("workspace-doctor/quarantine.json"));
+    assert!(stderr(&bundle).contains("workspace-doctor/index.json"));
     // A diagnostic never destroys a prior diagnostic.
     let again = run(
         &[
@@ -310,8 +305,6 @@ fn a_healthy_workspace_exits_zero_and_doctor_config_renders_provenance() {
         "[index]",
         "[config]",
         "[plugins]",
-        "[quarantine]",
-        "[crashes]",
         "[owner]",
         "[operations]",
     ] {

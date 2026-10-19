@@ -114,7 +114,7 @@
     {
       "code": "INPUT_QUARANTINED",
       "recovery": "escalate",
-      "description": "The input file repeatedly crashed the engine child and is quarantined from parsing (§6.2); the supervisor refuses it locally until the file changes. Retry cannot help. A human inspects the quarantine record (.workbench/quarantine.jsonl, surfaced by doctor) and fixes or removes the file. Amended in SDD v1.3 (chunk:backlog-quarantine-surfacing)."
+      "description": "The same input repeatedly caused a worker failure and is blocked for this session. Inspect and fix the affected input before retrying. Current worker health is available through workspace_status."
     },
     {
       "code": "PLUGIN_CAP_DENIED",

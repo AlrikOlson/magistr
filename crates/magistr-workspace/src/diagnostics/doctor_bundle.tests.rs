@@ -13,14 +13,6 @@ fn seeded_run(root: &Path) -> DoctorRun {
     let state = root.join(".magistr/workspace");
     std::fs::create_dir_all(&state).expect("state dir");
     drop(IndexCache::open(&state, "WAL").expect("native index"));
-    std::fs::write(
-        state.join("quarantine.jsonl"),
-        format!(
-            "{}\n",
-            serde_json::json!({ "path": "weird.bin", "strikes": 3, "quarantined": true, "lastCrash": "SIGSEGV", "at": 1755000000000_u64 })
-        ),
-    )
-    .expect("quarantine");
     DoctorRun::observe(
         &DoctorOptions::new(root)
             .with_tool_version("0.0.0-test")

@@ -18,14 +18,11 @@ impl DoctorRun {
     #[must_use]
     pub fn observe(options: &DoctorOptions) -> Self {
         let (config, config_text) = doctor_probes::config(options);
-        let (quarantine, entries) = doctor_probes::quarantine(&options.state_dir);
         let sections = vec![
             doctor_probes::environment(options),
             doctor_probes::index(&options.state_dir),
             config,
             doctor_probes::plugins(&options.root, &options.state_dir),
-            quarantine,
-            doctor_probes::crashes(&entries),
         ];
         let findings_present = sections.iter().any(has_unhealthy);
         Self {

@@ -1,8 +1,7 @@
 use serde::Serialize;
 
-/// The sections in contract order: the six retained probes over the
-/// `.magistr/workspace` artifacts, then the two the host composes from what only
-/// it can observe — the owner endpoint and the run checkpoint.
+/// The filesystem probes, followed by the host's owner endpoint and run
+/// checkpoint observations. Live worker health belongs to workspace status.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum DoctorSectionId {
@@ -10,8 +9,6 @@ pub enum DoctorSectionId {
     Index,
     Config,
     Plugins,
-    Quarantine,
-    Crashes,
     /// Live ownership: the durable generation and lock record, and what one
     /// bounded probe of the owner endpoint answered.
     Owner,
@@ -27,8 +24,6 @@ impl DoctorSectionId {
             Self::Index => "index",
             Self::Config => "config",
             Self::Plugins => "plugins",
-            Self::Quarantine => "quarantine",
-            Self::Crashes => "crashes",
             Self::Owner => "owner",
             Self::Operations => "operations",
         }
