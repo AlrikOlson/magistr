@@ -1,11 +1,19 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
-import { mkdtemp, mkdir, readFile, readdir, writeFile, rm } from 'node:fs/promises'
+import {
+  mkdtemp,
+  mkdir,
+  readFile,
+  readdir,
+  writeFile,
+  rm,
+} from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { createInterface } from 'node:readline'
 import { decode, validate, phase } from '../hooks/wire.js'
+import { request as operationRequest, response } from '../hooks/mcp.js'
 
 async function verifyWorkstreams(call, lane) {
   const read = (args = {}) =>
@@ -26,7 +34,11 @@ async function verifyWorkstreams(call, lane) {
     })
     assert.notEqual(added.isError, true)
   }
-  await call('roadmap_focus_set', { lane, group: 'Rust desktop', mode: 'build' })
+  await call('roadmap_focus_set', {
+    lane,
+    group: 'Rust desktop',
+    mode: 'build',
+  })
   const current = await read()
   assert.deepEqual(Object.keys(current.workstreams.current), ['Rust desktop'])
   assert.equal(current.frontier.frontier.activity.next_ready, 'current')
@@ -39,22 +51,33 @@ async function verifyWorkstreams(call, lane) {
   const closed = await read({ group: 'Rust', view: 'history' })
   assert.deepEqual(closed.frontier.history.chunk_ids, ['retired'])
   assert.deepEqual(closed.focus, current.focus)
-  const records = decode(await call('roadmap_get', { ids: ['earlier', 'retired'] }))
-  assert.deepEqual(records.records.map((record) => record.id), ['earlier', 'retired'])
+  const records = decode(
+    await call('roadmap_get', { ids: ['earlier', 'retired'] }),
+  )
+  assert.deepEqual(
+    records.records.map((record) => record.id),
+    ['earlier', 'retired'],
+  )
 
   await call('roadmap_obsolete_chunk', {
     id: 'current',
     reason: 'Exercise closure of the last unfinished item',
   })
   const ended = await read()
-  assert.deepEqual(ended.focus_state, { state: 'closed', group: 'Rust desktop' })
+  assert.deepEqual(ended.focus_state, {
+    state: 'closed',
+    group: 'Rust desktop',
+  })
   assert.deepEqual(ended.workstreams.current, {})
   assert.equal(JSON.stringify(ended).includes('chunk_ids'), false)
-  assert.deepEqual((await read({ view: 'history' })).frontier.history.chunk_ids, [
-    'current',
-    'earlier',
-  ])
-  assert.equal((await read({ lane: lane + '/another' })).focus_state.state, 'unset')
+  assert.deepEqual(
+    (await read({ view: 'history' })).frontier.history.chunk_ids,
+    ['current', 'earlier'],
+  )
+  assert.equal(
+    (await read({ lane: lane + '/another' })).focus_state.state,
+    'unset',
+  )
 }
 
 // Exercise actual persisted bytes while the same native owner remains connected.
@@ -137,7 +160,7 @@ test(
         path.resolve(
           'target/debug/magistr' + (process.platform === 'win32' ? '.exe' : ''),
         )
-      child = spawn(binary, ['mcp-launch', 'magistr', root], {
+      child = spawn(binary, ['mcp', '--dir', root], {
         cwd: root,
         env: {
           ...process.env,
@@ -204,12 +227,29 @@ test(
         }) + '\n',
       )
       const tools = await request('tools/list', {})
-      assert.ok(tools.tools.some((t) => t.name === 'magistr_context'))
-      const call = (name, args = {}) =>
-        request('tools/call', { name, arguments: args })
+      assert.ok(tools.tools.some((t) => t.name === 'context'))
+      const call = async (name, args = {}) => {
+        const operation = operationRequest(name, args)
+        return response(
+          name,
+          await request('tools/call', {
+            name: operation.tool,
+            arguments: operation.args,
+          }),
+        )
+      }
+      validate('workspace', await call('workbench_status'))
+      validate(
+        'changes',
+        await call('undo', { action: 'list', limit: 20, diff: true }),
+      )
+      validate(
+        'source',
+        await call('read', { file: '.magistr/project.json', budget: 2000 }),
+      )
       const ship = validate('ship', await call('ship_status'))
       assert.equal(ship.project_id, projectId)
-      const first = validate('context', await call('magistr_context'))
+      const first = validate('context', await call('context'))
       assert.equal(first.phase, null)
       validate('roadmap', await call('roadmap_status'))
       validate('findings', await call('think_engine_status', { verbose: true }))
@@ -227,24 +267,22 @@ test(
         description: 'Inspect the connection',
         verification: 'focused',
       })
-      await call('ship_plan', {
+      await call('plan_work', {
         action: 'add',
         task_id: 'verify',
         title: 'Verify the connection',
         task_type: 'test',
       })
-      await call('ship_start', { task_id: 'verify' })
+      await call('start_work', { task_id: 'verify' })
       await call('magistr_set_phase', { phase: 'verify' })
       const current = validate('ship', await call('ship_status'))
       const context = validate(
         'context',
-        await call('magistr_context', { task_id: 'verify' }),
+        await call('context', { task_id: 'verify' }),
       )
       assert.equal(phase(context, current), 'Checking')
       assert.equal(context.task.record.title, 'Verify the connection')
-      await assert.rejects(() =>
-        call('magistr_context', { task_id: 'missing' }),
-      )
+      await assert.rejects(() => call('context', { task_id: 'missing' }))
       const gate = await call('magistr_gate', {
         gate: 'check',
         timeout_secs: 10,
@@ -254,7 +292,7 @@ test(
       assert.equal(result.recorded, true)
       const receipt = validate(
         'context',
-        await call('magistr_context', { receipt_id: result.receipt }),
+        await call('context', { receipt_id: result.receipt }),
       )
       assert.equal(receipt.receipt.command, 'echo checked')
       assert.equal(receipt.receipt.settlement.settlement, 'applied')
@@ -272,7 +310,7 @@ test(
         ),
         [
           ['ship_status', {}],
-          ['magistr_context', { task_id: 'verify' }],
+          ['context', { task_id: 'verify' }],
         ],
       )
       child.stdin.end()

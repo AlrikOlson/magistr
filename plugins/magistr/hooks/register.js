@@ -10,6 +10,7 @@ import {
   validateAction,
 } from './wire.js'
 import { pane, band } from './view.js'
+import { request, response } from './mcp.js'
 
 // Disposable state. Claude unloads timers and the API environment on reload.
 let model = initial()
@@ -30,16 +31,11 @@ const PANE = 'magistr-work'
 const READS = [
   ['ship', 'magistr', 'ship_status', {}],
   ['roadmap', 'magistr', 'roadmap_status', {}],
-  ['context', 'magistr', 'magistr_context', {}],
+  ['context', 'magistr', 'context', {}],
   ['findings', 'magistr', 'think_engine_status', { verbose: true }],
   ['focus', 'magistr', 'roadmap_focus_get', {}],
-  ['workspace', 'workbench-mcp', 'workbench_status', {}],
-  [
-    'changes',
-    'workbench-mcp',
-    'undo',
-    { action: 'list', limit: 40, diff: true },
-  ],
+  ['workspace', 'magistr', 'workbench_status', {}],
+  ['changes', 'magistr', 'undo', { action: 'list', limit: 40, diff: true }],
 ]
 function redraw($) {
   $.ui.invalidate('ui.render')
@@ -56,7 +52,10 @@ async function read($, server, tool, args = {}) {
     )
   let timer
   let timeout
-  const call = $.mcp.call(server, tool, args)
+  const command = request(tool, args)
+  const call = $.mcp
+    .call(server, command.tool, command.args)
+    .then((reply) => response(tool, reply))
   reads.set(key, call)
   const work = call.finally(() => {
     if (reads.get(key) === call) reads.delete(key)
@@ -228,9 +227,9 @@ async function drainDetails($) {
         continue
       const [server, tool, args, wire] =
         kind === 'task'
-          ? ['magistr', 'magistr_context', { task_id: item.id }, 'context']
+          ? ['magistr', 'context', { task_id: item.id }, 'context']
           : kind === 'receipt'
-            ? ['magistr', 'magistr_context', { receipt_id: item }, 'context']
+            ? ['magistr', 'context', { receipt_id: item }, 'context']
             : kind === 'work'
               ? ['magistr', 'roadmap_get', { ids: [item.id] }, 'work']
               : kind === 'finding'
@@ -240,12 +239,7 @@ async function drainDetails($) {
                     { step_number: item.step_number, resolve_latest: true },
                     'finding',
                   ]
-                : [
-                    'workbench-mcp',
-                    'read',
-                    { file: item, budget: 3000 },
-                    'source',
-                  ]
+                : ['magistr', 'read', { file: item, budget: 3000 }, 'source']
       const value = validate(wire, await read($, server, tool, args))
       if (serial !== model.detailGeneration || epoch !== generation || stopped)
         continue
@@ -419,14 +413,14 @@ async function action($, kind, target) {
     }
     model.pending = label + ' requested…'
     redraw($)
-    const tool =
+    const operation =
       kind === 'gate'
-        ? 'mcp__magistr__magistr_gate'
+        ? 'magistr_gate'
         : kind === 'task'
-          ? 'mcp__magistr__ship_start'
+          ? 'start_work'
           : kind === 'focus'
-            ? 'mcp__magistr__roadmap_focus_set'
-            : 'mcp__magistr__roadmap_start_chunk'
+            ? 'roadmap_focus_set'
+            : 'roadmap_start_chunk'
     const args =
       kind === 'gate'
         ? { gate: target.key, timeout_secs: timeLimit }
@@ -441,9 +435,10 @@ async function action($, kind, target) {
             : { id: target.id }
     dispatched = true
     // The normal tool path retains Claude's hooks and permission checks.
+    const command = request(operation, args)
     const reply = await $.tool.call({
-      tool,
-      ...args,
+      tool: 'mcp__magistr__' + command.tool,
+      ...command.args,
       consent:
         'The user confirmed "' +
         label +
@@ -459,7 +454,11 @@ async function action($, kind, target) {
         clean(reply.deny || reply.text || 'The action was refused.', 500),
       )
     }
-    const result = validateAction(kind, decode(reply), target)
+    const result = validateAction(
+      kind,
+      decode(response(operation, reply)),
+      target,
+    )
     if (epoch !== generation || stopped) {
       model.uncertain = true
       return
@@ -742,20 +741,16 @@ export function register(on) {
     }
     return next(e)
   })
-  on(
-    'tool.call',
-    { tool: /^mcp__(magistr|workbench[-_]mcp)__/ },
-    async ($, e, next) => {
-      const result = await next(e)
-      // Own Mod calls use explicit refresh. Never recursively observe ourselves.
-      if (next.origin.plugin !== 'magistr' && (model.open || model.band)) {
-        for (const slot of Object.values(model.slots)) slot.stale = true
-        scheduleRefresh($)
-        redraw($)
-      }
-      return result
-    },
-  )
+  on('tool.call', { tool: /^mcp__magistr__/ }, async ($, e, next) => {
+    const result = await next(e)
+    // Own Mod calls use explicit refresh. Never recursively observe ourselves.
+    if (next.origin.plugin !== 'magistr' && (model.open || model.band)) {
+      for (const slot of Object.values(model.slots)) slot.stale = true
+      scheduleRefresh($)
+      redraw($)
+    }
+    return result
+  })
   on('classic.SessionStart', async ($, e, next) => {
     if (['clear', 'resume'].includes(e.source)) {
       stopped = false

@@ -1,0 +1,402 @@
+{
+  "recordedDate": "2026-10-19",
+  "task": "Investigate and fix whitespace normalization without changing tests; record plan, decision, feedback and future roadmap work; verify; resume in a fresh agent process and finalize.",
+  "conditions": "Each host used the same fixture and prompts for its split baseline and unified candidate. One work and one resume process per condition.",
+  "identityLimit": "These four runs preceded binary-hash capture in the harness. They assess the catalog design; final packaged binaries are independently bound to checksums and process verification.",
+  "runs": [
+    {
+      "host": "codex",
+      "surface": "baseline",
+      "turns": [
+        {
+          "turn": "work",
+          "exit": 0,
+          "seconds": 53.77,
+          "toolCalls": 23,
+          "tools": [
+            "ship_status",
+            "magistr_context",
+            "ship_set_objective",
+            "ship_plan",
+            "ship_start",
+            "search",
+            "roadmap_status",
+            "read",
+            "read",
+            "ship_check",
+            "think_record_step",
+            "ship_record",
+            "signal_capture",
+            "edit",
+            "ship_record",
+            "ship_check",
+            "roadmap_add_chunk",
+            "read",
+            "think_record_step",
+            "think_trace_checkpoint",
+            "ship_record",
+            "ship_complete",
+            "ship_status"
+          ],
+          "toolErrors": 0,
+          "usage": [
+            {
+              "input_tokens": 589915,
+              "cached_input_tokens": 531200,
+              "cache_write_input_tokens": 0,
+              "output_tokens": 2211
+            }
+          ],
+          "model": null,
+          "eventBytes": 76067
+        },
+        {
+          "turn": "resume",
+          "exit": 0,
+          "seconds": 34.81,
+          "toolCalls": 11,
+          "tools": [
+            "magistr_context",
+            "think_trace_checkpoint",
+            "signal_pending",
+            "ship_status",
+            "signal_status",
+            "roadmap_status",
+            "magistr_context",
+            "roadmap_get",
+            "think_get_step",
+            "signal_get",
+            "ship_finalize"
+          ],
+          "toolErrors": 0,
+          "usage": [
+            {
+              "input_tokens": 316203,
+              "cached_input_tokens": 283264,
+              "cache_write_input_tokens": 0,
+              "output_tokens": 1109
+            }
+          ],
+          "model": null,
+          "eventBytes": 40526
+        }
+      ],
+      "sourceCheckPassed": true,
+      "verification": {
+        "objectiveCompleted": true,
+        "tasksCompleted": true,
+        "recordedCheckPassed": true,
+        "feedbackSaved": true,
+        "futureRoadmapSaved": true,
+        "decisionRecordsSaved": true,
+        "testUnchanged": true,
+        "independentSourceCheckPassed": true,
+        "sourceSha256": "291406d7db5697791d44efbc0383c79888b821e3c92e074cec166a829c999c35",
+        "testSha256": "3f623240777eb4a5307a680e51c74b10758d894d9aef0b5147baa218f2a06681",
+        "verificationCommands": [
+          "python3 -m unittest -q",
+          "python3 -m unittest -q"
+        ],
+        "taskCount": 1,
+        "passed": true
+      }
+    },
+    {
+      "host": "codex",
+      "surface": "hybrid",
+      "turns": [
+        {
+          "turn": "work",
+          "exit": 0,
+          "seconds": 45.57,
+          "toolCalls": 16,
+          "tools": [
+            "context",
+            "discover",
+            "search",
+            "discover",
+            "read",
+            "read",
+            "execute",
+            "edit",
+            "discover",
+            "record_progress",
+            "check_work",
+            "execute",
+            "execute",
+            "read",
+            "execute",
+            "finish_work"
+          ],
+          "toolErrors": 1,
+          "usage": [
+            {
+              "input_tokens": 307350,
+              "cached_input_tokens": 266752,
+              "cache_write_input_tokens": 0,
+              "output_tokens": 1657
+            }
+          ],
+          "model": null,
+          "eventBytes": 109031
+        },
+        {
+          "turn": "resume",
+          "exit": 0,
+          "seconds": 28.33,
+          "toolCalls": 13,
+          "tools": [
+            "context",
+            "discover",
+            "discover",
+            "discover",
+            "execute",
+            "discover",
+            "context",
+            "read",
+            "discover",
+            "execute",
+            "execute",
+            "context",
+            "execute"
+          ],
+          "toolErrors": 0,
+          "usage": [
+            {
+              "input_tokens": 260912,
+              "cached_input_tokens": 226816,
+              "cache_write_input_tokens": 0,
+              "output_tokens": 765
+            }
+          ],
+          "model": null,
+          "eventBytes": 89165
+        }
+      ],
+      "sourceCheckPassed": true,
+      "verification": {
+        "objectiveCompleted": true,
+        "tasksCompleted": true,
+        "recordedCheckPassed": true,
+        "feedbackSaved": true,
+        "futureRoadmapSaved": true,
+        "decisionRecordsSaved": true,
+        "testUnchanged": true,
+        "independentSourceCheckPassed": true,
+        "sourceSha256": "644c44a76f1f310cecaf5fb2e8c04cdd1d5baedb1c6ebfd2396a851c6d69e760",
+        "testSha256": "3f623240777eb4a5307a680e51c74b10758d894d9aef0b5147baa218f2a06681",
+        "verificationCommands": [
+          "python3 -m unittest -q"
+        ],
+        "taskCount": 1,
+        "passed": true
+      }
+    },
+    {
+      "host": "claude",
+      "surface": "baseline",
+      "turns": [
+        {
+          "turn": "work",
+          "exit": 0,
+          "seconds": 122.96,
+          "toolCalls": 28,
+          "tools": [
+            "mcp__workbench-mcp__read",
+            "mcp__workbench-mcp__read",
+            "mcp__magistr__ship_status",
+            "mcp__magistr__roadmap_status",
+            "mcp__magistr__magistr_set_phase",
+            "mcp__workbench-mcp__read",
+            "mcp__magistr__magistr_list",
+            "mcp__magistr__ship_set_objective",
+            "mcp__magistr__ship_plan",
+            "mcp__magistr__ship_plan",
+            "mcp__magistr__magistr_set_phase",
+            "mcp__magistr__think_record_step",
+            "mcp__magistr__ship_start",
+            "mcp__magistr__magistr_set_phase",
+            "mcp__workbench-mcp__edit",
+            "mcp__magistr__ship_record",
+            "mcp__magistr__ship_complete",
+            "mcp__magistr__ship_start",
+            "mcp__magistr__magistr_set_phase",
+            "mcp__magistr__ship_check",
+            "mcp__magistr__signal_capture",
+            "mcp__magistr__roadmap_add_chunk",
+            "mcp__magistr__ship_record",
+            "mcp__magistr__think_record_step",
+            "mcp__magistr__signal_link",
+            "mcp__magistr__signal_link",
+            "mcp__magistr__ship_complete",
+            "mcp__magistr__roadmap_status"
+          ],
+          "toolErrors": 0,
+          "usage": [
+            {
+              "input_tokens": 290,
+              "cache_creation_input_tokens": 20656,
+              "cache_read_input_tokens": 527611,
+              "output_tokens": 6856
+            }
+          ],
+          "model": "claude-fable-5-1",
+          "eventBytes": 174971
+        },
+        {
+          "turn": "resume",
+          "exit": 0,
+          "seconds": 41.64,
+          "toolCalls": 18,
+          "tools": [
+            "mcp__magistr__magistr_context",
+            "mcp__magistr__ship_status",
+            "mcp__magistr__roadmap_status",
+            "mcp__magistr__think_engine_status",
+            "mcp__magistr__signal_status",
+            "mcp__magistr__magistr_list",
+            "mcp__magistr__think_get_step",
+            "mcp__magistr__think_get_step",
+            "mcp__magistr__signal_get",
+            "mcp__workbench-mcp__read",
+            "mcp__workbench-mcp__read",
+            "mcp__workbench-mcp__undo",
+            "mcp__magistr__magistr_list",
+            "mcp__magistr__roadmap_get",
+            "mcp__magistr__magistr_set_phase",
+            "mcp__magistr__ship_finalize",
+            "mcp__magistr__magistr_set_phase",
+            "mcp__magistr__think_record_step"
+          ],
+          "toolErrors": 0,
+          "usage": [
+            {
+              "input_tokens": 162,
+              "cache_creation_input_tokens": 10855,
+              "cache_read_input_tokens": 308077,
+              "output_tokens": 3001
+            }
+          ],
+          "model": "claude-fable-5-1",
+          "eventBytes": 111561
+        }
+      ],
+      "sourceCheckPassed": true,
+      "verification": {
+        "objectiveCompleted": true,
+        "tasksCompleted": true,
+        "recordedCheckPassed": true,
+        "feedbackSaved": true,
+        "futureRoadmapSaved": true,
+        "decisionRecordsSaved": true,
+        "testUnchanged": true,
+        "independentSourceCheckPassed": true,
+        "sourceSha256": "26f4eb47832a79bcc3583b308efb98333f3ab4152e2b9b63827b8e0a4688a693",
+        "testSha256": "3f623240777eb4a5307a680e51c74b10758d894d9aef0b5147baa218f2a06681",
+        "verificationCommands": [
+          "python3 -m unittest -q"
+        ],
+        "taskCount": 2,
+        "passed": true
+      }
+    },
+    {
+      "host": "claude",
+      "surface": "hybrid",
+      "turns": [
+        {
+          "turn": "work",
+          "exit": 0,
+          "seconds": 91.7,
+          "toolCalls": 20,
+          "tools": [
+            "mcp__magistr__context",
+            "mcp__magistr__read",
+            "mcp__magistr__read",
+            "mcp__magistr__discover",
+            "mcp__magistr__discover",
+            "mcp__magistr__discover",
+            "mcp__magistr__discover",
+            "mcp__magistr__execute",
+            "mcp__magistr__plan_work",
+            "mcp__magistr__plan_work",
+            "mcp__magistr__start_work",
+            "mcp__magistr__execute",
+            "mcp__magistr__execute",
+            "mcp__magistr__edit",
+            "mcp__magistr__check_work",
+            "mcp__magistr__record_progress",
+            "mcp__magistr__execute",
+            "mcp__magistr__finish_work",
+            "mcp__magistr__execute",
+            "mcp__magistr__execute"
+          ],
+          "toolErrors": 0,
+          "usage": [
+            {
+              "input_tokens": 354,
+              "cache_creation_input_tokens": 36331,
+              "cache_read_input_tokens": 313462,
+              "output_tokens": 6028
+            }
+          ],
+          "model": "claude-fable-5-1",
+          "eventBytes": 288502
+        },
+        {
+          "turn": "resume",
+          "exit": 0,
+          "seconds": 164.87,
+          "toolCalls": 16,
+          "tools": [
+            "mcp__magistr__context",
+            "mcp__magistr__discover",
+            "mcp__magistr__execute",
+            "mcp__magistr__execute",
+            "mcp__magistr__context",
+            "mcp__magistr__read",
+            "mcp__magistr__read",
+            "mcp__magistr__discover",
+            "mcp__magistr__execute",
+            "mcp__magistr__start_work",
+            "mcp__magistr__record_progress",
+            "mcp__magistr__finish_work",
+            "mcp__magistr__discover",
+            "mcp__magistr__execute",
+            "mcp__magistr__execute",
+            "mcp__magistr__execute"
+          ],
+          "toolErrors": 2,
+          "usage": [
+            {
+              "input_tokens": 418,
+              "cache_creation_input_tokens": 26488,
+              "cache_read_input_tokens": 355252,
+              "output_tokens": 4487
+            }
+          ],
+          "model": "claude-fable-5-1",
+          "eventBytes": 225513
+        }
+      ],
+      "sourceCheckPassed": true,
+      "verification": {
+        "objectiveCompleted": true,
+        "tasksCompleted": true,
+        "recordedCheckPassed": true,
+        "feedbackSaved": true,
+        "futureRoadmapSaved": true,
+        "decisionRecordsSaved": true,
+        "testUnchanged": true,
+        "independentSourceCheckPassed": true,
+        "sourceSha256": "8dd119d94421d4f3fa69e71a1d0e78e067ae9edb6df095a64a1770aca853684d",
+        "testSha256": "3f623240777eb4a5307a680e51c74b10758d894d9aef0b5147baa218f2a06681",
+        "verificationCommands": [
+          "python3 -m unittest -q"
+        ],
+        "taskCount": 2,
+        "passed": true
+      }
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "name": "magistr",
+  "version": "0.1.0",
+  "description": "Project workflow and verified source tools for coding agents",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AlrikOlson/magistr.git"
+  },
+  "homepage": "https://github.com/AlrikOlson/magistr",
+  "bin": {
+    "magistr": "bin/magistr"
+  },
+  "os": [
+    "darwin"
+  ],
+  "cpu": [
+    "arm64"
+  ],
+  "files": [
+    "bin/magistr",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES",
+    "inventory.json",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}

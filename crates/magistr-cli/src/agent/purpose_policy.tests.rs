@@ -35,26 +35,17 @@ fn roadmap_purpose_is_a_ceiling_even_under_yolo() {
             PolicyDecision::Deny
         );
     }
-    assert_eq!(
-        policy.decide(&policy_request(&request(
-            "mcp__magistr__roadmap_add_chunk",
-            serde_json::json!({"title":"Accessibility"})
-        ))),
-        PolicyDecision::Allow
-    );
-    for (status, answer) in [
-        ("pending", PolicyDecision::Allow),
-        ("in_progress", PolicyDecision::Deny),
-        ("done", PolicyDecision::Deny),
+    for name in [
+        "mcp__magistr__execute",
+        "mcp__magistr__discover",
+        "mcp__magistr__read",
     ] {
         assert_eq!(
-            policy.decide(&policy_request(&request(
-                "mcp__magistr__roadmap_set_status",
-                serde_json::json!({"status":status})
-            ))),
-            answer
+            policy.decide(&policy_request(&request(name, serde_json::json!({})))),
+            PolicyDecision::Allow
         );
     }
+    // Each composed effect is checked by the purpose-bound MCP connection.
 }
 #[test]
 fn planning_keeps_the_project_model_policy() {

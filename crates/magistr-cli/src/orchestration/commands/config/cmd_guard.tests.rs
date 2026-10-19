@@ -309,7 +309,7 @@ fn workbench_declared_reads_the_mcp_declaration() {
 
     std::fs::write(
         &file,
-        r#"{"mcpServers": {"workbench-mcp": {"command": "magistr", "args": ["mcp-launch", "workbench-mcp", "."]}}}"#,
+        r#"{"mcpServers": {"workbench-mcp": {"command": "magistr", "args": ["mcp", "--dir", "."]}}}"#,
     )
     .expect("write");
     assert!(workbench_declared(tmp.path()));

@@ -6,7 +6,7 @@ description: Research and update a focused part of Magistr's native roadmap with
 # Refresh a Magistr roadmap area
 
 Apply [craft](../craft/SKILL.md) and its runtime contract. Use **magistr** native
-roadmap/reasoning tools, **workbench-mcp** code grounding, and the host's web
+roadmap/reasoning tools, **magistr** workspace code grounding, and the host's web
 tools. Do one focused research pass without starting an implementation objective.
 
 1. Read `roadmap_status`, relevant chunks, and pertinent prior reasoning. Use

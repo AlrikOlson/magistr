@@ -324,7 +324,7 @@ pub(crate) fn remove_emitter_files(
 /// project already made.
 #[must_use]
 pub fn agents_present(dir: &Path) -> Vec<String> {
-    all_emitters()
+    let mut selected: Vec<String> = all_emitters()
         .into_iter()
         .filter(|emitter| {
             if emitter.id() == "codex" {
@@ -336,7 +336,15 @@ pub fn agents_present(dir: &Path) -> Vec<String> {
                 .any(|path| dir.join(path).is_file())
         })
         .map(|emitter| emitter.id().to_owned())
-        .collect()
+        .collect();
+    let manifest = super::manifest::ScaffoldManifest::load(dir);
+    if manifest.files.contains_key("CLAUDE.md") {
+        selected.push("claude".into());
+    }
+    if manifest.files.contains_key(".magistr/instructions.md") {
+        selected.push("portable".into());
+    }
+    selected
 }
 
 #[cfg(test)]

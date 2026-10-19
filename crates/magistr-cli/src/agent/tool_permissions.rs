@@ -27,71 +27,23 @@ const DEV_TOOLS: &[&str] = &[
     "TodoWrite",
 ];
 
-/// think-and-ship tools the workflow loop calls, served by the same `magistr`
-/// MCP server: the roadmap (plan-of-plans), the reasoning trace, the
-/// execution trace and stakeholder signals.
-const THINK_AND_SHIP_MCP: &[&str] = &[
-    "roadmap_status",
-    "roadmap_next",
-    "roadmap_get",
-    "roadmap_start_chunk",
-    "roadmap_complete_chunk",
-    "roadmap_add_chunk",
-    "roadmap_update_chunk",
-    "roadmap_set_status",
-    "roadmap_obsolete_chunk",
-    "roadmap_reprioritize",
-    "roadmap_link",
-    "roadmap_export",
-    "think_record_step",
-    "think_engine_status",
-    "think_pin_step",
-    "think_trace_checkpoint",
-    "think_search_trace",
-    "think_get_step",
-    "think_sessions",
-    "think_session",
-    "think_set_branch_status",
-    "think_step_impact",
-    "think_revise_estimate",
-    "ship_set_objective",
-    "ship_plan",
-    "ship_start",
-    "ship_record",
-    "ship_complete",
-    "ship_block",
-    "ship_check",
-    "ship_finalize",
-    "ship_status",
-    "signal_capture",
-    "signal_pending",
-];
-
-/// The workbench-mcp tools (`.claude/rules/tools.md`): the workflow reads
-/// and edits the tree through them, so they are pre-approved like the
-/// built-in dev tools they replace.
-const WORKBENCH_MCP: &[&str] = &[
+/// Public tools on the unified connection. Advanced effects are authorized
+/// individually by the native catalog, including the purpose ceiling.
+const UNIFIED_MCP: &[&str] = &[
+    "context",
     "search",
-    "map",
     "read",
     "edit",
-    "files",
     "write",
-    "run",
-    "script",
-    "undo",
-    "journal",
-    "workbench_status",
+    "plan_work",
+    "start_work",
+    "record_progress",
+    "check_work",
+    "finish_work",
+    "discover",
+    "execute",
 ];
-
-/// MCP tools for workflow orchestration.
-const WORKFLOW_MCP: &[&str] = &[
-    "magistr_set_phase",
-    "magistr_gate",
-    "magistr_format",
-    "magistr_delete",
-    "magistr_list",
-];
+const INSPECTION_MCP: &[&str] = &["context", "search", "read", "discover"];
 
 impl ToolPermissions {
     /// Base permission set: only `web_search`.
@@ -109,7 +61,10 @@ impl ToolPermissions {
     /// Gives the AI read-only access to explore the project during `magistr init`.
     #[must_use]
     pub fn for_interview() -> Self {
-        Self::base().with(CODEBASE_READ).with(&["Bash"])
+        Self::base()
+            .with(CODEBASE_READ)
+            .with(&["Bash"])
+            .with(INSPECTION_MCP)
     }
 
     /// Roadmap generation context: base + read-only codebase access.
@@ -118,7 +73,9 @@ impl ToolPermissions {
     /// `roadmap_*` tools (`roadmap_add_chunk`), which are pre-approved too.
     #[must_use]
     pub fn for_roadmap() -> Self {
-        Self::base().with(CODEBASE_READ).with(THINK_AND_SHIP_MCP)
+        Self::base()
+            .with(CODEBASE_READ)
+            .with(&["context", "search", "read", "discover", "execute"])
     }
 
     /// Planning requests may inspect sources and update the native plan, without
@@ -128,29 +85,11 @@ impl ToolPermissions {
         Self::base().with(CODEBASE_READ).with(&[
             "WebSearch",
             "WebFetch",
+            "context",
             "search",
-            "map",
             "read",
-            "workbench_status",
-            "roadmap_status",
-            "roadmap_next",
-            "roadmap_get",
-            "roadmap_add_chunk",
-            "roadmap_update_chunk",
-            "roadmap_obsolete_chunk",
-            "roadmap_reprioritize",
-            "roadmap_link",
-            "think_record_step",
-            "think_engine_status",
-            "think_search_trace",
-            "think_get_step",
-            "think_sessions",
-            "think_session",
-            "think_set_branch_status",
-            "think_step_impact",
-            "think_revise_estimate",
-            "ship_status",
-            "signal_pending",
+            "discover",
+            "execute",
         ])
     }
 
@@ -163,9 +102,7 @@ impl ToolPermissions {
         Self::base()
             .with(CODEBASE_READ)
             .with(DEV_TOOLS)
-            .with(THINK_AND_SHIP_MCP)
-            .with(WORKFLOW_MCP)
-            .with(WORKBENCH_MCP)
+            .with(UNIFIED_MCP)
     }
 
     /// Extend with additional tools, deduplicating.

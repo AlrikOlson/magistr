@@ -79,10 +79,6 @@ impl WorkflowSkills {
         Self::files(Host::Claude)
     }
 
-    pub(super) fn is_claude_workflow(path: &str) -> bool {
-        WORKFLOWS.iter().any(|(_, _, claude, _)| *claude == path)
-    }
-
     /// `(workflow name, scaffold path)` for every workflow skill of `host`.
     pub(super) fn workflow_paths(host: Host) -> Vec<(&'static str, &'static str)> {
         WORKFLOWS
@@ -130,7 +126,7 @@ impl WorkflowSkills {
     /// Render the vendored routing skill with its provenance marker.
     pub(super) fn render_routing(template: &str) -> String {
         format!(
-            "{}\n<!-- vendored verbatim from {} — re-run `magistr init` after upgrading workbench-mcp -->\n",
+            "{}\n<!-- maintained with {} — run `magistr repair` after upgrading Magistr -->\n",
             template.trim_end(),
             super::workbench::ROUTING_SKILL_SOURCE
         )

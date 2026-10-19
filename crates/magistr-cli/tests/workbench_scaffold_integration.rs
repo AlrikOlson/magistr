@@ -1,7 +1,4 @@
-//! A freshly scaffolded project is a healthy workbench workspace.
-//!
-//! Runs only where `workbench-mcp` is on PATH; elsewhere the test passes
-//! trivially after checking the scaffold output alone.
+//! A freshly scaffolded project declares the unified server and native commands.
 
 use std::collections::HashMap;
 use std::process::Command;
@@ -26,7 +23,7 @@ fn template_vars() -> HashMap<String, String> {
         ("test_dir", "tests/"),
         ("state_prefix", "wbfix"),
         ("allowed_tools", ""),
-        ("mcp_permissions", r#""mcp__magistr", "mcp__workbench-mcp""#),
+        ("mcp_permissions", r#""mcp__magistr""#),
     ]
     .into_iter()
     .map(|(k, v)| (k.to_string(), v.to_string()))
@@ -53,14 +50,15 @@ fn scaffolded_fixture_is_a_workbench_workspace() {
     )
     .expect("scaffold");
 
-    // The navigation substrate is workbench-mcp, and only workbench-mcp.
+    // One registration supplies workflow and source capabilities.
     let mcp: serde_json::Value =
         serde_json::from_str(&std::fs::read_to_string(dir.join(".mcp.json")).expect("mcp"))
             .expect("json");
     let servers = mcp["mcpServers"].as_object().expect("servers");
-    assert!(servers.contains_key("workbench-mcp"));
+    assert_eq!(servers.len(), 1);
+    assert!(servers.contains_key("magistr"));
     assert!(!servers.contains_key("magistr-scope"));
-    let args = servers["workbench-mcp"]["args"].as_array().expect("args");
+    let args = servers["magistr"]["args"].as_array().expect("args");
     // The workspace root is the last argument — "." on purpose: a committed
     // .mcp.json carries no path from the machine that ran init.
     assert_eq!(
@@ -74,7 +72,7 @@ fn scaffolded_fixture_is_a_workbench_workspace() {
         .expect("skill");
     assert!(skill.contains("name: workbench-routing"));
     let tools = std::fs::read_to_string(dir.join(".claude/rules/tools.md")).expect("tools.md");
-    assert!(tools.contains("workbench-mcp"));
+    assert!(tools.contains("discover"));
     assert!(!tools.contains("scope_search"));
 
     // The gates are declared for workbench `run`.
@@ -87,22 +85,16 @@ fn scaffolded_fixture_is_a_workbench_workspace() {
         );
     }
 
-    let Ok(doctor) = which::which("workbench-mcp") else {
-        eprintln!("workbench-mcp not on PATH; skipping the doctor probe");
-        return;
-    };
-    // `workbench-mcp init` ran during the scaffold, so manifest-detected
-    // commands sit beside the gate keys.
     assert!(
         parsed["commands"].get("cargo-test").is_some(),
         "init-seeded cargo-test present: {toml_body}"
     );
-    let status = Command::new(doctor)
-        .arg("doctor")
+    let status = Command::new(env!("CARGO_BIN_EXE_magistr"))
+        .args(["workspace", "doctor"])
         .arg(dir)
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::null())
         .status()
         .expect("run doctor");
-    assert!(status.success(), "workbench-mcp doctor reported findings");
+    assert!(status.success(), "workspace doctor reported findings");
 }

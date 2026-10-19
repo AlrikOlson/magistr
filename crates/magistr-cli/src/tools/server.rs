@@ -7,8 +7,6 @@
 use serde_json::json;
 use std::path::{Path, PathBuf};
 
-use crate::mcp_target::McpTarget;
-
 /// Write a temporary `.mcp.json` that includes the magistr MCP server.
 ///
 /// If the project already has `.mcp.json`, merges magistr's entry into it.
@@ -17,7 +15,7 @@ use crate::mcp_target::McpTarget;
 ///
 /// # Arguments
 /// * `project_dir` — The project root directory
-/// * `magistr_binary` — Path to the magistr binary (for `magistr mcp-serve`)
+/// * `magistr_binary` — Path to the magistr binary (for `magistr mcp`)
 pub fn write_mcp_config(
     project_dir: &Path,
     magistr_binary: &Path,
@@ -71,87 +69,16 @@ fn build_magistr_entry(magistr_binary: &Path, project_dir: &Path) -> serde_json:
     json!({
         "type": "stdio",
         "command": magistr_binary.to_string_lossy(),
-        "args": ["mcp-serve", project_dir.to_string_lossy()]
+        "args": ["mcp", "--dir", project_dir.to_string_lossy().as_ref()]
     })
 }
 
-/// Build the workbench-mcp server entry for `.mcp.json`: the native workspace
-/// bridge of this same binary, so it is always launchable.
-fn build_workbench_entry(project_dir: &Path) -> serde_json::Value {
-    let root = project_dir
-        .canonicalize()
-        .unwrap_or_else(|_| project_dir.to_path_buf())
-        .to_string_lossy()
-        .to_string();
-    McpTarget::Workbench.mcp_entry(&root)
-}
-
-/// Write an MCP config with magistr + workbench-mcp.
-///
-/// Used by the interview to give the AI agent access to both
-/// `magistr_recommend` and workbench codebase exploration tools.
+/// Configure the same unified connection for the setup interview.
 pub fn write_interview_mcp_config(
     project_dir: &Path,
     magistr_binary: &Path,
 ) -> std::io::Result<McpConfigGuard> {
-    let mcp_path = project_dir.join(".mcp.json");
-
-    if mcp_path.exists() {
-        // Merge into existing config
-        let existing = std::fs::read_to_string(&mcp_path)?;
-        let mut config: serde_json::Value =
-            serde_json::from_str(&existing).unwrap_or_else(|_| json!({}));
-
-        let servers = config
-            .as_object_mut()
-            .and_then(|o| o.get_mut("mcpServers"))
-            .and_then(|s| s.as_object_mut());
-
-        if let Some(servers) = servers {
-            let mut modified = false;
-            if !servers.contains_key("magistr") {
-                servers.insert(
-                    "magistr".to_string(),
-                    build_magistr_entry(magistr_binary, project_dir),
-                );
-                modified = true;
-            }
-            if !servers.contains_key("workbench-mcp") {
-                servers.insert(
-                    "workbench-mcp".to_string(),
-                    build_workbench_entry(project_dir),
-                );
-                modified = true;
-            }
-            if modified {
-                std::fs::write(&mcp_path, serde_json::to_string_pretty(&config)?)?;
-                return Ok(McpConfigGuard {
-                    path: mcp_path,
-                    action: McpConfigAction::Merged,
-                });
-            }
-        }
-        Ok(McpConfigGuard {
-            path: mcp_path,
-            action: McpConfigAction::Unchanged,
-        })
-    } else {
-        let mut servers = serde_json::Map::new();
-        servers.insert(
-            "magistr".to_string(),
-            build_magistr_entry(magistr_binary, project_dir),
-        );
-        servers.insert(
-            "workbench-mcp".to_string(),
-            build_workbench_entry(project_dir),
-        );
-        let config = json!({ "mcpServers": servers });
-        std::fs::write(&mcp_path, serde_json::to_string_pretty(&config)?)?;
-        Ok(McpConfigGuard {
-            path: mcp_path,
-            action: McpConfigAction::Created,
-        })
-    }
+    write_mcp_config(project_dir, magistr_binary)
 }
 
 /// Guard for temporary MCP config — tracks what was done for cleanup.

@@ -341,7 +341,7 @@ fn set_model_takes_effect_on_the_next_turn_and_its_response_is_not_a_step() {
 #[test]
 fn magistr_mcp_serve_connects_under_the_direct_cli() {
     // The protocol cap (src/mcp_tools/protocol_cap.rs) holds without the npm
-    // shim in between: the CLI negotiated with `magistr mcp-serve` and lists
+    // shim in between: the CLI negotiated with `magistr mcp` and lists
     // it connected, tools and all.
     let (translator, steps) = replay(MCP);
     let servers = translator.mcp_servers();

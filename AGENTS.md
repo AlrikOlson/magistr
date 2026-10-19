@@ -140,3 +140,16 @@ Keep `.codex/config.toml` local and ignored. Prefer this repository's skills whe
 names overlap. `$next` implements one ready chunk; `$next-loop` respects the
 requested limit. Reviews and setup do not authorize roadmap implementation.
 Run required gates explicitly; client hooks are supplementary.
+<!-- magistr:codex -->
+## Magistr in Codex
+
+Launch with `magistr codex-launch --project-root . --` or `./.codex/run`. The native launcher resolves dependencies and applies the documented Codex skill-discovery behavior. Use `magistr codex-launch --project-root . --diagnose` for read-only diagnostics.
+
+Use the configured `magistr` MCP server for workflow and workspace tools. Start with `context`; use `discover` to inspect advanced operation schemas and `execute` with `magistr.call(name, args)` to call them. Use direct search/read/edit/write for source. Composed changes stop on failure; inspect receipts before recovery. Do not start a second workflow or workspace server; follow .agents/skills/workbench-routing/SKILL.md. A held Workbench lock belongs to its existing connection: do not kill the owner or launch a competing probe.
+
+Use the nine project skills: $next, $next-loop, $validate, $roadmap, $roadmap-refresh, $signals, $craft, $init and $workbench-routing. $next runs one chunk in this Codex session. $next-loop is a bounded fresh-session handoff: finish one chunk, write the handoff, stop, and resume the bound only in a new Codex session. Read .magistr/project.json for commands and required custom gates and .magistr/conventions.md for shared project conventions. Claude hooks are additional enforcement only; Codex must explicitly run and record required gates.
+
+This project stores its roadmap only in native Magistr state. Never create or regenerate ROADMAP.md or ROADMAP.json, invoke roadmap_export, or redirect an export into the checkout. Preserve roadmap_exports=false and the project export-tool deny settings.
+
+Preserve existing objectives and worktree changes. Follow the requested scope; setup, review and planning do not authorize starting a roadmap chunk. $next implements one ready chunk; $next-loop is bounded. Recovery, acceptance, recorded checks and an atomic commit are required before completing work.
+<!-- /magistr:codex -->

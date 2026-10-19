@@ -6,7 +6,6 @@ pub mod cockpit_session;
 pub mod connect_transport;
 pub mod convert_acp_event;
 pub mod error_kind;
-pub mod init_prompt;
 pub mod mcp_servers;
 pub mod message;
 #[cfg(test)]

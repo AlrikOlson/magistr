@@ -94,8 +94,39 @@ export function fixture() {
     },
   }
 }
+export function decodeRequest(tool, args) {
+  if (tool !== 'execute') return { tool, args }
+  const match = /^return magistr\.call\((.*)\);$/.exec(args.source)
+  if (!match || args.maxOperations !== 1) throw Error('Unexpected composition')
+  const [operation, parameters] = JSON.parse('[' + match[1] + ']')
+  return { tool: operation, args: parameters }
+}
+export function compositionReply(operation, raw) {
+  if (raw.deny || raw.isError) return raw
+  return {
+    structuredContent: {
+      ok: true,
+      automaticReplay: false,
+      receipts: [
+        {
+          operation,
+          result: raw.structuredContent ?? raw.result ?? raw,
+          failed: false,
+        },
+      ],
+    },
+  }
+}
 export function answer(f, server, tool, args) {
-  if (server === 'workbench-mcp') {
+  if (server !== 'magistr') throw Error('Unexpected server: ' + server)
+  if (tool === 'execute') {
+    const operation = decodeRequest(tool, args)
+    return compositionReply(
+      operation.tool,
+      answer(f, server, operation.tool, operation.args),
+    ).structuredContent
+  }
+  if (['workbench_status', 'read', 'undo'].includes(tool)) {
     if (tool === 'workbench_status')
       return { v: 1, ok: true, results: [{ root: '/example' }] }
     if (tool === 'read')
@@ -113,7 +144,13 @@ export function answer(f, server, tool, args) {
       return f.roadmap
     case 'roadmap_focus_get': {
       const activity = {
-        counts: { total: 1, backlog: 0, pending: 1, in_progress: 0, blocked: 0 },
+        counts: {
+          total: 1,
+          backlog: 0,
+          pending: 1,
+          in_progress: 0,
+          blocked: 0,
+        },
         readiness: { ready: 1, waiting: 0, blocked: 0 },
         next_ready: 'search',
       }
@@ -127,7 +164,13 @@ export function answer(f, server, tool, args) {
           current: { Search: activity },
           history: {},
           ungrouped: {
-            counts: { total: 0, backlog: 0, pending: 0, in_progress: 0, blocked: 0 },
+            counts: {
+              total: 0,
+              backlog: 0,
+              pending: 0,
+              in_progress: 0,
+              blocked: 0,
+            },
             readiness: { ready: 0, waiting: 0, blocked: 0 },
             next_ready: null,
           },
@@ -139,20 +182,22 @@ export function answer(f, server, tool, args) {
               frontier: {
                 group: f.focus.group,
                 activity,
-                items: [{
-                  id: f.work.id,
-                  name: f.work.name,
-                  priority: 100,
-                  status: f.work.status,
-                  readiness: { state: 'ready' },
-                }],
+                items: [
+                  {
+                    id: f.work.id,
+                    name: f.work.name,
+                    priority: 100,
+                    status: f.work.status,
+                    readiness: { state: 'ready' },
+                  },
+                ],
               },
             }
           : { state: 'unset' },
         persistent: true,
       }
     }
-    case 'magistr_context':
+    case 'context':
       return {
         ...f.context,
         task: args.task_id

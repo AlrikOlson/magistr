@@ -1,16 +1,9 @@
-# Workspace owner
+| 21: unreachable owner | The bridge serves discovery and typed unavailability while an owner is unreachable, then retries admission on the next request. Unknown markers refuse without modification. | Each request has a bounded attachment deadline; effects are never replayed. |ner
 
-This page describes the current implementation. Under the
-[pre-release policy](../../AGENTS.md#before-public-release), the separate `workbench-mcp` endpoint,
-old launch names, legacy lock formats and migration verbs are not requirements
-to preserve. Consolidate or replace them directly with current callers and tests.
-
-Every Magistr workspace client reaches one admitted native owner. `magistr
-workspace serve <root>` — and its retained production alias `magistr
-mcp-launch workbench-mcp <root>`, the line every scaffolded `.mcp.json` and
-Codex `config.toml` carries — is a *bridge*: its client speaks MCP on the
-bridge's stdio, and the bridge speaks the same frames to whichever owner is
-reachable. The first invocation admits the workspace and owns the
+Every Magistr workspace client reaches one admitted native owner. The public
+`magistr mcp --dir <root>` endpoint composes the workflow and workspace bridges.
+Its workspace bridge speaks MCP to the admitted workspace owner over a local link.
+The first invocation admits the workspace and owns the
 `WorkspaceService` in-process; later invocations attach to it over Magistr's
 shared local owner endpoint. Since `arch-14f2` a `magistr run` or cockpit
 loop admits the workspace itself before its agent starts
@@ -33,16 +26,11 @@ that shared lock until it closes, including when its source root is a nested
 project. Archive takes the same lock exclusively and refuses active source or
 workflow sessions. [Working-copy lifecycle](project-authority.md#working-copy-lifecycle)
 owns archive and reopen; source roots, journals and generations remain independent.
-Its immutable native marker
-and durable `.workbench/server.generation` retain the d1 exclusion and fencing
-contract. Lock contention is the only attachment path; legacy, empty or
-malformed markers keep the documented
-[offline migration refusal](../../subsystems/workspace/PROVENANCE.md#offline-migration),
-now performed by `magistr workspace migrate <root>`: it moves the obsolete
-record aside (never deletes it) only when the record was written on this host
-and its process is not alive, never touches a native marker, and exits 75
-otherwise. No process takes ownership from a live holder, uses its PID as
-admission proof, or resets the durable generation.
+Its immutable marker and durable `.workbench/server.generation` enforce
+exclusion and fencing. Only contention on a valid marker permits attachment.
+Empty or unrecognized markers refuse admission without interpreting process IDs,
+moving records or opening stores. Recovery restores known-good workspace state
+offline. No process takes ownership from a live holder or resets its generation.
 
 `OwnerIdentity::Workspace` names the canonical root independently of workflow
 project identity, store and writer roles. Aliases resolve to the same owner;
@@ -68,7 +56,7 @@ publishes the endpoint; each connect and greeting exchange has one absolute
 deadline, capped at 250 ms per attempt. Startup with no reachable owner and no
 admissible workspace never opens a second service. When the refusal is of the
 temporary kind (`EX_TEMPFAIL`, 75: the lock is held by an owner that has
-published no endpoint, or the marker awaits migration) the bridge process
+published no endpoint, or the marker is unrecognized) the bridge process
 does not exit either: it serves discovery itself, as described under
 [the bridge](#the-bridge), and reconnects on its next request. Every other
 refusal — a missing root (66), durable data written by a newer binary (65),
@@ -123,7 +111,7 @@ one at once: `initialize` the shared capability negotiated for that request,
 `tools/list` the last listing an owner gave or the core definition, a
 `tools/call` the retained `ENGINE_UNAVAILABLE` envelope with recovery `retry`
 (text and `structuredContent` alike) whose message names the refusal and the
-action that lifts it — `magistr workspace migrate` for a legacy marker, the
+action that lifts it — restoring invalid workspace state offline, or the
 timed-out attachment for a lock held without an endpoint — `ping` an empty
 result, anything else a JSON-RPC error naming the reason. The tool surface
 never disappears and the bridge process never exits on owner loss. The next
@@ -132,8 +120,7 @@ attaches to whoever admitted the workspace meanwhile, or admits the workspace
 itself and becomes the embedded owner for its peers — the embedded-owner
 analog of ADR-018's connect-or-spawn, with no daemon. If neither is possible
 the request is answered with the typed refusal and the next request tries
-again; a workspace migrated while the bridge waited is admitted on that next
-request, without a restart. Nothing that was in flight is replayed: a call
+again; repaired workspace state is considered on the next request. Nothing that was in flight is replayed: a call
 the owner may or may not have applied is answered refused with the
 read-back note, the identity the bridge stamps survives, and a confirmation
 minted under the lost owner stays fenced by the new generation.
@@ -180,9 +167,8 @@ alone cannot make, and both read-only: no lock is taken, no store opened,
 nothing admitted, minted, marked or written.
 
 - **`owner`.** The durable generation (`.workbench/server.generation`) and
-  the lock record (`ServerLock::inspect`: absent, the native marker, a
-  legacy record with its host, pid and — for this host only — whether that
-  pid is alive, or unrecognized bytes) are read as records of past
+  the lock record (`ServerLock::inspect`: absent, the native marker, or
+  unrecognized bytes) are read as records of past
   admissions. Liveness comes only from one bounded `probe` handshake on the
   owner endpoint ([project authority](project-authority.md#attachment)):
   a live owner is reported with its generation, pid, build, endpoint and
@@ -196,8 +182,7 @@ nothing admitted, minted, marked or written.
   and the diagnostic limitation without judging MCP attachment or telling
   the user to close a working session; no endpoint, or an endpoint file
   nothing answers on, is reported as *no owner reachable* with the counter
-  named as the last admission, never as a live owner. A legacy or
-  unrecognized record is the migration finding.
+  named as the last admission, never as a live owner. An unrecognized record is an offline restoration finding.
 - **`operations`.** The run checkpoint (`.magistr/loop-state.json`) read as
   it lies, see [durability](durability.md#diagnostics-versus-evidence).
 
@@ -207,31 +192,18 @@ diagnostics: computed on request, retained nowhere.
 
 ## Production launch and discovery
 
-- `magistr mcp-launch workbench-mcp <dir>` selects the project root exactly as
-  before (nearest `.magistr` or `.jig` project within the repository, else the
-  directory) and runs the bridge. The scaffold's `.mcp.json` and Codex
-  `config.toml` currently contain this launch entry. That records existing
-  configuration and does not require retaining the alias or the separate endpoint.
-- `magistr init` seeds `workbench.toml` through the native detection
-  (`magistr workspace init`), never an installed `workbench-mcp init`.
-- The interview's temporary `.mcp.json` always includes the workspace entry.
-- The cockpit's port reads the project's `workbench-mcp` launch line, spawns
-  it, and attaches to the run's owner — the host itself when it admitted the
-  workspace, else whoever did — during `magistr run`; its journal view runs
-  `magistr workspace journal`.
-- Codex parent and subagent threads each launch a bridge; both attach to one
-  owner. `scripts/codex-subagent-check.py` (the optional `codex-subagent`
-  gate) runs the real `codex exec` under an isolated `CODEX_HOME` and passes
-  only when the parent and the subagent both read through the same owner with
-  two launches and zero exit-75.
+`magistr mcp --dir <root>` selects the nearest configured project within its
+working-copy boundary and serves both owners through one catalog. The scaffold
+writes one `magistr` registration for each selected agent. The cockpit source
+port uses that registration; its journal reads use `magistr workspace journal`.
+See [unified MCP](unified-mcp.md) for direct tools, discovery, composition,
+cancellation and per-connection planning restrictions.
 
-A workspace whose `.workbench/server.lock` still holds the retained legacy
-server's record is refused until `magistr workspace migrate` runs with that
-server stopped; a bridge launched against it meanwhile serves discovery,
-refuses calls with that command named, and admits on its first call after
-the migration. This repository's own `.mcp.json` keeps its explicit legacy
-entry until that migration is performed offline; nothing here runs the native
-owner against a live legacy workspace.
+Initialization seeds `workbench.toml` through native detection. No external
+workspace executable or Bun runtime is required. Multiple agents connect to the
+same workspace owner; distinct working copies retain separate journals and indexes.
+The optional `codex-subagent` gate exercises real parent and subagent attachment
+in a disposable project.
 
 ## ADR-018 scope
 

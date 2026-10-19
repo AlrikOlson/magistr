@@ -1,5 +1,6 @@
 use super::*;
 use crate::config::user_config::ThemePreference;
+use std::fs::File;
 
 #[test]
 fn read_is_side_effect_free_and_first_save_creates_parent_directories() {

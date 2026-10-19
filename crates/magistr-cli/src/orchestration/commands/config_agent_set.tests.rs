@@ -37,6 +37,7 @@ fn personal_agent_writer_respects_the_shared_preferences_lock() {
     held.try_lock().unwrap();
     assert!(config_agent_set("agent", "codex", false, None, dir.path(), &inputs).is_err());
     assert!(!inputs.user_config_path().unwrap().exists());
+    held.unlock().unwrap();
     drop(held);
     config_agent_set("agent", "codex", false, None, dir.path(), &inputs).unwrap();
 }

@@ -56,7 +56,7 @@ formatting, phase transitions, hooks and safe file operations for this project. 
 The think_*/ship_*/roadmap_*/signal_* families below are think-and-ship, served \
 in-process on the same store as Magistr's own views.";
 
-/// The rmcp server behind `magistr mcp-serve`: the `magistr_*` tools plus the
+/// The rmcp server behind `magistr mcp`: the `magistr_*` tools plus the
 /// four think-and-ship families, one tool list.
 #[derive(Clone)]
 pub struct MagistrService {

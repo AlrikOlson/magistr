@@ -74,9 +74,8 @@ fn run_check(root: &std::path::Path) -> Result<ToolResult, magistr_mcp::ToolErro
         .map_err(|e| magistr_mcp::ToolError::Mcp(format!("Detection failed: {e}")))?;
 
     let report = crate::scaffold::drift::detect_drift(&archetypes, &tree);
-    // The startup repair, planned and not applied: `magistr mcp-serve`
-    // applies it on its way in, so this is where a reviewer sees it first.
-    let repair = crate::scaffold::repair::plan(root);
+    let repair = crate::scaffold::repair::plan(root)
+        .map_err(|e| magistr_mcp::ToolError::Mcp(format!("Cannot plan repair: {e}")))?;
 
     let result = crate::commands::init::check_report_json(
         &report,

@@ -1,0 +1,1246 @@
+{
+  "baseCommit": "a3c0723dd25f2ca0b1f65a5d08245417c4be83e0",
+  "description": "Changed source and support files before the delivery commit; null marks removal. Evidence files are excluded to avoid self-reference.",
+  "files": [
+    {
+      "file": ".agents/skills/craft/references/runtime.md",
+      "sha256": "3a3eae284a7796eadab9448f0a0690771f80b3a94429897a9cf2a656eb31916d"
+    },
+    {
+      "file": ".agents/skills/next-loop/SKILL.md",
+      "sha256": "6d85e72daac9e5c0e4f58d018bec43de3d24c60269368a06b5869a55178703f4"
+    },
+    {
+      "file": ".agents/skills/next/SKILL.md",
+      "sha256": "b40c18e258b64a7bea8c5aa7bf0eef2c167c9adb1208fc8c86c5767943554046"
+    },
+    {
+      "file": ".agents/skills/roadmap-refresh/SKILL.md",
+      "sha256": "e16e145960dbc2855d05a8500b090e5f0879020ec32661edc23e5fa98a6921f5"
+    },
+    {
+      "file": ".agents/skills/signals/SKILL.md",
+      "sha256": "3d94c0e4c97338a039319c8a78ae4144423abc279bb7a973930af2e69dc1d526"
+    },
+    {
+      "file": ".agents/skills/workbench-routing/SKILL.md",
+      "sha256": "4bcbadb9ad2999b6097811dbf98b90df6e6a84f72e5f1ee91c9ef2f3e3ce4812"
+    },
+    {
+      "file": ".claude/hooks/magistr-guard.sh",
+      "sha256": "7448f6541ee33057b23a567a0a804517141cc7caa2f59f33ba76ccdd33c219d6"
+    },
+    {
+      "file": ".claude/rules/tools.md",
+      "sha256": "46132b35bd3e711c18b52a79e621ff5b0cc3495355047c4f89e649b63cfc67a6"
+    },
+    {
+      "file": ".claude/rules/workflow.md",
+      "sha256": "287f09d2383f1092ad1637ce5f43ba2fcb36dd942dc523445ded6e6d1672414f"
+    },
+    {
+      "file": ".claude/settings.json",
+      "sha256": "927aa26947cb96ec6adc14563002b394cea7677f1083b0b3334386e9dbe8a8f7"
+    },
+    {
+      "file": ".claude/skills/craft/SKILL.md",
+      "sha256": "ae107da06e880a37e5dfd31240b887819e688572c290ad430ebfdb4995ac17ea"
+    },
+    {
+      "file": ".claude/skills/craft/references/runtime.md",
+      "sha256": "d8d27217c88d9e77a4ba03fc19e4f2013174ac1f37b85196657b3330930a6d87"
+    },
+    {
+      "file": ".claude/skills/next-loop/SKILL.md",
+      "sha256": "41c66c4bd1cfb52ad5e5651b7ed4262752915bcd907513e71112593c26906a28"
+    },
+    {
+      "file": ".claude/skills/next/SKILL.md",
+      "sha256": "e9fd4d8e5ed244dfea0cf9be668e9899eb29306679b03d8cbff026badf934be9"
+    },
+    {
+      "file": ".claude/skills/roadmap-refresh/SKILL.md",
+      "sha256": "7606bd109c9ca44487cd8142f9d0a1c165de04f556058ef1ed246c8c79817ccd"
+    },
+    {
+      "file": ".claude/skills/signals/SKILL.md",
+      "sha256": "d11e74bbd4cb442f88e89b34b53c9981f52fc5476f999e4f07508e12eef6bafe"
+    },
+    {
+      "file": ".claude/skills/workbench-routing/SKILL.md",
+      "sha256": "4bcbadb9ad2999b6097811dbf98b90df6e6a84f72e5f1ee91c9ef2f3e3ce4812"
+    },
+    {
+      "file": ".github/workflows/cli-packages.yml",
+      "sha256": "c1981d98ae52ef033dd85ed36b4f57f3eea735a561f4312cf78845b7e73eb987"
+    },
+    {
+      "file": ".gitignore",
+      "sha256": "7a08e6dfb84ab302709625e12d17b3a0b995aac54354319f1ad86981e823744c"
+    },
+    {
+      "file": ".magistr/.gitignore",
+      "sha256": "9e17e0cdb95770347ad7384fe51e7b77dbe4c89fd7854a395d7569b451a29ec1"
+    },
+    {
+      "file": ".magistr/conventions.md",
+      "sha256": "b2fe012f02927e2d0073c3590b49f89a0f3a48c0616d0738b697bb8af66bd077"
+    },
+    {
+      "file": "AGENTS.md",
+      "sha256": "8885770b8d2a412ae4feab0d43e9ecb5bec3a4c652dc50381b3cb1b1bc3a7f80"
+    },
+    {
+      "file": "CLAUDE.md",
+      "sha256": "1c7dbb5d2edf5b59cc9582776be455623dae44783862441e5387aa48300820e9"
+    },
+    {
+      "file": "README.md",
+      "sha256": "f5a274e46994cf216a6de32718b1776e678dea3138dacd90e61fec3329a7bb4d"
+    },
+    {
+      "file": "crates/magistr-acp-agent/Cargo.toml",
+      "sha256": "6b574a9c5a51326973ef7ae7432dc4b2a3f7ab3092f2e8392ed0c0f4b7ca5da3"
+    },
+    {
+      "file": "crates/magistr-acp-agent/LICENSE",
+      "sha256": "eac9dc52c6e4cb0d7c40710027538ac790c10cc605856e40f237275fd8440810"
+    },
+    {
+      "file": "crates/magistr-acp-agent/src/claude/launch.tests.rs",
+      "sha256": "de4d673e5fbf8f253e1266660af81042a361c10c0d63f73a78e9690db130ed93"
+    },
+    {
+      "file": "crates/magistr-acp-agent/src/claude/translate.tests.rs",
+      "sha256": "8acd85ca0fad940194e3d5434c6b70b67fbeddce50216db8c8f310086b378fc2"
+    },
+    {
+      "file": "crates/magistr-acp/Cargo.toml",
+      "sha256": "5c915264b3cefb8d215d5b4fdd4d360433a292aa6c4210aa8db7053592015895"
+    },
+    {
+      "file": "crates/magistr-acp/LICENSE",
+      "sha256": "eac9dc52c6e4cb0d7c40710027538ac790c10cc605856e40f237275fd8440810"
+    },
+    {
+      "file": "crates/magistr-application/Cargo.toml",
+      "sha256": "8aaddf4530bb65080b03b62f73392fefef3035e703d3b5b9ae364df17e45f898"
+    },
+    {
+      "file": "crates/magistr-application/LICENSE",
+      "sha256": "eac9dc52c6e4cb0d7c40710027538ac790c10cc605856e40f237275fd8440810"
+    },
+    {
+      "file": "crates/magistr-cli/Cargo.toml",
+      "sha256": "616335952e1beba23a6fe67bd90a009c66a9cfb5a0ec97adf265c55e5e6a9506"
+    },
+    {
+      "file": "crates/magistr-cli/LICENSE",
+      "sha256": "eac9dc52c6e4cb0d7c40710027538ac790c10cc605856e40f237275fd8440810"
+    },
+    {
+      "file": "crates/magistr-cli/assets/qjs/LICENSE",
+      "sha256": "96f73f9d2a16c21a36b418f06073be26e7d6d5e7c1bc99756b21a4f2c74ef171"
+    },
+    {
+      "file": "crates/magistr-cli/assets/qjs/PROVENANCE.md",
+      "sha256": "3314b978f400e2c86152ac24bb5ff17b006b38c80da15434c802518b1c845b0b"
+    },
+    {
+      "file": "crates/magistr-cli/assets/qjs/qjs-wasi.wasm",
+      "sha256": "d2939e98c808e8b9f4164cd0d7b0398cbc0121ddf52862bcd92157d923e461cc"
+    },
+    {
+      "file": "crates/magistr-cli/src/agent/init_prompt.rs",
+      "sha256": null
+    },
+    {
+      "file": "crates/magistr-cli/src/agent/mcp_servers.rs",
+      "sha256": "df6c200252b45b108f25bc249cb399de9b23293a8d9c139623dcb0311b088354"
+    },
+    {
+      "file": "crates/magistr-cli/src/agent/mcp_servers.tests.rs",
+      "sha256": "900732e165d58c9b7a360b699fa90a0362a106e0a6003982b51792f663881110"
+    },
+    {
+      "file": "crates/magistr-cli/src/agent/mod.rs",
+      "sha256": "8bab9a617406335faec9569f523e97a46b5514601bad3467a95cabc397ac4f69"
+    },
+    {
+      "file": "crates/magistr-cli/src/agent/purpose_policy.rs",
+      "sha256": "40f357589a822dd70a1a048025ea9961e95f741a8d11e16fd33e77e8e711ca8e"
+    },
+    {
+      "file": "crates/magistr-cli/src/agent/purpose_policy.tests.rs",
+      "sha256": "e588fd1c0dba2db191ebb30fbc92d63a7110f02dda6cb2190f4795baa5138ce8"
+    },
+    {
+      "file": "crates/magistr-cli/src/agent/resolved_session_spec.rs",
+      "sha256": "972e9c0df362e086512a4185e1d8d4f3db8fc0e23a6aab2d66edd4c6362a395e"
+    },
+    {
+      "file": "crates/magistr-cli/src/agent/resolved_session_spec.tests.rs",
+      "sha256": "20efad949533629c1254ad48570742bad5cdca8c0a8b8007a1807da0af44dbd8"
+    },
+    {
+      "file": "crates/magistr-cli/src/agent/session_supervisor/history.tests.rs",
+      "sha256": "fad53a9e95e50d49f2ac1195162347a3bc061279dd1443e5dcb630623581c452"
+    },
+    {
+      "file": "crates/magistr-cli/src/agent/system_prompt.rs",
+      "sha256": "380098fef2d151fb914f770c03b9609e80a493790840a637026466976a880d4a"
+    },
+    {
+      "file": "crates/magistr-cli/src/agent/system_prompt.tests.rs",
+      "sha256": "b7be1d98fd556f798a1f94121255210ca1e2d842a16a1a1e279cf6c804c40e99"
+    },
+    {
+      "file": "crates/magistr-cli/src/agent/tool_permissions.rs",
+      "sha256": "4ec7d4552b7be49381f6dde248f10063e19322a4e667f731624806b085d49d81"
+    },
+    {
+      "file": "crates/magistr-cli/src/agent/tool_permissions.tests.rs",
+      "sha256": "2c462a711a947b033f1358366a505dd3e593e84ccf12a1c57c93c8fc5e36826e"
+    },
+    {
+      "file": "crates/magistr-cli/src/application/mod.rs",
+      "sha256": "793f8bbde6d8bd13b156f8770ead74fcecb569642458da42a90465e8bb764631"
+    },
+    {
+      "file": "crates/magistr-cli/src/application/workflow_client/feed.rs",
+      "sha256": "55b0ba23b18db6715920def1fc3419587673e60fd4c977d91e9a7aa7420bcd4b"
+    },
+    {
+      "file": "crates/magistr-cli/src/application/workflow_client/native_port.rs",
+      "sha256": "1a7c3091ff70ad056326b14867ced21bed1a7d6c2057ed57e53864869488ec69"
+    },
+    {
+      "file": "crates/magistr-cli/src/application/workspace_client/mcp_client.rs",
+      "sha256": "1ae49ff82af5cb0f33a241f1fce6c575f1058b681658e5daaa0af9ef9dab6d02"
+    },
+    {
+      "file": "crates/magistr-cli/src/application/workspace_client/mcp_client.tests.rs",
+      "sha256": "f4bb3d0d1b4147b5786b668f623d8f0b57a00b990ce46cf109397e20010b4869"
+    },
+    {
+      "file": "crates/magistr-cli/src/application/workspace_client/mcp_workbench.rs",
+      "sha256": "70a6ca0cc5249398cb407f3a144d9a95e3a4d176430086dc11d355e93264d97a"
+    },
+    {
+      "file": "crates/magistr-cli/src/application/workspace_client/mcp_workbench.tests.rs",
+      "sha256": "50078311baf9e2839f70233d442f5cf5ff4bade7d1ff5d294acfdccea661478a"
+    },
+    {
+      "file": "crates/magistr-cli/src/cli.rs",
+      "sha256": "29ef3e996e1dac618f960dc97af052f4c0b3bea7d449aa8cd6370cdbb9ae04c2"
+    },
+    {
+      "file": "crates/magistr-cli/src/core/types/stack.rs",
+      "sha256": "61a7dd49fe53034d408822cabca772f314aba5a4514024bedeba692be74340e4"
+    },
+    {
+      "file": "crates/magistr-cli/src/lib.rs",
+      "sha256": "637f1f84f24453c455ad282f5d85a5358e52e5ef21e9d60686423e987a59cd48"
+    },
+    {
+      "file": "crates/magistr-cli/src/main.rs",
+      "sha256": "4950b25309f2158cc2afc8507bc193f0d62991f98ec412de848cb14eb66ceb71"
+    },
+    {
+      "file": "crates/magistr-cli/src/main.tests.rs",
+      "sha256": "aa427c93fdd7c445f4a83cc3ce9c5873940d8f8bfdd8814a4db7f2c0b746488c"
+    },
+    {
+      "file": "crates/magistr-cli/src/mcp_bridge.rs",
+      "sha256": "778842f720b5d52e09562077ed713e9787188bb6cb32041f062fdcda7b310f9d"
+    },
+    {
+      "file": "crates/magistr-cli/src/mcp_bridge/bridge.rs",
+      "sha256": "69a480843204343e76287b601ced063b360b7f10e882c2907f78a3c1b3bbf2a1"
+    },
+    {
+      "file": "crates/magistr-cli/src/mcp_target.rs",
+      "sha256": "4b96281253737d708d4931c676a5a50fc1046cd9ccbe05c76328224b90be0e3b"
+    },
+    {
+      "file": "crates/magistr-cli/src/mcp_tools/gate.rs",
+      "sha256": "768be4199f66299e86a02cb87c227e1a59c3249c48da72727cf603334966bade"
+    },
+    {
+      "file": "crates/magistr-cli/src/mcp_tools/init.rs",
+      "sha256": "33724714f5073d2f4f26adb9ee04633ed39ee2bac2986b551e3f0bdc1a2484da"
+    },
+    {
+      "file": "crates/magistr-cli/src/mcp_tools/init.tests.rs",
+      "sha256": "72d0cc821213bea924df1988bd23b47b48d141a1301de2cdc4d0d4b8054df921"
+    },
+    {
+      "file": "crates/magistr-cli/src/mcp_tools/mod.rs",
+      "sha256": "0312b5da12a184cde2b29cd1a7a2030bf3ee96e21d97b96cbfbabc9aeab26ab2"
+    },
+    {
+      "file": "crates/magistr-cli/src/mcp_tools/mod.tests.rs",
+      "sha256": "3eeb73dbf7d463d3b0f56cbd002a62f024ba45ef15b907df7e9d3578118e679b"
+    },
+    {
+      "file": "crates/magistr-cli/src/mcp_tools/owner_link.rs",
+      "sha256": "641adc2fd2383f16d3e900eeb39ca337cbc84bcf7b53596d180e46a40ce69f55"
+    },
+    {
+      "file": "crates/magistr-cli/src/mcp_tools/protocol_cap.rs",
+      "sha256": "2b34aa90bca84a858393d19b4b8540508c0073aeff6167f3d463720d9839c0f0"
+    },
+    {
+      "file": "crates/magistr-cli/src/mcp_tools/service.rs",
+      "sha256": "46332664e1b8cf76ea80511855edbb14beb248cc21fe6f8efaae6b9f262caf78"
+    },
+    {
+      "file": "crates/magistr-cli/src/orchestration/commands/config/cmd_doctor.rs",
+      "sha256": "fae9d01953501aede75a76810564033d0c24e74ca6db0c1ea2e252e254dd7370"
+    },
+    {
+      "file": "crates/magistr-cli/src/orchestration/commands/config/cmd_guard.tests.rs",
+      "sha256": "5621661330a88d14a002e3fd8f517bb37286a10571a67f9f78a8c460aa2b492e"
+    },
+    {
+      "file": "crates/magistr-cli/src/orchestration/commands/config/cmd_setup.rs",
+      "sha256": "5c7fa15d36d0ca5567caea181ce81828ebc55ae85794d625ae06e85f9e8be3ff"
+    },
+    {
+      "file": "crates/magistr-cli/src/orchestration/commands/config/mod.rs",
+      "sha256": "94abe2e77408700fc14c8cdb5119eff83fda1539f01f7c4830b73930c1b12cb3"
+    },
+    {
+      "file": "crates/magistr-cli/src/orchestration/commands/config_agent_set.tests.rs",
+      "sha256": "cc062d392823541a083c7b93ed0c25b453d1f117971aba2d638d6833e309e628"
+    },
+    {
+      "file": "crates/magistr-cli/src/orchestration/commands/init/cmd_init.rs",
+      "sha256": null
+    },
+    {
+      "file": "crates/magistr-cli/src/orchestration/commands/init/cmd_init_check.rs",
+      "sha256": "f0e516ca938f416ccd9f665b353be3707c1f8be4bbb31d8770ea0a8220c63f88"
+    },
+    {
+      "file": "crates/magistr-cli/src/orchestration/commands/init/cmd_init_check.tests.rs",
+      "sha256": "5b6e558ef7be2e68a948fb4b5c0b53d99f577b3232196c8ea6386ef817ebb2e7"
+    },
+    {
+      "file": "crates/magistr-cli/src/orchestration/commands/init/cmd_init_dry_run.rs",
+      "sha256": "e2c64e66af3cf73503e07550da922d55e52f7e80b007fc022026fe8e8068e283"
+    },
+    {
+      "file": "crates/magistr-cli/src/orchestration/commands/init/cmd_init_interactive.rs",
+      "sha256": null
+    },
+    {
+      "file": "crates/magistr-cli/src/orchestration/commands/init/cmd_init_interview.rs",
+      "sha256": "1b31d7931cac4d20505b2216459a99be86fcd390a4b2b7987dc40a542254b4fb"
+    },
+    {
+      "file": "crates/magistr-cli/src/orchestration/commands/init/cmd_init_smart.rs",
+      "sha256": null
+    },
+    {
+      "file": "crates/magistr-cli/src/orchestration/commands/init/mod.rs",
+      "sha256": "9dfd5db03aa0ba47236de9169b069acc9ed3ea521e7ef1e39ee47fea4b77bc62"
+    },
+    {
+      "file": "crates/magistr-cli/src/orchestration/commands/init/mod.tests.rs",
+      "sha256": "a9948abb2b07be1a5ef42b0b0758ea8a23bbb039c93d4553cd32f0e62d94822e"
+    },
+    {
+      "file": "crates/magistr-cli/src/orchestration/commands/misc/cmd_acp_agent.rs",
+      "sha256": "1268ecebf19fa0399ad2e4564381040cf5397345bcaf6182ba6b99f5d6e68c75"
+    },
+    {
+      "file": "crates/magistr-cli/src/orchestration/commands/misc/cmd_mcp_launch.rs",
+      "sha256": null
+    },
+    {
+      "file": "crates/magistr-cli/src/orchestration/commands/misc/cmd_mcp_serve.rs",
+      "sha256": null
+    },
+    {
+      "file": "crates/magistr-cli/src/orchestration/commands/misc/cmd_mcp_serve.tests.rs",
+      "sha256": null
+    },
+    {
+      "file": "crates/magistr-cli/src/orchestration/commands/misc/cmd_workspace.rs",
+      "sha256": "7c9b55c2e05df8fd5f1261a522bc1c0f563b8392e48f5b567d7f7938c3c470ce"
+    },
+    {
+      "file": "crates/magistr-cli/src/orchestration/commands/misc/mod.rs",
+      "sha256": "3d29f367dc0ae4ff2ac05c8fc276b7d1015c96753fae9770563d223f783ac103"
+    },
+    {
+      "file": "crates/magistr-cli/src/orchestration/commands/workbench_port.rs",
+      "sha256": "a23086555544f6ce16062067843f6c7b42b65b37fbad4162678ae93661200133"
+    },
+    {
+      "file": "crates/magistr-cli/src/orchestration/commands/workbench_port.tests.rs",
+      "sha256": "d0cc05e842247c7fac4860763975699fc13a0f5ea4b5a022977da527670e4d65"
+    },
+    {
+      "file": "crates/magistr-cli/src/orchestration/loop_driver/driver.rs",
+      "sha256": "a69c16600e528ba39f4fedb26eb7a2ca43902ee09ccb52290087830a73d79981"
+    },
+    {
+      "file": "crates/magistr-cli/src/orchestration/loop_driver/driver.tests.rs",
+      "sha256": "682e2ffc36999d78045baa31ad876cc9a4aed1c6f5ebcd42349cf848aac2c632"
+    },
+    {
+      "file": "crates/magistr-cli/src/orchestration/loop_driver/gate_job.rs",
+      "sha256": "1efec5b6afcc18cbfc700ca7c7acec94e05d6c0cfb61618be03713e2d53ce096"
+    },
+    {
+      "file": "crates/magistr-cli/src/orchestration/roadmap/open_native_reader.rs",
+      "sha256": "173cccd3d9cfec4c5f861dba3c74cb2c8fa99c84553452faa2253a5252fe1df1"
+    },
+    {
+      "file": "crates/magistr-cli/src/scaffold/admin_service.rs",
+      "sha256": "5a1c1b8b49b64a10c84d17c433ab8c1e3846ffdff32e08359cfa9c2c7143a5e9"
+    },
+    {
+      "file": "crates/magistr-cli/src/scaffold/admin_service.tests.rs",
+      "sha256": "177b7c43511fb163acc38a643e610609c183842443d3a3e49025ac16c23d8c7d"
+    },
+    {
+      "file": "crates/magistr-cli/src/scaffold/apply.rs",
+      "sha256": "4e9687092eb38b8b4934a4f1216473ecf0b545fcb8d04e23428f00cb956e3357"
+    },
+    {
+      "file": "crates/magistr-cli/src/scaffold/canonical.tests.rs",
+      "sha256": "8caa0ff8df497a7af741f396c2db48f407342daa8c9969b753639521c8153aa7"
+    },
+    {
+      "file": "crates/magistr-cli/src/scaffold/codex_config.rs",
+      "sha256": "3f9f2cff74b952101d23da890db878b10bc32f21a08254db23b37f423b5aa81b"
+    },
+    {
+      "file": "crates/magistr-cli/src/scaffold/codex_emitter.rs",
+      "sha256": "66c5f1ceeb2258426a02ec70003f018b0e6570b7fcc1bea821a2d6d0e4461845"
+    },
+    {
+      "file": "crates/magistr-cli/src/scaffold/codex_lifecycle.tests.rs",
+      "sha256": "20042681d99803658072a5a5741353560083f9f01aa143b458aedcc26c26c476"
+    },
+    {
+      "file": "crates/magistr-cli/src/scaffold/codex_setup.rs",
+      "sha256": "d5835d7259739dc809c199255d47104c7f6a486ce2f7f40b2e026e00c950fc65"
+    },
+    {
+      "file": "crates/magistr-cli/src/scaffold/codex_setup.tests.rs",
+      "sha256": "32c2ec16b3d3bb6a3c39ef85ff52dc6fd5d95fef90bdb617431123c2d6088d38"
+    },
+    {
+      "file": "crates/magistr-cli/src/scaffold/codex_skill_links.rs",
+      "sha256": null
+    },
+    {
+      "file": "crates/magistr-cli/src/scaffold/codex_skill_links.tests.rs",
+      "sha256": null
+    },
+    {
+      "file": "crates/magistr-cli/src/scaffold/emitters.rs",
+      "sha256": "053444016158f73b6527f3c3d6c170bab72e8bf4494163fa53bac5272ccf9126"
+    },
+    {
+      "file": "crates/magistr-cli/src/scaffold/generate.rs",
+      "sha256": "a199da46dd11dd65667f673ba4ad407bfa1a350897f9dcaa7d39b01600a0d9f3"
+    },
+    {
+      "file": "crates/magistr-cli/src/scaffold/generate.tests.rs",
+      "sha256": "3df04af09cdbd5b98585770d4b69be6459a2387ae75d683b1564430c39741781"
+    },
+    {
+      "file": "crates/magistr-cli/src/scaffold/integrations.rs",
+      "sha256": "43ead899e174d88c8d90203a5fc7b0652774470fa3a0f9d98b14c930b99a0c10"
+    },
+    {
+      "file": "crates/magistr-cli/src/scaffold/interview.rs",
+      "sha256": "838fcbd3550a4a96c250dedfaedddc72df559902dfff4a15c5adc503a0e0f730"
+    },
+    {
+      "file": "crates/magistr-cli/src/scaffold/interview.tests.rs",
+      "sha256": "635a6ec434f508af01d9ad302336fa9e1df62fd727800475dcee041783254146"
+    },
+    {
+      "file": "crates/magistr-cli/src/scaffold/mcp_config.rs",
+      "sha256": "7039f3216c3ae79c985b32508b59e995031e5bc781a992cb0401c81710b9d737"
+    },
+    {
+      "file": "crates/magistr-cli/src/scaffold/mod.rs",
+      "sha256": "9aff55a348568a7d9224a4308b15882de4cfc8a14e77b75791213a3c87c4f323"
+    },
+    {
+      "file": "crates/magistr-cli/src/scaffold/mod.tests.rs",
+      "sha256": "6d5782c756e847f73e51165d894afc571c09de833c389f7b6042103abe00001f"
+    },
+    {
+      "file": "crates/magistr-cli/src/scaffold/pipeline.rs",
+      "sha256": "37b6e7f764511ecede028606a8f9469c7b5b728ba2cca89de75ca82fa94aae4b"
+    },
+    {
+      "file": "crates/magistr-cli/src/scaffold/preview.rs",
+      "sha256": "3141fae8c38f5056d4c75b33d3cf8663ffbef8a683d72e918dbb4b19f0d357ca"
+    },
+    {
+      "file": "crates/magistr-cli/src/scaffold/preview_context.rs",
+      "sha256": "4f5792c84fe966bce19c63c99554534fdecd929c62f4d31186b3a809202cfae7"
+    },
+    {
+      "file": "crates/magistr-cli/src/scaffold/refusal.rs",
+      "sha256": "6f05f0e93644bd81d76b40b6112285e800ba3852482d3330fa5c251effd2cf00"
+    },
+    {
+      "file": "crates/magistr-cli/src/scaffold/registry.rs",
+      "sha256": "0d232a8f632042020fd448ccbffc13437097b27c49b97172ad54696755e473cd"
+    },
+    {
+      "file": "crates/magistr-cli/src/scaffold/repair.rs",
+      "sha256": "6834b838ecfa44c09ef831388bade5cd2a64542c4abf0153b2709680069c6843"
+    },
+    {
+      "file": "crates/magistr-cli/src/scaffold/repair.tests.rs",
+      "sha256": "fd91ca6ad351f9e7f234e9552ad45c61fd9d8620212587de69a315fafacdf55f"
+    },
+    {
+      "file": "crates/magistr-cli/src/scaffold/research/mod.rs",
+      "sha256": "36271628ce6942652167809af91008cf967fb9cb332886750093b386bd83abcc"
+    },
+    {
+      "file": "crates/magistr-cli/src/scaffold/selections.rs",
+      "sha256": "0f1f5e4953b496b8fcac76a72ff32e2ad5f887f51ebf116a3a896a1551208e25"
+    },
+    {
+      "file": "crates/magistr-cli/src/scaffold/selections.tests.rs",
+      "sha256": "a8182651b1e26441d79ea4c4d78e7847b428aed1bd0e6e6f721319ee97044e83"
+    },
+    {
+      "file": "crates/magistr-cli/src/scaffold/snapshots/magistr__scaffold__tests__mcp_json.snap",
+      "sha256": "32587c9d5501424407f564ca52c3366f205f59146f933daedaaae7401e0692d5"
+    },
+    {
+      "file": "crates/magistr-cli/src/scaffold/snapshots/magistr__scaffold__tool_guide__tests__tools_md.snap",
+      "sha256": "8016910889fa18e014582c300d33b83e00f6efb29ea784b53b3e418559666a40"
+    },
+    {
+      "file": "crates/magistr-cli/src/scaffold/think_and_ship.rs",
+      "sha256": "2d0bb987439cbf6567ea66406b432cadd63175ec2d071945124a4826ca81f6e9"
+    },
+    {
+      "file": "crates/magistr-cli/src/scaffold/think_and_ship.tests.rs",
+      "sha256": "fc927dbf0557f708b4e1585c18961cee8b9bfa90c5b62cfd83a4feffe8c845ef"
+    },
+    {
+      "file": "crates/magistr-cli/src/scaffold/tool_guide.rs",
+      "sha256": "4e9904e93e12f80c648d3baf5c0a52ec4652433be651c49194730579f881e6bf"
+    },
+    {
+      "file": "crates/magistr-cli/src/scaffold/tool_guide.tests.rs",
+      "sha256": "a5b204dd90b421011b55d18c8ab2ffa8c00c85d85aa43adf172638d5cafbd39f"
+    },
+    {
+      "file": "crates/magistr-cli/src/scaffold/workbench.rs",
+      "sha256": "295e01baeedde8a454dce0b78a6f8ad463016a1906caa84b0a11e79272706426"
+    },
+    {
+      "file": "crates/magistr-cli/src/scaffold/workflow_skills.rs",
+      "sha256": "91e4572cb45f7944d2830fbddabdeca892c197c061639ec8a96ef48f99621833"
+    },
+    {
+      "file": "crates/magistr-cli/src/tools/server.rs",
+      "sha256": "4d771598350df2eb9dc92faa6af70e5ef46b0a9d18edbc51e38d19a22bf420a1"
+    },
+    {
+      "file": "crates/magistr-cli/src/unified_mcp.rs",
+      "sha256": "84e6ef98a319af6747c8fe5c3506c475b10d4903693e3b8229d91925e6d8cee9"
+    },
+    {
+      "file": "crates/magistr-cli/src/unified_mcp/access.rs",
+      "sha256": "ff2f91039633fd1e28adec6176a24a08ef41a33ef573d803c2955eb1e70b93e5"
+    },
+    {
+      "file": "crates/magistr-cli/src/unified_mcp/access.tests.rs",
+      "sha256": "1aa4b749a9c03d45d06e2983bca1b1682f8a6af443dfdbab74cfe6c9ac27010b"
+    },
+    {
+      "file": "crates/magistr-cli/src/unified_mcp/catalog.rs",
+      "sha256": "32eb7b672e8c3c27e3fc2bf17a5ad231e6dca87abf5ab72db1f5973e7b4b606b"
+    },
+    {
+      "file": "crates/magistr-cli/src/unified_mcp/catalog.tests.rs",
+      "sha256": "964f0b12c234813ca025789b15b95c8599486f2bacf5b59609febbcb1f146d82"
+    },
+    {
+      "file": "crates/magistr-cli/src/unified_mcp/check.rs",
+      "sha256": "80e4e6d60080f441f6563a53a68066758867a9068fecde54f73ea9e32f9717c5"
+    },
+    {
+      "file": "crates/magistr-cli/src/unified_mcp/client.rs",
+      "sha256": "db3ec7975b7ed7711d39646c7f3a8ae95be4bb3dc962a012b7a6151e0a7a925d"
+    },
+    {
+      "file": "crates/magistr-cli/src/unified_mcp/composition.rs",
+      "sha256": "80823fad0c7854c6d62fe5c6b24e527117a2929840c76145991041a9c590df28"
+    },
+    {
+      "file": "crates/magistr-cli/src/unified_mcp/composition.tests.rs",
+      "sha256": "e2973b1e90d8fd71917349cb40245c48d290e66c2e426021bd4b1c905cb8625d"
+    },
+    {
+      "file": "crates/magistr-cli/src/unified_mcp/service.rs",
+      "sha256": "ea04deecb8f3ebc53028befa928ab5fe7eedaa85254da3e56e6a10884c6cb229"
+    },
+    {
+      "file": "crates/magistr-cli/src/unified_mcp/service.tests.rs",
+      "sha256": "9215a2b79b60a8bc44f4488cd03a295612bf13707c65a324c799d82495be98df"
+    },
+    {
+      "file": "crates/magistr-cli/src/utils/gate/mod.rs",
+      "sha256": "81640eb41c2c26cdbeafe94e1cc77e73b71253835bce410eaaa036e8b34a0212"
+    },
+    {
+      "file": "crates/magistr-cli/src/workspace_cli/doctor_owner.rs",
+      "sha256": "2ab15ba30aaa386fdcf6cba514b884816ff04a42507067fadc104bef9510ba15"
+    },
+    {
+      "file": "crates/magistr-cli/src/workspace_cli/doctor_owner.tests.rs",
+      "sha256": "2d108ad344fb1d0d95f5ff7b8aedaa9e22f60e3adcb2fb661b6165c957f291b9"
+    },
+    {
+      "file": "crates/magistr-cli/src/workspace_cli/migrate.rs",
+      "sha256": null
+    },
+    {
+      "file": "crates/magistr-cli/src/workspace_cli/mod.rs",
+      "sha256": "ad3df9f0c693b66ccc030ec59ee685a9097ad7358fdd9e8c29cd5390c8b0674b"
+    },
+    {
+      "file": "crates/magistr-cli/src/workspace_mcp/bridge_session.tests.rs",
+      "sha256": "4073f8601377ca948150be036eaa2291c98fd7550d861ab1733adfe03c8cbdfc"
+    },
+    {
+      "file": "crates/magistr-cli/src/workspace_mcp/capability.rs",
+      "sha256": "ce28b0b16ce3363106cfe8495154ff4ed9ca755e3c1ebbc5569e3b92e73261da"
+    },
+    {
+      "file": "crates/magistr-cli/src/workspace_mcp/connection.rs",
+      "sha256": "c161c8d70c50bf0b61212ca655fcb6b6a99d57b844663bb1b0b7dc0fcae9c569"
+    },
+    {
+      "file": "crates/magistr-cli/src/workspace_mcp/mod.rs",
+      "sha256": "fdddae9b18eebcaf87e530c851d4295144f675db20c5da8f2f5749f3dc528def"
+    },
+    {
+      "file": "crates/magistr-cli/src/workspace_mcp/serve.rs",
+      "sha256": "05c94db057e22a17925db00ae4c85e028cd2d0b39df309495052b97d01b90daf"
+    },
+    {
+      "file": "crates/magistr-cli/templates/CLAUDE.md.tmpl",
+      "sha256": "28fae9aded9f8bbd4f723483ed715c0b4112bdb1e85a8c276711fbb32bb8e640"
+    },
+    {
+      "file": "crates/magistr-cli/templates/gitignore/magistr-dir.gitignore",
+      "sha256": "9e17e0cdb95770347ad7384fe51e7b77dbe4c89fd7854a395d7569b451a29ec1"
+    },
+    {
+      "file": "crates/magistr-cli/templates/hooks/magistr-guard.sh",
+      "sha256": "7448f6541ee33057b23a567a0a804517141cc7caa2f59f33ba76ccdd33c219d6"
+    },
+    {
+      "file": "crates/magistr-cli/templates/rules/workflow.md",
+      "sha256": "9d225c65c488eaf52166da25754a088259a48fe88a3cc60b205f18a148501cbb"
+    },
+    {
+      "file": "crates/magistr-cli/templates/skills/workbench-routing/SKILL.md",
+      "sha256": "ecff49d6e8d842b369b23292bf2d9a3bcc48be02b559cc022eeb43297af3568c"
+    },
+    {
+      "file": "crates/magistr-cli/templates/workflows/craft.md",
+      "sha256": "7a92f7223b9ec7bdbd470ae33b50ad189953af96354924ea894df4aed1079d73"
+    },
+    {
+      "file": "crates/magistr-cli/templates/workflows/hosts/codex.md",
+      "sha256": "94b21df6758b90a5b20e44464868eb6b748063b16d6fa3341b69b98816a2576b"
+    },
+    {
+      "file": "crates/magistr-cli/templates/workflows/next-loop.md",
+      "sha256": "f889f405e5eca6853e267a1fd8e2faa21860386e41b3ef8909f028e669d4022f"
+    },
+    {
+      "file": "crates/magistr-cli/templates/workflows/next.md",
+      "sha256": "16bc8e19c0ebef9e2ec15b1bb07b75d2eb0a04d2c5b3b1b243c88a17fb994cb8"
+    },
+    {
+      "file": "crates/magistr-cli/templates/workflows/roadmap-refresh.md",
+      "sha256": "8d6e65b4d548c7959b4cf6c919f971504fb283481efe5f85bcb29fc9b7ad7131"
+    },
+    {
+      "file": "crates/magistr-cli/templates/workflows/runtime.md",
+      "sha256": "8306c36fc5f4ed8c892a8f5b39afc410ad1baab95527ebe37c44770ae9c35483"
+    },
+    {
+      "file": "crates/magistr-cli/templates/workflows/signals.md",
+      "sha256": "84e2c85000200229bc127b080ea37609548b16e722f037241f6971cc0a61c6c8"
+    },
+    {
+      "file": "crates/magistr-cli/tests/acp_live.rs",
+      "sha256": "3302dd98b6b92b7120ca2b29f7ba5b3e5d43ea47216c20b8ffdf5dab4329b04c"
+    },
+    {
+      "file": "crates/magistr-cli/tests/application_composition.rs",
+      "sha256": "2cc45a45b75e94d966c3abd852482395b69a1c31f16e387be9216d7ea4d73b3e"
+    },
+    {
+      "file": "crates/magistr-cli/tests/cockpit_journal_owner.rs",
+      "sha256": "0f1bc3bbb014299d068c3aa15112ef47ced7e8037d347f2382781e9130ca54f0"
+    },
+    {
+      "file": "crates/magistr-cli/tests/codex_runtime_live.rs",
+      "sha256": "233c67505f52c803d291e248f26510307e286896bbcf8579e5daf1ff8e00c9bc"
+    },
+    {
+      "file": "crates/magistr-cli/tests/current_interface.rs",
+      "sha256": "d17ce6acf025f3a93e03ee904a1956ec583eb3056971242e3958faef511610a5"
+    },
+    {
+      "file": "crates/magistr-cli/tests/mcp_integration.rs",
+      "sha256": "d1e5eac152b51f776c72386ac783a33d6b2fc76778daa7dd238729519c3ce9b8"
+    },
+    {
+      "file": "crates/magistr-cli/tests/mcp_launch_integration.rs",
+      "sha256": "bb990479cec9c0601487030d22dcf4feabb10439f48587eb558f8a22dc5445d1"
+    },
+    {
+      "file": "crates/magistr-cli/tests/mcp_launch_protocol.rs",
+      "sha256": "7704271ef7683a0105f6eea0b537d576134346a87e5543cdfc6728841dddb5ae"
+    },
+    {
+      "file": "crates/magistr-cli/tests/mcp_project_owner.rs",
+      "sha256": "4da36bd116f65a03a1eaffdd5f396b766219a00628d97a73c019df6494a049e6"
+    },
+    {
+      "file": "crates/magistr-cli/tests/mcp_serve_integration.rs",
+      "sha256": "81e86635d95f271746b02c5f39617ceaa690e920d541c7f8ca8687864af15fee"
+    },
+    {
+      "file": "crates/magistr-cli/tests/next_iteration_integration.rs",
+      "sha256": "c7ea2c353dff71beea9eb5f44aea81499f5ab56df88db87baceccf2ad0249a54"
+    },
+    {
+      "file": "crates/magistr-cli/tests/reinit_integration.rs",
+      "sha256": "4a6fe661d6737b109720dee702db024f3eab729cc2f8817294aff58385eeaa66"
+    },
+    {
+      "file": "crates/magistr-cli/tests/support/unified.rs",
+      "sha256": "832a7785df812ed3d5f378531a83221a56b9cc7742fd9e4cc93dd7c76ba16f23"
+    },
+    {
+      "file": "crates/magistr-cli/tests/workbench_scaffold_integration.rs",
+      "sha256": "158f81bc4ea509b8356d0d15a709d344a3e87e5de6a333e1bb162193cdecd1bb"
+    },
+    {
+      "file": "crates/magistr-cli/tests/workspace_attachment.rs",
+      "sha256": "4c5a4c4e9706da19ef92a49c8bffa43d0eda1cb43f736b1c8b737c6d8b4a4c15"
+    },
+    {
+      "file": "crates/magistr-cli/tests/workspace_attachment_support/launcher.tests.rs",
+      "sha256": "76ed67832fb17816bece71d9de0702056d9b57ebd8372eaa4142bf6e0c3e0095"
+    },
+    {
+      "file": "crates/magistr-cli/tests/workspace_attachment_support/mod.rs",
+      "sha256": "ee9dde8018c8cd4cec88b907a09faf4f547926bcc85e793c29682c0e43885fe7"
+    },
+    {
+      "file": "crates/magistr-cli/tests/workspace_cli_verbs.rs",
+      "sha256": "b56623d2bd8241218792832433d16db913550be0bc6a16bf2f24f06448376574"
+    },
+    {
+      "file": "crates/magistr-cli/tests/workspace_served_reference.rs",
+      "sha256": "ddb85313d8f67ba225f295bd305681b50a7666cc87e00f0f64dff6d038789b36"
+    },
+    {
+      "file": "crates/magistr-cli/tests/workspace_served_stdio.rs",
+      "sha256": "9c5e5b6d1331e74c28548bad037534dfec136868cb555e388be446b3356b00f2"
+    },
+    {
+      "file": "crates/magistr-cockpit-runtime/Cargo.toml",
+      "sha256": "456c63ca9b12a4615607743a0e334dcb0bd50d0af24b3a98d4495a08f2218c1a"
+    },
+    {
+      "file": "crates/magistr-cockpit-runtime/LICENSE",
+      "sha256": "eac9dc52c6e4cb0d7c40710027538ac790c10cc605856e40f237275fd8440810"
+    },
+    {
+      "file": "crates/magistr-cockpit/Cargo.toml",
+      "sha256": "12138ee119ce74d051616d5df4288b0b0b44fa041ffd0cdec1971edaf1da0265"
+    },
+    {
+      "file": "crates/magistr-cockpit/LICENSE",
+      "sha256": "eac9dc52c6e4cb0d7c40710027538ac790c10cc605856e40f237275fd8440810"
+    },
+    {
+      "file": "crates/magistr-cockpit/src/cockpit/loop_stage.rs",
+      "sha256": "f6d85e8ba62ac3008e1da3a838b03f3855961f6b14936b082f7c6b73c1ab2df7"
+    },
+    {
+      "file": "crates/magistr-core/Cargo.toml",
+      "sha256": "9e3605e9345513ca89a30aa28f8addd615fa9cb0396f83694c94ed96f8541431"
+    },
+    {
+      "file": "crates/magistr-core/LICENSE",
+      "sha256": "eac9dc52c6e4cb0d7c40710027538ac790c10cc605856e40f237275fd8440810"
+    },
+    {
+      "file": "crates/magistr-core/src/config/user_config_document.rs",
+      "sha256": "5a69ecbba49ec24e39982a1ef5a0d9b10f55bd0e214b1aab683c6c1efe191392"
+    },
+    {
+      "file": "crates/magistr-core/src/config/user_config_document.tests.rs",
+      "sha256": "a3dafbc6e443b823b49b89338f190ffda977b9c7588f8e4bfa2ce6df415cab50"
+    },
+    {
+      "file": "crates/magistr-core/src/config/user_config_lock.rs",
+      "sha256": "2d8d5aeedc9c570c40c53e1731d6678f5a28ca209ed9ec1044e074dcd21ce76a"
+    },
+    {
+      "file": "crates/magistr-core/src/config/user_config_lock.tests.rs",
+      "sha256": "fc49fd5f13e222be5463f08c957d6e65ed5075b4f9cc906a6e68c90d908126c7"
+    },
+    {
+      "file": "crates/magistr-core/src/detection/lint/doctor.rs",
+      "sha256": "d7799c21e4149281d23bb794acd620dac57b96bc13de0ea4367605e9992fade9"
+    },
+    {
+      "file": "crates/magistr-core/src/detection/lint/doctor.tests.rs",
+      "sha256": "ce016178887d310f61a5816ebc431bb384c228219029dd3c813041f783bba988"
+    },
+    {
+      "file": "crates/magistr-core/src/detection/lint/mod.rs",
+      "sha256": "e0b87334794f68707cfc1816ddcfde7c599031491eeaa6f50076a118da52c174"
+    },
+    {
+      "file": "crates/magistr-core/src/types/stack.rs",
+      "sha256": "f5c75d3aa237a667310d466615c5583c233dc98453d99a54a05ab3244240d626"
+    },
+    {
+      "file": "crates/magistr-desktop/Cargo.lock",
+      "sha256": "216c0ee4ed6e930c29a31fb50b375a0a8fc314bdb8fe8b4ec410ad31a4d3ebac"
+    },
+    {
+      "file": "crates/magistr-desktop/src/args.rs",
+      "sha256": "6b5d39754ac6d9ac24581a752ad26d6ee93d2e5eefe5fbcb3e13185d547b9e8b"
+    },
+    {
+      "file": "crates/magistr-desktop/src/args.tests.rs",
+      "sha256": "cb1d02d7dcff9d8d095e972fc58aec875846df35a94ff5a47ef28a96da058cf0"
+    },
+    {
+      "file": "crates/magistr-desktop/src/main.rs",
+      "sha256": "a56c6756a411fe402a114319c6a8d6daf5ca7e2c3b20ae6508503d9509657ee9"
+    },
+    {
+      "file": "crates/magistr-desktop/tests/native_window.py",
+      "sha256": "f864da768020f4ee7ef2380a5a47e56aa2422eea3d07535751bfdd8d143dded7"
+    },
+    {
+      "file": "crates/magistr-desktop/tests/process_roles.py",
+      "sha256": "59564532ca2515652580b33b26136046eda0ee51d20d42cb3057e925c1171d7e"
+    },
+    {
+      "file": "crates/magistr-desktop/tests/work_journey.py",
+      "sha256": "60fea8be22cb497ea467df2b77a3f8cdf9beee095e65522f6d4c7fe994dce87f"
+    },
+    {
+      "file": "crates/magistr-domain/Cargo.toml",
+      "sha256": "afb5e0dc059da415e28e2fc180c798e5615b7a3aa2ef41fb911ab4413fb1f95d"
+    },
+    {
+      "file": "crates/magistr-domain/LICENSE",
+      "sha256": "eac9dc52c6e4cb0d7c40710027538ac790c10cc605856e40f237275fd8440810"
+    },
+    {
+      "file": "crates/magistr-engine/Cargo.toml",
+      "sha256": "d67be5f7fb76d0b3cf3c804edd5002f84f63e34fcb62061ab5b0bc0e3a0a7263"
+    },
+    {
+      "file": "crates/magistr-engine/LICENSE",
+      "sha256": "eac9dc52c6e4cb0d7c40710027538ac790c10cc605856e40f237275fd8440810"
+    },
+    {
+      "file": "crates/magistr-engine/build.rs",
+      "sha256": "caa6260471abda0bd854163f06b0c312b3bbf8704b2bbd987c419aefe447f347"
+    },
+    {
+      "file": "crates/magistr-engine/src/guard/ship_guard_state.rs",
+      "sha256": "284f4a59931257aabebc6ecc4f2d8d26500e5b410fec5279375851dcf176d3c6"
+    },
+    {
+      "file": "crates/magistr-engine/src/native/attach_kind.rs",
+      "sha256": "dc55bb032d42e3542a02e3f65a4cad23ec4550fc8ea59c318b33af5d54e75561"
+    },
+    {
+      "file": "crates/magistr-engine/src/native/caller_identity.rs",
+      "sha256": "63461ee98608a78538d23e14bb71d02c78c048b6be5bb98d736d957ff3929177"
+    },
+    {
+      "file": "crates/magistr-engine/src/native/native_config.rs",
+      "sha256": "e11fda293255c1c46c7122ae20028d38c0c9ac8781099c5b314807c563536ce1"
+    },
+    {
+      "file": "crates/magistr-engine/src/native/native_engines.tests.rs",
+      "sha256": "c3e9dc3d52fb077e9bb9260f2e1c6ea0aefa97e8d49f218fc01f1e5fb3d8f909"
+    },
+    {
+      "file": "crates/magistr-engine/src/native/owner_socket.rs",
+      "sha256": "df1a61fe00474e5c66a8ced0c80e92ba3e37648fac7ecfa896ce9c73f2606727"
+    },
+    {
+      "file": "crates/magistr-engine/src/native/owner_socket.tests.rs",
+      "sha256": "f7762d0bbefc523cb5afd65904edeedf645bd5f2ad70bf54529c4b83cd969d72"
+    },
+    {
+      "file": "crates/magistr-engine/src/prompt.rs",
+      "sha256": "c3aef3d6b1b21476bdfe961b6281c039b52ae17f8c9540e2455a16904928d92e"
+    },
+    {
+      "file": "crates/magistr-engine/src/prompt_reasoning.md",
+      "sha256": "842e88d0b8dab7125b05f1d00a9552ee22f5308c3f3841e1a73307ef681780be"
+    },
+    {
+      "file": "crates/magistr-mcp/Cargo.toml",
+      "sha256": "05d9bcd3bee3393d925acfe355897ec41285c2945c10c62be340bfa1fbfc31cb"
+    },
+    {
+      "file": "crates/magistr-mcp/LICENSE",
+      "sha256": "eac9dc52c6e4cb0d7c40710027538ac790c10cc605856e40f237275fd8440810"
+    },
+    {
+      "file": "crates/magistr-mcp/src/lib.rs",
+      "sha256": "c42cb0ccd9b63f793b8bec24ad0bf4bd029e399da759196ecca84374fed1ba41"
+    },
+    {
+      "file": "crates/magistr-process/Cargo.toml",
+      "sha256": "2f0d307b043646e746f8b47aea1b33c620eb71a12c2ba29639f0562633f3f6de"
+    },
+    {
+      "file": "crates/magistr-process/LICENSE",
+      "sha256": "eac9dc52c6e4cb0d7c40710027538ac790c10cc605856e40f237275fd8440810"
+    },
+    {
+      "file": "crates/magistr-theme/Cargo.toml",
+      "sha256": "9a10ce8dc220f087081df0e47b0522dbab51007899886939e4af3e1734c810bf"
+    },
+    {
+      "file": "crates/magistr-theme/LICENSE",
+      "sha256": "eac9dc52c6e4cb0d7c40710027538ac790c10cc605856e40f237275fd8440810"
+    },
+    {
+      "file": "crates/magistr-workflow-contracts/Cargo.toml",
+      "sha256": "74228186aa8696c74e5f01483e38561bdd820ba57b8bdef75f1b2f9fe2e8805f"
+    },
+    {
+      "file": "crates/magistr-workflow-contracts/LICENSE",
+      "sha256": "eac9dc52c6e4cb0d7c40710027538ac790c10cc605856e40f237275fd8440810"
+    },
+    {
+      "file": "crates/magistr-workflow-contracts/src/feed_status.rs",
+      "sha256": "ef4a347e8d602b4b29c4d4f7e1f7d119b32b7ff08a782ba0b7bc28d99c0b84b3"
+    },
+    {
+      "file": "crates/magistr-workflow-contracts/src/gate_output.rs",
+      "sha256": "8a69e4e7864b8535a40c3e4e731f0145aa65bf58cc24e37d9f6f1cbc628b556e"
+    },
+    {
+      "file": "crates/magistr-workflow-contracts/src/magistr_frame.rs",
+      "sha256": "2198e250e86febecc37315808733303d7d1e1cfc54144eae847dc92b118ea309"
+    },
+    {
+      "file": "crates/magistr-workflow/Cargo.toml",
+      "sha256": "960b2ea01789e230cbbeba102d3659615cab0f08083c6bfcb9ac575fd4850813"
+    },
+    {
+      "file": "crates/magistr-workflow/LICENSE",
+      "sha256": "eac9dc52c6e4cb0d7c40710027538ac790c10cc605856e40f237275fd8440810"
+    },
+    {
+      "file": "crates/magistr-workflow/PROVENANCE.md",
+      "sha256": "3ca505349f2a16212bcb29129dfdfe0229899cc15cbe73a465e67693a888cda6"
+    },
+    {
+      "file": "crates/magistr-workflow/src/lib.rs",
+      "sha256": "a9a8c44e48788b00c8436f1abf9a84e928cd5c913f04f54f678406a3c2291998"
+    },
+    {
+      "file": "crates/magistr-workspace/Cargo.toml",
+      "sha256": "3304eac75ed46ec40e349390dd62f2f542f5ed707e80dbce39bec9b3c7641ad1"
+    },
+    {
+      "file": "crates/magistr-workspace/LICENSE",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "file": "crates/magistr-workspace/PROVENANCE.md",
+      "sha256": "7b61e4b51f807f69b247dc486286eaf96ef29e4513c82541628dd272270c5ee2"
+    },
+    {
+      "file": "crates/magistr-workspace/src/service/legacy_migration.rs",
+      "sha256": null
+    },
+    {
+      "file": "crates/magistr-workspace/src/service/lock_record.rs",
+      "sha256": "9c9d148762b6308f2fb9e7a493f9065c3f478270b86587d0ec0f3d3c3a8dbde3"
+    },
+    {
+      "file": "crates/magistr-workspace/src/service/mod.rs",
+      "sha256": "bf5f526e34cb2d308fb60a7fd4473d0c204ef7c717879144be7d91cb9f1622c3"
+    },
+    {
+      "file": "crates/magistr-workspace/src/service/open_error.rs",
+      "sha256": "64ba3554793804828c7efe26028a00bd2e83cb8176c10ec1aa82d8413a8b00a0"
+    },
+    {
+      "file": "crates/magistr-workspace/src/service/server_lock.rs",
+      "sha256": "d916a8125efcb95c1531efe8feda803affdc0094a542226f3e45beec15c55f7d"
+    },
+    {
+      "file": "crates/magistr-workspace/src/service/server_lock.tests.rs",
+      "sha256": "aef23295f5a4610276947e224827da841aa5b784e98cf9a4ef4604b3d3e0ef8e"
+    },
+    {
+      "file": "docs/architecture/application.md",
+      "sha256": "57d28345908ce536eb26bb658b27c1a15c5674020dd17230084314f6a3452b87"
+    },
+    {
+      "file": "docs/architecture/claude-mod.md",
+      "sha256": "6803b16246b1e7088664cb8949a46e661855cef9acb4f1df507d284818a17ac7"
+    },
+    {
+      "file": "docs/architecture/clients.md",
+      "sha256": "44907c8d1d424c77e57accc8d1ea9c0b722543f9744ebf58de8cf8b2339cb822"
+    },
+    {
+      "file": "docs/architecture/configuration.md",
+      "sha256": "4d4d8e9d9d326826bf69e41158084961c1da6b80a70f9fcab9e110d12b74997c"
+    },
+    {
+      "file": "docs/architecture/overview.md",
+      "sha256": "1fa964d9915d171ec6a107c34c403a5e5cba2f4029240e65fb7c5f17c3a46d11"
+    },
+    {
+      "file": "docs/architecture/owned-subsystems.md",
+      "sha256": "4dca804bfefa7f0415f4060b6341876b4d7ce578a9902d9c4ab3c5886b4fbba2"
+    },
+    {
+      "file": "docs/architecture/system-contracts.md",
+      "sha256": "1a7dc36f9571f02ea7230a3f3aee01dd40d6a8f85b12282656a25e686fdc82e0"
+    },
+    {
+      "file": "docs/architecture/terminal.md",
+      "sha256": "17c0609c5c748790510df3938e7aef5ad74af05bf9e588aa926f66924054e214"
+    },
+    {
+      "file": "docs/architecture/unified-mcp.md",
+      "sha256": "dddb5377ab119905973402c6254dee39983ebed4deccca74a5e88eac7dfc0397"
+    },
+    {
+      "file": "docs/architecture/workspace-owner.md",
+      "sha256": "09eccde66c7b8cdbe9438ad7a15752a10f2ed550cc2d66eac02a9ef892e13359"
+    },
+    {
+      "file": "docs/getting-started.md",
+      "sha256": "fbcb887b5e907a0d958bbe48053c86378846675de5a26085b418ed2b339f8641"
+    },
+    {
+      "file": "docs/reference/claude-mod-verification.md",
+      "sha256": "20e1e4e271c91cc2d79036eb083e4be2fe2ced34cf7816bce6f39fb31593d415"
+    },
+    {
+      "file": "docs/reference/codex.md",
+      "sha256": "7843a7e30ad9c804ed0772391e4b71965c0c273cd017d2d25e31ad96d47d6a83"
+    },
+    {
+      "file": "docs/release-inventory.md",
+      "sha256": "47dcf264a58bbfc58700e94877a2da1322be82f4fedffec00c8409f607e5c69d"
+    },
+    {
+      "file": "docs/releasing-cli.md",
+      "sha256": "42bdb2c6d1f79eb9f2d5aab9afd94aa5cd1b5a5e3657dbf1598c2f68c8cfbbc0"
+    },
+    {
+      "file": "npm/magistr/README.md",
+      "sha256": "b22a78e1be7c040153b40eae708c3f9248d27406a65356cfbe7e5cf50f8b9396"
+    },
+    {
+      "file": "npm/magistr/licenses/Nugine__simd/d74c030d9dc4f3cae02146d1f497ff62726ef09a/LICENSE",
+      "sha256": "71674605ec4c087fe9eb534e3e4f9e26eb2e4aabcd76a29fd156c6a844d44b3d"
+    },
+    {
+      "file": "npm/magistr/licenses/Stranger6667__jsonschema/f50299a35b7c5e6b637207152909135cbf8a089d/LICENSE",
+      "sha256": "0f614c290631feb320f6c0d54c72fc0f85b17ca6d6dc0b5a3383ea7de3e9dc69"
+    },
+    {
+      "file": "npm/magistr/licenses/agentclientprotocol__agent-client-protocol/d0549a115750a0a25c1c5631dd72e0d248859aa4/LICENSE",
+      "sha256": "f250d08cee4549b22b3b4aaaf3a743473336fd280316df5d0340717e5127a221"
+    },
+    {
+      "file": "npm/magistr/licenses/agentclientprotocol__rust-sdk/ce023279824149008659dd8f4b8b70266a7e8210/LICENSE",
+      "sha256": "6ed4f049cce59e05197d585bdf8a39980b45d546d6ea718ee344555f3a867c3a"
+    },
+    {
+      "file": "npm/magistr/licenses/ast-grep__ast-grep/c41e023a64060c9f263c23320aa5ff67be4bc474/LICENSE",
+      "sha256": "81471889c77b2161a3e4dcdb1b2e6ca382e485766132d92d5fe1d7497e7dd2d9"
+    },
+    {
+      "file": "npm/magistr/licenses/bytecodealliance__wasm-tools/61b23615e3784c6e1aad8904e3832bb55ce9356e/LICENSE",
+      "sha256": "268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5"
+    },
+    {
+      "file": "npm/magistr/licenses/bytecodealliance__wasm-tools/9dd8df4fdc53597af7534b6a4d4c11d9065690d3/LICENSE-APACHE",
+      "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+    },
+    {
+      "file": "npm/magistr/licenses/bytecodealliance__wasm-tools/9dd8df4fdc53597af7534b6a4d4c11d9065690d3/LICENSE-Apache-2.0_WITH_LLVM-exception",
+      "sha256": "268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5"
+    },
+    {
+      "file": "npm/magistr/licenses/bytecodealliance__wasm-tools/9dd8df4fdc53597af7534b6a4d4c11d9065690d3/LICENSE-MIT",
+      "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
+    },
+    {
+      "file": "npm/magistr/licenses/bytecodealliance__wasmtime/5dbbe86472adcbec799e16ad85433095f3b11d67/LICENSE",
+      "sha256": "268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5"
+    },
+    {
+      "file": "npm/magistr/licenses/bytecodealliance__wasmtime/e9f1ea232fd245aea338ab3eb7d73487ae75cab1/LICENSE",
+      "sha256": "268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5"
+    },
+    {
+      "file": "npm/magistr/licenses/gleam-lang__tree-sitter-gleam/066704e4826699e754d351e3bbe12bf2e51de9d8/LICENSE",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "file": "npm/magistr/licenses/knurling-rs__defmt/4a8cdb44891ed57b8ff5a023b6bec7137c48708f/LICENSE-APACHE",
+      "sha256": "8173d5c29b4f956d532781d2b86e4e30f83e6b7878dce18c919451d6ba707c90"
+    },
+    {
+      "file": "npm/magistr/licenses/knurling-rs__defmt/4a8cdb44891ed57b8ff5a023b6bec7137c48708f/LICENSE-MIT",
+      "sha256": "2710a622a896bba67356913d4d0492cab5465f61b2ecce6d880aeb483834fb50"
+    },
+    {
+      "file": "npm/magistr/licenses/manifest.json",
+      "sha256": "416eaa07602345f0a195e683e3d5764ac7cbf2a25a2bd2fce61dbe614dd114a8"
+    },
+    {
+      "file": "npm/magistr/licenses/modelcontextprotocol__rust-sdk/4a738b9dd99eaca418b614afa433a0cbdaf8d056/LICENSE",
+      "sha256": "0382b0057770ca05e9c350a50aa3b1c1fea84da0bc81d723bf00b9aa841be58a"
+    },
+    {
+      "file": "npm/magistr/licenses/mstange__samply/1b8952b3607299fbdbc38d32cdeec2814bdb87b7/LICENSE-APACHE",
+      "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+    },
+    {
+      "file": "npm/magistr/licenses/mstange__samply/1b8952b3607299fbdbc38d32cdeec2814bdb87b7/LICENSE-MIT",
+      "sha256": "a59f933e4ae3a569f798c651e3214a3576ce82d25d3d731158def05669dab79f"
+    },
+    {
+      "file": "npm/magistr/licenses/tree-sitter__tree-sitter-cpp/f41e1a044c8a84ea9fa8577fdd2eab92ec96de02/LICENSE",
+      "sha256": "2e0110e07abef7c2548b26ec9d6969775617ca539a0dc8dbeeb14d6452c711d1"
+    },
+    {
+      "file": "npm/magistr/licenses/tree-sitter__tree-sitter-java/94703d5a6bed02b98e438d7cad1136c01a60ba2c/LICENSE",
+      "sha256": "52ed137b039cd9c46409bc22e89938af911c95b157feae2d040b51e6084369a7"
+    },
+    {
+      "file": "npm/magistr/licenses/tree-sitter__tree-sitter-json/ee35a6ebefcef0c5c416c0d1ccec7370cfca5a24/LICENSE",
+      "sha256": "2e0110e07abef7c2548b26ec9d6969775617ca539a0dc8dbeeb14d6452c711d1"
+    },
+    {
+      "file": "npm/magistr/licenses/tree-sitter__tree-sitter-ruby/71bd32fb7607035768799732addba884a37a6210/LICENSE",
+      "sha256": "ee006f02a3d856df282e409be2a86e24a65bb573a98b9c28343771141351bb6b"
+    },
+    {
+      "file": "npm/magistr/licenses/tree-sitter__tree-sitter-typescript/f975a621f4e7f532fe322e13c4f79495e0a7b2e7/LICENSE",
+      "sha256": "49bf33cf78ef5897e4e161ce1517df7de1ae5042a65b6bcfd44401e0fc606559"
+    },
+    {
+      "file": "npm/magistr/package.json",
+      "sha256": "4bdebc1836b0d55728b0bf19e2258762e20573fb4102c9ac72f1cf5b6e250b48"
+    },
+    {
+      "file": "plugins/magistr/README.md",
+      "sha256": "a4c569b68dc67f5dc92a8e9c0a018f56054ddebe13913b222267a9f4d692baf9"
+    },
+    {
+      "file": "plugins/magistr/hooks/mcp.js",
+      "sha256": "164f920da667507b376c9c981e5e4fedfa4dc7a56966a01a35b6b3abb56d93f4"
+    },
+    {
+      "file": "plugins/magistr/hooks/register.js",
+      "sha256": "2c8f58bd28373f7d8e5be299d30804ec47bde880fd8ca785df2555500447ec8d"
+    },
+    {
+      "file": "plugins/magistr/hooks/wire.js",
+      "sha256": "f4f65065cdafc74ea1eb54ded7bf7a7a4bda01c8a92f0796d7cb0ccf7996c17e"
+    },
+    {
+      "file": "plugins/magistr/skills/status/SKILL.md",
+      "sha256": "d35ceee553c92f42f5b8acc0d138a614888602edcfa67497332aa220d51d3a7d"
+    },
+    {
+      "file": "plugins/magistr/tests/fixtures.js",
+      "sha256": "44ea1675ca5f8bd223fb2cd00cf33e514a52f6782a1cc940eff5dc7ec9229bae"
+    },
+    {
+      "file": "plugins/magistr/tests/host.mjs",
+      "sha256": "1c0da73da87443a36ee48210363987eef0f26a80fc0598ee269571f4e2e6fa61"
+    },
+    {
+      "file": "plugins/magistr/tests/interaction.contract.mjs",
+      "sha256": "d2a2794586a4c37d0c5f4cb03667f196360bbe09f471ee3197f8b3ca5359ea67"
+    },
+    {
+      "file": "plugins/magistr/tests/mod.test.ts",
+      "sha256": "d9fcf6bd6c6ebf99cdcd0027299d52b6384908524640db707fe04c9fec6ee0fa"
+    },
+    {
+      "file": "plugins/magistr/tests/native.native.mjs",
+      "sha256": "bed7105f145791dc52af47439b7e6e9eeae30bcd451a5f451d96d47daa6ff6c0"
+    },
+    {
+      "file": "plugins/magistr/tests/wire.contract.mjs",
+      "sha256": "2ec11c3610a2eb31be0c600edae6b0d5ab47119e168bf21754df408ebb807e46"
+    },
+    {
+      "file": "scripts/agent-mcp-eval.py",
+      "sha256": "fae4a492fc42d54222588fbd65492e39fdf7a95493a33e4d5a32c413b7d72953"
+    },
+    {
+      "file": "scripts/codex-subagent-check.py",
+      "sha256": "b6d417378c3f58e209481ebee33bd94fb6268bb4790a6778a5c6a8a5a7f98746"
+    },
+    {
+      "file": "scripts/distribution.py",
+      "sha256": "f198775483ea4e8e108a760b648b26011272c41372bee28a0c854e1ff69ed4a8"
+    },
+    {
+      "file": "scripts/distribution_licenses.py",
+      "sha256": "048d26d29b476bb29b66364f6fda8489cec6b9f48b132123f536c97e5ca50ffd"
+    },
+    {
+      "file": "scripts/onboarding-check.py",
+      "sha256": "fee64d262e05841c790b7d8351ba31958c59e8445e653374e77633019f625975"
+    },
+    {
+      "file": "scripts/unified-mcp-check.py",
+      "sha256": "88f59b2de422e6e4eda3223f8c0069e86be27897ff62861d1024f6abe3a27cf3"
+    },
+    {
+      "file": "scripts/workflow-source-gate.py",
+      "sha256": "2574de4735b458b2117e88ebb2c6bad29d9463358a76d729bca9f2d00b5407cf"
+    }
+  ]
+}

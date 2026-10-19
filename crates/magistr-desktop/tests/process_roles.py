@@ -85,22 +85,21 @@ def worker(root):
     assert len(result.stdout) == size + 4, "stdout must contain only protocol frames"
 
 
-def mcp(root, target, expected):
-    with Rpc(["mcp-launch", target, str(root)], root) as rpc:
+def mcp(root):
+    with Rpc(["mcp", "--dir", str(root)], root) as rpc:
         rpc.request("initialize", {
             "protocolVersion": "2025-03-26", "capabilities": {},
             "clientInfo": {"name": "desktop-test", "version": "1"},
         })
         rpc.send({"jsonrpc": "2.0", "method": "notifications/initialized"})
         result = rpc.request("tools/list", {})
-        assert expected in {tool["name"] for tool in result["tools"]}, result
-        if target == "workbench-mcp":
-            reply = rpc.request("tools/call", {
-                "name": "read", "arguments": {"file": "sample.rs"},
-            })
-            data = json.loads(reply["content"][0]["text"])
-            assert data["ok"], data
-            assert any("desktop_source" in row.get("text", "") for row in data["results"])
+        assert {"context", "read", "discover", "execute"} <= {tool["name"] for tool in result["tools"]}, result
+        reply = rpc.request("tools/call", {
+            "name": "read", "arguments": {"file": "sample.rs"},
+        })
+        data = json.loads(reply["content"][0]["text"])
+        assert data["ok"], data
+        assert any("desktop_source" in row.get("text", "") for row in data["results"])
 
 
 def acp(root):
@@ -131,10 +130,9 @@ def main():
         worker(root)
         acp(root)
         (root / "sample.rs").write_text("pub fn desktop_source() {}\n")
-        mcp(root, "magistr", "roadmap_status")
-        mcp(root, "workbench-mcp", "read")
+        mcp(root)
         assert not marker.exists(), "protocol children must never load a login shell"
-    print("PASS: desktop argv, worker readiness/shutdown, ACP turn and both MCP endpoints")
+    print("PASS: desktop argv, worker readiness/shutdown, ACP turn and unified MCP endpoint")
 
 
 if __name__ == "__main__":

@@ -17,10 +17,6 @@ pub async fn cmd_workspace(
         WorkspaceAction::WorkingCopy { dir, action } => {
             workspace_cli::run_working_copy(&dir, action)
         }
-        WorkspaceAction::Serve { dir, config } => {
-            crate::workspace_mcp::run_workspace_stdio_server(&inputs.for_project(dir), &config)
-                .await
-        }
         WorkspaceAction::Doctor { mode, dir, config } => {
             workspace_cli::run_doctor(mode, &dir, &config, inputs)
         }
@@ -47,7 +43,6 @@ pub async fn cmd_workspace(
             action: WorkspaceKeyAction::Rotate { dir },
         } => workspace_cli::run_key_rotate(&dir),
         WorkspaceAction::Init { dir } => workspace_cli::run_init(&dir),
-        WorkspaceAction::Migrate { dir } => workspace_cli::run_migrate(&dir),
         WorkspaceAction::Snapshot { dir, artifact } => workspace_cli::run_snapshot(&dir, &artifact),
     }
 }

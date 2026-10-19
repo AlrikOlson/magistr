@@ -1,6 +1,6 @@
 //! End-to-end MCP integration tests.
 //!
-//! Spawns `magistr mcp-serve` as a subprocess and verifies the MCP protocol
+//! Spawns `magistr mcp` as a subprocess and verifies the MCP protocol
 //! works end-to-end: initialize handshake, tools/list, and tools/call.
 
 #[path = "support/magistr_command.rs"]
@@ -36,13 +36,13 @@ fn mcp_serve_initialize_handshake() {
     let tmp = TempDir::new().unwrap();
 
     let mut child = magistr_bin()
-        .arg("mcp-serve")
+        .args(["mcp", "--dir"])
         .arg(tmp.path())
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::null())
         .spawn()
-        .expect("failed to spawn magistr mcp-serve");
+        .expect("failed to spawn magistr mcp");
 
     let mut stdin = child.stdin.take().unwrap();
     let mut stdout = BufReader::new(child.stdout.take().unwrap());
@@ -83,13 +83,13 @@ fn mcp_serve_tools_list_returns_magistr_tools() {
     let tmp = TempDir::new().unwrap();
 
     let mut child = magistr_bin()
-        .arg("mcp-serve")
+        .args(["mcp", "--dir"])
         .arg(tmp.path())
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::null())
         .spawn()
-        .expect("failed to spawn magistr mcp-serve");
+        .expect("failed to spawn magistr mcp");
 
     let mut stdin = child.stdin.take().unwrap();
     let mut stdout = BufReader::new(child.stdout.take().unwrap());
@@ -106,6 +106,13 @@ fn mcp_serve_tools_list_returns_magistr_tools() {
         }
     });
     let _ = send_request(&mut stdin, &mut stdout, &init);
+    writeln!(
+        stdin,
+        "{}",
+        serde_json::json!({"jsonrpc":"2.0","method":"notifications/initialized"})
+    )
+    .unwrap();
+    stdin.flush().unwrap();
 
     // Send tools/list
     let tools_list = serde_json::json!({
@@ -125,12 +132,12 @@ fn mcp_serve_tools_list_returns_magistr_tools() {
     let tool_names: Vec<&str> = tools.iter().map(|t| t["name"].as_str().unwrap()).collect();
 
     assert!(
-        tool_names.contains(&"magistr_delete"),
-        "missing magistr_delete tool: {tool_names:?}"
+        tool_names.contains(&"write"),
+        "missing write tool: {tool_names:?}"
     );
     assert!(
-        tool_names.contains(&"magistr_list"),
-        "missing magistr_list tool: {tool_names:?}"
+        tool_names.contains(&"search"),
+        "missing search tool: {tool_names:?}"
     );
 
     // Verify tools have schemas
@@ -146,20 +153,20 @@ fn mcp_serve_tools_list_returns_magistr_tools() {
 }
 
 #[test]
-fn mcp_serve_tools_call_magistr_list() {
+fn mcp_serve_tools_call_search() {
     let tmp = TempDir::new().unwrap();
     // Create a test file to list
     std::fs::write(tmp.path().join("hello.txt"), "world").unwrap();
     std::fs::create_dir(tmp.path().join("subdir")).unwrap();
 
     let mut child = magistr_bin()
-        .arg("mcp-serve")
+        .args(["mcp", "--dir"])
         .arg(tmp.path())
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::null())
         .spawn()
-        .expect("failed to spawn magistr mcp-serve");
+        .expect("failed to spawn magistr mcp");
 
     let mut stdin = child.stdin.take().unwrap();
     let mut stdout = BufReader::new(child.stdout.take().unwrap());
@@ -173,15 +180,22 @@ fn mcp_serve_tools_call_magistr_list() {
         }
     });
     let _ = send_request(&mut stdin, &mut stdout, &init);
+    writeln!(
+        stdin,
+        "{}",
+        serde_json::json!({"jsonrpc":"2.0","method":"notifications/initialized"})
+    )
+    .unwrap();
+    stdin.flush().unwrap();
 
-    // Call magistr_list on the project root
+    // Call search on the project root
     let call = serde_json::json!({
         "jsonrpc": "2.0",
         "id": 3,
         "method": "tools/call",
         "params": {
-            "name": "magistr_list",
-            "arguments": { "path": "." }
+            "name": "search",
+            "arguments": { "query": "hello", "mode": "files" }
         }
     });
     let response = send_request(&mut stdin, &mut stdout, &call);
@@ -198,10 +212,6 @@ fn mcp_serve_tools_call_magistr_list() {
         text.contains("hello.txt"),
         "listing should include hello.txt: {text}"
     );
-    assert!(
-        text.contains("subdir/"),
-        "listing should include subdir/: {text}"
-    );
 
     drop(stdin);
     let status = child.wait().unwrap();
@@ -212,13 +222,13 @@ fn mcp_serve_tools_call_magistr_list() {
 fn mcp_proxy_filters_non_json_lines() {
     // mcp-proxy wraps a child process and filters stdout so only JSON-RPC
     // lines (starting with '{') reach the caller. We test this by proxying
-    // `magistr mcp-serve` through `magistr mcp-proxy`.
+    // `magistr mcp` through `magistr mcp-proxy`.
     let tmp = TempDir::new().unwrap();
 
     let magistr_path = env!("CARGO_BIN_EXE_magistr");
 
     let mut child = magistr_command::magistr_command()
-        .args(["mcp-proxy", "--", magistr_path, "mcp-serve"])
+        .args(["mcp-proxy", "--", magistr_path, "mcp", "--dir"])
         .arg(tmp.path())
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())

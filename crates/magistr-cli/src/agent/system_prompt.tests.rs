@@ -1,6 +1,6 @@
 use super::*;
 use crate::types::{
-    FormatConfig, ProjectMeta, QualityGate, SpecConfig, Stack, StackConfig, TestingConfig,
+    FormatConfig, ProjectMeta, QualityGate, SpecConfig, StackConfig, TestingConfig,
 };
 
 fn sample_config() -> ProjectConfig {
@@ -202,62 +202,6 @@ fn format_prompt_omits_empty_description() {
     let prompt = format_prompt(&config);
 
     assert!(!prompt.contains("**Description:**"));
-}
-
-fn sample_stack() -> Stack {
-    Stack {
-        project_name: "test-project".into(),
-        language: crate::types::Language::Rust,
-        framework: crate::types::Framework::Axum,
-        package_manager: crate::types::PackageManager::Cargo,
-        test_framework: crate::types::TestFramework::CargoTest,
-        linter: crate::types::Linter::Clippy,
-        formatter: crate::types::Formatter::Rustfmt,
-        workspace: crate::types::Workspace::None,
-        ci_provider: crate::types::CiProvider::None,
-        extra_detections: Vec::new(),
-    }
-}
-
-#[test]
-fn init_prompt_includes_stack_json() {
-    let stack = sample_stack();
-    let prompt = build_init_prompt(&stack, "/home/user/myproject");
-
-    assert!(prompt.contains("test-project"));
-    assert!(prompt.contains("rust"));
-    assert!(prompt.contains("axum"));
-    assert!(prompt.contains("cargo"));
-}
-
-#[test]
-fn init_prompt_includes_project_dir() {
-    let stack = sample_stack();
-    let prompt = build_init_prompt(&stack, "/home/user/myproject");
-
-    assert!(prompt.contains("/home/user/myproject"));
-}
-
-#[test]
-fn init_prompt_includes_interview_instructions() {
-    let stack = sample_stack();
-    let prompt = build_init_prompt(&stack, "/tmp/test");
-
-    assert!(prompt.contains("interview"));
-    assert!(prompt.contains("project.json"));
-    assert!(prompt.contains("settings.json"));
-    assert!(prompt.contains("workflow.md"));
-    assert!(prompt.contains("conventions.md"));
-}
-
-#[test]
-fn init_prompt_includes_config_schema() {
-    let stack = sample_stack();
-    let prompt = build_init_prompt(&stack, "/tmp/test");
-
-    assert!(prompt.contains("quality_gate"));
-    assert!(prompt.contains("state_prefix"));
-    assert!(prompt.contains("companion_pattern"));
 }
 
 #[test]

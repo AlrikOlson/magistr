@@ -52,14 +52,6 @@ pub fn apply_approved(dir: &Path, files: &[&PlannedChange]) -> Result<ApplyRecei
         }
     }
 
-    let links = if pending.iter().any(|file| file.ownership_context.is_some()) {
-        super::codex_skill_links::CodexSkillLinks::capture(dir)?
-    } else {
-        super::codex_skill_links::CodexSkillLinks::default()
-    };
-    let selected: Vec<_> = pending.iter().map(|f| f.path.as_str()).collect();
-    links.validate_selection(&selected)?;
-
     // Only regular scaffold files have whole-file ownership. Merged shared
     // files such as .mcp.json and .gitignore keep their own merge policies.
     let mut owned: std::collections::HashSet<_> =
@@ -73,7 +65,7 @@ pub fn apply_approved(dir: &Path, files: &[&PlannedChange]) -> Result<ApplyRecei
             .map(|f| f.path),
     );
     owned.insert(".codex/run");
-    let mut service = AdminService::open(dir, AdminOperation::Setup, owned).with_links(links);
+    let mut service = AdminService::open(dir, AdminOperation::Setup, owned);
 
     // Validate the entire selected batch before creating even a directory.
     for f in &pending {
@@ -88,7 +80,6 @@ pub fn apply_approved(dir: &Path, files: &[&PlannedChange]) -> Result<ApplyRecei
         }
     }
 
-    service.migrate_links(&selected)?;
     for f in pending {
         service.execute(f);
     }

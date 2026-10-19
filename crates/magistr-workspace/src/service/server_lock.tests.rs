@@ -21,13 +21,11 @@ fn a_second_acquire_is_refused_until_the_holder_releases() {
 }
 
 #[test]
-fn the_native_marker_survives_release_and_is_readable_to_legacy_clients() {
+fn the_marker_and_lock_inode_survive_release() {
     let (_dir, path) = lock_path();
     let first = ServerLock::acquire(&path).expect("owner");
     let before = std::fs::read(&path).expect("marker");
-    let marker: serde_json::Value = serde_json::from_slice(&before).expect("legacy JSON");
-    assert!(marker["pid"].is_number());
-    assert_eq!(marker["host"], "magistr-native-os-lock/v1");
+    assert_eq!(before, NATIVE_MARKER);
     drop(first);
     let second = ServerLock::acquire(&path).expect("next native owner");
     assert_eq!(std::fs::read(&path).expect("unchanged marker"), before);
@@ -55,17 +53,13 @@ fn a_directory_at_the_lock_path_is_refused() {
 }
 
 #[test]
-fn legacy_and_unrecognized_records_are_refused_without_modification() {
-    for bytes in [
-        br#"{"pid":123,"host":"legacy-host"}"#.as_slice(),
-        b"",
-        b"not a lock record",
-    ] {
+fn unrecognized_records_are_refused_without_modification() {
+    for bytes in [b"unknown owner".as_slice(), b"", b"not a lock record"] {
         let (_dir, path) = lock_path();
         std::fs::write(&path, bytes).expect("old owner record");
-        let refused = ServerLock::acquire(&path).expect_err("requires offline migration");
+        let refused = ServerLock::acquire(&path).expect_err("unrecognized marker");
         assert_eq!(refused.kind(), io::ErrorKind::AlreadyExists);
-        assert!(refused.to_string().contains("migration"));
+        assert!(refused.to_string().contains("unrecognized"));
         assert_eq!(std::fs::read(&path).expect("preserved"), bytes);
     }
 }
@@ -129,12 +123,8 @@ fn directory_aliases_share_the_lock_inode_and_other_workspaces_do_not() {
 
 #[cfg(unix)]
 #[test]
-fn a_held_legacy_or_unknown_marker_requires_migration_instead_of_native_attachment() {
-    for bytes in [
-        br#"{"pid":123,"host":"legacy-host"}"#.as_slice(),
-        b"",
-        b"not a lock record",
-    ] {
+fn a_held_unknown_marker_refuses_attachment() {
+    for bytes in [b"unknown owner".as_slice(), b"", b"not a lock record"] {
         let (_dir, path) = lock_path();
         std::fs::write(&path, bytes).expect("foreign owner marker");
         let holder = OpenOptions::new()
@@ -143,11 +133,11 @@ fn a_held_legacy_or_unknown_marker_requires_migration_instead_of_native_attachme
             .open(&path)
             .expect("open the foreign marker");
         holder.lock().expect("hold its OS lock");
-        let refused = ServerLock::acquire(&path).expect_err("migration remains mandatory");
+        let refused = ServerLock::acquire(&path).expect_err("unknown marker is refused");
         assert_eq!(refused.kind(), io::ErrorKind::AlreadyExists);
         assert!(matches!(
             super::super::WorkspaceOpenError::lock(refused),
-            super::super::WorkspaceOpenError::MigrationRequired(_)
+            super::super::WorkspaceOpenError::InvalidLock(_)
         ));
         assert_eq!(std::fs::read(&path).expect("preserved marker"), bytes);
         assert!(
@@ -156,86 +146,6 @@ fn a_held_legacy_or_unknown_marker_requires_migration_instead_of_native_attachme
         );
         holder.unlock().expect("release fixture lock");
     }
-}
-
-#[test]
-fn migration_leaves_absent_and_native_markers_alone() {
-    let (_dir, path) = lock_path();
-    assert_eq!(
-        ServerLock::migrate_legacy(&path).expect("nothing to do"),
-        LegacyMigration::Absent
-    );
-    let held = ServerLock::acquire(&path).expect("native owner");
-    let marker = std::fs::read(&path).expect("native marker");
-    assert_eq!(
-        ServerLock::migrate_legacy(&path).expect("already native"),
-        LegacyMigration::AlreadyNative
-    );
-    assert_eq!(std::fs::read(&path).expect("untouched"), marker);
-    drop(held);
-    assert_eq!(
-        ServerLock::migrate_legacy(&path).expect("still native after release"),
-        LegacyMigration::AlreadyNative
-    );
-}
-
-#[cfg(unix)]
-#[test]
-fn migration_refuses_a_live_legacy_owner_and_a_foreign_host() {
-    let (_dir, path) = lock_path();
-    let alive = format!(
-        r#"{{"pid":{},"host":"{}"}}"#,
-        std::process::id(),
-        local_hostname()
-    );
-    std::fs::write(&path, &alive).expect("legacy record");
-    let refused = ServerLock::migrate_legacy(&path).expect_err("its process is this one");
-    assert_eq!(refused.kind(), io::ErrorKind::WouldBlock);
-    assert!(refused.to_string().contains("alive"), "{refused}");
-    assert_eq!(std::fs::read_to_string(&path).expect("preserved"), alive);
-
-    let foreign = r#"{"pid":1,"host":"another-machine.local"}"#;
-    std::fs::write(&path, foreign).expect("foreign record");
-    let refused = ServerLock::migrate_legacy(&path).expect_err("another host wrote it");
-    assert_eq!(refused.kind(), io::ErrorKind::WouldBlock);
-    assert!(
-        refused.to_string().contains("another-machine.local"),
-        "{refused}"
-    );
-    assert_eq!(std::fs::read_to_string(&path).expect("preserved"), foreign);
-}
-
-#[cfg(unix)]
-#[test]
-fn migration_moves_a_dead_legacy_record_or_an_empty_lock_aside_and_admission_follows() {
-    let mut child = std::process::Command::new("true")
-        .spawn()
-        .expect("a process to outlive");
-    let dead = child.id();
-    child
-        .wait()
-        .expect("reaped: the pid is gone before the record names it");
-    let (_dir, path) = lock_path();
-    let record = format!(r#"{{"pid":{dead},"host":"{}"}}"#, local_hostname());
-    std::fs::write(&path, &record).expect("legacy record");
-    let LegacyMigration::Migrated { backup } =
-        ServerLock::migrate_legacy(&path).expect("dead owner migrates")
-    else {
-        panic!("a dead legacy owner is migrated");
-    };
-    assert!(!path.exists(), "the record is moved, not copied");
-    assert_eq!(std::fs::read_to_string(&backup).expect("backup"), record);
-    let admitted = ServerLock::acquire(&path).expect("native admission after migration");
-    assert_eq!(admitted.generation().get(), 1);
-    drop(admitted);
-
-    let (_dir, path) = lock_path();
-    std::fs::write(&path, b"").expect("empty pre-migration lock");
-    assert!(matches!(
-        ServerLock::migrate_legacy(&path).expect("empty lock migrates"),
-        LegacyMigration::Migrated { .. }
-    ));
-    ServerLock::acquire(&path).expect("native admission after migration");
 }
 
 #[test]
@@ -262,34 +172,6 @@ fn inspect_classifies_the_record_without_taking_the_lock_or_touching_it() {
         LockRecord::Native
     );
     assert_eq!(std::fs::read(&path).expect("unchanged"), before);
-
-    std::fs::write(&path, br#"{"pid":123456789,"host":"legacy-host"}"#).expect("legacy");
-    let legacy = ServerLock::inspect(&path).expect("legacy");
-    assert!(
-        matches!(&legacy, LockRecord::Legacy { host, pid: 123456789, .. } if host == "legacy-host"),
-        "{legacy:?}"
-    );
-    let LockRecord::Legacy { pid_alive, .. } = legacy else {
-        unreachable!()
-    };
-    assert_eq!(
-        pid_alive, None,
-        "a pid from another host is never judged here"
-    );
-
-    std::fs::write(
-        &path,
-        format!(
-            r#"{{"pid":{},"host":"{}"}}"#,
-            std::process::id(),
-            local_hostname()
-        ),
-    )
-    .expect("legacy on this host");
-    let LockRecord::Legacy { pid_alive, .. } = ServerLock::inspect(&path).expect("legacy") else {
-        panic!("legacy record")
-    };
-    assert_eq!(pid_alive, Some(true), "this process is alive on this host");
 
     std::fs::write(&path, b"not a lock record").expect("garbage");
     assert_eq!(

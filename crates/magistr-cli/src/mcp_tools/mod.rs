@@ -1,27 +1,4 @@
-//! MCP tool server for magistr-managed file operations.
-//!
-//! Exposes file management tools (delete, list, write) as an MCP server that
-//! Claude Code can call during iterations. Solves the "unable to delete" friction
-//! where Claude Code has no native file deletion tool.
-//!
-//! ## Tools
-//!
-//! - `magistr_delete` — Delete a file or directory within the project
-//! - `magistr_list` — List directory contents
-//! - `magistr_gate` — Run quality gate commands (check, test, lint, all)
-//! - `magistr_format` — Run the project formatter
-//! - `magistr_hooks_list` — List configured lifecycle hooks
-//! - `magistr_hooks_add` — Add a lifecycle hook
-//! - `magistr_hooks_remove` — Remove a lifecycle hook
-//!
-//! Roadmap, reasoning and execution tools are the think-and-ship families
-//! (`roadmap_*`, `think_*`, `ship_*`, `signal_*`), mounted beside these by
-//! [`MagistrService`] — there is no magistr-specific roadmap tool set.
-//!
-//! ## Security
-//!
-//! All paths are resolved relative to the project root. Path traversal
-//! outside the project is rejected.
+//! Native workflow tools. All source operations belong to the workspace owner.
 
 mod format;
 mod format_runs;
@@ -44,176 +21,17 @@ pub use service::MagistrService;
 use std::path::{Path, PathBuf};
 
 use color_eyre::eyre;
-use magistr_mcp::{SdkMcpServer, SdkMcpTool, ToolResult};
-use serde_json::json;
-use tracing::debug;
+use magistr_mcp::SdkMcpServer;
 
 /// Build the magistr MCP server with file management tools.
 ///
 /// `project_root` is the absolute path to the project directory. All tool
 /// operations are sandboxed to this directory.
 pub fn build_server(project_root: PathBuf) -> SdkMcpServer {
-    let root_delete = project_root.clone();
     let root_gate = project_root.clone();
     let root_format = project_root.clone();
     let root_hooks = project_root.clone();
-    let root_init = project_root.clone();
-    let root_list = project_root;
-
-    let delete_tool = SdkMcpTool::new(
-        "magistr_delete",
-        "Delete a file or directory within the project. Use this instead of `rm` in bash. \
-         Path is relative to the project root.",
-        json!({
-            "type": "object",
-            "properties": {
-                "path": {
-                    "type": "string",
-                    "description": "Relative path to delete (e.g. '.claude/rules/old-rule.md')"
-                },
-                "recursive": {
-                    "type": "boolean",
-                    "description": "If true, delete directories recursively. Default: false.",
-                    "default": false
-                }
-            },
-            "required": ["path"]
-        }),
-        move |input| {
-            let root = root_delete.clone();
-            Box::pin(async move {
-                let rel_path = input["path"].as_str().ok_or_else(|| {
-                    magistr_mcp::ToolError::Mcp("missing 'path' parameter".into())
-                })?;
-                let recursive = input["recursive"].as_bool().unwrap_or(false);
-                debug!(
-                    tool = "magistr_delete",
-                    path = rel_path,
-                    recursive,
-                    "MCP tool invoked"
-                );
-
-                let target = resolve_safe_path(&root, rel_path)?;
-
-                if !target.exists() {
-                    return Ok(ToolResult::error(format!(
-                        "Path does not exist: {rel_path}"
-                    )));
-                }
-
-                if target.is_dir() {
-                    if recursive {
-                        if is_protected_path(&root, &target, rel_path) {
-                            return Ok(ToolResult::error(format!(
-                                "Refusing to recursively delete protected path '{rel_path}'. \
-                                 Remove files individually or use a more specific sub-path."
-                            )));
-                        }
-                        std::fs::remove_dir_all(&target).map_err(|e| {
-                            magistr_mcp::ToolError::Mcp(format!(
-                                "Failed to delete directory '{rel_path}': {e}"
-                            ))
-                        })?;
-                        Ok(ToolResult::text(format!("Deleted directory: {rel_path}")))
-                    } else {
-                        // Try non-recursive first (only works on empty dirs)
-                        match std::fs::remove_dir(&target) {
-                            Ok(()) => Ok(ToolResult::text(format!(
-                                "Deleted empty directory: {rel_path}"
-                            ))),
-                            Err(_) => Ok(ToolResult::error(format!(
-                                "Directory '{rel_path}' is not empty. Use recursive: true to delete it."
-                            ))),
-                        }
-                    }
-                } else {
-                    std::fs::remove_file(&target).map_err(|e| {
-                        magistr_mcp::ToolError::Mcp(format!(
-                            "Failed to delete file '{rel_path}': {e}"
-                        ))
-                    })?;
-                    Ok(ToolResult::text(format!("Deleted file: {rel_path}")))
-                }
-            })
-        },
-    );
-
-    let list_tool = SdkMcpTool::new(
-        "magistr_list",
-        "List files and directories at a path within the project. \
-         Path is relative to the project root.",
-        json!({
-            "type": "object",
-            "properties": {
-                "path": {
-                    "type": "string",
-                    "description": "Relative directory path to list (e.g. '.claude/rules'). Defaults to project root.",
-                    "default": "."
-                },
-                "limit": {
-                    "type": "integer",
-                    "description": "Maximum number of entries to return. Default: 500.",
-                    "default": 500
-                }
-            }
-        }),
-        move |input| {
-            let root = root_list.clone();
-            Box::pin(async move {
-                let rel_path = input["path"].as_str().unwrap_or(".");
-                let limit = input["limit"].as_u64().unwrap_or(500) as usize;
-                debug!(
-                    tool = "magistr_list",
-                    path = rel_path,
-                    limit,
-                    "MCP tool invoked"
-                );
-
-                let target = resolve_safe_path(&root, rel_path)?;
-
-                if !target.exists() {
-                    return Ok(ToolResult::error(format!(
-                        "Path does not exist: {rel_path}"
-                    )));
-                }
-
-                if !target.is_dir() {
-                    return Ok(ToolResult::error(format!("Not a directory: {rel_path}")));
-                }
-
-                let mut entries: Vec<String> = Vec::new();
-                let read_dir = std::fs::read_dir(&target).map_err(|e| {
-                    magistr_mcp::ToolError::Mcp(format!(
-                        "Failed to read directory '{rel_path}': {e}"
-                    ))
-                })?;
-
-                for entry in read_dir {
-                    let entry = entry.map_err(|e| {
-                        magistr_mcp::ToolError::Mcp(format!("Failed to read entry: {e}"))
-                    })?;
-                    let name = entry.file_name().to_string_lossy().to_string();
-                    let suffix = if entry.path().is_dir() { "/" } else { "" };
-                    entries.push(format!("{name}{suffix}"));
-                }
-
-                entries.sort();
-
-                if entries.is_empty() {
-                    Ok(ToolResult::text(format!("{rel_path}/ (empty)")))
-                } else if entries.len() > limit {
-                    let total = entries.len();
-                    let remaining = total - limit;
-                    entries.truncate(limit);
-                    entries.push(format!("... and {remaining} more entries"));
-                    Ok(ToolResult::text(entries.join("\n")))
-                } else {
-                    Ok(ToolResult::text(entries.join("\n")))
-                }
-            })
-        },
-    );
-
+    let root_init = project_root;
     // ── Workflow phase tool ──────────────────────────────────────────────────
     let set_phase_tool = set_phase::build_set_phase_tool();
 
@@ -226,8 +44,6 @@ pub fn build_server(project_root: PathBuf) -> SdkMcpServer {
 
     let mut server = SdkMcpServer::new("magistr")
         .version(env!("CARGO_PKG_VERSION"))
-        .tool(delete_tool)
-        .tool(list_tool)
         .tool(set_phase_tool)
         .tool(gate_tool)
         .tool(format_tool)
@@ -249,124 +65,6 @@ pub fn build_server(project_root: PathBuf) -> SdkMcpServer {
 }
 
 // ── Shared helpers ──────────────────────────────────────────────────────────
-
-/// Resolve a relative path safely within the project root.
-///
-/// Rejects paths that would escape the project directory via `..` traversal.
-fn resolve_safe_path(root: &Path, rel_path: &str) -> Result<PathBuf, magistr_mcp::ToolError> {
-    use std::path::Component;
-
-    // Reject absolute paths
-    if Path::new(rel_path).is_absolute() {
-        return Err(magistr_mcp::ToolError::Mcp(
-            "Absolute paths are not allowed. Use a path relative to the project root.".into(),
-        ));
-    }
-
-    let canonical_root = if root.exists() {
-        root.canonicalize().map_err(|e| {
-            magistr_mcp::ToolError::Mcp(format!("Failed to resolve project root: {e}"))
-        })?
-    } else {
-        normalize_path(root)
-    };
-
-    let mut resolved = canonical_root.clone();
-    for component in Path::new(rel_path).components() {
-        match component {
-            Component::CurDir => {}
-            Component::ParentDir => {
-                resolved.pop();
-                if !resolved.starts_with(&canonical_root) {
-                    return Err(magistr_mcp::ToolError::Mcp(format!(
-                        "Path '{rel_path}' escapes the project directory. Access denied."
-                    )));
-                }
-            }
-            Component::Normal(part) => {
-                resolved.push(part);
-                if resolved.exists() {
-                    resolved = resolved.canonicalize().map_err(|e| {
-                        magistr_mcp::ToolError::Mcp(format!(
-                            "Failed to resolve path '{rel_path}': {e}"
-                        ))
-                    })?;
-                    if !resolved.starts_with(&canonical_root) {
-                        return Err(magistr_mcp::ToolError::Mcp(format!(
-                            "Path '{rel_path}' escapes the project directory. Access denied."
-                        )));
-                    }
-                }
-            }
-            Component::RootDir | Component::Prefix(_) => {
-                return Err(magistr_mcp::ToolError::Mcp(
-                    "Absolute paths are not allowed. Use a path relative to the project root."
-                        .into(),
-                ));
-            }
-        }
-    }
-
-    if !resolved.starts_with(&canonical_root) {
-        return Err(magistr_mcp::ToolError::Mcp(format!(
-            "Path '{rel_path}' escapes the project directory. Access denied."
-        )));
-    }
-
-    Ok(resolved)
-}
-
-/// Top-level directory names that must not be recursively deleted.
-///
-/// These are critical project directories whose accidental removal would
-/// cause data loss or break the project irreparably.
-const PROTECTED_DIRS: &[&str] = &[
-    ".git",
-    "src",
-    "lib",
-    "app",
-    "pkg",
-    "crates",
-    "packages",
-    "node_modules",
-];
-
-/// Check whether a recursive delete target is a protected path.
-///
-/// Protected paths are:
-/// 1. The project root itself (resolved path == root)
-/// 2. Top-level directories in [`PROTECTED_DIRS`]
-fn is_protected_path(root: &Path, target: &Path, rel_path: &str) -> bool {
-    // Normalize the relative path to get the first component
-    let normalized = normalize_path(Path::new(rel_path));
-    let first_component = normalized.components().next().and_then(|c| match c {
-        std::path::Component::Normal(s) => s.to_str(),
-        _ => None,
-    });
-
-    // Reject if target resolves to the project root
-    if let (Ok(canon_root), Ok(canon_target)) = (root.canonicalize(), target.canonicalize())
-        && canon_root == canon_target
-    {
-        return true;
-    }
-    // Fallback for non-existent paths: check normalized form
-    let norm_root = normalize_path(root);
-    let norm_target = normalize_path(target);
-    if norm_root == norm_target {
-        return true;
-    }
-
-    // Check if it's a single-component path matching a protected name
-    let component_count = normalized.components().count();
-    if component_count == 1
-        && let Some(name) = first_component
-    {
-        return PROTECTED_DIRS.contains(&name);
-    }
-
-    false
-}
 
 /// Validate that required executables are available on PATH.
 ///
@@ -440,27 +138,15 @@ fn validate_project_executables(project_root: &Path) -> Vec<String> {
         .collect()
 }
 
-/// Normalize a path by resolving `.` and `..` components without requiring
-/// the path to exist on disk.
-fn normalize_path(path: &Path) -> PathBuf {
-    let mut components = Vec::new();
-    for component in path.components() {
-        match component {
-            std::path::Component::ParentDir => {
-                components.pop();
-            }
-            std::path::Component::CurDir => {}
-            other => components.push(other),
-        }
-    }
-    components.iter().collect()
-}
-
 /// Run the MCP server on stdio, reading JSON-RPC requests from stdin
 /// and writing responses to stdout.
 ///
-/// This is the entry point for `magistr mcp-serve`.
-pub async fn run_stdio_server(project_root: PathBuf) -> eyre::Result<()> {
+/// Internal workflow connection used by the unified MCP service.
+pub(crate) async fn run_transport(
+    project_root: PathBuf,
+    input: impl tokio::io::AsyncRead + Unpin,
+    output: impl tokio::io::AsyncWrite + Unpin,
+) -> eyre::Result<()> {
     // Validate required executables at startup; stderr is the log channel of
     // a stdio MCP server, stdout carries only the transport.
     for warning in validate_project_executables(&project_root) {
@@ -491,7 +177,7 @@ pub async fn run_stdio_server(project_root: PathBuf) -> eyre::Result<()> {
         owner_policy::Policy,
         Ok(link),
     )
-    .run()
+    .run_transport(input, output)
     .await
 }
 

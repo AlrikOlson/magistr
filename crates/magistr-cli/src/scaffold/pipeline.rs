@@ -33,7 +33,7 @@ pub struct ScaffoldPipeline {
 impl ScaffoldPipeline {
     /// Create a pipeline with default (non-AI) selections.
     ///
-    /// Used by headless init paths (`cmd_init`, `cmd_init_smart`, `cmd_init_dry_run`)
+    /// Used by explicit setup previews and non-interactive initialization
     /// that don't run the interview.
     pub fn headless(stack: Stack) -> Self {
         Self {
@@ -164,8 +164,8 @@ impl ScaffoldPipeline {
     /// Resolve lifecycle hooks: use AI-recommended hooks if available,
     /// otherwise fall back to the language preset.
     fn resolve_hooks(&self) -> Vec<magistr_engine::LifecycleHook> {
-        if !self.selections.lifecycle_hooks.is_empty() {
-            self.selections.lifecycle_hooks.clone()
+        if let Some(hooks) = &self.selections.lifecycle_hooks {
+            hooks.clone()
         } else {
             magistr_engine::workflow::hook_presets::preset_for_language(
                 &self.stack.language.to_string(),
@@ -184,9 +184,28 @@ impl ScaffoldPipeline {
         }
     }
 
+    /// Prepare the exact changes to review and apply. Plugins share the same plan.
+    pub(crate) fn prepare(&self, dir: &Path) -> Result<PreparedSetup> {
+        let vars = self.template_vars(dir);
+        let mut setup =
+            super::preview::SetupPlan::compute(dir, &vars, self.overrides(), &self.seeds())?;
+        if let Some(inputs) = &self.inputs
+            && super::agent_selected(&setup.vars, "claude")
+        {
+            setup
+                .plan
+                .files
+                .extend(scaffold::plan_template_plugins(dir, &setup.vars, inputs));
+        }
+        Ok(PreparedSetup {
+            root: dir.to_path_buf(),
+            setup,
+        })
+    }
+
     /// Execute the full scaffold generation using the default scaffolder.
     pub fn generate(&self, dir: &Path) -> Result<Vec<String>> {
-        self.generate_with(dir, &scaffold::DefaultScaffolder)
+        self.prepare(dir)?.apply()
     }
 
     /// Execute scaffold generation with a custom scaffolder implementation.
@@ -225,7 +244,7 @@ impl ScaffoldPipeline {
 
     /// Preview scaffold output without writing to disk, using the default scaffolder.
     pub fn preview(&self, dir: &Path) -> Result<scaffold::ChangePlan> {
-        self.preview_with(dir, &scaffold::DefaultScaffolder)
+        Ok(self.prepare(dir)?.setup.plan)
     }
 
     /// Preview scaffold output with a custom scaffolder implementation. The
@@ -243,6 +262,29 @@ impl ScaffoldPipeline {
                 .extend(scaffold::plan_template_plugins(dir, &vars, inputs));
         }
         Ok(plan)
+    }
+}
+
+pub(crate) struct PreparedSetup {
+    root: std::path::PathBuf,
+    setup: super::preview::SetupPlan,
+}
+
+impl PreparedSetup {
+    pub(super) fn for_repair(mut self) -> Self {
+        self.setup.plan.operation = scaffold::AdminOperation::Repair;
+        self
+    }
+    pub fn changes(&self) -> &scaffold::ChangePlan {
+        &self.setup.plan
+    }
+
+    pub fn apply(self) -> Result<Vec<String>> {
+        let (_, receipt) = super::generate::apply_prepared(&self.root, self.setup)?;
+        match receipt.partial_error() {
+            Some(error) => Err(error),
+            None => Ok(receipt.applied_paths()),
+        }
     }
 }
 

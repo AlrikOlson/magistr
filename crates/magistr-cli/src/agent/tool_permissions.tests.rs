@@ -22,7 +22,7 @@ fn roadmap_includes_codebase_read_only() {
     }
     assert!(!perms.contains("Bash"), "roadmap must NOT include Bash");
     assert!(
-        perms.contains("roadmap_add_chunk"),
+        perms.contains("execute"),
         "roadmap generation authors chunks through roadmap_add_chunk"
     );
 }
@@ -71,21 +71,7 @@ fn workflow_is_superset_of_base() {
 #[test]
 fn workflow_includes_mcp_tools() {
     let perms = ToolPermissions::for_workflow();
-    for tool in &[
-        "roadmap_next",
-        "roadmap_start_chunk",
-        "roadmap_complete_chunk",
-        "ship_set_objective",
-        "ship_check",
-        "think_record_step",
-        "magistr_set_phase",
-        "magistr_gate",
-        "magistr_format",
-        "read",
-        "search",
-        "edit",
-        "undo",
-    ] {
+    for tool in UNIFIED_MCP {
         assert!(
             perms.contains(tool),
             "workflow must include MCP tool {tool}"
@@ -100,17 +86,8 @@ fn reasoning_lifecycle_is_available_to_workflow_and_roadmap_agents() {
         ToolPermissions::for_roadmap(),
         ToolPermissions::for_roadmap_request(),
     ] {
-        for name in [
-            "think_record_step",
-            "think_get_step",
-            "think_sessions",
-            "think_session",
-            "think_set_branch_status",
-            "think_step_impact",
-            "think_revise_estimate",
-        ] {
-            assert!(permissions.contains(name), "reasoning must include {name}");
-        }
+        assert!(permissions.contains("discover"));
+        assert!(permissions.contains("execute"));
         assert!(!permissions.contains("think_wipe_trace"));
         assert!(!permissions.contains("think_export_trace"));
     }

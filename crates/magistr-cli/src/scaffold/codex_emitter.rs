@@ -22,12 +22,10 @@ impl AgentEmitter for CodexEmitter {
         let mut files = WorkflowSkills::codex_files();
         files.push(ScaffoldFile {
             path: ".codex/run",
-            content: concat!(
-                "#!/bin/sh\n",
-                "exec magistr codex-launch --project-root ",
-                "\"$(CDPATH= cd -- \"$(dirname -- \"$0\")/..\" && pwd)\" -- \"$@\"\n",
-            )
-            .to_owned(),
+            content: format!(
+                "#!/bin/sh\nexec {} codex-launch --project-root \"$(CDPATH= cd -- \"$(dirname -- \"$0\")/..\" && pwd)\" -- \"$@\"\n",
+                crate::mcp_target::shell_command(),
+            ),
             policy: UpdatePolicy::PreserveCustomized,
         });
         files

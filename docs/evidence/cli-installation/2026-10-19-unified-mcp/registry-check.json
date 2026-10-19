@@ -1,0 +1,98 @@
+{
+  "capturedAt": "2026-10-19T18:28:25.820963+00:00",
+  "publicationPerformed": false,
+  "cargoPublishingAccess": "not verified",
+  "npmPublishingAccess": "not authenticated in this session",
+  "registries": [
+    {
+      "registry": "Cargo",
+      "name": "magistr-domain",
+      "status": 404,
+      "availableAtCheck": true
+    },
+    {
+      "registry": "Cargo",
+      "name": "magistr-application",
+      "status": 404,
+      "availableAtCheck": true
+    },
+    {
+      "registry": "Cargo",
+      "name": "magistr-process",
+      "status": 404,
+      "availableAtCheck": true
+    },
+    {
+      "registry": "Cargo",
+      "name": "magistr-acp",
+      "status": 404,
+      "availableAtCheck": true
+    },
+    {
+      "registry": "Cargo",
+      "name": "magistr-acp-agent",
+      "status": 404,
+      "availableAtCheck": true
+    },
+    {
+      "registry": "Cargo",
+      "name": "magistr-workflow-contracts",
+      "status": 404,
+      "availableAtCheck": true
+    },
+    {
+      "registry": "Cargo",
+      "name": "magistr-cockpit",
+      "status": 404,
+      "availableAtCheck": true
+    },
+    {
+      "registry": "Cargo",
+      "name": "magistr-cockpit-runtime",
+      "status": 404,
+      "availableAtCheck": true
+    },
+    {
+      "registry": "Cargo",
+      "name": "magistr-workflow",
+      "status": 404,
+      "availableAtCheck": true
+    },
+    {
+      "registry": "Cargo",
+      "name": "magistr-engine",
+      "status": 404,
+      "availableAtCheck": true
+    },
+    {
+      "registry": "Cargo",
+      "name": "magistr-workspace",
+      "status": 404,
+      "availableAtCheck": true
+    },
+    {
+      "registry": "Cargo",
+      "name": "magistr-core",
+      "status": 404,
+      "availableAtCheck": true
+    },
+    {
+      "registry": "Cargo",
+      "name": "magistr-mcp",
+      "status": 404,
+      "availableAtCheck": true
+    },
+    {
+      "registry": "Cargo",
+      "name": "magistr-cli",
+      "status": 404,
+      "availableAtCheck": true
+    },
+    {
+      "registry": "npm",
+      "name": "magistr",
+      "status": 404,
+      "availableAtCheck": true
+    }
+  ]
+}

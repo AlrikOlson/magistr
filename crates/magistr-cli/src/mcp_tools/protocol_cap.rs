@@ -1,4 +1,4 @@
-//! Caps the MCP protocol version `magistr mcp-serve` will negotiate.
+//! Caps the MCP protocol version `magistr mcp` will negotiate.
 //!
 //! The Claude Agent SDK's bundled CLI (spawned by the retired npm shim,
 //! i.e. every `magistr next` iteration at the time) requested protocol
@@ -8,7 +8,7 @@
 //! had no magistr tools. Standalone Claude Code negotiates the pre-2026 era,
 //! where rmcp strips `resultType`, and works — and it is what the in-binary
 //! `claude` provider drives now (the recorded mcp_connected fixture in
-//! crates/magistr-acp-agent shows `magistr mcp-serve` connected under
+//! crates/magistr-acp-agent shows `magistr mcp` connected under
 //! 2.1.258). The cap stays: it costs nothing and holds for every client.
 //!
 //! rmcp negotiates by echoing any *known* client-requested version

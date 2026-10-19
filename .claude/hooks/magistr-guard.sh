@@ -3,7 +3,7 @@
 #
 # Wired from .claude/settings.json as a Stop hook (`stop`), a PreToolUse
 # hook on Bash (`commit`: gating git commit on recorded gates, and routing
-# grep, rg, find and sed over the workspace to workbench-mcp while leaving
+# grep, rg, find and sed over the workspace to Magistr workspace while leaving
 # them free for paths outside it and for piped output) and a PreToolUse hook
 # on Edit/Write/MultiEdit/NotebookEdit (`write`, refusing writes under a
 # frozen tree declared in .magistr/legacy-gui-ratchet.json). Forwards the

@@ -18,7 +18,7 @@ fn setup_project(dir: &Path) {
 fn healthy_project_all_pass() {
     let dir = TempDir::new().unwrap();
     setup_project(dir.path());
-    let checks = run_all(dir.path());
+    let checks = run_all(dir.path(), true);
     let fails: Vec<_> = checks
         .iter()
         .filter(|c| c.status == CheckStatus::Fail)

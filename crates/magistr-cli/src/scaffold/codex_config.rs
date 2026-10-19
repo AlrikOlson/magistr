@@ -17,7 +17,7 @@ impl CodexConfig {
             let servers = servers
                 .as_table_like()
                 .ok_or_else(|| invalid("mcp_servers must be a table"))?;
-            for server in ["magistr", "workbench-mcp", "think-and-ship"] {
+            for server in ["magistr"] {
                 if let Some(entry) = servers.get(server) {
                     let entry = entry
                         .as_table_like()
@@ -59,7 +59,11 @@ impl CodexConfig {
     ) -> Result<String> {
         let mut doc = Self::parse(existing)?;
         let shared = super::mcp_config::build(vars)?;
-        for server in ["magistr", "workbench-mcp", "think-and-ship"] {
+        if let Some(servers) = doc.get_mut("mcp_servers").and_then(Item::as_table_like_mut) {
+            servers.remove("workbench-mcp");
+            servers.remove("think-and-ship");
+        }
+        for server in ["magistr"] {
             let is_new = doc.get("mcp_servers").and_then(|v| v.get(server)).is_none();
             let custom_transport = has_custom_transport(&doc, owned, server);
             let metadata_only = get(&doc, server, "command").is_none()
@@ -77,11 +81,7 @@ impl CodexConfig {
                 )));
             }
             let mut desired = Table::new();
-            if server == "think-and-ship" {
-                desired["command"] = value("think-and-ship");
-                desired["args"] = value(["serve"].into_iter().collect::<Array>());
-                desired["enabled"] = value(false);
-            } else {
+            {
                 let spec = &shared["mcpServers"][server];
                 desired["command"] = value(
                     spec["command"]
@@ -96,7 +96,7 @@ impl CodexConfig {
                     .collect();
                 desired["args"] = value(args);
                 desired["startup_timeout_sec"] = value(60);
-                desired["tool_timeout_sec"] = value(if server == "magistr" { 1800 } else { 300 });
+                desired["tool_timeout_sec"] = value(1800);
                 desired["required"] = value(true);
             }
             for (key, desired) in desired.iter() {
@@ -109,21 +109,9 @@ impl CodexConfig {
                     .config
                     .get(&id)
                     .is_some_and(|o| current.map(Item::to_string).as_deref() == Some(&o.generated));
-                let force_disable = server == "think-and-ship" && key == "enabled";
                 let missing_launch = metadata_only && ["command", "args"].contains(&key);
-                if ((is_new || missing_launch) && !repair)
-                    || owned_current
-                    || (force_disable && !repair)
-                {
+                if ((is_new || missing_launch) && !repair) || owned_current {
                     // An explicit transport remains intact, including an HTTP endpoint.
-                    if server == "think-and-ship"
-                        && key != "enabled"
-                        && !is_new
-                        && !owned_current
-                        && !missing_launch
-                    {
-                        continue;
-                    }
                     put(&mut doc, server, key, desired.clone());
                 }
             }
@@ -145,7 +133,7 @@ impl CodexConfig {
     pub(super) fn record(before: &str, after: &str, owned: &mut CodexOwnership) -> Result<()> {
         let old = Self::parse(before)?;
         let new = Self::parse(after)?;
-        for server in ["magistr", "workbench-mcp", "think-and-ship"] {
+        for server in ["magistr"] {
             for key in FIELDS {
                 let before = get(&old, server, key).map(Item::to_string);
                 let after = get(&new, server, key).map(Item::to_string);
@@ -165,7 +153,7 @@ impl CodexConfig {
 
     pub(super) fn remove(existing: &str, owned: &CodexOwnership) -> Result<String> {
         let mut doc = Self::parse(existing)?;
-        let custom: Vec<_> = ["magistr", "workbench-mcp", "think-and-ship"]
+        let custom: Vec<_> = ["magistr"]
             .into_iter()
             .filter(|server| has_custom_transport(&doc, owned, server))
             .collect();
@@ -173,9 +161,7 @@ impl CodexConfig {
             let Some((server, key)) = id.split_once('.') else {
                 continue;
             };
-            if !["magistr", "workbench-mcp", "think-and-ship"].contains(&server)
-                || !FIELDS.contains(&key)
-            {
+            if !["magistr"].contains(&server) || !FIELDS.contains(&key) {
                 continue;
             }
             if custom.contains(&server) && ["command", "args"].contains(&key) {
@@ -203,7 +189,7 @@ impl CodexConfig {
             }
         }
         if let Some(servers) = doc.get_mut("mcp_servers").and_then(Item::as_table_like_mut) {
-            for server in ["magistr", "workbench-mcp", "think-and-ship"] {
+            for server in ["magistr"] {
                 if servers
                     .get(server)
                     .and_then(Item::as_table_like)

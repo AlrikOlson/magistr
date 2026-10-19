@@ -1,6 +1,6 @@
 //! One headless `magistr next` iteration, end to end, against a temporary
 //! store — the tool sequence the `/next` skill prescribes, driven over the
-//! same `magistr mcp-serve` surface an agent would call (in-memory duplex,
+//! same `magistr mcp` surface an agent would call (in-memory duplex,
 //! no LLM, no ACP agent). Proves:
 //!
 //! - the lifecycle guard refuses `execute` until an objective and a task are

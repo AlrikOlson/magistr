@@ -21,11 +21,11 @@ The roadmap, the plan and the quality gates live in **think-and-ship**, served b
 | Family | Purpose | Key tools |
 |--------|---------|-----------|
 | `roadmap_*` | The long-horizon plan-of-plans — chunks with deps, acceptance and status | `roadmap_status`, `roadmap_next`, `roadmap_get`, `roadmap_start_chunk`, `roadmap_complete_chunk`, `roadmap_add_chunk`, `roadmap_update_chunk`, `roadmap_export` |
-| `ship_*` | The execution trace — objective, plan, actions, gates | `ship_set_objective`, `ship_plan`, `ship_start`, `ship_record`, `ship_complete`, `ship_check`, `ship_finalize`, `ship_status` |
+| `ship_*` | The execution trace — objective, plan, actions, gates | `ship_set_objective`, `plan_work`, `start_work`, `record_progress`, `finish_work`, `check_work`, `ship_finalize`, `ship_status` |
 | `think_*` | The reasoning trace — open/close every iteration, pin load-bearing findings | `think_record_step`, `think_pin_step`, `think_trace_checkpoint` |
 | `signal_*` | Stakeholder signals — capture, research, promote to the roadmap | `signal_capture`, `signal_pending`, `signal_promote` |
 
-A roadmap chunk is realized by a ship objective, motivated by think reasoning. `ROADMAP.md` is a **generated view** (`roadmap_export`) — never edit it by hand and never treat it as the source of truth. There is no plan file: the plan is `ship_plan`.
+A roadmap chunk is realized by a ship objective, motivated by think reasoning. `ROADMAP.md` is a **generated view** (`roadmap_export`) — never edit it by hand and never treat it as the source of truth. There is no plan file: the plan is `plan_work`.
 
 ## Recover interrupted work
 
@@ -81,14 +81,14 @@ Keep your plan entry statuses up to date. The native execution plan retains the 
 
 > `magistr_set_phase(phase: "plan")` — call this first.
 
-1. **Explore the codebase** using workbench-mcp tools (NOT Glob/Grep/shell grep):
+1. **Explore the codebase** using Magistr workspace tools (NOT Glob/Grep/shell grep):
    - `search` (lexical, `mode:structural` for AST patterns, `mode:references` for symbol edges) to find relevant code
    - `map` for orientation: entry points, declared commands, per-file symbol outlines
    - `search mode:references` before modifying shared code — see all callers and importers
    - `read` (file, range, or symbol by name) for detailed code reading; built-in `Read` is ONLY for immediately before `Edit`
    - Follow `.claude/skills/workbench-routing/SKILL.md` for routing and error recovery
 2. **Recover or create the objective** — select the authorized `chunk:<id>` scope with `ship_set_objective` when another scope is selected or no objective exists. Use the chunk's title, acceptance criteria and focused verification to seed a new scope. Read `ship_status` again and retain the restored objective, verification and plan; do not repeat setup on a matching unfinished scope.
-3. **Recover or extend the plan** — keep existing tasks, statuses, actions, and checks; use `ship_plan(action: "add", ...)` only for missing work.
+3. **Recover or extend the plan** — keep existing tasks, statuses, actions, and checks; use `plan_work(action: "add", ...)` only for missing work.
 4. **Open the reasoning** — `think_record_step` (omit `step_number`) with the sub-plan and `execution_ref: "task:<id>"`; `roadmap_link(id, "think:<N>")`
 
 The objective and plan must exist before editing source files; resuming keeps the existing records rather than recreating them.
@@ -97,10 +97,10 @@ The objective and plan must exist before editing source files; resuming keeps th
 
 > `magistr_set_phase(phase: "execute")` — call this first.
 
-1. Continue an already active task without calling `ship_start` again; start only the next pending task and never restart completed tasks. Use the codebase navigation tools from `tools.md` to understand code before modifying. Use `Read` only immediately before `Edit`.
-2. Implement the plan using TDD (red-green-refactor); `ship_record` significant actions with `files_touched`
+1. Continue an already active task without calling `start_work` again; start only the next pending task and never restart completed tasks. Use the codebase navigation tools from `tools.md` to understand code before modifying. Use `Read` only immediately before `Edit`.
+2. Implement the plan using TDD (red-green-refactor); `record_progress` significant actions with `files_touched`
 3. Follow project conventions from `.claude/rules/conventions.md`
-4. `ship_complete` the task with its artifacts
+4. `finish_work` the task with its artifacts
 
 ### VERIFY — All four steps are MANDATORY
 
@@ -110,7 +110,7 @@ The verification mode on the objective controls the scope:
 
 - Explicitly select `focused` for bounded changes, including code and roadmap
   chunks. Record formatting and checks covering changed behavior, affected
-  dependencies, and acceptance criteria through `ship_check` or named gates.
+  dependencies, and acceptance criteria through `check_work` or named gates.
 - Select `full` and run `magistr_gate(gate: "all")` only for an explicit
   full-suite request or a concrete cross-cutting risk; state the reason first.
   The tool's default is not a scope decision.
@@ -120,7 +120,7 @@ and rerun affected checks; do not repeat a failing suite without new evidence
 or a relevant correction, or widen verification merely because a check failed.
 
 1. **Run the checks for the declared mode** — all must pass before anything else, each recorded with its real exit code:
-   - Use `magistr_format` and `magistr_gate(gate: "all")` for `full`, or targeted `ship_check` commands for `focused`
+   - Use `magistr_format` and `magistr_gate(gate: "all")` for `full`, or targeted `check_work` commands for `focused`
    - Always pass `command:`; never use a piped or self-reported result
    - A failing required check invalidates "done" — fix and re-run
 
@@ -147,9 +147,9 @@ These apply to ALL work — `/next`, manual tasks, bug fixes, refactors, everyth
 
 2. **ALWAYS commit at the end** — No work is done until it's committed. The commit includes ALL changed files. One atomic commit per chunk.
 
-3. **ALWAYS run the declared verification before committing** — `full` objectives require all configured gates; explicitly scoped `focused` objectives require their changed-surface acceptance checks, including relevant code and dependency checks. Record every check through `ship_check`. If they fail, fix the failures first.
+3. **ALWAYS run the declared verification before committing** — `full` objectives require all configured gates; explicitly scoped `focused` objectives require their changed-surface acceptance checks, including relevant code and dependency checks. Record every check through `check_work`. If they fail, fix the failures first.
 
-4. **ALWAYS recover the plan before executing** — Read the codebase and saved work first. Keep a matching unfinished objective and plan; create only missing records with `ship_set_objective` + `ship_plan`. Then continue unfinished work.
+4. **ALWAYS recover the plan before executing** — Read the codebase and saved work first. Keep a matching unfinished objective and plan; create only missing records with `ship_set_objective` + `plan_work`. Then continue unfinished work.
 
 5. **ALWAYS use TDD** — Write a failing test, make it pass, refactor. Every significant type/function gets tests.
 
@@ -182,9 +182,9 @@ Format: `<type>: <description>`
 
 Each `/next` iteration:
 1. Read `roadmap_status` and `ship_status`; follow the selected chunk and resume authorized in-progress work first. Only without resumable work, select a pending chunk with `roadmap_next` and start it once with `roadmap_start_chunk`.
-2. Keep the matching unfinished objective and plan, or create missing records with `ship_set_objective` + `ship_plan`. Record material findings with `think_record_step` as work continues.
+2. Keep the matching unfinished objective and plan, or create missing records with `ship_set_objective` + `plan_work`. Record material findings with `think_record_step` as work continues.
 3. Implement with TDD
-4. Run quality gates through `ship_check` — all must pass
+4. Run quality gates through `check_work` — all must pass
 5. `roadmap_complete_chunk` + `ship_finalize` + closing `think_record_step`
 6. Commit — one atomic commit per chunk
 7. STOP — the orchestrator starts the next iteration

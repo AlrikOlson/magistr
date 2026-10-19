@@ -115,7 +115,7 @@ test('confirmed task start uses the normal tool path with named consent', async 
   await ui.press({ key: 'task-review' })
   await ui.press({ key: 'start-task' })
   expect(calls.length).toBe(1)
-  expect(calls[0].tool).toBe('mcp__magistr__ship_start')
+  expect(calls[0].tool).toBe('mcp__magistr__start_work')
   expect(calls[0].consent).toContain('confirmed "Start task"')
   expect(
     await ui.find({

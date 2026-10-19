@@ -1,10 +1,11 @@
 [package]
+include = ["src/**", "Cargo.toml", "Cargo.lock", "LICENSE*", "PROVENANCE.md"]
+repository = "https://github.com/AlrikOlson/magistr"
 name = "magistr-acp-agent"
 version = "0.1.0"
 edition = "2024"
 description = "Magistr's ACP (Agent Client Protocol) agent side: the session registry, turn queue, permission relay and cancel plumbing every Provider stands on, served by `magistr acp-agent`"
 license = "MIT"
-publish = false
 
 [lib]
 name = "magistr_acp_agent"

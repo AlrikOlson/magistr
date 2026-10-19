@@ -26,7 +26,7 @@ const GATE_TIMEOUT_SECS: u64 = 1800;
 /// runtime's handle from the blocking thread. The gate runs on a pty, and
 /// every chunk it writes goes to `inbox` while it runs as a
 /// [`GateOutput`] event keyed by `name` — the same event `magistr
-/// mcp-serve`'s socket carries for the agent's own gates, folded into the
+/// mcp`'s socket carries for the agent's own gates, folded into the
 /// cockpit's terminal store either way. The whole run goes to the driver on `report`: the stripped
 /// transcript, the parsed failure rows, the real exit code, and a verdict
 /// that tells a timeout apart from a red test. The job's own result — pass

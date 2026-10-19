@@ -3,3 +3,5 @@
 !.gitignore
 !project.json
 !agents.toml
+!conventions.md
+!instructions.md

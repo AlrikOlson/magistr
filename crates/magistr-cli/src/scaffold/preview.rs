@@ -6,7 +6,6 @@ use std::path::Path;
 use crate::error::Result;
 
 use super::canonical::CanonicalSource;
-use super::codex_skill_links::CodexSkillLinks;
 use super::manifest::ScaffoldManifest;
 use super::{
     AdminOperation, ChangePlan, FileAction, Ownership, PlannedChange, ScaffoldFile, SetupSeeds,
@@ -37,8 +36,6 @@ pub(super) struct SetupPlan {
     pub(super) plan: ChangePlan,
     /// The template variables after Codex selection recovery.
     pub(super) vars: HashMap<String, String>,
-    /// Legacy Codex skill links to detach before any generated write.
-    pub(super) links: CodexSkillLinks,
     /// The regular scaffold files: whole-file ownership recorded in the
     /// manifest. Merged shared files keep their own merge policies.
     pub(super) owned: HashSet<&'static str>,
@@ -56,7 +53,31 @@ impl SetupPlan {
         // Host configuration stays portable; the native launcher discovers the
         // workspace and dependencies when the MCP client starts it.
         let mut vars = template_vars.clone();
-        super::CodexSetup::prepare_vars(dir, &mut vars);
+        // Existing project settings remain the authority for generated instructions.
+        // Re-detection must not advertise preset commands while preserving different configured gates.
+        if let Some(document) = super::CodexSetup::read(dir, PROJECT_JSON)? {
+            let config: serde_json::Value = serde_json::from_str(&document)?;
+            for (key, field) in [
+                ("check_cmd", "check"),
+                ("test_cmd", "test"),
+                ("lint_cmd", "lint"),
+            ] {
+                if let Some(command) = config["quality_gate"][field].as_str() {
+                    vars.insert(key.into(), command.into());
+                }
+            }
+        }
+        if vars.get("selected_agents").is_none_or(String::is_empty) {
+            let present = super::agents_present(dir);
+            vars.insert(
+                "selected_agents".into(),
+                if present.is_empty() {
+                    "codex,claude".into()
+                } else {
+                    present.join(",")
+                },
+            );
+        }
         vars.entry("project_root".to_string())
             .or_insert_with(|| ".".to_string());
         // Invalid explicit argv must fail before any scaffold writes.
@@ -69,11 +90,6 @@ impl SetupPlan {
         } else {
             None
         };
-        let links = if codex_selected {
-            CodexSkillLinks::capture(dir)?
-        } else {
-            CodexSkillLinks::default()
-        };
         let canonical = CanonicalSource::capture(dir);
         let manifest = ScaffoldManifest::load(dir);
         let mut files = super::scaffold_files(&vars);
@@ -82,14 +98,14 @@ impl SetupPlan {
 
         let mut plan = ChangePlan::new(AdminOperation::Setup);
         for file in &files {
-            let mut change = plan_file(dir, file, &links, &canonical, &manifest)?;
+            let mut change = plan_file(dir, file, &canonical, &manifest)?;
             if file.path == PROJECT_JSON && change.action == FileAction::Create {
                 change.new_content = seeds.project_json(&change.new_content);
             }
             if file.path == "CLAUDE.md" {
-                with_managed_section(&mut change, |document| {
-                    super::think_and_ship::with_claude_md_section(document, &vars)
-                });
+                let rendered =
+                    super::think_and_ship::with_claude_md_section(&change.new_content, &vars)?;
+                with_managed_section(&mut change, |_| rendered);
             }
             if super::CodexSetup::owned_path(file.path) {
                 change.ownership_context = ownership_context.clone();
@@ -106,18 +122,18 @@ impl SetupPlan {
         {
             with_managed_section(change, |document| seeds.claude_md(document));
         }
-        plan.files.push(super::mcp_json_change(dir, &vars)?);
+        if vars["selected_agents"]
+            .split(',')
+            .any(|agent| agent != "codex")
+        {
+            plan.files.push(super::mcp_json_change(dir, &vars)?);
+        }
         plan.files.push(super::gitignore_change(dir, &vars));
         plan.files.extend(workbench_change(dir, &vars));
         plan.files.extend(super::legacy_rule_removals(dir));
         plan.files.extend(codex);
         plan.files.extend(identity_change(dir));
-        Ok(Self {
-            plan,
-            vars,
-            links,
-            owned,
-        })
+        Ok(Self { plan, vars, owned })
     }
 }
 
@@ -155,40 +171,33 @@ fn apply_overrides(files: &mut [ScaffoldFile], generated_overrides: &HashMap<Str
 fn plan_file(
     dir: &Path,
     file: &ScaffoldFile,
-    links: &CodexSkillLinks,
     canonical: &CanonicalSource,
     manifest: &ScaffoldManifest,
 ) -> Result<PlannedChange> {
     let path = file.path;
-    // A legacy Codex skill link is an upgrade input: its Claude source text
-    // is what the generated file replaces.
-    let existing = if links.covers(path) {
-        links.read(dir, path)?
-    } else {
-        match super::read_target(dir, path) {
-            Ok(existing) => existing,
-            Err(refusal) => {
-                let ownership = Ownership::judge(file.policy, path, Some(""), manifest);
-                return Ok(PlannedChange::refused(path, refusal, None, ownership));
-            }
+    let existing = match super::read_target(dir, path) {
+        Ok(existing) => existing,
+        Err(refusal) => {
+            let ownership = Ownership::judge(file.policy, path, Some(""), manifest);
+            return Ok(PlannedChange::refused(path, refusal, None, ownership));
         }
     };
-    let ownership = if links.covers(path) {
-        Ownership::Internal
-    } else if canonical.is_canonical(path) && existing.is_some() {
+    let ownership = if canonical.is_canonical(path) && existing.is_some() {
         Ownership::Canonical
     } else {
         Ownership::judge(file.policy, path, existing.as_deref(), manifest)
     };
-    // A vendored skill in its home repository, or a workflow skill in
-    // Magistr's own checkout, is the canonical rendering itself; a canonical
-    // input that cannot be read keeps the embedded copy off the path.
     let content = match canonical.resolve(path, file.content.clone()) {
         Ok(content) => content,
         Err(refusal) => return Ok(PlannedChange::refused(path, refusal, existing, ownership)),
     };
-    let action = if links.covers(path) {
-        FileAction::Overwrite
+    let action = if !canonical.is_canonical(path)
+        && existing
+            .as_deref()
+            .is_some_and(|current| manifest.is_customized(path, current))
+        && file.policy == super::UpdatePolicy::Overwrite
+    {
+        FileAction::Preserved
     } else {
         file.policy
             .action(path, existing.as_deref(), &content, manifest)
@@ -198,12 +207,7 @@ fn plan_file(
     } else {
         content.clone()
     };
-    let diff = if let Some(description) = links.description(path) {
-        Some(format!(
-            "{description}{}",
-            super::unified_diff(path, existing.as_deref().unwrap_or_default(), &content)
-        ))
-    } else if action == FileAction::Overwrite {
+    let diff = if action == FileAction::Overwrite {
         existing
             .as_deref()
             .map(|old| super::unified_diff(path, old, &content))

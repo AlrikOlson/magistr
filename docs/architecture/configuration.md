@@ -170,7 +170,7 @@ re-roots the same capture with `for_project`. `AgentConfig::new` captures for
 the session it composes, and a host that already holds the process capture
 hands it over with `with_inputs`, so session resolution, runtime detection and
 backend selection never consult the environment. The `magistr_init` MCP tool
-captures when the tool is composed, and the `workbench-mcp` launcher captures
+captures when the tool is composed, and the unified MCP launcher captures
 for the endpoint it serves. `from_lookup` accepts injected inputs for tests;
 each key is asked for at most once, and blank values count as unset, as the
 [XDG specification](https://specifications.freedesktop.org/basedir/latest/)
@@ -249,22 +249,18 @@ lock file remains in place for later writers.
 
 ## Administrative change plan
 
-Project administration — setup and re-initialization, presets and import,
-selective apply from a dry run, template plugins, startup repair and owned
-Codex removal — is computed before it is written, as one
-[ChangePlan](../../crates/magistr-cli/src/scaffold/change_plan.rs). The
-plan is what the preview shows and what the writer executes: `magistr init
---dry-run` (plain, JSON and the interactive approval) and the `magistr_init`
-tool's `dry_run` mode render the setup plan; `magistr init --check` (plain
-and `--json`) and the tool's `check` mode render the startup repair plan
-(`repair::plan`) beside the drift report, so what the next `magistr
-mcp-serve` applies is reviewable before it runs; `magistr codex-remove
---dry-run` (plain and `--json`) renders the owned removal plan
-(`CodexSetup::removal_plan`). Every rendering is the same shape — one
+Project administration — setup, re-initialization, preset import, template
+plugins, explicit repair and integration removal — is computed before writing,
+as one [ChangePlan](../../crates/magistr-cli/src/scaffold/change_plan.rs).
+`magistr init --dry-run`, `magistr repair --dry-run` and
+`magistr remove --dry-run` show the corresponding plan. The guided interview
+applies exactly its reviewed PreparedSetup through AdminService; it does not
+recompute the plan after approval. MCP startup never repairs project files.
+Every rendering contains one
 object per path with its action, intent, ownership, expected state and
 reason, plus the per-intent summary; the CLI adds an overwrite's diff and a
 tool answer omits it. `generate_with_result`, `apply_approved`,
-`repair::repair` and `CodexSetup::remove_target` execute the plan they just
+`PreparedSetup::apply` and `integrations::apply_removal` execute the plan they just
 computed through the one
 [administrative service](#application-and-receipts). Explicit destructive
 reset (`magistr reset`, `remove_scaffold`) is deliberately not planned here
@@ -319,7 +315,7 @@ carries `crates/magistr-cli/templates/workflows` — supplies every workflow
 skill, the shared runtime with its host adapter and the vendored routing skill
 from the live templates, through the same rendering the embedded copies use;
 an installed binary older than the checkout therefore follows each later edit
-instead of downgrading the skills at `mcp-serve` startup. A canonical input
+instead of downgrading the skills during explicit repair. A canonical input
 that is missing or unreadable refuses its paths; the embedded copy is never
 written in its place. Ordinary projects carry no canonical inputs and keep
 the embedded upgrades.
@@ -361,8 +357,7 @@ beside the file outcomes rather than lost. Nothing claims the batch was
 atomic: `generate`, the interactive approval and Codex removal answer a
 partial receipt as an error that names what failed, what the manifest did
 and what was applied before that; `generate_with_result` carries the same in
-its `failed` and `manifest` fields; startup repair logs it and stays
-non-fatal. Selective apply puts every change the plan applies — a create, an
+its `failed` and `manifest` fields; explicit repair reports partial failures. Selective apply puts every change the plan applies — a create, an
 overwrite or a removal such as a retired rule file — to the reviewer the same
 way, checks the approved batch as a whole before the first write (a stale
 selected target, including a retired file edited or already gone since the

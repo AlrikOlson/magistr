@@ -39,7 +39,7 @@ steps below create only missing planning records.
    `full` only for an explicit full-suite request or concrete cross-cutting
    risk. Do not call `ship_set_objective` again on a matching unfinished scope.
    Record the selected checks and their reason in the plan. Keep existing
-   tasks and add only missing work with `ship_plan(action: "add", ...)`,
+   tasks and add only missing work with `plan_work(action: "add", ...)`,
    using IDs prefixed by the chunk. Include a final `review`
    or `test` verification task. Valid types are `research`, `implement`,
    `test`, `review`, `config`, and `docs`.
@@ -55,9 +55,9 @@ instead of replacing the execution plan with Markdown.
 ## Execute
 
 Announce `magistr_set_phase(phase: "execute")`. Continue an already active task
-without calling `ship_start` again. For the next pending task, call `ship_start`,
-implement its bounded change, record significant actions with `ship_record`,
-and close it with `ship_complete` and artifact references. Keep only one task
+without calling `start_work` again. For the next pending task, call `start_work`,
+implement its bounded change, record significant actions with `record_progress`,
+and close it with `finish_work` and artifact references. Keep only one task
 active and do not restart completed tasks. Record evidence-backed findings with
 `think_record_step` during research, implementation, and verification: what was
 learned, what it changes, and the next useful check. Follow the shared runtime's
@@ -72,12 +72,12 @@ for delegation; the coordinating session owns shared ship state and file scope.
 ## Verify, close, and commit
 
 1. Announce `magistr_set_phase(phase: "verify")`. Resume the active verification
-   task, or call `ship_start` if that planned task is still pending. Choose
+   task, or call `start_work` if that planned task is still pending. Choose
    checks from the changed behavior, affected dependencies, and acceptance
    criteria. New objectives explicitly use `verification: "focused"` for
    bounded changes, including code; resuming does not recreate the objective.
    Run formatting and the relevant crate, interface, and visual checks through
-   server-executed `ship_check` or named `magistr_gate` calls. A roadmap chunk
+   server-executed `check_work` or named `magistr_gate` calls. A roadmap chunk
    alone does not require every project gate. Use `verification: "full"` and
    `magistr_gate(gate: "all")` only for an explicit full-suite request or when
    a concrete cross-cutting risk requires it; state that reason before running.

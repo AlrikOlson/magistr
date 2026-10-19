@@ -9,16 +9,11 @@ use std::path::{Path, PathBuf};
 fn project_with_deleted_runtime() -> tempfile::TempDir {
     let tmp = tempfile::TempDir::new().unwrap();
     let dir = tmp.path();
-    std::fs::create_dir_all(dir.join(".magistr")).unwrap();
-    std::fs::write(dir.join(".magistr/project.json"), "{}").unwrap();
-    let skill = ".claude/skills/next/SKILL.md";
-    let old = "# A workflow generated before shared runtime references\n";
-    std::fs::create_dir_all(dir.join(".claude/skills/next")).unwrap();
-    std::fs::write(dir.join(skill), old).unwrap();
-    let mut manifest = scaffold::manifest::ScaffoldManifest::new();
-    manifest.record(skill, old);
-    manifest.record(RUNTIME, "# an earlier runtime\n");
-    manifest.save(dir).unwrap();
+    scaffold::pipeline::ScaffoldPipeline::headless(crate::types::Stack::default())
+        .with_agents(&["claude".into()])
+        .generate(dir)
+        .unwrap();
+    std::fs::remove_file(dir.join(RUNTIME)).unwrap();
     tmp
 }
 
@@ -52,41 +47,27 @@ fn clean_drift() -> DriftReport {
 }
 
 /// The check report carries the drift fields the tool always answered and
-/// the startup repair plan in the planned-change shape: a refused skill is
-/// visible with its reason before the next mcp-serve applies the plan, and
+/// the explicit repair plan in the planned-change shape: a refused skill is
+/// visible with its reason before explicit repair applies the plan, and
 /// computing the report writes nothing.
 #[test]
 fn the_check_report_shows_the_repair_plan_with_its_refusals_without_writing() {
     let tmp = project_with_deleted_runtime();
     let before = files(tmp.path());
 
-    let repair = scaffold::repair::plan(tmp.path());
+    let repair = scaffold::repair::plan(tmp.path()).unwrap();
     let report = check_report_json(&clean_drift(), &repair, PlanDetail::Summary);
 
     assert_eq!(report["clean"], true);
     assert_eq!(report["total_changes"], 0);
     assert_eq!(report["repair"]["operation"], "repair");
-    assert_eq!(report["repair"]["summary"]["refused"], 1);
-    assert_eq!(report["repair"]["summary"]["preserved"], 1);
     let entries = report["repair"]["files"].as_array().unwrap();
-    let skill = entries
+    let runtime = entries
         .iter()
-        .find(|e| e["path"] == ".claude/skills/next/SKILL.md")
+        .find(|entry| entry["path"] == RUNTIME)
         .unwrap();
-    assert_eq!(skill["action"], "refused");
-    assert_eq!(skill["intent"], "refuse");
-    assert_eq!(skill["ownership"], "internal");
-    assert!(
-        skill["reason"]
-            .as_str()
-            .unwrap()
-            .contains("depends on .claude/skills/craft/references/runtime.md"),
-        "{skill}"
-    );
-    let runtime = entries.iter().find(|e| e["path"] == RUNTIME).unwrap();
-    assert_eq!(runtime["action"], "preserved");
+    assert_eq!(runtime["action"], "create");
     assert_eq!(runtime["expected"], "absent");
-    assert_eq!(runtime["reason"], "removed by the user; not recreated");
 
     assert_eq!(files(tmp.path()), before, "a preview writes nothing");
 }
@@ -96,15 +77,20 @@ fn the_check_report_shows_the_repair_plan_with_its_refusals_without_writing() {
 fn plan_detail_decides_whether_an_overwrite_carries_its_diff() {
     let tmp = tempfile::TempDir::new().unwrap();
     let dir = tmp.path();
-    std::fs::create_dir_all(dir.join(".magistr")).unwrap();
-    std::fs::write(dir.join(".magistr/project.json"), "{}").unwrap();
+    scaffold::pipeline::ScaffoldPipeline::headless(crate::types::Stack::default())
+        .with_agents(&["claude".into()])
+        .generate(dir)
+        .unwrap();
     std::fs::create_dir_all(dir.join(".claude/rules")).unwrap();
     std::fs::write(
         dir.join(".claude/rules/tools.md"),
         "# an older magistr wrote this\n",
     )
     .unwrap();
-    let repair = scaffold::repair::plan(dir);
+    let mut manifest = scaffold::manifest::ScaffoldManifest::load(dir);
+    manifest.record(".claude/rules/tools.md", "# an older magistr wrote this\n");
+    manifest.save(dir).unwrap();
+    let repair = scaffold::repair::plan(dir).unwrap();
     assert_eq!(repair.overwrites(), 1);
 
     let full = plan_json(&repair, PlanDetail::Full);

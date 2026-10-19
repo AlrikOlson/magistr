@@ -17,9 +17,9 @@ pub enum WorkspaceOpenError {
     RootMissing(PathBuf),
     #[error("{0}")]
     Locked(String),
-    /// A legacy or unknown lock must be migrated offline, never attached to.
+    /// An unrecognized lock refuses admission without interpreting its bytes.
     #[error("{0}")]
-    MigrationRequired(String),
+    InvalidLock(String),
     /// Durable data written by a newer binary: fail closed rather than guess.
     #[error("{0}")]
     UnsupportedVersion(String),
@@ -50,7 +50,7 @@ impl WorkspaceOpenError {
     pub const fn exit_code(&self) -> i32 {
         match self {
             Self::RootMissing(_) => Self::EXIT_NO_INPUT,
-            Self::Locked(_) | Self::MigrationRequired(_) => Self::EXIT_LOCKED,
+            Self::Locked(_) | Self::InvalidLock(_) => Self::EXIT_LOCKED,
             Self::UnsupportedVersion(_) => Self::EXIT_DATA_ERROR,
             _ => 1,
         }
@@ -76,7 +76,7 @@ impl WorkspaceOpenError {
     pub(super) fn lock(error: std::io::Error) -> Self {
         match error.kind() {
             std::io::ErrorKind::WouldBlock => Self::Locked(error.to_string()),
-            std::io::ErrorKind::AlreadyExists => Self::MigrationRequired(error.to_string()),
+            std::io::ErrorKind::AlreadyExists => Self::InvalidLock(error.to_string()),
             _ => Self::Io(error),
         }
     }

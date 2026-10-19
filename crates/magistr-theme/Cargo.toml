@@ -1,4 +1,6 @@
 [package]
+include = ["src/**", "Cargo.toml", "Cargo.lock", "LICENSE*", "PROVENANCE.md"]
+repository = "https://github.com/AlrikOlson/magistr"
 name = "magistr-theme"
 version = "0.1.0"
 edition = "2024"

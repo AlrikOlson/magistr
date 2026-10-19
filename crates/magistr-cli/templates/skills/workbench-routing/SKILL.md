@@ -1,18 +1,21 @@
 ---
 name: workbench-routing
-description: Route shell and harness habits (grep, find, ls, cat, sed, mv, rm, running tests, ad-hoc scripts, reverting) to the workbench-mcp tools, read the response envelope, and recover from every error code. Use whenever a workbench-mcp server is configured for the workspace.
+description: Use Magistr workspace operations for source search, reading, verified changes, file operations, commands and session-scoped undo. Apply whenever the Magistr MCP connection is configured.
 ---
 
-# Workbench routing
+# Workspace routing
 
-workbench-mcp replaces the shell's file substrate with eight tools that return one ranked, budgeted,
-verified envelope: `search`, `map`, `read`, `edit`, `files`, `run`, `script`, `undo`, plus the
-schema-less `workbench_status`. This skill is the judgment layer on top of that surface: which
-habit goes where, what the envelope is telling you, and what each error code wants you to do next.
+Use the single `magistr` connection. `search`, `read`, `edit` and `write` are
+direct tools. For `map`, `files`, `run`, `undo`, `script` and
+`workbench_status`, inspect `discover({"operation":"name"})`, then invoke
+`execute({"source":"return magistr.call('name', {});"})` with its schema arguments.
+The routing table below names these catalog operations.
 
-It is written by hand. A CI check (`bun run lint:skill`) fails whenever the routing table, the
-recovery table, or the worked examples below disagree with the published tool schemas or the error
-taxonomy, in either direction. The prose between them is opinion; the tables are contract.
+Direct and composed operations share verification, authorization and journals.
+Composition stops on failure and returns completed receipts; never replay a
+partially applied composition. Session identity is forwarded to the workspace
+owner automatically. The workspace tools return the envelope described below;
+`execute` wraps each native result in a receipt and returns the program's value.
 
 ## When to reach for workbench (and when not)
 
@@ -208,7 +211,7 @@ apply → format → journal → atomic swap. A batch that would break syntax ro
   `op:delete` is a move to `.workbench/trash/`, so it is undoable.
 - `run` executes one declared command as a single argv, never a shell. Shell operators in `args`
   are rejected, not interpreted. If the command is not declared (`COMMAND_NOT_DECLARED`) the human
-  adds it to `workbench.toml` (`workbench-mcp init` seeds it) — you cannot, and you must not try to
+  adds it to `workbench.toml` (`magistr workspace init` seeds it) — you cannot, and you must not try to
   reach it through `script` or any other door. Text or file munging through `run` answers
   `RUN_REDIRECTED`: that job belongs to `search`/`read`/`edit`/`files`. Results come back as
   rows, not text: a `report` row (test failures — name, file, assertion, trimmed trace — from
@@ -226,9 +229,9 @@ apply → format → journal → atomic swap. A batch that would break syntax ro
 
 ## Plugin tools
 
-Installed plugins add tools under `<publisher>.<pkg>/<tool>` beside the core eight. Their names
+Installed plugins add operations under `<publisher>.<pkg>/<tool>` to the catalog. Their names
 depend on the workspace, so this skill does not route them statically: discover them with
-`tools/list`, and read their trust tier in `map`'s plugin inventory. Every plugin answer is wrapped
+`discover`, and read their trust tier in `map`'s plugin inventory. Every plugin answer is wrapped
 in the same envelope; plugin writes queue into the same write engine. A breakered or crashed plugin
 answers `PLUGIN_CRASHED` and the core tools keep working at full fidelity.
 
@@ -258,7 +261,7 @@ answers `PLUGIN_CRASHED` and the core tools keep working at full fidelity.
 | `UNSUPPORTED_VERSION` | `abort` | Envelope or on-disk format mismatch. Do not retry; tell the human to upgrade the client/binary. |
 | `ENGINE_UNAVAILABLE` | `retry` | The engine child is restarting. Retry after a short pause; lexical search still answers meanwhile. |
 | `ENGINE_BUSY` | `retry` | The bounded queue is full. Wait `backoffMs`, then retry. |
-| `INPUT_QUARANTINED` | `escalate` | This file repeatedly crashed the parser and is quarantined. Stop parse-verified verbs on it; point the human at `workbench-mcp doctor`. |
+| `INPUT_QUARANTINED` | `escalate` | This file repeatedly crashed the parser and is quarantined. Stop parse-verified verbs on it; point the human at `magistr workspace doctor .`. |
 | `PLUGIN_CAP_DENIED` | `escalate` | A plugin exceeded its granted capabilities. Not yours to fix; tell the human which plugin. |
 | `PLUGIN_CRASHED` | `abort` | The named plugin trapped or ran out of fuel. Do not retry the same plugin call; fall back to the core tools. |
 | `CONFIG_POLICY_DENIED` | `abort` | Org policy forbids it; the message names the layer. Tell the human; do not route around it. |

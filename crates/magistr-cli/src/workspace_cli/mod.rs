@@ -1,5 +1,5 @@
 //! The operational workspace verbs (chunk arch-14c10b): `magistr workspace
-//! doctor [bundle|config]`, `journal`, `key rotate`, `init`, `migrate` and
+//! doctor [bundle|config]`, `journal`, `key rotate`, `init` and
 //! `snapshot`, the CLI host
 //! over the native diagnostics beside the MCP host in `workspace_mcp`.
 //!
@@ -17,7 +17,6 @@ mod init;
 mod journal;
 mod journal_view;
 mod key;
-mod migrate;
 mod snapshot;
 mod working_copy;
 
@@ -31,7 +30,6 @@ pub use init::run_init;
 pub use journal::run_journal;
 pub use journal_view::JournalView;
 pub use key::run_key_rotate;
-pub use migrate::run_migrate;
 pub use snapshot::run_snapshot;
 pub use working_copy::run_working_copy;
 

@@ -26,7 +26,7 @@ internal deliberation, tool transcripts, or an invented account after the work.
   investigation stopped without using its findings, and record why.
 - Correct an earlier conclusion with `revises_step` and `revision_reason`;
   preserve the earlier record. Link related execution through `execution_ref`
-  and `ship_record.think_step`. Use meaningful names in prose rather than raw
+  and `record_progress.think_step`. Use meaningful names in prose rather than raw
   identifiers. Omit confidence unless there is a defensible basis for it.
 - Before closing, review investigations opened for this work. Record their
   conclusions and actual use, or leave them active with an explicit unresolved

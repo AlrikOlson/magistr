@@ -114,7 +114,7 @@ fn initialize_and_the_listing_are_answered_locally_before_any_owner() {
     assert_eq!(answer["result"], Capability::new(true).core_listing());
     let call = session.answer_unavailable(
         &serde_json::from_str(&call(2, None)).unwrap(),
-        "run `magistr workspace migrate`",
+        "restore workspace state offline",
     );
     let envelope = &call["result"]["structuredContent"];
     assert_eq!(envelope["error"]["code"], "ENGINE_UNAVAILABLE");
@@ -122,7 +122,7 @@ fn initialize_and_the_listing_are_answered_locally_before_any_owner() {
         envelope["error"]["message"]
             .as_str()
             .unwrap()
-            .contains("magistr workspace migrate"),
+            .contains("restore workspace state"),
         "{envelope}"
     );
 }

@@ -11,7 +11,7 @@ use magistr_cockpit::engine::EnginePort;
 /// [`NativeEngines`] the entry point opened for the store snapshot,
 /// acting on the shared store the way the MCP server's verbs do — a pin
 /// is `think_pin_step`, a checkpoint is `think_checkpoint`. The store
-/// merges on write, so the agent's `magistr mcp-serve` on the same
+/// merges on write, so the agent's `magistr mcp` on the same
 /// project sees the mutation too.
 pub struct NativeEnginePort {
     engines: NativeEngines,

@@ -7,7 +7,7 @@ use magistr_domain::workflow::WorkflowPhase;
 
 /// The `magistr` family's frames: facts about the run that no store
 /// family records, said by the process that serves the socket
-/// (`magistr mcp-serve`) or posted in-process by the loop driver.
+/// (`magistr mcp`) or posted in-process by the loop driver.
 ///
 /// Wire form is the same internally tagged JSON object every family
 /// uses — `{"type": "gate_output", …}` — so a subscriber decodes it

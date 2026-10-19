@@ -1,4 +1,6 @@
 [package]
+include = ["src/**", "Cargo.toml", "Cargo.lock", "LICENSE*", "PROVENANCE.md"]
+repository = "https://github.com/AlrikOlson/magistr"
 name = "magistr-workflow"
 version = "0.1.0"
 edition = "2024"
@@ -7,14 +9,13 @@ edition = "2024"
 rust-version = "1.89"
 description = "Magistr's workflow families (think, ship, roadmap, signal): the repository-local fork of think-and-ship, see subsystems/workflow/PROVENANCE.md"
 license = "MIT"
-publish = false
 
 [lib]
 name = "magistr_workflow"
 path = "src/lib.rs"
 
 [dependencies]
-magistr-workflow-contracts = { path = "../magistr-workflow-contracts" }
+magistr-workflow-contracts = { version = "=0.1.0", path = "../magistr-workflow-contracts" }
 anyhow = { workspace = true }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -40,7 +41,7 @@ rmcp = { version = "3.0.0-beta.2", features = ["server", "transport-io", "macros
 tokio-util = { version = "0.7", features = ["rt"] }
 # The one owned-process mechanism every Magistr command runs through; the
 # check command stays the caller's own shell line.
-magistr-process = { path = "../magistr-process" }
+magistr-process = { version = "=0.1.0", path = "../magistr-process" }
 # Cloud sync transport (SyncTarget::Cloud, Phase 31d) — ships in the local server.
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
 futures-util = { version = "0.3.32", default-features = false, features = ["std"] }

@@ -1,7 +1,7 @@
 # Claude Code adapter
 
 The optional plugin in `plugins/magistr` is a Claude-specific presentation
-adapter. It depends on connected Magistr and Workbench MCP capabilities.
+adapter. It depends on the unified Magistr MCP connection.
 Neither native service depends on the plugin. Codex, ACP, CLI, cockpit,
 desktop and headless paths retain their existing owners.
 
@@ -13,14 +13,16 @@ owns its session, permission dialogs and plugin lifecycle. The Mod owns only
 disposable selections, loading states and bounded views; persistent preferences
 contain the progress-band choice only.
 
-Read-only calls use `$.mcp.call` on existing registrations. This API does not
+Read-only calls use `$.mcp.call` on the existing `magistr` registration.
+Common operations use their direct tools; advanced operations use a single-call
+`execute` request whose matching receipt is validated before consuming its result. This API does not
 prompt for host permission. Consequential actions therefore confirm the named
 target, then use `$.tool.call` through Claude's normal tool/permission/hooks
 path. The adapter never approves a permission, edits source, completes work,
 submits a prompt, calls a model, starts a scheduler or opens native persistence.
 
 The existing family query contracts supply work, roadmap and findings.
-`magistr_context` adds only the admitted service's canonical root and owner epoch,
+`context` adds only the admitted service's canonical root and owner epoch,
 an explicitly
 announced phase (nullable), bounded canonical task evidence, check receipts,
 and configured check choices resolved by the
@@ -62,7 +64,7 @@ Observational hooks return the original event/result unchanged and ignore
 their own calls. The band composes the next plugin's tree. Existing Magistr
 skills, shell guards, MCP configuration and export denials remain independent.
 
-## Packaging and compatibility
+## Packaging and host support
 
 Claude owns installation, versioned cache, upgrade, disablement and removal.
 The package contains no MCP launcher or generated project instructions, so

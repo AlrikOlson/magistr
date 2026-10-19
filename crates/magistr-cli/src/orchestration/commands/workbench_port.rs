@@ -6,14 +6,14 @@ use crate::application::workspace_client::McpWorkbench;
 use magistr_cockpit::workbench::WorkbenchPort;
 
 /// The server entry the cockpit speaks to.
-const SERVER: &str = "workbench-mcp";
+const SERVER: &str = "magistr";
 
 /// The workbench port for `project_dir`, read off its `.mcp.json`
 /// `mcpServers` table — the same file the agent's own servers come from
 /// ([`project_mcp_servers`](crate::agent::project_mcp_servers)), so the
 /// cockpit and the agent reach the same workbench.
 ///
-/// No `.mcp.json`, no `workbench-mcp` entry, or an entry without a
+/// No `.mcp.json`, no `magistr` entry, or an entry without a
 /// command yields `None` and the session runs without a workbench, as
 /// it did before. The port itself does not connect here: it spawns the
 /// server on the first call that needs one, so a workspace whose server

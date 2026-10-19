@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { answer } from './fixtures.js'
+import { answer, decodeRequest } from './fixtures.js'
 import { host, deferred, textOf, flatten, elements } from './host.mjs'
 const flush = async () => {
   for (let i = 0; i < 30; i++) await Promise.resolve()
@@ -21,11 +21,18 @@ test('checks and workstream choices read back their acknowledged results', async
   await h.press('tab-checks')
   await h.press('gate-check')
   assert.match(textOf(await h.render()), /Check passed and was recorded/)
-  assert.equal(mutations(h).at(-1).mutation.tool, 'mcp__magistr__magistr_gate')
+  assert.equal(mutations(h).at(-1).mutation.tool, 'mcp__magistr__execute')
+  assert.equal(
+    decodeRequest('execute', mutations(h).at(-1).mutation).tool,
+    'magistr_gate',
+  )
   await h.press('tab-roadmap')
   await h.press('work-search')
   await h.press('focus-work')
-  assert.equal(mutations(h).at(-1).mutation.lane, 'claude-mod:example-session')
+  assert.equal(
+    decodeRequest('execute', mutations(h).at(-1).mutation).args.lane,
+    'claude-mod:example-session',
+  )
   await h.press('tab-current')
   assert.match(textOf(await h.render()), /Chosen workstream: Search/)
   await h.end()
@@ -136,7 +143,7 @@ test('explicit confirmations use the normal permission path once and never start
   await first
   assert.equal(mutations(h).length, 1)
   const request = mutations(h)[0].mutation
-  assert.equal(request.tool, 'mcp__magistr__ship_start')
+  assert.equal(request.tool, 'mcp__magistr__start_work')
   assert.match(request.consent, /confirmed "Start task"/)
   assert.match(textOf(await h.render()), /Task started/)
   await h.end()
@@ -215,7 +222,7 @@ test('stale detail replies never replace the latest selection', async () => {
   const wait = deferred()
   const h = await host({
     read: (f, server, tool, args) =>
-      tool === 'magistr_context' && args.task_id
+      tool === 'context' && args.task_id
         ? wait.promise
         : { structuredContent: answer(f, server, tool, args) },
   })
@@ -268,11 +275,7 @@ test('tool observation preserves object identity, unrelated panes and another pl
   await h.command('')
   const result = { result: 'original', permission: 'untouched' }
   assert.equal(
-    await h.dispatch(
-      'tool.call',
-      { tool: 'mcp__magistr__ship_status' },
-      result,
-    ),
+    await h.dispatch('tool.call', { tool: 'mcp__magistr__execute' }, result),
     result,
   )
   assert.equal(await h.dispatch('tool.call', { tool: 'Bash' }, result), result)
@@ -308,7 +311,7 @@ test('observers ignore their own calls and coalesce acknowledged calls from othe
   assert.equal(
     await h.dispatch(
       'tool.call',
-      { tool: 'mcp__magistr__ship_status' },
+      { tool: 'mcp__magistr__execute' },
       result,
       'magistr',
     ),
@@ -320,7 +323,7 @@ test('observers ignore their own calls and coalesce acknowledged calls from othe
     assert.equal(
       await h.dispatch(
         'tool.call',
-        { tool: 'mcp__magistr__ship_status' },
+        { tool: 'mcp__magistr__execute' },
         result,
         'neighbor',
       ),
@@ -362,7 +365,7 @@ test('missing, incompatible and mismatched replies leave useful honest views and
     const h = await host({
       read: (f, server, tool, args) => {
         const v = answer(f, server, tool, args)
-        if (tool === 'magistr_context') {
+        if (tool === 'context') {
           if (mode === 'missing') throw Error('Not connected')
           if (mode === 'incompatible')
             return { structuredContent: { ...v, version: 2 } }
@@ -467,7 +470,10 @@ test('check limits are reviewed exactly and invalid limits never submit', async 
   }
   await (await input()).props.onInput('900')
   await h.press('gate-check')
-  assert.equal(mutations(h).at(-1).mutation.timeout_secs, 900)
+  assert.equal(
+    decodeRequest('execute', mutations(h).at(-1).mutation).args.timeout_secs,
+    900,
+  )
   assert.match(mutations(h).at(-1).mutation.consent, /Time limit: 900 seconds/)
   assert.match(h.asks.at(-1).question, /Time limit: 900 seconds/)
   h.f.context.checks[0].commands[0].command = 'x'.repeat(401)

@@ -67,7 +67,7 @@ fn a_source_checkout_renders_the_live_templates_and_follows_later_edits() {
         let routing = canonical
             .resolve(WorkflowSkills::routing_path(host), "embedded".to_owned())
             .expect("routing");
-        assert!(routing.starts_with("# routing skill\n<!-- vendored verbatim from"));
+        assert!(routing.starts_with("# routing skill\n<!-- maintained with"));
     }
 
     // A later edit is followed by the next capture, without a rebuild.

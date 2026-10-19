@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-/// The state of a subscriber's connection to `magistr mcp-serve`'s broadcast
+/// The state of a subscriber's connection to `magistr mcp`'s broadcast
 /// socket, as the cockpit's feed reports it on the inbox.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "status", rename_all = "snake_case")]

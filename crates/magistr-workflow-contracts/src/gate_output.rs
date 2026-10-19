@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 /// order it wrote them — keyed by the gate's name.
 ///
 /// Both gate callers speak it: the loop driver posts it on the cockpit's
-/// inbox as a local [`NativeEvent`](super::NativeEvent), `magistr mcp-serve`
+/// inbox as a local [`NativeEvent`](super::NativeEvent), `magistr mcp`
 /// emits it on the broadcast socket under the `magistr` family
 /// ([`MagistrFrame::GateOutput`](super::MagistrFrame::GateOutput)), and the
 /// cockpit folds either into the terminal store the pane paints from. The

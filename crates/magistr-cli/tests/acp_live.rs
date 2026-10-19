@@ -49,7 +49,7 @@ async fn the_in_binary_claude_agent_advertises_fable_runs_a_tool_turn_and_cancel
     )
     .expect("construct")
     .mcp_servers(vec![McpServer::Stdio(
-        McpServerStdio::new("magistr", magistr_binary()).args(vec!["mcp-serve".to_string()]),
+        McpServerStdio::new("magistr", magistr_binary()).args(vec!["mcp".to_string()]),
     )]);
     transport
         .connect()
@@ -129,11 +129,11 @@ async fn the_in_binary_claude_agent_advertises_fable_runs_a_tool_turn_and_cancel
         "the turn should have streamed at least one update"
     );
 
-    // 3. The MCP protocol cap holds: `magistr mcp-serve` is reachable as a
+    // 3. The MCP protocol cap holds: `magistr mcp` is reachable as a
     //    tool under the direct CLI, and the call round-trips permission.
     transport
         .prompt(
-            &"Call the mcp__magistr__magistr_list tool on the current directory (path \".\"), \
+            &"Call the mcp__magistr__search tool to list files (mode \"files\", query \"*\"), \
              then reply with exactly the word: listed"
                 .into(),
         )

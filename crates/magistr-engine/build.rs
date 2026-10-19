@@ -56,10 +56,19 @@ fn main() {
         files.push(krate.join("Cargo.toml"));
         collect_source_files(&krate.join("src"), &mut files);
     }
-    let lock = workspace_root.join("Cargo.lock");
-    if lock.is_file() {
-        files.push(lock);
-    }
+    // Cargo packages carry a lockfile with immutable registry dependency checksums.
+    // A checkout also digests path dependency sources; an extracted package has
+    // registry dependencies and must digest its own packaged lockfile.
+    let lock = if manifest_dir.join("Cargo.lock").is_file() {
+        manifest_dir.join("Cargo.lock")
+    } else {
+        workspace_root.join("Cargo.lock")
+    };
+    assert!(
+        lock.is_file(),
+        "owner contract requires the packaged or workspace Cargo.lock"
+    );
+    files.push(lock);
     files.sort();
 
     let mut hasher = Sha256::new();

@@ -1,6 +1,6 @@
 //! Structured recommendation types produced by AI-assisted setup.
 //!
-//! `magistr_recommend` (during `init --interactive`) and headless init paths
+//! `magistr_recommend` (during explicit agent-assisted setup) and headless init paths
 //! parse the AI's output into `Recommendations`, which flows into the
 //! scaffold pipeline as `ScaffoldSelections`.
 

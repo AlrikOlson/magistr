@@ -42,8 +42,8 @@ pub fn lint_file(path: &Path) -> crate::error::Result<LintReport> {
 /// Run doctor checks on a project directory.
 ///
 /// Examines CLAUDE.md, .claude/rules/, settings, and overall project health.
-pub fn doctor(dir: &Path) -> Vec<DoctorCheck> {
-    doctor::run_all(dir)
+pub fn doctor(dir: &Path, claude_selected: bool) -> Vec<DoctorCheck> {
+    doctor::run_all(dir, claude_selected)
 }
 
 #[cfg(test)]

@@ -11,6 +11,8 @@ pub enum Refusal {
         /// What went wrong reading it.
         cause: String,
     },
+    /// Existing shared configuration cannot be parsed or has the wrong shape.
+    InvalidContent { cause: String },
     /// The canonical input this file is rendered from is missing or
     /// unreadable in its home repository, so the embedded copy must not be
     /// written in its place.
@@ -37,6 +39,9 @@ pub enum Refusal {
 impl fmt::Display for Refusal {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::InvalidContent { cause } => {
+                write!(f, "configuration is invalid; left untouched: {cause}")
+            }
             Self::NotRegularFile => f.write_str("target is not a regular file"),
             Self::Unreadable { cause } => write!(f, "target is unreadable: {cause}"),
             Self::CanonicalUnavailable { source, cause } => {

@@ -1,6 +1,8 @@
 //! Real-process fixtures for native workspace owner attachment.
 #[path = "../support/magistr_command.rs"]
 mod magistr_command;
+#[path = "../support/unified.rs"]
+mod unified;
 
 use rmcp::{
     ServiceExt,
@@ -50,7 +52,8 @@ impl Connection {
         args: Value,
         session: Option<&str>,
     ) -> Value {
-        let mut request = CallToolRequestParams::new(name.to_owned());
+        let (public, args, composed) = unified::request(name, args);
+        let mut request = CallToolRequestParams::new(public);
         request.arguments = args.as_object().cloned();
         if let Some(session) = session {
             let mut meta = RequestMetaObject::new();
@@ -68,7 +71,7 @@ impl Connection {
             .expect("text envelope");
         let parsed: Value = serde_json::from_str(text).expect("envelope JSON");
         assert_eq!(Some(&parsed), result.structured_content.as_ref());
-        parsed
+        unified::value(parsed, composed)
     }
 
     pub(super) async fn assert_tools(&self) {
@@ -82,15 +85,17 @@ impl Connection {
         assert_eq!(
             names,
             [
+                "check_work",
+                "context",
+                "discover",
                 "edit",
-                "files",
-                "map",
+                "execute",
+                "finish_work",
+                "plan_work",
                 "read",
-                "run",
-                "script",
+                "record_progress",
                 "search",
-                "undo",
-                "workbench_status",
+                "start_work",
                 "write"
             ]
         );
@@ -122,12 +127,13 @@ impl Connection {
 }
 
 /// Make native admission fail closed without touching any live owner: the
-/// scratch root's marker is rewritten to the legacy record the native lock
+/// scratch root's marker is rewritten to an unknown record the native lock
 /// refuses. Returns the native bytes so the caller can restore them.
 pub(super) fn deny_admission(root: &Path) -> Vec<u8> {
     let lock = root.join(".workbench/server.lock");
     let native = std::fs::read(&lock).expect("native marker");
-    std::fs::write(&lock, b"{\"pid\":0,\"host\":\"legacy-fixture\"}\n").expect("legacy marker");
+    std::fs::write(&lock, b"{\"pid\":0,\"host\":\"unrecognized-fixture\"}\n")
+        .expect("unrecognized marker");
     native
 }
 
@@ -137,35 +143,11 @@ pub(super) fn restore_admission(root: &Path, native: &[u8]) {
 
 pub(super) fn command(root: &Path) -> tokio::process::Command {
     let mut command = magistr();
-    command.args(["workspace", "serve"]).arg(root);
     command
-}
-
-/// `magistr workspace migrate <root>`: the explicit offline migration, run
-/// to completion.
-#[cfg(unix)]
-pub(super) async fn migrate(root: &Path) -> std::process::Output {
-    tokio::time::timeout(
-        WAIT,
-        magistr()
-            .args(["workspace", "migrate"])
-            .arg(root)
-            .stdin(Stdio::null())
-            .output(),
-    )
-    .await
-    .expect("bounded")
-    .expect("migrate runs")
-}
-
-/// The legacy server's lock record for a process of this host that has
-/// already exited: the record `magistr workspace migrate` moves aside.
-#[cfg(unix)]
-pub(super) fn dead_legacy_record() -> String {
-    let mut exited = std::process::Command::new("true").spawn().expect("spawn");
-    let dead = exited.id();
-    exited.wait().expect("reaped");
-    format!(r#"{{"pid":{dead},"host":"{}"}}"#, hostname())
+        .args(["mcp", "--dir"])
+        .arg(root)
+        .env("THINK_AND_SHIP_DATA_DIR", root.join("workflow-state"));
+    command
 }
 
 /// The binary under test with the workspace environment every fixture uses.
@@ -181,17 +163,6 @@ pub(super) fn magistr() -> tokio::process::Command {
 /// The path of the binary under test, for launch lines written to disk.
 pub(super) fn binary() -> &'static str {
     env!("CARGO_BIN_EXE_magistr")
-}
-
-/// This host's name as the legacy server recorded it.
-#[cfg(unix)]
-pub(super) fn hostname() -> String {
-    let mut buffer = [0_u8; 256];
-    // SAFETY: the buffer is valid for its length; gethostname writes within it.
-    let code = unsafe { libc::gethostname(buffer.as_mut_ptr().cast(), buffer.len()) };
-    assert_eq!(code, 0, "gethostname");
-    let end = buffer.iter().position(|b| *b == 0).unwrap_or(buffer.len());
-    String::from_utf8_lossy(&buffer[..end]).into_owned()
 }
 
 pub(super) fn workspace() -> tempfile::TempDir {

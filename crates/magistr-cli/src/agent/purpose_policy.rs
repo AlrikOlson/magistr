@@ -41,15 +41,6 @@ impl RoadmapPolicy {
             .unwrap_or_default()
             .trim();
         let name = title.rsplit("__").next().unwrap_or(title);
-        if name == "roadmap_set_status" {
-            let Ok(input) = serde_json::from_str::<serde_json::Value>(&request.input_json) else {
-                return false;
-            };
-            return input
-                .get("status")
-                .and_then(serde_json::Value::as_str)
-                .is_some_and(|status| matches!(status, "backlog" | "pending"));
-        }
         ToolPermissions::for_roadmap_request().contains(name)
     }
 }

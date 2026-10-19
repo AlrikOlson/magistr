@@ -34,7 +34,7 @@ fn from_recommendations_empty_yields_defaults() {
     assert!(sel.selected_agents.is_empty());
     assert!(sel.selected_mcp_servers.is_empty());
     assert!(sel.generated_files.is_empty());
-    assert!(sel.lifecycle_hooks.is_empty());
+    assert!(sel.lifecycle_hooks.is_none());
     assert_eq!(sel.description, "");
     assert_eq!(sel.project_type, "");
 }

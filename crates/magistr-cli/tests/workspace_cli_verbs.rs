@@ -564,7 +564,7 @@ fn doctor_explains_stalled_then_recoverable_operations_and_a_legacy_marker() {
     let legacy = run(&["doctor", root], dir.path());
     assert_eq!(code(&legacy), Some(1), "{}", stderr(&legacy));
     let out = stdout(&legacy);
-    assert!(out.contains("legacy server record"), "{out}");
-    assert!(out.contains("magistr workspace migrate"), "{out}");
+    assert!(out.contains("unrecognized lock record"), "{out}");
+    assert!(out.contains("known-good backup"), "{out}");
     assert!(out.contains("no owner reachable"), "{out}");
 }

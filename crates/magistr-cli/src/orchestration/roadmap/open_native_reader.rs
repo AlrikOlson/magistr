@@ -3,7 +3,7 @@
 //!
 //! Current settings are read without changing them, so
 //! this is safe to call from any command. Reading needs no admission, so a
-//! one-shot command answers beside a running cockpit or `magistr mcp-serve`.
+//! one-shot command answers beside a running cockpit or `magistr mcp`.
 //! Call it BEFORE entering raw mode: `RoadmapEngine::with_persistence` and
 //! the reasoning server print load banners on stderr, which would corrupt
 //! the alternate screen.

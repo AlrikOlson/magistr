@@ -6,7 +6,7 @@ description: Triage and research stakeholder signals, record evidence, and surfa
 # Magistr stakeholder signals
 
 Apply [craft](../craft/SKILL.md) and its runtime contract. Use **magistr** signal,
-reasoning, and roadmap tools, **workbench-mcp** code evidence, and the host's
+reasoning, and roadmap tools, **magistr** workspace code evidence, and the host's
 web tools for external research. Choose the mode from the user's request:
 
 - **Status:** call `signal_status` and report the inbox without mutations.

@@ -15,7 +15,7 @@ const PROVIDERS: &[&str] = &[
 
 /// Serve magistr's own ACP agent on stdio for the provider named — the
 /// agent side of the bridge the cockpit speaks as a client
-/// (`crates/magistr-acp-agent`), the way `mcp-serve` serves MCP.
+/// (`crates/magistr-acp-agent`), the way `mcp` serves MCP.
 ///
 /// The runtime spawns this binary with `acp-agent --provider <p>`
 /// ([`AgentRuntime::in_binary`](crate::agent::AgentRuntime::in_binary)),

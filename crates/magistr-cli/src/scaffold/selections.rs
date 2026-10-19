@@ -7,7 +7,7 @@ use super::research::{
 /// The selections that drive scaffold generation.
 ///
 /// Carries both user selections (from the init interview) and AI-discovered
-/// recommendations (from `magistr_recommend` during `init --interactive`)
+/// recommendations (from `magistr_recommend` during explicit agent-assisted setup)
 /// through the scaffold pipeline. All agents receive the same unified
 /// conventions.
 #[derive(Debug, Clone, Default)]
@@ -37,7 +37,7 @@ pub struct ScaffoldSelections {
     /// Keyed by relative path from project root (e.g. `"CLAUDE.md"`).
     pub generated_files: std::collections::HashMap<String, String>,
     /// AI-recommended lifecycle hooks (from `magistr_recommend`).
-    pub lifecycle_hooks: Vec<magistr_engine::LifecycleHook>,
+    pub lifecycle_hooks: Option<Vec<magistr_engine::LifecycleHook>>,
     /// Adaptive interview answers (database, architecture, CI/CD, deployment).
     /// Wired into the preset layer system for layered preset composition.
     pub interview_answers: super::question_graph::InterviewAnswers,
@@ -85,7 +85,7 @@ impl ScaffoldSelections {
     /// Used by AI-assisted init paths to get `magistr_recommend` data into
     /// the scaffold without running the shell interview.
     pub fn from_recommendations(recs: Recommendations) -> Self {
-        let lifecycle_hooks = recs
+        let lifecycle_hooks: Vec<_> = recs
             .lifecycle_hooks
             .iter()
             .filter_map(convert_recommended_hook)
@@ -107,7 +107,7 @@ impl ScaffoldSelections {
             selected_agents: recs.agents.iter().map(|a| a.key.clone()).collect(),
             description: recs.suggested_description.unwrap_or_default(),
             project_type: recs.suggested_project_type.unwrap_or_default(),
-            lifecycle_hooks,
+            lifecycle_hooks: (!lifecycle_hooks.is_empty()).then_some(lifecycle_hooks),
             interview_answers: super::question_graph::InterviewAnswers::new(),
         }
     }

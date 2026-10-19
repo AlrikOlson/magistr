@@ -205,7 +205,9 @@ export function validate(kind, raw) {
       string(v.focus.group, 'the workstream')
       string(v.focus.mode, 'the work mode')
       if (focusState.state === 'unset' || focusState.group !== v.focus.group)
-        throw new Error('The chosen workstream does not match its reported state.')
+        throw new Error(
+          'The chosen workstream does not match its reported state.',
+        )
     } else if (focusState.state !== 'unset') {
       throw new Error('The chosen workstream was not returned.')
     }

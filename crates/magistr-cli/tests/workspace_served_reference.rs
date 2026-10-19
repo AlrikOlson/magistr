@@ -1,9 +1,11 @@
 //! The served surface against the pinned Bun reference server, side by side
-//! in twin disposable workspaces: the tool list (names, titles,
-//! descriptions, input and output schemas), the status envelope, the empty
+//! in twin disposable workspaces: the discovered workspace input/output schemas, the status envelope, the empty
 //! journal listing, the map plugin inventory and the run refusals. Ignored by
 //! default — it needs the reference's Bun toolchain — and run explicitly by
 //! the workspace-reference gate. Reference Bun tooling is development-only.
+#[path = "support/unified.rs"]
+mod unified;
+
 use std::{
     collections::BTreeMap,
     path::{Path, PathBuf},
@@ -73,15 +75,25 @@ async fn reference_client(root: &Path) -> (tokio::process::Child, Client) {
 async fn native_client(root: &Path) -> (tokio::process::Child, Client) {
     let mut command = tokio::process::Command::new(env!("CARGO_BIN_EXE_magistr"));
     command
-        .arg("workspace")
-        .arg("serve")
+        .arg("mcp")
+        .arg("--dir")
         .arg(root)
         .env("WORKBENCH_NETWORK_FS", "0");
     spawn(command).await
 }
 
 async fn call(client: &Client, name: &str, args: Value) -> Value {
-    let mut request = CallToolRequestParams::new(name.to_owned());
+    let is_native = client.peer_info().is_some_and(|info| {
+        info.server_info
+            .as_ref()
+            .is_some_and(|server| server.name == "magistr")
+    });
+    let (name, args, composed) = if is_native {
+        unified::request(name, args)
+    } else {
+        (name.to_owned(), args, false)
+    };
+    let mut request = CallToolRequestParams::new(name.clone());
     request.arguments = args.as_object().cloned();
     let result = client.peer().call_tool(request).await.expect("tool call");
     let text = result
@@ -95,13 +107,11 @@ async fn call(client: &Client, name: &str, args: Value) -> Value {
         result.structured_content.as_ref(),
         "{name}: text and structuredContent agree"
     );
-    parsed
+    unified::value(parsed, composed)
 }
 
 fn tool_view(tool: &Tool) -> Value {
     json!({
-        "title": tool.title,
-        "description": tool.description,
         "inputSchema": Value::Object((*tool.input_schema).clone()),
         "outputSchema": tool.output_schema.as_ref().map(|schema| Value::Object((**schema).clone())),
     })
@@ -126,7 +136,7 @@ async fn the_native_server_matches_the_reference_over_the_wire() {
     let (mut reference_child, reference) = reference_client(&reference_root).await;
     let (mut native_child, native) = native_client(&native_root).await;
 
-    // The declared surface: same names, titles, descriptions and schemas.
+    // Workspace operation contracts are exposed through the unified catalog.
     let reference_tools: BTreeMap<String, Value> = reference
         .peer()
         .list_tools(None)
@@ -136,24 +146,19 @@ async fn the_native_server_matches_the_reference_over_the_wire() {
         .iter()
         .map(|tool| (tool.name.to_string(), tool_view(tool)))
         .collect();
-    let native_tools: BTreeMap<String, Value> = native
-        .peer()
-        .list_tools(None)
-        .await
-        .expect("native tools")
-        .tools
-        .iter()
-        .map(|tool| (tool.name.to_string(), tool_view(tool)))
-        .collect();
-    assert_eq!(
-        native_tools.keys().collect::<Vec<_>>(),
-        reference_tools.keys().collect::<Vec<_>>()
-    );
     for (name, expected) in &reference_tools {
-        assert_eq!(
-            &native_tools[name], expected,
-            "{name}: served declaration differs"
-        );
+        let operation = call(
+            &native,
+            "discover",
+            json!({"operation":name,"includeOutputSchema":true}),
+        )
+        .await;
+        for field in ["inputSchema", "outputSchema"] {
+            assert_eq!(
+                &operation["operation"][field], &expected[field],
+                "{name}: {field}"
+            );
+        }
     }
 
     // The status envelope, root aside, and the empty journal listing verbatim.
@@ -203,80 +208,4 @@ async fn the_native_server_matches_the_reference_over_the_wire() {
     let _ = reference.cancel().await;
     let _ = native_child.wait().await;
     let _ = reference_child.wait().await;
-}
-
-#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
-#[ignore = "requires the reference's Bun toolchain; the workspace-reference gate runs this explicitly"]
-async fn native_and_legacy_owners_refuse_each_other_without_touching_the_live_lock() {
-    use std::time::Duration;
-    let dir = tempfile::tempdir().expect("workspace");
-    seed(dir.path());
-    let (mut native_child, native) = native_client(dir.path()).await;
-    let lock = dir.path().join(".workbench/server.lock");
-    let native_marker = std::fs::read(&lock).expect("native marker");
-    let legacy = tokio::time::timeout(
-        Duration::from_secs(15),
-        tokio::process::Command::new("bun")
-            .arg(reference_dir().join("src/main.ts"))
-            .arg(dir.path())
-            .current_dir(reference_dir())
-            .stdin(Stdio::null())
-            .output(),
-    )
-    .await
-    .expect("bounded legacy refusal")
-    .expect("legacy contender");
-    assert_eq!(legacy.status.code(), Some(75));
-    assert_eq!(std::fs::read(&lock).expect("marker"), native_marker);
-    assert_eq!(
-        call(&native, "workbench_status", json!({})).await["ok"],
-        true
-    );
-    native.cancel().await.expect("native detach");
-    assert!(
-        tokio::time::timeout(Duration::from_secs(30), native_child.wait())
-            .await
-            .expect("native exits")
-            .expect("native wait")
-            .success()
-    );
-
-    let legacy_dir = tempfile::tempdir().expect("legacy workspace");
-    seed(legacy_dir.path());
-    let (mut legacy_child, legacy_client) = reference_client(legacy_dir.path()).await;
-    let lock = legacy_dir.path().join(".workbench/server.lock");
-    let legacy_marker = std::fs::read(&lock).expect("legacy marker");
-    // The native bridge is refused admission, serves discovery instead of
-    // exiting 75 (audit-260912-20), writes nothing on its stdio for a client
-    // that sends nothing, and ends cleanly on that client's EOF — never
-    // touching the live legacy lock.
-    let native = tokio::time::timeout(
-        Duration::from_secs(15),
-        tokio::process::Command::new(env!("CARGO_BIN_EXE_magistr"))
-            .args(["workspace", "serve"])
-            .arg(legacy_dir.path())
-            .stdin(Stdio::null())
-            .output(),
-    )
-    .await
-    .expect("bounded native refusal")
-    .expect("native contender");
-    assert_eq!(native.status.code(), Some(0), "{native:?}");
-    assert!(native.stdout.is_empty(), "no MCP frame without a request");
-    let diagnostic = String::from_utf8_lossy(&native.stderr);
-    assert!(diagnostic.contains("migrat"), "{diagnostic}");
-    assert!(diagnostic.contains("serving discovery"), "{diagnostic}");
-    assert_eq!(std::fs::read(&lock).expect("marker"), legacy_marker);
-    assert_eq!(
-        call(&legacy_client, "workbench_status", json!({})).await["ok"],
-        true
-    );
-    legacy_client.cancel().await.expect("legacy detach");
-    assert!(
-        tokio::time::timeout(Duration::from_secs(30), legacy_child.wait())
-            .await
-            .expect("legacy exits")
-            .expect("legacy wait")
-            .success()
-    );
 }

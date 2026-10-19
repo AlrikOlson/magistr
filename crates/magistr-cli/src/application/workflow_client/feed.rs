@@ -15,7 +15,7 @@ use magistr_cockpit_runtime::channel::Inbox;
 const RETRY: std::time::Duration = std::time::Duration::from_millis(300);
 
 /// Attach to the NDJSON broadcast socket at `socket` — bound by the
-/// agent's `magistr mcp-serve`, so it may not exist yet and may go away
+/// agent's `magistr mcp`, so it may not exist yet and may go away
 /// — and post what happens on `inbox` as [`Msg::Engine`]: `Waiting`
 /// first, `Connected { reconnect }` on each attachment, an `Event` per
 /// line the engines emit — decoded here, at the edge, into the typed

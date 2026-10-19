@@ -24,9 +24,14 @@ async fn main() -> eyre::Result<()> {
     let cli = parse_cli();
     // MCP launch owns stdio and process shutdown. Do not install the cockpit's
     // terminal restoration handlers or propagate interactive-session settings.
-    if let Some(Command::McpLaunch { target, ref dir }) = cli.command {
+    if let Some(Command::Mcp {
+        ref dir,
+        ref config,
+        access,
+    }) = cli.command
+    {
         color_eyre::install()?;
-        return commands::misc::cmd_mcp_launch(target, dir).await;
+        return magistr::unified_mcp::run_stdio_server(dir.to_path_buf(), config, access).await;
     }
     if let Some(Command::CodexLaunch {
         ref project_root,
@@ -95,10 +100,8 @@ async fn main() -> eyre::Result<()> {
         Command::Init {
             dir,
             agents,
-            interactive,
             yes,
             force,
-            smart,
             dry_run,
             from,
             ci,
@@ -109,22 +112,21 @@ async fn main() -> eyre::Result<()> {
             } else if ci {
                 commands::config::cmd_init_ci(&dir, force, &*renderer, &inputs)
             } else if let Some(preset_source) = from {
-                commands::config::cmd_init_from_preset(&dir, &preset_source, force, &agents)
+                commands::config::cmd_init_from_preset(&dir, &preset_source, force, &agents)?;
+                magistr::unified_mcp::check_connection(&dir).await
             } else if dry_run {
                 commands::init::cmd_init_dry_run(&dir, &*renderer, &agents, &inputs)
-            } else if interactive {
-                commands::init::cmd_init_interactive(&dir, force, &inputs).await
-            } else if smart {
-                commands::init::cmd_init_smart(&dir, force, &agents, &inputs).await
-            } else if yes {
-                commands::init::cmd_init_interview(&dir, force, true, &agents, &inputs).await
-            } else if !agents.is_empty() {
-                commands::init::cmd_init(&dir, force, &agents, &inputs).await
-            } else if std::io::IsTerminal::is_terminal(&std::io::stdin()) {
-                commands::init::cmd_init_interview(&dir, force, false, &agents, &inputs).await
             } else {
-                commands::init::cmd_init(&dir, force, &agents, &inputs).await
+                let noninteractive = yes || !std::io::IsTerminal::is_terminal(&std::io::stdin());
+                commands::init::cmd_init_interview(&dir, force, noninteractive, &agents, &inputs)
+                    .await
             }
+        }
+        Command::Repair { dir, dry_run, yes } => {
+            commands::config::cmd_setup(&dir, false, dry_run, yes, &inputs).await
+        }
+        Command::Remove { dir, dry_run, yes } => {
+            commands::config::cmd_setup(&dir, true, dry_run, yes, &inputs).await
         }
         Command::Reset { dir } => commands::misc::cmd_reset(&dir),
         Command::Validate {
@@ -280,7 +282,7 @@ async fn main() -> eyre::Result<()> {
             commands::archetypes::cmd_archetypes(&dir, detail, json)
         }
         Command::Lint { dir, suggest } => commands::config::cmd_lint(&dir, suggest, &*renderer),
-        Command::Doctor { dir } => commands::config::cmd_doctor(&dir, &*renderer),
+        Command::Doctor { dir } => commands::config::cmd_doctor(&dir, &*renderer).await,
         Command::Guard { event, dir } => commands::config::cmd_guard(event, &dir),
         Command::Export { dir, output: out } => {
             commands::config::cmd_export(&dir, out.as_deref(), &*renderer)
@@ -368,9 +370,8 @@ async fn main() -> eyre::Result<()> {
             }
         }
         Command::McpProxy { cmd } => commands::misc::cmd_mcp_proxy(cmd),
-        Command::McpServe { dir } => commands::misc::cmd_mcp_serve(&dir).await,
         Command::Workspace { action } => commands::misc::cmd_workspace(action, &inputs).await,
-        Command::McpLaunch { target, dir } => commands::misc::cmd_mcp_launch(target, &dir).await,
+        Command::Mcp { .. } => unreachable!("MCP dispatches before session setup"),
         Command::CodexLaunch { .. } => unreachable!("Codex launch dispatches before session setup"),
         Command::CodexRemove { dir, dry_run } => {
             commands::misc::cmd_codex_remove(&dir, dry_run, &*renderer)

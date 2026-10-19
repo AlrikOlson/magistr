@@ -5,7 +5,7 @@ use magistr_workflow::ship::domain::task::Task;
 ///
 /// Read off the ship engine's own records — the objective and the tasks
 /// with the checks on them — so the engine layer stays IO-free: whoever
-/// holds the engine (mcp-serve, a test) reads them and hands the guard
+/// holds the engine (mcp, a test) reads them and hands the guard
 /// this value.
 ///
 /// An objective must be set and at least one task planned before the

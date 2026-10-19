@@ -1,8 +1,6 @@
 ## Codex adapter
 
-Read root `AGENTS.md`, `.magistr/project.json`, `CLAUDE.md` for shared project
-facts, and applicable `.claude/rules/conventions.md`. The shared conventions
-path does not activate Claude settings or hooks. Codex project skills live in
+Read root `AGENTS.md`, `.magistr/project.json` and `.magistr/conventions.md`. Codex project skills live in
 `.agents/skills`; host configuration belongs in `.codex/config.toml`.
 
 Use Codex web search and page-open tools for external research. Claude

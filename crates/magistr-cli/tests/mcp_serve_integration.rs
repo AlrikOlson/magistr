@@ -1,4 +1,4 @@
-//! `magistr mcp-serve` over a real rmcp client on an in-memory duplex:
+//! `magistr mcp` over a real rmcp client on an in-memory duplex:
 //! one tool list carrying both the `magistr_*` tools and the think-and-ship
 //! families, gates recorded through `ship_check`, phases recorded on the
 //! active task — all against a temporary store.
@@ -987,7 +987,7 @@ async fn a_polyglot_gate_runs_every_stack_once() {
     server.abort();
 }
 
-/// A gate `magistr mcp-serve` runs directly is live on the feed socket the
+/// A gate `magistr mcp` runs directly is live on the feed socket the
 /// cockpit attaches to: what the command writes goes out, raw, as
 /// `ship`/`gate_output` frames keyed by the gate — on the pty the runner
 /// spawns it on, so a line ends in the tty's `\r\n`.

@@ -233,7 +233,7 @@ async fn saved_planning_reopens_under_yolo_and_refuses_implementation_on_the_wir
     let id = config.history.id();
 
     for (attempt, prompt, expected) in [
-        (0, "mcp__magistr__roadmap_add_chunk", "selected allow"),
+        (0, "mcp__magistr__execute", "selected allow"),
         (1, "Write", "selected reject"),
     ] {
         if attempt != 0 {

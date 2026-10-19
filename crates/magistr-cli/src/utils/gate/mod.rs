@@ -1,6 +1,6 @@
 //! One quality-gate runner, behind both callers.
 //!
-//! `magistr_gate` (the MCP tool and the `mcp-serve` service) and the loop
+//! `magistr_gate` (the MCP tool and the `mcp` service) and the loop
 //! driver's between-iteration gates used to run a gate two different ways:
 //! the MCP path captured both streams, parsed failure rows and truncated,
 //! while the driver's job kept `{name, passed, duration}` and dropped

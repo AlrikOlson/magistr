@@ -3,7 +3,7 @@
 //! arch-14-verification-receipts and arch-14f2).
 //!
 //! Every real consumer of both capabilities lives in this crate — the
-//! `magistr_gate` tool behind `magistr mcp-serve`, the loop driver's
+//! `magistr_gate` tool behind `magistr mcp`, the loop driver's
 //! between-iteration gates, the workspace bridge and the cockpit launcher —
 //! so the boundary is composed here, in the entry-point crate that already
 //! knows every concrete type, rather than in a crate with one consumer.

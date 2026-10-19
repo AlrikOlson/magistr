@@ -94,7 +94,7 @@ async fn journal_and_undo_share_the_agents_owner_and_preserve_external_edits() {
     let first = agent_write(&agent, &mut received, &target, "agent change\n").await;
     let mut port = McpWorkbench::new(
         binary,
-        vec!["mcp-launch".into(), "workbench-mcp".into(), ".".into()],
+        vec!["mcp".into(), "--dir".into(), ".".into()],
         vec![("WORKBENCH_NETWORK_FS".into(), "0".into())],
     )
     .with_workspace(&root);
