@@ -24,7 +24,8 @@ test("catalog watches source changes without traversing native build products",a
       server:{middlewareMode:true,ws:false,watch:{usePolling:true,interval:20}},
     });
     server=await createServer(config);
-    await once(server.watcher,"ready",{signal:AbortSignal.timeout(5000)});
+    // createServer may finish after the watcher has emitted ready. Wait for the
+    // actual registrations below, which remain observable after that event.
     const watched=()=>Object.entries(server.watcher.getWatched()).flatMap(([directory,files])=>files.map(file=>relative(root,join(directory,file)).split(sep).join("/")));
     // Chokidar can report ready before its nested directory registrations settle.
     const deadline=Date.now()+5000;
