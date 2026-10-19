@@ -17,6 +17,11 @@ on:
       - "Launch Magistr.*"
       - ".github/workflows/desktop-apps.yml"
   workflow_dispatch:
+    inputs:
+      windows:
+        description: Also build and test the experimental Windows app
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -31,7 +36,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, windows-latest]
+        os: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.windows && '["macos-latest","windows-latest"]' || '["macos-latest"]') }}
     runs-on: ${{ matrix.os }}
     defaults:
       run:

@@ -22,8 +22,28 @@ fn application_sources_cannot_access_effects() {
 
 fn workspace_metadata() -> serde_json::Value {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    // Resolution only needs this host; declarations still include every target.
+    // Cross-target resolution would fetch unused platform crates during an offline test.
+    let rustc = Command::new(std::env::var_os("RUSTC").unwrap_or_else(|| "rustc".into()))
+        .arg("-vV")
+        .output()
+        .expect("read compiler host");
+    assert!(rustc.status.success(), "rustc -vV failed");
+    let version = String::from_utf8(rustc.stdout).expect("compiler version");
+    let host = version
+        .lines()
+        .find_map(|line| line.strip_prefix("host: "))
+        .expect("compiler host triple");
     let output = Command::new(env!("CARGO"))
-        .args(["metadata", "--format-version", "1", "--locked", "--offline"])
+        .args([
+            "metadata",
+            "--format-version",
+            "1",
+            "--locked",
+            "--offline",
+            "--filter-platform",
+            host,
+        ])
         .current_dir(root)
         .output()
         .expect("run Cargo metadata for the application dependency boundary");
