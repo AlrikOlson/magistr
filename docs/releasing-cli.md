@@ -130,7 +130,7 @@ archive checksums and both installation receipts.
 `Publish CLI packages` is a separate manual workflow on `main`. Supply the
 successful `CLI packages` run ID and select one registry (`cargo` or `npm`).
 It refuses an unsuccessful package run, another workflow or branch, and a source
-revision whose latest public-release or Claude adapter CI has not passed. It
+revision whose latest public-release CI has not passed. It
 downloads that run's artifacts and checks the installation receipts against the
 actual archive hashes. It does not rebuild the npm binary or repeat installation
 verification. Cargo source is checked out at the verified revision and must
