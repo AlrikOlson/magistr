@@ -1,7 +1,7 @@
 //! `magistr mcp` as a real subprocess over its own stdio: the
 //! shipping artifact driven by an rmcp client — initialize, tools/list,
 //! status, search and an applied edit — and the retained process-level
-//! refusals (64 usage, 66 missing root, 75 a legacy lock requiring migration).
+//! refusals (64 usage, 66 missing root, 75 an unrecognized owner record).
 #[path = "support/magistr_command.rs"]
 mod magistr_command;
 
@@ -265,7 +265,7 @@ async fn owner_process_crash_releases_admission_and_fences_its_confirmation_on_r
 fn unknown_lock_refusal_preserves_the_record_and_never_opens_workspace_stores() {
     let dir = workspace();
     let state = dir.path().join(".magistr/workspace");
-    std::fs::create_dir(&state).expect("state");
+    std::fs::create_dir_all(&state).expect("state");
     let bytes = "unknown owner record";
     std::fs::write(state.join("server.lock"), bytes).expect("unknown record");
     // Refused admission must leave source and owner state untouched.

@@ -30,7 +30,7 @@ impl HostedWorkspace {
     ///
     /// # Errors
     /// The root cannot be admitted for another reason: a missing root, a
-    /// marker that needs migration, durable data from a newer binary, a
+    /// record this binary cannot recognize, unreadable durable data, a
     /// configuration refusal, or an endpoint that could not be served.
     pub async fn admit(inputs: &ProjectInputs) -> Result<Option<Self>, WorkspaceOpenError> {
         let options = crate::workspace_mcp::open_options(inputs, serde_json::Map::new())?;

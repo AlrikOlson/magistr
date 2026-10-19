@@ -348,17 +348,15 @@ fn cli_init_ci_conflicts_with_dry_run() {
 }
 
 #[test]
-fn remove_scaffold_deletes_generated_files_and_preserves_unowned_scripts() {
+fn remove_scaffold_preserves_custom_servers_and_unowned_files() {
     let tmp = tempfile::TempDir::new().unwrap();
     let dir = tmp.path();
     generate_removal_fixture(dir);
 
     std::fs::write(dir.join("run-autonomous.sh"), "#!/bin/bash").unwrap();
     std::fs::write(dir.join("format-stream.sh"), "#!/bin/bash").unwrap();
-    std::fs::write(
-        dir.join(".mcp.json"),
-        r#"{"mcpServers":{"magistr":{"command":"magistr"},"magistr-scope":{"command":"magistr-scope"}}}"#,
-    ).unwrap();
+    let custom_servers = r#"{"mcpServers":{"magistr":{"command":"custom-server"},"external-search":{"command":"external-search"}}}"#;
+    std::fs::write(dir.join(".mcp.json"), custom_servers).unwrap();
     std::fs::write(dir.join("CLAUDE.md"), "# My project").unwrap();
     std::fs::write(dir.join("ROADMAP.md"), "# Roadmap").unwrap();
 
@@ -366,7 +364,13 @@ fn remove_scaffold_deletes_generated_files_and_preserves_unowned_scripts() {
 
     assert!(!dir.join(".claude").exists());
     assert!(!dir.join(".magistr").exists());
-    assert!(!dir.join(".mcp.json").exists());
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(
+            &std::fs::read_to_string(dir.join(".mcp.json")).unwrap()
+        )
+        .unwrap(),
+        serde_json::from_str::<serde_json::Value>(custom_servers).unwrap()
+    );
     assert!(dir.join("run-autonomous.sh").exists());
     assert!(dir.join("format-stream.sh").exists());
     assert_eq!(
@@ -1275,18 +1279,10 @@ fn cli_parses_roadmap_next_status_and_export() {
 }
 
 #[test]
-fn cli_roadmap_sync_is_an_alias_of_export_and_reset_is_gone() {
-    let parsed = parse_cli(["magistr", "roadmap", "sync"]).unwrap();
-    assert!(matches!(
-        parsed.command,
-        Some(cli::Command::Roadmap {
-            action: Some(cli::RoadmapAction::Export { .. })
-        })
-    ));
-    assert!(
-        parse_cli(["magistr", "roadmap", "reset"]).is_err(),
-        "`roadmap reset` was removed with the YAML-only semantics"
-    );
+fn removed_roadmap_commands_are_rejected() {
+    for command in ["sync", "reset"] {
+        assert!(parse_cli(["magistr", "roadmap", command]).is_err());
+    }
 }
 
 /// The maintained system-contract document, read from the repository.

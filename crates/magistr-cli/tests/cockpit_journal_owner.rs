@@ -15,7 +15,9 @@ use magistr_cockpit::{
     cockpit::{WorkspaceCmd, WorkspaceEvent},
     workspace,
 };
-use magistr_workspace::{service::WorkspaceOpenOptions, snapshot::MutationStatus};
+use magistr_workspace::{
+    commands::ScriptInterpreter, service::WorkspaceOpenOptions, snapshot::MutationStatus,
+};
 use tokio::sync::mpsc;
 
 struct AllowWrite;
@@ -76,8 +78,16 @@ async fn journal_and_undo_share_the_agents_owner_and_preserve_external_edits() {
     std::fs::create_dir_all(root.join(".git")).expect("repository marker");
     std::fs::write(root.join("notes.txt"), "original\n").expect("initial content");
     let binary = env!("CARGO_BIN_EXE_magistr");
+    // Match production owner composition: unified execute evaluates advanced
+    // operations in the same embedded interpreter used by magistr mcp.
+    let interpreter = ScriptInterpreter::load(
+        &Path::new(env!("CARGO_MANIFEST_DIR")).join("assets/qjs/qjs-wasi.wasm"),
+    )
+    .expect("shipping sandbox interpreter");
     let hosted = HostedWorkspace::admit_with(
-        WorkspaceOpenOptions::new(&root, binary).with_network_override("0"),
+        WorkspaceOpenOptions::new(&root, binary)
+            .with_network_override("0")
+            .with_interpreter(interpreter),
     )
     .await
     .expect("admitted workspace")

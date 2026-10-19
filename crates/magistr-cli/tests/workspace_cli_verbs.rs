@@ -412,6 +412,7 @@ fn init_seeds_the_commands_table_once_and_never_touches_an_existing_one() {
     )
     .expect("manifest");
     std::fs::write(dir.path().join("bun.lock"), "").expect("lockfile");
+    std::fs::create_dir_all(dir.path().join(".magistr")).expect("project configuration");
     std::fs::write(
         dir.path().join(".magistr/workspace.toml"),
         "[edit]\nconfirm_mode = \"token\"\n",
@@ -426,7 +427,7 @@ fn init_seeds_the_commands_table_once_and_never_touches_an_existing_one() {
     );
     let toml = std::fs::read_to_string(dir.path().join(".magistr/workspace.toml")).expect("toml");
     assert!(
-        toml.starts_with("[edit]\nconfirm_mode = \"token\"\n\n# Seeded by"),
+        toml.starts_with("[edit]\nconfirm_mode = \"token\"\n\n# Suggested by"),
         "{toml}"
     );
     assert!(toml.contains(

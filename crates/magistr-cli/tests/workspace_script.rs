@@ -13,14 +13,17 @@ use magistr_workspace::{
     response::ResponseAdapter,
 };
 use serde_json::json;
-use workspace_extensions_support::{Fixture, ok, reference_dir, refused};
+use std::path::Path;
+use workspace_extensions_support::{Fixture, ok, refused};
 
-/// The SHA-256 the reference tree pins for the official QuickJS-ng v0.16.2 asset.
+/// The SHA-256 pinned for the shipping QuickJS-ng v0.16.2 asset.
 const QJS_SHA256: &str = "d2939e98c808e8b9f4164cd0d7b0398cbc0121ddf52862bcd92157d923e461cc";
 
 fn interpreter() -> ScriptInterpreter {
-    let interpreter =
-        ScriptInterpreter::load(&reference_dir().join("vendor/qjs/qjs-wasi.wasm")).expect("qjs");
+    let interpreter = ScriptInterpreter::load(
+        &Path::new(env!("CARGO_MANIFEST_DIR")).join("assets/qjs/qjs-wasi.wasm"),
+    )
+    .expect("shipping qjs");
     assert_eq!(interpreter.sha256(), QJS_SHA256);
     interpreter
 }

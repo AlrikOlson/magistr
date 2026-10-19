@@ -1,5 +1,3 @@
-crates/magistr-core/src/config/migration_check.rs
-crates/magistr-core/src/config/migration.rs
 crates/magistr-core/src/config/preset_fragment.rs
 crates/magistr-core/src/config/preset_framework.rs
 crates/magistr-core/src/config/preset_full.rs
@@ -26,7 +24,6 @@ crates/magistr-cli/src/core/error.rs
 crates/magistr-cli/src/core/paths.rs
 crates/magistr-cli/src/core/types/preset_layer.rs
 crates/magistr-cli/src/core/types/preset.rs
-crates/magistr-cli/src/core/types/project_config.rs
 crates/magistr-cli/src/core/types/quality_gate.rs
 crates/magistr-cli/src/core/types/stack.rs
 crates/magistr-cli/src/detection/validate.rs

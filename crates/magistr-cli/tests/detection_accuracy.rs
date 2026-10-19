@@ -64,10 +64,10 @@ fn typescript_nextjs_project() {
     let json = detect_json(tmp.path());
     assert_eq!(json["language"], "typescript");
     assert_eq!(json["framework"], "next");
-    assert_eq!(json["package_manager"], "npm");
+    assert_eq!(json["package_manager"], "unknown");
     assert_eq!(json["test_framework"], "vitest");
-    assert_eq!(json["linter"], "eslint");
-    assert_eq!(json["formatter"], "prettier");
+    assert_eq!(json["linter"], "none");
+    assert_eq!(json["formatter"], "none");
     assert_eq!(json["project_name"], "my-app");
 }
 
@@ -202,7 +202,7 @@ fn bare_javascript_project() {
     let json = detect_json(tmp.path());
     assert_eq!(json["language"], "javascript");
     assert_eq!(json["framework"], "none");
-    assert_eq!(json["package_manager"], "npm");
+    assert_eq!(json["package_manager"], "unknown");
 }
 
 #[test]

@@ -2,11 +2,6 @@ name: CLI packages
 
 on:
   workflow_dispatch:
-    inputs:
-      publish:
-        description: Publish the verified version to Cargo and npm
-        type: boolean
-        default: false
 
 permissions:
   contents: read
@@ -40,47 +35,10 @@ jobs:
         run: |
           MAGISTR_TEST_BINARY=target/release/magistr python3 scripts/unified-mcp-check.py
           MAGISTR_TEST_BINARY=target/release/magistr python3 scripts/onboarding-check.py
+      - name: Verify complete artifact receipts
+        run: python3 scripts/cli-release.py verify --out target/cli-distribution --source "$GITHUB_SHA"
       - uses: actions/upload-artifact@v4
         with:
           name: cli-distribution
           path: target/cli-distribution/
           if-no-files-found: error
-
-  publish:
-    if: inputs.publish
-    needs: prepare
-    environment: cli-release
-    runs-on: macos-15
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '24'
-          registry-url: https://registry.npmjs.org
-          package-manager-cache: false
-      - uses: actions/download-artifact@v4
-        with:
-          name: cli-distribution
-          path: target/cli-distribution
-      - name: Verify reviewed artifacts
-        working-directory: target/cli-distribution
-        run: shasum -a 256 -c SHA256SUMS
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - name: Match checkout to verified Cargo packages
-        run: python3 scripts/distribution.py verify-source --out target/cli-distribution
-      - name: Publish Cargo dependencies in order
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        run: |
-          set -euo pipefail
-          while IFS= read -r package; do
-            cargo publish --locked --package "$package"
-          done < target/cli-distribution/publication-order.txt
-      - name: Publish npm with trusted publishing
-        run: npm publish target/cli-distribution/magistr-*.tgz --access public

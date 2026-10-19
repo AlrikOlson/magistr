@@ -831,17 +831,16 @@ fn remove_scaffold_preserves_user_mcp_entries() {
     // Remove scaffold.
     remove_scaffold(dir).unwrap();
 
-    // .mcp.json should still exist with user server, but without magistr/magistr-scope.
+    // Keep the user server and remove the generated Magistr connection.
     assert!(mcp_path.exists());
     let remaining: serde_json::Value =
         serde_json::from_str(&std::fs::read_to_string(&mcp_path).unwrap()).unwrap();
     assert!(remaining["mcpServers"]["my-server"].is_object());
     assert!(remaining["mcpServers"]["magistr"].is_null());
-    assert!(remaining["mcpServers"]["magistr-scope"].is_null());
 }
 
 #[test]
-fn remove_scaffold_deletes_mcp_json_when_only_jig_entries() {
+fn remove_scaffold_deletes_mcp_json_when_only_generated_entries() {
     let tmp = tempfile::TempDir::new().unwrap();
     let dir = tmp.path();
     let tv = test_vars();
