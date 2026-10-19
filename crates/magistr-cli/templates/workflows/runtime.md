@@ -19,7 +19,7 @@ applied composition. No automatic replay or rollback occurs.
 One workflow authority serves each project; one workspace authority serves each
 working copy. Do not launch a separate workflow or workspace MCP connection.
 
-Follow [workbench-routing](../../workbench-routing/SKILL.md) for workspace routing
+Follow [workspace-routing](../../workspace-routing/SKILL.md) for workspace routing
 and recovery. Inspect callers and both sides of shared interfaces. Git remains
 a shell operation. If the connection is unavailable, explain the failure and
 use a focused fallback permitted by the project; never bypass a policy denial.

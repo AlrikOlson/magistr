@@ -43,8 +43,8 @@ fn rig() -> (tempfile::TempDir, PathBuf, WorkspaceEvidence) {
     let org = external.join("policy.toml").display().to_string();
     let user = external.join("config.toml").display().to_string();
     let inputs = ProjectInputs::from_lookup(&root, move |key| match key {
-        "WORKBENCH_ORG_POLICY" => Some(org.clone()),
-        "WORKBENCH_USER_CONFIG" => Some(user.clone()),
+        "MAGISTR_WORKSPACE_ORG_POLICY" => Some(org.clone()),
+        "MAGISTR_WORKSPACE_USER_CONFIG" => Some(user.clone()),
         _ => None,
     });
     let evidence = WorkspaceEvidence::from_inputs(&inputs);
@@ -230,7 +230,7 @@ fn writer_config_carries_the_capability_over_the_lookups_layers() {
     fs::write(&policy, "[security]\nredaction=true\n").unwrap();
     let named = policy.display().to_string();
     let with_policy = super::super::writer_config(dir.path(), move |key| {
-        (key == "WORKBENCH_ORG_POLICY").then(|| named.clone())
+        (key == "MAGISTR_WORKSPACE_ORG_POLICY").then(|| named.clone())
     });
     let plain = config.evidence().unwrap().observe().unwrap().observation();
     let governed = with_policy

@@ -831,7 +831,7 @@ async fn run_delegated(
     (model, report, agents)
 }
 
-/// [`run`], driven by think-and-ship engines when `native` is given, and
+/// [`run`], driven by magistr engines when `native` is given, and
 /// the native goal loop when `judge` is.
 async fn run_with(
     dir: &Path,
@@ -2453,7 +2453,7 @@ async fn a_passing_gate_does_not_persist_its_whole_output_and_a_red_one_does() {
     );
 }
 
-/// A loop with no think-and-ship engines cannot record, and says so once
+/// A loop with no magistr engines cannot record, and says so once
 /// rather than silently recording nothing — the same honesty
 /// `magistr_gate`'s own `recorded: false` note carries.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -3737,7 +3737,7 @@ async fn a_start_in_a_hosted_session_runs_a_judged_iteration_and_returns_to_conv
     let path = dir.path().join(".magistr/project.json");
     let mut declared: serde_json::Value =
         serde_json::from_slice(&std::fs::read(&path).expect("project.json")).expect("json");
-    declared["roadmap_backend"] = serde_json::json!("think-and-ship");
+    declared["roadmap_backend"] = serde_json::json!("native");
     std::fs::write(&path, declared.to_string()).expect("project.json");
     let engines = engines_with_active_task(dir.path());
     let judge = Scripted::new([Verdict::met("both criteria hold")]);

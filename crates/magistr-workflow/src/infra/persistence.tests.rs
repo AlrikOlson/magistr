@@ -30,7 +30,7 @@ fn data_dir_prefers_xdg_over_everything() {
         ("HOME", "/home/dev"),
         ("APPDATA", "C:\\Users\\dev\\AppData\\Roaming"),
     ]));
-    assert_eq!(dir, Path::new("/xdg").join("think-and-ship"));
+    assert_eq!(dir, Path::new("/xdg").join("magistr/workflow"));
 }
 
 #[test]
@@ -45,7 +45,7 @@ fn data_dir_home_wins_over_appdata() {
         Path::new("/home/dev")
             .join(".local")
             .join("share")
-            .join("think-and-ship")
+            .join("magistr/workflow")
     );
 }
 
@@ -58,7 +58,7 @@ fn data_dir_windows_without_home_lands_in_appdata() {
     )]));
     assert_eq!(
         dir,
-        Path::new("C:\\Users\\dev\\AppData\\Roaming").join("think-and-ship")
+        Path::new("C:\\Users\\dev\\AppData\\Roaming").join("magistr/workflow")
     );
 }
 
@@ -70,7 +70,7 @@ fn data_dir_userprofile_backstops_a_missing_appdata() {
         Path::new("C:\\Users\\dev")
             .join("AppData")
             .join("Roaming")
-            .join("think-and-ship")
+            .join("magistr/workflow")
     );
 }
 
@@ -83,14 +83,14 @@ fn data_dir_empty_values_do_not_capture_the_chain() {
     ]));
     assert_eq!(
         dir,
-        Path::new("C:\\Users\\dev\\AppData\\Roaming").join("think-and-ship")
+        Path::new("C:\\Users\\dev\\AppData\\Roaming").join("magistr/workflow")
     );
 }
 
 #[test]
 fn data_dir_falls_back_to_the_os_temp_dir() {
     let dir = default_data_dir_from(lookup(vec![]));
-    assert_eq!(dir, env::temp_dir().join("think-and-ship"));
+    assert_eq!(dir, env::temp_dir().join("magistr/workflow"));
 }
 
 #[test]
@@ -107,7 +107,7 @@ fn save_then_load_round_trip() {
 }
 
 #[test]
-fn think_and_ship_use_disjoint_subdirs() {
+fn workflow_use_disjoint_subdirs() {
     let tmp = TempDir::new().unwrap();
     let t = Persistence::new(&cfg(&tmp), Domain::Think);
     let s = Persistence::new(&cfg(&tmp), Domain::Ship);

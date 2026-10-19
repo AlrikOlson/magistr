@@ -522,7 +522,7 @@ fn route_of_classifies_tools_by_family() {
 /// MCP 2026 readiness: we DECLARE support for MCP `2026-07-28`.
 ///
 /// This is deliberately separate from the end-to-end negotiation test in
-/// `think_and_ship_e2e.rs`, and the separation is the point. rmcp's
+/// `workflow_e2e.rs`, and the separation is the point. rmcp's
 /// `negotiate_protocol_version` echoes any version present in the global
 /// `ProtocolVersion::KNOWN_VERSIONS` constant without ever consulting
 /// `ServerHandler::supported_protocol_versions()` — so a connection can

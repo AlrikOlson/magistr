@@ -19,7 +19,7 @@ impl Access {
                 | "search"
                 | "read"
                 | "map"
-                | "workbench_status"
+                | "workspace_status"
                 | "ship_status"
                 | "roadmap_status"
                 | "roadmap_next"

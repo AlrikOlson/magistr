@@ -247,8 +247,8 @@ fn rebuilding_a_corrupt_native_cache_preserves_the_real_durable_journal() {
     let corpus = corpus();
     let fixture = &corpus["fixtures"][1];
     let root = tempfile::tempdir().expect("workspace root");
-    let state_dir = root.path().join(".workbench");
-    std::fs::create_dir(&state_dir).expect("state directory");
+    let state_dir = root.path().join(".magistr/workspace");
+    std::fs::create_dir_all(&state_dir).expect("state directory");
     let path = materialize(&state_dir, fixture);
     let original = std::fs::read(&path).expect("journal before rebuild");
     std::fs::write(

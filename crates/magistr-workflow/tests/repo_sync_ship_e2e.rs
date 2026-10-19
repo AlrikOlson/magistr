@@ -1,5 +1,5 @@
 //! E2e: the SHIP engine, wired with a `RepoSink`, mirrors each
-//! mutation into the repo's `.think-and-ship/` as Agent Trace JSONL and commits
+//! mutation into the repo's `.magistr/traces/` as Agent Trace JSONL and commits
 //! the session on `ship` (objective shipped). Exercises the real engine + git.
 
 use std::path::Path;
@@ -93,7 +93,7 @@ fn ship_lifecycle_mirrors_records_and_commits_on_ship() {
     engine.flush_mirror();
 
     // One session file with the full set of kinds, in order.
-    let sessions = tmp.path().join(".think-and-ship/sessions");
+    let sessions = tmp.path().join(".magistr/traces/sessions");
     let files = jsonl_files(&sessions);
     assert_eq!(files.len(), 1, "one ship session file: {files:?}");
     let body = std::fs::read_to_string(&files[0]).unwrap();
@@ -104,7 +104,7 @@ fn ship_lifecycle_mirrors_records_and_commits_on_ship() {
 
     let kinds: Vec<&str> = recs
         .iter()
-        .map(|r| r["metadata"]["dev.thinkandship"]["kind"].as_str().unwrap())
+        .map(|r| r["metadata"]["dev.magistr"]["kind"].as_str().unwrap())
         .collect();
     // objective (set), task (added), task (started), action, check, objective (shipped)
     assert_eq!(
@@ -114,14 +114,14 @@ fn ship_lifecycle_mirrors_records_and_commits_on_ship() {
 
     for r in &recs {
         assert_eq!(r["version"], "0.1.0");
-        assert_eq!(r["metadata"]["dev.thinkandship"]["family"], "ship");
-        assert_eq!(r["tool"]["name"], "think-and-ship");
+        assert_eq!(r["metadata"]["dev.magistr"]["family"], "ship");
+        assert_eq!(r["tool"]["name"], "magistr");
     }
 
     // The code action carries Agent Trace files[] attribution.
     let action = recs
         .iter()
-        .find(|r| r["metadata"]["dev.thinkandship"]["kind"] == "action")
+        .find(|r| r["metadata"]["dev.magistr"]["kind"] == "action")
         .unwrap();
     assert_eq!(action["files"][0]["path"], "src/lib.rs");
     assert_eq!(
@@ -130,7 +130,7 @@ fn ship_lifecycle_mirrors_records_and_commits_on_ship() {
     );
 
     // Exactly one commit, produced on ship().
-    let log = git(tmp.path(), &["log", "--oneline", "--", ".think-and-ship/"]);
+    let log = git(tmp.path(), &["log", "--oneline", "--", ".magistr/traces/"]);
     let commits = String::from_utf8_lossy(&log.stdout);
     assert_eq!(
         commits.lines().count(),
@@ -152,7 +152,7 @@ fn ship_local_default_writes_but_never_commits() {
     serde_json::to_value(engine.finalize(vec![], None).unwrap().value).unwrap();
     engine.flush_mirror();
 
-    let local = tmp.path().join(".think-and-ship/local");
+    let local = tmp.path().join(".magistr/traces/local");
     assert_eq!(jsonl_files(&local).len(), 1, "local file written");
     let log = git(tmp.path(), &["log", "--oneline"]);
     let empty = !log.status.success() || String::from_utf8_lossy(&log.stdout).trim().is_empty();

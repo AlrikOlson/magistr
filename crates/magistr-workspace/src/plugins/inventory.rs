@@ -13,14 +13,16 @@ impl PluginInventory {
         let raw = match std::fs::read_to_string(&path) {
             Ok(raw) => raw,
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
-            Err(error) => return Err(format!(".workbench/plugins.json: {error}")),
+            Err(error) => return Err(format!(".magistr/workspace/plugins.json: {error}")),
         };
         let parsed: serde_json::Value = serde_json::from_str(&raw)
-            .map_err(|error| format!(".workbench/plugins.json: {error}"))?;
+            .map_err(|error| format!(".magistr/workspace/plugins.json: {error}"))?;
         let list = parsed
             .get("plugins")
             .and_then(serde_json::Value::as_array)
-            .ok_or_else(|| ".workbench/plugins.json: `plugins` must be an array".to_owned())?;
+            .ok_or_else(|| {
+                ".magistr/workspace/plugins.json: `plugins` must be an array".to_owned()
+            })?;
         list.iter().map(InstalledPluginRecord::from_value).collect()
     }
 }

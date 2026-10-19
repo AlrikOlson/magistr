@@ -305,10 +305,10 @@ fn workspace_resolution_uses_project_marker_then_git_then_start_directory() {
         root.path().canonicalize().unwrap()
     );
     let nested = root.path().join("nested");
-    std::fs::create_dir(nested.join(".think-and-ship")).unwrap();
+    std::fs::create_dir(nested.join(".magistr")).unwrap();
     std::fs::write(
-        nested.join(".think-and-ship/project.json"),
-        r#"{"id":"nested-project"}"#,
+        nested.join(".magistr/project.json"),
+        r#"{"project":{"id":"nested-project"}}"#,
     )
     .unwrap();
     assert_eq!(

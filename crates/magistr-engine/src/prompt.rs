@@ -12,7 +12,7 @@ use crate::spec::SpecSummary;
 /// in `magistr-cli`. Only the fields actually used in prompt text are included.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PromptConfig {
-    /// Spec file path (e.g., "ROADMAP.md"). `None` on a think-and-ship
+    /// Spec file path (e.g., "ROADMAP.md"). `None` on a magistr
     /// project, where the roadmap lives in the native engines and the agent
     /// reads it through `roadmap_next` instead of a file.
     pub spec_file: Option<String>,
@@ -101,10 +101,10 @@ impl PromptConfig {
     }
 
     /// Where the agent finds the roadmap: the configured spec file, or the
-    /// think-and-ship engines when the project declares no spec file.
+    /// magistr engines when the project declares no spec file.
     fn roadmap_source(&self) -> String {
         self.spec_file.as_ref().map_or_else(
-            || "think-and-ship (`roadmap_next` / `roadmap_status`)".to_string(),
+            || "magistr (`roadmap_next` / `roadmap_status`)".to_string(),
             |file| format!("`{file}`"),
         )
     }
@@ -115,7 +115,7 @@ impl PromptConfig {
 /// The base Research-Plan-Execute-Verify workflow is already loaded into the
 /// system prompt via `.claude/rules/workflow.md` (see `build_system_prompt()`).
 /// This constant contains ONLY additions specific to `/next` iterations:
-/// the think-and-ship chunk loop, stop rule, plan entry labeling, and status
+/// the magistr chunk loop, stop rule, plan entry labeling, and status
 /// tracking.
 pub(crate) const NEXT_WORKFLOW_INSTRUCTIONS: &str = r#"## Workflow
 

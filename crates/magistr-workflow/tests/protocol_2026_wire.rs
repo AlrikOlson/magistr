@@ -1,7 +1,7 @@
 //! What a strict `2026-07-28` client sees on the wire.
 //!
 //! This file exists because the rmcp client cannot see the bug it guards.
-//! `a_2026_07_28_client_negotiates_and_calls_a_tool` (tests/think_and_ship_e2e.rs)
+//! `a_2026_07_28_client_negotiates_and_calls_a_tool` (tests/workflow_e2e.rs)
 //! pairs the server with rmcp's own client, which deserializes SEP-2549's
 //! `ttlMs` / `cacheScope` into `Option` and is perfectly happy with `None`. A
 //! real client validating against the `2026-07-28` schema — where both are

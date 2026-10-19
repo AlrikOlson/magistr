@@ -590,23 +590,16 @@ pub fn is_junk(rel_path: &str) -> bool {
     false
 }
 
-/// Directories that are never content: VCS internals and our own state.
-const EXCLUDED_DIRS: &[&str] = &[".git", ".workbench"];
-
 /// Walk `root` with gitignore semantics and junk flagging. Dotfiles are
 /// walked (agent-facing corpora care about `.github/`, `.claude/`, …);
-/// `.git/` and `.workbench/` are never content. Results are path-sorted so a
+/// `.git/` and `.magistr/workspace/` are never content. Results are path-sorted so a
 /// scan is deterministic for a given tree.
 pub fn scan_workspace(root: &str) -> Result<Vec<ScanEntry>, CoreError> {
     let walker = ignore::WalkBuilder::new(root)
         .hidden(false)
         .follow_links(false)
         .require_git(false)
-        .filter_entry(|entry| {
-            let name = entry.file_name().to_string_lossy();
-            !(entry.file_type().is_some_and(|t| t.is_dir())
-                && EXCLUDED_DIRS.contains(&name.as_ref()))
-        })
+        .filter_entry(|entry| !crate::paths::is_owner_path(entry.path()))
         .build();
 
     let mut entries = Vec::new();
@@ -1070,13 +1063,13 @@ mod tests {
         std::fs::create_dir_all(root.join("ignored")).unwrap();
         std::fs::create_dir_all(root.join("vendor")).unwrap();
         std::fs::create_dir_all(root.join(".git")).unwrap();
-        std::fs::create_dir_all(root.join(".workbench")).unwrap();
+        std::fs::create_dir_all(root.join(".magistr/workspace")).unwrap();
         std::fs::write(root.join(".gitignore"), "ignored/\n").unwrap();
         std::fs::write(root.join("src/main.rs"), "fn main() {}\n").unwrap();
         std::fs::write(root.join("ignored/secret.txt"), "x\n").unwrap();
         std::fs::write(root.join("vendor/lib.js"), "var x\n").unwrap();
         std::fs::write(root.join(".git/HEAD"), "ref\n").unwrap();
-        std::fs::write(root.join(".workbench/index.db"), "db\n").unwrap();
+        std::fs::write(root.join(".magistr/workspace/index.db"), "db\n").unwrap();
 
         let entries = scan_workspace(root.to_str().unwrap()).unwrap();
         let paths: Vec<&str> = entries.iter().map(|e| e.path.as_str()).collect();
@@ -1089,7 +1082,7 @@ mod tests {
         );
         assert!(!paths.iter().any(|p| p.starts_with(".git/")), "{paths:?}");
         assert!(
-            !paths.iter().any(|p| p.starts_with(".workbench/")),
+            !paths.iter().any(|p| p.starts_with(".magistr/workspace/")),
             "{paths:?}"
         );
         let vendor = entries.iter().find(|e| e.path == "vendor/lib.js").unwrap();

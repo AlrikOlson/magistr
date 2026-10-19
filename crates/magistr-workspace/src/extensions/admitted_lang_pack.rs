@@ -7,7 +7,7 @@ use super::{PluginComponent, PluginGuestPolicy};
 /// registers exactly what the owner admitted, not whatever is on disk later.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AdmittedLangPack {
-    /// Wire name, e.g. "workbench.lang-pack-gleam".
+    /// Wire name, e.g. "magistr.lang-pack-gleam".
     pub plugin: String,
     pub component: PluginComponent,
     pub capabilities: Vec<String>,

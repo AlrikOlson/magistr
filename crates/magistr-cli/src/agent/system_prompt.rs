@@ -152,7 +152,7 @@ fn format_prompt(config: &ProjectConfig) -> String {
     ));
     prompt.push('\n');
 
-    // Spec — absent on a think-and-ship project, where the roadmap lives in
+    // Spec — absent on a magistr project, where the roadmap lives in
     // the native engines and is read through `roadmap_next`.
     prompt.push_str("## Specification\n\n");
     if let Some(spec) = &config.spec {
@@ -160,7 +160,7 @@ fn format_prompt(config: &ProjectConfig) -> String {
         prompt.push_str("- Update the spec file after implementing changes\n");
     } else {
         prompt.push_str(
-            "- The roadmap lives in think-and-ship — read it with `roadmap_next` / \
+            "- The roadmap lives in magistr — read it with `roadmap_next` / \
              `roadmap_status`, never from a file\n",
         );
         prompt.push_str(
@@ -211,7 +211,7 @@ fn format_prompt(config: &ProjectConfig) -> String {
         }
     }
 
-    // NOTE: Tool guidance (workbench-mcp, workflow tools, preferences) is loaded
+    // NOTE: Tool guidance (magistr, workflow tools, preferences) is loaded
     // dynamically from .claude/rules/tools.md by build_system_prompt() — not hardcoded here.
     // The single source of truth is scaffold::tool_guide::build_tool_guide().
 

@@ -9,7 +9,7 @@ use crate::channel::Inbox;
 use magistr_cockpit::cockpit::Msg;
 
 /// The port calls a session relay carries out for the cockpit — a
-/// workbench read or search, an engine mutation, a checkpoint — each on
+/// workspace read or search, an engine mutation, a checkpoint — each on
 /// a blocking thread, so a slow one never stalls the task that observes
 /// the provider and forwards its cancellation.
 ///

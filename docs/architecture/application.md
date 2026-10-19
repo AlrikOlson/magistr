@@ -260,7 +260,7 @@ workflow writer; HostedWork supplies its writer explicitly to LoopDriver.
 
 | Identity | Authority | Type | Changes when |
 | --- | --- | --- | --- |
-| Project | native workflow store (`.think-and-ship/project.json`) | `project_id` on `TaskAdmission`; domain `ProjectId` | never for a project |
+| Project | native workflow store (`.magistr/project.json`) | `project_id` on `TaskAdmission`; domain `ProjectId` | never for a project |
 | Execution | project owner's execution registry | `ExecutionContext { working_copy, execution_id }`, `ExecutionBinding` on admissions | another working copy or task session is selected |
 | Run | contextual ship objective | `run_id` on `TaskAdmission` | a fresh objective after finalize |
 | Task and task instance | ship plan | `task_id`, `task_instance` on `TaskAdmission` | the same name in a later run is a new instance |

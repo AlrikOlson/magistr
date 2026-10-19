@@ -1,0 +1,27 @@
+# The bundled gleam language pack (chunk:m5-lang-pack): the first first-party
+# lang pack on the public magistr:lang-pack@0.1.0 interface — the same
+# interface a third-party pack would ship against. Declares ZERO
+# capabilities: a lang pack is a carrier of pure data (grammar bytes, tag
+# queries, a path heuristic), so the sandbox's default-deny has nothing to
+# grant. The grammar itself executes in the engine child's WasmStore lane —
+# or, blessed, on the native promotion lane (SDD §8.3).
+
+[plugin]
+publisher = "magistr"
+pkg = "lang-pack-gleam"
+version = "0.1.0"
+
+[component]
+path = "guest.wasm"
+
+# The lang-pack surface is the typed magistr:lang-pack/lang-pack@0.1.0
+# export, consumed by the host's carrier lane at load time. The standard
+# (string) -> string invoke rides along so the plugin is TCK-conformant
+# unmodified and inspectable like any other plugin.
+[[tools]]
+name = "classify-file"
+description = "Gleam file-class heuristic (the lang-pack convention; makes the TCK's fuzz chapter applicable)"
+
+[limits]
+fuel = 200000000
+memory_bytes = 33554432

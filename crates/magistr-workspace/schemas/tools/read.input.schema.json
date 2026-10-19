@@ -1,10 +1,10 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://workbench-mcp.dev/schemas/tools/read.input.schema.json",
+  "$id": "https://magistr.dev/schemas/workspace/tools/read.input.schema.json",
   "title": "read",
   "description": "Budgeted, enveloped file reading — replaces cat, head, tail and sed -n (SDD 9.3). Returns a unit of meaning with precise line anchors and a content hash (the edit staleness anchor); line numbers are verified fresh against mtime+size before return.",
-  "x-workbench-status": "normative",
-  "x-workbench-owned-by": "chunk:m1-read",
+  "x-magistr-status": "normative",
+  "x-magistr-owned-by": "chunk:m1-read",
   "type": "object",
   "required": ["file"],
   "not": { "required": ["symbol", "lines"] },

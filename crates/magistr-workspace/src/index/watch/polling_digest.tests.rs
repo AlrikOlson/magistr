@@ -41,14 +41,14 @@ fn byte_and_entry_limits_fail_without_publishing_partial_snapshot() {
 #[test]
 fn cache_and_gitignored_files_do_not_trigger_content_polling() {
     let root = tempfile::tempdir().unwrap();
-    fs::create_dir(root.path().join(".workbench")).unwrap();
+    fs::create_dir_all(root.path().join(".magistr/workspace")).unwrap();
     fs::create_dir(root.path().join(".git")).unwrap();
     fs::write(root.path().join(".gitignore"), "ignored.rs\n").unwrap();
     fs::write(root.path().join("ignored.rs"), "before").unwrap();
     let stop = AtomicBool::new(false);
     let before = PollingDigest::capture(root.path(), &stop).unwrap();
     fs::write(root.path().join("ignored.rs"), "after").unwrap();
-    fs::write(root.path().join(".workbench/index.db"), "cache").unwrap();
+    fs::write(root.path().join(".magistr/workspace/index.db"), "cache").unwrap();
     assert_eq!(before, PollingDigest::capture(root.path(), &stop).unwrap());
     fs::write(root.path().join(".gitignore"), "").unwrap();
     assert_ne!(before, PollingDigest::capture(root.path(), &stop).unwrap());

@@ -1,0 +1,136 @@
+{
+  "$id": "https://magistr.dev/schemas/workspace/error-taxonomy.json",
+  "title": "ErrorTaxonomy",
+  "description": "The published error-code taxonomy (SDD §4.3). Every code every tool can emit, each mapped to exactly one recovery class. Entries are an ARRAY so a duplicate code is representable and the one-code-one-recovery schema test can catch it — an object keyed by code would silently collapse duplicates in JSON.parse. `payload` lists the error-object fields that MUST accompany the code (all are optional properties of the envelope's error object; the taxonomy is what makes them required per code).",
+  "x-magistr-status": "normative",
+  "x-magistr-owned-by": "chunk:m0-error-taxonomy",
+  "recoveryClasses": ["retry", "narrow", "escalate", "confirm", "abort"],
+  "codes": [
+    {
+      "code": "PATH_OUTSIDE_WORKSPACE",
+      "recovery": "abort",
+      "description": "A path argument canonicalizes outside the workspace root(s) (§7.1). The file is not reachable through any retry or rephrasing — give this path up."
+    },
+    {
+      "code": "PROTECTED_PATH",
+      "recovery": "escalate",
+      "description": "The target is protected by workspace or org configuration. A human can amend the protection (§7.2); the agent cannot."
+    },
+    {
+      "code": "AMBIGUOUS_SYMBOL",
+      "recovery": "narrow",
+      "payload": ["candidates"],
+      "description": "More than one symbol matches. Refine the query using the returned candidates (§4.2 example)."
+    },
+    {
+      "code": "SYMBOL_NOT_FOUND",
+      "recovery": "narrow",
+      "description": "No symbol matches. A revised query (spelling, kind, path scope) can succeed where the same one will not."
+    },
+    {
+      "code": "FILE_NOT_FOUND",
+      "recovery": "narrow",
+      "description": "The addressed file does not exist in the workspace. The §7.1 jail admits nonexistent in-root paths by design, so ENOENT surfaces at the tool layer. Revise the path — search mode:files locates files by name. Amended in SDD v1.2 (chunk:taxonomy-file-not-found)."
+    },
+    {
+      "code": "PARSE_REJECTED",
+      "recovery": "narrow",
+      "payload": ["parserMessage", "rejectedDiff"],
+      "description": "The edit would break syntax; the whole batch rolled back (§7.5). Revise the edit using the parser message and the rejected diff — resubmitting the same batch fails identically."
+    },
+    {
+      "code": "STALE_ANCHOR",
+      "recovery": "retry",
+      "payload": ["contentHash"],
+      "description": "The file changed since the diff was generated. Re-derive anchors against the fresh content hash and retry the same intent (§7.7)."
+    },
+    {
+      "code": "PATTERN_INVALID",
+      "recovery": "narrow",
+      "description": "The search pattern does not compile. Fix the pattern; the same one will never succeed."
+    },
+    {
+      "code": "BUDGET_TOO_SMALL",
+      "recovery": "narrow",
+      "description": "The requested token budget cannot fit even one result. Raise the budget or narrow the query."
+    },
+    {
+      "code": "COMMAND_NOT_DECLARED",
+      "recovery": "abort",
+      "description": "The command is not in the merged config's [commands] table (§9.6). Recovery is abort with the message pointing the human at their config layer — SDD-pinned."
+    },
+    {
+      "code": "RUN_REDIRECTED",
+      "recovery": "abort",
+      "description": "Attempted text/file munging or shell execution via run (§9.6, §1.1): a shell operator, a shell as the program, or a munging program in a program position. The same call will never succeed — use search/read to inspect and edit to modify. v1.5 amendment, chunk:m3-run-tool."
+    },
+    {
+      "code": "SANDBOX_FUEL_EXCEEDED",
+      "recovery": "narrow",
+      "description": "The script exhausted its fuel allowance (§8.1). Split the work into smaller scripts or reduce its scope."
+    },
+    {
+      "code": "SANDBOX_CAP_DENIED",
+      "recovery": "escalate",
+      "description": "The script attempted a capability it was not granted. Capability grants are a human decision (§8.2)."
+    },
+    {
+      "code": "SANDBOX_MEMORY_EXCEEDED",
+      "recovery": "narrow",
+      "description": "The script breached its linear-memory cap and was terminated deterministically (§8.1). Reduce the working set — stream over files instead of accumulating them. Added in chunk:m4-script-sandbox: the host's memory-cap kill is a distinct outcome from fuel exhaustion and from capability denial, and one-code-one-recovery forbids folding it into either."
+    },
+    {
+      "code": "INDEX_UNAVAILABLE",
+      "recovery": "retry",
+      "description": "The mode strictly requires a warm index and it is not warm yet (§7.3). Constitution I pins recovery retry; notes carry task progress."
+    },
+    {
+      "code": "CONFIRM_REQUIRED",
+      "recovery": "confirm",
+      "payload": ["confirmToken"],
+      "description": "The mutation needs the dry-run→confirm flow (§9.4). The payload carries the HMAC-sealed confirm grant for the offered diff; re-invoke the same call with confirm set to that token (or accept the MRTR elicitation) to apply."
+    },
+    {
+      "code": "CONFIRM_MISMATCH",
+      "recovery": "confirm",
+      "description": "The confirmation token did not match the offered diff (§7.7). Re-run the dry-run→confirm flow against fresh content."
+    },
+    {
+      "code": "UNSUPPORTED_VERSION",
+      "recovery": "abort",
+      "description": "Client/server or on-disk format mismatch. Recovery abort — SDD-pinned (§4.3)."
+    },
+    {
+      "code": "ENGINE_UNAVAILABLE",
+      "recovery": "retry",
+      "description": "The engine child is down or restarting (§6.2). Recovery retry — SDD-pinned; the supervisor is already restarting it."
+    },
+    {
+      "code": "ENGINE_BUSY",
+      "recovery": "retry",
+      "payload": ["backoffMs"],
+      "description": "A bounded queue is full (§7.7). Recovery retry with the suggested backoff in the payload — SDD-pinned."
+    },
+    {
+      "code": "INPUT_QUARANTINED",
+      "recovery": "escalate",
+      "description": "The input file repeatedly crashed the engine child and is quarantined from parsing (§6.2); the supervisor refuses it locally until the file changes. Retry cannot help. A human inspects the quarantine record (.workbench/quarantine.jsonl, surfaced by doctor) and fixes or removes the file. Amended in SDD v1.3 (chunk:backlog-quarantine-surfacing)."
+    },
+    {
+      "code": "PLUGIN_CAP_DENIED",
+      "recovery": "escalate",
+      "description": "A plugin exceeded its granted capabilities (§8.4). Widening a grant is a human install-time decision."
+    },
+    {
+      "code": "PLUGIN_CRASHED",
+      "recovery": "abort",
+      "payload": ["plugin"],
+      "description": "The plugin trapped or exhausted fuel and is circuit-breakered unhealthy (§8.1). Stop calling it; core tools continue at full fidelity."
+    },
+    {
+      "code": "CONFIG_POLICY_DENIED",
+      "recovery": "abort",
+      "description": "Org policy forbids the requested action (§7.2). Recovery abort — SDD-pinned; the message names the policy layer."
+    }
+  ]
+}

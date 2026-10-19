@@ -286,7 +286,7 @@ fn schema_tool(name: &'static str, description: &'static str, schema: Value) -> 
 
 fn examples(name: &str) -> Vec<Value> {
     let args = match name {
-        "context" | "ship_status" | "roadmap_status" | "workbench_status" => json!({}),
+        "context" | "ship_status" | "roadmap_status" | "workspace_status" => json!({}),
         "search" => json!({"query":"TODO","mode":"lexical","budget":2000}),
         "read" => json!({"file":"README.md","budget":2000}),
         "map" => json!({"path":".","depth":2,"budget":2000}),

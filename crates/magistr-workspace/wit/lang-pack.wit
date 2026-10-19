@@ -1,0 +1,49 @@
+/// magistr:lang-pack — grammar + tag queries + file-class heuristics for a
+/// language (SDD §8.2, §8.3). Serves the long tail the core team will never
+/// bundle; the twelve bundled grammars stay native in the engine child.
+///
+/// Vocabulary provenance (the §6.4 re-export):
+///   file-class      <-> FileClass (src/tools/ranking.ts) — ranking stage 2
+///   grammar-wasm    <-> the engine child's tree-sitter grammar substrate
+///   tag-queries     <-> the tag-query half of the Tier-1 symbol indexer
+///
+/// Evolution: additive within a major, per-interface stamp. See wit/README.md;
+/// enforced by crates/magistr-core/tests/wit_contracts.rs against
+/// wit/baseline.json.
+package magistr:lang-pack@0.1.0;
+
+interface lang-pack {
+  /// Identity of the language this pack serves.
+  record language-info {
+    /// Lowercase language name, e.g. "gleam".
+    name: string,
+    /// File extensions claimed, without the dot, e.g. ["gleam"].
+    extensions: list<string>,
+  }
+
+  /// Ranking stage-2 file classes — mirrors FileClass in src/tools/ranking.ts
+  /// (strictly tiered: source > test > vendor).
+  enum file-class {
+    source,
+    test,
+    vendor,
+  }
+
+  info: func() -> language-info;
+
+  /// The tree-sitter grammar compiled to WASM. 2–5x parse cost vs native is
+  /// the documented, accepted price of the long tail (SDD §8.3); a blessed
+  /// pack may be promoted to native execution in the engine child.
+  grammar-wasm: func() -> list<u8>;
+
+  /// Tree-sitter tag queries (.scm text) feeding the Tier-1 symbol indexer.
+  tag-queries: func() -> string;
+
+  /// File-class heuristic for a workspace-relative path. `none` defers to the
+  /// host's built-in heuristics — a pack only answers where it knows better.
+  classify-file: func(path: string) -> option<file-class>;
+}
+
+world lang-pack-provider {
+  export lang-pack;
+}

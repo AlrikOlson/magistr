@@ -2,12 +2,12 @@
 
 Decision: accepted on 10 September 2026, authorized by the project owner.
 Native reasoning `think:712` supersedes the adapter-based receipt plan in
-`think:710`. Workflow source and typed use cases, the Workbench reference source,
+`think:710`. Workflow source and typed use cases, the Workspace reference source,
 and its native Rust engine are now repository-local.
 The accepted target is one Rust-native Magistr product. Native workspace
 service composition, Unix client attachment and the production launcher are
 implemented; every workspace client reaches one admitted native owner. This document distinguishes the
-adopted source from the target behavior and migration constraints. The native
+adopted source from the target behavior and ownership boundaries. The native
 roadmap remains authoritative for delivery status.
 
 The [pre-release policy](../../AGENTS.md#before-public-release) supersedes every backward-compatibility
@@ -22,26 +22,26 @@ intended design changes.
 Both repositories were inspected locally with clean working trees. Imports must
 recheck the source and record any change from these audited revisions.
 
-| Subsystem | Audited checkout | Revision | License |
+| Subsystem | Source record | Revision | License |
 | --- | --- | --- | --- |
-| think-and-ship | `/Users/alrik/Code/think-and-ship` | `8c10c1fcfb479e90b33c59502eabd92586cf0761` (0.6.0) | MIT |
-| Workbench | `/Users/alrik/Serious_Code/workbench-mcp` | `2a2430bbcd5dcbed00920f92c6f3e6928f387d95` | Apache-2.0 |
+| Workflow | [Import provenance](../../subsystems/workflow/PROVENANCE.md) | `8c10c1fcfb479e90b33c59502eabd92586cf0761` (0.6.0) | MIT |
+| Workspace | [Import provenance](../../subsystems/workspace/PROVENANCE.md) | `2a2430bbcd5dcbed00920f92c6f3e6928f387d95` | Apache-2.0 |
 
-These paths identify research inputs, not runtime or build dependencies.
+These records identify historical research inputs, not runtime or build dependencies.
 Magistr owns the workflow fork as
 [`magistr-workflow`](../../crates/magistr-workflow/Cargo.toml) (library
-`magistr_workflow`), imported after rechecking the clean think-and-ship
+`magistr_workflow`), imported after rechecking the clean upstream
 checkout at the audited revision and rehomed under Magistr's name by
 `arch-14f4-rehome-naming`; the imported contract, fixtures, docs and the
 [provenance record](../../subsystems/workflow/PROVENANCE.md) stay under
-`subsystems/workflow`. The Rust service, bundled skills and tests keep their
-inherited layout inside the crate; the standalone binary, CLI, skill embedding
-and upstream packaging are deleted. The root Cargo workspace and lockfile
+`subsystems/workflow`. The Rust service and tests live inside the crate. The standalone binary,
+CLI, inherited skills, skill embedding and upstream packaging are deleted.
+The CLI owns all current agent templates and routing instructions. The root Cargo workspace and lockfile
 resolve the crate for both Magistr consumers through relative path
 dependencies at the one first-party version. The provenance record identifies
 the license, included, excluded and retired components, and the verification
 boundary.
-Workbench's audited source is retained under
+Workspace's audited source is retained under
 [`subsystems/workspace/reference`](../../subsystems/workspace/PROVENANCE.md),
 with every original Git file accounted for in the upstream manifest and local
 repairs recorded separately. Its Rust engine is adopted into
@@ -58,7 +58,7 @@ reviewed imports.
 ## Why change ownership now?
 
 Magistr must decide whether evidence permits completion. In the audited
-think-and-ship source, `ship/engine/mod.rs::ship` completes an objective while
+magistr source, `ship/engine/mod.rs::ship` completes an objective while
 returning warnings for incomplete tasks or failed required checks. Some
 cross-family validation and execution sequencing live in async MCP handlers.
 Before extraction, Magistr reached those handlers through a synchronous
@@ -71,8 +71,8 @@ callers. That remains useful history, but treating the dependency as fixed is
 now the wrong constraint. Put the required behavior into an owned workflow
 service and make every supported transport use it.
 
-Workbench ownership is equally substantive. At the audited revision,
-`crates/workbench-core` supplies parsing, search, rewriting, index extraction,
+Workspace ownership is equally substantive. At the audited revision,
+`crates/workspace-core` supplies parsing, search, rewriting, index extraction,
 and plugin sandboxing. Bun/TypeScript supplies the write engine, journal,
 path admission, protected-file policy, index orchestration, and transport.
 Importing only the Rust crate would omit much of the workspace authority.
@@ -114,9 +114,9 @@ require one global mutex, one database, or a single process containing every
 worker. Checks run outside mutation locks; their results return to the
 admitted workflow owner with immutable correlation and provenance.
 
-## Workbench migration constraints
+## Workspace migration constraints
 
-Workbench's `specs/018-multi-client-daemon/adr.md` adopts one workspace owner
+Workspace's `specs/018-multi-client-daemon/adr.md` adopts one workspace owner
 with thin stdio clients, but that implementation has not landed at the audited
 revision. Its opt-in `test/multi-client.test.ts` cases are deliberate red
 reproductions. Adapt that design to Magistr's local owner/client composition;
@@ -196,11 +196,11 @@ the supervised worker, the derived index, the extension lanes, the
 owned-process executor and the flight recorder — behind typed methods that
 append the workspace's deterministic notes to every answer. Admission is an
 OS-held exclusive lock on an atomically published, immutable native marker in
-`.workbench/server.lock`. The retained legacy server refuses its foreign-host
+`.magistr/workspace/server.lock`. The retained legacy server refuses its foreign-host
 JSON marker; native admission refuses legacy, empty or malformed records
 untouched. No pid is ownership evidence, no age is judged, nothing is stolen
 and no holder is signalled. A crash releases the OS lock, and each successful
-admission durably advances `.workbench/server.generation` before stores open.
+admission durably advances `.magistr/workspace/server.generation` before stores open.
 Missing, corrupt or exhausted generation state fails closed. Unrecognized lock
 records refuse admission without modification.
 The [workspace owner](workspace-owner.md) layers Unix multi-client attachment
@@ -250,9 +250,9 @@ digest, and a content manifest: every selected path with its kind (text,
 binary, symlink, missing explicit input), permission bits, byte length and
 SHA-256. Selection is the workspace's own ignore-driven walk — hidden files
 in, ignore rules honored with or without a repository, `.git` and
-`.workbench` never entered, links recorded by target — plus explicit inputs
+`.magistr/workspace` never entered, links recorded by target — plus explicit inputs
 hashed even when ignored: gate configuration (`.magistr/project.json`,
-`workbench.toml`) by default and caller-declared artifacts. The revision is
+`.magistr/workspace.toml`) by default and caller-declared artifacts. The revision is
 content-addressed over scheme, identity, policy and manifest; no mtime,
 inode, watcher event, index generation or journal sequence participates. A
 selection past the policy ceiling and a file that changes while it is being
@@ -302,7 +302,7 @@ recovered versus outstanding — informed the workflow-owned design.
 | --- | --- |
 | `arch-14a-workflow-source-fork` | Repository-local workflow source adopted; native state and behavior preserved |
 | `arch-14b-workflow-use-cases` | Typed family use cases, ordinary completion policy, and run/task admission beneath transports; receipt enforcement remains deferred |
-| `arch-14c-workbench-source-fork` | Reference source retained with complete provenance; native Rust engine adopted and checked as a first-party library; service cutover deferred |
+| `arch-14c-workspace-source-fork` | Reference source retained with complete provenance; native Rust engine adopted and checked as a first-party library; service cutover deferred |
 | `arch-14c1-workspace-policy` | Native configuration and immutable path/command admission, private key lifecycle, typed response/byte contracts and reference fixtures; no production cutover |
 | `arch-14c2-workspace-workers` | Native supervised parser, grammar and sandbox/LSP workers with bounded admission and owned cleanup |
 | `arch-14c3-workspace-index` | Native SQLite/FTS cache, background worker extraction, bounded watcher refresh and live candidate revalidation |
@@ -335,14 +335,14 @@ The adopted trees carried surfaces that were products in their own right.
 
 | Surface | Decision | Why |
 | --- | --- | --- |
-| think-and-ship `[[bin]]` (`src/main.rs`, `src/cli/*`: serve, init, skills, roadmap, tracker, otel, cloud, telemetry commands) | Deleted by `arch-14f4` | No Magistr code invoked it and it was not released; the seam tests that executed or parsed it were deleted, and the library plumbing the served `tracker_*` tools reached through it moved to `tracker::host` |
-| think-and-ship bundled `skills/` and `skill-clients/` (embedded by `build.rs`) | Embedding and client trees deleted by `arch-14f4`; `skills/` retained inside the crate as the `skill_evaluations` input | Magistr ships its own `.claude/skills`; no Magistr code reads the tree |
-| think-and-ship `examples/cloud_census.rs` | Deleted by `arch-14f4` | Example of the cloud sync surface, not a dependency |
-| think-and-ship cloud sync, tracker mirroring, OTel export | Retained as served, caller-invoked capabilities | Reachable through the served tool families (`tracker_*`, `think_export_trace`) and the library's manual operations (`project_all`, `sweep::reconcile`, cloud push/pull/outbox) |
-| think-and-ship background cadences (tracker push schedule, tracker sweep floor, cloud realtime subscriber and its tracker doorbell, the push receipt store) | Retired by `audit-260912-37-integration-promises`; automatic cadences deferred | Magistr's composition root starts nothing in the background, so the served contract must not promise it: `tracker_setup` advertises no push interval and refuses one by name, and the library no longer carries a schedule nobody composed. An automatic cadence stays deferred until a single host-owned, opt-in, cancellable implementation has product justification, composed in `open_engines` under the engines' authority — never a second writer or daemon. Push receipts persisted by the standalone server under `tracker/receipts/` are never read again; tracker configuration, credentials, sweep watermarks and the cloud connection record are unchanged inputs of the manual paths |
-| think-and-ship `contract/`, `shared/`, `docs/`, `tests/` | Retained | Inputs of retained tests and of the `workflow-source` gate; upstream packaging files (`deny.toml`, `CHANGELOG`, `CONTRIBUTING`, `SECURITY`, `CODE_OF_CONDUCT`, `docs/deploy`, `RELEASING`, `DEPLOYMENT`, `scripts/`) deleted by `arch-14f4` |
-| Workbench reference source (`subsystems/workspace/reference`, including the Bun server and vendored guests) | Retain | The parity oracle behind the required `workspace-reference` gate; never in the production dependency graph |
-| Workbench `conformance/`, `bench/`, `SUPPORT_MATRIX.md` | Retain | Executed evidence of the native port |
+| magistr `[[bin]]` (`src/main.rs`, `src/cli/*`: serve, init, skills, roadmap, tracker, otel, cloud, telemetry commands) | Deleted by `arch-14f4` | No Magistr code invoked it and it was not released; the seam tests that executed or parsed it were deleted, and the library plumbing the served `tracker_*` tools reached through it moved to `tracker::host` |
+| magistr bundled `skills/` and `skill-clients/` (embedded by `build.rs`) | Embedding and client trees deleted by `arch-14f4`; `skills/` retained inside the crate as the `skill_evaluations` input | Magistr ships its own `.claude/skills`; no Magistr code reads the tree |
+| magistr `examples/cloud_census.rs` | Deleted by `arch-14f4` | Example of the cloud sync surface, not a dependency |
+| magistr cloud sync, tracker mirroring, OTel export | Retained as served, caller-invoked capabilities | Reachable through the served tool families (`tracker_*`, `think_export_trace`) and the library's manual operations (`project_all`, `sweep::reconcile`, cloud push/pull/outbox) |
+| magistr background cadences (tracker push schedule, tracker sweep floor, cloud realtime subscriber and its tracker doorbell, the push receipt store) | Retired by `audit-260912-37-integration-promises`; automatic cadences deferred | Magistr's composition root starts nothing in the background, so the served contract must not promise it: `tracker_setup` advertises no push interval and refuses one by name, and the library no longer carries a schedule nobody composed. An automatic cadence stays deferred until a single host-owned, opt-in, cancellable implementation has product justification, composed in `open_engines` under the engines' authority — never a second writer or daemon. Push receipts persisted by the standalone server under `tracker/receipts/` are never read again; tracker configuration, credentials, sweep watermarks and the cloud connection record are unchanged inputs of the manual paths |
+| magistr `contract/`, `shared/`, `docs/`, `tests/` | Retained | Inputs of retained tests and of the `workflow-source` gate; upstream packaging files (`deny.toml`, `CHANGELOG`, `CONTRIBUTING`, `SECURITY`, `CODE_OF_CONDUCT`, `docs/deploy`, `RELEASING`, `DEPLOYMENT`, `scripts/`) deleted by `arch-14f4` |
+| Workspace reference source (`subsystems/workspace/reference`, including the Bun server and vendored guests) | Retain | The parity oracle behind the required `workspace-reference` gate; never in the production dependency graph |
+| Workspace `conformance/`, `bench/`, `SUPPORT_MATRIX.md` | Retain | Executed evidence of the native port |
 | `magistr-application` `workflow`, `checks`, `projections` facades | Deleted by `arch-14f` | No adapter; duplicated the native family use cases |
 | `magistr-application` `configuration` facade (`ConfigurationPort`, `Capability::ConfigureProject`) | Deleted by `audit-260912-14-config-inputs` | No adapter and no native configuration revision to bind to; project, preset, provider, plugin and workspace inputs are [captured once](configuration.md#project-inputs) in `magistr-core` instead |
 | Hypothetical Service-owner typed attachment (`arch-11b`) | Retired, not built | No consumer; the Service already holds the writer its session serves |

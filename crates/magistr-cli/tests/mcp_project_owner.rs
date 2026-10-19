@@ -37,14 +37,14 @@ impl Server {
         let mut child = Command::from(magistr_command::magistr_command())
             .args(args)
             .env("MAGISTR_EXECUTION_ID", execution)
-            .env("WORKBENCH_SESSION_ID", execution)
-            .env("WORKBENCH_NETWORK_FS", "0")
-            .env_remove("WORKBENCH_USER_CONFIG")
-            .env_remove("WORKBENCH_ORG_POLICY")
+            .env("MAGISTR_WORKSPACE_SESSION_ID", execution)
+            .env("MAGISTR_WORKSPACE_NETWORK_FS", "0")
+            .env_remove("MAGISTR_WORKSPACE_USER_CONFIG")
+            .env_remove("MAGISTR_WORKSPACE_ORG_POLICY")
             .current_dir(root)
-            .env("THINK_AND_SHIP_DATA_DIR", data)
-            .env("THINK_AND_SHIP_PERSIST", "true")
-            .env("THINK_AND_SHIP_BROADCAST_PATH", socket)
+            .env("MAGISTR_WORKFLOW_DATA_DIR", data)
+            .env("MAGISTR_WORKFLOW_PERSIST", "true")
+            .env("MAGISTR_WORKFLOW_BROADCAST_PATH", socket)
             // The store under a tempdir is too deep for `sun_path`: the owner
             // endpoint lands in the runtime directory, and `/tmp` always fits.
             .env("XDG_RUNTIME_DIR", "/tmp")
@@ -154,10 +154,10 @@ impl Server {
 }
 
 fn identity(root: &Path) {
-    std::fs::create_dir_all(root.join(".think-and-ship")).expect("identity directory");
+    std::fs::create_dir_all(root.join(".magistr")).expect("identity directory");
     std::fs::write(
-        root.join(".think-and-ship/project.json"),
-        "{\"id\":\"owner-test\"}\n",
+        root.join(".magistr/project.json"),
+        "{\"project\":{\"id\":\"owner-test\"}}\n",
     )
     .expect("identity");
 }
@@ -169,7 +169,7 @@ fn native_project(root: &Path) {
     std::fs::write(
         root.join(".magistr/project.json"),
         json!({
-            "project": {"name": "owner-test", "description": "", "type": "cli"},
+            "project": {"id": "owner-test", "name": "owner-test", "description": "", "type": "cli"},
             "stack": {"language":"rust","framework":"none","package_manager":"cargo","test_framework":"cargo-test","linter":"clippy","formatter":"rustfmt"},
             "format": {"command":"true","extensions":["rs"]},
             "testing": {"companion_pattern":"{name}.tests.{ext}","test_dir":"alongside"},
@@ -177,7 +177,7 @@ fn native_project(root: &Path) {
             "state_prefix": "fixture",
             "roadmap_exports": false,
             "quality_gate": {"check": "true", "test": "true", "lint": "true"},
-            "roadmap_backend": "think-and-ship"
+            "roadmap_backend": "native"
         })
         .to_string(),
     )
@@ -212,8 +212,8 @@ async fn next_loop_reads_progress_beside_a_live_mcp_owner() {
             .current_dir(root)
             .env("HOME", root)
             .env("XDG_CONFIG_HOME", root.join("config"))
-            .env("THINK_AND_SHIP_DATA_DIR", &data)
-            .env("THINK_AND_SHIP_PERSIST", "true")
+            .env("MAGISTR_WORKFLOW_DATA_DIR", &data)
+            .env("MAGISTR_WORKFLOW_PERSIST", "true")
             .env("MAGISTR_EXECUTION_ID", "default")
             .stdin(std::process::Stdio::null())
             .kill_on_drop(true);
@@ -546,8 +546,8 @@ async fn a_reader_command_answers_beside_the_running_owner_without_a_lease() {
     let status = Command::from(magistr_command::magistr_command())
         .args(["--json", "roadmap", "status"])
         .arg(tmp.path())
-        .env("THINK_AND_SHIP_DATA_DIR", &data)
-        .env("THINK_AND_SHIP_PERSIST", "true")
+        .env("MAGISTR_WORKFLOW_DATA_DIR", &data)
+        .env("MAGISTR_WORKFLOW_PERSIST", "true")
         .output()
         .await
         .expect("run the reader command");
@@ -620,12 +620,12 @@ async fn linked_worktrees_share_one_workflow_owner_and_keep_source_checks_and_re
     native_project(&main);
     std::fs::write(
         main.join(".gitignore"),
-        ".workbench/\n.magistr/\n.think-and-ship/\n",
+        ".magistr/workspace/\n.magistr/\n.magistr/traces/\n",
     )
     .expect("ignore");
     std::fs::write(main.join("source.txt"), "original\n").expect("source");
     std::fs::write(
-        main.join("workbench.toml"),
+        main.join(".magistr/workspace.toml"),
         "[edit]\nconfirm_mode = \"token\"\nforce_confirm = true\n",
     )
     .expect("configuration");
@@ -798,7 +798,7 @@ async fn linked_worktrees_share_one_workflow_owner_and_keep_source_checks_and_re
     std::fs::create_dir(&nested).expect("nested project");
     let mut nested_source = Server::spawn_as(&nested, &data, &socket, "nested", &["mcp"]).await;
     ready(&mut nested_source).await;
-    nested_source.call("workbench_status", json!({})).await;
+    nested_source.call("workspace_status", json!({})).await;
     assert!(
         matches!(copies.archive(&linked), Err(WorkingCopyError::Active)),
         "nested source owner keeps the Git copy active"

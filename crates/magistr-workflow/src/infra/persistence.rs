@@ -11,8 +11,8 @@ use super::read_json;
 use super::transaction::{TransactionError, TransactionTarget, transact};
 use magistr_workflow_contracts::{Observed, ReadError, ReadSource, WriteError};
 
-const PERSIST_VAR: &str = "THINK_AND_SHIP_PERSIST";
-const DATA_DIR_VAR: &str = "THINK_AND_SHIP_DATA_DIR";
+const PERSIST_VAR: &str = "MAGISTR_WORKFLOW_PERSIST";
+const DATA_DIR_VAR: &str = "MAGISTR_WORKFLOW_DATA_DIR";
 
 /// Which tool family's subdirectory to read or write under.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -54,9 +54,9 @@ pub struct PersistenceConfig {
 
 impl PersistenceConfig {
     /// Resolve from environment. Off by default; opt in with
-    /// `THINK_AND_SHIP_PERSIST=true` (or `=1`).
+    /// `MAGISTR_WORKFLOW_PERSIST=true` (or `=1`).
     ///
-    /// A blank `THINK_AND_SHIP_DATA_DIR` falls through to the platform chain
+    /// A blank `MAGISTR_WORKFLOW_DATA_DIR` falls through to the platform chain
     /// rather than resolving to the empty path. Set-but-empty is how a shell
     /// exports a variable it failed to compute, and taking it literally would
     /// point one family at a relative `think/sessions` under the working
@@ -99,27 +99,27 @@ pub(crate) fn default_data_dir() -> PathBuf {
 pub(crate) fn default_data_dir_from(get: impl Fn(&str) -> Option<String>) -> PathBuf {
     let non_empty = |key: &str| get(key).filter(|v| !v.trim().is_empty());
     if let Some(xdg) = non_empty("XDG_DATA_HOME") {
-        return PathBuf::from(xdg).join("think-and-ship");
+        return PathBuf::from(xdg).join("magistr/workflow");
     }
     if let Some(home) = non_empty("HOME") {
         return PathBuf::from(home)
             .join(".local")
             .join("share")
-            .join("think-and-ship");
+            .join("magistr/workflow");
     }
     if let Some(appdata) = non_empty("APPDATA") {
-        return PathBuf::from(appdata).join("think-and-ship");
+        return PathBuf::from(appdata).join("magistr/workflow");
     }
     if let Some(profile) = non_empty("USERPROFILE") {
         return PathBuf::from(profile)
             .join("AppData")
             .join("Roaming")
-            .join("think-and-ship");
+            .join("magistr/workflow");
     }
     // No home of any shape (some CI). Persistence still functions; the data
     // is just ephemeral, and the path is valid on both platforms — a literal
     // `/tmp` is not a real place on Windows.
-    env::temp_dir().join("think-and-ship")
+    env::temp_dir().join("magistr/workflow")
 }
 
 /// Per-domain persistence handle. Created with `Persistence::new`.
@@ -136,7 +136,7 @@ impl Persistence {
             && let Err(e) = fs::create_dir_all(&sessions_dir)
         {
             tracing::warn!(
-                "think-and-ship: could not create data dir {}: {e}",
+                "magistr: could not create data dir {}: {e}",
                 sessions_dir.display()
             );
         }

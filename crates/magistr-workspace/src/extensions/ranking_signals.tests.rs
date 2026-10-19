@@ -6,9 +6,7 @@ use crate::{
 };
 use std::{fs, sync::Mutex, time::Duration};
 
-const REAL_MANIFEST: &str = include_str!(
-    "../../../../subsystems/workspace/reference/plugins/ranking-visibility/plugin.toml"
-);
+const REAL_MANIFEST: &str = include_str!("../../fixtures/plugins/ranking-visibility/plugin.toml");
 
 fn hit(file: &str, excerpt: &str, kind_class: &str) -> WorkerRankingHit {
     WorkerRankingHit {
@@ -101,7 +99,7 @@ impl Env {
     fn new(tier: Option<&str>, mode: Mode, gated: bool) -> Self {
         let dir = tempfile::tempdir().unwrap();
         let root = dir.path();
-        fs::create_dir_all(root.join(".workbench")).unwrap();
+        fs::create_dir_all(root.join(".magistr/workspace")).unwrap();
         fs::create_dir_all(root.join("plugins/ranking-visibility")).unwrap();
         fs::write(
             root.join("plugins/ranking-visibility/plugin.toml"),
@@ -114,7 +112,7 @@ impl Env {
         )
         .unwrap();
         let mut record = serde_json::json!({
-            "name": "workbench.ranking-visibility",
+            "name": "magistr.ranking-visibility",
             "source": "registry",
             "dir": "plugins/ranking-visibility",
         });
@@ -124,7 +122,7 @@ impl Env {
             record["source"] = serde_json::json!("sideload");
         }
         fs::write(
-            root.join(".workbench/plugins.json"),
+            root.join(".magistr/workspace/plugins.json"),
             serde_json::json!({ "plugins": [record] }).to_string(),
         )
         .unwrap();
@@ -141,7 +139,7 @@ impl Env {
     }
 
     fn state_dir(&self) -> std::path::PathBuf {
-        self.dir.path().join(".workbench")
+        self.dir.path().join(".magistr/workspace")
     }
 
     fn runtime(&self) -> RankingSignals {
@@ -290,7 +288,7 @@ async fn promotion_persists_survives_restart_applies_from_the_warm_cache_and_dem
         .await;
     assert_eq!(
         runtime.promote("ranking-visibility").unwrap(),
-        "workbench.ranking-visibility"
+        "magistr.ranking-visibility"
     );
     let text = env.promotions().unwrap();
     assert!(text.contains("\"promoted\": true"));

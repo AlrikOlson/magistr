@@ -9,7 +9,7 @@ use magistr_domain::workflow::CheckpointReason;
 /// [`CheckpointEvent`](super::CheckpointEvent).
 ///
 /// Not to be confused with [`EngineCmd::Checkpoint`], which is
-/// think-and-ship's *trace* checkpoint — a metacognitive report over
+/// magistr's *trace* checkpoint — a metacognitive report over
 /// the reasoning. This one is a state of the session and its tree.
 ///
 /// [`EngineCmd::Checkpoint`]: super::EngineCmd::Checkpoint

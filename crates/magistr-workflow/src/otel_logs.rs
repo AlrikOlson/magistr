@@ -434,7 +434,7 @@ fn log_record(
         // so a future call site cannot forget to ask.
         "body": { "stringValue": redact(body) },
         "attributes": [
-            crate::otel::attr("think_and_ship.project", project),
+            crate::otel::attr("magistr.workflow.project", project),
             crate::otel::attr("code.namespace", target),
         ],
     });
@@ -464,13 +464,13 @@ fn envelope(project: &str, records: Vec<Value>) -> Value {
         "resourceLogs": [{
             "resource": {
                 "attributes": [
-                    crate::otel::attr("service.name", "think-and-ship"),
-                    crate::otel::attr("gen_ai.system", "think-and-ship"),
-                    crate::otel::attr("think_and_ship.project", project),
+                    crate::otel::attr("service.name", "magistr"),
+                    crate::otel::attr("gen_ai.system", "magistr"),
+                    crate::otel::attr("magistr.workflow.project", project),
                 ]
             },
             "scopeLogs": [{
-                "scope": { "name": "think-and-ship", "version": env!("CARGO_PKG_VERSION") },
+                "scope": { "name": "magistr", "version": env!("CARGO_PKG_VERSION") },
                 "logRecords": records,
             }]
         }]
@@ -693,7 +693,7 @@ mod tests {
     #[test]
     fn domain_content_survives_redaction_intact() {
         let body = "tracker push failed for chunk otel-live-logs-signal in project \
-                    think-and-ship-676f38: https://tracker.example.com/team/TAS/issue/TAS-1";
+                    magistr-676f38: https://tracker.example.com/team/TAS/issue/TAS-1";
         assert_eq!(redact(body), body, "domain content is the payload");
     }
 
@@ -842,7 +842,7 @@ mod tests {
             .find(|a| a["key"] == "service.name")
             .and_then(|a| a["value"]["stringValue"].as_str())
             .expect("service.name");
-        assert_eq!(service, "think-and-ship");
+        assert_eq!(service, "magistr");
         // The exact shape the OTLP/HTTP logs receiver expects.
         assert!(body["resourceLogs"][0]["scopeLogs"][0]["logRecords"][0]["body"].is_object());
     }

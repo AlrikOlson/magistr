@@ -86,7 +86,7 @@ fn native_previews_share_options_and_never_start_work() {
         assert_eq!(selected["effort"], "high");
         assert_eq!(selected["sources"]["provider"], "command option");
         assert!(!dir.path().join(".magistr/loop-state.json").exists());
-        assert!(!dir.path().join(".workbench").exists());
+        assert!(!dir.path().join(".magistr/workspace").exists());
     }
 }
 

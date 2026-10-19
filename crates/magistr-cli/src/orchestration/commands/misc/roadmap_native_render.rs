@@ -1,4 +1,4 @@
-//! Pure renderers for the think-and-ship roadmap as `magistr roadmap` shows
+//! Pure renderers for the magistr roadmap as `magistr roadmap` shows
 //! it. No colour, no IO — the command layer decides where the text goes.
 
 use magistr_engine::NativeRoadmapSnapshot;
@@ -6,8 +6,8 @@ use magistr_engine::native::{Chunk, ChunkStatus};
 
 /// What `next`/`status` say on a project that still runs the YAML roadmap.
 pub(crate) const NATIVE_REQUIRED: &str = "This project's roadmap backend is `yaml`. Set \
-     \"roadmap_backend\": \"think-and-ship\" in .magistr/project.json to read the \
-     think-and-ship roadmap (`magistr roadmap show` and `export` keep working on YAML).";
+     \"roadmap_backend\": \"native\" in .magistr/project.json to read the \
+     magistr roadmap (`magistr roadmap show` and `export` keep working on YAML).";
 
 /// The human `show` view: current workstreams, history, the next ready chunk, and the
 /// pending chunks in priority order.
@@ -16,7 +16,7 @@ pub(crate) fn render_show(snapshot: &NativeRoadmapSnapshot, chunks: &[Chunk]) ->
     let progress = &snapshot.progress;
     let pct = progress.completion() * 100.0;
     out.push_str(&format!(
-        "Roadmap (think-and-ship · {}): {}/{} chunks done ({pct:.0}%)\n",
+        "Roadmap (magistr · {}): {}/{} chunks done ({pct:.0}%)\n",
         snapshot.project_id, progress.checked_tasks, progress.total_tasks
     ));
     out.push_str(&format!(
@@ -159,7 +159,7 @@ pub(crate) fn show_json(snapshot: &NativeRoadmapSnapshot, chunks: &[Chunk]) -> s
             .collect()
     };
     serde_json::json!({
-        "backend": "think-and-ship",
+        "backend": "magistr",
         "project_id": snapshot.project_id,
         "counts": snapshot.counts,
         "workstreams": snapshot.workstreams,

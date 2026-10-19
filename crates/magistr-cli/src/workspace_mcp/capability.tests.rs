@@ -56,7 +56,7 @@ fn the_core_listing_is_the_served_wire_shape_with_or_without_script() {
     assert_eq!(
         names(Capability::new(true).core_listing()),
         [
-            "workbench_status",
+            "workspace_status",
             "map",
             "read",
             "search",
@@ -71,7 +71,7 @@ fn the_core_listing_is_the_served_wire_shape_with_or_without_script() {
     assert_eq!(
         names(Capability::new(false).core_listing()),
         [
-            "workbench_status",
+            "workspace_status",
             "map",
             "read",
             "search",

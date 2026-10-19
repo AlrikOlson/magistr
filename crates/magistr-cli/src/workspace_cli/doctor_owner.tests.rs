@@ -49,7 +49,7 @@ fn acceptor() -> McpAcceptor {
 
 async fn observe(root: &Path) -> DoctorSection {
     let root = root.to_path_buf();
-    let state = root.join(".workbench");
+    let state = root.join(".magistr/workspace");
     tokio::task::spawn_blocking(move || owner_section(&root, &state, PROBE_DEADLINE))
         .await
         .expect("section task")
@@ -67,7 +67,7 @@ fn owner_finding(section: &DoctorSection) -> &DoctorFinding {
 async fn a_live_owner_is_reported_with_its_generation_build_and_rising_falling_sessions() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let root = tmp.path().canonicalize().expect("canonical");
-    let state = root.join(".workbench");
+    let state = root.join(".magistr/workspace");
     std::fs::create_dir_all(&state).expect("state");
     let lock = ServerLock::acquire(state.join(ServerLock::FILE_NAME)).expect("owner");
     let generation = lock.generation().get();
@@ -149,7 +149,7 @@ async fn a_live_owner_is_reported_with_its_generation_build_and_rising_falling_s
 async fn a_counter_that_disagrees_with_the_live_owner_is_a_durable_finding() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let root = tmp.path().canonicalize().expect("canonical");
-    let state = root.join(".workbench");
+    let state = root.join(".magistr/workspace");
     std::fs::create_dir_all(&state).expect("state");
     let lock = ServerLock::acquire(state.join(ServerLock::FILE_NAME)).expect("owner");
     let endpoint = OwnerEndpoint::serve_workspace(&root, 99, acceptor())
@@ -195,12 +195,12 @@ async fn records_never_certify_liveness_and_legacy_markers_name_the_migration() 
     );
     assert_eq!(section.detail["lockRecord"]["kind"], "absent");
     assert!(
-        !root.join(".workbench").exists(),
+        !root.join(".magistr/workspace").exists(),
         "the probe creates nothing"
     );
 
     // Admitted once, then released: the counter and marker remain, no owner.
-    let state = root.join(".workbench");
+    let state = root.join(".magistr/workspace");
     std::fs::create_dir_all(&state).expect("state");
     drop(ServerLock::acquire(state.join(ServerLock::FILE_NAME)).expect("owner"));
     let section = observe(&root).await;

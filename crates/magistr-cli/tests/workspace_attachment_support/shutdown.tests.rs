@@ -92,7 +92,7 @@ async fn owner_eof_joins_a_cancelled_attached_edit_before_releasing_admission() 
     );
     // The attached bridge outlives the owner; its next call admits and the
     // cancelled preparation is not replayed.
-    assert_ok(&attached.call("workbench_status", json!({})).await);
+    assert_ok(&attached.call("workspace_status", json!({})).await);
     assert_eq!(generation(dir.path()), 2);
     assert_eq!(file_text(dir.path(), "fixture.ts"), original);
     attached.close().await;

@@ -54,7 +54,7 @@ fn every_reserved_core_tool_name_is_refused_as_a_tool_name() {
     for reserved in RESERVED_TOOL_NAMES {
         let source = GOOD_TOML.replace("name = \"greet\"", &format!("name = \"{reserved}\""));
         let errors = PluginManifest::parse(&source).expect_err("reserved name refused");
-        if reserved != "workbench_status" {
+        if reserved != "workspace_status" {
             assert!(
                 errors.join(" ").contains("reserved"),
                 "{reserved}: {errors:?}"
@@ -99,35 +99,29 @@ fn a_duplicate_tool_name_is_refused_and_unknown_tables_warn_but_parse() {
 #[test]
 fn the_bundled_manifests_declare_only_public_imports_and_the_lang_pack_convention() {
     let resolver = PluginManifest::parse(include_str!(
-        "../../../../subsystems/workspace/reference/plugins/lsp-resolver/plugin.toml"
+        "../../fixtures/plugins/lsp-resolver/plugin.toml"
     ))
     .expect("bundled resolver manifest")
     .manifest;
-    assert_eq!(resolver.label(), "workbench.lsp-resolver");
+    assert_eq!(resolver.label(), "magistr.lsp-resolver");
     assert_eq!(
         resolver.imports,
-        vec!["workbench:subprocess/subprocess@0.2.0"]
+        vec!["magistr:subprocess/subprocess@0.2.0"]
     );
     for (path, label, imports_empty) in [
         (
-            include_str!(
-                "../../../../subsystems/workspace/reference/plugins/lang-pack-gleam/plugin.toml"
-            ),
-            "workbench.lang-pack-gleam",
+            include_str!("../../fixtures/plugins/lang-pack-gleam/plugin.toml"),
+            "magistr.lang-pack-gleam",
             true,
         ),
         (
-            include_str!(
-                "../../../../subsystems/workspace/reference/plugins/ranking-visibility/plugin.toml"
-            ),
-            "workbench.ranking-visibility",
+            include_str!("../../fixtures/plugins/ranking-visibility/plugin.toml"),
+            "magistr.ranking-visibility",
             true,
         ),
         (
-            include_str!(
-                "../../../../subsystems/workspace/reference/plugins/runner-go/plugin.toml"
-            ),
-            "workbench.runner-go",
+            include_str!("../../fixtures/plugins/runner-go/plugin.toml"),
+            "magistr.runner-go",
             true,
         ),
     ] {

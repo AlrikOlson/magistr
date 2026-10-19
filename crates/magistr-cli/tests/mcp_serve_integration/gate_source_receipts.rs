@@ -26,7 +26,7 @@ async fn begin_receipt_task(client: &Client) {
     )
     .await;
     let started = text_json(&call(client, "ship_start", json!({"task_id": "verify-source"})).await);
-    assert_eq!(started["status"], "active", "{started}");
+    assert_eq!(started["value"]["status"], "active", "{started}");
 }
 
 fn set_source_command(root: &Path, command: &str) {
@@ -101,6 +101,8 @@ async fn named_gates_and_ship_checks_run_in_the_observed_project_and_read_its_re
         )
         .await,
     );
+    assert_eq!(direct["settlement"], "applied", "{direct}");
+    let direct = &direct["check"]["value"];
     assert_eq!(direct["passed"], true, "{direct}");
     assert_eq!(direct["verified"], true, "{direct}");
     assert!(
@@ -162,7 +164,7 @@ async fn named_gate_reruns_capture_source_and_evidence_edits_and_completion_stay
     assert_eq!(gate_receipt(&client, &repeated).await["attempt"], 3);
     let completed = complete_receipts(&client).await;
     assert_ne!(completed.is_error, Some(true), "{completed:?}");
-    assert_eq!(text_json(&completed)["status"], "done");
+    assert_eq!(text_json(&completed)["value"]["status"], "done");
 
     std::fs::write(root.join("source.txt"), "later\n").expect("later source edit");
     let stale = complete_receipts(&client).await;

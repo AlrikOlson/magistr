@@ -1,4 +1,4 @@
-//! What the cockpit asks of the think-and-ship engines.
+//! What the cockpit asks of the magistr engines.
 
 use super::proposal_kind::ProposalKind;
 

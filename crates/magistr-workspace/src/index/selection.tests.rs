@@ -17,8 +17,8 @@ fn live_ignore_validation_tracks_nested_rules_and_negation() {
 fn bounded_selection_excludes_state_and_does_not_claim_full_walk() {
     let temp = tempfile::tempdir().unwrap();
     let root = temp.path().canonicalize().unwrap();
-    let state = root.join(".workbench");
-    fs::create_dir(&state).unwrap();
+    let state = root.join(".magistr/workspace");
+    fs::create_dir_all(&state).unwrap();
     fs::write(state.join("journal.db"), "durable").unwrap();
     for n in 0..10 {
         fs::write(root.join(format!("{n}.rs")), "fn source() {}").unwrap();
@@ -41,7 +41,7 @@ fn nested_anchored_rules_are_relative_to_the_ignore_file() {
     assert!(Selection::admission(&root)("hidden.rs"));
     let scan = Selection::scan(
         &root,
-        &root.join(".workbench"),
+        &root.join(".magistr/workspace"),
         100,
         &CancellationToken::new(),
     )
@@ -61,7 +61,7 @@ fn parent_ignore_rules_take_precedence_over_nested_gitignore() {
     assert!(!Selection::admission(&root)("src/kept.rs"));
     let scan = Selection::scan(
         &root,
-        &root.join(".workbench"),
+        &root.join(".magistr/workspace"),
         100,
         &CancellationToken::new(),
     )

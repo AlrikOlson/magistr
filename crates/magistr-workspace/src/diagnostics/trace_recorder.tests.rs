@@ -72,7 +72,7 @@ fn one_root_line_per_request_with_taxonomy_status_and_linked_children() {
     let path = dir.path().join("trace.jsonl");
     let recorder = TraceRecorder::new(&path);
     assert!(recorder.is_enabled());
-    recorder.start_tool_span("workbench_status").end(
+    recorder.start_tool_span("workspace_status").end(
         &SpanStatus::Ok,
         SpanOutcome {
             envelope_v: Some(1),
@@ -103,7 +103,7 @@ fn one_root_line_per_request_with_taxonomy_status_and_linked_children() {
     assert_eq!(
         names,
         [
-            "tool:workbench_status",
+            "tool:workspace_status",
             "engine:searchLexical",
             "tool:search"
         ]

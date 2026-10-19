@@ -1,11 +1,17 @@
 use super::*;
-use crate::infra::write_project_file;
+fn write_project_file(root: &std::path::Path, id: &str, name: Option<&str>) -> std::io::Result<()> {
+    std::fs::create_dir_all(root.join(".magistr"))?;
+    std::fs::write(
+        root.join(".magistr/project.json"),
+        serde_json::json!({"project":{"id":id,"name":name}}).to_string(),
+    )
+}
 
 #[test]
 fn captured_override_precedes_the_pin_without_changing_it() {
     let tmp = tempfile::tempdir().expect("tempdir");
     write_project_file(tmp.path(), "pinned-project", Some("Pinned")).expect("pin");
-    let pin = tmp.path().join(".think-and-ship/project.json");
+    let pin = tmp.path().join(".magistr/project.json");
     let original = std::fs::read(&pin).expect("original pin");
 
     assert_eq!(
@@ -34,7 +40,7 @@ fn absent_and_empty_captured_overrides_use_the_nearest_pin() {
 }
 
 #[test]
-fn unpinned_projects_keep_the_existing_canonical_path_identity() {
+fn unconfigured_projects_derive_identity_from_the_canonical_path() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let supplied = tmp.path().join(".");
     let canonical = supplied.canonicalize().expect("canonical project");
@@ -45,9 +51,9 @@ fn unpinned_projects_keep_the_existing_canonical_path_identity() {
 }
 
 #[test]
-fn malformed_pin_keeps_the_existing_path_fallback() {
+fn identity_lookup_does_not_modify_invalid_settings() {
     let tmp = tempfile::tempdir().expect("tempdir");
-    let pin_dir = tmp.path().join(".think-and-ship");
+    let pin_dir = tmp.path().join(".magistr");
     std::fs::create_dir_all(&pin_dir).expect("pin directory");
     let pin = pin_dir.join("project.json");
     std::fs::write(&pin, "{broken").expect("malformed pin");

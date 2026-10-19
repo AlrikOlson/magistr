@@ -28,8 +28,7 @@ fn workspace() -> tempfile::TempDir {
 }
 
 async fn open(root: &Path) -> WorkspaceService {
-    let interpreter = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../subsystems/workspace/reference/vendor/qjs/qjs-wasi.wasm");
+    let interpreter = Path::new(env!("CARGO_MANIFEST_DIR")).join("assets/qjs/qjs-wasi.wasm");
     WorkspaceService::open(
         WorkspaceOpenOptions::new(root, env!("CARGO_BIN_EXE_magistr"))
             .with_network_override("0")

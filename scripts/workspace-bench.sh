@@ -2,7 +2,7 @@
 # Record the native workspace perf runs (chunk arch-14c10b): the retained
 # tier-0 / tier-1 / references-p95 / worker round-trip gates measured over
 # generated scratch corpora against the release worker binary, written as
-# workbench-bench/1 JSON under subsystems/workspace/bench/results/. Every
+# workspace-bench/1 JSON under subsystems/workspace/bench/results/. Every
 # profile runs even when an earlier one misses its gate; the exit status is
 # the worst of them, and the JSON records the failure rather than hiding it.
 #

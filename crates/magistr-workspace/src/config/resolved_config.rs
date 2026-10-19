@@ -210,7 +210,7 @@ impl ResolvedConfig {
     #[must_use]
     pub fn doctor(&self, root: &std::path::Path) -> String {
         let mut lines = vec![
-            format!("workbench doctor config — workspace {}", root.display()),
+            format!("workspace doctor config — workspace {}", root.display()),
             format!("config_version supported: {}", self.config_version),
             String::new(),
             "layer files (lowest precedence first):".into(),

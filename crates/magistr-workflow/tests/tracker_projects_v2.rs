@@ -1197,11 +1197,8 @@ async fn an_issue_that_does_not_exist_refuses_before_any_mutation() {
 /// holds — asserted here, at the seam, and not only in the unit tests.
 #[test]
 fn the_board_lane_reads_the_same_external_id_the_link_record_holds() {
-    let coordinate = IssueCoordinate::parse("AlrikOlson/think-and-ship#1501").unwrap();
-    assert_eq!(
-        coordinate.as_external_id(),
-        "AlrikOlson/think-and-ship#1501"
-    );
+    let coordinate = IssueCoordinate::parse("AlrikOlson/magistr#1501").unwrap();
+    assert_eq!(coordinate.as_external_id(), "AlrikOlson/magistr#1501");
     assert_eq!(coordinate.number, 1501);
 }
 

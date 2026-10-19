@@ -25,19 +25,19 @@ const STDERR_KEPT: usize = 8;
 
 /// One MCP server the cockpit drives over its stdio: newline-delimited
 /// JSON-RPC out on the child's stdin, its answers in on the child's
-/// stdout. Blocking by construction — [`WorkbenchPort`] is synchronous
+/// stdout. Blocking by construction — [`WorkspacePort`] is synchronous
 /// — but never unboundedly so: a reader thread owns the pipe and every
 /// answer is waited for with a deadline, so a server that wedges costs
 /// one call, not the cockpit.
 ///
 /// Dropping the client kills the child.
 ///
-/// [`WorkbenchPort`]: super::WorkbenchPort
+/// [`WorkspacePort`]: super::WorkspacePort
 pub struct McpClient {
     child: Child,
     stdin: ChildStdin,
     /// The reader thread's line channel. Behind a mutex only to make the
-    /// client `Sync`, which [`WorkbenchPort`](super::WorkbenchPort)
+    /// client `Sync`, which [`WorkspacePort`](super::WorkspacePort)
     /// requires; every read goes through `&mut self`.
     lines: Mutex<Receiver<String>>,
     /// The server's last words, for the reason a call could not be made.
@@ -113,11 +113,11 @@ impl McpClient {
     }
 
     /// Call `tool` with `arguments` and hand back the response envelope
-    /// (`{v, ok, results, notes, …}`) the workbench answered with.
+    /// (`{v, ok, results, notes, …}`) the workspace answered with.
     ///
     /// # Errors
     /// The transport's reason the call did not complete, or — for an
-    /// envelope that came back `ok: false` — the workbench's own words.
+    /// envelope that came back `ok: false` — the workspace's own words.
     pub fn call(
         &mut self,
         tool: &str,
@@ -140,7 +140,7 @@ impl McpClient {
             json!({
                 "name": name,
                 "arguments": arguments,
-                "_meta": { "workbench/sessionId": "magistr-cockpit" },
+                "_meta": { "magistr/sessionId": "magistr-cockpit" },
             }),
         )?;
         let result = self.answer(id, timeout)?;
@@ -191,7 +191,7 @@ impl McpClient {
     fn write(&mut self, message: &Value) -> Result<(), String> {
         writeln!(self.stdin, "{message}")
             .and_then(|()| self.stdin.flush())
-            .map_err(|err| self.why(&format!("the workbench stopped listening: {err}")))
+            .map_err(|err| self.why(&format!("the workspace stopped listening: {err}")))
     }
 
     /// Wait for the answer carrying `id`, skipping the server's
@@ -201,7 +201,7 @@ impl McpClient {
         loop {
             let left = deadline.saturating_duration_since(Instant::now());
             if left.is_zero() {
-                return Err(self.why("the workbench did not answer in time"));
+                return Err(self.why("the workspace did not answer in time"));
             }
             // The poison case drops its borrow of `self` here so the
             // reason below may read the server's last words.
@@ -213,10 +213,10 @@ impl McpClient {
             let line = match received {
                 Ok(Ok(line)) => line,
                 Ok(Err(RecvTimeoutError::Timeout)) => {
-                    return Err(self.why("the workbench did not answer in time"));
+                    return Err(self.why("the workspace did not answer in time"));
                 }
                 Ok(Err(RecvTimeoutError::Disconnected)) | Err(()) => {
-                    return Err(self.why("the workbench stopped answering"));
+                    return Err(self.why("the workspace stopped answering"));
                 }
             };
             let Ok(message) = serde_json::from_str::<Value>(&line) else {
@@ -233,7 +233,7 @@ impl McpClient {
     }
 
     /// `what`, with the server's last words when it left any — the
-    /// difference between "the workbench stopped answering" and the
+    /// difference between "the workspace stopped answering" and the
     /// reason it stopped.
     fn why(&self, what: &str) -> String {
         // A broken stdin can be observed before the output reader reports EOF.
@@ -265,15 +265,15 @@ impl Drop for McpClient {
 
 /// The response envelope inside one `tools/call` result: the structured
 /// content when the server sent it, else the text block parsed as the
-/// same JSON. An envelope that came back `ok: false` is the workbench
+/// same JSON. An envelope that came back `ok: false` is the workspace
 /// refusing, and its message is the error.
 fn envelope(result: &Value) -> Result<Value, String> {
     // Check failure before trying to dereference a success payload. Retain the
     // complete result: codes, field problems and uncertain-write evidence matter.
     if result["isError"] == true {
-        return Err(format!("workbench tool failed: {result}"));
+        return Err(format!("workspace tool failed: {result}"));
     }
-    let unreadable = || format!("the workbench answered nothing the cockpit could read: {result}");
+    let unreadable = || format!("the workspace answered nothing the cockpit could read: {result}");
     let envelope = if result["structuredContent"].is_object() {
         result["structuredContent"].clone()
     } else {
@@ -289,7 +289,7 @@ fn envelope(result: &Value) -> Result<Value, String> {
             .ok_or_else(unreadable)?
     };
     if envelope["ok"] != true {
-        return Err(format!("the workbench refused: {result}"));
+        return Err(format!("the workspace refused: {result}"));
     }
     Ok(envelope)
 }

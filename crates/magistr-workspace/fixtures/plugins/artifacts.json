@@ -1,0 +1,7 @@
+{
+  "lang-pack-gleam/grammar/gleam.wasm": "9f8d580d19c415f80b391b8d9ff02621da46f7c24a583b90830052a630cd7f4f",
+  "lang-pack-gleam/guest.wasm": "f416172e29adcdec245ba520f289c98b9d0645cd2c6675fec055090cd0766581",
+  "lsp-resolver/guest.wasm": "84e52b6c1762448cf1c58f31f7e83025f51d08f5aa1eac7d6aeeed26e05a63f0",
+  "ranking-visibility/guest.wasm": "9beb7e6264b706ee6a397883e90164531dc2692379b5cf07c6d2ecfc3a14b421",
+  "runner-go/guest.wasm": "b3e4e42ed3ec5a4e446a5e144e268741900f78c97152e3bb5ccca2118270efb9"
+}

@@ -1,6 +1,6 @@
 //! Shared rig for the native extension and script acceptance suites: a real
 //! temp workspace, the actual Magistr parser/sandbox worker executable, the
-//! sole journal writer, the workspace key and the reference plugin assets.
+//! sole journal writer, the workspace key and the owned plugin assets.
 // Each test binary compiles this module separately and uses a subset of it;
 // the unused remainder in one binary is not dead code in the other.
 #![allow(dead_code)]
@@ -25,7 +25,7 @@ use magistr_workspace::{
 use serde_json::{Value, json};
 
 pub(crate) fn reference_dir() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../subsystems/workspace/reference")
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("../magistr-workspace/fixtures")
 }
 
 pub(crate) struct Fixture {
@@ -42,12 +42,14 @@ impl Fixture {
         let directory = tempfile::tempdir().expect("extension fixture");
         let root = directory.path().join("workspace");
         fs::create_dir_all(root.join(".git")).expect("repository marker");
-        fs::create_dir_all(root.join(".workbench")).expect("state dir");
-        let key = WorkspaceKeyStore::new(root.join(".workbench"))
+        fs::create_dir_all(root.join(".magistr/workspace")).expect("state dir");
+        let key = WorkspaceKeyStore::new(root.join(".magistr/workspace"))
             .ensure()
             .expect("workspace key");
-        let journal = JournalDb::open(JournalDbOptions::new(root.join(".workbench/journal.db")))
-            .expect("sole test journal writer");
+        let journal = JournalDb::open(JournalDbOptions::new(
+            root.join(".magistr/workspace/journal.db"),
+        ))
+        .expect("sole test journal writer");
         let policy = WorkspacePolicy::resolve(&ResolveOptions::new(&root)).expect("policy");
         let worker = Arc::new(
             WorkerSupervisor::new(
@@ -77,12 +79,12 @@ impl Fixture {
     }
 
     pub fn state_dir(&self) -> PathBuf {
-        self.root.join(".workbench")
+        self.root.join(".magistr/workspace")
     }
 
     pub fn install(&self, records: Vec<Value>) {
         self.write(
-            ".workbench/plugins.json",
+            ".magistr/workspace/plugins.json",
             json!({ "plugins": records }).to_string(),
         );
     }

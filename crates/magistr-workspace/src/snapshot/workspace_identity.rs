@@ -28,7 +28,7 @@ impl WorkspaceIdentity {
         if !root.is_dir() {
             return Err(SnapshotError::RootMissing(root));
         }
-        let lock = root.join(".workbench").join(ServerLock::FILE_NAME);
+        let lock = root.join(".magistr/workspace").join(ServerLock::FILE_NAME);
         let generation = WorkspaceGeneration::observe(&lock)
             .map_err(|error| SnapshotError::Generation(error.to_string()))?
             .map(WorkspaceGeneration::get);

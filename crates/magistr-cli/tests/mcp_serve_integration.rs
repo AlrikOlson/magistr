@@ -1,5 +1,5 @@
 //! `magistr mcp` over a real rmcp client on an in-memory duplex:
-//! one tool list carrying both the `magistr_*` tools and the think-and-ship
+//! one tool list carrying both the `magistr_*` tools and the magistr
 //! families, gates recorded through `ship_check`, phases recorded on the
 //! active task — all against a temporary store.
 
@@ -20,7 +20,7 @@ impl ClientHandler for TestClient {}
 type Client = rmcp::service::RunningService<rmcp::RoleClient, TestClient>;
 
 /// The gate commands are written for two shells at once: magistr runs a
-/// gate through `sh -c`, and think-and-ship's `ship_check` (which runs a
+/// gate through `sh -c`, and magistr's `ship_check` (which runs a
 /// recorded gate itself) uses `cmd /C` on Windows, where any quote in
 /// the command is mangled on the way in. So no quotes: a diagnostic that
 /// needs them lives in `diag.sh` and the gate is `sh <root>/diag.sh` —
@@ -32,14 +32,8 @@ fn write_fixture(root: &Path) {
         "printf 'error[E0308]: mismatched types\\n --> src/lib.rs:3:5\\n'\nexit 1\n",
     )
     .expect("diag.sh");
-    std::fs::create_dir_all(root.join(".think-and-ship")).expect("mkdir identity");
-    std::fs::write(
-        root.join(".think-and-ship/project.json"),
-        "{\"id\":\"mcp-serve-fixture\"}\n",
-    )
-    .expect("identity");
     let config = json!({
-        "project": {"name": "fixture", "description": "", "type": "cli"},
+        "project": {"id": "mcp-serve-fixture", "name": "fixture", "description": "", "type": "cli"},
         "stack": {
             "language": "rust", "framework": "none", "package_manager": "cargo",
             "test_framework": "cargo-test", "linter": "clippy", "formatter": "rustfmt"
@@ -149,7 +143,7 @@ async fn check_keeps_its_admitted_run(tool: &str) {
         assert_eq!(result["stale_admission"]["target"]["task_id"], "reused");
         assert_eq!(result["unsettled_outcome"]["exit_code"], 0);
     } else {
-        assert_eq!(result["error_kind"], "stale_result", "{result}");
+        assert_eq!(result["settlement"], "stale", "{result}");
         assert_eq!(result["admission"]["target"]["task_id"], "reused");
         assert_eq!(result["outcome"]["exit_code"], 0);
     }
@@ -178,7 +172,11 @@ async fn begin_reused_task(client: &Client, objective: &str) {
     )
     .await;
     let started = call(client, "ship_start", json!({"task_id": "reused"})).await;
-    assert_eq!(text_json(&started)["status"], "active", "{started:?}");
+    assert_eq!(
+        text_json(&started)["value"]["status"],
+        "active",
+        "{started:?}"
+    );
 }
 
 #[cfg(unix)]
@@ -399,7 +397,7 @@ async fn one_server_serves_both_surfaces_and_records_gates_through_ship() {
         );
     }
 
-    // A think-and-ship tool answers through the same server.
+    // A magistr tool answers through the same server.
     let status = call(&client, "roadmap_status", json!({})).await;
     assert_ne!(status.is_error, Some(true));
     assert_eq!(text_json(&status)["project_id"], "mcp-serve-fixture");

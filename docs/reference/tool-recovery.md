@@ -32,7 +32,7 @@ Composed clients check the error flag before reading success fields.
 `CheckedToolResult` also recognizes legacy `ok:false` and `status:failed`,
 supports JSON text fallback, and retains the complete original response on
 decode failure. Roadmap export and the post-setup consent guard use it. The
-cockpit retains complete Workbench diagnostics. Workflow and workspace
+cockpit retains complete Workspace diagnostics. Workflow and workspace
 adapters mark refusals as MCP errors without freezing unrelated callers.
 External clients' batching policies remain outside this server.
 

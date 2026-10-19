@@ -53,9 +53,9 @@ pub struct FeaturesConfig {
     /// remember to pass a `session_id` on every call.
     ///
     /// Resolved in this order at startup:
-    ///   1. `THINK_AND_SHIP_DEFAULT_SESSION_ID` env var (explicit override)
-    ///   2. Enabled sessions (`THINK_AND_SHIP_ENABLE_SESSIONS=true` or the
-    ///      alternate `THINK_AND_SHIP_AUTO_SESSION=true`) use the admitted
+    ///   1. `MAGISTR_WORKFLOW_DEFAULT_SESSION_ID` env var (explicit override)
+    ///   2. Enabled sessions (`MAGISTR_WORKFLOW_ENABLE_SESSIONS=true` or the
+    ///      alternate `MAGISTR_WORKFLOW_AUTO_SESSION=true`) use the admitted
     ///      project identity, stable across server spawns.
     ///   3. None (caller must pass `session_id` explicitly to use a session).
     ///
@@ -212,7 +212,7 @@ pub fn load_config() -> ThinkConfig {
 
 /// Generate the default session_id at server startup. Format is just
 /// the resolved project identifier — `<basename>-<6hex>` from the cwd
-/// path, or a sanitized `THINK_AND_SHIP_PROJECT_NAME` override. NO timestamp,
+/// path, or a sanitized `MAGISTR_PROJECT_ID` override. NO timestamp,
 /// NO random suffix.
 ///
 /// The original design appended a timestamp+random suffix so each

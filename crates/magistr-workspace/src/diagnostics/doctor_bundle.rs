@@ -19,7 +19,7 @@ pub struct DoctorBundle {
 
 impl DoctorBundle {
     pub const FORMAT_VERSION: u32 = 1;
-    pub const PREFIX: &'static str = "workbench-doctor";
+    pub const PREFIX: &'static str = "workspace-doctor";
 
     pub fn build(run: &DoctorRun) -> std::io::Result<Self> {
         let report = &run.report;

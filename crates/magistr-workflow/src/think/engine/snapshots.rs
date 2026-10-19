@@ -430,7 +430,7 @@ impl ReasoningServer {
             json!(self.config.features.enable_sessions),
         );
         // Surface the configured default session_id so an operator can tell
-        // at a glance whether THINK_AND_SHIP_AUTO_SESSION / THINK_AND_SHIP_DEFAULT_SESSION_ID
+        // at a glance whether MAGISTR_WORKFLOW_AUTO_SESSION / MAGISTR_WORKFLOW_DEFAULT_SESSION_ID
         // actually took effect in this process. Without this, a stale
         // env-var setup looks identical to a working one from the outside.
         obj.insert(

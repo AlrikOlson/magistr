@@ -25,7 +25,7 @@ pub struct PluginResolver<'a> {
 
 impl<'a> PluginResolver<'a> {
     /// The bundled resolver's inventory name.
-    pub const PLUGIN_NAME: &'static str = "workbench.lsp-resolver";
+    pub const PLUGIN_NAME: &'static str = "magistr.lsp-resolver";
 
     /// `root` is the workspace root the guest reports locations against.
     pub fn new(

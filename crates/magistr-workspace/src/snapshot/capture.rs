@@ -75,7 +75,7 @@ fn walker(root: &Path) -> ignore::WalkBuilder {
         .hidden(false)
         .follow_links(false)
         .require_git(false)
-        .filter_entry(|entry| !matches!(entry.file_name().to_str(), Some(".git" | ".workbench")));
+        .filter_entry(|entry| !crate::paths::is_owner_path(entry.path()));
     builder
 }
 

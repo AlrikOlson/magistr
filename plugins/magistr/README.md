@@ -1,7 +1,7 @@
 # Magistr for Claude Code
 
 Inspect your current work, roadmap, check evidence, recorded findings and
-Workbench changes inside your coding session. Open **/magistr** and use the
+Magistr changes inside your coding session. Open **/magistr** and use the
 Work, Roadmap, Checks, Findings and Changes tabs. The optional progress band
 shows your current work, reported phase, check state and connection health.
 
@@ -48,8 +48,8 @@ an existing owner can use the normal startup path.
   change. Set a time limit from 1 to 1800 seconds (five minutes by default),
   then review the exact command and limit before confirming.
 - **Findings:** inspect pinned or recent findings and their supporting findings.
-- **Changes:** inspect Workbench's recorded changes and read the affected files.
-  File changes made outside Workbench may also exist.
+- **Changes:** inspect Magistr's recorded changes and read the affected files.
+  File changes made outside Magistr may also exist.
 
 Task starts, workstream choices, work starts and checks require a specific
 confirmation and then Claude's usual permission checks. Starting work records

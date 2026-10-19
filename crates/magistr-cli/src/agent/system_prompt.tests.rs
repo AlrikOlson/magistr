@@ -6,6 +6,7 @@ use crate::types::{
 fn sample_config() -> ProjectConfig {
     ProjectConfig {
         project: ProjectMeta {
+            id: None,
             name: "my-app".into(),
             description: "A sample project".into(),
             project_type: "cli".into(),

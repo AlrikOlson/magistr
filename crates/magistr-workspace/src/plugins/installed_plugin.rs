@@ -2,7 +2,7 @@ use serde_json::Value;
 
 use super::{PluginSource, PluginTier};
 
-/// One `.workbench/plugins.json` entry as the host reads it. `dir` and
+/// One `.magistr/workspace/plugins.json` entry as the host reads it. `dir` and
 /// `grants` make an entry invocable; both fail closed — a malformed value
 /// means inventory-only / nothing granted.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -27,7 +27,7 @@ impl InstalledPluginRecord {
             .and_then(Value::as_str)
             .filter(|name| !name.is_empty())
             .ok_or_else(|| {
-                ".workbench/plugins.json: every plugin needs a non-empty name".to_owned()
+                ".magistr/workspace/plugins.json: every plugin needs a non-empty name".to_owned()
             })?;
         let source = match entry.get("source").and_then(Value::as_str) {
             Some("registry") => PluginSource::Registry,

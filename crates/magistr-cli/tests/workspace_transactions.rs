@@ -33,11 +33,13 @@ impl Fixture {
         let directory = tempfile::tempdir().expect("transaction fixture");
         let root = directory.path().join("workspace");
         fs::create_dir_all(root.join(".git")).expect("repository marker");
-        let key = WorkspaceKeyStore::new(root.join(".workbench"))
+        let key = WorkspaceKeyStore::new(root.join(".magistr/workspace"))
             .ensure()
             .expect("isolated workspace key");
-        let journal = JournalDb::open(JournalDbOptions::new(root.join(".workbench/journal.db")))
-            .expect("sole test journal writer");
+        let journal = JournalDb::open(JournalDbOptions::new(
+            root.join(".magistr/workspace/journal.db"),
+        ))
+        .expect("sole test journal writer");
         let policy = WorkspacePolicy::resolve(&ResolveOptions::new(&root)).expect("policy");
         let worker = WorkerSupervisor::new(
             PathBuf::from(env!("CARGO_BIN_EXE_magistr")),
@@ -200,7 +202,7 @@ async fn real_rustfmt_previews_final_bytes_then_confirms_and_journals_those_byte
             "atomic replacement preserves the original mode"
         );
     }
-    let journal_path = fixture.root.join(".workbench/journal.db");
+    let journal_path = fixture.root.join(".magistr/workspace/journal.db");
     let reader = JournalReader::open(&journal_path).expect("read-only outcome view");
     assert_eq!(
         reader.write_outcome(seq).expect("read-only outcome"),
@@ -475,7 +477,7 @@ async fn a_real_swap_failure_restores_earlier_files_and_retains_a_rolled_back_in
             .expect("resolved outcome"),
         Some(JournalWriteOutcome::RolledBack)
     );
-    let reader = JournalReader::open(fixture.root.join(".workbench/journal.db"))
+    let reader = JournalReader::open(fixture.root.join(".magistr/workspace/journal.db"))
         .expect("read-only failure receipt");
     assert_eq!(
         reader.write_outcome(seq).expect("durable failure outcome"),

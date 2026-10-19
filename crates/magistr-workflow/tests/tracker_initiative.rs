@@ -58,16 +58,16 @@ async fn the_roof_is_ensured_with_the_roadmaps_derived_state() {
     ]);
     let t = FakeTracker::new(PROVIDER);
 
-    let report = push(&mut e, &t, Some("think-and-ship")).await;
+    let report = push(&mut e, &t, Some("magistr")).await;
 
     assert_eq!(
         t.initiative(),
-        Some(("think-and-ship".to_string(), GroupState::Active)),
+        Some(("magistr".to_string(), GroupState::Active)),
         "one chunk moving means the roadmap is moving"
     );
     assert_eq!(
         report.initiative_ensured.as_deref(),
-        Some("think-and-ship"),
+        Some("magistr"),
         "the report says the roof stands"
     );
     assert!(report.initiative_failure.is_none());

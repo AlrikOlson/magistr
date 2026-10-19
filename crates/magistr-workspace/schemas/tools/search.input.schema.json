@@ -1,10 +1,10 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://workbench-mcp.dev/schemas/tools/search.input.schema.json",
+  "$id": "https://magistr.dev/schemas/workspace/tools/search.input.schema.json",
   "title": "search",
   "description": "Ranked, grouped search over the workspace — replaces grep, glob and find (SDD 9.1). Lexical, structural, references and files modes are live; semantic is reserved and rejected in v1 with a typed error, never a schema failure.",
-  "x-workbench-status": "normative",
-  "x-workbench-owned-by": "chunk:m1-search-structural",
+  "x-magistr-status": "normative",
+  "x-magistr-owned-by": "chunk:m1-search-structural",
   "type": "object",
   "required": ["query"],
   "properties": {

@@ -4,7 +4,7 @@ use super::*;
 fn engine_open_uses_captured_validation_and_project_session_settings() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = NativeConfig::from_lookup(tmp.path().join("project"), |key| match key {
-        "THINK_AND_SHIP_STRICT_MODE" | "THINK_AND_SHIP_ENABLE_SESSIONS" => Some("true".into()),
+        "MAGISTR_WORKFLOW_STRICT_MODE" | "MAGISTR_WORKFLOW_ENABLE_SESSIONS" => Some("true".into()),
         _ => None,
     })
     .with_data_dir(tmp.path().join("store"))

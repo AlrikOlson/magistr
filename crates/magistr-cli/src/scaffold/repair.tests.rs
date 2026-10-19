@@ -87,7 +87,7 @@ fn removal_preserves_settings_work_user_files_and_unrelated_connections() {
     let tmp = fixture(&["codex", "claude"]);
     let root = tmp.path();
     let config = std::fs::read(root.join(".magistr/project.json")).unwrap();
-    let identity = std::fs::read(root.join(".think-and-ship/project.json")).unwrap();
+    let identity = std::fs::read(root.join(".magistr/project.json")).unwrap();
     std::fs::write(root.join(".claude/rules/tools.md"), "Custom instructions\n").unwrap();
     std::fs::write(root.join("source.txt"), "user source").unwrap();
     let mut connections: serde_json::Value =
@@ -101,7 +101,7 @@ fn removal_preserves_settings_work_user_files_and_unrelated_connections() {
         config
     );
     assert_eq!(
-        std::fs::read(root.join(".think-and-ship/project.json")).unwrap(),
+        std::fs::read(root.join(".magistr/project.json")).unwrap(),
         identity
     );
     assert_eq!(

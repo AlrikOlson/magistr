@@ -255,7 +255,7 @@ fn remove_emitter_files_preserves_user_cursor_rules() {
 /// `--yes` takes the default agent set, and without this the emitter
 /// files for agents the project already had are removed and never
 /// written back. `.clinerules`, `.windsurfrules` and `.aider.conf.yml`
-/// all left the real workbench-mcp repo that way.
+/// all left the real magistr repo that way.
 #[test]
 fn the_agents_a_project_already_has_are_reported() {
     let tmp = tempfile::TempDir::new().unwrap();

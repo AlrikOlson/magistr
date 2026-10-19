@@ -59,9 +59,9 @@ pub async fn cmd_doctor(dir: &std::path::Path, renderer: &dyn OutputRenderer) ->
             detail: Some(error.to_string()),
         }),
     }
-    // The workbench `run` allowlist is seeded from project.json once; flag
+    // The workspace `run` allowlist is seeded from project.json once; flag
     // the two drifting apart.
-    checks.push(crate::scaffold::workbench_drift::doctor_check(&dir));
+    checks.push(crate::scaffold::workspace_drift::doctor_check(&dir));
 
     if renderer.is_machine_readable() {
         let checks_json: Vec<serde_json::Value> = checks

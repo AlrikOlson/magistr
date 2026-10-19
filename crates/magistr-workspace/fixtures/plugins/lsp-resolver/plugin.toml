@@ -1,0 +1,30 @@
+# The bundled LSP resolver — the first first-party consumer of the public SDK
+# (SDD §8.3 Resolvers, chunk:m5-lsp-resolver-plugin, specs/001-lsp-resolver-plugin).
+#
+# Deliberately an ordinary plugin manifest: same schema, same grant vocabulary,
+# same sandbox as any third-party plugin. The subprocess import below is
+# honored only because the install record carries tier = "blessed"
+# (src/tools/plugins.ts) — the grant alone is not enough.
+
+[plugin]
+publisher = "magistr"
+pkg = "lsp-resolver"
+version = "0.1.0"
+
+[component]
+path = "guest.wasm"
+
+# The resolver surface itself is the typed magistr:resolver/resolver@0.1.0
+# export, consumed by the host's resolver lane. This tool rides the standard
+# (string) -> string invoke convention so the plugin is TCK-conformant
+# unmodified and inspectable like any other plugin.
+[[tools]]
+name = "status"
+description = "Reports the resolver plugin's build and protocol identity"
+
+[capabilities]
+imports = ["magistr:subprocess/subprocess@0.2.0"]
+
+[limits]
+fuel = 500000000
+memory_bytes = 67108864

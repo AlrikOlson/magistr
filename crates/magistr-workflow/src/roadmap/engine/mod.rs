@@ -40,7 +40,7 @@ pub struct RoadmapEngine {
     broadcaster: Option<Broadcaster>,
     /// Optional git-native trace mirror, reusing the same mirror core as the
     /// think/ship trace stores. When set, every mutation mirrors into
-    /// `.think-and-ship/` as an Agent Trace
+    /// `.magistr/traces/` as an Agent Trace
     /// JSONL record; the session commits on chunk completion/obsoletion. All
     /// git/IO runs on the worker's own thread, never under this engine's lock.
     /// `None` = the default Local behaviour. Fire-and-forget.
@@ -2964,7 +2964,7 @@ mod tests {
     /// blocked)` for a greenhouse-controls backlog.
     ///
     /// Foreign on purpose. A gate that says "next skips blockers" while
-    /// reading think-and-ship's own chunks can pass on an accident of how the
+    /// reading magistr's own chunks can pass on an accident of how the
     /// real plan happens to be ordered; this table is the only data these
     /// tests see, and [`engine_from`] takes it as a parameter so a second
     /// table can be driven through the same code without editing it.

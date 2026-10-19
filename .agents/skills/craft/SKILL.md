@@ -9,7 +9,7 @@ Read [the runtime contract](references/runtime.md), including its host adapter.
 This skill guides the requested work; it does not select a roadmap chunk or
 start an implementation loop by itself.
 
-- Ground substantial decisions in the actual code through workbench before
+- Ground substantial decisions in the actual code through workspace before
   researching replacements. Record evidence-backed findings with native
   `think_*` tools throughout research, implementation, and verification,
   linked to the relevant chunk and ship task. Explain what each finding

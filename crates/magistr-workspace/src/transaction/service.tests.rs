@@ -25,10 +25,10 @@ impl Harness {
         let worker =
             WorkerSupervisor::new("/unavailable-worker".into(), WorkerOptions::default()).unwrap();
         let journal = JournalDb::open(JournalDbOptions::new(
-            root.path().join(".workbench/journal.db"),
+            root.path().join(".magistr/workspace/journal.db"),
         ))
         .unwrap();
-        let key = WorkspaceKeyStore::new(root.path().join(".workbench"))
+        let key = WorkspaceKeyStore::new(root.path().join(".magistr/workspace"))
             .ensure()
             .unwrap();
         let seal = ConfirmationSeal::new(&key, 1);
@@ -223,7 +223,8 @@ async fn parser_unavailable_and_fake_binary_text_cannot_bypass_shadow_verificati
 async fn journal_failure_precedes_any_swap() {
     let mut h = Harness::new();
     let path = h.root.path().join("new.bin");
-    let control = rusqlite::Connection::open(h.root.path().join(".workbench/journal.db")).unwrap();
+    let control =
+        rusqlite::Connection::open(h.root.path().join(".magistr/workspace/journal.db")).unwrap();
     control.execute_batch("CREATE TRIGGER fail_intent BEFORE INSERT ON ops BEGIN SELECT RAISE(ABORT, 'injected journal storage failure'); END;").unwrap();
     let mut service = h.service();
     let prepared = service

@@ -59,10 +59,6 @@ impl CodexConfig {
     ) -> Result<String> {
         let mut doc = Self::parse(existing)?;
         let shared = super::mcp_config::build(vars)?;
-        if let Some(servers) = doc.get_mut("mcp_servers").and_then(Item::as_table_like_mut) {
-            servers.remove("workbench-mcp");
-            servers.remove("think-and-ship");
-        }
         for server in ["magistr"] {
             let is_new = doc.get("mcp_servers").and_then(|v| v.get(server)).is_none();
             let custom_transport = has_custom_transport(&doc, owned, server);

@@ -13,11 +13,11 @@ use magistr_application::sessions::AgentEvent;
 use magistr_application::sessions::ToolStatus;
 use magistr_cockpit::checkpoint::CheckpointPort;
 use magistr_cockpit::cockpit::{
-    CheckpointCmd, CheckpointEvent, EngineCmd, WorkbenchCmd, WorkbenchEvent,
+    CheckpointCmd, CheckpointEvent, EngineCmd, WorkspaceCmd, WorkspaceEvent,
 };
 use magistr_cockpit::cockpit::{Cmd, KillCmd, Msg};
 use magistr_cockpit::engine::{EngineEvent, EnginePort};
-use magistr_cockpit::workbench::WorkbenchPort;
+use magistr_cockpit::workspace::WorkspacePort;
 
 /// A port the relay holds for its owned jobs: shared with the blocking
 /// thread that runs the call, held by one relay, so never contended
@@ -30,7 +30,7 @@ type Shared<P> = Arc<Mutex<Box<P>>>;
 /// cancellation. This relay stamps presentation durations, posts its events to
 /// the inbox, and forwards session commands. Opening transcript events come
 /// from the provider; accepted later inputs are published by this relay once.
-/// Workbench, engine and checkpoint requests run as the relay's owned jobs
+/// Workspace, engine and checkpoint requests run as the relay's owned jobs
 /// on their local ports, off this task and independently of
 /// the provider; a request whose port is absent is refused by name rather
 /// than answered with silence. Once the runtime ends, the jobs are fenced and
@@ -43,7 +43,7 @@ pub fn spawn_session(
     handle: Box<dyn SessionHandle>,
     inbox: Inbox,
     commands: Commands,
-    workbench: Option<Box<dyn WorkbenchPort>>,
+    workspace: Option<Box<dyn WorkspacePort>>,
     engine: Option<Box<dyn EnginePort>>,
     checkpoints: Option<Box<dyn CheckpointPort>>,
 ) -> JoinHandle<Result<(), String>> {
@@ -54,7 +54,7 @@ pub fn spawn_session(
     let session = Session {
         handle,
         inbox,
-        workbench: workbench.map(|port| Arc::new(Mutex::new(port))),
+        workspace: workspace.map(|port| Arc::new(Mutex::new(port))),
         engine: engine.map(|port| Arc::new(Mutex::new(port))),
         checkpoints: checkpoints.map(|port| Arc::new(Mutex::new(port))),
         jobs: SessionJobs::new(),
@@ -68,7 +68,7 @@ pub fn spawn_session(
 struct Session {
     handle: Box<dyn SessionHandle>,
     inbox: Inbox,
-    workbench: Option<Shared<dyn WorkbenchPort>>,
+    workspace: Option<Shared<dyn WorkspacePort>>,
     engine: Option<Shared<dyn EnginePort>>,
     checkpoints: Option<Shared<dyn CheckpointPort>>,
     jobs: SessionJobs,
@@ -157,7 +157,7 @@ impl Session {
             return;
         };
         let cmd = match cmd {
-            Cmd::Workbench(cmd) => return self.workbench(cmd),
+            Cmd::Workspace(cmd) => return self.workspace(cmd),
             Cmd::Engine(cmd) => return self.engine(cmd),
             Cmd::Checkpoint(cmd) => return self.checkpoint(cmd),
             Cmd::Prompt(text) => {
@@ -203,25 +203,25 @@ impl Session {
         }
     }
 
-    /// A workbench call is an owned job: a slow search must not pause the
-    /// provider's events, and one asked of a session with no workbench is
+    /// A workspace call is an owned job: a slow search must not pause the
+    /// provider's events, and one asked of a session with no workspace is
     /// refused by name.
-    fn workbench(&mut self, cmd: WorkbenchCmd) {
-        let what = magistr_cockpit::workbench::describe(&cmd);
-        let Some(port) = self.workbench.as_ref().map(Arc::clone) else {
-            self.inbox.send(Msg::Workbench(WorkbenchEvent::Failed {
+    fn workspace(&mut self, cmd: WorkspaceCmd) {
+        let what = magistr_cockpit::workspace::describe(&cmd);
+        let Some(port) = self.workspace.as_ref().map(Arc::clone) else {
+            self.inbox.send(Msg::Workspace(WorkspaceEvent::Failed {
                 cmd,
-                error: "no workbench is attached to this session".to_owned(),
+                error: "no workspace is attached to this session".to_owned(),
             }));
             return;
         };
         let asked = cmd.clone();
         if let Err(error) = self.jobs.run(&what, &self.inbox, move || {
             let mut port = port.lock().unwrap_or_else(PoisonError::into_inner);
-            Msg::Workbench(magistr_cockpit::workbench::apply(port.as_mut(), &cmd))
+            Msg::Workspace(magistr_cockpit::workspace::apply(port.as_mut(), &cmd))
         }) {
             self.inbox
-                .send(Msg::Workbench(WorkbenchEvent::Failed { cmd: asked, error }));
+                .send(Msg::Workspace(WorkspaceEvent::Failed { cmd: asked, error }));
         }
     }
 

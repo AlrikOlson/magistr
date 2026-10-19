@@ -1,0 +1,56 @@
+/// magistr:runner — structured-failure parsers for `run` output (SDD §8.2,
+/// §9.6). Pure functions from command output to the structured failure
+/// format; the smallest, safest surface. Known runners (bun/jest/vitest/
+/// pytest/cargo/go) ship as bundled first-party adapters on this same
+/// interface.
+///
+/// Vocabulary provenance (the §6.4 re-export):
+///   structured-failure <-> §9.6's failure extraction: test name, file,
+///                          assertion, trimmed trace — verbatim
+///   run-output         <-> the `run` tool's captured command result
+///
+/// Evolution: additive within a major, per-interface stamp. See wit/README.md;
+/// enforced by crates/magistr-core/tests/wit_contracts.rs against
+/// wit/baseline.json.
+package magistr:runner@0.1.0;
+
+interface runner {
+  /// What `run` captured from one declared-command execution.
+  record run-output {
+    /// The declared command key from the config [commands] table (SDD §9.6).
+    command: string,
+    exit-code: s32,
+    stdout: string,
+    stderr: string,
+  }
+
+  /// One extracted failure — §9.6's exact quartet.
+  record structured-failure {
+    test-name: string,
+    /// Workspace-relative path when the runner's output names one.
+    file: option<string>,
+    /// The assertion or error message, verbatim from the runner.
+    assertion: string,
+    /// The trace, already trimmed to the load-bearing frames.
+    trace: string,
+  }
+
+  record run-report {
+    failures: list<structured-failure>,
+    /// Optional one-line runner summary, e.g. "3 failed, 41 passed".
+    summary: option<string>,
+  }
+
+  /// Whether this adapter claims the declared command. The host consults
+  /// adapters in trust order; the first claimant parses.
+  can-parse: func(command: string) -> bool;
+
+  /// Parse one run's output. `none` means the adapter could not extract
+  /// structure — the host falls back to head+tail with a truncation manifest,
+  /// never to a silent guess.
+  parse-output: func(output: run-output) -> option<run-report>;
+}
+
+world runner-provider {
+  export runner;
+}

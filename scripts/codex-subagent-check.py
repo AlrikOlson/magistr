@@ -44,7 +44,7 @@ SUBAGENT_INSTRUCTION = (
     f"Call the MCP tool `read` from the server `{SERVER_NAME}` with arguments "
     f'{{"file":"{FILE_UNDER_TEST}"}}. Reply with (1) the raw result exactly as returned, '
     "including any error text, and (2) the names of every tool available to you whose "
-    "name contains 'workbench', one per line. Do not retry, do not use the shell."
+    "name contains 'workspace', one per line. Do not retry, do not use the shell."
 )
 
 PROMPT = "\n".join(
@@ -57,7 +57,7 @@ PROMPT = "\n".join(
         "4. Answer with the JSON object the output schema requires: parent_read_ok is true only if your own read "
         f"returned the file content {json.dumps(FILE_CONTENT.strip())} with no error; subagent_read_ok is true only if the "
         "subagent's raw result contained that same content and no error; copy both raw results verbatim; "
-        "subagent_workbench_tool_names is the list the subagent reported.",
+        "subagent_workspace_tool_names is the list the subagent reported.",
     ]
 )
 
@@ -68,14 +68,14 @@ OUTPUT_SCHEMA = {
         "parent_read_raw": {"type": "string"},
         "subagent_read_ok": {"type": "boolean"},
         "subagent_read_raw": {"type": "string"},
-        "subagent_workbench_tool_names": {"type": "array", "items": {"type": "string"}},
+        "subagent_workspace_tool_names": {"type": "array", "items": {"type": "string"}},
     },
     "required": [
         "parent_read_ok",
         "parent_read_raw",
         "subagent_read_ok",
         "subagent_read_raw",
-        "subagent_workbench_tool_names",
+        "subagent_workspace_tool_names",
     ],
     "additionalProperties": False,
 }
@@ -147,7 +147,7 @@ def parse_final_answer(text: str) -> dict | None:
                 "parent_read_raw": str(parsed.get("parent_read_raw", "")),
                 "subagent_read_ok": parsed["subagent_read_ok"],
                 "subagent_read_raw": str(parsed.get("subagent_read_raw", "")),
-                "subagent_workbench_tool_names": [str(n) for n in parsed.get("subagent_workbench_tool_names") or []],
+                "subagent_workspace_tool_names": [str(n) for n in parsed.get("subagent_workspace_tool_names") or []],
             }
     return None
 
@@ -181,7 +181,7 @@ def main() -> int:
     ws = scratch / "ws"
     codex_home = scratch / "codex-home"
     auth_copy = codex_home / "auth.json"
-    wrapper = scratch / "workbench-mcp-wrapper.sh"
+    wrapper = scratch / "magistr-wrapper.sh"
     launch_log = scratch / "launches.log"
     server_stderr = scratch / "server-stderr.log"
     schema_path = scratch / "output-schema.json"
@@ -234,7 +234,7 @@ def main() -> int:
     try:
         shutil.copyfile(auth_source, auth_copy)
         auth_copy.chmod(stat.S_IRUSR | stat.S_IWUSR)
-        env = dict(os.environ, CODEX_HOME=str(codex_home), WORKBENCH_NETWORK_FS="0")
+        env = dict(os.environ, CODEX_HOME=str(codex_home), MAGISTR_WORKSPACE_NETWORK_FS="0")
         try:
             completed = subprocess.run(
                 [
@@ -329,7 +329,7 @@ def main() -> int:
             print(
                 f"  final answer: parent_read_ok={final_answer['parent_read_ok']} "
                 f"subagent_read_ok={final_answer['subagent_read_ok']} "
-                f"subagent_workbench_tool_names={json.dumps(final_answer['subagent_workbench_tool_names'])}"
+                f"subagent_workspace_tool_names={json.dumps(final_answer['subagent_workspace_tool_names'])}"
             )
             print(f"  subagent raw: {json.dumps(final_answer['subagent_read_raw'][:300])}")
         print(

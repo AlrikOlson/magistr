@@ -61,7 +61,7 @@ def main():
                 "project": {"name": name, "description": "", "type": "cli"},
                 "stack": {"language": "rust", "framework": "none", "package_manager": "cargo",
                           "test_framework": "cargo-test", "linter": "clippy", "formatter": "rustfmt"},
-                "roadmap_backend": "think-and-ship", "roadmap_exports": False,
+                "roadmap_backend": "native", "roadmap_exports": False,
                 "quality_gate": {"check": "true", "test": "true", "lint": "true"},
                 "format": {"command": "true", "extensions": ["rs"]},
                 "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"},

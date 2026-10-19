@@ -13,8 +13,8 @@ workspace tools through the same connection. Build commands and required checks 
 `.magistr/project.json`; setup instructions are in
 [development](docs/development.md).
 
-<!-- think-and-ship -->
-# think-and-ship
+<!-- magistr -->
+# magistr
 
 The `magistr` MCP connection (`magistr mcp --dir .`) provides source tools and the native workflow. Start with `context`. Use direct `search`, `read`, `edit`, `write`, `plan_work`, `start_work`, `record_progress`, `check_work`, and `finish_work` for common work. Use read-only `discover` to inspect advanced operation schemas, then `execute` with synchronous `magistr.call(name, args)`. Compositions stop on failure and return receipts; inspect completed effects before recovery. One workflow owner serves the project, and one workspace owner serves each working copy.
 
@@ -95,4 +95,4 @@ This is a Rust project. Select focused checks for the changed behavior. These ar
 - `cargo check --workspace --all-targets`
 - `cargo nextest run --workspace`
 - `cargo clippy --workspace --all-targets -- -D warnings`
-<!-- /think-and-ship -->
+<!-- /magistr -->

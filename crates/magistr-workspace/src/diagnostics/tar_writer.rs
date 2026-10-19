@@ -5,7 +5,7 @@
 const BLOCK: usize = 512;
 
 pub(super) struct TarMember {
-    /// Full member path, e.g. `workbench-doctor/manifest.json`. ≤100 bytes.
+    /// Full member path, e.g. `workspace-doctor/manifest.json`. ≤100 bytes.
     pub(super) name: String,
     pub(super) data: Vec<u8>,
 }

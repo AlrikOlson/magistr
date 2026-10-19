@@ -1,4 +1,4 @@
-//! The same semantic fixtures execute through the native adapter and pinned reference.
+//! The same semantic fixtures execute through the native adapter against the current operation contract.
 use magistr_workspace::contracts::{
     Budget, EnvelopeVersion, ErrorKind, Freshness, PortVersion, Recovery, ResultSet,
     TruncationReason, WorkspaceError, WorkspaceResponse,
@@ -7,10 +7,8 @@ use magistr_workspace::response::{Redactor, ResponseAdapter};
 use serde_json::{Value, json};
 
 fn fixtures() -> Value {
-    serde_json::from_str(include_str!(
-        "../../../subsystems/workspace/conformance/responses.json"
-    ))
-    .expect("response fixtures")
+    serde_json::from_str(include_str!("../fixtures/contracts/responses.json"))
+        .expect("response fixtures")
 }
 
 #[test]
@@ -22,7 +20,7 @@ fn policy_failures_preserve_recovery_and_message() {
 }
 
 #[test]
-fn named_and_entropy_redaction_matches_reference_including_unicode_boundaries() {
+fn named_and_entropy_redaction_matches_current_contract_including_unicode_boundaries() {
     for fixture in fixtures()["redaction"].as_array().expect("redactions") {
         let input = fixture["input"].as_str().expect("input");
         let redacted = Redactor::redact(input);
@@ -38,7 +36,7 @@ fn named_and_entropy_redaction_matches_reference_including_unicode_boundaries() 
 }
 
 #[test]
-fn version_negotiation_is_stateless_and_matches_reference() {
+fn version_negotiation_is_stateless_and_matches_current_contract() {
     let fixtures = fixtures();
     let cases = fixtures["negotiation"].as_array().expect("negotiations");
     for fixture in cases.iter().chain(cases.iter().rev()) {
@@ -56,7 +54,7 @@ fn version_negotiation_is_stateless_and_matches_reference() {
         assert_eq!(actual, fixture["expected"], "meta {}", fixture["meta"]);
     }
     for zero in [0.0, -0.0] {
-        let meta = json!({"workbench/maxEnvelopeVersion": zero});
+        let meta = json!({"magistr/maxEnvelopeVersion": zero});
         let error = ResponseAdapter::negotiate_meta(meta.as_object()).expect_err("zero");
         assert!(error.message.ends_with("got 0"), "{}", error.message);
     }
@@ -76,10 +74,8 @@ fn version_negotiation_is_stateless_and_matches_reference() {
 fn all_taxonomy_codes_preserve_required_payloads_and_recovery() {
     let fixtures = fixtures();
     let cases = fixtures["errors"].as_array().expect("errors");
-    let taxonomy: Value = serde_json::from_str(include_str!(
-        "../../../subsystems/workspace/reference/schemas/error-taxonomy.json"
-    ))
-    .expect("normative taxonomy");
+    let taxonomy: Value = serde_json::from_str(include_str!("../schemas/error-taxonomy.json"))
+        .expect("normative taxonomy");
     assert_eq!(
         cases.len(),
         taxonomy["codes"].as_array().expect("codes").len()
@@ -171,7 +167,7 @@ fn assert_sealed(response: &WorkspaceResponse<Value>, expected: &Value) {
 }
 
 #[test]
-fn success_shapes_cuts_and_optional_notes_match_reference() {
+fn success_shapes_cuts_and_optional_notes_match_current_contract() {
     for fixture in fixtures()["success"].as_array().expect("successes") {
         let input = &fixture["input"];
         let reason = match input["cut"]["reason"].as_str().expect("reason") {
@@ -229,7 +225,7 @@ fn a_cut_requires_a_complete_manifest_but_complete_rows_need_no_cursor() {
 }
 
 #[test]
-fn signature_versions_match_the_reference_registry() {
+fn signature_versions_match_the_current_registry() {
     let actual: serde_json::Map<String, Value> = PortVersion::ALL
         .into_iter()
         .map(|port| (port.name().into(), json!(port.signature_version())))

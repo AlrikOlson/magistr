@@ -25,7 +25,7 @@ fn git(root: &Path, args: &[&str]) {
 
 fn magistr(data: &Path) -> AssertCommand {
     let mut command = AssertCommand::from_std(magistr_command::magistr_command());
-    command.env("THINK_AND_SHIP_DATA_DIR", data);
+    command.env("MAGISTR_WORKFLOW_DATA_DIR", data);
     command
 }
 
@@ -126,5 +126,5 @@ fn linked_commands_and_setup_use_current_shared_settings_and_refuse_invalid_valu
     assert_eq!(std::fs::read_to_string(&shared).unwrap(), invalid);
     assert!(!linked.join(".claude").exists());
     assert!(!linked.join(".mcp.json").exists());
-    assert!(!linked.join("workbench.toml").exists());
+    assert!(!linked.join(".magistr/workspace.toml").exists());
 }

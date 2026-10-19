@@ -6,9 +6,9 @@ fn stdio_servers_map_with_args_and_env_and_others_are_skipped() {
     let doc = json!({
         "mcpServers": {
             "magistr": { "type": "stdio", "command": "magistr", "args": ["mcp", "--dir", "/p"] },
-            "think-and-ship": {
-                "command": "think-and-ship", "args": ["serve"],
-                "env": { "THINK_AND_SHIP_PERSIST": "true" }
+            "external": {
+                "command": "example-server", "args": ["--stdio"],
+                "env": { "MAGISTR_WORKFLOW_PERSIST": "true" }
             },
             "remote": { "type": "http", "url": "https://example.test/mcp" }
         }
@@ -26,13 +26,13 @@ fn stdio_servers_map_with_args_and_env_and_others_are_skipped() {
     assert_eq!(magistr.command, std::path::PathBuf::from("magistr"));
     assert_eq!(magistr.args, vec!["mcp", "--dir", "/p"]);
     assert!(magistr.env.is_empty());
-    let tas = stdio
+    let external = stdio
         .iter()
-        .find(|s| s.name == "think-and-ship")
-        .expect("think-and-ship");
-    assert_eq!(tas.env.len(), 1);
-    assert_eq!(tas.env[0].name, "THINK_AND_SHIP_PERSIST");
-    assert_eq!(tas.env[0].value, "true");
+        .find(|s| s.name == "external")
+        .expect("external");
+    assert_eq!(external.env.len(), 1);
+    assert_eq!(external.env[0].name, "MAGISTR_WORKFLOW_PERSIST");
+    assert_eq!(external.env[0].value, "true");
 }
 
 #[test]

@@ -1,4 +1,4 @@
-//! Regression test: think and ship persistence must not
+//! Regression test: Magistr workflow persistence must not
 //! share an on-disk path when configured against the same data dir, or
 //! they will silently clobber each other's `<project>.json` files.
 
@@ -12,7 +12,7 @@ use magistr_workflow::ship::persistence::PersistenceConfig as ShipPersistenceCon
 use magistr_workflow::think::persistence::Persistence as ThinkPersistence;
 
 #[test]
-fn think_and_ship_persistence_live_in_disjoint_subdirs() {
+fn workflow_persistence_live_in_disjoint_subdirs() {
     let tmp = TempDir::new().unwrap();
     let data_dir: PathBuf = tmp.path().to_path_buf();
 
@@ -47,7 +47,7 @@ fn think_and_ship_persistence_live_in_disjoint_subdirs() {
     assert_ne!(
         think_dir,
         ship_dir.as_path(),
-        "think and ship persistence must not share a directory; \
+        "Magistr workflow persistence must not share a directory; \
          think_dir={} ship_dir={}",
         think_dir.display(),
         ship_dir.display()

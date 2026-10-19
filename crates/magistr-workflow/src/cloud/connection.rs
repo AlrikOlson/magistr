@@ -39,7 +39,7 @@ use serde::{Deserialize, Serialize};
 ///
 /// Still the override an operator or a CI job sets, and still the thing that
 /// wins — see [`pick`].
-pub const URL_ENV: &str = "THINK_AND_SHIP_CLOUD_URL";
+pub const URL_ENV: &str = "MAGISTR_WORKFLOW_CLOUD_URL";
 
 /// The file `connect` writes, beside the data dir. Keyed by project, because
 /// the credential store is too: `provider_key` namespaces the token as
@@ -183,7 +183,7 @@ pub fn pick(env_value: Option<&str>, stored: Option<&str>) -> Option<(String, So
     Some((value.to_string(), Source::Stored))
 }
 
-/// The data dir the record lives beside (respects `THINK_AND_SHIP_DATA_DIR`).
+/// The data dir the record lives beside (respects `MAGISTR_WORKFLOW_DATA_DIR`).
 #[must_use]
 pub fn data_dir() -> PathBuf {
     crate::infra::PersistenceConfig::from_env().data_dir

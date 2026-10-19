@@ -10,8 +10,8 @@ fn launch(root: &std::path::Path, empty_path: &std::path::Path) -> tokio::proces
         .args(["mcp", "--dir"])
         .arg(root)
         .env("PATH", empty_path)
-        .env_remove("WORKBENCH_MCP")
-        .env_remove("WORKBENCH_MCP_REPO");
+        .env_remove("MAGISTR_WORKSPACE_MCP")
+        .env_remove("MAGISTR_WORKSPACE_MCP_REPO");
     command
 }
 
@@ -26,7 +26,7 @@ async fn the_unified_launch_serves_the_native_bridge_and_a_second_launch_attache
     attached.assert_tools().await;
     assert_eq!(generation(dir.path()), 1, "the second launch attached");
     assert_ok(&attached.call("read", json!({"file": "alice.txt"})).await);
-    assert_ok(&owner.call("workbench_status", json!({})).await);
+    assert_ok(&owner.call("workspace_status", json!({})).await);
     attached.close().await;
     owner.close().await;
 }
@@ -40,7 +40,7 @@ async fn the_cockpit_port_reaches_the_live_owner_through_the_projects_mcp_json()
             "command": binary(),
             "args": ["mcp", "--dir", "."],
             "type": "stdio",
-            "env": {"THINK_AND_SHIP_DATA_DIR": dir.path().join("workflow-state"), "THINK_AND_SHIP_BROADCAST_PATH": ""},
+            "env": {"MAGISTR_WORKFLOW_DATA_DIR": dir.path().join("workflow-state"), "MAGISTR_WORKFLOW_BROADCAST_PATH": ""},
         }}})
         .to_string(),
     )
@@ -49,7 +49,7 @@ async fn the_cockpit_port_reaches_the_live_owner_through_the_projects_mcp_json()
     assert_ok(&owner.call("edit", edit("alice.txt", "agent bytes")).await);
     let root = dir.path().to_path_buf();
     let (map, read, journal) = tokio::task::spawn_blocking(move || {
-        let mut port = magistr::orchestration::commands::workbench_port::workbench_port(&root)
+        let mut port = magistr::orchestration::commands::workspace_port::workspace_port(&root)
             .expect("the .mcp.json entry becomes a port");
         let map = port.map().expect("map through the live owner");
         let read = port.read("alice.txt").expect("read through the live owner");

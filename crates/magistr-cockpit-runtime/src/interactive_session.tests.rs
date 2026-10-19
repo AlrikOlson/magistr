@@ -666,11 +666,11 @@ async fn connection_failure_and_provider_death_allow_a_new_attempt() {
     task.await.unwrap().unwrap();
 }
 
-struct HeldWorkbench {
+struct HeldWorkspace {
     started: Arc<tokio::sync::Notify>,
     release: std::sync::Mutex<std::sync::mpsc::Receiver<()>>,
 }
-impl WorkbenchPort for HeldWorkbench {
+impl WorkspacePort for HeldWorkspace {
     fn read(&mut self, _: &str) -> Result<String, String> {
         self.started.notify_one();
         self.release
@@ -683,7 +683,7 @@ impl WorkbenchPort for HeldWorkbench {
     fn undo(&mut self, _: &str) -> Result<(), String> {
         unreachable!()
     }
-    fn journal(&mut self) -> Result<Vec<magistr_cockpit::workbench::JournalEntry>, String> {
+    fn journal(&mut self) -> Result<Vec<magistr_cockpit::workspace::JournalEntry>, String> {
         unreachable!()
     }
     fn search(&mut self, _: &str) -> Result<Vec<String>, String> {
@@ -692,7 +692,7 @@ impl WorkbenchPort for HeldWorkbench {
     fn map(&mut self) -> Result<Vec<String>, String> {
         unreachable!()
     }
-    fn run(&mut self, _: &str) -> Result<Vec<magistr_cockpit::workbench::RunRow>, String> {
+    fn run(&mut self, _: &str) -> Result<Vec<magistr_cockpit::workspace::RunRow>, String> {
         unreachable!()
     }
 }
@@ -711,7 +711,7 @@ async fn aborting_owner_releases_both_contexts_and_fences_a_running_local_job() 
             async { Ok(handle) }
         },
         inbox,
-        Some(Box::new(HeldWorkbench {
+        Some(Box::new(HeldWorkspace {
             started: Arc::clone(&started),
             release: std::sync::Mutex::new(gate),
         })),
@@ -740,7 +740,7 @@ async fn aborting_owner_releases_both_contexts_and_fences_a_running_local_job() 
         matches!(next(&mut events).await, Msg::InputAccepted(input) if input.text == "Planning")
     );
     commands
-        .send(Cmd::Workbench(WorkbenchCmd::Open {
+        .send(Cmd::Workspace(WorkspaceCmd::Open {
             path: "held.rs".into(),
         }))
         .unwrap();
@@ -764,9 +764,9 @@ async fn aborting_owner_releases_both_contexts_and_fences_a_running_local_job() 
     assert!(late.is_none(), "cancelled owner published {late:?}");
 }
 
-struct ObservedWorkbench(Arc<std::sync::atomic::AtomicUsize>);
+struct ObservedWorkspace(Arc<std::sync::atomic::AtomicUsize>);
 
-impl WorkbenchPort for ObservedWorkbench {
+impl WorkspacePort for ObservedWorkspace {
     fn read(&mut self, _: &str) -> Result<String, String> {
         self.0.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         Ok("unchanged".into())
@@ -774,7 +774,7 @@ impl WorkbenchPort for ObservedWorkbench {
     fn undo(&mut self, _: &str) -> Result<(), String> {
         unreachable!()
     }
-    fn journal(&mut self) -> Result<Vec<magistr_cockpit::workbench::JournalEntry>, String> {
+    fn journal(&mut self) -> Result<Vec<magistr_cockpit::workspace::JournalEntry>, String> {
         unreachable!()
     }
     fn search(&mut self, _: &str) -> Result<Vec<String>, String> {
@@ -783,7 +783,7 @@ impl WorkbenchPort for ObservedWorkbench {
     fn map(&mut self) -> Result<Vec<String>, String> {
         unreachable!()
     }
-    fn run(&mut self, _: &str) -> Result<Vec<magistr_cockpit::workbench::RunRow>, String> {
+    fn run(&mut self, _: &str) -> Result<Vec<magistr_cockpit::workspace::RunRow>, String> {
         unreachable!()
     }
 }
@@ -795,11 +795,11 @@ async fn dropping_the_owner_discards_buffered_local_actions() {
     let session = InteractiveSession::new(
         |_, _| async { panic!("local actions do not open a provider") },
         inbox,
-        Some(Box::new(ObservedWorkbench(Arc::clone(&reads)))),
+        Some(Box::new(ObservedWorkspace(Arc::clone(&reads)))),
         None,
         None,
     );
-    assert!(session.forward(Cmd::Workbench(WorkbenchCmd::Open {
+    assert!(session.forward(Cmd::Workspace(WorkspaceCmd::Open {
         path: "kept.rs".into()
     })));
     // No yield: the local relay has not consumed the queued operation. Closing
@@ -819,7 +819,7 @@ async fn dropping_the_owner_discards_buffered_local_actions() {
     );
 }
 
-use magistr_cockpit::cockpit::{EngineCmd, WorkbenchCmd};
+use magistr_cockpit::cockpit::{EngineCmd, WorkspaceCmd};
 
 #[tokio::test]
 async fn closed_local_and_provider_receivers_preserve_the_refused_action() {
@@ -857,7 +857,7 @@ async fn closed_local_and_provider_receivers_preserve_the_refused_action() {
             id: 5,
             option_id: "allow".into(),
         },
-        Cmd::Workbench(WorkbenchCmd::Undo { id: "op-2".into() }),
+        Cmd::Workspace(WorkspaceCmd::Undo { id: "op-2".into() }),
         Cmd::Engine(EngineCmd::Checkpoint),
     ] {
         assert!(!session.forward(cmd.clone()));

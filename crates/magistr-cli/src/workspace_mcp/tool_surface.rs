@@ -58,7 +58,7 @@ the notes say exactly what was rewritten) and the moved file's own relative impo
 recomputed. Moves and overwriting copies follow the shared confirmation policy: token mode \
 applies on the first call unless edit.force_confirm is set; human mode uses elicitation or \
 CONFIRM_REQUIRED + confirmToken. delete is a journal-backed move to \
-.workbench/trash/ — recoverable with undo, nothing is unlinked destructively. create is touch \
+.magistr/workspace/trash/ — recoverable with undo, nothing is unlinked destructively. create is touch \
 (never overwrites); mkdir materializes the directory as a journaled .gitkeep. Every verb runs \
 the §7.5 write engine: dry-run diff, parse-verify, format, journal, atomic swap; read's \
 contentHash passed as expectedHash turns a changed source into STALE_ANCHOR.";
@@ -78,7 +78,7 @@ durable per-workspace op log — newest op first, one row per file an op touched
 the op seq, its added/removed counts and its unified diff — and writes nothing. action \
 \"rewind\" (the default) rewinds whole ops (write batches): the newest `steps`, or exactly the \
 ops named by `ops` (the seqs list reports). Rewind is session-scoped by default — only the \
-calling session's ops (identity via _meta workbench/sessionId) unless scope is \"workspace\". \
+calling session's ops (identity via _meta magistr/sessionId) unless scope is \"workspace\". \
 Conflicts are detected by content hash and surfaced in the envelope as a three-way choice \
 (keepCurrent | force | merge by hand), never silently clobbered. Restorations run through the \
 verified write pipeline with staleness anchors.";
@@ -98,7 +98,7 @@ Abuse dies typed: SANDBOX_FUEL_EXCEEDED, SANDBOX_MEMORY_EXCEEDED, SANDBOX_CAP_DE
 
 const RUN: &str = "The declared-command escape hatch (SDD §9.6). Executes one command from the \
 merged config's [commands] table as a single argv — no shell, ever. The allowlist is seeded at \
-init from lockfile/manifest detection, amendable only by a human (workbench.toml is a protected \
+init from lockfile/manifest detection, amendable only by a human (.magistr/workspace.toml is a protected \
 path), and governable by org policy (§7.2). Known runners (bun/jest/vitest/pytest/cargo \
 test/cargo nextest/go) answer structured failures — test name, file, assertion, trimmed trace — \
 via bundled runner adapters; cargo build/check/clippy (and a test run that failed to compile) \
@@ -141,7 +141,7 @@ fn tool(
 /// write path, script when an interpreter is composed, then run.
 pub(crate) fn core_tools(offers_script: bool) -> Vec<Tool> {
     let mut status = Tool::new(
-        "workbench_status",
+        "workspace_status",
         STATUS,
         Arc::new(
             serde_json::json!({"type": "object", "properties": {}})
@@ -150,7 +150,7 @@ pub(crate) fn core_tools(offers_script: bool) -> Vec<Tool> {
                 .unwrap_or_default(),
         ),
     );
-    status.title = Some("Workbench status".to_owned());
+    status.title = Some("Workspace status".to_owned());
     status.output_schema = Some(envelope_schema());
     let mut tools = vec![
         status,

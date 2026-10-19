@@ -248,7 +248,8 @@ fn saved(dir: &Path) -> IterationState {
 
 fn context_inputs(dir: &Path) -> ProjectInputs {
     ProjectInputs::from_lookup(dir, |key| {
-        (key == "THINK_AND_SHIP_DATA_DIR").then(|| dir.join("workflow-data").display().to_string())
+        (key == "MAGISTR_WORKFLOW_DATA_DIR")
+            .then(|| dir.join("workflow-data").display().to_string())
     })
 }
 

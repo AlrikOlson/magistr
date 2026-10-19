@@ -12,7 +12,7 @@ use tokio_util::sync::CancellationToken;
 
 const WAIT: Duration = Duration::from_secs(20);
 const GUEST: &[u8] =
-    include_bytes!("../../../subsystems/workspace/reference/plugins/lsp-resolver/guest.wasm");
+    include_bytes!("../../magistr-workspace/fixtures/plugins/lsp-resolver/guest.wasm");
 
 fn fixture_binary() -> PathBuf {
     static BINARY: OnceLock<(tempfile::TempDir, PathBuf)> = OnceLock::new();
@@ -47,7 +47,7 @@ fn request(log: &Path, mode: &str, granted: bool) -> WorkerRequest {
         guest: GUEST.to_vec(),
         symbol: "target".to_owned(),
         capabilities: if granted {
-            vec!["workbench:subprocess/subprocess@0.2.0".to_owned()]
+            vec!["magistr:subprocess/subprocess@0.2.0".to_owned()]
         } else {
             vec![]
         },

@@ -29,7 +29,7 @@ fn workspace() -> tempfile::TempDir {
 /// A workspace whose journal holds two ops, the second an edit of the first.
 fn seeded() -> tempfile::TempDir {
     let dir = workspace();
-    let state = dir.path().join(".workbench");
+    let state = dir.path().join(".magistr/workspace");
     std::fs::create_dir_all(&state).expect("state dir");
     let mut journal =
         JournalDb::open(JournalDbOptions::new(state.join("journal.db"))).expect("journal");
@@ -67,7 +67,7 @@ fn seeded() -> tempfile::TempDir {
 /// Seeded findings: a quarantined input and a breakered plugin whose
 /// inventory names it.
 fn seed_findings(root: &Path) {
-    let state = root.join(".workbench");
+    let state = root.join(".magistr/workspace");
     std::fs::create_dir_all(&state).expect("state dir");
     std::fs::write(
         state.join("quarantine.jsonl"),
@@ -79,7 +79,7 @@ fn seed_findings(root: &Path) {
 fn run(args: &[&str], cwd: &Path) -> Output {
     let mut command = magistr_command();
     command.arg("workspace").args(args).current_dir(cwd);
-    command.env("WORKBENCH_NETWORK_FS", "0");
+    command.env("MAGISTR_WORKSPACE_NETWORK_FS", "0");
     command.output().expect("run the binary")
 }
 
@@ -152,7 +152,7 @@ fn journal_prints_the_log_as_one_envelope_of_rows_newest_op_first() {
 fn journal_and_doctor_run_beside_a_live_owner_without_taking_or_disturbing_the_lock() {
     let dir = seeded();
     let root = dir.path().to_str().expect("utf8 root");
-    let state = dir.path().join(".workbench");
+    let state = dir.path().join(".magistr/workspace");
     seed_findings(dir.path());
     // A live instance owns the workspace, exactly as during `magistr run`:
     // the OS lock is held and the journal writer stays open.
@@ -179,7 +179,7 @@ fn journal_and_doctor_run_beside_a_live_owner_without_taking_or_disturbing_the_l
     );
     assert_eq!(code(&bundle), Some(1), "{}", stderr(&bundle));
     assert!(target.is_file());
-    assert!(stderr(&bundle).contains("workbench-doctor/quarantine.json"));
+    assert!(stderr(&bundle).contains("workspace-doctor/quarantine.json"));
     // A diagnostic never destroys a prior diagnostic.
     let again = run(
         &[
@@ -243,7 +243,7 @@ fn a_workspace_that_never_wrote_says_so_and_misuse_is_a_usage_error() {
     assert!(stdout(&text).is_empty());
     assert!(stderr(&text).contains("no journal yet at"));
     assert!(
-        !dir.path().join(".workbench").exists(),
+        !dir.path().join(".magistr/workspace").exists(),
         "journal created state"
     );
 
@@ -283,7 +283,7 @@ fn a_workspace_that_never_wrote_says_so_and_misuse_is_a_usage_error() {
 fn a_journal_written_by_a_newer_binary_fails_closed_with_the_file_untouched() {
     let dir = workspace();
     let root = dir.path().to_str().expect("utf8 root");
-    let state = dir.path().join(".workbench");
+    let state = dir.path().join(".magistr/workspace");
     std::fs::create_dir_all(&state).expect("state dir");
     let path = state.join("journal.db");
     let raw = rusqlite::Connection::open(&path).expect("raw journal");
@@ -304,7 +304,7 @@ fn a_healthy_workspace_exits_zero_and_doctor_config_renders_provenance() {
     let healthy = run(&["doctor", root], dir.path());
     assert_eq!(code(&healthy), Some(0), "{}", stderr(&healthy));
     let out = stdout(&healthy);
-    assert!(out.starts_with("workbench doctor — workspace "), "{out}");
+    assert!(out.starts_with("workspace doctor — workspace "), "{out}");
     for section in [
         "[environment]",
         "[index]",
@@ -328,7 +328,7 @@ fn a_healthy_workspace_exits_zero_and_doctor_config_renders_provenance() {
         "{out}"
     );
     // The probes never create the state dir (read-only).
-    assert!(!dir.path().join(".workbench").exists());
+    assert!(!dir.path().join(".magistr/workspace").exists());
 
     let config = run(
         &["doctor", "config", root, "--config", "budgets.default=9999"],
@@ -337,7 +337,7 @@ fn a_healthy_workspace_exits_zero_and_doctor_config_renders_provenance() {
     assert_eq!(code(&config), Some(0), "{}", stderr(&config));
     let out = stdout(&config);
     assert!(
-        out.contains("workbench doctor config — workspace "),
+        out.contains("workspace doctor config — workspace "),
         "{out}"
     );
     assert!(
@@ -345,7 +345,7 @@ fn a_healthy_workspace_exits_zero_and_doctor_config_renders_provenance() {
         "{out}"
     );
     assert!(out.contains("budgets.default = 9999  (session)"), "{out}");
-    assert!(!dir.path().join(".workbench").exists());
+    assert!(!dir.path().join(".magistr/workspace").exists());
 }
 
 #[test]
@@ -362,8 +362,8 @@ fn a_bundle_lands_under_the_retained_default_name_in_the_current_directory() {
         .collect();
     assert_eq!(written.len(), 1, "{written:?}");
     let name = written[0].file_name().expect("name").to_string_lossy();
-    assert!(name.starts_with("workbench-doctor-bundle-") && name.ends_with(".tar.gz"));
-    assert!(stderr(&bundle).contains("workbench-doctor/manifest.json"));
+    assert!(name.starts_with("workspace-doctor-bundle-") && name.ends_with(".tar.gz"));
+    assert!(stderr(&bundle).contains("workspace-doctor/manifest.json"));
 }
 
 #[test]
@@ -372,8 +372,8 @@ fn key_rotate_needs_a_served_workspace_and_then_replaces_the_key() {
     let root = dir.path().to_str().expect("utf8 root");
     let refused = run(&["key", "rotate", root], dir.path());
     assert_eq!(code(&refused), Some(66));
-    assert!(stderr(&refused).contains("not a workbench workspace"));
-    let state = dir.path().join(".workbench");
+    assert!(stderr(&refused).contains("not a workspace workspace"));
+    let state = dir.path().join(".magistr/workspace");
     std::fs::create_dir_all(&state).expect("state dir");
     let first = run(&["key", "rotate", root], dir.path());
     assert_eq!(code(&first), Some(0), "{}", stderr(&first));
@@ -404,7 +404,7 @@ fn init_seeds_the_commands_table_once_and_never_touches_an_existing_one() {
     let nothing = run(&["init", root], dir.path());
     assert_eq!(code(&nothing), Some(0));
     assert!(stderr(&nothing).contains("no project commands detected — nothing seeded"));
-    assert!(!dir.path().join("workbench.toml").exists());
+    assert!(!dir.path().join(".magistr/workspace.toml").exists());
 
     std::fs::write(
         dir.path().join("package.json"),
@@ -413,7 +413,7 @@ fn init_seeds_the_commands_table_once_and_never_touches_an_existing_one() {
     .expect("manifest");
     std::fs::write(dir.path().join("bun.lock"), "").expect("lockfile");
     std::fs::write(
-        dir.path().join("workbench.toml"),
+        dir.path().join(".magistr/workspace.toml"),
         "[edit]\nconfirm_mode = \"token\"\n",
     )
     .expect("existing config");
@@ -424,7 +424,7 @@ fn init_seeds_the_commands_table_once_and_never_touches_an_existing_one() {
         stderr(&seeded)
             .contains("  test = \"bun run test\"  (package.json scripts.test + bun.lock)")
     );
-    let toml = std::fs::read_to_string(dir.path().join("workbench.toml")).expect("toml");
+    let toml = std::fs::read_to_string(dir.path().join(".magistr/workspace.toml")).expect("toml");
     assert!(
         toml.starts_with("[edit]\nconfirm_mode = \"token\"\n\n# Seeded by"),
         "{toml}"
@@ -437,7 +437,7 @@ fn init_seeds_the_commands_table_once_and_never_touches_an_existing_one() {
     assert_eq!(code(&untouched), Some(0));
     assert!(stderr(&untouched).contains("already declares [commands] — left untouched"));
     assert_eq!(
-        std::fs::read_to_string(dir.path().join("workbench.toml")).expect("toml"),
+        std::fs::read_to_string(dir.path().join(".magistr/workspace.toml")).expect("toml"),
         toml
     );
     assert_eq!(code(&run(&["init", "missing"], dir.path())), Some(66));
@@ -447,7 +447,7 @@ fn init_seeds_the_commands_table_once_and_never_touches_an_existing_one() {
 fn snapshot_prints_the_source_observation_beside_a_live_owner_and_refuses_bad_inputs() {
     let dir = seeded();
     let root = dir.path().to_str().expect("utf8 root");
-    let state = dir.path().join(".workbench");
+    let state = dir.path().join(".magistr/workspace");
     std::fs::write(dir.path().join(".gitignore"), "target/\n").expect("ignore");
     std::fs::create_dir_all(dir.path().join("target")).expect("target");
     std::fs::write(dir.path().join("target/built"), "artifact").expect("artifact");
@@ -470,8 +470,8 @@ fn snapshot_prints_the_source_observation_beside_a_live_owner_and_refuses_bad_in
     let entries = parsed["manifest"]["entries"].as_object().expect("entries");
     assert_eq!(entries["a.ts"]["kind"], "text");
     assert_eq!(entries["target/built"]["kind"], "text");
-    assert_eq!(entries["workbench.toml"]["kind"], "missing");
-    assert!(!entries.contains_key(".workbench/journal.db"));
+    assert_eq!(entries[".magistr/workspace.toml"]["kind"], "missing");
+    assert!(!entries.contains_key(".magistr/workspace/journal.db"));
     assert_eq!(snapshot(&state), before, "the state dir was rewritten");
     let refused = run(&["snapshot", root, "--artifact", "../escape"], dir.path());
     assert_eq!(code(&refused), Some(64), "{}", stderr(&refused));
@@ -554,10 +554,10 @@ fn doctor_explains_stalled_then_recoverable_operations_and_a_legacy_marker() {
     );
 
     // A legacy marker is an unhealthy owner finding naming the migration.
-    let workbench = dir.path().join(".workbench");
-    std::fs::create_dir_all(&workbench).expect("workbench");
+    let workspace = dir.path().join(".magistr/workspace");
+    std::fs::create_dir_all(&workspace).expect("workspace");
     std::fs::write(
-        workbench.join(ServerLock::FILE_NAME),
+        workspace.join(ServerLock::FILE_NAME),
         br#"{"pid":0,"host":"elsewhere"}"#,
     )
     .expect("legacy marker");

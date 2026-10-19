@@ -50,7 +50,7 @@ impl DetectedCommand {
     #[must_use]
     pub fn render_table(commands: &[Self]) -> String {
         let mut lines = vec![
-            "# Seeded by `workbench-mcp init` from lockfile/manifest detection (SDD §9.6).".into(),
+            "# Suggested by `magistr workspace init` from this project's manifests.".into(),
             "# Amend by hand: this table is run's allowlist and only a human may change it.".into(),
             "[commands]".into(),
         ];

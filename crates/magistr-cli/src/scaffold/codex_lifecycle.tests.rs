@@ -59,7 +59,10 @@ fn codex_setup_merges_shared_files_and_preview_matches_generation() {
         doc["mcp_servers"]["magistr"]["command"].as_str(),
         Some("magistr")
     );
-    assert!(doc["mcp_servers"].get("think-and-ship").is_none());
+    assert_eq!(
+        doc["mcp_servers"]["custom"]["command"].as_str(),
+        Some("mine")
+    );
     for name in [
         "next",
         "next-loop",
@@ -69,7 +72,7 @@ fn codex_setup_merges_shared_files_and_preview_matches_generation() {
         "signals",
         "craft",
         "init",
-        "workbench-routing",
+        "workspace-routing",
     ] {
         assert!(
             dir.join(format!(".agents/skills/{name}/SKILL.md"))

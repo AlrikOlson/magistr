@@ -1,10 +1,10 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://workbench-mcp.dev/schemas/tools/edit.input.schema.json",
+  "$id": "https://magistr.dev/schemas/workspace/tools/edit.input.schema.json",
   "title": "edit",
   "description": "Verified structural editing — replaces sed, awk and patch (SDD 9.4). Symbol verbs (replace_body | insert_after | insert_before | rename) address code via the Tier-1 index; rewrite applies an ast-grep pattern across a glob scope; replace_text is the anchored literal fallback for any file. Every verb resolves to a full-content write batch through the 7.5 write engine: dry-run diff, parse-verify (a new syntax error rejects the whole call with PARSE_REJECTED), format, journal, atomic swap. Under edit.confirm_mode = \"token\", all verified writes apply on the first call unless edit.force_confirm is set. Dry runs never apply and presented confirmations are always validated. In human confirmation mode, single-file symbol/text edits auto-apply; rewrite, rename, and any op touching more than one file or more than 200 changed lines are confirm-gated (SDD 9.4): on MRTR clients the confirmation is elicited inside the same call, otherwise CONFIRM_REQUIRED carries the aggregated dry-run diff plus an HMAC-sealed confirmToken — re-invoke the identical call with confirm set to that token to apply. A stale confirm fails closed with STALE_ANCHOR, a forged or mismatched one with CONFIRM_MISMATCH. read's contentHash is the staleness anchor: pass it as expectedHash and a changed file answers STALE_ANCHOR with the fresh hash.",
-  "x-workbench-status": "normative",
-  "x-workbench-owned-by": "chunk:m2-mrtr-confirm",
+  "x-magistr-status": "normative",
+  "x-magistr-owned-by": "chunk:m2-mrtr-confirm",
   "type": "object",
   "required": ["op"],
   "properties": {

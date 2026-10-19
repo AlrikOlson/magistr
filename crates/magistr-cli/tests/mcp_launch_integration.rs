@@ -63,15 +63,15 @@ fn fixture_command(root: &Path) -> Command {
     let mut command = magistr_command::magistr_command();
     command
         .current_dir(root)
-        .env("THINK_AND_SHIP_DATA_DIR", root.join("state"))
+        .env("MAGISTR_WORKFLOW_DATA_DIR", root.join("state"))
         .env("XDG_CONFIG_HOME", root.join("config"))
         .env("XDG_DATA_HOME", root.join("data"))
         .env("PATH", "")
-        .env("WORKBENCH_NETWORK_FS", "0")
-        .env_remove("WORKBENCH_ORG_POLICY")
-        .env_remove("WORKBENCH_USER_CONFIG")
-        .env_remove("WORKBENCH_MCP")
-        .env_remove("WORKBENCH_MCP_REPO")
+        .env("MAGISTR_WORKSPACE_NETWORK_FS", "0")
+        .env_remove("MAGISTR_WORKSPACE_ORG_POLICY")
+        .env_remove("MAGISTR_WORKSPACE_USER_CONFIG")
+        .env_remove("MAGISTR_WORKSPACE_MCP")
+        .env_remove("MAGISTR_WORKSPACE_MCP_REPO")
         .env_remove("MAGISTR_LOG")
         .env_remove("MAGISTR_LOG_FILE")
         .env("NO_COLOR", "1");
@@ -120,13 +120,15 @@ fn invoke_native(mut command: Command) -> Output {
 /// the durable generation, and no other candidate root gained one.
 fn assert_workspace(expected: &Path, others: &[&Path]) {
     assert!(
-        expected.join(".workbench/server.generation").is_file(),
+        expected
+            .join(".magistr/workspace/server.generation")
+            .is_file(),
         "no native admission under {}",
         expected.display()
     );
     for other in others {
         assert!(
-            !other.join(".workbench").exists(),
+            !other.join(".magistr/workspace").exists(),
             "an unrelated root was admitted: {}",
             other.display()
         );

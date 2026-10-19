@@ -12,12 +12,7 @@ REVISION = "8c10c1fcfb479e90b33c59502eabd92586cf0761"
 SUBSYSTEM = Path("subsystems/workflow")
 CRATE = Path("crates/magistr-workflow")
 PACKAGE = "magistr-workflow"
-RETIRED = ("src/main.rs", "src/cli", "build.rs", "examples", "skill-clients", "README.md")
-SKILLS = (
-    "advance-work", "business-intel", "craft", "gui-blueprint", "gui-scrutiny",
-    "handoff", "roadmap", "roadmap-refresh", "roadmap-refresh-sk", "roadmap-run",
-    "roadmap-sk", "signals", "switch-work",
-)
+RETIRED = ("src/main.rs", "src/cli", "build.rs", "examples", "skill-clients", "skills", "README.md")
 
 
 def check(root):
@@ -45,13 +40,11 @@ def check(root):
         "Cargo.toml", "src/lib.rs",
         "src/think/mod.rs", "src/ship/mod.rs", "src/roadmap/mod.rs", "src/signal/mod.rs",
         "src/tracker/host/mod.rs",
-        "tests/family_stores_durability.rs", "tests/think_and_ship_e2e.rs",
-        "tests/unified_service.rs", "tests/skill_evaluations.rs",
+        "tests/family_stores_durability.rs", "tests/workflow_e2e.rs",
+        "tests/unified_service.rs",
         "tests/tool_surface.txt", "tests/fixtures/projects_v2_fields.json",
     ):
         required_file(CRATE / relative)
-    for skill in SKILLS:
-        required_file(CRATE / "skills" / skill / "SKILL.md")
     # The standalone surfaces retired by arch-14f4 stay deleted: no binary, no
     # CLI, no skill embedding, no examples. The library is release-coupled to the published CLI.
     for relative in RETIRED:

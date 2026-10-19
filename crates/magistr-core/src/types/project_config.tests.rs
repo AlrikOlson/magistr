@@ -9,6 +9,7 @@ use crate::types::{
 fn sample_config() -> ProjectConfig {
     ProjectConfig {
         project: ProjectMeta {
+            id: None,
             name: "test-project".to_string(),
             description: "A test project".to_string(),
             project_type: "cli".to_string(),
@@ -114,12 +115,12 @@ fn stack_config_fields() {
 }
 
 #[test]
-fn roadmap_backend_defaults_to_think_and_ship_and_is_written() {
+fn roadmap_backend_defaults_to_workflow_and_is_written() {
     let config = sample_config();
-    assert_eq!(config.roadmap_backend, RoadmapBackend::ThinkAndShip);
+    assert_eq!(config.roadmap_backend, RoadmapBackend::Native);
     let json = serde_json::to_string(&config).expect("serialize");
     assert!(
-        json.contains("\"roadmap_backend\":\"think-and-ship\""),
+        json.contains("\"roadmap_backend\":\"native\""),
         "the backend is always written: {json}"
     );
 }
@@ -136,7 +137,7 @@ fn roadmap_backend_yaml_round_trips() {
 
 #[test]
 fn deserializes_without_spec_block() {
-    // A think-and-ship project carries no YAML spec: `spec` is absent from
+    // A magistr project carries no YAML spec: `spec` is absent from
     // .magistr/project.json and must not fail deserialization.
     let json = r#"{
         "project": {"name": "foo", "description": "", "type": "cli"},
@@ -146,7 +147,7 @@ fn deserializes_without_spec_block() {
         "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"},
         "reference_repos": [],
         "state_prefix": "foo",
-        "roadmap_backend": "think-and-ship"
+        "roadmap_backend": "native"
     }"#;
     let config: ProjectConfig = serde_json::from_str(json).expect("spec is optional");
     assert!(config.spec.is_none());

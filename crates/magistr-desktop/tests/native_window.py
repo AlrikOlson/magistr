@@ -52,7 +52,7 @@ def project(path, name):
     (path/".magistr/project.json").write_text(json.dumps({
         "project":{"name":name,"description":"","type":"cli"},
         "stack":{"language":"rust","framework":"none","package_manager":"cargo","test_framework":"cargo-test","linter":"clippy","formatter":"rustfmt"},
-        "roadmap_backend":"think-and-ship","roadmap_exports":False,
+        "roadmap_backend":"native","roadmap_exports":False,
         "quality_gate":{"check":"true","test":"true","lint":"true"},
         "format":{"command":"true","extensions":["rs"]},
         "testing":{"companion_pattern":"{name}.tests.{ext}","test_dir":"alongside"},
@@ -321,7 +321,7 @@ def main():
             call("press",pid,"Apply selected files")
             wait("successful setup opens the agent in the same window",lambda tree:any(r.get("AXRole")=="AXTextArea" and r.get("enabled") for r in tree))
             assert (new/"CLAUDE.md").read_text().startswith("My own project instructions")
-            assert (new/".think-and-ship/project.json").is_file()
+            assert (new/".magistr/project.json").is_file()
             results["checks"]["setup preserves user instructions and project identity"]=True
             call("press",pid,"Close session")
             wait("setup session closes back to chooser",text_has("Your session has closed"))

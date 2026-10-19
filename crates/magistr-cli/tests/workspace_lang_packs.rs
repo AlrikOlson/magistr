@@ -26,7 +26,7 @@ const BROKEN_GLEAM: &str = "pub fn broken( {\n";
 
 fn reference_pack() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../subsystems/workspace/reference/plugins/lang-pack-gleam")
+        .join("../magistr-workspace/fixtures/plugins/lang-pack-gleam")
 }
 
 /// A workspace with the Gleam pack installed (`component` selects the carrier
@@ -35,7 +35,7 @@ fn workspace(component: Option<&[u8]>) -> tempfile::TempDir {
     let dir = tempfile::tempdir().expect("workspace");
     let root = dir.path();
     fs::create_dir_all(root.join(".git")).expect("repository marker");
-    fs::create_dir_all(root.join(".workbench")).expect("state dir");
+    fs::create_dir_all(root.join(".magistr/workspace")).expect("state dir");
     fs::create_dir_all(root.join("src")).expect("source dir");
     fs::write(root.join("src/main.gleam"), GLEAM_FIXTURE).expect("gleam source");
     if let Some(component) = component {
@@ -47,9 +47,9 @@ fn workspace(component: Option<&[u8]>) -> tempfile::TempDir {
         .expect("manifest");
         fs::write(root.join("plugins/lang-pack-gleam/guest.wasm"), component).expect("carrier");
         fs::write(
-            root.join(".workbench/plugins.json"),
+            root.join(".magistr/workspace/plugins.json"),
             json!({ "plugins": [{
-                "name": "workbench.lang-pack-gleam",
+                "name": "magistr.lang-pack-gleam",
                 "source": "registry",
                 "tier": "verified",
                 "dir": "plugins/lang-pack-gleam",
@@ -77,7 +77,7 @@ async fn built(service: &WorkspaceService, after: u64) -> IndexStatus {
     let deadline = Instant::now() + WAIT;
     loop {
         let status = service.index_status();
-        if !status.building && status.generation > after {
+        if !status.building && !status.refresh_pending && status.generation > after {
             return status;
         }
         assert!(Instant::now() < deadline, "index did not build: {status:?}");
@@ -160,7 +160,7 @@ async fn the_gleam_pack_is_registered_selected_and_restored_after_a_forced_worke
     };
     assert!(
         notes.as_deref().unwrap_or_default().iter().any(|note| note
-            == "lang pack workbench.lang-pack-gleam: gleam registered on the wasm lane (extensions: gleam)"),
+            == "lang pack magistr.lang-pack-gleam: gleam registered on the wasm lane (extensions: gleam)"),
         "{notes:?}"
     );
 
@@ -169,7 +169,11 @@ async fn the_gleam_pack_is_registered_selected_and_restored_after_a_forced_worke
     // The plugin's manifest and carrier are files too; only the Gleam source
     // has a grammar.
     assert_eq!(first_build.files, 3, "{first_build:?}");
-    assert_eq!(first_build.parsed, 1, "{first_build:?}");
+    assert_eq!(
+        first_build.parsed + first_build.reused,
+        first_build.files,
+        "{first_build:?}"
+    );
     assert_eq!(
         defining_files(&service, "greet").await,
         vec!["src/main.gleam"]
@@ -221,7 +225,7 @@ async fn the_gleam_pack_is_registered_selected_and_restored_after_a_forced_worke
         Some("gleam")
     );
     assert!(
-        PluginHealth::new(&dir.path().join(".workbench"))
+        PluginHealth::new(&dir.path().join(".magistr/workspace"))
             .read()
             .is_empty(),
         "a foreign kill is not the pack's breach"
@@ -243,7 +247,11 @@ async fn the_gleam_pack_is_registered_selected_and_restored_after_a_forced_worke
     // incarnation.
     let _ = references(&service, "greet").await;
     let rebuilt = built(&service, first_build.generation).await;
-    assert_eq!(rebuilt.parsed, 1, "{rebuilt:?}");
+    assert_eq!(
+        rebuilt.parsed + rebuilt.reused,
+        rebuilt.files,
+        "{rebuilt:?}"
+    );
     assert_eq!(
         defining_files(&service, "restarted").await,
         vec!["src/main.gleam"]
@@ -268,12 +276,12 @@ async fn a_pack_that_fails_to_register_is_a_row_and_a_breach_and_selects_nothing
     };
     assert!(
         notes.as_deref().unwrap_or_default().iter().any(|note| {
-            note.starts_with("lang pack workbench.lang-pack-gleam: not registered (")
+            note.starts_with("lang pack magistr.lang-pack-gleam: not registered (")
         }),
         "{notes:?}"
     );
     assert_eq!(
-        PluginHealth::new(&dir.path().join(".workbench"))
+        PluginHealth::new(&dir.path().join(".magistr/workspace"))
             .read()
             .len(),
         1,

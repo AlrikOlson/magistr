@@ -1,5 +1,5 @@
 //! Pure RFC 8628 (OAuth 2.0 Device Authorization Grant) core — the algorithmic
-//! heart of `think-and-ship connect`.
+//! heart of `magistr connect`.
 //!
 //! This module holds the wire response types, the §3.5 poll-decision logic
 //! (when to keep waiting, when to back off, when to give up), and the

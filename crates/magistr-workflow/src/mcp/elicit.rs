@@ -40,7 +40,7 @@
 //!
 //! One question, at one moment: after a human has run `tracker_setup`, may the
 //! unattended sweep record proposals on their roadmap? Today that is
-//! `THINK_AND_SHIP_TRACKER_PROPOSE`, default-off — an env var so invisible that
+//! `MAGISTR_WORKFLOW_TRACKER_PROPOSE`, default-off — an env var so invisible that
 //! dedicated follow-up work was needed just to make it announce itself. The
 //! answer is remembered in [`crate::tracker::propose_consent`], so nobody is
 //! asked twice.
@@ -68,7 +68,7 @@ use crate::tracker::propose_consent::ProposeConsent;
 /// Deliberately a *separate* switch from what is being consented to. The
 /// remembered answer lives on disk; this says whether a question may be put on
 /// the wire in the first place. An unattended harness sets neither.
-pub const ASK_ENV: &str = "THINK_AND_SHIP_ELICIT";
+pub const ASK_ENV: &str = "MAGISTR_WORKFLOW_ELICIT";
 
 /// How long a question may wait for an answer before the call gives up and
 /// takes the default. Short enough that a forgotten prompt never holds a tool
@@ -78,7 +78,7 @@ pub const ASK_TIMEOUT: Duration = Duration::from_secs(60);
 /// Whether the server may ask, from the raw env value.
 ///
 /// Only an explicit `1` or `true` enables it — the writer's fallback direction
-/// this codebase already uses for `THINK_AND_SHIP_TRACKER_PROPOSE`: a typo
+/// this codebase already uses for `MAGISTR_WORKFLOW_TRACKER_PROPOSE`: a typo
 /// means off, because an unexpected prompt in an unattended run is worse than a
 /// question that never gets asked.
 #[must_use]
@@ -99,11 +99,11 @@ pub fn asking_enabled() -> bool {
 /// assertable by value rather than by "a message was present".
 #[must_use]
 pub fn propose_consent_prompt() -> String {
-    "think-and-ship can watch your issue tracker in the background and record \
+    "magistr can watch your issue tracker in the background and record \
      what changed as PROPOSALS on your roadmap — suggested status and title \
      changes that you accept or reject. It never edits the plan on its own. \
      May it do that? (You can change this any time with \
-     THINK_AND_SHIP_TRACKER_PROPOSE.)"
+     MAGISTR_WORKFLOW_TRACKER_PROPOSE.)"
         .to_string()
 }
 
@@ -198,12 +198,12 @@ pub async fn ask_propose_consent(
         .contains(&ElicitationMode::Form)
     {
         tracing::warn!(
-            "[think-and-ship] {ASK_ENV} is on, but this client declared no \
+            "[magistr] {ASK_ENV} is on, but this client declared no \
              elicitation capability — keeping the default (proposals off)."
         );
         return AskOutcome::Unanswered(Unanswered::ClientCannotAsk);
     }
-    tracing::debug!("[think-and-ship] asking the human whether background sweeps may propose.");
+    tracing::debug!("[magistr] asking the human whether background sweeps may propose.");
     // Part 3. `wait` is never `None`, because it cannot be.
     match peer
         .elicit_with_timeout::<ProposeConsentAnswer>(propose_consent_prompt(), Some(wait))
@@ -292,7 +292,7 @@ mod tests {
             "the limit of the consent is the load-bearing sentence"
         );
         assert!(
-            p.contains("THINK_AND_SHIP_TRACKER_PROPOSE"),
+            p.contains("MAGISTR_WORKFLOW_TRACKER_PROPOSE"),
             "a consent with no stated way to revoke it is not consent"
         );
     }

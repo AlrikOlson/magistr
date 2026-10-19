@@ -10,8 +10,8 @@ fn workspace() -> tempfile::TempDir {
     let root = dir.path();
     fs::create_dir_all(root.join(".git/objects")).expect("repository");
     fs::write(root.join(".git/HEAD"), "ref: refs/heads/main\n").expect("head");
-    fs::create_dir_all(root.join(".workbench")).expect("owner state");
-    fs::write(root.join(".workbench/journal.db"), b"sqlite").expect("journal");
+    fs::create_dir_all(root.join(".magistr/workspace")).expect("owner state");
+    fs::write(root.join(".magistr/workspace/journal.db"), b"sqlite").expect("journal");
     fs::create_dir_all(root.join("src")).expect("src");
     fs::write(root.join("src/lib.rs"), "pub fn a() {}\n").expect("source");
     fs::create_dir_all(root.join("assets")).expect("assets");
@@ -71,7 +71,7 @@ fn the_manifest_selects_source_and_explicit_config_but_never_state_or_ignored_ou
         EntryKind::Text
     );
     assert_eq!(
-        entry(&snapshot, "workbench.toml"),
+        entry(&snapshot, ".magistr/workspace.toml"),
         &ManifestEntry::missing()
     );
     #[cfg(unix)]
@@ -84,7 +84,7 @@ fn the_manifest_selects_source_and_explicit_config_but_never_state_or_ignored_ou
     for absent in [
         "target/out",
         ".magistr/state.json",
-        ".workbench/journal.db",
+        ".magistr/workspace/journal.db",
         ".git/HEAD",
     ] {
         assert!(
@@ -144,7 +144,8 @@ fn every_kind_of_external_change_is_observed() {
     fs::remove_file(root.join("assets/logo.bin")).expect("delete");
     fs::write(root.join("NEW.md"), "untracked\n").expect("untracked");
     fs::write(root.join(".magistr/project.json"), "{\"gate\":2}").expect("config change");
-    fs::write(root.join("workbench.toml"), "[commands]\n").expect("config appears");
+    std::fs::create_dir_all(root.join(".magistr")).unwrap();
+    fs::write(root.join(".magistr/workspace.toml"), "[commands]\n").expect("config appears");
     fs::write(root.join("src/lib.rs"), [0_u8, 1, 2]).expect("text becomes binary");
     fs::write(root.join("target/out"), "rebuilt").expect("ignored output changes");
     fs::write(root.join(".magistr/state.json"), "{\"phase\":2}").expect("state changes");
@@ -153,7 +154,7 @@ fn every_kind_of_external_change_is_observed() {
         change(".magistr/project.json", ChangeKind::Modified),
         change("assets/logo.bin", ChangeKind::Removed),
         change("src/lib.rs", ChangeKind::Modified),
-        change("workbench.toml", ChangeKind::Modified),
+        change(".magistr/workspace.toml", ChangeKind::Modified),
     ];
     #[cfg(unix)]
     {
@@ -169,7 +170,10 @@ fn every_kind_of_external_change_is_observed() {
     assert_eq!(changes(&snapshot, root), expected);
     let later = SourceSnapshot::capture(root, SelectionPolicy::default()).expect("later");
     assert_eq!(entry(&later, "src/lib.rs").kind, EntryKind::Binary);
-    assert_eq!(entry(&later, "workbench.toml").kind, EntryKind::Text);
+    assert_eq!(
+        entry(&later, ".magistr/workspace.toml").kind,
+        EntryKind::Text
+    );
     #[cfg(unix)]
     assert_eq!(entry(&later, ".gitignore").mode, 0o755);
 }
@@ -223,7 +227,7 @@ fn explicit_artifacts_are_hashed_even_when_ignored_and_state_paths_are_refused()
     for refused in [
         "../escape",
         "/etc/passwd",
-        ".workbench/key",
+        ".magistr/workspace/key",
         ".git/HEAD",
         "",
     ] {
@@ -263,7 +267,7 @@ fn a_selection_past_the_ceiling_is_refused_not_truncated() {
 #[test]
 fn the_durable_generation_is_observed_strictly_and_never_advanced() {
     let dir = workspace();
-    let counter = dir.path().join(".workbench/server.generation");
+    let counter = dir.path().join(".magistr/workspace/server.generation");
     fs::write(&counter, format!("{:020}", 7)).expect("counter");
     let snapshot =
         SourceSnapshot::capture(dir.path(), SelectionPolicy::default()).expect("snapshot");

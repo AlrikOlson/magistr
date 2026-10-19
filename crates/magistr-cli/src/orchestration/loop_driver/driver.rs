@@ -966,9 +966,9 @@ impl LoopDriver {
             .native
             .as_ref()
             .map(|engines| Box::new(NativeEnginePort::new(engines.clone())) as _);
-        // The loop's cockpit reaches the same workbench the agent does:
-        // the project's configured workbench-mcp, over its stdio.
-        let workbench = crate::orchestration::commands::workbench_port::workbench_port(spec.cwd());
+        // The loop's cockpit reaches the same workspace the agent does:
+        // the project's configured magistr, over its stdio.
+        let workspace = crate::orchestration::commands::workspace_port::workspace_port(spec.cwd());
         let mut options = SessionOptions::new();
         if send_opening {
             options = options.opening_prompt(spec.prompt());
@@ -987,7 +987,7 @@ impl LoopDriver {
             Box::new(handle),
             session_inbox.tap(self.tap_tx.clone()),
             session_commands,
-            workbench,
+            workspace,
             engine,
             // The session holds no ledger of its own on the loop: every
             // checkpoint verb — the boundary's save, a `/checkpoint-now`,
@@ -2020,7 +2020,7 @@ impl LoopDriver {
         // this set lands on this task, and the completion names it.
         let verification = engines
             .as_ref()
-            .ok_or_else(|| "no think-and-ship engines".to_owned())
+            .ok_or_else(|| "no magistr engines".to_owned())
             .and_then(|engines| {
                 engines
                     .ship_admit_task(None)

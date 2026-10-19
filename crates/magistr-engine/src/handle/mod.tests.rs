@@ -393,7 +393,7 @@ fn a_resume_refuses_a_snapshot_holding_an_unanswered_permission() {
 fn a_resume_reports_what_the_move_left_behind() {
     let snapshot = first_process().capture().unwrap().resident_on(vec![
         crate::SessionResidency::AgentProcess { pid: Some(11) },
-        crate::SessionResidency::WorkbenchLock {
+        crate::SessionResidency::WorkspaceLock {
             workspace: "/tmp/test".into(),
         },
     ]);

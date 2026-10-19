@@ -1,0 +1,96 @@
+/// magistr:subprocess — the narrow subprocess capability (SDD §8.3
+/// Resolvers; specs/001-lsp-resolver-plugin research D2/D3). The one
+/// capability reserved to blessed plugins: the host additionally requires
+/// inventory tier `blessed` before honoring a grant of this import
+/// (src/tools/plugins.ts), so no grant a human can be tricked into giving a
+/// sideload ever opens it.
+///
+/// Constitution IV boundary: this is NOT general execution. A guest never
+/// names a binary, an argv, or an environment — it addresses a language id,
+/// and the host resolves it through its own curated detection table
+/// (src/protocol/resolver-plugin.ts). Transport is framed stdio only; the
+/// host adds/strips LSP Content-Length framing (transport, not protocol —
+/// the JSON-RPC client lives in the guest).
+///
+/// Sessions are u32 handles, valid only within the current guest invoke.
+/// Since 0.2.0 (specs/007-resolver-server-pool) the SERVER PROCESS behind a
+/// handle may outlive the invoke: the host keeps a supervised pool of warm
+/// sessions keyed by workspace root + detected spec, hands one back on the
+/// next `open` for the same language with `reused` = true, and kills it on
+/// `close`, on any invoke that ends by fuel exhaustion / trap / memory cap,
+/// on an idle limit, and when the engine child exits. One live server per
+/// spec, bounded frame sizes, bounded spawn rate; a session held by another in-flight invoke is refused with
+/// `spawn-refused`, never awaited.
+///
+/// The host and plugin must use this exact contract and capability grant.
+package magistr:subprocess@0.2.0;
+
+interface subprocess {
+  /// Why the host refused to open a server session.
+  variant open-error {
+    /// No detected server spec exists for this language id.
+    unknown-spec(string),
+    /// A spec exists but the host refused or failed to spawn it (also: the
+    /// session is currently held by another in-flight invoke).
+    spawn-refused(string),
+    /// The spec's circuit is open (recorded unhealthy on disk).
+    unhealthy(string),
+  }
+
+  /// Why a frame could not be moved.
+  variant io-error {
+    /// The server process is gone.
+    dead(string),
+    /// No complete frame arrived inside the caller's timeout.
+    timeout(string),
+    /// The frame exceeds the host's size ceiling.
+    frame-too-large(string),
+    /// The session handle is unknown or already closed.
+    bad-session(string),
+  }
+
+  /// The language ids the host's detection table currently serves. A guest
+  /// iterates these; it can never enumerate binaries or paths.
+  specs: func() -> list<string>;
+
+  /// The workspace root, for protocol handshakes that need one (e.g. LSP
+  /// rootUri) and for relativizing server-reported locations. Informational:
+  /// no filesystem authority is attached.
+  workspace-root: func() -> string;
+
+  /// Open (or reuse) the session for the detected server of `language-id`.
+  /// The host resolves which binary runs; the guest only selects a language.
+  /// A warm pooled session comes back with an EMPTY read buffer: frames the
+  /// server emitted while idle were discarded.
+  open: func(language-id: string) -> result<u32, open-error>;
+
+  /// Write one transport frame (the host applies Content-Length framing).
+  write-frame: func(session: u32, frame: list<u8>) -> result<_, io-error>;
+
+  /// Read the next transport frame, host-buffered, bounded by `timeout-ms`.
+  read-frame: func(session: u32, timeout-ms: u32) -> result<list<u8>, io-error>;
+
+  /// Release the session and kill its server process. Use it when the guest
+  /// judges the server unusable (dead, silent, malformed); a killed session
+  /// is never handed to a later invoke.
+  close: func(session: u32);
+
+  /// True when `session` is a warm session opened by an earlier guest invoke
+  /// and handed back by the host's pool. A guest whose protocol forbids
+  /// repeating its handshake (LSP: `initialize` once per connection) skips it
+  /// when this is true.
+  reused: func(session: u32) -> bool;
+
+  /// Return the session to the host's pool without killing its server
+  /// process. Sessions still open when the invoke ends normally are returned
+  /// the same way; sessions held by an invoke that ends by fuel exhaustion,
+  /// trap, or memory cap are killed instead. `close` still kills.
+  release: func(session: u32);
+}
+
+/// The world a subprocess-consuming plugin imports. The import name of
+/// `subprocess` in a plugin's own world IS the grant name
+/// (`magistr:subprocess/subprocess@0.2.0`).
+world subprocess-user {
+  import subprocess;
+}

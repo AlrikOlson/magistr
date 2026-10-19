@@ -19,11 +19,11 @@ impl Selection {
         let mut matcher = Self::walker(root).build_matchers().pop();
         move |path: &str| {
             let relative = Path::new(path);
-            if relative.as_os_str().is_empty()
-                || relative.components().any(|part| {
-                    !matches!(part, std::path::Component::Normal(_))
-                        || matches!(part.as_os_str().to_str(), Some(".git" | ".workbench"))
-                })
+            if crate::paths::is_owner_path(relative)
+                || relative.as_os_str().is_empty()
+                || relative
+                    .components()
+                    .any(|part| !matches!(part, std::path::Component::Normal(_)))
             {
                 return false;
             }
@@ -44,10 +44,8 @@ impl Selection {
         let state_dir = state_dir.to_path_buf();
         let walker = Self::walker(root)
             .filter_entry(move |entry| {
-                let name = entry.file_name().to_string_lossy();
-                !(entry.path().starts_with(&state_dir)
-                    || entry.file_type().is_some_and(|t| t.is_dir())
-                        && matches!(name.as_ref(), ".git" | ".workbench"))
+                let owned = crate::paths::is_owner_path(entry.path());
+                !(entry.path().starts_with(&state_dir) || owned)
             })
             .build();
         let mut paths = BTreeSet::new();

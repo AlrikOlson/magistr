@@ -202,32 +202,32 @@ fn commit_allows_a_shipped_objective_with_its_green_checks() {
     ));
 }
 
-// ── Bash routing to workbench ───────────────────────────────────────
+// ── Bash routing to workspace ───────────────────────────────────────
 
-fn with_workbench(command: &str) -> GuardInput {
+fn with_workspace(command: &str) -> GuardInput {
     GuardInput {
         command: Some(command.into()),
-        workbench: true,
+        workspace: true,
         project_dir: Some(PathBuf::from("/proj")),
         ..in_flight()
     }
 }
 
 #[test]
-fn a_workspace_grep_is_routed_to_workbench_whatever_the_gates_say() {
+fn a_workspace_grep_is_routed_to_workspace_whatever_the_gates_say() {
     let input = GuardInput {
         checks: vec![check(true, false, true)],
-        ..with_workbench("grep -rn foo src")
+        ..with_workspace("grep -rn foo src")
     };
     match evaluate(GuardEvent::Commit, &input) {
-        GuardVerdict::Block(reason) => assert!(reason.contains("workbench-mcp"), "{reason}"),
+        GuardVerdict::Block(reason) => assert!(reason.contains("magistr"), "{reason}"),
         other => panic!("expected Block, got {other:?}"),
     }
 }
 
 #[test]
-fn a_search_outside_the_workspace_passes_even_with_workbench() {
-    let input = with_workbench("find /elsewhere -name speech");
+fn a_search_outside_the_workspace_passes_even_with_workspace() {
+    let input = with_workspace("find /elsewhere -name speech");
     assert_eq!(
         evaluate(GuardEvent::Commit, &input),
         GuardVerdict::Allow(None)
@@ -235,16 +235,16 @@ fn a_search_outside_the_workspace_passes_even_with_workbench() {
 }
 
 #[test]
-fn nothing_is_routed_without_workbench_or_a_project_root() {
-    let no_workbench = GuardInput {
-        workbench: false,
-        ..with_workbench("grep -rn foo src")
+fn nothing_is_routed_without_workspace_or_a_project_root() {
+    let no_workspace = GuardInput {
+        workspace: false,
+        ..with_workspace("grep -rn foo src")
     };
     let no_root = GuardInput {
         project_dir: None,
-        ..with_workbench("grep -rn foo src")
+        ..with_workspace("grep -rn foo src")
     };
-    for input in [no_workbench, no_root] {
+    for input in [no_workspace, no_root] {
         assert_eq!(
             evaluate(GuardEvent::Commit, &input),
             GuardVerdict::Allow(None)
@@ -254,7 +254,7 @@ fn nothing_is_routed_without_workbench_or_a_project_root() {
 
 #[test]
 fn a_git_commit_is_gated_and_not_routed() {
-    let input = with_workbench("git commit -m x");
+    let input = with_workspace("git commit -m x");
     match evaluate(GuardEvent::Commit, &input) {
         GuardVerdict::Block(reason) => assert!(reason.contains("verified"), "{reason}"),
         other => panic!("expected Block, got {other:?}"),

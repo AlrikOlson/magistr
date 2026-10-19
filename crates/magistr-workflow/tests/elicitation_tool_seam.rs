@@ -2,7 +2,7 @@
 //! ON.
 //!
 //! `elicitation_consent.rs` proves the four guards against real clients, but
-//! every test there runs with `THINK_AND_SHIP_ELICIT` unset — the production
+//! every test there runs with `MAGISTR_WORKFLOW_ELICIT` unset — the production
 //! default — so none of them can say anything about what happens when it IS
 //! set. This binary turns it on. That makes it the only place where a silent
 //! outcome is evidence about the *tool seam* rather than about the env gate.
@@ -96,7 +96,7 @@ fn build_unified(project: &str) -> UnifiedService {
 ///
 /// The provider is deliberately one that does not exist: it is refused before
 /// any network is touched, which keeps this test offline while still producing
-/// a genuine `ok: false` envelope. With `THINK_AND_SHIP_ELICIT=1` and a client
+/// a genuine `ok: false` envelope. With `MAGISTR_WORKFLOW_ELICIT=1` and a client
 /// that both declares elicitation and would accept, the ONLY thing that can
 /// keep this silent is the landed check.
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
@@ -105,8 +105,8 @@ async fn with_the_gate_on_a_tracker_setup_that_did_not_land_still_asks_nobody() 
     // SAFETY: single-test binary; nothing else in this process reads these, and
     // the data dir keeps the run off the developer's real consent state.
     unsafe {
-        std::env::set_var("THINK_AND_SHIP_DATA_DIR", data_dir.path());
-        std::env::set_var("THINK_AND_SHIP_ELICIT", "1");
+        std::env::set_var("MAGISTR_WORKFLOW_DATA_DIR", data_dir.path());
+        std::env::set_var("MAGISTR_WORKFLOW_ELICIT", "1");
     }
 
     let (server_tx, client_tx) = tokio::io::duplex(8192);
@@ -171,7 +171,7 @@ async fn with_the_gate_on_a_tracker_setup_that_did_not_land_still_asks_nobody() 
 async fn landed_distinguishes_success_and_failure_over_the_wire() {
     let data_dir = tempfile::TempDir::new().expect("tempdir");
     unsafe {
-        std::env::set_var("THINK_AND_SHIP_DATA_DIR", data_dir.path());
+        std::env::set_var("MAGISTR_WORKFLOW_DATA_DIR", data_dir.path());
     }
     let (server_tx, client_tx) = tokio::io::duplex(8192);
     let server = build_unified("elicit-landed");

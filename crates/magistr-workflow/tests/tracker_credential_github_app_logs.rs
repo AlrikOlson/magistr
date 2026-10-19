@@ -86,10 +86,10 @@ async fn no_secret_reaches_the_captured_output_of_a_real_conversion() {
         .and(path(format!("/app-manifests/{CODE}/conversions")))
         .respond_with(ResponseTemplate::new(201).set_body_json(serde_json::json!({
             "id": 654_321,
-            "slug": "think-and-ship-dogfood",
+            "slug": "magistr-dogfood",
             "node_id": "MDM6SW50ZWdyYXRpb24x",
-            "name": "think-and-ship",
-            "html_url": "https://github.com/apps/think-and-ship-dogfood",
+            "name": "magistr",
+            "html_url": "https://github.com/apps/magistr-dogfood",
             "client_id": "Iv1.0000public0000",
             "client_secret": CLIENT_SECRET,
             "pem": PEM,
@@ -124,7 +124,7 @@ async fn no_secret_reaches_the_captured_output_of_a_real_conversion() {
         "the production log line did not reach the capture, so the scan below would \
          prove nothing:\n{output}"
     );
-    assert!(output.contains("think-and-ship-dogfood"), "{output}");
+    assert!(output.contains("magistr-dogfood"), "{output}");
 
     for (name, secret) in [
         ("pem", PEM),

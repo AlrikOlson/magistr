@@ -2,7 +2,7 @@
 //! `mcp-progress-and-logging`).
 //!
 //! Pairs a real rmcp client with the unified server over an in-memory duplex —
-//! the same harness as `think_and_ship_e2e.rs` — and records every
+//! the same harness as `workflow_e2e.rs` — and records every
 //! `notifications/progress` frame the server sends. Nothing here inspects our
 //! own internals: the assertions are about what actually crossed the wire.
 //!

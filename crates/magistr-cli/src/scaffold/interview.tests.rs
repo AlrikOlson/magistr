@@ -274,7 +274,18 @@ fn generate_single(fixture: &[(&str, &str)], result: &InterviewResult) -> (Vec<S
     let mut written = pipeline.generate(&dir).expect("generate");
     written.sort();
     let json = std::fs::read_to_string(dir.join(".magistr/project.json")).expect("project.json");
-    (written, json)
+    (written, comparable_settings(&dir, &json))
+}
+
+// Independent directories must have distinct durable identities but equal settings.
+fn comparable_settings(dir: &std::path::Path, json: &str) -> String {
+    let mut document: serde_json::Value = serde_json::from_str(json).unwrap();
+    assert_eq!(
+        document["project"]["id"],
+        magistr_engine::native::project_id_for_path(&dir.canonicalize().unwrap())
+    );
+    document["project"].as_object_mut().unwrap().remove("id");
+    serde_json::to_string(&document).unwrap()
 }
 
 fn scripted_defaults_interview(dir: &std::path::Path) -> InterviewResult {
@@ -363,7 +374,7 @@ fn golden_polyglot_tree_confirmation_and_defaults() {
         written.sort();
         let json =
             std::fs::read_to_string(dir.join(".magistr/project.json")).expect("project.json");
-        (written, json)
+        (written, comparable_settings(&dir, &json))
     }
 
     let (files_a, json_a) = generate_polyglot(true);

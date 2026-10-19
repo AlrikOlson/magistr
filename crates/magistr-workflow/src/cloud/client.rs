@@ -480,11 +480,11 @@ mod tests {
     /// Live read against the REAL deployed backend (lists the tenant's records —
     /// may be empty). Gated on env so it never runs unprompted.
     #[tokio::test]
-    #[ignore = "requires a live backend + token (THINK_AND_SHIP_CLOUD_URL/_TOKEN)"]
+    #[ignore = "requires a live backend + token (MAGISTR_WORKFLOW_CLOUD_URL/_TOKEN)"]
     async fn live_list_from_real_backend() {
-        let url = std::env::var("THINK_AND_SHIP_CLOUD_URL").expect("THINK_AND_SHIP_CLOUD_URL");
+        let url = std::env::var("MAGISTR_WORKFLOW_CLOUD_URL").expect("MAGISTR_WORKFLOW_CLOUD_URL");
         let token =
-            std::env::var("THINK_AND_SHIP_CLOUD_TOKEN").expect("THINK_AND_SHIP_CLOUD_TOKEN");
+            std::env::var("MAGISTR_WORKFLOW_CLOUD_TOKEN").expect("MAGISTR_WORKFLOW_CLOUD_TOKEN");
         let client = CloudClient::new(url, token);
         let records = client.list(None, None).await.expect("live list");
         // The call succeeded; the count is whatever the tenant holds.
@@ -492,18 +492,18 @@ mod tests {
     }
 
     /// Live integration against the REAL deployed backend. Gated on env so it
-    /// never runs unprompted: set `THINK_AND_SHIP_CLOUD_URL` +
-    /// `THINK_AND_SHIP_CLOUD_TOKEN` (a JWT whose `tenant` claim matches
-    /// `THINK_AND_SHIP_CLOUD_TENANT`, default `rust-live`), then
+    /// never runs unprompted: set `MAGISTR_WORKFLOW_CLOUD_URL` +
+    /// `MAGISTR_WORKFLOW_CLOUD_TOKEN` (a JWT whose `tenant` claim matches
+    /// `MAGISTR_WORKFLOW_CLOUD_TENANT`, default `rust-live`), then
     /// `cargo test -- --ignored live_push_to_real_backend`.
     #[tokio::test]
-    #[ignore = "requires a live backend + token (THINK_AND_SHIP_CLOUD_URL/_TOKEN)"]
+    #[ignore = "requires a live backend + token (MAGISTR_WORKFLOW_CLOUD_URL/_TOKEN)"]
     async fn live_push_to_real_backend() {
-        let url = std::env::var("THINK_AND_SHIP_CLOUD_URL").expect("THINK_AND_SHIP_CLOUD_URL");
+        let url = std::env::var("MAGISTR_WORKFLOW_CLOUD_URL").expect("MAGISTR_WORKFLOW_CLOUD_URL");
         let token =
-            std::env::var("THINK_AND_SHIP_CLOUD_TOKEN").expect("THINK_AND_SHIP_CLOUD_TOKEN");
+            std::env::var("MAGISTR_WORKFLOW_CLOUD_TOKEN").expect("MAGISTR_WORKFLOW_CLOUD_TOKEN");
         let tenant =
-            std::env::var("THINK_AND_SHIP_CLOUD_TENANT").unwrap_or_else(|_| "rust-live".into());
+            std::env::var("MAGISTR_WORKFLOW_CLOUD_TENANT").unwrap_or_else(|_| "rust-live".into());
 
         let client = CloudClient::new(url, token);
         let outcome = client.push(&env(&tenant)).await.expect("live push");

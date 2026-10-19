@@ -44,11 +44,13 @@ impl Fixture {
         let directory = tempfile::tempdir().expect("editing fixture");
         let root = directory.path().join("workspace");
         fs::create_dir_all(root.join(".git")).expect("repository marker");
-        let key = WorkspaceKeyStore::new(root.join(".workbench"))
+        let key = WorkspaceKeyStore::new(root.join(".magistr/workspace"))
             .ensure()
             .expect("workspace key");
-        let journal = JournalDb::open(JournalDbOptions::new(root.join(".workbench/journal.db")))
-            .expect("sole test journal writer");
+        let journal = JournalDb::open(JournalDbOptions::new(
+            root.join(".magistr/workspace/journal.db"),
+        ))
+        .expect("sole test journal writer");
         let policy = WorkspacePolicy::resolve(&ResolveOptions::new(&root)).expect("policy");
         let worker = Arc::new(
             WorkerSupervisor::new(
@@ -785,7 +787,7 @@ async fn deletes_are_recoverable_and_every_files_operation_is_journaled() {
         .await);
     assert_eq!(rows[0].action, WriteAction::Deleted);
     assert!(f.read("src/keep.ts").is_none());
-    let trash: Vec<_> = fs::read_dir(f.root.join(".workbench/trash"))
+    let trash: Vec<_> = fs::read_dir(f.root.join(".magistr/workspace/trash"))
         .expect("trash")
         .collect();
     assert_eq!(trash.len(), 1, "nothing is unlinked");

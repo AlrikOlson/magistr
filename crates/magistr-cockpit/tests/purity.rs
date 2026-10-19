@@ -75,7 +75,7 @@ fn the_core_reaches_no_effect() {
 fn semantic_ports_and_results_own_no_runtime_effects() {
     let src = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src");
     let mut files = Vec::new();
-    for module in ["job", "engine", "checkpoint", "workbench"] {
+    for module in ["job", "engine", "checkpoint", "workspace"] {
         walk(&src.join(module), &mut files);
     }
     assert!(files.len() >= 6, "walked only {} files", files.len());

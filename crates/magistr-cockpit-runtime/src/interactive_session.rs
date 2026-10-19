@@ -11,7 +11,7 @@ use magistr_application::sessions::{AgentEvent, Conversation, SessionHandle, Ses
 use magistr_cockpit::checkpoint::CheckpointPort;
 use magistr_cockpit::cockpit::{Cmd, LaunchAction, Msg, RunCommand};
 use magistr_cockpit::engine::EnginePort;
-use magistr_cockpit::workbench::WorkbenchPort;
+use magistr_cockpit::workspace::WorkspacePort;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 use tokio::task::JoinHandle;
 
@@ -109,7 +109,7 @@ impl InteractiveSession {
     pub fn new<F, Fut>(
         connect: F,
         inbox: Inbox,
-        workbench: Option<Box<dyn WorkbenchPort>>,
+        workspace: Option<Box<dyn WorkspacePort>>,
         engine: Option<Box<dyn EnginePort>>,
         checkpoints: Option<Box<dyn CheckpointPort>>,
     ) -> Self
@@ -122,7 +122,7 @@ impl InteractiveSession {
             Box::new(super::local_session::LocalSession),
             inbox.clone(),
             receiver,
-            workbench,
+            workspace,
             engine,
             checkpoints,
         );
@@ -498,7 +498,7 @@ impl InteractiveSession {
     }
 
     fn forward(&self, cmd: Cmd) -> bool {
-        let local = matches!(cmd, Cmd::Engine(_) | Cmd::Workbench(_) | Cmd::Checkpoint(_));
+        let local = matches!(cmd, Cmd::Engine(_) | Cmd::Workspace(_) | Cmd::Checkpoint(_));
         let sender = if local {
             self.local_commands.as_ref()
         } else {

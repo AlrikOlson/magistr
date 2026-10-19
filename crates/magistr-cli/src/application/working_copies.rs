@@ -229,8 +229,9 @@ fn operation(error: std::io::Error) -> WorkingCopyError {
 
 fn freeze(root: &Path) -> Result<(WorkingCopyLease, ServerLock), WorkingCopyError> {
     let work = WorkingCopyLease::archive(root).map_err(operation)?;
-    std::fs::create_dir_all(root.join(".workbench")).map_err(operation)?;
-    let source = ServerLock::acquire(root.join(".workbench/server.lock")).map_err(operation)?;
+    std::fs::create_dir_all(root.join(".magistr/workspace")).map_err(operation)?;
+    let source =
+        ServerLock::acquire(root.join(".magistr/workspace/server.lock")).map_err(operation)?;
     Ok((work, source))
 }
 

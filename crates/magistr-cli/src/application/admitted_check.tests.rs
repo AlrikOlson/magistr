@@ -230,7 +230,7 @@ fn governed_host(tmp: &tempfile::TempDir) -> (NativeEngines, PathBuf, PathBuf) {
     std::fs::write(&policy, "[security]\nredaction=true\n").expect("policy");
     let named = policy.display().to_string();
     let config = magistr_core::evidence::writer_config(&root, move |key| {
-        (key == "WORKBENCH_ORG_POLICY").then(|| named.clone())
+        (key == "MAGISTR_WORKSPACE_ORG_POLICY").then(|| named.clone())
     })
     .with_data_dir(tmp.path().join("store"));
     let engines =

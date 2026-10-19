@@ -10,11 +10,9 @@ struct Fixture {
 }
 
 #[test]
-fn jail_matches_pinned_reference_vectors() {
-    let fixtures: Vec<Fixture> = serde_json::from_str(include_str!(
-        "../../../subsystems/workspace/conformance/jail.json"
-    ))
-    .unwrap();
+fn jail_enforces_current_protected_paths() {
+    let fixtures: Vec<Fixture> =
+        serde_json::from_str(include_str!("../fixtures/contracts/jail.json")).unwrap();
     let root = tempfile::tempdir().unwrap();
     let outside = tempfile::tempdir().unwrap();
     let policy = JailPolicy::new(root.path()).unwrap();

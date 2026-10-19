@@ -56,7 +56,7 @@ fn resolve_without_archetypes_is_the_top_level() {
 
 #[test]
 fn polyglot_specs_cover_every_stack_once() {
-    // The workbench-mcp shape: many rust archetypes all naming the project's
+    // The magistr shape: many rust archetypes all naming the project's
     // own workspace-wide command, plus one TS stack at the root. The cargo
     // command must run ONCE (not raced against itself), and bun test must run.
     let cfg = base_config(json!([

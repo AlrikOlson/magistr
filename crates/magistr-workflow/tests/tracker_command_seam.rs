@@ -97,9 +97,9 @@ fn scratch() -> &'static std::path::Path {
             // SAFETY: set exactly once, before any test in this binary reads
             // them, and this binary runs nothing else.
             unsafe {
-                std::env::set_var("THINK_AND_SHIP_DATA_DIR", dir.path());
-                std::env::set_var("THINK_AND_SHIP_PERSIST", "true");
-                std::env::set_var("THINK_AND_SHIP_PROJECT_NAME", "tracker-command-seam");
+                std::env::set_var("MAGISTR_WORKFLOW_DATA_DIR", dir.path());
+                std::env::set_var("MAGISTR_WORKFLOW_PERSIST", "true");
+                std::env::set_var("MAGISTR_PROJECT_ID", "tracker-command-seam");
             }
             dir
         })

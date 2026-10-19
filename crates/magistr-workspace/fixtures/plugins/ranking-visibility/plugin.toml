@@ -1,0 +1,30 @@
+# The bundled visibility ranking signal (chunk:m5-ranking-shadow): the first
+# first-party ranking signal on the public magistr:ranking@0.1.0 interface —
+# the same interface a third-party signal would ship against. Declares ZERO
+# capabilities: a ranking signal is a pure function from per-hit facts to named
+# feature values, so the sandbox's default-deny has nothing to grant.
+#
+# The signal emits one documented feature, `exported` (host-visible as
+# `ranking-visibility/exported`): 1.0 when a declaration hit's excerpt carries
+# an export/public visibility marker, 0.0 for other declarations, nothing for
+# non-declaration hits. It runs in shadow mode until explicitly promoted
+# (specs/003-ranking-shadow/contracts/ranking.md).
+
+[plugin]
+publisher = "magistr"
+pkg = "ranking-visibility"
+version = "0.1.0"
+
+[component]
+path = "guest.wasm"
+
+# The ranking surface is the typed magistr:ranking/ranking@0.1.0 export,
+# consumed by the host's ranking lane. The standard (string) -> string invoke
+# keeps the plugin TCK-conformant unmodified and inspectable like any other.
+[[tools]]
+name = "status"
+description = "Reports the ranking signal's identity and surface"
+
+[limits]
+fuel = 200000000
+memory_bytes = 33554432

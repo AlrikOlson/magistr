@@ -45,7 +45,7 @@ use crate::signal::SignalService;
 use crate::think::ThinkService;
 use crate::usage::CallCounter;
 
-const SERVER_INSTRUCTIONS: &str = r#"think-and-ship — unified MCP server for roadmap-driven reasoning + execution.
+const SERVER_INSTRUCTIONS: &str = r#"magistr — unified MCP server for roadmap-driven reasoning + execution.
 
 Four tool families share one server. roadmap_* claims a second prefix, tracker_*,
 for the namespace it mirrors itself through:
@@ -301,7 +301,7 @@ impl UnifiedService {
     }
 
     /// Adopt a caller's W3C Trace Context from a request's `_meta` (SEP-414),
-    /// persisting it so `think-and-ship trace export` — a later, separate
+    /// persisting it so `magistr trace export` — a later, separate
     /// process — can parent our trace to the caller's span.
     ///
     /// Every failure mode here is silence. A missing, malformed, or
@@ -544,7 +544,7 @@ impl std::fmt::Display for FamilySelectionError {
 impl std::error::Error for FamilySelectionError {}
 
 /// Comma-separated list of families this deployment exposes. Unset = all.
-pub const FAMILIES_ENV: &str = "THINK_AND_SHIP_FAMILIES";
+pub const FAMILIES_ENV: &str = "MAGISTR_WORKFLOW_FAMILIES";
 
 /// Tools that legitimately have NO `outputSchema`, with the reason.
 ///

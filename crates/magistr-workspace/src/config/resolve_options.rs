@@ -25,8 +25,8 @@ impl ResolveOptions {
     #[must_use]
     pub fn from_environment(root: impl Into<PathBuf>) -> Self {
         let env = [
-            "WORKBENCH_ORG_POLICY",
-            "WORKBENCH_USER_CONFIG",
+            "MAGISTR_WORKSPACE_ORG_POLICY",
+            "MAGISTR_WORKSPACE_USER_CONFIG",
             "ProgramData",
             "XDG_CONFIG_HOME",
             "HOME",
@@ -49,13 +49,16 @@ impl ResolveOptions {
         [
             (ConfigLayer::OrgPolicy, self.org_policy_path()),
             (ConfigLayer::User, self.user_config_path()),
-            (ConfigLayer::Workspace, self.root.join("workbench.toml")),
+            (
+                ConfigLayer::Workspace,
+                self.root.join(".magistr/workspace.toml"),
+            ),
         ]
     }
 
     /// The layers that resolve outside the workspace tree, in precedence
     /// order: the organization policy and the user layer. The workspace's
-    /// own `workbench.toml` is a source input of a snapshot, never an
+    /// own `.magistr/workspace.toml` is a source input of a snapshot, never an
     /// external layer.
     #[must_use]
     pub fn external_layer_paths(&self) -> [(super::ConfigLayer, PathBuf); 2] {
@@ -74,20 +77,20 @@ impl ResolveOptions {
     }
 
     fn org_policy_path(&self) -> PathBuf {
-        if let Some(path) = self.value("WORKBENCH_ORG_POLICY") {
+        if let Some(path) = self.value("MAGISTR_WORKSPACE_ORG_POLICY") {
             return path.into();
         }
         if cfg!(windows) {
             Path::new(self.value("ProgramData").unwrap_or("C:\\ProgramData"))
-                .join("workbench")
-                .join("policy.toml")
+                .join("magistr")
+                .join("workspace-policy.toml")
         } else {
-            PathBuf::from("/etc/workbench/policy.toml")
+            PathBuf::from("/etc/magistr/workspace-policy.toml")
         }
     }
 
     fn user_config_path(&self) -> PathBuf {
-        if let Some(path) = self.value("WORKBENCH_USER_CONFIG") {
+        if let Some(path) = self.value("MAGISTR_WORKSPACE_USER_CONFIG") {
             return path.into();
         }
         let base = self
@@ -100,6 +103,6 @@ impl ResolveOptions {
                     .unwrap_or_else(|| self.root.clone())
                     .join(".config")
             });
-        base.join("workbench").join("config.toml")
+        base.join("magistr").join("workspace.toml")
     }
 }

@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use super::progress::progress_from_chunks;
 use crate::roadmap::RoadmapProgress;
 
-/// What the engine surfaces about a think-and-ship roadmap: status counts,
+/// What the engine surfaces about a magistr roadmap: status counts,
 /// the next ready chunk, what is in flight, and the canonical current and
 /// historical workstreams. Small on purpose — a view model, not the roadmap.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]

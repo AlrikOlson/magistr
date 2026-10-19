@@ -51,13 +51,13 @@ pub struct ReasoningServer {
     /// from?" archaeology when sessions span multiple projects.
     pub(crate) cwd: Option<String>,
     /// Project id resolved once at startup (`<basename>-<6hex>` or a
-    /// `THINK_AND_SHIP_PROJECT_NAME` override). Used to namespace every
+    /// `MAGISTR_PROJECT_ID` override). Used to namespace every
     /// caller-supplied session id and stamped into each session's
     /// metadata so the viewer can group without parsing.
     pub(crate) project_id: String,
     /// Optional git-native trace mirror. When set (SyncTarget::RepoGit + the
     /// process runs inside a repo), every recorded step is mirrored as an
-    /// Agent Trace JSONL record into `.think-and-ship/` and the session is
+    /// Agent Trace JSONL record into `.magistr/traces/` and the session is
     /// committed on close. All git/IO runs on the worker's own thread, never
     /// under this engine's lock. `None` = the default Local behaviour. Writes
     /// are fire-and-forget — a sink error never fails `process_step`.
@@ -136,10 +136,10 @@ impl ReasoningServer {
     }
 
     /// Attach a git-native trace sink so recorded steps are mirrored into the
-    /// repo's `.think-and-ship/` as Agent Trace JSONL. `shared` selects the
+    /// repo's `.magistr/traces/` as Agent Trace JSONL. `shared` selects the
     /// committed `sessions/` partition (`true`) vs the gitignored `local/`
     /// partition (`false`). Wired by the host's composition root when
-    /// `THINK_AND_SHIP_SYNC_TARGET=repo-git` and the process is inside a repo.
+    /// `MAGISTR_WORKFLOW_SYNC_TARGET=repo-git` and the process is inside a repo.
     pub fn with_repo_sink(mut self, sink: crate::infra::RepoSink, shared: bool) -> Self {
         self.mirror = Some(crate::infra::MirrorWorker::spawn(sink));
         self.repo_shared = shared;

@@ -19,7 +19,7 @@ pub struct HistoryMetadata {
     pub tools_used: Option<Vec<String>>,
     /// Project id resolved at the moment of the first step in this
     /// session — `<basename>-<6hex>` from cwd, or a sanitized
-    /// `THINK_AND_SHIP_PROJECT_NAME` override. Lets the viewer group sessions
+    /// `MAGISTR_PROJECT_ID` override. Lets the viewer group sessions
     /// by project without parsing the session id and lets the server
     /// refuse cross-project writes.
     #[serde(skip_serializing_if = "Option::is_none", default)]

@@ -17,10 +17,10 @@ const PROJECT_JSON: &str = ".magistr/project.json";
 /// Preview what `generate()` would do without writing any files.
 ///
 /// Returns the setup [`ChangePlan`]: every scaffold file, the shared merges
-/// (`.mcp.json`, `.gitignore`, the think-and-ship section of `CLAUDE.md`,
-/// the `workbench.toml` seed), the retired rule files setup removes, the
+/// (`.mcp.json`, `.gitignore`, the magistr section of `CLAUDE.md`,
+/// the `.magistr/workspace.toml` seed), the retired rule files setup removes, the
 /// shared Codex components and, for a first init, the `seeds` planted in the
-/// fresh configuration and the think-and-ship identity declaration, each
+/// fresh configuration and the magistr identity declaration, each
 /// with its action, ownership and diff.
 pub fn preview(
     dir: &Path,
@@ -53,6 +53,10 @@ impl SetupPlan {
         // Host configuration stays portable; the native launcher discovers the
         // workspace and dependencies when the MCP client starts it.
         let mut vars = template_vars.clone();
+        // Optional JSON arrays must still render valid settings when omitted.
+        for key in ["format_extensions", "reference_repos"] {
+            vars.entry(key.into()).or_default();
+        }
         // Existing project settings remain the authority for generated instructions.
         // Re-detection must not advertise preset commands while preserving different configured gates.
         if let Some(document) = super::CodexSetup::read(dir, PROJECT_JSON)? {
@@ -100,11 +104,15 @@ impl SetupPlan {
         for file in &files {
             let mut change = plan_file(dir, file, &canonical, &manifest)?;
             if file.path == PROJECT_JSON && change.action == FileAction::Create {
-                change.new_content = seeds.project_json(&change.new_content);
+                let mut document: serde_json::Value =
+                    serde_json::from_str(&seeds.project_json(&change.new_content))?;
+                document["project"]["id"] = magistr_engine::native::NativeConfig::from_env(dir)
+                    .resolve_project_id()
+                    .into();
+                change.new_content = format!("{}\n", serde_json::to_string_pretty(&document)?);
             }
             if file.path == "CLAUDE.md" {
-                let rendered =
-                    super::think_and_ship::with_claude_md_section(&change.new_content, &vars)?;
+                let rendered = super::workflow::with_claude_md_section(&change.new_content, &vars)?;
                 with_managed_section(&mut change, |_| rendered);
             }
             if super::CodexSetup::owned_path(file.path) {
@@ -129,10 +137,9 @@ impl SetupPlan {
             plan.files.push(super::mcp_json_change(dir, &vars)?);
         }
         plan.files.push(super::gitignore_change(dir, &vars));
-        plan.files.extend(workbench_change(dir, &vars));
+        plan.files.extend(workspace_change(dir, &vars));
         plan.files.extend(super::legacy_rule_removals(dir));
         plan.files.extend(codex);
-        plan.files.extend(identity_change(dir));
         Ok(Self { plan, vars, owned })
     }
 }
@@ -226,7 +233,7 @@ fn plan_file(
 }
 
 /// `CLAUDE.md` is the user's file (never overwritten as a whole), but the
-/// marked sections between magistr's markers — think-and-ship, and the
+/// marked sections between magistr's markers — magistr, and the
 /// archetypes of a polyglot init — are magistr's: the plan shows the document
 /// with that section written or refreshed by `render`, so the preview says
 /// exactly what generation writes. Sections chain: each renders over the
@@ -255,43 +262,22 @@ fn with_managed_section(change: &mut PlannedChange, render: impl FnOnce(&str) ->
     }
 }
 
-/// The think-and-ship identity declaration as a planned change: preserved
-/// when the root already declares one (it is the key of every store the
-/// project holds), refused when the path is not a readable regular file,
-/// created with the id resolution answers today when nothing declares one,
-/// and absent when an ancestor's declaration already covers the root.
-fn identity_change(dir: &Path) -> Option<PlannedChange> {
-    use magistr_engine::native::{PROJECT_DIR, PROJECT_FILE};
-    let path = format!("{PROJECT_DIR}/{PROJECT_FILE}");
-    match super::read_target(dir, &path) {
-        Err(refusal) => Some(PlannedChange::refused(
-            &path,
-            refusal,
-            None,
-            Ownership::User,
-        )),
-        Ok(Some(existing)) => Some(PlannedChange::preserved(
-            &path,
-            Some(existing),
-            Ownership::User,
-        )),
-        Ok(None) => magistr_engine::native::identity_declaration(dir)
-            .map(|body| PlannedChange::merged(&path, None, body).owned_by(Ownership::Unclaimed)),
-    }
-}
-
-/// The `workbench.toml` seed as a planned change: none when the gates seed
+/// The `.magistr/workspace.toml` seed as a planned change: none when the gates seed
 /// nothing, unchanged when the file already says everything, otherwise the
 /// body seeding writes.
-fn workbench_change(dir: &Path, vars: &HashMap<String, String>) -> Option<PlannedChange> {
-    let seed = super::WorkbenchSeed::from_template_vars(vars);
+fn workspace_change(dir: &Path, vars: &HashMap<String, String>) -> Option<PlannedChange> {
+    let seed = super::WorkspaceSeed::from_template_vars(vars);
     if seed.is_empty() {
         return None;
     }
     match seed.plan(dir) {
-        (before, Some(body)) => Some(PlannedChange::merged("workbench.toml", before, body)),
+        (before, Some(body)) => Some(PlannedChange::merged(
+            ".magistr/workspace.toml",
+            before,
+            body,
+        )),
         (Some(before), None) => Some(PlannedChange::merged(
-            "workbench.toml",
+            ".magistr/workspace.toml",
             Some(before.clone()),
             before,
         )),

@@ -8,7 +8,7 @@ use crate::{
     index::watch::NetworkDetection,
 };
 
-/// The retained `workbench_status` result: deterministic for a fixed
+/// The retained `workspace_status` result: deterministic for a fixed
 /// workspace and environment — no pids, generations or timestamps — so
 /// fresh processes answer byte-identically (the retained statelessness
 /// gate). Degradations ride the envelope notes, schema-free.

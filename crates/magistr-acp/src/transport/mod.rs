@@ -248,7 +248,7 @@ impl AcpTransport {
         if let Some(execution) = &self.execution_id {
             command
                 .env("MAGISTR_EXECUTION_ID", execution)
-                .env("WORKBENCH_SESSION_ID", execution);
+                .env("MAGISTR_WORKSPACE_SESSION_ID", execution);
         }
         before_spawn()?;
         let spawned = spawn::spawn_agent(command)?;

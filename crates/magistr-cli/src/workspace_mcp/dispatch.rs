@@ -80,7 +80,7 @@ async fn dispatch(
         &admitted
     };
     match name {
-        "workbench_status" => answer(service.status(), version),
+        "workspace_status" => answer(service.status(), version),
         "map" => answer(service.map(&arguments::map_input(args)?).await, version),
         "read" => answer(service.read(&arguments::read_input(args)?).await, version),
         "search" => answer(

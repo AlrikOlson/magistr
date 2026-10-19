@@ -1,17 +1,17 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://workbench-mcp.dev/schemas/envelope.schema.json",
+  "$id": "https://magistr.dev/schemas/workspace/envelope.schema.json",
   "title": "ResponseEnvelope",
   "description": "The single response shape every tool returns; doubles as each tool's MCP outputSchema (SDD 4.2). Version 1. Evolution within a major is strictly additive: new optional fields only, checked against schemas/baselines/envelope.v1.schema.json.",
-  "x-workbench-status": "normative",
-  "x-workbench-owned-by": "chunk:m0-envelope-contract",
+  "x-magistr-status": "normative",
+  "x-magistr-owned-by": "chunk:m0-envelope-contract",
   "type": "object",
   "required": ["v", "ok"],
   "properties": {
     "v": {
       "type": "integer",
       "minimum": 1,
-      "description": "Envelope schema version, resolved per request via _meta negotiation (workbench/maxEnvelopeVersion) and mirrored here."
+      "description": "Envelope schema version, resolved per request via _meta negotiation (magistr/maxEnvelopeVersion) and mirrored here."
     },
     "ok": { "type": "boolean" },
     "freshness": {

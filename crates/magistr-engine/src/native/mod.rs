@@ -1,12 +1,11 @@
-//! The native workflow store: Magistr's think-and-ship fork, composed in process.
+//! Magistr's native workflow store and owner protocol.
 //!
-//! Magistr links the `magistr_workflow` library (the repository-local fork of
-//! think-and-ship, see `subsystems/workflow/PROVENANCE.md`) and runs its four engines —
+//! Magistr links its `magistr_workflow` library and runs its four engines —
 //! roadmap, think (reasoning trace), ship (execution trace) and signal — in
-//! this process. State lives in the same XDG store, keyed by the same
-//! `.think-and-ship/project.json` identity retained from the owned fork.
+//! this process. State lives under the resolved Magistr workflow data root,
+//! keyed by `project.id` in `.magistr/project.json`.
 //! Agent tools and native views use Magistr's admitted owners; no standalone
-//! think-and-ship service is launched. The fork preserves its locked merge-on-save
+//! workflow service is launched. Persistence uses locked merge-on-save
 //! discipline (advisory lock, merge, atomic rename); nothing here re-implements
 //! persistence or identity.
 //!
@@ -39,7 +38,6 @@ mod family_services;
 pub mod feed_cursor;
 pub mod feed_status;
 pub mod gate_output;
-pub mod identity;
 mod local_stream;
 pub mod magistr_frame;
 pub mod mcp_acceptor;
@@ -101,7 +99,6 @@ pub use execution_context::ExecutionContext;
 pub use feed_cursor::FeedCursor;
 pub use feed_status::FeedStatus;
 pub use gate_output::GateOutput;
-pub use identity::identity_declaration;
 pub use local_stream::LocalStream;
 pub use magistr_frame::MagistrFrame;
 pub use magistr_workflow::think::ConfigSource;

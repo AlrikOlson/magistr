@@ -8,7 +8,8 @@ import re
 import struct
 parser=argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--native-current",action="store_true",help="also require every recorded native journey to match all current integration sources")
-parser.add_argument("--iteration", help="validate the named canonical focused iteration instead of the full gallery")
+parser.add_argument("--iteration", help="validate a named canonical focused iteration; defaults to the latest current reviewed iteration")
+parser.add_argument("--full-gallery", action="store_true", help="require the full background gallery to match current sources")
 args=parser.parse_args()
 ROOT=Path(__file__).resolve().parents[1]
 UI=ROOT/"crates/magistr-desktop/ui"
@@ -66,11 +67,11 @@ assert review["attachments_accessibility"]==receipt["attachments"]["native_acces
 assert review["attachment_observation"]==receipt["attachment_observation_sha256"]==sha(EVIDENCE/"attachment-observation.json")
 assert review["attachment_prompts"]==receipt["attachment_prompts_sha256"]==sha(EVIDENCE/"attachment-prompts.json")
 assert review["rich_observation"]==receipt["rich_observation_sha256"]==sha(EVIDENCE/"rich-observation.json")
-if args.iteration:
+if not args.full_gallery:
     import sys
     sys.dont_write_bytecode = True
-    from desktop_iteration_gate import validate_iteration
-    validate_iteration(ROOT, args.iteration)
+    from desktop_iteration_gate import current_iteration, validate_iteration
+    validate_iteration(ROOT, args.iteration or current_iteration(ROOT))
 else:
     layout=ROOT/"docs/evidence/desktop-layout"
     current=json.loads((layout/"receipt.json").read_text())

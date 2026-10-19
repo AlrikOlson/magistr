@@ -264,9 +264,7 @@ fn ranking_and_runner_lanes_dispatch_the_retained_typed_guests() {
         fuel: 200_000_000,
         memory_cap_bytes: 32 * 1024 * 1024,
     };
-    let ranking = include_bytes!(
-        "../../../../subsystems/workspace/reference/plugins/ranking-visibility/guest.wasm"
-    );
+    let ranking = include_bytes!("../../fixtures/plugins/ranking-visibility/guest.wasm");
     let contributed = WorkerRequest::RankingContribute {
         guest: ranking.to_vec(),
         hits: vec![
@@ -304,8 +302,7 @@ fn ranking_and_runner_lanes_dispatch_the_retained_typed_guests() {
     assert_eq!(contributions[0][0].value, 1.0);
     assert!(contributions[1].is_empty());
 
-    let runner =
-        include_bytes!("../../../../subsystems/workspace/reference/plugins/runner-go/guest.wasm");
+    let runner = include_bytes!("../../fixtures/plugins/runner-go/guest.wasm");
     let parsed = WorkerRequest::RunnerParse {
         guest: runner.to_vec(),
         command: "go test ./...".to_owned(),

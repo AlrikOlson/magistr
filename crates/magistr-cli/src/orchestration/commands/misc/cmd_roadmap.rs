@@ -41,7 +41,7 @@ fn canonical_dir(dir: &std::path::Path) -> eyre::Result<std::path::PathBuf> {
         .suggest()
 }
 
-/// `show` on a think-and-ship project: the snapshot plus the pending chunks.
+/// `show` on a magistr project: the snapshot plus the pending chunks.
 fn show_native(
     engines: &magistr_engine::NativeReader,
     renderer: &dyn OutputRenderer,
@@ -199,7 +199,7 @@ fn cmd_roadmap_export(dir: &std::path::Path) -> eyre::Result<()> {
         eprintln!(
             "{}",
             fmt::success(&format!(
-                "Exported {} from think-and-ship ({}/{} chunks done)",
+                "Exported {} from magistr ({}/{} chunks done)",
                 md_path.display(),
                 snapshot.progress.checked_tasks,
                 snapshot.progress.total_tasks
@@ -235,7 +235,7 @@ async fn cmd_roadmap_generate(
 
     eprintln!("{}", fmt::info(&format!("Generating roadmap for: {goal}")));
     eprintln!(
-        "  Target: the think-and-ship roadmap for this project (chunks authored via `roadmap_add_chunk`)"
+        "  Target: the magistr roadmap for this project (chunks authored via `roadmap_add_chunk`)"
     );
 
     let prompt = build_roadmap_generation_prompt(goal);

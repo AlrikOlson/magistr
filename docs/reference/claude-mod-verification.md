@@ -23,9 +23,9 @@ The native stdio test uses the freshly built executable in `target/debug`.
 
 The independent runner is deliberately labeled as such. It is not Claude's
 official harness. The native stdio fixture proves a native protocol boundary,
-not live Claude-to-MCP integration. The real connected Workbench status was
+not live Claude-to-MCP integration. The real connected Workspace status was
 also inspected and reports this checkout's canonical root. It is not proof that
-Claude has admitted its Workbench registration.
+Claude has admitted its Workspace registration.
 
 ## Host acceptance remains open
 
@@ -60,7 +60,7 @@ Consequently these agreed acceptance criteria remain unverified:
   identifies itself as 2.1.277 and is supporting evidence only.
 - Official hook ordering, host permissions, interrupted/reloaded hook execution,
   disabled/managed behavior and genuine pane interactions.
-- Live Claude MCP calls against admitted Magistr and Workbench connections.
+- Live Claude MCP calls against admitted Magistr and Workspace connections.
 - Actual keyboard focus, escape, terminal painting/contrast and Desktop painting.
   Deterministic narrow/wide element trees are not screenshots or live keyboard evidence.
 - Invocation of the namespaced text skill in an authenticated Claude session.
@@ -74,19 +74,15 @@ Current installations use one `magistr mcp --dir .` connection. The first CLI
 distribution targets Apple Silicon macOS; the following is retained Windows
 historical evidence, not a current installation recipe.
 
-This historical Windows check predates the unified endpoint. At capture time,
-Claude registrations launched `magistr mcp-launch magistr .` and
-`magistr mcp-launch workbench-mcp .`. Claude reported the workflow connection
-closed while another Service owner holds the project; source connection approval
-is pending. Workflow MCP attachment remains Unix-only. Windows workspace
+This historical Windows check predates the unified endpoint. Claude reported
+the workflow connection closed while another service owner held the project;
+source connection approval was pending. Workflow MCP attachment remains Unix-only. Windows workspace
 attachment has an authenticated named-pipe path, which is a different capability.
 
 The Mod reports unavailable/stale connections and refuses actions when identity
 cannot be checked. It never kills the existing owner, deletes its lock or starts
 an alternative owner. A fresh isolated fixture can start its own admitted
-workflow server normally. A server that predates `magistr_context` supports the
-older read views, while progress/evidence/action admission explains the need to
-update and reconnect. Do not replace a running binary or restart someone else's
+workflow server normally. The plugin requires the current unified operation catalog. Do not replace a running binary or restart someone else's
 session to clear the limitation.
 
 ## Reproduce focused checks
@@ -107,7 +103,7 @@ claude plugin validate plugins/magistr
 claude plugin test plugins/magistr
 ```
 
-Record actual commands through `ship_check`, and run the applicable
+Record actual commands through `check_work`, and run the applicable
 `structure` and `native-write-path` named gates through `magistr_gate`.
 Keep verification focused. These adapter changes do not require workspace
 reference compatibility, release smoke/latency or desktop/terminal goldens.
@@ -134,7 +130,7 @@ Once Anthropic enables third-party Mods and ordinary Claude sign-in succeeds:
 1. Generate the installed types with `/plugin-types`; compare used APIs and
    events with the official contract and run the official harness.
 2. In a separate fixture project, use Magistr's supported setup and approve its
-   two existing MCP registrations through Claude's ordinary permission flow.
+   single Magistr MCP connection through Claude's ordinary permission flow.
 3. Install/upgrade through the local marketplace and restart Claude normally.
    Open `/magistr`, navigate all five views with the keyboard, inspect source
    and check receipts, confirm a chosen task and focused check, then verify the

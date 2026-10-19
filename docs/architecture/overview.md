@@ -21,8 +21,8 @@ exercised entry, build and platform matrix.
 | `magistr-application` | Project-scoped use cases, typed outcomes, and narrow adapter ports |
 | `magistr-workflow-contracts` | Canonical workflow records, typed mutation frames, snapshots and freshness values, independent of stores and runtimes |
 | `magistr-core` | Configuration, presets, and shared project/interface types |
-| `magistr-engine` | Sessions, workflow policies, costs, gates, native think-and-ship integration, and the one producer of typed workflow snapshots and events |
-| `magistr-workspace` | Native configuration/path/key policy, response and byte contracts, parsing/search/rewrite, index extraction, language registry and sandbox primitives, bounded native worker supervision, persistent derived index with watchers and typed source queries, durable journal/undo planning, confirmed verified byte transactions, native commands and served tool parity, generation-fenced single-owner admission with explicit sessions, Unix client attachment through the shared owner endpoint, and the explicit legacy lock migration; the bridge, launcher and worker lifetime live in `magistr-cli` |
+| `magistr-engine` | Sessions, workflow policies, costs, gates, native workflow integration, and the one producer of typed workflow snapshots and events |
+| `magistr-workspace` | Native configuration/path/key policy, response and byte contracts, parsing/search/rewrite, index extraction, language registry and sandbox primitives, bounded native worker supervision, persistent derived index with watchers and typed source queries, durable journal/undo planning, confirmed verified byte transactions, native commands and served tool parity, generation-fenced single-owner admission with explicit sessions, Unix client attachment through the shared owner endpoint; the bridge, launcher and worker lifetime live in `magistr-cli` |
 | `magistr-process` | Owned child reaping, Unix process groups and hard-exit registry, bounded command capture and termination |
 | `magistr-acp` | Agent Client Protocol transport and configured local effect adapter |
 | `magistr-acp-agent` | Coding-runtime and chat-API provider adapters |
@@ -49,7 +49,7 @@ floor that keeps each topology safe.
 ## Workflow and tools
 
 The CLI's MCP service embeds the repository-local
-[think-and-ship source](../../subsystems/workflow/PROVENANCE.md). Its roadmap,
+[workflow source](../../subsystems/workflow/PROVENANCE.md). Its roadmap,
 reasoning, execution, and signal tools share native project state. The
 workspace tools are served by the same binary's native workspace bridge
 (`magistr mcp --dir`), every client of a workspace reaching its
@@ -62,14 +62,13 @@ is coherent across the project's owner, working-copy executions, attached
 clients and readers.
 
 The accepted [first-party subsystem decision](owned-subsystems.md) makes
-hard forks of think-and-ship and Workbench part of the refactor. It defines
-workflow and workspace ownership, source certification, and migration
-constraints. The accepted target is one Rust-native Magistr product. Workflow
+workflow and workspace services Magistr-owned code. It defines
+workflow and workspace ownership, source certification and operation contracts. The accepted target is one Rust-native Magistr product. Workflow
 source and the adopted `magistr-workspace` engine belong to the root Cargo
 workspace. Typed
 reasoning, ship, roadmap, and signal use cases now own native behavior beneath
 MCP and local owner adapters; command execution and tracker probes are explicit
-async effects. The complete Workbench reference source, contracts and tests are
+async effects. The complete Workspace reference source, contracts and tests are
 retained with pinned provenance under `subsystems/workspace/reference`; Bun and
 NAPI are reference-only dependencies. The
 [source-to-native feature inventory](../../subsystems/workspace/FEATURE_INVENTORY.md)
@@ -77,13 +76,13 @@ maps the delivered native policy, worker, index, source-query, journal,
 transaction, extension, command and served-tool boundaries. The private
 `magistr --workspace-worker` role runs parser, grammar and sandbox operations
 under `WorkerSupervisor`; it has no workspace lock or independent service
-lifecycle. Admission fences legacy/native overlap, stale sessions and
+lifecycle. Admission fences competing owners, stale sessions and
 previous-generation confirmations. The [workspace owner](workspace-owner.md)
 serves multiple Unix MCP clients over one admitted service, keyed by canonical
 root independently of workflow roles: every invocation is a bridge that stamps
 a durable client identity and reconnects (attaching or admitting) on its next
 request when the owner goes away, and workers end with a killed owner. Source
-snapshots remain separate native roadmap work.
+snapshots bind verification receipts to their observed inputs.
 
 [Native workflow configuration](configuration.md) is captured before admission;
 reader, writer and attachment paths use its typed settings and identity inputs.

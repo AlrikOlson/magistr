@@ -123,7 +123,7 @@ impl Rpc {
 impl Drop for Rpc {
     fn drop(&mut self) {
         // Only this test's own disposable child is stopped. Its workspace is
-        // unique, so no existing Workbench connection or lock is disturbed.
+        // unique, so no existing Workspace connection or lock is disturbed.
         drop(self.input.take());
         let deadline = Instant::now() + Duration::from_secs(2);
         while Instant::now() < deadline {
@@ -226,7 +226,7 @@ fn installed_codex_discovers_relocated_project_and_generated_mcp_tools() {
     write(
         &config_home.join("config.toml"),
         &format!(
-            "[projects.{}]\ntrust_level = 'trusted'\n[[skills.config]]\npath = {}\nenabled = false\n[mcp_servers.think-and-ship]\ncommand = 'standalone-must-not-launch'\nargs = ['serve']\nenabled = true\n",
+            "[projects.{}]\ntrust_level = 'trusted'\n[[skills.config]]\npath = {}\nenabled = false\n[mcp_servers.magistr/traces]\ncommand = 'standalone-must-not-launch'\nargs = ['serve']\nenabled = true\n",
             toml::Value::String(project.to_str().expect("UTF8").to_owned()),
             toml::Value::String(personal.to_str().expect("UTF8").to_owned())
         ),
@@ -269,7 +269,7 @@ fn installed_codex_discovers_relocated_project_and_generated_mcp_tools() {
             "roadmap-refresh",
             "signals",
             "validate",
-            "workbench-routing",
+            "workspace-routing",
         ] {
             assert_eq!(
                 discovered.get(&project.join(".agents/skills").join(name).join("SKILL.md")),
@@ -297,7 +297,7 @@ fn installed_codex_discovers_relocated_project_and_generated_mcp_tools() {
         server.app_initialize();
         let config = server.request("config/read", json!({"cwd":cwd,"includeLayers":true}));
         assert_eq!(
-            config["config"]["mcp_servers"]["think-and-ship"]["enabled"], false,
+            config["config"]["mcp_servers"]["magistr"]["enabled"], false,
             "effective fixture config: {config}"
         );
         {
@@ -316,7 +316,7 @@ fn installed_codex_discovers_relocated_project_and_generated_mcp_tools() {
             "roadmap-refresh",
             "signals",
             "validate",
-            "workbench-routing",
+            "workspace-routing",
         ] {
             assert_eq!(
                 discovered.get(&project.join(".agents/skills").join(name).join("SKILL.md")),
@@ -347,11 +347,11 @@ fn installed_codex_discovers_relocated_project_and_generated_mcp_tools() {
         json!({"cwd":user_home,"includeLayers":false}),
     );
     assert_eq!(
-        outside_config["config"]["mcp_servers"]["think-and-ship"]["enabled"],
+        outside_config["config"]["mcp_servers"]["magistr"]["enabled"],
         true
     );
     assert_eq!(
-        outside_config["config"]["mcp_servers"]["think-and-ship"]["command"],
+        outside_config["config"]["mcp_servers"]["magistr"]["command"],
         "standalone-must-not-launch"
     );
     assert_eq!(
@@ -391,24 +391,24 @@ fn installed_codex_discovers_relocated_project_and_generated_mcp_tools() {
         {
             let status = server.request(
                 "tools/call",
-                json!({"name":"execute","arguments":{"source":"return magistr.call(\"workbench_status\", {});"}}),
+                json!({"name":"execute","arguments":{"source":"return magistr.call(\"workspace_status\", {});"}}),
             );
             assert_ne!(
                 status.get("isError"),
                 Some(&Value::Bool(true)),
-                "Workbench status failed: {status}"
+                "Workspace status failed: {status}"
             );
             assert!(
                 status.to_string().contains(project.to_str().expect("UTF8")),
-                "Workbench root must be relocated project, not nested or old path: {status}"
+                "Workspace root must be relocated project, not nested or old path: {status}"
             );
             let read = server.request(
                 "tools/call",
                 json!({"name":"read","arguments":{"file":"acceptance.txt","budget":1000}}),
             );
-            assert_workbench(&read, "portable_codex_acceptance");
+            assert_workspace(&read, "portable_codex_acceptance");
             let search = server.request("tools/call", json!({"name":"search","arguments":{"query":"portable_codex_acceptance","mode":"lexical","path":"acceptance.txt","budget":1000}}));
-            assert_workbench(&search, "acceptance.txt");
+            assert_workspace(&search, "acceptance.txt");
 
             // A second connection attaches to the same native owner.
             let mut second = Command::new(endpoint["command"].as_str().expect("command"));
@@ -428,35 +428,35 @@ fn installed_codex_discovers_relocated_project_and_generated_mcp_tools() {
                 "tools/call",
                 json!({"name":"read","arguments":{"file":"acceptance.txt","budget":1000}}),
             );
-            assert_workbench(&read, "portable_codex_acceptance");
+            assert_workspace(&read, "portable_codex_acceptance");
             drop(second);
             let read = server.request(
                 "tools/call",
                 json!({"name":"read","arguments":{"file":"acceptance.txt","budget":1000}}),
             );
-            assert_workbench(&read, "portable_codex_acceptance");
+            assert_workspace(&read, "portable_codex_acceptance");
         }
     }
 }
 
-fn assert_workbench(result: &Value, expected: &str) {
+fn assert_workspace(result: &Value, expected: &str) {
     assert_ne!(
         result.get("isError"),
         Some(&Value::Bool(true)),
-        "Workbench MCP error: {result}"
+        "Workspace MCP error: {result}"
     );
-    let content = result["content"].as_array().expect("Workbench content");
+    let content = result["content"].as_array().expect("Workspace content");
     let envelope: Value = content
         .iter()
         .filter_map(|part| part["text"].as_str())
         .find_map(|text| serde_json::from_str(text).ok())
-        .expect("Workbench JSON envelope");
+        .expect("Workspace JSON envelope");
     assert_eq!(
         envelope["ok"], true,
-        "Workbench operation failed: {envelope}"
+        "Workspace operation failed: {envelope}"
     );
     assert!(
         envelope.to_string().contains(expected),
-        "Workbench result lacks {expected}: {envelope}"
+        "Workspace result lacks {expected}: {envelope}"
     );
 }

@@ -7,15 +7,15 @@ use magistr_workflow::ship::application::EvidencePort;
 use magistr_workflow::think::config::ThinkConfig;
 use magistr_workflow::think::{ConfigSource, ThinkConfigResolution};
 
-const PERSIST_VAR: &str = "THINK_AND_SHIP_PERSIST";
-const BROADCAST_VAR: &str = "THINK_AND_SHIP_BROADCAST_PATH";
+const PERSIST_VAR: &str = "MAGISTR_WORKFLOW_PERSIST";
+const BROADCAST_VAR: &str = "MAGISTR_WORKFLOW_BROADCAST_PATH";
 /// The socket `magistr mcp` binds under `.magistr/` when no
-/// `THINK_AND_SHIP_BROADCAST_PATH` is set, and in-process hosts (desktop, CLI)
+/// `MAGISTR_WORKFLOW_BROADCAST_PATH` is set, and in-process hosts (desktop, CLI)
 /// subscribe to.
-const PROJECT_SOCKET: &str = "think-and-ship.sock";
+const PROJECT_SOCKET: &str = "workflow.sock";
 /// The longest socket path the kernel accepts: `sun_path` minus its NUL —
 /// 104 bytes on macOS (and the BSDs), 108 on Linux. A longer path fails
-/// `bind(2)` with "path too long", and think-and-ship's broadcaster then
+/// `bind(2)` with "path too long", and magistr's broadcaster then
 /// runs unobserved.
 const SUN_PATH_MAX: usize = if cfg!(target_os = "macos") { 103 } else { 107 };
 
@@ -24,13 +24,13 @@ pub(crate) fn fits_sun_path(path: &Path) -> bool {
     path.as_os_str().len() <= SUN_PATH_MAX
 }
 
-/// How the native think-and-ship engines are opened.
+/// How the native magistr engines are opened.
 ///
 /// Honours the same environment the external server reads —
-/// `THINK_AND_SHIP_DATA_DIR` (and the XDG fallback chain) for the store root,
-/// `THINK_AND_SHIP_BROADCAST_PATH` for the NDJSON socket — with one
+/// `MAGISTR_WORKFLOW_DATA_DIR` (and the XDG fallback chain) for the store root,
+/// `MAGISTR_WORKFLOW_BROADCAST_PATH` for the NDJSON socket — with one
 /// deliberate difference: persistence is **on unless explicitly disabled**
-/// (`THINK_AND_SHIP_PERSIST=false|0`). The server defaults to off because a
+/// (`MAGISTR_WORKFLOW_PERSIST=false|0`). The server defaults to off because a
 /// stateless demo is a valid way to run it; a native subsystem that forgets
 /// its roadmap at exit is not a valid way to run Magistr.
 #[derive(Clone)]
@@ -149,11 +149,11 @@ impl NativeConfig {
             .or_insert(ConfigSource::Default);
 
         let data_candidates = [
-            ("THINK_AND_SHIP_DATA_DIR", ""),
-            ("XDG_DATA_HOME", "think-and-ship"),
-            ("HOME", ".local/share/think-and-ship"),
-            ("APPDATA", "think-and-ship"),
-            ("USERPROFILE", "AppData/Roaming/think-and-ship"),
+            ("MAGISTR_WORKFLOW_DATA_DIR", ""),
+            ("XDG_DATA_HOME", "magistr/workflow"),
+            ("HOME", ".local/share/magistr/workflow"),
+            ("APPDATA", "magistr/workflow"),
+            ("USERPROFILE", "AppData/Roaming/magistr/workflow"),
         ];
         let data_dir = data_candidates
             .into_iter()
@@ -188,7 +188,7 @@ impl NativeConfig {
                 sources
                     .entry("persistence.data_dir")
                     .or_insert(ConfigSource::Default);
-                temp.join("think-and-ship")
+                temp.join("magistr/workflow")
             });
         let broadcast_path = non_empty(BROADCAST_VAR).map(|v| {
             sources.insert("broadcast.path", ConfigSource::Environment(BROADCAST_VAR));
@@ -209,7 +209,7 @@ impl NativeConfig {
         sources
             .entry("runtime_dir")
             .or_insert(ConfigSource::Default);
-        let project_name = non_empty("THINK_AND_SHIP_PROJECT_NAME").and_then(|raw| {
+        let project_name = non_empty("MAGISTR_PROJECT_ID").and_then(|raw| {
             let (name, source) =
                 magistr_workflow::infra::resolve_project_id_from(Some(&raw), &project_root);
             (source == magistr_workflow::infra::IdSource::Environment).then_some(name)
@@ -217,7 +217,7 @@ impl NativeConfig {
         sources.insert(
             "project_name",
             if project_name.is_some() {
-                ConfigSource::Environment("THINK_AND_SHIP_PROJECT_NAME")
+                ConfigSource::Environment("MAGISTR_PROJECT_ID")
             } else {
                 ConfigSource::Default
             },
@@ -415,10 +415,10 @@ impl NativeConfig {
     /// between `magistr mcp` (which binds it when the environment names
     /// no other socket) and the in-process hosts that subscribe to it.
     ///
-    /// `<project_root>/.magistr/think-and-ship.sock` whenever that fits the
+    /// `<project_root>/.magistr/workflow.sock` whenever that fits the
     /// kernel's `sun_path`; a project rooted deep enough to overflow it gets
     /// `<runtime_dir>/magistr-<project id>.sock` instead, where the id is
-    /// think-and-ship's stable path-derived identity, so every process
+    /// magistr's stable path-derived identity, so every process
     /// resolves the same file from the same root without a rendezvous file.
     #[must_use]
     pub fn project_socket_path(&self) -> PathBuf {
@@ -438,7 +438,7 @@ impl NativeConfig {
     }
 
     /// The socket a subscriber (TUI native feed, GUI) should connect to: the
-    /// environment's `THINK_AND_SHIP_BROADCAST_PATH` when set, else
+    /// environment's `MAGISTR_WORKFLOW_BROADCAST_PATH` when set, else
     /// [`Self::project_socket_path`] — exactly what `magistr mcp` binds.
     #[must_use]
     pub fn feed_socket_path(&self) -> PathBuf {
@@ -448,7 +448,7 @@ impl NativeConfig {
     }
 
     /// Fall back to [`Self::project_socket_path`] when the environment named
-    /// no broadcast socket. An explicit `THINK_AND_SHIP_BROADCAST_PATH` wins.
+    /// no broadcast socket. An explicit `MAGISTR_WORKFLOW_BROADCAST_PATH` wins.
     #[must_use]
     pub fn with_project_socket_default(mut self) -> Self {
         if self.broadcast_path.is_none() {

@@ -1,6 +1,6 @@
 //! Structured failure rows from quality-gate output.
 //!
-//! workbench-mcp's `run` tool turns a runner's output into rows its clients
+//! magistr's `run` tool turns a runner's output into rows its clients
 //! can click on (`src/tools/run-cargo.ts`, `run-parse.ts`); Magistr cannot
 //! delegate its gates to that server (it is single-instance per workspace),
 //! so the same adapters live here, in Rust, over the output `magistr_gate`

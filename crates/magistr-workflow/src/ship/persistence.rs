@@ -116,11 +116,11 @@ pub struct PersistenceConfig {
 
 impl PersistenceConfig {
     pub fn from_env() -> Self {
-        let enabled = env::var("THINK_AND_SHIP_PERSIST")
+        let enabled = env::var("MAGISTR_WORKFLOW_PERSIST")
             .map(|v| v == "true" || v == "1")
             .unwrap_or(false);
 
-        let data_dir = env::var("THINK_AND_SHIP_DATA_DIR")
+        let data_dir = env::var("MAGISTR_WORKFLOW_DATA_DIR")
             .map(PathBuf::from)
             .unwrap_or_else(|_| default_data_dir());
 

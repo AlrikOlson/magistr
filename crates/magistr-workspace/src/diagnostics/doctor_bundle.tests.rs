@@ -10,7 +10,7 @@ fn workspace() -> tempfile::TempDir {
 }
 
 fn seeded_run(root: &Path) -> DoctorRun {
-    let state = root.join(".workbench");
+    let state = root.join(".magistr/workspace");
     std::fs::create_dir_all(&state).expect("state dir");
     drop(IndexCache::open(&state, "WAL").expect("native index"));
     std::fs::write(
@@ -84,7 +84,7 @@ fn ustar_conformance_via_an_independent_reader_and_the_manifest_lists_every_memb
     assert_eq!(names, listed);
     let manifest: serde_json::Value = serde_json::from_slice(
         members
-            .get("workbench-doctor/manifest.json")
+            .get("workspace-doctor/manifest.json")
             .expect("manifest"),
     )
     .expect("json");
@@ -98,8 +98,8 @@ fn ustar_conformance_via_an_independent_reader_and_the_manifest_lists_every_memb
         .collect();
     manifest_members.sort();
     assert_eq!(names, manifest_members);
-    assert!(names.contains(&"workbench-doctor/index.json".to_owned()));
-    assert!(names.contains(&"workbench-doctor/report.txt".to_owned()));
+    assert!(names.contains(&"workspace-doctor/index.json".to_owned()));
+    assert!(names.contains(&"workspace-doctor/report.txt".to_owned()));
 }
 
 #[test]
@@ -122,17 +122,17 @@ fn privacy_a_sentinel_never_leaks_and_the_workspace_root_is_redacted() {
             !body.contains(&root.replace('\\', "/")),
             "{name} leaks the root"
         );
-        assert!(name.starts_with("workbench-doctor/"));
+        assert!(name.starts_with("workspace-doctor/"));
     }
     let report =
-        String::from_utf8_lossy(members.get("workbench-doctor/report.txt").expect("report"));
+        String::from_utf8_lossy(members.get("workspace-doctor/report.txt").expect("report"));
     assert!(report.contains("<workspace>"));
 }
 
 #[test]
 fn a_support_engineer_can_derive_the_remediation_from_the_members_alone() {
     let dir = workspace();
-    let state = dir.path().join(".workbench");
+    let state = dir.path().join(".magistr/workspace");
     std::fs::create_dir_all(&state).expect("state dir");
     std::fs::write(state.join("journal.db"), "durable-user-data-journal").expect("durable");
     std::fs::write(
@@ -147,7 +147,7 @@ fn a_support_engineer_can_derive_the_remediation_from_the_members_alone() {
     // ---- Support-engineer boundary: from here, ONLY the bundle. ----
     let index: serde_json::Value = serde_json::from_slice(
         members
-            .get("workbench-doctor/index.json")
+            .get("workspace-doctor/index.json")
             .expect("index member"),
     )
     .expect("json");
@@ -163,10 +163,10 @@ fn a_support_engineer_can_derive_the_remediation_from_the_members_alone() {
     assert!(remediation.contains("rebuild"));
     let store = remediation
         .split_whitespace()
-        .find(|word| word.starts_with(".workbench/"))
+        .find(|word| word.starts_with(".magistr/workspace/"))
         .expect("the store path");
     // ---- End boundary: the user applies the instruction locally. ----
-    assert_eq!(store, ".workbench/native-index.db");
+    assert_eq!(store, ".magistr/workspace/native-index.db");
     std::fs::remove_file(dir.path().join(store)).expect("apply remediation");
     let after = DoctorRun::observe(&DoctorOptions::new(dir.path()));
     assert!(!after.report.findings_present);
@@ -189,10 +189,10 @@ fn redact_reduces_foreign_absolute_paths_to_placeholders() {
     assert!(!out.contains("/home/someone"));
     assert_eq!(
         redact_bundle_text(
-            "store .workbench/index.db under /tmp/ws/.workbench",
+            "store .magistr/workspace/index.db under /tmp/ws/.magistr/workspace",
             "/tmp/ws"
         ),
-        "store .workbench/index.db under <workspace>/.workbench"
+        "store .magistr/workspace/index.db under <workspace>/.magistr/workspace"
     );
 }
 
@@ -201,13 +201,13 @@ fn the_tar_writer_round_trips_arbitrary_member_bytes() {
     let data: Vec<u8> = (0..700u32).map(|index| (index % 251) as u8).collect();
     let archive = tar_writer::tar_archive(
         &[tar_writer::TarMember {
-            name: "workbench-doctor/x.bin".into(),
+            name: "workspace-doctor/x.bin".into(),
             data: data.clone(),
         }],
         1_700_000_000,
     )
     .expect("archive");
     let members = read_tar(&archive);
-    assert_eq!(members.get("workbench-doctor/x.bin"), Some(&data));
+    assert_eq!(members.get("workspace-doctor/x.bin"), Some(&data));
     assert_eq!(archive.len() % 512, 0);
 }

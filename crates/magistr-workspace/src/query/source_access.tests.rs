@@ -73,14 +73,14 @@ fn oversized_source_is_a_typed_observation_and_a_named_refusal() {
 #[test]
 fn live_walk_honors_nested_ignores_metadata_and_empty_directories() {
     let dir = tempfile::tempdir().expect("fixture");
-    for path in ["src/empty", ".git", ".workbench", "vendor"] {
+    for path in ["src/empty", ".git", ".magistr/workspace", "vendor"] {
         fs::create_dir_all(dir.path().join(path)).expect("directory");
     }
     for path in [
         "src/yes.rs",
         "src/no.rs",
         ".git/secret",
-        ".workbench/state",
+        ".magistr/workspace/state",
         "vendor/file.rs",
     ] {
         fs::write(dir.path().join(path), "").expect("file");
@@ -101,7 +101,7 @@ fn live_walk_honors_nested_ignores_metadata_and_empty_directories() {
     );
     assert!(!rows.iter().any(|row| row.path == "src/no.rs"
         || row.path.starts_with(".git")
-        || row.path.starts_with(".workbench")));
+        || row.path.starts_with(".magistr/workspace")));
 }
 
 #[cfg(unix)]

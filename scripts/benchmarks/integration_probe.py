@@ -11,7 +11,7 @@ from summarize_pilot import trial_row
 
 INSTRUCTION = """
 Verify the tools installed in this small project. Use the generated Magistr and
-Workbench MCP tools, and follow their schemas and confirmation-token responses.
+Workspace MCP tools, and follow their schemas and confirmation-token responses.
 1. Inspect project checks. Run the test gate and report it as unconfigured.
 2. Create probe.md using files(create), read its content hash, then populate it
    with edit(replace_text), old:"", new:"native writes work\\n" and expectedHash.

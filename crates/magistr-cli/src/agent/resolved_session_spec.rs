@@ -152,7 +152,8 @@ impl ResolvedSessionSpec {
             for server in &mut mcp_servers {
                 if let McpServer::Stdio(server) = server {
                     server.env.retain(|var| {
-                        var.name != "MAGISTR_EXECUTION_ID" && var.name != "WORKBENCH_SESSION_ID"
+                        var.name != "MAGISTR_EXECUTION_ID"
+                            && var.name != "MAGISTR_WORKSPACE_SESSION_ID"
                     });
                     server
                         .env
@@ -163,7 +164,7 @@ impl ResolvedSessionSpec {
                     server
                         .env
                         .push(agent_client_protocol::schema::v1::EnvVariable::new(
-                            "WORKBENCH_SESSION_ID",
+                            "MAGISTR_WORKSPACE_SESSION_ID",
                             execution,
                         ));
                 }

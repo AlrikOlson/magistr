@@ -13,7 +13,7 @@ and the [workspace owner](workspace-owner.md):
 
 | Store | Write | Read | Attached |
 | --- | --- | --- | --- |
-| Workflow (think-and-ship families) | `NativeEngines`, one admitted project authority, with execution-bound views, only from `ProjectAuthority::open`/`serve` | `NativeReader`, no lease | `OwnerClient` on the project endpoint: typed commands (`commands`) or an MCP session (`mcp`); no lease, no engine |
+| Workflow (magistr families) | `NativeEngines`, one admitted project authority, with execution-bound views, only from `ProjectAuthority::open`/`serve` | `NativeReader`, no lease | `OwnerClient` on the project endpoint: typed commands (`commands`) or an MCP session (`mcp`); no lease, no engine |
 | Workspace (one checkout) | the admitted `WorkspaceService`, one per canonical root, only from `WorkspaceService::open` | lock-free readers: `SourceSnapshot::capture`, `JournalInspection`, `DoctorRun` | a bridge attached over `OwnerClient::attach_workspace` (`mcp`), speaking the owner's tool surface |
 
 ## Client inventory

@@ -45,7 +45,7 @@ use crate::tracker::port::{TrackerError, TrackerPort};
 /// An HTML comment, so it renders as nothing in every tracker that speaks
 /// Markdown while staying exactly parseable on the way back in — which the
 /// inbound reconcile needs in order to tell our own writing from a human's.
-const FOOTER_OPEN: &str = "<!-- think-and-ship:";
+const FOOTER_OPEN: &str = "<!-- magistr:";
 const FOOTER_CLOSE: &str = "-->";
 
 /// What one chunk's projection did.

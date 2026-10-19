@@ -171,8 +171,8 @@ async fn mock_file_watcher_as_trait_object() {
 }
 
 #[test]
-fn workbench_state_directory_is_skipped_like_git_and_target() {
-    for dir in [".git", "target", ".workbench"] {
+fn workspace_state_directory_is_skipped_like_git_and_target() {
+    for dir in [".git", "target", ".magistr/workspace"] {
         assert!(SKIP_DIRS.contains(&dir), "{dir} must be skipped");
     }
 }

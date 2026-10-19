@@ -101,7 +101,7 @@ impl WorkspaceService {
         if !root.is_dir() {
             return Err(WorkspaceOpenError::RootMissing(root));
         }
-        let state_dir = root.join(".workbench");
+        let state_dir = root.join(".magistr/workspace");
         std::fs::create_dir_all(&state_dir)?;
         let lock = ServerLock::acquire(state_dir.join(ServerLock::FILE_NAME))
             .map_err(WorkspaceOpenError::lock)?;

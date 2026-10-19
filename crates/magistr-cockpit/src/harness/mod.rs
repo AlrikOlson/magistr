@@ -1,4 +1,4 @@
 //! Pure effect-port fakes and typed native-store fixtures.
-pub mod fake_workbench;
+pub mod fake_workspace;
 pub mod fixtures;
-pub use fake_workbench::FakeWorkbench;
+pub use fake_workspace::FakeWorkspace;

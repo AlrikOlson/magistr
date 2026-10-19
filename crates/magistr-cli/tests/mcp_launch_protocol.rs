@@ -87,13 +87,13 @@ impl Fixture {
             .current_dir(cwd)
             .env("XDG_CONFIG_HOME", home.join("config"))
             .env("XDG_DATA_HOME", home.join("data"))
-            .env("THINK_AND_SHIP_DATA_DIR", home.join("think-and-ship"))
-            .env("THINK_AND_SHIP_PERSIST", "true")
+            .env("MAGISTR_WORKFLOW_DATA_DIR", home.join("magistr/workflow"))
+            .env("MAGISTR_WORKFLOW_PERSIST", "true")
             .envs(
                 // The live feed is a Unix domain socket; Windows serves none.
                 (!cfg!(windows)).then(|| {
                     (
-                        "THINK_AND_SHIP_BROADCAST_PATH",
+                        "MAGISTR_WORKFLOW_BROADCAST_PATH",
                         self.temporary.path().join("feed.sock"),
                     )
                 }),
@@ -175,8 +175,7 @@ async fn stop(client: Client, mut child: Child) {
 async fn generated_magistr_launch_serves_native_tools_after_relocation_from_root_and_nested_cwd() {
     let fixture = Fixture::relocated();
     let identity: Value = serde_json::from_slice(
-        &std::fs::read(fixture.root.join(".think-and-ship/project.json"))
-            .expect("project identity"),
+        &std::fs::read(fixture.root.join(".magistr/project.json")).expect("project identity"),
     )
     .expect("identity JSON");
     for cwd in [&fixture.root, &fixture.root.join("src/nested")] {
@@ -189,14 +188,17 @@ async fn generated_magistr_launch_serves_native_tools_after_relocation_from_root
             assert!(tools.iter().any(|tool| tool.name == name), "missing {name}");
         }
         let status = call(&client, "roadmap_status", json!({})).await;
-        assert_eq!(status["project_id"], identity["id"], "workspace identity");
+        assert_eq!(
+            status["project_id"], identity["project"]["id"],
+            "workspace identity"
+        );
         stop(client, child).await;
         fixture.assert_no_roadmap_files();
     }
 }
 
 #[tokio::test]
-async fn generated_workbench_launch_reads_and_searches_relocated_workspace_from_root_and_nested_cwd()
+async fn generated_workspace_launch_reads_and_searches_relocated_workspace_from_root_and_nested_cwd()
  {
     // Both native owners are reached through the generated connection.
     for nested in [false, true] {
@@ -208,14 +210,14 @@ async fn generated_workbench_launch_reads_and_searches_relocated_workspace_from_
         };
         let mut command = fixture.command("magistr", &cwd);
         command
-            .env("WORKBENCH_NETWORK_FS", "0")
-            .env_remove("WORKBENCH_MCP")
-            .env_remove("WORKBENCH_MCP_REPO");
+            .env("MAGISTR_WORKSPACE_NETWORK_FS", "0")
+            .env_remove("MAGISTR_WORKSPACE_MCP")
+            .env_remove("MAGISTR_WORKSPACE_MCP_REPO");
         let (client, child) = connect(command).await;
         let tools = timeout(DEADLINE, client.peer().list_all_tools())
             .await
             .expect("tools/list deadline")
-            .expect("list Workbench tools");
+            .expect("list Workspace tools");
         for name in ["read", "search", "execute"] {
             assert!(tools.iter().any(|tool| tool.name == name), "missing {name}");
         }

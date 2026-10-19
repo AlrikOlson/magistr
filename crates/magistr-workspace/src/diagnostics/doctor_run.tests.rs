@@ -22,7 +22,7 @@ fn options(root: &Path) -> DoctorOptions {
 /// quarantine record plus a torn line, one breaker record and a sideloaded
 /// plugin entry.
 fn seed_state_dir(root: &Path) -> std::path::PathBuf {
-    let state = root.join(".workbench");
+    let state = root.join(".magistr/workspace");
     std::fs::create_dir_all(&state).expect("state dir");
     drop(IndexCache::open(&state, "WAL").expect("native index"));
     std::fs::write(
@@ -129,7 +129,7 @@ fn a_fresh_workspace_has_no_findings_and_the_probe_creates_no_state() {
     let index = section(&run, DoctorSectionId::Index);
     assert_eq!(index.findings[0].severity, DoctorSeverity::Info);
     assert!(index.findings[0].symptom.contains("no native index yet"));
-    assert!(!dir.path().join(".workbench").exists());
+    assert!(!dir.path().join(".magistr/workspace").exists());
     assert!(
         run.render()
             .ends_with("result: all probes healthy (exit 0)")
@@ -139,7 +139,7 @@ fn a_fresh_workspace_has_no_findings_and_the_probe_creates_no_state() {
 #[test]
 fn a_corrupt_or_newer_index_is_an_unhealthy_cache_finding_with_a_rebuild_remediation() {
     let dir = workspace();
-    let state = dir.path().join(".workbench");
+    let state = dir.path().join(".magistr/workspace");
     std::fs::create_dir_all(&state).expect("state dir");
     let index_path = state.join("native-index.db");
     std::fs::write(&index_path, "garbage-not-a-sqlite-database").expect("corrupt");
@@ -149,7 +149,10 @@ fn a_corrupt_or_newer_index_is_an_unhealthy_cache_finding_with_a_rebuild_remedia
     assert_eq!(finding.data_class, DoctorDataClass::Cache);
     assert!(finding.symptom.contains("unreadable as a database"));
     let remediation = finding.remediation.as_deref().expect("remediation");
-    assert!(remediation.contains(".workbench/native-index.db") && remediation.contains("rebuild"));
+    assert!(
+        remediation.contains(".magistr/workspace/native-index.db")
+            && remediation.contains("rebuild")
+    );
     assert_eq!(
         std::fs::read(&index_path).expect("bytes"),
         b"garbage-not-a-sqlite-database"
@@ -176,7 +179,7 @@ fn a_corrupt_or_newer_index_is_an_unhealthy_cache_finding_with_a_rebuild_remedia
 #[test]
 fn read_only_beside_a_live_owner_holding_the_native_index_lock() {
     let dir = workspace();
-    let state = dir.path().join(".workbench");
+    let state = dir.path().join(".magistr/workspace");
     std::fs::create_dir_all(&state).expect("state dir");
     let owner = IndexCache::open(&state, "WAL").expect("live owner");
     let snapshot = || -> Vec<(String, Vec<u8>)> {
@@ -220,7 +223,12 @@ fn read_only_beside_a_live_owner_holding_the_native_index_lock() {
 #[test]
 fn a_broken_config_layer_is_a_durable_finding_and_the_report_still_renders() {
     let dir = workspace();
-    std::fs::write(dir.path().join("workbench.toml"), "this = = is not toml").expect("bad config");
+    std::fs::create_dir_all(dir.path().join(".magistr")).unwrap();
+    std::fs::write(
+        dir.path().join(".magistr/workspace.toml"),
+        "this = = is not toml",
+    )
+    .expect("bad config");
     let run = DoctorRun::observe(&options(dir.path()));
     let config = section(&run, DoctorSectionId::Config);
     let text = run.render();

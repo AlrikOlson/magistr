@@ -1,0 +1,18 @@
+# Magistr SDK example: the smallest conforming tool plugin.
+# Registered by the host as `magistr.example-echo/greet` (SDD §8.3).
+
+[plugin]
+publisher = "magistr"
+pkg = "example-echo"
+version = "0.1.0"
+
+[component]
+path = "guest.wat"
+
+[[tools]]
+name = "greet"
+description = "Echoes the canonical invoke payload back as its JSON result"
+
+[limits]
+fuel = 100000
+memory_bytes = 1048576

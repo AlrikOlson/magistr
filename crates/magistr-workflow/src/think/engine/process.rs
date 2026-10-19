@@ -467,7 +467,7 @@ impl ReasoningServer {
 
         if stored.session_id.is_some() && !self.config.features.enable_sessions {
             out.push(
-                "session_id ignored — sessions are disabled (set THINK_AND_SHIP_ENABLE_SESSIONS=true). Step landed in the default history."
+                "session_id ignored — sessions are disabled (set MAGISTR_WORKFLOW_ENABLE_SESSIONS=true). Step landed in the default history."
                     .into(),
             );
         }
@@ -540,7 +540,7 @@ impl ReasoningServer {
 
     fn make_error(&self, msg: &str) -> StepError {
         let hint = if self.config.validation.strict_mode {
-            "Strict mode is enabled. Set THINK_AND_SHIP_STRICT_MODE=false for flexible validation."
+            "Strict mode is enabled. Set MAGISTR_WORKFLOW_STRICT_MODE=false for flexible validation."
         } else {
             "Check that all required fields are provided."
         };

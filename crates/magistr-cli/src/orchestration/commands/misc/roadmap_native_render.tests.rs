@@ -127,7 +127,7 @@ fn show_json_carries_the_snapshot_and_sorted_pending() {
     add(&e, "b", 300, &[], None);
     add(&e, "a", 100, &[], None);
     let json = show_json(&e.roadmap_snapshot().unwrap(), &e.roadmap_chunks().unwrap());
-    assert_eq!(json["backend"], "think-and-ship");
+    assert_eq!(json["backend"], "magistr");
     assert_eq!(json["counts"]["pending"], 2);
     assert_eq!(json["next_ready"], "a");
     assert_eq!(json["pending"][0]["id"], "a");
@@ -138,5 +138,5 @@ fn show_json_carries_the_snapshot_and_sorted_pending() {
 #[test]
 fn native_required_names_the_flag() {
     assert!(NATIVE_REQUIRED.contains("roadmap_backend"));
-    assert!(NATIVE_REQUIRED.contains("think-and-ship"));
+    assert!(NATIVE_REQUIRED.contains("magistr"));
 }

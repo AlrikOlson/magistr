@@ -7,7 +7,7 @@ use std::{
 /// The journal-backed trash below the protected state directory. Only the
 /// pipeline's own deletion of an admitted target ever writes here.
 pub(super) fn directory(root: &Path) -> io::Result<PathBuf> {
-    let trash = root.join(".workbench").join("trash");
+    let trash = root.join(".magistr/workspace").join("trash");
     fs::create_dir_all(&trash)?;
     Ok(trash)
 }

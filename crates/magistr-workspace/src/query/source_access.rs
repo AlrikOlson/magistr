@@ -121,10 +121,7 @@ impl WorkspaceQueries<'_> {
             .hidden(false)
             .follow_links(false)
             .require_git(false)
-            .filter_entry(|entry| {
-                !(entry.file_type().is_some_and(|kind| kind.is_dir())
-                    && matches!(entry.file_name().to_str(), Some(".git" | ".workbench")))
-            });
+            .filter_entry(|entry| !crate::paths::is_owner_path(entry.path()));
         let collected: Mutex<Result<Vec<SourceEntry>, WorkspaceError>> = Mutex::new(Ok(Vec::new()));
         let (root, policy) = (&self.root, self.policy);
         builder.build_parallel().run(|| {

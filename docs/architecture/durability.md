@@ -250,7 +250,7 @@ against the binary.
 | Family | Store | Atomic unit | Cross-family atomicity |
 | --- | --- | --- | --- |
 | Loop run (run state, stop counters, budget, operations) | `.magistr/loop-state.json` | one whole-file atomic replacement | none with any other family; the ledger records the run's side of every effect |
-| Native workflow (roadmap, ship, think, signal) | think-and-ship's own per-family files, written by the library | one family write | none across families; the library does not commit a mutation and its receipt together, so the ledger marks the operation and recovery reads the family back |
+| Native workflow (roadmap, ship, think, signal) | magistr's own per-family files, written by the library | one family write | none across families; the library does not commit a mutation and its receipt together, so the ledger marks the operation and recovery reads the family back |
 | Cost history | the machine's cost ledger file | one whole-file atomic replacement | none; the shared session owner settles its optional cumulative spend after cleanup, replacing that conversation's entry; bookkeeping failures do not change the provider outcome |
 | Cockpit checkpoint spine | in-memory `SessionSnapshot` chain | one snapshot | none; it is the session's own ledger, not run persistence |
 | Peer journal | its own versioned journal | one accepted transition | none; peer reservations, unsettled worker attempts and receipts stay there and are not loop-checkpoint fields |

@@ -10,12 +10,8 @@ use std::time::{Duration, Instant};
 
 use magistr_workspace::{engine, indexer, lang_registry};
 
-const GLEAM_WASM: &[u8] = include_bytes!(
-    "../../../subsystems/workspace/reference/plugins/lang-pack-gleam/grammar/gleam.wasm"
-);
-const GLEAM_TAGS: &str = include_str!(
-    "../../../subsystems/workspace/reference/plugins/lang-pack-gleam/queries/tags.scm"
-);
+const GLEAM_WASM: &[u8] = include_bytes!("../fixtures/plugins/lang-pack-gleam/grammar/gleam.wasm");
+const GLEAM_TAGS: &str = include_str!("../fixtures/plugins/lang-pack-gleam/queries/tags.scm");
 
 /// A representative bundled-language source: big enough that parse time is
 /// dominated by parsing, small enough to iterate.

@@ -215,27 +215,27 @@ fn workspace_env_keeps_only_the_layer_keys_and_drops_blanks() {
     let inputs = ProjectInputs::from_lookup(
         "/proj",
         lookup(vec![
-            ("WORKBENCH_USER_CONFIG", "/etc/wb/user.toml"),
-            ("WORKBENCH_ORG_POLICY", ""),
+            ("MAGISTR_WORKSPACE_USER_CONFIG", "/etc/wb/user.toml"),
+            ("MAGISTR_WORKSPACE_ORG_POLICY", ""),
             ("HOME", "/home/u"),
-            ("WORKBENCH_NETWORK_FS", "1"),
-            ("WORKBENCH_SESSION_ID", " session-9 "),
+            ("MAGISTR_WORKSPACE_NETWORK_FS", "1"),
+            ("MAGISTR_WORKSPACE_SESSION_ID", " session-9 "),
             ("PATH", "/usr/bin"),
         ]),
     );
     let env = inputs.workspace_env();
     assert_eq!(
-        env.get("WORKBENCH_USER_CONFIG").unwrap(),
+        env.get("MAGISTR_WORKSPACE_USER_CONFIG").unwrap(),
         "/etc/wb/user.toml"
     );
     assert_eq!(env.get("HOME").unwrap(), "/home/u");
-    assert!(!env.contains_key("WORKBENCH_ORG_POLICY"));
+    assert!(!env.contains_key("MAGISTR_WORKSPACE_ORG_POLICY"));
     assert!(!env.contains_key("PATH"));
     assert_eq!(inputs.workspace_network_override(), Some("1"));
     assert_eq!(inputs.workspace_session_id(), Some("session-9"));
     assert_eq!(
         inputs.sources()["workspace.user_config"],
-        InputSource::Environment("WORKBENCH_USER_CONFIG")
+        InputSource::Environment("MAGISTR_WORKSPACE_USER_CONFIG")
     );
     assert_eq!(
         inputs.sources()["workspace.org_policy"],
@@ -243,7 +243,7 @@ fn workspace_env_keeps_only_the_layer_keys_and_drops_blanks() {
     );
     assert_eq!(
         inputs.sources()["workspace.network_fs"],
-        InputSource::Environment("WORKBENCH_NETWORK_FS")
+        InputSource::Environment("MAGISTR_WORKSPACE_NETWORK_FS")
     );
 
     let options = inputs.workspace_resolve_options();

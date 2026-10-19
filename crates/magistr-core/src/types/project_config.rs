@@ -19,7 +19,7 @@ pub struct ProjectConfig {
     pub format: FormatConfig,
     /// Specification file tracking (roadmap).
     ///
-    /// Absent on a think-and-ship project: the roadmap lives in the native
+    /// Absent on a magistr project: the roadmap lives in the native
     /// engines and there is no YAML/markdown spec file to track.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub spec: Option<SpecConfig>,
@@ -47,7 +47,7 @@ pub struct ProjectConfig {
     /// start/end, gate pass/fail) to an MCP tool invocation.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub lifecycle_hooks: Vec<magistr_engine::LifecycleHook>,
-    /// Which store backs the roadmap: `think-and-ship` (the native in-process
+    /// Which store backs the roadmap: `native` (the native in-process
     /// engines, the default) or `yaml` (`.magistr-roadmap.yml`).
     /// An omitted field uses the native default, regardless of other files.
     #[serde(default)]
@@ -130,6 +130,9 @@ fn is_default_guards(guards: &GuardsConfig) -> bool {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ProjectMeta {
+    /// Stable identity pinned by setup; unconfigured projects may derive one from their root.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
     /// Project name (used for display and state prefix).
     pub name: String,
     /// Short project description.

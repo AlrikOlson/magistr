@@ -23,7 +23,7 @@ impl SessionPolicy for Capability {
         Some(self.core_listing())
     }
     fn session_meta(&self) -> Option<&'static str> {
-        Some("workbench/sessionId")
+        Some("magistr/sessionId")
     }
     fn unavailable_call(
         &self,

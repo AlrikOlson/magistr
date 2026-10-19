@@ -339,7 +339,7 @@ pub fn cmd_plugins(
 
 /// Build MCP permission entries for Claude Code `settings.json`.
 ///
-/// Combines built-in servers (magistr, workbench-mcp) with user-selected servers
+/// Combines built-in servers (magistr, magistr) with user-selected servers
 /// into formatted JSON array entries: `"mcp__servername"`.
 pub(crate) fn build_mcp_permissions(selected_servers: &[String]) -> String {
     use crate::scaffold::registry;

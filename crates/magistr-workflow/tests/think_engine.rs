@@ -256,8 +256,8 @@ fn sessions_snapshot_preserves_saved_session_metadata() {
 fn default_session_id_is_applied_when_caller_omits_one() {
     // With a default_session_id configured, a step that arrives without
     // session_id should be routed to that session and persisted under
-    // the same name — that's the contract of THINK_AND_SHIP_AUTO_SESSION /
-    // THINK_AND_SHIP_DEFAULT_SESSION_ID.
+    // the same name — that's the contract of MAGISTR_WORKFLOW_AUTO_SESSION /
+    // MAGISTR_WORKFLOW_DEFAULT_SESSION_ID.
     let mut c = quiet_config();
     c.features.enable_sessions = true;
     c.features.default_session_id = Some("auto-test".into());

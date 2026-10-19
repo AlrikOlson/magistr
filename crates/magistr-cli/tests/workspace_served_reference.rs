@@ -42,16 +42,16 @@ fn reference_dir() -> PathBuf {
 
 fn seed(root: &Path) {
     std::fs::create_dir_all(root.join(".git")).expect("repository marker");
-    std::fs::create_dir_all(root.join(".workbench")).expect("state dir");
+    std::fs::create_dir_all(root.join(".magistr/workspace")).expect("state dir");
     std::fs::create_dir_all(root.join("src")).expect("src");
     std::fs::write(
-        root.join("workbench.toml"),
+        root.join(".magistr/workspace.toml"),
         "[commands]\nlist = \"echo hi\"\n",
     )
     .expect("allowlist");
     std::fs::write(root.join("src/app.ts"), "export const app = 1;\n").expect("source");
     std::fs::write(
-        root.join(".workbench/plugins.json"),
+        root.join(".magistr/workspace/plugins.json"),
         json!({"plugins": [
             {"name": "local.hack", "source": "sideload", "tier": "blessed"},
             {"name": "acme.signed", "version": "2.0.0", "source": "registry", "tier": "verified"},
@@ -68,7 +68,7 @@ async fn reference_client(root: &Path) -> (tokio::process::Child, Client) {
         .arg(reference_dir().join("src/main.ts"))
         .arg(root)
         .current_dir(reference_dir())
-        .env("WORKBENCH_NETWORK_FS", "0");
+        .env("MAGISTR_WORKSPACE_NETWORK_FS", "0");
     spawn(command).await
 }
 
@@ -78,7 +78,7 @@ async fn native_client(root: &Path) -> (tokio::process::Child, Client) {
         .arg("mcp")
         .arg("--dir")
         .arg(root)
-        .env("WORKBENCH_NETWORK_FS", "0");
+        .env("MAGISTR_WORKSPACE_NETWORK_FS", "0");
     spawn(command).await
 }
 
@@ -163,8 +163,8 @@ async fn the_native_server_matches_the_reference_over_the_wire() {
 
     // The status envelope, root aside, and the empty journal listing verbatim.
     assert_eq!(
-        without_root(call(&native, "workbench_status", json!({})).await),
-        without_root(call(&reference, "workbench_status", json!({})).await)
+        without_root(call(&native, "workspace_status", json!({})).await),
+        without_root(call(&reference, "workspace_status", json!({})).await)
     );
     assert_eq!(
         call(&native, "undo", json!({"action": "list"})).await,
@@ -193,7 +193,7 @@ async fn the_native_server_matches_the_reference_over_the_wire() {
     // Typed run refusals agree on code and recovery; messages are each side's own.
     for args in [
         json!({"command": "deploy"}),
-        json!({"command": "list", "args": [">", "workbench.toml"]}),
+        json!({"command": "list", "args": [">", ".magistr/workspace.toml"]}),
     ] {
         let native_run = call(&native, "run", args.clone()).await;
         let reference_run = call(&reference, "run", args).await;

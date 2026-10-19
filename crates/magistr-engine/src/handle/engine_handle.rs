@@ -49,8 +49,8 @@ const EVENT_CHANNEL_CAPACITY: usize = 256;
 pub struct EngineHandle {
     state: Arc<Mutex<EngineState>>,
     event_tx: broadcast::Sender<EngineEvent>,
-    /// The in-process think-and-ship reader, when the project's
-    /// `roadmap_backend` is `think-and-ship`. Outside the state mutex: the
+    /// The in-process magistr reader, when the project's
+    /// `roadmap_backend` is `native`. Outside the state mutex: the
     /// engines carry their own locks and must never be held under ours.
     native: Option<NativeReader>,
 }
@@ -108,7 +108,7 @@ impl EngineHandle {
         self
     }
 
-    /// The native reader, if this handle runs on the think-and-ship backend.
+    /// The native reader, if this handle runs on the magistr backend.
     #[must_use]
     pub fn native(&self) -> Option<&NativeReader> {
         self.native.as_ref()
@@ -166,7 +166,7 @@ impl EngineHandle {
     /// Write this session down so another process can pick it up.
     ///
     /// Declares no residencies: the engine knows nothing about ACP child
-    /// processes, terminals or the workbench lock. The adapter that does
+    /// processes, terminals or the workspace lock. The adapter that does
     /// adds them with [`SessionSnapshot::resident_on`] before handing the
     /// document anywhere.
     ///

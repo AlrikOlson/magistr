@@ -23,18 +23,18 @@ impl EnvGuard {
             _lock: lock,
         };
         for key in [
-            "THINK_AND_SHIP_STRICT_MODE",
+            "MAGISTR_WORKFLOW_STRICT_MODE",
             "MAX_HISTORY_SIZE",
-            "THINK_AND_SHIP_OUTPUT_FORMAT",
-            "THINK_AND_SHIP_NO_COLOR",
-            "THINK_AND_SHIP_SESSION_TIMEOUT",
-            "THINK_AND_SHIP_MAX_BRANCH_DEPTH",
-            "THINK_AND_SHIP_ENABLE_SESSIONS",
-            "THINK_AND_SHIP_AUTO_SESSION",
-            "THINK_AND_SHIP_DEFAULT_SESSION_ID",
-            "THINK_AND_SHIP_PROJECT_NAME",
-            "THINK_AND_SHIP_PERSIST",
-            "THINK_AND_SHIP_DATA_DIR",
+            "MAGISTR_WORKFLOW_OUTPUT_FORMAT",
+            "MAGISTR_WORKFLOW_NO_COLOR",
+            "MAGISTR_WORKFLOW_SESSION_TIMEOUT",
+            "MAGISTR_WORKFLOW_MAX_BRANCH_DEPTH",
+            "MAGISTR_WORKFLOW_ENABLE_SESSIONS",
+            "MAGISTR_WORKFLOW_AUTO_SESSION",
+            "MAGISTR_WORKFLOW_DEFAULT_SESSION_ID",
+            "MAGISTR_PROJECT_ID",
+            "MAGISTR_WORKFLOW_PERSIST",
+            "MAGISTR_WORKFLOW_DATA_DIR",
         ] {
             // SAFETY: tests are single-threaded thanks to ENV_LOCK.
             unsafe { std::env::remove_var(key) };
@@ -111,7 +111,7 @@ fn load_config_with_no_env_matches_default() {
 #[test]
 fn strict_mode_enables_all_strict_validations() {
     let mut g = EnvGuard::new();
-    g.set("THINK_AND_SHIP_STRICT_MODE", "true");
+    g.set("MAGISTR_WORKFLOW_STRICT_MODE", "true");
     let c = load_config();
     assert!(c.validation.strict_mode);
     assert!(c.validation.require_thought_prefix);
@@ -122,7 +122,7 @@ fn strict_mode_enables_all_strict_validations() {
 #[test]
 fn strict_mode_false_keeps_flexible() {
     let mut g = EnvGuard::new();
-    g.set("THINK_AND_SHIP_STRICT_MODE", "false");
+    g.set("MAGISTR_WORKFLOW_STRICT_MODE", "false");
     let c = load_config();
     assert!(!c.validation.strict_mode);
 }
@@ -165,42 +165,42 @@ fn max_history_size_negative_falls_back_to_default() {
 #[test]
 fn output_format_json() {
     let mut g = EnvGuard::new();
-    g.set("THINK_AND_SHIP_OUTPUT_FORMAT", "json");
+    g.set("MAGISTR_WORKFLOW_OUTPUT_FORMAT", "json");
     assert_eq!(load_config().display.output_format, OutputFormat::Json);
 }
 
 #[test]
 fn output_format_markdown() {
     let mut g = EnvGuard::new();
-    g.set("THINK_AND_SHIP_OUTPUT_FORMAT", "markdown");
+    g.set("MAGISTR_WORKFLOW_OUTPUT_FORMAT", "markdown");
     assert_eq!(load_config().display.output_format, OutputFormat::Markdown);
 }
 
 #[test]
 fn output_format_console() {
     let mut g = EnvGuard::new();
-    g.set("THINK_AND_SHIP_OUTPUT_FORMAT", "console");
+    g.set("MAGISTR_WORKFLOW_OUTPUT_FORMAT", "console");
     assert_eq!(load_config().display.output_format, OutputFormat::Console);
 }
 
 #[test]
 fn output_format_invalid_falls_back_to_console() {
     let mut g = EnvGuard::new();
-    g.set("THINK_AND_SHIP_OUTPUT_FORMAT", "invalid");
+    g.set("MAGISTR_WORKFLOW_OUTPUT_FORMAT", "invalid");
     assert_eq!(load_config().display.output_format, OutputFormat::Console);
 }
 
 #[test]
 fn output_format_case_insensitive() {
     let mut g = EnvGuard::new();
-    g.set("THINK_AND_SHIP_OUTPUT_FORMAT", "JSON");
+    g.set("MAGISTR_WORKFLOW_OUTPUT_FORMAT", "JSON");
     assert_eq!(load_config().display.output_format, OutputFormat::Json);
 }
 
 #[test]
 fn no_color_disables_colors() {
     let mut g = EnvGuard::new();
-    g.set("THINK_AND_SHIP_NO_COLOR", "true");
+    g.set("MAGISTR_WORKFLOW_NO_COLOR", "true");
     assert!(!load_config().display.color_output);
 }
 
@@ -213,28 +213,28 @@ fn colors_enabled_by_default() {
 #[test]
 fn session_timeout_from_env() {
     let mut g = EnvGuard::new();
-    g.set("THINK_AND_SHIP_SESSION_TIMEOUT", "30");
+    g.set("MAGISTR_WORKFLOW_SESSION_TIMEOUT", "30");
     assert_eq!(load_config().system.session_timeout, 30);
 }
 
 #[test]
 fn max_branch_depth_from_env() {
     let mut g = EnvGuard::new();
-    g.set("THINK_AND_SHIP_MAX_BRANCH_DEPTH", "3");
+    g.set("MAGISTR_WORKFLOW_MAX_BRANCH_DEPTH", "3");
     assert_eq!(load_config().system.max_branch_depth, 3);
 }
 
 #[test]
 fn sessions_enabled_via_env() {
     let mut g = EnvGuard::new();
-    g.set("THINK_AND_SHIP_ENABLE_SESSIONS", "true");
+    g.set("MAGISTR_WORKFLOW_ENABLE_SESSIONS", "true");
     assert!(load_config().features.enable_sessions);
 }
 
 #[test]
 fn sessions_false_keeps_disabled() {
     let mut g = EnvGuard::new();
-    g.set("THINK_AND_SHIP_ENABLE_SESSIONS", "false");
+    g.set("MAGISTR_WORKFLOW_ENABLE_SESSIONS", "false");
     assert!(!load_config().features.enable_sessions);
 }
 
@@ -248,7 +248,7 @@ fn sessions_disabled_when_unset() {
 // crate may live beneath its host's project marker; changing the parent cwd
 // would race the other tests and inspecting the checkout is not a fixture.
 fn in_unmarked_project(test_name: &str) -> bool {
-    const MARKER: &str = "THINK_AND_SHIP_TEST_ISOLATED_IDENTITY";
+    const MARKER: &str = "MAGISTR_WORKFLOW_TEST_ISOLATED_IDENTITY";
     if std::env::var(MARKER).as_deref() == Ok(test_name) {
         return true;
     }
@@ -271,7 +271,7 @@ fn auto_session_id_is_stable_basename_plus_path_hash() {
         return;
     }
     let mut g = EnvGuard::new();
-    g.set("THINK_AND_SHIP_AUTO_SESSION", "true");
+    g.set("MAGISTR_WORKFLOW_AUTO_SESSION", "true");
     let c = load_config();
     let id = c
         .features
@@ -302,7 +302,7 @@ fn auto_session_id_is_identical_across_load_config_calls() {
     // EXACTLY the same id — that's the contract that makes the
     // session persistent across server restarts.
     let mut g = EnvGuard::new();
-    g.set("THINK_AND_SHIP_AUTO_SESSION", "true");
+    g.set("MAGISTR_WORKFLOW_AUTO_SESSION", "true");
     let id1 = load_config().features.default_session_id.unwrap();
     let id2 = load_config().features.default_session_id.unwrap();
     assert_eq!(id1, id2, "auto-session id must be stable: {id1} vs {id2}");
@@ -311,8 +311,8 @@ fn auto_session_id_is_identical_across_load_config_calls() {
 #[test]
 fn auto_session_id_honors_explicit_project_name_env() {
     let mut g = EnvGuard::new();
-    g.set("THINK_AND_SHIP_AUTO_SESSION", "true");
-    g.set("THINK_AND_SHIP_PROJECT_NAME", "Acme/API Service!");
+    g.set("MAGISTR_WORKFLOW_AUTO_SESSION", "true");
+    g.set("MAGISTR_PROJECT_ID", "Acme/API Service!");
     let c = load_config();
     let id = c.features.default_session_id.expect("auto-session id");
     // Explicit override — used verbatim after sanitization.
@@ -325,8 +325,8 @@ fn auto_session_id_falls_back_when_project_name_is_empty() {
         return;
     }
     let mut g = EnvGuard::new();
-    g.set("THINK_AND_SHIP_AUTO_SESSION", "true");
-    g.set("THINK_AND_SHIP_PROJECT_NAME", "/////");
+    g.set("MAGISTR_WORKFLOW_AUTO_SESSION", "true");
+    g.set("MAGISTR_PROJECT_ID", "/////");
     let c = load_config();
     let id = c.features.default_session_id.expect("auto-session id");
     let cwd = std::env::current_dir().unwrap();
@@ -341,12 +341,12 @@ fn auto_session_id_falls_back_when_project_name_is_empty() {
 #[test]
 fn multiple_env_vars_compose() {
     let mut g = EnvGuard::new();
-    g.set("THINK_AND_SHIP_STRICT_MODE", "true");
+    g.set("MAGISTR_WORKFLOW_STRICT_MODE", "true");
     g.set("MAX_HISTORY_SIZE", "200");
-    g.set("THINK_AND_SHIP_OUTPUT_FORMAT", "markdown");
-    g.set("THINK_AND_SHIP_SESSION_TIMEOUT", "120");
-    g.set("THINK_AND_SHIP_MAX_BRANCH_DEPTH", "10");
-    g.set("THINK_AND_SHIP_ENABLE_SESSIONS", "true");
+    g.set("MAGISTR_WORKFLOW_OUTPUT_FORMAT", "markdown");
+    g.set("MAGISTR_WORKFLOW_SESSION_TIMEOUT", "120");
+    g.set("MAGISTR_WORKFLOW_MAX_BRANCH_DEPTH", "10");
+    g.set("MAGISTR_WORKFLOW_ENABLE_SESSIONS", "true");
     let c = load_config();
     assert!(c.validation.strict_mode);
     assert_eq!(c.system.max_history_size, 200);
@@ -360,12 +360,12 @@ fn multiple_env_vars_compose() {
 
 #[test]
 fn enable_sessions_alone_now_produces_default_session_id() {
-    // Previously the auto default required `THINK_AND_SHIP_AUTO_SESSION=true`.
+    // Previously the auto default required `MAGISTR_WORKFLOW_AUTO_SESSION=true`.
     // That left projects whose .mcp.json forgot the env writing to a
     // shared `_default.json` across cwds. Now any time sessions are
     // enabled, the project-derived default is filled in.
     let mut g = EnvGuard::new();
-    g.set("THINK_AND_SHIP_ENABLE_SESSIONS", "true");
+    g.set("MAGISTR_WORKFLOW_ENABLE_SESSIONS", "true");
     let c = load_config();
     let id = c
         .features
@@ -429,13 +429,13 @@ fn namespace_session_id_clamps_to_128() {
 /// Every family reads the same switch, so every family must agree on what
 /// turns it on. The shared resolver has always accepted `1` as well as
 /// `true`; the reasoning config once compared against `"true"` alone, which
-/// meant `THINK_AND_SHIP_PERSIST=1` persisted the roadmap, the ship cycle and
+/// meant `MAGISTR_WORKFLOW_PERSIST=1` persisted the roadmap, the ship cycle and
 /// the signals while silently leaving the reasoning trace in memory.
 #[test]
 fn persist_switch_agrees_with_every_other_family() {
     for value in ["true", "1"] {
         let mut g = EnvGuard::new();
-        g.set("THINK_AND_SHIP_PERSIST", value);
+        g.set("MAGISTR_WORKFLOW_PERSIST", value);
         let shared = magistr_workflow::infra::PersistenceConfig::from_env();
         let think = load_config();
         assert!(
@@ -444,7 +444,7 @@ fn persist_switch_agrees_with_every_other_family() {
         );
         assert_eq!(
             think.persistence.enabled, shared.enabled,
-            "reasoning and shared persistence disagree for THINK_AND_SHIP_PERSIST={value:?}"
+            "reasoning and shared persistence disagree for MAGISTR_WORKFLOW_PERSIST={value:?}"
         );
     }
 }
@@ -455,7 +455,7 @@ fn persist_switch_agrees_with_every_other_family() {
 #[test]
 fn empty_data_dir_var_does_not_split_the_families() {
     let mut g = EnvGuard::new();
-    g.set("THINK_AND_SHIP_DATA_DIR", "   ");
+    g.set("MAGISTR_WORKFLOW_DATA_DIR", "   ");
     let shared = magistr_workflow::infra::PersistenceConfig::from_env();
     let think = load_config();
     assert!(

@@ -54,7 +54,7 @@ fn project_json(test_command: &str) -> String {
         "testing": { "companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside" },
         "reference_repos": [],
         "state_prefix": "p",
-        "roadmap_backend": "think-and-ship"
+        "roadmap_backend": "native"
     })
     .to_string()
 }

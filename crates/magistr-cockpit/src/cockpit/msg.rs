@@ -1,5 +1,5 @@
 //! Observations produced by resident session, workflow and source owners.
-use super::{CheckpointEvent, Cmd, LoopEvent, WorkbenchEvent};
+use super::{CheckpointEvent, Cmd, LoopEvent, WorkspaceEvent};
 use crate::{
     engine::EngineEvent,
     job::{JobId, JobOutput},
@@ -21,6 +21,6 @@ pub enum Msg {
     Job { id: JobId, output: JobOutput },
     Loop(LoopEvent),
     WorkRun(super::WorkRun),
-    Workbench(WorkbenchEvent),
+    Workspace(WorkspaceEvent),
     Checkpoint(CheckpointEvent),
 }

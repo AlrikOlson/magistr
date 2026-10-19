@@ -16,7 +16,7 @@ tooling.
 
 ## Where state lives
 
-The roadmap, the plan and the quality gates live in **think-and-ship**, served by the `magistr` MCP server as four tool families:
+The roadmap, the plan and the quality gates live in **magistr**, served by the `magistr` MCP server as four tool families:
 
 | Family | Purpose | Key tools |
 |--------|---------|-----------|
@@ -86,7 +86,7 @@ Keep your plan entry statuses up to date. The native execution plan retains the 
    - `map` for orientation: entry points, declared commands, per-file symbol outlines
    - `search mode:references` before modifying shared code — see all callers and importers
    - `read` (file, range, or symbol by name) for detailed code reading; built-in `Read` is ONLY for immediately before `Edit`
-   - Follow `.claude/skills/workbench-routing/SKILL.md` for routing and error recovery
+   - Follow `.claude/skills/workspace-routing/SKILL.md` for routing and error recovery
 2. **Recover or create the objective** — select the authorized `chunk:<id>` scope with `ship_set_objective` when another scope is selected or no objective exists. Use the chunk's title, acceptance criteria and focused verification to seed a new scope. Read `ship_status` again and retain the restored objective, verification and plan; do not repeat setup on a matching unfinished scope.
 3. **Recover or extend the plan** — keep existing tasks, statuses, actions, and checks; use `plan_work(action: "add", ...)` only for missing work.
 4. **Open the reasoning** — `think_record_step` (omit `step_number`) with the sub-plan and `execution_ref: "task:<id>"`; `roadmap_link(id, "think:<N>")`
@@ -143,7 +143,7 @@ or a relevant correction, or widen verification merely because a check failed.
 
 These apply to ALL work — `/next`, manual tasks, bug fixes, refactors, everything:
 
-1. **ALWAYS update the roadmap** — Every piece of work gets tracked: `roadmap_complete_chunk` for what you shipped, `roadmap_add_chunk` for what you found. The think-and-ship roadmap is the single source of truth for project progress; no generated roadmap file is kept.
+1. **ALWAYS update the roadmap** — Every piece of work gets tracked: `roadmap_complete_chunk` for what you shipped, `roadmap_add_chunk` for what you found. The magistr roadmap is the single source of truth for project progress; no generated roadmap file is kept.
 
 2. **ALWAYS commit at the end** — No work is done until it's committed. The commit includes ALL changed files. One atomic commit per chunk.
 

@@ -1,0 +1,30 @@
+# The bundled gleam lang pack's guest crate (chunk:m5-lang-pack).
+# Standalone (not a workspace member): builds ONLY to wasm32-wasip1. Rebuild +
+# componentize with plugins/lang-pack-gleam/build.ps1 (or build.sh); the
+# committed guest.wasm is the shipped artifact.
+#
+# Same no-WASI discipline as the resolver and runner guests (think:119
+# recipe): no_std + alloc, panic = "abort", dlmalloc — the core module must
+# import NOTHING (this guest declares zero capabilities). The grammar bytes
+# and tag queries are embedded at build time; the carrier does no work.
+
+[package]
+name = "lang-pack-gleam-guest"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+wit-bindgen = { version = "0.46", default-features = false, features = ["macros", "realloc"] }
+dlmalloc = { version = "0.2", features = ["global"] }
+
+[profile.release]
+panic = "abort"
+opt-level = "s"
+lto = true
+strip = "debuginfo"
+
+[workspace]

@@ -4,6 +4,7 @@ use crate::types::*;
 fn sample_config() -> ProjectConfig {
     ProjectConfig {
         project: ProjectMeta {
+            id: None,
             name: "test-app".into(),
             description: "A test project".into(),
             project_type: "cli".into(),
@@ -181,7 +182,7 @@ fn shared_workflow_uses_native_phases_and_matches_project_skills() {
         (0..=crate::WorkflowPhase::Complete.step_index()).collect::<Vec<_>>(),
         "one complete phase progression in runtime order"
     );
-    for tool in ["ship_plan", "ship_start", "ship_complete"] {
+    for tool in ["plan_work", "start_work", "finish_work"] {
         assert!(
             shared.contains(tool),
             "native task lifecycle requires {tool}"

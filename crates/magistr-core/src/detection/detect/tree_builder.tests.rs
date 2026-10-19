@@ -317,7 +317,7 @@ fn project_tree_json_roundtrip() {
 
 #[test]
 fn dual_manifest_root_splits_into_one_project_per_stack() {
-    // The workbench-mcp shape: Cargo.toml AND package.json (+tsconfig, bun.lock)
+    // The magistr shape: Cargo.toml AND package.json (+tsconfig, bun.lock)
     // at the same root. One stack must not shadow the other.
     let tmp = make_repo();
     fs::write(

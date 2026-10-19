@@ -480,7 +480,7 @@ impl ProjectsV2Client {
             .post(self.endpoint())
             .header("Content-Type", "application/json")
             // GitHub rejects an API request with no User-Agent.
-            .header("User-Agent", "think-and-ship");
+            .header("User-Agent", "magistr");
         if let Some(tp) = &self.traceparent {
             req = req.header("traceparent", tp.clone());
         }
@@ -1798,7 +1798,7 @@ mod tests {
     /// the mistake most likely to be made, and it must not parse.
     #[test]
     fn owner_repo_is_refused_because_a_repository_cannot_own_a_board() {
-        let err = BoardAddress::parse("acme/think-and-ship").unwrap_err();
+        let err = BoardAddress::parse("acme/magistr").unwrap_err();
         let msg = err.to_string();
         assert!(
             msg.contains("orgs/LOGIN/projects/NUMBER"),
@@ -1974,7 +1974,7 @@ mod tests {
     /// so a typo cannot become a request.
     #[test]
     fn a_client_cannot_be_built_for_a_repository() {
-        assert!(ProjectsV2Client::new("acme/think-and-ship").is_err());
+        assert!(ProjectsV2Client::new("acme/magistr").is_err());
     }
 
     // -- the unexpressible-state policy --------------------------------------

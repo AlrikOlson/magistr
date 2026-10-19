@@ -5,7 +5,7 @@ use magistr_engine::native::{NativeReader, ProjectAuthority, VerificationMode, W
 async fn absent_and_finished_work_do_not_launch_and_unreadable_work_is_refused() {
     let dir = tempfile::tempdir().unwrap();
     let inputs = crate::config::inputs::ProjectInputs::from_lookup(dir.path(), |key| {
-        (key == "THINK_AND_SHIP_DATA_DIR").then(|| dir.path().join("data").display().to_string())
+        (key == "MAGISTR_WORKFLOW_DATA_DIR").then(|| dir.path().join("data").display().to_string())
     });
     let native = inputs.workflow();
     let run = || {

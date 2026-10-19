@@ -224,7 +224,7 @@ The shared runtime's
 owns conversation/planning context switching, one queued roadmap request,
 connection retry and the lifetime of its local and provider relays. Hosts supply
 an asynchronous connector for the requested `SessionPurpose`, returning an
-application `SessionHandle`, plus admitted workbench, workflow and checkpoint
+application `SessionHandle`, plus admitted workspace, workflow and checkpoint
 ports. The runtime does not resolve provider configuration or acquire project
 authority.
 
@@ -310,13 +310,13 @@ the launcher checks, live-provider evidence and platform limits.
 ### Owned relay jobs
 
 The shared runtime's cockpit relay ([session](../../crates/magistr-cockpit-runtime/src/session.rs))
-carries workbench, engine and checkpoint commands out as its own jobs
+carries workspace, engine and checkpoint commands out as its own jobs
 ([`SessionJobs`](../../crates/magistr-cockpit-runtime/src/session_jobs.rs)):
 each call runs on a blocking thread against the shared port, so a slow
 search or a git read never stalls the task that observes the provider and
 forwards its cancellation. At most `SessionJobs::CAPACITY` (4) run at once;
 one more is refused as a `Failed` / `PortFailed` event naming the ask. A
-command whose port is absent — a session without a workbench, an engine
+command whose port is absent — a session without a workspace, an engine
 port or a checkpoint ledger — is refused by name, never answered with
 silence. When the runtime ends the relay closes its fence before it asks
 the owner to terminate, waits `SessionJobs::JOIN_GRACE` (2 s) for its jobs,
@@ -380,7 +380,7 @@ The application also owns its `AgentEvent` observations, `SessionOptions` and
 contracts directly; the CLI translates ACP events and permission requests into
 them. Tool records carry bounded text or encoded JSON and textual wire locations.
 Policy requests carry the full input independently of those display bounds.
-The cockpit relay stamps presentation timing and serves workbench, engine, and
+The cockpit relay stamps presentation timing and serves workspace, engine, and
 checkpoint commands; it does not own ACP connections or permission reply channels. The
 supervisor emits initialization and the opening user text before provider output.
 An absent opening prompt leaves the session idle, including home resume.

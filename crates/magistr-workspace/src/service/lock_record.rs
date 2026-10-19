@@ -1,4 +1,4 @@
-/// What `.workbench/server.lock` holds, read without taking the lock. A
+/// What `.magistr/workspace/server.lock` holds, read without taking the lock. A
 /// record is bytes on disk: the native marker says only that a native owner
 /// once admitted this workspace (ownership is the OS lock, never the
 /// marker). Unknown records are not interpreted.

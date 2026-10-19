@@ -1,4 +1,4 @@
-//! Cloud sync. The local think-and-ship store is a CACHE of the
+//! Cloud sync. The local magistr store is a CACHE of the
 //! cloud system-of-record (the per-tenant backend). This module builds the
 //! wire records it syncs — the unified record envelope contract.
 //!

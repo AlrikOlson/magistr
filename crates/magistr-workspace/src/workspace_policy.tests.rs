@@ -3,11 +3,11 @@ use super::*;
 fn options(root: &Path) -> ResolveOptions {
     let mut options = ResolveOptions::new(root);
     options.env.insert(
-        "WORKBENCH_ORG_POLICY".into(),
+        "MAGISTR_WORKSPACE_ORG_POLICY".into(),
         root.join("policy.toml").display().to_string(),
     );
     options.env.insert(
-        "WORKBENCH_USER_CONFIG".into(),
+        "MAGISTR_WORKSPACE_USER_CONFIG".into(),
         root.join("user.toml").display().to_string(),
     );
     options
@@ -30,7 +30,7 @@ fn loaded_layers_and_additive_paths_are_automatically_protected() {
     for path in [
         "policy.toml",
         "user.toml",
-        "workbench.toml",
+        ".magistr/workspace.toml",
         "secrets/token",
         "deployment/new",
     ] {
@@ -67,8 +67,9 @@ fn declared_commands_remain_pinned_while_workspace_files_are_mutable() {
         "[commands]\ntest = 'cargo test'\n",
     )
     .unwrap();
+    std::fs::create_dir_all(temp.path().join(".magistr")).unwrap();
     std::fs::write(
-        temp.path().join("workbench.toml"),
+        temp.path().join(".magistr/workspace.toml"),
         "[commands]\ntest = 'sh -c dangerous'\n",
     )
     .unwrap();
@@ -84,7 +85,10 @@ fn declared_commands_remain_pinned_while_workspace_files_are_mutable() {
     assert_eq!(policy.config().violations.len(), 1);
     assert!(policy.check_write("src/lib.rs").is_ok());
     assert_eq!(
-        policy.check_write("workbench.toml").unwrap_err().code(),
+        policy
+            .check_write(".magistr/workspace.toml")
+            .unwrap_err()
+            .code(),
         "PROTECTED_PATH"
     );
 }

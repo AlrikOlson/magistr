@@ -1,0 +1,1170 @@
+{
+  "negotiation": [
+    {
+      "meta": {},
+      "expected": {
+        "ok": true,
+        "v": 1
+      }
+    },
+    {
+      "meta": {
+        "unrelated": 1
+      },
+      "expected": {
+        "ok": true,
+        "v": 1
+      }
+    },
+    {
+      "meta": {
+        "magistr/maxEnvelopeVersion": 1
+      },
+      "expected": {
+        "ok": true,
+        "v": 1
+      }
+    },
+    {
+      "meta": {
+        "magistr/maxEnvelopeVersion": 9
+      },
+      "expected": {
+        "ok": true,
+        "v": 1
+      }
+    },
+    {
+      "meta": {
+        "magistr/maxEnvelopeVersion": 1
+      },
+      "expected": {
+        "ok": true,
+        "v": 1
+      }
+    },
+    {
+      "meta": {
+        "magistr/maxEnvelopeVersion": 1e+30
+      },
+      "expected": {
+        "ok": true,
+        "v": 1
+      }
+    },
+    {
+      "meta": {
+        "magistr/maxEnvelopeVersion": 0
+      },
+      "expected": {
+        "ok": false,
+        "envelope": {
+          "v": 1,
+          "ok": false,
+          "error": {
+            "code": "UNSUPPORTED_VERSION",
+            "recovery": "abort",
+            "message": "magistr/maxEnvelopeVersion must be a positive integer, got 0"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "magistr/maxEnvelopeVersion": -1
+      },
+      "expected": {
+        "ok": false,
+        "envelope": {
+          "v": 1,
+          "ok": false,
+          "error": {
+            "code": "UNSUPPORTED_VERSION",
+            "recovery": "abort",
+            "message": "magistr/maxEnvelopeVersion must be a positive integer, got -1"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "magistr/maxEnvelopeVersion": 1.5
+      },
+      "expected": {
+        "ok": false,
+        "envelope": {
+          "v": 1,
+          "ok": false,
+          "error": {
+            "code": "UNSUPPORTED_VERSION",
+            "recovery": "abort",
+            "message": "magistr/maxEnvelopeVersion must be a positive integer, got 1.5"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "magistr/maxEnvelopeVersion": "1"
+      },
+      "expected": {
+        "ok": false,
+        "envelope": {
+          "v": 1,
+          "ok": false,
+          "error": {
+            "code": "UNSUPPORTED_VERSION",
+            "recovery": "abort",
+            "message": "magistr/maxEnvelopeVersion must be a positive integer, got \"1\""
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "magistr/maxEnvelopeVersion": null
+      },
+      "expected": {
+        "ok": false,
+        "envelope": {
+          "v": 1,
+          "ok": false,
+          "error": {
+            "code": "UNSUPPORTED_VERSION",
+            "recovery": "abort",
+            "message": "magistr/maxEnvelopeVersion must be a positive integer, got null"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "magistr/maxEnvelopeVersion": true
+      },
+      "expected": {
+        "ok": false,
+        "envelope": {
+          "v": 1,
+          "ok": false,
+          "error": {
+            "code": "UNSUPPORTED_VERSION",
+            "recovery": "abort",
+            "message": "magistr/maxEnvelopeVersion must be a positive integer, got true"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "magistr/maxEnvelopeVersion": []
+      },
+      "expected": {
+        "ok": false,
+        "envelope": {
+          "v": 1,
+          "ok": false,
+          "error": {
+            "code": "UNSUPPORTED_VERSION",
+            "recovery": "abort",
+            "message": "magistr/maxEnvelopeVersion must be a positive integer, got []"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "magistr/maxEnvelopeVersion": {}
+      },
+      "expected": {
+        "ok": false,
+        "envelope": {
+          "v": 1,
+          "ok": false,
+          "error": {
+            "code": "UNSUPPORTED_VERSION",
+            "recovery": "abort",
+            "message": "magistr/maxEnvelopeVersion must be a positive integer, got {}"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "magistr/maxEnvelopeVersion": 0
+      },
+      "expected": {
+        "ok": false,
+        "envelope": {
+          "v": 1,
+          "ok": false,
+          "error": {
+            "code": "UNSUPPORTED_VERSION",
+            "recovery": "abort",
+            "message": "magistr/maxEnvelopeVersion must be a positive integer, got 0"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "magistr/maxEnvelopeVersion": 0
+      },
+      "expected": {
+        "ok": false,
+        "envelope": {
+          "v": 1,
+          "ok": false,
+          "error": {
+            "code": "UNSUPPORTED_VERSION",
+            "recovery": "abort",
+            "message": "magistr/maxEnvelopeVersion must be a positive integer, got 0"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "magistr/maxEnvelopeVersion": 1e-07
+      },
+      "expected": {
+        "ok": false,
+        "envelope": {
+          "v": 1,
+          "ok": false,
+          "error": {
+            "code": "UNSUPPORTED_VERSION",
+            "recovery": "abort",
+            "message": "magistr/maxEnvelopeVersion must be a positive integer, got 1e-7"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "magistr/maxEnvelopeVersion": 1e-06
+      },
+      "expected": {
+        "ok": false,
+        "envelope": {
+          "v": 1,
+          "ok": false,
+          "error": {
+            "code": "UNSUPPORTED_VERSION",
+            "recovery": "abort",
+            "message": "magistr/maxEnvelopeVersion must be a positive integer, got 0.000001"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "magistr/maxEnvelopeVersion": -1e+21
+      },
+      "expected": {
+        "ok": false,
+        "envelope": {
+          "v": 1,
+          "ok": false,
+          "error": {
+            "code": "UNSUPPORTED_VERSION",
+            "recovery": "abort",
+            "message": "magistr/maxEnvelopeVersion must be a positive integer, got -1e+21"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "magistr/maxEnvelopeVersion": {
+          "10": "x",
+          "2": "y",
+          "b": 1,
+          "a": 2
+        }
+      },
+      "expected": {
+        "ok": false,
+        "envelope": {
+          "v": 1,
+          "ok": false,
+          "error": {
+            "code": "UNSUPPORTED_VERSION",
+            "recovery": "abort",
+            "message": "magistr/maxEnvelopeVersion must be a positive integer, got {\"2\":\"y\",\"10\":\"x\",\"b\":1,\"a\":2}"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "magistr/maxEnvelopeVersion": {
+          "4294967295": "not-index",
+          "01": "leading-zero",
+          "4294967294": "last-index",
+          "-0": "signed-zero",
+          "0": "first-index",
+          "1.0": "fraction",
+          "4": {
+            "8": 8,
+            "2": 2
+          }
+        }
+      },
+      "expected": {
+        "ok": false,
+        "envelope": {
+          "v": 1,
+          "ok": false,
+          "error": {
+            "code": "UNSUPPORTED_VERSION",
+            "recovery": "abort",
+            "message": "magistr/maxEnvelopeVersion must be a positive integer, got {\"0\":\"first-index\",\"4\":{\"2\":2,\"8\":8},\"4294967294\":\"last-index\",\"4294967295\":\"not-index\",\"01\":\"leading-zero\",\"-0\":\"signed-zero\",\"1.0\":\"fraction\"}"
+          }
+        }
+      }
+    }
+  ],
+  "redaction": [
+    {
+      "input": "before AKIAIOSFODNN7EXAMPLE after",
+      "expected": {
+        "text": "before [REDACTED:aws-key] after",
+        "kinds": [
+          "aws-key"
+        ]
+      }
+    },
+    {
+      "input": "éAKIAIOSFODNN7EXAMPLEé",
+      "expected": {
+        "text": "é[REDACTED:aws-key]é",
+        "kinds": [
+          "aws-key"
+        ]
+      }
+    },
+    {
+      "input": "ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZabcdef1234",
+      "expected": {
+        "text": "[REDACTED:github-token]",
+        "kinds": [
+          "github-token"
+        ]
+      }
+    },
+    {
+      "input": "github_pat_11ABCDEFG0123456789_abcdefghij",
+      "expected": {
+        "text": "[REDACTED:github-token]",
+        "kinds": [
+          "github-token"
+        ]
+      }
+    },
+    {
+      "input": "xoxb-2444333222111-0123456789012-AbCdEfGhIjKl",
+      "expected": {
+        "text": "[REDACTED:slack-token]",
+        "kinds": [
+          "slack-token"
+        ]
+      }
+    },
+    {
+      "input": "sk-ant-api03-Zq8vR3kXw1Ny7Jt2Bf9Lm4Ps6Ud0Hc",
+      "expected": {
+        "text": "[REDACTED:anthropic-key]",
+        "kinds": [
+          "anthropic-key"
+        ]
+      }
+    },
+    {
+      "input": "sk-proj4Zq8vR3kXw1Ny7Jt2Bf9L",
+      "expected": {
+        "text": "[REDACTED:openai-key]",
+        "kinds": [
+          "openai-key"
+        ]
+      }
+    },
+    {
+      "input": "AIzaSyA1bC2dE3fG4hI5jK6lM7nO8pQ9rS0tUvW",
+      "expected": {
+        "text": "[REDACTED:google-api-key]",
+        "kinds": [
+          "google-api-key"
+        ]
+      }
+    },
+    {
+      "input": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U",
+      "expected": {
+        "text": "[REDACTED:jwt]",
+        "kinds": [
+          "jwt"
+        ]
+      }
+    },
+    {
+      "input": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0B\n",
+      "expected": {
+        "text": "[REDACTED:private-key]",
+        "kinds": [
+          "private-key"
+        ]
+      }
+    },
+    {
+      "input": "password = \"correct-horse-battery\"",
+      "expected": {
+        "text": "password = \"[REDACTED:credential-assignment]\"",
+        "kinds": [
+          "credential-assignment"
+        ]
+      }
+    },
+    {
+      "input": "password﻿=﻿\"correct-horse-battery\"",
+      "expected": {
+        "text": "password﻿=﻿\"[REDACTED:credential-assignment]\"",
+        "kinds": [
+          "credential-assignment"
+        ]
+      }
+    },
+    {
+      "input": "password=\"correct-horse-battery\"",
+      "expected": {
+        "text": "password=\"correct-horse-battery\"",
+        "kinds": []
+      }
+    },
+    {
+      "input": "ſecret = \"correct-horse-battery\"",
+      "expected": {
+        "text": "ſecret = \"correct-horse-battery\"",
+        "kinds": []
+      }
+    },
+    {
+      "input": "API_KEY = \"AKIAIOSFODNN7EXAMPLE\"",
+      "expected": {
+        "text": "API_KEY = \"[REDACTED:aws-key]\"",
+        "kinds": [
+          "aws-key"
+        ]
+      }
+    },
+    {
+      "input": "Zq8vR3kXw1Ny7Jt2Bf9Lm4Ps6Ud0Hc5Ga_TeQiYoWxEnKrVb",
+      "expected": {
+        "text": "[REDACTED:high-entropy]",
+        "kinds": [
+          "high-entropy"
+        ]
+      }
+    },
+    {
+      "input": "356a192b7913b04c54574d18c28d46e6395428ab",
+      "expected": {
+        "text": "356a192b7913b04c54574d18c28d46e6395428ab",
+        "kinds": []
+      }
+    },
+    {
+      "input": "/home/runner/work/magistr/magistr/src/envelope/redact.ts",
+      "expected": {
+        "text": "/home/runner/work/magistr/magistr/src/envelope/redact.ts",
+        "kinds": []
+      }
+    },
+    {
+      "input": "registry.example.com/some-organization-name/averylongpackagename.1.2.3",
+      "expected": {
+        "text": "registry.example.com/some-organization-name/averylongpackagename.1.2.3",
+        "kinds": []
+      }
+    },
+    {
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "expected": {
+        "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "kinds": []
+      }
+    },
+    {
+      "input": "The ranking pipeline orders declarations before calls.",
+      "expected": {
+        "text": "The ranking pipeline orders declarations before calls.",
+        "kinds": []
+      }
+    }
+  ],
+  "errors": [
+    {
+      "input": {
+        "v": 1,
+        "code": "PATH_OUTSIDE_WORKSPACE",
+        "message": "PATH_OUTSIDE_WORKSPACE happened"
+      },
+      "expected": {
+        "v": 1,
+        "ok": false,
+        "error": {
+          "code": "PATH_OUTSIDE_WORKSPACE",
+          "recovery": "abort",
+          "message": "PATH_OUTSIDE_WORKSPACE happened"
+        }
+      }
+    },
+    {
+      "input": {
+        "v": 1,
+        "code": "PROTECTED_PATH",
+        "message": "PROTECTED_PATH happened"
+      },
+      "expected": {
+        "v": 1,
+        "ok": false,
+        "error": {
+          "code": "PROTECTED_PATH",
+          "recovery": "escalate",
+          "message": "PROTECTED_PATH happened"
+        }
+      }
+    },
+    {
+      "input": {
+        "v": 1,
+        "code": "AMBIGUOUS_SYMBOL",
+        "message": "AMBIGUOUS_SYMBOL happened",
+        "candidates": [
+          "User.authenticate",
+          "Admin.authenticate"
+        ]
+      },
+      "expected": {
+        "v": 1,
+        "ok": false,
+        "error": {
+          "code": "AMBIGUOUS_SYMBOL",
+          "recovery": "narrow",
+          "message": "AMBIGUOUS_SYMBOL happened",
+          "candidates": [
+            "User.authenticate",
+            "Admin.authenticate"
+          ]
+        }
+      }
+    },
+    {
+      "input": {
+        "v": 1,
+        "code": "SYMBOL_NOT_FOUND",
+        "message": "SYMBOL_NOT_FOUND happened"
+      },
+      "expected": {
+        "v": 1,
+        "ok": false,
+        "error": {
+          "code": "SYMBOL_NOT_FOUND",
+          "recovery": "narrow",
+          "message": "SYMBOL_NOT_FOUND happened"
+        }
+      }
+    },
+    {
+      "input": {
+        "v": 1,
+        "code": "FILE_NOT_FOUND",
+        "message": "FILE_NOT_FOUND happened"
+      },
+      "expected": {
+        "v": 1,
+        "ok": false,
+        "error": {
+          "code": "FILE_NOT_FOUND",
+          "recovery": "narrow",
+          "message": "FILE_NOT_FOUND happened"
+        }
+      }
+    },
+    {
+      "input": {
+        "v": 1,
+        "code": "PARSE_REJECTED",
+        "message": "PARSE_REJECTED happened",
+        "parserMessage": "parser saw AKIAIOSFODNN7EXAMPLE",
+        "rejectedDiff": "+ AKIAIOSFODNN7EXAMPLE"
+      },
+      "expected": {
+        "v": 1,
+        "ok": false,
+        "error": {
+          "code": "PARSE_REJECTED",
+          "recovery": "narrow",
+          "message": "PARSE_REJECTED happened",
+          "parserMessage": "parser saw [REDACTED:aws-key]",
+          "rejectedDiff": "+ [REDACTED:aws-key]"
+        }
+      }
+    },
+    {
+      "input": {
+        "v": 1,
+        "code": "STALE_ANCHOR",
+        "message": "STALE_ANCHOR happened",
+        "contentHash": "2f7e"
+      },
+      "expected": {
+        "v": 1,
+        "ok": false,
+        "error": {
+          "code": "STALE_ANCHOR",
+          "recovery": "retry",
+          "message": "STALE_ANCHOR happened",
+          "contentHash": "2f7e"
+        }
+      }
+    },
+    {
+      "input": {
+        "v": 1,
+        "code": "PATTERN_INVALID",
+        "message": "PATTERN_INVALID happened"
+      },
+      "expected": {
+        "v": 1,
+        "ok": false,
+        "error": {
+          "code": "PATTERN_INVALID",
+          "recovery": "narrow",
+          "message": "PATTERN_INVALID happened"
+        }
+      }
+    },
+    {
+      "input": {
+        "v": 1,
+        "code": "BUDGET_TOO_SMALL",
+        "message": "BUDGET_TOO_SMALL happened"
+      },
+      "expected": {
+        "v": 1,
+        "ok": false,
+        "error": {
+          "code": "BUDGET_TOO_SMALL",
+          "recovery": "narrow",
+          "message": "BUDGET_TOO_SMALL happened"
+        }
+      }
+    },
+    {
+      "input": {
+        "v": 1,
+        "code": "COMMAND_NOT_DECLARED",
+        "message": "COMMAND_NOT_DECLARED happened"
+      },
+      "expected": {
+        "v": 1,
+        "ok": false,
+        "error": {
+          "code": "COMMAND_NOT_DECLARED",
+          "recovery": "abort",
+          "message": "COMMAND_NOT_DECLARED happened"
+        }
+      }
+    },
+    {
+      "input": {
+        "v": 1,
+        "code": "RUN_REDIRECTED",
+        "message": "RUN_REDIRECTED happened"
+      },
+      "expected": {
+        "v": 1,
+        "ok": false,
+        "error": {
+          "code": "RUN_REDIRECTED",
+          "recovery": "abort",
+          "message": "RUN_REDIRECTED happened"
+        }
+      }
+    },
+    {
+      "input": {
+        "v": 1,
+        "code": "SANDBOX_FUEL_EXCEEDED",
+        "message": "SANDBOX_FUEL_EXCEEDED happened"
+      },
+      "expected": {
+        "v": 1,
+        "ok": false,
+        "error": {
+          "code": "SANDBOX_FUEL_EXCEEDED",
+          "recovery": "narrow",
+          "message": "SANDBOX_FUEL_EXCEEDED happened"
+        }
+      }
+    },
+    {
+      "input": {
+        "v": 1,
+        "code": "SANDBOX_CAP_DENIED",
+        "message": "SANDBOX_CAP_DENIED happened"
+      },
+      "expected": {
+        "v": 1,
+        "ok": false,
+        "error": {
+          "code": "SANDBOX_CAP_DENIED",
+          "recovery": "escalate",
+          "message": "SANDBOX_CAP_DENIED happened"
+        }
+      }
+    },
+    {
+      "input": {
+        "v": 1,
+        "code": "SANDBOX_MEMORY_EXCEEDED",
+        "message": "SANDBOX_MEMORY_EXCEEDED happened"
+      },
+      "expected": {
+        "v": 1,
+        "ok": false,
+        "error": {
+          "code": "SANDBOX_MEMORY_EXCEEDED",
+          "recovery": "narrow",
+          "message": "SANDBOX_MEMORY_EXCEEDED happened"
+        }
+      }
+    },
+    {
+      "input": {
+        "v": 1,
+        "code": "INDEX_UNAVAILABLE",
+        "message": "INDEX_UNAVAILABLE happened"
+      },
+      "expected": {
+        "v": 1,
+        "ok": false,
+        "error": {
+          "code": "INDEX_UNAVAILABLE",
+          "recovery": "retry",
+          "message": "INDEX_UNAVAILABLE happened"
+        }
+      }
+    },
+    {
+      "input": {
+        "v": 1,
+        "code": "CONFIRM_REQUIRED",
+        "message": "CONFIRM_REQUIRED happened",
+        "confirmToken": "wb1.d1.c1.0f0f"
+      },
+      "expected": {
+        "v": 1,
+        "ok": false,
+        "error": {
+          "code": "CONFIRM_REQUIRED",
+          "recovery": "confirm",
+          "message": "CONFIRM_REQUIRED happened",
+          "confirmToken": "wb1.d1.c1.0f0f"
+        }
+      }
+    },
+    {
+      "input": {
+        "v": 1,
+        "code": "CONFIRM_MISMATCH",
+        "message": "CONFIRM_MISMATCH happened"
+      },
+      "expected": {
+        "v": 1,
+        "ok": false,
+        "error": {
+          "code": "CONFIRM_MISMATCH",
+          "recovery": "confirm",
+          "message": "CONFIRM_MISMATCH happened"
+        }
+      }
+    },
+    {
+      "input": {
+        "v": 1,
+        "code": "UNSUPPORTED_VERSION",
+        "message": "UNSUPPORTED_VERSION happened"
+      },
+      "expected": {
+        "v": 1,
+        "ok": false,
+        "error": {
+          "code": "UNSUPPORTED_VERSION",
+          "recovery": "abort",
+          "message": "UNSUPPORTED_VERSION happened"
+        }
+      }
+    },
+    {
+      "input": {
+        "v": 1,
+        "code": "ENGINE_UNAVAILABLE",
+        "message": "ENGINE_UNAVAILABLE happened"
+      },
+      "expected": {
+        "v": 1,
+        "ok": false,
+        "error": {
+          "code": "ENGINE_UNAVAILABLE",
+          "recovery": "retry",
+          "message": "ENGINE_UNAVAILABLE happened"
+        }
+      }
+    },
+    {
+      "input": {
+        "v": 1,
+        "code": "ENGINE_BUSY",
+        "message": "ENGINE_BUSY happened",
+        "backoffMs": 250
+      },
+      "expected": {
+        "v": 1,
+        "ok": false,
+        "error": {
+          "code": "ENGINE_BUSY",
+          "recovery": "retry",
+          "message": "ENGINE_BUSY happened",
+          "backoffMs": 250
+        }
+      }
+    },
+    {
+      "input": {
+        "v": 1,
+        "code": "INPUT_QUARANTINED",
+        "message": "INPUT_QUARANTINED happened"
+      },
+      "expected": {
+        "v": 1,
+        "ok": false,
+        "error": {
+          "code": "INPUT_QUARANTINED",
+          "recovery": "escalate",
+          "message": "INPUT_QUARANTINED happened"
+        }
+      }
+    },
+    {
+      "input": {
+        "v": 1,
+        "code": "PLUGIN_CAP_DENIED",
+        "message": "PLUGIN_CAP_DENIED happened"
+      },
+      "expected": {
+        "v": 1,
+        "ok": false,
+        "error": {
+          "code": "PLUGIN_CAP_DENIED",
+          "recovery": "escalate",
+          "message": "PLUGIN_CAP_DENIED happened"
+        }
+      }
+    },
+    {
+      "input": {
+        "v": 1,
+        "code": "PLUGIN_CRASHED",
+        "message": "PLUGIN_CRASHED happened",
+        "plugin": "runner-jest"
+      },
+      "expected": {
+        "v": 1,
+        "ok": false,
+        "error": {
+          "code": "PLUGIN_CRASHED",
+          "recovery": "abort",
+          "message": "PLUGIN_CRASHED happened",
+          "plugin": "runner-jest"
+        }
+      }
+    },
+    {
+      "input": {
+        "v": 1,
+        "code": "CONFIG_POLICY_DENIED",
+        "message": "CONFIG_POLICY_DENIED happened",
+        "notes": [
+          "note AKIAIOSFODNN7EXAMPLE"
+        ]
+      },
+      "expected": {
+        "v": 1,
+        "ok": false,
+        "error": {
+          "code": "CONFIG_POLICY_DENIED",
+          "recovery": "abort",
+          "message": "CONFIG_POLICY_DENIED happened"
+        },
+        "notes": [
+          "note [REDACTED:aws-key]"
+        ]
+      }
+    }
+  ],
+  "success": [
+    {
+      "input": {
+        "rows": [
+          {
+            "hits": [
+              {
+                "line": "key AKIAIOSFODNN7EXAMPLE"
+              }
+            ],
+            "n": 42,
+            "flag": true,
+            "nothing": null
+          }
+        ],
+        "keep": 8,
+        "cut": {
+          "reason": "budget",
+          "narrow": [
+            "kind:function"
+          ],
+          "cursor": ""
+        },
+        "freshness": "warm",
+        "budget": {
+          "requested": 4,
+          "used": 2
+        }
+      },
+      "expected": {
+        "v": 1,
+        "ok": true,
+        "freshness": "warm",
+        "budget": {
+          "requested": 4,
+          "used": 2
+        },
+        "results": [
+          {
+            "hits": [
+              {
+                "line": "key [REDACTED:aws-key]"
+              }
+            ],
+            "n": 42,
+            "flag": true,
+            "nothing": null
+          }
+        ]
+      }
+    },
+    {
+      "input": {
+        "rows": [
+          1,
+          2,
+          3
+        ],
+        "keep": 1,
+        "cut": {
+          "reason": "budget",
+          "narrow": [
+            "kind:function"
+          ],
+          "cursor": "next"
+        },
+        "freshness": "warm",
+        "budget": {
+          "requested": 4,
+          "used": 2
+        },
+        "notes": []
+      },
+      "expected": {
+        "v": 1,
+        "ok": true,
+        "freshness": "warm",
+        "budget": {
+          "requested": 4,
+          "used": 2
+        },
+        "results": [
+          1
+        ],
+        "truncation": {
+          "dropped": 2,
+          "reason": "budget",
+          "narrow": [
+            "kind:function"
+          ],
+          "cursor": "next"
+        },
+        "notes": []
+      }
+    },
+    {
+      "input": {
+        "rows": [
+          1,
+          2,
+          3
+        ],
+        "keep": 0,
+        "cut": {
+          "reason": "ceiling",
+          "narrow": [
+            "kind:function"
+          ],
+          "cursor": "resume"
+        },
+        "freshness": "warm",
+        "budget": {
+          "requested": 4,
+          "used": 2
+        },
+        "notes": [
+          "note AKIAIOSFODNN7EXAMPLE"
+        ]
+      },
+      "expected": {
+        "v": 1,
+        "ok": true,
+        "freshness": "warm",
+        "budget": {
+          "requested": 4,
+          "used": 2
+        },
+        "results": [],
+        "truncation": {
+          "dropped": 3,
+          "reason": "ceiling",
+          "narrow": [
+            "kind:function"
+          ],
+          "cursor": "resume"
+        },
+        "notes": [
+          "note [REDACTED:aws-key]"
+        ]
+      }
+    },
+    {
+      "input": {
+        "rows": [
+          1,
+          2
+        ],
+        "keep": 2,
+        "cut": {
+          "reason": "timeout",
+          "narrow": [
+            "kind:function"
+          ],
+          "cursor": ""
+        },
+        "freshness": "warm",
+        "budget": {
+          "requested": 4,
+          "used": 2
+        }
+      },
+      "expected": {
+        "v": 1,
+        "ok": true,
+        "freshness": "warm",
+        "budget": {
+          "requested": 4,
+          "used": 2
+        },
+        "results": [
+          1,
+          2
+        ]
+      }
+    },
+    {
+      "input": {
+        "rows": [],
+        "keep": 0,
+        "cut": {
+          "reason": "budget",
+          "narrow": [
+            "kind:function"
+          ],
+          "cursor": ""
+        },
+        "freshness": "warm",
+        "budget": {
+          "requested": 4,
+          "used": 2
+        }
+      },
+      "expected": {
+        "v": 1,
+        "ok": true,
+        "freshness": "warm",
+        "budget": {
+          "requested": 4,
+          "used": 2
+        },
+        "results": []
+      }
+    },
+    {
+      "input": {
+        "rows": [
+          1,
+          2
+        ],
+        "keep": 1,
+        "cut": {
+          "reason": "timeout",
+          "narrow": [
+            "kind:function"
+          ],
+          "cursor": "AKIAIOSFODNN7EXAMPLE"
+        },
+        "freshness": "warm",
+        "budget": {
+          "requested": 4,
+          "used": 2
+        }
+      },
+      "expected": {
+        "v": 1,
+        "ok": true,
+        "freshness": "warm",
+        "budget": {
+          "requested": 4,
+          "used": 2
+        },
+        "results": [
+          1
+        ],
+        "truncation": {
+          "dropped": 1,
+          "reason": "timeout",
+          "narrow": [
+            "kind:function"
+          ],
+          "cursor": "AKIAIOSFODNN7EXAMPLE"
+        }
+      }
+    }
+  ],
+  "ports": {
+    "engine": 2,
+    "index": 9,
+    "journal": 4,
+    "watcher": 1,
+    "sandbox": 1,
+    "formatter": 1,
+    "resolver": 2
+  }
+}

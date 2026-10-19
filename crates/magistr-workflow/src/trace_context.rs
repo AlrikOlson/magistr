@@ -13,10 +13,10 @@
 //! remember it across processes, and let the exporter parent to it.
 //!
 //! Cross-process is the whole difficulty. The MCP server adopts the context,
-//! but `think-and-ship trace export` runs later in a *different*
+//! but `magistr trace export` runs later in a *different*
 //! process. Both sides resolve the same project id from the working directory,
 //! so the adopted context is persisted under that key and read back by the
-//! exporter. Persistence obeys `THINK_AND_SHIP_PERSIST` like every other
+//! exporter. Persistence obeys `MAGISTR_WORKFLOW_PERSIST` like every other
 //! family; with it off, adoption is a no-op and the export is what it always
 //! was.
 //!
@@ -183,7 +183,7 @@ impl InboundTrace {
 /// the caller's span. Pointing the downstream hop at that same id makes the
 /// Linear/GitHub/Worker leg a child of OUR workspace span, which is true, and
 /// the parent is not dangling: it arrives the moment
-/// `think-and-ship trace export --otel` is POSTed. The two id policies do not
+/// `magistr trace export --otel` is POSTed. The two id policies do not
 /// have to be reconciled because they were never in conflict — the
 /// deterministic sha256 id is what makes this joinable at all. Nothing about
 /// the export changes: [`crate::otel::span_id`] is a pure function being READ

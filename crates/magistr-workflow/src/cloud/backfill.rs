@@ -2,7 +2,7 @@
 //!
 //! Cloud sync is write-through on *mutation* only, so an
 //! agent that connects after it already has local history shows nothing in the
-//! cloud until it next mutates each record. `think-and-ship sync push` closes
+//! cloud until it next mutates each record. `magistr sync push` closes
 //! that gap: it walks the persisted think/ship/roadmap/signal stores, builds the
 //! same envelopes the write-through path builds (via [`crate::cloud::build`]),
 //! and `PUT`s each to `/v1/records`.

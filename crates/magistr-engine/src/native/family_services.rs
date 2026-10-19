@@ -1,4 +1,4 @@
-//! The four think-and-ship family services, composed once.
+//! The four magistr family services, composed once.
 
 use std::sync::{Arc, Mutex};
 

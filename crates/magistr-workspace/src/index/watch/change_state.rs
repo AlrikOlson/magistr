@@ -127,12 +127,10 @@ impl ChangeState {
         let Ok(relative) = path.strip_prefix(root) else {
             return false;
         };
-        !relative
-            .components()
-            .any(|part| part.as_os_str() == ".workbench" || part.as_os_str() == ".git")
+        !crate::paths::is_owner_path(relative)
             && !relative.file_name().is_some_and(|name| {
                 let name = name.to_string_lossy();
-                name.rsplit_once(".workbench-tmp-")
+                name.rsplit_once(".magistr-tmp-")
                     .is_some_and(|(_, suffix)| {
                         !suffix.is_empty() && suffix.bytes().all(|byte| byte.is_ascii_digit())
                     })

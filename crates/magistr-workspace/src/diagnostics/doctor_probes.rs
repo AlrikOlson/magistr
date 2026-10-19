@@ -17,7 +17,7 @@ use crate::{
 /// The native cache schema this binary reads; the doctor test pins it
 /// against a freshly opened cache.
 const NATIVE_INDEX_SCHEMA: i64 = 1;
-const REBUILD_INDEX: &str = "delete .workbench/native-index.db and its -wal/-shm sidecars; the index is rebuildable cache data (SDD §10.2) and the next index start rebuilds it — no user data is involved";
+const REBUILD_INDEX: &str = "delete .magistr/workspace/native-index.db and its -wal/-shm sidecars; the index is rebuildable cache data (SDD §10.2) and the next index start rebuilds it — no user data is involved";
 
 fn section(
     id: DoctorSectionId,
@@ -36,7 +36,10 @@ fn section(
 pub(super) fn environment(options: &DoctorOptions) -> DoctorSection {
     let detection = NetworkDetection::detect(
         &options.root,
-        options.env.get("WORKBENCH_NETWORK_FS").map(String::as_str),
+        options
+            .env
+            .get("MAGISTR_WORKSPACE_NETWORK_FS")
+            .map(String::as_str),
     );
     let findings = vec![
         DoctorFinding::healthy(
@@ -126,7 +129,7 @@ fn probe_index(path: &Path) -> Result<IndexProbe, rusqlite::Error> {
 }
 
 pub(super) fn index(state_dir: &Path) -> DoctorSection {
-    let source = ".workbench/native-index.db (read-only; native-index.lock is never taken)";
+    let source = ".magistr/workspace/native-index.db (read-only; native-index.lock is never taken)";
     // Resolve legitimate ancestor aliases (macOS /var) the way the cache
     // does before asking SQLite to refuse symlinks in the database path;
     // canonicalizing never creates anything.
@@ -201,8 +204,7 @@ pub(super) fn index(state_dir: &Path) -> DoctorSection {
 }
 
 pub(super) fn config(options: &DoctorOptions) -> (DoctorSection, String) {
-    let source =
-        "five-layer resolution (defaults → org → user → workbench.toml → session), SDD §7.2";
+    let source = "five-layer resolution (defaults → org → user → .magistr/workspace.toml → session), SDD §7.2";
     let resolve = ResolveOptions {
         root: options.root.clone(),
         env: options.env.clone(),
@@ -253,7 +255,7 @@ pub(super) fn config(options: &DoctorOptions) -> (DoctorSection, String) {
 #[cfg(feature = "sandbox")]
 pub(super) fn plugins(root: &Path, state_dir: &Path) -> DoctorSection {
     use crate::extensions::{PluginHealthRecord, PluginInventory};
-    let source = ".workbench/plugins.json + .workbench/plugin-health.json";
+    let source = ".magistr/workspace/plugins.json + .magistr/workspace/plugin-health.json";
     let mut findings = Vec::new();
     let mut inventory = Vec::new();
     match PluginInventory::load(state_dir) {
@@ -272,7 +274,7 @@ pub(super) fn plugins(root: &Path, state_dir: &Path) -> DoctorSection {
                             record.name,
                             record.dir.as_deref().unwrap_or("?")
                         ),
-                        "reinstall the plugin, or remove its entry from .workbench/plugins.json",
+                        "reinstall the plugin, or remove its entry from .magistr/workspace/plugins.json",
                     ));
                 }
                 inventory.push(json!({
@@ -288,7 +290,7 @@ pub(super) fn plugins(root: &Path, state_dir: &Path) -> DoctorSection {
             "plugins.json",
             DoctorDataClass::Durable,
             format!("unreadable inventory: {error}"),
-            "fix or remove .workbench/plugins.json (durable data: set it aside rather than deleting if unsure)",
+            "fix or remove .magistr/workspace/plugins.json (durable data: set it aside rather than deleting if unsure)",
         )),
     }
     let mut unhealthy: Vec<PluginHealthRecord> = Vec::new();
@@ -318,7 +320,7 @@ pub(super) fn plugins(root: &Path, state_dir: &Path) -> DoctorSection {
                 "plugin-health.json",
                 DoctorDataClass::Durable,
                 format!("unreadable: {error}"),
-                "set .workbench/plugin-health.json aside; the breaker record rebuilds on the next breach",
+                "set .magistr/workspace/plugin-health.json aside; the breaker record rebuilds on the next breach",
             )),
         }
     }
@@ -364,7 +366,7 @@ pub(super) struct QuarantineEntry {
 }
 
 pub(super) fn quarantine(state_dir: &Path) -> (DoctorSection, Vec<QuarantineEntry>) {
-    let source = ".workbench/quarantine.jsonl (retained durable record; the native worker's own ledger is per-session, in memory)";
+    let source = ".magistr/workspace/quarantine.jsonl (retained durable record; the native worker's own ledger is per-session, in memory)";
     let path = state_dir.join("quarantine.jsonl");
     if !path.exists() {
         return (
@@ -456,7 +458,7 @@ pub(super) fn crashes(entries: &[QuarantineEntry]) -> DoctorSection {
     };
     section(
         DoctorSectionId::Crashes,
-        "derived from .workbench/quarantine.jsonl strikes (no standalone crash ledger on disk)",
+        "derived from .magistr/workspace/quarantine.jsonl strikes (no standalone crash ledger on disk)",
         vec![finding],
         json!({
             "evidence": evidence,

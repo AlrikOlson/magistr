@@ -1,9 +1,9 @@
 //! Git-native trace sync.
 //!
 //! Mirrors think/ship trace records into the repository under
-//! `.think-and-ship/` as a strict superset of the Agent Trace v0.1.0 standard
+//! `.magistr/traces/` as a strict superset of the Agent Trace v0.1.0 standard
 //! (see `docs/SCHEMA.md`): every line is a valid Agent Trace record, and the
-//! full think/ship payload rides in `metadata["dev.thinkandship"]`. One JSONL
+//! full think/ship payload rides in `metadata["dev.magistr"]`. One JSONL
 //! file per session; `shared` records are committed to git (one commit per
 //! session on close), `local` records go to a gitignored partition.
 //!
@@ -21,17 +21,17 @@ use chrono::Utc;
 use serde_json::{Map, Value, json};
 use uuid::Uuid;
 
-const ENV_SYNC_TARGET: &str = "THINK_AND_SHIP_SYNC_TARGET";
-const ENV_MODEL_ID: &str = "THINK_AND_SHIP_MODEL_ID";
-const ENV_SHARED: &str = "THINK_AND_SHIP_SHARED";
+const ENV_SYNC_TARGET: &str = "MAGISTR_WORKFLOW_SYNC_TARGET";
+const ENV_MODEL_ID: &str = "MAGISTR_WORKFLOW_MODEL_ID";
+const ENV_SHARED: &str = "MAGISTR_WORKFLOW_SHARED";
 /// The Agent Trace spec version this envelope conforms to.
 const AGENT_TRACE_VERSION: &str = "0.1.0";
 /// Reverse-domain extension key carrying our richer semantics.
-const EXT_KEY: &str = "dev.thinkandship";
+const EXT_KEY: &str = "dev.magistr";
 /// Our extension schema version, evolved independently of the Agent Trace one.
 const EXT_SCHEMA: &str = "1";
 /// In-repo directory holding the trace partitions.
-pub const TRACE_DIR: &str = ".think-and-ship";
+pub const TRACE_DIR: &str = ".magistr/traces";
 
 /// Where trace records are written.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -39,20 +39,20 @@ pub enum SyncTarget {
     /// Per-user XDG persistence only — the v0.2.x default behaviour.
     #[default]
     Local,
-    /// Additionally mirror records into the repo's `.think-and-ship/` as
+    /// Additionally mirror records into the repo's `.magistr/traces/` as
     /// Agent Trace JSONL, committing shared sessions to git.
     RepoGit,
     /// Sync the local store with the per-tenant cloud backend (the
     /// system-of-record): write-through push on mutation. The
     /// explicit opt-in for cloud sync — the cloud client is only wired when this
-    /// is selected AND `THINK_AND_SHIP_CLOUD_URL`/`_TOKEN` are set. Single-valued
+    /// is selected AND `MAGISTR_WORKFLOW_CLOUD_URL`/`_TOKEN` are set. Single-valued
     /// with [`SyncTarget::RepoGit`] today (cloud sync vs repo-git trace mirroring
     /// are mutually exclusive); composing them is a later refinement.
     Cloud,
 }
 
 impl SyncTarget {
-    /// Resolve from `THINK_AND_SHIP_SYNC_TARGET`. Defaults to [`SyncTarget::Local`]
+    /// Resolve from `MAGISTR_WORKFLOW_SYNC_TARGET`. Defaults to [`SyncTarget::Local`]
     /// when unset or unrecognised, so misconfiguration never silently enables
     /// repo writes.
     pub fn from_env() -> Self {
@@ -73,7 +73,7 @@ impl SyncTarget {
     }
 }
 
-/// Session-level sharing default from `THINK_AND_SHIP_SHARED` (`true`/`1`).
+/// Session-level sharing default from `MAGISTR_WORKFLOW_SHARED` (`true`/`1`).
 ///
 /// `false` (the default) routes records to the gitignored `local/` partition;
 /// `true` routes them to the committed `sessions/` partition. Per-record
@@ -99,7 +99,7 @@ pub struct RecordCtx {
     pub timestamp: String,
     /// Git revision the record was recorded against (HEAD sha; empty if none yet).
     pub revision: String,
-    /// `tool.version` — the think-and-ship crate version.
+    /// `tool.version` — the magistr crate version.
     pub tool_version: String,
     /// models.dev-style `provider/model` id for code attribution, if known.
     pub model_id: Option<String>,
@@ -107,7 +107,7 @@ pub struct RecordCtx {
 
 impl RecordCtx {
     /// Production constructor: fresh UUID, current time, repo `HEAD`, the crate
-    /// version, and the model id from `THINK_AND_SHIP_MODEL_ID` (the server
+    /// version, and the model id from `MAGISTR_WORKFLOW_MODEL_ID` (the server
     /// can't otherwise know the calling model).
     pub fn resolve(repo_root: &Path) -> Self {
         Self {
@@ -155,7 +155,7 @@ impl RecordCtx {
         );
         rec.insert(
             "tool".into(),
-            json!({ "name": "think-and-ship", "version": self.tool_version }),
+            json!({ "name": "magistr", "version": self.tool_version }),
         );
         rec.insert("files".into(), Value::Array(files));
         rec.insert("metadata".into(), Value::Object(metadata));
@@ -233,7 +233,7 @@ pub struct PromoteOutcome {
     pub kept: usize,
 }
 
-/// Writes Agent Trace JSONL into a repository's `.think-and-ship/` partitions
+/// Writes Agent Trace JSONL into a repository's `.magistr/traces/` partitions
 /// and commits shared sessions. Cheap to clone (just a path).
 #[derive(Debug, Clone)]
 pub struct RepoSink {
@@ -270,7 +270,7 @@ impl RepoSink {
             .join(format!("{session_id}.jsonl"))
     }
 
-    /// Ensure `.think-and-ship/.gitignore` excludes the `local/` partition.
+    /// Ensure `.magistr/traces/.gitignore` excludes the `local/` partition.
     /// Idempotent.
     fn ensure_gitignore(&self) -> std::io::Result<()> {
         let dir = self.trace_dir();
@@ -315,13 +315,13 @@ impl RepoSink {
 
     /// Promote records from a session's `local/` (gitignored) partition into
     /// its `sessions/` (committed) partition, flipping
-    /// `metadata["dev.thinkandship"].shared` to `true` on each.
+    /// `metadata["dev.magistr"].shared` to `true` on each.
     ///
     /// When `step` is `Some(n)`, only records whose
-    /// `metadata.dev.thinkandship.record.step_number == n` are promoted (the
+    /// `metadata.dev.magistr.record.step_number == n` are promoted (the
     /// per-step curation path, think-only since ship records have no step
     /// number). When `kind` is `Some(k)`, only records whose
-    /// `metadata.dev.thinkandship.kind == k` are promoted (`step`/`task`/
+    /// `metadata.dev.magistr.kind == k` are promoted (`step`/`task`/
     /// `objective`/`action`/`check`) — the selector for ship records. The two
     /// filters AND together; both `None` promotes every record in the session.
     /// Kept records are rewritten atomically (tmp + rename); the local file is
@@ -359,7 +359,7 @@ impl RepoSink {
             let step_ok = match step {
                 None => true,
                 Some(n) => {
-                    rec.pointer("/metadata/dev.thinkandship/record/step_number")
+                    rec.pointer("/metadata/dev.magistr/record/step_number")
                         .and_then(Value::as_u64)
                         == Some(u64::from(n))
                 }
@@ -367,7 +367,7 @@ impl RepoSink {
             let kind_ok = match kind {
                 None => true,
                 Some(k) => {
-                    rec.pointer("/metadata/dev.thinkandship/kind")
+                    rec.pointer("/metadata/dev.magistr/kind")
                         .and_then(Value::as_str)
                         == Some(k)
                 }
@@ -375,7 +375,7 @@ impl RepoSink {
             let selected = step_ok && kind_ok;
             if selected {
                 if let Some(ext) = rec
-                    .pointer_mut("/metadata/dev.thinkandship")
+                    .pointer_mut("/metadata/dev.magistr")
                     .and_then(Value::as_object_mut)
                 {
                     ext.insert("shared".into(), Value::Bool(true));
@@ -639,11 +639,11 @@ mod tests {
         });
         // After flush, the worker has drained — the file is guaranteed present.
         worker.flush();
-        let path = tmp.path().join(".think-and-ship/local/s1.jsonl");
+        let path = tmp.path().join(".magistr/traces/local/s1.jsonl");
         let body = std::fs::read_to_string(&path).expect("append landed before flush returned");
         assert_eq!(body.lines().count(), 1);
         let rec: Value = serde_json::from_str(body.lines().next().unwrap()).unwrap();
-        assert_eq!(rec["metadata"]["dev.thinkandship"]["family"], "think");
+        assert_eq!(rec["metadata"]["dev.magistr"]["family"], "think");
     }
 
     #[test]
@@ -663,12 +663,11 @@ mod tests {
         }
         worker.flush();
         let body =
-            std::fs::read_to_string(tmp.path().join(".think-and-ship/local/s1.jsonl")).unwrap();
+            std::fs::read_to_string(tmp.path().join(".magistr/traces/local/s1.jsonl")).unwrap();
         let order: Vec<i64> = body
             .lines()
             .map(|l| {
-                serde_json::from_str::<Value>(l).unwrap()["metadata"]["dev.thinkandship"]["record"]
-                    ["n"]
+                serde_json::from_str::<Value>(l).unwrap()["metadata"]["dev.magistr"]["record"]["n"]
                     .as_i64()
                     .unwrap()
             })
@@ -725,12 +724,12 @@ mod tests {
         assert_eq!(rec["timestamp"], "2026-05-28T19:30:00Z");
         assert_eq!(rec["vcs"]["type"], "git");
         assert_eq!(rec["vcs"]["revision"], "de31806");
-        assert_eq!(rec["tool"]["name"], "think-and-ship");
+        assert_eq!(rec["tool"]["name"], "magistr");
         assert_eq!(rec["tool"]["version"], "0.3.0");
         assert!(rec["files"].as_array().unwrap().is_empty());
 
         // Our extension carries the verbatim payload + metadata.
-        let ext = &rec["metadata"]["dev.thinkandship"];
+        let ext = &rec["metadata"]["dev.magistr"];
         assert_eq!(ext["schema"], "1");
         assert_eq!(ext["family"], "think");
         assert_eq!(ext["kind"], "step");
@@ -769,7 +768,7 @@ mod tests {
         )];
         let rec = ctx().build_record("ship", "action", "proj-abc", true, payload, files);
         assert_eq!(rec["files"][0]["path"], "Cargo.toml");
-        assert_eq!(rec["metadata"]["dev.thinkandship"]["family"], "ship");
+        assert_eq!(rec["metadata"]["dev.magistr"]["family"], "ship");
     }
 
     // ── Partition routing + append ───────────────────────────────────────
@@ -783,8 +782,8 @@ mod tests {
         let shared_path = sink.append("s1", true, &rec).unwrap();
         let local_path = sink.append("s1", false, &rec).unwrap();
 
-        assert!(shared_path.ends_with(".think-and-ship/sessions/s1.jsonl"));
-        assert!(local_path.ends_with(".think-and-ship/local/s1.jsonl"));
+        assert!(shared_path.ends_with(".magistr/traces/sessions/s1.jsonl"));
+        assert!(local_path.ends_with(".magistr/traces/local/s1.jsonl"));
 
         // Append again to the shared file → two lines.
         sink.append("s1", true, &rec).unwrap();
@@ -813,7 +812,7 @@ mod tests {
             &ctx().build_record("think", "step", "s2", false, json!({}), vec![]),
         )
         .unwrap();
-        let gi = std::fs::read_to_string(tmp.path().join(".think-and-ship/.gitignore")).unwrap();
+        let gi = std::fs::read_to_string(tmp.path().join(".magistr/traces/.gitignore")).unwrap();
         assert_eq!(gi.matches("local/").count(), 1, "no duplicate local/ rule");
     }
 
@@ -880,13 +879,13 @@ mod tests {
             "first commit should happen"
         );
 
-        // Exactly one commit touching .think-and-ship/.
-        let log = git(tmp.path(), &["log", "--oneline", "--", ".think-and-ship/"]);
+        // Exactly one commit touching .magistr/traces/.
+        let log = git(tmp.path(), &["log", "--oneline", "--", ".magistr/traces/"]);
         let lines = String::from_utf8_lossy(&log.stdout);
         assert_eq!(lines.lines().count(), 1, "one commit per session: {lines}");
 
         // Shared file is tracked; local file is NOT (gitignored).
-        let tracked = git(tmp.path(), &["ls-files", ".think-and-ship/"]);
+        let tracked = git(tmp.path(), &["ls-files", ".magistr/traces/"]);
         let tracked = String::from_utf8_lossy(&tracked.stdout);
         assert!(
             tracked.contains("sessions/s1.jsonl"),
@@ -904,15 +903,15 @@ mod tests {
         // git agrees local/ is ignored.
         let ignored = git(
             tmp.path(),
-            &["check-ignore", ".think-and-ship/local/s1.jsonl"],
+            &["check-ignore", ".magistr/traces/local/s1.jsonl"],
         );
         assert!(ignored.status.success(), "local/ must be gitignored");
 
         // Line counts survived the round-trip.
         let shared =
-            std::fs::read_to_string(tmp.path().join(".think-and-ship/sessions/s1.jsonl")).unwrap();
+            std::fs::read_to_string(tmp.path().join(".magistr/traces/sessions/s1.jsonl")).unwrap();
         let local =
-            std::fs::read_to_string(tmp.path().join(".think-and-ship/local/s1.jsonl")).unwrap();
+            std::fs::read_to_string(tmp.path().join(".magistr/traces/local/s1.jsonl")).unwrap();
         assert_eq!(shared.lines().count(), 2);
         assert_eq!(local.lines().count(), 1);
 
@@ -985,20 +984,20 @@ mod tests {
         );
 
         // Promoted record landed in sessions/ with shared flipped to true.
-        let shared = read_lines(&tmp.path().join(".think-and-ship/sessions/s1.jsonl"));
+        let shared = read_lines(&tmp.path().join(".magistr/traces/sessions/s1.jsonl"));
         assert_eq!(shared.len(), 1);
-        assert_eq!(shared[0]["metadata"]["dev.thinkandship"]["shared"], true);
+        assert_eq!(shared[0]["metadata"]["dev.magistr"]["shared"], true);
         assert_eq!(
-            shared[0]["metadata"]["dev.thinkandship"]["record"]["step_number"],
+            shared[0]["metadata"]["dev.magistr"]["record"]["step_number"],
             2
         );
 
         // Kept records (1 and 3) survive in local/, untouched.
-        let local = read_lines(&tmp.path().join(".think-and-ship/local/s1.jsonl"));
+        let local = read_lines(&tmp.path().join(".magistr/traces/local/s1.jsonl"));
         let kept_steps: Vec<u64> = local
             .iter()
             .map(|r| {
-                r["metadata"]["dev.thinkandship"]["record"]["step_number"]
+                r["metadata"]["dev.magistr"]["record"]["step_number"]
                     .as_u64()
                     .unwrap()
             })
@@ -1022,11 +1021,11 @@ mod tests {
         );
 
         assert_eq!(
-            read_lines(&tmp.path().join(".think-and-ship/sessions/s1.jsonl")).len(),
+            read_lines(&tmp.path().join(".magistr/traces/sessions/s1.jsonl")).len(),
             3
         );
         assert!(
-            !tmp.path().join(".think-and-ship/local/s1.jsonl").exists(),
+            !tmp.path().join(".magistr/traces/local/s1.jsonl").exists(),
             "emptied local file is removed"
         );
     }
@@ -1059,7 +1058,7 @@ mod tests {
             }
         );
         assert_eq!(
-            read_lines(&tmp.path().join(".think-and-ship/local/s1.jsonl")).len(),
+            read_lines(&tmp.path().join(".magistr/traces/local/s1.jsonl")).len(),
             3
         );
     }
@@ -1089,18 +1088,18 @@ mod tests {
             }
         );
 
-        let shared = read_lines(&tmp.path().join(".think-and-ship/sessions/s2.jsonl"));
+        let shared = read_lines(&tmp.path().join(".magistr/traces/sessions/s2.jsonl"));
         assert_eq!(shared.len(), 2);
         assert!(shared.iter().all(|r| {
-            r["metadata"]["dev.thinkandship"]["kind"] == "action"
-                && r["metadata"]["dev.thinkandship"]["shared"] == true
+            r["metadata"]["dev.magistr"]["kind"] == "action"
+                && r["metadata"]["dev.magistr"]["shared"] == true
         }));
 
         // objective + check stay local.
-        let local = read_lines(&tmp.path().join(".think-and-ship/local/s2.jsonl"));
+        let local = read_lines(&tmp.path().join(".magistr/traces/local/s2.jsonl"));
         let kept: Vec<&str> = local
             .iter()
-            .map(|r| r["metadata"]["dev.thinkandship"]["kind"].as_str().unwrap())
+            .map(|r| r["metadata"]["dev.magistr"]["kind"].as_str().unwrap())
             .collect();
         assert_eq!(kept, vec!["objective", "check"]);
     }

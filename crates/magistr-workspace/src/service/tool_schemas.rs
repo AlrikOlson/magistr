@@ -11,7 +11,7 @@ use serde_json::Value;
 pub struct ToolSchemas;
 
 impl ToolSchemas {
-    /// The eight schema-defined tools; `workbench_status` is schema-less.
+    /// The eight schema-defined tools; `workspace_status` is schema-less.
     pub const TOOL_NAMES: [&'static str; 8] = [
         "search", "read", "map", "edit", "files", "run", "script", "undo",
     ];

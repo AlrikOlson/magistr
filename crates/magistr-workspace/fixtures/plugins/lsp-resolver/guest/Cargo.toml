@@ -1,0 +1,32 @@
+# The bundled LSP resolver's guest crate (chunk:m5-lsp-resolver-plugin).
+# Standalone (not a workspace member): it builds ONLY to wasm32-wasip1 and
+# must never enter the native workspace build. Rebuild + componentize with
+# plugins/lsp-resolver/build.ps1 (or build.sh); the committed guest.wasm is
+# the shipped artifact (vendor/qjs precedent).
+#
+# No-WASI discipline: panic = "abort", no IO, no clocks, no HashMap (its
+# RandomState pulls wasi random_get) — the core module must import nothing
+# but magistr:subprocess, or the host's default-deny refuses it loudly.
+
+[package]
+name = "lsp-resolver-guest"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+wit-bindgen = { version = "0.46", default-features = false, features = ["macros", "realloc"] }
+serde = { version = "1", default-features = false, features = ["derive", "alloc"] }
+serde_json = { version = "1", default-features = false, features = ["alloc"] }
+dlmalloc = { version = "0.2", features = ["global"] }
+
+[profile.release]
+panic = "abort"
+opt-level = "s"
+lto = true
+strip = "debuginfo"
+
+[workspace]

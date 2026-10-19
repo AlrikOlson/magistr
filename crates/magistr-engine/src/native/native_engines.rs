@@ -25,7 +25,7 @@ use super::family_services::FamilyServices;
 use super::native_reader::NativeReader;
 use super::project_authority::ProjectAuthority;
 
-/// The write capability over the four think-and-ship engines, held only by
+/// The write capability over the four magistr engines, held only by
 /// an admitted [`ProjectAuthority`] — [`ProjectAuthority::open`] is the one
 /// constructor. Derefs to the [`NativeReader`] it was opened with, so every
 /// query is available on it too.
