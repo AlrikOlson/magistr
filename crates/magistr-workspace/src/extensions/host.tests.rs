@@ -109,7 +109,7 @@ impl Workspace {
     pub fn new(toml: &str, grants: Option<&[&str]>, component: &[u8]) -> Self {
         let dir = tempfile::tempdir().unwrap();
         let root = dir.path();
-        fs::create_dir_all(root.join(".workbench")).unwrap();
+        fs::create_dir_all(root.join(".magistr/workspace")).unwrap();
         fs::create_dir_all(root.join("plugins/hello")).unwrap();
         fs::write(root.join("plugins/hello/plugin.toml"), toml).unwrap();
         fs::write(root.join("plugins/hello/guest.wasm"), component).unwrap();
@@ -122,7 +122,7 @@ impl Workspace {
             record["grants"] = serde_json::json!(grants);
         }
         fs::write(
-            root.join(".workbench/plugins.json"),
+            root.join(".magistr/workspace/plugins.json"),
             serde_json::json!({ "plugins": [record] }).to_string(),
         )
         .unwrap();
@@ -131,7 +131,7 @@ impl Workspace {
     }
 
     pub fn state_dir(&self) -> std::path::PathBuf {
-        self.dir.path().join(".workbench")
+        self.dir.path().join(".magistr/workspace")
     }
 
     pub fn host<'a>(&'a self, lane: &'a dyn ExtensionLane) -> PluginHost<'a> {
@@ -214,7 +214,7 @@ async fn default_deny_and_declared_intersect_granted_reach_the_guest() {
 
     let ws = Workspace::new(
         GOOD_TOML,
-        Some(&["observe", "workbench:tool/host@0.1.0"]),
+        Some(&["observe", "magistr:tool/host@0.1.0"]),
         b"(component)",
     );
     let lane = FakeLane::answering(ok_outcome());
@@ -373,15 +373,14 @@ async fn a_failed_lane_is_engine_unavailable_not_a_breach_and_a_missing_componen
 
 #[tokio::test]
 async fn the_subprocess_grant_is_inert_below_blessed_and_the_inventory_fails_closed() {
-    let resolver =
-        include_str!("../../../../subsystems/workspace/reference/plugins/lsp-resolver/plugin.toml");
+    let resolver = include_str!("../../fixtures/plugins/lsp-resolver/plugin.toml");
     let manifest = PluginManifest::parse(resolver).unwrap().manifest;
     let record = |source: &str, tier: Option<&str>| {
         let mut value = serde_json::json!({
-            "name": "workbench.lsp-resolver",
+            "name": "magistr.lsp-resolver",
             "source": source,
             "dir": "plugins/lsp-resolver",
-            "grants": ["workbench:subprocess/subprocess@0.1.0"],
+            "grants": ["magistr:subprocess/subprocess@0.2.0"],
         });
         if let Some(tier) = tier {
             value["tier"] = serde_json::json!(tier);
@@ -391,7 +390,7 @@ async fn the_subprocess_grant_is_inert_below_blessed_and_the_inventory_fails_clo
     let blessed = EffectiveCapabilities::resolve(&record("registry", Some("blessed")), &manifest);
     assert_eq!(
         blessed.effective,
-        vec!["workbench:subprocess/subprocess@0.2.0"]
+        vec!["magistr:subprocess/subprocess@0.2.0"]
     );
     assert!(blessed.notes.is_empty());
     let verified = EffectiveCapabilities::resolve(&record("registry", Some("verified")), &manifest);
@@ -418,7 +417,7 @@ async fn the_subprocess_grant_is_inert_below_blessed_and_the_inventory_fails_clo
 #[test]
 fn the_inventory_and_breaker_files_are_read_per_call_and_tolerate_absence() {
     let dir = tempfile::tempdir().unwrap();
-    let state = dir.path().join(".workbench");
+    let state = dir.path().join(".magistr/workspace");
     assert_eq!(PluginInventory::load(&state).unwrap(), Vec::new());
     let health = PluginHealth::new(&state);
     assert!(health.read().is_empty());

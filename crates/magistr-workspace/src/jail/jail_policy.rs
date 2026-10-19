@@ -62,7 +62,7 @@ impl JailPolicy {
 
     pub fn check_write(&self, candidate: impl AsRef<Path>) -> Result<PathBuf, WorkspaceError> {
         let canonical = self.check_read(candidate)?;
-        for directory in [".git", ".workbench"] {
+        for directory in [".git", ".magistr/workspace"] {
             let protected = self.root.join(directory);
             if is_within(&protected, &canonical, true)
                 || is_within(&resolve_path(&protected)?, &canonical, true)
@@ -70,11 +70,11 @@ impl JailPolicy {
                 return Err(protected_error(directory));
             }
         }
-        let config = self.root.join("workbench.toml");
+        let config = self.root.join(".magistr/workspace.toml");
         if equal_paths(&canonical, &config, true)
             || equal_paths(&canonical, &resolve_path(&config)?, true)
         {
-            return Err(protected_error("workbench.toml"));
+            return Err(protected_error(".magistr/workspace.toml"));
         }
         for protected in &self.protected_paths {
             if is_within(protected, &canonical, true)

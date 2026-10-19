@@ -1,7 +1,7 @@
 //! `magistr guard write` end to end: the frozen tree declared in
 //! `.magistr/legacy-gui-ratchet.json` is only writable under a ship objective
 //! whose scope carries an unlock word. Drives the real binary and the
-//! scaffolded hook script against a temp project on a temp think-and-ship
+//! scaffolded hook script against a temp project on a temp magistr
 //! store.
 
 #[path = "support/magistr_command.rs"]
@@ -35,7 +35,7 @@ impl Project {
             root.join(".magistr/project.json"),
             r#"{"project": {"name": "t", "description": "", "type": "cli"},
                 "quality_gate": {"check": "true", "test": "true", "lint": "true"},
-                "roadmap_backend": "think-and-ship"}"#,
+                "roadmap_backend": "native"}"#,
         )
         .expect("write");
         if frozen {
@@ -53,7 +53,7 @@ impl Project {
     fn engines(&self) -> NativeEngines {
         let data_dir = self.data_dir.display().to_string();
         let config = NativeConfig::from_lookup(&self.root, |key| {
-            (key == "THINK_AND_SHIP_DATA_DIR").then(|| data_dir.clone())
+            (key == "MAGISTR_WORKFLOW_DATA_DIR").then(|| data_dir.clone())
         });
         ProjectAuthority::admit(&config, WriterRole::Host)
             .expect("host admitted")
@@ -103,8 +103,8 @@ impl Project {
     fn run(&self, cmd: &mut Command, rel: &str) -> Output {
         use std::io::Write as _;
         let mut child = cmd
-            .env("THINK_AND_SHIP_DATA_DIR", &self.data_dir)
-            .env_remove("THINK_AND_SHIP_BROADCAST")
+            .env("MAGISTR_WORKFLOW_DATA_DIR", &self.data_dir)
+            .env_remove("MAGISTR_WORKFLOW_BROADCAST")
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())

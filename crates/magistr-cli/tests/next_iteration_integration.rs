@@ -29,14 +29,8 @@ const TASK: &str = "e2e-implement";
 
 fn write_fixture(root: &Path) {
     std::fs::create_dir_all(root.join(".magistr")).expect("mkdir .magistr");
-    std::fs::create_dir_all(root.join(".think-and-ship")).expect("mkdir identity");
-    std::fs::write(
-        root.join(".think-and-ship/project.json"),
-        "{\"id\":\"next-iteration-fixture\"}\n",
-    )
-    .expect("identity");
     let config = json!({
-        "project": {"name": "fixture", "description": "", "type": "cli"},
+        "project": {"id": "next-iteration-fixture", "name": "fixture", "description": "", "type": "cli"},
         "stack": {
             "language": "rust", "framework": "none", "package_manager": "cargo",
             "test_framework": "cargo-test", "linter": "clippy", "formatter": "rustfmt"
@@ -47,7 +41,7 @@ fn write_fixture(root: &Path) {
         "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"},
         "reference_repos": [],
         "state_prefix": "fixture",
-        "roadmap_backend": "think-and-ship"
+        "roadmap_backend": "native"
     });
     std::fs::write(
         root.join(".magistr/project.json"),
@@ -76,7 +70,7 @@ async fn call(client: &Client, name: &str, args: Value) -> CallToolResult {
     client.peer().call_tool(req).await.expect("call_tool")
 }
 
-/// Call a tool that must succeed (no MCP error, no think-and-ship soft error).
+/// Call a tool that must succeed (no MCP error, no magistr soft error).
 async fn ok(client: &Client, name: &str, args: Value) -> Value {
     let result = call(client, name, args).await;
     assert_ne!(result.is_error, Some(true), "{name} errored: {result:?}");

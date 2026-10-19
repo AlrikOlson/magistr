@@ -9,7 +9,7 @@ use std::{fs, sync::Mutex};
 
 const MANIFEST: &str = r#"
 [plugin]
-publisher = "workbench"
+publisher = "workspace"
 pkg = "lang-pack-gleam"
 version = "0.1.0"
 
@@ -30,7 +30,7 @@ impl Rig {
     fn new(records: serde_json::Value, manifest: Option<&str>, component: bool) -> Self {
         let dir = tempfile::tempdir().unwrap();
         let root = dir.path();
-        fs::create_dir_all(root.join(".workbench")).unwrap();
+        fs::create_dir_all(root.join(".magistr/workspace")).unwrap();
         fs::create_dir_all(root.join("plugins/lang-pack-gleam")).unwrap();
         if let Some(manifest) = manifest {
             fs::write(root.join("plugins/lang-pack-gleam/plugin.toml"), manifest).unwrap();
@@ -43,7 +43,7 @@ impl Rig {
             .unwrap();
         }
         fs::write(
-            root.join(".workbench/plugins.json"),
+            root.join(".magistr/workspace/plugins.json"),
             serde_json::json!({ "plugins": records }).to_string(),
         )
         .unwrap();
@@ -53,7 +53,7 @@ impl Rig {
 
     fn record(tier: &str) -> serde_json::Value {
         serde_json::json!([{
-            "name": "workbench.lang-pack-gleam",
+            "name": "magistr.lang-pack-gleam",
             "source": "registry",
             "tier": tier,
             "dir": "plugins/lang-pack-gleam",
@@ -61,7 +61,7 @@ impl Rig {
     }
 
     fn state_dir(&self) -> std::path::PathBuf {
-        self.dir.path().join(".workbench")
+        self.dir.path().join(".magistr/workspace")
     }
 
     fn host<'a>(&'a self, lane: &'a dyn ExtensionLane) -> PluginHost<'a> {
@@ -167,7 +167,7 @@ async fn a_healthy_pack_boots_with_lane_provenance_and_the_tier_selects_the_lane
 #[tokio::test]
 async fn non_lang_pack_plugins_are_not_touched_and_boot_refusals_are_status_rows() {
     let rig = Rig::new(
-        serde_json::json!([{ "name": "workbench.lsp-resolver", "source": "registry" }]),
+        serde_json::json!([{ "name": "magistr.lsp-resolver", "source": "registry" }]),
         Some(MANIFEST),
         true,
     );
@@ -185,7 +185,7 @@ async fn non_lang_pack_plugins_are_not_touched_and_boot_refusals_are_status_rows
     assert_eq!(statuses[0].outcome, "missing-component");
 
     let rig = Rig::new(
-        serde_json::json!([{ "name": "workbench.lang-pack-gleam", "source": "registry" }]),
+        serde_json::json!([{ "name": "magistr.lang-pack-gleam", "source": "registry" }]),
         Some(MANIFEST),
         true,
     );
@@ -238,7 +238,7 @@ fn admission_captures_the_carrier_bytes_and_keeps_refusals_as_rows() {
     assert_eq!(admission.packs.len(), 1);
     assert!(admission.refused.is_empty());
     let pack = &admission.packs[0];
-    assert_eq!(pack.plugin, "workbench.lang-pack-gleam");
+    assert_eq!(pack.plugin, "magistr.lang-pack-gleam");
     assert_eq!(pack.component.bytes, b"(component)");
     assert!(pack.blessed);
     assert!(pack.capabilities.is_empty());

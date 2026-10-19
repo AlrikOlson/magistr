@@ -8,7 +8,7 @@ use super::{SnapshotError, workspace_identity::frame};
 /// What a snapshot selects, stated so the same selection can be re-run at
 /// validation. The tree walk is the workspace's own ignore-driven selection
 /// (hidden files included, ignore files honored with or without a
-/// repository, `.git` and `.workbench` never entered, symlinks not
+/// repository, `.git` and `.magistr/workspace` never entered, symlinks not
 /// followed but recorded). Explicit inputs are hashed even when ignored —
 /// gate configuration that ordinary selection would skip, or a built
 /// artifact a consumer certifies alongside the source.
@@ -29,7 +29,10 @@ impl Default for SelectionPolicy {
         Self {
             version: 1,
             max_entries: 200_000,
-            config_inputs: vec![".magistr/project.json".into(), "workbench.toml".into()],
+            config_inputs: vec![
+                ".magistr/project.json".into(),
+                ".magistr/workspace.toml".into(),
+            ],
             artifact_inputs: Vec::new(),
         }
     }
@@ -64,23 +67,21 @@ impl SelectionPolicy {
     }
 
     /// Refuse an explicit input that could escape the root or name owner
-    /// state: only relative, normal components, never `.git` or `.workbench`.
+    /// state: only relative, normal components, never `.git` or `.magistr/workspace`.
     pub(super) fn validate(&self) -> Result<(), SnapshotError> {
         for input in self.explicit_inputs() {
             let refuse = |reason: &str| SnapshotError::InvalidInput {
                 path: input.to_owned(),
                 reason: reason.to_owned(),
             };
+            if crate::paths::is_owner_path(Path::new(input)) {
+                return Err(refuse("owner and repository state is never a source input"));
+            }
             if input.is_empty() {
                 return Err(refuse("empty path"));
             }
             for component in Path::new(input).components() {
                 match component {
-                    Component::Normal(name)
-                        if matches!(name.to_str(), Some(".git" | ".workbench")) =>
-                    {
-                        return Err(refuse("owner and repository state is never a source input"));
-                    }
                     Component::Normal(_) => {}
                     _ => return Err(refuse("only relative paths with normal components")),
                 }

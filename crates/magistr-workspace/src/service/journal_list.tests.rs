@@ -6,7 +6,7 @@ use crate::{
 
 fn seeded() -> (tempfile::TempDir, JournalDb) {
     let dir = tempfile::tempdir().expect("workspace");
-    let state = dir.path().join(".workbench");
+    let state = dir.path().join(".magistr/workspace");
     std::fs::create_dir_all(&state).expect("state dir");
     let mut journal =
         JournalDb::open(JournalDbOptions::new(state.join("journal.db"))).expect("journal");
@@ -217,7 +217,7 @@ fn schema_level_misuse_is_a_typed_narrow_refusal() {
 #[test]
 fn an_empty_workspace_lists_nothing_with_the_retained_accounting() {
     let dir = tempfile::tempdir().expect("workspace");
-    let state = dir.path().join(".workbench");
+    let state = dir.path().join(".magistr/workspace");
     std::fs::create_dir_all(&state).expect("state dir");
     let journal =
         JournalDb::open(JournalDbOptions::new(state.join("journal.db"))).expect("journal");

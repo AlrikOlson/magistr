@@ -136,7 +136,7 @@ pub struct WasiOutcome {
 /// The capability objects this host can grant (v0). Manifest-driven grants
 /// are chunk m4-capability-manifests; the mechanism — named grants, default
 /// deny — is fixed here.
-pub const CAPABILITIES: &[&str] = &[CAP_OBSERVE, CAP_SUBPROCESS, CAP_SUBPROCESS_V1];
+pub const CAPABILITIES: &[&str] = &[CAP_OBSERVE, CAP_SUBPROCESS];
 
 /// v0 capability: a host counter the guest may call with a `u32`; the host
 /// records each call and returns the running count. Exists to prove the
@@ -144,35 +144,14 @@ pub const CAPABILITIES: &[&str] = &[CAP_OBSERVE, CAP_SUBPROCESS, CAP_SUBPROCESS_
 pub const CAP_OBSERVE: &str = "observe";
 
 /// The subprocess capability's CURRENT grant name — the WIT world import name
-/// of `workbench:subprocess/subprocess@0.2.0` (SDD §8.2: world import names
-/// are the grant vocabulary). Reserved to blessed plugins; the TS host refuses
+/// of `magistr:subprocess/subprocess@0.2.0` (SDD §8.2: world import names
+/// are the grant vocabulary). Reserved to blessed plugins; the extension host refuses
 /// to grant any version of it below that tier before this code ever runs.
-pub const CAP_SUBPROCESS: &str = "workbench:subprocess/subprocess@0.2.0";
+pub const CAP_SUBPROCESS: &str = "magistr:subprocess/subprocess@0.2.0";
 
-/// The previous stamp of the same capability. A guest importing it is served
-/// PER-INVOKE sessions byte-for-byte as before 0.2.0 (it can never learn
-/// `reused`, so handing it a warm session would make it repeat a protocol
-/// handshake the server refuses). Additive within major 0 — see
-/// specs/007-resolver-server-pool research R3.
-pub const CAP_SUBPROCESS_V1: &str = "workbench:subprocess/subprocess@0.1.0";
-
-/// True for any stamp of the subprocess capability within major 0 — the
-/// blessed-only rule and the "define the subprocess instance" decision apply
-/// to every version equally. Unknown minors are recognised here but not
-/// linked: a granted-but-unimplemented import fails honestly at instantiation.
+/// Recognize the current subprocess contract exactly.
 pub fn is_subprocess_import(name: &str) -> bool {
-    name.strip_prefix("workbench:subprocess/subprocess@0.")
-        .is_some_and(|rest| {
-            let mut parts = rest.split('.');
-            matches!(
-                (parts.next(), parts.next(), parts.next()),
-                (Some(minor), Some(patch), None)
-                    if !minor.is_empty()
-                        && !patch.is_empty()
-                        && minor.bytes().all(|b| b.is_ascii_digit())
-                        && patch.bytes().all(|b| b.is_ascii_digit())
-            )
-        })
+    name == CAP_SUBPROCESS
 }
 
 // ---- Subprocess capability (chunk:m5-lsp-resolver-plugin) -----------------
@@ -475,7 +454,7 @@ impl ServerPool {
         }
         self.reaper_started = true;
         std::thread::Builder::new()
-            .name("workbench-server-pool-reaper".into())
+            .name("workspace-server-pool-reaper".into())
             .spawn(|| {
                 loop {
                     std::thread::sleep(SERVER_REAPER_TICK);
@@ -556,7 +535,7 @@ fn spawn_server_process(spec: &SubprocessSpec) -> std::io::Result<std::process::
     let sender = SPAWNER.get_or_init(|| {
         let (tx, rx) = mpsc::channel::<(SubprocessSpec, Reply)>();
         std::thread::Builder::new()
-            .name("workbench-server-pool-spawner".into())
+            .name("workspace-server-pool-spawner".into())
             .spawn(move || {
                 let parent = std::process::id();
                 while let Ok((spec, reply)) = rx.recv() {
@@ -667,12 +646,8 @@ mod kill_group {
     }
 }
 
-/// Per-invoke lease view over the subprocess capability. `pooled` is decided
-/// by the import name the guest's component carries: `@0.2.0` leases from the
-/// process-global pool; `@0.1.0` (or an explicit `false`) keeps every session
-/// private to the invoke and kills it at invoke end, byte-for-byte the
-/// pre-0.2.0 behaviour. Dropped with the store at invoke end; `settle` must
-/// run first for any session to survive (kill is the default).
+/// Per-invoke subprocess leases. Pooled leases survive only after successful settlement;
+/// private sessions are always destroyed at invoke end.
 struct SubprocessPool {
     specs: Vec<SubprocessSpec>,
     workspace_root: String,
@@ -984,11 +959,7 @@ struct ComponentState {
     subprocess: SubprocessPool,
 }
 
-/// Link the subprocess host interface for every granted subprocess stamp the
-/// host implements, under the exact import name the guest carries. Returns
-/// whether the pooled (0.2.0) stamp was linked — the lease view's mode. A
-/// granted stamp this host does not implement is left undefined so the guest
-/// fails honestly at instantiation (`invalid-guest`), never silently.
+/// Link the current subprocess capability only when explicitly granted.
 fn link_subprocess(
     linker: &mut ComponentLinker<ComponentState>,
     capabilities: &[String],
@@ -998,8 +969,6 @@ fn link_subprocess(
         if cap == CAP_SUBPROCESS {
             define_subprocess(linker, CAP_SUBPROCESS, true)?;
             pooled = true;
-        } else if cap == CAP_SUBPROCESS_V1 {
-            define_subprocess(linker, CAP_SUBPROCESS_V1, false)?;
         }
     }
     Ok(pooled)
@@ -1287,7 +1256,7 @@ pub struct InvokeOutcome {
 /// JSON strings by decision, chunk:m4-wit-interfaces).
 ///
 /// `export` addresses either a root export (`"invoke"`) or a function inside
-/// an exported instance (`"workbench:tool/guest@0.1.0#invoke"`).
+/// an exported instance (`"magistr:tool/guest@0.1.0#invoke"`).
 ///
 /// `capabilities` are the granted import names from the plugin's install-time
 /// grant record (chunk:m4-capability-manifests): every import the component
@@ -1459,7 +1428,7 @@ pub struct ResolverOutcome {
 }
 
 /// The resolver surface's export address (wit/resolver.wit).
-pub const RESOLVER_REFERENCES_EXPORT: &str = "workbench:resolver/resolver@0.1.0#resolve-references";
+pub const RESOLVER_REFERENCES_EXPORT: &str = "magistr:resolver/resolver@0.1.0#resolve-references";
 
 /// Invoke the typed `resolve-references(symbol) -> list<source-location>`
 /// export of a resolver-provider component (wit/resolver.wit). Same sandbox,
@@ -1611,8 +1580,8 @@ pub struct RunnerOutcome {
 }
 
 /// The runner surface's export addresses (wit/runner.wit).
-pub const RUNNER_CAN_PARSE_EXPORT: &str = "workbench:runner/runner@0.1.0#can-parse";
-pub const RUNNER_PARSE_EXPORT: &str = "workbench:runner/runner@0.1.0#parse-output";
+pub const RUNNER_CAN_PARSE_EXPORT: &str = "magistr:runner/runner@0.1.0#can-parse";
+pub const RUNNER_PARSE_EXPORT: &str = "magistr:runner/runner@0.1.0#parse-output";
 
 /// Invoke a runner-provider component: `can-parse(command)`, then — only on a
 /// claim — `parse-output(run-output)`. Same sandbox, same grant model as the
@@ -1883,7 +1852,7 @@ pub struct RankingOutcome {
 }
 
 /// The ranking surface's export address (wit/ranking.wit).
-pub const RANKING_CONTRIBUTE_EXPORT: &str = "workbench:ranking/ranking@0.1.0#contribute";
+pub const RANKING_CONTRIBUTE_EXPORT: &str = "magistr:ranking/ranking@0.1.0#contribute";
 
 const KIND_CLASS_CASES: [&str; 6] = [
     "declaration",
@@ -2067,10 +2036,10 @@ pub struct LangPackOutcome {
 }
 
 /// The lang-pack surface's export addresses (wit/lang-pack.wit).
-pub const LANG_PACK_INFO_EXPORT: &str = "workbench:lang-pack/lang-pack@0.1.0#info";
-pub const LANG_PACK_GRAMMAR_EXPORT: &str = "workbench:lang-pack/lang-pack@0.1.0#grammar-wasm";
-pub const LANG_PACK_QUERIES_EXPORT: &str = "workbench:lang-pack/lang-pack@0.1.0#tag-queries";
-pub const LANG_PACK_CLASSIFY_EXPORT: &str = "workbench:lang-pack/lang-pack@0.1.0#classify-file";
+pub const LANG_PACK_INFO_EXPORT: &str = "magistr:lang-pack/lang-pack@0.1.0#info";
+pub const LANG_PACK_GRAMMAR_EXPORT: &str = "magistr:lang-pack/lang-pack@0.1.0#grammar-wasm";
+pub const LANG_PACK_QUERIES_EXPORT: &str = "magistr:lang-pack/lang-pack@0.1.0#tag-queries";
+pub const LANG_PACK_CLASSIFY_EXPORT: &str = "magistr:lang-pack/lang-pack@0.1.0#classify-file";
 
 /// Read a lang-pack-provider component's carrier exports: `info`, then
 /// `grammar-wasm`, then `tag-queries`, one instantiation. Same sandbox and
@@ -2608,7 +2577,7 @@ mod tests {
     "#;
 
     /// Same calling convention, exported inside an instance — the WIT world
-    /// shape (`workbench:tool/guest@0.1.0#invoke`).
+    /// shape (`magistr:tool/guest@0.1.0#invoke`).
     const NESTED_TOOL_WAT: &str = r#"
     (component
       (core module $m
@@ -2623,7 +2592,7 @@ mod tests {
       (func $invoke (param "payload" string) (result string)
         (canon lift (core func $i "echo") (memory $i "mem") (realloc (func $i "realloc"))))
       (instance $guest (export "invoke" (func $invoke)))
-      (export "workbench:tool/guest@0.1.0" (instance $guest))
+      (export "magistr:tool/guest@0.1.0" (instance $guest))
     )
     "#;
 
@@ -2647,7 +2616,7 @@ mod tests {
     /// err (unknown-spec) — the capability links, and refusal is data.
     const SUBPROCESS_PROBE_WAT: &str = r#"
     (component
-      (import "workbench:subprocess/subprocess@0.1.0" (instance $sp
+      (import "magistr:subprocess/subprocess@0.2.0" (instance $sp
         (type $open-error' (variant
           (case "unknown-spec" string)
           (case "spawn-refused" string)
@@ -2683,24 +2652,8 @@ mod tests {
             .expect("host must not error on guest input");
         assert_eq!(
             denied.end,
-            GuestEnd::CapDenied(CAP_SUBPROCESS_V1.to_string()),
+            GuestEnd::CapDenied(CAP_SUBPROCESS.to_string()),
             "ungranted subprocess import must be refused pre-instantiation"
-        );
-        // The CURRENT stamp's grant does not cover a 0.1.0 import: grants are
-        // import names, matched verbatim in the sandbox (the same-major rule
-        // lives in the TS host's grant reading, which passes the manifest's
-        // own import names down).
-        let mismatched = run_component(
-            SUBPROCESS_PROBE_WAT.as_bytes(),
-            "probe",
-            &[],
-            &[CAP_SUBPROCESS.to_string()],
-            POLICY,
-        )
-        .expect("host must not error on guest input");
-        assert_eq!(
-            mismatched.end,
-            GuestEnd::CapDenied(CAP_SUBPROCESS_V1.to_string())
         );
         assert_eq!(denied.fuel_used, 0);
 
@@ -2711,13 +2664,13 @@ mod tests {
         assert_eq!(outcome.results, vec!["U32(1)".to_string()]);
     }
 
-    /// Run the subprocess probe with the 0.1.0 capability granted (empty specs).
+    /// Run the subprocess probe with the current capability granted (empty specs).
     fn invoke_resolver_probe(wat: &str) -> ComponentOutcome {
         run_component(
             wat.as_bytes(),
             "probe",
             &[],
-            &[CAP_SUBPROCESS_V1.to_string()],
+            &[CAP_SUBPROCESS.to_string()],
             POLICY,
         )
         .expect("host must not error on guest input")
@@ -2727,7 +2680,7 @@ mod tests {
     /// the runner lane's end-to-end pin over the real guest bytes.
     fn runner_guest() -> Vec<u8> {
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../subsystems/workspace/reference/plugins/runner-go/guest.wasm");
+            .join("fixtures/plugins/runner-go/guest.wasm");
         std::fs::read(path).expect("committed runner-go guest.wasm present")
     }
 
@@ -2772,7 +2725,7 @@ mod tests {
     /// — the ranking lane's end-to-end pin over the real guest bytes.
     fn ranking_guest() -> Vec<u8> {
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../subsystems/workspace/reference/plugins/ranking-visibility/guest.wasm");
+            .join("fixtures/plugins/ranking-visibility/guest.wasm");
         std::fs::read(path).expect("committed ranking-visibility guest.wasm present")
     }
 
@@ -2849,7 +2802,7 @@ mod tests {
         let outcome = invoke_ranking_contribute(
             &guest,
             &[ranking_hit("pub struct S;", "declaration")],
-            &["workbench:subprocess/subprocess@0.1.0".to_string()],
+            &["magistr:subprocess/subprocess@0.2.0".to_string()],
             SandboxPolicy {
                 fuel: 200_000_000,
                 memory_cap_bytes: 32 * 1024 * 1024,
@@ -2971,7 +2924,7 @@ mod tests {
     fn invoke_addresses_a_wit_world_export_by_interface_and_name() {
         let outcome = invoke(
             NESTED_TOOL_WAT,
-            "workbench:tool/guest@0.1.0#invoke",
+            "magistr:tool/guest@0.1.0#invoke",
             "payload",
             &[],
         );
@@ -3355,25 +3308,7 @@ mod tests {
     /// never opened: links (the 0.2.0 functions exist) and answers false.
     const SUBPROCESS_V2_PROBE_WAT: &str = r#"
     (component
-      (import "workbench:subprocess/subprocess@0.2.0" (instance $sp
-        (export "reused" (func (param "session" u32) (result bool)))
-      ))
-      (core func $reused_core (canon lower (func $sp "reused")))
-      (core module $m
-        (import "sp" "reused" (func $reused (param i32) (result i32)))
-        (func (export "probe") (result i32)
-          (call $reused (i32.const 7))))
-      (core instance $i (instantiate $m
-        (with "sp" (instance (export "reused" (func $reused_core))))))
-      (func (export "probe") (result u32) (canon lift (core func $i "probe")))
-    )
-    "#;
-
-    /// Imports subprocess@0.1.0 but demands `reused`: the host does not link
-    /// it for the legacy stamp, so instantiation fails honestly.
-    const SUBPROCESS_V1_WANTS_REUSED_WAT: &str = r#"
-    (component
-      (import "workbench:subprocess/subprocess@0.1.0" (instance $sp
+      (import "magistr:subprocess/subprocess@0.2.0" (instance $sp
         (export "reused" (func (param "session" u32) (result bool)))
       ))
       (core func $reused_core (canon lower (func $sp "reused")))
@@ -3399,27 +3334,13 @@ mod tests {
         .expect("host must not error on guest input");
         assert_eq!(v2.end, GuestEnd::Ok);
         assert_eq!(v2.results, vec!["U32(0)".to_string()]);
-
-        let v1 = run_component(
-            SUBPROCESS_V1_WANTS_REUSED_WAT.as_bytes(),
-            "probe",
-            &[],
-            &[CAP_SUBPROCESS_V1.to_string()],
-            POLICY,
-        )
-        .expect("host must not error on guest input");
-        assert!(
-            matches!(v1.end, GuestEnd::InvalidGuest(_)),
-            "0.1.0 must not see `reused`: {:?}",
-            v1.end
-        );
     }
 
     /// A 0.2.0 guest that opens a session and then spins out of fuel: the
     /// fuel kill must take the leased server with it (research R4).
     const SUBPROCESS_V2_OPEN_THEN_SPIN_WAT: &str = r#"
     (component
-      (import "workbench:subprocess/subprocess@0.2.0" (instance $sp
+      (import "magistr:subprocess/subprocess@0.2.0" (instance $sp
         (type $open-error' (variant
           (case "unknown-spec" string)
           (case "spawn-refused" string)
@@ -3481,17 +3402,13 @@ mod tests {
     }
 
     #[test]
-    fn is_subprocess_import_accepts_every_major_0_stamp_only() {
+    fn is_subprocess_import_accepts_the_current_contract_only() {
         assert!(is_subprocess_import(CAP_SUBPROCESS));
-        assert!(is_subprocess_import(CAP_SUBPROCESS_V1));
-        assert!(is_subprocess_import(
-            "workbench:subprocess/subprocess@0.7.3"
-        ));
-        assert!(!is_subprocess_import(
-            "workbench:subprocess/subprocess@1.0.0"
-        ));
-        assert!(!is_subprocess_import("workbench:subprocess/subprocess"));
-        assert!(!is_subprocess_import("workbench:subprocess/subprocess@0.1"));
-        assert!(!is_subprocess_import("workbench:tool/host@0.1.0"));
+        assert!(!is_subprocess_import("magistr:subprocess/subprocess@0.1.0"));
+        assert!(!is_subprocess_import("magistr:subprocess/subprocess@0.7.3"));
+        assert!(!is_subprocess_import("magistr:subprocess/subprocess@1.0.0"));
+        assert!(!is_subprocess_import("magistr:subprocess/subprocess"));
+        assert!(!is_subprocess_import("magistr:subprocess/subprocess@0.1"));
+        assert!(!is_subprocess_import("magistr:tool/host@0.1.0"));
     }
 }

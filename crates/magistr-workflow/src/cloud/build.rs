@@ -407,7 +407,7 @@ mod tests {
 
     #[test]
     fn from_chunk_builds_a_schema_valid_envelope_with_edges() {
-        let envelope = from_chunk("think-and-ship-676f38", &chunk(), &[], &[]);
+        let envelope = from_chunk("magistr-676f38", &chunk(), &[], &[]);
         assert_eq!(envelope.edges.len(), 2);
         assert_eq!(envelope.edges[0].target, "think:3");
         assert_eq!(envelope.id, "saas-cloud-sync-roadmap");
@@ -511,7 +511,7 @@ mod tests {
             snooze_until: None,
             project_id: None,
         };
-        let envelope = from_signal("think-and-ship-676f38", &signal);
+        let envelope = from_signal("magistr-676f38", &signal);
         assert_eq!(envelope.edges.len(), 2);
         assert_eq!(envelope.edges[0].target, "chunk:saas-cloud-sync-signal");
         assert_eq!(envelope.id, signal.id);
@@ -532,7 +532,7 @@ mod tests {
             result: String::new(),
             think_step: Some(7),
         };
-        let envelope = from_action("think-and-ship-676f38", "obj-2026-06-08T00:00:00Z", &action);
+        let envelope = from_action("magistr-676f38", "obj-2026-06-08T00:00:00Z", &action);
         assert_eq!(envelope.id, "obj-2026-06-08T00:00:00Z.action-42");
         assert_eq!(envelope.record["id"], envelope.id);
         assert_eq!(envelope.record["local_id"], 42);
@@ -569,7 +569,7 @@ mod tests {
         use crate::think::domain::step::ThinkStep;
         use serde_json::json;
 
-        const US: &str = "think-and-ship-676f38";
+        const US: &str = "magistr-676f38";
         let cycle = "obj-2026-06-08T00:00:00Z";
 
         let signal = Signal {
@@ -737,13 +737,13 @@ mod tests {
             scope: String::new(),
             verification: VerificationMode::Full,
             status: ObjectiveStatus::Defined,
-            project_id: "think-and-ship-676f38".into(),
+            project_id: "magistr-676f38".into(),
             created_at: Some("2026-06-10T02:51:47.620058+00:00".into()),
             completed_at: None,
         };
         let cycle = cycle_key(objective.created_at.as_deref().unwrap());
 
-        let obj_env = from_objective("think-and-ship-676f38", &cycle, &objective);
+        let obj_env = from_objective("magistr-676f38", &cycle, &objective);
         assert_eq!(obj_env.id, cycle);
         // The chunk: backref embedded in the description becomes a graph edge.
         assert_eq!(obj_env.edges.len(), 1);
@@ -766,7 +766,7 @@ mod tests {
             think_branch: None,
         };
         let task_env = from_task(
-            "think-and-ship-676f38",
+            "magistr-676f38",
             &cycle,
             objective.created_at.as_deref().unwrap(),
             &task,
@@ -784,7 +784,7 @@ mod tests {
             ..task.clone()
         };
         let unstarted_env = from_task(
-            "think-and-ship-676f38",
+            "magistr-676f38",
             &cycle,
             objective.created_at.as_deref().unwrap(),
             &unstarted,
@@ -807,7 +807,7 @@ mod tests {
             results: None,
             timestamp: "2026-06-10T02:56:00Z".into(),
         };
-        let check_env = from_check("think-and-ship-676f38", &cycle, "implement-x", 0, &check);
+        let check_env = from_check("magistr-676f38", &cycle, "implement-x", 0, &check);
         assert_eq!(check_env.id, format!("{cycle}.implement-x.check-0"));
         assert_eq!(
             check_env.edges[0].target,
@@ -819,7 +819,7 @@ mod tests {
         // idempotent-upsert property the collision bug lacked).
         assert_eq!(
             from_task(
-                "think-and-ship-676f38",
+                "magistr-676f38",
                 &cycle,
                 objective.created_at.as_deref().unwrap(),
                 &task
@@ -844,7 +844,7 @@ mod tests {
             "timestamp": "2026-06-08T00:00:00Z"
         }))
         .unwrap();
-        let envelope = from_step("think-and-ship-676f38", &step).unwrap();
+        let envelope = from_step("magistr-676f38", &step).unwrap();
         assert_eq!(envelope.id, "step-909");
         assert_eq!(envelope.edges.len(), 3);
         // bare dep → unlabeled

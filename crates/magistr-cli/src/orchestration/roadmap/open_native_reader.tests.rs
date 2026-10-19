@@ -23,17 +23,17 @@ fn current_backend_resolution_uses_declared_settings_or_native_default() {
     let tmp = tempfile::tempdir().expect("tempdir");
     assert_eq!(
         roadmap_backend_of(tmp.path()).unwrap(),
-        RoadmapBackend::ThinkAndShip
+        RoadmapBackend::Native
     );
     write_project_json(tmp.path(), None);
     std::fs::write(tmp.path().join(".magistr-roadmap.yml"), "title: t\n").unwrap();
     assert_eq!(
         roadmap_backend_of(tmp.path()).unwrap(),
-        RoadmapBackend::ThinkAndShip
+        RoadmapBackend::Native
     );
     for (backend, expected) in [
         ("yaml", RoadmapBackend::Yaml),
-        ("think-and-ship", RoadmapBackend::ThinkAndShip),
+        ("native", RoadmapBackend::Native),
     ] {
         write_project_json(tmp.path(), Some(backend));
         assert_eq!(roadmap_backend_of(tmp.path()).unwrap(), expected);
@@ -65,14 +65,14 @@ fn native_project_admits_one_host_and_readers_on_the_configured_store() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let project = tmp.path().join("proj");
     std::fs::create_dir_all(&project).expect("mkdir");
-    write_project_json(&project, Some("think-and-ship"));
+    write_project_json(&project, Some("native"));
     assert_eq!(
         roadmap_backend_of(&project).unwrap(),
-        RoadmapBackend::ThinkAndShip
+        RoadmapBackend::Native
     );
 
     let data_dir = tmp.path().join("data").display().to_string();
-    let lookup = move |key: &str| (key == "THINK_AND_SHIP_DATA_DIR").then(|| data_dir.clone());
+    let lookup = move |key: &str| (key == "MAGISTR_WORKFLOW_DATA_DIR").then(|| data_dir.clone());
 
     let config = magistr_core::evidence::writer_config(&project, &lookup);
     let engines = ProjectAuthority::admit(&config, WriterRole::Service)

@@ -18,18 +18,20 @@ fn shared_config_resolution_corpus() {
         for (key, file) in [
             ("org", "org.toml"),
             ("user", "user.toml"),
-            ("workspace", "workbench.toml"),
+            ("workspace", ".magistr/workspace.toml"),
         ] {
             if let Some(body) = fixture[key].as_str() {
-                std::fs::write(root.path().join(file), body).unwrap();
+                let path = root.path().join(file);
+                std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+                std::fs::write(path, body).unwrap();
             }
         }
         options.env.insert(
-            "WORKBENCH_ORG_POLICY".into(),
+            "MAGISTR_WORKSPACE_ORG_POLICY".into(),
             root.path().join("org.toml").display().to_string(),
         );
         options.env.insert(
-            "WORKBENCH_USER_CONFIG".into(),
+            "MAGISTR_WORKSPACE_USER_CONFIG".into(),
             root.path().join("user.toml").display().to_string(),
         );
         options.session_flags = fixture["session"].as_object().cloned().unwrap_or_default();
@@ -125,6 +127,6 @@ fn shared_command_detection_corpus() {
         assert_eq!(json!(commands), fixture["commands"], "{}", fixture["name"]);
         let rendered = DetectedCommand::render_table(&commands);
         assert!(rendered.parse::<toml::Table>().is_ok());
-        assert!(!root.path().join("workbench.toml").exists());
+        assert!(!root.path().join(".magistr/workspace.toml").exists());
     }
 }

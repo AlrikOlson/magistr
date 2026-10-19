@@ -493,12 +493,9 @@ mod tests {
 
     /// The committed first-party grammar artifact: the wasm-lane tests are
     /// exactly as hermetic as the committed guest components.
-    const GLEAM_WASM: &[u8] = include_bytes!(
-        "../../../subsystems/workspace/reference/plugins/lang-pack-gleam/grammar/gleam.wasm"
-    );
-    const GLEAM_TAGS: &str = include_str!(
-        "../../../subsystems/workspace/reference/plugins/lang-pack-gleam/queries/tags.scm"
-    );
+    const GLEAM_WASM: &[u8] =
+        include_bytes!("../fixtures/plugins/lang-pack-gleam/grammar/gleam.wasm");
+    const GLEAM_TAGS: &str = include_str!("../fixtures/plugins/lang-pack-gleam/queries/tags.scm");
 
     const FIXTURE: &str = "import gleam/io\n\npub fn main() {\n  io.println(greet(\"world\"))\n}\n\nfn greet(name: String) -> String {\n  \"hello\"\n}\n\npub type Season {\n  Spring\n  Summer\n}\n\npub const answer = 42\n";
 

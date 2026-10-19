@@ -262,7 +262,7 @@ fn setup_rejects_symlinked_codex_and_shared_skill_ancestors_before_writing() {
 }
 
 #[test]
-fn native_only_denials_and_disabled_standalone_server_restore_original_user_values() {
+fn native_only_denials_and_unrelated_server_preserve_user_values() {
     for original_denials in ["['custom_guard']", "['custom_guard', 'roadmap_export']"] {
         let tmp = tempfile::tempdir().unwrap();
         let dir = tmp.path();
@@ -276,7 +276,7 @@ fn native_only_denials_and_disabled_standalone_server_restore_original_user_valu
 }).to_string();
         write(dir, ".magistr/project.json", &project);
         let original = format!(
-            "# User settings\nmodel = 'chosen'\n\n[mcp_servers.magistr]\ncommand = 'custom-magistr'\nargs = ['custom-root']\ndisabled_tools = {original_denials} # preserve original denials\n\n[mcp_servers.think-and-ship]\ncommand = 'custom-workflow'\nargs = ['serve', 'custom-root']\nenabled = true # restore this choice on removal\n"
+            "# User settings\nmodel = 'chosen'\n\n[mcp_servers.magistr]\ncommand = 'custom-magistr'\nargs = ['custom-root']\ndisabled_tools = {original_denials} # preserve original denials\n\n[mcp_servers.external]\ncommand = 'example-server'\nargs = ['--stdio', 'custom-root']\nenabled = true # restore this choice on removal\n"
         );
         write(dir, CONFIG, &original);
         setup(dir);
@@ -288,7 +288,10 @@ fn native_only_denials_and_disabled_standalone_server_restore_original_user_valu
             config["mcp_servers"]["magistr"]["command"].as_str(),
             Some("custom-magistr")
         );
-        assert!(config["mcp_servers"].get("think-and-ship").is_none());
+        assert_eq!(
+            config["mcp_servers"]["external"]["command"].as_str(),
+            Some("example-server")
+        );
         let denied = config["mcp_servers"]["magistr"]["disabled_tools"]
             .as_array()
             .unwrap();
@@ -315,7 +318,10 @@ fn native_only_denials_and_disabled_standalone_server_restore_original_user_valu
             after["mcp_servers"]["magistr"],
             before["mcp_servers"]["magistr"]
         );
-        assert!(after["mcp_servers"].get("think-and-ship").is_none());
+        assert_eq!(
+            after["mcp_servers"]["external"],
+            before["mcp_servers"]["external"]
+        );
         assert_eq!(read(dir, ".magistr/project.json"), project);
     }
 }
@@ -480,11 +486,6 @@ fn target_removal_keeps_native_state_until_an_explicit_reset() {
     )
     .unwrap();
     write(dir, ".magistr/state.json", "native execution checkpoint\n");
-    write(
-        dir,
-        ".think-and-ship/project.json",
-        "native project identity\n",
-    );
     let project = read(dir, ".magistr/project.json");
     let claude_skill = read(dir, ".claude/skills/next/SKILL.md");
     CodexSetup::remove_target(dir).unwrap();
@@ -492,10 +493,6 @@ fn target_removal_keeps_native_state_until_an_explicit_reset() {
     assert_eq!(
         read(dir, ".magistr/state.json"),
         "native execution checkpoint\n"
-    );
-    assert_eq!(
-        read(dir, ".think-and-ship/project.json"),
-        "native project identity\n"
     );
     assert_eq!(read(dir, ".claude/skills/next/SKILL.md"), claude_skill);
     assert!(!CodexSetup::is_present(dir));
@@ -815,7 +812,6 @@ fn the_removal_plan_lists_removals_preserved_customizations_and_shared_restores(
     let config = plan.get(".codex/config.toml").unwrap();
     assert_eq!(config.ownership, crate::scaffold::Ownership::Shared);
     assert!(plan.get(".magistr/project.json").is_none());
-    assert!(plan.get(".think-and-ship/project.json").is_none());
     assert!(plan.get("CLAUDE.md").is_none());
 
     let removed = CodexSetup::remove_target(dir).unwrap();

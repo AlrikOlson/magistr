@@ -21,7 +21,7 @@ fn guide_uses_public_catalog_and_explains_advanced_authorization() {
     for obsolete in [
         "magistr_delete",
         "magistr_list",
-        "workbench-mcp",
+        "workspace-mcp",
         "ship_plan",
         "ship_start",
     ] {

@@ -1,6 +1,6 @@
 //! `magistr workspace init`: seed run's `[commands]` allowlist into
-//! `workbench.toml` from lockfile/manifest detection. A human runs this;
-//! the served surface can never write `workbench.toml`, so seeding is the
+//! `.magistr/workspace.toml` from lockfile/manifest detection. A human runs this;
+//! the served surface can never write `.magistr/workspace.toml`, so seeding is the
 //! one sanctioned machine-assisted amendment — and even it never touches an
 //! existing table. The scaffold seeds through the same function.
 
@@ -14,13 +14,13 @@ use super::admitted_root;
 /// Seed the allowlist of the workspace at `dir`, or say why nothing changed.
 pub fn run_init(dir: &Path) -> eyre::Result<()> {
     let root = admitted_root(dir);
-    let toml_path = root.join("workbench.toml");
+    let toml_path = root.join(".magistr/workspace.toml");
     match seed_allowlist(&root)? {
         Seeded::Nothing => {
             eprintln!("magistr workspace: no project commands detected — nothing seeded");
         }
         Seeded::Declared => eprintln!(
-            "magistr workspace: workbench.toml already declares [commands] — left untouched (amend by hand)"
+            "magistr workspace: .magistr/workspace.toml already declares [commands] — left untouched (amend by hand)"
         ),
         Seeded::Commands(detected) => {
             eprintln!(
@@ -51,10 +51,10 @@ pub(crate) enum Seeded {
     Commands(Vec<DetectedCommand>),
 }
 
-/// Write the detected `[commands]` table into `root/workbench.toml` unless
+/// Write the detected `[commands]` table into `root/.magistr/workspace.toml` unless
 /// the file already declares one.
 pub(crate) fn seed_allowlist(root: &Path) -> std::io::Result<Seeded> {
-    let toml_path = root.join("workbench.toml");
+    let toml_path = root.join(".magistr/workspace.toml");
     let detected = DetectedCommand::detect(root);
     if detected.is_empty() {
         return Ok(Seeded::Nothing);
@@ -76,6 +76,7 @@ pub(crate) fn seed_allowlist(root: &Path) -> std::io::Result<Seeded> {
     } else {
         format!("{}\n\n{block}", existing.trim_end_matches('\n'))
     };
+    std::fs::create_dir_all(root.join(".magistr"))?;
     std::fs::write(&toml_path, body)?;
     Ok(Seeded::Commands(detected))
 }

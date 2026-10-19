@@ -153,7 +153,7 @@ pub(crate) async fn run_transport(
         tracing::warn!(target: "magistr::mcp", "{warning}");
     }
 
-    // The think-and-ship engines resolve identity and run gates relative to
+    // The magistr engines resolve identity and run gates relative to
     // the working directory; pin it to the project root the client named.
     if let Err(e) = std::env::set_current_dir(&project_root) {
         tracing::warn!(target: "magistr::mcp", "could not enter {}: {e}", project_root.display());

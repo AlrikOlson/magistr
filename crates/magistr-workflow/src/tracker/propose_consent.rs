@@ -1,6 +1,6 @@
 //! Remembered consent for unattended proposals.
 //!
-//! `THINK_AND_SHIP_TRACKER_PROPOSE` (shipped in 5ca9aa6) is the
+//! `MAGISTR_WORKFLOW_TRACKER_PROPOSE` (shipped in 5ca9aa6) is the
 //! machine-readable answer to one question: *may a sweep nobody typed write
 //! proposals onto the roadmap?* It is default-off and it works — but an env var
 //! is a surface almost nobody sets, which is why a whole later change
@@ -110,7 +110,7 @@ pub fn record(
 /// `unattended_propose_enabled` already uses).
 ///
 /// An explicit env value **wins in both directions**: a deployment that sets
-/// `THINK_AND_SHIP_TRACKER_PROPOSE=0` has stated an intent, and a remembered
+/// `MAGISTR_WORKFLOW_TRACKER_PROPOSE=0` has stated an intent, and a remembered
 /// click from months ago must not quietly re-enable an unattended writer. Only
 /// when the env var says nothing does the remembered answer speak — and when
 /// neither says anything, the answer is off, exactly as it was before this

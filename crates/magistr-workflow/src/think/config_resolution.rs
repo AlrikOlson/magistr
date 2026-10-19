@@ -50,7 +50,7 @@ impl ThinkConfigResolution {
         sources.insert("persistence.enabled", ConfigSource::Explicit);
         sources.insert("persistence.data_dir", ConfigSource::Explicit);
 
-        const STRICT: &str = "THINK_AND_SHIP_STRICT_MODE";
+        const STRICT: &str = "MAGISTR_WORKFLOW_STRICT_MODE";
         if get(STRICT).as_deref() == Some("true") {
             config.validation.strict_mode = true;
             config.validation.require_thought_prefix = true;
@@ -75,52 +75,52 @@ impl ThinkConfigResolution {
         );
         integer(
             &get,
-            "THINK_AND_SHIP_SESSION_TIMEOUT",
+            "MAGISTR_WORKFLOW_SESSION_TIMEOUT",
             "system.session_timeout",
             &mut config.system.session_timeout,
             &mut sources,
         );
         integer(
             &get,
-            "THINK_AND_SHIP_MAX_BRANCH_DEPTH",
+            "MAGISTR_WORKFLOW_MAX_BRANCH_DEPTH",
             "system.max_branch_depth",
             &mut config.system.max_branch_depth,
             &mut sources,
         );
         integer(
             &get,
-            "THINK_AND_SHIP_RECENT_STEPS_LIMIT",
+            "MAGISTR_WORKFLOW_RECENT_STEPS_LIMIT",
             "system.recent_steps_limit",
             &mut config.system.recent_steps_limit,
             &mut sources,
         );
         integer(
             &get,
-            "THINK_AND_SHIP_ROLLUP_MAX_ITEMS",
+            "MAGISTR_WORKFLOW_ROLLUP_MAX_ITEMS",
             "system.rollup_max_items",
             &mut config.system.rollup_max_items,
             &mut sources,
         );
 
-        const FORMAT: &str = "THINK_AND_SHIP_OUTPUT_FORMAT";
+        const FORMAT: &str = "MAGISTR_WORKFLOW_OUTPUT_FORMAT";
         if let Some(raw) = get(FORMAT) {
             if let Some(format) = OutputFormat::parse(&raw) {
                 config.display.output_format = format;
                 sources.insert("display.output_format", ConfigSource::Environment(FORMAT));
             } else {
                 tracing::warn!(
-                    "Invalid THINK_AND_SHIP_OUTPUT_FORMAT; using console. Expected console, json, or markdown"
+                    "Invalid MAGISTR_WORKFLOW_OUTPUT_FORMAT; using console. Expected console, json, or markdown"
                 );
             }
         }
 
-        const NO_COLOR: &str = "THINK_AND_SHIP_NO_COLOR";
+        const NO_COLOR: &str = "MAGISTR_WORKFLOW_NO_COLOR";
         if get(NO_COLOR).as_deref() == Some("true") {
             config.display.color_output = false;
             sources.insert("display.color_output", ConfigSource::Environment(NO_COLOR));
         }
 
-        const BROADCAST: &str = "THINK_AND_SHIP_BROADCAST_PATH";
+        const BROADCAST: &str = "MAGISTR_WORKFLOW_BROADCAST_PATH";
         if let Some(raw) = get(BROADCAST) {
             let trimmed = raw.trim();
             if !trimmed.is_empty() {
@@ -132,8 +132,8 @@ impl ThinkConfigResolution {
         // Both names currently select the same setting; neither is protected.
         // The admitting host supplies identity to avoid another ambient read.
         for variable in [
-            "THINK_AND_SHIP_ENABLE_SESSIONS",
-            "THINK_AND_SHIP_AUTO_SESSION",
+            "MAGISTR_WORKFLOW_ENABLE_SESSIONS",
+            "MAGISTR_WORKFLOW_AUTO_SESSION",
         ] {
             if get(variable).as_deref() == Some("true") {
                 config.features.enable_sessions = true;
@@ -144,7 +144,7 @@ impl ThinkConfigResolution {
                 sources.insert("features.default_session_id", ConfigSource::ProjectIdentity);
             }
         }
-        const SESSION_ID: &str = "THINK_AND_SHIP_DEFAULT_SESSION_ID";
+        const SESSION_ID: &str = "MAGISTR_WORKFLOW_DEFAULT_SESSION_ID";
         if let Some(raw) = get(SESSION_ID) {
             let trimmed = raw.trim();
             if trimmed.is_empty() {
@@ -162,7 +162,7 @@ impl ThinkConfigResolution {
                 );
             } else {
                 tracing::warn!(
-                    "Ignoring invalid THINK_AND_SHIP_DEFAULT_SESSION_ID; expected [A-Za-z0-9_.-], at most 128 characters, excluding . and .."
+                    "Ignoring invalid MAGISTR_WORKFLOW_DEFAULT_SESSION_ID; expected [A-Za-z0-9_.-], at most 128 characters, excluding . and .."
                 );
             }
         }

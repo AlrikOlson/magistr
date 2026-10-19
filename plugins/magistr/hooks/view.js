@@ -297,7 +297,7 @@ export function pane(E, m, width, handlers) {
       if (d.truncation)
         body.push(
           text(
-            'Some source lines were omitted. Use Workbench to inspect the remaining lines.',
+            'Some source lines were omitted. Use Magistr to inspect the remaining lines.',
           ),
         )
     }
@@ -494,12 +494,12 @@ export function pane(E, m, width, handlers) {
     }
     if (!rows.length)
       body.push(
-        text('No changes recorded by Workbench. Other file changes may exist.'),
+        text('No changes recorded by Magistr. Other file changes may exist.'),
       )
     if (slot.value.truncation)
       body.push(
         text(
-          'Some changes were omitted. Inspect the Workbench journal for more.',
+          'Some changes were omitted. Inspect the Magistr journal for more.',
         ),
       )
   }

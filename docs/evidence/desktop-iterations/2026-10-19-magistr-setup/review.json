@@ -1,0 +1,102 @@
+{
+  "scope": "Magistr project setup and permission requests: short and long commands, selected files and scrolled change preview, desktop and native minimum sizes, dark and light appearances. Each full-frame capture was opened and inspected.",
+  "limitations": "Headless WebKit story fixtures. Native OS input, accessibility APIs, live provider communication and the Claude terminal plugin were not exercised. Historical native evidence remains tied to its recorded sources.",
+  "images": {
+    "conversation--long-permission-request-compact-dark.png": {
+      "sha256": "5df87e99b3327f810bcf4fa941d686258d753c6a535791f83fc2c1d2e94ccdf1",
+      "verdict": "pass",
+      "task": "Read a command permission request and choose Allow once or Decline.",
+      "observations": "760×550: details and actions fit the compact pane. Long details use a bounded scroll region while both decision buttons stay visible. Dark appearance preserves text contrast and focus. No overlapping controls or horizontal clipping. Empty conversation space is appropriate to the short exchange; no graph edges appear."
+    },
+    "conversation--long-permission-request-compact-light.png": {
+      "sha256": "383005b890b337600b2ad1d07d839c9f411047618c85da2e566977873028c90a",
+      "verdict": "pass",
+      "task": "Read a command permission request and choose Allow once or Decline.",
+      "observations": "760×550: details and actions fit the compact pane. Long details use a bounded scroll region while both decision buttons stay visible. Light appearance preserves text contrast and focus. No overlapping controls or horizontal clipping. Empty conversation space is appropriate to the short exchange; no graph edges appear."
+    },
+    "conversation--long-permission-request-desktop-dark.png": {
+      "sha256": "77789731817dc84e8dd3f3c18ece56b02f9519dd5e62d9949d1961e333f61c18",
+      "verdict": "pass",
+      "task": "Read a command permission request and choose Allow once or Decline.",
+      "observations": "1280×820: conversation and details are distinct, with readable request text and a clear action group. Long details use a bounded scroll region while both decision buttons stay visible. Dark appearance preserves text contrast and focus. No overlapping controls or horizontal clipping. Empty conversation space is appropriate to the short exchange; no graph edges appear."
+    },
+    "conversation--long-permission-request-desktop-light.png": {
+      "sha256": "79f9fb62a96198892a14a429557f5828d67be1836a379e23344a9c2ef74c8eff",
+      "verdict": "pass",
+      "task": "Read a command permission request and choose Allow once or Decline.",
+      "observations": "1280×820: conversation and details are distinct, with readable request text and a clear action group. Long details use a bounded scroll region while both decision buttons stay visible. Light appearance preserves text contrast and focus. No overlapping controls or horizontal clipping. Empty conversation space is appropriate to the short exchange; no graph edges appear."
+    },
+    "conversation--permission-request-compact-dark.png": {
+      "sha256": "be670487720c3866d7fb2f14a6ad18056ba62f1e86f264c7f1003e73b5afdac7",
+      "verdict": "pass",
+      "task": "Read a command permission request and choose Allow once or Decline.",
+      "observations": "760×550: details and actions fit the compact pane. The command and both decision buttons are visible together. Dark appearance preserves text contrast and focus. No overlapping controls or horizontal clipping. Empty conversation space is appropriate to the short exchange; no graph edges appear."
+    },
+    "conversation--permission-request-compact-light.png": {
+      "sha256": "96534ac929ef566d155038d021ecf333a4f35323465e6e2403c1a8364080fa1a",
+      "verdict": "pass",
+      "task": "Read a command permission request and choose Allow once or Decline.",
+      "observations": "760×550: details and actions fit the compact pane. The command and both decision buttons are visible together. Light appearance preserves text contrast and focus. No overlapping controls or horizontal clipping. Empty conversation space is appropriate to the short exchange; no graph edges appear."
+    },
+    "conversation--permission-request-desktop-dark.png": {
+      "sha256": "27c7dcce30027c76d776827a3d1a381afdeb51014f5d93c3313728480f3f7af8",
+      "verdict": "pass",
+      "task": "Read a command permission request and choose Allow once or Decline.",
+      "observations": "1280×820: conversation and details are distinct, with readable request text and a clear action group. The command and both decision buttons are visible together. Dark appearance preserves text contrast and focus. No overlapping controls or horizontal clipping. Empty conversation space is appropriate to the short exchange; no graph edges appear."
+    },
+    "conversation--permission-request-desktop-light.png": {
+      "sha256": "b0c05c2c4ba327d3c550d48d6c150470c0ccb49b0e4c97a4c04f2668439ffba2",
+      "verdict": "pass",
+      "task": "Read a command permission request and choose Allow once or Decline.",
+      "observations": "1280×820: conversation and details are distinct, with readable request text and a clear action group. The command and both decision buttons are visible together. Light appearance preserves text contrast and focus. No overlapping controls or horizontal clipping. Empty conversation space is appropriate to the short exchange; no graph edges appear."
+    },
+    "conversation--setup-file-changes-compact-dark.png": {
+      "sha256": "341eadb1571196bc12fe73d317871756d88c830a3ae2fa98a381b40940f21dac",
+      "verdict": "pass",
+      "task": "Review selected project setup files and inspect a proposed change.",
+      "observations": "760×550: dialog fills the available window with scrollable file and preview panes; the selection count and apply/cancel controls remain fully visible. Scrolled preview exposes the complete diff; the partially scrolled heading is outside the active preview, not obscuring a control. Dark appearance has readable text, distinct selection/focus and diff colors. No overlap, horizontal clipping or ambiguous connections; this view has no graph edges."
+    },
+    "conversation--setup-file-changes-compact-light.png": {
+      "sha256": "c8eeaa881e4c4f0aebaabaf65a98db2e52c3790bc7098e8654596474e5624b00",
+      "verdict": "pass",
+      "task": "Review selected project setup files and inspect a proposed change.",
+      "observations": "760×550: dialog fills the available window with scrollable file and preview panes; the selection count and apply/cancel controls remain fully visible. Scrolled preview exposes the complete diff; the partially scrolled heading is outside the active preview, not obscuring a control. Light appearance has readable text, distinct selection/focus and diff colors. No overlap, horizontal clipping or ambiguous connections; this view has no graph edges."
+    },
+    "conversation--setup-file-changes-desktop-dark.png": {
+      "sha256": "981239e72ecc6787b2b6a2e24b947b3b4978355bed2606227ff724b5ca184897",
+      "verdict": "pass",
+      "task": "Review selected project setup files and inspect a proposed change.",
+      "observations": "1280×820: clear file list, selected AGENTS.md, readable diff and anchored apply/cancel footer. Selected file outline and change tabs have clear hierarchy. Dark appearance has readable text, distinct selection/focus and diff colors. No overlap, horizontal clipping or ambiguous connections; this view has no graph edges."
+    },
+    "conversation--setup-file-changes-desktop-light.png": {
+      "sha256": "fa0085084d7af39f0ccfc2c28ecdf1216854c71b5674059a3604ea73cd315a6e",
+      "verdict": "pass",
+      "task": "Review selected project setup files and inspect a proposed change.",
+      "observations": "1280×820: clear file list, selected AGENTS.md, readable diff and anchored apply/cancel footer. Selected file outline and change tabs have clear hierarchy. Light appearance has readable text, distinct selection/focus and diff colors. No overlap, horizontal clipping or ambiguous connections; this view has no graph edges."
+    },
+    "conversation--setup-review-compact-dark.png": {
+      "sha256": "9d2088dcb4d997c51cf8bacbe563dcbfff43a461e0e0597dfae803a1d5ae2216",
+      "verdict": "pass",
+      "task": "Review selected project setup files and inspect a proposed change.",
+      "observations": "760×550: dialog fills the available window with scrollable file and preview panes; the selection count and apply/cancel controls remain fully visible. Selected file outline and change tabs have clear hierarchy. Dark appearance has readable text, distinct selection/focus and diff colors. No overlap, horizontal clipping or ambiguous connections; this view has no graph edges."
+    },
+    "conversation--setup-review-compact-light.png": {
+      "sha256": "263622472d53620593a2f175b1a47d25b5701b944c350ed0e8795a9761adfec9",
+      "verdict": "pass",
+      "task": "Review selected project setup files and inspect a proposed change.",
+      "observations": "760×550: dialog fills the available window with scrollable file and preview panes; the selection count and apply/cancel controls remain fully visible. Selected file outline and change tabs have clear hierarchy. Light appearance has readable text, distinct selection/focus and diff colors. No overlap, horizontal clipping or ambiguous connections; this view has no graph edges."
+    },
+    "conversation--setup-review-desktop-dark.png": {
+      "sha256": "981239e72ecc6787b2b6a2e24b947b3b4978355bed2606227ff724b5ca184897",
+      "verdict": "pass",
+      "task": "Review selected project setup files and inspect a proposed change.",
+      "observations": "1280×820: clear file list, selected AGENTS.md, readable diff and anchored apply/cancel footer. Selected file outline and change tabs have clear hierarchy. Dark appearance has readable text, distinct selection/focus and diff colors. No overlap, horizontal clipping or ambiguous connections; this view has no graph edges."
+    },
+    "conversation--setup-review-desktop-light.png": {
+      "sha256": "fa0085084d7af39f0ccfc2c28ecdf1216854c71b5674059a3604ea73cd315a6e",
+      "verdict": "pass",
+      "task": "Review selected project setup files and inspect a proposed change.",
+      "observations": "1280×820: clear file list, selected AGENTS.md, readable diff and anchored apply/cancel footer. Selected file outline and change tabs have clear hierarchy. Light appearance has readable text, distinct selection/focus and diff colors. No overlap, horizontal clipping or ambiguous connections; this view has no graph edges."
+    }
+  }
+}

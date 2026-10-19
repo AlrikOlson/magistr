@@ -23,22 +23,20 @@ impl Rig {
     fn new(record: Option<serde_json::Value>) -> Self {
         let dir = tempfile::tempdir().unwrap();
         let root = dir.path();
-        fs::create_dir_all(root.join(".workbench")).unwrap();
+        fs::create_dir_all(root.join(".magistr/workspace")).unwrap();
         fs::create_dir_all(root.join("src")).unwrap();
         fs::write(root.join("src/greet.ts"), "export function greet() {}\n").unwrap();
         fs::write(root.join("src/use.ts"), "\n\ngreet();\n").unwrap();
         fs::create_dir_all(root.join("plugins/lsp-resolver")).unwrap();
         fs::write(
             root.join("plugins/lsp-resolver/plugin.toml"),
-            include_str!(
-                "../../../../subsystems/workspace/reference/plugins/lsp-resolver/plugin.toml"
-            ),
+            include_str!("../../fixtures/plugins/lsp-resolver/plugin.toml"),
         )
         .unwrap();
         fs::write(root.join("plugins/lsp-resolver/guest.wasm"), b"(component)").unwrap();
         let plugins = record.map_or_else(Vec::new, |record| vec![record]);
         fs::write(
-            root.join(".workbench/plugins.json"),
+            root.join(".magistr/workspace/plugins.json"),
             serde_json::json!({ "plugins": plugins }).to_string(),
         )
         .unwrap();
@@ -57,7 +55,7 @@ impl Rig {
     }
 
     fn state_dir(&self) -> std::path::PathBuf {
-        self.dir.path().join(".workbench")
+        self.dir.path().join(".magistr/workspace")
     }
 
     fn seed_breach(&self, age_secs: u64) {

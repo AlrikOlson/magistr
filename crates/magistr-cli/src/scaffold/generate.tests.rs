@@ -279,7 +279,7 @@ fn reinit_skips_unchanged_files() {
         "most files should be unchanged: {:?}",
         result.unchanged
     );
-    // CLAUDE.md is the user's file; its think-and-ship section is already
+    // CLAUDE.md is the user's file; its magistr section is already
     // current, so the plan lists it as unchanged rather than rewriting it.
     assert!(
         result.unchanged.contains(&"CLAUDE.md".to_string()),
@@ -533,9 +533,9 @@ fn reinit_never_overwrites_claude_md() {
     // rewritten behind the preview's back.
     assert!(result.updated.contains(&"CLAUDE.md".to_string()));
     let content = std::fs::read_to_string(&claude_path).unwrap();
-    // The user's text is kept verbatim; only the marked think-and-ship
+    // The user's text is kept verbatim; only the marked magistr
     // section is (re)appended after it.
-    assert!(content.starts_with("# User's custom CLAUDE.md\n\n<!-- think-and-ship -->"));
+    assert!(content.starts_with("# User's custom CLAUDE.md\n\n<!-- magistr -->"));
     assert_ne!(content, original);
 }
 
@@ -544,7 +544,7 @@ fn reinit_never_overwrites_claude_md() {
 /// result has nothing left to apply. Exercised on a project that carries
 /// everything setup merges or retires: a retired rule file, a retired MCP
 /// server, a user `.gitignore`, a `CLAUDE.md` without its section and a
-/// `workbench.toml` without a confirm mode.
+/// `.magistr/workspace.toml` without a confirm mode.
 #[test]
 fn the_setup_plan_is_what_generation_writes() {
     let tmp = tempfile::TempDir::new().unwrap();
@@ -554,13 +554,14 @@ fn the_setup_plan_is_what_generation_writes() {
     std::fs::write(dir.join(".claude/rules/ministr-scope.md"), "retired\n").unwrap();
     std::fs::write(
         dir.join(".mcp.json"),
-        r#"{"mcpServers":{"think-and-ship":{"command":"think-and-ship"},"mine":{"command":"mine"}}}"#,
+        r#"{"mcpServers":{"magistr":{"command":"magistr"},"mine":{"command":"mine"}}}"#,
     )
     .unwrap();
     std::fs::write(dir.join(".gitignore"), "mine/\n").unwrap();
     std::fs::write(dir.join("CLAUDE.md"), "# Ours\n").unwrap();
+    std::fs::create_dir_all(dir.join(".magistr")).unwrap();
     std::fs::write(
-        dir.join("workbench.toml"),
+        dir.join(".magistr/workspace.toml"),
         "[commands]\n\"test\" = \"cargo test\"\n",
     )
     .unwrap();
@@ -580,8 +581,8 @@ fn the_setup_plan_is_what_generation_writes() {
     assert_eq!(mcp.action, super::super::FileAction::Overwrite);
     assert_eq!(mcp.ownership, super::super::Ownership::Shared);
     assert!(
-        !mcp.new_content.contains("think-and-ship"),
-        "retired server stripped in the plan"
+        mcp.new_content.contains("magistr"),
+        "the unified server is present in the plan"
     );
     assert!(mcp.new_content.contains("\"mine\""), "user entry kept");
     let gitignore = plan.get(".gitignore").unwrap();
@@ -589,16 +590,12 @@ fn the_setup_plan_is_what_generation_writes() {
     assert!(gitignore.new_content.starts_with("mine/\n"));
     let claude = plan.get("CLAUDE.md").unwrap();
     assert_eq!(claude.action, super::super::FileAction::Overwrite);
+    assert!(claude.new_content.starts_with("# Ours\n\n<!-- magistr -->"));
+    let workspace = plan.get(".magistr/workspace.toml").unwrap();
+    assert_eq!(workspace.action, super::super::FileAction::Overwrite);
+    assert!(workspace.new_content.contains("confirm_mode = \"token\""));
     assert!(
-        claude
-            .new_content
-            .starts_with("# Ours\n\n<!-- think-and-ship -->")
-    );
-    let workbench = plan.get("workbench.toml").unwrap();
-    assert_eq!(workbench.action, super::super::FileAction::Overwrite);
-    assert!(workbench.new_content.contains("confirm_mode = \"token\""));
-    assert!(
-        workbench
+        workspace
             .new_content
             .starts_with("[commands]\n\"test\" = \"cargo test\"\n")
     );
@@ -797,7 +794,7 @@ fn current_settings_setup_refuses_invalid_declarations_before_any_write() {
         assert_eq!(std::fs::read_to_string(&path).unwrap(), original);
         assert!(!root.path().join(".claude").exists());
         assert!(!root.path().join(".mcp.json").exists());
-        assert!(!root.path().join("workbench.toml").exists());
+        assert!(!root.path().join(".magistr/workspace.toml").exists());
     }
 }
 

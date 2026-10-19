@@ -422,7 +422,7 @@ fn two_writers_merge_without_data_loss() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = temp_config(&tmp);
 
-    // A = Magistr in-process, B = an external think-and-ship server, both
+    // A = Magistr in-process, B = an external magistr server, both
     // holding the same (empty) store in memory.
     let a = host(&cfg, "shared");
     let b = a.clone();
@@ -481,7 +481,12 @@ fn open_resolves_identity_from_the_project_root() {
     let cfg = NativeConfig::from_lookup(&root, |_| None).with_data_dir(tmp.path().join("data"));
     let declared =
         magistr_workflow::infra::project_id_for_path(&root.canonicalize().expect("canonical"));
-    magistr_workflow::infra::write_project_file(&root, &declared, None).expect("identity");
+    std::fs::create_dir_all(root.join(".magistr")).unwrap();
+    std::fs::write(
+        root.join(".magistr/project.json"),
+        serde_json::json!({"project":{"id":&declared,"name":"Example"}}).to_string(),
+    )
+    .unwrap();
     let engines = ProjectAuthority::admit(&cfg, WriterRole::Host)
         .expect("admitted")
         .open();

@@ -201,7 +201,7 @@ impl AppManifest {
             url: homepage.trim().to_string(),
             hook_url: hook_url.trim().to_string(),
             redirect_url: redirect_url.trim().to_string(),
-            description: "Mirrors a think-and-ship roadmap onto GitHub Issues and a Projects v2 \
+            description: "Mirrors a magistr roadmap onto GitHub Issues and a Projects v2 \
                           board."
                 .into(),
             public: false,
@@ -447,7 +447,7 @@ pub async fn convert_manifest_at(
             encode(code)
         ))
         .header("Accept", "application/vnd.github+json")
-        .header("User-Agent", "think-and-ship")
+        .header("User-Agent", "magistr")
         // No Authorization header, deliberately: this endpoint is unauthenticated
         // and the code is the credential. Sending a token here is a way to leak
         // one into a request that did not need it.
@@ -510,7 +510,7 @@ mod tests {
 
     fn manifest() -> AppManifest {
         AppManifest::new(
-            "think-and-ship",
+            "magistr",
             "https://example.com",
             "https://example.test/hooks/github",
             "http://127.0.0.1:54321/callback",
@@ -640,7 +640,7 @@ mod tests {
         assert!(html.contains("name=\"manifest\""));
         // The JSON's own quotes are escaped, so the raw form never appears.
         assert!(
-            !html.contains(r#""name":"think-and-ship""#),
+            !html.contains(r#""name":"magistr""#),
             "raw JSON in the attribute would end the value at its first quote"
         );
         assert!(html.contains("&quot;organization_projects&quot;:&quot;write&quot;"));
@@ -718,7 +718,7 @@ mod tests {
             id: 42,
             slug: "t-and-s".into(),
             node_id: "MDM6".into(),
-            name: "think-and-ship".into(),
+            name: "magistr".into(),
             html_url: "https://github.com/apps/t-and-s".into(),
             client_id: "Iv1.public".into(),
             client_secret: Secret::new("CLIENT-SECRET-VALUE"),

@@ -44,7 +44,7 @@ fn linked_working_copy_setup_writes_to_the_shared_project_owner() {
     assert!(folder.prepared);
     assert_eq!(folder.directory, linked.canonicalize().unwrap());
     assert!(!linked.join(".magistr/project.json").exists());
-    assert!(!linked.join(".think-and-ship/project.json").exists());
+    assert!(!linked.join(".magistr/project.json").exists());
     assert_eq!(
         crate::validate::load_project_config(&main).unwrap(),
         crate::validate::load_project_config(&linked).unwrap()
@@ -176,8 +176,7 @@ fn existing_settings_identity_and_user_customizations_are_preserved() {
     let all: Vec<_> = (0..setup.plan().files.len()).collect();
     assert!(setup.apply(&all).unwrap().complete);
     let settings = std::fs::read_to_string(temp.path().join(".magistr/project.json")).unwrap();
-    let identity =
-        std::fs::read_to_string(temp.path().join(".think-and-ship/project.json")).unwrap();
+    let identity = std::fs::read_to_string(temp.path().join(".magistr/project.json")).unwrap();
     std::fs::write(
         temp.path().join(".claude/rules/conventions.md"),
         "My conventions",
@@ -191,7 +190,7 @@ fn existing_settings_identity_and_user_customizations_are_preserved() {
         settings
     );
     assert_eq!(
-        std::fs::read_to_string(temp.path().join(".think-and-ship/project.json")).unwrap(),
+        std::fs::read_to_string(temp.path().join(".magistr/project.json")).unwrap(),
         identity
     );
     assert_eq!(

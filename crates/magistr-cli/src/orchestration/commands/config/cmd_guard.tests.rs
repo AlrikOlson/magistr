@@ -292,31 +292,31 @@ fn this_repo_declares_the_tauri_gui_frozen() {
 }
 
 #[test]
-fn workbench_declared_reads_the_mcp_declaration() {
+fn workspace_declared_reads_the_mcp_declaration() {
     let tmp = tempfile::tempdir().expect("tempdir");
-    assert!(!workbench_declared(tmp.path()), "no file, no workbench");
+    assert!(!workspace_declared(tmp.path()), "no file, no workspace");
 
     let file = tmp.path().join(MCP_FILE);
     std::fs::write(
         &file,
-        r#"{"mcpServers": {"magistr": {"command": "magistr"}}}"#,
+        r#"{"mcpServers": {"external": {"command": "example-server"}}}"#,
     )
     .expect("write");
     assert!(
-        !workbench_declared(tmp.path()),
-        "magistr alone is not workbench"
+        !workspace_declared(tmp.path()),
+        "an unrelated server provides no workspace tools"
     );
 
     std::fs::write(
         &file,
-        r#"{"mcpServers": {"workbench-mcp": {"command": "magistr", "args": ["mcp", "--dir", "."]}}}"#,
+        r#"{"mcpServers": {"magistr": {"command": "magistr", "args": ["mcp", "--dir", "."]}}}"#,
     )
     .expect("write");
-    assert!(workbench_declared(tmp.path()));
+    assert!(workspace_declared(tmp.path()));
 
     std::fs::write(&file, "not json").expect("write");
     assert!(
-        !workbench_declared(tmp.path()),
+        !workspace_declared(tmp.path()),
         "unreadable declaration routes nothing"
     );
 }

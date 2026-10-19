@@ -11,6 +11,7 @@ import {
 } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { createInterface } from 'node:readline'
 import { decode, validate, phase } from '../hooks/wire.js'
 import { request as operationRequest, response } from '../hooks/mcp.js'
@@ -125,17 +126,12 @@ test(
       const root = path.join(directory, 'project'),
         data = path.join(directory, 'data')
       await mkdir(path.join(root, '.magistr'), { recursive: true })
-      await mkdir(path.join(root, '.think-and-ship'), { recursive: true })
       const projectId =
         'fixture-' + path.basename(directory).slice(-6).toLowerCase()
       await writeFile(
-        path.join(root, '.think-and-ship/project.json'),
-        JSON.stringify({ id: projectId }),
-      )
-      await writeFile(
         path.join(root, '.magistr/project.json'),
         JSON.stringify({
-          project: { name: 'fixture', type: 'cli' },
+          project: { id: projectId, name: 'fixture', type: 'cli' },
           stack: {
             language: 'rust',
             framework: 'none',
@@ -157,17 +153,20 @@ test(
       )
       const binary =
         process.env.MAGISTR_MOD_BINARY ||
-        path.resolve(
-          'target/debug/magistr' + (process.platform === 'win32' ? '.exe' : ''),
+        fileURLToPath(
+          new URL(
+            '../../../target/debug/magistr' +
+              (process.platform === 'win32' ? '.exe' : ''),
+            import.meta.url,
+          ),
         )
       child = spawn(binary, ['mcp', '--dir', root], {
         cwd: root,
         env: {
           ...process.env,
-          THINK_AND_SHIP_DATA_DIR: data,
-          THINK_AND_SHIP_PROJECT_NAME: projectId,
-          THINK_AND_SHIP_PERSIST: 'true',
-          THINK_AND_SHIP_BROADCAST_PATH: '',
+          MAGISTR_WORKFLOW_DATA_DIR: data,
+          MAGISTR_WORKFLOW_PERSIST: 'true',
+          MAGISTR_WORKFLOW_BROADCAST_PATH: '',
           MAGISTR_EXECUTION_ID: 'fixture',
         },
         stdio: ['pipe', 'pipe', 'pipe'],
@@ -238,7 +237,7 @@ test(
           }),
         )
       }
-      validate('workspace', await call('workbench_status'))
+      validate('workspace', await call('workspace_status'))
       validate(
         'changes',
         await call('undo', { action: 'list', limit: 20, diff: true }),

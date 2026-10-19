@@ -1,7 +1,7 @@
 use serde::Serialize;
 
 /// The sections in contract order: the six retained probes over the
-/// `.workbench` artifacts, then the two the host composes from what only
+/// `.magistr/workspace` artifacts, then the two the host composes from what only
 /// it can observe — the owner endpoint and the run checkpoint.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "lowercase")]

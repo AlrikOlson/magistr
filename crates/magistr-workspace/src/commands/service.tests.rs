@@ -31,21 +31,22 @@ impl Harness {
         Self::with_config("")
     }
 
-    /// A workspace whose project layer is `workbench_toml`; empty keeps the
+    /// A workspace whose project layer is `workspace_toml`; empty keeps the
     /// defaults.
-    fn with_config(workbench_toml: &str) -> Self {
+    fn with_config(workspace_toml: &str) -> Self {
         let root = tempfile::tempdir().unwrap();
-        if !workbench_toml.is_empty() {
-            fs::write(root.path().join("workbench.toml"), workbench_toml).unwrap();
+        if !workspace_toml.is_empty() {
+            std::fs::create_dir_all(root.path().join(".magistr")).unwrap();
+            fs::write(root.path().join(".magistr/workspace.toml"), workspace_toml).unwrap();
         }
         let policy = WorkspacePolicy::resolve(&ResolveOptions::new(root.path())).unwrap();
         let worker =
             WorkerSupervisor::new("/unavailable-worker".into(), WorkerOptions::default()).unwrap();
         let journal = JournalDb::open(JournalDbOptions::new(
-            root.path().join(".workbench/journal.db"),
+            root.path().join(".magistr/workspace/journal.db"),
         ))
         .unwrap();
-        let key = WorkspaceKeyStore::new(root.path().join(".workbench"))
+        let key = WorkspaceKeyStore::new(root.path().join(".magistr/workspace"))
             .ensure()
             .unwrap();
         Self {
@@ -457,7 +458,7 @@ async fn files_verbs_journal_one_op_each_and_delete_lands_in_the_trash() {
     assert_eq!(kinds[3], vec!["delete:src/b.txt"]);
     assert_eq!(kinds[4], vec!["create:deep/moved.txt", "delete:src/a.txt"]);
 
-    let trash: Vec<_> = fs::read_dir(h.root.path().join(".workbench/trash"))
+    let trash: Vec<_> = fs::read_dir(h.root.path().join(".magistr/workspace/trash"))
         .unwrap()
         .map(|entry| entry.unwrap())
         .collect();
@@ -524,7 +525,11 @@ async fn files_verb_semantics_noops_gating_and_protected_paths() {
     assert_eq!(kind, ErrorKind::FileNotFound);
     let (kind, _) = refused(
         h.commands("s")
-            .files(&files(FilesOp::Delete, Some(".workbench/journal.db"), None))
+            .files(&files(
+                FilesOp::Delete,
+                Some(".magistr/workspace/journal.db"),
+                None,
+            ))
             .await,
     );
     assert_eq!(kind, ErrorKind::ProtectedPath);
@@ -849,7 +854,7 @@ async fn write_anchors_on_the_expected_hash_and_keeps_protected_paths_closed() {
 
     let (kind, _) = refused(
         h.commands("s")
-            .write(&WriteInput::new(".workbench/journal.db", "x"))
+            .write(&WriteInput::new(".magistr/workspace/journal.db", "x"))
             .await,
     );
     assert_eq!(kind, ErrorKind::ProtectedPath);

@@ -289,7 +289,7 @@ fn admit_receipt(
 }
 
 #[test]
-fn compaction_keeps_a_settled_receipt_until_its_operation_is_reconciled() {
+fn compaction_keeps_a_receipt_for_recovery_and_its_saved_objective() {
     use magistr_engine::native::{CheckExecution, NativeConfig, ProjectAuthority, WriterRole};
     let (dir, spec) = setup_project("- [ ] item\n");
     let inputs = crate::config::inputs::ProjectInputs::from_lookup(dir.path(), |_| None);
@@ -342,8 +342,26 @@ fn compaction_keeps_a_settled_receipt_until_its_operation_is_reconciled() {
         OperationOutcome::Completed
     );
     recovered.persist().unwrap();
-    assert_eq!(engines.ship_compact_receipts().unwrap().removed, 1);
-    assert!(engines.ship_receipt(&id).unwrap().is_none());
+    let saved: super::super::IterationState = serde_json::from_slice(
+        &std::fs::read(dir.path().join(".magistr/loop-state.json")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        saved.operations.record(&operation).unwrap().outcome,
+        OperationOutcome::Completed
+    );
+    let evidence = crate::evidence::WorkspaceEvidence::from_inputs(&inputs);
+    assert!(
+        magistr_engine::native::EvidencePort::retained_receipts(&evidence)
+            .unwrap()
+            .is_empty()
+    );
+    let report = engines.ship_compact_receipts().unwrap();
+    // Reconciliation releases the checkpoint reference, but the saved objective
+    // still owns its verification receipt. Compaction must preserve that history.
+    assert_eq!(report.removed, 0, "{report:?}");
+    assert_eq!(report.retained_referenced, 1);
+    assert!(engines.ship_receipt(&id).unwrap().is_some());
 }
 
 #[test]

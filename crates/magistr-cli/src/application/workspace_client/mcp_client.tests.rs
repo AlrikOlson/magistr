@@ -45,7 +45,7 @@ fn an_ok_envelope_comes_back_whole() {
 }
 
 #[test]
-fn a_refusal_becomes_the_workbenchs_own_words() {
+fn a_refusal_becomes_the_workspaces_own_words() {
     let refused = envelope(&result(json!({
         "v": 1,
         "ok": false,
@@ -59,7 +59,7 @@ fn a_refusal_becomes_the_workbenchs_own_words() {
 #[test]
 fn a_refusal_without_a_message_still_reads_as_a_refusal() {
     let refused = envelope(&result(json!({ "v": 1, "ok": false })));
-    assert!(refused.unwrap_err().contains("the workbench refused"));
+    assert!(refused.unwrap_err().contains("the workspace refused"));
 }
 
 #[test]
@@ -77,7 +77,7 @@ fn an_answer_the_cockpit_cannot_read_is_refused_in_words() {
     assert!(
         unreadable
             .unwrap_err()
-            .contains("the workbench answered nothing the cockpit could read")
+            .contains("the workspace answered nothing the cockpit could read")
     );
 }
 
@@ -137,7 +137,7 @@ fn a_server_that_refuses_to_start_says_why() {
     let path = dir.path().join("locked.sh");
     std::fs::write(
         &path,
-        "#!/bin/sh\necho 'another workbench-mcp instance (pid 3079) already owns this workspace' >&2\nexit 1\n",
+        "#!/bin/sh\necho 'another magistr instance (pid 3079) already owns this workspace' >&2\nexit 1\n",
     )
     .expect("the fake server is written");
     let refused = McpClient::connect("sh", &[sh_arg(&path)], &[], None)
@@ -151,11 +151,11 @@ fn a_server_that_refuses_to_start_says_why() {
 
 #[test]
 fn a_command_that_does_not_exist_is_refused_in_words() {
-    let refused = McpClient::connect("magistr-no-such-workbench-server", &[], &[], None)
+    let refused = McpClient::connect("magistr-no-such-workspace-server", &[], &[], None)
         .err()
         .expect("a command that does not exist cannot be spawned");
     assert!(
-        refused.starts_with("magistr-no-such-workbench-server did not start"),
+        refused.starts_with("magistr-no-such-workspace-server did not start"),
         "got {refused:?}"
     );
 }

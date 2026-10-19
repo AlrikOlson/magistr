@@ -77,7 +77,8 @@ fn workspace(commands: &[(&str, &str)]) -> (tempfile::TempDir, WorkspacePolicy) 
     for (name, line) in commands {
         toml.push_str(&format!("{name} = {line:?}\n"));
     }
-    std::fs::write(dir.path().join("workbench.toml"), toml).expect("declare commands");
+    std::fs::create_dir_all(dir.path().join(".magistr")).unwrap();
+    std::fs::write(dir.path().join(".magistr/workspace.toml"), toml).expect("declare commands");
     let policy = WorkspacePolicy::resolve(&ResolveOptions::new(dir.path())).expect("policy");
     (dir, policy)
 }
@@ -172,7 +173,7 @@ async fn an_undeclared_command_answers_command_not_declared_pointing_at_the_conf
     let error = failure(&response);
     assert_eq!(error.kind, ErrorKind::CommandNotDeclared);
     assert_eq!(error.recovery(), Recovery::Abort);
-    assert!(error.message.contains("workbench.toml"));
+    assert!(error.message.contains(".magistr/workspace.toml"));
     assert!(error.message.contains("[commands]"));
     assert!(error.message.contains("test"));
     assert!(executor.calls().is_empty());

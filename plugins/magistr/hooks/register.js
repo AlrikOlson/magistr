@@ -34,7 +34,7 @@ const READS = [
   ['context', 'magistr', 'context', {}],
   ['findings', 'magistr', 'think_engine_status', { verbose: true }],
   ['focus', 'magistr', 'roadmap_focus_get', {}],
-  ['workspace', 'magistr', 'workbench_status', {}],
+  ['workspace', 'magistr', 'workspace_status', {}],
   ['changes', 'magistr', 'undo', { action: 'list', limit: 40, diff: true }],
 ]
 function redraw($) {

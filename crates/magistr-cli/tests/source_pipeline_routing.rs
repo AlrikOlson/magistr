@@ -257,7 +257,7 @@ async fn a_write_the_pipeline_refuses_is_the_effects_answer_in_its_words() {
     );
 
     // The state directory is protected on every route.
-    let protected = root.join(".workbench/journal.db");
+    let protected = root.join(".magistr/workspace/journal.db");
     let refused = port
         .execute(write(&protected, "x"), Decision::allowing())
         .await;
@@ -375,7 +375,7 @@ async fn a_held_workspace_refuses_the_second_hosts_writes_and_invents_no_receipt
 async fn a_marker_needing_migration_refuses_admission_and_the_write() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let root = workspace(&tmp);
-    let state = root.join(".workbench");
+    let state = root.join(".magistr/workspace");
     std::fs::create_dir(&state).expect("state");
     // A retained legacy owner's record: it takes no OS lock, and a native
     // host must never migrate it on its own.
@@ -415,7 +415,7 @@ async fn an_invalid_configuration_refuses_admission_and_the_write() {
     let root = workspace(&tmp);
     // A protected-paths pattern the policy does not support.
     std::fs::write(
-        root.join("workbench.toml"),
+        root.join(".magistr/workspace.toml"),
         "[security]\nprotected_paths = ['secrets/*.pem']\n",
     )
     .expect("configuration");

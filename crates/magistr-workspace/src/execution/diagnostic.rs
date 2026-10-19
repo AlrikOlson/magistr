@@ -3,7 +3,7 @@ use serde::Serialize;
 use super::DiagnosticLevel;
 
 /// One compiler or lint diagnostic: a tool-layer row, never a runner
-/// report — the public `workbench:runner@0.1.0` record stays frozen.
+/// report — the public `magistr:runner@0.1.0` record stays frozen.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Diagnostic {

@@ -7,7 +7,7 @@ fn refused(command: &str) -> Option<String> {
 }
 
 #[test]
-fn searches_over_the_workspace_are_routed_to_workbench() {
+fn searches_over_the_workspace_are_routed_to_workspace() {
     for cmd in [
         "grep -rn foo src",
         "grep -rn foo",
@@ -27,7 +27,7 @@ fn searches_over_the_workspace_are_routed_to_workbench() {
         "grep -rn foo -- src",
     ] {
         let reason = refused(cmd).unwrap_or_else(|| panic!("{cmd} should be routed"));
-        assert!(reason.contains("workbench-mcp"), "{reason}");
+        assert!(reason.contains("magistr"), "{reason}");
         assert!(reason.contains("`search`"), "{reason}");
     }
 }

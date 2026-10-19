@@ -222,10 +222,10 @@ export function validate(kind, raw) {
   } else if (kind === 'changes' || kind === 'source' || kind === 'workspace') {
     if (v.v !== 1 || v.ok !== true)
       throw new Error(
-        'This Workbench reply is unsupported. Update it and reconnect.',
+        'This Magistr reply is unsupported. Update it and reconnect.',
       )
     array(v.results, 'the results').forEach((r) => {
-      if (!record(r)) throw new Error('A Workbench result could not be read.')
+      if (!record(r)) throw new Error('A Magistr result could not be read.')
     })
     if (kind === 'workspace') string(v.results[0]?.root, 'the project folder')
   } else if (kind === 'work') {
@@ -354,7 +354,7 @@ export function sameRoot(left, right) {
   )
 }
 export function health(m) {
-  const names = { ship: 'Magistr', context: 'Progress', workspace: 'Workbench' }
+  const names = { ship: 'Magistr', context: 'Progress', workspace: 'Magistr' }
   return Object.entries(names)
     .map(([key, name]) => {
       const s = m.slots[key]
@@ -458,7 +458,7 @@ export function summary(m, tab = m.tab) {
         .slice(0, LIMIT)
         .map((r) => clean(r.file || r.path || r.kind, 180)),
     )
-    if (!rows.length) lines.push('No changes recorded by Workbench.')
+    if (!rows.length) lines.push('No changes recorded by Magistr.')
   }
   if (slot.error) lines.push('Refresh failed: ' + slot.error)
   return lines.join('\n')

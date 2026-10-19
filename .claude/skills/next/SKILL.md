@@ -65,7 +65,7 @@ at the first unfinished phase. Keep completed tasks and their evidence; the
 steps below create only missing planning records.
 
 1. Announce `magistr_set_phase(phase: "research")`. Ground affected code and
-   shared-interface callers with workbench `map`, `search`, and `read`.
+   shared-interface callers with workspace `map`, `search`, and `read`.
    Research relevant current primary API documentation, prior art, and pitfalls
    with the host's web tools. Tie findings to the acceptance criteria.
 2. Announce `magistr_set_phase(phase: "plan")`. Select the authorized

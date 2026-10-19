@@ -72,7 +72,7 @@ fn fixture_workspace(root: &Path) {
     );
     write(
         root,
-        "workbench.toml",
+        ".magistr/workspace.toml",
         concat!(
             "[commands]\n",
             "test = \"cargo test --workspace --no-fail-fast\"\n",

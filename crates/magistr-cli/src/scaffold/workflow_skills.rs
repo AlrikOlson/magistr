@@ -90,8 +90,8 @@ impl WorkflowSkills {
     /// The scaffold path of `host`'s vendored routing skill.
     pub(super) fn routing_path(host: Host) -> &'static str {
         host.path(
-            ".agents/skills/workbench-routing/SKILL.md",
-            ".claude/skills/workbench-routing/SKILL.md",
+            ".agents/skills/workspace-routing/SKILL.md",
+            ".claude/skills/workspace-routing/SKILL.md",
         )
     }
 
@@ -128,7 +128,7 @@ impl WorkflowSkills {
         format!(
             "{}\n<!-- maintained with {} — run `magistr repair` after upgrading Magistr -->\n",
             template.trim_end(),
-            super::workbench::ROUTING_SKILL_SOURCE
+            super::workspace::ROUTING_SKILL_SOURCE
         )
     }
 
@@ -146,7 +146,7 @@ impl WorkflowSkills {
         files.push(Self::file(
             host,
             Self::routing_path(host),
-            Self::render_routing(super::STATIC_SKILL_WORKBENCH_ROUTING),
+            Self::render_routing(super::STATIC_SKILL_MAGISTR_WORKSPACE_ROUTING),
         ));
         files.push(Self::file(
             host,

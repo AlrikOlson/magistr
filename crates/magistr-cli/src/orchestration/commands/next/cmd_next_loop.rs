@@ -21,7 +21,7 @@ pub async fn cmd_next_loop(
     let wf = workflow::WorkflowConfig::load(&dir).suggest()?;
 
     // Initialize iteration loop (native roadmap reader when the project
-    // selects think-and-ship; the spec file otherwise)
+    // selects magistr; the spec file otherwise)
     let mut iter_loop = IterationLoop::start_or_recover(
         &dir,
         &wf.spec_path,

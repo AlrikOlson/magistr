@@ -24,7 +24,7 @@ fn current_backend_declarations_are_authoritative() {
     let tmp = tempfile::tempdir().unwrap();
     for (declared, expected) in [
         ("yaml", RoadmapBackend::Yaml),
-        ("think-and-ship", RoadmapBackend::ThinkAndShip),
+        ("native", RoadmapBackend::Native),
     ] {
         project(tmp.path(), Some(declared), None);
         assert_eq!(backend_for(tmp.path()).unwrap(), expected);
@@ -34,10 +34,7 @@ fn current_backend_declarations_are_authoritative() {
 #[test]
 fn current_backend_without_project_settings_uses_native_default() {
     let tmp = tempfile::tempdir().unwrap();
-    assert_eq!(
-        backend_for(tmp.path()).unwrap(),
-        RoadmapBackend::ThinkAndShip
-    );
+    assert_eq!(backend_for(tmp.path()).unwrap(), RoadmapBackend::Native);
 }
 
 #[test]
@@ -53,14 +50,14 @@ fn current_backend_default_does_not_depend_on_surrounding_files() {
         std::fs::write(tmp.path().join(file), "unrelated file").unwrap();
         assert_eq!(
             backend_for(tmp.path()).unwrap(),
-            RoadmapBackend::ThinkAndShip,
+            RoadmapBackend::Native,
             "{file}"
         );
         assert_eq!(
             crate::validate::load_project_config(tmp.path())
                 .unwrap()
                 .roadmap_backend,
-            RoadmapBackend::ThinkAndShip,
+            RoadmapBackend::Native,
             "{file}"
         );
     }
@@ -102,11 +99,11 @@ fn current_settings_are_shared_by_linked_working_copies() {
     .unwrap();
 
     project(&main, Some("yaml"), None);
-    project(&linked, Some("think-and-ship"), None);
+    project(&linked, Some("native"), None);
     let shared = crate::paths::project_json(&main).unwrap();
     assert_eq!(crate::paths::project_json(&linked).unwrap(), shared);
     let inputs = ProjectInputs::from_lookup(&linked, |_| None);
-    for backend in ["yaml", "think-and-ship"] {
+    for backend in ["yaml", "native"] {
         project(&main, Some(backend), None);
         let original = std::fs::read_to_string(&shared).unwrap();
         let declared = crate::validate::load_project_config(&main).unwrap();

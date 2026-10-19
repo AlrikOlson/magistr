@@ -5,11 +5,11 @@ fn rig() -> (tempfile::TempDir, ResolveOptions) {
     let temp = tempfile::tempdir().unwrap();
     let mut options = ResolveOptions::new(temp.path());
     options.env.insert(
-        "WORKBENCH_ORG_POLICY".into(),
+        "MAGISTR_WORKSPACE_ORG_POLICY".into(),
         temp.path().join("org.toml").display().to_string(),
     );
     options.env.insert(
-        "WORKBENCH_USER_CONFIG".into(),
+        "MAGISTR_WORKSPACE_USER_CONFIG".into(),
         temp.path().join("user.toml").display().to_string(),
     );
     (temp, options)
@@ -23,8 +23,9 @@ fn policy_ceiling_refuses_workspace_and_session_loosenings() {
         "[security]\nredaction=true\nallow_sideload=false\n[telemetry]\nconsent='crash'\n",
     )
     .unwrap();
+    std::fs::create_dir_all(temp.path().join(".magistr")).unwrap();
     std::fs::write(
-        temp.path().join("workbench.toml"),
+        temp.path().join(".magistr/workspace.toml"),
         "[security]\nredaction=false\n[telemetry]\nconsent='off'\n",
     )
     .unwrap();
@@ -44,8 +45,9 @@ fn policy_ceiling_refuses_workspace_and_session_loosenings() {
 fn empty_org_allowlist_cannot_gain_workspace_commands() {
     let (temp, options) = rig();
     std::fs::write(temp.path().join("org.toml"), "[commands]\n").unwrap();
+    std::fs::create_dir_all(temp.path().join(".magistr")).unwrap();
     std::fs::write(
-        temp.path().join("workbench.toml"),
+        temp.path().join(".magistr/workspace.toml"),
         "[commands]\ntest='cargo test'\n",
     )
     .unwrap();
@@ -63,7 +65,8 @@ fn defaults_do_not_pin_and_paths_union_without_removal() {
         "[security]\nprotected_paths=['secrets/**']\n[edit]\nforce_confirm=true\n",
     )
     .unwrap();
-    std::fs::write(temp.path().join("workbench.toml"), "[security]\nredaction=false\nprotected_paths=['deploy/**','secrets/**']\n[budgets]\ndefault=2000\n").unwrap();
+    std::fs::create_dir_all(temp.path().join(".magistr")).unwrap();
+    std::fs::write(temp.path().join(".magistr/workspace.toml"), "[security]\nredaction=false\nprotected_paths=['deploy/**','secrets/**']\n[budgets]\ndefault=2000\n").unwrap();
     options
         .session_flags
         .insert("edit.force_confirm".into(), json!(false));
@@ -81,15 +84,20 @@ fn defaults_do_not_pin_and_paths_union_without_removal() {
 fn future_version_refuses_but_bad_layers_and_types_warn() {
     let (temp, options) = rig();
     std::fs::write(temp.path().join("org.toml"), "broken [ =").unwrap();
+    std::fs::create_dir_all(temp.path().join(".magistr")).unwrap();
     std::fs::write(
-        temp.path().join("workbench.toml"),
+        temp.path().join(".magistr/workspace.toml"),
         "unknown=1\n[security]\nredaction='yes'\n",
     )
     .unwrap();
     let config = ResolvedConfig::resolve(&options).unwrap();
     assert_eq!(config.warnings.len(), 3);
     assert!(config.layers[1].error.is_some());
-    std::fs::write(temp.path().join("workbench.toml"), "config_version=99").unwrap();
+    std::fs::write(
+        temp.path().join(".magistr/workspace.toml"),
+        "config_version=99",
+    )
+    .unwrap();
     assert!(ResolvedConfig::resolve(&options).is_err());
 }
 
@@ -101,8 +109,9 @@ fn commands_merge_nearest_wins_and_doctor_matches_provenance() {
         "[commands]\nz='old'\na='cargo test'\n[security]\nallow_sideload=false\n",
     )
     .unwrap();
+    std::fs::create_dir_all(temp.path().join(".magistr")).unwrap();
     std::fs::write(
-        temp.path().join("workbench.toml"),
+        temp.path().join(".magistr/workspace.toml"),
         "[commands]\nz='new'\n[budgets]\ndefault=2500\n",
     )
     .unwrap();
@@ -128,6 +137,11 @@ fn commands_merge_nearest_wins_and_doctor_matches_provenance() {
 #[test]
 fn integral_float_future_version_fails_closed_like_reference() {
     let (temp, options) = rig();
-    std::fs::write(temp.path().join("workbench.toml"), "config_version=2.0").unwrap();
+    std::fs::create_dir_all(temp.path().join(".magistr")).unwrap();
+    std::fs::write(
+        temp.path().join(".magistr/workspace.toml"),
+        "config_version=2.0",
+    )
+    .unwrap();
     assert!(ResolvedConfig::resolve(&options).is_err());
 }

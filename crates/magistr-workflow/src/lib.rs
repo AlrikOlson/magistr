@@ -1,8 +1,7 @@
-//! An MCP server that gives a coding agent somewhere to write things down.
+//! Magistr's workflow records and application services.
 //!
 //! MCP — the Model Context Protocol — is how an AI agent calls tools you
-//! provide. This crate is one such tool provider. Point an MCP client at it and
-//! the agent gains verbs for recording *why* it did something, *what* it
+//! provide. Magistr's unified server uses this library to provide verbs for recording *why* it did something, *what* it
 //! actually did, *what it plans to do next*, and *what people asked for* — as
 //! structured records on disk instead of prose that scrolls out of the context
 //! window.
@@ -36,11 +35,9 @@
 //!
 //! # How Magistr uses it
 //!
-//! This crate is Magistr's repository-local fork of think-and-ship (see
-//! `subsystems/workflow/PROVENANCE.md`); the standalone binary was retired
-//! with the rehome. Magistr composes the four engines in process, once per
-//! admitted writer, and serves the families through its own `magistr
-//! mcp`. In a conversation, the agent records a step before it acts and
+//! This crate is Magistr's workflow library; source attribution is recorded in
+//! `subsystems/workflow/PROVENANCE.md`. Magistr composes the four engines in process, once per
+//! admitted writer, and serves the families through `magistr mcp --dir <project>`. In a conversation, the agent records a step before it acts and
 //! an outcome after — and the next session can read both back.
 //!
 //! # Using it as a library
@@ -53,13 +50,13 @@
 //! without any MCP wire at all, such as [`roadmap::RoadmapEngine`] and
 //! [`signal::SignalEngine`].
 //!
-//! State is off by default and opt-in with `THINK_AND_SHIP_PERSIST=true`; see
+//! State is off by default and opt-in with `MAGISTR_WORKFLOW_PERSIST=true`; see
 //! [`infra::PersistenceConfig`].
 //!
 //! # Where to read next
 //!
-//! Design notes, the record schema and the wire contract live in
-//! `subsystems/workflow/docs/`, beside the provenance record.
+//! Current ownership and configuration are described in `docs/architecture/`.
+//! `subsystems/workflow/docs/` preserves historical import documentation.
 
 pub mod cloud;
 pub mod content;

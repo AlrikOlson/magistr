@@ -52,7 +52,7 @@ fn served(root: &Path) -> std::process::Command {
         .arg("mcp")
         .arg("--dir")
         .arg(root)
-        .env("WORKBENCH_NETWORK_FS", "0");
+        .env("MAGISTR_WORKSPACE_NETWORK_FS", "0");
     command
 }
 
@@ -93,7 +93,7 @@ async fn the_binary_serves_the_workspace_over_its_own_stdio() {
             )
         }
     };
-    let status = call("workbench_status", json!({})).await;
+    let status = call("workspace_status", json!({})).await;
     assert_eq!(status["ok"], true, "{status}");
     assert_eq!(status["results"][0]["journalMode"], "WAL");
     assert_eq!(
@@ -154,7 +154,7 @@ async fn session_call(
     let mut request = CallToolRequestParams::new(name);
     request.arguments = args.as_object().cloned();
     let mut meta = RequestMetaObject::new();
-    meta.insert("workbench/sessionId".into(), json!("process-crash-session"));
+    meta.insert("magistr/sessionId".into(), json!("process-crash-session"));
     request.meta = Some(meta);
     let body = tokio::time::timeout(Duration::from_secs(30), client.peer().call_tool(request))
         .await
@@ -166,7 +166,7 @@ async fn session_call(
 }
 
 fn recorded_generation(root: &Path) -> u64 {
-    let bytes = std::fs::read(root.join(".workbench/server.generation"))
+    let bytes = std::fs::read(root.join(".magistr/workspace/server.generation"))
         .expect("published native generation");
     assert_eq!(bytes.len(), 20, "complete fixed-width generation");
     String::from_utf8(bytes)
@@ -192,7 +192,7 @@ async fn owner_process_crash_releases_admission_and_fences_its_confirmation_on_r
         .expect("token")
         .to_owned();
     let generation = recorded_generation(dir.path());
-    let state = dir.path().join(".workbench");
+    let state = dir.path().join(".magistr/workspace");
     let marker = std::fs::read(state.join("server.lock")).expect("lock marker");
     let key = std::fs::read(state.join("keys/workspace.key")).expect("workspace key");
     let before = session_call(&first, "undo", json!({"action": "list"})).await;
@@ -264,7 +264,7 @@ async fn owner_process_crash_releases_admission_and_fences_its_confirmation_on_r
 #[test]
 fn unknown_lock_refusal_preserves_the_record_and_never_opens_workspace_stores() {
     let dir = workspace();
-    let state = dir.path().join(".workbench");
+    let state = dir.path().join(".magistr/workspace");
     std::fs::create_dir(&state).expect("state");
     let bytes = "unknown owner record";
     std::fs::write(state.join("server.lock"), bytes).expect("unknown record");

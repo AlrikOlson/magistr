@@ -2,10 +2,10 @@
 //! behind the scaffolded `.claude/hooks/magistr-guard.sh`.
 //!
 //! Reads the hook's JSON on stdin (only when stdin is not a terminal), the
-//! ship/roadmap state through the in-process think-and-ship engines, the
+//! ship/roadmap state through the in-process magistr engines, the
 //! project's frozen-tree declaration
 //! (`.magistr/legacy-gui-ratchet.json`) and whether `.mcp.json` declares
-//! workbench-mcp, then exits 2 with the reason on stderr to block the event.
+//! magistr, then exits 2 with the reason on stderr to block the event.
 //! A project without the native roadmap backend is never blocked.
 
 use std::io::{IsTerminal, Read};
@@ -30,7 +30,7 @@ const RATCHET_FILE: &str = ".magistr/legacy-gui-ratchet.json";
 const MCP_FILE: &str = ".mcp.json";
 
 /// The server key under `mcpServers` for the workspace tools.
-const WORKBENCH_SERVER: &str = "workbench-mcp";
+const MAGISTR_WORKSPACE_SERVER: &str = "magistr";
 
 pub fn cmd_guard(event: GuardEvent, dir: &Path) -> eyre::Result<()> {
     let given_dir = dir.to_path_buf();
@@ -42,7 +42,7 @@ pub fn cmd_guard(event: GuardEvent, dir: &Path) -> eyre::Result<()> {
         .as_deref()
         .and_then(|raw| relative_write_path(&[&dir, &given_dir], raw));
     input.frozen = read_frozen(&dir);
-    input.workbench = workbench_declared(&dir);
+    input.workspace = workspace_declared(&dir);
     input.project_dir = Some(dir.clone());
 
     match crate::roadmap::open_native_reader(&dir) {
@@ -64,7 +64,7 @@ pub fn cmd_guard(event: GuardEvent, dir: &Path) -> eyre::Result<()> {
         }
         Ok(None) => {
             eprintln!(
-                "magistr guard: {} does not use the think-and-ship roadmap backend; allowing",
+                "magistr guard: {} does not use the magistr roadmap backend; allowing",
                 dir.display()
             );
             return Ok(());
@@ -201,16 +201,16 @@ pub(crate) fn read_frozen(dir: &Path) -> Option<FrozenTree> {
     })
 }
 
-/// Does the project's `.mcp.json` declare a `workbench-mcp` server? Only
+/// Does the project's `.mcp.json` declare a `magistr` server? Only
 /// then is a workspace grep, rg, find or sed routed to it; a project without
-/// workbench keeps the shell tools, and an unreadable file counts as none.
-pub(crate) fn workbench_declared(dir: &Path) -> bool {
+/// workspace keeps the shell tools, and an unreadable file counts as none.
+pub(crate) fn workspace_declared(dir: &Path) -> bool {
     let Ok(raw) = std::fs::read_to_string(dir.join(MCP_FILE)) else {
         return false;
     };
     serde_json::from_str::<serde_json::Value>(&raw)
         .ok()
-        .is_some_and(|json| json["mcpServers"][WORKBENCH_SERVER].is_object())
+        .is_some_and(|json| json["mcpServers"][MAGISTR_WORKSPACE_SERVER].is_object())
 }
 
 /// Read the required owners before computing any guard decision.

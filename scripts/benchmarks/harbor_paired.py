@@ -149,8 +149,8 @@ class PairedCodex(Codex):
                     environment,
                     command=(
                         "mkdir -p /logs/agent/magistr-evidence; "
-                        "for p in .magistr .think-and-ship .codex/config.toml "
-                        ".workbench/trace.jsonl; do "
+                        "for p in .magistr .magistr/traces .codex/config.toml "
+                        ".magistr/workspace/trace.jsonl; do "
                         'if [ -e "$p" ]; then cp -R --parents "$p" '
                         "/logs/agent/magistr-evidence/; fi; done"
                     ),

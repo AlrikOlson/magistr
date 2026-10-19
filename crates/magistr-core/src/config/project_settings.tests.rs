@@ -43,7 +43,7 @@ fn current_settings_parse_defaults_and_refuse_invalid_declared_values() {
     let loaded = read_project_settings(&path).unwrap().unwrap();
     assert_eq!(
         loaded.roadmap_backend,
-        magistr_engine::RoadmapBackend::ThinkAndShip
+        magistr_engine::RoadmapBackend::Native
     );
     assert!(!loaded.roadmap_exports);
 

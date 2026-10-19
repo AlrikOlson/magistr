@@ -190,7 +190,7 @@ impl GithubTracker {
             .request(method, url)
             .header("Accept", ACCEPT)
             .header("X-GitHub-Api-Version", API_VERSION)
-            .header("User-Agent", "think-and-ship");
+            .header("User-Agent", "magistr");
         if let Some(auth) = &self.authorization {
             req = req.header("Authorization", auth.clone());
         }

@@ -32,13 +32,13 @@ const MAGISTR_GITHUB_CLIENT_ID: &str = "MAGISTR_GITHUB_CLIENT_ID";
 const AGENT_BACKEND: &str = "MAGISTR_AGENT_BACKEND";
 const CLAUDE_API_KEY: &str = "ANTHROPIC_API_KEY";
 const PLUGIN_INDEX_URL: &str = "MAGISTR_PLUGIN_INDEX_URL";
-const WORKSPACE_NETWORK_FS: &str = "WORKBENCH_NETWORK_FS";
-const WORKSPACE_SESSION_ID: &str = "WORKBENCH_SESSION_ID";
+const WORKSPACE_NETWORK_FS: &str = "MAGISTR_WORKSPACE_NETWORK_FS";
+const WORKSPACE_SESSION_ID: &str = "MAGISTR_WORKSPACE_SESSION_ID";
 /// The environment the workspace's configuration layers resolve from —
 /// exactly the keys `ResolveOptions::from_environment` reads.
 const WORKSPACE_ENV: [(&str, &str); 6] = [
-    ("WORKBENCH_ORG_POLICY", "workspace.org_policy"),
-    ("WORKBENCH_USER_CONFIG", "workspace.user_config"),
+    ("MAGISTR_WORKSPACE_ORG_POLICY", "workspace.org_policy"),
+    ("MAGISTR_WORKSPACE_USER_CONFIG", "workspace.user_config"),
     ("ProgramData", "workspace.program_data"),
     ("XDG_CONFIG_HOME", "workspace.xdg_config_home"),
     ("HOME", "workspace.home"),
@@ -540,13 +540,13 @@ impl ProjectInputs {
         &self.workspace_env
     }
 
-    /// `WORKBENCH_NETWORK_FS`: "1" forces network, "0" forces local.
+    /// `MAGISTR_WORKSPACE_NETWORK_FS`: "1" forces network, "0" forces local.
     #[must_use]
     pub fn workspace_network_override(&self) -> Option<&str> {
         self.workspace_network_override.as_deref()
     }
 
-    /// `WORKBENCH_SESSION_ID`: the session identity a launcher named for a bridge.
+    /// `MAGISTR_WORKSPACE_SESSION_ID`: the session identity a launcher named for a bridge.
     #[must_use]
     pub fn workspace_session_id(&self) -> Option<&str> {
         self.workspace_session_id.as_deref()

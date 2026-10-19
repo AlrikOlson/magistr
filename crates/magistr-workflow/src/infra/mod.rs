@@ -32,7 +32,7 @@ pub use persistence::{Domain, Persistence, PersistenceConfig};
 pub use project_id::{
     IdSource, PROJECT_DIR, PROJECT_FILE, PROJECT_SEP, ProjectIdentity, declared_identity_in,
     find_project_file, namespace_session_id, project_display_name, project_id_for_path,
-    resolve_project_id, resolve_project_id_with, write_project_file,
+    resolve_project_id, resolve_project_id_with,
 };
 pub use repo_sync::{
     MirrorJob, MirrorWorker, PromoteOutcome, RecordCtx, RepoSink, SyncTarget, discover_repo_root,

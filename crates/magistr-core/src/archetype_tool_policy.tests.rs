@@ -64,7 +64,7 @@ fn shared_tools_are_recognized() {
     assert!(is_shared_tool("Read"));
     assert!(is_shared_tool("Edit"));
     assert!(is_shared_tool("Bash"));
-    assert!(is_shared_tool("mcp__workbench-mcp__search"));
+    assert!(is_shared_tool("mcp__magistr__search"));
     assert!(!is_shared_tool("npm"));
     assert!(!is_shared_tool("cargo"));
 }

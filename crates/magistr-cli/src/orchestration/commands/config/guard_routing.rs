@@ -1,14 +1,14 @@
 //! Workspace-search routing for the Bash hook: `grep`, `rg`, `find` and `sed`
-//! aimed at the project are refused with a pointer to workbench-mcp, whose
+//! aimed at the project are refused with a pointer to magistr, whose
 //! `search`, `read` and `edit` cover them with ranking, anchors and a
 //! parse-verified write pipeline. The same commands stay available for paths
-//! outside the workspace and for filtering piped output, which workbench
+//! outside the workspace and for filtering piped output, which workspace
 //! cannot reach. A hook does this where a `permissions.deny` entry cannot:
 //! a deny rule blocks unconditionally, even under bypass permissions.
 
 use std::path::{Component, Path, PathBuf};
 
-/// The commands workbench replaces, matched on the executable's basename.
+/// The commands workspace replaces, matched on the executable's basename.
 const ROUTED_COMMANDS: &[&str] = &["grep", "egrep", "fgrep", "rg", "find", "sed"];
 
 /// `find` options that precede its starting points.
@@ -216,7 +216,7 @@ fn normalize(path: &Path) -> PathBuf {
 
 fn refusal(tool: &str) -> String {
     format!(
-        "`{tool}` over the workspace is routed to workbench-mcp: use `search` (mode \
+        "`{tool}` over the workspace is routed to magistr: use `search` (mode \
          lexical, files, structural or references) to find, `read` to view and `edit` \
          to change files in this project. {tool} stays available for paths outside the \
          workspace and for filtering piped output."

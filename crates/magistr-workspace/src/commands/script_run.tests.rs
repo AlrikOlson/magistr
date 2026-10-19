@@ -33,16 +33,17 @@ impl Harness {
 
     fn with_config(config: &str) -> Self {
         let root = tempfile::tempdir().unwrap();
-        fs::write(root.path().join("workbench.toml"), config).unwrap();
+        std::fs::create_dir_all(root.path().join(".magistr")).unwrap();
+        fs::write(root.path().join(".magistr/workspace.toml"), config).unwrap();
         fs::create_dir_all(root.path().join(".git")).unwrap();
         let policy = WorkspacePolicy::resolve(&ResolveOptions::new(root.path())).unwrap();
         let worker =
             WorkerSupervisor::new("/unavailable-worker".into(), WorkerOptions::default()).unwrap();
         let journal = JournalDb::open(JournalDbOptions::new(
-            root.path().join(".workbench/journal.db"),
+            root.path().join(".magistr/workspace/journal.db"),
         ))
         .unwrap();
-        let key = WorkspaceKeyStore::new(root.path().join(".workbench"))
+        let key = WorkspaceKeyStore::new(root.path().join(".magistr/workspace"))
             .ensure()
             .unwrap();
         let harness = Self {
@@ -459,7 +460,7 @@ async fn file_ops_queue_create_mkdir_and_delete_previews_and_refuse_the_rest() {
     );
     let protected = done(
         json!(1),
-        vec![json!({"file": ".workbench/journal.db", "old": "a", "new": "b"})],
+        vec![json!({"file": ".magistr/workspace/journal.db", "old": "a", "new": "b"})],
         vec![],
     );
     assert_eq!(

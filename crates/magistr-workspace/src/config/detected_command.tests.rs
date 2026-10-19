@@ -13,7 +13,7 @@ fn lockfile_selects_node_runner_and_detection_never_writes() {
     let commands = DetectedCommand::detect(root.path());
     assert_eq!(commands.len(), 1);
     assert_eq!(commands[0].line, "bun run test");
-    assert!(!root.path().join("workbench.toml").exists());
+    assert!(!root.path().join(".magistr/workspace.toml").exists());
     assert_eq!(std::fs::read_dir(root.path()).unwrap().count(), 3);
 }
 

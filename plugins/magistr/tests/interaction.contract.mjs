@@ -41,7 +41,7 @@ test('mismatched source and workflow folders refuse actions', async () => {
   const h = await host({
     read: (f, server, tool, args) => ({
       structuredContent:
-        tool === 'workbench_status'
+        tool === 'workspace_status'
           ? { v: 1, ok: true, results: [{ root: '/different' }] }
           : answer(f, server, tool, args),
     }),

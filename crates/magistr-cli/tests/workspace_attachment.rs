@@ -20,7 +20,7 @@ async fn a_second_process_initializes_against_the_live_workspace_owner() {
     attached.assert_tools().await;
     assert_eq!(generation(dir.path()), 1);
     attached.close().await;
-    assert_ok(&owner.call("workbench_status", json!({})).await);
+    assert_ok(&owner.call("workspace_status", json!({})).await);
     owner.close().await;
 }
 
@@ -33,7 +33,7 @@ async fn an_attached_bridge_exits_promptly_once_its_client_leaves() {
     let dir = workspace();
     let owner = Connection::open(dir.path()).await;
     let attached = Connection::open(dir.path()).await;
-    assert_ok(&attached.call("workbench_status", json!({})).await);
+    assert_ok(&attached.call("workspace_status", json!({})).await);
     let started = std::time::Instant::now();
     attached.close().await;
     assert!(
@@ -41,7 +41,7 @@ async fn an_attached_bridge_exits_promptly_once_its_client_leaves() {
         "the bridge waited {:?} after its client left",
         started.elapsed()
     );
-    assert_ok(&owner.call("workbench_status", json!({})).await);
+    assert_ok(&owner.call("workspace_status", json!({})).await);
     owner.close().await;
 }
 
@@ -65,7 +65,7 @@ async fn eight_simultaneous_clients_admit_exactly_one_owner_and_all_receive_the_
     assert_eq!(connections.len(), 8);
     for connection in &connections {
         connection.assert_tools().await;
-        assert_ok(&connection.call("workbench_status", json!({})).await);
+        assert_ok(&connection.call("workspace_status", json!({})).await);
     }
     assert_eq!(
         generation(dir.path()),
@@ -105,7 +105,7 @@ async fn canonical_aliases_attach_but_independent_roots_keep_distinct_owners() {
     let independent = Connection::open(second.path()).await;
     let canonical = first.path().canonicalize().expect("canonical root");
     for connection in [&owner, &alias] {
-        let status = connection.call("workbench_status", json!({})).await;
+        let status = connection.call("workspace_status", json!({})).await;
         assert_ok(&status);
         assert_eq!(
             status["results"][0]["root"],
@@ -135,7 +135,7 @@ async fn a_symlinked_root_uses_the_canonical_owners_endpoint() {
     std::os::unix::fs::symlink(dir.path(), &path).expect("workspace symlink");
     let owner = Connection::open(dir.path()).await;
     let attached = Connection::open(&path).await;
-    let status = attached.call("workbench_status", json!({})).await;
+    let status = attached.call("workspace_status", json!({})).await;
     assert_ok(&status);
     assert_eq!(
         status["results"][0]["root"],
@@ -280,7 +280,7 @@ async fn attached_eof_preserves_the_owner_and_owner_eof_is_survived_by_the_remai
     let leaving = Connection::open(dir.path()).await;
     let mut remaining = Connection::open(dir.path()).await;
     leaving.close().await;
-    assert_ok(&owner.call("workbench_status", json!({})).await);
+    assert_ok(&owner.call("workspace_status", json!({})).await);
     assert_ok(&remaining.call("read", json!({"file": "shared.txt"})).await);
     owner.close().await;
     assert_eq!(
@@ -312,7 +312,7 @@ async fn owner_crash_is_survived_by_attached_clients_which_reconnect_on_their_ne
     assert!(!status.success());
     let _ = owner.client.cancel().await;
     attached.assert_alive();
-    assert_ok(&attached.call("workbench_status", json!({})).await);
+    assert_ok(&attached.call("workspace_status", json!({})).await);
     assert_eq!(
         generation(dir.path()),
         2,
@@ -339,7 +339,7 @@ async fn owner_loss_answers_calls_typed_and_keeps_the_tool_surface_until_an_owne
         .expect("reap crashed owner");
     let _ = owner.client.cancel().await;
     let native = deny_admission(dir.path());
-    let refused = attached.call("workbench_status", json!({})).await;
+    let refused = attached.call("workspace_status", json!({})).await;
     assert_eq!(refused["ok"], false, "{refused}");
     assert_eq!(refused["error"]["code"], "ENGINE_UNAVAILABLE", "{refused}");
     assert_eq!(refused["error"]["recovery"], "retry", "{refused}");
@@ -351,7 +351,7 @@ async fn owner_loss_answers_calls_typed_and_keeps_the_tool_surface_until_an_owne
         "a refused admission mints nothing"
     );
     restore_admission(dir.path(), &native);
-    assert_ok(&attached.call("workbench_status", json!({})).await);
+    assert_ok(&attached.call("workspace_status", json!({})).await);
     assert_eq!(generation(dir.path()), 2);
     attached.assert_tools().await;
     attached.close().await;
@@ -521,7 +521,7 @@ async fn an_attached_client_cannot_change_the_live_owners_configuration() {
     assert!(output.stdout.is_empty(), "refusal stays off MCP stdout");
     let diagnostic = String::from_utf8_lossy(&output.stderr);
     assert!(diagnostic.contains("config"), "{diagnostic}");
-    assert_ok(&owner.call("workbench_status", json!({})).await);
+    assert_ok(&owner.call("workspace_status", json!({})).await);
     assert_eq!(generation(dir.path()), 1);
     owner.close().await;
 }
@@ -534,7 +534,7 @@ async fn an_attached_client_cannot_change_the_live_owners_configuration() {
 async fn a_bridge_outlives_a_native_owner_without_an_endpoint_and_admits_once_the_lock_is_released()
 {
     let dir = workspace();
-    let state = dir.path().join(".workbench");
+    let state = dir.path().join(".magistr/workspace");
     std::fs::create_dir(&state).expect("owner state directory");
     let held = magistr_workspace::service::ServerLock::acquire(state.join("server.lock"))
         .expect("hold native admission without an attachment listener");
@@ -549,7 +549,7 @@ async fn a_bridge_outlives_a_native_owner_without_an_endpoint_and_admits_once_th
         "initialize was answered after {:?}",
         started.elapsed()
     );
-    let refused = deferred.call("workbench_status", json!({})).await;
+    let refused = deferred.call("workspace_status", json!({})).await;
     assert_eq!(refused["ok"], false, "{refused}");
     assert_eq!(refused["error"]["code"], "ENGINE_UNAVAILABLE", "{refused}");
     assert_eq!(refused["error"]["recovery"], "retry", "{refused}");
@@ -578,7 +578,7 @@ async fn a_bridge_outlives_a_native_owner_without_an_endpoint_and_admits_once_th
         );
     }
     drop(held);
-    assert_ok(&deferred.call("workbench_status", json!({})).await);
+    assert_ok(&deferred.call("workspace_status", json!({})).await);
     assert_eq!(generation(dir.path()), admitted_generation + 1);
     deferred.assert_tools().await;
     deferred.close().await;
@@ -591,10 +591,10 @@ async fn a_bridge_preserves_an_unknown_marker_and_reconnects_after_restore() {
     let initial = Connection::open(dir.path()).await;
     initial.close().await;
     let native = deny_admission(dir.path());
-    let record = std::fs::read(dir.path().join(".workbench/server.lock")).unwrap();
+    let record = std::fs::read(dir.path().join(".magistr/workspace/server.lock")).unwrap();
     let mut deferred = Connection::open(dir.path()).await;
     deferred.assert_tools().await;
-    let refused = deferred.call("workbench_status", json!({})).await;
+    let refused = deferred.call("workspace_status", json!({})).await;
     assert_eq!(refused["error"]["code"], "ENGINE_UNAVAILABLE", "{refused}");
     assert!(
         refused["error"]["message"]
@@ -605,7 +605,7 @@ async fn a_bridge_preserves_an_unknown_marker_and_reconnects_after_restore() {
     );
     deferred.assert_alive();
     assert_eq!(
-        std::fs::read(dir.path().join(".workbench/server.lock")).unwrap(),
+        std::fs::read(dir.path().join(".magistr/workspace/server.lock")).unwrap(),
         record
     );
     assert_eq!(generation(dir.path()), 1);
@@ -722,7 +722,7 @@ async fn doctor_reports_the_live_owner_and_counts_attached_bridges_as_they_come_
     })
     .await
     .expect("the count falls when the bridge's client closes");
-    assert_ok(&owner.call("workbench_status", json!({})).await);
+    assert_ok(&owner.call("workspace_status", json!({})).await);
     owner.close().await;
 
     // The owner is gone: the endpoint is unlinked, and the counter that

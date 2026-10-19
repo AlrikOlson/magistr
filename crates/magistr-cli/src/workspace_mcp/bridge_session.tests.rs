@@ -22,11 +22,11 @@ fn a_call_without_identity_is_stamped_and_an_explicit_one_is_kept() {
     };
     let stamped: Value = serde_json::from_str(&stamped).unwrap();
     assert_eq!(
-        stamped["params"]["_meta"]["workbench/sessionId"],
+        stamped["params"]["_meta"]["magistr/sessionId"],
         "bridge-test"
     );
 
-    let explicit = call(2, Some(json!({"workbench/sessionId": "alice"})));
+    let explicit = call(2, Some(json!({"magistr/sessionId": "alice"})));
     let Inbound::Forward(kept) = session.inbound(&explicit, true) else {
         panic!("a linked call is forwarded");
     };

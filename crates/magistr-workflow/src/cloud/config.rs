@@ -113,7 +113,7 @@ pub fn resolve_profile(
 /// credential store.
 ///
 /// The token override is checked FIRST and independently of the profile, because
-/// `THINK_AND_SHIP_CLOUD_TOKEN` is the CI path — a machine with no keychain and
+/// `MAGISTR_WORKFLOW_CLOUD_TOKEN` is the CI path — a machine with no keychain and
 /// no interactive connect — and there the profile is meaningless.
 #[must_use]
 pub fn resolve_token(

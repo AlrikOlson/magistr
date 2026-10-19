@@ -489,7 +489,7 @@ async fn native_parser_and_dynamic_grammar_execute_in_the_same_owned_process() {
     );
     let pid = worker.status().await.pid.expect("native worker pid");
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../subsystems/workspace/reference/plugins/lang-pack-gleam");
+        .join("../magistr-workspace/fixtures/plugins/lang-pack-gleam");
     let registration = worker
         .call(
             WorkerRequest::RegisterLanguage {

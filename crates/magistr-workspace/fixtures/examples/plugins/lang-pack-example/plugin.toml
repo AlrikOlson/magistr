@@ -1,0 +1,19 @@
+# Magistr SDK example: the lang-pack conformance convention. The
+# `classify-file` tool name routes the TCK's fuzz-corpus chapter through this
+# plugin (SDD §8.5); the real magistr:lang-pack world lowering lands in M5.
+
+[plugin]
+publisher = "magistr"
+pkg = "example-lang-pack"
+version = "0.1.0"
+
+[component]
+path = "guest.wat"
+
+[[tools]]
+name = "classify-file"
+description = "Example lang-pack heuristic: classifies every path as source"
+
+[limits]
+fuel = 100000
+memory_bytes = 1048576

@@ -29,10 +29,14 @@ async fn project_attachment_uses_the_same_captured_identity_as_its_owner() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let root = tmp.path().join("proj");
     std::fs::create_dir_all(&root).expect("project root");
-    magistr_workflow::infra::write_project_file(&root, "pinned-project", None)
-        .expect("project pin");
+    std::fs::create_dir_all(root.join(".magistr")).unwrap();
+    std::fs::write(
+        root.join(".magistr/project.json"),
+        serde_json::json!({"project":{"id":"pinned-project","name":"Example"}}).to_string(),
+    )
+    .unwrap();
     let cfg = NativeConfig::from_lookup(root, |key| {
-        (key == "THINK_AND_SHIP_PROJECT_NAME").then(|| "Captured Project".into())
+        (key == "MAGISTR_PROJECT_ID").then(|| "Captured Project".into())
     })
     .with_data_dir(tmp.path().join("data"))
     .with_runtime_dir("/tmp");

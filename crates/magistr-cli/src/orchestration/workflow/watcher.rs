@@ -36,8 +36,8 @@ const SKIP_DIRS: &[&str] = &[
     "target",
     "node_modules",
     ".claude",
-    // workbench-mcp's own state (journal.db-shm, workspace.db-shm, watcher.json)
-    ".workbench",
+    // magistr's own state (journal.db-shm, workspace.db-shm, watcher.json)
+    ".magistr/workspace",
     "dist",
     "build",
     "__pycache__",

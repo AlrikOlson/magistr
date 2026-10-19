@@ -5,11 +5,11 @@ fn rig() -> (tempfile::TempDir, ResolveOptions) {
     let temp = tempfile::tempdir().unwrap();
     let mut options = ResolveOptions::new(temp.path());
     options.env.insert(
-        "WORKBENCH_ORG_POLICY".into(),
+        "MAGISTR_WORKSPACE_ORG_POLICY".into(),
         temp.path().join("org.toml").display().to_string(),
     );
     options.env.insert(
-        "WORKBENCH_USER_CONFIG".into(),
+        "MAGISTR_WORKSPACE_USER_CONFIG".into(),
         temp.path().join("user.toml").display().to_string(),
     );
     (temp, options)

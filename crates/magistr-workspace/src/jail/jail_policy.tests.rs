@@ -70,10 +70,10 @@ fn immutable_protection_is_case_insensitive_and_write_only() {
         ".git",
         ".git/hooks/pre-commit",
         ".GIT/config",
-        ".workbench",
-        ".WORKBENCH/keys/workspace.key",
-        "workbench.toml",
-        "WORKBENCH.TOML",
+        ".magistr/workspace",
+        ".MAGISTR/WORKSPACE/keys/workspace.key",
+        ".magistr/workspace.toml",
+        ".MAGISTR/WORKSPACE.TOML",
     ] {
         assert_eq!(
             policy.check_write(target).unwrap_err().code(),
@@ -83,9 +83,9 @@ fn immutable_protection_is_case_insensitive_and_write_only() {
     }
     for target in [
         ".github/config",
-        ".workbench-copy/file",
-        "nested/workbench.toml",
-        "workbench.toml.backup",
+        ".magistr/workspace-copy/file",
+        "nested/.magistr/workspace.toml",
+        ".magistr/workspace.toml.backup",
     ] {
         assert!(policy.check_write(target).is_ok());
     }

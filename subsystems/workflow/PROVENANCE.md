@@ -40,10 +40,12 @@ The import retained the following upstream paths, relative to the upstream
 repository. Where they live now:
 
 - `crates/think-and-ship/`: library, manifest, unit and integration tests and
-  the bundled `skills/` — now [`crates/magistr-workflow`](../../crates/magistr-workflow/Cargo.toml)
+  the bundled `skills/` were imported into [`crates/magistr-workflow`](../../crates/magistr-workflow/Cargo.toml)
   (package `magistr-workflow`, library `magistr_workflow`). The binary, build
   script, README, examples and `skill-clients/` were deleted by
-  `arch-14f4-rehome-naming`.
+  `arch-14f4-rehome-naming`. The unused inherited skills and their tests were
+  subsequently removed when Magistr's CLI became the sole owner of agent
+  templates; current skills are verified by the CLI scaffold and workflow tests.
 - `contract/` and `shared/`: schemas and fixtures consumed by inherited tests;
   still here, read through `../../subsystems/workflow/…` from the crate.
 - `docs/`: inherited architecture, protocol, setup and compatibility

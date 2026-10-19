@@ -252,7 +252,7 @@ fn polyglot_generate_adds_archetype_section_to_claude_md() {
     );
 }
 
-const IDENTITY: &str = ".think-and-ship/project.json";
+const IDENTITY: &str = ".magistr/project.json";
 
 fn read(dir: &std::path::Path, path: &str) -> String {
     std::fs::read_to_string(dir.join(path)).unwrap()
@@ -260,7 +260,7 @@ fn read(dir: &std::path::Path, path: &str) -> String {
 
 /// A first init's plan is complete: the configuration it creates already
 /// carries the hooks and the archetypes, the document carries the archetype
-/// section beside the think-and-ship one, and the identity declaration is a
+/// section beside the magistr one, and the identity declaration is a
 /// planned create — and generation writes exactly those bytes.
 #[test]
 fn a_first_init_plan_carries_the_seeded_config_the_archetype_section_and_the_identity() {
@@ -281,7 +281,7 @@ fn a_first_init_plan_carries_the_seeded_config_the_archetype_section_and_the_ide
 
     let claude = plan.get("CLAUDE.md").unwrap();
     assert_eq!(claude.action, scaffold::FileAction::Create);
-    assert!(claude.new_content.contains("<!-- think-and-ship -->"));
+    assert!(claude.new_content.contains("<!-- magistr -->"));
     assert!(claude.new_content.contains("<!-- archetypes -->"));
     assert!(claude.new_content.contains("| api |"));
     assert!(claude.new_content.contains("| web |"));
@@ -291,15 +291,22 @@ fn a_first_init_plan_carries_the_seeded_config_the_archetype_section_and_the_ide
     assert_eq!(identity.ownership, scaffold::Ownership::Unclaimed);
     let declared: serde_json::Value = serde_json::from_str(&identity.new_content).unwrap();
     assert_eq!(
-        declared["id"],
+        declared["project"]["id"],
         magistr_engine::native::project_id_for_path(&tmp.path().canonicalize().unwrap())
     );
-    assert!(!tmp.path().join(".think-and-ship").exists());
+    assert!(!tmp.path().join(".magistr/traces").exists());
     assert!(!tmp.path().join(".magistr").exists());
 
     let written = pipeline.generate(tmp.path()).unwrap();
     assert!(written.iter().any(|path| path == IDENTITY));
-    for change in [config, claude, identity] {
+    assert_eq!(
+        plan.files
+            .iter()
+            .filter(|file| file.path == IDENTITY)
+            .count(),
+        1
+    );
+    for change in [config, claude] {
         assert_eq!(
             read(tmp.path(), &change.path),
             change.new_content,
@@ -317,8 +324,7 @@ fn a_second_plan_preserves_the_configuration_and_the_identity() {
     let tree = make_polyglot_tree(tmp.path());
     let pipeline = ScaffoldPipeline::polyglot(&tree);
     pipeline.generate(tmp.path()).unwrap();
-    let before =
-        [".magistr/project.json", "CLAUDE.md", IDENTITY].map(|path| read(tmp.path(), path));
+    let before = [".magistr/project.json", "CLAUDE.md"].map(|path| read(tmp.path(), path));
 
     let plan = pipeline.preview(tmp.path()).unwrap();
     let config = plan.get(".magistr/project.json").unwrap();
@@ -327,7 +333,7 @@ fn a_second_plan_preserves_the_configuration_and_the_identity() {
     let identity = plan.get(IDENTITY).unwrap();
     assert_eq!(identity.action, scaffold::FileAction::Preserved);
     assert_eq!(identity.ownership, scaffold::Ownership::User);
-    assert_eq!(identity.new_content, before[2]);
+    assert_eq!(identity.new_content, before[0]);
     assert_eq!(
         plan.get("CLAUDE.md").unwrap().action,
         scaffold::FileAction::Unchanged
@@ -340,26 +346,27 @@ fn a_second_plan_preserves_the_configuration_and_the_identity() {
     );
 
     pipeline.generate(tmp.path()).unwrap();
-    let after = [".magistr/project.json", "CLAUDE.md", IDENTITY].map(|path| read(tmp.path(), path));
+    let after = [".magistr/project.json", "CLAUDE.md"].map(|path| read(tmp.path(), path));
     assert_eq!(after, before);
 }
 
-/// An identity an ancestor declares is the project's identity already; the
-/// plan declares nothing at the root and generation writes nothing there.
+/// Nested setup pins the declared project identity in the same settings document.
 #[test]
-fn an_identity_declared_by_an_ancestor_plans_nothing_at_the_root() {
+fn nested_setup_uses_the_ancestor_identity_in_its_configuration() {
     let tmp = tempfile::TempDir::new().unwrap();
-    std::fs::create_dir_all(tmp.path().join(".think-and-ship")).unwrap();
-    std::fs::write(tmp.path().join(IDENTITY), "{\"id\":\"outer-a1b2c3\"}\n").unwrap();
+    std::fs::create_dir_all(tmp.path().join(".magistr")).unwrap();
+    let outer = "{\"project\":{\"id\":\"outer-a1b2c3\"}}\n";
+    std::fs::write(tmp.path().join(IDENTITY), outer).unwrap();
     let root = tmp.path().join("nested");
     std::fs::create_dir_all(&root).unwrap();
     let pipeline = ScaffoldPipeline::headless(test_stack());
-
     let plan = pipeline.preview(&root).unwrap();
-    assert!(plan.get(IDENTITY).is_none());
+    let config: serde_json::Value =
+        serde_json::from_str(&plan.get(IDENTITY).unwrap().new_content).unwrap();
+    assert_eq!(config["project"]["id"], "outer-a1b2c3");
     pipeline.generate(&root).unwrap();
-    assert!(!root.join(".think-and-ship").exists());
-    assert_eq!(read(tmp.path(), IDENTITY), "{\"id\":\"outer-a1b2c3\"}\n");
+    assert!(!root.join(".magistr/traces").exists());
+    assert_eq!(read(tmp.path(), IDENTITY), outer);
 }
 
 /// A headless single-stack init plants the language preset's hooks.

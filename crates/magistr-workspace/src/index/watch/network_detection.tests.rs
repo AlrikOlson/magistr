@@ -40,7 +40,7 @@ fn longest_component_mount_wins_and_proc_escapes_are_decoded() {
             .network_fs
     );
     assert!(
-        !NetworkDetection::from_mounts(Path::new("/workbench/app"), mounts)
+        !NetworkDetection::from_mounts(Path::new("/workspace/app"), mounts)
             .unwrap()
             .network_fs
     );

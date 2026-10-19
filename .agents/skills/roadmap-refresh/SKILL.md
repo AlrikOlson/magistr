@@ -12,7 +12,7 @@ tools. Do one focused research pass without starting an implementation objective
 1. Read `roadmap_status`, relevant chunks, and pertinent prior reasoning. Use
    the user's topic or state one consequential stale area. If the roadmap is
    empty, report it rather than inventing unrelated implementation work.
-2. Ground real entry points, dependencies, and current behavior with workbench.
+2. Ground real entry points, dependencies, and current behavior with workspace.
    Record the research question with `think_record_step` and identify evidence
    that could change the plan.
 3. Research current primary sources for APIs, versions, alternatives, and

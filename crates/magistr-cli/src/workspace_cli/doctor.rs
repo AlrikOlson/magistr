@@ -1,6 +1,6 @@
 //! `magistr workspace doctor [bundle|config]`: the read-only doctor plane.
 //! `doctor` prints the report — the six retained probes over the
-//! `.workbench` artifacts, then the `owner` section this host composes from
+//! `.magistr/workspace` artifacts, then the `owner` section this host composes from
 //! the durable records and one bounded probe of the owner endpoint, and
 //! the `operations` section from the run checkpoint — `doctor bundle`
 //! packs the same sections into a redacted tar.gz, `doctor config` prints
@@ -103,7 +103,7 @@ fn report(
         Some(out) => {
             let target = std::path::absolute(out.unwrap_or_else(|| {
                 PathBuf::from(format!(
-                    "workbench-doctor-bundle-{}.tar.gz",
+                    "workspace-doctor-bundle-{}.tar.gz",
                     run.report.generated_at.replace(':', "-")
                 ))
             }))?;

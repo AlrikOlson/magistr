@@ -1,6 +1,6 @@
 /// Build the prompt that instructs the agent to generate a roadmap.
 ///
-/// The agent authors chunks through the think-and-ship `roadmap_add_chunk`
+/// The agent authors chunks through the magistr `roadmap_add_chunk`
 /// tool (served by the `magistr` MCP server); nothing is written to disk by
 /// hand and `ROADMAP.md` stays a generated view (`roadmap_export`).
 pub fn build_roadmap_generation_prompt(goal: &str) -> String {
@@ -30,7 +30,7 @@ Before creating any roadmap items, you MUST research the goal thoroughly:
 
 ## How to Build the Roadmap
 
-You MUST use the think-and-ship MCP tools to build the roadmap. Do NOT write files directly.
+You MUST use the magistr MCP tools to build the roadmap. Do NOT write files directly.
 
 ### Create one chunk per coherent slice of work with `roadmap_add_chunk`
 

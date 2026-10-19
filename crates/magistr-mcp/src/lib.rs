@@ -1,7 +1,7 @@
 //! In-process MCP tool server.
 //!
 //! Hosts the `magistr_*` tools that `magistr mcp` mounts beside the
-//! think-and-ship families: a tool is a name, a description, a JSON Schema and
+//! magistr families: a tool is a name, a description, a JSON Schema and
 //! an async handler ([`SdkMcpTool`]); a server ([`SdkMcpServer`]) keeps them by
 //! name, answers `tools/list`, and validates `tools/call` arguments against
 //! the declared schema before dispatching.

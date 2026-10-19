@@ -23,9 +23,9 @@ commands and export policy. Validation, captured project inputs, CLI settings
 views and setup preflight use that reader. Reading never runs stack detection
 or writes settings; setup is responsible for detecting and declaring the stack.
 
-An explicit `roadmap_backend` selects `think-and-ship` or `yaml`. An omitted
+An explicit `roadmap_backend` selects `native` or `yaml`. An omitted
 field, or an absent settings file when only a backend is requested, selects
-`think-and-ship`. Other files and `spec.file` do not select a backend.
+`native`. Other files and `spec.file` do not select a backend.
 Commands that require configured projects still refuse missing settings.
 Existing settings must satisfy the current typed contract: malformed JSON,
 invalid values, unreadable files and invalid Git membership refuse with the
@@ -48,19 +48,19 @@ migration requirement.
 | --- | --- |
 | Project root | Explicit host input. Hosts should supply an absolute root. |
 | Execution | Captured `MAGISTR_EXECUTION_ID`, default `default`, or an explicit `with_execution_id` input. Ship state and receipts are partitioned by canonical source root plus execution id. |
-| Project identity | Linked Git worktrees resolve the corresponding main project directory. Captured, sanitized `THINK_AND_SHIP_PROJECT_NAME`, then the nearest `.think-and-ship/project.json`, then the canonical path-derived ID. An explicitly admitted project ID remains authoritative. |
-| Store root | First nonblank value: `THINK_AND_SHIP_DATA_DIR`; `XDG_DATA_HOME/think-and-ship`; `HOME/.local/share/think-and-ship`; `APPDATA/think-and-ship`; `USERPROFILE/AppData/Roaming/think-and-ship`; then the captured platform temporary directory plus `think-and-ship`. |
-| Native persistence | On by default. Trimmed `THINK_AND_SHIP_PERSIST=false` (case insensitive) or `0` disables it. |
-| Publisher socket | Nonblank, trimmed `THINK_AND_SHIP_BROADCAST_PATH`, otherwise the existing project socket default when requested. |
+| Project identity | Linked Git worktrees resolve the corresponding main project directory. Captured, sanitized `MAGISTR_PROJECT_ID`, then `project.id` in the nearest `.magistr/project.json`, then the canonical path-derived ID. An explicitly admitted project ID remains authoritative. |
+| Store root | First nonblank value: `MAGISTR_WORKFLOW_DATA_DIR`; `XDG_DATA_HOME/magistr/workflow`; `HOME/.local/share/magistr/workflow`; `APPDATA/magistr/workflow`; `USERPROFILE/AppData/Roaming/magistr/workflow`; then the captured platform temporary directory plus `magistr/workflow`. |
+| Native persistence | On by default. Trimmed `MAGISTR_WORKFLOW_PERSIST=false` (case insensitive) or `0` disables it. |
+| Publisher socket | Nonblank, trimmed `MAGISTR_WORKFLOW_BROADCAST_PATH`, otherwise the existing project socket default when requested. |
 | Short-socket directory | Trimmed `XDG_RUNTIME_DIR`, then `TMPDIR`, then `/tmp`. Existing Unix socket length limits and final short-path fallback remain. |
-| Strict validation, no color, sessions | Existing switches require exact `true`. `THINK_AND_SHIP_AUTO_SESSION` currently also enables sessions; its old name imposes no retention requirement. |
+| Strict validation, no color, sessions | Existing switches require exact `true`. `MAGISTR_WORKFLOW_AUTO_SESSION` currently also enables sessions; its old name imposes no retention requirement. |
 | History, branch, timeout and rollup limits | Existing integer variables accept trimmed values of at least one. Invalid, zero and out-of-range values keep defaults. Rollup pinned-floor enforcement remains in its owning engine. |
-| Think output format | `THINK_AND_SHIP_OUTPUT_FORMAT` accepts console, JSON or Markdown case insensitively. |
-| Default think session | A valid explicit `THINK_AND_SHIP_DEFAULT_SESSION_ID` wins and enables sessions. Otherwise enabled sessions use the admitted project ID. Session namespacing remains the workflow engine's responsibility. |
+| Think output format | `MAGISTR_WORKFLOW_OUTPUT_FORMAT` accepts console, JSON or Markdown case insensitively. |
+| Default think session | A valid explicit `MAGISTR_WORKFLOW_DEFAULT_SESSION_ID` wins and enables sessions. Otherwise enabled sessions use the admitted project ID. Session namespacing remains the workflow engine's responsibility. |
 
 The injected resolver never asks the host for a temporary directory. Its last
 fallback is an injected `TMPDIR` on Unix (or `TMP`, `TEMP`, `USERPROFILE` on
-Windows), then `/tmp/think-and-ship`. Production hosts use `from_env` so the
+Windows), then `/tmp/magistr`. Production hosts use `from_env` so the
 platform fallback, including macOS per-user temporary directories, is preserved.
 
 ## Provenance
@@ -107,14 +107,14 @@ A check's receipt certifies its inputs only while every identity it was
 taken under still applies. The external configuration is one of them: the
 workspace's organization policy and user layer (the paths
 `ResolveOptions::external_layer_paths` resolves from the captured
-[workspace inputs](#project-inputs) — `WORKBENCH_ORG_POLICY`,
-`WORKBENCH_USER_CONFIG` or the platform defaults) govern command admission
+[workspace inputs](#project-inputs) — `MAGISTR_WORKSPACE_ORG_POLICY`,
+`MAGISTR_WORKSPACE_USER_CONFIG` or the platform defaults) govern command admission
 and policy without touching a byte inside the tree. `WorkspaceEvidence` also
 observes the shared project's `.magistr/project.json` as workspace configuration,
 resolved through `ProjectLocation` by the central settings path owner. A linked
 copy uses the main project's settings, including its gate commands and export
 policy. Settings readers, hook writes and setup use that same path. Invalid Git
-membership refuses resolution. `workbench.toml` remains specific to each source
+membership refuses resolution. `.magistr/workspace.toml` remains specific to each source
 copy. The snapshot also selects either configuration file when it is inside
 that copy.
 
@@ -135,7 +135,7 @@ layer names when a layer moved while the bytes did not.
 | Identity | Owner and meaning | Moves when | Judged at completion |
 | --- | --- | --- | --- |
 | Source revision (`SourceObservation::revision`) | The workspace snapshot's name for an observation: scheme, canonical root, owner generation, selection-policy digest and manifest digest. | Any of its parts moves, including a new owner of the same bytes. | Recorded and displayed, not compared: its parts are judged one by one. |
-| Source digest (`source_digest`) | The selected bytes under the policy (the manifest digest). | A selected file is added, removed or modified — `.magistr/project.json` and `workbench.toml` included. | Yes — "the source changed since the gate ran". |
+| Source digest (`source_digest`) | The selected bytes under the policy (the manifest digest). | A selected file is added, removed or modified — `.magistr/project.json` and `.magistr/workspace.toml` included. | Yes — "the source changed since the gate ran". |
 | Selection policy (`policy_digest`) | What the snapshot selects: version, ceiling, explicit inputs. | The policy is changed. | Yes — "the selection policy changed". |
 | Configuration digest (`config_digest`) | Applicable policy layers and shared project settings by content. | Organization policy, user configuration or shared project settings appear, disappear or change. | Yes — the applicable configuration changed. |
 | Acceptance revision (`CheckReceipt::acceptance_revision`) | The objective's description, acceptance criteria, constraints and scope. | An in-flight `ship_set_objective`. | Yes — "the objective's acceptance changed". |
@@ -183,7 +183,7 @@ prescribes.
 | Project presets | `<source-root>/.magistr/presets`, versioned with that source copy. |
 | Provider | `MAGISTR_AGENT_BACKEND` (trimmed); `ANTHROPIC_API_KEY` recorded as present or absent only. |
 | Plugin index | `MAGISTR_PLUGIN_INDEX_URL` overrides the index URL in `org-plugins.json`. |
-| Workspace | The six keys the workspace's `ResolveOptions` reads (`WORKBENCH_ORG_POLICY`, `WORKBENCH_USER_CONFIG`, `ProgramData`, `XDG_CONFIG_HOME`, `HOME`, `USERPROFILE`), `WORKBENCH_NETWORK_FS` and `WORKBENCH_SESSION_ID`; the host builds `WorkspaceOpenOptions` from them. |
+| Workspace | The six keys the workspace's `ResolveOptions` reads (`MAGISTR_WORKSPACE_ORG_POLICY`, `MAGISTR_WORKSPACE_USER_CONFIG`, `ProgramData`, `XDG_CONFIG_HOME`, `HOME`, `USERPROFILE`), `MAGISTR_WORKSPACE_NETWORK_FS` and `MAGISTR_WORKSPACE_SESSION_ID`; the host builds `WorkspaceOpenOptions` from them. |
 
 Loaders on the captured set return a `CapturedInput` whose `InputOrigin` says
 whether the file was loaded, is absent (defaults apply) or could not be located
@@ -272,12 +272,11 @@ names one path with:
 | Field | Meaning |
 | --- | --- |
 | Expected state | `absent`, or the manifest content hash of the bytes read while planning (`expected()`); an application step revalidates against it. |
-| Ownership | Judged from the file's update policy and the scaffold manifest, never from a new persisted layer: `unclaimed` (nothing there), `internal` (magistr internals every setup rewrites), `generated` (magistr wrote it, unchanged), `customized` (magistr wrote it, edited since), `user` (never overwritten, or present without a record), `shared` (a merged file such as `.mcp.json`, `.gitignore`, `workbench.toml`, `AGENTS.md`, `.codex/config.toml` or the think-and-ship section of `CLAUDE.md`), `canonical` (the target repository is the file's home). |
+| Ownership | Judged from the file's update policy and the scaffold manifest, never from a new persisted layer: `unclaimed` (nothing there), `internal` (magistr internals every setup rewrites), `generated` (magistr wrote it, unchanged), `customized` (magistr wrote it, edited since), `user` (never overwritten, or present without a record), `shared` (a merged file such as `.mcp.json`, `.gitignore`, `.magistr/workspace.toml`, `AGENTS.md`, `.codex/config.toml` or the magistr section of `CLAUDE.md`), `canonical` (the target repository is the file's home). |
 | Action and intent | `create`, `overwrite` or `remove` are applied; `unchanged` and `preserved` are skipped with a reason; `refused` carries why the plan will not act: a target that is not a regular file or cannot be read, a canonical input that is missing or unreadable, a missing runtime companion, or an unreadable plugin source. |
 
 The setup plan covers everything generation writes: the regular scaffold
-files under their policies, `.mcp.json` merged with the retired servers
-stripped, the `.gitignore` section, the `workbench.toml` seed (computed from
+files under their policies, `.mcp.json` merged with only Magistr's entry updated, the `.gitignore` section, the `.magistr/workspace.toml` seed (computed from
 the native command detection without writing), the retired rule files it
 removes, the shared Codex components, the template plugins the captured
 inputs name, and the seeds of a first init. A `.magistr/project.json` the
@@ -286,13 +285,13 @@ language preset chose and, for a polyglot tree, its archetypes, topology and
 relationships ([SetupSeeds](../../crates/magistr-cli/src/scaffold/setup_seeds.rs),
 built by the pipeline and handed to the plan); an existing configuration is
 preserved as the user's and re-detection never rewrites it. `CLAUDE.md` stays
-the user's file, but its marked sections — think-and-ship, and the archetype
+the user's file, but its marked sections — magistr, and the archetype
 table planted beside a fresh configuration — are magistr's, so the plan shows
 the merged document as an overwrite with its diff rather than a preserved
-file that is then rewritten. The think-and-ship identity declaration
-(`.think-and-ship/project.json`) is planned too: created with the id
-resolution answers today when nothing declares one, preserved when the root
-already declares it, absent when an ancestor's declaration covers the root.
+file that is then rewritten. First setup includes the resolved identity as
+`project.id` in that same project configuration. Workflow admission reads it;
+there is no separate identity file or runtime identity writer. Existing project
+settings remain owned by the user.
 The pipeline writes nothing after generation, so a first-init preview is
 complete and a second plan over a freshly generated project applies nothing.
 
@@ -308,11 +307,10 @@ and left as found. The file is never among the scaffold's ownership records:
 a setup neither repairs nor removes it.
 
 Canonical inputs are read once per plan by
-[CanonicalSource](../../crates/magistr-cli/src/scaffold/canonical.rs). A
-skill's home repository (`skills/workbench-routing/SKILL.md` in workbench-mcp)
-supplies the vendored copy's bytes. Magistr's own source checkout — one that
+[CanonicalSource](../../crates/magistr-cli/src/scaffold/canonical.rs). The
+Magistr source checkout — one that
 carries `crates/magistr-cli/templates/workflows` — supplies every workflow
-skill, the shared runtime with its host adapter and the vendored routing skill
+skill, the shared runtime with its host adapter and the workspace routing skill
 from the live templates, through the same rendering the embedded copies use;
 an installed binary older than the checkout therefore follows each later edit
 instead of downgrading the skills during explicit repair. A canonical input
@@ -331,7 +329,7 @@ operation (setup, repair or removal) on a plan that was computed first; an
 agent session's source writes never reach it, because they take the
 admitted workspace's [source route](clients.md) or are refused, and the
 `native-write-path` gate (rule 13) keeps every other file under the scaffold
-module from writing the filesystem at all. Human-owned `workbench.toml`
+module from writing the filesystem at all. Human-owned `.magistr/workspace.toml`
 `[commands]` tables, source policy, the `.magistr` state
 namespaces and the roadmap export denials are outside every plan and stay
 untouched.

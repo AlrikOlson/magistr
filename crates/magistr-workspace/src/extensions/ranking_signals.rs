@@ -126,7 +126,7 @@ impl RankingSignals {
     /// Inventory pkg-name convention marking a plugin as a ranking signal.
     pub const PKG_PREFIX: &'static str = "ranking-";
 
-    /// `state_dir` is the admitted `.workbench` directory.
+    /// `state_dir` is the admitted `.magistr/workspace` directory.
     #[must_use]
     pub fn new(state_dir: &Path, lane: Arc<dyn ExtensionLane>) -> Self {
         Self {

@@ -66,13 +66,9 @@ use super::super::PluginHealthRecord;
 #[test]
 fn healthy_rows_are_retained_and_their_claims_select_languages_until_a_later_incarnation_loses_them()
  {
-    let gleam = pack("workbench.lang-pack-gleam");
-    let refused = LangPackStatus::refused(
-        "workbench.lang-pack-broken",
-        "missing-component",
-        "x",
-        vec![],
-    );
+    let gleam = pack("magistr.lang-pack-gleam");
+    let refused =
+        LangPackStatus::refused("magistr.lang-pack-broken", "missing-component", "x", vec![]);
     let rig = Rig::new(vec![gleam.clone()], vec![refused.clone()]);
     assert_eq!(
         rig.restore.statuses(),
@@ -96,7 +92,7 @@ fn healthy_rows_are_retained_and_their_claims_select_languages_until_a_later_inc
     );
     assert_eq!(
         rig.restore.status_notes()[1],
-        "lang pack workbench.lang-pack-gleam: gleam registered on the wasm lane (extensions: gleam)"
+        "lang pack magistr.lang-pack-gleam: gleam registered on the wasm lane (extensions: gleam)"
     );
 
     // The next incarnation refuses the registration: the row flips, the
@@ -120,18 +116,18 @@ fn healthy_rows_are_retained_and_their_claims_select_languages_until_a_later_inc
     assert_eq!(rig.languages.language("src/main.gleam"), None);
     let breaches = rig.breaches();
     assert_eq!(breaches.len(), 1);
-    assert_eq!(breaches[0].component_hash, "workbench.lang-pack-gleam-sha");
+    assert_eq!(breaches[0].component_hash, "magistr.lang-pack-gleam-sha");
     assert_eq!(breaches[0].at, "2026-09-17T00:00:00Z");
     assert!(
         rig.restore.status_notes()[1].starts_with(
-            "lang pack workbench.lang-pack-gleam: not registered (registration-refused:"
+            "lang pack magistr.lang-pack-gleam: not registered (registration-refused:"
         )
     );
 }
 
 #[test]
 fn a_guest_that_does_not_register_breaches_and_a_mismatched_answer_is_a_refusal() {
-    let gleam = pack("workbench.lang-pack-gleam");
+    let gleam = pack("magistr.lang-pack-gleam");
     let rig = Rig::new(vec![gleam.clone()], Vec::new());
     let mut rows = Vec::new();
     rig.restore
@@ -157,7 +153,7 @@ fn a_guest_that_does_not_register_breaches_and_a_mismatched_answer_is_a_refusal(
 
 #[test]
 fn a_lost_worker_fails_the_restore_explicitly_and_three_strikes_breach_the_pack() {
-    let gleam = pack("workbench.lang-pack-gleam");
+    let gleam = pack("magistr.lang-pack-gleam");
     let rig = Rig::new(vec![gleam.clone()], Vec::new());
     for strike in 1..=3 {
         let mut rows = Vec::new();
@@ -172,7 +168,7 @@ fn a_lost_worker_fails_the_restore_explicitly_and_three_strikes_breach_the_pack(
         assert_eq!(
             error,
             WorkerError::Unavailable(
-                "lang pack workbench.lang-pack-gleam could not be restored into the new worker: worker unavailable: broken pipe".into()
+                "lang pack magistr.lang-pack-gleam could not be restored into the new worker: worker unavailable: broken pipe".into()
             )
         );
         assert!(rows.is_empty());
@@ -184,7 +180,7 @@ fn a_lost_worker_fails_the_restore_explicitly_and_three_strikes_breach_the_pack(
     }
     assert!(rig.breaches()[0].reason.contains("worker lost 3 times"));
     // A registration that answers clears the strikes.
-    let other = pack("workbench.lang-pack-other");
+    let other = pack("magistr.lang-pack-other");
     let mut rows = Vec::new();
     rig.restore
         .absorb(

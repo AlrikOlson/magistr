@@ -106,7 +106,7 @@ fn concrete_service_clients_belong_to_the_host() {
         "struct NativeEnginePort",
         "struct AttachedEnginePort",
         "struct McpClient",
-        "struct McpWorkbench",
+        "struct McpWorkspace",
         "ProjectAuthority::admit",
         "OwnerClient::attach",
         "std::process::",

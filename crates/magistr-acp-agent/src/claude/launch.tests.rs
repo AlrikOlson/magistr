@@ -32,7 +32,7 @@ fn a_bare_mcp_tool_name_is_expanded_to_every_session_server() {
     let mut s = spec();
     s.mcp_servers = vec![
         McpServer::Stdio(McpServerStdio::new("magistr", "magistr")),
-        McpServer::Stdio(McpServerStdio::new("workbench-mcp", "workbench-mcp")),
+        McpServer::Stdio(McpServerStdio::new("external", "external")),
     ];
     s.allowed_tools = vec![
         "Bash".to_owned(),
@@ -46,7 +46,7 @@ fn a_bare_mcp_tool_name_is_expanded_to_every_session_server() {
         .expect("--allowedTools");
     assert_eq!(
         args[at + 1],
-        "Bash,roadmap_status,mcp__magistr__roadmap_status,mcp__workbench-mcp__roadmap_status,mcp__magistr__magistr_gate"
+        "Bash,roadmap_status,mcp__magistr__roadmap_status,mcp__external__roadmap_status,mcp__magistr__magistr_gate"
     );
 }
 

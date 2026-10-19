@@ -27,7 +27,7 @@ use serde_json::{Value, json};
 const IGNORE: &str =
     "release-profile smoke of the shipping binary: ./scripts/workspace-release-smoke.sh";
 const CORE_TOOLS: [&str; 10] = [
-    "workbench_status",
+    "workspace_status",
     "map",
     "read",
     "search",
@@ -73,7 +73,7 @@ fn workspace() -> tempfile::TempDir {
     std::fs::create_dir_all(dir.path().join("src")).expect("src");
     std::fs::write(dir.path().join("src/app.ts"), APP_TS).expect("source");
     std::fs::write(
-        dir.path().join("workbench.toml"),
+        dir.path().join(".magistr/workspace.toml"),
         "[commands]\nhello = \"echo hello-from-the-release-binary\"\n",
     )
     .expect("allowlist");
@@ -91,7 +91,7 @@ async fn served(
         .arg("workspace")
         .arg("serve")
         .arg(root)
-        .env("WORKBENCH_NETWORK_FS", "0")
+        .env("MAGISTR_WORKSPACE_NETWORK_FS", "0")
         .env("PATH", path);
     let mut child = tokio::process::Command::from(command)
         .stdin(Stdio::piped())
@@ -148,7 +148,7 @@ async fn the_release_binary_serves_every_core_tool_with_no_runtime_beside_it() {
     let names: Vec<&str> = tools.iter().map(|tool| tool.name.as_ref()).collect();
     assert_eq!(names, CORE_TOOLS, "the retained surface, in order");
 
-    let status = call(&client, "workbench_status", json!({})).await;
+    let status = call(&client, "workspace_status", json!({})).await;
     assert_eq!(status["ok"], true, "{status}");
     assert_eq!(status["results"][0]["journalMode"], "WAL");
 

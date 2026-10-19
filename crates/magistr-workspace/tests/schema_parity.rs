@@ -10,7 +10,7 @@ fn every_tool_schema_describes_an_object_with_its_tool_name() {
         assert_eq!(parsed["title"], tool);
         assert_eq!(parsed["type"], "object");
     }
-    assert_eq!(ToolSchemas::input("workbench_status"), None);
+    assert_eq!(ToolSchemas::input("workspace_status"), None);
     assert_eq!(ToolSchemas::input("nope"), None);
 }
 

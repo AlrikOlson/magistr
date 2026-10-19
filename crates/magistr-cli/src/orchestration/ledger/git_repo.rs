@@ -94,7 +94,7 @@ impl GitRepo {
             "--untracked-files=all",
             "--",
             ".",
-            ":(exclude).workbench/**",
+            ":(exclude).magistr/workspace/**",
             ":(exclude).magistr/working-copy.lock",
             ":(exclude).magistr/workflow-owner.lock",
             ":(exclude).magistr/project-owner.lock",

@@ -1,10 +1,10 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://workbench-mcp.dev/schemas/tools/undo.input.schema.json",
+  "$id": "https://magistr.dev/schemas/workspace/tools/undo.input.schema.json",
   "title": "undo",
-  "description": "The journal, read and rewound (SDD 9.8, 7.6). action \"list\" reads the durable per-workspace op log — newest op first, one row per file an op touched, each row carrying the op seq, its added/removed line counts and its unified diff — and writes nothing. action \"rewind\" (the default) rewinds whole ops: the newest `steps`, or exactly the ops named by `ops` (the seqs `list` reports). Rewind is session-scoped by default: only the calling session's ops (identity via _meta workbench/sessionId) are candidates unless scope is \"workspace\". Conflicts — a later change touched a file this undo would restore — are detected by content hash and surfaced in the envelope as a three-way choice (keepCurrent | force | merge by hand), never silently clobbered. Every restoration runs through the verified write pipeline with staleness anchors.",
-  "x-workbench-status": "normative",
-  "x-workbench-owned-by": "chunk:m2-journal-undo",
+  "description": "The journal, read and rewound (SDD 9.8, 7.6). action \"list\" reads the durable per-workspace op log — newest op first, one row per file an op touched, each row carrying the op seq, its added/removed line counts and its unified diff — and writes nothing. action \"rewind\" (the default) rewinds whole ops: the newest `steps`, or exactly the ops named by `ops` (the seqs `list` reports). Rewind is session-scoped by default: only the calling session's ops (identity via _meta magistr/sessionId) are candidates unless scope is \"workspace\". Conflicts — a later change touched a file this undo would restore — are detected by content hash and surfaced in the envelope as a three-way choice (keepCurrent | force | merge by hand), never silently clobbered. Every restoration runs through the verified write pipeline with staleness anchors.",
+  "x-magistr-status": "normative",
+  "x-magistr-owned-by": "chunk:m2-journal-undo",
   "type": "object",
   "properties": {
     "action": {

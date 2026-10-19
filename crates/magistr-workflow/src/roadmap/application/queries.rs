@@ -18,7 +18,7 @@ impl RoadmapUseCases {
             && let Some(object) = status.as_object_mut()
         {
             if let Err(error) = signal.refresh_if_stale() {
-                tracing::warn!("think-and-ship: signal store not observed: {error}");
+                tracing::warn!("magistr: signal store not observed: {error}");
             }
             object.insert("pending_signals".into(), signal.pending_count(0.6).into());
         }

@@ -132,7 +132,7 @@ pub struct ClientView {
     pub declares_roots: bool,
     /// Every declared MCP extension id, sorted.
     pub extensions: Vec<String>,
-    /// Whether `THINK_AND_SHIP_ELICIT` is on — the first and only gate no
+    /// Whether `MAGISTR_WORKFLOW_ELICIT` is on — the first and only gate no
     /// property of the client can reach past. Reported beside the client's own
     /// declaration because the question "would we ask?" needs both, plus the
     /// remembered answer that is deliberately not folded in here.

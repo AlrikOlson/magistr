@@ -21,7 +21,7 @@ use super::reseed::spawn_reseed;
 use magistr_cockpit::engine::EnginePort;
 use magistr_cockpit_runtime::channel::Inbox;
 
-/// The project's think-and-ship engines, in-process, and the socket their
+/// The project's magistr engines, in-process, and the socket their
 /// live feed attaches to.
 ///
 /// Opening validates host admission before an interface starts using the client.

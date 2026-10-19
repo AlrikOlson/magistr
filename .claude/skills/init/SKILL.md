@@ -6,7 +6,7 @@ description: Interview the user and tailor Magistr configuration to the detected
 # Tailor Magistr project setup
 
 Read [the runtime contract](../craft/references/runtime.md), its host adapter,
-root project instructions, `.magistr/project.json`, and existing workbench
+root project instructions, `.magistr/project.json`, and existing workspace
 configuration. Ground stack detection in manifests and declared commands.
 Summarize existing setup, then ask only missing project-specific questions.
 Honor previous answers; do not restart the interview on a repeated invocation.
@@ -18,7 +18,7 @@ tooling choices affect the configuration.
 
 Update only instructions and configuration needed for the requested setup.
 Keep `.magistr/project.json` authoritative for gates and roadmap policy.
-Preserve the `.think-and-ship/project.json` identity, the **magistr** state
+Preserve the `.magistr/project.json` identity, the **magistr** state
 endpoint, unrelated host settings, and user customization. Keep project entry
 instructions concise and link shared conventions. Never copy secrets into
 new configuration or reset native project state.

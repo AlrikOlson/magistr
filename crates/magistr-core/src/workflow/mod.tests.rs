@@ -46,7 +46,7 @@ fn native_project_loads_without_a_spec_file_and_reads_chunks() {
     use magistr_engine::{NativeConfig, ProjectAuthority, WriterRole};
 
     let tmp = tempfile::tempdir().unwrap();
-    project(tmp.path(), "think-and-ship", ".magistr-roadmap.yml");
+    project(tmp.path(), "native", ".magistr-roadmap.yml");
     assert!(!tmp.path().join(".magistr-roadmap.yml").exists());
 
     let wf = WorkflowConfig::load(tmp.path()).expect("native projects need no spec file");

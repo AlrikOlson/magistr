@@ -12,7 +12,7 @@ use crate::config::inputs::ProjectInputs;
 /// The workspace this host admitted for its run: the one native owner of
 /// the checkout for as long as the run lasts. The host opens the service
 /// on the bridge's own open options and serves the shared owner endpoint,
-/// so the agent's `workbench-mcp` bridge and the cockpit's port attach to
+/// so the agent's `magistr` bridge and the cockpit's port attach to
 /// this process instead of admitting; its own source writes go through
 /// the service in-process. When another owner already holds the lock the
 /// host admits nothing — it never attaches to write through a socket and

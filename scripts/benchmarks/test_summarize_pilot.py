@@ -53,7 +53,7 @@ class ResultIntegrityTests(unittest.TestCase):
             item = {
                 "id": "item_1",
                 "type": "mcp_tool_call",
-                "server": "workbench-mcp",
+                "server": "magistr",
                 "tool": "read",
             }
             events = [
@@ -64,14 +64,14 @@ class ResultIntegrityTests(unittest.TestCase):
                 "\n".join(json.dumps(event) for event in events)
             )
             row = trial_row(root / "result.json", "magistr")
-            self.assertEqual(row["mcp_calls"], {"workbench-mcp/read": 1})
+            self.assertEqual(row["mcp_calls"], {"magistr/read": 1})
             self.assertEqual(row["mcp_errors"], {})
             events[-1]["item"]["result"] = {"structured_content": {"ok": False}}
             (root / "agent" / "codex.txt").write_text(
                 "\n".join(json.dumps(event) for event in events)
             )
             row = trial_row(root / "result.json", "magistr")
-            self.assertEqual(row["mcp_errors"], {"workbench-mcp/read": 1})
+            self.assertEqual(row["mcp_errors"], {"magistr/read": 1})
 
 
 if __name__ == "__main__":

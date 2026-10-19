@@ -30,7 +30,7 @@ async fn check_command(mut command: Command) -> eyre::Result<()> {
         let client = ().serve((input, output)).await?;
         let context = client.call_tool(CallToolRequestParams::new("context")).await?;
         let mut request = CallToolRequestParams::new("execute");
-        request.arguments = Some(serde_json::json!({"source":"return magistr.call('workbench_status', {});"})
+        request.arguments = Some(serde_json::json!({"source":"return magistr.call('workspace_status', {});"})
             .as_object().expect("argument object").clone());
         let workspace = client.call_tool(request).await;
         client.cancel().await?;

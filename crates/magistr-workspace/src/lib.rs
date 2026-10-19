@@ -1,4 +1,4 @@
-//! Native workspace engine adopted from the pinned Workbench source.
+//! Native workspace engine adopted from the pinned Workspace source.
 //!
 //! Wraps tree-sitter (twelve bundled grammar crates), the `grep` crate
 //! (ripgrep's engine as a library) and ast-grep (structural match/rewrite)
@@ -27,6 +27,7 @@ pub mod journal;
 pub mod lang_registry;
 pub mod langs;
 mod os_file_lock;
+pub mod paths;
 pub mod plugins;
 pub mod query;
 pub mod response;

@@ -22,7 +22,7 @@ impl DoctorOptions {
     pub fn new(root: impl Into<PathBuf>) -> Self {
         let root: PathBuf = root.into();
         Self {
-            state_dir: root.join(".workbench"),
+            state_dir: root.join(".magistr/workspace"),
             root,
             env: BTreeMap::new(),
             session_flags: serde_json::Map::new(),

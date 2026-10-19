@@ -146,8 +146,8 @@ def verify_cargo(args):
 
 def smoke(binary,root):
     root.mkdir();(root/"README.md").write_text("Package smoke fixture.\n")
-    env={k:v for k,v in os.environ.items() if not k.startswith(("THINK_AND_SHIP_","MAGISTR_","WORKBENCH_"))}
-    env.update(THINK_AND_SHIP_DATA_DIR=str(root/"workflow-state"),XDG_CONFIG_HOME=str(root/"user-config"),XDG_DATA_HOME=str(root/"user-data"),WORKBENCH_NETWORK_FS="0")
+    env={k:v for k,v in os.environ.items() if not k.startswith(("MAGISTR_WORKFLOW_","MAGISTR_","MAGISTR_WORKSPACE_"))}
+    env.update(MAGISTR_WORKFLOW_DATA_DIR=str(root/"workflow-state"),XDG_CONFIG_HOME=str(root/"user-config"),XDG_DATA_HOME=str(root/"user-data"),MAGISTR_WORKSPACE_NETWORK_FS="0")
     run([binary,"init",root,"--agent","portable","--yes"],cwd=root,env=env,stdout=subprocess.PIPE)
     run([binary,"doctor",root],cwd=root,env=env,stdout=subprocess.PIPE)
     # Launch the installed executable as the server and worker; no repository source.
@@ -155,7 +155,7 @@ def smoke(binary,root):
     module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
     connection=module.Connection(root,root/"workflow-state",command=[str(binary),"mcp","--dir",str(root)])
     try:
-        result=connection.execute("magistr.call('workbench_status', {}); return magistr.call('read', {file:'README.md'});",maxOperations=2)
+        result=connection.execute("magistr.call('workspace_status', {}); return magistr.call('read', {file:'README.md'});",maxOperations=2)
         assert result["ok"],result
         assert len(result["receipts"])==2,result
     finally: connection.close()
@@ -171,8 +171,8 @@ def verify_npm(args):
         for name in ["node","npm","npx"]:
             source=Path(shutil.which(name)).resolve()
             (commands/name).symlink_to(source)
-        env={k:v for k,v in os.environ.items() if not k.startswith(("THINK_AND_SHIP_","MAGISTR_","WORKBENCH_"))}
-        env.update(THINK_AND_SHIP_DATA_DIR=str(scratch/"workflow-state"),XDG_CONFIG_HOME=str(scratch/"user-config"),XDG_DATA_HOME=str(scratch/"user-data"))
+        env={k:v for k,v in os.environ.items() if not k.startswith(("MAGISTR_WORKFLOW_","MAGISTR_","MAGISTR_WORKSPACE_"))}
+        env.update(MAGISTR_WORKFLOW_DATA_DIR=str(scratch/"workflow-state"),XDG_CONFIG_HOME=str(scratch/"user-config"),XDG_DATA_HOME=str(scratch/"user-data"))
         env["PATH"]=f"{commands}:/usr/bin:/bin:/usr/sbin:/sbin"
         env["npm_config_cache"]=str(scratch/"cache")
         run(["npm","install","--global","--prefix",prefix,"--ignore-scripts",tarball],cwd=scratch,env=env,stdout=subprocess.PIPE)

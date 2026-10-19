@@ -19,14 +19,14 @@ resolver, so the launch line is this binary or nothing.
 
 ## Admission and rendezvous
 
-`WorkspaceService` holds the exclusive OS lock on `.workbench/server.lock`
+`WorkspaceService` holds the exclusive OS lock on `.magistr/workspace/server.lock`
 before opening the key, journal, index or worker. Magistr also supplies a stable
 lifecycle lock at the physical Git working-copy root. The source service holds
 that shared lock until it closes, including when its source root is a nested
 project. Archive takes the same lock exclusively and refuses active source or
 workflow sessions. [Working-copy lifecycle](project-authority.md#working-copy-lifecycle)
 owns archive and reopen; source roots, journals and generations remain independent.
-Its immutable marker and durable `.workbench/server.generation` enforce
+Its immutable marker and durable `.magistr/workspace/server.generation` enforce
 exclusion and fencing. Only contention on a valid marker permits attachment.
 Empty or unrecognized markers refuse admission without interpreting process IDs,
 moving records or opening stores. Recovery restores known-good workspace state
@@ -46,7 +46,7 @@ retain exact build admission. Workspace endpoints accept MCP connections, not
 workflow commands. Socket peer credentials restrict attachment to the owner's
 operating-system user.
 
-The endpoint is `<root>/.workbench/run/owner.sock` when the path fits the Unix
+The endpoint is `<root>/.magistr/workspace/run/owner.sock` when the path fits the Unix
 socket limit; long roots use
 `/tmp/magistr-workspace-<uid>/<root-digest>.sock`. The containing directory is
 private (`0700`) and the socket is `0600`. A live endpoint is preserved; only
@@ -76,8 +76,8 @@ those values or changing the live owner's policy.
 The bridge relays newline-delimited JSON-RPC verbatim in both directions and
 looks at three things:
 
-- **Identity.** Every `tools/call` that carries no `_meta["workbench/sessionId"]`
-  is stamped with the bridge's durable identity — `WORKBENCH_SESSION_ID` when
+- **Identity.** Every `tools/call` that carries no `_meta["magistr/sessionId"]`
+  is stamped with the bridge's durable identity — `MAGISTR_WORKSPACE_SESSION_ID` when
   the launcher set it, else `bridge-<random>` minted once per process. Journal
   rows therefore carry a real identity per client process, `undo` session
   scope means "this client's ops", and that identity survives the owner
@@ -166,7 +166,7 @@ probes, both composed by the CLI host from observations the workspace crate
 alone cannot make, and both read-only: no lock is taken, no store opened,
 nothing admitted, minted, marked or written.
 
-- **`owner`.** The durable generation (`.workbench/server.generation`) and
+- **`owner`.** The durable generation (`.magistr/workspace/server.generation`) and
   the lock record (`ServerLock::inspect`: absent, the native marker, or
   unrecognized bytes) are read as records of past
   admissions. Liveness comes only from one bounded `probe` handshake on the
@@ -199,7 +199,7 @@ port uses that registration; its journal reads use `magistr workspace journal`.
 See [unified MCP](unified-mcp.md) for direct tools, discovery, composition,
 cancellation and per-connection planning restrictions.
 
-Initialization seeds `workbench.toml` through native detection. No external
+Initialization seeds `.magistr/workspace.toml` through native detection. No external
 workspace executable or Bun runtime is required. Multiple agents connect to the
 same workspace owner; distinct working copies retain separate journals and indexes.
 The optional `codex-subagent` gate exercises real parent and subagent attachment

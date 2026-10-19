@@ -19,7 +19,7 @@ fn production_capture_preserves_the_platform_temp_store_fallback() {
                     .filter_map(|key| std::env::var_os(key).map(|value| (key, value))),
             )
             .env(CHILD, "1")
-            .env("THINK_AND_SHIP_PERSIST", "false")
+            .env("MAGISTR_WORKFLOW_PERSIST", "false")
             .status()
             .expect("isolated production capture");
         assert!(status.success(), "production fallback child failed");
@@ -29,7 +29,7 @@ fn production_capture_preserves_the_platform_temp_store_fallback() {
     let config = writer_config_from_env(root.path());
     assert_eq!(
         config.data_dir(),
-        std::env::temp_dir().join("think-and-ship"),
+        std::env::temp_dir().join("magistr/workflow"),
         "production capture must retain the same fallback as earlier native writers"
     );
     assert!(!config.persistence_enabled());

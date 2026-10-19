@@ -48,9 +48,9 @@ pub struct WorkflowConfig {
     /// The loaded project configuration.
     pub project_config: ProjectConfig,
     /// The spec file path (resolved from project config). Inert on a
-    /// think-and-ship project — progress comes from the engines.
+    /// magistr project — progress comes from the engines.
     pub spec_path: std::path::PathBuf,
-    /// The native engines when the project runs think-and-ship and a caller
+    /// The native engines when the project runs magistr and a caller
     /// opened them (before raw mode); `None` opens them lazily on demand.
     native: Option<NativeReader>,
 }
@@ -60,7 +60,7 @@ impl WorkflowConfig {
     ///
     /// If `spec.file` in project.json points to `ROADMAP.md` but that file
     /// doesn't exist, falls back to `.magistr-roadmap.yml` (the new canonical path).
-    /// A think-and-ship project declares no `spec` block at all; the path is
+    /// A magistr project declares no `spec` block at all; the path is
     /// then a placeholder that nothing reads.
     pub fn load(project_dir: &Path) -> Result<Self> {
         let project_config = validate::load_project_config(project_dir)?;
@@ -70,7 +70,7 @@ impl WorkflowConfig {
             .map_or(DEFAULT_SPEC_FILE, |spec| spec.file.as_str());
         let mut spec_path = project_dir.join(spec_file);
 
-        // A think-and-ship project needs no spec file at all.
+        // A magistr project needs no spec file at all.
         if !project_config.roadmap_backend.is_native() && !spec_path.is_file() {
             // Transparent migration: old project.json still says "ROADMAP.md"
             // but the YAML canonical file exists at the new path.
@@ -93,7 +93,7 @@ impl WorkflowConfig {
         })
     }
 
-    /// Whether the project runs the think-and-ship roadmap.
+    /// Whether the project runs the magistr roadmap.
     #[must_use]
     pub fn is_native(&self) -> bool {
         self.project_config.roadmap_backend.is_native()
@@ -123,7 +123,7 @@ impl WorkflowConfig {
 
     /// Progress as a spec summary.
     ///
-    /// Think-and-ship projects read chunk progress from the engines and
+    /// Native projects read chunk progress from the engines and
     /// never open `spec.file`; yaml projects prefer the YAML store and fall
     /// back to markdown parsing for non-magistr projects.
     pub fn spec_summary(&self) -> Result<spec::SpecSummary> {

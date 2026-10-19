@@ -357,7 +357,7 @@ fn remove_scaffold_deletes_generated_files_and_preserves_unowned_scripts() {
     std::fs::write(dir.join("format-stream.sh"), "#!/bin/bash").unwrap();
     std::fs::write(
         dir.join(".mcp.json"),
-        r#"{"mcpServers":{"magistr":{"command":"magistr"},"workbench-mcp":{"command":"workbench-mcp"},"magistr-scope":{"command":"magistr-scope"}}}"#,
+        r#"{"mcpServers":{"magistr":{"command":"magistr"},"magistr-scope":{"command":"magistr-scope"}}}"#,
     ).unwrap();
     std::fs::write(dir.join("CLAUDE.md"), "# My project").unwrap();
     std::fs::write(dir.join("ROADMAP.md"), "# Roadmap").unwrap();

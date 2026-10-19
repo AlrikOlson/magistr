@@ -295,11 +295,8 @@ mod tests {
     /// at a truncated item.
     #[test]
     fn external_id_may_contain_separators() {
-        let r = CrossRef::from_wire("ext:github/AlrikOlson/think-and-ship#12").unwrap();
-        assert_eq!(
-            r,
-            CrossRef::external("github", "AlrikOlson/think-and-ship#12")
-        );
+        let r = CrossRef::from_wire("ext:github/AlrikOlson/magistr#12").unwrap();
+        assert_eq!(r, CrossRef::external("github", "AlrikOlson/magistr#12"));
         round_trip(r);
 
         let r = CrossRef::from_wire("ext:jira/https://x.atlassian.net/browse/AB-1").unwrap();

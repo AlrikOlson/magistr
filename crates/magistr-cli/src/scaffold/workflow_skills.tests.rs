@@ -36,7 +36,7 @@ fn each_host_discovers_the_same_nine_skills() {
         "roadmap-refresh",
         "signals",
         "validate",
-        "workbench-routing",
+        "workspace-routing",
     ]);
     assert_eq!(skill_names(&codex), expected);
     assert_eq!(skill_names(&claude), expected);
@@ -93,12 +93,12 @@ fn workflow_semantics_are_identical_across_hosts() {
                 .0;
             assert_eq!(codex_shared, claude_shared);
             assert_ne!(codex.content, claude.content, "host mechanics differ");
-        } else if codex.path.ends_with("workbench-routing/SKILL.md") {
+        } else if codex.path.ends_with("workspace-routing/SKILL.md") {
             assert_eq!(codex.content, claude.content);
             assert!(
                 codex
                     .content
-                    .starts_with(super::super::STATIC_SKILL_WORKBENCH_ROUTING.trim_end())
+                    .starts_with(super::super::STATIC_SKILL_MAGISTR_WORKSPACE_ROUTING.trim_end())
             );
         } else {
             let mut normalized = codex.content.clone();
@@ -177,7 +177,7 @@ fn generated_next_skills_use_the_native_iteration_recovery_contract() {
 fn generated_reasoning_guidance_is_shared_by_every_instruction_surface() {
     let guidance = magistr_engine::prompt::PromptConfig::REASONING_GUIDANCE;
     let guide = super::super::tool_guide::build_tool_guide();
-    let section = super::super::think_and_ship::build_section(&Default::default());
+    let section = super::super::workflow::build_section(&Default::default());
     let runtimes = WorkflowSkills::codex_files()
         .into_iter()
         .chain(WorkflowSkills::claude_files())

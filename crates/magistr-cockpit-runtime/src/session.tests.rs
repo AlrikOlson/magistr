@@ -7,8 +7,8 @@ use tokio::sync::{mpsc, oneshot};
 use super::*;
 
 use magistr_application::sessions::{PromptAttachment, PromptInput, ToolRecord, TurnEnd};
-use magistr_cockpit::cockpit::{WorkbenchCmd, WorkbenchEvent};
-use magistr_cockpit::harness::FakeWorkbench;
+use magistr_cockpit::cockpit::{WorkspaceCmd, WorkspaceEvent};
+use magistr_cockpit::harness::FakeWorkspace;
 
 struct FakeSession {
     events: mpsc::UnboundedReceiver<AgentEvent>,
@@ -369,23 +369,23 @@ async fn provider_observation_ending_preserves_local_effects() {
     let (handle, events, mut calls) = fake();
     let (inbox, mut messages) = Inbox::channel();
     let (commands_tx, commands) = Commands::channel();
-    let workbench = FakeWorkbench::new().with_file("src/main.rs", "fn main() {}");
+    let workspace = FakeWorkspace::new().with_file("src/main.rs", "fn main() {}");
     let task = spawn_session(
         Box::new(handle),
         inbox,
         commands,
-        Some(Box::new(workbench)),
+        Some(Box::new(workspace)),
         None,
         None,
     );
     drop(events);
     commands_tx
-        .send(Cmd::Workbench(WorkbenchCmd::Open {
+        .send(Cmd::Workspace(WorkspaceCmd::Open {
             path: "src/main.rs".to_owned(),
         }))
         .expect("command sent");
     assert!(
-        matches!(next(&mut messages).await, Msg::Workbench(WorkbenchEvent::Opened { path, content }) if path == "src/main.rs" && content == "fn main() {}")
+        matches!(next(&mut messages).await, Msg::Workspace(WorkspaceEvent::Opened { path, content }) if path == "src/main.rs" && content == "fn main() {}")
     );
     assert!(
         calls.try_recv().is_err(),
@@ -397,21 +397,21 @@ async fn provider_observation_ending_preserves_local_effects() {
         .expect("session cleanup succeeds");
 }
 
-/// A workbench whose search blocks until released: the slow port the
+/// A workspace whose search blocks until released: the slow port the
 /// relay must never wait on.
-struct BlockingWorkbench {
+struct BlockingWorkspace {
     release: std::sync::Mutex<std::sync::mpsc::Receiver<()>>,
     searches: Arc<std::sync::atomic::AtomicUsize>,
 }
 
-impl WorkbenchPort for BlockingWorkbench {
+impl WorkspacePort for BlockingWorkspace {
     fn read(&mut self, path: &str) -> Result<String, String> {
         Ok(format!("read {path}"))
     }
     fn undo(&mut self, _id: &str) -> Result<(), String> {
         Ok(())
     }
-    fn journal(&mut self) -> Result<Vec<magistr_cockpit::workbench::JournalEntry>, String> {
+    fn journal(&mut self) -> Result<Vec<magistr_cockpit::workspace::JournalEntry>, String> {
         Ok(Vec::new())
     }
     fn search(&mut self, query: &str) -> Result<Vec<String>, String> {
@@ -427,20 +427,20 @@ impl WorkbenchPort for BlockingWorkbench {
     fn map(&mut self) -> Result<Vec<String>, String> {
         Ok(Vec::new())
     }
-    fn run(&mut self, _command: &str) -> Result<Vec<magistr_cockpit::workbench::RunRow>, String> {
+    fn run(&mut self, _command: &str) -> Result<Vec<magistr_cockpit::workspace::RunRow>, String> {
         Ok(Vec::new())
     }
 }
 
 fn blocking() -> (
-    BlockingWorkbench,
+    BlockingWorkspace,
     std::sync::mpsc::Sender<()>,
     Arc<std::sync::atomic::AtomicUsize>,
 ) {
     let (release, gate) = std::sync::mpsc::channel();
     let searches = Arc::new(std::sync::atomic::AtomicUsize::new(0));
     (
-        BlockingWorkbench {
+        BlockingWorkspace {
             release: std::sync::Mutex::new(gate),
             searches: Arc::clone(&searches),
         },
@@ -450,21 +450,21 @@ fn blocking() -> (
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn a_slow_workbench_call_never_blocks_provider_observation_or_cancellation() {
+async fn a_slow_workspace_call_never_blocks_provider_observation_or_cancellation() {
     let (handle, events, mut calls) = fake();
     let (inbox, mut messages) = Inbox::channel();
     let (commands_tx, commands) = Commands::channel();
-    let (workbench, release, searches) = blocking();
+    let (workspace, release, searches) = blocking();
     let task = spawn_session(
         Box::new(handle),
         inbox,
         commands,
-        Some(Box::new(workbench)),
+        Some(Box::new(workspace)),
         None,
         None,
     );
     commands_tx
-        .send(Cmd::Workbench(WorkbenchCmd::Search {
+        .send(Cmd::Workspace(WorkspaceCmd::Search {
             query: "slow".to_owned(),
         }))
         .expect("command sent");
@@ -489,7 +489,7 @@ async fn a_slow_workbench_call_never_blocks_provider_observation_or_cancellation
     release.send(()).expect("the gate opens");
     assert!(matches!(
         next(&mut messages).await,
-        Msg::Workbench(WorkbenchEvent::Found { query, hits }) if query == "slow" && hits == ["hit for slow"]
+        Msg::Workspace(WorkspaceEvent::Found { query, hits }) if query == "slow" && hits == ["hit for slow"]
     ));
     drop(commands_tx);
     task.await
@@ -504,7 +504,7 @@ async fn an_absent_port_is_refused_by_name_rather_than_answered_with_silence() {
     let (commands_tx, commands) = Commands::channel();
     let task = spawn_session(Box::new(handle), inbox, commands, None, None, None);
     commands_tx
-        .send(Cmd::Workbench(WorkbenchCmd::Map))
+        .send(Cmd::Workspace(WorkspaceCmd::Map))
         .expect("command sent");
     commands_tx
         .send(Cmd::Engine(magistr_cockpit::cockpit::EngineCmd::Checkpoint))
@@ -518,7 +518,7 @@ async fn an_absent_port_is_refused_by_name_rather_than_answered_with_silence() {
         .expect("command sent");
     assert!(matches!(
         next(&mut messages).await,
-        Msg::Workbench(WorkbenchEvent::Failed { cmd, error }) if cmd == magistr_cockpit::cockpit::WorkbenchCmd::Map && error.contains("no workbench")
+        Msg::Workspace(WorkspaceEvent::Failed { cmd, error }) if cmd == magistr_cockpit::cockpit::WorkspaceCmd::Map && error.contains("no workspace")
     ));
     assert!(matches!(
         next(&mut messages).await,
@@ -540,18 +540,18 @@ async fn jobs_past_the_capacity_are_refused_and_a_late_answer_is_fenced() {
     let (handle, _events, mut calls) = fake();
     let (inbox, mut messages) = Inbox::channel();
     let (commands_tx, commands) = Commands::channel();
-    let (workbench, release, searches) = blocking();
+    let (workspace, release, searches) = blocking();
     let task = spawn_session(
         Box::new(handle),
         inbox,
         commands,
-        Some(Box::new(workbench)),
+        Some(Box::new(workspace)),
         None,
         None,
     );
     for index in 0..=SessionJobs::CAPACITY {
         commands_tx
-            .send(Cmd::Workbench(WorkbenchCmd::Search {
+            .send(Cmd::Workspace(WorkspaceCmd::Search {
                 query: format!("job {index}"),
             }))
             .expect("command sent");
@@ -560,8 +560,8 @@ async fn jobs_past_the_capacity_are_refused_and_a_late_answer_is_fenced() {
     // and count as running. The one past the capacity is refused now.
     assert!(matches!(
         next(&mut messages).await,
-        Msg::Workbench(WorkbenchEvent::Failed { cmd, error })
-            if magistr_cockpit::workbench::describe(&cmd) == format!("search job {}", SessionJobs::CAPACITY)
+        Msg::Workspace(WorkspaceEvent::Failed { cmd, error })
+            if magistr_cockpit::workspace::describe(&cmd) == format!("search job {}", SessionJobs::CAPACITY)
                 && error.contains("already running")
     ));
     tokio::time::timeout(Duration::from_secs(2), async {
@@ -603,17 +603,17 @@ async fn aborting_the_relay_discards_a_late_blocking_result() {
     let (handle, _events, _calls) = fake();
     let (inbox, mut messages) = Inbox::channel();
     let (commands_tx, commands) = Commands::channel();
-    let (workbench, release, searches) = blocking();
+    let (workspace, release, searches) = blocking();
     let task = spawn_session(
         Box::new(handle),
         inbox,
         commands,
-        Some(Box::new(workbench)),
+        Some(Box::new(workspace)),
         None,
         None,
     );
     commands_tx
-        .send(Cmd::Workbench(WorkbenchCmd::Search {
+        .send(Cmd::Workspace(WorkspaceCmd::Search {
             query: "held".to_owned(),
         }))
         .expect("command sent");
@@ -643,7 +643,7 @@ fn the_relay_stamps_elapsed_time_without_changing_other_tool_fields() {
     let mut session = Session {
         handle: Box::new(handle),
         inbox,
-        workbench: None,
+        workspace: None,
         engine: None,
         checkpoints: None,
         jobs: SessionJobs::new(),

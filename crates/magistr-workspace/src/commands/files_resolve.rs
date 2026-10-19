@@ -319,7 +319,7 @@ fn resolve_delete(
             baseline: None,
         }],
         notes: vec![format!(
-            "delete {from:?}: journal-backed move to .workbench/trash/ — recoverable with undo"
+            "delete {from:?}: journal-backed move to .magistr/workspace/trash/ — recoverable with undo"
         )],
         always_gated: false,
     }))

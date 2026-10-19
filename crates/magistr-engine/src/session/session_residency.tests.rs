@@ -11,7 +11,7 @@ fn a_pending_permission_is_the_only_blocking_residency() {
     assert!(!SessionResidency::AgentProcess { pid: Some(42) }.is_blocking());
     assert!(!SessionResidency::Terminal { id: "t1".into() }.is_blocking());
     assert!(
-        !SessionResidency::WorkbenchLock {
+        !SessionResidency::WorkspaceLock {
             workspace: "/tmp/w".into()
         }
         .is_blocking()
@@ -23,7 +23,7 @@ fn every_residency_names_itself_and_says_why_it_stays_behind() {
     let all = [
         SessionResidency::AgentProcess { pid: None },
         SessionResidency::Terminal { id: "t".into() },
-        SessionResidency::WorkbenchLock {
+        SessionResidency::WorkspaceLock {
             workspace: "w".into(),
         },
         SessionResidency::PendingPermission {
@@ -41,7 +41,7 @@ fn every_residency_names_itself_and_says_why_it_stays_behind() {
 
 #[test]
 fn a_residency_round_trips_through_json() {
-    let residency = SessionResidency::WorkbenchLock {
+    let residency = SessionResidency::WorkspaceLock {
         workspace: "/srv/proj".into(),
     };
     let json = serde_json::to_string(&residency).expect("serialize");
@@ -54,7 +54,7 @@ fn the_kinds_are_distinct() {
     let kinds = [
         SessionResidency::AgentProcess { pid: None }.kind(),
         SessionResidency::Terminal { id: "t".into() }.kind(),
-        SessionResidency::WorkbenchLock {
+        SessionResidency::WorkspaceLock {
             workspace: "w".into(),
         }
         .kind(),

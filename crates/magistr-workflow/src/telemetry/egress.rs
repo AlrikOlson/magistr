@@ -18,7 +18,7 @@ use crate::telemetry::shape::{StructuralShape, pseudonym};
 /// variable unset, there is nowhere to send and telemetry is structurally zero
 /// no matter what consent says. An operator who wants shapes collected names
 /// the endpoint that receives them, and so runs the thing they are pointing at.
-pub const TELEMETRY_URL_VAR: &str = "THINK_AND_SHIP_TELEMETRY_URL";
+pub const TELEMETRY_URL_VAR: &str = "MAGISTR_WORKFLOW_TELEMETRY_URL";
 
 fn salt_path(data_dir: &Path) -> PathBuf {
     data_dir.join("telemetry").join("salt")

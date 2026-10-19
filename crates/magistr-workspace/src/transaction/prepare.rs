@@ -156,7 +156,7 @@ fn validate(request: &TransactionRequest) -> Result<(), TransactionError> {
         return Err(TransactionError::InvalidInput("requires at most 256 changes (empty only for undo bookkeeping), positive bounded undo links and formatting disabled for undo".into()));
     }
     // The empty session is the retained anonymous identity: a client that
-    // carries no `workbench/sessionId` still writes, and the seal binds ""
+    // carries no `magistr/sessionId` still writes, and the seal binds ""
     // exactly as it binds any other identity (chunk arch-14c10).
     if request.operation.is_empty()
         || request.operation.len() > 4096

@@ -396,8 +396,8 @@ impl LiveEmitter {
             // Recommended.
             crate::otel::attr("gen_ai.operation.name", "execute_tool"),
             // Ours, and namespaced so it cannot be mistaken for standard.
-            crate::otel::attr("think_and_ship.project", &inner.project),
-            crate::otel::attr_bool("think_and_ship.live", true),
+            crate::otel::attr("magistr.workflow.project", &inner.project),
+            crate::otel::attr_bool("magistr.workflow.live", true),
         ];
         // Conditionally required when the client executes a request. The spec
         // says NOT to record it for a null/omitted id — that is a notification,
@@ -415,10 +415,10 @@ impl LiveEmitter {
         // to give on a pipe — but WHICH client is calling is the thing an
         // operator actually groups by, so it rides our own namespace.
         if let Some(c) = call.client_name {
-            attrs.push(crate::otel::attr("think_and_ship.client.name", c));
+            attrs.push(crate::otel::attr("magistr.workflow.client.name", c));
         }
         if let Some(c) = call.client_version {
-            attrs.push(crate::otel::attr("think_and_ship.client.version", c));
+            attrs.push(crate::otel::attr("magistr.workflow.client.version", c));
         }
         // Conditionally required if and only if the operation fails. The spec's
         // note [1] says this is the JSON-RPC error code as a string.
@@ -495,9 +495,9 @@ impl Inner {
                 started,
                 now_nanos(),
                 vec![
-                    crate::otel::attr("think_and_ship.project", &inner.project),
+                    crate::otel::attr("magistr.workflow.project", &inner.project),
                     crate::otel::attr("gen_ai.operation.name", "invoke_agent"),
-                    crate::otel::attr_bool("think_and_ship.live", true),
+                    crate::otel::attr_bool("magistr.workflow.live", true),
                 ],
                 false,
             );
@@ -531,13 +531,13 @@ fn envelope(project: &str, spans: Vec<Value>) -> Value {
         "resourceSpans": [{
             "resource": {
                 "attributes": [
-                    crate::otel::attr("service.name", "think-and-ship"),
-                    crate::otel::attr("gen_ai.system", "think-and-ship"),
-                    crate::otel::attr("think_and_ship.project", project),
+                    crate::otel::attr("service.name", "magistr"),
+                    crate::otel::attr("gen_ai.system", "magistr"),
+                    crate::otel::attr("magistr.workflow.project", project),
                 ]
             },
             "scopeSpans": [{
-                "scope": { "name": "think-and-ship", "version": env!("CARGO_PKG_VERSION") },
+                "scope": { "name": "magistr", "version": env!("CARGO_PKG_VERSION") },
                 "spans": spans,
             }]
         }]
@@ -597,7 +597,7 @@ fn span_project(span: &Value) -> String {
         .and_then(|attrs| {
             attrs
                 .iter()
-                .find(|a| a["key"] == "think_and_ship.project")
+                .find(|a| a["key"] == "magistr.workflow.project")
                 .and_then(|a| a["value"]["stringValue"].as_str())
         })
         .unwrap_or_default()
@@ -889,7 +889,7 @@ mod tests {
         );
         assert_eq!(attr_of(&span, "network.transport").as_deref(), Some("pipe"));
         assert_eq!(
-            attr_of(&span, "think_and_ship.client.name").as_deref(),
+            attr_of(&span, "magistr.workflow.client.name").as_deref(),
             Some("claude-code")
         );
     }
@@ -1008,7 +1008,7 @@ mod tests {
             "mcp think_record_step",
             10,
             20,
-            vec![crate::otel::attr("think_and_ship.project", "p")],
+            vec![crate::otel::attr("magistr.workflow.project", "p")],
             false,
         );
         let body = envelope("p", vec![span]);

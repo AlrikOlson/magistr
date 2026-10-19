@@ -24,10 +24,10 @@ const CODE: &str = "SENTINEL-MANIFEST-CODE-77ab";
 fn conversion_body() -> serde_json::Value {
     serde_json::json!({
         "id": 654_321,
-        "slug": "think-and-ship-dogfood",
+        "slug": "magistr-dogfood",
         "node_id": "MDM6SW50ZWdyYXRpb24x",
-        "name": "think-and-ship",
-        "html_url": "https://github.com/apps/think-and-ship-dogfood",
+        "name": "magistr",
+        "html_url": "https://github.com/apps/magistr-dogfood",
         "client_id": "Iv1.0000public0000",
         "client_secret": CLIENT_SECRET,
         "pem": PEM,
@@ -62,7 +62,7 @@ async fn a_temporary_code_becomes_the_id_the_pem_the_webhook_secret_and_the_clie
         .expect("the conversion must succeed");
 
     assert_eq!(app.id, 654_321);
-    assert_eq!(app.slug, "think-and-ship-dogfood");
+    assert_eq!(app.slug, "magistr-dogfood");
     assert_eq!(app.client_id, "Iv1.0000public0000");
     assert_eq!(app.pem.expose(), PEM);
     assert_eq!(app.client_secret.expose(), CLIENT_SECRET);
@@ -173,7 +173,7 @@ fn the_form_carries_the_loopback_redirect_and_the_pinned_permissions() {
     );
 
     let manifest = AppManifest::new(
-        "think-and-ship",
+        "magistr",
         "https://example.com",
         "https://api.example.com/webhooks/github",
         &redirect,

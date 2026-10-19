@@ -25,8 +25,8 @@ pub fn archetype_coder(archetype: &Archetype) -> SpecializedRole {
          ## Instructions\n\n\
          Follow TDD: write a failing test first, make it pass, then refactor.\n\
          Only modify files under `{root}`. Follow the conventions above strictly.\n\
-         Navigate and edit with the workbench-mcp tools (search, map, read, edit, \
-         files, run, script, undo); follow .claude/skills/workbench-routing/SKILL.md.\n\n\
+         Navigate and edit with the magistr tools (search, map, read, edit, \
+         files, run, script, undo); follow .claude/skills/workspace-routing/SKILL.md.\n\n\
          Task: {{task}}",
         name = archetype.name,
         lang = archetype.language,
@@ -73,8 +73,8 @@ pub fn archetype_tester(archetype: &Archetype) -> SpecializedRole {
          ## Instructions\n\n\
          Focus on writing comprehensive tests. Test error paths, not just happy paths.\n\
          Only write tests for files under `{root}`.\n\
-         Navigate and edit with the workbench-mcp tools (search, read, edit, run); \
-         follow .claude/skills/workbench-routing/SKILL.md.\n\n\
+         Navigate and edit with the magistr tools (search, read, edit, run); \
+         follow .claude/skills/workspace-routing/SKILL.md.\n\n\
          Task: {{task}}",
         name = archetype.name,
         lang = archetype.language,

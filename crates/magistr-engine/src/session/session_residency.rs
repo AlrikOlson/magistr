@@ -19,7 +19,7 @@ use serde::{Deserialize, Serialize};
 /// Two answers are possible, and [`is_blocking`] decides which.
 ///
 /// *Severable* — the new host makes its own. It spawns its own agent
-/// process, opens its own terminals, takes its own workbench lock. The
+/// process, opens its own terminals, takes its own workspace lock. The
 /// restore reports these, so the loss is on the record, and proceeds.
 ///
 /// *Blocking* — the restore refuses. There is exactly one, and it is
@@ -47,8 +47,8 @@ pub enum SessionResidency {
         /// The terminal's id, as the agent knows it.
         id: String,
     },
-    /// The exclusive per-workspace lock the workbench holds.
-    WorkbenchLock {
+    /// The exclusive per-workspace lock the workspace holds.
+    WorkspaceLock {
         /// The workspace the lock is over.
         workspace: String,
     },
@@ -73,7 +73,7 @@ impl SessionResidency {
         match self {
             Self::AgentProcess { .. } => "agent_process",
             Self::Terminal { .. } => "terminal",
-            Self::WorkbenchLock { .. } => "workbench_lock",
+            Self::WorkspaceLock { .. } => "workspace_lock",
             Self::PendingPermission { .. } => "pending_permission",
         }
     }
@@ -88,8 +88,8 @@ impl SessionResidency {
             Self::Terminal { .. } => {
                 "a terminal belongs to the process that opened it and dies with it"
             }
-            Self::WorkbenchLock { .. } => {
-                "the workbench lock is exclusive per workspace and is taken by the new host"
+            Self::WorkspaceLock { .. } => {
+                "the workspace lock is exclusive per workspace and is taken by the new host"
             }
             Self::PendingPermission { .. } => {
                 "an unanswered permission would be delivered to a tool call in a process \
@@ -105,7 +105,7 @@ impl SessionResidency {
             Self::AgentProcess { pid: Some(pid) } => format!(" (pid {pid})"),
             Self::AgentProcess { pid: None } => String::new(),
             Self::Terminal { id } => format!(" '{id}'"),
-            Self::WorkbenchLock { workspace } => format!(" on '{workspace}'"),
+            Self::WorkspaceLock { workspace } => format!(" on '{workspace}'"),
             Self::PendingPermission { request_id } => format!(" '{request_id}'"),
         };
         format!("{}{}: {}", self.kind(), detail, self.reason())

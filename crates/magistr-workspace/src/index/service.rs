@@ -72,8 +72,8 @@ impl WorkspaceIndex {
             }
             Err(error) => return Err(error.into()),
         };
-        if state_dir.starts_with(&root) && !state_dir.starts_with(root.join(".workbench")) {
-            return Err(IndexError::Unavailable("in-workspace index state must be inside .workbench so watcher events exclude cache writes".into()));
+        if state_dir.starts_with(&root) && !state_dir.starts_with(root.join(".magistr/workspace")) {
+            return Err(IndexError::Unavailable("in-workspace index state must be inside .workspace so watcher events exclude cache writes".into()));
         }
         let shared = Arc::new(Shared {
             root,

@@ -24,7 +24,7 @@ pub struct PluginHost<'a> {
 }
 
 impl<'a> PluginHost<'a> {
-    /// `state_dir` is the admitted `.workbench` directory holding
+    /// `state_dir` is the admitted `.magistr/workspace` directory holding
     /// `plugins.json` and `plugin-health.json`.
     pub fn new(
         policy: &'a WorkspacePolicy,

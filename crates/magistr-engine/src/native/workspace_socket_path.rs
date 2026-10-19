@@ -22,7 +22,7 @@ use super::native_config::fits_sun_path;
 /// cannot be read; local attachment is unsupported elsewhere.
 pub fn workspace_socket_path(root: &Path) -> io::Result<PathBuf> {
     let root = root.canonicalize()?;
-    let beside = root.join(".workbench/run/owner.sock");
+    let beside = root.join(".magistr/workspace/run/owner.sock");
     #[cfg(unix)]
     {
         if fits_sun_path(&beside) {

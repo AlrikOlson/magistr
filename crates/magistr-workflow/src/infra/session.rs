@@ -8,12 +8,12 @@ use std::env;
 
 use super::project_id::resolve_project_id;
 
-const DEFAULT_SESSION_ID_VAR: &str = "THINK_AND_SHIP_DEFAULT_SESSION_ID";
+const DEFAULT_SESSION_ID_VAR: &str = "MAGISTR_WORKFLOW_DEFAULT_SESSION_ID";
 
 /// Resolve the default `session_id` at startup.
 ///
 /// Precedence:
-///   1. `THINK_AND_SHIP_DEFAULT_SESSION_ID` (explicit override).
+///   1. `MAGISTR_WORKFLOW_DEFAULT_SESSION_ID` (explicit override).
 ///   2. The resolved `project_id` — stable across server spawns so traces
 ///      accumulate across conversations in the same project.
 ///

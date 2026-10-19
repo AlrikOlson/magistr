@@ -18,11 +18,6 @@ fn preview_mcp_json(dir: &Path, vars: &HashMap<String, String>) -> Result<(Strin
     Ok((change.new_content, change.action))
 }
 
-/// Retiring legacy servers is part of the merge now.
-fn strip_legacy_mcp_entries(dir: &Path) -> Result<()> {
-    merge_mcp_json(dir, &HashMap::new())
-}
-
 fn merge_gitignore(dir: &Path, vars: &HashMap<String, String>) -> Result<()> {
     write_change(dir, &gitignore_change(dir, vars));
     Ok(())
@@ -313,7 +308,7 @@ fn generate_preserves_existing_claude_md_and_roadmap() {
     .unwrap();
 
     // CLAUDE.md is user-owned (NeverOverwrite); the only write is the
-    // think-and-ship section appended between markers, which is reported.
+    // magistr section appended between markers, which is reported.
     assert!(written.contains(&"CLAUDE.md".to_string()));
     // Should write fewer files (preserved files excluded)
     assert!(
@@ -324,8 +319,8 @@ fn generate_preserves_existing_claude_md_and_roadmap() {
 
     // Existing content should be preserved, with the section appended after it
     let claude = std::fs::read_to_string(dir.join("CLAUDE.md")).unwrap();
-    assert!(claude.starts_with("# My custom content\n\n<!-- think-and-ship -->"));
-    assert!(claude.trim_end().ends_with("<!-- /think-and-ship -->"));
+    assert!(claude.starts_with("# My custom content\n\n<!-- magistr -->"));
+    assert!(claude.trim_end().ends_with("<!-- /magistr -->"));
 
     // Other scaffold files should still be created
     assert!(dir.join(".magistr/project.json").is_file());
@@ -411,9 +406,9 @@ fn generated_override_for_claude_md_respects_preserve() {
     .unwrap();
 
     // Existing CLAUDE.md should be preserved (NeverOverwrite); the only
-    // addition is the think-and-ship section appended after the user's text.
+    // addition is the magistr section appended after the user's text.
     let on_disk = std::fs::read_to_string(dir.join("CLAUDE.md")).unwrap();
-    assert!(on_disk.starts_with("# My hand-crafted CLAUDE.md\n\n<!-- think-and-ship -->"));
+    assert!(on_disk.starts_with("# My hand-crafted CLAUDE.md\n\n<!-- magistr -->"));
     assert!(!on_disk.contains("AI-generated"));
 }
 
@@ -498,14 +493,12 @@ fn preview_existing_scaffold_shows_unchanged() {
 
     assert_eq!(result.creates(), 0);
     assert_eq!(result.overwrites(), 0);
-    // project.json is preserved (NeverOverwrite) and so is the identity
-    // declaration the first init wrote; CLAUDE.md is the user's too, but its
-    // section is current so it is simply unchanged.
-    assert_eq!(result.preserved(), 2);
+    // Project settings are preserved; current managed instructions are unchanged.
+    assert_eq!(result.preserved(), 1);
     let identity = result
         .files
         .iter()
-        .find(|f| f.path == ".think-and-ship/project.json")
+        .find(|f| f.path == ".magistr/project.json")
         .unwrap();
     assert_eq!(identity.action, FileAction::Preserved);
     let claude = result.files.iter().find(|f| f.path == "CLAUDE.md").unwrap();
@@ -536,7 +529,7 @@ fn preview_preserves_user_edited_files() {
     )
     .unwrap();
 
-    // The user's text is kept and the think-and-ship section is appended:
+    // The user's text is kept and the magistr section is appended:
     // a shared merge the plan shows as an overwrite with its diff.
     let claude = result.files.iter().find(|f| f.path == "CLAUDE.md").unwrap();
     assert_eq!(claude.action, FileAction::Overwrite);
@@ -544,13 +537,13 @@ fn preview_preserves_user_edited_files() {
     assert!(
         claude
             .new_content
-            .starts_with("# My custom content\n\n<!-- think-and-ship -->")
+            .starts_with("# My custom content\n\n<!-- magistr -->")
     );
     assert!(
         claude
             .diff
             .as_deref()
-            .is_some_and(|d| d.contains("+<!-- think-and-ship -->"))
+            .is_some_and(|d| d.contains("+<!-- magistr -->"))
     );
     let project = result
         .files
@@ -652,9 +645,8 @@ fn preview_summary_counts() {
     )
     .unwrap();
 
-    // project.json and the identity declaration preserved, 1 overwrite,
-    // rest unchanged.
-    assert_eq!(result.preserved(), 3);
+    // Project settings and the customized rule are preserved.
+    assert_eq!(result.preserved(), 2);
     assert_eq!(result.overwrites(), 0);
     assert_eq!(result.creates(), 0);
     let total = result.creates() + result.overwrites() + result.unchanged() + result.preserved();
@@ -685,8 +677,6 @@ fn merge_mcp_json_creates_file_when_absent() {
     let tmp = tempfile::TempDir::new().unwrap();
     let dir = tmp.path();
     let mut tv = test_vars();
-    tv.insert("workbench_command".into(), "workbench-mcp".into());
-    tv.insert("workbench_args".into(), "\"/tmp/project\"".into());
     tv.insert("project_root".into(), "/tmp/project".into());
 
     merge_mcp_json(dir, &tv).unwrap();
@@ -694,7 +684,7 @@ fn merge_mcp_json_creates_file_when_absent() {
     let content = std::fs::read_to_string(dir.join(".mcp.json")).unwrap();
     let parsed: serde_json::Value = serde_json::from_str(&content).unwrap();
     assert!(parsed["mcpServers"]["magistr"].is_object());
-    assert!(parsed["mcpServers"].get("workbench-mcp").is_none());
+    assert_eq!(parsed["mcpServers"].as_object().unwrap().len(), 1);
 }
 
 #[test]
@@ -719,8 +709,6 @@ fn merge_mcp_json_preserves_user_servers() {
     .unwrap();
 
     let mut tv = test_vars();
-    tv.insert("workbench_command".into(), "workbench-mcp".into());
-    tv.insert("workbench_args".into(), "\"/tmp/project\"".into());
     tv.insert("project_root".into(), "/tmp/project".into());
 
     merge_mcp_json(dir, &tv).unwrap();
@@ -731,7 +719,7 @@ fn merge_mcp_json_preserves_user_servers() {
     assert!(parsed["mcpServers"]["my-custom-server"].is_object());
     // Magistr servers added
     assert!(parsed["mcpServers"]["magistr"].is_object());
-    assert!(parsed["mcpServers"].get("workbench-mcp").is_none());
+    assert_eq!(parsed["mcpServers"].as_object().unwrap().len(), 2);
 }
 
 #[test]
@@ -739,8 +727,6 @@ fn merge_mcp_json_is_idempotent() {
     let tmp = tempfile::TempDir::new().unwrap();
     let dir = tmp.path();
     let mut tv = test_vars();
-    tv.insert("workbench_command".into(), "workbench-mcp".into());
-    tv.insert("workbench_args".into(), "\"/tmp/project\"".into());
     tv.insert("project_root".into(), "/tmp/project".into());
 
     // Run merge twice
@@ -884,8 +870,6 @@ fn merge_mcp_json_handles_malformed_existing_file() {
     std::fs::write(dir.join(".mcp.json"), "not valid json").unwrap();
 
     let mut tv = test_vars();
-    tv.insert("workbench_command".into(), "workbench-mcp".into());
-    tv.insert("workbench_args".into(), "\"/tmp/project\"".into());
     tv.insert("project_root".into(), "/tmp/project".into());
 
     let plan = mcp_json_change(dir, &tv).unwrap();
@@ -1066,10 +1050,10 @@ fn mcp_json_snapshot_with_a_checkout_launch_line() {
     let tmp = tempfile::TempDir::new().unwrap();
     let dir = tmp.path();
     let mut tv = test_vars();
-    tv.insert("workbench_command".into(), "bun".into());
+    tv.insert("workspace_command".into(), "bun".into());
     tv.insert(
-        "workbench_args".into(),
-        "\"run\", \"/src/workbench-mcp/src/main.ts\", \"/tmp/project\"".into(),
+        "workspace_args".into(),
+        "\"run\", \"/src/magistr mcp/src/main.ts\", \"/tmp/project\"".into(),
     );
     tv.insert("project_root".into(), "/tmp/project".into());
 
@@ -1100,31 +1084,6 @@ fn settings_json_snapshot_carries_the_guard_hooks() {
     assert!(
         hook.content.contains("unrecognized subcommand"),
         "old binaries must fail open"
-    );
-}
-
-#[test]
-fn strip_legacy_mcp_entries_retires_old_navigation_servers() {
-    let tmp = tempfile::TempDir::new().unwrap();
-    let dir = tmp.path();
-    std::fs::write(
-        dir.join(".mcp.json"),
-        r#"{"mcpServers":{"magistr":{"command":"magistr"},"magistr-scope":{"command":"magistr-scope"},"iris":{"command":"iris"},"think-and-ship":{"command":"think-and-ship","args":["serve"]},"mine":{"command":"mine"}}}"#,
-    )
-    .unwrap();
-
-    strip_legacy_mcp_entries(dir).unwrap();
-
-    let parsed: serde_json::Value =
-        serde_json::from_str(&std::fs::read_to_string(dir.join(".mcp.json")).unwrap()).unwrap();
-    let servers = parsed["mcpServers"].as_object().unwrap();
-    assert!(servers.contains_key("magistr"));
-    assert!(servers.contains_key("mine"), "user servers are kept");
-    assert!(!servers.contains_key("magistr-scope"));
-    assert!(!servers.contains_key("iris"));
-    assert!(
-        !servers.contains_key("think-and-ship"),
-        "a standalone think-and-ship server is a second process over the one store (tas-ship-state-two-servers)"
     );
 }
 
@@ -1179,62 +1138,14 @@ fn scaffolded_skills_and_rules_use_current_roadmap_tools() {
 }
 
 #[test]
-fn scaffold_bundles_the_workbench_routing_skill_with_its_source_pin() {
+fn scaffold_bundles_the_workspace_routing_skill_with_its_source_pin() {
     let files = scaffold_files(&test_vars());
     let skill = files
         .iter()
-        .find(|f| f.path == ".claude/skills/workbench-routing/SKILL.md")
+        .find(|f| f.path == ".claude/skills/workspace-routing/SKILL.md")
         .expect("routing skill scaffolded");
-    assert!(skill.content.starts_with("---\nname: workbench-routing"));
-    assert!(skill.content.contains(workbench::ROUTING_SKILL_SOURCE));
-}
-
-#[test]
-fn init_in_the_canonical_skill_repo_preserves_byte_equality() {
-    // The workbench-mcp shape: the repo carrying the canonical routing skill
-    // (its lint rule R6 demands the dogfood copy be the same bytes). Init
-    // must byte-copy the canonical file — no provenance marker, and no stale
-    // vendored content.
-    let tmp = tempfile::TempDir::new().unwrap();
-    let dir = tmp.path();
-    let canonical = "# The canonical routing skill, newer than the vendored copy.\n";
-    std::fs::create_dir_all(dir.join("skills/workbench-routing")).unwrap();
-    std::fs::write(dir.join("skills/workbench-routing/SKILL.md"), canonical).unwrap();
-
-    let template_vars = vars([
-        ("project_name", "workbench-mcp"),
-        ("project_description", ""),
-        ("language", "typescript"),
-        ("framework", "none"),
-        ("package_manager", "bun"),
-        ("test_framework", "bun-test"),
-        ("linter", "biome"),
-        ("formatter", "biome"),
-        ("check_cmd", "tsc --noEmit"),
-        ("test_cmd", "bun test"),
-        ("lint_cmd", "biome check ."),
-        ("format_cmd", "biome check --write ."),
-        ("format_extensions", r#""ts""#),
-        ("companion_pattern", "{name}.test.{ext}"),
-        ("test_dir", "alongside"),
-        ("state_prefix", "workbench-mcp"),
-        ("allowed_tools", ""),
-    ]);
-    generate(
-        dir,
-        &template_vars,
-        &HashMap::new(),
-        &crate::scaffold::SetupSeeds::default(),
-    )
-    .unwrap();
-
-    let written = std::fs::read_to_string(dir.join(".claude/skills/workbench-routing/SKILL.md"))
-        .expect("dogfood copy written");
-    assert_eq!(written, canonical, "byte-equality with the canonical file");
-    assert!(
-        !written.contains("maintained with Magistr"),
-        "no provenance marker in the canonical repo"
-    );
+    assert!(skill.content.starts_with("---\nname: workspace-routing"));
+    assert!(skill.content.contains(workspace::ROUTING_SKILL_SOURCE));
 }
 
 #[test]
@@ -1268,7 +1179,7 @@ fn init_outside_the_canonical_repo_keeps_the_provenance_marker() {
     )
     .unwrap();
 
-    let written = std::fs::read_to_string(dir.join(".claude/skills/workbench-routing/SKILL.md"))
+    let written = std::fs::read_to_string(dir.join(".claude/skills/workspace-routing/SKILL.md"))
         .expect("skill written");
     assert!(
         written.contains("maintained with Magistr"),
@@ -1278,7 +1189,7 @@ fn init_outside_the_canonical_repo_keeps_the_provenance_marker() {
 
 #[test]
 fn merge_mcp_json_preserves_a_working_tree_entry() {
-    // The dogfooding case: the repo's own .mcp.json launches workbench-mcp
+    // The dogfooding case: the repo's own .mcp.json launches magistr mcp
     // from the working tree. That is a deliberate choice a re-init must not
     // replace with the installed binary.
     let tmp = tempfile::TempDir::new().unwrap();
@@ -1302,8 +1213,6 @@ fn merge_mcp_json_preserves_a_working_tree_entry() {
 
     let mut tv = HashMap::new();
     tv.insert("project_root".into(), ".".into());
-    tv.insert("workbench_command".into(), "magistr".into());
-    tv.insert("workbench_args".into(), r#"".""#.into());
     merge_mcp_json(dir, &tv).unwrap();
 
     let content = std::fs::read_to_string(dir.join(".mcp.json")).unwrap();
@@ -1329,8 +1238,8 @@ fn merge_mcp_json_rewrites_a_stale_absolute_entry() {
         dir.join(".mcp.json"),
         serde_json::to_string_pretty(&serde_json::json!({
             "mcpServers": {
-                "workbench-mcp": {
-                    "command": "workbench-mcp",
+                "external": {
+                    "command": "external",
                     "args": [dir.to_string_lossy()],
                     "type": "stdio"
                 },
@@ -1347,13 +1256,11 @@ fn merge_mcp_json_rewrites_a_stale_absolute_entry() {
 
     let mut tv = HashMap::new();
     tv.insert("project_root".into(), ".".into());
-    tv.insert("workbench_command".into(), "workbench-mcp".into());
-    tv.insert("workbench_args".into(), r#"".""#.into());
     merge_mcp_json(dir, &tv).unwrap();
 
     let content = std::fs::read_to_string(dir.join(".mcp.json")).unwrap();
     let parsed: serde_json::Value = serde_json::from_str(&content).unwrap();
-    assert!(parsed["mcpServers"].get("workbench-mcp").is_none());
+    assert_eq!(parsed["mcpServers"]["external"]["command"], "external");
     assert_eq!(parsed["mcpServers"]["magistr"]["args"][2], ".");
 }
 
@@ -1383,8 +1290,6 @@ fn reset_then_init_keeps_a_working_tree_entry_through_remove_and_merge() {
 
     let mut tv = HashMap::new();
     tv.insert("project_root".into(), ".".into());
-    tv.insert("workbench_command".into(), "magistr".into());
-    tv.insert("workbench_args".into(), r#"".""#.into());
     merge_mcp_json(dir, &tv).unwrap();
 
     let content = std::fs::read_to_string(dir.join(".mcp.json")).unwrap();
@@ -1399,7 +1304,7 @@ fn reset_then_init_keeps_a_working_tree_entry_through_remove_and_merge() {
 /// merge is handed a file whose managed block has just been cut out —
 /// leaving the blank line that used to separate it. Adding another one
 /// per run grew every project's `.gitignore` by a blank line for ever
-/// (three inits on the real workbench-mcp repo, three blank lines).
+/// (three inits on the real magistr mcp repo, three blank lines).
 #[test]
 fn the_gitignore_separator_does_not_accumulate_across_re_inits() {
     let section = "target/\n.magistr/scope/";
@@ -1457,7 +1362,7 @@ fn customized_current_launch_preserves_arguments_environment_and_metadata() {
 
 /// A file that already ends with a blank line gets no second one — the
 /// separator is what the merge wants, not one more of them. This is the
-/// shape the real workbench-mcp `.gitignore` had.
+/// shape the real magistr mcp `.gitignore` had.
 #[test]
 fn a_gitignore_ending_in_a_blank_line_gains_no_second_separator() {
     let merged = merge_gitignore_content("target/\n\n", "node_modules/");
@@ -1471,7 +1376,7 @@ fn a_gitignore_ending_in_a_blank_line_gains_no_second_separator() {
 /// `--force` re-init must not delete files magistr never wrote. The
 /// doc comment on `remove_scaffold` has always claimed it "preserves
 /// user-created files in those directories", but it removed the whole
-/// `.claude/` tree — which in the real workbench-mcp repo took ten
+/// `.claude/` tree — which in the real magistr mcp repo took ten
 /// `speckit-*` skills, a user hook and a user rule file with it.
 #[test]
 fn remove_scaffold_keeps_files_magistr_never_wrote() {

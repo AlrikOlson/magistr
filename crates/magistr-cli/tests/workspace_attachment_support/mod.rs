@@ -57,7 +57,7 @@ impl Connection {
         request.arguments = args.as_object().cloned();
         if let Some(session) = session {
             let mut meta = RequestMetaObject::new();
-            meta.insert("workbench/sessionId".into(), json!(session));
+            meta.insert("magistr/sessionId".into(), json!(session));
             request.meta = Some(meta);
         }
         let result = tokio::time::timeout(WAIT, self.client.peer().call_tool(request))
@@ -130,7 +130,7 @@ impl Connection {
 /// scratch root's marker is rewritten to an unknown record the native lock
 /// refuses. Returns the native bytes so the caller can restore them.
 pub(super) fn deny_admission(root: &Path) -> Vec<u8> {
-    let lock = root.join(".workbench/server.lock");
+    let lock = root.join(".magistr/workspace/server.lock");
     let native = std::fs::read(&lock).expect("native marker");
     std::fs::write(&lock, b"{\"pid\":0,\"host\":\"unrecognized-fixture\"}\n")
         .expect("unrecognized marker");
@@ -138,7 +138,8 @@ pub(super) fn deny_admission(root: &Path) -> Vec<u8> {
 }
 
 pub(super) fn restore_admission(root: &Path, native: &[u8]) {
-    std::fs::write(root.join(".workbench/server.lock"), native).expect("native marker restored");
+    std::fs::write(root.join(".magistr/workspace/server.lock"), native)
+        .expect("native marker restored");
 }
 
 pub(super) fn command(root: &Path) -> tokio::process::Command {
@@ -146,7 +147,7 @@ pub(super) fn command(root: &Path) -> tokio::process::Command {
     command
         .args(["mcp", "--dir"])
         .arg(root)
-        .env("THINK_AND_SHIP_DATA_DIR", root.join("workflow-state"));
+        .env("MAGISTR_WORKFLOW_DATA_DIR", root.join("workflow-state"));
     command
 }
 
@@ -154,9 +155,9 @@ pub(super) fn command(root: &Path) -> tokio::process::Command {
 pub(super) fn magistr() -> tokio::process::Command {
     let mut command = magistr_command::magistr_command();
     command
-        .env("WORKBENCH_NETWORK_FS", "0")
-        .env_remove("WORKBENCH_ORG_POLICY")
-        .env_remove("WORKBENCH_USER_CONFIG");
+        .env("MAGISTR_WORKSPACE_NETWORK_FS", "0")
+        .env_remove("MAGISTR_WORKSPACE_ORG_POLICY")
+        .env_remove("MAGISTR_WORKSPACE_USER_CONFIG");
     tokio::process::Command::from(command)
 }
 
@@ -168,11 +169,12 @@ pub(super) fn binary() -> &'static str {
 pub(super) fn workspace() -> tempfile::TempDir {
     let dir = tempfile::tempdir().expect("workspace");
     std::fs::create_dir(dir.path().join(".git")).expect("repository marker");
+    std::fs::create_dir(dir.path().join(".magistr")).expect("settings directory");
     // Exercise a live watcher and its joined shutdown without depending on
     // macOS FSEvents daemon registration under parallel process load. Native
     // watcher behavior is covered by workspace_index and index_watcher tests.
     std::fs::write(
-        dir.path().join("workbench.toml"),
+        dir.path().join(".magistr/workspace.toml"),
         "[watcher]\nmode = 'poll'\n",
     )
     .expect("deterministic lifecycle watcher");
@@ -183,8 +185,8 @@ pub(super) fn workspace() -> tempfile::TempDir {
 }
 
 pub(super) fn generation(root: &Path) -> u64 {
-    let bytes =
-        std::fs::read(root.join(".workbench/server.generation")).expect("published generation");
+    let bytes = std::fs::read(root.join(".magistr/workspace/server.generation"))
+        .expect("published generation");
     assert_eq!(bytes.len(), 20, "complete fixed-width generation");
     String::from_utf8(bytes)
         .expect("generation digits")

@@ -1,4 +1,4 @@
-//! File export over the mounted think-and-ship roadmap service.
+//! File export over the mounted magistr roadmap service.
 //! Rendering stays in that live service; only its inline result stays in-process.
 
 use std::io::Write;

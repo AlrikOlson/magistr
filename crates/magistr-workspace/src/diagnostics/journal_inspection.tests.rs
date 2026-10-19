@@ -8,7 +8,7 @@ use crate::{
 
 fn seeded() -> tempfile::TempDir {
     let dir = tempfile::tempdir().expect("workspace");
-    let state = dir.path().join(".workbench");
+    let state = dir.path().join(".magistr/workspace");
     std::fs::create_dir_all(&state).expect("state dir");
     let mut journal =
         JournalDb::open(JournalDbOptions::new(state.join("journal.db"))).expect("journal");
@@ -70,7 +70,7 @@ fn snapshot(state: &std::path::Path) -> BTreeMap<String, Vec<u8>> {
 #[test]
 fn lists_the_log_as_rows_newest_op_first_with_diffs() {
     let dir = seeded();
-    let state = dir.path().join(".workbench");
+    let state = dir.path().join(".magistr/workspace");
     let rows = rows(JournalInspection::list(
         &state,
         &JournalLogQuery::default(),
@@ -106,7 +106,7 @@ fn lists_the_log_as_rows_newest_op_first_with_diffs() {
 #[test]
 fn runs_beside_a_live_writer_without_touching_the_state_dir() {
     let dir = seeded();
-    let state = dir.path().join(".workbench");
+    let state = dir.path().join(".magistr/workspace");
     std::fs::write(state.join("server.lock"), "{\"pid\":1}").expect("lock");
     // Keep a writer open as a real owner does.
     let writer = JournalDb::open(JournalDbOptions::new(state.join("journal.db"))).expect("writer");
@@ -126,7 +126,7 @@ fn runs_beside_a_live_writer_without_touching_the_state_dir() {
 #[test]
 fn limit_before_since_session_and_no_diff_narrow_the_listing() {
     let dir = seeded();
-    let state = dir.path().join(".workbench");
+    let state = dir.path().join(".magistr/workspace");
     let list = |query: JournalLogQuery, options: JournalViewOptions| {
         rows(JournalInspection::list(&state, &query, &options, 4000))
     };
@@ -194,7 +194,7 @@ fn limit_before_since_session_and_no_diff_narrow_the_listing() {
 #[test]
 fn a_workspace_that_never_wrote_says_so_and_a_newer_journal_fails_closed() {
     let empty = tempfile::tempdir().expect("workspace");
-    let state = empty.path().join(".workbench");
+    let state = empty.path().join(".magistr/workspace");
     let fresh = JournalInspection::list(
         &state,
         &JournalLogQuery::default(),

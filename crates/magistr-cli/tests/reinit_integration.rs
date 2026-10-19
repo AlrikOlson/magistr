@@ -50,7 +50,7 @@ fn reinit_preserves_state_config_and_customized_scaffold() {
     for (path, content) in state_files {
         write(dir, path, content);
     }
-    let identity = read(dir, ".think-and-ship/project.json");
+    let identity = read(dir, ".magistr/project.json");
     let manifest = read(dir, ".magistr/scaffold-manifest.json");
     let mut manifest_value: serde_json::Value = serde_json::from_str(&manifest).unwrap();
     manifest_value["files"][".claude/retired.md"] = "older-hash".into();
@@ -70,7 +70,7 @@ fn reinit_preserves_state_config_and_customized_scaffold() {
             .arg("init")
             .arg(dir)
             .arg("--yes")
-            .env("THINK_AND_SHIP_DATA_DIR", dir.join("workflow-state"))
+            .env("MAGISTR_WORKFLOW_DATA_DIR", dir.join("workflow-state"))
             .env("XDG_CONFIG_HOME", dir.join("user-config"))
             .env("XDG_DATA_HOME", dir.join("user-data"))
             .output()
@@ -93,7 +93,7 @@ fn reinit_preserves_state_config_and_customized_scaffold() {
         for (path, content) in state_files {
             assert_eq!(read(dir, path), content, "{path}");
         }
-        assert_eq!(read(dir, ".think-and-ship/project.json"), identity);
+        assert_eq!(read(dir, ".magistr/project.json"), identity);
         let after: serde_json::Value =
             serde_json::from_str(&read(dir, ".magistr/scaffold-manifest.json")).unwrap();
         assert_eq!(
@@ -141,8 +141,8 @@ fn reinit_preview_and_generation_preserve_existing_project_bytes() {
 #[test]
 fn reinit_preserves_explicit_mcp_overrides_in_preview_and_generation() {
     for entry in [
-        serde_json::json!({"command":"my-workbench","args":["--workspace","."]}),
-        serde_json::json!({"command":"/not/installed/yet/workbench","args":["."]}),
+        serde_json::json!({"command":"my-workspace","args":["--workspace","."]}),
+        serde_json::json!({"command":"/not/installed/yet/workspace","args":["."]}),
         serde_json::json!({"command":"magistr","args":["."],"env":{"CUSTOM":"keep"}}),
         serde_json::json!({"type":"http","url":"https://example.invalid/mcp"}),
     ] {

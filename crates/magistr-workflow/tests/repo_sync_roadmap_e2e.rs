@@ -1,5 +1,5 @@
 //! E2e: the ROADMAP engine, wired with a `RepoSink`, mirrors each
-//! mutation into the repo's `.think-and-ship/` as roadmap-family Agent Trace
+//! mutation into the repo's `.magistr/traces/` as roadmap-family Agent Trace
 //! JSONL and commits the session on chunk completion/obsoletion. Exercises the
 //! real engine + git.
 
@@ -71,7 +71,7 @@ fn roadmap_lifecycle_mirrors_records_and_commits_on_complete() {
     // The mirror is asynchronous; wait for the worker to drain before asserting.
     engine.flush_mirror();
 
-    let sessions = tmp.path().join(".think-and-ship/sessions");
+    let sessions = tmp.path().join(".magistr/traces/sessions");
     let files = jsonl_files(&sessions);
     assert_eq!(files.len(), 1, "one roadmap session file: {files:?}");
     let body = std::fs::read_to_string(&files[0]).unwrap();
@@ -83,13 +83,13 @@ fn roadmap_lifecycle_mirrors_records_and_commits_on_complete() {
     // Every record is a valid roadmap-family Agent Trace envelope.
     for r in &recs {
         assert_eq!(r["version"], "0.1.0");
-        assert_eq!(r["metadata"]["dev.thinkandship"]["family"], "roadmap");
-        assert_eq!(r["tool"]["name"], "think-and-ship");
+        assert_eq!(r["metadata"]["dev.magistr"]["family"], "roadmap");
+        assert_eq!(r["tool"]["name"], "magistr");
     }
 
     let kinds: Vec<&str> = recs
         .iter()
-        .map(|r| r["metadata"]["dev.thinkandship"]["kind"].as_str().unwrap())
+        .map(|r| r["metadata"]["dev.magistr"]["kind"].as_str().unwrap())
         .collect();
     // add(chunk) start(chunk) refresh complete[changed+completed]→ chunk,chunk,refresh,chunk,chunk
     assert!(
@@ -102,7 +102,7 @@ fn roadmap_lifecycle_mirrors_records_and_commits_on_complete() {
     );
 
     // Exactly one commit, produced on complete_chunk.
-    let log = git(tmp.path(), &["log", "--oneline", "--", ".think-and-ship/"]);
+    let log = git(tmp.path(), &["log", "--oneline", "--", ".magistr/traces/"]);
     let commits = String::from_utf8_lossy(&log.stdout);
     assert_eq!(
         commits.lines().count(),
@@ -123,7 +123,7 @@ fn roadmap_local_default_writes_but_never_commits() {
     engine.complete_chunk("phase-1", None).unwrap();
     engine.flush_mirror();
 
-    let local = tmp.path().join(".think-and-ship/local");
+    let local = tmp.path().join(".magistr/traces/local");
     assert_eq!(jsonl_files(&local).len(), 1, "local file written");
     let log = git(tmp.path(), &["log", "--oneline"]);
     let empty = !log.status.success() || String::from_utf8_lossy(&log.stdout).trim().is_empty();

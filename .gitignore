@@ -41,6 +41,8 @@ node_modules/
 dist/
 
 # Temporary/generated
+__pycache__/
+*.py[cod]
 # Browser inspection output
 /.playwright-mcp/
 # Generated roadmap views
@@ -70,13 +72,13 @@ vendor/
 
 *.bin
 *.cache
-# Workbench state
-.workbench/
+# Workspace state
+.magistr/workspace/
 
 # Local configuration and notes
 /.claude/projects/
 /.cursor/mcp.json
-/.think-and-ship/
+/.magistr/traces/
 /.magistr/roadmap.yaml
 /.magistr/split-progress.md
 **/.magistr-roadmap.yml
@@ -100,7 +102,7 @@ secrets.json
 *.pfx
 
 # ── magistr managed ── DO NOT EDIT between markers ──
-.workbench/
+.magistr/workspace/
 .magistr/scope/
 .magistr/loop-state.json
 .DS_Store

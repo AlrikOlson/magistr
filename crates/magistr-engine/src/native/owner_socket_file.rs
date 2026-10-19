@@ -67,7 +67,7 @@ fn private_parent(parent: &Path) -> io::Result<()> {
         // the only new ancestor here; it must not redirect socket publication.
         if ancestor
             .file_name()
-            .is_some_and(|name| name == ".workbench")
+            .is_some_and(|name| name == ".magistr/workspace")
         {
             let metadata = std::fs::symlink_metadata(ancestor)?;
             if !metadata.is_dir() {

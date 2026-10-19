@@ -20,6 +20,7 @@ async fn format_command_runs_successfully() {
     let dir = tempfile::tempdir().unwrap();
     let config = crate::types::ProjectConfig {
         project: crate::types::ProjectMeta {
+            id: None,
             name: "test".into(),
             description: String::new(),
             project_type: String::new(),

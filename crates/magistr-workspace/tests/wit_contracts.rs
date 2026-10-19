@@ -1,22 +1,6 @@
-//! The WIT compatibility gate (SDD §8.2, chunk:m4-wit-interfaces).
-//!
-//! Parses the five public WIT packages under `wit/` with the real component-
-//! model parser, renders their whole vocabulary — interfaces, named types
-//! (fields and cases included, because the canonical ABI makes them part of
-//! the signature), function signatures, and world import/export names (the
-//! future capability-grant vocabulary) — into a canonical JSON form, and
-//! enforces the additive-evolution rules against the blessed snapshot in
-//! `wit/baseline.json`:
-//!
-//! - every baseline entry must survive verbatim (removal, rename, or any
-//!   signature change goes red);
-//! - any vocabulary change at all requires that package's version stamp to
-//!   move past the baseline's within the same major;
-//! - a version regression, or a major bump without a deliberate re-bless,
-//!   goes red.
-//!
-//! Re-blessing IS the deliberate act: `WIT_BASELINE_BLESS=1 cargo test
-//! wit_` rewrites the snapshot. See wit/README.md for the rules as prose.
+//! Current Magistr plugin contract. Parse every WIT definition and compare its
+//! full vocabulary with the reviewed snapshot. Update the snapshot deliberately
+//! when changing the current contract; old interfaces are not retained.
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -24,18 +8,18 @@ use std::path::{Path, PathBuf};
 use wit_parser::{Resolve, Type, TypeDefKind, WorldKey};
 
 const EXPECTED_PACKAGES: [&str; 6] = [
-    "workbench:lang-pack",
-    "workbench:resolver",
-    "workbench:runner",
-    "workbench:tool",
-    "workbench:ranking",
+    "magistr:lang-pack",
+    "magistr:resolver",
+    "magistr:runner",
+    "magistr:tool",
+    "magistr:ranking",
     // The narrow host capability reserved to blessed plugins (SDD §8.3
     // Resolvers; specs/001-lsp-resolver-plugin), added with its own stamp.
-    "workbench:subprocess",
+    "magistr:subprocess",
 ];
 
 fn wit_dir() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../subsystems/workspace/reference/wit")
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("wit")
 }
 
 fn baseline_path() -> PathBuf {
@@ -235,19 +219,8 @@ fn current_vocabulary() -> BTreeMap<String, PackageVocabulary> {
     out
 }
 
-fn parse_semver(v: &str) -> (u64, u64, u64) {
-    let mut parts = v.splitn(3, '.');
-    let mut next = || {
-        parts
-            .next()
-            .and_then(|p| p.parse::<u64>().ok())
-            .unwrap_or_else(|| panic!("unparseable version stamp {v:?}"))
-    };
-    (next(), next(), next())
-}
-
 #[test]
-fn all_five_interfaces_defined_with_independent_version_stamps() {
+fn all_six_interfaces_defined_with_independent_version_stamps() {
     let current = current_vocabulary();
     for expected in EXPECTED_PACKAGES {
         let pkg = current
@@ -272,110 +245,19 @@ fn all_five_interfaces_defined_with_independent_version_stamps() {
 }
 
 #[test]
-fn additive_evolution_enforced_against_blessed_baseline() {
+fn current_contract_matches_reviewed_snapshot() {
     let current = current_vocabulary();
     let path = baseline_path();
-
     if std::env::var_os("WIT_BASELINE_BLESS").is_some() {
-        let json = serde_json::to_string_pretty(&current).expect("serialize baseline");
-        std::fs::write(&path, format!("{json}\n")).expect("write baseline");
+        let json = serde_json::to_string_pretty(&current).expect("serialize vocabulary");
+        std::fs::write(&path, format!("{json}\n")).expect("write vocabulary");
         return;
     }
-
-    let raw = std::fs::read_to_string(&path).unwrap_or_else(|e| {
-        panic!(
-            "wit/baseline.json unreadable ({e}); bless it deliberately with \
-             WIT_BASELINE_BLESS=1 cargo test wit_"
-        )
-    });
-    let baseline: BTreeMap<String, PackageVocabulary> =
-        serde_json::from_str(&raw).expect("baseline.json parses");
-
-    for (name, base_pkg) in &baseline {
-        let cur_pkg = current.get(name).unwrap_or_else(|| {
-            panic!("package {name} was REMOVED — a public WIT package is carried for years")
-        });
-
-        let (base_major, ..) = parse_semver(&base_pkg.version);
-        let (cur_major, ..) = parse_semver(&cur_pkg.version);
-        let base_v = parse_semver(&base_pkg.version);
-        let cur_v = parse_semver(&cur_pkg.version);
-
-        assert!(
-            cur_v >= base_v,
-            "{name}: version regressed {} -> {}",
-            base_pkg.version,
-            cur_pkg.version
-        );
-        assert_eq!(
-            cur_major, base_major,
-            "{name}: major bump {} -> {} without a deliberate re-bless \
-             (WIT_BASELINE_BLESS=1 cargo test wit_)",
-            base_pkg.version, cur_pkg.version
-        );
-
-        // Within a major, every blessed entry survives verbatim.
-        for (iface_name, base_iface) in &base_pkg.interfaces {
-            let cur_iface = cur_pkg
-                .interfaces
-                .get(iface_name)
-                .unwrap_or_else(|| panic!("{name}/{iface_name}: interface removed or renamed"));
-            for (type_name, base_sig) in &base_iface.types {
-                let cur_sig = cur_iface.types.get(type_name).unwrap_or_else(|| {
-                    panic!("{name}/{iface_name}: type {type_name} removed or renamed")
-                });
-                assert_eq!(
-                    cur_sig, base_sig,
-                    "{name}/{iface_name}: type {type_name} changed shape — fields and \
-                     cases are canonical-ABI signature, frozen within a major"
-                );
-            }
-            for (func_name, base_sig) in &base_iface.functions {
-                let cur_sig = cur_iface.functions.get(func_name).unwrap_or_else(|| {
-                    panic!("{name}/{iface_name}: function {func_name} removed or renamed")
-                });
-                assert_eq!(
-                    cur_sig, base_sig,
-                    "{name}/{iface_name}: function {func_name} changed signature"
-                );
-            }
-        }
-        for (world_name, base_world) in &base_pkg.worlds {
-            let cur_world = cur_pkg
-                .worlds
-                .get(world_name)
-                .unwrap_or_else(|| panic!("{name}: world {world_name} removed or renamed"));
-            for import in &base_world.imports {
-                assert!(
-                    cur_world.imports.contains(import),
-                    "{name}/{world_name}: import {import} removed — world import names \
-                     are the capability-grant vocabulary"
-                );
-            }
-            for export in &base_world.exports {
-                assert!(
-                    cur_world.exports.contains(export),
-                    "{name}/{world_name}: export {export} removed"
-                );
-            }
-        }
-
-        // Any vocabulary difference at all requires the stamp to move.
-        if cur_pkg.interfaces != base_pkg.interfaces || cur_pkg.worlds != base_pkg.worlds {
-            assert!(
-                cur_v > base_v,
-                "{name}: vocabulary changed but the version stamp did not move past {}",
-                base_pkg.version
-            );
-        }
-    }
-
-    // Baseline covers the whole public surface: a new package must be blessed.
-    for name in current.keys() {
-        assert!(
-            baseline.contains_key(name),
-            "package {name} is not in the blessed baseline — bless deliberately with \
-             WIT_BASELINE_BLESS=1 cargo test wit_"
-        );
-    }
+    let raw = std::fs::read_to_string(&path).expect("read wit/baseline.json");
+    let expected: BTreeMap<String, PackageVocabulary> =
+        serde_json::from_str(&raw).expect("parse vocabulary");
+    assert_eq!(
+        current, expected,
+        "review the current WIT contract and update its snapshot"
+    );
 }

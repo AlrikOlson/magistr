@@ -574,10 +574,7 @@ fn workflow_mode_auto_approves_every_project_mcp_tool() {
     // The session's MCP servers are exactly the project's own under the
     // agent's --strict-mcp-config; an unanswered ask parks the loop.
     let mut policy = policy(PermissionProfile::Standard, true);
-    for tool in [
-        "mcp__workbench-mcp__read",
-        "mcp__magistr__roadmap_start_chunk",
-    ] {
+    for tool in ["mcp__magistr__read", "mcp__magistr__roadmap_start_chunk"] {
         assert_eq!(
             policy.decide(&policy_request(&request(
                 tool,
@@ -594,7 +591,7 @@ fn workflow_mode_auto_approves_every_project_mcp_tool() {
 fn outside_workflow_an_mcp_tool_is_the_profiles_call() {
     let mut policy = policy(PermissionProfile::Standard, false);
     let decision = policy.decide(&policy_request(&request(
-        "mcp__workbench-mcp__read",
+        "mcp__magistr__read",
         serde_json::json!({}),
         Some(ToolKind::Other),
     )));

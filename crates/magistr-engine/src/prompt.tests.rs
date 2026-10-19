@@ -161,7 +161,7 @@ fn next_prompt_includes_plan_entry_status() {
 }
 
 #[test]
-fn next_prompt_points_at_think_and_ship_without_a_spec_file() {
+fn next_prompt_points_at_workflow_without_a_spec_file() {
     let config = PromptConfig {
         spec_file: None,
         ..sample_config()

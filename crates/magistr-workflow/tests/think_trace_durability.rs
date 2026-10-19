@@ -149,7 +149,7 @@ fn steps_survive_a_process_restart() {
 
 /// Different projects sharing one data dir write different default files and
 /// never see (or disturb) each other's steps — the cross-project half of the
-/// incident (the surviving trace mixed tessera/kitbash/think-and-ship steps).
+/// incident (the surviving trace mixed tessera/kitbash/magistr steps).
 #[test]
 fn projects_are_isolated_on_one_data_dir() {
     let tmp = TempDir::new().unwrap();

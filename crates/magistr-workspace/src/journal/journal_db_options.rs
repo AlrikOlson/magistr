@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use super::JournalMode;
 
-/// Native writer options for the retained `.workbench/journal.db` format.
+/// Native writer options for the retained `.magistr/workspace/journal.db` format.
 #[derive(Clone, Debug)]
 pub struct JournalDbOptions {
     pub path: PathBuf,

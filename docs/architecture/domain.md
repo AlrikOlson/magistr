@@ -48,7 +48,7 @@ Further groupings stay with their owning feature units
 (`audit-260912-26` decision, `-27` session, `-28` work objects); there is
 no workspace-wide mechanical migration and no crate-count target.
 
-The native think-and-ship library continues to own chunks, signals, reasoning,
+The native magistr library continues to own chunks, signals, reasoning,
 execution tasks and their durable records. These are not replicated in the
 domain. `magistr-engine::native` remains the native adapter. Engine and core still
 contain effects; neither crate is a substitute for the domain dependency boundary.
@@ -194,7 +194,7 @@ regression guard, not a sandbox for hostile Rust code or a proof about arbitrary
 third-party implementations. Expanding its dependency or syntax allowlist
 requires reviewing the new capability.
 
-The Workbench source adoption requires Wasmtime 48 and Indexmap 2.14. Its
+The Workspace source adoption requires Wasmtime 48 and Indexmap 2.14. Its
 workspace feature unification also enables Hashbrown's collection helpers in
 the test-only Serde JSON graph. The reviewed development closure includes
 Hashbrown's allocator-api2, equivalent, foldhash and Serde edges; the production

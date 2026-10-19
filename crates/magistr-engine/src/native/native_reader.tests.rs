@@ -294,8 +294,8 @@ fn failed_session_reads_retain_the_previous_sessions_identity_until_recovery() {
     let root = temp.path().join("project");
     std::fs::create_dir(&root).unwrap();
     let config = NativeConfig::from_lookup(root, |key| match key {
-        "THINK_AND_SHIP_ENABLE_SESSIONS" => Some("true".into()),
-        "THINK_AND_SHIP_DEFAULT_SESSION_ID" => Some("alpha".into()),
+        "MAGISTR_WORKFLOW_ENABLE_SESSIONS" => Some("true".into()),
+        "MAGISTR_WORKFLOW_DEFAULT_SESSION_ID" => Some("alpha".into()),
         _ => None,
     })
     .with_data_dir(temp.path().join("data"));

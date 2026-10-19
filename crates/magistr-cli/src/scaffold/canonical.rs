@@ -1,14 +1,9 @@
 //! The canonical inputs a target repository carries for files the scaffold
 //! would otherwise render from copies embedded in this binary.
 //!
-//! Two repositories are their own canonical source. A skill's home
-//! repository (workbench-mcp for `workbench-routing`) holds the file the
-//! scaffold vendors, and its lint demands the dogfood copy be byte-equal to
-//! it. Magistr's own source checkout holds the workflow templates the
-//! embedded copies were built from; an installed binary older than the
-//! checkout must render those live templates, not its stale embedding
-//! (`scaffold-source-workflow-templates`). Both are read once per plan, so
-//! every plan after an edit follows the edit without a rebuild.
+//! Magistr source checkouts render their live workflow and routing templates.
+//! Installed packages render the same embedded templates. Inputs are captured
+//! once per plan, so preview and application agree without a second owner.
 //!
 //! A canonical input that exists but cannot be read, or one the source
 //! checkout is missing, is a refusal for the paths rendered from it: the
@@ -24,22 +19,7 @@ use super::workflow_skills::{Host, WorkflowSkills};
 pub(crate) const WORKFLOW_TEMPLATES: &str = "crates/magistr-cli/templates/workflows";
 
 /// Where Magistr's own source checkout keeps the vendored routing skill.
-const ROUTING_TEMPLATE: &str = "crates/magistr-cli/templates/skills/workbench-routing/SKILL.md";
-
-/// Files vendored verbatim from another repository, keyed by their canonical
-/// in-repo path. When the scaffold *target* carries that path, the target is
-/// the skill's home repository and the canonical file's own bytes are written
-/// — no provenance marker, and no vendoring staleness.
-pub(crate) const CANONICAL_SOURCES: &[(&str, &str)] = &[
-    (
-        ".claude/skills/workbench-routing/SKILL.md",
-        "skills/workbench-routing/SKILL.md",
-    ),
-    (
-        ".agents/skills/workbench-routing/SKILL.md",
-        "skills/workbench-routing/SKILL.md",
-    ),
-];
+const ROUTING_TEMPLATE: &str = "crates/magistr-cli/templates/skills/workspace-routing/SKILL.md";
 
 /// One canonical input as it was read while planning.
 #[derive(Debug, Clone)]
@@ -60,11 +40,6 @@ impl CanonicalSource {
     /// Read every canonical input `dir` carries, once.
     pub(crate) fn capture(dir: &Path) -> Self {
         let mut inputs = BTreeMap::new();
-        for (target, source) in CANONICAL_SOURCES {
-            if let Some(canonical) = read(dir, source, |content| content) {
-                inputs.insert(*target, canonical);
-            }
-        }
         if is_dir(&dir.join(WORKFLOW_TEMPLATES)) {
             for host in [Host::Codex, Host::Claude] {
                 Self::capture_workflows(dir, host, &mut inputs);
@@ -99,15 +74,10 @@ impl CanonicalSource {
         let routing = read(dir, ROUTING_TEMPLATE, |template| {
             WorkflowSkills::render_routing(&template)
         });
-        // The home repository's own skill file (CANONICAL_SOURCES) wins over
-        // Magistr's vendored template when a checkout somehow carries both.
-        let routing_path = WorkflowSkills::routing_path(host);
-        if !inputs.contains_key(routing_path) {
-            inputs.insert(
-                routing_path,
-                routing.unwrap_or_else(|| missing(ROUTING_TEMPLATE)),
-            );
-        }
+        inputs.insert(
+            WorkflowSkills::routing_path(host),
+            routing.unwrap_or_else(|| missing(ROUTING_TEMPLATE)),
+        );
     }
 
     /// Whether the plan renders `path` from a canonical input rather than

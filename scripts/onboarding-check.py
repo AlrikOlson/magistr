@@ -18,8 +18,8 @@ class Onboarding(unittest.TestCase):
         (self.root / "Cargo.toml").write_text('[package]\nname="onboarding-fixture"\nversion="0.1.0"\nedition="2024"\n')
         (self.root / "src").mkdir()
         (self.root / "src/lib.rs").write_text("pub fn value() -> u32 { 42 }\n")
-        self.env = {k:v for k,v in os.environ.items() if not k.startswith(("MAGISTR_", "WORKBENCH_", "THINK_AND_SHIP_"))}
-        self.env.update(THINK_AND_SHIP_DATA_DIR=str(self.base / "state"),
+        self.env = {k:v for k,v in os.environ.items() if not k.startswith(("MAGISTR_", "MAGISTR_WORKSPACE_", "MAGISTR_WORKFLOW_"))}
+        self.env.update(MAGISTR_WORKFLOW_DATA_DIR=str(self.base / "state"),
             XDG_CONFIG_HOME=str(self.base / "config"), XDG_DATA_HOME=str(self.base / "data"))
 
     def tearDown(self):

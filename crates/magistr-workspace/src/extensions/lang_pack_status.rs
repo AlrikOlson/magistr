@@ -7,7 +7,7 @@ use crate::worker::{WorkerGuestEnd, WorkerLanguageLane};
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LangPackStatus {
-    /// Wire name, e.g. "workbench.lang-pack-gleam".
+    /// Wire name, e.g. "magistr.lang-pack-gleam".
     pub plugin: String,
     pub ok: bool,
     /// Sandbox outcome kind or a boot-stage refusal ("missing-component",

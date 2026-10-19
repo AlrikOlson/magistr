@@ -150,7 +150,7 @@ impl Eligibility {
         // opt-in tracing; the caller's tool lifecycle reports actual progress.
         let declared = client_declared_tasks(context);
         tracing::debug!(
-            "think-and-ship: {tool} is a long gate; client {} the tasks extension \
+            "magistr: {tool} is a long gate; client {} the tasks extension \
              ({}) — SEP-2663",
             if declared {
                 "DECLARED"

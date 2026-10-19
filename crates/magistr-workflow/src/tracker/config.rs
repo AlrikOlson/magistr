@@ -92,8 +92,8 @@ pub struct TrackerConfig {
     /// The human-readable name of the ROOF the whole roadmap files under (a
     /// Linear *initiative*). THE NAMING DECISION, in writing: `None` — the
     /// overwhelmingly common case — falls back to the project directory's
-    /// basename (`think-and-ship`), because that is what a human would have
-    /// typed; the derived project id (`think-and-ship-676f38`) is NEVER used,
+    /// basename (`magistr`), because that is what a human would have
+    /// typed; the derived project id (`magistr-676f38`) is NEVER used,
     /// because a hash suffix in a workspace sidebar is a bug report waiting to
     /// be filed. Set this when one roadmap spans several directories or the
     /// directory name is not the product's name.

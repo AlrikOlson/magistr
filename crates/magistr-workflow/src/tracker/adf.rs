@@ -64,7 +64,7 @@ pub const ADF_VERSION: u64 = 1;
 /// prefix test rather than imported, because the renderer's job is to
 /// recognize a footer in a body it did not build — including one read back
 /// from Jira.
-const FOOTER_PREFIX: &str = "<!-- think-and-ship:";
+const FOOTER_PREFIX: &str = "<!-- magistr:";
 
 /// Render one of our canonical Markdown bodies as an ADF document.
 ///
@@ -321,7 +321,7 @@ mod tests {
     /// bytes must be untouched, because the inbound side parses them back.
     #[test]
     fn the_provenance_footer_lands_in_a_code_block_byte_for_byte() {
-        let footer = r#"<!-- think-and-ship: {"chunk":"jira-body-format","project":"p"} -->"#;
+        let footer = r#"<!-- magistr: {"chunk":"jira-body-format","project":"p"} -->"#;
         let doc = render_body(footer);
         let node = &doc["content"][0];
         assert_eq!(node["type"], "codeBlock");
@@ -376,7 +376,7 @@ Sub 2 of 6, split from tracker-jira-adapter.
 - [ ] the decision is made in writing
 - [ ] three Rust gates green
 
-<!-- think-and-ship: {\"chunk\":\"jira-body-format\"} -->";
+<!-- magistr: {\"chunk\":\"jira-body-format\"} -->";
         let doc = render_body(body);
         let text = plain_text(&doc);
 
@@ -385,7 +385,7 @@ Sub 2 of 6, split from tracker-jira-adapter.
         assert!(text.contains("[ ] the decision is made in writing"));
         assert!(text.contains("[ ] three Rust gates green"));
         assert!(
-            text.contains("<!-- think-and-ship: {\"chunk\":\"jira-body-format\"} -->"),
+            text.contains("<!-- magistr: {\"chunk\":\"jira-body-format\"} -->"),
             "the footer did not survive the round trip: {text}"
         );
     }

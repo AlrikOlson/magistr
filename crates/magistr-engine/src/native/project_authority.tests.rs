@@ -35,13 +35,17 @@ fn readers_and_writers_use_the_captured_identity_before_the_project_pin() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let root = tmp.path().join("project");
     std::fs::create_dir_all(&root).expect("project root");
-    magistr_workflow::infra::write_project_file(&root, "pinned-project", None)
-        .expect("project pin");
+    std::fs::create_dir_all(root.join(".magistr")).unwrap();
+    std::fs::write(
+        root.join(".magistr/project.json"),
+        serde_json::json!({"project":{"id":"pinned-project","name":"Example"}}).to_string(),
+    )
+    .unwrap();
     let cfg = NativeConfig::from_lookup(root.clone(), |key| {
-        (key == "THINK_AND_SHIP_PROJECT_NAME").then(|| "Captured Project".into())
+        (key == "MAGISTR_PROJECT_ID").then(|| "Captured Project".into())
     })
     .with_data_dir(tmp.path().join("data"));
-    let pin = root.join(".think-and-ship/project.json");
+    let pin = root.join(".magistr/project.json");
     let pin_before = std::fs::read(&pin).expect("original identity");
 
     let reader = NativeReader::open(&cfg);

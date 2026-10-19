@@ -5,7 +5,7 @@ use crate::{
 };
 
 /// A bundled runner adapter served by a WASM component on the public
-/// `workbench:runner@0.1.0` interface: `can-parse` then `parse-output`, both
+/// `magistr:runner@0.1.0` interface: `can-parse` then `parse-output`, both
 /// inside the worker. `Ok(None)` is the guest's honest "no structure"; an
 /// `Err` is a lane or guest problem the run tool degrades from by falling
 /// back to its bundled floor (owned by the execution port).

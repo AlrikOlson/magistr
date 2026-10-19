@@ -1,0 +1,13 @@
+{
+  "captured_at": "2026-10-19T20:46:17.765Z",
+  "renderer": "headless WebKit",
+  "renderer_version": "27.2",
+  "viewport": {
+    "width": 1200,
+    "height": 520
+  },
+  "appearance": "fixed dark illustration",
+  "source": "docs/assets/magistr-next.svg",
+  "source_sha256": "06b030f914329d7fa6d33a4f51e5d7475e2b2e6d445b23cdfa73173c15092ae9",
+  "image_sha256": "050d9ab973c8de7d5d7a63a3860902b348bf571a8fbe60a5eae1376cbb02ead6"
+}

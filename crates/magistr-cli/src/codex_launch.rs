@@ -20,7 +20,7 @@ const PROJECT_SKILLS: [&str; 9] = [
     "roadmap-refresh",
     "signals",
     "validate",
-    "workbench-routing",
+    "workspace-routing",
 ];
 
 struct ConfigLocations {

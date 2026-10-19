@@ -1,5 +1,5 @@
 [package]
-include = ["src/**", "Cargo.toml", "Cargo.lock", "LICENSE*", "PROVENANCE.md", "schemas/**"]
+include = ["src/**", "Cargo.toml", "Cargo.lock", "LICENSE*", "PROVENANCE.md", "schemas/**", "wit/**", "fixtures/**", "!fixtures/**/target/**"]
 description = "Magistr workspace services"
 repository = "https://github.com/AlrikOlson/magistr"
 name = "magistr-workspace"

@@ -30,9 +30,9 @@ pub fn cmd_lint(
     } else {
         print_lint_report(&report);
 
-        // workbench.toml [commands] is seeded from project.json once and
+        // .magistr/workspace.toml [commands] is seeded from project.json once and
         // then owned by a human; say so when the two no longer agree.
-        if let Some(findings) = crate::scaffold::workbench_drift::workbench_drift(&dir)
+        if let Some(findings) = crate::scaffold::workspace_drift::workspace_drift(&dir)
             && !findings.is_empty()
         {
             eprintln!();

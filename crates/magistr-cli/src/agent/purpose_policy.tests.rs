@@ -27,7 +27,7 @@ fn roadmap_purpose_is_a_ceiling_even_under_yolo() {
         "mcp__magistr__ship_start",
         "Bash",
         "Write",
-        "mcp__workbench_mcp__edit",
+        "mcp__workspace_mcp__edit",
         "mcp__magistr__roadmap_export",
     ] {
         assert_eq!(

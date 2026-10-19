@@ -2,7 +2,7 @@
 //! adapter over [`magistr_workspace::service::WorkspaceService`].
 //!
 //! Everything the retained server promised its clients is served here and
-//! nothing more: the eight schema-defined tools plus `workbench_status`,
+//! nothing more: the eight schema-defined tools plus `workspace_status`,
 //! namespaced plugin tools after the core names, schemas verbatim, the
 //! envelope as every tool's `outputSchema` (so `structuredContent` and the
 //! JSON text carry the same sealed envelope), per-request envelope

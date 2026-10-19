@@ -7,4 +7,4 @@ pub mod cockpit;
 pub mod engine;
 pub mod harness;
 pub mod job;
-pub mod workbench;
+pub mod workspace;

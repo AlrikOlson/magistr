@@ -4,7 +4,7 @@ use regex::Regex;
 
 /// Remaining absolute paths (POSIX or drive-letter, raw or JSON-escaped):
 /// keep only the basename behind a placeholder. Anchored to a boundary so a
-/// mid-word slash (`.workbench/index.db`) is never mistaken for a path root.
+/// mid-word slash (`.magistr/workspace/index.db`) is never mistaken for a path root.
 static ABSOLUTE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(
         r#"(?m)(^|[\s"'`(=\[])((?:[A-Za-z]:(?:\\\\|\\|/)|/)(?:[^\s"'`|<>]*(?:\\\\|\\|/))*[^\s"'`|<>\\/]+)"#,

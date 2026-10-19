@@ -121,10 +121,7 @@ async fn a_chunk_projects_to_an_issue_with_its_provenance() {
 
     // The footer a machine can read back — the thing a field-sync tool cannot
     // emit, because it never saw the reasoning.
-    let footer = body
-        .split("<!-- think-and-ship:")
-        .nth(1)
-        .expect("footer present");
+    let footer = body.split("<!-- magistr:").nth(1).expect("footer present");
     let json_text = footer.trim().trim_end_matches("-->").trim();
     let parsed: serde_json::Value = serde_json::from_str(json_text).expect("footer is JSON");
     assert_eq!(parsed["chunk"], "c1");
@@ -677,7 +674,7 @@ fn the_projectors_own_body_round_trips_through_adf() {
     // cannot tell our own writing from a human's.
     let footer_start = item
         .body
-        .find("<!-- think-and-ship:")
+        .find("<!-- magistr:")
         .expect("the projector emits a footer");
     let footer = item.body[footer_start..].trim();
     assert!(

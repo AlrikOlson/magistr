@@ -99,18 +99,18 @@ async fn tck_passes_the_sdk_examples_and_every_bundled_plugin_unmodified() {
     let fixture = Fixture::new();
     let lane = fixture.lane();
     let cases: [(&str, &str, bool); 6] = [
-        ("examples/plugins/echo", "workbench.example-echo", false),
+        ("examples/plugins/echo", "magistr.example-echo", false),
         (
             "examples/plugins/lang-pack-example",
-            "workbench.example-lang-pack",
+            "magistr.example-lang-pack",
             true,
         ),
-        ("plugins/lsp-resolver", "workbench.lsp-resolver", false),
-        ("plugins/runner-go", "workbench.runner-go", false),
-        ("plugins/lang-pack-gleam", "workbench.lang-pack-gleam", true),
+        ("plugins/lsp-resolver", "magistr.lsp-resolver", false),
+        ("plugins/runner-go", "magistr.runner-go", false),
+        ("plugins/lang-pack-gleam", "magistr.lang-pack-gleam", true),
         (
             "plugins/ranking-visibility",
-            "workbench.ranking-visibility",
+            "magistr.ranking-visibility",
             false,
         ),
     ];
@@ -231,7 +231,7 @@ async fn plugin_host_denies_breakers_and_wraps_over_real_components() {
     assert!(matches!(kind, ErrorKind::PluginCrashed { .. }));
     let health: serde_json::Value = serde_json::from_str(
         &fixture
-            .read(".workbench/plugin-health.json")
+            .read(".magistr/workspace/plugin-health.json")
             .expect("durable breaker"),
     )
     .unwrap();
@@ -258,17 +258,17 @@ async fn subprocess_capability_is_blessed_only_over_the_real_resolver_guest() {
     let dir = fixture.copy_plugin("lsp-resolver");
     let lane = fixture.lane();
     let host = PluginHost::new(&fixture.policy, fixture.state_dir(), &lane);
-    let legacy = ["workbench:subprocess/subprocess@0.1.0"];
+    let granted = ["magistr:subprocess/subprocess@0.2.0"];
     for (source, tier) in [("sideload", None), ("registry", Some("verified"))] {
         fixture.install(vec![record(
-            "workbench.lsp-resolver",
+            "magistr.lsp-resolver",
             source,
             tier,
             &dir,
-            Some(&legacy),
+            Some(&granted),
         )]);
         let (kind, _, notes) = refused(
-            host.run_tool("workbench.lsp-resolver/status", &json!({}), 4000)
+            host.run_tool("magistr.lsp-resolver/status", &json!({}), 4000)
                 .await
                 .unwrap(),
         );
@@ -277,17 +277,17 @@ async fn subprocess_capability_is_blessed_only_over_the_real_resolver_guest() {
     }
     assert!(PluginHealth::new(&fixture.state_dir()).read().is_empty());
     fixture.install(vec![record(
-        "workbench.lsp-resolver",
+        "magistr.lsp-resolver",
         "registry",
         Some("blessed"),
         &dir,
-        Some(&legacy),
+        Some(&granted),
     )]);
     let (rows, _) = ok(host
-        .run_tool("workbench.lsp-resolver/status", &json!({}), 4000)
+        .run_tool("magistr.lsp-resolver/status", &json!({}), 4000)
         .await
         .unwrap());
-    assert_eq!(rows[0]["resolver"], json!("workbench.lsp-resolver"));
+    assert_eq!(rows[0]["resolver"], json!("magistr.lsp-resolver"));
     fixture.shutdown().await;
 }
 
@@ -322,7 +322,7 @@ async fn lang_pack_boot_selects_the_lane_by_tier_and_extraction_is_identical_acr
         ("verified", "wasm"),
     ] {
         fixture.install(vec![record(
-            "workbench.lang-pack-gleam",
+            "magistr.lang-pack-gleam",
             "registry",
             Some(tier),
             &dir,
@@ -371,7 +371,7 @@ async fn ranking_signal_scores_through_the_real_guest_and_promotion_reorders_sea
     fixture.write("src/z-exported.ts", "export function needle() {}\n");
     let dir = fixture.copy_plugin("ranking-visibility");
     fixture.install(vec![record(
-        "workbench.ranking-visibility",
+        "magistr.ranking-visibility",
         "registry",
         Some("verified"),
         &dir,
@@ -404,7 +404,9 @@ async fn ranking_signal_scores_through_the_real_guest_and_promotion_reorders_sea
         signals.promoted_features().is_none(),
         "shadow never applies"
     );
-    let log = fixture.read(".workbench/ranking-shadow.jsonl").unwrap();
+    let log = fixture
+        .read(".magistr/workspace/ranking-shadow.jsonl")
+        .unwrap();
     assert!(log.contains("\"ranking-visibility/exported\""));
 
     signals.promote("ranking-visibility").unwrap();
@@ -450,11 +452,11 @@ async fn resolver_lane_upgrades_references_through_the_real_guest_and_a_spawned_
     fixture.write("lib.rs", "fn target() {}\n\n\n\n  target();\n");
     let dir = fixture.copy_plugin("lsp-resolver");
     fixture.install(vec![record(
-        "workbench.lsp-resolver",
+        "magistr.lsp-resolver",
         "registry",
         Some("blessed"),
         &dir,
-        Some(&["workbench:subprocess/subprocess@0.2.0"]),
+        Some(&["magistr:subprocess/subprocess@0.2.0"]),
     )]);
     let log = fixture.directory.path().join("lsp.log");
     let spec = LanguageServerSpec {

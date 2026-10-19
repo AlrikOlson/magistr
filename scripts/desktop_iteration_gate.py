@@ -37,3 +37,27 @@ def validate_iteration(root, name):
         matrix.add((record["appearance"], size))
     assert {("dark", "compact"), ("light", "compact"), ("dark", "desktop"), ("light", "desktop")}.issubset(matrix), "Review both appearances at desktop and native minimum"
     print(f"PASS: {len(entries)} inspected focused captures in {name}; current sources, dimensions and image integrity")
+
+
+def current_iteration(root):
+    """Choose the latest reviewed iteration whose captures match current sources."""
+    archive = root / "docs/evidence/desktop-iterations"
+    candidates = []
+    for review_path in archive.glob("*/review.json"):
+        try:
+            review = json.loads(review_path.read_text())
+            records = [
+                json.loads((review_path.parent / Path(name).with_suffix(".json")).read_text())
+                for name in review["images"]
+            ]
+            if records and all(
+                (root / path).is_file()
+                and hashlib.sha256((root / path).read_bytes()).hexdigest() == expected
+                for record in records
+                for path, expected in record["source_hashes"].items()
+            ):
+                candidates.append((max(record["captured_at"] for record in records), review_path.parent.name))
+        except (OSError, ValueError, KeyError, TypeError):
+            continue
+    assert candidates, "No reviewed iteration matches current sources; capture and inspect the affected headless stories"
+    return max(candidates)[1]

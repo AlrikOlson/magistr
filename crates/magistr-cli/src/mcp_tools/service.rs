@@ -1,7 +1,7 @@
 //! MCP service for Magistr and native workflow tools.
 //!
 //! [`super::build_server`] supplies the `magistr_*` handlers alongside the
-//! think-and-ship tool families served by [`UnifiedService`]. Other tools,
+//! magistr tool families served by [`UnifiedService`]. Other tools,
 //! resources, and task methods delegate with the original request context.
 //!
 //! `magistr_gate` runs every gate on Magistr's own pty runner, streaming its
@@ -53,11 +53,11 @@ use super::roadmap_export::RoadmapExport;
 const INSTRUCTIONS: &str = "magistr — project workflow server. \
 `magistr_*` tools run quality gates (magistr_gate, recorded through ship_check), \
 formatting, phase transitions, hooks and safe file operations for this project. \
-The think_*/ship_*/roadmap_*/signal_* families below are think-and-ship, served \
+The think_*/ship_*/roadmap_*/signal_* families below are magistr, served \
 in-process on the same store as Magistr's own views.";
 
 /// The rmcp server behind `magistr mcp`: the `magistr_*` tools plus the
-/// four think-and-ship families, one tool list.
+/// four magistr families, one tool list.
 #[derive(Clone)]
 pub struct MagistrService {
     project_root: PathBuf,

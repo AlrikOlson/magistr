@@ -43,7 +43,7 @@ pub(crate) fn session_with_checkpoints(
     };
     let roadmap_history = history_for(SessionPurpose::Roadmap);
     let conversation_history = history_for(SessionPurpose::Conversation);
-    let workbench = super::commands::workbench_port::workbench_port(&config.cwd);
+    let workspace = super::commands::workspace_port::workspace_port(&config.cwd);
     InteractiveSession::new(
         move |purpose, resume| {
             let mut config = match purpose {
@@ -81,7 +81,7 @@ pub(crate) fn session_with_checkpoints(
             }
         },
         inbox,
-        workbench,
+        workspace,
         engines.as_ref().and_then(EngineClient::port),
         checkpoints,
     )

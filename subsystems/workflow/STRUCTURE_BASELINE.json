@@ -1296,7 +1296,7 @@
       "longest_function": 54,
       "public_items": 0
     },
-    "crates/magistr-workflow/tests/think_and_ship_e2e.rs": {
+    "crates/magistr-workflow/tests/workflow_e2e.rs": {
       "inline_test_modules": 0,
       "long_function_excess_lines": 0,
       "long_functions": 0,

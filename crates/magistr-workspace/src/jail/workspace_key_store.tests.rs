@@ -4,13 +4,13 @@ use std::fs;
 #[test]
 fn generation_is_stable_across_loads_and_rotation_invalidates_old_identity() {
     let root = tempfile::tempdir().unwrap();
-    let store = WorkspaceKeyStore::new(root.path().join(".workbench"));
+    let store = WorkspaceKeyStore::new(root.path().join(".magistr/workspace"));
     let first = store.ensure().unwrap();
     assert_eq!(fs::read(store.path()).unwrap(), first.as_bytes());
     assert!(first == store.ensure().unwrap());
     assert!(
         first
-            == WorkspaceKeyStore::new(root.path().join(".workbench"))
+            == WorkspaceKeyStore::new(root.path().join(".magistr/workspace"))
                 .ensure()
                 .unwrap()
     );

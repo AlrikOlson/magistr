@@ -55,7 +55,7 @@ impl DoctorRun {
     pub fn render(&self) -> String {
         let report = &self.report;
         let mut lines = vec![
-            format!("workbench doctor — workspace {}", report.workspace_root),
+            format!("workspace doctor — workspace {}", report.workspace_root),
             format!(
                 "generated {} by magistr-workspace {}",
                 report.generated_at, report.tool_version

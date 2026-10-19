@@ -469,8 +469,8 @@ fn merge_unions_refreshes_and_notes_without_duplicates() {
 /// `blocked_by`, no `tier`, no `content` — so they exercise every
 /// `#[serde(default)]` the struct relies on.
 const REAL_STORED_CHUNKS: &str = r#"[
-{"id":"ratelimit-null-kv","title":"checkRateLimit crashes on a KV that returns null for a missing key","name":"Ratelimit null KV","status":"backlog","priority":80,"description":"Found while writing the registry tests, by a fake KV that returned null.","notes":"","group":"Cloud sync","acceptance":["Worker suite green"],"deps":[],"cross_refs":["ext:linear/THI-30"],"shared":false,"project_id":"think-and-ship-676f38","created_at":"2026-07-26T02:38:28.940751+00:00","updated_at":"2026-07-26T09:59:53.522332+00:00"},
-{"id":"roadmap-content-param-untyped","title":"roadmap_add_chunk's structured body cannot be written from an MCP client","name":"Roadmap content param","status":"backlog","priority":120,"group":"The plan and its store","deps":[],"cross_refs":[],"shared":false,"project_id":"think-and-ship-676f38","created_at":"2026-07-31T18:46:50.516197+00:00","updated_at":"2026-07-31T18:46:50.519797+00:00"}
+{"id":"ratelimit-null-kv","title":"checkRateLimit crashes on a KV that returns null for a missing key","name":"Ratelimit null KV","status":"backlog","priority":80,"description":"Found while writing the registry tests, by a fake KV that returned null.","notes":"","group":"Cloud sync","acceptance":["Worker suite green"],"deps":[],"cross_refs":["ext:linear/THI-30"],"shared":false,"project_id":"magistr-676f38","created_at":"2026-07-26T02:38:28.940751+00:00","updated_at":"2026-07-26T09:59:53.522332+00:00"},
+{"id":"roadmap-content-param-untyped","title":"roadmap_add_chunk's structured body cannot be written from an MCP client","name":"Roadmap content param","status":"backlog","priority":120,"group":"The plan and its store","deps":[],"cross_refs":[],"shared":false,"project_id":"magistr-676f38","created_at":"2026-07-31T18:46:50.516197+00:00","updated_at":"2026-07-31T18:46:50.519797+00:00"}
 ]"#;
 
 /// The vocabulary is closed, and the error says what the closed set IS.

@@ -121,10 +121,10 @@ Read the relevant terminal or desktop architecture guide before changing it.
 
 ## Tools and state
 
-Use the configured Magistr server for workflow tools and Workbench for source
-navigation and edits. Follow [Workbench routing](.agents/skills/workbench-routing/SKILL.md).
+Use the configured Magistr server for workflow tools and Workspace for source
+navigation and edits. Follow [Workspace routing](.agents/skills/workspace-routing/SKILL.md).
 Git, development, and diagnostics may use the shell. Explain focused fallbacks.
-Do not kill a Workbench lock owner or start a competing workspace or workflow server.
+Do not kill a Workspace lock owner or start a competing workspace or workflow server.
 
 Read existing native state before resuming work. Keep plans in `ship_plan` and
 roadmaps in native Magistr state. Never export or generate `ROADMAP.md` or
@@ -145,9 +145,9 @@ Run required gates explicitly; client hooks are supplementary.
 
 Launch with `magistr codex-launch --project-root . --` or `./.codex/run`. The native launcher resolves dependencies and applies the documented Codex skill-discovery behavior. Use `magistr codex-launch --project-root . --diagnose` for read-only diagnostics.
 
-Use the configured `magistr` MCP server for workflow and workspace tools. Start with `context`; use `discover` to inspect advanced operation schemas and `execute` with `magistr.call(name, args)` to call them. Use direct search/read/edit/write for source. Composed changes stop on failure; inspect receipts before recovery. Do not start a second workflow or workspace server; follow .agents/skills/workbench-routing/SKILL.md. A held Workbench lock belongs to its existing connection: do not kill the owner or launch a competing probe.
+Use the configured `magistr` MCP server for workflow and workspace tools. Start with `context`; use `discover` to inspect advanced operation schemas and `execute` with `magistr.call(name, args)` to call them. Use direct search/read/edit/write for source. Composed changes stop on failure; inspect receipts before recovery. Do not start a second workflow or workspace server; follow .agents/skills/workspace-routing/SKILL.md. A held Workspace lock belongs to its existing connection: do not kill the owner or launch a competing probe.
 
-Use the nine project skills: $next, $next-loop, $validate, $roadmap, $roadmap-refresh, $signals, $craft, $init and $workbench-routing. $next runs one chunk in this Codex session. $next-loop is a bounded fresh-session handoff: finish one chunk, write the handoff, stop, and resume the bound only in a new Codex session. Read .magistr/project.json for commands and required custom gates and .magistr/conventions.md for shared project conventions. Claude hooks are additional enforcement only; Codex must explicitly run and record required gates.
+Use the nine project skills: $next, $next-loop, $validate, $roadmap, $roadmap-refresh, $signals, $craft, $init and $workspace-routing. $next runs one chunk in this Codex session. $next-loop is a bounded fresh-session handoff: finish one chunk, write the handoff, stop, and resume the bound only in a new Codex session. Read .magistr/project.json for commands and required custom gates and .magistr/conventions.md for shared project conventions. Claude hooks are additional enforcement only; Codex must explicitly run and record required gates.
 
 This project stores its roadmap only in native Magistr state. Never create or regenerate ROADMAP.md or ROADMAP.json, invoke roadmap_export, or redirect an export into the checkout. Preserve roadmap_exports=false and the project export-tool deny settings.
 

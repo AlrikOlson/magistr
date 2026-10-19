@@ -164,7 +164,7 @@ fn cmd_config_show(dir: &std::path::Path, inputs: &ProjectInputs) -> eyre::Resul
         eprintln!("  format:        {}", pc.format.command);
         match &pc.spec {
             Some(spec) => eprintln!("  spec_file:     {}", spec.file),
-            None => eprintln!("  spec_file:     (none — think-and-ship roadmap)"),
+            None => eprintln!("  spec_file:     (none — magistr roadmap)"),
         }
     } else {
         eprintln!();

@@ -21,8 +21,8 @@ pub mod run;
 pub mod session;
 pub mod session_started;
 pub mod validate;
-pub mod workbench_port;
 pub mod workspace_files;
+pub mod workspace_port;
 
 /// Convert CLI backend flag to agent backend, using auto-detection when needed.
 ///

@@ -25,14 +25,14 @@ Setup adds the following artifacts:
 | `.agents/skills/craft/references/runtime.md` | Workflow contract and Codex adapter |
 
 The skills are `craft`, `init`, `next`, `next-loop`, `roadmap`,
-`roadmap-refresh`, `signals`, `validate` and `workbench-routing`.
+`roadmap-refresh`, `signals`, `validate` and `workspace-routing`.
 One `magistr` connection serves workflow and workspace operations. Cargo
 installations use `magistr mcp --dir .`; npm installations use a pinned npx
 invocation. Source tools are direct; `discover` and `execute` provide advanced
 operations. Shared conventions live in `.magistr/conventions.md`.
 
 Start a new trusted Codex session after setup. Inspect `context`, then discover
-`ship_status` and `workbench_status` as needed. Concurrent connections attach to
+`ship_status` and `workspace_status` as needed. Concurrent connections attach to
 the existing owners; each working copy keeps its own workspace journal.
 
 For native `magistr next` and `magistr next-loop`, see
@@ -103,13 +103,13 @@ only `codex --version`: no App Server, MCP connection, thread, or model turn.
 Authentication values, config contents, and forwarded prompts are not printed.
 
 Default tests use fake executables. The opt-in runtime test uses installed Codex
-and Workbench in disposable relocated projects for read-only RPCs and handshakes:
+and Workspace in disposable relocated projects for read-only RPCs and handshakes:
 
 ```sh
 cargo test -p magistr-cli --test codex_runtime_live -- --ignored --nocapture
 ```
 
-It does not invoke a model or acquire the real project's Workbench lock.
+It does not invoke a model or acquire the real project's Workspace lock.
 
 ## Refresh and ownership
 
@@ -163,5 +163,5 @@ or replace another session's objective.
 When `roadmap_exports` is false, setup adds native-only instructions and disables
 the export tool. Codex skills perform each workflow step directly. Reusable
 workflow sources live in
-`crates/magistr-cli/templates/workflows`, with small host adapters. Workbench's
+`crates/magistr-cli/templates/workflows`, with small host adapters. Workspace's
 routing skill has its own pinned canonical source.

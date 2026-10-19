@@ -17,7 +17,7 @@
 //! - **Spec parsing** — `SpecSummary`
 //! - **Prompt building** — `PromptConfig`
 //! - **Error handling** — `EngineError`
-//! - **Native think-and-ship** — `native::ProjectAuthority` (admitted writer), `native::NativeEngines`,
+//! - **Native magistr** — `native::ProjectAuthority` (admitted writer), `native::NativeEngines`,
 //!   `native::NativeReader`, `native::NativeConfig`, `native::RoadmapBackend`
 //!
 //! Zero TUI dependencies. No ratatui, crossterm, or tachyonfx.
@@ -73,7 +73,7 @@ pub use session::{
 pub use spec::SpecSummary;
 // The library's own wire types behind the NativeEngines verbs, re-exported
 // so engine hosts (the interface, the GUI) can drive them without depending on
-// think-and-ship directly.
+// magistr directly.
 pub use magistr_workflow::roadmap::domain::ChunkStatus;
 pub use magistr_workflow::ship::domain::action::ActionType;
 pub use magistr_workflow::ship::domain::check::CheckType;

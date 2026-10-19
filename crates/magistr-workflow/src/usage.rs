@@ -54,8 +54,8 @@
 //!
 //! So: **on by default, never transmitted, local only**, in the same class as
 //! the `otel` partition [`crate::trace_context`] already writes without asking.
-//! Turn it off with `THINK_AND_SHIP_CALL_COUNTS=off`, and note that it is
-//! already off wherever `THINK_AND_SHIP_PERSIST` is — a deployment that keeps
+//! Turn it off with `MAGISTR_WORKFLOW_CALL_COUNTS=off`, and note that it is
+//! already off wherever `MAGISTR_WORKFLOW_PERSIST` is — a deployment that keeps
 //! nothing on disk counts nothing on disk.
 //!
 //! # DECIDED: what makes a zero trustworthy — the soak threshold
@@ -143,7 +143,7 @@ use crate::infra::{Domain, Persistence, PersistenceConfig};
 
 /// Set to `off` / `false` / `0` to stop counting. Anything else (including
 /// unset) counts — see the module doc for why the default is on.
-pub const CALL_COUNTS_ENV: &str = "THINK_AND_SHIP_CALL_COUNTS";
+pub const CALL_COUNTS_ENV: &str = "MAGISTR_WORKFLOW_CALL_COUNTS";
 
 /// The single bucket every unrecognized tool name collapses into. One key, not
 /// one key per name: the key space stays closed.
@@ -333,7 +333,7 @@ fn day_of(now: &str) -> Option<String> {
     (day.len() == 10).then(|| day.to_string())
 }
 
-/// Whether a raw `THINK_AND_SHIP_CALL_COUNTS` value means "count".
+/// Whether a raw `MAGISTR_WORKFLOW_CALL_COUNTS` value means "count".
 ///
 /// Split out from the `std::env` read so the DECISION is reachable by a test
 /// and only the environment lookup stays untestable — the same split

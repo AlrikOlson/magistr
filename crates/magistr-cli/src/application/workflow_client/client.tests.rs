@@ -251,8 +251,12 @@ async fn an_attached_port_reports_a_gone_owner_and_opens_nothing() {
     port.pin(1, true)
         .expect_err("no such step, but the owner answered");
 
-    // The host shuts down: endpoint first, then its writer.
-    drop(endpoint);
+    // Join endpoint cleanup before releasing the writer and testing admission.
+    endpoint
+        .expect("owner endpoint")
+        .shutdown()
+        .await
+        .expect("connections closed");
     drop(host);
     let gone = port.start_chunk("c1").expect_err("hung up");
     assert!(gone.to_string().contains("gone"), "{gone}");

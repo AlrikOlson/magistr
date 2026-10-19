@@ -7,8 +7,8 @@ use serde_json::{Map, Value, json};
 pub struct ResponseAdapter;
 
 impl ResponseAdapter {
-    pub const META_MAX_ENVELOPE_VERSION: &str = "workbench/maxEnvelopeVersion";
-    pub const META_SESSION_ID: &str = "workbench/sessionId";
+    pub const META_MAX_ENVELOPE_VERSION: &str = "magistr/maxEnvelopeVersion";
+    pub const META_SESSION_ID: &str = "magistr/sessionId";
     /// Ceiling on a session identity, in UTF-16 units as retained, so a
     /// hostile client cannot bloat the journal's identity column.
     pub const SESSION_ID_MAX_UNITS: usize = 256;

@@ -737,7 +737,7 @@ fn with_max_ignores_env_var() {
     assert_eq!(loop_mgr.max_iterations(), 42);
 }
 
-// ---- native (think-and-ship) mode ----
+// ---- native (magistr) mode ----
 
 fn project_config() -> crate::types::ProjectConfig {
     serde_json::from_value(serde_json::json!({

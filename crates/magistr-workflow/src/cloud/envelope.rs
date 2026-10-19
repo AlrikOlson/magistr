@@ -239,7 +239,7 @@ mod tests {
     #[test]
     fn lenses_are_optional_and_absent_means_legacy_wire_bytes() {
         let legacy = UnifiedRecordEnvelope::owner(
-            "think-and-ship-676f38",
+            "magistr-676f38",
             Family::Roadmap,
             Kind::Chunk,
             "c1",
@@ -255,7 +255,7 @@ mod tests {
         );
 
         let mut lensed = legacy.clone();
-        lensed.lenses = Some(vec!["think-and-ship".into(), "q3-perf".into()]);
+        lensed.lenses = Some(vec!["magistr".into(), "q3-perf".into()]);
         assert_valid(&lensed);
         // Idempotency is lens-blind: same identity → same key, lensed or not.
         assert_eq!(lensed.idempotency_key, legacy.idempotency_key);
@@ -264,7 +264,7 @@ mod tests {
     #[test]
     fn roadmap_chunk_envelope_validates() {
         let env = UnifiedRecordEnvelope::owner(
-            "think-and-ship-676f38",
+            "magistr-676f38",
             Family::Roadmap,
             Kind::Chunk,
             "saas-cloud-envelope",
@@ -278,7 +278,7 @@ mod tests {
     #[test]
     fn think_step_envelope_validates() {
         let env = UnifiedRecordEnvelope::owner(
-            "think-and-ship-676f38",
+            "magistr-676f38",
             Family::Think,
             Kind::Step,
             "899",
@@ -295,7 +295,7 @@ mod tests {
     #[test]
     fn ship_action_envelope_validates() {
         let env = UnifiedRecordEnvelope::owner(
-            "think-and-ship-676f38",
+            "magistr-676f38",
             Family::Ship,
             Kind::Action,
             "action:42",
@@ -331,8 +331,7 @@ mod tests {
             chrono::Utc::now(),
         )
         .expect("a valid gate");
-        let env =
-            crate::cloud::build::from_gate("think-and-ship-676f38", &gate, Some("deploy-31g"));
+        let env = crate::cloud::build::from_gate("magistr-676f38", &gate, Some("deploy-31g"));
         assert!(
             env.edges.iter().any(|e| e.target == "task:deploy-31g"),
             "the gate must carry its part_of edge to the paused task"
@@ -343,7 +342,7 @@ mod tests {
     #[test]
     fn signal_envelope_validates() {
         let env = UnifiedRecordEnvelope::owner(
-            "think-and-ship-676f38",
+            "magistr-676f38",
             Family::Signal,
             Kind::Signal,
             "sig-1",

@@ -591,7 +591,7 @@ pub enum Command {
     },
 
     /// The native workspace tools — search, map, read, edit, files, undo,
-    /// script, run and workbench_status — served over MCP for one workspace
+    /// script, run and workspace_status — served over MCP for one workspace
     Workspace {
         #[command(subcommand)]
         action: WorkspaceAction,
@@ -609,7 +609,7 @@ pub enum WorkspaceAction {
         #[command(subcommand)]
         action: crate::working_copy_action::WorkingCopyAction,
     },
-    /// Read-only health report over the .workbench artifacts (environment,
+    /// Read-only health report over the .workspace artifacts (environment,
     /// index, config provenance, plugins, quarantine, crashes), the live
     /// owner (one bounded probe: generation, build, attached connections)
     /// and the run checkpoint's operation settlement. No lock is taken, so
@@ -665,7 +665,7 @@ pub enum WorkspaceAction {
         action: WorkspaceKeyAction,
     },
 
-    /// Seed run's `[commands]` allowlist into workbench.toml from
+    /// Seed run's `[commands]` allowlist into .magistr/workspace.toml from
     /// lockfile/manifest detection; an existing table is never touched.
     Init {
         /// Workspace root (defaults to the current directory)
@@ -698,7 +698,7 @@ pub enum WorkspaceDoctorMode {
         #[arg(default_value = ".")]
         dir: PathBuf,
 
-        /// Archive path (default: workbench-doctor-bundle-<timestamp>.tar.gz
+        /// Archive path (default: workspace-doctor-bundle-<timestamp>.tar.gz
         /// in the current directory); an existing file is never overwritten
         #[arg(long, value_name = "PATH")]
         out: Option<PathBuf>,
@@ -856,21 +856,21 @@ pub enum RoadmapAction {
         backend: BackendFlag,
     },
 
-    /// Show the next ready chunk (think-and-ship roadmap backend)
+    /// Show the next ready chunk (magistr roadmap backend)
     Next {
         /// Project directory (defaults to current directory)
         #[arg(default_value = ".")]
         dir: PathBuf,
     },
 
-    /// Roadmap status snapshot — counts, regions, next ready chunk (think-and-ship backend; `--json` for the raw roadmap_status)
+    /// Roadmap status snapshot — counts, regions, next ready chunk (magistr backend; `--json` for the raw roadmap_status)
     Status {
         /// Project directory (defaults to current directory)
         #[arg(default_value = ".")]
         dir: PathBuf,
     },
 
-    /// Regenerate ROADMAP.md from the roadmap store (think-and-ship export, or the YAML source)
+    /// Regenerate ROADMAP.md from the roadmap store (magistr export, or the YAML source)
     Export {
         /// Project directory (defaults to current directory)
         #[arg(default_value = ".")]
@@ -1178,7 +1178,7 @@ pub enum GuardEvent {
     Stop,
     /// A Bash tool call (PreToolUse hook): `git commit` needs green, verified
     /// gates, and grep, rg, find or sed over the workspace is routed to
-    /// workbench-mcp when the project declares it.
+    /// magistr when the project declares it.
     Commit,
     /// A file-editing tool call (PreToolUse hook on Edit/Write/MultiEdit/
     /// NotebookEdit): a frozen tree (`.magistr/legacy-tui-ratchet.json`) is

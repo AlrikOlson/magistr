@@ -5,7 +5,7 @@ use magistr_engine::native::{ProjectAuthority, TaskType, VerificationMode, Write
 fn plans_read_complete_native_runs_and_preserve_absence_failure_and_identity() {
     let dir = tempfile::tempdir().unwrap();
     let inputs = ProjectInputs::from_lookup(dir.path(), |key| {
-        (key == "THINK_AND_SHIP_DATA_DIR").then(|| dir.path().join("data").display().to_string())
+        (key == "MAGISTR_WORKFLOW_DATA_DIR").then(|| dir.path().join("data").display().to_string())
     });
     let native = inputs.workflow();
     let reader = NativeReader::open(native);

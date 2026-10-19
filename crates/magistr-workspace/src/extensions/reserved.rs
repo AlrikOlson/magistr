@@ -10,5 +10,5 @@ pub const RESERVED_TOOL_NAMES: [&str; 9] = [
     "script",
     "run",
     "undo",
-    "workbench_status",
+    "workspace_status",
 ];

@@ -20,7 +20,7 @@ fn status_carries_journal_mode_versions_and_snapshot_notes() {
     };
     let status = WorkspaceStatus::observe(
         dir.path(),
-        &dir.path().join(".workbench"),
+        &dir.path().join(".magistr/workspace"),
         &config,
         Some("1"),
         Some(worker),
@@ -76,7 +76,7 @@ fn a_local_healthy_workspace_has_no_notes() {
     let dir = tempfile::tempdir().expect("workspace");
     let status = WorkspaceStatus::observe(
         dir.path(),
-        &dir.path().join(".workbench"),
+        &dir.path().join(".magistr/workspace"),
         &ResolvedConfig::default(),
         Some("0"),
         None,

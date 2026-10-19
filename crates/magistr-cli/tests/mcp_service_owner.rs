@@ -6,10 +6,10 @@ use magistr::mcp_tools::MagistrService;
 use magistr_engine::native::NativeConfig;
 
 fn config(root: &Path, data: &Path, id: &str) -> NativeConfig {
-    std::fs::create_dir_all(root.join(".think-and-ship")).expect("identity directory");
+    std::fs::create_dir_all(root.join(".magistr")).expect("identity directory");
     std::fs::write(
-        root.join(".think-and-ship/project.json"),
-        serde_json::json!({"id":id}).to_string(),
+        root.join(".magistr/project.json"),
+        serde_json::json!({"project":{"id":id}}).to_string(),
     )
     .expect("identity");
     magistr_core::evidence::writer_config(root, |_| None).with_data_dir(data)

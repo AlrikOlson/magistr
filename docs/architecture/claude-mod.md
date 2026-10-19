@@ -8,7 +8,7 @@ desktop and headless paths retain their existing owners.
 ## Decision
 
 Native family use cases own rules, mutations, recorded verification and recovery.
-Workbench owns source transactions, confirmations and journal receipts. Claude
+Workspace owns source transactions, confirmations and journal receipts. Claude
 owns its session, permission dialogs and plugin lifecycle. The Mod owns only
 disposable selections, loading states and bounded views; persistent preferences
 contain the progress-band choice only.
@@ -35,13 +35,13 @@ Check choices describe commands; they neither authorize nor execute them.
 ## Consistency and effects
 
 Decode, validate and copy every reply at the adapter edge, including MCP errors,
-native refusal envelopes and Workbench versioned envelopes. Keep the four
+native refusal envelopes and Workspace versioned envelopes. Keep the four
 workflow families separate. A successful read means observed at that read,
 not atomic with other queries. After a refresh, reject disagreement between
 workflow project identities; task detail replies must match the selected task
 and connected owner. Owner epoch, event sequence, record revision,
 snapshot cursor and source revision retain their distinct meanings. The Mod
-does not subscribe to or fabricate a feed cursor. Workbench's existing status
+does not subscribe to or fabricate a feed cursor. Workspace's existing status
 root is compared with the context's canonical root before actions. Failed or
 mismatched connections refuse actions and mark source views out of date.
 Workstream choices use native per-caller focus under this Claude session's lane;

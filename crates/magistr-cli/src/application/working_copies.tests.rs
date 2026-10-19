@@ -19,7 +19,7 @@ fn project() -> (tempfile::TempDir, PathBuf) {
     git(&root, &["init", "-b", "main"]);
     git(&root, &["config", "user.name", "Test"]);
     git(&root, &["config", "user.email", "test@example.invalid"]);
-    std::fs::write(root.join(".gitignore"), ".workbench/\n.magistr/\n").expect("ignore");
+    std::fs::write(root.join(".gitignore"), ".magistr/workspace/\n.magistr/\n").expect("ignore");
     std::fs::write(root.join("file"), "original").expect("file");
     git(&root, &["add", "."]);
     git(&root, &["commit", "-m", "initial"]);

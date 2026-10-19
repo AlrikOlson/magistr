@@ -3,7 +3,7 @@
 The [12 October 2026 decision](../../docs/architecture/desktop-foundation.md)
 selects Tauri: a Rust host and the OS WebView. This separate, bounded workspace
 contains the selected fixture and its shared Rust workload. It opens no project
-store, provider, workflow writer or Workbench service. It is not a second
+store, provider, workflow writer or Magistr service. It is not a second
 production desktop or a workflow authority.
 
 Use the explicitly measured installed compiler rather than the default:

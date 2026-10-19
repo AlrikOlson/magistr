@@ -135,11 +135,11 @@ pub trait CredentialStore: Send + Sync {
 pub struct EnvCredentialStore;
 
 impl EnvCredentialStore {
-    /// `THINK_AND_SHIP_TRACKER_TOKEN_<PROVIDER>`, e.g. `…_LINEAR`.
+    /// `MAGISTR_WORKFLOW_TRACKER_TOKEN_<PROVIDER>`, e.g. `…_LINEAR`.
     #[must_use]
     pub fn var_for(provider: &str) -> String {
         format!(
-            "THINK_AND_SHIP_TRACKER_TOKEN_{}",
+            "MAGISTR_WORKFLOW_TRACKER_TOKEN_{}",
             provider.trim().to_ascii_uppercase().replace('-', "_")
         )
     }
@@ -370,7 +370,7 @@ impl CredentialStore for FileCredentialStore {
 
 /// The default keychain service name — the label a human sees in Keychain
 /// Access or Seahorse beside the item.
-pub const KEYCHAIN_SERVICE: &str = "think-and-ship";
+pub const KEYCHAIN_SERVICE: &str = "magistr";
 
 /// One subprocess invocation of a credential CLI.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -739,7 +739,7 @@ impl KeychainCredentialStore {
     pub fn available(&self) -> bool {
         let probe = self
             .dialect
-            .lookup(&self.service, "think-and-ship-availability-probe");
+            .lookup(&self.service, "magistr-availability-probe");
         match self.runner.run(&probe) {
             Ok(outcome) => !matches!(self.dialect.classify(&outcome), Lookup::Unusable(_)),
             // A missing binary lands here as NotFound.
@@ -966,7 +966,7 @@ mod tests {
     fn the_env_fallback_reads_a_provider_scoped_variable() {
         assert_eq!(
             EnvCredentialStore::var_for("linear"),
-            "THINK_AND_SHIP_TRACKER_TOKEN_LINEAR"
+            "MAGISTR_WORKFLOW_TRACKER_TOKEN_LINEAR"
         );
         // An absent variable is "nothing stored", not an error.
         assert!(
@@ -1003,7 +1003,7 @@ mod tests {
     /// Run it deliberately:
     ///
     /// ```text
-    /// cargo test -p think-and-ship --lib the_real_os_keychain -- --ignored --nocapture
+    /// cargo test -p magistr --lib the_real_os_keychain -- --ignored --nocapture
     /// ```
     ///
     /// It is opt-in rather than part of the gate for two reasons. It writes to
@@ -1019,8 +1019,7 @@ mod tests {
     #[test]
     #[ignore = "writes to the real login keychain; run explicitly"]
     fn the_real_os_keychain_round_trips_a_credential() {
-        let Some(store) = KeychainCredentialStore::for_this_platform("think-and-ship-selftest")
-        else {
+        let Some(store) = KeychainCredentialStore::for_this_platform("magistr-selftest") else {
             eprintln!("no keychain CLI on this platform — nothing to prove here");
             return;
         };

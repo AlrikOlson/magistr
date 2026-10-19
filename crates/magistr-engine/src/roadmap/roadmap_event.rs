@@ -53,7 +53,7 @@ pub enum RoadmapEvent {
         current: RoadmapProgress,
     },
 
-    /// The native think-and-ship roadmap was re-read (a chunk changed, a
+    /// The native magistr roadmap was re-read (a chunk changed, a
     /// broadcast frame arrived, or a consumer asked for a refresh).
     NativeSnapshot {
         /// Counts, next ready chunk, current workstreams, history and progress.

@@ -2,7 +2,7 @@ use magistr_workflow::roadmap::domain::{Chunk, ChunkStatus};
 
 use crate::roadmap::RoadmapProgress;
 
-/// Project a think-and-ship roadmap onto the engine's progress snapshot.
+/// Project a magistr roadmap onto the engine's progress snapshot.
 ///
 /// A chunk is a task; a workstream (`group`) is a phase. Obsoleted chunks
 /// are history and count toward nothing — the roadmap that carries 73 of

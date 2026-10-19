@@ -32,7 +32,7 @@ pub fn run_journal(dir: &Path, view: &JournalView) -> eyre::Result<()> {
         );
     }
     let root = admitted_root(dir);
-    let state_dir = root.join(".workbench");
+    let state_dir = root.join(".magistr/workspace");
     let query = JournalLogQuery {
         session_id: view.session.clone(),
         limit: view.limit,

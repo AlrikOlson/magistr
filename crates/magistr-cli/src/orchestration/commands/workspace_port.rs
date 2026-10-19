@@ -1,0 +1,54 @@
+//! The cockpit's workspace port, from the project's `.mcp.json`.
+
+use std::path::Path;
+
+use crate::application::workspace_client::McpWorkspace;
+use magistr_cockpit::workspace::WorkspacePort;
+
+/// The server entry the cockpit speaks to.
+const SERVER: &str = "magistr";
+
+/// The workspace port for `project_dir`, read off its `.mcp.json`
+/// `mcpServers` table — the same file the agent's own servers come from
+/// ([`project_mcp_servers`](crate::agent::project_mcp_servers)), so the
+/// cockpit and the agent reach the same workspace.
+///
+/// No `.mcp.json`, no `magistr` entry, or an entry without a
+/// command yields `None` and the session runs without a workspace, as
+/// it did before. The port itself does not connect here: it spawns the
+/// server on the first call that needs one, so a workspace whose server
+/// cannot start costs a line on the stage rather than the cockpit.
+#[must_use]
+pub fn workspace_port(project_dir: &Path) -> Option<Box<dyn WorkspacePort>> {
+    let raw = std::fs::read_to_string(project_dir.join(".mcp.json")).ok()?;
+    let doc: serde_json::Value = serde_json::from_str(&raw).ok()?;
+    let spec = doc["mcpServers"].get(SERVER)?;
+    let command = spec["command"].as_str()?;
+    let args = spec["args"]
+        .as_array()
+        .map(|args| {
+            args.iter()
+                .filter_map(|arg| arg.as_str().map(str::to_owned))
+                .collect()
+        })
+        .unwrap_or_default();
+    let env = spec["env"]
+        .as_object()
+        .map(|env| {
+            env.iter()
+                .filter_map(|(key, value)| {
+                    value.as_str().map(|value| (key.clone(), value.to_owned()))
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    // The bridge resolves its portable "." workspace root against the project.
+    // Legacy launch settings are refused by the port before any process starts.
+    Some(Box::new(
+        McpWorkspace::new(command, args, env).with_workspace(project_dir),
+    ))
+}
+
+#[cfg(test)]
+#[path = "workspace_port.tests.rs"]
+mod tests;

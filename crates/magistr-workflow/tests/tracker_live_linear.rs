@@ -72,7 +72,7 @@ async fn a_real_round_trip_preserves_the_content_hash() {
     let tracker = tracker(&key, &team);
 
     let mut sent = WorkItem::new("live smoke — round trip fidelity");
-    sent.body = "Created by the think-and-ship live smoke test. Safe to delete.".into();
+    sent.body = "Created by the magistr live smoke test. Safe to delete.".into();
     sent.state = WorkItemState::InProgress;
 
     let created = tracker
@@ -146,7 +146,7 @@ async fn in_progress_lands_in_the_earliest_started_state_not_whichever_came_firs
     let tracker = tracker(&key, &team);
 
     let mut item = WorkItem::new("live smoke — state mapping");
-    item.body = "Created by the think-and-ship live smoke test. Safe to delete.".into();
+    item.body = "Created by the magistr live smoke test. Safe to delete.".into();
     item.state = WorkItemState::InProgress;
 
     let created = tracker.upsert_item(&item).await.expect("create");
@@ -206,11 +206,11 @@ async fn a_blocking_relation_is_accepted_and_points_the_right_way() {
     let tracker = tracker(&key, &team);
 
     let mut base = WorkItem::new("live smoke — the blocker");
-    base.body = "Created by the think-and-ship live smoke test. Safe to delete.".into();
+    base.body = "Created by the magistr live smoke test. Safe to delete.".into();
     let blocker = tracker.upsert_item(&base).await.expect("create blocker");
 
     let mut dep = WorkItem::new("live smoke — the blocked");
-    dep.body = "Created by the think-and-ship live smoke test. Safe to delete.".into();
+    dep.body = "Created by the magistr live smoke test. Safe to delete.".into();
     let blocked = tracker.upsert_item(&dep).await.expect("create blocked");
 
     // `blocked` is blocked by `blocker`.
@@ -291,7 +291,7 @@ async fn a_fresh_team_resolves_on_the_immediate_reprobe_or_the_seeding_lag_is_re
                     std::env::var("HOME")
                         .map(|h| std::path::PathBuf::from(h).join(".local").join("share"))
                 })
-                .map(|p| p.join("think-and-ship"))
+                .map(|p| p.join("magistr/workflow"))
                 .ok();
             let stored = data_dir.and_then(|d| {
                 use magistr_workflow::tracker::credential::CredentialStore;
@@ -305,7 +305,7 @@ async fn a_fresh_team_resolves_on_the_immediate_reprobe_or_the_seeding_lag_is_re
                 None => {
                     eprintln!(
                         "SKIPPED: set LINEAR_API_KEY or connect a linear credential \
-                         (`think-and-ship tracker connect --provider linear`)"
+                         (`magistr tracker connect --provider linear`)"
                     );
                     return;
                 }
@@ -320,7 +320,7 @@ async fn a_fresh_team_resolves_on_the_immediate_reprobe_or_the_seeding_lag_is_re
         .expect("clock")
         .as_secs();
     let fresh_key = format!("TS{:03}", unix % 1000);
-    let display = format!("think-and-ship live probe {fresh_key} — safe to delete");
+    let display = format!("magistr live probe {fresh_key} — safe to delete");
     eprintln!("creating throwaway team '{fresh_key}' ({display})");
 
     let probe = tracker(&key, &fresh_key);
@@ -422,7 +422,7 @@ async fn the_projectors_own_body_survives_linears_markdown_normalization() {
         "live smoke — projector body shape".into(),
         ChunkStatus::Pending,
         10,
-        "Created by the think-and-ship live smoke test. Safe to delete.".into(),
+        "Created by the magistr live smoke test. Safe to delete.".into(),
         vec![
             "the acceptance checklist renders".into(),
             "the provenance footer survives".into(),
@@ -454,7 +454,7 @@ async fn the_projectors_own_body_survives_linears_markdown_normalization() {
     eprintln!("--- body Linear returned ---\n{}\n---", back.body);
 
     assert!(
-        back.body.contains("<!-- think-and-ship:"),
+        back.body.contains("<!-- magistr:"),
         "the provenance footer was STRIPPED by Linear — that is a P0 against the \
          whole provenance design, not a formatting nit"
     );

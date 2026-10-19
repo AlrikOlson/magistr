@@ -68,9 +68,9 @@ pub(crate) struct GuardInput {
     /// file-editing tool, made relative to the project root; `None` when the
     /// hook carried none or the file lies outside the project.
     pub(crate) write_path: Option<String>,
-    /// The project declares a `workbench-mcp` server in `.mcp.json`, so
+    /// The project declares a `magistr` server in `.mcp.json`, so
     /// grep, rg, find and sed over the workspace have a replacement.
-    pub(crate) workbench: bool,
+    pub(crate) workspace: bool,
     /// The canonical project root; relative paths in a Bash command resolve
     /// against it. `None` in a hand-built input disables routing.
     pub(crate) project_dir: Option<PathBuf>,
@@ -167,7 +167,7 @@ fn evaluate_stop(input: &GuardInput) -> GuardVerdict {
 /// Commit: a `git commit` while a required gate failed, or before any
 /// verified gate was recorded for the objective, is refused. Any other Bash
 /// command is only routed: grep, rg, find and sed aimed at the workspace
-/// are refused in favour of workbench-mcp when the project declares it.
+/// are refused in favour of magistr when the project declares it.
 /// Projects without an objective pass.
 fn evaluate_commit(input: &GuardInput) -> GuardVerdict {
     if !input.command.as_deref().is_some_and(is_git_commit) {
@@ -208,11 +208,11 @@ fn evaluate_commit(input: &GuardInput) -> GuardVerdict {
 }
 
 /// Routing: a workspace search or edit through grep, rg, find or sed is
-/// refused with the workbench alternative. Without workbench, or without a
+/// refused with the workspace alternative. Without workspace, or without a
 /// project root to resolve paths against, nothing is routed.
 fn evaluate_routing(input: &GuardInput) -> GuardVerdict {
     let (true, Some(command), Some(project)) =
-        (input.workbench, &input.command, &input.project_dir)
+        (input.workspace, &input.command, &input.project_dir)
     else {
         return GuardVerdict::Allow(None);
     };

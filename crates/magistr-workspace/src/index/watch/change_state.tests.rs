@@ -42,9 +42,9 @@ fn observation_and_owned_cache_writes_do_not_cause_rescan_loops() {
     let root = Path::new("/root");
     for path in [
         "/outside.rs",
-        "/root/.workbench/index.db",
+        "/root/.magistr/workspace/index.db",
         "/root/.git/HEAD",
-        "/root/file.rs.workbench-tmp-123",
+        "/root/file.rs.magistr-tmp-123",
     ] {
         state.receive(
             root,

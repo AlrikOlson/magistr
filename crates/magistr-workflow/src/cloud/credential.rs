@@ -40,14 +40,14 @@ use crate::tracker::credential::{
 ///
 /// Not a secret, and that is the point — this is what replaced
 /// [`TOKEN_ENV`] in the written config.
-pub const PROFILE_ENV: &str = "THINK_AND_SHIP_CLOUD_PROFILE";
+pub const PROFILE_ENV: &str = "MAGISTR_WORKFLOW_CLOUD_PROFILE";
 
 /// The long-lived escape hatch: the token supplied directly.
 ///
 /// Still supported and still documented — CI has no keychain and no interactive
 /// connect, and `DEPLOY.md` tells operators to set it. It takes PRECEDENCE over
 /// a profile, because an operator who sets it has said something explicit.
-pub const TOKEN_ENV: &str = "THINK_AND_SHIP_CLOUD_TOKEN";
+pub const TOKEN_ENV: &str = "MAGISTR_WORKFLOW_CLOUD_TOKEN";
 
 /// The store key for a profile.
 ///
@@ -285,7 +285,7 @@ mod tests {
 
     fn fake_store(dialect: KeychainDialect) -> Arc<KeychainCredentialStore> {
         Arc::new(KeychainCredentialStore::with_runner(
-            "think-and-ship-test",
+            "magistr-test",
             dialect,
             Arc::new(FakeKeychain::default()),
         ))
@@ -368,7 +368,7 @@ mod tests {
     #[test]
     fn an_unusable_keyring_is_an_error_not_an_empty_one() {
         let broken = Arc::new(KeychainCredentialStore::with_runner(
-            "think-and-ship-test",
+            "magistr-test",
             KeychainDialect::SecretTool,
             Arc::new(FakeKeychain {
                 items: Mutex::default(),
@@ -460,11 +460,8 @@ mod tests {
         }
 
         for dialect in [KeychainDialect::MacOsSecurity, KeychainDialect::SecretTool] {
-            let store = KeychainCredentialStore::with_runner(
-                "think-and-ship-test",
-                dialect,
-                Arc::new(Hung),
-            );
+            let store =
+                KeychainCredentialStore::with_runner("magistr-test", dialect, Arc::new(Hung));
             assert!(
                 !store.available(),
                 "{dialect:?}: a CLI that never answers is not an available keychain",

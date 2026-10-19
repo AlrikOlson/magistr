@@ -1,4 +1,4 @@
-//! The think-and-ship roadmap as a [`SpecSummary`], so every consumer of
+//! The magistr roadmap as a [`SpecSummary`], so every consumer of
 //! spec progress (the iteration loop, the workflow config, the prompt
 //! context) reads chunks on a native project and never opens `spec.file`.
 

@@ -2,7 +2,7 @@ use super::*;
 
 fn lock_path() -> (tempfile::TempDir, PathBuf) {
     let dir = tempfile::tempdir().expect("workspace");
-    let state = dir.path().join(".workbench");
+    let state = dir.path().join(".magistr/workspace");
     std::fs::create_dir_all(&state).expect("state dir");
     let path = state.join(ServerLock::FILE_NAME);
     (dir, path)
@@ -47,7 +47,7 @@ fn a_symlinked_lock_path_is_refused() {
 #[test]
 fn a_directory_at_the_lock_path_is_refused() {
     let (dir, _) = lock_path();
-    let path = dir.path().join(".workbench");
+    let path = dir.path().join(".magistr/workspace");
     let refused = ServerLock::acquire(&path).expect_err("a directory is not a lock file");
     assert_eq!(refused.kind(), io::ErrorKind::InvalidInput);
 }

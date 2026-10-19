@@ -103,7 +103,7 @@ impl SpecializedRole {
 
     // ─── Built-in Archetypes ──────────────────────────────────────────────
 
-    /// Researcher: web search + workbench navigation, read-only, no edits.
+    /// Researcher: web search + workspace navigation, read-only, no edits.
     #[must_use]
     pub fn researcher() -> Self {
         Self {
@@ -112,8 +112,8 @@ impl SpecializedRole {
             system_prompt_template: concat!(
                 "You are a research specialist. Your job is to investigate and analyze.\n",
                 "Do NOT modify any files. Do NOT use Edit or Write tools.\n",
-                "Use web search and the workbench-mcp tools (search, map, read) to gather ",
-                "information; follow .claude/skills/workbench-routing/SKILL.md.\n",
+                "Use web search and the magistr tools (search, read, context) to gather ",
+                "information; follow .claude/skills/workspace-routing/SKILL.md.\n",
                 "Produce a detailed analysis with findings, relevant code locations, ",
                 "and recommendations.\n\n",
                 "Task: {task}",
@@ -122,10 +122,10 @@ impl SpecializedRole {
             allowed_tools: vec![
                 "Read".into(),
                 "Bash".into(),
-                "mcp__workbench-mcp__search".into(),
-                "mcp__workbench-mcp__map".into(),
-                "mcp__workbench-mcp__read".into(),
-                "mcp__workbench-mcp__workbench_status".into(),
+                "mcp__magistr__search".into(),
+                "mcp__magistr__discover".into(),
+                "mcp__magistr__read".into(),
+                "mcp__magistr__context".into(),
                 "mcp__brave-search__brave_web_search".into(),
             ],
             denied_tools: vec!["Edit".into(), "Write".into(), "NotebookEdit".into()],
@@ -151,13 +151,13 @@ impl SpecializedRole {
                 "You are a coding specialist. Follow TDD: write a failing test first, ",
                 "make it pass, then refactor.\n",
                 "Follow project conventions. No unwrap() in library code.\n",
-                "Navigate and edit with the workbench-mcp tools (search, map, read, edit, ",
-                "files, run, script, undo); follow .claude/skills/workbench-routing/SKILL.md.\n",
+                "Navigate and edit with the magistr tools (search, read, edit, write); use discover and execute for ",
+                "files, run, script and undo; follow .claude/skills/workspace-routing/SKILL.md.\n",
                 "Write clean, minimal code that solves the task.\n\n",
                 "Task: {task}",
             )
             .into(),
-            // All tools allowed — including every workbench-mcp tool.
+            // All tools allowed — including every magistr tool.
             allowed_tools: vec![],
             denied_tools: vec![],
             model_preference: Some("claude-opus-4-6".into()),
@@ -180,8 +180,8 @@ impl SpecializedRole {
             display_name: "Reviewer".into(),
             system_prompt_template: concat!(
                 "You are a code review specialist. Do NOT modify any files.\n",
-                "Navigate with the workbench-mcp tools (search, map, read); follow ",
-                ".claude/skills/workbench-routing/SKILL.md.\n",
+                "Navigate with the magistr tools (search, read, context); follow ",
+                ".claude/skills/workspace-routing/SKILL.md.\n",
                 "Review the code for:\n",
                 "- Correctness and edge cases\n",
                 "- Performance issues\n",
@@ -195,10 +195,10 @@ impl SpecializedRole {
             allowed_tools: vec![
                 "Read".into(),
                 "Bash".into(),
-                "mcp__workbench-mcp__search".into(),
-                "mcp__workbench-mcp__map".into(),
-                "mcp__workbench-mcp__read".into(),
-                "mcp__workbench-mcp__workbench_status".into(),
+                "mcp__magistr__search".into(),
+                "mcp__magistr__discover".into(),
+                "mcp__magistr__read".into(),
+                "mcp__magistr__context".into(),
             ],
             denied_tools: vec!["Edit".into(), "Write".into(), "NotebookEdit".into()],
             model_preference: Some("claude-sonnet-4-6".into()),
@@ -224,12 +224,12 @@ impl SpecializedRole {
                 "Write unit tests in {name}.tests.rs files alongside the module.\n",
                 "Test error paths, not just happy paths. Use assert_eq!, assert_ne!, assert!.\n",
                 "Run quality gates after writing tests to verify they pass.\n",
-                "Navigate and edit with the workbench-mcp tools (search, read, edit, run); ",
-                "follow .claude/skills/workbench-routing/SKILL.md.\n\n",
+                "Navigate and edit with the magistr tools (search, read, edit, run); ",
+                "follow .claude/skills/workspace-routing/SKILL.md.\n\n",
                 "Task: {task}",
             )
             .into(),
-            // All tools allowed — including every workbench-mcp tool.
+            // All tools allowed — including every magistr tool.
             allowed_tools: vec![],
             denied_tools: vec![],
             model_preference: Some("claude-sonnet-4-6".into()),
@@ -255,12 +255,12 @@ impl SpecializedRole {
                 "Write doc comments (/// or //!), update README files, and add inline\n",
                 "comments where the logic is not self-evident.\n",
                 "Do NOT change any logic or behavior — only document existing code.\n",
-                "Navigate with workbench-mcp search/read and write docs with edit; ",
-                "follow .claude/skills/workbench-routing/SKILL.md.\n\n",
+                "Navigate with magistr search/read and write docs with edit; ",
+                "follow .claude/skills/workspace-routing/SKILL.md.\n\n",
                 "Task: {task}",
             )
             .into(),
-            allowed_tools: vec![], // Needs Edit/Write (and workbench edit) for docs
+            allowed_tools: vec![], // Needs Edit/Write (and workspace edit) for docs
             denied_tools: vec![],
             model_preference: Some("claude-haiku-4-5-20251001".into()),
             model_fallback: vec!["claude-sonnet-4-6".into()],

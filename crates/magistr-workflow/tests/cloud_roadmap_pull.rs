@@ -282,9 +282,8 @@ fn a_provable_chunk_still_round_trips_and_keeps_its_own_origin() {
     assert_eq!(merged, 1, "a provable record must still sync");
 
     // And a foreign one, pushed by its own project, stays foreign to us.
-    let theirs = owned_chunk("theirs", ChunkStatus::Backlog, "think-and-ship-676f38");
-    let foreign =
-        serde_json::to_value(from_chunk("think-and-ship-676f38", &theirs, &[], &[])).unwrap();
+    let theirs = owned_chunk("theirs", ChunkStatus::Backlog, "magistr-676f38");
+    let foreign = serde_json::to_value(from_chunk("magistr-676f38", &theirs, &[], &[])).unwrap();
     let merged =
         magistr_workflow::cloud::pull::apply_roadmap_records(&mut engine, &[foreign]).unwrap();
     assert_eq!(merged, 0, "another project's stamped record never merges");

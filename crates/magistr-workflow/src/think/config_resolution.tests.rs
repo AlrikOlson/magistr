@@ -19,15 +19,15 @@ fn resolve(entries: &[(&str, &str)]) -> ThinkConfigResolution {
 #[test]
 fn injected_settings_resolve_with_field_provenance() {
     let resolved = resolve(&[
-        ("THINK_AND_SHIP_STRICT_MODE", "true"),
+        ("MAGISTR_WORKFLOW_STRICT_MODE", "true"),
         ("MAX_HISTORY_SIZE", " 240 "),
-        ("THINK_AND_SHIP_OUTPUT_FORMAT", "JSON"),
-        ("THINK_AND_SHIP_NO_COLOR", "true"),
-        ("THINK_AND_SHIP_SESSION_TIMEOUT", "42"),
-        ("THINK_AND_SHIP_MAX_BRANCH_DEPTH", "8"),
-        ("THINK_AND_SHIP_RECENT_STEPS_LIMIT", "7"),
-        ("THINK_AND_SHIP_ROLLUP_MAX_ITEMS", "19"),
-        ("THINK_AND_SHIP_BROADCAST_PATH", " /injected/socket "),
+        ("MAGISTR_WORKFLOW_OUTPUT_FORMAT", "JSON"),
+        ("MAGISTR_WORKFLOW_NO_COLOR", "true"),
+        ("MAGISTR_WORKFLOW_SESSION_TIMEOUT", "42"),
+        ("MAGISTR_WORKFLOW_MAX_BRANCH_DEPTH", "8"),
+        ("MAGISTR_WORKFLOW_RECENT_STEPS_LIMIT", "7"),
+        ("MAGISTR_WORKFLOW_ROLLUP_MAX_ITEMS", "19"),
+        ("MAGISTR_WORKFLOW_BROADCAST_PATH", " /injected/socket "),
     ]);
     let config = &resolved.config;
     assert!(config.validation.strict_mode);
@@ -53,7 +53,7 @@ fn injected_settings_resolve_with_field_provenance() {
     ] {
         assert_eq!(
             resolved.sources[field],
-            ConfigSource::Environment("THINK_AND_SHIP_STRICT_MODE")
+            ConfigSource::Environment("MAGISTR_WORKFLOW_STRICT_MODE")
         );
     }
     assert_eq!(
@@ -77,16 +77,16 @@ fn injected_settings_resolve_with_field_provenance() {
 #[test]
 fn invalid_and_blank_inputs_preserve_defaults_and_do_not_enter_provenance() {
     let resolved = resolve(&[
-        ("THINK_AND_SHIP_STRICT_MODE", "TRUE"),
+        ("MAGISTR_WORKFLOW_STRICT_MODE", "TRUE"),
         ("MAX_HISTORY_SIZE", "0"),
-        ("THINK_AND_SHIP_OUTPUT_FORMAT", "sensitive-invalid-value"),
-        ("THINK_AND_SHIP_SESSION_TIMEOUT", "-1"),
-        ("THINK_AND_SHIP_MAX_BRANCH_DEPTH", "4294967296"),
-        ("THINK_AND_SHIP_RECENT_STEPS_LIMIT", " "),
-        ("THINK_AND_SHIP_ROLLUP_MAX_ITEMS", "nan"),
-        ("THINK_AND_SHIP_BROADCAST_PATH", "  "),
+        ("MAGISTR_WORKFLOW_OUTPUT_FORMAT", "sensitive-invalid-value"),
+        ("MAGISTR_WORKFLOW_SESSION_TIMEOUT", "-1"),
+        ("MAGISTR_WORKFLOW_MAX_BRANCH_DEPTH", "4294967296"),
+        ("MAGISTR_WORKFLOW_RECENT_STEPS_LIMIT", " "),
+        ("MAGISTR_WORKFLOW_ROLLUP_MAX_ITEMS", "nan"),
+        ("MAGISTR_WORKFLOW_BROADCAST_PATH", "  "),
         (
-            "THINK_AND_SHIP_DEFAULT_SESSION_ID",
+            "MAGISTR_WORKFLOW_DEFAULT_SESSION_ID",
             "../../sensitive-session",
         ),
     ]);
@@ -114,8 +114,8 @@ fn invalid_and_blank_inputs_preserve_defaults_and_do_not_enter_provenance() {
 #[test]
 fn automatic_session_identity_waits_for_project_admission() {
     for variable in [
-        "THINK_AND_SHIP_ENABLE_SESSIONS",
-        "THINK_AND_SHIP_AUTO_SESSION",
+        "MAGISTR_WORKFLOW_ENABLE_SESSIONS",
+        "MAGISTR_WORKFLOW_AUTO_SESSION",
     ] {
         let resolved = resolve(&[(variable, "true")]);
         assert!(resolved.config.features.enable_sessions);
@@ -134,9 +134,12 @@ fn automatic_session_identity_waits_for_project_admission() {
 #[test]
 fn explicit_session_id_wins_and_enables_sessions() {
     let resolved = resolve(&[
-        ("THINK_AND_SHIP_AUTO_SESSION", "true"),
-        ("THINK_AND_SHIP_ENABLE_SESSIONS", "false"),
-        ("THINK_AND_SHIP_DEFAULT_SESSION_ID", " explicit-session_2 "),
+        ("MAGISTR_WORKFLOW_AUTO_SESSION", "true"),
+        ("MAGISTR_WORKFLOW_ENABLE_SESSIONS", "false"),
+        (
+            "MAGISTR_WORKFLOW_DEFAULT_SESSION_ID",
+            " explicit-session_2 ",
+        ),
     ]);
     assert!(resolved.config.features.enable_sessions);
     assert_eq!(
@@ -145,16 +148,16 @@ fn explicit_session_id_wins_and_enables_sessions() {
     );
     assert_eq!(
         resolved.sources["features.default_session_id"],
-        ConfigSource::Environment("THINK_AND_SHIP_DEFAULT_SESSION_ID")
+        ConfigSource::Environment("MAGISTR_WORKFLOW_DEFAULT_SESSION_ID")
     );
     assert_eq!(
         resolved.sources["features.enable_sessions"],
-        ConfigSource::Environment("THINK_AND_SHIP_DEFAULT_SESSION_ID")
+        ConfigSource::Environment("MAGISTR_WORKFLOW_DEFAULT_SESSION_ID")
     );
 
     let rejected = resolve(&[
-        ("THINK_AND_SHIP_AUTO_SESSION", "true"),
-        ("THINK_AND_SHIP_DEFAULT_SESSION_ID", ".."),
+        ("MAGISTR_WORKFLOW_AUTO_SESSION", "true"),
+        ("MAGISTR_WORKFLOW_DEFAULT_SESSION_ID", ".."),
     ]);
     assert!(rejected.config.features.enable_sessions);
     assert_eq!(rejected.config.features.default_session_id, None);
@@ -175,16 +178,16 @@ fn rejected_values_are_absent_from_diagnostics() {
         .finish();
     tracing::subscriber::with_default(subscriber, || {
         resolve(&[
-            ("THINK_AND_SHIP_OUTPUT_FORMAT", "private-format-payload"),
+            ("MAGISTR_WORKFLOW_OUTPUT_FORMAT", "private-format-payload"),
             (
-                "THINK_AND_SHIP_DEFAULT_SESSION_ID",
+                "MAGISTR_WORKFLOW_DEFAULT_SESSION_ID",
                 "../private-session-payload",
             ),
         ])
     });
     let output = std::fs::read_to_string(log.path()).expect("diagnostics");
-    assert!(output.contains("THINK_AND_SHIP_OUTPUT_FORMAT"));
-    assert!(output.contains("THINK_AND_SHIP_DEFAULT_SESSION_ID"));
+    assert!(output.contains("MAGISTR_WORKFLOW_OUTPUT_FORMAT"));
+    assert!(output.contains("MAGISTR_WORKFLOW_DEFAULT_SESSION_ID"));
     assert!(!output.contains("private-format-payload"));
     assert!(!output.contains("private-session-payload"));
 }
@@ -199,10 +202,10 @@ fn empty_inputs_do_not_inherit_ambient_environment() {
                 "think::config_resolution::tests::empty_inputs_do_not_inherit_ambient_environment",
             ])
             .env(CHILD, "1")
-            .env("THINK_AND_SHIP_STRICT_MODE", "true")
-            .env("THINK_AND_SHIP_ENABLE_SESSIONS", "true")
-            .env("THINK_AND_SHIP_DEFAULT_SESSION_ID", "ambient-session")
-            .env("THINK_AND_SHIP_DATA_DIR", "/ambient-store")
+            .env("MAGISTR_WORKFLOW_STRICT_MODE", "true")
+            .env("MAGISTR_WORKFLOW_ENABLE_SESSIONS", "true")
+            .env("MAGISTR_WORKFLOW_DEFAULT_SESSION_ID", "ambient-session")
+            .env("MAGISTR_WORKFLOW_DATA_DIR", "/ambient-store")
             .status()
             .expect("isolated environment check");
         assert!(status.success(), "isolated environment check failed");
@@ -225,8 +228,8 @@ fn empty_inputs_do_not_inherit_ambient_environment() {
 #[test]
 fn supplied_persistence_is_authoritative() {
     let resolved = resolve(&[
-        ("THINK_AND_SHIP_PERSIST", "false"),
-        ("THINK_AND_SHIP_DATA_DIR", "/other-store"),
+        ("MAGISTR_WORKFLOW_PERSIST", "false"),
+        ("MAGISTR_WORKFLOW_DATA_DIR", "/other-store"),
     ]);
     assert!(resolved.config.persistence.enabled);
     assert_eq!(

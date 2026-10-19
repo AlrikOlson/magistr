@@ -11,7 +11,7 @@ pub struct NetworkDetection {
 }
 
 impl NetworkDetection {
-    /// `override_value` is the caller-supplied WORKBENCH_NETWORK_FS value.
+    /// `override_value` is the caller-supplied MAGISTR_WORKSPACE_NETWORK_FS value.
     /// Only "1" and "0" override detection. macOS mount types currently fall
     /// back to local; operators can force network mode with the override.
     #[must_use]

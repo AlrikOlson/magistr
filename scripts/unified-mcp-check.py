@@ -15,8 +15,8 @@ BINARY = Path(os.environ.get("MAGISTR_TEST_BINARY", "target/debug/magistr")).res
 class Connection:
     def __init__(self, root, data, access="full", command=None):
         env = {k: v for k, v in os.environ.items()
-               if not k.startswith(("MAGISTR_", "WORKBENCH_", "THINK_AND_SHIP_"))}
-        env.update(THINK_AND_SHIP_DATA_DIR=str(data),
+               if not k.startswith(("MAGISTR_", "MAGISTR_WORKSPACE_", "MAGISTR_WORKFLOW_"))}
+        env.update(MAGISTR_WORKFLOW_DATA_DIR=str(data),
                    XDG_CONFIG_HOME=str(data / "config"), XDG_DATA_HOME=str(data / "user"))
         self.process = subprocess.Popen(
             command or [str(BINARY), "mcp", "--dir", str(root), "--access", access], cwd=root, env=env,
@@ -98,11 +98,11 @@ def fixture(root):
                  "test_framework":"cargo-test","linter":"clippy","formatter":"rustfmt"},
         "quality_gate":{"check":"true","test":"true","lint":"true"},
         "format":{"command":"true","extensions":["rs"]},
-        "roadmap_exports":False, "roadmap_backend":"think-and-ship",
+        "roadmap_exports":False, "roadmap_backend":"native",
         "testing":{"companion_pattern":"{name}.tests.{ext}","test_dir":"alongside"},
         "reference_repos":[], "state_prefix":"unified-test"
     }))
-    (root / "workbench.toml").write_text('[commands]\nslow = "sleep 30"\n')
+    (root / ".magistr/workspace.toml").write_text('[commands]\nslow = "sleep 30"\n')
     (root / "hello.txt").write_text("hello\n")
     (root / "lib.rs").write_text("pub fn answer() -> u32 { 42 }\n")
 
@@ -154,7 +154,7 @@ magistr.call('signal_capture', {kind:'feedback',body:'must not run'});""")
             operations.update((op["name"], op) for op in page["operations"])
             if page["nextOffset"] is None: break
             offset = page["nextOffset"]
-        for name in ["map","files","run","undo","script","workbench_status","roadmap_add_chunk",
+        for name in ["map","files","run","undo","script","workspace_status","roadmap_add_chunk",
                      "think_record_step","ship_set_objective","ship_finalize","signal_capture"]:
             self.assertIn(name, operations)
         for name, tool in tools.items():
@@ -281,8 +281,8 @@ magistr.call('signal_capture', {kind:'feedback',body:'must not run'});""")
         (other/".magistr").mkdir()
         (other/".magistr/project.json").write_text(json.dumps(fixture_config))
         a,b=self.connect(),self.connect(other)
-        self.assertNotEqual(a.operation("workbench_status",{})["results"][0]["root"],
-                            b.operation("workbench_status",{})["results"][0]["root"])
+        self.assertNotEqual(a.operation("workspace_status",{})["results"][0]["root"],
+                            b.operation("workspace_status",{})["results"][0]["root"])
         a.tool("write",{"path":"hello.txt","content":"main"})
         b.tool("write",{"path":"hello.txt","content":"linked"})
         self.assertEqual((self.root/"hello.txt").read_text(),"main")

@@ -32,7 +32,7 @@ pub struct ShipEngine {
     receipts: ReceiptLedger,
     broadcaster: Option<Broadcaster>,
     /// Optional git-native trace mirror. When set, every mutation is
-    /// mirrored into `.think-and-ship/` as an Agent Trace JSONL record and the
+    /// mirrored into `.magistr/traces/` as an Agent Trace JSONL record and the
     /// session is committed on `ship_finalize`. All git/IO runs on the worker's
     /// own thread, never under this engine's lock. `None` = the default Local
     /// behaviour. Writes are fire-and-forget — a sink error never fails a tool.
@@ -129,7 +129,7 @@ impl ShipEngine {
     }
 
     /// Attach a git-native trace sink so mutations are mirrored into the repo's
-    /// `.think-and-ship/` as Agent Trace JSONL. `shared` selects the committed
+    /// `.magistr/traces/` as Agent Trace JSONL. `shared` selects the committed
     /// `sessions/` partition (`true`) vs the gitignored `local/` partition
     /// (`false`). Wired by the host's composition root.
     pub fn with_repo_sink(mut self, sink: crate::infra::RepoSink, shared: bool) -> Self {
@@ -258,7 +258,7 @@ impl ShipEngine {
                 ("task", task_payload(&task.id), vec![], false)
             }
             BroadcastFrame::ActionRecorded { action, .. } => {
-                let model_id = std::env::var("THINK_AND_SHIP_MODEL_ID")
+                let model_id = std::env::var("MAGISTR_WORKFLOW_MODEL_ID")
                     .ok()
                     .filter(|s| !s.is_empty());
                 let files = action
@@ -474,7 +474,7 @@ mod wire_id_tests {
     /// nothing.
     #[test]
     fn active_task_wire_id_is_cycle_scoped() {
-        let mut engine = ShipEngine::new("think-and-ship-test".into());
+        let mut engine = ShipEngine::new("magistr-test".into());
         engine
             .set_objective("chunk:x — test".into(), vec![], vec![], String::new())
             .unwrap();
@@ -506,7 +506,7 @@ mod wire_id_tests {
     /// rather than invented.
     #[test]
     fn no_active_task_means_no_wire_id() {
-        let mut engine = ShipEngine::new("think-and-ship-test".into());
+        let mut engine = ShipEngine::new("magistr-test".into());
         engine
             .set_objective("chunk:x — test".into(), vec![], vec![], String::new())
             .unwrap();

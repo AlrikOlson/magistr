@@ -48,7 +48,7 @@ Use `search` instead of grep/find, `read` for source and fresh content hashes,
 `edit` for changes, `write` for new files, and `files` for moves or journaled
 deletions. Use `undo` for this session's writes. Inspect response `ok`, `results`,
 `truncation`, `notes` and failures; request the next page or range when truncated.
-Follow the project's workbench-routing skill for recovery. Git stays in the shell.
+Follow the project's workspace-routing skill for recovery. Git stays in the shell.
 Explain a focused fallback if the connection is unavailable; never bypass a denial.
 
 Keep plans in `plan_work` and the roadmap in native state. Respect the project's

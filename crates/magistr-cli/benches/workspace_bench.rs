@@ -4,7 +4,7 @@
 //! 50 ms, worker round-trip p95 under 1 ms — over the retained synthetic
 //! corpora, against the shipping worker binary, judged as the reference
 //! benches judged them (tier 1 normalized per 500k LOC, percentiles by
-//! index) and written in the `workbench-bench/1` JSON shape so the recorded
+//! index) and written in the `workspace-bench/1` JSON shape so the recorded
 //! runs read alike beside the reference's.
 //!
 //! The corpus is generated in a temp dir and removed at exit; nothing here
@@ -27,7 +27,7 @@ use magistr_workspace::{
 use serde_json::{Value, json};
 use tokio_util::sync::CancellationToken;
 
-const BENCH_SCHEMA: &str = "workbench-bench/1";
+const BENCH_SCHEMA: &str = "workspace-bench/1";
 const TIER0_GATE_S: f64 = 5.0;
 const TIER1_GATE_S: f64 = 60.0;
 const TIER1_GATE_LOC: f64 = 500_000.0;

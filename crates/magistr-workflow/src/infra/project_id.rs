@@ -8,14 +8,10 @@ use std::path::Path;
 
 pub const PROJECT_SEP: &str = "__";
 
-const SHARED_OVERRIDE_VAR: &str = "THINK_AND_SHIP_PROJECT_NAME";
+const SHARED_OVERRIDE_VAR: &str = "MAGISTR_PROJECT_ID";
 
-/// The directory a project marks itself with, and the file inside it.
-///
-/// `.think-and-ship/` already exists in marked repositories — the repo-git trace
-/// sink writes there — so this is an anchor that was half-built rather than a
-/// new one.
-pub const PROJECT_DIR: &str = ".think-and-ship";
+/// The canonical project settings, shared with setup and project configuration.
+pub const PROJECT_DIR: &str = ".magistr";
 pub const PROJECT_FILE: &str = "project.json";
 
 /// Where a project's identity came from. Reported by `status`, because
@@ -26,7 +22,7 @@ pub const PROJECT_FILE: &str = "project.json";
 pub enum IdSource {
     /// An environment variable. A user who set one meant it.
     Environment,
-    /// A committed `.think-and-ship/project.json`, found by walking up.
+    /// A committed `.magistr/project.json`, found by walking up.
     RepoFile,
     /// `<basename>-<fnv1a_6hex(cwd)>` — the answer when nothing declares one.
     DerivedFromPath,
@@ -43,18 +39,8 @@ impl IdSource {
     }
 }
 
-/// A project's declared identity. IDENTITY ONLY, and that is enforced rather
-/// than merely intended.
-///
-/// This file is COMMITTED, which decides its contents completely. A url, a
-/// profile, a token or a tenant in here would be inherited by everyone who
-/// clones the repository — the exact false positive `73088dc` gates against,
-/// where a colleague who clones a connected project must not be handed a
-/// connection they hold no credential for. So the struct has two fields, no
-/// `serde(flatten)`, and no map to smuggle anything through: a key added to the
-/// file on disk cannot be read back out, because there is nowhere for it to
-/// land. How THIS machine reaches the workspace lives in `connections.json` and
-/// the credential store, which are per-machine and never committed.
+/// Identity read from the `project` section of Magistr's project settings.
+/// Connection credentials remain in machine-local storage.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ProjectIdentity {
     /// The machine identity every store is keyed by.
@@ -62,18 +48,6 @@ pub struct ProjectIdentity {
     /// What to show a human. Optional; absence means "derive it".
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
-}
-
-impl ProjectIdentity {
-    /// The bytes the identity file holds for this declaration: exactly what
-    /// [`write_project_file`] writes, so a plan that shows the declaration
-    /// before it is written shows the file that lands.
-    #[must_use]
-    pub fn declaration(&self) -> String {
-        let body = serde_json::to_string_pretty(self)
-            .expect("an identity of two strings always serializes");
-        format!("{body}\n")
-    }
 }
 
 /// Find the identity file by walking UP from `start`, the way git finds `.git`.
@@ -100,7 +74,11 @@ pub fn find_project_file(start: &Path) -> Option<std::path::PathBuf> {
 pub fn declared_identity_in(start: &Path) -> Option<ProjectIdentity> {
     let path = find_project_file(start)?;
     let text = std::fs::read_to_string(path).ok()?;
-    let declared: ProjectIdentity = serde_json::from_str(&text).ok()?;
+    #[derive(serde::Deserialize)]
+    struct ProjectDocument {
+        project: ProjectIdentity,
+    }
+    let declared = serde_json::from_str::<ProjectDocument>(&text).ok()?.project;
     let id = sanitize_project_name(declared.id.trim());
     if id.is_empty() {
         return None;
@@ -118,13 +96,11 @@ pub fn declared_identity_in(start: &Path) -> Option<ProjectIdentity> {
 ///
 /// Order of precedence:
 ///   1. `server_env_var` (caller-supplied override).
-///   2. `THINK_AND_SHIP_PROJECT_NAME` (shared override).
-///   3. `.think-and-ship/project.json`, found by walking up from the cwd.
+///   2. `MAGISTR_PROJECT_ID` (shared override).
+///   3. `.magistr/project.json`, found by walking up from the cwd.
 ///   4. `<basename>-<fnv1a_6hex(cwd)>` (deterministic fallback).
 ///
-/// STEP 4 IS LOAD-BEARING, not legacy. Every install that predates the file has
-/// no file, and every store they hold is keyed by what step 4 returns — so it
-/// must keep returning exactly that, or their whole history orphans on upgrade.
+/// An unconfigured directory gets a deterministic identity until setup pins it.
 pub fn resolve_project_id(server_env_var: Option<&str>) -> String {
     resolve_project_id_with(server_env_var, env::current_dir().ok().as_deref()).0
 }
@@ -169,7 +145,7 @@ pub fn project_id_for_path(path: &Path) -> String {
 }
 
 /// The human-readable half of the project's identity: the directory basename
-/// with no hash suffix — `think-and-ship`, not `think-and-ship-676f38`.
+/// with no hash suffix — `example`, without the path hash.
 ///
 /// This is what outward-facing surfaces (a tracker initiative's name) should
 /// show a human; [`resolve_project_id`] stays the machine identity. Honours
@@ -199,36 +175,6 @@ pub fn project_display_name() -> Option<String> {
         .and_then(|s| s.to_str())
         .map(sanitize_project_name)?;
     (!name.is_empty()).then_some(name)
-}
-
-/// Write the identity file for `root`, declaring `id`.
-///
-/// THE ID IS SUPPLIED, NEVER MINTED HERE, and that is the whole safety of this
-/// function. Every existing store — think steps, chunks, signals — is keyed by
-/// whatever the project resolves to TODAY. Seeding a fresh slug would silently
-/// orphan all of it while looking like a tidy-up. Callers pass the
-/// already-resolved id, so marking an existing project changes nothing about
-/// what it is; it only writes down what was previously recomputed.
-///
-/// Refuses to overwrite: a project that already declares an identity has one,
-/// and a second opinion is how two clones stop agreeing.
-pub fn write_project_file(
-    root: &Path,
-    id: &str,
-    name: Option<&str>,
-) -> std::io::Result<std::path::PathBuf> {
-    let dir = root.join(PROJECT_DIR);
-    let path = dir.join(PROJECT_FILE);
-    if path.exists() {
-        return Ok(path);
-    }
-    std::fs::create_dir_all(&dir)?;
-    let identity = ProjectIdentity {
-        id: id.to_string(),
-        name: name.map(str::to_string),
-    };
-    std::fs::write(&path, identity.declaration())?;
-    Ok(path)
 }
 
 /// Namespace a caller-supplied session id within the current project.
@@ -275,176 +221,5 @@ pub(crate) fn sanitize_project_name(raw: &str) -> String {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn sanitize_basic() {
-        assert_eq!(sanitize_project_name("My Project!"), "my-project");
-    }
-
-    #[test]
-    fn sanitize_special_chars() {
-        assert_eq!(sanitize_project_name("foo/bar/baz"), "foo-bar-baz");
-    }
-
-    #[test]
-    fn sanitize_leading_trailing() {
-        assert_eq!(sanitize_project_name("--hello--"), "hello");
-    }
-
-    #[test]
-    fn sanitize_caps_at_32_chars() {
-        let long = "a".repeat(64);
-        assert_eq!(sanitize_project_name(&long).len(), 32);
-    }
-
-    #[test]
-    fn hash_is_deterministic() {
-        let p = Path::new("/tmp/test-project");
-        assert_eq!(path_hash6(p), path_hash6(p));
-    }
-
-    #[test]
-    fn hash_is_6_hex_chars() {
-        let h = path_hash6(Path::new("/some/path"));
-        assert_eq!(h.len(), 6);
-        assert!(h.chars().all(|c| c.is_ascii_hexdigit()));
-    }
-
-    #[test]
-    fn hash_differs_for_different_paths() {
-        assert_ne!(path_hash6(Path::new("/a")), path_hash6(Path::new("/b")));
-    }
-
-    #[test]
-    fn namespace_idempotent() {
-        let ns = namespace_session_id("my-proj-abc123", "my-proj-abc123__session-1");
-        assert_eq!(ns, "my-proj-abc123__session-1");
-    }
-
-    #[test]
-    fn namespace_prefixes() {
-        let ns = namespace_session_id("my-proj-abc123", "session-1");
-        assert_eq!(ns, "my-proj-abc123__session-1");
-    }
-
-    /// THE MEASURED SPLIT, as a test. In this repository the root answered
-    /// `think-and-ship-676f38` and `crates/think-and-ship` answered
-    /// `think-and-ship-6353e7` — same repository, one directory down, a
-    /// different project with no history and no connection. Worse, the crate
-    /// directory shares the repo's basename, so only the hash differed, which
-    /// is the least legible form the difference could take.
-    #[test]
-    fn every_directory_under_a_marked_repo_answers_the_same_project() {
-        let repo = tempfile::TempDir::new().unwrap();
-        let deep = repo.path().join("crates").join("inner").join("src");
-        std::fs::create_dir_all(&deep).unwrap();
-
-        // Unmarked: the split is real, and this is the state every existing
-        // install is in.
-        let (root_before, src_before) = (
-            resolve_project_id_with(None, Some(repo.path())),
-            resolve_project_id_with(None, Some(&deep)),
-        );
-        assert_ne!(
-            root_before.0, src_before.0,
-            "precondition: without a declaration these are two projects",
-        );
-        assert_eq!(root_before.1, IdSource::DerivedFromPath);
-
-        // Marked with the id the ROOT already resolves to — never a fresh one.
-        write_project_file(repo.path(), &root_before.0, Some("inner-project")).unwrap();
-
-        let (root_after, root_src) = resolve_project_id_with(None, Some(repo.path()));
-        let (deep_after, deep_src) = resolve_project_id_with(None, Some(&deep));
-        assert_eq!(root_after, deep_after, "one repository is one project");
-        assert_eq!(
-            root_after, root_before.0,
-            "marking an existing project must not change what it is — every store \
-             it already holds is keyed by this",
-        );
-        assert_eq!(root_src, IdSource::RepoFile);
-        assert_eq!(deep_src, IdSource::RepoFile);
-    }
-
-    /// Two clones at different paths are one project, which is the promise
-    /// cloud sync exists to make and could not previously keep.
-    #[test]
-    fn two_clones_at_different_paths_are_one_project() {
-        let a = tempfile::TempDir::new().unwrap();
-        let b = tempfile::TempDir::new().unwrap();
-        write_project_file(a.path(), "shared-identity", None).unwrap();
-        write_project_file(b.path(), "shared-identity", None).unwrap();
-        assert_eq!(
-            resolve_project_id_with(None, Some(a.path())).0,
-            resolve_project_id_with(None, Some(b.path())).0,
-        );
-    }
-
-    /// The fallback is load-bearing, not legacy: every install that predates
-    /// the file has none, and every store they hold is keyed by exactly what
-    /// this returns. Changing it orphans their whole history on upgrade.
-    #[test]
-    fn an_unmarked_directory_resolves_exactly_as_it_always_did() {
-        let tmp = tempfile::TempDir::new().unwrap();
-        let path = tmp.path().canonicalize().unwrap();
-        let (id, source) = resolve_project_id_with(None, Some(&path));
-        assert_eq!(id, project_id_for_path(&path));
-        assert_eq!(source, IdSource::DerivedFromPath);
-    }
-
-    /// THE ABSENCE, because this file is COMMITTED. A url, profile, token or
-    /// tenant in here would be handed to everyone who clones the repository —
-    /// the cloned-repo false positive `73088dc` gates against, where a
-    /// colleague must not inherit a connection they hold no credential for.
-    ///
-    /// Asserted on a file that HAS those keys, read back through the real
-    /// parser: they must be unreachable, not merely unwritten. The hazard is a
-    /// field somebody adds later, and only a shape with nowhere to put one
-    /// forecloses it.
-    #[test]
-    fn the_committed_identity_file_cannot_carry_a_connection() {
-        let tmp = tempfile::TempDir::new().unwrap();
-        std::fs::create_dir_all(tmp.path().join(PROJECT_DIR)).unwrap();
-        std::fs::write(
-            tmp.path().join(PROJECT_DIR).join(PROJECT_FILE),
-            r#"{
-              "id": "smuggler",
-              "name": "Smuggler",
-              "cloud_url": "https://api.example",
-              "profile": "someone-elses-profile",
-              "token": "cloud_tok_do_not_inherit_this",
-              "tenant": "acme"
-            }"#,
-        )
-        .unwrap();
-
-        let declared = declared_identity_in(tmp.path()).expect("the identity still parses");
-        assert_eq!(declared.id, "smuggler");
-        assert_eq!(declared.name.as_deref(), Some("smuggler"));
-
-        // Round-tripping is the proof: what this type can hold is all it can
-        // ever hand back, so the smuggled keys are gone rather than ignored.
-        let back = serde_json::to_string(&declared).unwrap();
-        for forbidden in ["cloud_url", "profile", "token", "tenant", "api.example"] {
-            assert!(
-                !back.contains(forbidden),
-                "a committed file must not be able to carry {forbidden}: {back}",
-            );
-        }
-    }
-
-    /// Marking is not re-marking. A project that already declares an identity
-    /// has one, and a second opinion is how two clones stop agreeing.
-    #[test]
-    fn marking_a_project_twice_does_not_change_its_identity() {
-        let tmp = tempfile::TempDir::new().unwrap();
-        write_project_file(tmp.path(), "first-answer", None).unwrap();
-        write_project_file(tmp.path(), "second-answer", None).unwrap();
-        assert_eq!(
-            resolve_project_id_with(None, Some(tmp.path())).0,
-            "first-answer",
-        );
-    }
-}
+#[path = "project_id.tests.rs"]
+mod tests;

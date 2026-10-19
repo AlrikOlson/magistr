@@ -19,7 +19,7 @@ use serde_json::{Value, json};
 /// How long the probe waits for the owner's greeting and report together.
 pub(crate) const PROBE_DEADLINE: Duration = Duration::from_secs(1);
 
-const SOURCE: &str = ".workbench/server.generation + server.lock record (read-only; the lock is never taken) + one bounded probe handshake on the owner endpoint (admits nothing, mints nothing, is not counted as a session)";
+const SOURCE: &str = ".magistr/workspace/server.generation + server.lock record (read-only; the lock is never taken) + one bounded probe handshake on the owner endpoint (admits nothing, mints nothing, is not counted as a session)";
 const RESTORE: &str = "restore workspace state from a known-good backup while all workspace owners are stopped; never remove a live owner\'s lock";
 
 /// Observe ownership of the workspace at `root` whose state lives in
@@ -99,7 +99,7 @@ fn lock_record(lock: &Path, findings: &mut Vec<DoctorFinding>) -> Value {
                 "server.lock",
                 DoctorDataClass::Durable,
                 format!("the lock record cannot be read: {error}"),
-                "repair .workbench/server.lock offline; never replace or remove a live owner's lock",
+                "repair .magistr/workspace/server.lock offline; never replace or remove a live owner's lock",
             ));
             json!({ "kind": "unreadable", "error": error.to_string() })
         }

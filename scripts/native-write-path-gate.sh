@@ -41,7 +41,7 @@
 #    (remove_scaffold.rs, owned_removal.rs), the legacy link migration
 #    (codex_skill_links.rs), the legacy YAML roadmap seed (generate.rs) and
 #    the interview trace log (trace.rs) (audit-260912-16-admin-apply). The
-#    seeds of a fresh project.json and CLAUDE.md and the think-and-ship
+#    seeds of a fresh project.json and CLAUDE.md and the magistr
 #    identity declaration are planned changes
 #    (setup-plan-post-generate-enrichments): the pipeline writes nothing
 #    after generation. The CI workflow file of `magistr init --ci` is a

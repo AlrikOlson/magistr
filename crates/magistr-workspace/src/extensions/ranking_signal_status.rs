@@ -4,7 +4,7 @@ use serde::Serialize;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RankingSignalStatus {
-    /// Wire name, e.g. "workbench.ranking-visibility".
+    /// Wire name, e.g. "magistr.ranking-visibility".
     pub plugin: String,
     pub tier: String,
     pub promoted: bool,

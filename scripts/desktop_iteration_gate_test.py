@@ -9,7 +9,7 @@ import tempfile
 import unittest
 import sys
 sys.dont_write_bytecode = True
-from desktop_iteration_gate import validate_iteration
+from desktop_iteration_gate import current_iteration, validate_iteration
 
 
 class IterationEvidenceTests(unittest.TestCase):
@@ -47,6 +47,19 @@ class IterationEvidenceTests(unittest.TestCase):
 
     def test_accepts_complete_current_evidence(self):
         self.validate()
+
+    def test_selects_current_iteration_and_refuses_stale_evidence(self):
+        self.assertEqual(current_iteration(self.root), "test")
+        (self.ui / "style.css").write_text("body{color:red}")
+        with self.assertRaisesRegex(AssertionError, "No reviewed iteration"):
+            current_iteration(self.root)
+
+    def test_selection_does_not_hide_a_failed_current_review(self):
+        self.review["images"]["dark-desktop.png"]["verdict"] = "fail"
+        self.save()
+        self.assertEqual(current_iteration(self.root), "test")
+        with self.assertRaisesRegex(AssertionError, "defect"):
+            validate_iteration(self.root, current_iteration(self.root))
 
     def test_rejects_stale_source(self):
         (self.ui / "style.css").write_text("body{color:red}")

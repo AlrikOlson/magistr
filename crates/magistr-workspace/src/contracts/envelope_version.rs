@@ -13,7 +13,7 @@ impl EnvelopeVersion {
             None => Ok(Self::LATEST),
             Some(0) => Err(WorkspaceError::new(
                 ErrorKind::UnsupportedVersion,
-                "workbench/maxEnvelopeVersion must be a positive integer, got 0",
+                "magistr/maxEnvelopeVersion must be a positive integer, got 0",
             )),
             Some(maximum) if maximum < Self::MIN.0 => Err(WorkspaceError::new(
                 ErrorKind::UnsupportedVersion,

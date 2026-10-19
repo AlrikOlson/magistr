@@ -48,12 +48,13 @@ async fn a_roadmap_mutation_pushes_to_the_cloud() {
 /// it back from the cloud to prove it landed. Gated on env so it never runs
 /// unprompted (the engine's project_id must equal the token's `tenant` claim).
 #[tokio::test]
-#[ignore = "requires THINK_AND_SHIP_CLOUD_URL/_TOKEN (a live backend)"]
+#[ignore = "requires MAGISTR_WORKFLOW_CLOUD_URL/_TOKEN (a live backend)"]
 async fn a_roadmap_mutation_reaches_the_live_cloud() {
-    let url = std::env::var("THINK_AND_SHIP_CLOUD_URL").expect("THINK_AND_SHIP_CLOUD_URL");
-    let token = std::env::var("THINK_AND_SHIP_CLOUD_TOKEN").expect("THINK_AND_SHIP_CLOUD_TOKEN");
+    let url = std::env::var("MAGISTR_WORKFLOW_CLOUD_URL").expect("MAGISTR_WORKFLOW_CLOUD_URL");
+    let token =
+        std::env::var("MAGISTR_WORKFLOW_CLOUD_TOKEN").expect("MAGISTR_WORKFLOW_CLOUD_TOKEN");
     let tenant =
-        std::env::var("THINK_AND_SHIP_CLOUD_TENANT").unwrap_or_else(|_| "rust-live".into());
+        std::env::var("MAGISTR_WORKFLOW_CLOUD_TENANT").unwrap_or_else(|_| "rust-live".into());
     let id = format!("dogfood-{}", std::process::id());
 
     let mut engine =

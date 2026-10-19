@@ -1,4 +1,4 @@
-//! Observe the in-process think-and-ship store for a project directory when
+//! Observe the in-process magistr store for a project directory when
 //! its `.magistr/project.json` selects the native roadmap backend.
 //!
 //! Current settings are read without changing them, so
@@ -14,7 +14,7 @@ use magistr_engine::{NativeConfig, NativeReader, RoadmapBackend};
 
 /// The reader for `dir`, or `None` when the project runs the YAML roadmap
 /// store. Store location and persistence come
-/// from the process environment (`THINK_AND_SHIP_*`).
+/// from the process environment (`MAGISTR_WORKFLOW_*`).
 pub fn open_native_reader(dir: &Path) -> crate::error::Result<Option<NativeReader>> {
     open_with_configuration(dir, || NativeConfig::from_env(dir))
 }

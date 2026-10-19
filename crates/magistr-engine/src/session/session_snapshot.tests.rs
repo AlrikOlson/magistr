@@ -89,7 +89,7 @@ fn a_severable_residency_is_reported_rather_than_dropped() {
         SessionResidency::Terminal {
             id: "term-1".into(),
         },
-        SessionResidency::WorkbenchLock {
+        SessionResidency::WorkspaceLock {
             workspace: "/srv/proj".into(),
         },
     ]);

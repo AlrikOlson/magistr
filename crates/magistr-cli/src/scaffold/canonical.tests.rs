@@ -130,27 +130,16 @@ fn a_missing_template_in_a_source_checkout_refuses_its_paths_and_never_falls_bac
 }
 
 #[test]
-fn a_home_repository_skill_wins_and_an_unreadable_one_refuses() {
-    let tmp = TempDir::new().expect("tempdir");
-    let skill = tmp.path().join("skills/workbench-routing/SKILL.md");
-    std::fs::create_dir_all(skill.parent().expect("parent")).expect("mkdir");
-    std::fs::write(&skill, "# the canonical routing skill\n").expect("skill");
+fn an_unreadable_owned_routing_template_refuses_its_generated_paths() {
+    let tmp = source_checkout();
+    let skill = tmp.path().join(ROUTING_TEMPLATE);
+    std::fs::remove_file(&skill).unwrap();
+    std::fs::create_dir(&skill).unwrap();
     let canonical = CanonicalSource::capture(tmp.path());
-    for (target, _) in CANONICAL_SOURCES {
-        assert_eq!(
-            canonical.resolve(target, "embedded".to_owned()),
-            Ok("# the canonical routing skill\n".to_owned())
-        );
-    }
-
-    #[cfg(unix)]
-    {
-        std::fs::remove_file(&skill).expect("remove");
-        std::os::unix::fs::symlink(tmp.path().join("elsewhere"), &skill).expect("symlink");
-        let canonical = CanonicalSource::capture(tmp.path());
-        let refusal = canonical
-            .resolve(CANONICAL_SOURCES[0].0, "embedded".to_owned())
-            .expect_err("a symlinked canonical input is refused");
-        assert!(matches!(refusal, Refusal::CanonicalUnavailable { .. }));
+    for host in [Host::Codex, Host::Claude] {
+        assert!(matches!(
+            canonical.resolve(WorkflowSkills::routing_path(host), "embedded".into()),
+            Err(Refusal::CanonicalUnavailable { .. })
+        ));
     }
 }

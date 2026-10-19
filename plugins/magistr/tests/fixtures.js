@@ -126,8 +126,8 @@ export function answer(f, server, tool, args) {
       answer(f, server, operation.tool, operation.args),
     ).structuredContent
   }
-  if (['workbench_status', 'read', 'undo'].includes(tool)) {
-    if (tool === 'workbench_status')
+  if (['workspace_status', 'read', 'undo'].includes(tool)) {
+    if (tool === 'workspace_status')
       return { v: 1, ok: true, results: [{ root: '/example' }] }
     if (tool === 'read')
       return {

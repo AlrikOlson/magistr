@@ -1,7 +1,7 @@
 //! Current roadmap backend selection and explicit YAML persistence.
 //!
 //! Shared project settings select the backend; the default is native
-//! think-and-ship. An explicit YAML project uses `.magistr-roadmap.yml`.
+//! magistr. An explicit YAML project uses `.magistr-roadmap.yml`.
 //! All mutations go through [`YamlStore`] which owns a [`RoadmapIndex`]
 //! for queries and mutations. No markdown is auto-generated — use
 //! `magistr roadmap export` for explicit opt-in export.

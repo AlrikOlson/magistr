@@ -187,8 +187,8 @@ async fn workspace_endpoint_refuses_redirected_or_public_run_directories() {
         .prefix("mgw-")
         .tempdir_in("/tmp")
         .expect("short root");
-    let state = root.path().join(".workbench");
-    std::fs::create_dir(&state).expect("state");
+    let state = root.path().join(".magistr/workspace");
+    std::fs::create_dir_all(&state).expect("state");
     let run = state.join("run");
     std::fs::create_dir(&run).expect("run");
     std::fs::set_permissions(&run, std::fs::Permissions::from_mode(0o755)).expect("public mode");

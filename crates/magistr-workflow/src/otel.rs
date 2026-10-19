@@ -14,7 +14,7 @@
 //!
 //! Attribute policy: `gen_ai.operation.name` is set only where a semconv
 //! value genuinely fits (`invoke_agent` for objective/tasks, `execute_tool`
-//! for actions/checks); domain truth rides namespaced `think_and_ship.*`
+//! for actions/checks); domain truth rides namespaced `magistr.workflow.*`
 //! attributes. Ids are sha256-derived from record identities — the same
 //! corpus always exports the same trace.
 //!
@@ -152,9 +152,9 @@ pub fn build_otel<'a>(
             vec![
                 attr("gen_ai.operation.name", "invoke_agent"),
                 attr("gen_ai.agent.name", project),
-                attr("think_and_ship.family", "ship"),
-                attr("think_and_ship.kind", "objective"),
-                attr("think_and_ship.title", &objective.description),
+                attr("magistr.workflow.family", "ship"),
+                attr("magistr.workflow.kind", "objective"),
+                attr("magistr.workflow.title", &objective.description),
             ],
             false,
         ));
@@ -182,10 +182,10 @@ pub fn build_otel<'a>(
                 vec![
                     attr("gen_ai.operation.name", "invoke_agent"),
                     attr("gen_ai.agent.name", project),
-                    attr("think_and_ship.family", "ship"),
-                    attr("think_and_ship.kind", "task"),
-                    attr("think_and_ship.id", &task.id),
-                    attr("think_and_ship.title", &task.title),
+                    attr("magistr.workflow.family", "ship"),
+                    attr("magistr.workflow.kind", "task"),
+                    attr("magistr.workflow.id", &task.id),
+                    attr("magistr.workflow.title", &task.title),
                 ],
                 false,
             ));
@@ -203,9 +203,9 @@ pub fn build_otel<'a>(
                     a_end,
                     vec![
                         attr("gen_ai.operation.name", "execute_tool"),
-                        attr("think_and_ship.family", "ship"),
-                        attr("think_and_ship.kind", "action"),
-                        attr("think_and_ship.id", &action.id.to_string()),
+                        attr("magistr.workflow.family", "ship"),
+                        attr("magistr.workflow.kind", "action"),
+                        attr("magistr.workflow.id", &action.id.to_string()),
                     ],
                     false,
                 ));
@@ -223,10 +223,10 @@ pub fn build_otel<'a>(
                     c_at,
                     vec![
                         attr("gen_ai.operation.name", "execute_tool"),
-                        attr("think_and_ship.family", "ship"),
-                        attr("think_and_ship.kind", "check"),
-                        attr("think_and_ship.check.name", &check.name),
-                        attr_bool("think_and_ship.check.passed", check.passed),
+                        attr("magistr.workflow.family", "ship"),
+                        attr("magistr.workflow.kind", "check"),
+                        attr("magistr.workflow.check.name", &check.name),
+                        attr_bool("magistr.workflow.check.passed", check.passed),
                     ],
                     !check.passed,
                 ));
@@ -253,13 +253,13 @@ pub fn build_otel<'a>(
             .unwrap_or_else(|| root_id.clone());
         let mut attrs = vec![
             attr("gen_ai.agent.name", project),
-            attr("think_and_ship.family", "think"),
-            attr("think_and_ship.kind", "step"),
-            attr("think_and_ship.id", &step.step_number.to_string()),
-            attr("think_and_ship.title", &step.purpose),
+            attr("magistr.workflow.family", "think"),
+            attr("magistr.workflow.kind", "step"),
+            attr("magistr.workflow.id", &step.step_number.to_string()),
+            attr("magistr.workflow.title", &step.purpose),
         ];
         if let Some(c) = step.confidence {
-            attrs.push(attr("think_and_ship.step.confidence", &format!("{c}")));
+            attrs.push(attr("magistr.workflow.step.confidence", &format!("{c}")));
         }
         spans.push(span(
             &trace,
@@ -289,7 +289,7 @@ pub fn build_otel<'a>(
             max_end,
             vec![
                 attr("gen_ai.agent.name", project),
-                attr("think_and_ship.family", "workspace"),
+                attr("magistr.workflow.family", "workspace"),
             ],
             false,
         ),
@@ -300,13 +300,13 @@ pub fn build_otel<'a>(
         "resourceSpans": [{
             "resource": {
                 "attributes": [
-                    attr("service.name", "think-and-ship"),
-                    attr("gen_ai.system", "think-and-ship"),
-                    attr("think_and_ship.project", project),
+                    attr("service.name", "magistr"),
+                    attr("gen_ai.system", "magistr"),
+                    attr("magistr.workflow.project", project),
                 ]
             },
             "scopeSpans": [{
-                "scope": { "name": "think-and-ship", "version": env!("CARGO_PKG_VERSION") },
+                "scope": { "name": "magistr", "version": env!("CARGO_PKG_VERSION") },
                 "spans": spans,
             }]
         }]
@@ -617,7 +617,7 @@ mod tests {
     fn declaring_an_external_parent_still_catches_other_dangling_parents() {
         let body = serde_json::json!({
             "resourceSpans": [{
-                "resource": { "attributes": [attr("service.name", "think-and-ship")] },
+                "resource": { "attributes": [attr("service.name", "magistr")] },
                 "scopeSpans": [{ "spans": [
                     {
                         "traceId": CALLER_TRACE, "spanId": "aaaaaaaaaaaaaaaa",

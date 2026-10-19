@@ -116,7 +116,7 @@ pub enum PreCheckResult {
     SpecComplete,
     /// Stop the loop — max iterations reached.
     MaxIterations,
-    /// Stop the loop — the think-and-ship roadmap has no ready chunk
+    /// Stop the loop — the magistr roadmap has no ready chunk
     /// (`roadmap_next` is `None`: everything left is done, blocked or backlog).
     NoReadyChunk,
     /// Stop for another canonical run reason, including recovery guards.
@@ -484,7 +484,7 @@ impl IterationLoop {
         self
     }
 
-    /// Whether the loop reads the think-and-ship roadmap.
+    /// Whether the loop reads the magistr roadmap.
     #[must_use]
     pub fn is_native(&self) -> bool {
         self.native.is_some()

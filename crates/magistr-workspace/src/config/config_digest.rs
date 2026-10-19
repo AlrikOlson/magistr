@@ -9,7 +9,7 @@ use crate::snapshot::frame;
 
 /// The applicable external configuration as observed: every layer that
 /// resolves outside the workspace tree (the organization policy and the
-/// user layer — the workspace's own `workbench.toml` is a source input of
+/// user layer — the workspace's own `.magistr/workspace.toml` is a source input of
 /// the snapshot, not an external layer), each by presence and content
 /// digest, in precedence order. A consumer records the combined
 /// [`digest`](Self::digest) beside its source revision so that a policy

@@ -1,4 +1,4 @@
-//! Private native SQLite cache; retained Workbench and durable state are untouched.
+//! Private native SQLite cache; retained Workspace and durable state are untouched.
 
 mod cache_counts;
 mod cache_error;

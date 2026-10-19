@@ -6,8 +6,7 @@ use super::emitters;
 use super::manifest::ScaffoldManifest;
 use super::owned_removal::OwnedRemoval;
 use super::{
-    GITIGNORE_SECTION_END, GITIGNORE_SECTION_START, LEGACY_MCP_SERVERS, MAGISTR_MCP_SERVERS,
-    is_working_tree_entry,
+    GITIGNORE_SECTION_END, GITIGNORE_SECTION_START, MAGISTR_MCP_SERVERS, is_working_tree_entry,
 };
 
 /// Remove unchanged, recorded scaffold files from shared agent directories.
@@ -79,7 +78,7 @@ fn remove_jig_mcp_entries(dir: &Path) -> Result<()> {
     let modified = if let Some(obj) = doc.as_object_mut() {
         if let Some(servers) = obj.get_mut("mcpServers").and_then(|v| v.as_object_mut()) {
             let before = servers.len();
-            for key in MAGISTR_MCP_SERVERS.iter().chain(LEGACY_MCP_SERVERS) {
+            for key in MAGISTR_MCP_SERVERS {
                 // A managed key whose entry launches from the working tree
                 // (the dogfooding case) is the user's deliberate choice, not
                 // magistr's output — removal must leave it, or a re-init's

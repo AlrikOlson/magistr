@@ -11,7 +11,10 @@ fn lookup(vars: Vec<(&'static str, &'static str)>) -> impl Fn(&str) -> Option<St
 #[test]
 fn injected_temporary_store_uses_only_injected_tmpdir() {
     let cfg = NativeConfig::from_lookup("/proj", lookup(vec![("TMPDIR", "/injected/tmp")]));
-    assert_eq!(cfg.data_dir, PathBuf::from("/injected/tmp/think-and-ship"));
+    assert_eq!(
+        cfg.data_dir,
+        PathBuf::from("/injected/tmp/magistr/workflow")
+    );
 }
 
 #[test]
@@ -25,11 +28,11 @@ fn persistence_is_on_by_default() {
 #[test]
 fn explicit_false_or_zero_disables_persistence() {
     for v in ["false", "0", "FALSE", " false "] {
-        let cfg = NativeConfig::from_lookup("/p", lookup(vec![("THINK_AND_SHIP_PERSIST", v)]));
+        let cfg = NativeConfig::from_lookup("/p", lookup(vec![("MAGISTR_WORKFLOW_PERSIST", v)]));
         assert!(!cfg.persist, "{v:?} should disable");
     }
     for v in ["true", "1", "yes"] {
-        let cfg = NativeConfig::from_lookup("/p", lookup(vec![("THINK_AND_SHIP_PERSIST", v)]));
+        let cfg = NativeConfig::from_lookup("/p", lookup(vec![("MAGISTR_WORKFLOW_PERSIST", v)]));
         assert!(cfg.persist, "{v:?} should keep persistence on");
     }
 }
@@ -39,8 +42,8 @@ fn data_dir_and_broadcast_come_from_env() {
     let cfg = NativeConfig::from_lookup(
         "/p",
         lookup(vec![
-            ("THINK_AND_SHIP_DATA_DIR", "/data/tas"),
-            ("THINK_AND_SHIP_BROADCAST_PATH", " /tmp/tas.sock "),
+            ("MAGISTR_WORKFLOW_DATA_DIR", "/data/tas"),
+            ("MAGISTR_WORKFLOW_BROADCAST_PATH", " /tmp/tas.sock "),
         ]),
     );
     assert_eq!(cfg.data_dir, PathBuf::from("/data/tas"));
@@ -52,12 +55,15 @@ fn blank_data_dir_falls_through_to_the_library_chain() {
     let cfg = NativeConfig::from_lookup(
         "/p",
         lookup(vec![
-            ("THINK_AND_SHIP_DATA_DIR", "  "),
+            ("MAGISTR_WORKFLOW_DATA_DIR", "  "),
             ("XDG_DATA_HOME", "/injected/xdg"),
             ("HOME", "/injected/home"),
         ]),
     );
-    assert_eq!(cfg.data_dir, PathBuf::from("/injected/xdg/think-and-ship"));
+    assert_eq!(
+        cfg.data_dir,
+        PathBuf::from("/injected/xdg/magistr/workflow")
+    );
 }
 
 #[test]
@@ -65,15 +71,15 @@ fn data_dir_fallbacks_use_only_the_injected_home_variables() {
     for (vars, expected) in [
         (
             vec![("HOME", "/injected/home"), ("APPDATA", "/injected/appdata")],
-            "/injected/home/.local/share/think-and-ship",
+            "/injected/home/.local/share/magistr/workflow",
         ),
         (
             vec![("HOME", " "), ("APPDATA", "/injected/appdata")],
-            "/injected/appdata/think-and-ship",
+            "/injected/appdata/magistr/workflow",
         ),
         (
             vec![("USERPROFILE", "/injected/profile")],
-            "/injected/profile/AppData/Roaming/think-and-ship",
+            "/injected/profile/AppData/Roaming/magistr/workflow",
         ),
     ] {
         let cfg = NativeConfig::from_lookup("/p", lookup(vars));
@@ -96,16 +102,16 @@ fn project_socket_default_fills_only_when_env_named_none() {
     let cfg = NativeConfig::from_lookup("/p", |_| None).with_project_socket_default();
     assert_eq!(
         cfg.broadcast_path,
-        Some(PathBuf::from("/p/.magistr/think-and-ship.sock"))
+        Some(PathBuf::from("/p/.magistr/workflow.sock"))
     );
     assert_eq!(
         cfg.project_socket_path(),
-        PathBuf::from("/p/.magistr/think-and-ship.sock")
+        PathBuf::from("/p/.magistr/workflow.sock")
     );
 
     let explicit = NativeConfig::from_lookup(
         "/p",
-        lookup(vec![("THINK_AND_SHIP_BROADCAST_PATH", "/tmp/tas.sock")]),
+        lookup(vec![("MAGISTR_WORKFLOW_BROADCAST_PATH", "/tmp/tas.sock")]),
     )
     .with_project_socket_default();
     assert_eq!(
@@ -117,7 +123,7 @@ fn project_socket_default_fills_only_when_env_named_none() {
 // ── socket path rule: local when it fits, short per-project otherwise ──
 
 fn long_root(tmp: &tempfile::TempDir) -> PathBuf {
-    // Deep enough that `<root>/.magistr/think-and-ship.sock` exceeds every
+    // Deep enough that `<root>/.magistr/workflow.sock` exceeds every
     // kernel's sun_path (macOS 104, Linux 108 bytes).
     let mut root = tmp.path().to_path_buf();
     for i in 0..6 {
@@ -133,7 +139,7 @@ fn short_root_keeps_the_project_local_socket() {
     let cfg = NativeConfig::from_lookup("/p", |_| None);
     assert_eq!(
         cfg.project_socket_path(),
-        PathBuf::from("/p/.magistr/think-and-ship.sock")
+        PathBuf::from("/p/.magistr/workflow.sock")
     );
     assert_eq!(cfg.feed_socket_path(), cfg.project_socket_path());
 }
@@ -196,13 +202,13 @@ fn runtime_dir_prefers_xdg_then_tmpdir_then_tmp() {
 fn explicit_broadcast_path_wins_for_the_feed() {
     let cfg = NativeConfig::from_lookup(
         "/p",
-        lookup(vec![("THINK_AND_SHIP_BROADCAST_PATH", "/tmp/tas.sock")]),
+        lookup(vec![("MAGISTR_WORKFLOW_BROADCAST_PATH", "/tmp/tas.sock")]),
     );
     assert_eq!(cfg.feed_socket_path(), PathBuf::from("/tmp/tas.sock"));
     // The project default is unchanged by the override.
     assert_eq!(
         cfg.project_socket_path(),
-        PathBuf::from("/p/.magistr/think-and-ship.sock")
+        PathBuf::from("/p/.magistr/workflow.sock")
     );
 }
 
@@ -232,9 +238,9 @@ fn captured_settings_do_not_consult_the_lookup_again() {
     use std::cell::RefCell;
     use std::collections::BTreeMap;
     let vars = RefCell::new(BTreeMap::from([
-        ("THINK_AND_SHIP_ENABLE_SESSIONS", "true"),
-        ("THINK_AND_SHIP_STRICT_MODE", "true"),
-        ("THINK_AND_SHIP_RECENT_STEPS_LIMIT", "17"),
+        ("MAGISTR_WORKFLOW_ENABLE_SESSIONS", "true"),
+        ("MAGISTR_WORKFLOW_STRICT_MODE", "true"),
+        ("MAGISTR_WORKFLOW_RECENT_STEPS_LIMIT", "17"),
         ("TMPDIR", "/captured/tmp"),
     ]));
     let reads = RefCell::new(BTreeMap::<String, usize>::new());
@@ -252,7 +258,7 @@ fn captured_settings_do_not_consult_the_lookup_again() {
         assert!(think.persistence.enabled);
         assert_eq!(
             think.persistence.data_dir,
-            PathBuf::from("/captured/tmp/think-and-ship")
+            PathBuf::from("/captured/tmp/magistr/workflow")
         );
         assert!(think.broadcast.path.is_none());
     }
@@ -266,26 +272,26 @@ fn effective_sources_track_native_precedence_and_builder_overrides() {
     let cfg = NativeConfig::from_lookup(
         "/project",
         lookup(vec![
-            ("THINK_AND_SHIP_DATA_DIR", "/explicit/store"),
+            ("MAGISTR_WORKFLOW_DATA_DIR", "/explicit/store"),
             ("XDG_DATA_HOME", "/ignored"),
-            ("THINK_AND_SHIP_PERSIST", " false "),
-            ("THINK_AND_SHIP_STRICT_MODE", "true"),
-            ("THINK_AND_SHIP_BROADCAST_PATH", "/secret-looking/socket"),
-            ("THINK_AND_SHIP_DEFAULT_SESSION_ID", "sensitive/session"),
+            ("MAGISTR_WORKFLOW_PERSIST", " false "),
+            ("MAGISTR_WORKFLOW_STRICT_MODE", "true"),
+            ("MAGISTR_WORKFLOW_BROADCAST_PATH", "/secret-looking/socket"),
+            ("MAGISTR_WORKFLOW_DEFAULT_SESSION_ID", "sensitive/session"),
         ]),
     );
     let sources = cfg.configuration_sources();
     assert_eq!(
         sources["persistence.data_dir"],
-        ConfigSource::Environment("THINK_AND_SHIP_DATA_DIR")
+        ConfigSource::Environment("MAGISTR_WORKFLOW_DATA_DIR")
     );
     assert_eq!(
         sources["persistence.enabled"],
-        ConfigSource::Environment("THINK_AND_SHIP_PERSIST")
+        ConfigSource::Environment("MAGISTR_WORKFLOW_PERSIST")
     );
     assert_eq!(
         sources["validation.strict_mode"],
-        ConfigSource::Environment("THINK_AND_SHIP_STRICT_MODE")
+        ConfigSource::Environment("MAGISTR_WORKFLOW_STRICT_MODE")
     );
     assert_eq!(
         sources["features.default_session_id"],
@@ -321,8 +327,8 @@ fn explicit_session_is_frozen_while_automatic_sessions_follow_admission() {
     let cfg = NativeConfig::from_lookup(
         "/project",
         lookup(vec![
-            ("THINK_AND_SHIP_AUTO_SESSION", "true"),
-            ("THINK_AND_SHIP_DEFAULT_SESSION_ID", "chosen-session"),
+            ("MAGISTR_WORKFLOW_AUTO_SESSION", "true"),
+            ("MAGISTR_WORKFLOW_DEFAULT_SESSION_ID", "chosen-session"),
         ]),
     );
     assert_eq!(
@@ -334,7 +340,7 @@ fn explicit_session_is_frozen_while_automatic_sessions_follow_admission() {
     );
     let automatic = NativeConfig::from_lookup(
         "/project",
-        lookup(vec![("THINK_AND_SHIP_ENABLE_SESSIONS", "true")]),
+        lookup(vec![("MAGISTR_WORKFLOW_ENABLE_SESSIONS", "true")]),
     );
     assert_eq!(
         automatic.configuration_sources()["features.default_session_id"],
@@ -353,7 +359,7 @@ fn explicit_session_is_frozen_while_automatic_sessions_follow_admission() {
 #[test]
 fn injected_empty_lookup_has_a_deterministic_fallback_and_no_ambient_think_settings() {
     let cfg = NativeConfig::from_lookup("/project", |_| None);
-    assert_eq!(cfg.data_dir, PathBuf::from("/tmp/think-and-ship"));
+    assert_eq!(cfg.data_dir, PathBuf::from("/tmp/magistr/workflow"));
     let think = cfg.think_config("project");
     assert!(!think.validation.strict_mode);
     assert!(!think.features.enable_sessions);
@@ -368,7 +374,7 @@ fn injected_empty_lookup_has_a_deterministic_fallback_and_no_ambient_think_setti
 fn configuration_equality_includes_captured_behavior() {
     let strict = NativeConfig::from_lookup(
         "/project",
-        lookup(vec![("THINK_AND_SHIP_STRICT_MODE", "true")]),
+        lookup(vec![("MAGISTR_WORKFLOW_STRICT_MODE", "true")]),
     );
     let defaults = NativeConfig::from_lookup("/project", |_| None);
     assert_ne!(strict, defaults);

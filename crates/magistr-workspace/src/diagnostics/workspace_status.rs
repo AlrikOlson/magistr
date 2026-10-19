@@ -11,7 +11,7 @@ use crate::{
     worker::WorkerStatus,
 };
 
-/// Workspace health as the retained `workbench_status` clients read it:
+/// Workspace health as the retained `workspace_status` clients read it:
 /// root, the SQLite journal mode the filesystem detector chose, the
 /// supported envelope versions, and the worker/index snapshots when the
 /// composition holds them. Degradations ride the notes, schema-free.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Opt-in real-agent comparison in disposable projects. Never targets this checkout."""
+"""Opt-in comparison of two Magistr binaries in disposable projects."""
 import argparse
 import hashlib
 import importlib.util
@@ -83,15 +83,12 @@ def fixture(root):
         "testing":{"companion_pattern":"test_{name}.py","test_dir":"."},
         "reference_repos":[],"state_prefix":"mcp-evaluation","roadmap_exports":False,
         "quality_gate":{"check":cmd,"test":cmd,"lint":cmd},"lifecycle_hooks":[]}))
-    (root/"workbench.toml").write_text('[edit]\nconfirm_mode = "token"\n[commands]\ntest = "python3 -m unittest -q"\n')
+    (root/".magistr/workspace.toml").write_text('[edit]\nconfirm_mode = "token"\n[commands]\ntest = "python3 -m unittest -q"\n')
 
 def servers(binary, root, surface, env):
     def spec(args):
         return {"command":str(binary),"args":args,"env":env}
-    if surface=="hybrid":
-        return {"magistr":spec(["mcp","--dir",str(root)])}
-    return {"magistr":spec(["mcp-launch","magistr",str(root)]),
-            "workbench-mcp":spec(["mcp-launch","workbench-mcp",str(root)])}
+    return {"magistr":spec(["mcp","--dir",str(root)])}
 
 def metrics(events, host):
     calls=[]; failures=0; usage=[]; model=None
@@ -131,10 +128,10 @@ def public_events(events):
 def evaluate(host, binary, surface, directory, timeout):
     root=directory/f"{host}-{surface}"
     fixture(root)
-    scoped={"THINK_AND_SHIP_DATA_DIR":str(root/"state"),
+    scoped={"MAGISTR_WORKFLOW_DATA_DIR":str(root/"state"),
             "XDG_CONFIG_HOME":str(root/"user-config"),"XDG_DATA_HOME":str(root/"user-data"),
-            "WORKBENCH_NETWORK_FS":"0"}
-    env={k:v for k,v in os.environ.items() if not k.startswith(("THINK_AND_SHIP_","MAGISTR_","WORKBENCH_"))}
+            "MAGISTR_WORKSPACE_NETWORK_FS":"0"}
+    env={k:v for k,v in os.environ.items() if not k.startswith(("MAGISTR_",))}
     env.update(scoped)
     config=servers(binary,root,surface,scoped)
     result={"host":host,"surface":surface,"binary":str(binary),

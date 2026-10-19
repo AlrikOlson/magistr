@@ -69,7 +69,7 @@ impl ToolPermissions {
 
     /// Roadmap generation context: base + read-only codebase access.
     ///
-    /// The agent authors the roadmap exclusively through the think-and-ship
+    /// The agent authors the roadmap exclusively through the magistr
     /// `roadmap_*` tools (`roadmap_add_chunk`), which are pre-approved too.
     #[must_use]
     pub fn for_roadmap() -> Self {

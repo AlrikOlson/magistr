@@ -419,7 +419,7 @@ fn changed_project_policy_cannot_substitute_a_workflows_saved_model() {
 #[test]
 fn application_execution_binds_every_tool_child_instead_of_configured_stale_ids() {
     let tmp = tempfile::tempdir().unwrap();
-    std::fs::write(tmp.path().join(".mcp.json"), serde_json::json!({ "mcpServers": { "magistr": { "command": "magistr", "args": ["mcp", "--dir", "."], "env": { "MAGISTR_EXECUTION_ID": "wrong", "WORKBENCH_SESSION_ID": "wrong", "CUSTOM": "kept" } } } }).to_string()).unwrap();
+    std::fs::write(tmp.path().join(".mcp.json"), serde_json::json!({ "mcpServers": { "magistr": { "command": "magistr", "args": ["mcp", "--dir", "."], "env": { "MAGISTR_EXECUTION_ID": "wrong", "MAGISTR_WORKSPACE_SESSION_ID": "wrong", "CUSTOM": "kept" } } } }).to_string()).unwrap();
     let inputs = crate::config::inputs::ProjectInputs::from_lookup(tmp.path(), |_| None);
     let mut config = AgentConfig::new("", tmp.path()).with_inputs(&inputs);
     config.execution_id = Some("resident-one".into());
@@ -432,7 +432,7 @@ fn application_execution_binds_every_tool_child_instead_of_configured_stale_ids(
     let McpServer::Stdio(server) = &spec.mcp_servers()[0] else {
         panic!("stdio");
     };
-    for key in ["MAGISTR_EXECUTION_ID", "WORKBENCH_SESSION_ID"] {
+    for key in ["MAGISTR_EXECUTION_ID", "MAGISTR_WORKSPACE_SESSION_ID"] {
         let values: Vec<_> = server
             .env
             .iter()
@@ -457,7 +457,7 @@ fn native_work_context_is_fresh_addressed_and_failure_is_not_absence() {
     std::fs::create_dir(&root).unwrap();
     let data = temp.path().join("workflow");
     let inputs = crate::config::inputs::ProjectInputs::from_lookup(&root, |key| match key {
-        "THINK_AND_SHIP_DATA_DIR" => Some(data.to_string_lossy().into_owned()),
+        "MAGISTR_WORKFLOW_DATA_DIR" => Some(data.to_string_lossy().into_owned()),
         "MAGISTR_EXECUTION_ID" => Some("selected".into()),
         _ => None,
     });

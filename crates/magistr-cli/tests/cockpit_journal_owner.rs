@@ -6,14 +6,14 @@ use std::path::Path;
 use std::sync::Arc;
 
 use magistr::application::HostedWorkspace;
-use magistr::application::workspace_client::McpWorkbench;
+use magistr::application::workspace_client::McpWorkspace;
 use magistr_acp::{AcpEvent, capabilities::LocalEffectPort};
 use magistr_application::effects::{
     EffectAuthorizer, EffectFuture, EffectPort, EffectRequest, EffectResponse, SourceRoute,
 };
 use magistr_cockpit::{
-    cockpit::{WorkbenchCmd, WorkbenchEvent},
-    workbench,
+    cockpit::{WorkspaceCmd, WorkspaceEvent},
+    workspace,
 };
 use magistr_workspace::{service::WorkspaceOpenOptions, snapshot::MutationStatus};
 use tokio::sync::mpsc;
@@ -60,9 +60,9 @@ async fn agent_write(
         .expect("the agent's write event")
 }
 
-async fn source_call(mut port: McpWorkbench, cmd: WorkbenchCmd) -> (McpWorkbench, WorkbenchEvent) {
+async fn source_call(mut port: McpWorkspace, cmd: WorkspaceCmd) -> (McpWorkspace, WorkspaceEvent) {
     tokio::task::spawn_blocking(move || {
-        let event = workbench::apply(&mut port, &cmd);
+        let event = workspace::apply(&mut port, &cmd);
         (port, event)
     })
     .await
@@ -92,16 +92,16 @@ async fn journal_and_undo_share_the_agents_owner_and_preserve_external_edits() {
         SourceRoute::Admitted(hosted.source_writer().expect("admitted writer")),
     );
     let first = agent_write(&agent, &mut received, &target, "agent change\n").await;
-    let mut port = McpWorkbench::new(
+    let mut port = McpWorkspace::new(
         binary,
         vec!["mcp".into(), "--dir".into(), ".".into()],
-        vec![("WORKBENCH_NETWORK_FS".into(), "0".into())],
+        vec![("MAGISTR_WORKSPACE_NETWORK_FS".into(), "0".into())],
     )
     .with_workspace(&root);
 
     let event;
-    (port, event) = source_call(port, WorkbenchCmd::Journal).await;
-    let WorkbenchEvent::Journal { entries } = &event else {
+    (port, event) = source_call(port, WorkspaceCmd::Journal).await;
+    let WorkspaceEvent::Journal { entries } = &event else {
         panic!("owner journal: {event:?}");
     };
     assert_eq!(entries.len(), 1, "{entries:?}");
@@ -112,13 +112,13 @@ async fn journal_and_undo_share_the_agents_owner_and_preserve_external_edits() {
     let event;
     (port, event) = source_call(
         port,
-        WorkbenchCmd::Undo {
+        WorkspaceCmd::Undo {
             id: first.to_string(),
         },
     )
     .await;
     assert!(
-        matches!(&event, WorkbenchEvent::Undone { id } if id == &first.to_string()),
+        matches!(&event, WorkspaceEvent::Undone { id } if id == &first.to_string()),
         "{event:?}"
     );
     assert_eq!(
@@ -128,13 +128,13 @@ async fn journal_and_undo_share_the_agents_owner_and_preserve_external_edits() {
 
     let second = agent_write(&agent, &mut received, &target, "second agent change\n").await;
     let event;
-    (port, event) = source_call(port, WorkbenchCmd::Journal).await;
+    (port, event) = source_call(port, WorkspaceCmd::Journal).await;
     assert!(
-        matches!(&event, WorkbenchEvent::Journal { .. }),
+        matches!(&event, WorkspaceEvent::Journal { .. }),
         "{event:?}"
     );
     assert!(
-        matches!(&event, WorkbenchEvent::Journal {entries} if entries.iter().any(|row|row.id==second.to_string())),
+        matches!(&event, WorkspaceEvent::Journal {entries} if entries.iter().any(|row|row.id==second.to_string())),
         "{event:?}"
     );
 
@@ -142,14 +142,14 @@ async fn journal_and_undo_share_the_agents_owner_and_preserve_external_edits() {
     let event;
     (port, event) = source_call(
         port,
-        WorkbenchCmd::Undo {
+        WorkspaceCmd::Undo {
             id: second.to_string(),
         },
     )
     .await;
     assert!(
-        matches!(&event, WorkbenchEvent::Failed {
-        cmd: WorkbenchCmd::Undo { id }, error
+        matches!(&event, WorkspaceEvent::Failed {
+        cmd: WorkspaceCmd::Undo { id }, error
     } if id == &second.to_string() && error.contains("notes.txt")),
         "{event:?}"
     );
@@ -175,8 +175,8 @@ async fn journal_and_undo_share_the_agents_owner_and_preserve_external_edits() {
         assert_eq!(receipt.status, MutationStatus::Applied);
         assert_eq!(receipt.generation, Some(generation));
     }
-    let (port, event) = source_call(port, WorkbenchCmd::Journal).await;
-    let WorkbenchEvent::Journal { entries } = event else {
+    let (port, event) = source_call(port, WorkspaceCmd::Journal).await;
+    let WorkspaceEvent::Journal { entries } = event else {
         panic!("journal after conflict: {event:?}");
     };
     assert!(

@@ -13,7 +13,7 @@ impl CommandAdmission {
         let line = config.commands.get(command).ok_or_else(|| {
             let declared = config.commands.keys().map(String::as_str).collect::<Vec<_>>().join(", ");
             WorkspaceError::new(ErrorKind::CommandNotDeclared, format!(
-                "command {command:?} is not in the merged [commands] table. Declared: {}. A human can declare it in workbench.toml [commands] (or the user/org config layer, SDD §7.2) — the server cannot amend its own allowlist.",
+                "command {command:?} is not in the merged [commands] table. Declared: {}. A human can declare it in .magistr/workspace.toml [commands] (or the user/org config layer, SDD §7.2) — the server cannot amend its own allowlist.",
                 if declared.is_empty() { "(none)" } else { &declared }))
         })?;
         let mut argv: Vec<String> = line

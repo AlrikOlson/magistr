@@ -11,12 +11,12 @@ pub struct WorkspaceOpenOptions {
     /// The executable serving the private worker role (production: this binary).
     pub worker_executable: PathBuf,
     pub worker_options: WorkerOptions,
-    /// Configuration environment: `WORKBENCH_ORG_POLICY`, `WORKBENCH_USER_CONFIG`,
+    /// Configuration environment: `MAGISTR_WORKSPACE_ORG_POLICY`, `MAGISTR_WORKSPACE_USER_CONFIG`,
     /// `XDG_CONFIG_HOME`, `HOME`, `USERPROFILE`, `ProgramData`.
     pub env: BTreeMap<String, String>,
     /// Ephemeral highest-precedence `--config key=value` flags.
     pub session_flags: serde_json::Map<String, serde_json::Value>,
-    /// `WORKBENCH_NETWORK_FS`: "1" forces network, "0" forces local.
+    /// `MAGISTR_WORKSPACE_NETWORK_FS`: "1" forces network, "0" forces local.
     pub network_override: Option<String>,
     pub formatter: FormatterOptions,
     /// Stable shared lock retained while this source owner keeps its containing working copy open.
@@ -55,7 +55,7 @@ impl WorkspaceOpenOptions {
         let env = ResolveOptions::from_environment(&root).env;
         Self {
             env,
-            network_override: std::env::var("WORKBENCH_NETWORK_FS").ok(),
+            network_override: std::env::var("MAGISTR_WORKSPACE_NETWORK_FS").ok(),
             ..Self::new(root, worker_executable)
         }
     }
