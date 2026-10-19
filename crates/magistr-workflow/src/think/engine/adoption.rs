@@ -71,9 +71,9 @@ impl ReasoningServer {
             for id in order {
                 let mut step = unique.remove(&id).expect("ordered identity");
                 step.step_number = assigned[&id];
-                step.revises_step = step.revises_step.map(&remap).transpose()?;
-                step.revised_by = step.revised_by.map(&remap).transpose()?;
-                step.branch_from = step.branch_from.map(&remap).transpose()?;
+                step.revises_step = step.revises_step.map(remap).transpose()?;
+                step.revised_by = step.revised_by.map(remap).transpose()?;
+                step.branch_from = step.branch_from.map(remap).transpose()?;
                 if let Some(dependencies) = &mut step.dependencies {
                     for dependency in dependencies {
                         match dependency {

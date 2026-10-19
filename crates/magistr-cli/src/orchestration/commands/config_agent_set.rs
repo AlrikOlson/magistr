@@ -102,7 +102,7 @@ fn validate_agent(agent: &str, auto: bool) -> eyre::Result<()> {
     eyre::bail!(
         "Choose a named agent: claude, copilot, codex, openai, gemini, or ollama{}",
         if auto { ", or auto" } else { "" }
-    )
+    );
 }
 
 #[cfg(test)]

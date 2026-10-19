@@ -153,10 +153,8 @@ impl SonarQubeGate {
 
         let (severity, rest) = if let Some(rest) = trimmed.strip_prefix("ERROR:") {
             (GateSeverity::Error, rest.trim())
-        } else if let Some(rest) = trimmed.strip_prefix("WARN:") {
-            (GateSeverity::Warning, rest.trim())
         } else {
-            return None;
+            (GateSeverity::Warning, trimmed.strip_prefix("WARN:")?.trim())
         };
 
         // Try to extract file:line from the message.

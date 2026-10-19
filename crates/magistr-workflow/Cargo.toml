@@ -33,7 +33,7 @@ sha2 = "0.10"
 # `async fn` in traits is stable but still NOT dyn-compatible
 # (rust-lang/rust#133119), and `Box<dyn TrackerPort>` is what keeps the provider
 # list out of the core.
-async-trait = "0.1"
+async-trait = "0.1.92"
 # `elicitation` is opt-in in rmcp and off by default: without it the whole
 # server->client "ask the human" API is `#[cfg]`d out. See src/mcp/elicit.rs for
 # why enabling it does NOT mean anything gets asked (mcp-elicitation-consent).

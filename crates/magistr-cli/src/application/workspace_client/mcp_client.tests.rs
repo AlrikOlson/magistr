@@ -1,4 +1,3 @@
-use std::io::Write as _;
 use std::path::PathBuf;
 
 use super::*;
@@ -101,10 +100,7 @@ while IFS= read -r line; do
 done
 "#
     );
-    let mut file = std::fs::File::create(&path).expect("the fake server is writable");
-    file.write_all(script.as_bytes())
-        .expect("the fake server is written");
-    drop(file);
+    std::fs::write(&path, script).expect("the fake server is written");
     path
 }
 

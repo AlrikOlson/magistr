@@ -127,13 +127,11 @@ fn convert_recommended_hook(
             tool: tool.clone(),
             arguments: serde_json::Value::Null,
         }
-    } else if let Some(ref command) = rec.command {
+    } else {
         magistr_engine::HookAction::ShellCommand {
-            command: command.clone(),
+            command: rec.command.clone()?,
             timeout_secs: rec.timeout_secs,
         }
-    } else {
-        return None;
     };
 
     let on_failure = match rec.on_failure.as_deref() {

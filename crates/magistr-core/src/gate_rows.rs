@@ -278,10 +278,8 @@ fn parse_json_diagnostics(text: &str) -> Vec<GateFailureRow> {
 fn parse_rendered_header(line: &str) -> Option<(GateRowSeverity, Option<String>, String)> {
     let (severity, rest) = if let Some(r) = line.strip_prefix("error") {
         (GateRowSeverity::Error, r)
-    } else if let Some(r) = line.strip_prefix("warning") {
-        (GateRowSeverity::Warning, r)
     } else {
-        return None;
+        (GateRowSeverity::Warning, line.strip_prefix("warning")?)
     };
     let (code, rest) = match rest.strip_prefix('[') {
         Some(r) => {

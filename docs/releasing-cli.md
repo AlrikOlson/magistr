@@ -71,6 +71,12 @@ The manual **CLI packages** GitHub workflow performs these checks on a hosted
 macOS arm64 runner. Its default prepares and uploads artifacts without publishing.
 Review the inventories and actual verification JSON before releasing.
 
+Release readiness runs the full Rust workspace and website checks on macOS arm64.
+It fetches the complete locked dependency graph for offline architecture checks.
+Desktop checks and host archive verification run concurrently; none waits for a
+Windows or Linux Rust build. The Rust/website job is bounded to 30 minutes, with
+its dependency cache reused on later runs.
+
 ## Registry setup for the owner
 
 Check npm `magistr`, Cargo `magistr-cli` and every name in

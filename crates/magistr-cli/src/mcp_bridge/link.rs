@@ -37,8 +37,12 @@ pub(crate) trait BridgeLink: Send {
             .await;
             match answered {
                 Ok(true) => {}
-                Ok(false) => eyre::bail!("the owner refused the replayed initialize"),
-                Err(_) => eyre::bail!("the owner did not answer the replayed initialize in time"),
+                Ok(false) => {
+                    eyre::bail!("the owner refused the replayed initialize");
+                }
+                Err(_) => {
+                    eyre::bail!("the owner did not answer the replayed initialize in time");
+                }
             }
             self.send(&initialized.to_string()).await?;
             Ok(passthrough)

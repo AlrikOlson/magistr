@@ -1,4 +1,4 @@
-use color_eyre::eyre::{self, bail};
+use color_eyre::eyre;
 use magistr_acp_agent::{
     ApiProvider, ClaudeProvider, CodexProvider, Gemini, Ollama, OpenAi, ScriptedProvider,
 };
@@ -62,10 +62,10 @@ pub async fn cmd_acp_agent(provider: &str, allowed_tools: &[String]) -> eyre::Re
         ScriptedProvider::NAME => magistr_acp_agent::serve_stdio(ScriptedProvider)
             .await
             .map_err(|e| eyre::eyre!("ACP agent ended with an error: {e}")),
-        other => bail!(
+        other => Err(eyre::eyre!(
             "unknown ACP provider `{other}`; known providers: {}",
             PROVIDERS.join(", ")
-        ),
+        )),
     }
 }
 
