@@ -81,11 +81,11 @@ impl ChangeState {
             state.last_error = None;
         }
         state.pending_since.get_or_insert_with(Instant::now);
-        let _ = self
-            .epoch
-            .fetch_update(Ordering::Release, Ordering::Relaxed, |value| {
-                Some(value.saturating_add(1))
-            });
+        // Every epoch writer holds diagnostics; readers only need the release store.
+        self.epoch.store(
+            self.epoch.load(Ordering::Relaxed).saturating_add(1),
+            Ordering::Release,
+        );
     }
 
     pub(super) fn recovered(&self) {
@@ -101,11 +101,11 @@ impl ChangeState {
         state.events = state.events.saturating_add(1);
         state.rescans = state.rescans.saturating_add(1);
         state.pending_since.get_or_insert_with(Instant::now);
-        let _ = self
-            .epoch
-            .fetch_update(Ordering::Release, Ordering::Relaxed, |value| {
-                Some(value.saturating_add(1))
-            });
+        // Every epoch writer holds diagnostics; readers only need the release store.
+        self.epoch.store(
+            self.epoch.load(Ordering::Relaxed).saturating_add(1),
+            Ordering::Release,
+        );
     }
 
     pub(super) fn receive(&self, root: &Path, result: notify::Result<Event>) {

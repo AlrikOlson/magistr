@@ -57,7 +57,7 @@ async fn check_command(mut command: Command) -> eyre::Result<()> {
         }
         Err(_) => {
             let _ = child.kill().await;
-            eyre::bail!("MCP connection check exceeded 30 seconds; run magistr doctor")
+            eyre::bail!("MCP connection check exceeded 30 seconds; run magistr doctor");
         }
     }
 }

@@ -67,7 +67,7 @@ impl ConfirmationSeal {
             return Err(ConfirmationError::Mismatch);
         }
         let mut tag = [0; 32];
-        for (target, pair) in tag.iter_mut().zip(encoded.as_bytes().chunks_exact(2)) {
+        for (target, pair) in tag.iter_mut().zip(encoded.as_bytes().as_chunks::<2>().0) {
             *target = (hex_digit(pair[0])? << 4) | hex_digit(pair[1])?;
         }
         self.bound_mac(session_id, operation, serialized_request, finalized_plan)

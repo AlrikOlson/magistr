@@ -153,12 +153,10 @@ pub fn project_id_for_path(path: &Path) -> String {
 /// everywhere. `None` when nothing usable can be derived — the caller decides
 /// what absence means, rather than inheriting an "auto" nobody chose.
 pub fn project_display_name() -> Option<String> {
-    for var in [SHARED_OVERRIDE_VAR] {
-        if let Ok(raw) = env::var(var) {
-            let sanitized = sanitize_project_name(raw.trim());
-            if !sanitized.is_empty() {
-                return Some(sanitized);
-            }
+    if let Ok(raw) = env::var(SHARED_OVERRIDE_VAR) {
+        let sanitized = sanitize_project_name(raw.trim());
+        if !sanitized.is_empty() {
+            return Some(sanitized);
         }
     }
     let cwd = env::current_dir().ok()?;

@@ -59,46 +59,42 @@ pub fn recommend_roles_with_description(task: &str) -> (Vec<&'static str>, Strin
     let is_test = contains_any(&lower, &["test", "spec", "coverage", "verify"]);
 
     let mut roles = Vec::new();
-    let description;
-
-    if is_review {
+    let description = if is_review {
         roles.push("reviewer");
         if is_research {
             roles.push("researcher");
         }
-        description = "Code review task: reviewer analyzes the changes.";
+        "Code review task: reviewer analyzes the changes."
     } else if is_docs {
         roles.push("documenter");
         if is_research {
             roles.push("researcher");
         }
-        description = "Documentation task: documenter updates docs.";
+        "Documentation task: documenter updates docs."
     } else if is_research && !is_feature && !is_bug_fix {
         roles.push("researcher");
-        description = "Research task: researcher investigates and reports findings.";
+        "Research task: researcher investigates and reports findings."
     } else if is_bug_fix {
         roles.push("coder");
         roles.push("tester");
-        description = "Bug fix: coder fixes the issue, tester verifies the fix.";
+        "Bug fix: coder fixes the issue, tester verifies the fix."
     } else if is_feature {
         roles.push("researcher");
         roles.push("coder");
         roles.push("tester");
-        description =
-            "New feature: researcher gathers context, coder implements, tester validates.";
+        "New feature: researcher gathers context, coder implements, tester validates."
     } else if is_refactor {
         roles.push("coder");
         roles.push("reviewer");
         roles.push("tester");
-        description =
-            "Refactor: coder restructures, reviewer checks quality, tester ensures no regressions.";
+        "Refactor: coder restructures, reviewer checks quality, tester ensures no regressions."
     } else if is_test {
         roles.push("tester");
-        description = "Testing task: tester writes or improves test coverage.";
+        "Testing task: tester writes or improves test coverage."
     } else {
         roles.push("coder");
-        description = "General task: coder handles implementation.";
-    }
+        "General task: coder handles implementation."
+    };
 
     (roles, description.into())
 }

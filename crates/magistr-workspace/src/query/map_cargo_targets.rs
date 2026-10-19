@@ -125,10 +125,8 @@ fn convention(path: &str) -> Option<(MapEntryKind, Option<String>)> {
         (rest, MapEntryKind::Example)
     } else if let Some(rest) = path.strip_prefix("tests/") {
         (rest, MapEntryKind::Test)
-    } else if let Some(rest) = path.strip_prefix("benches/") {
-        (rest, MapEntryKind::Bench)
     } else {
-        return None;
+        (path.strip_prefix("benches/")?, MapEntryKind::Bench)
     };
     let name = rest
         .strip_suffix("/main.rs")

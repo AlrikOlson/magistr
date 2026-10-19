@@ -184,16 +184,13 @@ impl CodexConfig {
                 table.remove(key);
             }
         }
-        if let Some(servers) = doc.get_mut("mcp_servers").and_then(Item::as_table_like_mut) {
-            for server in ["magistr"] {
-                if servers
-                    .get(server)
-                    .and_then(Item::as_table_like)
-                    .is_some_and(|t| t.is_empty())
-                {
-                    servers.remove(server);
-                }
-            }
+        if let Some(servers) = doc.get_mut("mcp_servers").and_then(Item::as_table_like_mut)
+            && servers
+                .get("magistr")
+                .and_then(Item::as_table_like)
+                .is_some_and(|t| t.is_empty())
+        {
+            servers.remove("magistr");
         }
         Ok(doc.to_string())
     }

@@ -10,8 +10,7 @@ on:
 permissions:
   contents: read
 
-# Fresh runners do not reuse incremental caches or debug builds for debugging.
-# Keep the complete check/test/lint sequence within their available storage.
+# Keep debug output bounded; reusable dependency builds are cached separately.
 env:
   CARGO_INCREMENTAL: '0'
   CARGO_PROFILE_DEV_DEBUG: '0'
@@ -24,7 +23,8 @@ concurrency:
 jobs:
   quality:
     name: Rust and website gates
-    runs-on: ubuntu-latest
+    runs-on: macos-15
+    timeout-minutes: 30
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -32,6 +32,9 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Fetch the complete locked dependency graph
+        run: cargo fetch --locked
       - name: Record available build storage
         run: df -h .
       - name: Check formatting
@@ -132,7 +135,6 @@ jobs:
 
   package:
     name: Package and verify (${{ matrix.os }})
-    needs: [quality, desktop]
     strategy:
       fail-fast: false
       matrix:
