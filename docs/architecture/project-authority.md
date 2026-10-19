@@ -64,7 +64,7 @@ merge cannot resurrect them.
 `CheckAdmission` binds that target to the check request before an effect
 begins — together with the durable receipt it was admitted under, the
 acceptance revision then current, and the source the workflow observed at
-that moment. Native `ship_check` retains this admission across command
+that moment. Native `check_work` retains this admission across command
 execution inside the workflow crate; `magistr_gate` and the loop driver
 retain it through the [composition boundary](application.md#the-composition-boundary)'s
 `AdmittedCheck`. The loop additionally fixes one task admission for the

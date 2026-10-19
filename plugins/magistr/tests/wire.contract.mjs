@@ -204,13 +204,13 @@ test('runtime effects stay in the entry module and exclude models, files, proces
   )
   assert.doesNotMatch(
     source,
-    /\$\.(model|process|fs|prompt|permission)|fetch\(|node:|ship_complete|ship_finalize|roadmap_complete|next-loop/,
+    /\$\.(model|process|fs|prompt|permission)|fetch\(|node:|finish_work|ship_finalize|roadmap_complete|next-loop/,
   )
   const reads = source.slice(
     source.indexOf('const READS'),
     source.indexOf('function redraw'),
   )
-  assert.doesNotMatch(reads, /ship_start|magistr_gate|focus_set|start_chunk/)
+  assert.doesNotMatch(reads, /start_work|magistr_gate|focus_set|start_chunk/)
   assert.match(source, /consent:/)
   assert.match(source, /reads\.size >= 2/)
   assert.match(source, /actionInFlight/)

@@ -68,7 +68,7 @@ Match verification to the changed behavior, affected dependencies, and acceptanc
 criteria before committing, including during `$next`/`/next` roadmap chunks.
 Explicitly choose `verification: "focused"` for bounded changes, including code.
 Run formatting and the relevant crate, interface, architecture, and visual checks;
-record them through named `magistr_gate` calls or server-executed `ship_check`.
+record them through named `magistr_gate` calls or server-executed `check_work`.
 Use `verification: "full"` and `magistr_gate(gate: "all")` only for an explicit
 full-suite request or a concrete cross-cutting risk that requires every gate.
 State that reason before starting. A roadmap chunk does not by itself justify
@@ -98,7 +98,7 @@ crossings and branch/merge clarity. Inspect compact and desktop sizes, both
 appearances, relevant dense/empty/selected states, and transitions that affect
 focus or placement. Unreadable default zoom, clipping, overlap, ambiguous lines
 or excessive empty geometry are blocking defects. Record a required
-`ship_check(name: "GUI visual review", type: "review")` as failed while any such
+`check_work(name: "GUI visual review", type: "review")` as failed while any such
 defect is open; do not complete the affected work or start its next visual
 iteration. Fix, recapture and inspect again before recording a pass. A hash,
 test assertion or screenshot file proves neither inspection nor visual quality.
@@ -121,12 +121,12 @@ Read the relevant terminal or desktop architecture guide before changing it.
 
 ## Tools and state
 
-Use the configured Magistr server for workflow tools and Workspace for source
+Use the configured Magistr server for workflow and workspace tools, including source
 navigation and edits. Follow [Workspace routing](.agents/skills/workspace-routing/SKILL.md).
 Git, development, and diagnostics may use the shell. Explain focused fallbacks.
 Do not kill a Workspace lock owner or start a competing workspace or workflow server.
 
-Read existing native state before resuming work. Keep plans in `ship_plan` and
+Read existing native state before resuming work. Keep plans in `plan_work` and
 roadmaps in native Magistr state. Never export or generate `ROADMAP.md` or
 `ROADMAP.json`; preserve `roadmap_exports = false` and export-tool deny settings.
 During roadmap work, announce phases with `magistr_set_phase`, record verification,

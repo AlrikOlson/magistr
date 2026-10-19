@@ -151,7 +151,7 @@ admission and settlement inside this module and the writer itself.
 | --- | --- | --- | --- |
 | `magistr_gate` in `magistr mcp` | `NativeEngines` (Service role, the same writer the MCP session serves) | `WorkspaceEvidence` attached in `MagistrService::new` | `AdmittedCheck::admit` before the pty run, `settle` with the run's `CheckExecution` after; the answer carries the receipt id, source revision and freshness |
 | Hosted loop driver gates | `NativeEngines` (Host role via `writer_config`), one admitted verification task for the set; the set is `required_gates()` of the same capability | the same capability on the host's config | `AdmittedCheck` per gate, refusing a superseded verification target |
-| Native `ship_check` (agent) | `ShipUseCases::admit_check` / `settle_check` inside the workflow crate | the workflow's composed `EvidencePort` | the workflow's own async runner; the stale reply carries the receipt |
+| Native `check_work` (agent) | `ShipUseCases::admit_check` / `settle_check` inside the workflow crate | the workflow's composed `EvidencePort` | the workflow's own async runner; the stale reply carries the receipt |
 | `roadmap_complete_chunk` (MCP, owner command, cockpit Complete, loop judge) | `RoadmapUseCases` with the ship family as completion authority | `required_gates()` and a fresh observation at completion | `verify_completion` before the transition; refusals name every outstanding gate |
 | Cockpit `run` and the cockpit loops | `NativeEngines` or an attached `OwnerClient` | the [`HostedWorkspace`](#the-hosted-workspace) this process admits for the run — the agent's bridge and the cockpit's port attach to it | engine port; `magistr workspace journal` for the journal model |
 | ACP `fs/write_text_file` | none | the host's `SourceRoute`: `WorkspaceSourceWriter` over the hosted workspace's `write` verb after session authorization, or a `SourceRefusal` | `LocalEffectPort` routes the authorized write through the pipeline (journal intent, `MutationReceipt`) and stamps the `fs_write` event `route: workspace`; with a refusal it advertises no write capability and refuses the call before authorization (`route: refused`) — there is no direct write |
@@ -196,7 +196,7 @@ revision remain three distinct facts.
 ### One process mechanism
 
 Every command Magistr runs for a caller — a quality gate on its pty, a
-workflow `ship_check` command, a workspace declared command — is a
+workflow `check_work` command, a workspace declared command — is a
 `magistr_process::OwnedProcess`: its own session and process group, stdin
 closed, both streams under a bounded head+tail capture, a timeout and a
 cancel that end the whole group (gracefully with a `SIGTERM` grace, or at
@@ -233,7 +233,7 @@ byte is hashed when there is no task — which publishes the durable receipt and
 observes the workspace through the evidence capability the writer was admitted
 with; an unobservable workspace refuses the admission, so an unobservable gate
 is never recorded as evidence. Named gates run in the selected project root;
-server-executed `ship_check` commands run in the workspace named by their
+server-executed `check_work` commands run in the workspace named by their
 admitted source observation, and relative report paths resolve there too.
 The process directory never selects a different tree for that receipt.
 The command runs outside every lock with the owner's edits still flowing.
