@@ -1,5 +1,5 @@
 [package]
-include = ["src/**", "Cargo.toml", "Cargo.lock", "LICENSE*", "PROVENANCE.md", "build.rs", "templates/**", "assets/**"]
+include = ["src/**", "Cargo.toml", "Cargo.lock", "LICENSE*", "PROVENANCE.md", "build.rs", "templates/**", "assets/**", "!**/.DS_Store", "!**/__pycache__/**", "!**/*.pyc", "!**/*.pyo"]
 name = "magistr-cli"
 version = "0.1.0"
 edition = "2024"
