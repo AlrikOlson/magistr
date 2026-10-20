@@ -1,0 +1,1222 @@
+{
+  "completedAt": "2026-10-20T02:20:53.207Z",
+  "renderer": "Playwright WebKit",
+  "rendererVersion": "27.2",
+  "platform": "darwin-arm64",
+  "node": "v26.3.1",
+  "motion": "reduced",
+  "scale": 1,
+  "checks": [
+    {
+      "layout": "wide",
+      "appearance": "light",
+      "passed": true,
+      "scenarios": [
+        "four static routes",
+        "primary and theme-control contrast",
+        "wrapped code and aligned documentation arrows",
+        "reflow at 320 px",
+        "images",
+        "install anchor",
+        "theme persistence",
+        "selected agent instructions",
+        "search and result navigation",
+        "keyboard skip link"
+      ]
+    },
+    {
+      "layout": "wide",
+      "appearance": "dark",
+      "passed": true,
+      "scenarios": [
+        "four static routes",
+        "primary and theme-control contrast",
+        "wrapped code and aligned documentation arrows",
+        "reflow at 320 px",
+        "images",
+        "install anchor",
+        "theme persistence",
+        "selected agent instructions",
+        "search and result navigation",
+        "keyboard skip link"
+      ]
+    },
+    {
+      "layout": "compact",
+      "appearance": "light",
+      "passed": true,
+      "scenarios": [
+        "four static routes",
+        "primary and theme-control contrast",
+        "wrapped code and aligned documentation arrows",
+        "reflow at 320 px",
+        "images",
+        "install anchor",
+        "theme persistence",
+        "selected agent instructions",
+        "search and result navigation",
+        "keyboard skip link",
+        "mobile menu navigation"
+      ]
+    },
+    {
+      "layout": "compact",
+      "appearance": "dark",
+      "passed": true,
+      "scenarios": [
+        "four static routes",
+        "primary and theme-control contrast",
+        "wrapped code and aligned documentation arrows",
+        "reflow at 320 px",
+        "images",
+        "install anchor",
+        "theme persistence",
+        "selected agent instructions",
+        "search and result navigation",
+        "keyboard skip link",
+        "mobile menu navigation"
+      ]
+    }
+  ],
+  "sourceHashes": {
+    "apps/website/astro.config.mjs": "b8e61ea2c65b9c04cd1f44fa09091e134c761266baf1ea90c0efbdf75e795818",
+    "apps/website/package-lock.json": "799cde1b1a6c8048e7e1ec105b283f47a526485028f5ce0fdb06010f5e4a7b53",
+    "apps/website/package.json": "4ffc0f1dfc9044f05e349d92aa4ff33d0ece890a32ea0a29c43cf87fd3141e74",
+    "apps/website/src/components/Nav.astro": "8952a31722554644cf1c8d6cec79d217c14ff78d421ca73efe6e9a11a0973de8",
+    "apps/website/src/components/ThemeToggle.astro": "3a919308f8f4188c8970601d018185c6e89f3e02156e938c5c21f192f311d69a",
+    "apps/website/src/content.config.ts": "35db5d681c2146a4e34de514bb5c1472d5da2e75b2652f8ca0fba880afcf1a1a",
+    "apps/website/src/content/docs/concepts.mdx": "76124848205370cc5c8c0fd18b384b7fd7607532f9c500fe74b6c61762e42cda",
+    "apps/website/src/content/docs/installation.mdx": "55729491db066326643504b2ba278a6373874adc655b5a87fdc4725407813c92",
+    "apps/website/src/layouts/Base.astro": "0a5f001f8fb7a4a732a1070a619638824a44aa3b7d1695857a5a534b3b8647e3",
+    "apps/website/src/layouts/Docs.astro": "333a6e23a7ee2815e22e42f14b2ec43a86eeacc69fd7c1449de7b829e51aded4",
+    "apps/website/src/pages/404.astro": "b31cb4a3eadd8e18d5f450b1faa5e19203010502125d6f1b57b94231f982d717",
+    "apps/website/src/pages/docs/[...slug].astro": "c48f046ee5163651688e38be70dac452c606701e978eec342e98ebcae0b51834",
+    "apps/website/src/pages/index.astro": "8c910555aa4cb4af9aef7ed8bc611ee83683cd79740264309010f9257ae7b0a5",
+    "apps/website/src/pages/robots.txt.ts": "55c24c9a347c8d62fe0a071522d6433a9ccdcd5c4013733fe87ca2bc778c2ab2",
+    "apps/website/src/styles/global.css": "c09549e73a21592278ded4a0066427f30d5e195905df0438b569bbe34d530dc4",
+    "apps/website/tests/browser.mjs": "e0e441cb583638684abcc234da1752616c5e204d03f4d76a158cfd5fc0acc158"
+  },
+  "captures": [
+    {
+      "file": "home-wide-light.png",
+      "state": "home full page",
+      "url": "/",
+      "capturedAt": "2026-10-20T02:20:46.714Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": true,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 3027,
+      "sha256": "e5bb799bb7df8c5588816edab02ee989f6ef3ce6478e2a260ec72b881cdf0dcf",
+      "review": "pending"
+    },
+    {
+      "file": "home-install-wide-light.png",
+      "state": "Preview installation and planning handoff",
+      "url": "/",
+      "capturedAt": "2026-10-20T02:20:46.767Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "6a0996a116ce5ecafe6754884290eea1886309d095bca178365bb599a2421c02",
+      "review": "pending"
+    },
+    {
+      "file": "installation-wide-light.png",
+      "state": "installation full page",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T02:20:47.079Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": true,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 4644,
+      "sha256": "0424b4c565dfdd50ff17f5bfbda48b170f333402770991087f31b4f7d3d5dc49",
+      "review": "pending"
+    },
+    {
+      "file": "installation-install-the-preview-wide-light.png",
+      "state": "install the preview",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T02:20:47.108Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "2a1112371b586bac970ff135259f7adaf088cfa3b9d84bf68255cd1a3b9115ea",
+      "review": "pending"
+    },
+    {
+      "file": "installation-set-up-your-project-wide-light.png",
+      "state": "set up your project",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T02:20:47.136Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "57c79f4e24738796effb462276b60955b7a590afbe7ec4942358d35ce952916a",
+      "review": "pending"
+    },
+    {
+      "file": "installation-connect-codex-wide-light.png",
+      "state": "connect codex",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T02:20:47.160Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "6f4aa79e73516d600dc75dc1c8946059cbeb8395a2e92907cfedf2f094a98113",
+      "review": "pending"
+    },
+    {
+      "file": "installation-connect-claude-code-wide-light.png",
+      "state": "connect claude code",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T02:20:47.186Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "163f5eea344e0da47c6dedb295e10e858aa207af1b82eee43c7e76847bf50958",
+      "review": "pending"
+    },
+    {
+      "file": "installation-connect-another-agent-wide-light.png",
+      "state": "connect another agent",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T02:20:47.210Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "5c8852eb87392c6f1e2990a30f02a892a50d9fcd46775dd2d11452191d25b285",
+      "review": "pending"
+    },
+    {
+      "file": "installation-check-or-repair-setup-wide-light.png",
+      "state": "check or repair setup",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T02:20:47.236Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "2764d46d43cf31f2a010fcdd01c4aee104f618e4d05eb6a57de571446bc8ab6d",
+      "review": "pending"
+    },
+    {
+      "file": "installation-upgrade-the-preview-wide-light.png",
+      "state": "upgrade the preview",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T02:20:47.260Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "4520fc5d6368b409ff42a72e2d1852bfcbc3dd7d8f4f1dd5ba09eec0131c53b8",
+      "review": "pending"
+    },
+    {
+      "file": "installation-remove-setup-or-uninstall-wide-light.png",
+      "state": "remove setup or uninstall",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T02:20:47.285Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "cceebec2640fe70a804b436944e9f4b28de4f1f2ce400afa96ea93b633873bdc",
+      "review": "pending"
+    },
+    {
+      "file": "installation-start-work-when-you-are-ready-wide-light.png",
+      "state": "start work when you are ready",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T02:20:47.309Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "ce870d737c3bb6bad1263641d6c3cafc444e3683dcf2063a5be421634371fc5f",
+      "review": "pending"
+    },
+    {
+      "file": "installation-search-wide-light.png",
+      "state": "Documentation search for repair",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T02:20:47.635Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "2dbc15a3999386edea63e42213c0791cdfea455d2e2ad62887905c880bac14a0",
+      "review": "pending"
+    },
+    {
+      "file": "concepts-wide-light.png",
+      "state": "concepts full page",
+      "url": "/docs/concepts/",
+      "capturedAt": "2026-10-20T02:20:47.788Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": true,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 2113,
+      "sha256": "b7bb5f8a80cc0f33e536b03fd4aa9a9ca38356118d88e195fbcfbcc5dc3c36f5",
+      "review": "pending"
+    },
+    {
+      "file": "not-found-wide-light.png",
+      "state": "not-found full page",
+      "url": "/404.html",
+      "capturedAt": "2026-10-20T02:20:47.877Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": true,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "6a0f3e2ea353e3eab9687057e91aa35ba39395d54aa586c19cd1278fa7647b71",
+      "review": "pending"
+    },
+    {
+      "file": "home-wide-dark.png",
+      "state": "home full page",
+      "url": "/",
+      "capturedAt": "2026-10-20T02:20:48.479Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "fullPage": true,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 3027,
+      "sha256": "89aaa6175974a78eb6a9e7856675c3982bdc00852754c5449414712f1df21b58",
+      "review": "pending"
+    },
+    {
+      "file": "home-install-wide-dark.png",
+      "state": "Preview installation and planning handoff",
+      "url": "/",
+      "capturedAt": "2026-10-20T02:20:48.510Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "f5d4ae614b2ecea4fb574fb192d6c1be0c2ea558f27bbcfbd1e96910488f4bff",
+      "review": "pending"
+    },
+    {
+      "file": "installation-wide-dark.png",
+      "state": "installation full page",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T02:20:48.812Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "fullPage": true,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 4644,
+      "sha256": "2ac8a46600c1df5a04144ec72f9e25df99771f9cf191fac3a511551ef1d8433b",
+      "review": "pending"
+    },
+    {
+      "file": "installation-install-the-preview-wide-dark.png",
+      "state": "install the preview",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T02:20:48.840Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "6b2b27b316dca30c2b844a9df81efe97a7973c7bd94a1bea7d6a584297203919",
+      "review": "pending"
+    },
+    {
+      "file": "installation-set-up-your-project-wide-dark.png",
+      "state": "set up your project",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T02:20:48.866Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "5effbb04ddc51a1d971d7e7d7009decbe0b5a59a78e98bb28eb80efc82a48c71",
+      "review": "pending"
+    },
+    {
+      "file": "installation-connect-codex-wide-dark.png",
+      "state": "connect codex",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T02:20:48.890Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "f60449300bfd35c573a410a0c436551db6bee0192debdd689120193ef72f0ec1",
+      "review": "pending"
+    },
+    {
+      "file": "installation-connect-claude-code-wide-dark.png",
+      "state": "connect claude code",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T02:20:48.914Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "ddb6452516ac107175496a1cbf58d9236b101e9d4cea8bd042dd813746acd67e",
+      "review": "pending"
+    },
+    {
+      "file": "installation-connect-another-agent-wide-dark.png",
+      "state": "connect another agent",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T02:20:48.939Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "8c0084ed9167cfff0ee13fd54a881c0ba934eb4f5747b92ff6e0b85f7043cee2",
+      "review": "pending"
+    },
+    {
+      "file": "installation-check-or-repair-setup-wide-dark.png",
+      "state": "check or repair setup",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T02:20:48.963Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "e5ed3d8eb12a7691f8e7aaf4dd0113d653ee981496fd47d03ff4900484c1e017",
+      "review": "pending"
+    },
+    {
+      "file": "installation-upgrade-the-preview-wide-dark.png",
+      "state": "upgrade the preview",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T02:20:48.988Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "c640d31212caccf775a36086dc86302d0e68cd14438585129e9e11fd687eb1b9",
+      "review": "pending"
+    },
+    {
+      "file": "installation-remove-setup-or-uninstall-wide-dark.png",
+      "state": "remove setup or uninstall",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T02:20:49.012Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "fc653b242ff57daf8d4146aa3c51591e5fff6d005fd87aedc934e2ed47594161",
+      "review": "pending"
+    },
+    {
+      "file": "installation-start-work-when-you-are-ready-wide-dark.png",
+      "state": "start work when you are ready",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T02:20:49.037Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "3e5a252f2d5d6bb8fdbf5a781fc6c969772ec5e9e5cad6f9c665ab64b8c44997",
+      "review": "pending"
+    },
+    {
+      "file": "installation-search-wide-dark.png",
+      "state": "Documentation search for repair",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T02:20:49.346Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "c82545ed73ee581b1b609172706b31e7affa2a8258556045454f2b06f39cb42b",
+      "review": "pending"
+    },
+    {
+      "file": "concepts-wide-dark.png",
+      "state": "concepts full page",
+      "url": "/docs/concepts/",
+      "capturedAt": "2026-10-20T02:20:49.499Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "fullPage": true,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 2113,
+      "sha256": "68dd047186333a66b3001ae9468133df7c73fdc9954df75d5db55e963a107add",
+      "review": "pending"
+    },
+    {
+      "file": "not-found-wide-dark.png",
+      "state": "not-found full page",
+      "url": "/404.html",
+      "capturedAt": "2026-10-20T02:20:49.589Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "fullPage": true,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "b63cd941b7c0540d87c3ce1c69af7dcb414524f029c8e34bcc74748ddbe9606d",
+      "review": "pending"
+    },
+    {
+      "file": "home-compact-light.png",
+      "state": "home full page",
+      "url": "/",
+      "capturedAt": "2026-10-20T02:20:50.182Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "fullPage": true,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 4211,
+      "sha256": "614dd966eb533fbdd8155a84d10161b901ccd1969d3e8364002f8d87bdda18ca",
+      "review": "pending"
+    },
+    {
+      "file": "home-install-compact-light.png",
+      "state": "Preview installation and planning handoff",
+      "url": "/",
+      "capturedAt": "2026-10-20T02:20:50.221Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "9f385585c9c45ea02853d5d68cd42318d785d5b288b614c51343b866c2b3acb3",
+      "review": "pending"
+    },
+    {
+      "file": "home-menu-compact-light.png",
+      "state": "Expanded compact navigation",
+      "url": "/",
+      "capturedAt": "2026-10-20T02:20:50.426Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "127a5ecace6033ade5202d04940dfa95fecbfe11f8fb42382c87084c4bd34bff",
+      "review": "pending"
+    },
+    {
+      "file": "installation-compact-light.png",
+      "state": "installation full page",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T02:20:50.601Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "fullPage": true,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 6599,
+      "sha256": "49570e450b2ba9f23cf8c3c64cebfb17944c0c0ad607febff71144d512cc7616",
+      "review": "pending"
+    },
+    {
+      "file": "installation-install-the-preview-compact-light.png",
+      "state": "install the preview",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T02:20:50.620Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "071e65963c4063ec303fab1fefb92522e92d1eadc4ba69358f5989f132a2fdbc",
+      "review": "pending"
+    },
+    {
+      "file": "installation-set-up-your-project-compact-light.png",
+      "state": "set up your project",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T02:20:50.637Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "ea266b99ddb607c7f89c748def0796cde52b7d383709f2a9c70f415ca7a36b0e",
+      "review": "pending"
+    },
+    {
+      "file": "installation-connect-codex-compact-light.png",
+      "state": "connect codex",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T02:20:50.653Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "e20250318848f88f6e3f6b64a588873d6de46c680f51aeba4f69165f20650644",
+      "review": "pending"
+    },
+    {
+      "file": "installation-connect-claude-code-compact-light.png",
+      "state": "connect claude code",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T02:20:50.669Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "06464538d6122562f3cff5e4d336115af5be4fe88c8c5a54199cf7e5878c8d16",
+      "review": "pending"
+    },
+    {
+      "file": "installation-connect-another-agent-compact-light.png",
+      "state": "connect another agent",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T02:20:50.688Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "00b5cdffeba4e8a67b60d4083b4854d7fd933b2548f3455ec2589773c182ac1a",
+      "review": "pending"
+    },
+    {
+      "file": "installation-check-or-repair-setup-compact-light.png",
+      "state": "check or repair setup",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T02:20:50.704Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "7895f17656c19ea37b5c4448b969da107f17b0c6179487831fe735da473a3719",
+      "review": "pending"
+    },
+    {
+      "file": "installation-upgrade-the-preview-compact-light.png",
+      "state": "upgrade the preview",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T02:20:50.720Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "7f8942939e9d66d51e296404beb47e1e3194987a5f4dd66738468689733e84a4",
+      "review": "pending"
+    },
+    {
+      "file": "installation-remove-setup-or-uninstall-compact-light.png",
+      "state": "remove setup or uninstall",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T02:20:50.736Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "6865c706d817af93f7756a646e9113ff490dd7db9bfb1b9a8e0851e10a181253",
+      "review": "pending"
+    },
+    {
+      "file": "installation-start-work-when-you-are-ready-compact-light.png",
+      "state": "start work when you are ready",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T02:20:50.753Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "1e10c0a3b24296778b9fd1ffca66678ac8379928054481b85f484de48072c546",
+      "review": "pending"
+    },
+    {
+      "file": "installation-search-compact-light.png",
+      "state": "Documentation search for repair",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T02:20:51.056Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "b1c61facab9c0ca32b7bcf1ce432501e0d663f5e628199a9b906cca884a20f30",
+      "review": "pending"
+    },
+    {
+      "file": "concepts-compact-light.png",
+      "state": "concepts full page",
+      "url": "/docs/concepts/",
+      "capturedAt": "2026-10-20T02:20:51.200Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "fullPage": true,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 3312,
+      "sha256": "73e6d24d60ab9b64368cfc26817257b79f81330a08c7a984c5f4800667340846",
+      "review": "pending"
+    },
+    {
+      "file": "not-found-compact-light.png",
+      "state": "not-found full page",
+      "url": "/404.html",
+      "capturedAt": "2026-10-20T02:20:51.286Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "fullPage": true,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "49a24de86d8ce8ca533bf333d866af7d618eec35c0d2789890e60aa7846e69dd",
+      "review": "pending"
+    },
+    {
+      "file": "home-compact-dark.png",
+      "state": "home full page",
+      "url": "/",
+      "capturedAt": "2026-10-20T02:20:51.909Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "fullPage": true,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 4211,
+      "sha256": "63305cec07744fabd3947e340958bf584d11cd5e37c2c59d52187f220a407415",
+      "review": "pending"
+    },
+    {
+      "file": "home-install-compact-dark.png",
+      "state": "Preview installation and planning handoff",
+      "url": "/",
+      "capturedAt": "2026-10-20T02:20:51.937Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "8256bed93c500fc2e21761938b7a2c8e6e233eff78416ca556672803dd77d9ad",
+      "review": "pending"
+    },
+    {
+      "file": "home-menu-compact-dark.png",
+      "state": "Expanded compact navigation",
+      "url": "/",
+      "capturedAt": "2026-10-20T02:20:52.140Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "89ef8aebb261dbcb667b54d9f3b89cad6bdc95691603d43cef31094ee64a5695",
+      "review": "pending"
+    },
+    {
+      "file": "installation-compact-dark.png",
+      "state": "installation full page",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T02:20:52.314Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "fullPage": true,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 6599,
+      "sha256": "9158e403d6be3ec02f1171f99c32aadcfe079f391b41050407e7301d6e1ee0f7",
+      "review": "pending"
+    },
+    {
+      "file": "installation-install-the-preview-compact-dark.png",
+      "state": "install the preview",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T02:20:52.332Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "df975d0eeab49b265a580dadb19c0e6881df54a936ab1b6c6006e995ae4b8c6b",
+      "review": "pending"
+    },
+    {
+      "file": "installation-set-up-your-project-compact-dark.png",
+      "state": "set up your project",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T02:20:52.349Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "090ef8566a308740c9bac440706a678982f6d7e679fc13d029c78428ca49cade",
+      "review": "pending"
+    },
+    {
+      "file": "installation-connect-codex-compact-dark.png",
+      "state": "connect codex",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T02:20:52.364Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "aa60d560d502480be365321b28a455dd90c05c62358af634506775b665acf187",
+      "review": "pending"
+    },
+    {
+      "file": "installation-connect-claude-code-compact-dark.png",
+      "state": "connect claude code",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T02:20:52.381Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "68da3cff0d6f93705e8b1240e04cb99beba3cda1c6f26a9265dca4a8e3fee50f",
+      "review": "pending"
+    },
+    {
+      "file": "installation-connect-another-agent-compact-dark.png",
+      "state": "connect another agent",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T02:20:52.399Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "dbaa0fcd25540721631671e870c55a477902753b59282b2a8b59d5d7f3475a8d",
+      "review": "pending"
+    },
+    {
+      "file": "installation-check-or-repair-setup-compact-dark.png",
+      "state": "check or repair setup",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T02:20:52.416Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "6108971463080c611e194de4a0aedb49e84d7fefe90c4e3691a31a44aa287fd9",
+      "review": "pending"
+    },
+    {
+      "file": "installation-upgrade-the-preview-compact-dark.png",
+      "state": "upgrade the preview",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T02:20:52.433Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "3effa33e8a3d0228fc8a9663190a0a54c218297708bca0d4cbe61245abeab0a1",
+      "review": "pending"
+    },
+    {
+      "file": "installation-remove-setup-or-uninstall-compact-dark.png",
+      "state": "remove setup or uninstall",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T02:20:52.451Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "d0666dee2f3bab02a65bdf0f0ac50c73b2ab9467ca8d481f544783e5a1c1970d",
+      "review": "pending"
+    },
+    {
+      "file": "installation-start-work-when-you-are-ready-compact-dark.png",
+      "state": "start work when you are ready",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T02:20:52.467Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "96b4da0c092ac156570823ab8b816f266a64ca7a83c85aab00923cf9ea6b60d6",
+      "review": "pending"
+    },
+    {
+      "file": "installation-search-compact-dark.png",
+      "state": "Documentation search for repair",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T02:20:52.774Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "c04bd016285f26a01a8f4c6965c5e030667089e04eef0ced89125f8ba68ec4a2",
+      "review": "pending"
+    },
+    {
+      "file": "concepts-compact-dark.png",
+      "state": "concepts full page",
+      "url": "/docs/concepts/",
+      "capturedAt": "2026-10-20T02:20:52.914Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "fullPage": true,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 3312,
+      "sha256": "400f9497f6480d368190eec90d0ba000815bac9caf1061b33a9a61cd0fbc73c3",
+      "review": "pending"
+    },
+    {
+      "file": "not-found-compact-dark.png",
+      "state": "not-found full page",
+      "url": "/404.html",
+      "capturedAt": "2026-10-20T02:20:53.006Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "fullPage": true,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "472c3fbae8836907404b39d7a106002c10357a75ae3e96bf8c6fc1b056cddcf3",
+      "review": "pending"
+    }
+  ],
+  "limitations": [
+    "Headless browser only; no native OS-input or assistive-technology testing.",
+    "Screenshots require separate recorded visual review.",
+    "No deployed-site or registry publication claim."
+  ]
+}

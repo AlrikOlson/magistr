@@ -1,6 +1,6 @@
 # Getting started
 
-The first CLI/npm release targets Apple Silicon macOS. Publication is pending;
+The first CLI/npm release supports Apple Silicon with macOS 15 or later. Publication is pending;
 the commands below describe the prepared packages. Install and sign in to Codex
 or Claude Code separately.
 
