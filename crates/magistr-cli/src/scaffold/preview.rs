@@ -140,6 +140,7 @@ impl SetupPlan {
         plan.files.extend(workspace_change(dir, &vars));
         plan.files.extend(super::legacy_rule_removals(dir));
         plan.files.extend(codex);
+        super::project_upgrade::ProjectUpgrade::include(dir, &mut plan)?;
         Ok(Self { plan, vars, owned })
     }
 }

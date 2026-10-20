@@ -79,7 +79,7 @@ impl OwnerLease {
         self.generation
     }
 
-    fn lock(&mut self, path: &Path, resource: &str) -> io::Result<()> {
+    pub(super) fn lock(&mut self, path: &Path, resource: &str) -> io::Result<()> {
         let failure = |error: io::Error| {
             io::Error::new(
                 error.kind(),

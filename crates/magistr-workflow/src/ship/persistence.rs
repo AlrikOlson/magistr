@@ -139,6 +139,13 @@ pub struct Persistence {
 }
 
 impl Persistence {
+    /// Validate a saved execution before its storage owner relocates it.
+    pub fn validate_document(bytes: &[u8], project_id: &str) -> Result<(), ReadError> {
+        let document: PersistedState = serde_json::from_slice(bytes)
+            .map_err(|error| ReadError::new(ReadErrorKind::Schema, error.to_string()))?;
+        document.validate(project_id)
+    }
+
     pub(crate) fn current_stamped(
         &self,
         project_id: &str,

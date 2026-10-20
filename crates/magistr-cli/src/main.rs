@@ -11,6 +11,21 @@ use magistr::{agent, cli, config, detect, scaffold, types};
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
+    let result = run_cli().await;
+    // Attach guidance once, including failures before command dispatch.
+    result.map_err(|report| {
+        use color_eyre::Section;
+        match report.downcast_ref::<magistr::error::MagistrError>() {
+            Some(err) => match err.suggestion() {
+                Some(suggestion) => report.suggestion(suggestion.to_string()),
+                None => report,
+            },
+            None => report,
+        }
+    })
+}
+
+async fn run_cli() -> eyre::Result<()> {
     // Private owned worker role: bypass interactive hooks, config repair, MCP,
     // and workspace owner admission. Strict argv keeps it out of normal CLI use.
     if std::env::args_os()
@@ -394,17 +409,7 @@ async fn main() -> eyre::Result<()> {
         std::process::exit(utils::shutdown::Shutdown::EXIT_CODE);
     }
 
-    // Attach actionable suggestions from MagistrError to the eyre report.
-    result.map_err(|report| {
-        use color_eyre::Section;
-        match report.downcast_ref::<magistr::error::MagistrError>() {
-            Some(err) => match err.suggestion() {
-                Some(suggestion) => report.suggestion(suggestion.to_string()),
-                None => report,
-            },
-            None => report,
-        }
-    })
+    result
 }
 
 /// Parse the command line. clap's own usage errors exit 2 everywhere in
@@ -412,7 +417,14 @@ async fn main() -> eyre::Result<()> {
 /// of the verbs' process contract, so a malformed workspace invocation
 /// exits 64 instead. Help and version still exit 0.
 fn parse_cli() -> Cli {
-    Cli::try_parse().unwrap_or_else(|error| {
+    // Bootstrap a saved launch registration into the sole current command.
+    // Startup upgrades the registration, so subsequent launches use current argv.
+    let mut args: Vec<_> = std::env::args_os().collect();
+    if args.len() == 4 && args[1] == "mcp-launch" && args[2] == "magistr" {
+        args[1] = "mcp".into();
+        args[2] = "--dir".into();
+    }
+    Cli::try_parse_from(args).unwrap_or_else(|error| {
         let workspace_verb = std::env::args().nth(1).as_deref() == Some("workspace");
         if workspace_verb && error.use_stderr() {
             let _ = error.print();

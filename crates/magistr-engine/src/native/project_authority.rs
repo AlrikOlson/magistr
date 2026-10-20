@@ -85,7 +85,8 @@ impl ProjectAuthority {
         )?;
         let working_copy = super::WorkingCopyLease::active(config.project_root())?;
         super::ProjectLocation::require_open(config.project_root())?;
-        let lease = OwnerLease::acquire(config, &project_id, role)?;
+        let mut lease = OwnerLease::acquire(config, &project_id, role)?;
+        super::WorkflowUpgrade::apply(config, &project_id, &mut lease)?;
         Ok(Self {
             project_id,
             config: config.clone(),

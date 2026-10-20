@@ -47,6 +47,8 @@ impl HostedWorkspace {
     ) -> Result<Option<Self>, WorkspaceOpenError> {
         magistr_engine::native::ProjectLocation::require_open(&options.root)?;
         let root = options.root.clone();
+        crate::scaffold::project_upgrade::ProjectUpgrade::apply(&root)
+            .map_err(|error| WorkspaceOpenError::Io(std::io::Error::other(error)))?;
         options.lifecycle_lock = Some(
             magistr_engine::native::ProjectLocation::working_copy_root(&root)?
                 .join(".magistr/working-copy.lock"),

@@ -116,12 +116,28 @@ fn linked_commands_and_setup_use_current_shared_settings_and_refuse_invalid_valu
         vec!["config", "check", linked_path],
         vec!["roadmap", "status", linked_path],
         vec!["init", linked_path, "--force"],
+        vec!["repair", linked_path, "--dry-run"],
     ] {
-        magistr(&data)
+        let aggregates_errors = args[0] == "config" && args[1] == "check";
+        let assertion = magistr(&data)
             .args(args)
             .assert()
             .failure()
             .stderr(predicate::str::contains("Invalid project settings"));
+        let stderr = String::from_utf8_lossy(&assertion.get_output().stderr);
+        assert!(!stderr.contains("Run `magistr init`"), "{stderr}");
+        if !aggregates_errors {
+            assert!(stderr.contains("Correct the configuration"), "{stderr}");
+            assert_eq!(
+                stderr
+                    .matches(
+                        "Correct the configuration reported above, then run the command again."
+                    )
+                    .count(),
+                1,
+                "{stderr}",
+            );
+        }
     }
     assert_eq!(std::fs::read_to_string(&shared).unwrap(), invalid);
     assert!(!linked.join(".claude").exists());
