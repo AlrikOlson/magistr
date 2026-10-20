@@ -1,0 +1,402 @@
+{
+  "completedAt": "2026-10-20T15:52:38.766Z",
+  "status": "passed",
+  "renderer": "Playwright WebKit",
+  "rendererVersion": "27.2",
+  "platform": "darwin-arm64",
+  "node": "v24.21.0",
+  "origin": "http://127.0.0.1:62543",
+  "motion": "reduced",
+  "scale": 1,
+  "evidenceScope": "search",
+  "checks": [
+    {
+      "layout": "wide",
+      "appearance": "light",
+      "passed": true,
+      "scenarios": [
+        "four static routes",
+        "primary and theme-control contrast",
+        "wrapped code and aligned documentation arrows",
+        "reflow at 320 px",
+        "images",
+        "install anchor",
+        "theme persistence",
+        "selected agent instructions",
+        "lazy search, results, empty and failure recovery, cleared query",
+        "keyboard skip link"
+      ]
+    },
+    {
+      "layout": "wide",
+      "appearance": "dark",
+      "passed": true,
+      "scenarios": [
+        "four static routes",
+        "primary and theme-control contrast",
+        "wrapped code and aligned documentation arrows",
+        "reflow at 320 px",
+        "images",
+        "install anchor",
+        "theme persistence",
+        "selected agent instructions",
+        "lazy search, results, empty and failure recovery, cleared query",
+        "keyboard skip link"
+      ]
+    },
+    {
+      "layout": "compact",
+      "appearance": "light",
+      "passed": true,
+      "scenarios": [
+        "four static routes",
+        "primary and theme-control contrast",
+        "wrapped code and aligned documentation arrows",
+        "reflow at 320 px",
+        "images",
+        "install anchor",
+        "theme persistence",
+        "selected agent instructions",
+        "lazy search, results, empty and failure recovery, cleared query",
+        "keyboard skip link",
+        "mobile menu navigation, Escape, anchor focus and resize recovery"
+      ]
+    },
+    {
+      "layout": "compact",
+      "appearance": "dark",
+      "passed": true,
+      "scenarios": [
+        "four static routes",
+        "primary and theme-control contrast",
+        "wrapped code and aligned documentation arrows",
+        "reflow at 320 px",
+        "images",
+        "install anchor",
+        "theme persistence",
+        "selected agent instructions",
+        "lazy search, results, empty and failure recovery, cleared query",
+        "keyboard skip link",
+        "mobile menu navigation, Escape, anchor focus and resize recovery"
+      ]
+    }
+  ],
+  "sourceHashes": {
+    "apps/website/astro.config.mjs": "b8e61ea2c65b9c04cd1f44fa09091e134c761266baf1ea90c0efbdf75e795818",
+    "apps/website/package-lock.json": "799cde1b1a6c8048e7e1ec105b283f47a526485028f5ce0fdb06010f5e4a7b53",
+    "apps/website/package.json": "4ffc0f1dfc9044f05e349d92aa4ff33d0ece890a32ea0a29c43cf87fd3141e74",
+    "apps/website/public/og-image.png": "9b0f155627c2a41d794d0fd18543d09d9debc4be31b612d71f536dc53735a851",
+    "apps/website/public/og-image.svg": "216cb4a0a6566397b50a3283e55f5341ef229412371121bd04801e1336cba5d4",
+    "apps/website/public/screenshots/captures.json": "59897446e1905f99041dbc73cb9758d32b9541bb51c676b6eddd30009ab1d5bf",
+    "apps/website/public/site.webmanifest": "de638be01f443300fd98afa3d6ea0cff1ec1e526c2aec12c1bf6045627aeb726",
+    "apps/website/scripts/generate-favicons.mjs": "f82c2101757d9df9b62de0d9a2bcebd832ab318804c402f94d8dffafc057d47b",
+    "apps/website/src/components/Nav.astro": "67b5413bdb7330ea4d245faf32310e2591334834918a92345dd78d1285bfbfa8",
+    "apps/website/src/components/ThemeToggle.astro": "62739fc7a3d3476e13c53f2dfa389150f3e7ca4ba0629c34b71f5cf8202ea211",
+    "apps/website/src/content.config.ts": "35db5d681c2146a4e34de514bb5c1472d5da2e75b2652f8ca0fba880afcf1a1a",
+    "apps/website/src/content/docs/concepts.mdx": "ecfb49329af851135b796d598c970642828b599283f969a76517aae5694c4c37",
+    "apps/website/src/content/docs/installation.mdx": "9ca3b61a9f5d0f41825e464b720f4852a8bc67a6205d01f4ab9755e6c261c3a3",
+    "apps/website/src/layouts/Base.astro": "731a836892e9e3595f9d189a809406662a204f87a9d3553a38c5efaa6c14b821",
+    "apps/website/src/layouts/Docs.astro": "8fbd994b16e48f875324241fd1212d5e61514630ac8c2aed156b655dc08a7e00",
+    "apps/website/src/pages/404.astro": "b31cb4a3eadd8e18d5f450b1faa5e19203010502125d6f1b57b94231f982d717",
+    "apps/website/src/pages/docs/[...slug].astro": "c48f046ee5163651688e38be70dac452c606701e978eec342e98ebcae0b51834",
+    "apps/website/src/pages/index.astro": "0aaf16b9ed6b61a50b03cb5361662355af4d77ee2ca0239d30919c5b3f04cce0",
+    "apps/website/src/pages/robots.txt.ts": "55c24c9a347c8d62fe0a071522d6433a9ccdcd5c4013733fe87ca2bc778c2ab2",
+    "apps/website/src/styles/global.css": "eeb80fb879c96cae97e6017e59f95cbdf6bd1f365e3322060a2482d2f51c6774",
+    "apps/website/tests/browser.mjs": "dccc96b6ea4fd64a511b776837a83a62801ca9803b614b5f2937045a8c5456c3"
+  },
+  "captures": [
+    {
+      "file": "installation-search-wide-light.png",
+      "state": "Documentation search for repair",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T15:52:27.525Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "5176ddcca0eee95e2a2ebb7fcf981aaf5704f88636e1a300d03ff9604060d028",
+      "review": "pending"
+    },
+    {
+      "file": "installation-search-empty-wide-light.png",
+      "state": "No results preserve a clear way to search again",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T15:52:27.834Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "c6ac30d3a80a53115e0cf9c0c276d75b75a88db8636d267aee65f93c54ededc3",
+      "review": "pending"
+    },
+    {
+      "file": "installation-search-unavailable-wide-light.png",
+      "state": "Search failure retains navigation and explains recovery",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T15:52:28.517Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "26a965f527de64a82445601091b260e6e546bbb48ed555a66bb713581402d441",
+      "review": "pending"
+    },
+    {
+      "file": "concepts-search-idle-wide-light.png",
+      "state": "Search is ready without starting its index",
+      "url": "/docs/concepts/",
+      "capturedAt": "2026-10-20T15:52:29.030Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "ff3ae8680ab2ba38ab2c4c5a8dce365b974fbacbf5f3900614f11f11f42a70ae",
+      "review": "pending"
+    },
+    {
+      "file": "installation-search-wide-dark.png",
+      "state": "Documentation search for repair",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T15:52:30.484Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "1c66fbdd4b862006e84cb15a6ad10e1d97ddf78cd49f8934a405820b9e8a4558",
+      "review": "pending"
+    },
+    {
+      "file": "installation-search-empty-wide-dark.png",
+      "state": "No results preserve a clear way to search again",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T15:52:30.801Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "a297865bbaf1095e9a56ef31debf72fafbd1a9a01d002bdc02ac011e7ba69fe3",
+      "review": "pending"
+    },
+    {
+      "file": "installation-search-unavailable-wide-dark.png",
+      "state": "Search failure retains navigation and explains recovery",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T15:52:31.501Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "56bbd8500a9e41237305690ddbc3babee825cd4a71a8090796529a498b255539",
+      "review": "pending"
+    },
+    {
+      "file": "concepts-search-idle-wide-dark.png",
+      "state": "Search is ready without starting its index",
+      "url": "/docs/concepts/",
+      "capturedAt": "2026-10-20T15:52:32.030Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "8b2f9d65735c053c5f380a68f95bae1d0cdad58fa2ae543d58213438d14684b8",
+      "review": "pending"
+    },
+    {
+      "file": "installation-search-compact-light.png",
+      "state": "Documentation search for repair",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T15:52:33.710Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "be07fbad1041234ca3b57cf22385373f5e1517a04368a1bdecbc98ee1a22b28d",
+      "review": "pending"
+    },
+    {
+      "file": "installation-search-empty-compact-light.png",
+      "state": "No results preserve a clear way to search again",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T15:52:34.009Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "98bc29e2faaa5c66c601db4d7b4ad12383340db3da89447ebe92fd43470f6ac4",
+      "review": "pending"
+    },
+    {
+      "file": "installation-search-unavailable-compact-light.png",
+      "state": "Search failure retains navigation and explains recovery",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T15:52:34.710Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "d343aaf6add944928add6a2e2d751649946701027fff8972b80510c2beca17ce",
+      "review": "pending"
+    },
+    {
+      "file": "concepts-search-idle-compact-light.png",
+      "state": "Search is ready without starting its index",
+      "url": "/docs/concepts/",
+      "capturedAt": "2026-10-20T15:52:35.223Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "4d55b04522ffd04d0573107be1dbb6bb55be1ae8ac76b432736f7355b5073ed8",
+      "review": "pending"
+    },
+    {
+      "file": "installation-search-compact-dark.png",
+      "state": "Documentation search for repair",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T15:52:36.915Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "00339dfa3964cd4c7287f630558083225f7099a4d36a8c021958d4f92662362d",
+      "review": "pending"
+    },
+    {
+      "file": "installation-search-empty-compact-dark.png",
+      "state": "No results preserve a clear way to search again",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T15:52:37.229Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "d65d4d6b7206db78fa2e559c9e0c5bb529f61065b38fa975d0ea5d166b3bd139",
+      "review": "pending"
+    },
+    {
+      "file": "installation-search-unavailable-compact-dark.png",
+      "state": "Search failure retains navigation and explains recovery",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-20T15:52:37.931Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "aeb6d99e949293d68b49f012ddaec1cadf166fd07a5be040dd2b8c6126f59c16",
+      "review": "pending"
+    },
+    {
+      "file": "concepts-search-idle-compact-dark.png",
+      "state": "Search is ready without starting its index",
+      "url": "/docs/concepts/",
+      "capturedAt": "2026-10-20T15:52:38.459Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "dbbd95b82261b91cfcb17decf73e9e0a6dfe7eb1699d537228172aa754f0a975",
+      "review": "pending"
+    }
+  ],
+  "limitations": [
+    "Headless browser only; no native OS-input or assistive-technology testing.",
+    "Screenshots require separate recorded visual review.",
+    "Local build; no deployed-site or registry publication claim."
+  ]
+}

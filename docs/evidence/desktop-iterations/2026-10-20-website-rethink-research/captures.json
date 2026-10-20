@@ -1,0 +1,314 @@
+[
+  {
+    "file": "factory-desktop-intro.png",
+    "url": "https://factory.com/",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "appearance": "light",
+    "capturedAt": "2026-10-20T16:27:20.027Z",
+    "renderer": "headless WebKit 27.2",
+    "sha256": "7bafd02b9c648d57f999a60ee8c455656a229f445cff829c6fd50d7f33956b35",
+    "review": "pending"
+  },
+  {
+    "file": "factory-desktop-detail.png",
+    "url": "https://factory.com/",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "appearance": "light",
+    "capturedAt": "2026-10-20T16:27:20.145Z",
+    "renderer": "headless WebKit 27.2",
+    "sha256": "e6277337e0e465d0f7fd05c384ee10265fb8cadc976ca16427c36fe780f3c69b",
+    "review": "pending"
+  },
+  {
+    "file": "factory-mobile-intro.png",
+    "url": "https://factory.com/",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "appearance": "light",
+    "capturedAt": "2026-10-20T16:27:21.661Z",
+    "renderer": "headless WebKit 27.2",
+    "sha256": "05eb39358276762ed029b3899fb142b92ad400a18e98adf1c1b70d3e91d04d86",
+    "review": "pending"
+  },
+  {
+    "file": "factory-mobile-detail.png",
+    "url": "https://factory.com/",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "appearance": "light",
+    "capturedAt": "2026-10-20T16:27:21.700Z",
+    "renderer": "headless WebKit 27.2",
+    "sha256": "940cfa2b4b423873787788c6c89121253ef02f4f9454c68440cd94eb19f9884e",
+    "review": "pending"
+  },
+  {
+    "file": "conductor-desktop-intro.png",
+    "url": "https://www.conductor.build/",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "appearance": "light",
+    "capturedAt": "2026-10-20T16:27:22.598Z",
+    "renderer": "headless WebKit 27.2",
+    "sha256": "0028e88c335b67a182a8a15623d3d027048895aebbb7094f8a5123c9a7996652",
+    "review": "pending"
+  },
+  {
+    "file": "conductor-desktop-detail.png",
+    "url": "https://www.conductor.build/",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "appearance": "light",
+    "capturedAt": "2026-10-20T16:27:22.663Z",
+    "renderer": "headless WebKit 27.2",
+    "sha256": "a5c14ff543fdd348def08cbe6560fdfe0c80dd8bfbd95924cdc93c3910f4eb94",
+    "review": "pending"
+  },
+  {
+    "file": "conductor-mobile-intro.png",
+    "url": "https://www.conductor.build/",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "appearance": "light",
+    "capturedAt": "2026-10-20T16:27:23.425Z",
+    "renderer": "headless WebKit 27.2",
+    "sha256": "a9fea83f0d3ad0e4867757f993edccb3bd1143e6f9d3ccb72459d46ec40eb960",
+    "review": "pending"
+  },
+  {
+    "file": "conductor-mobile-detail.png",
+    "url": "https://www.conductor.build/",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "appearance": "light",
+    "capturedAt": "2026-10-20T16:27:23.495Z",
+    "renderer": "headless WebKit 27.2",
+    "sha256": "c1f7a668306182b8b45bc7ec110347adac4065cc3a7dafc9f75cabd269b00444",
+    "review": "pending"
+  },
+  {
+    "file": "amp-desktop-intro.png",
+    "url": "https://ampcode.com/",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "appearance": "light",
+    "capturedAt": "2026-10-20T16:27:25.890Z",
+    "renderer": "headless WebKit 27.2",
+    "sha256": "16232a3caf47a4db7ba115e3c0800bcaf9caa3e494a4e93496e0e3ce9c39405f",
+    "review": "pending"
+  },
+  {
+    "file": "amp-desktop-detail.png",
+    "url": "https://ampcode.com/",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "appearance": "light",
+    "capturedAt": "2026-10-20T16:27:26.065Z",
+    "renderer": "headless WebKit 27.2",
+    "sha256": "41a17f7fd8709d261442aa359ddb5e53c0b2f2ec11b6097028c1909a543eb688",
+    "review": "pending"
+  },
+  {
+    "file": "amp-mobile-intro.png",
+    "url": "https://ampcode.com/",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "appearance": "light",
+    "capturedAt": "2026-10-20T16:27:28.004Z",
+    "renderer": "headless WebKit 27.2",
+    "sha256": "5ef04212b42ff3045ebb80e908d32b0277518eb0cadc6993be34557f6d70b28c",
+    "review": "pending"
+  },
+  {
+    "file": "amp-mobile-detail.png",
+    "url": "https://ampcode.com/",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "appearance": "light",
+    "capturedAt": "2026-10-20T16:27:28.127Z",
+    "renderer": "headless WebKit 27.2",
+    "sha256": "97f999591b80913b53d1a5d2ee511ca834e16d014c89219981cde4037c1aed30",
+    "review": "pending"
+  },
+  {
+    "file": "deep-agents-desktop-intro.png",
+    "url": "https://docs.langchain.com/oss/python/deepagents/overview",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "appearance": "light",
+    "capturedAt": "2026-10-20T16:27:29.402Z",
+    "renderer": "headless WebKit 27.2",
+    "sha256": "66136efa63200d1382781e2f853ddf68b0ebb0d6b522d0c821d37c1515c290e9",
+    "review": "pending"
+  },
+  {
+    "file": "deep-agents-desktop-detail.png",
+    "url": "https://docs.langchain.com/oss/python/deepagents/overview",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "appearance": "light",
+    "capturedAt": "2026-10-20T16:27:29.580Z",
+    "renderer": "headless WebKit 27.2",
+    "sha256": "9d8b9dd079614d4de7d3727bb55c506e4507964a8c6a9b6d3308c1583010ec27",
+    "review": "pending"
+  },
+  {
+    "file": "deep-agents-mobile-intro.png",
+    "url": "https://docs.langchain.com/oss/python/deepagents/overview",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "appearance": "light",
+    "capturedAt": "2026-10-20T16:27:30.616Z",
+    "renderer": "headless WebKit 27.2",
+    "sha256": "13a143c89384610cacb06d562c9cfe9559e53b5345e1d27b89c175b29d386351",
+    "review": "pending"
+  },
+  {
+    "file": "deep-agents-mobile-detail.png",
+    "url": "https://docs.langchain.com/oss/python/deepagents/overview",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "appearance": "light",
+    "capturedAt": "2026-10-20T16:27:30.763Z",
+    "renderer": "headless WebKit 27.2",
+    "sha256": "9e8f2c10d173073db89325caeca9802e10832258e5031d9437ce2920c78f8ebe",
+    "review": "pending"
+  },
+  {
+    "file": "kiro-desktop-intro.png",
+    "url": "https://kiro.dev/",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "appearance": "light",
+    "capturedAt": "2026-10-20T16:27:31.605Z",
+    "renderer": "headless WebKit 27.2",
+    "sha256": "e2d773d468e5b76eb4cca7ee99d74180fafa5fafd53d60628a89c4181064622e",
+    "review": "pending"
+  },
+  {
+    "file": "kiro-desktop-detail.png",
+    "url": "https://kiro.dev/",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "appearance": "light",
+    "capturedAt": "2026-10-20T16:27:31.693Z",
+    "renderer": "headless WebKit 27.2",
+    "sha256": "a26fc3b75eb3377996e2af2d9176fba96e871e986cef12ae63546bec16bbcc58",
+    "review": "pending"
+  },
+  {
+    "file": "kiro-mobile-intro.png",
+    "url": "https://kiro.dev/",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "appearance": "light",
+    "capturedAt": "2026-10-20T16:27:32.425Z",
+    "renderer": "headless WebKit 27.2",
+    "sha256": "e83822a87fc46eed381a60bc0f2aab4b2990ecf7947d1523c12ecaffee43810f",
+    "review": "pending"
+  },
+  {
+    "file": "kiro-mobile-detail.png",
+    "url": "https://kiro.dev/",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "appearance": "light",
+    "capturedAt": "2026-10-20T16:27:32.521Z",
+    "renderer": "headless WebKit 27.2",
+    "sha256": "52a2f9cf0ebeeb4c2ec57997a8cdea4a8dc33a852f989dc305a2f761e0c305cd",
+    "review": "pending"
+  },
+  {
+    "file": "magistr-before-desktop-intro.png",
+    "url": "https://magistr.dev/",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "appearance": "light",
+    "capturedAt": "2026-10-20T16:27:33.044Z",
+    "renderer": "headless WebKit 27.2",
+    "sha256": "b881b2adf8129fd582e5c99216d0a6918f3543aff72d0c9486c3df67a8c8412f",
+    "review": "pending"
+  },
+  {
+    "file": "magistr-before-desktop-detail.png",
+    "url": "https://magistr.dev/",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "appearance": "light",
+    "capturedAt": "2026-10-20T16:27:33.101Z",
+    "renderer": "headless WebKit 27.2",
+    "sha256": "1b29690547126a1935abeb831022e64cc1266a22cc34d4a7f55c05e2d8cd1482",
+    "review": "pending"
+  },
+  {
+    "file": "magistr-before-mobile-intro.png",
+    "url": "https://magistr.dev/",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "appearance": "light",
+    "capturedAt": "2026-10-20T16:27:33.519Z",
+    "renderer": "headless WebKit 27.2",
+    "sha256": "d9cc2d7deb38643a869dad4c30ec1ee3eb1c4fcc98a21a6d6b225b2527418012",
+    "review": "pending"
+  },
+  {
+    "file": "magistr-before-mobile-detail.png",
+    "url": "https://magistr.dev/",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "appearance": "light",
+    "capturedAt": "2026-10-20T16:27:33.563Z",
+    "renderer": "headless WebKit 27.2",
+    "sha256": "2d13cf20bfe03d127be6b25f01973e590350aa0d0321509f775acbddad29f573",
+    "review": "pending"
+  }
+]

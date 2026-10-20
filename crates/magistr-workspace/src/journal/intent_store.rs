@@ -23,7 +23,7 @@ impl IntentStore {
                 db.execute_batch(sql)?;
             }
             db.execute_batch("PRAGMA user_version=3")?;
-        } else if version != 3 {
+        } else if !matches!(version, 3 | 4) {
             return Err(JournalError::UnsupportedVersion(format!(
                 "cannot append intent to version {version}"
             )));

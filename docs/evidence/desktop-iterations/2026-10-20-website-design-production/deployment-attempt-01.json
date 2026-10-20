@@ -1,0 +1,68 @@
+{
+  "status": "failed",
+  "failure": "locator.evaluate: EncodingError: Aborted by source change.",
+  "checkedAt": "2026-10-20T15:57:23.289Z",
+  "source": "67d8e9234458a13e0297f5faa8d456f0f5759b2d",
+  "origin": "https://magistr.dev",
+  "deployment": "e013f0c9.magistr.pages.dev",
+  "renderer": "Playwright WebKit",
+  "rendererVersion": "27.2",
+  "platform": "darwin-arm64",
+  "motion": "reduced",
+  "scale": 1,
+  "sourceHashes": {
+    "apps/website/astro.config.mjs": "b8e61ea2c65b9c04cd1f44fa09091e134c761266baf1ea90c0efbdf75e795818",
+    "apps/website/package-lock.json": "799cde1b1a6c8048e7e1ec105b283f47a526485028f5ce0fdb06010f5e4a7b53",
+    "apps/website/package.json": "4ffc0f1dfc9044f05e349d92aa4ff33d0ece890a32ea0a29c43cf87fd3141e74",
+    "apps/website/public/og-image.png": "9b0f155627c2a41d794d0fd18543d09d9debc4be31b612d71f536dc53735a851",
+    "apps/website/public/og-image.svg": "216cb4a0a6566397b50a3283e55f5341ef229412371121bd04801e1336cba5d4",
+    "apps/website/public/screenshots/captures.json": "59897446e1905f99041dbc73cb9758d32b9541bb51c676b6eddd30009ab1d5bf",
+    "apps/website/public/site.webmanifest": "de638be01f443300fd98afa3d6ea0cff1ec1e526c2aec12c1bf6045627aeb726",
+    "apps/website/scripts/generate-favicons.mjs": "f82c2101757d9df9b62de0d9a2bcebd832ab318804c402f94d8dffafc057d47b",
+    "apps/website/src/components/Nav.astro": "67b5413bdb7330ea4d245faf32310e2591334834918a92345dd78d1285bfbfa8",
+    "apps/website/src/components/ThemeToggle.astro": "62739fc7a3d3476e13c53f2dfa389150f3e7ca4ba0629c34b71f5cf8202ea211",
+    "apps/website/src/content.config.ts": "35db5d681c2146a4e34de514bb5c1472d5da2e75b2652f8ca0fba880afcf1a1a",
+    "apps/website/src/content/docs/concepts.mdx": "ecfb49329af851135b796d598c970642828b599283f969a76517aae5694c4c37",
+    "apps/website/src/content/docs/installation.mdx": "9ca3b61a9f5d0f41825e464b720f4852a8bc67a6205d01f4ab9755e6c261c3a3",
+    "apps/website/src/layouts/Base.astro": "731a836892e9e3595f9d189a809406662a204f87a9d3553a38c5efaa6c14b821",
+    "apps/website/src/layouts/Docs.astro": "8fbd994b16e48f875324241fd1212d5e61514630ac8c2aed156b655dc08a7e00",
+    "apps/website/src/pages/404.astro": "b31cb4a3eadd8e18d5f450b1faa5e19203010502125d6f1b57b94231f982d717",
+    "apps/website/src/pages/docs/[...slug].astro": "c48f046ee5163651688e38be70dac452c606701e978eec342e98ebcae0b51834",
+    "apps/website/src/pages/index.astro": "0aaf16b9ed6b61a50b03cb5361662355af4d77ee2ca0239d30919c5b3f04cce0",
+    "apps/website/src/pages/robots.txt.ts": "55c24c9a347c8d62fe0a071522d6433a9ccdcd5c4013733fe87ca2bc778c2ab2",
+    "apps/website/src/styles/global.css": "eeb80fb879c96cae97e6017e59f95cbdf6bd1f365e3322060a2482d2f51c6774",
+    "apps/website/tests/browser.mjs": "dccc96b6ea4fd64a511b776837a83a62801ca9803b614b5f2937045a8c5456c3"
+  },
+  "assets": [
+    {
+      "url": "https://magistr.dev/",
+      "localFile": "index.html",
+      "sha256": "eadf4082450fb1a6de3b8f3df2b550c97b6edbe889183d7710c70d763d47df38",
+      "status": 200
+    },
+    {
+      "url": "https://magistr.dev/docs/installation/",
+      "localFile": "docs/installation/index.html",
+      "sha256": "a7f805ae91a75ba54f0f02459ae9e0d879ac8be901a11f2d0ead178ab8e89273",
+      "status": 200
+    },
+    {
+      "url": "https://magistr.dev/docs/concepts/",
+      "localFile": "docs/concepts/index.html",
+      "sha256": "8e1a610dfdd0407c8448ac3b87d790b4a043bcc4d14163cd3bda39fe32f6068c",
+      "status": 200
+    },
+    {
+      "url": "https://magistr.dev/404.html",
+      "localFile": "404.html",
+      "sha256": "9bf3582a15f57f9a2963220ed54c969e95064d5aa378dccd494b24af0b9aa044",
+      "status": 200
+    }
+  ],
+  "captures": [],
+  "limitations": [
+    "No native OS-input or assistive-technology testing.",
+    "Visual review recorded separately.",
+    "No registry publication."
+  ]
+}

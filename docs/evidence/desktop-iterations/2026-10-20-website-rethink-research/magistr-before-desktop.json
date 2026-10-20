@@ -1,0 +1,20 @@
+{
+  "url": "https://magistr.dev/",
+  "headings": [
+    "Pick up whereyou left off.",
+    "A clear next step.Every time you return.",
+    "Make a plan.",
+    "Work through it.",
+    "Come back to it.",
+    "New session.Same project.",
+    "Codex",
+    "Claude Code",
+    "Bring a project.Make a plan.",
+    "Set up your project",
+    "Check the connection",
+    "Plan your first step",
+    "Make yourself at home."
+  ],
+  "body": "Skip to content\nMagistr\nHow it works\nYour agent\nGet started\nDocs\n\nFor Codex & Claude Code\n\nPick up where\nyou left off.\n\nGood work takes more than one session. Magistr keeps your plan, progress and test results with your project, so your agent can keep moving.\n\nGet started\n↗\nSee it in action\n↓\n\nRuns on your Mac · Preview v0.1.0\n\nA place for your project’s conversations\nDesktop preview\nReview source, talk through a fix and return to the conversation.\nThe desktop preview is available from source.\n\nHow it works\n\nA clear next step.\nEvery time you return.\n\nA roadmap gives your agent direction. Magistr keeps the plan and the work together, from the first idea to the last passing check.\n\n01\nMake a plan.\n\nBreak the project into manageable steps. Give each one a clear goal and the checks it needs to pass.\n\n02\nWork through it.\n\nLet your agent take one ready step, make the change and run its checks. You choose when to continue.\n\n03\nCome back to it.\n\nStart a fresh session with the saved plan, completed work and test results ready to read.\n\nmagistr next\n\nContinue unfinished work, or complete one ready step.\n\nHow the plan works\n→\n\nIn your agent\n\nNew session.\nSame project.\n\nWork in Codex or Claude Code. When you return, your agent can read what changed, what passed and what comes next.\n\nCodex\n01\nThe work is still there. A fresh Codex session finds the completed fix and its passing test.\nView full Codex session\n↗\nClaude Code\n02\nThe checks come with it. Claude Code reads the saved change and confirms which test passed.\nView full Claude Code session\n↗\n\nGet started\n\nBring a project.\nMake a plan.\n\nMagistr is in preview for Apple Silicon Macs. Registry packages are not published yet; building from source requires repository access.\n\nmacOS 15 or later · Rust 1.95 or later\n\nFull installation guide\n→\n\nInstall from source\n\ngit clone https://github.com/AlrikOlson/magistr.git\ncd magistr\ncargo install --locked --path crates/magistr-cli\nmagistr --version\n01\nSet up your project\n\nmagistr init . helps you choose your agents and review the setup.\n\n02\nCheck the connection\n\nmagistr doctor . checks everything is ready and helps fix connection problems.\n\n03\nPlan your first step\n\nLaunch your agent and use the starter prompt. Setup does not start implementation.\n\nA little more detail\n\nMake yourself at home.\nSet up Magistr\nInstallation, agent connections and troubleshooting.\n↗\nPlan your work\nPlans, agent sessions and checking what changed.\n↗\nMagistr\nPlans, progress and a place to continue.\nDocumentation\nGitHub ↗(opens in a new tab)",
+  "media": []
+}

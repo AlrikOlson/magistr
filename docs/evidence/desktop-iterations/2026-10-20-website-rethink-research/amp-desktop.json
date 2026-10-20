@@ -1,0 +1,77 @@
+{
+  "url": "https://ampcode.com/",
+  "headings": [
+    "Juggle less  Juggle less Ship more Agents that keep going Share with teammates Send prompt, close laptop Continue from your phone Continue while you sleep Forget worktrees  Juggle less  ",
+    "Watch Thorsten Build in Amp",
+    "00:00 Introduction",
+    "00:15 Monitor a Performance Rollout",
+    "02:03 Review the amp clone Fix",
+    "03:51 Fix Puck Flicker from a Video",
+    "05:55 Dictate a Rollout Prompt",
+    "07:45 Test and Ship in a Portal",
+    "09:38 Read the Canary Results",
+    "11:45 Grant Production Access",
+    "12:47 Check In on Threads",
+    "16:14 Ask for Proof",
+    "17:00 Post to Slack with MCP",
+    "18:31 Verify a Runner Refactor",
+    "21:48 Close the amp clone Bug",
+    "23:20 Reply to Slack Feedback",
+    "24:27 Wrap Up",
+    "Remote Agents, Controllable From Everywhere",
+    "Change, Preview and Ship",
+    "Review from Anywhere",
+    "Fix Bugs the Moment They’re Filed",
+    "Multiplayer",
+    "A Terminal into the Orb",
+    "A CompletelyNew Experience",
+    "Make More of Your ChatGPT Subscription",
+    "Take Your Tokens Further",
+    "Orbs from Zero",
+    "Get Started in Orbs",
+    "Review Your App Through Portals",
+    "Add a Dev Sign-In for Agents",
+    "Using Orbs to Eval Agent Friendliness",
+    "Also: Agents on Your Machines",
+    "On Your Machine",
+    "On All the Other Machines",
+    "Announcements of Amp",
+    "Assign It To Amp",
+    "See Your Runner's Desktop",
+    "Take Puck with You",
+    "First Things First, Faster",
+    "You've Got Comments",
+    "Use Your Claude Plan in Amp",
+    "Product",
+    "Resources",
+    "Guides",
+    "Community"
+  ],
+  "body": "Chronicle\nDocs\nModels\nPricing\nAbout\nSign In\nStart\nJuggle less\nJuggle less\n\nWhen you give every agent its own orb everything changes. Run agents anywhere and they keep working after you close your laptop.\n\nStart →\nAmp is the frontier agent and development environment that lets you build from anywhere.\n\nWORKING DAY TO DAY IN AMP\n\nWatch Thorsten Build in Amp\n\n0:16\nAn agent that wakes itself to check production\n4:07\nSend a screen recording of a flicker\n8:14\nShip Changes and watch the rollout\n11:46\nGrant an orb production access from the terminal\n16:24\nAsk for screenshot proof\n22:52\nCut a release, email the user, close the bug\n00:00 / 26:05\nIntroduction\n1×\nRemote Agents, Controllable From Everywhere\n\nOrbs are remote machines where agents run without supervision. Every thread gets a fresh orb with your code, plugins, and tools, so there are no worktrees to juggle, no port conflicts, and nothing to clean up when it’s done.\n\nAgents in orbs keep working after you close your laptop. Spawn as many as you need, for anything from a tiny fix to a complete feature, and pick them up from the web, your terminal, or your phone.\n\nWHAT ARE ORBS? LEARN MORE →\nWATCH ORBS FROM ZERO →\nChange, Preview and Ship\n\nRun your app inside the orb and try the agent’s changes live through portals, with live reloading. No local checkout, no local dev server.\n\nLanding Page Updates\nChanges\nPortals\nFiles\nTerminal\nSpace\nAdd a call to action and a preview card to the landing page hero\n\nI'll add both to the hero and check them in the portal as I go.\n\nmy-app.onamp.dev\nReview from Anywhere\n\nReview the agent’s changes and browse the orb’s files from any device, and edit like you’re developing locally.\n\nDefault digest to weekly\nAgent\nChanges\nPortals\nFiles\nTerminal\nShip\nReview\nSync\nUNSTAGED\nprefs.ts src/lib\n+6\nM\n11\nexport const prefs = {\n12\n  digest: \"daily\",\n12\n  digest: user.digest ?? \"weekly\",\nB\nBrett · just now\nWeekly default is right. Ship it.\n13\n  notify: user.notify,\n14\n}\n+page.svelte src/routes/settings\n+24\nM\nprefs.test.ts src/lib\n+18\nA\nFix Bugs the Moment They’re Filed\n\nOrbs wake on outside events: a new Linear issue, CI failing on main, or a schedule the agent sets itself.\n\nMultiplayer\n\nInvite your team into the orb to share control of the same agent, code, and running app.\n\nPricing page copy\nL\nP\nShare\nL\nYou\nnow\nhey @priya is the new pricing copy approved?\nP\nPriya Nair\nnow\napproved. drop the annual toggle for now\nYou’re in chat mode. Tag @amp to get back to hacking.\ngreat \n@amp\n let’s do it\nA Terminal into the Orb\n\nOpen a shell inside the orb, shared with the agent. Inspect files, run tests, and debug in the same tmux session.\n\nFlaky upload test\nChanges\nPortals\nFiles\nTerminal\nSpace\nThe upload test is flaky in CI, figure out why\n\nThe parallel case races the temp dir cleanup. I'll await it in upload.ts and rerun.\n\n$\npnpm test upload --repeat 5\nEdited\nupload.ts\n+3 −1\n✓ 40 passed\n~/repo\n❯\ngit status -sb\n## fix-upload-flake...origin/main\n M src/lib/upload.ts\n~/repo\n❯\npnpm test upload --repeat 5\nRUN  src/lib/upload.test.ts\n✓ uploads a single file\n✗ uploads in parallel (run 3/5)\n    ENOENT: tmp/upload-7f3a not found\n~/repo\n❯\nrg \"rm(\" src/lib/upload.ts\n41:  void rm(tmpDir, { recursive: true })\n~/repo\n❯\npnpm test upload --repeat 20\nRUN  src/lib/upload.test.ts\n✓ 40 passed (40)\n~/repo\n❯\n[amp]\n0:shell*\nshared with agent · 14:02\n\nORBSERVATIONS\n\nA Completely\nNew Experience\n\nSomething is happening out there. People send one prompt, close their laptop, and come back changed.\n\n“Building software in anything other than @AmpCode orbs feels like eating broken glass in comparison. But it’s frustratingly one of those ‘you can’t understand why it’s better until you just use it’ tools, a lot like Tailwind was. Use it, and be ruined.”\nAdam Wathan\n@ADAMWATHAN\n“Local was getting cumbersome with workspaces and multiple agents. … Stuck with Amp because it was able to help me get my workspace scripted and working well … Orbs seems a bit smarter and less locked down. Feels more like having an actual computer in the cloud vs. a restricted sandbox.”\nTaylor Otwell\n@TAYLOROTWELL\n“it is indeed Orb'in time. the @AmpCode folks have cooked. Making new orbs is so easy and really unlocks a lot of the multi-agent behaviors that had just a tad too much friction before.”\nIsaac Miller\n@ISAACBMILLER1\n“Amp with Orbs feels significantly above the current state of agents in the cloud, much like the jump from Opus 4.1 to 4.5 from late last year.”\nAndrei Maxim\n@ROCKATANESCU\n“never imagined I'm gonna love using cloud agents that much until I used @AmpCode's Orbs. … Orbs was the only concept that felt intuitive from minute one. shipped more side work in one session than I usually do in weeks.”\nAhmed Gamal\n@EL_GEMMMY\n“I was at a meeting yesterday approving pr's, looking [at] screenshots and videos showing me implementation worked, fixing ci, improving test coverage and so much more. And my pc was off. All in orbs.”\nBruno Papa\n@POPVERSEYT\n“Orbs gave me same goosebumps and feeling when I first used ChatGPT. … One of my orbs is working for over 4 days now, coordinating with other orbs, sleeps when it offloads the work and picks it up when needed.”\nRavindra Barthwal\n@RAVINBARTHWAL\n“we spent longer than we should’ve setting up Cursor cloud agents earlier this year … and then Amp comes out with orbs and they Just Work™”\nFeifan Zhou\n@FEIFANZ\n“Going to sleep. Laptop asleep. Agents still running. @AmpCode Orbs are the future.”\nJustine Chang\n@JUSTINE_CHANG39\n“It’s not the harness, it’s the workspace and the VMs. It’s cloud agents designed and exposed in a way that is an absolute frictionless delight to work with.”\nAdam Wathan\n@ADAMWATHAN\n“@AmpCode orbs feel like the equivalent of early claude code, where a paradigm shift is clearly on the way. imo it's not long before you don't have to worry whether you're developing on a local machine or not”\ngm\n@GREEDYMAXIMIZER\n“I’m at the “do I even need a computer?” stage of using @AmpCode”\nPeter Suhm\n@PETERSUHM\n“It's orbin' time. I think I'm ready to move most of my project work to @AmpCode. I'm even writing some custom plugins and custom infra around it to better manage my orbs.”\nJoey Kudish\n@JKUDISH\n“Cloud coding agents often make their infrastructure impossible to ignore. Amp Orbs did the opposite. They made the infrastructure disappear so I could focus on shipping the change.”\nMike Hostetler\n@MIKEHOSTETLER\n“orbs have completely changed the way I work. I can't imagine going back to working locally at this point.”\nGary Murray\n@GARYMJR\n“Orbs have been a game-changer for how I work. I can fire off multiple agents walking down the street and check on them when I get to the pub!”\nLuke on Software\nLSH.PCKT.BLOG\n“I was also pretty shocked at how fast it ran everything. Idk how they’re doing that”\nPauline Vos\n@VANAMERONGEN\n“Tried @AmpCode's Orbs. Super good shit. Not unlike what [Ona] does but with the usual Amp team polish and a few additional concepts on top.”\nMikkel Malmberg\n@MIKKER\n“First time to do a straight push to main via @AmpCode orbs. Review the code change, test the app via the portal, review the code with the Oracle, ask screenshots for proof of work. All these from my phone. Still in the loop.”\nAJ Villalobos\n@SENIORBRUSKO\n“been using [Amp] as my main for a week now, it's really nice. first harness that made agents+vms click for me”\nBryan Cinman\n@BRYANCINMAN\n“Orb unifies local and remote environment controls, allowing you to control anything from any device. It made my iPad useful again.”\nIan Hsiao\n@IAN_HSIAO_TW\n“Ephemeral sandboxes are a big deal because they change the failure mode. The agent can do real work without turning your main environment into the test surface.”\nAlex Shev\n@ALEXSHEVPM\n“Orbs are a fantastic addition. The execution and integration of local and cloud development are truly great.”\nChvarak\nR/AMPCODE\n“Having the agent finding the bug, then record a video of a bug, this is a new addition to my toolbox. Thanks @AmpCode for removing the friction of such scenarios with orbs.”\nAndrzej Krzywda\n@ANDRZEJKRZYWDA\n“I was really hesitant to try out @AmpCode's Orb feature ever since I had an unsatisfactory experience with Cursor cloud agents. But damn, it was so easy to setup, cuz there's literally nothing to setup lol. … I've basically made up my mind lol, not going to be running agents locally anymore.”\nWinter\n@WINTERARC2125\n“Our team is loving amp right now, specifically how their orbs work. We're seeing a ton of movement bringing things off your local and into the cloud.”\nJJ Englert\n@JJENGLERT\n“love @AmpCode, i have shipped more code in the last 24 hours than I did all last week. never go back to local dev.”\nHasaki\n@TENBAI_X\n“currently sitting in a chair rocking my youngest to sleep for a nap watching 3 orbs work from my phone”\nGary Murray\n@GARYMJR\n“I am using amp and orbs just a few weeks and I feel like: Amp & Orbs are built by humans… I can feel human touch and craft from using it, less features but better quality.”\nOliver Kriška\n@QUATERMAIN32\n\nBRING CHATGPT TO AMP\n\nTake Your Tokens Further\n\nLink your ChatGPT subscription and the low, medium, and high settings of the Dial run on it instead of Amp credits.\n\nLink ChatGPT →\nSee Amp Tiers\n\nUSED FOR\n\nMain Agent\nOracle\nThread Reader\nCode Review\n\nYour Amp tier still includes agent usage and orb time. Ultra continues to use Amp credits.\n\nOrbs from Zero\n\nThorsten takes a real project from a GitHub repository to a codebase agents can set up, run, review and test in orbs.\n\nStart Watching →\n\n14:38\n\nGet Started in Orbs\n\nCreate a project from a GitHub repository, let Amp prepare it for orbs, and watch the first orb set up, run and snapshot the app.\n\n6:08\n\nReview Your App Through Portals\n\nOpen the dev server in a portal, comment on the page itself to send the agent changes, and check the result live.\n\n4:39\n\nAdd a Dev Sign-In for Agents\n\nGive agents and portal viewers a development sign-in route so nobody types a password in an orb again.\n\n7:59\n\nUsing Orbs to Eval Agent Friendliness\n\nFan out fresh orbs with no hints to find out whether your AGENTS.md and setup are enough for an agent to get to work.\n\nINSTALL AMP CLI\n\nAlso: Agents on Your Machines\nMac/Linux/WSL\nWindows\nHomebrew\ncurl -fsSL https://ampcode.com/install.sh | bash\nOn Your Machine\n\nRun amp in your terminal with your local files and tools, or amp sync to mirror an orb’s changes into your local checkout while the agent keeps working remotely.\n\nOn All the Other Machines\n\nRun amp --no-tui on servers, CI runners, and anything else with a shell, then watch and steer those agents from the web or your phone, right next to your orbs.\n\nNEWS\n\nAnnouncements of Amp\nOCTOBER 19, 2026\nAssign It To Amp\n\nMention or assign an issue to Amp in Linear, and Amp works it in a thread.\n\nOCTOBER 16, 2026\nSee Your Runner's Desktop\n\nSee and use your macOS runner's desktop, so you can try the iOS app Amp is building for you.\n\nOCTOBER 13, 2026\nTake Puck with You\n\nYou can now use Puck in other agents via MCP\n\nOCTOBER 12, 2026\nFirst Things First, Faster\n\nIntelligent file ordering is now powered by Jev, so your review starts sooner.\n\nOCTOBER 12, 2026\nYou've Got Comments\n\nAmp follows up on your GitHub pull requests.\n\nOCTOBER 10, 2026\nUse Your Claude Plan in Amp\n\nUse your Claude Pro/Max plan in Amp. It's free and available for everyone now.\n\nVIEW MORE NEWS →\nAll Systems Operational\nSecurity\nPrivacy Policy\nTerms of Service\nProduct\nDownload App\nStart\nSign In\nDocs\nWhat Are Orbs?\nModels\nResources\nAbout\nChronicle\nNotes\nPricing\nPodcast\nPress Kit\nGuides\nHow to Build an Agent\nContext Management\nCommunity\n𝕏 @ampcode\nAmp Insiders\nYouTube",
+  "media": [
+    {
+      "tag": "VIDEO",
+      "src": "https://static.ampcode.com/docs/day-to-day-in-amp-screen-1080-v2.mp4",
+      "poster": "https://static.ampcode.com/docs/day-to-day-in-amp-screen-poster.jpg",
+      "title": ""
+    },
+    {
+      "tag": "VIDEO",
+      "src": "https://static.ampcode.com/docs/day-to-day-in-amp-camera-1080.mp4",
+      "poster": "https://static.ampcode.com/docs/day-to-day-in-amp-camera-poster.jpg",
+      "title": ""
+    },
+    {
+      "tag": "VIDEO",
+      "src": "https://static.ampcode.com/news/drop-the-neo-2.mp4",
+      "poster": "",
+      "title": ""
+    },
+    {
+      "tag": "VIDEO",
+      "src": "https://static.ampcode.com/news/agents-anywhere-demo-no-tui.mp4",
+      "poster": "",
+      "title": ""
+    }
+  ]
+}

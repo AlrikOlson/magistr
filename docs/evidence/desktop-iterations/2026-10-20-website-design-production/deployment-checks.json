@@ -1,0 +1,368 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-20T15:58:11.715Z",
+  "source": "67d8e9234458a13e0297f5faa8d456f0f5759b2d",
+  "origin": "https://magistr.dev",
+  "deployment": "e013f0c9.magistr.pages.dev",
+  "renderer": "Playwright WebKit",
+  "rendererVersion": "27.2",
+  "platform": "darwin-arm64",
+  "motion": "reduced",
+  "scale": 1,
+  "sourceHashes": {
+    "apps/website/astro.config.mjs": "b8e61ea2c65b9c04cd1f44fa09091e134c761266baf1ea90c0efbdf75e795818",
+    "apps/website/package-lock.json": "799cde1b1a6c8048e7e1ec105b283f47a526485028f5ce0fdb06010f5e4a7b53",
+    "apps/website/package.json": "4ffc0f1dfc9044f05e349d92aa4ff33d0ece890a32ea0a29c43cf87fd3141e74",
+    "apps/website/public/og-image.png": "9b0f155627c2a41d794d0fd18543d09d9debc4be31b612d71f536dc53735a851",
+    "apps/website/public/og-image.svg": "216cb4a0a6566397b50a3283e55f5341ef229412371121bd04801e1336cba5d4",
+    "apps/website/public/screenshots/captures.json": "59897446e1905f99041dbc73cb9758d32b9541bb51c676b6eddd30009ab1d5bf",
+    "apps/website/public/site.webmanifest": "de638be01f443300fd98afa3d6ea0cff1ec1e526c2aec12c1bf6045627aeb726",
+    "apps/website/scripts/generate-favicons.mjs": "f82c2101757d9df9b62de0d9a2bcebd832ab318804c402f94d8dffafc057d47b",
+    "apps/website/src/components/Nav.astro": "67b5413bdb7330ea4d245faf32310e2591334834918a92345dd78d1285bfbfa8",
+    "apps/website/src/components/ThemeToggle.astro": "62739fc7a3d3476e13c53f2dfa389150f3e7ca4ba0629c34b71f5cf8202ea211",
+    "apps/website/src/content.config.ts": "35db5d681c2146a4e34de514bb5c1472d5da2e75b2652f8ca0fba880afcf1a1a",
+    "apps/website/src/content/docs/concepts.mdx": "ecfb49329af851135b796d598c970642828b599283f969a76517aae5694c4c37",
+    "apps/website/src/content/docs/installation.mdx": "9ca3b61a9f5d0f41825e464b720f4852a8bc67a6205d01f4ab9755e6c261c3a3",
+    "apps/website/src/layouts/Base.astro": "731a836892e9e3595f9d189a809406662a204f87a9d3553a38c5efaa6c14b821",
+    "apps/website/src/layouts/Docs.astro": "8fbd994b16e48f875324241fd1212d5e61514630ac8c2aed156b655dc08a7e00",
+    "apps/website/src/pages/404.astro": "b31cb4a3eadd8e18d5f450b1faa5e19203010502125d6f1b57b94231f982d717",
+    "apps/website/src/pages/docs/[...slug].astro": "c48f046ee5163651688e38be70dac452c606701e978eec342e98ebcae0b51834",
+    "apps/website/src/pages/index.astro": "0aaf16b9ed6b61a50b03cb5361662355af4d77ee2ca0239d30919c5b3f04cce0",
+    "apps/website/src/pages/robots.txt.ts": "55c24c9a347c8d62fe0a071522d6433a9ccdcd5c4013733fe87ca2bc778c2ab2",
+    "apps/website/src/styles/global.css": "eeb80fb879c96cae97e6017e59f95cbdf6bd1f365e3322060a2482d2f51c6774",
+    "apps/website/tests/browser.mjs": "dccc96b6ea4fd64a511b776837a83a62801ca9803b614b5f2937045a8c5456c3"
+  },
+  "assets": [
+    {
+      "url": "https://magistr.dev/",
+      "localFile": "index.html",
+      "sha256": "eadf4082450fb1a6de3b8f3df2b550c97b6edbe889183d7710c70d763d47df38",
+      "status": 200
+    },
+    {
+      "url": "https://magistr.dev/docs/installation/",
+      "localFile": "docs/installation/index.html",
+      "sha256": "a7f805ae91a75ba54f0f02459ae9e0d879ac8be901a11f2d0ead178ab8e89273",
+      "status": 200
+    },
+    {
+      "url": "https://magistr.dev/docs/concepts/",
+      "localFile": "docs/concepts/index.html",
+      "sha256": "8e1a610dfdd0407c8448ac3b87d790b4a043bcc4d14163cd3bda39fe32f6068c",
+      "status": 200
+    },
+    {
+      "url": "https://magistr.dev/404.html",
+      "localFile": "404.html",
+      "sha256": "9bf3582a15f57f9a2963220ed54c969e95064d5aa378dccd494b24af0b9aa044",
+      "status": 200
+    },
+    {
+      "url": "https://magistr.dev/favicon.svg",
+      "localFile": "favicon.svg",
+      "sha256": "2810abf01a8736851f92785078d16afeba84cb48edc8346daf53020251d533c1",
+      "status": 200
+    },
+    {
+      "url": "https://magistr.dev/favicon-32.png",
+      "localFile": "favicon-32.png",
+      "sha256": "813d5ce598150da8196cfa7df6890c1bad7712b0f927e7575718b0ef4bd20721",
+      "status": 200
+    },
+    {
+      "url": "https://magistr.dev/favicon-16.png",
+      "localFile": "favicon-16.png",
+      "sha256": "9f7a31ab83b480d73f8aecf82632b615247c98913a5a829fa2edb0d7bb4a61ae",
+      "status": 200
+    },
+    {
+      "url": "https://magistr.dev/site.webmanifest",
+      "localFile": "site.webmanifest",
+      "sha256": "de638be01f443300fd98afa3d6ea0cff1ec1e526c2aec12c1bf6045627aeb726",
+      "status": 200
+    },
+    {
+      "url": "https://magistr.dev/_astro/Nav.AhbIjLRp.css",
+      "localFile": "_astro/Nav.AhbIjLRp.css",
+      "sha256": "527827a64519e40fd5d79dd08ca456505c89ce506404dfad81043f038a9111a4",
+      "status": 200
+    },
+    {
+      "url": "https://magistr.dev/screenshots/desktop-light.png?v=88406b6d6987",
+      "localFile": "screenshots/desktop-light.png",
+      "sha256": "88406b6d69876210fec4ee238aaeea8d115bb3cfd37eec1731901ccf22572b3e",
+      "status": 200
+    },
+    {
+      "url": "https://magistr.dev/screenshots/desktop-dark.png?v=aa9c4aa4f28b",
+      "localFile": "screenshots/desktop-dark.png",
+      "sha256": "aa9c4aa4f28bb0cb1841461e92ca5275a4235521d657c6db318beb388d20981d",
+      "status": 200
+    },
+    {
+      "url": "https://magistr.dev/screenshots/codex-session.png?v=56594f1bccb7",
+      "localFile": "screenshots/codex-session.png",
+      "sha256": "56594f1bccb7445a456846f22749dd9e2404bcac84491ba645d11b21292c4dc6",
+      "status": 200
+    },
+    {
+      "url": "https://magistr.dev/screenshots/claude-code-session.png?v=b50927133fc3",
+      "localFile": "screenshots/claude-code-session.png",
+      "sha256": "b50927133fc3020481bd61cd8bf31bd261a6d2e777177aad856afaf9b1d4c3b0",
+      "status": 200
+    },
+    {
+      "url": "https://magistr.dev/og-image.png?v=216cb4a0a656",
+      "localFile": "og-image.png",
+      "sha256": "9b0f155627c2a41d794d0fd18543d09d9debc4be31b612d71f536dc53735a851",
+      "status": 200
+    }
+  ],
+  "captures": [
+    {
+      "file": "home-intro-wide-light.png",
+      "state": "Read the introduction and see the desktop preview",
+      "url": "https://magistr.dev/",
+      "capturedAt": "2026-10-20T15:58:08.711Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "b881b2adf8129fd582e5c99216d0a6918f3543aff72d0c9486c3df67a8c8412f",
+      "review": "pending"
+    },
+    {
+      "file": "home-agents-wide-light.png",
+      "state": "Compare the Codex and Claude Code sessions",
+      "url": "https://magistr.dev/",
+      "capturedAt": "2026-10-20T15:58:08.777Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "abaef04b5a47caebf9f56d829321f6a3bb8462e9cb4c3ca237d3d12343cc22f0",
+      "review": "pending"
+    },
+    {
+      "file": "home-install-wide-light.png",
+      "state": "Find installation and the planning handoff",
+      "url": "https://magistr.dev/#install",
+      "capturedAt": "2026-10-20T15:58:08.863Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "709a7e4f6bcee4222bc1ecd6877fa83dab7b0f47f58f9627c1991e496a2756e5",
+      "review": "pending"
+    },
+    {
+      "file": "home-intro-wide-dark.png",
+      "state": "Read the introduction and see the desktop preview",
+      "url": "https://magistr.dev/",
+      "capturedAt": "2026-10-20T15:58:09.496Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "a2ececec8dbf5e9c2fe691452c31597ef928e83caa94eb5e006f7bb92d540239",
+      "review": "pending"
+    },
+    {
+      "file": "home-agents-wide-dark.png",
+      "state": "Compare the Codex and Claude Code sessions",
+      "url": "https://magistr.dev/",
+      "capturedAt": "2026-10-20T15:58:09.561Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "45bf8a21cbeed84957623feb380c80dc11acc92f1e242b2c7c803b0196bd7ddd",
+      "review": "pending"
+    },
+    {
+      "file": "home-install-wide-dark.png",
+      "state": "Find installation and the planning handoff",
+      "url": "https://magistr.dev/#install",
+      "capturedAt": "2026-10-20T15:58:09.645Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "e272d6c35d1852b5131c9bc7c10984ea8a2e60ce586989f62032cb25d6875c46",
+      "review": "pending"
+    },
+    {
+      "file": "home-intro-compact-light.png",
+      "state": "Read the introduction and see the desktop preview",
+      "url": "https://magistr.dev/",
+      "capturedAt": "2026-10-20T15:58:10.303Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "width": 390,
+      "height": 844,
+      "sha256": "68d38872a91896106a3eaeac6a7098e4c214405d695177e8cb715cdf46a8f141",
+      "review": "pending"
+    },
+    {
+      "file": "home-agents-compact-light.png",
+      "state": "Inspect Claude Code and open its full session",
+      "url": "https://magistr.dev/",
+      "capturedAt": "2026-10-20T15:58:10.344Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "width": 390,
+      "height": 844,
+      "sha256": "f88d11027a047c6bcb5159c4a2a25c7e0f11a4b83cd22d7c2721f82f8b218ef3",
+      "review": "pending"
+    },
+    {
+      "file": "home-install-compact-light.png",
+      "state": "Find installation and the planning handoff",
+      "url": "https://magistr.dev/#install",
+      "capturedAt": "2026-10-20T15:58:10.422Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "width": 390,
+      "height": 844,
+      "sha256": "1365235c2800548231552d1390eaee7e2e563bca3a337af069634797fb51e03c",
+      "review": "pending"
+    },
+    {
+      "file": "home-menu-compact-light.png",
+      "state": "Use the mobile navigation",
+      "url": "https://magistr.dev/#install",
+      "capturedAt": "2026-10-20T15:58:10.505Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "width": 390,
+      "height": 844,
+      "sha256": "29425dd55d042c52900f0665e7c146c6f099a6ed9b4463fdaa3e6ded751829fb",
+      "review": "pending"
+    },
+    {
+      "file": "installation-intro-compact-light.png",
+      "state": "Read the preview availability and permissions",
+      "url": "https://magistr.dev/docs/installation/",
+      "capturedAt": "2026-10-20T15:58:10.689Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "width": 390,
+      "height": 844,
+      "sha256": "7a9cb9764c2882cc8f59d428cfb4b59cbcff33065b6ae6991c4d09c466347575",
+      "review": "pending"
+    },
+    {
+      "file": "home-intro-compact-dark.png",
+      "state": "Read the introduction and see the desktop preview",
+      "url": "https://magistr.dev/",
+      "capturedAt": "2026-10-20T15:58:11.328Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "width": 390,
+      "height": 844,
+      "sha256": "e62d74fe5233c93b0edf3ee750d3a68fc5569ed5abbdf468096409989d136cb9",
+      "review": "pending"
+    },
+    {
+      "file": "home-agents-compact-dark.png",
+      "state": "Inspect Claude Code and open its full session",
+      "url": "https://magistr.dev/",
+      "capturedAt": "2026-10-20T15:58:11.369Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "width": 390,
+      "height": 844,
+      "sha256": "469fd948e82431eb9deb1c6e2d3636549461576aa42d24008e4594f4c0b9d61c",
+      "review": "pending"
+    },
+    {
+      "file": "home-install-compact-dark.png",
+      "state": "Find installation and the planning handoff",
+      "url": "https://magistr.dev/#install",
+      "capturedAt": "2026-10-20T15:58:11.447Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "width": 390,
+      "height": 844,
+      "sha256": "d0e73f9bb1921699c36a3a79f7a0b6e13bd20b016108f111ea82307e6ea9c0e9",
+      "review": "pending"
+    },
+    {
+      "file": "home-menu-compact-dark.png",
+      "state": "Use the mobile navigation",
+      "url": "https://magistr.dev/#install",
+      "capturedAt": "2026-10-20T15:58:11.530Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "width": 390,
+      "height": 844,
+      "sha256": "e2f1c9f666588f74daee33f91766b5a2411cde31efa0b8de8ee27c4e3b37267e",
+      "review": "pending"
+    },
+    {
+      "file": "installation-intro-compact-dark.png",
+      "state": "Read the preview availability and permissions",
+      "url": "https://magistr.dev/docs/installation/",
+      "capturedAt": "2026-10-20T15:58:11.713Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "width": 390,
+      "height": 844,
+      "sha256": "7c121b520968a05ec9f9fd6c30936d10796d03855f18c4dd14890a87e7aa6ece",
+      "review": "pending"
+    }
+  ],
+  "limitations": [
+    "No native OS-input or assistive-technology testing.",
+    "Visual review recorded separately.",
+    "No registry publication."
+  ]
+}

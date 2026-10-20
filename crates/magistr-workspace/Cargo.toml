@@ -53,6 +53,7 @@ serde_json = { version = "1.0.151", features = ["preserve_order"] }
 regex = "1"
 similar = { version = "2", default-features = false, features = ["text"] }
 toml = { version = "1.0.6", features = ["preserve_order"] }
+toml_edit = "0.25"
 sha2 = "0.10"
 hmac = "0.12"
 saphyr-parser = "0.0.12"

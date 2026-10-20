@@ -76,6 +76,7 @@ pub fn launch_codex(
     if diagnose {
         return diagnose_plan(&codex, &plan, &locations);
     }
+    crate::scaffold::project_upgrade::ProjectUpgrade::apply(&plan.working_root)?;
     let mut command = Command::new(codex);
     // Relative forwarded -C paths are interpreted from the wrapper's project
     // root, while the compatibility plan uses their resolved destination.

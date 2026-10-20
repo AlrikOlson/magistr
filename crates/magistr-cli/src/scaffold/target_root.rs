@@ -4,7 +4,9 @@ use std::path::{Path, PathBuf};
 use crate::error::{MagistrError, Result};
 
 pub(super) fn target_root(dir: &Path, relative: &str) -> Result<PathBuf> {
-    if relative == ".magistr/project.json" {
+    if relative == ".magistr/project.json"
+        || relative == magistr_engine::native::WorkflowUpgrade::REQUEST
+    {
         let path = crate::paths::project_json(dir)?;
         path.parent()
             .and_then(Path::parent)
