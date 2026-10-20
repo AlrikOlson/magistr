@@ -26,6 +26,7 @@ tokio = { version = "1", features = ["sync", "net", "io-util", "rt", "time"] }
 # native store. No ambient checkout, registry fallback, or second writer.
 magistr-workflow = { workspace = true }
 tracing = "0.1"
+tempfile = "3"
 tokio-util = { version = "0.7", features = ["rt"] }
 
 [dev-dependencies]

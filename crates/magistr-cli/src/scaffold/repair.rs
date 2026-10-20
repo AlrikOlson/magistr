@@ -15,7 +15,7 @@ pub(crate) fn prepare(dir: &Path, inputs: &ProjectInputs) -> Result<PreparedSetu
         .for_repair())
 }
 
-/// Read-only preview. No repair runs when MCP starts.
+/// Read-only preview; full scaffold repair remains explicit.
 pub(crate) fn plan(dir: &Path) -> Result<ChangePlan> {
     Ok(prepare(dir, &ProjectInputs::from_env(dir))?
         .changes()

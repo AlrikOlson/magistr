@@ -9,6 +9,7 @@ mod journal_error;
 mod journal_file_change;
 mod journal_file_kind;
 mod journal_file_record;
+mod journal_import;
 mod journal_lifecycle;
 mod journal_log_entry;
 mod journal_log_query;

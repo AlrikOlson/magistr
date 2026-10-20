@@ -139,6 +139,7 @@ impl NativeReader {
     /// lock. A racing clone therefore cannot replace a newer observation with
     /// an older result after the owner lock has been released.
     fn observe_roadmap(&self) -> Result<Observed<Roadmap>, ReadError> {
+        super::WorkflowUpgrade::ready(&self.config, &self.project_id)?;
         let engine = lock(&self.roadmap);
         let result = engine.observe();
         let view = result.as_ref().map(|observed| Observed {
@@ -155,6 +156,7 @@ impl NativeReader {
     }
 
     fn observe_ship(&self) -> Result<Observed<ShipData>, ReadError> {
+        super::WorkflowUpgrade::ready(&self.config, &self.project_id)?;
         let engine = lock(&self.ship);
         let result = engine.observe();
         lock(&self.observations).ship.record(result.clone());
@@ -162,6 +164,7 @@ impl NativeReader {
     }
 
     fn observe_signal(&self) -> Result<Observed<Signals>, ReadError> {
+        super::WorkflowUpgrade::ready(&self.config, &self.project_id)?;
         let engine = lock(&self.signal);
         let result = engine.observe();
         let view = result.as_ref().map(|observed| Observed {
@@ -175,6 +178,7 @@ impl NativeReader {
     }
 
     fn observe_think(&self) -> Result<Observed<ThinkData>, ReadError> {
+        super::WorkflowUpgrade::ready(&self.config, &self.project_id)?;
         let engine = lock(&self.think);
         let result = engine.observe_sessions();
         lock(&self.observations).think.record(result.clone());
@@ -202,6 +206,7 @@ impl NativeReader {
 
     /// None selects the default; a named session is resolved by the owner.
     pub fn think_session(&self, session: Option<&str>) -> Result<Option<ThinkHistory>, String> {
+        super::WorkflowUpgrade::ready(&self.config, &self.project_id).map_err(|e| e.to_string())?;
         lock(&self.think)
             .observe_session(session)
             .map(|read| read.value)
@@ -210,6 +215,7 @@ impl NativeReader {
 
     /// Stable project-wide lookup across every complete session.
     pub fn think_step(&self, step_number: u32) -> Result<Option<ThinkStep>, String> {
+        super::WorkflowUpgrade::ready(&self.config, &self.project_id).map_err(|e| e.to_string())?;
         lock(&self.think)
             .observe_step(step_number, false)
             .map(|read| read.value)
