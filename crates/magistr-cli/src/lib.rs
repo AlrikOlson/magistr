@@ -1,6 +1,6 @@
 //! magistr — AI-powered development toolkit for the terminal.
 //!
-//! This library crate re-exports internal modules for integration testing.
+//! Shared native services used by the CLI, desktop and integration tests.
 //! The binary entry point is in `main.rs`.
 
 // ── Domain modules ──────────────────────────────────────────────────────────
@@ -11,9 +11,7 @@ pub mod orchestration;
 
 // ── Current module re-exports ──────────────────────────────────────────────
 //
-// These re-exports preserve all existing `crate::X` import paths so that
-// moving modules into domain boundaries is a zero-churn migration.
-// Import path modernization (crate::core::error, etc.) happens incrementally.
+// The library facade exposes the services owned by each domain.
 
 pub use self::core::{config, env, error, paths, types};
 pub use self::detection::{detect, lint, validate};
@@ -30,7 +28,8 @@ pub use self::agent::persistence as session;
 // ── Remaining top-level modules (not yet reorganized) ───────────────────────
 
 pub mod cli;
-pub mod codex_launch;
+mod codex_launch;
+pub use codex_launch::{VERIFIED_CODEX_VERSION, launch_codex};
 pub mod context;
 pub mod cost;
 pub mod headless;

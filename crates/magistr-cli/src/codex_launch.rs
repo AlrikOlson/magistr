@@ -11,7 +11,7 @@ use color_eyre::eyre::{self, WrapErr};
 use crate::config::inputs::ProjectInputs;
 
 /// Codex version exercised by the live project setup acceptance check.
-pub const VERIFIED_VERSION: &str = "0.163.0";
+pub const VERIFIED_CODEX_VERSION: &str = "0.163.0";
 const PROJECT_SKILLS: [&str; 9] = [
     "craft",
     "init",
@@ -52,7 +52,7 @@ struct Invocation {
 ///
 /// # Errors
 /// Returns an error if Codex, the project, or a configuration layer is invalid.
-pub fn launch(
+pub fn launch_codex(
     project_root: &Path,
     args: &[OsString],
     diagnose: bool,
@@ -107,9 +107,9 @@ fn diagnose_plan(codex: &Path, plan: &LaunchPlan, locations: &ConfigLocations) -
     let report = serde_json::json!({
         "codex": codex,
         "installed_version": version,
-        "verified_version": VERIFIED_VERSION,
-        "matches_verified_version": version == format!("codex-cli {VERIFIED_VERSION}"),
-        "compatibility": format!("process-local skill selections; verified against config/read and skills/list on {VERIFIED_VERSION}"),
+        "verified_version": VERIFIED_CODEX_VERSION,
+        "matches_verified_version": version == format!("codex-cli {VERIFIED_CODEX_VERSION}"),
+        "compatibility": format!("process-local skill selections; verified against config/read and skills/list on {VERIFIED_CODEX_VERSION}"),
         "working_root": plan.working_root,
         "codex_home": locations.codex_home,
         "selection_layers": plan.config_layers,
