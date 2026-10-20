@@ -220,7 +220,6 @@ async fn main() -> eyre::Result<()> {
                 return magistr::workflow_agent_options::WorkflowAgentOptions::show(&inputs);
             }
             magistr::workflow_agent_options::WorkflowAgentOptions::announce(&inputs);
-            let agent_backend = commands::resolve_backend(backend, &inputs)?;
             let profile = commands::run::resolve_permission_profile(&dir, cli.trust.as_deref())?;
             if headless {
                 commands::next::cmd_next_loop_headless(
@@ -229,7 +228,7 @@ async fn main() -> eyre::Result<()> {
                         max_iterations,
                         track: track.as_deref(),
                     },
-                    agent_backend,
+                    backend,
                     format,
                     max_cost,
                     profile,
@@ -243,7 +242,7 @@ async fn main() -> eyre::Result<()> {
                         max_iterations,
                         track: track.as_deref(),
                     },
-                    agent_backend,
+                    backend,
                     profile,
                     &inputs,
                 )

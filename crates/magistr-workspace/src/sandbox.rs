@@ -187,7 +187,7 @@ const SUBPROCESS_HEADER_CAP: usize = 8 * 1024;
 const SUBPROCESS_FRAME_QUEUE_CAP: usize = 16;
 /// Ceiling on live sessions per guest invoke (one per spec is the intent).
 const SUBPROCESS_SESSION_CAP: usize = 4;
-/// Aggregate ceiling includes private leases and warm pooled sessions.
+/// Aggregate ceiling includes active leases and warm pooled sessions.
 const SERVER_SESSION_CAP: usize = 16;
 /// A warm, unleased session idle longer than this is killed (FR-007).
 pub const SERVER_IDLE_TTL: Duration = Duration::from_secs(300);
@@ -243,8 +243,8 @@ struct SubprocessSession {
     stdin: Option<std::process::ChildStdin>,
     frames: mpsc::Receiver<Result<Vec<u8>, String>>,
     leased: Arc<AtomicBool>,
-    /// `Some` when the session belongs to the process-global pool.
-    key: Option<PoolKey>,
+    /// Identity in the process-global pool.
+    key: PoolKey,
     /// True when this handle is a warm session from an earlier invoke.
     reused: bool,
     reader: Option<std::thread::JoinHandle<()>>,
@@ -319,7 +319,7 @@ impl ServerPool {
     fn spawn(
         &mut self,
         spec: &SubprocessSpec,
-        key: Option<PoolKey>,
+        key: PoolKey,
     ) -> Result<SubprocessSession, SubprocessOpenError> {
         if self.live_sessions.load(Ordering::SeqCst) >= SERVER_SESSION_CAP {
             return Err(SubprocessOpenError::SpawnRefused(format!(
@@ -401,17 +401,14 @@ impl ServerPool {
                 return Ok(session);
             }
         }
-        let session = self.spawn(spec, Some(key.clone()))?;
+        let session = self.spawn(spec, key.clone())?;
         self.leased.insert(key, session.child.id());
         Ok(session)
     }
 
     /// Hand a leased session back warm (the explicit success path).
     fn return_warm(&mut self, mut session: SubprocessSession) {
-        let Some(key) = session.key.clone() else {
-            session.kill();
-            return;
-        };
+        let key = session.key.clone();
         self.leased.remove(&key);
         if session.is_dead() {
             session.kill();
@@ -425,9 +422,7 @@ impl ServerPool {
 
     /// Kill a leased session and forget its key.
     fn kill_leased(&mut self, session: SubprocessSession) {
-        if let Some(key) = &session.key {
-            self.leased.remove(key);
-        }
+        self.leased.remove(&session.key);
         session.kill();
     }
 
@@ -646,12 +641,10 @@ mod kill_group {
     }
 }
 
-/// Per-invoke subprocess leases. Pooled leases survive only after successful settlement;
-/// private sessions are always destroyed at invoke end.
+/// Per-invoke subprocess leases. Sessions return warm only after successful settlement.
 struct SubprocessPool {
     specs: Vec<SubprocessSpec>,
     workspace_root: String,
-    pooled: bool,
     sessions: HashMap<u32, SubprocessSession>,
     next_handle: u32,
     /// Fresh spawns / warm leases this invoke performed (FR-013).
@@ -662,16 +655,15 @@ struct SubprocessPool {
 
 impl Default for SubprocessPool {
     fn default() -> Self {
-        SubprocessPool::new(Vec::new(), String::new(), false)
+        SubprocessPool::new(Vec::new(), String::new())
     }
 }
 
 impl SubprocessPool {
-    fn new(specs: Vec<SubprocessSpec>, workspace_root: String, pooled: bool) -> Self {
+    fn new(specs: Vec<SubprocessSpec>, workspace_root: String) -> Self {
         SubprocessPool {
             specs,
             workspace_root,
-            pooled,
             sessions: HashMap::new(),
             next_handle: 1,
             opened: 0,
@@ -703,17 +695,13 @@ impl SubprocessPool {
                 "session ceiling ({SUBPROCESS_SESSION_CAP}) reached"
             )));
         }
-        let session = if self.pooled {
-            let key = PoolKey {
-                root: self.workspace_root.clone(),
-                language_id: spec.language_id.clone(),
-                bin: spec.bin.clone(),
-                args: spec.args.clone(),
-            };
-            lock_pool().lease(&spec, key)?
-        } else {
-            lock_pool().spawn(&spec, None)?
+        let key = PoolKey {
+            root: self.workspace_root.clone(),
+            language_id: spec.language_id.clone(),
+            bin: spec.bin.clone(),
+            args: spec.args.clone(),
         };
+        let session = lock_pool().lease(&spec, key)?;
         if session.reused {
             self.reused += 1;
         } else {
@@ -768,37 +756,29 @@ impl SubprocessPool {
         }
     }
 
-    /// `close`: kill the server and forget the handle, in both modes.
+    /// `close`: kill the server and forget the handle.
     fn close(&mut self, handle: u32) {
         if let Some(session) = self.sessions.remove(&handle) {
-            if session.key.is_some() {
-                lock_pool().kill_leased(session);
-            } else {
-                session.kill();
-            }
+            lock_pool().kill_leased(session);
         }
     }
 
-    /// `reused` (0.2.0 only): was this handle a warm session?
+    /// Was this handle a warm session?
     fn reused(&self, handle: u32) -> bool {
         self.sessions.get(&handle).is_some_and(|s| s.reused)
     }
 
-    /// `release` (0.2.0 only): return the session warm without killing it.
+    /// Return the session warm without killing it.
     fn release(&mut self, handle: u32) {
         if let Some(session) = self.sessions.remove(&handle) {
-            if session.key.is_some() {
-                lock_pool().return_warm(session);
-            } else {
-                session.kill();
-            }
+            lock_pool().return_warm(session);
         }
     }
 
     /// Invoke end (research R4): on a normal end every still-open pooled
     /// session returns warm; on any other end every session is killed.
-    /// Per-invoke mode kills regardless. Idempotent; `Drop` kills when this
-    /// never ran (a host panic unwinding through the store, for instance).
+    /// Idempotent; `Drop` kills when this never ran (a host panic unwinding
+    /// through the store, for instance).
     fn settle(&mut self, ok: bool) {
         if self.settled {
             return;
@@ -810,12 +790,10 @@ impl SubprocessPool {
         }
         let mut pool = lock_pool();
         for session in sessions {
-            if ok && self.pooled && session.key.is_some() {
+            if ok {
                 pool.return_warm(session);
-            } else if session.key.is_some() {
-                pool.kill_leased(session);
             } else {
-                session.kill();
+                pool.kill_leased(session);
             }
         }
     }
@@ -834,7 +812,7 @@ impl Drop for SubprocessPool {
 /// header, or on an oversized frame — each reported once. A saturated frame
 /// queue terminates the reader instead of allocating or blocking indefinitely.
 fn read_frames(
-    mut stdout: std::process::ChildStdout,
+    mut stdout: impl Read,
     tx: &mpsc::SyncSender<Result<Vec<u8>, String>>,
     leased: &AtomicBool,
 ) {
@@ -963,26 +941,20 @@ struct ComponentState {
 fn link_subprocess(
     linker: &mut ComponentLinker<ComponentState>,
     capabilities: &[String],
-) -> Result<bool, wasmtime::Error> {
-    let mut pooled = false;
-    for cap in capabilities {
-        if cap == CAP_SUBPROCESS {
-            define_subprocess(linker, CAP_SUBPROCESS, true)?;
-            pooled = true;
-        }
+) -> Result<(), wasmtime::Error> {
+    if capabilities.iter().any(|cap| cap == CAP_SUBPROCESS) {
+        define_subprocess(linker, CAP_SUBPROCESS)?;
     }
-    Ok(pooled)
+    Ok(())
 }
 
 /// Define the subprocess host interface on the linker under `import_name`.
 /// Called only when the import is granted; with an empty spec table every
 /// `open` answers `unknown-spec`, which is how a granted-but-undetected
-/// environment behaves. `pooled` additionally links the 0.2.0 functions
-/// (`reused`, `release`).
+/// environment behaves.
 fn define_subprocess(
     linker: &mut ComponentLinker<ComponentState>,
     import_name: &str,
-    pooled: bool,
 ) -> Result<(), wasmtime::Error> {
     let mut instance = linker.instance(import_name)?;
     instance.func_wrap(
@@ -1031,21 +1003,19 @@ fn define_subprocess(
             Ok(())
         },
     )?;
-    if pooled {
-        instance.func_wrap(
-            "reused",
-            |ctx: wasmtime::StoreContextMut<'_, ComponentState>, (session,): (u32,)| {
-                Ok((ctx.data().subprocess.reused(session),))
-            },
-        )?;
-        instance.func_wrap(
-            "release",
-            |mut ctx: wasmtime::StoreContextMut<'_, ComponentState>, (session,): (u32,)| {
-                ctx.data_mut().subprocess.release(session);
-                Ok(())
-            },
-        )?;
-    }
+    instance.func_wrap(
+        "reused",
+        |ctx: wasmtime::StoreContextMut<'_, ComponentState>, (session,): (u32,)| {
+            Ok((ctx.data().subprocess.reused(session),))
+        },
+    )?;
+    instance.func_wrap(
+        "release",
+        |mut ctx: wasmtime::StoreContextMut<'_, ComponentState>, (session,): (u32,)| {
+            ctx.data_mut().subprocess.release(session);
+            Ok(())
+        },
+    )?;
     Ok(())
 }
 
@@ -1153,17 +1123,15 @@ pub fn run_component(
             return Err(SandboxError::Engine(e.to_string()));
         }
     }
-    let pooled = match link_subprocess(&mut linker, capabilities) {
-        Ok(pooled) => pooled,
-        Err(e) => return Err(SandboxError::Engine(e.to_string())),
-    };
+    link_subprocess(&mut linker, capabilities)
+        .map_err(|error| SandboxError::Engine(error.to_string()))?;
 
     let mut store = Store::new(
         engine,
         ComponentState {
             limits: TrackedLimits::new(policy),
             observations: Vec::new(),
-            subprocess: SubprocessPool::new(Vec::new(), String::new(), pooled),
+            subprocess: SubprocessPool::default(),
         },
     );
     store.limiter(|s| &mut s.limits);
@@ -1313,21 +1281,15 @@ pub fn invoke_component_json(
             return Err(SandboxError::Engine(e.to_string()));
         }
     }
-    let pooled = match link_subprocess(&mut linker, capabilities) {
-        Ok(pooled) => pooled,
-        Err(e) => return Err(SandboxError::Engine(e.to_string())),
-    };
+    link_subprocess(&mut linker, capabilities)
+        .map_err(|error| SandboxError::Engine(error.to_string()))?;
 
     let mut store = Store::new(
         engine,
         ComponentState {
             limits: TrackedLimits::new(policy),
             observations: Vec::new(),
-            subprocess: SubprocessPool::new(
-                subprocess_specs.to_vec(),
-                subprocess_root.to_string(),
-                pooled,
-            ),
+            subprocess: SubprocessPool::new(subprocess_specs.to_vec(), subprocess_root.to_string()),
         },
     );
     store.limiter(|s| &mut s.limits);
@@ -1465,21 +1427,15 @@ pub fn invoke_resolver_references(
     }
 
     let mut linker: ComponentLinker<ComponentState> = ComponentLinker::new(engine);
-    let pooled = match link_subprocess(&mut linker, capabilities) {
-        Ok(pooled) => pooled,
-        Err(e) => return Err(SandboxError::Engine(e.to_string())),
-    };
+    link_subprocess(&mut linker, capabilities)
+        .map_err(|error| SandboxError::Engine(error.to_string()))?;
 
     let mut store = Store::new(
         engine,
         ComponentState {
             limits: TrackedLimits::new(policy),
             observations: Vec::new(),
-            subprocess: SubprocessPool::new(
-                subprocess_specs.to_vec(),
-                subprocess_root.to_string(),
-                pooled,
-            ),
+            subprocess: SubprocessPool::new(subprocess_specs.to_vec(), subprocess_root.to_string()),
         },
     );
     store.limiter(|s| &mut s.limits);
@@ -1616,17 +1572,15 @@ pub fn invoke_runner_parse(
     }
 
     let mut linker: ComponentLinker<ComponentState> = ComponentLinker::new(engine);
-    let pooled = match link_subprocess(&mut linker, capabilities) {
-        Ok(pooled) => pooled,
-        Err(e) => return Err(SandboxError::Engine(e.to_string())),
-    };
+    link_subprocess(&mut linker, capabilities)
+        .map_err(|error| SandboxError::Engine(error.to_string()))?;
 
     let mut store = Store::new(
         engine,
         ComponentState {
             limits: TrackedLimits::new(policy),
             observations: Vec::new(),
-            subprocess: SubprocessPool::new(Vec::new(), String::new(), pooled),
+            subprocess: SubprocessPool::default(),
         },
     );
     store.limiter(|s| &mut s.limits);
@@ -2998,7 +2952,6 @@ mod tests {
     /// Acts as a framed-stdio server when re-invoked with a `mode:<m>` filter
     /// argument (an inert test otherwise). Modes:
     ///   echo        — echo every frame body back as a frame; exit on EOF
-    ///   chatty      — echo, plus an unprompted `{"n":<k>}` frame every 5 ms
     ///   ignore-eof  — echo, but sleep forever after stdin EOF
     #[test]
     fn fake_server_entry() {
@@ -3017,20 +2970,6 @@ mod tests {
 ",
             );
             let _ = out.flush();
-        }
-        let chatty = mode == "chatty";
-        if chatty {
-            std::thread::spawn(|| {
-                let mut n: u64 = 0;
-                loop {
-                    std::thread::sleep(Duration::from_millis(5));
-                    n += 1;
-                    let body = format!("{{\"n\":{n}}}");
-                    let mut out = std::io::stdout().lock();
-                    let _ = write!(out, "Content-Length: {}\r\n\r\n{body}", body.len());
-                    let _ = out.flush();
-                }
-            });
         }
         let mut stdin = std::io::stdin().lock();
         let mut buf: Vec<u8> = Vec::new();
@@ -3071,7 +3010,7 @@ mod tests {
     /// The pool is process-global; these tests call global operations
     /// (idle reap with a zero TTL, shutdown), so they run one at a time —
     /// the lang_registry serial-guard precedent.
-    fn pool_test_guard() -> std::sync::MutexGuard<'static, ()> {
+    pub(super) fn pool_test_guard() -> std::sync::MutexGuard<'static, ()> {
         static GUARD: Mutex<()> = Mutex::new(());
         GUARD
             .lock()
@@ -3119,22 +3058,30 @@ mod tests {
         let root = unique_root("reuse");
         let spec = fake_spec("echo", "echo");
         // Invoke 1: fresh spawn, normal end → returned warm.
-        let mut first = SubprocessPool::new(vec![spec.clone()], root.clone(), true);
+        let mut first = SubprocessPool::new(vec![spec.clone()], root.clone());
         let h = first.open("echo").expect("open");
         assert!(!first.reused(h));
         assert_eq!(round_trip(&mut first, h, b"alpha"), b"alpha");
         assert_eq!((first.opened, first.reused), (1, 0));
+        let reader_lease = Arc::clone(&first.sessions[&h].leased);
+        assert!(reader_lease.load(Ordering::SeqCst));
         first.settle(true);
+        assert!(!reader_lease.load(Ordering::SeqCst));
         drop(first);
         let warm = warm_for(&root);
         assert_eq!(warm.len(), 1);
         assert!(!warm[0].leased);
 
         // Invoke 2: the same key comes back warm and says so.
-        let mut second = SubprocessPool::new(vec![spec.clone()], root.clone(), true);
+        let mut second = SubprocessPool::new(vec![spec.clone()], root.clone());
         let h2 = second.open("echo").expect("open");
         assert!(second.reused(h2));
         assert_eq!((second.opened, second.reused), (0, 1));
+        assert!(reader_lease.load(Ordering::SeqCst));
+        assert!(matches!(
+            second.sessions[&h2].frames.try_recv(),
+            Err(mpsc::TryRecvError::Empty)
+        ));
         assert!(
             warm_for(&root)[0].leased,
             "a leased key is visible as leased"
@@ -3145,7 +3092,7 @@ mod tests {
         assert_eq!(warm_for(&root).len(), 1);
 
         // Explicit release returns warm too.
-        let mut third = SubprocessPool::new(vec![spec], root.clone(), true);
+        let mut third = SubprocessPool::new(vec![spec], root.clone());
         let h3 = third.open("echo").expect("open");
         assert!(third.reused(h3));
         third.release(h3);
@@ -3169,9 +3116,9 @@ mod tests {
         let _serial = pool_test_guard();
         let root = unique_root("busy");
         let spec = fake_spec("echo", "echo");
-        let mut holder = SubprocessPool::new(vec![spec.clone()], root.clone(), true);
+        let mut holder = SubprocessPool::new(vec![spec.clone()], root.clone());
         holder.open("echo").expect("open");
-        let mut other = SubprocessPool::new(vec![spec], root.clone(), true);
+        let mut other = SubprocessPool::new(vec![spec], root.clone());
         let started = Instant::now();
         let refused = other.open("echo");
         assert!(
@@ -3198,70 +3145,69 @@ mod tests {
         let root = unique_root("kill");
         let spec = fake_spec("echo", "echo");
         // settle(false) — fuel/trap/memory ends route here.
-        let mut a = SubprocessPool::new(vec![spec.clone()], root.clone(), true);
+        let mut a = SubprocessPool::new(vec![spec.clone()], root.clone());
         a.open("echo").expect("open");
         a.settle(false);
         drop(a);
         assert!(warm_for(&root).is_empty());
         // close kills even inside a normal invoke.
-        let mut b = SubprocessPool::new(vec![spec.clone()], root.clone(), true);
+        let mut b = SubprocessPool::new(vec![spec.clone()], root.clone());
         let h = b.open("echo").expect("open");
         b.close(h);
         b.settle(true);
         drop(b);
         assert!(warm_for(&root).is_empty());
         // Drop without settle kills (the host-panic path).
-        let mut c = SubprocessPool::new(vec![spec.clone()], root.clone(), true);
+        let mut c = SubprocessPool::new(vec![spec.clone()], root.clone());
         c.open("echo").expect("open");
         drop(c);
         assert!(warm_for(&root).is_empty());
         // And the next open after any of those spawns fresh.
-        let mut d = SubprocessPool::new(vec![spec], root.clone(), true);
+        let mut d = SubprocessPool::new(vec![spec], root.clone());
         let h = d.open("echo").expect("open");
         assert!(!d.reused(h));
         d.settle(false);
     }
 
     #[test]
-    fn frames_emitted_while_idle_are_discarded_and_a_reused_lease_starts_empty() {
-        let _serial = pool_test_guard();
-        let root = unique_root("idle-drain");
-        let spec = fake_spec("chatty", "chatty");
-        let counter = |frame: &[u8]| -> Option<u64> {
-            let text = std::str::from_utf8(frame).ok()?;
-            text.strip_prefix("{\"n\":")?
-                .strip_suffix('}')?
-                .parse()
-                .ok()
-        };
-        let mut first = SubprocessPool::new(vec![spec.clone()], root.clone(), true);
-        let h = first.open("chatty").expect("open");
-        // Read until the first unprompted frame arrives.
-        let mut seen_before = None;
-        for _ in 0..200 {
-            let frame = first.read_frame(h, 2_000).expect("read");
-            if let Some(n) = counter(&frame) {
-                seen_before = Some(n);
-                break;
+    fn frames_read_while_idle_are_discarded() {
+        // Drive lease changes at exact frame boundaries. Scheduler speed must
+        // not determine how many idle messages the reader sees.
+        struct FrameSteps<'a> {
+            leased: &'a AtomicBool,
+            steps: std::vec::IntoIter<(bool, &'static str)>,
+        }
+        impl Read for FrameSteps<'_> {
+            fn read(&mut self, buffer: &mut [u8]) -> std::io::Result<usize> {
+                let Some((leased, body)) = self.steps.next() else {
+                    return Ok(0);
+                };
+                self.leased.store(leased, Ordering::SeqCst);
+                let frame = format!("Content-Length: {}\r\n\r\n{body}", body.len());
+                assert!(frame.len() <= buffer.len());
+                buffer[..frame.len()].copy_from_slice(frame.as_bytes());
+                Ok(frame.len())
             }
         }
-        let seen_before = seen_before.expect("chatty server emits frames");
-        first.settle(true);
-        drop(first);
-        // Idle: the server keeps emitting; the pool keeps draining and dropping.
-        std::thread::sleep(Duration::from_millis(400));
-        let mut second = SubprocessPool::new(vec![spec], root.clone(), true);
-        let h2 = second.open("chatty").expect("open");
-        assert!(second.reused(h2));
-        let frame = second.read_frame(h2, 2_000).expect("read");
-        let first_after = counter(&frame).expect("chatty frame");
-        // ~80 frames were emitted while idle; a buffered lease would hand us
-        // seen_before+1 here. A drained one skips far past it.
-        assert!(
-            first_after >= seen_before + 20,
-            "expected the idle frames to be discarded: before={seen_before} after={first_after}"
-        );
-        second.settle(false);
+
+        let leased = AtomicBool::new(true);
+        let mut steps = vec![(true, "before")];
+        // More idle frames than the queue can hold prove that idle traffic
+        // neither buffers nor saturates the leased-frame channel.
+        steps.extend(std::iter::repeat_n(
+            (false, "idle"),
+            SUBPROCESS_FRAME_QUEUE_CAP + 1,
+        ));
+        steps.push((true, "after"));
+        let mut input = FrameSteps {
+            leased: &leased,
+            steps: steps.into_iter(),
+        };
+        let (tx, rx) = mpsc::sync_channel(SUBPROCESS_FRAME_QUEUE_CAP);
+        read_frames(&mut input, &tx, &leased);
+        assert_eq!(input.steps.len(), 0, "the reader drains every frame");
+        let frames: Vec<_> = rx.try_iter().map(Result::unwrap).collect();
+        assert_eq!(frames, [b"before".to_vec(), b"after".to_vec()]);
     }
 
     #[test]
@@ -3269,39 +3215,17 @@ mod tests {
         let _serial = pool_test_guard();
         let root = unique_root("shutdown");
         let spec = fake_spec("echo", "ignore-eof");
-        let mut a = SubprocessPool::new(vec![spec.clone()], root.clone(), true);
+        let mut a = SubprocessPool::new(vec![spec.clone()], root.clone());
         a.open("echo").expect("open");
         a.settle(true);
         drop(a);
         assert_eq!(warm_for(&root).len(), 1);
         assert!(server_pool_shutdown() >= 1);
         assert!(warm_for(&root).is_empty());
-        let mut b = SubprocessPool::new(vec![spec], root, true);
+        let mut b = SubprocessPool::new(vec![spec], root);
         let h = b.open("echo").expect("open after shutdown");
         assert!(!b.reused(h));
         b.settle(false);
-    }
-
-    #[test]
-    fn a_0_1_0_lease_view_keeps_per_invoke_sessions() {
-        let _serial = pool_test_guard();
-        let root = unique_root("legacy");
-        let spec = fake_spec("echo", "echo");
-        let mut view = SubprocessPool::new(vec![spec.clone()], root.clone(), false);
-        let h = view.open("echo").expect("open");
-        assert!(!view.reused(h));
-        assert_eq!(round_trip(&mut view, h, b"legacy"), b"legacy");
-        view.settle(true);
-        drop(view);
-        assert!(
-            warm_for(&root).is_empty(),
-            "per-invoke sessions never enter the pool"
-        );
-        let mut again = SubprocessPool::new(vec![spec], root.clone(), false);
-        let h = again.open("echo").expect("open");
-        assert!(!again.reused(h));
-        drop(again);
-        assert!(warm_for(&root).is_empty());
     }
 
     /// Imports subprocess@0.2.0 and calls `reused(7)` on a handle that was
@@ -3395,7 +3319,7 @@ mod tests {
             "a fuel-killed invoke must not leave a warm or leased session"
         );
         // The key is free again: a clean lease view spawns fresh.
-        let mut view = SubprocessPool::new(vec![spec], root.clone(), true);
+        let mut view = SubprocessPool::new(vec![spec], root.clone());
         let h = view.open("echo").expect("open after fuel kill");
         assert!(!view.reused(h));
         view.settle(false);

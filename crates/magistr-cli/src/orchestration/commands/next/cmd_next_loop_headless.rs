@@ -4,7 +4,7 @@ use std::time::Instant;
 use color_eyre::eyre;
 
 use crate::agent;
-use crate::cli::HeadlessFormat;
+use crate::cli::{BackendFlag, HeadlessFormat};
 use crate::commands::run::{HeadlessOutcome, drain_headless_observing};
 use crate::error::ResultExt;
 use crate::workflow;
@@ -21,7 +21,7 @@ use magistr_engine::workflow::StopReason;
 pub async fn cmd_next_loop_headless(
     dir: &std::path::Path,
     request: super::LoopRequest<'_>,
-    backend: agent::Backend,
+    backend: BackendFlag,
     format: HeadlessFormat,
     max_cost: Option<f64>,
     profile: crate::permissions::PermissionProfile,
@@ -124,6 +124,8 @@ pub async fn cmd_next_loop_headless(
             break;
         }
 
+        // A stopped, empty or budget-exhausted loop needs no installed agent.
+        let backend = crate::commands::resolve_backend(backend, &inputs)?;
         let iter_num = iter_loop.display_iteration();
         let summary_before = iter_loop.spec_summary().suggest()?;
 

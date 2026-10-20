@@ -218,6 +218,8 @@ async fn next_loop_reads_progress_beside_a_live_mcp_owner() {
         let mut command = Command::from(magistr_command::magistr_command());
         command
             .args(["next-loop", "--agent", "codex", "--trust", "yolo"])
+            // This command must finish without any provider installed.
+            .env("PATH", root.join("no-agent-binaries"))
             .current_dir(root)
             .env("HOME", root)
             .env("XDG_CONFIG_HOME", root.join("config"))
