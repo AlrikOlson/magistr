@@ -71,6 +71,8 @@ try {
       await page.goto(origin);
       for (const image of await page.locator("img").all()) {
         if (await image.isVisible()) await image.scrollIntoViewIfNeeded();
+        await page.waitForFunction((element) => element.complete && element.naturalWidth > 0,
+          await image.elementHandle(), { timeout: 10000 });
         await image.evaluate((element) => element.decode());
       }
       const urls = await page.evaluate(() => [
