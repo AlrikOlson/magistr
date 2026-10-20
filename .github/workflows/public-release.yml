@@ -161,7 +161,6 @@ jobs:
 
   public-links:
     name: Anonymous public endpoint gate
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -170,4 +169,6 @@ jobs:
         with:
           persist-credentials: false
       - name: Probe configured public URLs
-        run: ./scripts/public-link-check.sh --stage release --out target/public-release-readiness.json
+        env:
+          PUBLIC_GATE_STAGE: ${{ (github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')) && 'release' || 'website' }}
+        run: ./scripts/public-link-check.sh --stage "$PUBLIC_GATE_STAGE" --out target/public-release-readiness.json

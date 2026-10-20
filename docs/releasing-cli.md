@@ -210,8 +210,9 @@ returns to the report form. It does not require packages to exist yet.
 
 The release stage also requires the current Cargo version, the current npm
 latest version, and removal of the unpublished-package notice. The publisher
-runs the publication stage before uploads. The manual/tag release-readiness
-workflow runs the release stage and fails when any required check fails.
+runs the publication stage before uploads. Every push and pull request checks the
+deployed website stage. The manual/tag release-readiness workflow runs the release
+stage and fails when any required check fails.
 No stage changes repository visibility, enables reporting, deploys the website
 or publishes packages.
 
