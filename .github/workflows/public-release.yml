@@ -47,6 +47,7 @@ jobs:
           python3 -B scripts/cargo_publication.tests.py
           python3 -B scripts/public_link_check.tests.py
           python3 -B scripts/release-security.tests.py
+          python3 -B scripts/agent-mcp-eval.tests.py
       - name: Check workspace
         run: cargo check --workspace --all-targets --locked
       - name: Install cargo-nextest
