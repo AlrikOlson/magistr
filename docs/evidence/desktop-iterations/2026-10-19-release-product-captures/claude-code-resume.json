@@ -1,0 +1,17 @@
+{
+  "file": "claude-code-resume.png",
+  "capturedAt": "2026-10-20T03:13:31.842Z",
+  "client": "claude",
+  "renderer": "xterm 6.0.0 in headless WebKit 27.2",
+  "viewport": {
+    "width": 1320,
+    "height": 1000
+  },
+  "deviceScaleFactor": 2,
+  "terminal": {
+    "columns": 118,
+    "rows": 44
+  },
+  "imageSha256": "b50927133fc3020481bd61cd8bf31bd261a6d2e777177aad856afaf9b1d4c3b0",
+  "method": "Unmodified bytes from the real interactive client and live Magistr MCP; no simulated replies."
+}

@@ -99,7 +99,14 @@ try {
         const response = await page.goto(origin + path);
         assert.equal(response.status(), 200);
         await page.evaluate(() => document.fonts.ready);
-        await page.locator("img").evaluateAll(async (images) => Promise.all(images.map((image) => image.decode())));
+        // Scroll lazy images into view before awaiting their actual load.
+        for (const image of await page.locator("img").all()) {
+          if (await image.isVisible()) await image.scrollIntoViewIfNeeded();
+          await page.waitForFunction((element) => element.complete && element.naturalWidth > 0,
+            await image.elementHandle(), { timeout: 10000 });
+          await image.evaluate((element) => element.decode());
+        }
+        await page.evaluate(() => scrollTo({ top: 0, behavior: "instant" }));
         await noOverflow(page);
         await legibility(page);
         await capture(page, name + "-" + suffix, name + " full page", true);

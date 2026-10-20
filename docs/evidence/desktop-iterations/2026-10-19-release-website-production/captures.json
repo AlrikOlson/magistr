@@ -1,0 +1,273 @@
+{
+  "source": "0dad975115c0501fe60557cea64851eeed6f231f",
+  "deployment": "ba83cc7c-28b5-4420-9ae5-556061e11cd8",
+  "site": "https://magistr.dev",
+  "captures": [
+    {
+      "file": "home-wide-light.png",
+      "task": "Understand the product and find installation",
+      "url": "https://magistr.dev/",
+      "capturedAt": "2026-10-20T02:34:33.669Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "1c1f4a04492409f64373ae217951124a4185cf0f1f4cfc59f0e80593e68d6c28",
+      "source": "0dad975115c0501fe60557cea64851eeed6f231f",
+      "deployment": "ba83cc7c-28b5-4420-9ae5-556061e11cd8",
+      "review": "pending"
+    },
+    {
+      "file": "home-install-wide-light.png",
+      "task": "Install the preview and begin with planning",
+      "url": "https://magistr.dev/#install",
+      "capturedAt": "2026-10-20T02:34:33.743Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "6a0996a116ce5ecafe6754884290eea1886309d095bca178365bb599a2421c02",
+      "source": "0dad975115c0501fe60557cea64851eeed6f231f",
+      "deployment": "ba83cc7c-28b5-4420-9ae5-556061e11cd8",
+      "review": "pending"
+    },
+    {
+      "file": "installation-setup-wide-light.png",
+      "task": "Choose only the integrations needed and review setup",
+      "url": "https://magistr.dev/docs/installation/",
+      "capturedAt": "2026-10-20T02:34:34.005Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "57c79f4e24738796effb462276b60955b7a590afbe7ec4942358d35ce952916a",
+      "source": "0dad975115c0501fe60557cea64851eeed6f231f",
+      "deployment": "ba83cc7c-28b5-4420-9ae5-556061e11cd8",
+      "review": "pending"
+    },
+    {
+      "file": "home-wide-dark.png",
+      "task": "Understand the product and find installation",
+      "url": "https://magistr.dev/",
+      "capturedAt": "2026-10-20T02:34:34.475Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "e497301b99c0cf9edec0f1e582b68eef2f553dc9094755e2f2d6fe5414312a4c",
+      "source": "0dad975115c0501fe60557cea64851eeed6f231f",
+      "deployment": "ba83cc7c-28b5-4420-9ae5-556061e11cd8",
+      "review": "pending"
+    },
+    {
+      "file": "home-install-wide-dark.png",
+      "task": "Install the preview and begin with planning",
+      "url": "https://magistr.dev/#install",
+      "capturedAt": "2026-10-20T02:34:34.532Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "f5d4ae614b2ecea4fb574fb192d6c1be0c2ea558f27bbcfbd1e96910488f4bff",
+      "source": "0dad975115c0501fe60557cea64851eeed6f231f",
+      "deployment": "ba83cc7c-28b5-4420-9ae5-556061e11cd8",
+      "review": "pending"
+    },
+    {
+      "file": "installation-setup-wide-dark.png",
+      "task": "Choose only the integrations needed and review setup",
+      "url": "https://magistr.dev/docs/installation/",
+      "capturedAt": "2026-10-20T02:34:34.729Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "5effbb04ddc51a1d971d7e7d7009decbe0b5a59a78e98bb28eb80efc82a48c71",
+      "source": "0dad975115c0501fe60557cea64851eeed6f231f",
+      "deployment": "ba83cc7c-28b5-4420-9ae5-556061e11cd8",
+      "review": "pending"
+    },
+    {
+      "file": "home-compact-light.png",
+      "task": "Understand the product and find installation",
+      "url": "https://magistr.dev/",
+      "capturedAt": "2026-10-20T02:34:35.217Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "b749027d0b21f23ac719f7415b5c8619e5146f8c09a3568b0414c51f43cd3acf",
+      "source": "0dad975115c0501fe60557cea64851eeed6f231f",
+      "deployment": "ba83cc7c-28b5-4420-9ae5-556061e11cd8",
+      "review": "pending"
+    },
+    {
+      "file": "home-install-compact-light.png",
+      "task": "Install the preview and begin with planning",
+      "url": "https://magistr.dev/#install",
+      "capturedAt": "2026-10-20T02:34:35.274Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "9f385585c9c45ea02853d5d68cd42318d785d5b288b614c51343b866c2b3acb3",
+      "source": "0dad975115c0501fe60557cea64851eeed6f231f",
+      "deployment": "ba83cc7c-28b5-4420-9ae5-556061e11cd8",
+      "review": "pending"
+    },
+    {
+      "file": "home-menu-compact-light.png",
+      "task": "Navigate using the expanded compact menu",
+      "url": "https://magistr.dev/#install",
+      "capturedAt": "2026-10-20T02:34:35.318Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "9505802741c94934e370e82d50a0cd26cd470d95a3489f9fe141e81e8c6f18cc",
+      "source": "0dad975115c0501fe60557cea64851eeed6f231f",
+      "deployment": "ba83cc7c-28b5-4420-9ae5-556061e11cd8",
+      "review": "pending"
+    },
+    {
+      "file": "installation-setup-compact-light.png",
+      "task": "Choose only the integrations needed and review setup",
+      "url": "https://magistr.dev/docs/installation/",
+      "capturedAt": "2026-10-20T02:34:35.585Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "94ed2523c761dbc36913ae72ff1a490a86b25cd6249a2cee6ebaf6421d5780eb",
+      "source": "0dad975115c0501fe60557cea64851eeed6f231f",
+      "deployment": "ba83cc7c-28b5-4420-9ae5-556061e11cd8",
+      "review": "pending"
+    },
+    {
+      "file": "home-compact-dark.png",
+      "task": "Understand the product and find installation",
+      "url": "https://magistr.dev/",
+      "capturedAt": "2026-10-20T02:34:36.042Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "2e341dbcf516b43ceba56a030a7f83b3b3f322d27758561d6a093927263e0503",
+      "source": "0dad975115c0501fe60557cea64851eeed6f231f",
+      "deployment": "ba83cc7c-28b5-4420-9ae5-556061e11cd8",
+      "review": "pending"
+    },
+    {
+      "file": "home-install-compact-dark.png",
+      "task": "Install the preview and begin with planning",
+      "url": "https://magistr.dev/#install",
+      "capturedAt": "2026-10-20T02:34:36.089Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "8256bed93c500fc2e21761938b7a2c8e6e233eff78416ca556672803dd77d9ad",
+      "source": "0dad975115c0501fe60557cea64851eeed6f231f",
+      "deployment": "ba83cc7c-28b5-4420-9ae5-556061e11cd8",
+      "review": "pending"
+    },
+    {
+      "file": "home-menu-compact-dark.png",
+      "task": "Navigate using the expanded compact menu",
+      "url": "https://magistr.dev/#install",
+      "capturedAt": "2026-10-20T02:34:36.133Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "a86bb83788c4e584346910130f9b274fb4eea3855e28c599eb7782c236f44e15",
+      "source": "0dad975115c0501fe60557cea64851eeed6f231f",
+      "deployment": "ba83cc7c-28b5-4420-9ae5-556061e11cd8",
+      "review": "pending"
+    },
+    {
+      "file": "installation-setup-compact-dark.png",
+      "task": "Choose only the integrations needed and review setup",
+      "url": "https://magistr.dev/docs/installation/",
+      "capturedAt": "2026-10-20T02:34:36.361Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "090ef8566a308740c9bac440706a678982f6d7e679fc13d029c78428ca49cade",
+      "source": "0dad975115c0501fe60557cea64851eeed6f231f",
+      "deployment": "ba83cc7c-28b5-4420-9ae5-556061e11cd8",
+      "review": "pending"
+    }
+  ]
+}

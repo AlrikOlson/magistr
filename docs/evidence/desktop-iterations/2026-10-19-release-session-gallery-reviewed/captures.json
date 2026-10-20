@@ -1,0 +1,249 @@
+{
+  "origin": "http://127.0.0.1:49600",
+  "capturedAt": "2026-10-20T03:26:50.023Z",
+  "renderer": "Playwright WebKit",
+  "rendererVersion": "27.2",
+  "platform": "darwin-arm64",
+  "deviceScaleFactor": 1,
+  "reducedMotion": true,
+  "sourceHashes": {
+    "apps/website/src/pages/index.astro": "259d9cf184040bdffdbd912e293720f0361eaa91e4de6fc01701307b7ddd66ae",
+    "apps/website/src/styles/global.css": "4526aa775968215d67cfd5820755460fdc441b7ae6fdc33845fc23677bd31307",
+    "apps/website/public/screenshots/captures.json": "59897446e1905f99041dbc73cb9758d32b9541bb51c676b6eddd30009ab1d5bf",
+    "apps/website/tests/build-output.mjs": "9a6a24d17750e8dd84c963504e5604414c38578a92a987884d527441a21ccfdc",
+    "apps/website/tests/browser.mjs": "d6d285dea0c16f33295e681641b2ec417a901447ad1d2ab98d9da36c6acd2467",
+    "docs/evidence/desktop-iterations/2026-10-19-release-product-captures/capture-website.mjs": "a4ccd670b72d9d15218e1466cbf056c455a9e928490c1240dd8afdcdaa303d81"
+  },
+  "captures": [
+    {
+      "file": "home-wide-light.png",
+      "state": "Current native app and its website caption",
+      "viewport": {
+        "width": 1440,
+        "height": 1200
+      },
+      "appearance": "light",
+      "selector": ".hero-capture",
+      "capturedAt": "2026-10-20T03:26:47.853Z",
+      "width": 576,
+      "height": 407,
+      "sha256": "12a7b0cfb283588a06c0ce01f46865f975b23c53b2d60cc8aad0f1706902198f",
+      "review": "pending"
+    },
+    {
+      "file": "codex-wide-light.png",
+      "state": "Fresh Codex session recovers verified work",
+      "viewport": {
+        "width": 1440,
+        "height": 1200
+      },
+      "appearance": "light",
+      "selector": ".agent-session:first-child",
+      "capturedAt": "2026-10-20T03:26:47.923Z",
+      "width": 1040,
+      "height": 1032,
+      "sha256": "9340a93c433655093db62f9246cda5110641f94299138a5f0e4659ee80b07304",
+      "review": "pending"
+    },
+    {
+      "file": "claude-wide-light.png",
+      "state": "Fresh Claude Code session recovers verified work",
+      "viewport": {
+        "width": 1440,
+        "height": 1200
+      },
+      "appearance": "light",
+      "selector": ".agent-session:last-child",
+      "capturedAt": "2026-10-20T03:26:47.989Z",
+      "width": 1040,
+      "height": 1031,
+      "sha256": "90805b8d9dc85105c767a4e51b94d8243c5dcc3ca30c193cc5fc2de3d9c6019c",
+      "review": "pending"
+    },
+    {
+      "file": "home-wide-dark.png",
+      "state": "Current native app and its website caption",
+      "viewport": {
+        "width": 1440,
+        "height": 1200
+      },
+      "appearance": "dark",
+      "selector": ".hero-capture",
+      "capturedAt": "2026-10-20T03:26:48.551Z",
+      "width": 576,
+      "height": 407,
+      "sha256": "304e4602eabcd8608aacae9145617e48ffe3025813d93e3dbf893d5a73c07bc3",
+      "review": "pending"
+    },
+    {
+      "file": "codex-wide-dark.png",
+      "state": "Fresh Codex session recovers verified work",
+      "viewport": {
+        "width": 1440,
+        "height": 1200
+      },
+      "appearance": "dark",
+      "selector": ".agent-session:first-child",
+      "capturedAt": "2026-10-20T03:26:48.608Z",
+      "width": 1040,
+      "height": 1032,
+      "sha256": "fd19b5b9c831ebc2f3f463bfafa504ccd74c03f71fa8f616859dcbc6d6b9e622",
+      "review": "pending"
+    },
+    {
+      "file": "claude-wide-dark.png",
+      "state": "Fresh Claude Code session recovers verified work",
+      "viewport": {
+        "width": 1440,
+        "height": 1200
+      },
+      "appearance": "dark",
+      "selector": ".agent-session:last-child",
+      "capturedAt": "2026-10-20T03:26:48.672Z",
+      "width": 1040,
+      "height": 1031,
+      "sha256": "66ec2b8dcb9694f32db213562c497cc21a416443944454f7bfb6afb1c668720b",
+      "review": "pending"
+    },
+    {
+      "file": "home-compact-light.png",
+      "state": "Current native app and its website caption",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "selector": ".hero-capture",
+      "capturedAt": "2026-10-20T03:26:49.250Z",
+      "width": 350,
+      "height": 281,
+      "sha256": "031d00f3092ff6a544c79e7629b0fb75ffdf0e4b4054a6b120af5e6e872572d5",
+      "review": "pending"
+    },
+    {
+      "file": "codex-compact-light.png",
+      "state": "Fresh Codex session recovers verified work",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "selector": ".agent-session:first-child",
+      "capturedAt": "2026-10-20T03:26:49.295Z",
+      "width": 350,
+      "height": 436,
+      "sha256": "9a0d023998f68d7983dc6d3f7d04b1d707058f4a37afc4c9accbea591faf748b",
+      "review": "pending"
+    },
+    {
+      "file": "claude-compact-light.png",
+      "state": "Fresh Claude Code session recovers verified work",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "selector": ".agent-session:last-child",
+      "capturedAt": "2026-10-20T03:26:49.344Z",
+      "width": 350,
+      "height": 435,
+      "sha256": "b88131140520e1e947b21a0db2a70a008d74791d23f636c60eb9ebe216a8f271",
+      "review": "pending"
+    },
+    {
+      "file": "home-compact-dark.png",
+      "state": "Current native app and its website caption",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "selector": ".hero-capture",
+      "capturedAt": "2026-10-20T03:26:49.916Z",
+      "width": 350,
+      "height": 281,
+      "sha256": "8533243e5f7d032e2d2ce67caceea80b3aeaa2258ba197f1d5b2272dbb68be8e",
+      "review": "pending"
+    },
+    {
+      "file": "codex-compact-dark.png",
+      "state": "Fresh Codex session recovers verified work",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "selector": ".agent-session:first-child",
+      "capturedAt": "2026-10-20T03:26:49.960Z",
+      "width": 350,
+      "height": 436,
+      "sha256": "0b4372793474c7b1c69f8ec191e1a3d0241cc41134a48a027ddddc9e92f28643",
+      "review": "pending"
+    },
+    {
+      "file": "claude-compact-dark.png",
+      "state": "Fresh Claude Code session recovers verified work",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "selector": ".agent-session:last-child",
+      "capturedAt": "2026-10-20T03:26:50.011Z",
+      "width": 350,
+      "height": 435,
+      "sha256": "359329dc80fdefc8fb89ed380deca1b9c6e0f463bd3a45394359a01a9aa54d20",
+      "review": "pending"
+    }
+  ],
+  "checks": [
+    {
+      "viewport": {
+        "width": 1440,
+        "height": 1200
+      },
+      "appearance": "light",
+      "passed": true,
+      "imagesLoaded": true,
+      "fullSizeLinks": true,
+      "overflow": false
+    },
+    {
+      "viewport": {
+        "width": 1440,
+        "height": 1200
+      },
+      "appearance": "dark",
+      "passed": true,
+      "imagesLoaded": true,
+      "fullSizeLinks": true,
+      "overflow": false
+    },
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "passed": true,
+      "imagesLoaded": true,
+      "fullSizeLinks": true,
+      "overflow": false
+    },
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "passed": true,
+      "imagesLoaded": true,
+      "fullSizeLinks": true,
+      "overflow": false
+    }
+  ],
+  "limitations": [
+    "Headless browser screenshots; no native input or assistive-technology claim.",
+    "Each image requires separate visual review."
+  ]
+}

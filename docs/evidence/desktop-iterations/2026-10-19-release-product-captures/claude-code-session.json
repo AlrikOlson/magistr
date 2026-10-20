@@ -1,0 +1,17 @@
+{
+  "file": "claude-code-session.png",
+  "capturedAt": "2026-10-20T03:06:22.634Z",
+  "client": "claude",
+  "renderer": "xterm 6.0.0 in headless WebKit 27.2",
+  "viewport": {
+    "width": 1320,
+    "height": 1000
+  },
+  "deviceScaleFactor": 2,
+  "terminal": {
+    "columns": 118,
+    "rows": 44
+  },
+  "imageSha256": "9aaaccb133117057fb85ae8086f6ed3534026ed3d22ec81ceaeac1a4442bd4d1",
+  "method": "Unmodified bytes from the real interactive client and live Magistr MCP; no simulated replies."
+}

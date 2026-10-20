@@ -1,6 +1,6 @@
 /**
  * Post-build tests: the built site says what the product does, carries
- * the desktop screenshots at their full size, and keeps its metadata.
+ * the current app and agent screenshots at their full size, and keeps its metadata.
  * Run with: node tests/build-output.mjs (after `npm run build`)
  */
 import { readFileSync, existsSync, readdirSync } from "node:fs";
@@ -50,7 +50,7 @@ assert(indexHtml.includes('"downloadUrl":"https://magistr.dev/docs/installation"
 
 assert(!indexHtml.includes("feature-card") && !indexHtml.includes("walkthrough-step") && !indexHtml.includes("community-link") && !indexHtml.includes("changelog"), "no marketing card grids or changelog");
 const homeImages = [...indexHtml.matchAll(/src="\/screenshots\/([a-z-]+)\.png\?v=[a-f0-9]{12}"/g)].map((m) => m[1]);
-assert(new Set(homeImages).size === 2 && homeImages.length === 2, `each screenshot appears once on the home page (${homeImages.join(", ")})`);
+assert(new Set(homeImages).size === 4 && homeImages.length === 4, `each screenshot appears once on the home page (${homeImages.join(", ")})`);
 const roadmapSection = indexHtml.match(/<section id="roadmap"[\s\S]*?<\/section>/)?.[0] ?? "";
 assert(roadmapSection.includes("magistr next") && roadmapSection.includes("acceptance criteria"), "roadmap section describes the current command workflow");
 assert(!roadmapSection.includes("Roadmap screen"),"future desktop planning is not advertised");
@@ -74,22 +74,23 @@ const externalLinks = [...indexHtml.matchAll(/<a [^>]*target="_blank"[^>]*>/g)].
 assert(externalLinks.length > 0 && externalLinks.every((a) => a.includes('rel="noopener noreferrer"')), "every external link is rel=noopener noreferrer");
 assert(mainOf(indexHtml).split('target="_blank"').length - 1 === (mainOf(indexHtml).match(/opens in a new tab/g) || []).length, "every external link in the page body says it opens a new tab");
 
-console.log("\nDesktop screenshots:");
+console.log("\nProduct screenshots:");
 const manifest=JSON.parse(readFileSync(resolve(distDir,"screenshots/captures.json"),"utf-8"));
-assert(manifest.renderer==="magistr-desktop" && manifest.surface==="Desktop","manifest names the current desktop");
-assert(manifest.annotations===false && manifest.images.length===2,"one unannotated conversation in both appearances");
-for(const theme of ["dark","light"]){
- const capture=manifest.images.find(({file})=>file===`desktop-${theme}.png`);
- assert(Boolean(capture),`desktop has a ${theme} image`);
+assert(manifest.annotations===false && manifest.images.length===4,"four unannotated product screenshots");
+assert(manifest.images.map(({file})=>file).sort().join(",")==="claude-code-session.png,codex-session.png,desktop-dark.png,desktop-light.png","desktop appearances and both agent sessions are present");
+for(const capture of manifest.images){
+ assert(Boolean(capture.renderer && capture.captured_at && capture.source_commit && capture.evidence),"each image names its renderer, source and retained evidence");
  const png=readFileSync(resolve(distDir,"screenshots",capture.file));
  assert(createHash("sha256").update(png).digest("hex")===capture.sha256,"capture matches reviewed bytes");
  assert(png.readUInt32BE(16)===capture.width && png.readUInt32BE(20)===capture.height,"capture keeps its full native viewport");
  const url=`/screenshots/${capture.file}?v=${capture.sha256.slice(0,12)}`;
  assert(indexHtml.includes(`src="${url}"`) && indexHtml.includes(`href="${url}"`),"image and full-size link use content hashes");
+ const tag=[...indexHtml.matchAll(/<img [^>]*>/g)].map(([tag])=>tag).find(tag=>tag.includes(`src="${url}"`));
+ assert(tag?.includes(`width="${capture.width}"`) && tag?.includes(`height="${capture.height}"`),"image dimensions reserve its actual aspect ratio");
 }
 assert(!readdirSync(resolve(distDir,"screenshots")).some(name=>name.startsWith("terminal-")||name.startsWith("tui2-")),"retired captures are absent");
 const figures=[...indexHtml.matchAll(/<figure\b[\s\S]*?<\/figure>/g)];
-assert(figures.length===1 && figures[0][0].includes("<figcaption>"),"current desktop has one captioned figure");
+assert(figures.length===3 && figures.every(([figure])=>figure.includes("<figcaption>")),"desktop and both agent sessions have captioned figures");
 
 console.log("\nPublic language:");
 const jargon = /TUI2|GUI2|tui2|gui2|think:|ship:|chunk-id|chunk\b|workflow server|native state|admitted|typed command|[Ff]light [Rr]ecorder|\b[Dd]ecisions?\b/;
@@ -158,7 +159,7 @@ assert(existsSync(resolve(distDir, "favicon.svg")) && existsSync(resolve(distDir
 assert(indexHtml.includes("prefers-color-scheme") && indexHtml.includes("theme-toggle"), "theme detection and toggle");
 const css = readdirSync(resolve(distDir, "_astro")).filter((f) => f.endsWith(".css")).map((f) => readFileSync(resolve(distDir, "_astro", f), "utf-8")).join("\n");
 assert(css.includes("prefers-reduced-motion"), "reduced motion respected in the stylesheet");
-assert(css.includes("aspect-ratio:1280/832") || css.includes("aspect-ratio: 1280 / 832"), "screenshots reserve their aspect ratio");
+
 
 console.log("\nSitemap, robots and headers:");
 const sitemap = readFileSync(resolve(distDir, "sitemap-0.xml"), "utf-8");

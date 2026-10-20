@@ -1,0 +1,304 @@
+{
+  "source": "0dad975115c0501fe60557cea64851eeed6f231f",
+  "deployment": "ba83cc7c-28b5-4420-9ae5-556061e11cd8",
+  "capturedAt": "2026-10-20T02:31:35.612007+00:00",
+  "passed": true,
+  "files": [
+    {
+      "path": "404.html",
+      "url": "https://magistr.dev/404",
+      "status": 200,
+      "sourceSha256": "6c8e27575c9ff3f9bee076da51e40517e05644aa7007de5627d1ffe6e56b8d3e",
+      "deployedSha256": "6c8e27575c9ff3f9bee076da51e40517e05644aa7007de5627d1ffe6e56b8d3e",
+      "equal": true
+    },
+    {
+      "path": "_astro/Nav.DZzvnNtZ.css",
+      "url": "https://magistr.dev/_astro/Nav.DZzvnNtZ.css",
+      "status": 200,
+      "sourceSha256": "c4ccbf9714958d6f37b3458c512dbc815b71796ea25af5447250df29c5ed6037",
+      "deployedSha256": "c4ccbf9714958d6f37b3458c512dbc815b71796ea25af5447250df29c5ed6037",
+      "equal": true
+    },
+    {
+      "path": "apple-touch-icon.png",
+      "url": "https://magistr.dev/apple-touch-icon.png",
+      "status": 200,
+      "sourceSha256": "d44d1825fded38cea66ddcb492e111e56e7d9a0e76e520405e58cca6b4e5c262",
+      "deployedSha256": "d44d1825fded38cea66ddcb492e111e56e7d9a0e76e520405e58cca6b4e5c262",
+      "equal": true
+    },
+    {
+      "path": "docs/concepts/index.html",
+      "url": "https://magistr.dev/docs/concepts/",
+      "status": 200,
+      "sourceSha256": "fdb9f2947f9a32dea7736aeded4293d164470c7bc0639bbcc4ed63417c87ee58",
+      "deployedSha256": "fdb9f2947f9a32dea7736aeded4293d164470c7bc0639bbcc4ed63417c87ee58",
+      "equal": true
+    },
+    {
+      "path": "docs/installation/index.html",
+      "url": "https://magistr.dev/docs/installation/",
+      "status": 200,
+      "sourceSha256": "d8acc766d52a2f0ead817caee5c8678d7c988e8e56050969dbe8e836f205b736",
+      "deployedSha256": "d8acc766d52a2f0ead817caee5c8678d7c988e8e56050969dbe8e836f205b736",
+      "equal": true
+    },
+    {
+      "path": "favicon-16.png",
+      "url": "https://magistr.dev/favicon-16.png",
+      "status": 200,
+      "sourceSha256": "9f7a31ab83b480d73f8aecf82632b615247c98913a5a829fa2edb0d7bb4a61ae",
+      "deployedSha256": "9f7a31ab83b480d73f8aecf82632b615247c98913a5a829fa2edb0d7bb4a61ae",
+      "equal": true
+    },
+    {
+      "path": "favicon-32.png",
+      "url": "https://magistr.dev/favicon-32.png",
+      "status": 200,
+      "sourceSha256": "813d5ce598150da8196cfa7df6890c1bad7712b0f927e7575718b0ef4bd20721",
+      "deployedSha256": "813d5ce598150da8196cfa7df6890c1bad7712b0f927e7575718b0ef4bd20721",
+      "equal": true
+    },
+    {
+      "path": "favicon.svg",
+      "url": "https://magistr.dev/favicon.svg",
+      "status": 200,
+      "sourceSha256": "2810abf01a8736851f92785078d16afeba84cb48edc8346daf53020251d533c1",
+      "deployedSha256": "2810abf01a8736851f92785078d16afeba84cb48edc8346daf53020251d533c1",
+      "equal": true
+    },
+    {
+      "path": "github-social.png",
+      "url": "https://magistr.dev/github-social.png",
+      "status": 200,
+      "sourceSha256": "7e39954b17012965290472f34c7306397318ea53ed1108ab10a62d7c6ff80b25",
+      "deployedSha256": "7e39954b17012965290472f34c7306397318ea53ed1108ab10a62d7c6ff80b25",
+      "equal": true
+    },
+    {
+      "path": "icon-192.png",
+      "url": "https://magistr.dev/icon-192.png",
+      "status": 200,
+      "sourceSha256": "ddc021e3028fcbb03a92a3829f69ca8779577469b8dc91eea356a0b5fda02457",
+      "deployedSha256": "ddc021e3028fcbb03a92a3829f69ca8779577469b8dc91eea356a0b5fda02457",
+      "equal": true
+    },
+    {
+      "path": "icon-512.png",
+      "url": "https://magistr.dev/icon-512.png",
+      "status": 200,
+      "sourceSha256": "392002a92fdd8dc81923944cd5abd170d0867fe8eb3701d71d4df4aea083dd10",
+      "deployedSha256": "392002a92fdd8dc81923944cd5abd170d0867fe8eb3701d71d4df4aea083dd10",
+      "equal": true
+    },
+    {
+      "path": "index.html",
+      "url": "https://magistr.dev/",
+      "status": 200,
+      "sourceSha256": "aae1cf8dc01cb7357ced9ed94c3a6b1192f1dd4a6069a3f178e604a61715c9b6",
+      "deployedSha256": "aae1cf8dc01cb7357ced9ed94c3a6b1192f1dd4a6069a3f178e604a61715c9b6",
+      "equal": true
+    },
+    {
+      "path": "og-image.png",
+      "url": "https://magistr.dev/og-image.png",
+      "status": 200,
+      "sourceSha256": "768909774b6167f26726122733b03b50876bd490ceaa35e46a0c1e529492c0e7",
+      "deployedSha256": "768909774b6167f26726122733b03b50876bd490ceaa35e46a0c1e529492c0e7",
+      "equal": true
+    },
+    {
+      "path": "og-image.svg",
+      "url": "https://magistr.dev/og-image.svg",
+      "status": 200,
+      "sourceSha256": "43097d79d9c568604650929d0cc922529b70b6dc4d45722b03938052410e9f01",
+      "deployedSha256": "43097d79d9c568604650929d0cc922529b70b6dc4d45722b03938052410e9f01",
+      "equal": true
+    },
+    {
+      "path": "pagefind/fragment/en_3440e3d.pf_fragment",
+      "url": "https://magistr.dev/pagefind/fragment/en_3440e3d.pf_fragment",
+      "status": 200,
+      "sourceSha256": "9c4bf92db672ad67603821529777fe901a21adffa9ffc43c63a808b59b9ec2aa",
+      "deployedSha256": "9c4bf92db672ad67603821529777fe901a21adffa9ffc43c63a808b59b9ec2aa",
+      "equal": true
+    },
+    {
+      "path": "pagefind/fragment/en_45d6ee5.pf_fragment",
+      "url": "https://magistr.dev/pagefind/fragment/en_45d6ee5.pf_fragment",
+      "status": 200,
+      "sourceSha256": "fedb4cf011f5402813732f722d750dc362f538b9a8855b8e0afe292f2db52471",
+      "deployedSha256": "fedb4cf011f5402813732f722d750dc362f538b9a8855b8e0afe292f2db52471",
+      "equal": true
+    },
+    {
+      "path": "pagefind/index/en_ddee66d.pf_index",
+      "url": "https://magistr.dev/pagefind/index/en_ddee66d.pf_index",
+      "status": 200,
+      "sourceSha256": "17c642e65065cc6789d41efc2aec145fb234d1aae9ea82a28d42da12a0e13769",
+      "deployedSha256": "17c642e65065cc6789d41efc2aec145fb234d1aae9ea82a28d42da12a0e13769",
+      "equal": true
+    },
+    {
+      "path": "pagefind/pagefind-component-ui.css",
+      "url": "https://magistr.dev/pagefind/pagefind-component-ui.css",
+      "status": 200,
+      "sourceSha256": "de389c7e5d87d6e2b10d65fb1e36e8989a12a2ad8dd6239b7e070d81fb5d8b0d",
+      "deployedSha256": "de389c7e5d87d6e2b10d65fb1e36e8989a12a2ad8dd6239b7e070d81fb5d8b0d",
+      "equal": true
+    },
+    {
+      "path": "pagefind/pagefind-component-ui.js",
+      "url": "https://magistr.dev/pagefind/pagefind-component-ui.js",
+      "status": 200,
+      "sourceSha256": "958620129dd14bd851805daeb12ce708bd63b9287325d1d5ae6f73a04d1723f8",
+      "deployedSha256": "958620129dd14bd851805daeb12ce708bd63b9287325d1d5ae6f73a04d1723f8",
+      "equal": true
+    },
+    {
+      "path": "pagefind/pagefind-entry.json",
+      "url": "https://magistr.dev/pagefind/pagefind-entry.json",
+      "status": 200,
+      "sourceSha256": "383c09a9d084348b46b381e8baeb2c7baf60743229748b180cc4e69b384a3132",
+      "deployedSha256": "383c09a9d084348b46b381e8baeb2c7baf60743229748b180cc4e69b384a3132",
+      "equal": true
+    },
+    {
+      "path": "pagefind/pagefind-highlight.js",
+      "url": "https://magistr.dev/pagefind/pagefind-highlight.js",
+      "status": 200,
+      "sourceSha256": "04741266a86911636cefc41c8b407e380dda99b7d208724f700f94cdf57e37b5",
+      "deployedSha256": "04741266a86911636cefc41c8b407e380dda99b7d208724f700f94cdf57e37b5",
+      "equal": true
+    },
+    {
+      "path": "pagefind/pagefind-modular-ui.css",
+      "url": "https://magistr.dev/pagefind/pagefind-modular-ui.css",
+      "status": 200,
+      "sourceSha256": "653ab29e4de5629f6ddf5f6fcdf5d2b3eb539a8c07fff8a56b8ce2156a570788",
+      "deployedSha256": "653ab29e4de5629f6ddf5f6fcdf5d2b3eb539a8c07fff8a56b8ce2156a570788",
+      "equal": true
+    },
+    {
+      "path": "pagefind/pagefind-modular-ui.js",
+      "url": "https://magistr.dev/pagefind/pagefind-modular-ui.js",
+      "status": 200,
+      "sourceSha256": "f3efa0f74b305ccab0bc9edc7c09ab69867180b4c43093d84bb9b508ac4ec32c",
+      "deployedSha256": "f3efa0f74b305ccab0bc9edc7c09ab69867180b4c43093d84bb9b508ac4ec32c",
+      "equal": true
+    },
+    {
+      "path": "pagefind/pagefind-ui.css",
+      "url": "https://magistr.dev/pagefind/pagefind-ui.css",
+      "status": 200,
+      "sourceSha256": "e113b816110ed07b017613e901addfe635350f2a5b84990aa76c91a74b158084",
+      "deployedSha256": "e113b816110ed07b017613e901addfe635350f2a5b84990aa76c91a74b158084",
+      "equal": true
+    },
+    {
+      "path": "pagefind/pagefind-ui.js",
+      "url": "https://magistr.dev/pagefind/pagefind-ui.js",
+      "status": 200,
+      "sourceSha256": "2efa93f2e80a199ca742a69bd4cfffabc5c591ebe7763f64f7c655fd00d2209f",
+      "deployedSha256": "2efa93f2e80a199ca742a69bd4cfffabc5c591ebe7763f64f7c655fd00d2209f",
+      "equal": true
+    },
+    {
+      "path": "pagefind/pagefind-worker.js",
+      "url": "https://magistr.dev/pagefind/pagefind-worker.js",
+      "status": 200,
+      "sourceSha256": "4ca50d25bcab9e1c3afbc00ab5f7761114e83c8fc1b83d38655af1558b650c2a",
+      "deployedSha256": "4ca50d25bcab9e1c3afbc00ab5f7761114e83c8fc1b83d38655af1558b650c2a",
+      "equal": true
+    },
+    {
+      "path": "pagefind/pagefind.en_45f7424305.pf_meta",
+      "url": "https://magistr.dev/pagefind/pagefind.en_45f7424305.pf_meta",
+      "status": 200,
+      "sourceSha256": "7ffe0e1fff288742471b29673037432bb37a165ac0c37a8b195f6f7ee208b5d7",
+      "deployedSha256": "7ffe0e1fff288742471b29673037432bb37a165ac0c37a8b195f6f7ee208b5d7",
+      "equal": true
+    },
+    {
+      "path": "pagefind/pagefind.js",
+      "url": "https://magistr.dev/pagefind/pagefind.js",
+      "status": 200,
+      "sourceSha256": "252d272bd34d483d19a752060f6a065114d15ab12c42d8f905ca565e2768a009",
+      "deployedSha256": "252d272bd34d483d19a752060f6a065114d15ab12c42d8f905ca565e2768a009",
+      "equal": true
+    },
+    {
+      "path": "pagefind/wasm.en.pagefind",
+      "url": "https://magistr.dev/pagefind/wasm.en.pagefind",
+      "status": 200,
+      "sourceSha256": "6c8406154b5d460fc8b6cdbf2c99c008c43c465efdb1f9c15c192f5cf30dcd85",
+      "deployedSha256": "6c8406154b5d460fc8b6cdbf2c99c008c43c465efdb1f9c15c192f5cf30dcd85",
+      "equal": true
+    },
+    {
+      "path": "pagefind/wasm.unknown.pagefind",
+      "url": "https://magistr.dev/pagefind/wasm.unknown.pagefind",
+      "status": 200,
+      "sourceSha256": "2533da887ac06de36813d031310af0f737daadacc931775e342aa5a3857a4959",
+      "deployedSha256": "2533da887ac06de36813d031310af0f737daadacc931775e342aa5a3857a4959",
+      "equal": true
+    },
+    {
+      "path": "robots.txt",
+      "url": "https://magistr.dev/robots.txt",
+      "status": 200,
+      "sourceSha256": "a7ba2b4ae2cea65e1d71a625d36decd3e200a107592044d4606f186f431e639c",
+      "deployedSha256": "a7ba2b4ae2cea65e1d71a625d36decd3e200a107592044d4606f186f431e639c",
+      "equal": true
+    },
+    {
+      "path": "screenshots/captures.json",
+      "url": "https://magistr.dev/screenshots/captures.json",
+      "status": 200,
+      "sourceSha256": "9e3981fb5f974c5a5dec3400c84fd81e59b4dc308f58c6b74cfddfdce81b2365",
+      "deployedSha256": "9e3981fb5f974c5a5dec3400c84fd81e59b4dc308f58c6b74cfddfdce81b2365",
+      "equal": true
+    },
+    {
+      "path": "screenshots/desktop-dark.png",
+      "url": "https://magistr.dev/screenshots/desktop-dark.png",
+      "status": 200,
+      "sourceSha256": "b80962e98a460548586bf884260f923e21961e0875a3681fe56a9d02ed0065ca",
+      "deployedSha256": "b80962e98a460548586bf884260f923e21961e0875a3681fe56a9d02ed0065ca",
+      "equal": true
+    },
+    {
+      "path": "screenshots/desktop-light.png",
+      "url": "https://magistr.dev/screenshots/desktop-light.png",
+      "status": 200,
+      "sourceSha256": "d91bac1b7d1a2e9cad074f3f29b5c4d757b1259e42ffc64835d713fdd094c569",
+      "deployedSha256": "d91bac1b7d1a2e9cad074f3f29b5c4d757b1259e42ffc64835d713fdd094c569",
+      "equal": true
+    },
+    {
+      "path": "site.webmanifest",
+      "url": "https://magistr.dev/site.webmanifest",
+      "status": 200,
+      "sourceSha256": "30b21f7126ba8c7484f0214e68a8ce770169c1a4dc22f9ddbae5a9b4da1d088a",
+      "deployedSha256": "30b21f7126ba8c7484f0214e68a8ce770169c1a4dc22f9ddbae5a9b4da1d088a",
+      "equal": true
+    },
+    {
+      "path": "sitemap-0.xml",
+      "url": "https://magistr.dev/sitemap-0.xml",
+      "status": 200,
+      "sourceSha256": "5707307ce4b3b1a6f702902242eda8b471a37b4b1af7709e3b39a8b2d5ad47d7",
+      "deployedSha256": "5707307ce4b3b1a6f702902242eda8b471a37b4b1af7709e3b39a8b2d5ad47d7",
+      "equal": true
+    },
+    {
+      "path": "sitemap-index.xml",
+      "url": "https://magistr.dev/sitemap-index.xml",
+      "status": 200,
+      "sourceSha256": "2f82204e697055921b19fc44f0b3893f9b8b3974f31e4a6061479d27b46176ba",
+      "deployedSha256": "2f82204e697055921b19fc44f0b3893f9b8b3974f31e4a6061479d27b46176ba",
+      "equal": true
+    }
+  ]
+}

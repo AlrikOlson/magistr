@@ -1,0 +1,46 @@
+{
+  "captured_on": "2026-10-19",
+  "timezone": "America/Los_Angeles",
+  "platform": "ProductName:\t\tmacOS\nProductVersion:\t\t26.5.2\nBuildVersion:\t\t25F84",
+  "native_source": "cfd80a5718c6642eb3322e4abab70cc04a4b86c0",
+  "agent_mcp_source": "2237d01a993eab0cb909de0523a7c83410c4fad7",
+  "native_source_clean": true,
+  "sourceHashes": {
+    "Cargo.lock": "96f96c364f061b554750e4c0053d4c29a8f6b05b128151b23700cf1c1717a834",
+    "crates/magistr-cli/src/agent/mod.rs": "ec317bb7812e9bdddecd13b44e5fd5f983a2775aa462dda5ae666cbc57d4e5c6",
+    "crates/magistr-cli/src/agent/mod.tests.rs": "f43ef2b20b14064f5cdb20192fc031b2283be37bcb69ccec5156860ed3b05410",
+    "crates/magistr-cli/src/agent/persistence/resume.rs": "2fe9c463b991176c105cd1d12b060d7c632c65e05549c3120eddcd01292874c8",
+    "crates/magistr-cli/src/agent/persistence/resume.tests.rs": "087a149527a928ab743897f26b41f98d08b86ed2791960d35b174be95df90695",
+    "crates/magistr-cli/src/agent/resolved_session_spec.rs": "9f571160aa2e4450902cc96485002e98c2defade0a36493a201ee4027af39661",
+    "crates/magistr-cli/src/agent/resolved_session_spec.tests.rs": "a8573c5e812cbc1798dd18da0c3a2d1249314773d91401fdc6b1800a0ffbdd63",
+    "crates/magistr-cli/src/application/session_opening.rs": "933c271b92d6afe87d04a734e51461e943b1bce856e038ce75ddff4784ae58a3",
+    "crates/magistr-cli/src/application/session_opening.tests.rs": "457740768670940fae2285e1832a7d9d084573465ac5859946f30cc2d94a588e",
+    "crates/magistr-cli/src/orchestration/commands/home.tests.rs": "ce540d0d2280fb78ba49b9ed6730d4cc57d14dfe04e1a6e961c795f3c3bddd87",
+    "crates/magistr-cli/src/orchestration/hosted_work.rs": "b326a7b8495a02a315949d582ac44af0f96964b1fe1138f555e117584fb0ef0f",
+    "crates/magistr-cli/src/orchestration/interactive_session.rs": "100146012f8ccc6d2dcb828a3a6bcab61e88844f523c35639fe50be41d76ee22",
+    "crates/magistr-cli/src/orchestration/interactive_session.tests.rs": "c3331111ec6b3a589d89ce758a41383875f56ef278d57476ab30ecb86ff85382",
+    "crates/magistr-cli/src/orchestration/roadmap_request.rs": "8b57bd078c961b9d198d24ec6de57c6c685a3c5c2e2d059c0c5239b759278e55",
+    "crates/magistr-cli/src/orchestration/roadmap_request.tests.rs": "2ef628f2aef8c80a4a6ed744087b46525d6d230b3c73db4905b2b3c6e69fca51",
+    "crates/magistr-cli/src/permissions/session_permission_policy.rs": "606069c9157809f56b61bbf609733ef2734bc89c17cc46632b5700bc4d55307b",
+    "crates/magistr-cli/src/unified_mcp.rs": "b77395b387b67727acb31a52ef82541657dd8757c5eae7b489685d74822e3557",
+    "crates/magistr-desktop/Cargo.lock": "7538f27732c18e42e609c3a72e13553d0f8217837d5a953ed3d280ddb603dfb6",
+    "crates/magistr-desktop/src/args.tests.rs": "5677daae08128f323dc4a04819f930428807da2c4d40d9fbe3c2dae508b84f91"
+  },
+  "binaries": {
+    "target/release/magistr": "a7b12246c34fe55323f1b0f821e310864607fd4f9277e6842760786c230ad7ce",
+    "target/release-screenshots/desktop/Magistr Preview.app/Contents/MacOS/magistr-desktop": "7aca3b70dcc7ffab2cdd8b2bb8bded42401544d5470492dce58bb1b2a476bfad"
+  },
+  "images": {
+    "claude-code-resume.png": "b50927133fc3020481bd61cd8bf31bd261a6d2e777177aad856afaf9b1d4c3b0",
+    "claude-code-session.png": "9aaaccb133117057fb85ae8086f6ed3534026ed3d22ec81ceaeac1a4442bd4d1",
+    "codex-completed.png": "c6df4bc4e5cacc09c28027d58cfcbf41ded42605a795a5bf532d80439f709f6a",
+    "codex-resume.png": "56594f1bccb7445a456846f22749dd9e2404bcac84491ba645d11b21292c4dc6",
+    "codex-session.png": "b084a7b9a553659056f6b86f28ed1e8c82f3dd8bd3d1b1cecacef93b166da3ff",
+    "desktop-conversation-dark.png": "71942b746bfdb38ef8eb8396ee04170f6485f8c67434c0236c35cbc6ec735ae9",
+    "desktop-conversation-light.png": "3e792e60b88aed4df38b76b27c782e078192a0274bb6a0d3ddacd9d4d5760890",
+    "desktop-dark-corrected.png": "878eff5e3fab55751a08ebda82b48bb876bcfb84f36d11f1852dbb22bb5194e7",
+    "desktop-dark.png": "c898ae973e1bc37fca2536aeb13cbd512e4d235bf33c1b04482037f10f87379f",
+    "desktop-resumed-dark.png": "aa9c4aa4f28bb0cb1841461e92ca5275a4235521d657c6db318beb388d20981d",
+    "desktop-resumed-light.png": "88406b6d69876210fec4ee238aaeea8d115bb3cfd37eec1731901ccf22572b3e"
+  }
+}

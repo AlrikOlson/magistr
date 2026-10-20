@@ -1,0 +1,17 @@
+{
+  "file": "codex-session.png",
+  "capturedAt": "2026-10-20T03:07:10.186Z",
+  "client": "codex",
+  "renderer": "xterm 6.0.0 in headless WebKit 27.2",
+  "viewport": {
+    "width": 1320,
+    "height": 1000
+  },
+  "deviceScaleFactor": 2,
+  "terminal": {
+    "columns": 118,
+    "rows": 44
+  },
+  "imageSha256": "b084a7b9a553659056f6b86f28ed1e8c82f3dd8bd3d1b1cecacef93b166da3ff",
+  "method": "Unmodified bytes from the real interactive client and live Magistr MCP; no simulated replies."
+}

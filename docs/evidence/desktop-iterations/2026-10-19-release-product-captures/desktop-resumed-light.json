@@ -1,0 +1,14 @@
+{
+  "capturedAt" : "2026-10-20T03:17:09Z",
+  "foregroundInput" : false,
+  "frontPid" : 47516,
+  "height" : 1664,
+  "pid" : 47516,
+  "renderer" : "native macOS WKWebView; ScreenCaptureKit window capture",
+  "viewport" : {
+    "height" : 832,
+    "width" : 1280
+  },
+  "width" : 2560,
+  "windowId" : 419
+}
