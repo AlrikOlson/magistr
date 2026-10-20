@@ -1,0 +1,144 @@
+{
+  "version": "0.1.0",
+  "source": "4fa3788f200c5c807f142f7542e6c159deae777a",
+  "artifact": {
+    "id": 12234132955,
+    "name": "cli-distribution",
+    "run": 39352947283,
+    "url": "https://github.com/AlrikOlson/magistr/actions/runs/39352947283",
+    "digest": "sha256:7afc502338df94fc1cca7164fa99f3d6a72a2dd3fe3d3352a9e63fb3fceada81",
+    "bytes": 35792059,
+    "createdAt": "2026-10-20T01:33:50Z",
+    "expiresAt": "2027-01-18T01:21:13Z"
+  },
+  "cargo": [
+    {
+      "package": "magistr-domain",
+      "version": "0.1.0",
+      "file": "magistr-domain-0.1.0.crate",
+      "sha256": "04731b88656e92d83f6e5a262752be4b1a2e25e18fc40cf226b3bad7b910ddf0",
+      "bytes": 43777,
+      "fileCount": 79
+    },
+    {
+      "package": "magistr-application",
+      "version": "0.1.0",
+      "file": "magistr-application-0.1.0.crate",
+      "sha256": "98109fdf3f479004b9b1bb8f98f250b192c136d7b8eb286757bfab64340e41a9",
+      "bytes": 32513,
+      "fileCount": 72
+    },
+    {
+      "package": "magistr-process",
+      "version": "0.1.0",
+      "file": "magistr-process-0.1.0.crate",
+      "sha256": "091158976f907cf7b0f5b0f12f0e90095515c31741968d6c692fb14b6a227fbc",
+      "bytes": 31437,
+      "fileCount": 26
+    },
+    {
+      "package": "magistr-acp",
+      "version": "0.1.0",
+      "file": "magistr-acp-0.1.0.crate",
+      "sha256": "1b17776f76e34a4d5460259f3b2fa241aec589364fd57e555948a410e65fa36d",
+      "bytes": 68643,
+      "fileCount": 48
+    },
+    {
+      "package": "magistr-acp-agent",
+      "version": "0.1.0",
+      "file": "magistr-acp-agent-0.1.0.crate",
+      "sha256": "20338d141f569f328622a8c6daed180b38d6190612585ed6ab9ceddc1e576b3c",
+      "bytes": 102488,
+      "fileCount": 84
+    },
+    {
+      "package": "magistr-workflow-contracts",
+      "version": "0.1.0",
+      "file": "magistr-workflow-contracts-0.1.0.crate",
+      "sha256": "58b18625a619d81db836f85c1b3795b7db9e1a4fb88d218ebffc5c9a6bc36da5",
+      "bytes": 70506,
+      "fileCount": 73
+    },
+    {
+      "package": "magistr-cockpit",
+      "version": "0.1.0",
+      "file": "magistr-cockpit-0.1.0.crate",
+      "sha256": "a2c51f606f54390087921d9659e9e25f0c7fe9e4fa3abd91f827228647680b61",
+      "bytes": 35351,
+      "fileCount": 61
+    },
+    {
+      "package": "magistr-cockpit-runtime",
+      "version": "0.1.0",
+      "file": "magistr-cockpit-runtime-0.1.0.crate",
+      "sha256": "9f6c76091c4b5823a747070da94bd15bafdf1eb21e88423602934529b12152ef",
+      "bytes": 33045,
+      "fileCount": 21
+    },
+    {
+      "package": "magistr-workflow",
+      "version": "0.1.0",
+      "file": "magistr-workflow-0.1.0.crate",
+      "sha256": "9f935b165de9d300822748e1fd8b2c02fb28243a6ced3e8a15970687f2506499",
+      "bytes": 674833,
+      "fileCount": 307
+    },
+    {
+      "package": "magistr-engine",
+      "version": "0.1.0",
+      "file": "magistr-engine-0.1.0.crate",
+      "sha256": "a7bfcb2f72a8b387ad6a0d5f0ef9dc22267e1faea2b176560f12d9b55b910f54",
+      "bytes": 226842,
+      "fileCount": 226
+    },
+    {
+      "package": "magistr-workspace",
+      "version": "0.1.0",
+      "file": "magistr-workspace-0.1.0.crate",
+      "sha256": "7b2387afe4938a5763e3ceedf077d1257c8d46fecc9d1bde51528b02cec2819c",
+      "bytes": 676638,
+      "fileCount": 564
+    },
+    {
+      "package": "magistr-core",
+      "version": "0.1.0",
+      "file": "magistr-core-0.1.0.crate",
+      "sha256": "e9735c7e38599e84bf4ffb5d25ba6e2b8dbfe4ffee9e50cfed0b5668f224027d",
+      "bytes": 300645,
+      "fileCount": 333
+    },
+    {
+      "package": "magistr-mcp",
+      "version": "0.1.0",
+      "file": "magistr-mcp-0.1.0.crate",
+      "sha256": "7fa5f57d2ffcc8bef7e8e4428de341a6ea8f8a7628ff3c90660d1b8d483d16f7",
+      "bytes": 15268,
+      "fileCount": 14
+    },
+    {
+      "package": "magistr-cli",
+      "version": "0.1.0",
+      "file": "magistr-cli-0.1.0.crate",
+      "sha256": "d315c07157e92019a5c02e7fddba79b1e27aa3812f31dbe482ddcda865df626b",
+      "bytes": 1728438,
+      "fileCount": 1007
+    }
+  ],
+  "npm": {
+    "name": "magistr",
+    "version": "0.1.0",
+    "filename": "magistr-0.1.0.tgz",
+    "bytes": 31876176,
+    "unpackedBytes": 113622501,
+    "fileCount": 971,
+    "sha256": "9bd932fbf869c4c1c9be9aecae0bad6a05c707db0633ac7dfbe0351afaa17e15"
+  },
+  "binary": {
+    "version": "0.1.0",
+    "target": "aarch64-apple-darwin",
+    "binarySha256": "f663e784c973c09fe5f468af352cad680cf80b4adccb2df112e75c90f593ded6",
+    "dependencyCount": 550
+  },
+  "note": "Complete file-level Cargo/npm inventories and the dependency/license inventory are retained in the selected hosted cli-distribution artifact."
+}
