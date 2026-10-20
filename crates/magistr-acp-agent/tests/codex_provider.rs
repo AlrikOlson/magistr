@@ -605,6 +605,20 @@ async fn a_terminal_queued_after_interrupt_refusal_allows_the_next_turn_without_
         .as_str()
         .expect("recorded runtime thread")
         .to_owned();
+    // The read response follows the terminal on the same stdout stream.
+    // Awaiting it proves that the routing owner has queued completion;
+    // elapsed time cannot establish that under a loaded test runner.
+    let mut snapshot =
+        recording.frames[recording.response("thread/start")]["result"]["thread"].clone();
+    snapshot["turns"] =
+        json!([recording.frames.last().expect("terminal frame")["params"]["turn"].clone()]);
+    // This injected read reply hydrates the fixture's empty terminal item list.
+    snapshot["turns"][0]["itemsView"] = json!("full");
+    recording.frames.extend([
+        json!({"_sent": {"id": "after-interrupt", "method": "thread/read",
+            "params": {"threadId": thread_id, "includeTurns": true}}}),
+        json!({"id": "after-interrupt", "result": {"thread": snapshot}}),
+    ]);
     let next = Recording::new("turn_message");
     let start = next.marker("turn/start");
     let end = next.marker("thread/read");
@@ -616,10 +630,10 @@ async fn a_terminal_queued_after_interrupt_refusal_allows_the_next_turn_without_
             serde_json::from_str::<Value>(&frame.to_string().replace(THREAD, &thread_id))
                 .expect("thread identity remapping preserves recorded JSON")
         }));
-    let (stop, observed) = with_provider(
-        recording.provider().await,
-        PermissionAnswer::Cancel,
-        async |cx, observed| {
+    let provider = recording.provider().await;
+    let direct = provider.clone();
+    let (stop, observed) =
+        with_provider(provider, PermissionAnswer::Cancel, async |cx, observed| {
             initialize(&cx).await?;
             let session = new_session(&cx).await?;
             let running = cx.send_request(prompt(&session.session_id, "count to 400"));
@@ -631,13 +645,16 @@ async fn a_terminal_queued_after_interrupt_refusal_allows_the_next_turn_without_
                 .block_task()
                 .await
                 .expect_err("interrupt refusal reaches ACP");
-            tokio::time::sleep(Duration::from_millis(100)).await;
+            direct
+                .0
+                .read_thread(&thread_id)
+                .await
+                .expect("read response follows the routed terminal");
             Ok(prompt_and_wait(&cx, &session.session_id, "pong")
                 .await?
                 .stop_reason)
-        },
-    )
-    .await;
+        })
+        .await;
     assert_eq!(stop, StopReason::EndTurn);
     assert!(observed.messages().ends_with("pong"));
     assert_eq!(
