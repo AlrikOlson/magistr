@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Regression checks for release source selection and artifact identity."""
+from datetime import datetime, timezone
 import hashlib
 import importlib.util
 import io
@@ -8,6 +9,7 @@ from pathlib import Path
 import tarfile
 import tempfile
 import unittest
+from unittest.mock import patch
 
 spec = importlib.util.spec_from_file_location("cli_release", Path(__file__).with_name("cli-release.py"))
 release = importlib.util.module_from_spec(spec)
@@ -29,6 +31,41 @@ def write_json(path, content):
 
 
 class HostedRunTests(unittest.TestCase):
+    def test_selector_requires_successful_source_bound_security_run(self):
+        run = {"repository": {"full_name": "owner/repo"}, "path": ".github/workflows/cli-packages.yml",
+               "event": "workflow_dispatch", "head_branch": "main", "status": "completed",
+               "conclusion": "success", "head_sha": SOURCE}
+        check = {"head_sha": SOURCE, "event": "push", "status": "completed", "conclusion": "success",
+                 "run_number": 1}
+        with patch.object(release, "github", side_effect=[run, {"workflow_runs": [check]},
+                                                        {"workflow_runs": []}]) as api:
+            with self.assertRaisesRegex(ValueError, "release-security"):
+                release.select_run("owner/repo", "123")
+        self.assertIn("release-security.yml", api.call_args.args[0])
+
+
+    def test_resume_run_must_be_completed_manual_publication_from_this_repository(self):
+        run = {"repository": {"full_name": "owner/repo"}, "path": ".github/workflows/cli-packages.yml",
+               "event": "workflow_dispatch", "head_branch": "main", "status": "completed",
+               "conclusion": "success", "head_sha": SOURCE}
+        check = {"head_sha": SOURCE, "event": "push", "status": "completed", "conclusion": "success",
+                 "run_number": 1}
+        previous = dict(run, path=".github/workflows/cli-publish.yml", conclusion="failure")
+        for change in ({"repository": {"full_name": "another/repo"}},
+                       {"path": ".github/workflows/cli-packages.yml"}, {"status": "in_progress"},
+                       {"event": "pull_request"}, {"head_branch": "topic"}):
+            with self.subTest(change=change):
+                with patch.object(release, "github", side_effect=[
+                        run, {"workflow_runs": [check]}, {"workflow_runs": [check]},
+                        dict(previous, **change)]):
+                    with self.assertRaisesRegex(ValueError, "Previous publication"):
+                        release.select_run("owner/repo", "123", "456")
+        with patch.object(release, "github", side_effect=[
+                run, {"workflow_runs": [check]}, {"workflow_runs": [check]}, previous]):
+            with patch("sys.stdout", new_callable=io.StringIO) as output:
+                release.select_run("owner/repo", "123", "456")
+            self.assertEqual(output.getvalue().strip(), SOURCE)
+
     def test_only_successful_manual_packages_from_main_are_selected(self):
         run = {"repository": {"full_name": "owner/repo"}, "path": ".github/workflows/cli-packages.yml",
                "event": "workflow_dispatch", "head_branch": "main", "status": "completed",
@@ -83,8 +120,40 @@ class ArtifactTests(unittest.TestCase):
                     "pinnedConfigFreshCache": True, "nativeMcpAndWorker": True, "sigterm": True,
                     "removal": True, "usageExitCode": 2})
 
+        generated = datetime.now(timezone.utc).isoformat()
+        write_json(self.root / "security-verification.json", {
+            "schema": 1, "passed": True, "source": SOURCE, "sourceDirty": False,
+            "target": "aarch64-apple-darwin", "generatedAt": generated,
+            "artifactSha256": {crate.name: release.digest(crate), npm.name: release.digest(npm)},
+            "inputSha256": {"Cargo.lock": "a" * 64},
+            "advisoryDatabase": {"last-commit": "b" * 40, "fetchedAt": generated},
+            "checks": {name: {"passed": True}
+                       for name in ("cargo", "npm:apps/website", "npm:scripts", "secrets")},
+        })
+
+    def test_missing_failed_stale_or_unbound_security_receipts_are_refused(self):
+        path = self.root / "security-verification.json"
+        original = release.read_json(path)
+        for changes in ({"passed": False}, {"source": "2" * 40}, {"artifactSha256": {}},
+                        {"generatedAt": "2026-01-01T00:00:00+00:00"}, {"sourceDirty": True}):
+            with self.subTest(changes=changes):
+                write_json(path, dict(original, **changes))
+                with self.assertRaises(ValueError):
+                    release.verify(self.root, SOURCE)
+        path.unlink()
+        with self.assertRaises(FileNotFoundError):
+            release.verify(self.root, SOURCE)
+
     def test_reviewed_archives_and_matching_receipts_are_accepted(self):
         self.assertEqual(release.verify(self.root, SOURCE)["version"], "0.1.0")
+
+    def test_invalid_archive_version_is_refused_before_reading_paths(self):
+        path = self.root / "cargo-inventory.json"
+        records = release.read_json(path)
+        records[0]["version"] = "../outside"
+        write_json(path, records)
+        with self.assertRaisesRegex(ValueError, "Invalid release version"):
+            release.verify(self.root, SOURCE)
 
     def test_corrupt_archive_or_wrong_source_revision_is_refused(self):
         with self.assertRaisesRegex(ValueError, "release revision"):

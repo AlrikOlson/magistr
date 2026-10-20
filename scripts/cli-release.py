@@ -1,12 +1,23 @@
 #!/usr/bin/env python3
-"""Check a hosted CLI package run and its exact artifacts. Never publishes."""
+"""Verify reviewed CLI artifacts; publish only through the explicit publish-cargo command."""
 import argparse
 import hashlib
+import importlib.util
+import os
 import json
 from pathlib import Path
 import re
 import subprocess
 import tarfile
+from cargo_publication import Publisher
+from version import SEMVER
+
+
+def security_verifier():
+    spec = importlib.util.spec_from_file_location("release_security", Path(__file__).with_name("release-security.py"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.verify_receipt
 
 
 def require(condition, message):
@@ -33,19 +44,19 @@ def check_run(run, repository):
     return sha
 
 
-def check_quality(runs, sha):
+def check_quality(runs, sha, label="release-readiness"):
     matching = [run for run in runs if run["head_sha"] == sha and run["event"] == "push"]
-    require(matching, "No release-readiness CI run exists for the package source")
+    require(matching, f"No {label} CI run exists for the package source")
     latest = max(matching, key=lambda run: run["run_number"])
     require(latest["status"] == "completed" and latest["conclusion"] == "success",
-            "Latest release-readiness CI for the package source has not passed")
+            f"Latest {label} CI for the package source has not passed")
 
 
 def github(path):
     return json.loads(subprocess.check_output(["gh", "api", path], text=True))
 
 
-def select_run(repository, run_id):
+def select_run(repository, run_id, resume_run=None):
     require(re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository) is not None,
             "Invalid repository")
     require(run_id.isdecimal(), "Package run ID must be numeric")
@@ -53,6 +64,15 @@ def select_run(repository, run_id):
     sha = check_run(run, repository)
     checks = github(f"repos/{repository}/actions/workflows/public-release.yml/runs?head_sha={sha}&per_page=100")
     check_quality(checks["workflow_runs"], sha)
+    security = github(f"repos/{repository}/actions/workflows/release-security.yml/runs?head_sha={sha}&per_page=100")
+    check_quality(security["workflow_runs"], sha, "release-security")
+    if resume_run:
+        require(resume_run.isdecimal(), "Previous publication run ID must be numeric")
+        previous = github(f"repos/{repository}/actions/runs/{resume_run}")
+        require(previous["repository"]["full_name"] == repository
+                and previous["path"] == ".github/workflows/cli-publish.yml"
+                and previous["event"] == "workflow_dispatch" and previous["head_branch"] == "main"
+                and previous["status"] == "completed", "Previous publication run is not a completed manual release")
     print(sha)
 
 
@@ -63,6 +83,7 @@ def verify(artifacts, source):
     versions = {record["version"] for record in cargo}
     require(len(versions) == 1, "Cargo package versions differ")
     version = versions.pop()
+    require(isinstance(version, str) and SEMVER.fullmatch(version), "Invalid release version")
     names = [record["package"] for record in cargo]
     require(len(set(names)) == len(names) and names[-1] == "magistr-cli",
             "Cargo publication order is incomplete or duplicated")
@@ -120,6 +141,7 @@ def verify(artifacts, source):
                   "sigterm", "removal"):
         require(npm_check[field] is True, f"npm installation did not verify {field}")
     require(npm_check["usageExitCode"] == 2, "npm usage exit status was not verified")
+    security_verifier()(artifacts / "security-verification.json", source, expected)
     return {"version": version, "source": source, "cargoPackages": len(cargo),
             "npm": npm["filename"], "verified": True}
 
@@ -130,15 +152,24 @@ def main():
     select = commands.add_parser("select")
     select.add_argument("--repository", required=True)
     select.add_argument("--run-id", required=True)
+    select.add_argument("--resume-run", help="Completed publication run containing the previous receipt")
     check = commands.add_parser("verify")
     check.add_argument("--out", type=Path, required=True)
     check.add_argument("--source", required=True)
+    publish = commands.add_parser("publish-cargo", help="Upload exact reviewed archives to crates.io")
+    publish.add_argument("--out", type=Path, required=True)
+    publish.add_argument("--source", required=True)
+    publish.add_argument("--max-wait", type=int, default=7200, help="Total wait budget in seconds")
     args = parser.parse_args()
     try:
         if args.action == "select":
-            select_run(args.repository, args.run_id)
+            select_run(args.repository, args.run_id, args.resume_run)
         else:
-            print(json.dumps(verify(args.out, args.source)))
+            result = verify(args.out, args.source)
+            if args.action == "publish-cargo":
+                result = Publisher(args.out, args.source, os.environ.get("CARGO_REGISTRY_TOKEN"),
+                                   max_wait=args.max_wait).run()
+            print(json.dumps(result))
     except (ValueError, KeyError, OSError, tarfile.TarError) as error:
         raise SystemExit(f"Release verification refused: {error}") from error
 

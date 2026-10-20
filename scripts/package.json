@@ -2,6 +2,8 @@
   "name": "magistr-development-tools",
   "private": true,
   "devDependencies": {
-    "jscpd": "5.4.1"
+    "jscpd": "5.4.1",
+    "prettier": "3.9.9",
+    "wrangler": "4.151.2"
   }
 }

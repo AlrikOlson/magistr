@@ -131,6 +131,14 @@ connected MCP tools; native services retain every workflow and source authority.
 provenance, and licenses remain beside
 the files they document.
 
+Release preparation owns package inventories and extracted-installation receipts.
+The [security gate](../release-security.md) owns current advisory and secret scans
+and writes one source-bound receipt, including artifact hashes during packaging.
+`cli-release.py` consumes those receipts and successful exact-source CI runs before
+`cargo_publication.py` reconciles any upload with the registry. Registry state is
+the publication authority; local receipts record completed or uncertain effects.
+The [release guide](../releasing-cli.md) describes that explicit publication boundary.
+
 The [desktop foundation decision](desktop-foundation.md), recorded 12 October 2026,
 selects a Tauri Rust host and OS WebView from native performance, editing and
 VoiceOver evidence. It names the existing workspace/session/history owner repairs

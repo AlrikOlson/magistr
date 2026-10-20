@@ -27,12 +27,12 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Check out source
-        uses: actions/checkout@v4
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          components: rustfmt, clippy
-      - uses: Swatinem/rust-cache@v2
+          persist-credentials: false
+      - name: Install Rust toolchain
+        run: rustup show active-toolchain
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
       - name: Fetch the complete locked dependency graph
         run: cargo fetch --locked
       - name: Record available build storage
@@ -44,16 +44,17 @@ jobs:
           python3 -B scripts/version.py check
           python3 -B scripts/version.tests.py
           python3 -B scripts/cli-release.tests.py
+          python3 -B scripts/cargo_publication.tests.py
+          python3 -B scripts/public_link_check.tests.py
+          python3 -B scripts/release-security.tests.py
       - name: Check workspace
         run: cargo check --workspace --all-targets --locked
       - name: Install cargo-nextest
-        uses: taiki-e/install-action@v2
-        with:
-          tool: cargo-nextest
+        uses: ./.github/actions/install-nextest
       - name: Install Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
-          node-version: 22
+          node-version-file: .node-version
           cache: npm
           cache-dependency-path: |
             scripts/package-lock.json
@@ -71,7 +72,11 @@ jobs:
           test ! -d target || du -sh target
       - name: Test website
         working-directory: apps/website
-        run: npm ci && npm test
+        run: |
+          npm ci
+          npm test
+          npx --no-install playwright install webkit
+          npm run test:ui
       - name: Assert clean-checkout public assets
         shell: bash
         run: |
@@ -91,27 +96,22 @@ jobs:
           ! grep -R -n '/logo\.png' apps/website/src
 
   desktop:
-    name: Desktop gates (${{ matrix.os }})
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [macos-latest]
-    runs-on: ${{ matrix.os }}
+    name: Desktop gates (macOS)
+    runs-on: macos-15
+    timeout-minutes: 30
     steps:
       - name: Check out source
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
+        run: rustup show active-toolchain
       - name: Install cargo-nextest
-        uses: taiki-e/install-action@v2
-        with:
-          tool: cargo-nextest
+        uses: ./.github/actions/install-nextest
       - name: Install Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
-          node-version: 22
+          node-version-file: .node-version
       - name: Install desktop test dependencies
         working-directory: crates/magistr-desktop
         run: npm ci
@@ -138,17 +138,16 @@ jobs:
         run: ./scripts/screenshot-gate.sh
 
   package:
-    name: Package and verify (${{ matrix.os }})
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [macos-latest]
-    runs-on: ${{ matrix.os }}
+    name: Package and verify (macOS)
+    runs-on: macos-15
+    timeout-minutes: 30
     steps:
       - name: Check out source
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        run: rustup show active-toolchain
       - name: Build host archive
         run: ./scripts/package-release.sh
       - name: Verify archive checksums
@@ -164,9 +163,11 @@ jobs:
     name: Anonymous public endpoint gate
     if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
-    continue-on-error: true
+    timeout-minutes: 5
     steps:
       - name: Check out source
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
       - name: Probe configured public URLs
-        run: PUBLIC_RELEASE_STRICT=1 ./scripts/public-link-check.sh
+        run: ./scripts/public-link-check.sh --stage release --out target/public-release-readiness.json

@@ -1,0 +1,216 @@
+{
+  "schema": 1,
+  "dependencyExceptions": [],
+  "secretReviews": [
+    {
+      "commit": "fb9f61bcc722cb94ccd2e487cbac80e6f6d6af01",
+      "file": "crates/magistr-workspace/fixtures/contracts/responses.json",
+      "rule": "jwt",
+      "line": 401,
+      "contextVerified": true,
+      "reason": "Deliberate credential-shaped redaction test vector",
+      "reviewedOn": "2026-10-19",
+      "evidence": "docs/evidence/cli-installation/2026-10-19-release-audit/secret-scan-review.json"
+    },
+    {
+      "commit": "fb9f61bcc722cb94ccd2e487cbac80e6f6d6af01",
+      "file": "crates/magistr-workspace/fixtures/contracts/responses.json",
+      "rule": "slack-bot-token",
+      "line": 365,
+      "contextVerified": true,
+      "reason": "Deliberate credential-shaped redaction test vector",
+      "reviewedOn": "2026-10-19",
+      "evidence": "docs/evidence/cli-installation/2026-10-19-release-audit/secret-scan-review.json"
+    },
+    {
+      "commit": "fb9f61bcc722cb94ccd2e487cbac80e6f6d6af01",
+      "file": "crates/magistr-workspace/fixtures/contracts/responses.json",
+      "rule": "gcp-api-key",
+      "line": 392,
+      "contextVerified": true,
+      "reason": "Deliberate credential-shaped redaction test vector",
+      "reviewedOn": "2026-10-19",
+      "evidence": "docs/evidence/cli-installation/2026-10-19-release-audit/secret-scan-review.json"
+    },
+    {
+      "commit": "3ce05bc652f25ff72d73593ece59d9c6b1bf1a7d",
+      "file": "docs/evidence/desktop-current/work-receipt.json",
+      "rule": "generic-api-key",
+      "line": 601,
+      "contextVerified": true,
+      "reason": "Source-content SHA-256 in a visual evidence receipt",
+      "reviewedOn": "2026-10-19",
+      "evidence": "docs/evidence/cli-installation/2026-10-19-release-audit/secret-scan-review.json"
+    },
+    {
+      "commit": "25ee837095804bb701020fb162c0e692f3fe18d4",
+      "file": "docs/evidence/desktop-current/draft-persistence-receipt.json",
+      "rule": "generic-api-key",
+      "line": 824,
+      "contextVerified": true,
+      "reason": "Source-content SHA-256 in a visual evidence receipt",
+      "reviewedOn": "2026-10-19",
+      "evidence": "docs/evidence/cli-installation/2026-10-19-release-audit/secret-scan-review.json"
+    },
+    {
+      "commit": "ed74337de61e84aafacdd1140d0f814e32d79d29",
+      "file": "docs/evidence/desktop-current/receipt.json",
+      "rule": "generic-api-key",
+      "line": 1763,
+      "contextVerified": true,
+      "reason": "Source-content SHA-256 in a visual evidence receipt",
+      "reviewedOn": "2026-10-19",
+      "evidence": "docs/evidence/cli-installation/2026-10-19-release-audit/secret-scan-review.json"
+    },
+    {
+      "commit": "982433e96d265f3f45ba8301956e645bea0e00fe",
+      "file": "subsystems/workspace/conformance/responses.json",
+      "rule": "slack-bot-token",
+      "line": 365,
+      "contextVerified": true,
+      "reason": "Deliberate credential-shaped redaction test vector",
+      "reviewedOn": "2026-10-19",
+      "evidence": "docs/evidence/cli-installation/2026-10-19-release-audit/secret-scan-review.json"
+    },
+    {
+      "commit": "982433e96d265f3f45ba8301956e645bea0e00fe",
+      "file": "subsystems/workspace/conformance/responses.json",
+      "rule": "gcp-api-key",
+      "line": 392,
+      "contextVerified": true,
+      "reason": "Deliberate credential-shaped redaction test vector",
+      "reviewedOn": "2026-10-19",
+      "evidence": "docs/evidence/cli-installation/2026-10-19-release-audit/secret-scan-review.json"
+    },
+    {
+      "commit": "982433e96d265f3f45ba8301956e645bea0e00fe",
+      "file": "subsystems/workspace/conformance/responses.json",
+      "rule": "jwt",
+      "line": 401,
+      "contextVerified": true,
+      "reason": "Deliberate credential-shaped redaction test vector",
+      "reviewedOn": "2026-10-19",
+      "evidence": "docs/evidence/cli-installation/2026-10-19-release-audit/secret-scan-review.json"
+    },
+    {
+      "commit": "0fada99b00651f19f7ae78aaae31ab08468ddcf1",
+      "file": "subsystems/workspace/reference/test/redaction.test.ts",
+      "rule": "gcp-api-key",
+      "line": 26,
+      "contextVerified": true,
+      "reason": "Deliberate credential-shaped redaction test vector",
+      "reviewedOn": "2026-10-19",
+      "evidence": "docs/evidence/cli-installation/2026-10-19-release-audit/secret-scan-review.json"
+    },
+    {
+      "commit": "0fada99b00651f19f7ae78aaae31ab08468ddcf1",
+      "file": "subsystems/workspace/reference/test/redaction.test.ts",
+      "rule": "generic-api-key",
+      "line": 25,
+      "contextVerified": true,
+      "reason": "Deliberate credential-shaped redaction test vector",
+      "reviewedOn": "2026-10-19",
+      "evidence": "docs/evidence/cli-installation/2026-10-19-release-audit/secret-scan-review.json"
+    },
+    {
+      "commit": "0fada99b00651f19f7ae78aaae31ab08468ddcf1",
+      "file": "subsystems/workspace/reference/test/redaction.test.ts",
+      "rule": "generic-api-key",
+      "line": 65,
+      "contextVerified": true,
+      "reason": "Deliberate credential-shaped redaction test vector",
+      "reviewedOn": "2026-10-19",
+      "evidence": "docs/evidence/cli-installation/2026-10-19-release-audit/secret-scan-review.json"
+    },
+    {
+      "commit": "0fada99b00651f19f7ae78aaae31ab08468ddcf1",
+      "file": "subsystems/workspace/reference/test/redaction.test.ts",
+      "rule": "jwt",
+      "line": 29,
+      "contextVerified": true,
+      "reason": "Deliberate credential-shaped redaction test vector",
+      "reviewedOn": "2026-10-19",
+      "evidence": "docs/evidence/cli-installation/2026-10-19-release-audit/secret-scan-review.json"
+    },
+    {
+      "commit": "0fada99b00651f19f7ae78aaae31ab08468ddcf1",
+      "file": "subsystems/workspace/reference/test/redaction.test.ts",
+      "rule": "slack-bot-token",
+      "line": 23,
+      "contextVerified": true,
+      "reason": "Deliberate credential-shaped redaction test vector",
+      "reviewedOn": "2026-10-19",
+      "evidence": "docs/evidence/cli-installation/2026-10-19-release-audit/secret-scan-review.json"
+    },
+    {
+      "commit": "0fada99b00651f19f7ae78aaae31ab08468ddcf1",
+      "file": "subsystems/workspace/reference/test/redteam-jail.test.ts",
+      "rule": "generic-api-key",
+      "line": 277,
+      "contextVerified": true,
+      "reason": "Deliberate credential-shaped redaction test vector",
+      "reviewedOn": "2026-10-19",
+      "evidence": "docs/evidence/cli-installation/2026-10-19-release-audit/secret-scan-review.json"
+    },
+    {
+      "commit": "25b7227dc22ab9890b6fed39cc4be56ea3849a0a",
+      "file": "subsystems/workflow/contract/signal-envelope.schema.json",
+      "rule": "generic-api-key",
+      "line": 175,
+      "contextVerified": true,
+      "reason": "Schema example idempotency digest, not an authentication credential",
+      "reviewedOn": "2026-10-19",
+      "evidence": "docs/evidence/cli-installation/2026-10-19-release-audit/secret-scan-review.json"
+    },
+    {
+      "commit": "25b7227dc22ab9890b6fed39cc4be56ea3849a0a",
+      "file": "subsystems/workflow/contract/unified-record-envelope.schema.json",
+      "rule": "generic-api-key",
+      "line": 397,
+      "contextVerified": true,
+      "reason": "Schema example idempotency digest, not an authentication credential",
+      "reviewedOn": "2026-10-19",
+      "evidence": "docs/evidence/cli-installation/2026-10-19-release-audit/secret-scan-review.json"
+    },
+    {
+      "commit": "25b7227dc22ab9890b6fed39cc4be56ea3849a0a",
+      "file": "subsystems/workflow/contract/unified-record-envelope.schema.json",
+      "rule": "generic-api-key",
+      "line": 523,
+      "contextVerified": true,
+      "reason": "Schema example idempotency digest, not an authentication credential",
+      "reviewedOn": "2026-10-19",
+      "evidence": "docs/evidence/cli-installation/2026-10-19-release-audit/secret-scan-review.json"
+    },
+    {
+      "commit": "25b7227dc22ab9890b6fed39cc4be56ea3849a0a",
+      "file": "subsystems/workflow/crates/think-and-ship/src/otel_logs.rs",
+      "rule": "generic-api-key",
+      "line": 708,
+      "contextVerified": true,
+      "reason": "Telemetry redaction unit-test sample",
+      "reviewedOn": "2026-10-19",
+      "evidence": "docs/evidence/cli-installation/2026-10-19-release-audit/secret-scan-review.json"
+    },
+    {
+      "commit": "25b7227dc22ab9890b6fed39cc4be56ea3849a0a",
+      "file": "subsystems/workflow/crates/think-and-ship/tests/ship_check_report.rs",
+      "rule": "generic-api-key",
+      "line": 102,
+      "contextVerified": true,
+      "reason": "Reporting/telemetry redaction integration-test sample",
+      "reviewedOn": "2026-10-19",
+      "evidence": "docs/evidence/cli-installation/2026-10-19-release-audit/secret-scan-review.json"
+    },
+    {
+      "commit": "25b7227dc22ab9890b6fed39cc4be56ea3849a0a",
+      "file": "subsystems/workflow/crates/think-and-ship/tests/telemetry_shape.rs",
+      "rule": "stripe-access-token",
+      "line": 17,
+      "contextVerified": true,
+      "reason": "Telemetry redaction test with explicitly planted synthetic secrets",
+      "reviewedOn": "2026-10-19",
+      "evidence": "docs/evidence/cli-installation/2026-10-19-release-audit/secret-scan-review.json"
+    }
+  ]
+}

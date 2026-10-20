@@ -13,16 +13,21 @@ concurrency:
 jobs:
   prepare:
     runs-on: macos-15
+    timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          node-version: '24'
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install the pinned Rust toolchain
+        run: rustup show active-toolchain
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .node-version
           package-manager-cache: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
-          python-version: '3.12'
+          python-version-file: .python-version
       - name: Check native platform
         run: test "$(uname -m)" = arm64
       - name: Check release versions
@@ -37,9 +42,15 @@ jobs:
         run: |
           MAGISTR_TEST_BINARY=target/release/magistr python3 scripts/unified-mcp-check.py
           MAGISTR_TEST_BINARY=target/release/magistr python3 scripts/onboarding-check.py
+      - name: Scan current security and bind the artifacts
+        uses: ./.github/actions/release-security
+        with:
+          source: ${{ github.sha }}
+          receipt: target/cli-distribution/security-verification.json
+          artifacts: target/cli-distribution
       - name: Verify complete artifact receipts
         run: python3 scripts/cli-release.py verify --out target/cli-distribution --source "$GITHUB_SHA"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: cli-distribution
           path: target/cli-distribution/
