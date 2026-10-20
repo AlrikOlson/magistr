@@ -156,7 +156,7 @@ fn engines_with_work(dir: &Path) -> NativeEngines {
 /// gate the loop or the agent records certifies the tree and a judged
 /// completion has receipts to stand on.
 fn work_config(dir: &Path) -> NativeConfig {
-    magistr_core::evidence::writer_config(dir, |_| None).with_data_dir(dir.join("tas-data"))
+    magistr_core::evidence::writer_config(dir, |_| None).with_data_dir(dir.join("workflow-data"))
 }
 
 /// The agent's own process completing `work` inside its turn the only way
@@ -225,7 +225,7 @@ fn ledger(dir: &Path, engines: &NativeEngines) -> Box<dyn CheckpointPort> {
 /// the loop's own writings (`.magistr/`, the store) ignored — so a
 /// boundary checkpoint is a state a fork could reproduce.
 fn repository(root: &Path) {
-    std::fs::write(root.join(".gitignore"), ".magistr/\ntas-data/\n").expect(".gitignore");
+    std::fs::write(root.join(".gitignore"), ".magistr/\nworkflow-data/\n").expect(".gitignore");
     for args in [
         &["init", "--initial-branch=main"][..],
         &["config", "user.email", "t@t.test"],
@@ -692,7 +692,8 @@ fn project(check: &str, test: &str, lint: &str) -> tempfile::TempDir {
     // The loop's own writings are not source: the evidence capability
     // hashes the tree under the fixture's ignore file, as it would in a
     // real repository, and reads project.json as a config input regardless.
-    std::fs::write(dir.path().join(".gitignore"), ".magistr/\ntas-data/\n").expect(".gitignore");
+    std::fs::write(dir.path().join(".gitignore"), ".magistr/\nworkflow-data/\n")
+        .expect(".gitignore");
     dir
 }
 
@@ -1192,11 +1193,9 @@ async fn a_pause_holds_the_boundary_and_x_skips_the_next_iteration() {
     // while the first turn waits, A answers it, x at the paused
     // boundary, A for the third turn.
     let script = Actions::new()
-        .control(MS(300), LoopCmd::Pause)
-        .allow(MS(600))
-        .control(MS(1_200), LoopCmd::Skip)
-        .allow(MS(1_800))
-        .command(MS(3_000), Cmd::Quit);
+        .when_permission(Some(LoopCmd::Pause))
+        .when_paused(LoopCmd::Skip)
+        .when_permission(None);
     let (model, report, prompts) = run(
         dir.path(),
         3,
@@ -1251,11 +1250,10 @@ async fn s_while_paused_steps_one_iteration_then_pauses_again() {
     // s at the paused boundary, A for the second turn; the cockpit is
     // quit while the loop holds the boundary before iteration 3.
     let script = Actions::new()
-        .control(MS(300), LoopCmd::Pause)
-        .allow(MS(600))
-        .control(MS(1_200), LoopCmd::Step)
-        .allow(MS(1_800))
-        .command(MS(4_000), Cmd::Quit);
+        .when_permission(Some(LoopCmd::Pause))
+        .when_paused(LoopCmd::Step)
+        .when_permission(None)
+        .quit_when_paused();
     let (model, report, prompts) = run(
         dir.path(),
         3,
@@ -1289,10 +1287,8 @@ async fn s_while_paused_steps_one_iteration_then_pauses_again() {
 async fn esc_while_paused_aborts_the_loop() {
     let dir = project("true", "true", "true");
     let script = Actions::new()
-        .control(MS(300), LoopCmd::Pause)
-        .allow(MS(600))
-        .control(MS(1_200), LoopCmd::Abort)
-        .command(MS(2_000), Cmd::Quit);
+        .when_permission(Some(LoopCmd::Pause))
+        .when_paused(LoopCmd::Abort);
     let (model, report, prompts) = run(
         dir.path(),
         3,
@@ -1385,7 +1381,7 @@ fn the_driver_runs_gates_only_through_jobs_and_spawns_nothing_itself() {
 async fn a_native_iteration_requests_a_coordinated_workflow_read() {
     let dir = project("true", "true", "true");
     let config = NativeConfig::from_lookup(dir.path().to_path_buf(), |_| None)
-        .with_data_dir(dir.path().join("tas-data"));
+        .with_data_dir(dir.path().join("workflow-data"));
     let engines = host(&config, "loop-signal");
     engines
         .roadmap_add_chunk(

@@ -1,0 +1,7 @@
+{
+  "name": "magistr-development-tools",
+  "private": true,
+  "devDependencies": {
+    "jscpd": "5.4.1"
+  }
+}
