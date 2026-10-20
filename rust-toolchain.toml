@@ -1,0 +1,5 @@
+# One compiler version for local development and release packaging.
+[toolchain]
+channel = "1.99.1"
+profile = "minimal"
+components = ["rustfmt", "clippy"]

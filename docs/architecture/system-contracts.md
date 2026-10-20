@@ -34,10 +34,21 @@ run before a window is created and keep protocol-only stdout.
 Root workspace check/Clippy and focused shared-crate tests cover removal and the
 changed dependency closure. Desktop CI explicitly runs its own formatter, check,
 build, Clippy, Nextest, Node input/stream tests and current visual gate on macOS.
-Linux runs the shared Rust and website gates. The real macOS journey retains light/dark/narrow screenshots, native
-accessibility and clipboard observations, four-session settlement and child
-cleanup. Windows runtime settlement and deeper native IME observation remain
-separate work.
+macOS 15 runs the shared Rust, website, release-security and extracted CLI package
+gates. Windows only runs the bounded JavaScript adapter contracts; no CI job
+builds Windows Rust. Build tool versions are read from the root toolchain files,
+and external action commits are pinned and checked. The real macOS journey
+retains light/dark/narrow screenshots, native accessibility and clipboard
+observations, four-session settlement and child cleanup. Windows runtime
+settlement and deeper native IME observation remain separate work.
+
+`release-security.py` is the writer of current dependency/secret findings and
+source/artifact identity in `security-verification.json`. `cli-release.py` is its
+consumer: publication requires a clean matching source, passing scanners, matching
+artifact checksums and a scan no more than 24 hours old. Missing evidence fails
+closed. The registry remains the owner of uploaded package versions;
+`cargo_publication.py` records effects and reconciles uncertain outcomes without
+blindly replaying a write.
 
 ## Entry matrix
 

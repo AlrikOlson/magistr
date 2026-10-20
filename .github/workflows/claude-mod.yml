@@ -11,6 +11,9 @@ on:
       - 'docs/architecture/clients.md'
       - 'docs/reference/claude-mod-verification.md'
       - '.github/workflows/claude-mod.yml'
+      - '.node-version'
+      - 'scripts/package.json'
+      - 'scripts/package-lock.json'
   pull_request:
     paths:
       - 'plugins/magistr/**'
@@ -18,6 +21,9 @@ on:
       - 'docs/architecture/**'
       - 'docs/reference/claude-mod-verification.md'
       - '.github/workflows/claude-mod.yml'
+      - '.node-version'
+      - 'scripts/package.json'
+      - 'scripts/package-lock.json'
   workflow_dispatch:
 
 permissions:
@@ -31,17 +37,23 @@ jobs:
   contracts:
     name: Independent contracts (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          node-version: 24
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .node-version
+          package-manager-cache: false
+      - name: Install locked development tools
+        run: npm ci --prefix scripts --ignore-scripts
       - name: Check JavaScript formatting
-        run: npx --yes prettier@3.9.9 --check "plugins/magistr/hooks/*.js" "plugins/magistr/tests/*.{js,mjs,ts}"
+        run: npm exec --prefix scripts --no -- prettier --check "plugins/magistr/hooks/*.js" "plugins/magistr/tests/*.{js,mjs,ts}"
       - name: Run decoder, renderer and handler contracts
         run: node --test plugins/magistr/tests/wire.contract.mjs plugins/magistr/tests/interaction.contract.mjs
       # Official host tests require an enabled, authenticated Claude installation.

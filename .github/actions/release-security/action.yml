@@ -1,0 +1,40 @@
+name: Release security
+description: Refresh security scans and bind their results to the checked-out source.
+inputs:
+  source:
+    description: Full checked-out Git revision
+    required: true
+  receipt:
+    description: Destination for the sanitized security receipt
+    required: true
+  artifacts:
+    description: Optional directory containing reviewed artifacts and SHA256SUMS
+    required: false
+    default: ''
+runs:
+  using: composite
+  steps:
+    - name: Read scanner pins
+      id: tools
+      shell: bash
+      run: python3 -B scripts/release-security.py tools >> "$GITHUB_OUTPUT"
+    - name: Install the pinned Cargo scanner
+      uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2
+      with:
+        tool: ${{ steps.tools.outputs.cargo-audit }}
+        fallback: none
+    - name: Install the checksum-verified secret scanner
+      shell: bash
+      run: python3 -B scripts/release-security.py install-gitleaks --out "$RUNNER_TEMP/magistr-security-bin" >> "$GITHUB_PATH"
+    - name: Scan source and artifacts
+      shell: bash
+      env:
+        SECURITY_SOURCE: ${{ inputs.source }}
+        SECURITY_RECEIPT: ${{ inputs.receipt }}
+        SECURITY_ARTIFACTS: ${{ inputs.artifacts }}
+      run: |
+        args=()
+        if [[ -n "$SECURITY_ARTIFACTS" ]]; then
+          args+=(--artifacts "$SECURITY_ARTIFACTS")
+        fi
+        python3 -B scripts/release-security.py scan --source "$SECURITY_SOURCE" --out "$SECURITY_RECEIPT" "${args[@]}"

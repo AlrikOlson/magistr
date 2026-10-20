@@ -4,7 +4,9 @@ Magistr is an early development release. The project runs locally, and an agent 
 
 ## Reporting a vulnerability
 
-Please do not open a public issue for an unpatched vulnerability. When the canonical GitHub repository is publicly reachable, use its **Security → Advisories** page for a private report. If that page is unavailable, contact the maintainer through the repository profile and include:
+Use [Report a vulnerability](https://github.com/AlrikOlson/magistr/security/advisories/new) to send a private report. Private reporting must be enabled before public release. If the form is unavailable, [open an issue requesting a private contact](https://github.com/AlrikOlson/magistr/issues/new) without including vulnerability details. Do not disclose an unpatched vulnerability in a public issue.
+
+Include the following in the private report:
 
 - the affected version or commit;
 - the smallest reproduction or proof of impact;

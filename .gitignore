@@ -39,6 +39,8 @@ Thumbs.db
 # Node
 node_modules/
 dist/
+# Local Cloudflare deployment state
+.wrangler/
 
 # Temporary/generated
 __pycache__/

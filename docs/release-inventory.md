@@ -13,15 +13,15 @@ configuration and stored formats until the owner declares official public releas
 | CLI | `magistr init`, `detect`, `validate`, `run`, `next`, `next-loop`, configuration, sessions, presets, plugins, completions, man pages, and diagnostics |
 | MCP server | The built-in `magistr mcp` endpoint and the native workflow and workspace tool families |
 | Workspace tools | Native `search`, `map`, `read`, `edit`, `files`, `undo`, `script`, and declared-command `run` operations |
-| Agent integrations | Claude Code, Codex, and Copilot setup targets; Codex uses the managed `.codex/run` launcher |
+| Agent integrations | Selected Claude Code, Codex, and portable MCP setup; Codex uses the managed `.codex/run` launcher |
 | API providers | OpenAI, Gemini, and Ollama chat adapters; provider authentication and credentials remain the caller's responsibility |
-| Release package | Host-targeted `magistr` binary, shell completions for bash/zsh/fish, generated man pages, MIT license,  |
+| Release packages | Dependency-ordered Cargo archives and a macOS arm64 npm package with the native `magistr` executable, inventories and dependency license notices |
 
 ## Experimental and limited surfaces
 
 | Surface | Status and limits |
 | --- | --- |
-| Desktop interface | Tauri desktop for project/working-copy navigation, resident conversations, permissions, cancellation, drafts and clipboard; macOS exercised, Linux CI configured, Windows verification pending |
+| Desktop interface | Tauri desktop for project/working-copy navigation, resident conversations, permissions, cancellation, drafts and clipboard; macOS checks are separate from the first CLI package acceptance |
 | Peer protocol | Opt-in engine experiment, disabled in production; runtime authentication and governed dispatch are not implemented |
 | Live provider sessions | Fixtures and adapters are covered by tests; a local install still needs the selected runtime or API credentials and no live provider is implied by this release |
 | Roadmap export | Disabled by project policy (`roadmap_exports = false`). Native roadmap state remains the source of truth and no `ROADMAP.md` or `ROADMAP.json` export is generated |
@@ -30,8 +30,9 @@ configuration and stored formats until the owner declares official public releas
 
 - Rust 1.95 or later and Git for a source install. The workspace's `magistr-workspace`
   package declares Rust 1.95 as its minimum supported version.
-- A supported coding runtime (Claude Code, Codex, or Copilot) must be installed and
-  authenticated separately when using an agent integration.
+- npm installation on Apple Silicon macOS 15+ needs neither Rust, Bun nor a source checkout.
+- Claude Code or Codex must be installed and authenticated separately for their
+  selected integrations; portable setup provides standard MCP configuration for other clients.
 - API adapters require credentials supplied by the caller. Ollama additionally requires
   a reachable local Ollama service.
 - Magistr does not sandbox an agent's operating-system access. Review generated files,
@@ -43,15 +44,20 @@ configuration and stored formats until the owner declares official public releas
 
 ## Release checklist
 
-Before publishing a release:
+The canonical [Cargo/npm release procedure](releasing-cli.md) owns artifact
+preparation, extracted installation checks, security receipts, exact publication
+and recovery. The first package acceptance target is Apple Silicon macOS 15+.
 
-1. Run `cargo install --locked --path crates/magistr-cli` from a clean checkout and verify `magistr --version` and `magistr --help`.
-2. Run `./scripts/package-release.sh` on each target platform. Confirm the archive contains the binary, completions, man pages, `LICENSE`, .
-3. Verify the archive checksum with `sha256sum -c <archive>.sha256` (or `shasum -a 256 -c <archive>.sha256`).
-4. Walk through `magistr init . --agent codex --yes`, `./.codex/run`, and one recorded `magistr validate` or `magistr next` cycle in a disposable project.
-5. Run `./scripts/public-link-check.sh` anonymously against the repository, release, issue, and website URLs. A non-2xx/3xx result is an explicit external release gate owned by the repository maintainer or hosting operator.
-6. Update release notes and the website changelog with the same SemVer tag as the CLI; keep unreleased changes in the next release section.
-7. Preserve the MIT license in every archive. The current desktop uses system fonts.
+Check the deployed installation guide with
+`./scripts/public-link-check.sh --stage website` during preparation. Before
+authorized uploads, use `--stage publication` to include public repository and
+private-reporting readiness. After upload and the website update, use
+`--stage release` to require current registry versions and published instructions.
+These checks do not publish or change repository settings.
+
+Retain every package's license and dependency notices, and align release notes,
+website information and the GitHub release with the verified source and version.
+Desktop and other operating-system archives remain separate distribution work.
 
 See [getting started](getting-started.md), [development](development.md), and the
 [architecture guides](index.md) for deeper contracts.

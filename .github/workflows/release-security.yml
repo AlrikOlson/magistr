@@ -1,0 +1,51 @@
+name: Release security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  security:
+    name: Current dependency and secret checks
+    runs-on: macos-15
+    timeout-minutes: 15
+    steps:
+      - name: Check out complete source history
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install the pinned Rust toolchain
+        run: rustup show active-toolchain
+      - name: Install the pinned Node.js version
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .node-version
+          package-manager-cache: false
+      - name: Install Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version-file: .python-version
+      - name: Test security gates
+        run: python3 -B scripts/release-security.tests.py
+      - name: Scan current source security
+        uses: ./.github/actions/release-security
+        with:
+          source: ${{ github.sha }}
+          receipt: target/release-security/security-verification.json
+      - name: Save sanitized findings
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-security
+          path: target/release-security/security-verification.json
+          if-no-files-found: error
