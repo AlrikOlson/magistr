@@ -11,7 +11,7 @@ const dist = resolve(root, "dist");
 const repo = resolve(root, "../..");
 const scopeArg = process.argv.indexOf("--evidence-scope");
 const evidenceScope = scopeArg < 0 ? "all" : process.argv[scopeArg + 1];
-assert(["all", "search", "refinement"].includes(evidenceScope), "Evidence scope must be all, search or refinement");
+assert(["all", "search", "refinement", "branding"].includes(evidenceScope), "Evidence scope must be all, search, refinement or branding");
 const evidenceArg = process.argv.indexOf("--evidence-dir");
 const evidence = evidenceArg < 0 ? undefined : resolve(repo, process.argv[evidenceArg + 1]);
 if (evidence && !evidence.startsWith(resolve(repo, "docs/evidence/desktop-iterations") + sep)) {
@@ -53,7 +53,7 @@ await collect(resolve(root, "src"));
 for (const name of [
   "astro.config.mjs", "package.json", "package-lock.json", "tests/browser.mjs",
   "public/og-image.svg", "public/og-image.png", "public/github-social.png", "public/favicon.svg", "public/icon-192.png", "public/site.webmanifest",
-  "public/screenshots/captures.json", "scripts/generate-favicons.mjs",
+  "public/screenshots/captures.json", "scripts/generate-favicons.mjs", "scripts/asset-url.mjs",
 ]) paths.push(resolve(root, name));
 const sourceHashes = Object.fromEntries(await Promise.all(paths.sort().map(async (file) => [
   relative(repo, file), createHash("sha256").update(await readFile(file)).digest("hex"),
@@ -75,6 +75,7 @@ const writeReport = async (status, failure) => {
 };
 const capture = async (page, name, state, fullPage = false) => {
   if (!evidence || (evidenceScope === "search" && !name.includes("search"))) return;
+  if (evidenceScope === "branding" && !name.includes("-intro-") && !name.startsWith("home-320-")) return;
   if (evidenceScope === "refinement" && !/^(home-(wide|compact|connection|workflow|capture|transcript)|home-evidence-focus|.*-320)/.test(name)) return;
   await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
   const file = name + ".png";
@@ -156,6 +157,7 @@ try {
         await noOverflow(page);
         await legibility(page);
         await capture(page, name + "-" + suffix, name + " full page", true);
+        if (name !== "home") await capture(page, name + "-intro-" + suffix, name + " navigation and opening");
         if (name === "home") {
           for (const link of await page.locator(".image-link").all()) {
             const response = await context.request.get(new URL(await link.getAttribute("href"), origin).href);
