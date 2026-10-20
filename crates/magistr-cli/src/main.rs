@@ -11,6 +11,21 @@ use magistr::{agent, cli, config, detect, scaffold, types};
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
+    let result = run_cli().await;
+    // Attach guidance once, including failures before command dispatch.
+    result.map_err(|report| {
+        use color_eyre::Section;
+        match report.downcast_ref::<magistr::error::MagistrError>() {
+            Some(err) => match err.suggestion() {
+                Some(suggestion) => report.suggestion(suggestion.to_string()),
+                None => report,
+            },
+            None => report,
+        }
+    })
+}
+
+async fn run_cli() -> eyre::Result<()> {
     // Private owned worker role: bypass interactive hooks, config repair, MCP,
     // and workspace owner admission. Strict argv keeps it out of normal CLI use.
     if std::env::args_os()
@@ -394,17 +409,7 @@ async fn main() -> eyre::Result<()> {
         std::process::exit(utils::shutdown::Shutdown::EXIT_CODE);
     }
 
-    // Attach actionable suggestions from MagistrError to the eyre report.
-    result.map_err(|report| {
-        use color_eyre::Section;
-        match report.downcast_ref::<magistr::error::MagistrError>() {
-            Some(err) => match err.suggestion() {
-                Some(suggestion) => report.suggestion(suggestion.to_string()),
-                None => report,
-            },
-            None => report,
-        }
-    })
+    result
 }
 
 /// Parse the command line. clap's own usage errors exit 2 everywhere in
