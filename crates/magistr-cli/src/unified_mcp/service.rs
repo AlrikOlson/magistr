@@ -71,13 +71,14 @@ impl NativeConnection {
     }
 }
 
-/// Serve the one public endpoint. Project-file repair belongs to explicit setup.
+/// Serve the public endpoint after recognized upgrades. Full scaffold repair is explicit.
 pub async fn run_stdio_server(
     root: PathBuf,
     flags: &[String],
     access: super::Access,
 ) -> eyre::Result<()> {
     let root = crate::mcp_target::project_root(&root)?;
+    crate::scaffold::project_upgrade::ProjectUpgrade::apply(&root)?;
     let forward = ForwardClient::default();
     let workflow =
         NativeConnection::open(root.clone(), Owner::Workflow, forward.clone(), Vec::new()).await?;

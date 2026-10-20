@@ -1,5 +1,6 @@
 //! The one executor of administrative change plans.
 
+use crate::error::MagistrError;
 use std::collections::{BTreeSet, HashSet};
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -200,6 +201,18 @@ impl<'a> AdminService<'a> {
                 });
             }
         };
+        if let Err(error) = backup_upgrade(self.dir, change) {
+            return ApplyOutcome::Failed(ApplyFailure::Io {
+                cause: error.to_string(),
+            });
+        }
+        if let Err(error) =
+            super::project_identity_upgrade::ProjectIdentityUpgrade::precondition(self.dir, change)
+        {
+            return ApplyOutcome::Failed(ApplyFailure::Io {
+                cause: error.to_string(),
+            });
+        }
         let executable = super::is_executable_path(path);
         let creating = change.action == FileAction::Create;
         let written = if creating {
@@ -270,6 +283,50 @@ impl<'a> AdminService<'a> {
             },
         };
     }
+}
+
+/// Save exact original bytes before the administrative writer replaces a
+/// recognized older document. Content addressing makes interrupted retries safe.
+fn backup_upgrade(root: &Path, change: &PlannedChange) -> crate::error::Result<()> {
+    let Some(before) = &change.existing_content else {
+        return Ok(());
+    };
+    if change.path != ".magistr/project.json"
+        && super::project_upgrade::ProjectUpgrade::content(&change.path, before)?.is_none()
+    {
+        return Ok(());
+    }
+    let hash = super::manifest::content_hash(before);
+    let path = format!(".magistr/upgrades/configuration/{hash}/{}", change.path);
+    match super::read_target(root, &path)
+        .map_err(|e| MagistrError::Config(format!("{path}: {e}")))?
+    {
+        Some(saved) if saved == *before => return Ok(()),
+        Some(_) => {
+            return Err(MagistrError::Config(format!(
+                "Upgrade backup {path} changed; restore it before retrying. Your settings were left unchanged."
+            )));
+        }
+        None => {}
+    }
+    let full = root.join(&path);
+    let parent = full.parent().expect("backup directory");
+    std::fs::create_dir_all(parent).map_err(|e| MagistrError::io(parent, e))?;
+    let save = || -> std::io::Result<()> {
+        use std::io::Write;
+        let mut staged = tempfile::NamedTempFile::new_in(parent)?;
+        staged.write_all(before.as_bytes())?;
+        staged.as_file().sync_all()?;
+        match staged.persist_noclobber(&full) {
+            Ok(_) => {}
+            Err(error)
+                if error.error.kind() == std::io::ErrorKind::AlreadyExists
+                    && std::fs::read(&full)? == before.as_bytes() => {}
+            Err(error) => return Err(error.error),
+        }
+        std::fs::File::open(parent)?.sync_all()
+    };
+    save().map_err(|e| MagistrError::io(&full, e))
 }
 
 /// Create `full` with `content`, failing if anything is there already.

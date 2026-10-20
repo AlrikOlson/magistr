@@ -188,7 +188,12 @@ impl WorkspaceSeed {
     pub fn plan(&self, root: &Path) -> (Option<String>, Option<String>) {
         let path = root.join(".magistr/workspace.toml");
         let before = std::fs::read_to_string(&path).ok();
-        let mut body = before.clone().unwrap_or_default();
+        // The upgrade planner reports invalid/conflicting old settings before apply.
+        let mut body = magistr_workspace::config::WorkspaceConfigUpgrade::preview(root)
+            .ok()
+            .flatten()
+            .or_else(|| before.clone())
+            .unwrap_or_default();
         // The commands table is a human's and is seeded once.
         if !declares_commands(&body) {
             let detected = magistr_workspace::config::DetectedCommand::detect(root);

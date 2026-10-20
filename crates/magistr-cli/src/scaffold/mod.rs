@@ -49,6 +49,8 @@ mod ownership;
 mod planned_change;
 mod preview;
 mod preview_context;
+mod project_identity_upgrade;
+pub(crate) mod project_upgrade;
 mod refusal;
 mod remove_scaffold;
 pub mod repair;
