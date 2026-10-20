@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "stage": "website",
+  "version": "0.1.0",
+  "checkedAt": "2026-10-20T03:34:16.893462+00:00",
+  "passed": true,
+  "checks": [
+    {
+      "name": "Website",
+      "url": "https://magistr.dev/",
+      "status": 200,
+      "passed": true,
+      "detail": "Reachable at the intended public route"
+    },
+    {
+      "name": "Installation guide",
+      "url": "https://magistr.dev/docs/installation/",
+      "status": 200,
+      "passed": true,
+      "detail": "Reachable at the intended public route"
+    },
+    {
+      "name": "Current installation behavior",
+      "url": "https://magistr.dev/docs/installation/",
+      "status": 200,
+      "passed": true,
+      "detail": "Selected-agent setup, planning boundary, doctor, repair and removal are current"
+    }
+  ]
+}
