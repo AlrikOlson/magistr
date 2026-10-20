@@ -1,5 +1,10 @@
 # CLI package release
 
+**Current release hold:** the [19 October initial-release audit](evidence/cli-installation/2026-10-19-release-audit/README.md)
+records unresolved dependency security, publication recovery and launch-information
+checks. Complete those fixes and verify a new candidate before following the
+publication steps below.
+
 The first package target is Apple Silicon macOS. Cargo installs package
 `magistr-cli` and exposes the `magistr` executable. npm package `magistr`
 contains the same versioned native executable and supports global installation
