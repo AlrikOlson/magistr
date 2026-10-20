@@ -1,0 +1,845 @@
+{
+  "passed": false,
+  "failure": "Resize assertion read aria-expanded before the media-query change event. Browser runner exited before its final report.",
+  "sourceHashes": {
+    "apps/website/src/components/Nav.astro": "67b5413bdb7330ea4d245faf32310e2591334834918a92345dd78d1285bfbfa8",
+    "apps/website/src/components/ThemeToggle.astro": "62739fc7a3d3476e13c53f2dfa389150f3e7ca4ba0629c34b71f5cf8202ea211",
+    "apps/website/src/content/docs/concepts.mdx": "ecfb49329af851135b796d598c970642828b599283f969a76517aae5694c4c37",
+    "apps/website/src/content/docs/installation.mdx": "9ca3b61a9f5d0f41825e464b720f4852a8bc67a6205d01f4ab9755e6c261c3a3",
+    "apps/website/src/content.config.ts": "35db5d681c2146a4e34de514bb5c1472d5da2e75b2652f8ca0fba880afcf1a1a",
+    "apps/website/src/layouts/Base.astro": "7a3192c76fe0cdacbaed870f9592ee7379348563d56dee8cbbc02af3802e810f",
+    "apps/website/src/layouts/Docs.astro": "333a6e23a7ee2815e22e42f14b2ec43a86eeacc69fd7c1449de7b829e51aded4",
+    "apps/website/src/pages/404.astro": "b31cb4a3eadd8e18d5f450b1faa5e19203010502125d6f1b57b94231f982d717",
+    "apps/website/src/pages/docs/[...slug].astro": "c48f046ee5163651688e38be70dac452c606701e978eec342e98ebcae0b51834",
+    "apps/website/src/pages/index.astro": "5a88cac1092450d78fd638b2eda3851e161d30a75e79afcd23674e33fbdc50f2",
+    "apps/website/src/pages/robots.txt.ts": "55c24c9a347c8d62fe0a071522d6433a9ccdcd5c4013733fe87ca2bc778c2ab2",
+    "apps/website/src/styles/global.css": "2ead6c84b1ff96e3f0abaf85310f0b1b783234a6318fe8436236256e3c8730ae",
+    "apps/website/astro.config.mjs": "b8e61ea2c65b9c04cd1f44fa09091e134c761266baf1ea90c0efbdf75e795818",
+    "apps/website/package.json": "4ffc0f1dfc9044f05e349d92aa4ff33d0ece890a32ea0a29c43cf87fd3141e74",
+    "apps/website/package-lock.json": "799cde1b1a6c8048e7e1ec105b283f47a526485028f5ce0fdb06010f5e4a7b53",
+    "apps/website/tests/browser.mjs": "8233207e6a2e0151663016e3cfe1bb244f53ecb121755d3cd19ea93c8f50f3bb"
+  },
+  "renderer": "Playwright WebKit",
+  "rendererVersion": "27.2",
+  "platform": "darwin-arm64",
+  "deviceScaleFactor": 1,
+  "reducedMotion": true,
+  "captures": [
+    {
+      "file": "concepts-agent-sessions-wide-dark.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-20T15:33:42.164Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "9b4c86d08a8d9d202fde44e5cea6a932f54d618d659a6d295a10df153154e5db",
+      "review": "pending"
+    },
+    {
+      "file": "concepts-agent-sessions-wide-light.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-20T15:33:39.957Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "baac40f3573bdb0135cb87e41e37abacdc9df096aa5bf0a72315d325f24330f0",
+      "review": "pending"
+    },
+    {
+      "file": "concepts-checking-your-work-wide-dark.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-20T15:33:42.145Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "672e09d187bb6e70290e3968889d652bffe9e5752e538f46a122604c93f8e4f4",
+      "review": "pending"
+    },
+    {
+      "file": "concepts-checking-your-work-wide-light.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-20T15:33:39.939Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "b75b0e3ee6532a11a9dc7b00531790fd3e6a7b40229a79cf5290ec939019ae66",
+      "review": "pending"
+    },
+    {
+      "file": "concepts-the-desktop-preview-wide-dark.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-20T15:33:42.183Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "1c14c530851a6ae3b2c5be8fd99a38a2b61158c3684acf9154ad118b8b50e762",
+      "review": "pending"
+    },
+    {
+      "file": "concepts-the-desktop-preview-wide-light.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-20T15:33:39.975Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "ef412bb98febea22aeb7efef19a736a7cc3d7d6699b304133e254b51ab631f7a",
+      "review": "pending"
+    },
+    {
+      "file": "concepts-where-your-work-is-saved-wide-dark.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-20T15:33:42.201Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "1c14c530851a6ae3b2c5be8fd99a38a2b61158c3684acf9154ad118b8b50e762",
+      "review": "pending"
+    },
+    {
+      "file": "concepts-where-your-work-is-saved-wide-light.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-20T15:33:39.993Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "ef412bb98febea22aeb7efef19a736a7cc3d7d6699b304133e254b51ab631f7a",
+      "review": "pending"
+    },
+    {
+      "file": "concepts-wide-dark.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-20T15:33:42.090Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 2709,
+      "sha256": "81487ac9342414069cf33b09249f2d759034b511d9eddc0436200558f0f6acca",
+      "review": "pending"
+    },
+    {
+      "file": "concepts-wide-light.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-20T15:33:39.877Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 2709,
+      "sha256": "680e53a81f51ca5a626640b93b209915ec209d6f71dad58ca759901f83fe04d9",
+      "review": "pending"
+    },
+    {
+      "file": "concepts-your-plan-wide-dark.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-20T15:33:42.109Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "b2684efb32987f08e99a7611c39a94bed2d554261e71b4e43ed34855b4f975c2",
+      "review": "pending"
+    },
+    {
+      "file": "concepts-your-plan-wide-light.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-20T15:33:39.902Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "6cf0c6ce47ba9f2fbd572ff7185f416c329ca2657cc59427a9201ee24a3e06c3",
+      "review": "pending"
+    },
+    {
+      "file": "concepts-your-work-history-wide-dark.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-20T15:33:42.127Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "fedc75f6c04beb891097ffd2a790e7a69023f39f2961f6bf5242ed23a11c323a",
+      "review": "pending"
+    },
+    {
+      "file": "concepts-your-work-history-wide-light.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-20T15:33:39.921Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "c66480fc1d5cee23b7ca5fb3b84e9c074a22c9b5e563db25dde635a125788fff",
+      "review": "pending"
+    },
+    {
+      "file": "home-agents-compact-light.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-20T15:33:43.092Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 390,
+      "height": 844,
+      "sha256": "4d6f26e7e805e4044811a6acba92bb65e56e23521e61849e4543cd772ab3a1d3",
+      "review": "pending"
+    },
+    {
+      "file": "home-agents-wide-dark.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-20T15:33:40.994Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "bdc41f203be0d5ac20d0a45b449e3a7b9f5e70c67cf6db9daae6baefa952a036",
+      "review": "pending"
+    },
+    {
+      "file": "home-agents-wide-light.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-20T15:33:38.734Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "21230f4f08fde5adf8ab7387db49e47c4a85e6be489524188c176a0a3920eb4e",
+      "review": "pending"
+    },
+    {
+      "file": "home-compact-light.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-20T15:33:43.044Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 390,
+      "height": 4930,
+      "sha256": "84e24317897de11a90ffe36c95e1b4a5fafe15ef817832371d09a3216e3c8f77",
+      "review": "pending"
+    },
+    {
+      "file": "home-footer-compact-light.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-20T15:33:43.109Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 390,
+      "height": 844,
+      "sha256": "9d96e4a4f68c74fd765cc49139964acd5f62ff8b664a8bd08f95333d73185619",
+      "review": "pending"
+    },
+    {
+      "file": "home-footer-wide-dark.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-20T15:33:41.019Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "f4e8aca85e05c93f14f75b92058b191f4e8dd21cdd97d542d448fd251ccfeda0",
+      "review": "pending"
+    },
+    {
+      "file": "home-footer-wide-light.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-20T15:33:38.757Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "2197a70f4fd522388cc9db3b97c49097cd4add2ccfa5b94df374d37cf27fba69",
+      "review": "pending"
+    },
+    {
+      "file": "home-install-compact-light.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-20T15:33:43.150Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 390,
+      "height": 844,
+      "sha256": "3fafc131b8ce60adb7774a6fa4d8303eaf338ce5c0c10046c6d886795815efb3",
+      "review": "pending"
+    },
+    {
+      "file": "home-install-wide-dark.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-20T15:33:41.077Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "ac2cad2b0b85440b3635b291bc932d928a8dc99989ba792014b46c1754075faf",
+      "review": "pending"
+    },
+    {
+      "file": "home-install-wide-light.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-20T15:33:38.823Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "c97d67559f3bb9685a99c3fd72bf241cc6625266da61e7958587fc67ae563a6f",
+      "review": "pending"
+    },
+    {
+      "file": "home-intro-compact-light.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-20T15:33:43.059Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 390,
+      "height": 844,
+      "sha256": "68d38872a91896106a3eaeac6a7098e4c214405d695177e8cb715cdf46a8f141",
+      "review": "pending"
+    },
+    {
+      "file": "home-intro-wide-dark.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-20T15:33:40.945Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "a2ececec8dbf5e9c2fe691452c31597ef928e83caa94eb5e006f7bb92d540239",
+      "review": "pending"
+    },
+    {
+      "file": "home-intro-wide-light.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-20T15:33:38.684Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "b881b2adf8129fd582e5c99216d0a6918f3543aff72d0c9486c3df67a8c8412f",
+      "review": "pending"
+    },
+    {
+      "file": "home-menu-compact-light.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-20T15:33:43.380Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 390,
+      "height": 844,
+      "sha256": "f11ee8d37b993f87f3eb03a9921ac3997023a60513b039fbc6d24e7deaf153ab",
+      "review": "pending"
+    },
+    {
+      "file": "home-menu-dismissed-compact-light.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-20T15:33:43.418Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 390,
+      "height": 844,
+      "sha256": "5c1c1aeaf1b6388f69f1a5748c1b6e0d1c43928187fc0b1082ecb9d40a83bd17",
+      "review": "pending"
+    },
+    {
+      "file": "home-roadmap-compact-light.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-20T15:33:43.076Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 390,
+      "height": 844,
+      "sha256": "8b56d2795f9ed02811bb7fad84daa69b078c524e3c7bacf2d4665886ac9bd1c3",
+      "review": "pending"
+    },
+    {
+      "file": "home-roadmap-wide-dark.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-20T15:33:40.968Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "2af12f6e5ec9295ab3608ac01dabfed860ef5809495ec1f32f0e0654cd8fd4ae",
+      "review": "pending"
+    },
+    {
+      "file": "home-roadmap-wide-light.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-20T15:33:38.707Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "e8f12b08560f895d659f8bbfdaa551b432d981b379d29e66d738f0ae3b3cc35a",
+      "review": "pending"
+    },
+    {
+      "file": "home-wide-dark.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-20T15:33:40.914Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 4197,
+      "sha256": "0d9a1dc788ee309cad59939ba39cd670dcde7c493e6d21062a6713a87e41fe7d",
+      "review": "pending"
+    },
+    {
+      "file": "home-wide-light.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-20T15:33:38.657Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 4197,
+      "sha256": "b597e9ba996e1677f5584309dded19b2ac9dc07105759cf3acfa1a5deba67c74",
+      "review": "pending"
+    },
+    {
+      "file": "installation-check-or-repair-setup-wide-dark.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-20T15:33:41.536Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "58d6af8579ae636638d85e5a88d2ec38c2d385b6841a13be5d89668bb1bdb9c8",
+      "review": "pending"
+    },
+    {
+      "file": "installation-check-or-repair-setup-wide-light.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-20T15:33:39.293Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "773815dd22189770a013804f6efbbbd244be1d3dcde48fa8926259f83e8f09bc",
+      "review": "pending"
+    },
+    {
+      "file": "installation-connect-another-agent-wide-dark.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-20T15:33:41.515Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "1717e009524114c8b17d416a7a2274d76a25e91e34e8713ac0eece60e52c46a3",
+      "review": "pending"
+    },
+    {
+      "file": "installation-connect-another-agent-wide-light.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-20T15:33:39.272Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "af40cc8daa413c55e9dac3a2dd9c307bc37280d433c69c7b39fb5d6cfa2e71d9",
+      "review": "pending"
+    },
+    {
+      "file": "installation-connect-claude-code-wide-dark.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-20T15:33:41.493Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "abd133fc769d370cfe94d992d2e320e66a1fe610a29303cdfcda381e764b5227",
+      "review": "pending"
+    },
+    {
+      "file": "installation-connect-claude-code-wide-light.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-20T15:33:39.249Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "acaffe2b52c1ab3fbb97d414a9e416a4654234e2fdc208b247828a0987ba1182",
+      "review": "pending"
+    },
+    {
+      "file": "installation-connect-codex-wide-dark.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-20T15:33:41.469Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "aa133bbe4a15234baf39f5090ad6acaa0685ffe211a739e34d3d5c9f1fd22f44",
+      "review": "pending"
+    },
+    {
+      "file": "installation-connect-codex-wide-light.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-20T15:33:39.228Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "8942305234a21be8781e05a6fc4fcf27cd14c058b5fdcf8893540f3f32180a43",
+      "review": "pending"
+    },
+    {
+      "file": "installation-install-the-preview-wide-dark.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-20T15:33:41.425Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "89a3b57004e688c307c402c37120e8f9e6674fc315457357b1fd73199d83c8f7",
+      "review": "pending"
+    },
+    {
+      "file": "installation-install-the-preview-wide-light.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-20T15:33:39.185Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "1b1a32073175652486532d374999477fe6acc9663c9034cdf0b582e900bb54e0",
+      "review": "pending"
+    },
+    {
+      "file": "installation-remove-setup-or-uninstall-wide-dark.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-20T15:33:41.578Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "be21a2ed594d6461ef5c5b9271f9a1407f336ceceda714488eec26fc4e303fde",
+      "review": "pending"
+    },
+    {
+      "file": "installation-remove-setup-or-uninstall-wide-light.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-20T15:33:39.336Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "566ecb477b66a9093bdc0b01772418386f937eff9ce9462594cbed30e359604f",
+      "review": "pending"
+    },
+    {
+      "file": "installation-search-wide-dark.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-20T15:33:41.905Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "1c66fbdd4b862006e84cb15a6ad10e1d97ddf78cd49f8934a405820b9e8a4558",
+      "review": "pending"
+    },
+    {
+      "file": "installation-search-wide-light.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-20T15:33:39.671Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "5176ddcca0eee95e2a2ebb7fcf981aaf5704f88636e1a300d03ff9604060d028",
+      "review": "pending"
+    },
+    {
+      "file": "installation-set-up-your-project-wide-dark.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-20T15:33:41.447Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "1075cb878508e1129db86410b0c1d755b2aedbc0d86e21bb24891e3c05085028",
+      "review": "pending"
+    },
+    {
+      "file": "installation-set-up-your-project-wide-light.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-20T15:33:39.208Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "b046935929aea92325da0faea992090c9a3be656811d0308188dd2c0a992b772",
+      "review": "pending"
+    },
+    {
+      "file": "installation-start-work-when-you-are-ready-wide-dark.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-20T15:33:41.601Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "92dfdd7265ba2512a92a6de2c10522bc237106730c0e407d87ad285fe9529c9f",
+      "review": "pending"
+    },
+    {
+      "file": "installation-start-work-when-you-are-ready-wide-light.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-20T15:33:39.357Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "b2ff0399cb628626f51255d0c23f562464d35f5d17c20e26ed5adef456c3e111",
+      "review": "pending"
+    },
+    {
+      "file": "installation-upgrade-the-preview-wide-dark.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-20T15:33:41.557Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "0537613ea41ee762e264d8789a591a6e7da0ae11f906cd9e8677ab1b3387996f",
+      "review": "pending"
+    },
+    {
+      "file": "installation-upgrade-the-preview-wide-light.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-20T15:33:39.313Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "dba2424ad30f9399bf9b2e84592b8e823ad4cfb6cf6544c161906311ea97289c",
+      "review": "pending"
+    },
+    {
+      "file": "installation-wide-dark.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-20T15:33:41.400Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 5041,
+      "sha256": "7aa0e2be071b574edaebb36e03e75c6742629d1595f0124bf78f73f9db818a6c",
+      "review": "pending"
+    },
+    {
+      "file": "installation-wide-light.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-20T15:33:39.157Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 5041,
+      "sha256": "9b7b1f9da7814113200a00de70f9ee19ebdd90faec9629ef5871919181e40212",
+      "review": "pending"
+    },
+    {
+      "file": "not-found-wide-dark.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-20T15:33:42.322Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "f01a3331083c5e5824192441f1c1945cab55eb9b916a8ab9ade00201fc75d4c9",
+      "review": "pending"
+    },
+    {
+      "file": "not-found-wide-light.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-20T15:33:40.119Z",
+      "timeSource": "filesystem modification time recovered after runner failure",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "9574107a2d8473e04fcda0b52b91eddd6939be1969e3f604e63547899cdc2a58",
+      "review": "pending"
+    }
+  ],
+  "limitations": [
+    "This report was recovered from unchanged source and screenshot bytes immediately after the failure. Capture times are filesystem times, not the lost in-memory event times.",
+    "No native input or assistive-technology testing."
+  ]
+}

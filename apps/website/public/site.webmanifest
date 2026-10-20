@@ -1,11 +1,11 @@
 {
   "name": "Magistr",
   "short_name": "Magistr",
-  "description": "Roadmap and workflow management for coding agents",
+  "description": "Keep your coding project's plan, progress and test results together",
   "start_url": "/",
   "display": "browser",
-  "background_color": "#1a1b26",
-  "theme_color": "#7c3aed",
+  "background_color": "#f8f7f4",
+  "theme_color": "#5a3e9e",
   "icons": [
     { "src": "/favicon.svg", "type": "image/svg+xml", "sizes": "any" },
     { "src": "/favicon-16.png", "type": "image/png", "sizes": "16x16" },

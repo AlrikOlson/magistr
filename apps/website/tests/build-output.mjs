@@ -33,13 +33,13 @@ const mainOf = (html) => html.split("<main")[1]?.split("</main>")[0] ?? html;
 const textOf = (html) => mainOf(html).replace(/<code[\s\S]*?<\/code>/g, "").replace(/<pre[\s\S]*?<\/pre>/g, "").replace(/<[^>]+>/g, " ");
 
 console.log("Home:");
-assert(indexHtml.includes("Roadmap and workflow management"), "headline present");
-assert(indexHtml.includes("for coding agents"), "headline accent text present");
+assert(indexHtml.includes("Pick up where") && indexHtml.includes("you left off."), "headline explains returning to work");
+assert(indexHtml.includes("For Codex &amp; Claude Code"), "supported agents are named");
 assert(indexHtml.includes('id="install-btn"') && indexHtml.includes('href="#install"') && indexHtml.includes('id="install"'), "install call to action, anchor and section");
 assert(indexHtml.includes('id="roadmap"') && indexHtml.includes('href="/#roadmap"'), "roadmap section and its nav link match");
 assert(indexHtml.includes("cargo install --locked --path crates/magistr-cli"), "installation command present");
 assert(indexHtml.includes("git clone https://github.com/AlrikOlson/magistr.git"), "clone command targets the repository");
-assert(indexHtml.includes("magistr --version") && indexHtml.includes("magistr init") && indexHtml.includes("magistr next-loop"), "commands after install");
+assert(indexHtml.includes("magistr --version") && indexHtml.includes("magistr init") && indexHtml.includes("magistr next"), "commands after install");
 const releaseVersion = JSON.parse(readFileSync(new URL("../../../npm/magistr/package.json", import.meta.url), "utf8")).version;
 assert(indexHtml.includes(`v${releaseVersion}`), "the current development version is named");
 assert(indexHtml.includes(`"softwareVersion":"${releaseVersion}"`), "structured metadata uses the release version");
@@ -52,13 +52,13 @@ assert(!indexHtml.includes("feature-card") && !indexHtml.includes("walkthrough-s
 const homeImages = [...indexHtml.matchAll(/src="\/screenshots\/([a-z-]+)\.png\?v=[a-f0-9]{12}"/g)].map((m) => m[1]);
 assert(new Set(homeImages).size === 4 && homeImages.length === 4, `each screenshot appears once on the home page (${homeImages.join(", ")})`);
 const roadmapSection = indexHtml.match(/<section id="roadmap"[\s\S]*?<\/section>/)?.[0] ?? "";
-assert(roadmapSection.includes("magistr next") && roadmapSection.includes("acceptance criteria"), "roadmap section describes the current command workflow");
+assert(roadmapSection.includes("magistr next") && roadmapSection.includes("checks it needs to pass"), "roadmap explains one-step work and completion checks");
 assert(!roadmapSection.includes("Roadmap screen"),"future desktop planning is not advertised");
 assert(!roadmapSection.includes("without leaving the conversation") && !roadmapSection.includes("actions beside the conversation"), "full Roadmap is not described as conversation details");
 
 console.log("\nNavigation and accessibility:");
 assert(indexHtml.includes('aria-label="Primary"'), "primary navigation labelled");
-assert(indexHtml.includes('href="/#roadmap"') && indexHtml.includes('href="/#install"') && indexHtml.includes('href="/docs/installation"'), "the three destinations");
+assert(indexHtml.includes('href="/#roadmap"') && indexHtml.includes('href="/#install"') && indexHtml.includes('href="/docs/installation"'), "navigation reaches the current sections and guides");
 assert(indexHtml.includes('class="skip-link" href="#main-content"') && indexHtml.includes('id="main-content"'), "skip link reaches main");
 assert(indexHtml.includes('aria-label="Magistr on GitHub (opens in a new tab)"'), "GitHub link has an accessible name");
 assert(indexHtml.includes('class="github-mark"') && indexHtml.includes('width="20" height="20"'), "GitHub mark has explicit dimensions");
@@ -93,7 +93,7 @@ const figures=[...indexHtml.matchAll(/<figure\b[\s\S]*?<\/figure>/g)];
 assert(figures.length===3 && figures.every(([figure])=>figure.includes("<figcaption>")),"desktop and both agent sessions have captioned figures");
 
 console.log("\nPublic language:");
-const jargon = /TUI2|GUI2|tui2|gui2|think:|ship:|chunk-id|chunk\b|workflow server|native state|admitted|typed command|[Ff]light [Rr]ecorder|\b[Dd]ecisions?\b/;
+const jargon = /TUI2|GUI2|tui2|gui2|think:|ship:|chunk-id|chunk\b|workflow server|native state|project state|execution records|verification receipts|admitted|typed command|[Ff]light [Rr]ecorder|\b[Dd]ecisions?\b/;
 const commentary = /\bsample\b|\bHarbor\b|\bcaptured\b|\bcapture\b|\bfixture\b|on purpose|\bsynthetic\b|\bwe\b|\bour\b|\bgolden|wrangler|Cloudflare|wear/i;
 for (const [name, html] of productPages) {
   const text = textOf(html);
@@ -103,7 +103,7 @@ for (const [name, html] of productPages) {
 assert(!indexHtml.includes("illustrative") && !indexHtml.includes("Mermaid"), "no placeholder or diagram-source copy");
 
 console.log("\nDocs:");
-assert(installHtml.includes("Permission and privacy boundary"), "installation page states the boundary");
+assert(installHtml.includes("Your code and permissions") && installHtml.includes("permissions you give it"), "installation explains agent permissions");
 assert(installHtml.includes("project.json") && !installHtml.includes("roadmap_exports"), "installation page covers the project file without policy notes");
 assert(installHtml.includes("--agent") && installHtml.includes("codex") && installHtml.includes("copilot") && installHtml.includes("cursor") && installHtml.includes("cline") && installHtml.includes("windsurf") && installHtml.includes("aider"), "installation page names every agent target the CLI accepts");
 assert(installHtml.includes("--max-iterations"), "installation page names the loop's bound");
@@ -120,21 +120,21 @@ for (const command of [
 ]) {
   assert(installText.includes(command), `current setup and recovery command: ${command}`);
 }
-assert(installText.includes("Only selected integrations are generated.") && !installText.includes("setup is always written"), "setup writes only selected integrations");
+assert(installText.includes("Setup adds files only for the agents you choose.") && !installText.includes("setup is always written"), "setup writes only selected integrations");
 assert(installText.includes("Setup does not start implementation.") && installText.includes("starter prompt"), "onboarding finishes with planning");
-assert(installText.includes("MCP server does not repair project files automatically"), "repair is explicit");
+assert(installText.includes("Magistr changes setup files only when you run setup or repair"), "repair is explicit");
 assert(installText.includes("registry packages are not published yet"), "installation guide does not advertise unpublished downloads");
 
 assert(!installHtml.includes("release-inventory") && !installHtml.includes("Release archives"), "installation page carries no release-process links");
-assert(conceptsHtml.includes(">Concepts</h1>"), "concepts page has its title");
-for (const word of ["Roadmap", "Sessions", "Recorded work", "Verification", "Project state"]) {
+assert(conceptsHtml.includes(">How Magistr works</h1>"), "guide has its plain-language title");
+for (const word of ["Your plan", "Agent sessions", "Your work history", "Checking your work", "Where your work is saved"]) {
   assert(conceptsHtml.includes(word), `concepts page covers ${word}`);
 }
 assert(conceptsHtml.includes("pinned") && conceptsHtml.includes("checkpoint"), "concepts page separates pin from checkpoint");
-assert(conceptsHtml.includes("current desktop focuses on conversations"),"concepts states the current desktop scope");
+assert(conceptsHtml.includes("desktop is a separate preview available from source") && conceptsHtml.includes("command line"), "guide explains desktop availability and planning");
 assert(conceptsHtml.includes("recover your draft"),"concepts explains resident drafts");
 assert(conceptsHtml.includes("Stop") && conceptsHtml.includes("Permission requests") && conceptsHtml.includes("Close session"),"current conversation actions are explained");
-assert(roadmapSection.includes("recorded plan"),"roadmap recovery is explained");
+assert(roadmapSection.includes("saved plan") && roadmapSection.includes("Continue unfinished work"), "roadmap recovery is explained");
 for (const slug of ["installation", "concepts"]) {
   assert(installHtml.includes(`href="/docs/${slug}"`), `sidebar links ${slug}`);
 }

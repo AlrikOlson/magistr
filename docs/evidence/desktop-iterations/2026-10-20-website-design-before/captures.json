@@ -1,0 +1,33 @@
+{
+  "origin": "https://magistr.dev",
+  "sourceCommit": "1e99aba7b9e3d9f76c953ddf03041166f45aa599",
+  "renderer": "Playwright WebKit",
+  "rendererVersion": "27.2",
+  "platform": "darwin-arm64",
+  "deviceScaleFactor": 1,
+  "reducedMotion": true,
+  "captures": [
+    {
+      "file": "home-wide-light.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-20T15:25:43.589Z",
+      "sha256": "4ec42b7e022675da4febae10cb1531e62d9bcde8d0d92ef4a0b7fd84382ef9ad",
+      "review": "pending"
+    },
+    {
+      "file": "home-compact-light.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-20T15:25:44.548Z",
+      "sha256": "4f1cbc65511ef2c6584cdf827f177fe2b710cdf11eb8348b8e049ea54aaaf7f6",
+      "review": "pending"
+    }
+  ]
+}

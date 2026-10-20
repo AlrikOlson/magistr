@@ -1,5 +1,7 @@
 ---
 import "../styles/global.css";
+import { createHash } from "node:crypto";
+import socialImageSource from "../../public/og-image.svg?raw";
 
 interface Props {
   title?: string;
@@ -10,15 +12,16 @@ interface Props {
 }
 
 const {
-  title = "Magistr — roadmap and workflow for coding agents",
-  description = "Shape a roadmap, run one focused work item, and keep the reasoning, changes, and checks that explain how a project moved.",
+  title = "Magistr — pick up where you left off",
+  description = "Keep your coding project’s plan, progress and test results together. Continue the work with Codex or Claude Code.",
   ogImage,
   jsonLd,
   noindex = false,
 } = Astro.props;
 
 const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
-const ogImageUrl = new URL(ogImage ?? "/og-image.png", Astro.site);
+const socialImageHash = createHash("sha256").update(socialImageSource).digest("hex").slice(0, 12);
+const ogImageUrl = new URL(ogImage ?? `/og-image.png?v=${socialImageHash}`, Astro.site);
 ---
 <!doctype html>
 <html lang="en">
@@ -26,8 +29,8 @@ const ogImageUrl = new URL(ogImage ?? "/og-image.png", Astro.site);
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={description} />
-    <meta name="theme-color" content="#101827" media="(prefers-color-scheme: dark)" />
-    <meta name="theme-color" content="#f6f8fb" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#17171d" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f8f7f4" media="(prefers-color-scheme: light)" />
     {noindex && <meta name="robots" content="noindex,nofollow" />}
     <link rel="canonical" href={canonicalUrl.href} />
     <title>{title}</title>
@@ -39,7 +42,7 @@ const ogImageUrl = new URL(ogImage ?? "/og-image.png", Astro.site);
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={ogImageUrl.href} />
-    <meta property="og:image:alt" content="Magistr — roadmap and verification for coding-agent work" />
+    <meta property="og:image:alt" content="Magistr — pick up where you left off" />
     <meta property="og:url" content={canonicalUrl.href} />
     <meta property="og:site_name" content="Magistr" />
     <meta property="og:locale" content="en_US" />
@@ -49,10 +52,7 @@ const ogImageUrl = new URL(ogImage ?? "/og-image.png", Astro.site);
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImageUrl.href} />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://api.github.com" />
-    <link rel="preconnect" href="https://cdn.jsdelivr.net" />
-    <link rel="dns-prefetch" href="https://api.github.com" />
-    <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
     {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
     <script defer data-domain="magistr.dev" src="https://plausible.io/js/script.js"></script>
@@ -70,4 +70,3 @@ const ogImageUrl = new URL(ogImage ?? "/og-image.png", Astro.site);
     <slot />
   </body>
 </html>
-

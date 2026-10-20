@@ -1,27 +1,21 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
-  <title id="title">Magistr</title>
-  <desc id="desc">Roadmap and workflow management for coding agents.</desc>
-  <defs>
-    <linearGradient id="route" x1="130" y1="128" x2="350" y2="350" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#67e8f9" />
-      <stop offset="0.52" stop-color="#a78bfa" />
-      <stop offset="1" stop-color="#fbbf24" />
-    </linearGradient>
-    <radialGradient id="glow" cx="82%" cy="18%" r="72%">
-      <stop stop-color="#243354" stop-opacity="0.72" />
-      <stop offset="1" stop-color="#0b1220" stop-opacity="0" />
-    </radialGradient>
-  </defs>
-  <rect width="1200" height="630" rx="28" fill="#0b1220" />
-  <rect width="1200" height="630" rx="28" fill="url(#glow)" />
-  <g transform="translate(112 138) scale(7.5)">
-    <rect width="32" height="32" rx="7" fill="#111827" />
-    <path d="M7 24V8l9 10 9-10v16" fill="none" stroke="url(#route)" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" />
+  <title id="title">Magistr — pick up where you left off</title>
+  <desc id="desc">Keep your coding project's plan, progress and test results together.</desc>
+  <rect width="1200" height="630" fill="#f8f7f4" />
+  <g transform="translate(80 64) scale(1.5)">
+    <rect width="32" height="32" rx="7" fill="#17171d" />
+    <path d="M7 24V8l9 10 9-10v16" fill="none" stroke="#bea8f2" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" />
     <circle cx="7" cy="8" r="2" fill="#67e8f9" />
     <circle cx="16" cy="18" r="2" fill="#a78bfa" />
     <circle cx="25" cy="8" r="2" fill="#fbbf24" />
   </g>
-  <text x="430" y="265" fill="#f8fafc" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="92" font-weight="700" letter-spacing="-3">Magistr</text>
-  <text x="438" y="338" fill="#b9c4d8" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="34">Roadmap and workflow for coding agents</text>
-  <text x="438" y="405" fill="#67e8f9" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="24" letter-spacing="3">MAGISTR.DEV</text>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <text x="145" y="99" fill="#23232b" font-size="34" font-weight="700" letter-spacing="-1">Magistr</text>
+    <text x="80" y="278" fill="#23232b" font-size="92" font-weight="600" letter-spacing="-4">Pick up where</text>
+    <text x="80" y="380" fill="#5a3e9e" font-size="92" font-weight="600" letter-spacing="-4">you left off.</text>
+    <text x="84" y="456" fill="#64616c" font-size="27">Your plan, progress and test results. Ready for the next session.</text>
+    <path d="M80 522h1040" stroke="#dedbd4" />
+    <text x="84" y="568" fill="#64616c" font-size="21">For Codex &amp; Claude Code</text>
+    <text x="1120" y="568" text-anchor="end" fill="#5a3e9e" font-size="21">magistr.dev</text>
+  </g>
 </svg>

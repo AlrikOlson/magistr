@@ -8,11 +8,11 @@ import { version } from "../../../../../npm/magistr/package.json";
 
 # Installation
 
-The first release targets **Apple Silicon macOS**. Magistr v{version} is still in preview; npm and Cargo registry packages are not published yet. Building the preview requires access to the [repository](https://github.com/AlrikOlson/magistr). The desktop is a separate development build.
+The first release targets **Apple Silicon macOS**. Magistr v{version} is still in preview; npm and Cargo registry packages are not published yet. Building the preview requires access to the [repository](https://github.com/AlrikOlson/magistr). The desktop is a separate preview available from source.
 
-> **Permission and privacy boundary**
+> **Your code and permissions**
 >
-> Magistr runs locally and keeps its state in the project. Your agent runtime keeps its own credentials and operating-system permissions; Magistr does not sandbox it. Review commands and generated files before using it on a sensitive checkout.
+> Magistr runs on your Mac and saves plans and progress with your project. Your agent still uses its own account and can run commands with the permissions you give it. Review proposed commands and file changes before approving them.
 
 ## Install the preview
 
@@ -27,7 +27,7 @@ magistr --version
 
 Cargo installs `magistr` into its binary directory, usually `~/.cargo/bin`. Add that directory to your PATH if the command cannot be found.
 
-Once the registry packages are published, this page will include npm and Cargo installation commands. The prepared npm package includes the native executable and requires no Rust, Bun or source checkout.
+Once the registry packages are published, this page will include npm and Cargo installation commands. The npm installer will include Magistr itself, without requiring Rust or a source checkout.
 
 ## Set up your project
 
@@ -38,9 +38,9 @@ cd ~/src/my-project
 magistr init .
 ```
 
-Setup detects your stack, lets you choose one or more agents, and shows the verification commands and proposed file changes before applying them. **Only selected integrations are generated.** Existing custom settings, instructions, unrelated MCP servers and saved work are preserved.
+Setup recognizes your project, lets you choose one or more agents, and shows the test commands and file changes before applying them. **Setup adds files only for the agents you choose.** It keeps your custom settings, instructions, other tool connections and saved work.
 
-Setup checks the MCP connection and reads the project context. It finishes with a starter prompt to inspect the project and propose a plan. **Setup does not start implementation.** If an agent is unavailable, follow the reported installation or sign-in instructions; its setup files can still be prepared.
+Setup checks that the agent can connect to Magistr and read your project. It finishes with a starter prompt to inspect the project and propose a plan. **Setup does not start implementation.** If an agent is unavailable, follow the reported installation or sign-in instructions; you can still prepare its setup files.
 
 To preview a specific selection without writing files:
 
@@ -48,11 +48,11 @@ To preview a specific selection without writing files:
 magistr init . --agent codex,claude --dry-run
 ```
 
-Use `--yes` instead of `--dry-run` to accept the setup defaults without prompts. Repeating initialization preserves the project's identity, work and custom settings.
+Use `--yes` instead of `--dry-run` to accept the setup defaults without prompts. Running setup again keeps your saved work and custom settings.
 
 ## Connect Codex
 
-Choose Codex during setup, or prepare only its integration:
+Choose Codex during setup, or connect it directly:
 
 ```sh
 magistr init . --agent codex --yes
@@ -63,7 +63,7 @@ The launcher loads the project's instructions, skills and Magistr connection. St
 
 ## Connect Claude Code
 
-Choose Claude Code during setup, or prepare only its integration:
+Choose Claude Code during setup, or connect it directly:
 
 ```sh
 magistr init . --agent claude --yes
@@ -80,9 +80,9 @@ Choose **Another MCP agent**, or run:
 magistr init . --agent portable --yes
 ```
 
-This writes standard MCP configuration to `.mcp.json` and instructions to `.magistr/instructions.md`. If your agent does not read those files, copy the Magistr connection into its MCP settings and load the instructions.
+MCP is the connection between your agent and Magistr. This command saves its settings to `.mcp.json` and instructions to `.magistr/instructions.md`. If your agent does not read those files, copy the Magistr connection into its MCP settings and load the instructions.
 
-The connection launches `magistr mcp --dir /path/to/project`. It provides project context, source search, reading and editing, planning, recorded progress and verification through one server.
+The connection launches `magistr mcp --dir /path/to/project`. Your agent can use it to find and edit source, plan the work, save progress and run checks.
 
 Optional project instructions are also available with `--agent cursor`, `copilot`, `cline`, `windsurf` or `aider`. Select multiple agents with commas or repeated `--agent` options.
 
@@ -94,9 +94,9 @@ magistr repair . --dry-run
 magistr repair .
 ```
 
-`doctor` reports missing setup, malformed configuration, unavailable agents and connection failures with recovery commands. Repair shows its proposed changes and preserves customized files and unrelated connections. Starting the MCP server does not repair project files automatically.
+`doctor` explains missing setup, settings it cannot read, unavailable agents and connection problems. It gives you commands to fix them. Repair shows its proposed changes and keeps customized files and other tool connections. Magistr changes setup files only when you run setup or repair.
 
-Project settings live in `.magistr/project.json`, including verification commands and required checks. Magistr keeps the roadmap and recorded work inside `.magistr/`.
+Project settings live in `.magistr/project.json`, including test commands and required checks. Your plans and work history stay inside `.magistr/`.
 
 ## Upgrade the preview
 
@@ -107,18 +107,18 @@ git pull --ff-only
 cargo install --locked --path crates/magistr-cli --force
 ```
 
-Then run `magistr doctor .` and `magistr repair .` in each project to review and refresh its integration.
+Then run `magistr doctor .` and `magistr repair .` in each project to review and update its setup.
 
 ## Remove setup or uninstall
 
-Preview and remove the generated integration in each project:
+Review and remove the agent setup in each project:
 
 ```sh
 magistr remove . --dry-run
 magistr remove .
 ```
 
-Removal keeps project settings, recorded work, customized files and unrelated MCP connections. Review the report for any files preserved. To uninstall the executable after removing the integrations:
+Removal keeps project settings, work history, customized files and other tool connections. The report lists the files it kept. To uninstall the command after removing agent setup:
 
 ```sh
 cargo uninstall magistr-cli
@@ -130,8 +130,8 @@ Ask your agent to inspect the project and propose a plan first. Use `$next` in C
 
 From the command line, `magistr next` runs one work item. `magistr next-loop --max-iterations 5` continues through up to five fresh agent sessions. `magistr validate` runs the configured checks.
 
-## Try the desktop development build
+## Try the desktop preview
 
-The desktop is separate from the first CLI release. On macOS, open **Launch Magistr.command** in the source checkout. Building it requires Rust, Node.js and the [platform build prerequisites](https://v2.tauri.app/start/prerequisites/). Development packages are not publicly signed or notarized.
+The desktop is a separate preview; installing the `magistr` command does not install the app. On macOS, open **Launch Magistr.command** in the source checkout. Building it requires Rust, Node.js and the [platform build prerequisites](https://v2.tauri.app/start/prerequisites/). The preview is not signed or notarized for public distribution.
 
-See the [development guide](https://github.com/AlrikOlson/magistr/blob/main/docs/development.md) for build and packaging commands, or continue with [concepts](/docs/concepts).
+See the [development guide](https://github.com/AlrikOlson/magistr/blob/main/docs/development.md) for build and packaging commands, or learn [how Magistr works](/docs/concepts).

@@ -20,7 +20,15 @@ For a visual change, capture into a new dated iteration folder, then open and re
 npm --prefix apps/website run test:ui -- --evidence-dir docs/evidence/desktop-iterations/YYYY-MM-DD-website-change
 ```
 
-The capture command refuses to overwrite an existing PNG set. `browser-checks.json` records source hashes and capture metadata; its pending review markers require a separate review record. Do not treat a successful test or capture as visual approval.
+The capture command refuses to overwrite an existing PNG set. `browser-checks.json` records source hashes and capture metadata after each image, preserving partial evidence if a check fails; its pending review markers require a separate review record. Do not treat a successful test or capture as visual approval.
+
+After deployment, run the same interaction checks against the live origin:
+
+```sh
+npm --prefix apps/website run test:ui -- --base-url https://magistr.dev
+```
+
+Add `--evidence-dir` with a new iteration folder when deployed captures are needed. Local source hashes identify the checkout used for the check; separately compare deployed assets with the reviewed build before claiming they match.
 
 ## Deployment
 

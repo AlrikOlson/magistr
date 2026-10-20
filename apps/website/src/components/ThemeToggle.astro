@@ -35,6 +35,7 @@
     if (!btn) return;
 
     function updateIcons(isDark: boolean) {
+      btn!.setAttribute("aria-pressed", String(isDark));
       const sun = btn!.querySelector(".theme-icon-sun");
       const moon = btn!.querySelector(".theme-icon-moon");
       // In dark mode, show sun (to switch to light); in light mode, show moon

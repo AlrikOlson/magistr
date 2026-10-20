@@ -12,120 +12,130 @@ const screenshot = (name: string) => {
 
 const jsonLd = [
   {"@context":"https://schema.org","@type":"WebSite","name":"Magistr","url":"https://magistr.dev"},
-  {"@context":"https://schema.org","@type":"SoftwareApplication","name":"Magistr","softwareVersion":version,"description":"Roadmap and workflow management for coding agents.","url":"https://magistr.dev","applicationCategory":"DeveloperApplication","operatingSystem":"macOS (Apple Silicon)","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"downloadUrl":"https://magistr.dev/docs/installation","softwareRequirements":"Rust 1.95 or later","license":"https://github.com/AlrikOlson/magistr/blob/main/LICENSE"}
+  {"@context":"https://schema.org","@type":"SoftwareApplication","name":"Magistr","softwareVersion":version,"description":"Keep your coding project's plan, progress and test results together.","url":"https://magistr.dev","applicationCategory":"DeveloperApplication","operatingSystem":"macOS (Apple Silicon)","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"downloadUrl":"https://magistr.dev/docs/installation","softwareRequirements":"Rust 1.95 or later","license":"https://github.com/AlrikOlson/magistr/blob/main/LICENSE"}
 ];
-
-/** The current desktop in both appearances. */
-const alt = {overview: "Magistr showing a source review in the Contact list project, with project navigation, a Python fix and a verification command."};
-
+const desktopAlt = "Magistr showing a conversation about a Python fix in the Contact list project, with the proposed code and a command to test it.";
+const steps = [
+  {title:"Make a plan.", text:"Break the project into manageable steps. Give each one a clear goal and the checks it needs to pass."},
+  {title:"Work through it.", text:"Let your agent take one ready step, make the change and run its checks. You choose when to continue."},
+  {title:"Come back to it.", text:"Start a fresh session with the saved plan, completed work and test results ready to read."},
+];
 const docs = [
-  {title:"Installation",text:"Install, initialize a project and connect an agent.",href:"/docs/installation"},
-  {title:"Concepts",text:"Roadmap, sessions, recorded work, verification and project state.",href:"/docs/concepts"},
-  {title:"Architecture",text:"Crate ownership and boundaries, in the repository.",href:"https://github.com/AlrikOlson/magistr/blob/main/docs/architecture/overview.md",external:true},
-  {title:"Development",text:"Contributor commands and checks, in the repository.",href:"https://github.com/AlrikOlson/magistr/blob/main/docs/development.md",external:true},
+  {title:"Set up Magistr",text:"Installation, agent connections and troubleshooting.",href:"/docs/installation"},
+  {title:"Plan your work",text:"Plans, agent sessions and checking what changed.",href:"/docs/concepts"},
 ];
 ---
-<Base title="Magistr — roadmap and workflow for coding agents" description="Keep a roadmap, run one focused work item at a time, and keep the reasoning, changes and checks that explain how a project moved." jsonLd={jsonLd}>
+<Base title="Magistr — pick up where you left off" description="Keep your coding project's plan, progress and test results together. Continue the work with Codex or Claude Code." jsonLd={jsonLd}>
   <Nav />
   <main id="main-content">
-    <section class="hero section-shell">
+    <section class="hero section-shell" aria-labelledby="hero-title">
+      <div class="hero-heading">
+        <p class="eyebrow">For Codex &amp; Claude Code</p>
+        <h1 id="hero-title">Pick up where<br /><span>you left off.</span></h1>
+      </div>
       <div class="hero-copy">
-        <p class="eyebrow"><span class="status-dot"></span> Pre-release · v{version}</p>
-        <h1>Roadmap and workflow management <span>for coding agents.</span></h1>
-        <p class="hero-lede">Magistr keeps a project's roadmap, runs one focused work item at a time, and records the reasoning, the changes and the checks along the way — in the project, not in a chat transcript.</p>
+        <p class="hero-lede">Good work takes more than one session. Magistr keeps your plan, progress and test results with your project, so your agent can keep moving.</p>
         <div class="hero-actions">
-          <a id="install-btn" class="button button-primary" href="#install">Install <span aria-hidden="true">→</span></a>
-          <a class="button button-quiet" href="/docs/installation">Read the docs</a>
+          <a id="install-btn" class="button button-primary" href="#install">Get started <span aria-hidden="true">↗</span></a>
+          <a class="button button-quiet" href="#agents">See it in action <span aria-hidden="true">↓</span></a>
         </div>
-        <p class="hero-note">Runs locally · Apple Silicon macOS</p>
+        <p class="hero-note">Runs on your Mac <span aria-hidden="true">·</span> Preview v{version}</p>
       </div>
       <figure class="capture hero-capture">
-        <a class="capture-light" href={screenshot("desktop-light.png")}><img src={screenshot("desktop-light.png")} alt={alt.overview} width="2560" height="1664" fetchpriority="high" /></a>
-        <a class="capture-dark" href={screenshot("desktop-dark.png")}><img src={screenshot("desktop-dark.png")} alt={alt.overview} width="2560" height="1664" fetchpriority="high" /></a>
-        <figcaption>Review source, discuss a fix and keep the conversation with your project.</figcaption>
+        <div class="capture-heading">
+          <span class="capture-title">A place for your project’s conversations</span>
+          <span class="preview-label">Desktop preview</span>
+        </div>
+        <div class="desktop-stage">
+          <a class="capture-light" href={screenshot("desktop-light.png")} aria-label="Open the full-size Magistr desktop screenshot">
+            <img src={screenshot("desktop-light.png")} alt={desktopAlt} width="2560" height="1664" fetchpriority="high" />
+          </a>
+          <a class="capture-dark" href={screenshot("desktop-dark.png")} aria-label="Open the full-size Magistr desktop screenshot">
+            <img src={screenshot("desktop-dark.png")} alt={desktopAlt} width="2560" height="1664" fetchpriority="high" />
+          </a>
+        </div>
+        <figcaption><span>Review source, talk through a fix and return to the conversation.</span><span>The desktop preview is available from source.</span></figcaption>
       </figure>
     </section>
 
-    <section id="roadmap" class="section-shell section-block story" aria-labelledby="roadmap-title">
-      <div class="story-copy">
-        <p class="eyebrow">The roadmap</p>
-        <h2 id="roadmap-title">One focused work item at a time.</h2>
-        <ul class="facts">
-          <li><strong>Keep the plan with the project.</strong> Work items carry their dependencies and acceptance criteria into the agent session.</li>
-          <li><strong>Continue unfinished work.</strong> The agent recovers the recorded plan before choosing another item.</li>
-          <li><strong>Keep the evidence.</strong> Findings, actions and checks explain how the work progressed.</li>
-        </ul>
+    <section id="roadmap" class="section-shell section-block workflow" aria-labelledby="roadmap-title" tabindex="-1">
+      <div class="section-heading heading-split">
+        <div><p class="eyebrow">How it works</p><h2 id="roadmap-title">A clear next step.<br />Every time you return.</h2></div>
+        <p>A roadmap gives your agent direction. Magistr keeps the plan and the work together, from the first idea to the last passing check.</p>
       </div>
-      <div class="code-panel"><pre><code>magistr next
-magistr next-loop --max-iterations 5
-magistr validate</code></pre></div>
-    </section>
-
-    <section class="section-shell section-block story story-flip" aria-labelledby="conversation-title">
-      <div class="story-copy">
-        <p class="eyebrow">The desktop</p>
-        <h2 id="conversation-title">A conversation in each working copy.</h2>
-        <ul class="facts">
-          <li><strong>Open a project.</strong> Switch between its working copies and keep separate agent sessions.</li>
-          <li><strong>Stay in control.</strong> Read the reply as it arrives, answer permission requests or stop the current turn.</li>
-          <li><strong>Keep your draft.</strong> Move between sessions and return to your unsent message.</li>
-          <li><strong>Choose your appearance.</strong> Use light, dark or the system setting, with native text editing and clipboard support.</li>
-        </ul>
-      </div>
-      <p>The desktop is a separate development build. Roadmap planning, recorded work and project setup are available through the command line and the connected agent's tools.</p>
-    </section>
-
-    <section id="agents" class="section-shell section-block" aria-labelledby="agents-title">
-      <div class="section-heading">
-        <p class="eyebrow">In your agent</p>
-        <h2 id="agents-title">Pick up the work in Codex or Claude Code.</h2>
-        <p>Both agents use the same Magistr tools to inspect source, record a plan, make a change and run checks. A new session can read what was completed and verified.</p>
-      </div>
-      <div class="agent-sessions">
-        <figure class="capture agent-session">
-          <h3>Codex</h3>
-          <a href={screenshot("codex-session.png")} aria-label="Open the full-size Codex session screenshot">
-            <img src={screenshot("codex-session.png")} alt="Codex reads a completed Magistr task and reports the whitespace fix and one passing test." width="2370" height="2120" loading="lazy" />
-          </a>
-          <figcaption>A fresh session recovers the completed task and its recorded test result. <span>Open the image to read it at full size.</span></figcaption>
-        </figure>
-        <figure class="capture agent-session">
-          <h3>Claude Code</h3>
-          <a href={screenshot("claude-code-session.png")} aria-label="Open the full-size Claude Code session screenshot">
-            <img src={screenshot("claude-code-session.png")} alt="Claude Code reads a completed Magistr task, describing the source change and verified test receipt." width="2370" height="2120" loading="lazy" />
-          </a>
-          <figcaption>The source change and verification stay available after the original conversation. <span>Open the image to read it at full size.</span></figcaption>
-        </figure>
+      <ol class="work-steps">
+        {steps.map((step, index) => <li><span class="step-number" aria-hidden="true">0{index + 1}</span><h3>{step.title}</h3><p>{step.text}</p></li>)}
+      </ol>
+      <div class="command-strip">
+        <code>magistr next</code>
+        <p>Continue unfinished work, or complete one ready step.</p>
+        <a class="text-link" href="/docs/concepts">How the plan works <span aria-hidden="true">→</span></a>
       </div>
     </section>
 
-    <section id="install" class="section-shell section-block install" aria-labelledby="install-title">
-      <div class="section-heading"><p class="eyebrow">Install</p><h2 id="install-title">Try the preview on macOS.</h2><p>The first release targets Apple Silicon Macs with macOS 15 or later. Registry packages are not published yet. With repository access and Rust 1.95 or later, build the preview:</p></div>
+    <section id="agents" class="agent-section" aria-labelledby="agents-title" tabindex="-1">
+      <div class="section-shell section-block">
+        <div class="section-heading heading-split">
+          <div><p class="eyebrow">In your agent</p><h2 id="agents-title">New session.<br />Same project.</h2></div>
+          <p>Work in Codex or Claude Code. When you return, your agent can read what changed, what passed and what comes next.</p>
+        </div>
+        <div class="agent-sessions">
+          <figure class="capture agent-session">
+            <div class="agent-heading"><h3>Codex</h3><span>01</span></div>
+            <a href={screenshot("codex-session.png")} aria-label="Open the full-size Codex session screenshot">
+              <img src={screenshot("codex-session.png")} alt="Codex reads a completed Magistr task and reports the whitespace fix and one passing test." width="2370" height="2120" loading="lazy" />
+            </a>
+            <figcaption><strong>The work is still there.</strong> A fresh Codex session finds the completed fix and its passing test.<a class="image-link" href={screenshot("codex-session.png")}>View full Codex session <span aria-hidden="true">↗</span></a></figcaption>
+          </figure>
+          <figure class="capture agent-session">
+            <div class="agent-heading"><h3>Claude Code</h3><span>02</span></div>
+            <a href={screenshot("claude-code-session.png")} aria-label="Open the full-size Claude Code session screenshot">
+              <img src={screenshot("claude-code-session.png")} alt="Claude Code reads a completed Magistr task, describing the source change and the test that passed." width="2370" height="2120" loading="lazy" />
+            </a>
+            <figcaption><strong>The checks come with it.</strong> Claude Code reads the saved change and confirms which test passed.<a class="image-link" href={screenshot("claude-code-session.png")}>View full Claude Code session <span aria-hidden="true">↗</span></a></figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <section id="install" class="section-shell section-block install" aria-labelledby="install-title" tabindex="-1">
       <div class="install-grid">
+        <div class="section-heading">
+          <p class="eyebrow">Get started</p>
+          <h2 id="install-title">Bring a project.<br />Make a plan.</h2>
+          <p>Magistr is in preview for Apple Silicon Macs. Registry packages are not published yet; building from source requires repository access.</p>
+          <p class="install-requirements">macOS 15 or later · Rust 1.95 or later</p>
+          <a class="text-link" href="/docs/installation">Full installation guide <span aria-hidden="true">→</span></a>
+        </div>
         <div class="code-panel">
+          <p class="code-label">Install from source</p>
           <pre><code>git clone https://github.com/AlrikOlson/magistr.git
 cd magistr
 cargo install --locked --path crates/magistr-cli
 magistr --version</code></pre>
         </div>
-        <aside class="callout">
-          <p class="card-eyebrow">Then, in your project</p>
-          <ol>
-            <li><code>magistr init .</code> reviews your stack, selected agents and proposed setup.</li>
-            <li><code>magistr doctor .</code> checks setup and reports how to fix connection problems.</li>
-            <li>Launch your agent and start with the planning prompt. Setup does not start implementation.</li>
-          </ol>
-          <a href="/docs/installation">Full installation guide →</a>
-        </aside>
       </div>
+      <ol class="setup-steps">
+        <li><span class="step-number" aria-hidden="true">01</span><div><h3>Set up your project</h3><p><code>magistr init .</code> helps you choose your agents and review the setup.</p></div></li>
+        <li><span class="step-number" aria-hidden="true">02</span><div><h3>Check the connection</h3><p><code>magistr doctor .</code> checks everything is ready and helps fix connection problems.</p></div></li>
+        <li><span class="step-number" aria-hidden="true">03</span><div><h3>Plan your first step</h3><p>Launch your agent and use the starter prompt. Setup does not start implementation.</p></div></li>
+      </ol>
     </section>
 
     <section class="section-shell docs-index" aria-labelledby="docs-title">
-      <div><p class="eyebrow">Keep reading</p><h2 id="docs-title">Documentation</h2></div>
-      <div class="doc-links">{docs.map((doc) => doc.external
-        ? <a href={doc.href} target="_blank" rel="noopener noreferrer"><strong>{doc.title}</strong><span>{doc.text}</span><span aria-hidden="true">↗</span><span class="sr-only">(opens in a new tab)</span></a>
-        : <a href={doc.href}><strong>{doc.title}</strong><span>{doc.text}</span><span aria-hidden="true">→</span></a>)}</div>
+      <div><p class="eyebrow">A little more detail</p><h2 id="docs-title">Make yourself at home.</h2></div>
+      <div class="doc-links">{docs.map((doc) =>
+        <a href={doc.href}><strong>{doc.title}</strong><span>{doc.text}</span><span aria-hidden="true">↗</span></a>
+      )}</div>
     </section>
   </main>
-  <footer class="site-footer"><div class="section-shell"><span>Magistr · roadmap and workflow management for coding agents</span><a href="/docs/installation">Documentation</a><a href="https://github.com/AlrikOlson/magistr" target="_blank" rel="noopener noreferrer">Repository <span aria-hidden="true">↗</span><span class="sr-only">(opens in a new tab)</span></a><a href="https://github.com/AlrikOlson/magistr/issues" target="_blank" rel="noopener noreferrer">Issues <span aria-hidden="true">↗</span><span class="sr-only">(opens in a new tab)</span></a></div></footer>
+  <footer class="site-footer">
+    <div class="section-shell">
+      <a class="footer-brand" href="/">Magistr<span>Plans, progress and a place to continue.</span></a>
+      <div class="footer-links">
+        <a href="/docs/installation">Documentation</a>
+        <a href="https://github.com/AlrikOlson/magistr" target="_blank" rel="noopener noreferrer">GitHub <span aria-hidden="true">↗</span><span class="sr-only">(opens in a new tab)</span></a>
+      </div>
+    </div>
+  </footer>
 </Base>

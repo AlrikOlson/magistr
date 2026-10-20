@@ -1,71 +1,87 @@
 ---
-title: Concepts
-description: Roadmap, sessions, recorded work, verification and project state.
+title: How Magistr works
+description: Make a plan, work with your agent and keep track of what changed.
 order: 2
 ---
 
-# Concepts
+# How Magistr works
 
-Magistr keeps a project's roadmap, the sessions that work on it, their recorded work
-and the checks that verify it. The desktop, command line and agent tools share the
-project's state.
+Magistr keeps track of what you want to build, what your agent has done and which
+checks passed. Start another session and continue from that record.
 
-## Desktop
+## Your plan
 
-Open a configured project in `magistr-desktop`. The left side lists projects and
-sessions; the conversation sits beside its working-copy details. **New session**
-opens a separate conversation. Changing working copies keeps existing sessions
-open. Return to a session to continue reading and recover your draft.
+A roadmap breaks the project into steps. Each step has a goal, a priority, any
+work it depends on and the checks it needs to pass. Your agent can help you add,
+reorder or revise the plan.
 
-Write a message and press Return to send, or Shift Return for a new line. **Stop**
-cancels the current turn and keeps your draft. Permission requests offer the
-answers available for that action. **Copy conversation** copies its messages.
-**Close session** ends that conversation; Quit closes the application and its
-running work.
+Use `$next` in Codex or `/next` in Claude Code to continue unfinished work or
+complete one ready step. The agent reads the saved plan before continuing and
+stops after that step. Asking for a plan does not start implementation.
 
-Choose System, Light or Dark under **Appearance**. Native text editing supports
-selection, clipboard and input methods.
+From the command line, `magistr next` runs one step. To work through several steps
+with a fresh agent session for each, set a limit:
 
-The current desktop focuses on conversations. Roadmap planning, detailed recorded
-work, file review and project setup use the command line and agent tools.
+```sh
+magistr next-loop --max-iterations 5
+```
 
-## Roadmap
+## Your work history
 
-A work item has a title, status, priority, acceptance criteria and dependencies.
-The next ready item is the most urgent pending item whose dependencies are done.
-An item may be in backlog, pending, in progress, done, blocked or obsolete.
+As the agent works, it saves the plan, changes, findings and check results.
+That history helps the next session understand what happened and what to do next.
 
-Use the connected agent to read the plan and request changes. `$next` or `/next`
-resumes an interrupted item or starts one ready item, then stops. A planning request
-does not start implementation. `magistr next` runs one item;
-`magistr next-loop` continues up to its requested limit with fresh agent sessions.
+Related findings stay together. Later findings can correct earlier ones, and
+useful findings can be pinned to keep them easy to find. A checkpoint saves a
+place in the work that the agent can return to.
 
-## Sessions
+## Checking your work
 
-Each session is one conversation with an agent in one working copy. Switching
-sessions does not cancel their work. An unanswered request stays with the session
-that asked it. Saved session history records its model, outcome, usage and recent
-reply. Resume depends on the selected provider's support.
+A step is done when it meets its goal and the required checks pass. For a small
+change, run the relevant formatting, build, lint and test commands. Run the full
+suite when you ask for it or when a change affects the whole project.
 
-## Recorded work
+Each check saves the command and whether it passed. A failed required check keeps
+the step open so the agent can fix the problem and check it again.
 
-The agent records an objective, its plan, actions and checks. It records findings
-as work progresses, including the evidence, conclusion and next action.
-Investigations keep related findings together, and later findings can correct
-earlier ones. A step can be pinned so it stays easy to find. A checkpoint saves a
-place in the work that can be restored. The connected tools read these records.
+```sh
+magistr validate
+```
 
-## Verification
+Set the project's test commands and required checks during setup, or edit them in
+`.magistr/project.json`.
 
-A work item is done when its acceptance criteria hold and the selected checks pass.
-Bounded changes use focused formatting, compilation, tests, lint and custom checks.
-The complete suite runs when requested or when a change needs coverage across the
-project. Each check records its command and real exit code. A failed required
-check keeps the item from completing; diagnose it and rerun the affected checks.
+## Agent sessions
 
-## Project state
+Each session is a conversation with an agent in a copy of your project. Switching
+sessions keeps their work and unanswered permission requests in place.
 
-`magistr init` writes the project file and agent setup. Roadmap, reasoning and
-execution records stay with the project under `.magistr/`; saved conversations
-also use the configured local data folder. A fresh agent session recovers the
-recorded plan and evidence before continuing.
+Saved conversations include the model, latest reply and whether the work
+finished. The ability to resume a conversation depends on the agent you use.
+
+## The desktop preview
+
+The desktop is a separate preview available from source. It gives you a place
+to talk to your agent and return to project conversations. Use the command line
+or your connected agent for planning, reviewing changes and project setup.
+
+Open a configured project in `magistr-desktop`. Choose **New session** to start a
+conversation. Switch between projects or copies of a project, then return to a
+session to continue reading and recover your draft.
+
+Press Return to send a message, or Shift Return for a new line. **Stop** cancels
+the current turn and keeps your draft. Permission requests let you approve or
+decline the requested action. **Copy conversation** copies its messages.
+**Close session** ends that conversation; Quit closes the app and its running work.
+
+Choose System, Light or Dark under **Appearance**. Text fields support selection,
+the clipboard and your input methods.
+
+## Where your work is saved
+
+Setup adds your project settings and the files your chosen agents need.
+Plans, progress and findings stay under `.magistr/` in your project.
+Saved conversations also use Magistr's local data folder.
+
+See the [installation guide](/docs/installation) to set up an agent, check the
+connection or remove Magistr from a project.
