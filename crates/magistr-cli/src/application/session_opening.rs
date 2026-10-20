@@ -24,7 +24,6 @@ impl SessionOpening {
                 config.model = model;
                 config.effort = None;
                 config.resume = None;
-                config.continue_conversation = false;
                 config.history = crate::agent::persistence::SessionHistory::new();
                 Ok(config.provider(provider))
             }
@@ -32,7 +31,6 @@ impl SessionOpening {
                 config.prompt.clear();
                 config.provider = None;
                 config.resume = None;
-                config.continue_conversation = false;
                 config.with_run_args(None, Some(&id), false)
             }
         }

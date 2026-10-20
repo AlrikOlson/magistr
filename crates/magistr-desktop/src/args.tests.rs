@@ -86,7 +86,6 @@ fn selected_project_and_session_choices_reach_the_shared_config() {
     assert_eq!(config.model.as_deref(), Some("chosen-model"));
     assert_eq!(config.resume, None);
     assert_eq!(config.prompt, "hello");
-    assert!(!config.continue_conversation);
     assert_eq!(
         config.permission_profile,
         Some(magistr::permissions::PermissionProfile::Cautious)
@@ -125,7 +124,6 @@ fn a_switched_project_keeps_the_choices_and_drops_the_first_sessions_opening() {
     assert_eq!(config.model.as_deref(), Some("chosen-model"));
     assert_eq!(config.resume, None);
     assert_eq!(config.prompt, "");
-    assert!(!config.continue_conversation);
     assert_eq!(
         config.permission_profile,
         Some(magistr::permissions::PermissionProfile::Cautious)

@@ -94,7 +94,7 @@ async fn host_reconnect_loads_the_same_session_without_repeating_history() {
             restored.history.purpose() == SessionPurpose::Roadmap,
             planning
         );
-        assert!(!restored.continue_conversation && restored.prompt.is_empty());
+        assert!(restored.prompt.is_empty());
         assert_eq!(
             turn_text(&mut events).await,
             ["New reply"],
@@ -177,7 +177,6 @@ async fn host_connector_preserves_choices_and_separates_planning_configuration()
         let dir = tempfile::tempdir().unwrap();
         let mut config = AgentConfig::new("old opening", dir.path()).model("chosen");
         config.resume = Some("old-session".into());
-        config.continue_conversation = true;
         config.workflow_permissions = true;
         let (observed, mut received) = tokio::sync::mpsc::unbounded_channel();
         let connector = Connector::new(move |config| {
@@ -193,9 +192,7 @@ async fn host_connector_preserves_choices_and_separates_planning_configuration()
             .unwrap()
             .unwrap();
         assert_eq!(actual.model.as_deref(), Some("chosen"));
-        assert!(
-            actual.prompt.is_empty() && actual.resume.is_none() && !actual.continue_conversation
-        );
+        assert!(actual.prompt.is_empty() && actual.resume.is_none());
         assert_eq!(
             actual.history.purpose() == SessionPurpose::Roadmap,
             planning

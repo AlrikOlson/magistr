@@ -6,8 +6,7 @@ fn a_new_choice_replaces_launch_choices_and_allocates_its_own_history() {
     let original = AgentConfig::new("initial prompt", "/project")
         .provider("claude")
         .model("launch model")
-        .resume("provider ID")
-        .continue_conversation(true);
+        .resume("provider ID");
     let chosen = SessionOpening::New {
         provider: "copilot".into(),
         model: None,
@@ -17,7 +16,6 @@ fn a_new_choice_replaces_launch_choices_and_allocates_its_own_history() {
     assert_eq!(chosen.provider.as_deref(), Some("copilot"));
     assert_eq!(chosen.model, None);
     assert_eq!(chosen.resume, None);
-    assert!(!chosen.continue_conversation);
     assert!(chosen.prompt.is_empty());
 }
 #[test]

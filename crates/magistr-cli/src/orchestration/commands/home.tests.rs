@@ -45,5 +45,4 @@ fn a_saved_row_selects_its_own_provider_and_load_id_without_an_opening_prompt() 
     assert_eq!(config.model.as_deref(), Some("recorded-model"));
     assert!(config.prompt.is_empty());
     assert_eq!(config.cwd, root);
-    assert!(!config.continue_conversation);
 }
