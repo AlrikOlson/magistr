@@ -40,6 +40,13 @@ def run(cmd, **kwargs):
 
 TEST_SOURCE = "import unittest\nfrom names import normalize_names\nclass Names(unittest.TestCase):\n    def test_whitespace(self):\n        self.assertEqual(normalize_names([' Alice ', '  ', '', 'BOB']), ['alice','bob'])\n"
 
+def required_checks_passed(checks):
+    """Keep diagnostic failures as evidence; require the latest required checks."""
+    latest = {check["name"]: check for check in checks if check["required"]}
+    return bool(latest) and all(check["passed"] and check["verified"]
+                               and check["exit_code"] == 0 for check in latest.values())
+
+
 def verify_saved_work(root):
     """Independently inspect persisted records after both agent processes exit."""
     def saved(family):
@@ -48,13 +55,11 @@ def verify_saved_work(root):
         return json.loads(paths[0].read_text())
     ship=saved("ship");think=saved("think");signals=saved("signal");roadmap=saved("roadmap")
     checks=[c for task in ship["tasks"] for c in task.get("checks",[])]
-    latest={}
-    for check in checks:latest[check["name"]]=check
     proof=subprocess.run(["python3","-m","unittest","-q"],cwd=root,capture_output=True,text=True)
     result={
         "objectiveCompleted":ship["objective"]["status"]=="completed",
         "tasksCompleted":bool(ship["tasks"]) and all(t["status"]=="completed" for t in ship["tasks"]),
-        "recordedCheckPassed":bool(latest) and all(c["passed"] and c["verified"] and c["exit_code"]==0 for c in latest.values()),
+        "recordedCheckPassed":required_checks_passed(checks),
         "feedbackSaved":bool(signals["signals"]),
         "futureRoadmapSaved":any(c["status"] in ("backlog","pending") for c in roadmap["chunks"]),
         "decisionRecordsSaved":any(h["steps"] for h in think["histories"].values()),
