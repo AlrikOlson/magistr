@@ -11,3 +11,8 @@ pub use check::check_connection;
 pub use service::run_stdio_server;
 
 pub(crate) use catalog::DIRECT;
+
+/// Whether the operation is exposed by the unified connection to MCP clients.
+pub(crate) fn is_public_tool(name: &str) -> bool {
+    DIRECT.iter().any(|(_, public, _)| *public == name) || matches!(name, "discover" | "execute")
+}

@@ -603,7 +603,9 @@ fn should_auto_approve(req: &RequestData, is_workflow: bool) -> bool {
     // `.mcp.json` (the agent runs the CLI under --strict-mcp-config), the
     // protected-path deny has already run, and an unanswered ask parks an
     // unattended loop until the transport's auto-approve timeout.
-    if title_lower.starts_with("magistr_") || title_lower.starts_with("magistr-") {
+    if let Some(name) = title_lower.strip_prefix("mcp__magistr__")
+        && crate::unified_mcp::is_public_tool(name)
+    {
         return true;
     }
     is_workflow && title_lower.starts_with("mcp__")
