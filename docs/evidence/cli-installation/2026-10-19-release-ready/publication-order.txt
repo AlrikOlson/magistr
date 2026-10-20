@@ -1,0 +1,14 @@
+magistr-domain
+magistr-application
+magistr-process
+magistr-acp
+magistr-acp-agent
+magistr-workflow-contracts
+magistr-cockpit
+magistr-cockpit-runtime
+magistr-workflow
+magistr-engine
+magistr-workspace
+magistr-core
+magistr-mcp
+magistr-cli

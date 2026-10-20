@@ -1,0 +1,349 @@
+{
+  "version": "0.1.0",
+  "source": "4fa3788f200c5c807f142f7542e6c159deae777a",
+  "platform": "aarch64-apple-darwin",
+  "published": false,
+  "hosted": {
+    "packages": {
+      "run": 39352947283,
+      "status": "success"
+    },
+    "readiness": {
+      "run": 39352938183,
+      "status": "success",
+      "url": "https://github.com/AlrikOlson/magistr/actions/runs/39352938183",
+      "jobs": [
+        {
+          "name": "Package and verify (macos-latest)",
+          "id": 118401111796,
+          "status": "success",
+          "startedAt": "2026-10-20T01:21:13Z",
+          "completedAt": "2026-10-20T01:27:54Z",
+          "durationSeconds": 401
+        },
+        {
+          "name": "Desktop gates (macos-latest)",
+          "id": 118401112197,
+          "status": "success",
+          "startedAt": "2026-10-20T01:21:12Z",
+          "completedAt": "2026-10-20T01:30:19Z",
+          "durationSeconds": 547
+        },
+        {
+          "name": "Anonymous public endpoint gate",
+          "id": 118401113054,
+          "status": "skipped",
+          "startedAt": "2026-10-20T01:21:07Z",
+          "completedAt": "2026-10-20T01:21:07Z",
+          "durationSeconds": 0
+        },
+        {
+          "name": "Rust and website gates",
+          "id": 118401113413,
+          "status": "success",
+          "startedAt": "2026-10-20T01:21:13Z",
+          "completedAt": "2026-10-20T01:36:14Z",
+          "durationSeconds": 901
+        }
+      ]
+    },
+    "desktop": {
+      "run": 39352938348,
+      "status": "success"
+    }
+  },
+  "verification": {
+    "focused": {
+      "passed": true,
+      "acpTests": 199,
+      "acpReceipt": "feb06973-e368-4dab-b2b0-098b96265f62",
+      "priorLoopAndHygieneTests": 91,
+      "priorLoopAndHygieneReceipt": "d8921a56-66fd-4ecf-b047-bf2f2be86551",
+      "checks": [
+        "All ACP agent tests across full run and corrected fixture rerun",
+        "All loop-driver and interface-hygiene tests",
+        "Rust 1.99.1 affected all-targets Clippy",
+        "System Bash duplication gate, workflow ownership, workflow lint, formatting and canonical version consistency"
+      ]
+    },
+    "adapter": {
+      "passed": true,
+      "testsPerPlatform": 27,
+      "platforms": [
+        "Ubuntu",
+        "Windows"
+      ],
+      "source": "83a98358bbafd7fdea409803af6f10fcc27e06ba",
+      "run": 39346480131,
+      "note": "Adapter sources unchanged; retained path-filtered JS-only workflow result. No Windows Rust build."
+    },
+    "hostArchive": {
+      "passed": true,
+      "run": 39352938183,
+      "job": 118401111796
+    },
+    "desktop": {
+      "passed": true,
+      "rustTests": 83,
+      "launcherTests": 4,
+      "run": 39352938348,
+      "job": 118401112671,
+      "processRoles": [
+        "desktop",
+        "workspace worker",
+        "ACP",
+        "MCP"
+      ]
+    },
+    "desktopGates": {
+      "passed": true,
+      "rustTests": 47,
+      "javascriptTests": 93,
+      "run": 39352938183,
+      "job": 118401112197,
+      "visualGatePassed": true
+    },
+    "protocol": {
+      "passed": true,
+      "tests": 8,
+      "durationSeconds": 4.898,
+      "run": 39352947283
+    },
+    "onboarding": {
+      "passed": true,
+      "tests": 6,
+      "durationSeconds": 6.176,
+      "run": 39352947283
+    },
+    "cargoSourceReproduction": {
+      "passed": true,
+      "packageCount": 14,
+      "cargo": "1.99.1",
+      "receipt": "8bf75470-4005-430b-868e-7f733854d90d"
+    },
+    "rust": {
+      "passed": true,
+      "total": 8065,
+      "passedTests": 8065,
+      "failed": 0,
+      "skipped": 18,
+      "slow": 1,
+      "durationSeconds": 571.076,
+      "run": 39352938183,
+      "job": 118401113413
+    },
+    "versionGuards": {
+      "passed": true,
+      "versionTests": 6,
+      "releaseGuardTests": 6,
+      "run": 39352938183
+    },
+    "website": {
+      "passed": true,
+      "command": "npm ci && npm test",
+      "staticPages": 4,
+      "run": 39352938183
+    }
+  },
+  "registryAvailability": {
+    "checkedAt": "2026-10-20T01:15:28.290588+00:00",
+    "checks": [
+      {
+        "registry": "cargo",
+        "name": "magistr-domain",
+        "url": "https://crates.io/api/v1/crates/magistr-domain",
+        "status": 404,
+        "unregistered": true
+      },
+      {
+        "registry": "cargo",
+        "name": "magistr-application",
+        "url": "https://crates.io/api/v1/crates/magistr-application",
+        "status": 404,
+        "unregistered": true
+      },
+      {
+        "registry": "cargo",
+        "name": "magistr-process",
+        "url": "https://crates.io/api/v1/crates/magistr-process",
+        "status": 404,
+        "unregistered": true
+      },
+      {
+        "registry": "cargo",
+        "name": "magistr-acp",
+        "url": "https://crates.io/api/v1/crates/magistr-acp",
+        "status": 404,
+        "unregistered": true
+      },
+      {
+        "registry": "cargo",
+        "name": "magistr-acp-agent",
+        "url": "https://crates.io/api/v1/crates/magistr-acp-agent",
+        "status": 404,
+        "unregistered": true
+      },
+      {
+        "registry": "cargo",
+        "name": "magistr-workflow-contracts",
+        "url": "https://crates.io/api/v1/crates/magistr-workflow-contracts",
+        "status": 404,
+        "unregistered": true
+      },
+      {
+        "registry": "cargo",
+        "name": "magistr-cockpit",
+        "url": "https://crates.io/api/v1/crates/magistr-cockpit",
+        "status": 404,
+        "unregistered": true
+      },
+      {
+        "registry": "cargo",
+        "name": "magistr-cockpit-runtime",
+        "url": "https://crates.io/api/v1/crates/magistr-cockpit-runtime",
+        "status": 404,
+        "unregistered": true
+      },
+      {
+        "registry": "cargo",
+        "name": "magistr-workflow",
+        "url": "https://crates.io/api/v1/crates/magistr-workflow",
+        "status": 404,
+        "unregistered": true
+      },
+      {
+        "registry": "cargo",
+        "name": "magistr-engine",
+        "url": "https://crates.io/api/v1/crates/magistr-engine",
+        "status": 404,
+        "unregistered": true
+      },
+      {
+        "registry": "cargo",
+        "name": "magistr-workspace",
+        "url": "https://crates.io/api/v1/crates/magistr-workspace",
+        "status": 404,
+        "unregistered": true
+      },
+      {
+        "registry": "cargo",
+        "name": "magistr-core",
+        "url": "https://crates.io/api/v1/crates/magistr-core",
+        "status": 404,
+        "unregistered": true
+      },
+      {
+        "registry": "cargo",
+        "name": "magistr-mcp",
+        "url": "https://crates.io/api/v1/crates/magistr-mcp",
+        "status": 404,
+        "unregistered": true
+      },
+      {
+        "registry": "cargo",
+        "name": "magistr-cli",
+        "url": "https://crates.io/api/v1/crates/magistr-cli",
+        "status": 404,
+        "unregistered": true
+      },
+      {
+        "registry": "npm",
+        "name": "magistr",
+        "url": "https://registry.npmjs.org/magistr",
+        "status": 404,
+        "unregistered": true
+      }
+    ],
+    "note": "Availability does not reserve names or establish publishing access."
+  },
+  "ownerAccess": {
+    "checkedAt": "2026-10-20T01:35:16.204938+00:00",
+    "releaseEnvironment": "cli-release",
+    "releaseBranch": "main",
+    "cargoTokenConfigured": false,
+    "npmAuthenticated": false,
+    "repositoryPrivate": true,
+    "receipt": "7bfcb3ad-c54f-43f5-a681-039c0cea3d1b"
+  },
+  "publicEndpoints": {
+    "checkedAt": "2026-10-20T01:02:47Z",
+    "passed": false,
+    "checks": [
+      {
+        "url": "https://github.com/AlrikOlson/magistr",
+        "status": 404
+      },
+      {
+        "url": "https://github.com/AlrikOlson/magistr/releases",
+        "status": 404
+      },
+      {
+        "url": "https://github.com/AlrikOlson/magistr/issues",
+        "status": 404
+      },
+      {
+        "url": "https://magistr.dev",
+        "status": 200
+      }
+    ],
+    "note": "Registry artifact readiness is distinct from public launch. Public GitHub links need an owner-authorized visibility change."
+  },
+  "versionOwner": "Cargo.toml [workspace.package].version",
+  "versionCommand": "python3 scripts/version.py set <version>",
+  "visualEvidence": "../../desktop-iterations/2026-10-19-release-version/review.md",
+  "agentEvaluationEvidence": "../2026-10-19-unified-mcp/README.md",
+  "artifact": {
+    "created_at": "2026-10-20T01:33:50Z",
+    "digest": "sha256:7afc502338df94fc1cca7164fa99f3d6a72a2dd3fe3d3352a9e63fb3fceada81",
+    "expired": false,
+    "expires_at": "2027-01-18T01:21:13Z",
+    "id": 12234132955,
+    "name": "cli-distribution",
+    "size_in_bytes": 35792059,
+    "run": 39352947283,
+    "url": "https://github.com/AlrikOlson/magistr/actions/runs/39352947283",
+    "localDirectory": "target/release-candidate-4fa3788f",
+    "npmSha256": "9bd932fbf869c4c1c9be9aecae0bad6a05c707db0633ac7dfbe0351afaa17e15",
+    "binarySha256": "f663e784c973c09fe5f468af352cad680cf80b4adccb2df112e75c90f593ded6"
+  },
+  "artifactPreparationComplete": true,
+  "recordedAt": "2026-10-20 01:39:31 UTC",
+  "ownerActionsRemaining": [
+    "Configure crates.io publishing token in the cli-release GitHub environment",
+    "Authenticate the publishing Mac with npm and complete interactive first-publication 2FA",
+    "Authorize repository visibility for public GitHub links",
+    "Explicitly authorize registry publication of this verified candidate"
+  ],
+  "nativeVerification": {
+    "quality": {
+      "receipt": "7d23c789-8e61-4aa5-9539-52a609f24e24",
+      "name": "Rust release regression suite",
+      "passed": true,
+      "verified": true,
+      "command": "python3 -B scripts/cli-release.py select --repository AlrikOlson/magistr --run-id 39352947283 && python3 - <<'PY'\nimport json, subprocess\nsource = '4fa3788f200c5c807f142f7542e6c159deae777a'\nruns = {39352938183: 'public release readiness', 39352938348: 'desktop apps'}\nfor run_id, name in runs.items():\n    run = json.loads(subprocess.check_output(['gh', 'run', 'view', str(run_id), '--json', 'status,conclusion,headSha,jobs,url'], text=True))\n    assert run['headSha'] == source and run['status'] == 'completed' and run['conclusion'] == 'success', run\n    for job in run['jobs']:\n        if job['name'] == 'Anonymous public endpoint gate':\n            assert job['conclusion'] == 'skipped'\n        else:\n            assert job['conclusion'] == 'success', job\n    print(name + ': passed at ' + source + ' (' + run['url'] + ')')\nprint('Public GitHub endpoint access remains a separate owner-authorized visibility step.')\nPY",
+      "exitCode": 0,
+      "timestamp": "2026-10-20T01:37:17.774062+00:00",
+      "sourceRevision": "e789d5b08894f669ab8fd333e2cace2c0fd9a4a4205aa3ed0bc0a001bdb7a0b1"
+    },
+    "artifacts": {
+      "receipt": "8bf75470-4005-430b-868e-7f733854d90d",
+      "name": "Hosted Cargo/npm artifacts",
+      "passed": true,
+      "verified": true,
+      "command": "python3 -B scripts/cli-release.py verify --out target/release-candidate-4fa3788f --source 4fa3788f200c5c807f142f7542e6c159deae777a && RUSTUP_TOOLCHAIN=1.99.1 python3 -B scripts/distribution.py verify-source --out target/release-candidate-4fa3788f > /tmp/magistr-4fa3788f-source-reproduction.log 2>&1 && git diff --exit-code && test -z \"$(git status --porcelain)\"",
+      "exitCode": 0,
+      "timestamp": "2026-10-20T01:34:41.431538+00:00",
+      "sourceRevision": "b531faeff30b75d70ee9f5bcc26b8fc5c813a89201816681582ff7912d41646d"
+    },
+    "administration": {
+      "receipt": "7bfcb3ad-c54f-43f5-a681-039c0cea3d1b",
+      "name": "Release administration",
+      "passed": true,
+      "verified": true,
+      "command": "python3 - <<'PY'\nimport datetime, json, subprocess\ndef gh(path):\n    return json.loads(subprocess.check_output(['gh','api','repos/AlrikOlson/magistr/'+path], text=True))\nenvironment=gh('environments/cli-release')\nassert environment['deployment_branch_policy'] == {'protected_branches':False,'custom_branch_policies':True}\nbranches=gh('environments/cli-release/deployment-branch-policies')['branch_policies']\nassert [(b['name'],b['type']) for b in branches] == [('main','branch')]\nsecrets=gh('environments/cli-release/secrets')\nrepository=json.loads(subprocess.check_output(['gh','api','repos/AlrikOlson/magistr'],text=True))\nnpm=subprocess.run(['npm','whoami','--registry=https://registry.npmjs.org'],capture_output=True,text=True)\nassert npm.returncode==0 or 'ENEEDAUTH' in npm.stderr, npm.stderr\nprint(json.dumps({'checkedAt':datetime.datetime.now(datetime.timezone.utc).isoformat(),'releaseEnvironment':'cli-release','releaseBranch':'main','cargoTokenConfigured':any(s['name']=='CARGO_REGISTRY_TOKEN' for s in secrets['secrets']),'npmAuthenticated':npm.returncode==0,'repositoryPrivate':repository['private']}))\nprint('Publication requires explicit owner authorization; missing account setup is reported, never bypassed.')\nPY",
+      "exitCode": 0,
+      "timestamp": "2026-10-20T01:35:23.775481+00:00",
+      "sourceRevision": "e789d5b08894f669ab8fd333e2cace2c0fd9a4a4205aa3ed0bc0a001bdb7a0b1"
+    }
+  }
+}

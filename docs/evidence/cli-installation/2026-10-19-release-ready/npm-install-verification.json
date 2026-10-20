@@ -1,0 +1,15 @@
+{
+  "passed": true,
+  "version": "0.1.0",
+  "platform": "macOS-15.7.9-arm64-arm-64bit",
+  "rustOrBunOnPath": false,
+  "capturedAt": "2026-10-20T01:33:36.605385+00:00",
+  "artifactSha256": "9bd932fbf869c4c1c9be9aecae0bad6a05c707db0633ac7dfbe0351afaa17e15",
+  "globalInstall": true,
+  "npxInit": true,
+  "pinnedConfigFreshCache": true,
+  "nativeMcpAndWorker": true,
+  "usageExitCode": 2,
+  "sigterm": true,
+  "removal": true
+}
