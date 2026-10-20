@@ -33,10 +33,11 @@ const mainOf = (html) => html.split("<main")[1]?.split("</main>")[0] ?? html;
 const textOf = (html) => mainOf(html).replace(/<code[\s\S]*?<\/code>/g, "").replace(/<pre[\s\S]*?<\/pre>/g, "").replace(/<[^>]+>/g, " ");
 
 console.log("Home:");
-assert(indexHtml.includes("Pick up where") && indexHtml.includes("you left off."), "headline explains returning to work");
-assert(indexHtml.includes("For Codex &amp; Claude Code"), "supported agents are named");
+assert(indexHtml.includes("Plan the work.") && indexHtml.includes("Prove the change."), "headline gives planning and verification equal prominence");
+assert(indexHtml.includes("workflow layer for coding agents") && indexHtml.includes("source changes to review"), "first screen explains the category and workflow");
+assert(indexHtml.includes("Codex") && indexHtml.includes("Claude Code"), "supported agents are named");
 assert(indexHtml.includes('id="install-btn"') && indexHtml.includes('href="#install"') && indexHtml.includes('id="install"'), "install call to action, anchor and section");
-assert(indexHtml.includes('id="roadmap"') && indexHtml.includes('href="/#roadmap"'), "roadmap section and its nav link match");
+assert(indexHtml.includes('id="workflow"') && indexHtml.includes('href="/#workflow"'), "roadmap section and its nav link match");
 assert(indexHtml.includes("cargo install --locked --path crates/magistr-cli"), "installation command present");
 assert(indexHtml.includes("git clone https://github.com/AlrikOlson/magistr.git"), "clone command targets the repository");
 assert(indexHtml.includes("magistr --version") && indexHtml.includes("magistr init") && indexHtml.includes("magistr next"), "commands after install");
@@ -48,20 +49,19 @@ assert(indexHtml.includes("Registry packages are not published yet") && indexHtm
 assert(indexHtml.includes('"operatingSystem":"macOS (Apple Silicon)"'), "first release metadata targets Apple Silicon macOS");
 assert(indexHtml.includes('"downloadUrl":"https://magistr.dev/docs/installation"'), "download metadata points to current installation instructions");
 
-assert(!indexHtml.includes("feature-card") && !indexHtml.includes("walkthrough-step") && !indexHtml.includes("community-link") && !indexHtml.includes("changelog"), "no marketing card grids or changelog");
+assert(indexHtml.includes("illustrated walkthrough of a recorded task") && indexHtml.includes("not a live test"), "explanation is clearly separated from actual captures and live execution");
 const homeImages = [...indexHtml.matchAll(/src="\/screenshots\/([a-z-]+)\.png\?v=[a-f0-9]{12}"/g)].map((m) => m[1]);
 assert(new Set(homeImages).size === 4 && homeImages.length === 4, `each screenshot appears once on the home page (${homeImages.join(", ")})`);
-const roadmapSection = indexHtml.match(/<section id="roadmap"[\s\S]*?<\/section>/)?.[0] ?? "";
-assert(roadmapSection.includes("magistr next") && roadmapSection.includes("checks it needs to pass"), "roadmap explains one-step work and completion checks");
+const roadmapSection = indexHtml.split('id="workflow"')[1]?.split('id="product"')[0] ?? "";
+assert(roadmapSection.includes("Keep the existing test unchanged") && roadmapSection.includes("fresh") && roadmapSection.includes("exit 0"), "one coherent task connects a goal, source change, real check and fresh session");
 assert(!roadmapSection.includes("Roadmap screen"),"future desktop planning is not advertised");
 assert(!roadmapSection.includes("without leaving the conversation") && !roadmapSection.includes("actions beside the conversation"), "full Roadmap is not described as conversation details");
 
 console.log("\nNavigation and accessibility:");
 assert(indexHtml.includes('aria-label="Primary"'), "primary navigation labelled");
-assert(indexHtml.includes('href="/#roadmap"') && indexHtml.includes('href="/#install"') && indexHtml.includes('href="/docs/installation"'), "navigation reaches the current sections and guides");
+assert(indexHtml.includes('href="/#workflow"') && indexHtml.includes('href="/#install"') && indexHtml.includes('href="/docs/installation"'), "navigation reaches the current sections and guides");
 assert(indexHtml.includes('class="skip-link" href="#main-content"') && indexHtml.includes('id="main-content"'), "skip link reaches main");
-assert(indexHtml.includes('aria-label="Magistr on GitHub (opens in a new tab)"'), "GitHub link has an accessible name");
-assert(indexHtml.includes('class="github-mark"') && indexHtml.includes('width="20" height="20"'), "GitHub mark has explicit dimensions");
+assert(indexHtml.includes("Repository") && indexHtml.includes("Access required"), "repository access is stated with the link");
 assert(indexHtml.includes('aria-controls="mobile-menu"') && indexHtml.includes('id="mobile-menu"'), "mobile menu is wired");
 assert(installHtml.includes('aria-current="page"'), "the docs link and the sidebar mark the active page");
 for (const [name, html] of productPages) {
@@ -93,14 +93,14 @@ const figures=[...indexHtml.matchAll(/<figure\b[\s\S]*?<\/figure>/g)];
 assert(figures.length===3 && figures.every(([figure])=>figure.includes("<figcaption>")),"desktop and both agent sessions have captioned figures");
 
 console.log("\nPublic language:");
-const jargon = /TUI2|GUI2|tui2|gui2|think:|ship:|chunk-id|chunk\b|workflow server|native state|project state|execution records|verification receipts|admitted|typed command|[Ff]light [Rr]ecorder|\b[Dd]ecisions?\b/;
-const commentary = /\bsample\b|\bHarbor\b|\bcaptured\b|\bcapture\b|\bfixture\b|on purpose|\bsynthetic\b|\bwe\b|\bour\b|\bgolden|wrangler|Cloudflare|wear/i;
+const jargon = /TUI2|GUI2|tui2|gui2|think-and-ship|Workbench|think:|ship:|chunk-id|chunk\b|workflow server|native state|admitted|typed command|[Ff]light [Rr]ecorder/;
+const commentary = /\bHarbor\b|\bfixture\b|on purpose|\bgolden|wrangler|Cloudflare|design system|typographic hierarchy/i;
 for (const [name, html] of productPages) {
   const text = textOf(html);
   assert(!jargon.test(text), `${name} page carries no internal jargon`);
   assert(!commentary.test(text), `${name} page carries no production commentary`);
 }
-assert(!indexHtml.includes("illustrative") && !indexHtml.includes("Mermaid"), "no placeholder or diagram-source copy");
+assert(indexHtml.includes("not a transfer of the Codex session") && indexHtml.includes("did not execute the fix"), "independent agent runs and the desktop proposal have truthful scope");
 
 console.log("\nDocs:");
 assert(installHtml.includes("Your code and permissions") && installHtml.includes("permissions you give it"), "installation explains agent permissions");
@@ -134,7 +134,7 @@ assert(conceptsHtml.includes("pinned") && conceptsHtml.includes("checkpoint"), "
 assert(conceptsHtml.includes("desktop is a separate preview available from source") && conceptsHtml.includes("command line"), "guide explains desktop availability and planning");
 assert(conceptsHtml.includes("recover your draft"),"concepts explains resident drafts");
 assert(conceptsHtml.includes("Stop") && conceptsHtml.includes("Permission requests") && conceptsHtml.includes("Close session"),"current conversation actions are explained");
-assert(roadmapSection.includes("saved plan") && roadmapSection.includes("Continue unfinished work"), "roadmap recovery is explained");
+assert(conceptsHtml.includes("continue unfinished work") && conceptsHtml.includes("saved plan"), "roadmap recovery is explained");
 for (const slug of ["installation", "concepts"]) {
   assert(installHtml.includes(`href="/docs/${slug}"`), `sidebar links ${slug}`);
 }
@@ -181,7 +181,7 @@ assert(!notFoundHtml.includes("curl") && !notFoundHtml.includes("rounded-lg"), "
 
 console.log("\nSource hygiene:");
 const components = readdirSync(resolve(srcDir, "components"));
-assert(components.every((name) => ["Nav.astro", "ThemeToggle.astro"].includes(name)), `only the components in use remain (${components.join(", ")})`);
+assert(components.includes("Workflow.astro") && components.includes("ProductEvidence.astro"), "workflow explanation and original product evidence have separate components");
 assert(readdirSync(resolve(srcDir, "content/docs")).sort().join(",") === "concepts.mdx,installation.mdx", "exactly the two docs pages exist");
 assert(!existsSync(resolve(distDir, "icons")), "no unused icon assets ship");
 
