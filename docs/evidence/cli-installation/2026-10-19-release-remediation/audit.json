@@ -1,0 +1,741 @@
+{
+  "schemaVersion": 1,
+  "auditedAt": "2026-10-20T03:55:37Z",
+  "localDate": "2026-10-19",
+  "timeZone": "America/Los_Angeles",
+  "verdict": "ENGINEERING_COMPLETE_OWNER_ACTIONS_REQUIRED",
+  "scope": "Initial Apple Silicon macOS 15+ Cargo/npm CLI release, plus requested current native app and real Codex/Claude screenshots",
+  "originalAudit": "../2026-10-19-release-audit/audit.json",
+  "candidate": {
+    "version": "0.1.0",
+    "source": "1e99aba7b9e3d9f76c953ddf03041166f45aa599",
+    "platform": "aarch64-apple-darwin",
+    "minimumVerifiedMacOS": "15",
+    "packageRun": 39364916005,
+    "packageRunUrl": "https://github.com/AlrikOlson/magistr/actions/runs/39364916005",
+    "artifact": {
+      "id": 12238999976,
+      "name": "cli-distribution",
+      "size_in_bytes": 36996424,
+      "digest": "sha256:3641229644941f19d7351ba3a13cf4fc321dedb03a8002118150d3ad10cc2ff2",
+      "expired": false,
+      "created_at": "2026-10-20T03:49:06Z",
+      "expires_at": "2027-01-18T03:33:25Z",
+      "zipSha256": "3641229644941f19d7351ba3a13cf4fc321dedb03a8002118150d3ad10cc2ff2",
+      "localDirectory": "target/hosted-release-1e99aba7",
+      "npmSha256": "93f5e3d798389c5344f6e7973377e5f66d82c96a7153d817004b60224c11670a",
+      "binarySha256": "8c3d78ae31a27482812f88523fb268512a5cdf1471e50a99422f4926ed479317"
+    },
+    "cargoArchives": 14,
+    "npmFiles": 933,
+    "npmBytes": 33077883,
+    "nativeDependencyRecords": 534,
+    "noticeHashesVerified": 925,
+    "securityReceiptGeneratedAt": "2026-10-20T03:49:02.215504+00:00",
+    "securityReceiptMaximumAgeHours": 24
+  },
+  "counts": {
+    "PASS": 56,
+    "OWNER": 7,
+    "LIMITED": 6,
+    "PENDING": 4
+  },
+  "checklist": [
+    {
+      "id": "I01",
+      "area": "Identity",
+      "status": "PASS",
+      "criterion": "First-release scope is Apple Silicon macOS CLI",
+      "evidence": "First-release acceptance is the Apple Silicon CLI on macOS 15 or later; other desktop/CPU/OS distribution remains separate."
+    },
+    {
+      "id": "I02",
+      "area": "Identity",
+      "status": "PASS",
+      "criterion": "One product version owner",
+      "evidence": "One owner remains workspace.package.version=0.1.0; generated manifests/lockfiles and version tests pass. CI tools also have shared canonical pins."
+    },
+    {
+      "id": "I03",
+      "area": "Identity",
+      "status": "PASS",
+      "criterion": "Audited candidate is identified and tree is clean",
+      "evidence": "The selected package source is 1e99aba7b9e3d9f76c953ddf03041166f45aa599. Subsequent commits record evidence only; final tree status is retained separately."
+    },
+    {
+      "id": "I04",
+      "area": "Identity",
+      "status": "PASS",
+      "criterion": "Pre-release identity is reconciled before public release",
+      "evidence": "Archived the obsolete September release as a draft under archive/unpublished-v0.1.0-20260909, preserving the original annotated tag object and both assets. v0.1.0 is available for the explicitly authorized initial release."
+    },
+    {
+      "id": "I05",
+      "area": "Identity",
+      "status": "PASS",
+      "criterion": "Requested registry names are currently unused",
+      "evidence": "All 14 Cargo names and npm magistr returned 404 at 2026-10-20T03:38:58Z. Availability does not reserve names or prove publishing permission."
+    },
+    {
+      "id": "C01",
+      "area": "Cargo",
+      "status": "PASS",
+      "criterion": "All internal dependencies can be published",
+      "evidence": "Fourteen normalized archives have matching 0.1.0 registry requirements and no remaining internal path dependency; package licenses retained."
+    },
+    {
+      "id": "C02",
+      "area": "Cargo",
+      "status": "PASS",
+      "criterion": "Required assets are in extracted packages",
+      "evidence": "Hosted run 39364916005 installs the extracted normalized Cargo archives in release mode on macOS 15.7.9 arm64 against a checksum-verified vendored registry, with no checkout dependency; installed CLI smoke checks pass."
+    },
+    {
+      "id": "C03",
+      "area": "Cargo",
+      "status": "PASS",
+      "criterion": "Cargo package source matches reviewed source",
+      "evidence": "All 14 final hosted Cargo archives reproduce byte for byte from the reviewed source with Cargo 1.99.1. Archive inventories, source metadata and SHA-256 comparisons are retained."
+    },
+    {
+      "id": "C04",
+      "area": "Cargo",
+      "status": "PASS",
+      "criterion": "Advertised Rust minimum builds the CLI",
+      "evidence": "The patched graph passes cargo +1.95.0 check --locked for the CLI library and binary; this is minimum-toolchain typechecking, not its full test suite."
+    },
+    {
+      "id": "C05",
+      "area": "Cargo",
+      "status": "PASS",
+      "criterion": "Internal publication order follows dependencies",
+      "evidence": "Fourteen-package publication-order.txt is derived from the dependency closure."
+    },
+    {
+      "id": "C06",
+      "area": "Cargo",
+      "status": "PASS",
+      "criterion": "First publication tolerates quotas and partial failure",
+      "evidence": "Exact reviewed archives, topological order, API/index/checksum reconciliation,429 Retry-After/bounded waits, uncertain-effect receipts and safe resumption are implemented;29 tests pass."
+    },
+    {
+      "id": "C07",
+      "area": "Cargo",
+      "status": "OWNER",
+      "criterion": "Account email and a suitable token are ready",
+      "evidence": "CARGO_REGISTRY_TOKEN is absent from cli-release; owner must verify account email and authorize creation of new crates."
+    },
+    {
+      "id": "N01",
+      "area": "npm",
+      "status": "PASS",
+      "criterion": "Packed package contains the versioned native CLI",
+      "evidence": "magistr@0.1.0, macOS arm64 restriction, direct native bin, no runtime JavaScript dependencies or install hooks."
+    },
+    {
+      "id": "N02",
+      "area": "npm",
+      "status": "PASS",
+      "criterion": "Global installation needs no Rust, Bun or checkout",
+      "evidence": "Hosted packed-artifact install passed in an isolated prefix with those tools absent from PATH."
+    },
+    {
+      "id": "N03",
+      "area": "npm",
+      "status": "PASS",
+      "criterion": "npx works from a fresh cache",
+      "evidence": "Loopback registry and fresh-cache test passed, including the generated version-pinned MCP configuration."
+    },
+    {
+      "id": "N04",
+      "area": "npm",
+      "status": "PASS",
+      "criterion": "Stdio, exit codes, signals and worker startup survive installation",
+      "evidence": "Actual packed binary checks passed; there is no wrapper process to lose native signals."
+    },
+    {
+      "id": "N05",
+      "area": "npm",
+      "status": "PASS",
+      "criterion": "Package file inventory is intentional",
+      "evidence": "The final hosted package contains 933 regular files, no symlinks or unexpected paths, and a mode-0755 binary. Compressed size is 33,077,883 bytes; unpacked size is 115,844,287 bytes."
+    },
+    {
+      "id": "N06",
+      "area": "npm",
+      "status": "PASS",
+      "criterion": "Uninstall works",
+      "evidence": "Packed npm uninstall and executable removal passed."
+    },
+    {
+      "id": "N07",
+      "area": "npm",
+      "status": "OWNER",
+      "criterion": "Publishing account and interactive 2FA are ready",
+      "evidence": "npm whoami returned ENEEDAUTH. Owner must sign in and complete first-publication authentication."
+    },
+    {
+      "id": "N08",
+      "area": "npm",
+      "status": "OWNER",
+      "criterion": "Subsequent trusted publisher is configured",
+      "evidence": "No package exists yet. Configure the exact repository/workflow/environment and allow-publish after first creation; verify current expiry rules."
+    },
+    {
+      "id": "M01",
+      "area": "macOS",
+      "status": "PASS",
+      "criterion": "Executable is arm64 and uses expected system libraries",
+      "evidence": "The exact hosted npm binary is Mach-O arm64, links only system dylibs and passes strict ad-hoc signature verification. SHA-256: 8c3d78ae31a27482812f88523fb268512a5cdf1471e50a99422f4926ed479317."
+    },
+    {
+      "id": "M02",
+      "area": "macOS",
+      "status": "PASS",
+      "criterion": "Minimum operating-system claim is tested",
+      "evidence": "The documented minimum is macOS 15. Hosted clean installation runs on macOS 15 arm64; the binary's lower Mach-O linking target is explicitly not certification of older macOS versions."
+    },
+    {
+      "id": "M03",
+      "area": "macOS",
+      "status": "LIMITED",
+      "criterion": "Browser-downloaded archive passes Gatekeeper",
+      "evidence": "No Developer ID/notarization proof. Cargo/npm installation is proven; do not advertise a notarized direct download."
+    },
+    {
+      "id": "U01",
+      "area": "Unified MCP",
+      "status": "PASS",
+      "criterion": "One public MCP connection owns workflow and workspace access",
+      "evidence": "magistr mcp --dir is used by current integrations; workflow/project and workspace/working-copy ownership remain distinct internally."
+    },
+    {
+      "id": "U02",
+      "area": "Unified MCP",
+      "status": "PASS",
+      "criterion": "All capabilities have catalog coverage",
+      "evidence": "One typed catalog covers direct common tools plus discover/execute and advanced workspace/workflow operations; schema/handler coverage passed."
+    },
+    {
+      "id": "U03",
+      "area": "Unified MCP",
+      "status": "PASS",
+      "criterion": "Composition keeps authorization and bounded execution",
+      "evidence": "Native authorization, sandbox bounds, sequential mutation and stop-on-failure receipts pass. Fresh native-session testing also fixed host routing to the exact unified public catalog; governance restrictions retain precedence."
+    },
+    {
+      "id": "U04",
+      "area": "Unified MCP",
+      "status": "PASS",
+      "criterion": "Edits are verified, journaled and reject stale requests",
+      "evidence": "Source/hash checks, confirmation behavior and session-scoped undo are covered in retained tests."
+    },
+    {
+      "id": "U05",
+      "area": "Unified MCP",
+      "status": "PASS",
+      "criterion": "Concurrent agents and worktrees keep correct owners",
+      "evidence": "Simultaneous clients, separate worktrees and owner restart passed in the eight process scenarios."
+    },
+    {
+      "id": "U06",
+      "area": "Unified MCP",
+      "status": "PASS",
+      "criterion": "Cancellation and partial execution are recoverable",
+      "evidence": "Cancellation, stale confirmations and partial failure tests passed; completed effects remain visible without automatic replay."
+    },
+    {
+      "id": "U07",
+      "area": "Unified MCP",
+      "status": "PASS",
+      "criterion": "Response failures and truncation are explicit",
+      "evidence": "Typed envelope/catalog checks passed; discovery needs no client-specific extension."
+    },
+    {
+      "id": "U08",
+      "area": "Unified MCP",
+      "status": "PASS",
+      "criterion": "Current fixtures use current state names",
+      "evidence": "All four tas-data fixture references now use workflow-state. Current source ownership/architecture gates pass; historical attribution and audit evidence remain intact."
+    },
+    {
+      "id": "O01",
+      "area": "Onboarding",
+      "status": "PASS",
+      "criterion": "Setup detects the project and proposes changes",
+      "evidence": "Guided interview and administrative plan service are present; configuration and verification commands are reviewed before application."
+    },
+    {
+      "id": "O02",
+      "area": "Onboarding",
+      "status": "PASS",
+      "criterion": "Only selected integrations are generated",
+      "evidence": "Codex, Claude Code and portable setup are supported; selected-agent and multi-agent process cases passed."
+    },
+    {
+      "id": "O03",
+      "area": "Onboarding",
+      "status": "PASS",
+      "criterion": "Repeated setup preserves custom settings and other servers",
+      "evidence": "Customized-config, repeated setup, paths with spaces, repair and removal cases passed."
+    },
+    {
+      "id": "O04",
+      "area": "Onboarding",
+      "status": "PASS",
+      "criterion": "Unavailable clients produce actionable diagnostics",
+      "evidence": "Unavailable-agent diagnostics and doctor behavior pass in the eight onboarding process scenarios."
+    },
+    {
+      "id": "O05",
+      "area": "Onboarding",
+      "status": "PASS",
+      "criterion": "Setup finishes with a real connection and read-only context",
+      "evidence": "Protocol handshake/context checks passed; setup suggests planning and does not start implementation."
+    },
+    {
+      "id": "O06",
+      "area": "Onboarding",
+      "status": "PASS",
+      "criterion": "MCP startup does not automatically repair project files",
+      "evidence": "Repair belongs to explicit setup/repair through the administrative change service."
+    },
+    {
+      "id": "O07",
+      "area": "Onboarding",
+      "status": "PASS",
+      "criterion": "Upgrade, repair and removal are documented",
+      "evidence": "Current release procedure documents ownership-preserving repair/removal and reopening installed clients."
+    },
+    {
+      "id": "O08",
+      "area": "Onboarding",
+      "status": "PASS",
+      "criterion": "Interactive terminal onboarding is exercised",
+      "evidence": "Eight onboarding process cases now include real background PTY customization, proposal-before-write, acceptance and cancellation with no file changes. No foreground or human usability walkthrough is claimed."
+    },
+    {
+      "id": "E01",
+      "area": "Agent evaluations",
+      "status": "PASS",
+      "criterion": "Codex and Claude Code were exercised on realistic workflows",
+      "evidence": "Codex 0.163.0 and Claude Code 2.1.304 each completed implementation and fresh-session resumption against the exact final hosted npm binary. Independent state/source checks pass for safe edits, plans, feedback, decisions, roadmap, recorded verification and completion. One Claude read-only argument error was explicitly rejected and recovered; no automatic replay occurred."
+    },
+    {
+      "id": "E02",
+      "area": "Agent evaluations",
+      "status": "LIMITED",
+      "criterion": "Efficiency claims reflect measured evidence",
+      "evidence": "Small comparisons record success/calls/context; Claude unified timing was worse. No broad performance or reliability claim is justified."
+    },
+    {
+      "id": "T01",
+      "area": "CI",
+      "status": "PASS",
+      "criterion": "Exact candidate passes full Rust checks",
+      "evidence": "Final source 1e99aba7 passes all-targets check, formatting, Clippy and 8,069 workspace tests in hosted run 39364882173; 18 opt-in cases are explicitly skipped."
+    },
+    {
+      "id": "T02",
+      "area": "CI",
+      "status": "PASS",
+      "criterion": "Protocol and onboarding processes pass on release packaging",
+      "evidence": "Final packaging run 39364916005 passes all eight unified MCP process scenarios and all eight onboarding scenarios, including the interactive PTY interview and cancellation."
+    },
+    {
+      "id": "T03",
+      "area": "CI",
+      "status": "PASS",
+      "criterion": "Release does not wait for Windows Rust builds",
+      "evidence": "Every Rust CI job now targets macOS, including the manual desktop workflow. Remaining Windows/Linux adapter checks execute JavaScript only and have a 10-minute bound; public HTTP checks use a 5-minute job."
+    },
+    {
+      "id": "T04",
+      "area": "CI",
+      "status": "PASS",
+      "criterion": "CI duration is bounded and measured",
+      "evidence": "Final Rust/website job took 1,000 seconds (16m40s), within its 30-minute bound. Packaging took 836 seconds; independent desktop jobs took 483 and 525 seconds, and security took 120 seconds. Jobs ran concurrently."
+    },
+    {
+      "id": "T05",
+      "area": "CI",
+      "status": "LIMITED",
+      "criterion": "Skipped live scenarios are accounted for",
+      "evidence": "The final hosted skip inventory is retained separately. Opt-in local Codex and Claude transport checks were also run; optional cloud/tracker/keychain and reference scenarios are not covered by the full-suite pass."
+    },
+    {
+      "id": "T06",
+      "area": "CI",
+      "status": "PASS",
+      "criterion": "Reviewed artifacts are tied to checks and checksums",
+      "evidence": "Publication selector requires the intended successful package run/source and matching installation receipts; source archive reproduction passed."
+    },
+    {
+      "id": "T07",
+      "area": "CI",
+      "status": "PASS",
+      "criterion": "Artifacts are retained long enough for review",
+      "evidence": "Verified hosted artifact 12238999976 is retained until 2027-01-18T03:33:25Z; local ZIP and unpacked copies plus tracked inventories/receipts are retained. Security approval expires after 24 hours and requires a fresh qualification if delayed."
+    },
+    {
+      "id": "S01",
+      "area": "Security",
+      "status": "PASS",
+      "criterion": "Enabled native dependencies have no unresolved applicable advisories",
+      "evidence": "Final-source target-aware scanning reports zero findings across 492 enabled native CLI packages, including advisory warnings; no dependency exception is configured."
+    },
+    {
+      "id": "S02",
+      "area": "Security",
+      "status": "PASS",
+      "criterion": "Sandbox runtime is on an acceptable security baseline",
+      "evidence": "Wasmtime 48.0.7 and the grammar component's C API 36.0.19 clear the current runtime findings. Affected sandbox and language-pack tests pass."
+    },
+    {
+      "id": "S03",
+      "area": "Security",
+      "status": "PASS",
+      "criterion": "Website dependencies have a reviewed security baseline",
+      "evidence": "Astro 7.4.1, MDX 8.1.0 and Sharp 0.35.5 replace the vulnerable website dependency chain. Current npm audit reports zero findings."
+    },
+    {
+      "id": "S04",
+      "area": "Security",
+      "status": "PASS",
+      "criterion": "Release-script JavaScript dependencies pass current audit",
+      "evidence": "The release tooling, including pinned Wrangler 4.151.2, has zero current npm audit findings."
+    },
+    {
+      "id": "S05",
+      "area": "Security",
+      "status": "PASS",
+      "criterion": "Git-history secret matches are reviewed",
+      "evidence": "Full-history Gitleaks 8.30.1 reports only 21 exact reviewed synthetic-fixture fingerprints. No broad file exclusions or inline suppression is accepted."
+    },
+    {
+      "id": "S06",
+      "area": "Security",
+      "status": "PASS",
+      "criterion": "Embedded JavaScript engine has provenance",
+      "evidence": "QuickJS-ng 0.16.2 WASI hash matches the official release asset; reviewed upstream advisories do not establish an unfixed matching issue."
+    },
+    {
+      "id": "S07",
+      "area": "Security",
+      "status": "LIMITED",
+      "criterion": "Prebuilt embedded engine is reproducible from source",
+      "evidence": "Upstream asset/source/license provenance is retained; original toolchain inputs are insufficient for an independent byte-for-byte rebuild."
+    },
+    {
+      "id": "S08",
+      "area": "Security",
+      "status": "PASS",
+      "criterion": "Security checks are enforced before publication",
+      "evidence": "Push/PR security and artifact-bound package scans are enforced. Publication requires successful matching source runs and a clean receipt bound to every archive, less than 24 hours old."
+    },
+    {
+      "id": "S09",
+      "area": "Supply chain",
+      "status": "PASS",
+      "criterion": "Action and compiler inputs are immutable",
+      "evidence": "External workflow/composite actions use full commit SHAs. Rust 1.99.1, Node 24.22.0, Python 3.14.8, Nextest 0.9.130 and scanners have reviewed canonical pins; the hosted arm64 jobs use them."
+    },
+    {
+      "id": "S10",
+      "area": "Supply chain",
+      "status": "OWNER",
+      "criterion": "Main and release environment have appropriate protection",
+      "evidence": "Main has strict Rust/website and security requirements bound to GitHub Actions, conversation resolution, administrator enforcement, and no force pushes/deletions. The cli-release environment accepts only main. Required environment reviewers are unavailable on the current private account plan; that remaining setting follows the owner's visibility/plan decision. Final enforcement is checked again after the evidence push."
+    },
+    {
+      "id": "S11",
+      "area": "Supply chain",
+      "status": "LIMITED",
+      "criterion": "Package provenance is accurately described",
+      "evidence": "Checksums/source receipts exist. First interactive npm upload has no automatic OIDC provenance; later public-repository trusted uploads can have it."
+    },
+    {
+      "id": "L01",
+      "area": "Legal and privacy",
+      "status": "PASS",
+      "criterion": "Package license notices match their inventory",
+      "evidence": "The final native notice inventory contains 534 dependency records and 925 notice hashes, including nested native-library attribution. Exact packed notice bytes are checked independently; this is a technical inventory review."
+    },
+    {
+      "id": "L02",
+      "area": "Legal and privacy",
+      "status": "LIMITED",
+      "criterion": "Data and permission behavior is fully observed",
+      "evidence": "Code defaults telemetry consent off and requires an endpoint; local records/provider permissions are documented. No packet-capture audit of every optional integration was performed."
+    },
+    {
+      "id": "W01",
+      "area": "Public launch",
+      "status": "PASS",
+      "criterion": "Public website is reachable",
+      "evidence": "The production homepage and installation guide respond successfully at magistr.dev."
+    },
+    {
+      "id": "W02",
+      "area": "Public launch",
+      "status": "PASS",
+      "criterion": "Deployed instructions match current setup",
+      "evidence": "Deployed current selected-agent setup, read-only connection check, plan-first boundary, doctor, repair, upgrade and removal instructions; registry packages are truthfully marked unpublished."
+    },
+    {
+      "id": "W03",
+      "area": "Public launch",
+      "status": "OWNER",
+      "criterion": "Repository and support links are public",
+      "evidence": "Repository/releases/issues/security URLs return anonymous 404 while repository is private. Owner visibility decision is outstanding."
+    },
+    {
+      "id": "W04",
+      "area": "Public launch",
+      "status": "OWNER",
+      "criterion": "Private vulnerability reporting works",
+      "evidence": "Current API/page check could not establish a usable route. Enable and verify private reporting or document a concrete private contact."
+    },
+    {
+      "id": "W05",
+      "area": "Public launch",
+      "status": "PASS",
+      "criterion": "Launch checks verify deployed content and required links",
+      "evidence": "Semantic HTTP/content checks now run the website stage on every push/PR, publication prerequisites before uploads, and registry/full-release checks on manual/tag release runs. No continue-on-error bypass."
+    },
+    {
+      "id": "W06",
+      "area": "Public launch",
+      "status": "PASS",
+      "criterion": "Visual evidence describes what is actually deployed",
+      "evidence": "Production deployment 551dda39-03b8-4b26-bebe-6c4e26e046de serves the reviewed source. All 39 current versioned resources match; 12 fresh production gallery frames were opened and reviewed, alongside 12 corrected local frames and four selected real product/client images."
+    },
+    {
+      "id": "P01",
+      "area": "Publication",
+      "status": "OWNER",
+      "criterion": "Owner approves exact corrected artifacts and public launch",
+      "evidence": "Owner approval is still required for version 0.1.0 from source 1e99aba7b9e3d9f76c953ddf03041166f45aa599 and selected CLI packages run 39364916005. No registry upload or new public tag has occurred."
+    },
+    {
+      "id": "P02",
+      "area": "Publication",
+      "status": "PENDING",
+      "criterion": "Cargo installs successfully from the real registry",
+      "evidence": "Run after publication using an isolated Cargo home/root and --locked; unpublished names cannot be installed from crates.io now."
+    },
+    {
+      "id": "P03",
+      "area": "Publication",
+      "status": "PENDING",
+      "criterion": "npm global and npx install successfully from the real registry",
+      "evidence": "After publication, verify integrity and exact version with fresh cache/prefix and a disposable project."
+    },
+    {
+      "id": "P04",
+      "area": "Publication",
+      "status": "PENDING",
+      "criterion": "Published archives match reviewed hashes and metadata",
+      "evidence": "After upload, fetch registry archives and compare all 14 Cargo checksums, npm integrity/version/bin metadata and release assets."
+    },
+    {
+      "id": "P05",
+      "area": "Publication",
+      "status": "PASS",
+      "criterion": "Support and correction procedure is ready for a bad upload",
+      "evidence": "Exact-artifact partial-upload recovery, uncertain-effect handling and immutable bad-version correction/yank/deprecation procedures are documented and covered by controlled-registry tests."
+    },
+    {
+      "id": "P06",
+      "area": "Publication",
+      "status": "PENDING",
+      "criterion": "Public release is explicitly declared",
+      "evidence": "Declare public release only after authorized uploads, real registry install/hash checks and deployed installation/support routes pass. The archived September draft is not a public-release declaration."
+    }
+  ],
+  "ci": [
+    {
+      "role": "readiness",
+      "id": 39364882173,
+      "url": "https://github.com/AlrikOlson/magistr/actions/runs/39364882173",
+      "source": "1e99aba7b9e3d9f76c953ddf03041166f45aa599",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "Desktop gates (macOS)",
+          "seconds": 525,
+          "conclusion": "success"
+        },
+        {
+          "name": "Anonymous public endpoint gate",
+          "seconds": 15,
+          "conclusion": "success"
+        },
+        {
+          "name": "Package and verify (macOS)",
+          "seconds": 376,
+          "conclusion": "success"
+        },
+        {
+          "name": "Rust and website gates",
+          "seconds": 1000,
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "role": "packages",
+      "id": 39364916005,
+      "url": "https://github.com/AlrikOlson/magistr/actions/runs/39364916005",
+      "source": "1e99aba7b9e3d9f76c953ddf03041166f45aa599",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "prepare",
+          "seconds": 836,
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "role": "security",
+      "id": 39364882252,
+      "url": "https://github.com/AlrikOlson/magistr/actions/runs/39364882252",
+      "source": "1e99aba7b9e3d9f76c953ddf03041166f45aa599",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "Current dependency and secret checks",
+          "seconds": 120,
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "role": "desktop",
+      "id": 39364882140,
+      "url": "https://github.com/AlrikOlson/magistr/actions/runs/39364882140",
+      "source": "1e99aba7b9e3d9f76c953ddf03041166f45aa599",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "Installable desktop (macOS)",
+          "seconds": 483,
+          "conclusion": "success"
+        }
+      ]
+    }
+  ],
+  "workspaceTests": {
+    "passed": 8069,
+    "failed": 0,
+    "skipped": 18,
+    "seconds": 600.757
+  },
+  "processChecks": {
+    "unifiedMcp": {
+      "passed": true,
+      "tests": 8,
+      "seconds": 4.847
+    },
+    "onboarding": {
+      "passed": true,
+      "tests": 8,
+      "seconds": 6.457
+    }
+  },
+  "agentTrials": [
+    {
+      "host": "codex",
+      "passed": true,
+      "seconds": 82.28,
+      "toolCalls": 26,
+      "toolErrors": 0
+    },
+    {
+      "host": "claude",
+      "passed": true,
+      "seconds": 207.04,
+      "toolCalls": 31,
+      "toolErrors": 1
+    }
+  ],
+  "website": {
+    "url": "https://magistr.dev/#agents",
+    "source": "1e99aba7b9e3d9f76c953ddf03041166f45aa599",
+    "deployment": "551dda39-03b8-4b26-bebe-6c4e26e046de",
+    "verifiedResources": 39,
+    "reviewedProductionFrames": 12,
+    "selectedOriginalImages": 4,
+    "review": "../../desktop-iterations/2026-10-19-release-session-gallery-production/REVIEW.md",
+    "originals": "../../desktop-iterations/2026-10-19-release-product-captures/REVIEW.md"
+  },
+  "evidence": [
+    "ci.json",
+    "agent-evaluations.json",
+    "independent-artifact-review.json",
+    "cargo-install-verification.json",
+    "npm-install-verification.json",
+    "security-verification.json",
+    "source-security.json",
+    "cargo-inventory.json",
+    "npm-inventory.json",
+    "binary-inventory.json",
+    "SHA256SUMS",
+    "publication-order.txt",
+    "registry-availability.json",
+    "admin.json",
+    "ci-corrections.json",
+    "research.json"
+  ],
+  "publication": {
+    "performed": false,
+    "newPublicTagCreated": false,
+    "publicReleaseDeclared": false,
+    "archivedDraft": "archive/unpublished-v0.1.0-20260909"
+  },
+  "remainingOwnerActions": [
+    {
+      "checkIds": [
+        "C07"
+      ],
+      "action": "Verify the crates.io account email; create a token permitted to create all fourteen new crates and add CARGO_REGISTRY_TOKEN to the cli-release GitHub environment using the masked prompt."
+    },
+    {
+      "checkIds": [
+        "N07"
+      ],
+      "action": "Sign in to npm on this Mac, enable account 2FA and complete interactive browser authentication."
+    },
+    {
+      "checkIds": [
+        "W03",
+        "W04",
+        "S10"
+      ],
+      "action": "Approve making AlrikOlson/magistr public. Then enable and verify private vulnerability reporting and supported release-environment review restrictions."
+    },
+    {
+      "checkIds": [
+        "P01"
+      ],
+      "action": "Explicitly authorize publication of version 0.1.0 from CLI packages run 39364916005, source 1e99aba7b9e3d9f76c953ddf03041166f45aa599, after reviewing its exact checksums. Refresh expired security qualification before uploading."
+    },
+    {
+      "checkIds": [
+        "N08"
+      ],
+      "action": "After the first npm package exists, configure its exact GitHub trusted publisher with interactive 2FA. The next successful trusted publication must occur within two days of creating the configuration; otherwise recreate it when needed."
+    }
+  ],
+  "postPublicationChecks": [
+    "Fetch all registry archives and compare exact checksums and metadata.",
+    "Run fresh real-registry Cargo, npm global and npx installations.",
+    "Update and verify published installation/support routes.",
+    "Create the approved public tag/release and declare release only after those checks pass."
+  ],
+  "worktree": {
+    "policy": "Evidence and release documentation commits after the selected source do not alter product, build, package or workflow inputs. Final Git cleanliness and restored administrator enforcement are recorded by native launch-administration checks after the final evidence push.",
+    "preservedBackup": "/Users/alrik/Backups/magistr-migration-20260909T165550Z/gui2-preview"
+  }
+}

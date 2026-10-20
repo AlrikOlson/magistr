@@ -1,0 +1,97 @@
+{
+  "checkedAt": "2026-10-20T03:38:58.480471+00:00",
+  "allUnused": true,
+  "checks": [
+    {
+      "name": "magistr-domain",
+      "url": "https://crates.io/api/v1/crates/magistr-domain",
+      "status": 404,
+      "currentlyUnused": true
+    },
+    {
+      "name": "magistr-application",
+      "url": "https://crates.io/api/v1/crates/magistr-application",
+      "status": 404,
+      "currentlyUnused": true
+    },
+    {
+      "name": "magistr-process",
+      "url": "https://crates.io/api/v1/crates/magistr-process",
+      "status": 404,
+      "currentlyUnused": true
+    },
+    {
+      "name": "magistr-acp",
+      "url": "https://crates.io/api/v1/crates/magistr-acp",
+      "status": 404,
+      "currentlyUnused": true
+    },
+    {
+      "name": "magistr-acp-agent",
+      "url": "https://crates.io/api/v1/crates/magistr-acp-agent",
+      "status": 404,
+      "currentlyUnused": true
+    },
+    {
+      "name": "magistr-workflow-contracts",
+      "url": "https://crates.io/api/v1/crates/magistr-workflow-contracts",
+      "status": 404,
+      "currentlyUnused": true
+    },
+    {
+      "name": "magistr-cockpit",
+      "url": "https://crates.io/api/v1/crates/magistr-cockpit",
+      "status": 404,
+      "currentlyUnused": true
+    },
+    {
+      "name": "magistr-cockpit-runtime",
+      "url": "https://crates.io/api/v1/crates/magistr-cockpit-runtime",
+      "status": 404,
+      "currentlyUnused": true
+    },
+    {
+      "name": "magistr-workflow",
+      "url": "https://crates.io/api/v1/crates/magistr-workflow",
+      "status": 404,
+      "currentlyUnused": true
+    },
+    {
+      "name": "magistr-engine",
+      "url": "https://crates.io/api/v1/crates/magistr-engine",
+      "status": 404,
+      "currentlyUnused": true
+    },
+    {
+      "name": "magistr-workspace",
+      "url": "https://crates.io/api/v1/crates/magistr-workspace",
+      "status": 404,
+      "currentlyUnused": true
+    },
+    {
+      "name": "magistr-core",
+      "url": "https://crates.io/api/v1/crates/magistr-core",
+      "status": 404,
+      "currentlyUnused": true
+    },
+    {
+      "name": "magistr-mcp",
+      "url": "https://crates.io/api/v1/crates/magistr-mcp",
+      "status": 404,
+      "currentlyUnused": true
+    },
+    {
+      "name": "magistr-cli",
+      "url": "https://crates.io/api/v1/crates/magistr-cli",
+      "status": 404,
+      "currentlyUnused": true
+    },
+    {
+      "name": "npm:magistr",
+      "url": "https://registry.npmjs.org/magistr",
+      "status": 404,
+      "currentlyUnused": true
+    }
+  ],
+  "limitation": "Name availability does not reserve names or establish account publishing access."
+}

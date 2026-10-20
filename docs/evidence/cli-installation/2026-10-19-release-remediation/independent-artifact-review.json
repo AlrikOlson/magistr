@@ -1,0 +1,193 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-10-20T03:50:13.301310+00:00",
+  "source": "1e99aba7b9e3d9f76c953ddf03041166f45aa599",
+  "run": 39364916005,
+  "artifact": {
+    "id": 12238999976,
+    "name": "cli-distribution",
+    "size_in_bytes": 36996424,
+    "digest": "sha256:3641229644941f19d7351ba3a13cf4fc321dedb03a8002118150d3ad10cc2ff2",
+    "expired": false,
+    "created_at": "2026-10-20T03:49:06Z",
+    "expires_at": "2027-01-18T03:33:25Z"
+  },
+  "zipSha256": "3641229644941f19d7351ba3a13cf4fc321dedb03a8002118150d3ad10cc2ff2",
+  "artifactVerified": {
+    "version": "0.1.0",
+    "source": "1e99aba7b9e3d9f76c953ddf03041166f45aa599",
+    "cargoPackages": 14,
+    "npm": "magistr-0.1.0.tgz",
+    "verified": true
+  },
+  "cargoReproduction": [
+    {
+      "file": "magistr-domain-0.1.0.crate",
+      "sha256": "f08c8dbbcf1b62a5a09a2c2ac6bbaffacc94611fa4004c993fb0ff63700e85ce",
+      "bytes": 43777,
+      "identical": true
+    },
+    {
+      "file": "magistr-application-0.1.0.crate",
+      "sha256": "092242d6e48ffdfd71da76e68709f951cab4d408e53f76def35dc901f3707b4a",
+      "bytes": 32517,
+      "identical": true
+    },
+    {
+      "file": "magistr-process-0.1.0.crate",
+      "sha256": "1a77db82600d4d281b509538f9560f8777687f425c0ad0330fd305900969925f",
+      "bytes": 31437,
+      "identical": true
+    },
+    {
+      "file": "magistr-acp-0.1.0.crate",
+      "sha256": "265113a1a7f2e1175c9e3cb3bb516417248c214efe95f5db6c0df261bcbce2eb",
+      "bytes": 68651,
+      "identical": true
+    },
+    {
+      "file": "magistr-acp-agent-0.1.0.crate",
+      "sha256": "59fca39c56a56642ae660cccd69ce27ab3df5e22486e3da5ab54e216f1d1812c",
+      "bytes": 102323,
+      "identical": true
+    },
+    {
+      "file": "magistr-workflow-contracts-0.1.0.crate",
+      "sha256": "327003e144c83b3aac677b4168f1385e7cfcb0e9bad441ac11bda5a841e06bd7",
+      "bytes": 70506,
+      "identical": true
+    },
+    {
+      "file": "magistr-cockpit-0.1.0.crate",
+      "sha256": "fe5aec6ee8628f64bdd63fb20b295f808ea276668e8709f0ad792291daa233ac",
+      "bytes": 35348,
+      "identical": true
+    },
+    {
+      "file": "magistr-cockpit-runtime-0.1.0.crate",
+      "sha256": "410ee7689e6a3746347d63ce0c957d23e4d010dcc5c96e8f97af579ff7597b07",
+      "bytes": 33037,
+      "identical": true
+    },
+    {
+      "file": "magistr-workflow-0.1.0.crate",
+      "sha256": "c8c4c6d4bb76e0230ec8c7a1d0e326c7ca99fed59720dd19d6352a06936d73e2",
+      "bytes": 675591,
+      "identical": true
+    },
+    {
+      "file": "magistr-engine-0.1.0.crate",
+      "sha256": "62384a5d771be97d9e69c2d67b1f251b946ce326d16c6f8f866f27221b8c4b86",
+      "bytes": 227417,
+      "identical": true
+    },
+    {
+      "file": "magistr-workspace-0.1.0.crate",
+      "sha256": "17f043b58607c4e976be395f36b6573aebc1eed45fb9663a303a5afbdb30a7dc",
+      "bytes": 676640,
+      "identical": true
+    },
+    {
+      "file": "magistr-core-0.1.0.crate",
+      "sha256": "289bd74d1ed46d625d2afdcb7929db72b168b0d1620f8e607562c648e4ca7897",
+      "bytes": 300349,
+      "identical": true
+    },
+    {
+      "file": "magistr-mcp-0.1.0.crate",
+      "sha256": "2a9c46f81b39b6b1d1a0e0939bf271d240f838047b3d24360d7cbe7c796d3ac2",
+      "bytes": 15270,
+      "identical": true
+    },
+    {
+      "file": "magistr-cli-0.1.0.crate",
+      "sha256": "a9c0083c823697a76c16ee19b2c45ab0734ea0afdb8113d6584485ffeb89bee0",
+      "bytes": 1728822,
+      "identical": true
+    }
+  ],
+  "npm": {
+    "sha256": "93f5e3d798389c5344f6e7973377e5f66d82c96a7153d817004b60224c11670a",
+    "size": 33077883,
+    "unpackedSize": 115844287,
+    "fileCount": 933,
+    "manifest": {
+      "name": "magistr",
+      "version": "0.1.0",
+      "description": "Project workflow and verified source tools for coding agents",
+      "license": "MIT",
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/AlrikOlson/magistr.git"
+      },
+      "homepage": "https://github.com/AlrikOlson/magistr",
+      "bin": {
+        "magistr": "bin/magistr"
+      },
+      "os": [
+        "darwin"
+      ],
+      "cpu": [
+        "arm64"
+      ],
+      "files": [
+        "bin/magistr",
+        "LICENSE",
+        "THIRD_PARTY_NOTICES",
+        "inventory.json",
+        "README.md"
+      ],
+      "publishConfig": {
+        "access": "public"
+      }
+    },
+    "binarySha256": "8c3d78ae31a27482812f88523fb268512a5cdf1471e50a99422f4926ed479317",
+    "binaryMode": "0o755",
+    "dependencies": 534,
+    "noticesChecked": 925,
+    "noSymlinks": true,
+    "inventoryMatches": true,
+    "integrityMatches": true
+  },
+  "nativeInspections": [
+    {
+      "command": [
+        "file",
+        "target/hosted-release-1e99aba7/eval-magistr"
+      ],
+      "exitCode": 0,
+      "output": "target/hosted-release-1e99aba7/eval-magistr: Mach-O 64-bit executable arm64\n"
+    },
+    {
+      "command": [
+        "otool",
+        "-L",
+        "target/hosted-release-1e99aba7/eval-magistr"
+      ],
+      "exitCode": 0,
+      "output": "target/hosted-release-1e99aba7/eval-magistr:\n\t/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation (compatibility version 150.0.0, current version 3502.1.255)\n\t/System/Library/Frameworks/CoreServices.framework/Versions/A/CoreServices (compatibility version 1.0.0, current version 1226.0.0)\n\t/usr/lib/libiconv.2.dylib (compatibility version 7.0.0, current version 7.0.0)\n\t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1351.0.0)\n"
+    },
+    {
+      "command": [
+        "codesign",
+        "--verify",
+        "--strict",
+        "--verbose=2",
+        "target/hosted-release-1e99aba7/eval-magistr"
+      ],
+      "exitCode": 0,
+      "output": "target/hosted-release-1e99aba7/eval-magistr: valid on disk\ntarget/hosted-release-1e99aba7/eval-magistr: satisfies its Designated Requirement\n"
+    },
+    {
+      "command": [
+        "codesign",
+        "-d",
+        "--verbose=4",
+        "target/hosted-release-1e99aba7/eval-magistr"
+      ],
+      "exitCode": 0,
+      "output": "Executable=/Users/alrik/Code/magistr/target/hosted-release-1e99aba7/eval-magistr\nIdentifier=magistr-d2c7908405de8387\nFormat=Mach-O thin (arm64)\nCodeDirectory v=20400 size=855672 flags=0x20002(adhoc,linker-signed) hashes=26736+0 location=embedded\nVersionPlatform=1\nVersionMin=720896\nVersionSDK=984320\nHash type=sha256 size=32\nCandidateCDHash sha256=7e2a57f63e70958589e5dea5e93d6460ed1d1ba6\nCandidateCDHashFull sha256=7e2a57f63e70958589e5dea5e93d6460ed1d1ba68625d1464c3aba4edab74eaa\nHash choices=sha256\nCMSDigest=7e2a57f63e70958589e5dea5e93d6460ed1d1ba68625d1464c3aba4edab74eaa\nCMSDigestType=2\nExecutable Segment base=0\nExecutable Segment limit=84033536\nExecutable Segment flags=0x1\nPage size=4096\nCDHash=7e2a57f63e70958589e5dea5e93d6460ed1d1ba6\nSignature=adhoc\nInfo.plist=not bound\nTeamIdentifier=not set\nSealed Resources=none\nInternal requirements=none\n"
+    }
+  ],
+  "passed": true
+}

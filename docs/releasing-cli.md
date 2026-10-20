@@ -1,9 +1,12 @@
 # CLI package release
 
-**Current release hold:** the [19 October initial-release audit](evidence/cli-installation/2026-10-19-release-audit/README.md)
-records unresolved dependency security, publication recovery and launch-information
-checks. Complete those fixes and verify a new candidate before following the
-publication steps below.
+**Current release boundary:** the [19 October remediation audit and full checklist](evidence/cli-installation/2026-10-19-release-remediation/README.md)
+record the corrected source, qualified Cargo/npm artifacts, current security results,
+real-client checks and reviewed screenshots. Publication still requires the owner's
+registry credentials, repository visibility decision and approval of the exact
+candidate. Recheck the security receipt's 24-hour validity before uploading.
+The [original audit](evidence/cli-installation/2026-10-19-release-audit/README.md)
+is retained as the historical record of findings that prompted these fixes.
 
 The first package target is Apple Silicon running macOS 15 or later. Clean
 installation is verified on hosted macOS 15; the executable's lower Mach-O

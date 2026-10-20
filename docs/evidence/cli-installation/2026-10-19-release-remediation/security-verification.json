@@ -1,0 +1,277 @@
+{
+  "schema": 1,
+  "source": "1e99aba7b9e3d9f76c953ddf03041166f45aa599",
+  "sourceDirty": false,
+  "target": "aarch64-apple-darwin",
+  "generatedAt": "2026-10-20T03:49:02.215504+00:00",
+  "passed": true,
+  "artifactSha256": {
+    "magistr-domain-0.1.0.crate": "f08c8dbbcf1b62a5a09a2c2ac6bbaffacc94611fa4004c993fb0ff63700e85ce",
+    "magistr-application-0.1.0.crate": "092242d6e48ffdfd71da76e68709f951cab4d408e53f76def35dc901f3707b4a",
+    "magistr-process-0.1.0.crate": "1a77db82600d4d281b509538f9560f8777687f425c0ad0330fd305900969925f",
+    "magistr-acp-0.1.0.crate": "265113a1a7f2e1175c9e3cb3bb516417248c214efe95f5db6c0df261bcbce2eb",
+    "magistr-acp-agent-0.1.0.crate": "59fca39c56a56642ae660cccd69ce27ab3df5e22486e3da5ab54e216f1d1812c",
+    "magistr-workflow-contracts-0.1.0.crate": "327003e144c83b3aac677b4168f1385e7cfcb0e9bad441ac11bda5a841e06bd7",
+    "magistr-cockpit-0.1.0.crate": "fe5aec6ee8628f64bdd63fb20b295f808ea276668e8709f0ad792291daa233ac",
+    "magistr-cockpit-runtime-0.1.0.crate": "410ee7689e6a3746347d63ce0c957d23e4d010dcc5c96e8f97af579ff7597b07",
+    "magistr-workflow-0.1.0.crate": "c8c4c6d4bb76e0230ec8c7a1d0e326c7ca99fed59720dd19d6352a06936d73e2",
+    "magistr-engine-0.1.0.crate": "62384a5d771be97d9e69c2d67b1f251b946ce326d16c6f8f866f27221b8c4b86",
+    "magistr-workspace-0.1.0.crate": "17f043b58607c4e976be395f36b6573aebc1eed45fb9663a303a5afbdb30a7dc",
+    "magistr-core-0.1.0.crate": "289bd74d1ed46d625d2afdcb7929db72b168b0d1620f8e607562c648e4ca7897",
+    "magistr-mcp-0.1.0.crate": "2a9c46f81b39b6b1d1a0e0939bf271d240f838047b3d24360d7cbe7c796d3ac2",
+    "magistr-cli-0.1.0.crate": "a9c0083c823697a76c16ee19b2c45ab0734ea0afdb8113d6584485ffeb89bee0",
+    "magistr-0.1.0.tgz": "93f5e3d798389c5344f6e7973377e5f66d82c96a7153d817004b60224c11670a"
+  },
+  "inputSha256": {
+    ".github/actions/install-nextest/action.yml": "19ce386f226a73406c5cd7e13f48fa3084d20ab84e72acce093daf7bded363aa",
+    ".github/actions/release-security/action.yml": "c55e80c8cb41289e3ae95336c48ffea816655b1bf648c2793a1b6a0877a01bcc",
+    ".github/workflows/claude-mod.yml": "f79dd56c444a915771e76ab70f64e5d2b96d4073acbcd5abfa5a404b527a12d4",
+    ".github/workflows/cli-packages.yml": "b5731e5b4ed0cb27798e43df1ce1af2c69f744a530db23247bc7861cd3f191d2",
+    ".github/workflows/cli-publish.yml": "a3cd242f98cc26e78ef6078bc0c578828e28f2961fd56f16f44dcc89776e159a",
+    ".github/workflows/desktop-apps.yml": "9fc6ef6271742985069ce1d2e1290605b44dc8291c71f31824e694ebcb4f4dc3",
+    ".github/workflows/public-release.yml": "3680f1e62ab1e9ee80a3b3bd82cf0fe7e3bee4a72b86c27e30986616e19a0899",
+    ".github/workflows/release-security.yml": "a9e2010f7f746b01a37caa6625cab1768a880f2c2c9a58b81760804e7bfdc637",
+    ".node-version": "a1c56e968c358e10872d64220b3ae759ffe7feaffc4da95fae425dbcca43fe44",
+    ".python-version": "5abd4dc1efa09469b88916c8e4e027a8c266a9b6d06f43ac9da3e30cd00b4ab5",
+    "Cargo.lock": "96f96c364f061b554750e4c0053d4c29a8f6b05b128151b23700cf1c1717a834",
+    "Cargo.toml": "fb383bde03b819ea2e36aa9deae4ba1c43206bacfe13888cac46bd51f44d9b14",
+    "apps/website/package-lock.json": "799cde1b1a6c8048e7e1ec105b283f47a526485028f5ce0fdb06010f5e4a7b53",
+    "apps/website/package.json": "4ffc0f1dfc9044f05e349d92aa4ff33d0ece890a32ea0a29c43cf87fd3141e74",
+    "benchmarks/desktop-foundation/Cargo.toml": "befa1a96e4180fa827f1e0c261df881f89356c2cc6e29c5985c4d6438b0b7b48",
+    "benchmarks/desktop-foundation/tauri/Cargo.toml": "f057d8e2470cb3a29e8d13d8ae28ba793cc68647040e1fa16658a74733ea199d",
+    "benchmarks/desktop-foundation/workload/Cargo.toml": "6cf5a7d9efe3e7acb85ccab50d7a09f7df9ebb81ed9f5de79bf504fe4b7d570b",
+    "crates/magistr-acp/Cargo.toml": "f6c86095a017b772822b079af5c6b70d1fe88fb93c576c8925841283aa761ebe",
+    "crates/magistr-acp-agent/Cargo.toml": "8fb35eba6897a635c1e8531b4469091ac2fc6fbd824a79c9fbb66a5e1c45c78b",
+    "crates/magistr-application/Cargo.toml": "5dc659da561a8231fb652d312369e94f8c103a9d0ec8d9a462cacd9151915a73",
+    "crates/magistr-cli/Cargo.toml": "571e2530b2d57c71527a26daa378e4b8acb4a0c45bacb61b0ad8166a24cda1a2",
+    "crates/magistr-cockpit/Cargo.toml": "18c96ea96116483e68fcdd61dcf4acfa19c3a82913f1cf8be3c10a8397ee94dc",
+    "crates/magistr-cockpit-runtime/Cargo.toml": "91b48c51e69c81dd904bd31a6988d10f3366e513a0605b0059efdc20e5ff9df1",
+    "crates/magistr-core/Cargo.toml": "0d3b571d9971386042b6074b19db1a1527ab3f2b75b743ae56d1c542b84c715d",
+    "crates/magistr-desktop/Cargo.toml": "496fe9ff5802ccdc52a314e7924e6d37d16af728d53adf5f36ffc360e7486466",
+    "crates/magistr-domain/Cargo.toml": "d6b78b84d69306430ce9fbaedc92f5661fe3dc2f51cf9defbc827329be59f0dd",
+    "crates/magistr-engine/Cargo.toml": "0778280f4a43c014404c56a8f058ca129e10f24645d918d4d015c59ddf63be40",
+    "crates/magistr-mcp/Cargo.toml": "072fa7a4ec7a3e98d7039e63cbb62d2f5a8085d5ccbfb8f913ac9edeb0998851",
+    "crates/magistr-process/Cargo.toml": "cf2cb8462936955c764540134240c6ab36a962703abd9cfd94a3713a55ed96d6",
+    "crates/magistr-theme/Cargo.toml": "788adb44d636ccfa1c1ea71e59b4eb1b1ca7666311a4323a3fef2c840b690fe9",
+    "crates/magistr-workflow/Cargo.toml": "9f0fa3c07629cc791c9adad325987cf661c7298a55fe13932aea146cdee08983",
+    "crates/magistr-workflow-contracts/Cargo.toml": "c93d85da2a36326c8816b9f4ef112c90ecb53715471cd3fdd8a2fa1cb4a20af0",
+    "crates/magistr-workspace/Cargo.toml": "5e71888595899316455a484e7626a2516be40c4db787274a4a59ea7eda575c99",
+    "crates/magistr-workspace/fixtures/plugins/lang-pack-gleam/guest/Cargo.toml": "66f775abee8becf9617b5811c6a6b1232127002e5a0bb112b4955acba85ebb81",
+    "crates/magistr-workspace/fixtures/plugins/lsp-resolver/guest/Cargo.toml": "8fc05a7a5bf3539b19abbf9bbfe16b4c844835e82cde68c09d198c48e2b2f473",
+    "crates/magistr-workspace/fixtures/plugins/ranking-visibility/guest/Cargo.toml": "10519b4e0f7f453908c1c1d512b897cbaca4a2105711317b33c12962fe562500",
+    "crates/magistr-workspace/fixtures/plugins/runner-go/guest/Cargo.toml": "9d17b9bba788ba4aa54348f25d693aeb2dc170a5b26a2c06bb2e31a1214b10fa",
+    "rust-toolchain.toml": "02e78ccb9cee9f367095782951e36568448f65a6dd5d0423e70123719675c370",
+    "scripts/package-lock.json": "76fee7272aa8355d621a1f2575a4b9b660934a54b553281c7cf3c2a9a3baa974",
+    "scripts/package.json": "bd76333439085441cff32f93a2354a7de2223f06b1fefea276a566ec816eeb6f",
+    "scripts/release-security-policy.json": "f4761060e26517936711f0f76032914a215584b14cbf57c386043e4b6487edde",
+    "scripts/release-security.py": "3fa65973e8cd3f12d2646f88e145e252e3dc36262223c677b3f23bc1f82a1fe1",
+    "subsystems/workspace/reference/Cargo.toml": "84a5938c321a39490918badf3ecc8fbcb9c4d7dde88f89b7ccd6792ecaf57333",
+    "subsystems/workspace/reference/crates/componentize/Cargo.toml": "d646d27a1b93a14283f9bdaba3ffe5db2a5f61f693eb3f2e2b29dddde61094c6",
+    "subsystems/workspace/reference/crates/workbench-core/Cargo.toml": "56ff8f6daca132d8fc3545d0d376a57ca3d4101e1b341f27a02c62409e7a9257",
+    "subsystems/workspace/reference/plugins/lang-pack-gleam/guest/Cargo.toml": "66f775abee8becf9617b5811c6a6b1232127002e5a0bb112b4955acba85ebb81",
+    "subsystems/workspace/reference/plugins/lsp-resolver/guest/Cargo.toml": "c03ce0031e0b986585e1709e598c6668eb96c7f025da6bd8c8dff88e8544ebb5",
+    "subsystems/workspace/reference/plugins/ranking-visibility/guest/Cargo.toml": "10519b4e0f7f453908c1c1d512b897cbaca4a2105711317b33c12962fe562500",
+    "subsystems/workspace/reference/plugins/runner-go/guest/Cargo.toml": "9d17b9bba788ba4aa54348f25d693aeb2dc170a5b26a2c06bb2e31a1214b10fa"
+  },
+  "tools": {
+    "cargoAudit": "0.22.1",
+    "gitleaks": "8.30.1",
+    "npm": "11.19.1"
+  },
+  "advisoryDatabase": {
+    "advisory-count": 1338,
+    "last-commit": "999ec89d5d3f10f20be14750ec8c2d8b44e0ac9b",
+    "last-updated": "2026-10-17T17:23:59+02:00",
+    "fetchedAt": "2026-10-20T03:48:48.457735+00:00"
+  },
+  "checks": {
+    "cargo": {
+      "passed": true,
+      "enabledPackages": 492,
+      "findings": []
+    },
+    "secrets": {
+      "passed": true,
+      "findings": [
+        {
+          "commit": "fb9f61bcc722cb94ccd2e487cbac80e6f6d6af01",
+          "file": "crates/magistr-workspace/fixtures/contracts/responses.json",
+          "rule": "jwt",
+          "line": 401,
+          "status": "reviewed-fixture",
+          "reason": "Deliberate credential-shaped redaction test vector"
+        },
+        {
+          "commit": "fb9f61bcc722cb94ccd2e487cbac80e6f6d6af01",
+          "file": "crates/magistr-workspace/fixtures/contracts/responses.json",
+          "rule": "gcp-api-key",
+          "line": 392,
+          "status": "reviewed-fixture",
+          "reason": "Deliberate credential-shaped redaction test vector"
+        },
+        {
+          "commit": "fb9f61bcc722cb94ccd2e487cbac80e6f6d6af01",
+          "file": "crates/magistr-workspace/fixtures/contracts/responses.json",
+          "rule": "slack-bot-token",
+          "line": 365,
+          "status": "reviewed-fixture",
+          "reason": "Deliberate credential-shaped redaction test vector"
+        },
+        {
+          "commit": "3ce05bc652f25ff72d73593ece59d9c6b1bf1a7d",
+          "file": "docs/evidence/desktop-current/work-receipt.json",
+          "rule": "generic-api-key",
+          "line": 601,
+          "status": "reviewed-fixture",
+          "reason": "Source-content SHA-256 in a visual evidence receipt"
+        },
+        {
+          "commit": "25ee837095804bb701020fb162c0e692f3fe18d4",
+          "file": "docs/evidence/desktop-current/draft-persistence-receipt.json",
+          "rule": "generic-api-key",
+          "line": 824,
+          "status": "reviewed-fixture",
+          "reason": "Source-content SHA-256 in a visual evidence receipt"
+        },
+        {
+          "commit": "ed74337de61e84aafacdd1140d0f814e32d79d29",
+          "file": "docs/evidence/desktop-current/receipt.json",
+          "rule": "generic-api-key",
+          "line": 1763,
+          "status": "reviewed-fixture",
+          "reason": "Source-content SHA-256 in a visual evidence receipt"
+        },
+        {
+          "commit": "982433e96d265f3f45ba8301956e645bea0e00fe",
+          "file": "subsystems/workspace/conformance/responses.json",
+          "rule": "jwt",
+          "line": 401,
+          "status": "reviewed-fixture",
+          "reason": "Deliberate credential-shaped redaction test vector"
+        },
+        {
+          "commit": "982433e96d265f3f45ba8301956e645bea0e00fe",
+          "file": "subsystems/workspace/conformance/responses.json",
+          "rule": "gcp-api-key",
+          "line": 392,
+          "status": "reviewed-fixture",
+          "reason": "Deliberate credential-shaped redaction test vector"
+        },
+        {
+          "commit": "982433e96d265f3f45ba8301956e645bea0e00fe",
+          "file": "subsystems/workspace/conformance/responses.json",
+          "rule": "slack-bot-token",
+          "line": 365,
+          "status": "reviewed-fixture",
+          "reason": "Deliberate credential-shaped redaction test vector"
+        },
+        {
+          "commit": "0fada99b00651f19f7ae78aaae31ab08468ddcf1",
+          "file": "subsystems/workspace/reference/test/redteam-jail.test.ts",
+          "rule": "generic-api-key",
+          "line": 277,
+          "status": "reviewed-fixture",
+          "reason": "Deliberate credential-shaped redaction test vector"
+        },
+        {
+          "commit": "0fada99b00651f19f7ae78aaae31ab08468ddcf1",
+          "file": "subsystems/workspace/reference/test/redaction.test.ts",
+          "rule": "generic-api-key",
+          "line": 25,
+          "status": "reviewed-fixture",
+          "reason": "Deliberate credential-shaped redaction test vector"
+        },
+        {
+          "commit": "0fada99b00651f19f7ae78aaae31ab08468ddcf1",
+          "file": "subsystems/workspace/reference/test/redaction.test.ts",
+          "rule": "generic-api-key",
+          "line": 65,
+          "status": "reviewed-fixture",
+          "reason": "Deliberate credential-shaped redaction test vector"
+        },
+        {
+          "commit": "0fada99b00651f19f7ae78aaae31ab08468ddcf1",
+          "file": "subsystems/workspace/reference/test/redaction.test.ts",
+          "rule": "gcp-api-key",
+          "line": 26,
+          "status": "reviewed-fixture",
+          "reason": "Deliberate credential-shaped redaction test vector"
+        },
+        {
+          "commit": "0fada99b00651f19f7ae78aaae31ab08468ddcf1",
+          "file": "subsystems/workspace/reference/test/redaction.test.ts",
+          "rule": "slack-bot-token",
+          "line": 23,
+          "status": "reviewed-fixture",
+          "reason": "Deliberate credential-shaped redaction test vector"
+        },
+        {
+          "commit": "0fada99b00651f19f7ae78aaae31ab08468ddcf1",
+          "file": "subsystems/workspace/reference/test/redaction.test.ts",
+          "rule": "jwt",
+          "line": 29,
+          "status": "reviewed-fixture",
+          "reason": "Deliberate credential-shaped redaction test vector"
+        },
+        {
+          "commit": "25b7227dc22ab9890b6fed39cc4be56ea3849a0a",
+          "file": "subsystems/workflow/contract/signal-envelope.schema.json",
+          "rule": "generic-api-key",
+          "line": 175,
+          "status": "reviewed-fixture",
+          "reason": "Schema example idempotency digest, not an authentication credential"
+        },
+        {
+          "commit": "25b7227dc22ab9890b6fed39cc4be56ea3849a0a",
+          "file": "subsystems/workflow/contract/unified-record-envelope.schema.json",
+          "rule": "generic-api-key",
+          "line": 397,
+          "status": "reviewed-fixture",
+          "reason": "Schema example idempotency digest, not an authentication credential"
+        },
+        {
+          "commit": "25b7227dc22ab9890b6fed39cc4be56ea3849a0a",
+          "file": "subsystems/workflow/contract/unified-record-envelope.schema.json",
+          "rule": "generic-api-key",
+          "line": 523,
+          "status": "reviewed-fixture",
+          "reason": "Schema example idempotency digest, not an authentication credential"
+        },
+        {
+          "commit": "25b7227dc22ab9890b6fed39cc4be56ea3849a0a",
+          "file": "subsystems/workflow/crates/think-and-ship/src/otel_logs.rs",
+          "rule": "generic-api-key",
+          "line": 708,
+          "status": "reviewed-fixture",
+          "reason": "Telemetry redaction unit-test sample"
+        },
+        {
+          "commit": "25b7227dc22ab9890b6fed39cc4be56ea3849a0a",
+          "file": "subsystems/workflow/crates/think-and-ship/tests/ship_check_report.rs",
+          "rule": "generic-api-key",
+          "line": 102,
+          "status": "reviewed-fixture",
+          "reason": "Reporting/telemetry redaction integration-test sample"
+        },
+        {
+          "commit": "25b7227dc22ab9890b6fed39cc4be56ea3849a0a",
+          "file": "subsystems/workflow/crates/think-and-ship/tests/telemetry_shape.rs",
+          "rule": "stripe-access-token",
+          "line": 17,
+          "status": "reviewed-fixture",
+          "reason": "Telemetry redaction test with explicitly planted synthetic secrets"
+        }
+      ],
+      "scope": "complete source ancestry",
+      "inlineAllowComments": false
+    },
+    "npm:apps/website": {
+      "passed": true,
+      "findings": []
+    },
+    "npm:scripts": {
+      "passed": true,
+      "findings": []
+    }
+  }
+}
