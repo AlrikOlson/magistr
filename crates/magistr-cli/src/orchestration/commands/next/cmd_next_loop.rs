@@ -1,4 +1,4 @@
-use crate::agent;
+use crate::cli::BackendFlag;
 use crate::error::ResultExt;
 use crate::utils::format as fmt;
 use crate::workflow;
@@ -8,7 +8,7 @@ use color_eyre::eyre;
 pub async fn cmd_next_loop(
     dir: &std::path::Path,
     request: super::LoopRequest<'_>,
-    backend: agent::Backend,
+    backend: BackendFlag,
     profile: crate::permissions::PermissionProfile,
     inputs: &crate::config::inputs::ProjectInputs,
 ) -> eyre::Result<()> {
@@ -94,6 +94,8 @@ pub async fn cmd_next_loop(
             }
         }
 
+        // A stopped or empty loop needs no installed agent.
+        let backend = crate::commands::resolve_backend(backend, &inputs)?;
         let summary = iter_loop.spec_summary().suggest()?;
         eprintln!(
             "{}",

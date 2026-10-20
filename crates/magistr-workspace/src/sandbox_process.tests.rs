@@ -69,10 +69,24 @@ fn spec(mode: &str) -> SubprocessSpec {
     }
 }
 
+fn spawn_fixture(
+    pool: &mut ServerPool,
+    mode: &str,
+) -> Result<SubprocessSession, SubprocessOpenError> {
+    let launch = spec(mode);
+    let key = PoolKey {
+        root: String::new(),
+        language_id: launch.language_id.clone(),
+        bin: launch.bin.clone(),
+        args: launch.args.clone(),
+    };
+    pool.spawn(&launch, key)
+}
+
 #[test]
 fn oversized_unterminated_lsp_header_is_rejected_before_body_allocation() {
     let mut pool = ServerPool::default();
-    let session = pool.spawn(&spec("header"), None).expect("spawn");
+    let session = spawn_fixture(&mut pool, "header").expect("spawn");
     let result = session.frames.recv_timeout(Duration::from_secs(3));
     session.kill();
     assert!(
@@ -84,7 +98,7 @@ fn oversized_unterminated_lsp_header_is_rejected_before_body_allocation() {
 #[test]
 fn lsp_frame_queue_is_bounded_even_when_the_guest_does_not_read() {
     let mut pool = ServerPool::default();
-    let session = pool.spawn(&spec("flood"), None).expect("spawn");
+    let session = spawn_fixture(&mut pool, "flood").expect("spawn");
     let deadline = Instant::now() + Duration::from_secs(3);
     while !session.reader.as_ref().expect("owned reader").is_finished() && Instant::now() < deadline
     {
@@ -105,13 +119,13 @@ fn lsp_frame_queue_is_bounded_even_when_the_guest_does_not_read() {
 }
 
 #[test]
-fn global_lsp_session_limit_includes_private_invocation_sessions() {
+fn global_lsp_session_limit_counts_every_live_session() {
     let mut pool = ServerPool::default();
     let mut sessions = Vec::new();
     for _ in 0..16 {
-        sessions.push(pool.spawn(&spec("idle"), None).expect("within ceiling"));
+        sessions.push(spawn_fixture(&mut pool, "idle").expect("within ceiling"));
     }
-    let excess = pool.spawn(&spec("idle"), None);
+    let excess = spawn_fixture(&mut pool, "idle");
     let refused = matches!(excess, Err(SubprocessOpenError::SpawnRefused(ref message)) if message.contains("ceiling"));
     if let Ok(session) = excess {
         session.kill();
@@ -123,7 +137,7 @@ fn global_lsp_session_limit_includes_private_invocation_sessions() {
         refused,
         "the process pool must enforce an aggregate live-child ceiling"
     );
-    pool.spawn(&spec("idle"), None)
+    spawn_fixture(&mut pool, "idle")
         .expect("cleanup returns capacity")
         .kill();
 }
@@ -132,7 +146,7 @@ fn global_lsp_session_limit_includes_private_invocation_sessions() {
 fn malformed_and_oversize_lsp_frames_are_terminal_errors() {
     for mode in ["malformed", "oversize"] {
         let mut pool = ServerPool::default();
-        let session = pool.spawn(&spec(mode), None).expect("spawn");
+        let session = spawn_fixture(&mut pool, mode).expect("spawn");
         let result = session.frames.recv_timeout(Duration::from_secs(3));
         session.kill();
         assert!(
@@ -146,7 +160,7 @@ fn malformed_and_oversize_lsp_frames_are_terminal_errors() {
 fn lsp_drop_reaps_only_the_session_child() {
     let mut pool = ServerPool::default();
     let mut unrelated = spawn_server_process(&spec("idle")).expect("unrelated child");
-    let session = pool.spawn(&spec("idle"), None).expect("owned child");
+    let session = spawn_fixture(&mut pool, "idle").expect("owned child");
     let pid = session.child.id();
     drop(session);
     let unrelated_alive = matches!(unrelated.try_wait(), Ok(None));
@@ -169,13 +183,14 @@ fn lsp_drop_reaps_only_the_session_child() {
 
 #[test]
 fn language_spec_admission_and_per_invocation_ceiling_preserve_real_framing() {
+    let _serial = super::tests::pool_test_guard();
     let mut specs = Vec::new();
     for index in 0..5 {
         let mut entry = spec("echo");
         entry.language_id = format!("language-{index}");
         specs.push(entry);
     }
-    let mut view = SubprocessPool::new(specs, String::new(), false);
+    let mut view = SubprocessPool::new(specs, String::new());
     assert!(matches!(
         view.open("not-granted"),
         Err(SubprocessOpenError::UnknownSpec(_))
@@ -210,9 +225,7 @@ fn warmed_lsp_shutdown_reaps_the_owned_process_and_recovers_capacity() {
         bin: launch.bin.clone(),
         args: launch.args.clone(),
     };
-    let session = pool
-        .spawn(&launch, Some(key))
-        .expect("spawn warm candidate");
+    let session = pool.spawn(&launch, key).expect("spawn warm candidate");
     let pid = session.child.id();
     pool.return_warm(session);
     assert_eq!(pool.live_sessions.load(Ordering::SeqCst), 1);

@@ -5,8 +5,7 @@ use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::time::Duration;
 
-use magistr::agent::Backend;
-use magistr::cli::HeadlessFormat;
+use magistr::cli::{BackendFlag, HeadlessFormat};
 use magistr::commands::next::{cmd_next_loop, cmd_next_loop_headless};
 use magistr::config::inputs::ProjectInputs;
 use magistr::permissions::PermissionProfile;
@@ -334,7 +333,7 @@ async fn entry_fixture_child() {
                     max_iterations: 8,
                     track: None,
                 },
-                Backend::Acp,
+                BackendFlag::Acp,
                 profile,
                 &inputs,
             )
@@ -347,7 +346,7 @@ async fn entry_fixture_child() {
                     max_iterations: 8,
                     track: None,
                 },
-                Backend::Acp,
+                BackendFlag::Acp,
                 HeadlessFormat::Json,
                 None,
                 profile,
