@@ -19,7 +19,7 @@ magistr-engine = { workspace = true }
 magistr-workspace = { workspace = true }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-serde_yml = "0.0.12"
+serde-saphyr = { workspace = true, features = ["serialize", "deserialize"] }
 shell-escape = "0.1"
 thiserror = "2"
 toml = "1.0.6"

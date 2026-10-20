@@ -91,7 +91,7 @@ pub fn parse_yaml(text: &str) -> Vec<ImportedChunk> {
 /// Parse a YAML roadmap into chunks + narrative (preamble, and Vision /
 /// Principles / Epilogue → note sections). Empty on a parse error.
 pub fn parse_roadmap(text: &str) -> ImportedRoadmap {
-    let root: YamlRoadmap = serde_yaml::from_str(text).unwrap_or_default();
+    let root: YamlRoadmap = serde_saphyr::from_str(text).unwrap_or_default();
 
     let mut notes = Vec::new();
     let mut candidates: Vec<(&str, String)> = vec![("Vision", root.vision.clone())];

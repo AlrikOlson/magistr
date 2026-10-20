@@ -19,7 +19,7 @@ magistr-workflow-contracts = { workspace = true }
 anyhow = { workspace = true }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-serde_yaml = "0.9"
+serde-saphyr = { workspace = true, features = ["deserialize"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "io-util", "net", "process", "sync", "time", "signal"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }

@@ -44,6 +44,7 @@ magistr-workspace = { version = "=0.1.0", path = "crates/magistr-workspace" }
 magistr-process = { version = "=0.1.0", path = "crates/magistr-process" }
 clap = { version = "4", features = ["derive"] }
 anyhow = "1"
+serde-saphyr = { version = "2", default-features = false }
 
 [profile.dev]
 debug = "line-tables-only"

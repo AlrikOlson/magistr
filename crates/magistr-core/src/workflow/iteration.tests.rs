@@ -803,7 +803,7 @@ impl magistr_engine::native::EvidencePort for FixedEvidence {
 fn admitted(tmp: &tempfile::TempDir, role: magistr_engine::WriterRole) -> NativeEngines {
     use magistr_engine::{NativeConfig, ProjectAuthority};
     let cfg = NativeConfig::from_lookup(tmp.path(), |_| None)
-        .with_data_dir(tmp.path().join("tas-data"))
+        .with_data_dir(tmp.path().join("workflow-state"))
         .with_evidence(std::sync::Arc::new(FixedEvidence));
     ProjectAuthority::admit_for_project(&cfg, "iteration-native".into(), role)
         .expect("admitted")
@@ -1349,7 +1349,7 @@ fn a_new_run_cannot_archive_the_previous_checkpoint_during_a_read_refusal() {
     let checkpoint = std::fs::read(loop_state_path(dir.path())).unwrap();
     let path = dir
         .path()
-        .join("tas-data/roadmap/sessions/iteration-native.json");
+        .join("workflow-state/roadmap/sessions/iteration-native.json");
     let valid = std::fs::read(&path).unwrap();
     std::fs::write(&path, b"{ unreadable roadmap").unwrap();
     assert!(IterationLoop::start_or_recover(dir.path(), &spec, 5, Some(engines.reader())).is_err());

@@ -39,8 +39,8 @@ fn sample_roadmap(phases: Vec<Phase>) -> Roadmap {
 #[test]
 fn serde_round_trip_minimal() {
     let roadmap = sample_roadmap(vec![]);
-    let yaml = serde_yml::to_string(&roadmap).unwrap();
-    let parsed: Roadmap = serde_yml::from_str(&yaml).unwrap();
+    let yaml = serde_saphyr::to_string(&roadmap).unwrap();
+    let parsed: Roadmap = serde_saphyr::from_str(&yaml).unwrap();
     assert_eq!(roadmap, parsed);
 }
 
@@ -87,15 +87,15 @@ fn serde_round_trip_full() {
         epilogue: "## Success Criteria\n\n- Everything works\n".into(),
     };
 
-    let yaml = serde_yml::to_string(&roadmap).unwrap();
-    let parsed: Roadmap = serde_yml::from_str(&yaml).unwrap();
+    let yaml = serde_saphyr::to_string(&roadmap).unwrap();
+    let parsed: Roadmap = serde_saphyr::from_str(&yaml).unwrap();
     assert_eq!(roadmap, parsed);
 }
 
 #[test]
 fn serde_defaults_for_missing_fields() {
     let yaml = "title: Minimal\nphases: []\n";
-    let roadmap: Roadmap = serde_yml::from_str(yaml).unwrap();
+    let roadmap: Roadmap = serde_saphyr::from_str(yaml).unwrap();
     assert_eq!(roadmap.title, "Minimal");
     assert!(roadmap.preamble.is_empty());
     assert!(roadmap.vision.is_empty());
@@ -106,7 +106,7 @@ fn serde_defaults_for_missing_fields() {
 #[test]
 fn serde_skip_empty_fields() {
     let roadmap = sample_roadmap(vec![]);
-    let yaml = serde_yml::to_string(&roadmap).unwrap();
+    let yaml = serde_saphyr::to_string(&roadmap).unwrap();
     assert!(!yaml.contains("preamble"));
     assert!(!yaml.contains("vision"));
     assert!(!yaml.contains("principles"));
@@ -116,7 +116,7 @@ fn serde_skip_empty_fields() {
 #[test]
 fn serde_task_defaults() {
     let yaml = "text: Do something\n";
-    let task: Task = serde_yml::from_str(yaml).unwrap();
+    let task: Task = serde_saphyr::from_str(yaml).unwrap();
     assert_eq!(task.text, "Do something");
     assert!(!task.checked);
     assert!(task.detail.is_empty());
@@ -131,7 +131,7 @@ fn serde_phase_status_values() {
         ("done", PhaseStatus::Done),
         ("blocked", PhaseStatus::Blocked),
     ] {
-        let parsed: PhaseStatus = serde_yml::from_str(&format!("\"{yaml}\"")).unwrap();
+        let parsed: PhaseStatus = serde_saphyr::from_str(&format!("\"{yaml}\"")).unwrap();
         assert_eq!(parsed, expected);
     }
 }
@@ -152,7 +152,7 @@ phases:
           Some detail
           on multiple lines.
 "#;
-    let roadmap: Roadmap = serde_yml::from_str(yaml).unwrap();
+    let roadmap: Roadmap = serde_saphyr::from_str(yaml).unwrap();
     assert!(roadmap.phases[0].problem.contains("multi-line"));
     assert!(roadmap.phases[0].tasks[0].detail.contains("multiple lines"));
 }
@@ -168,8 +168,8 @@ fn serde_unicode_content() {
         )],
         ..sample_roadmap(vec![])
     };
-    let yaml = serde_yml::to_string(&roadmap).unwrap();
-    let parsed: Roadmap = serde_yml::from_str(&yaml).unwrap();
+    let yaml = serde_saphyr::to_string(&roadmap).unwrap();
+    let parsed: Roadmap = serde_saphyr::from_str(&yaml).unwrap();
     assert_eq!(roadmap, parsed);
 }
 

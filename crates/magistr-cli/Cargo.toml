@@ -55,7 +55,7 @@ which = "6.0"
 ureq = "3"
 ed25519-dalek = { version = "2", features = ["rand_core"] }
 base64 = "0.22"
-jsonwebtoken = { version = "11", default-features = false, features = ["rust_crypto"] }
+jsonwebtoken = { version = "11.1", default-features = false, features = ["aws_lc_rs"] }
 quick-xml = "0.41"
 tar = "0.4"
 flate2 = "1"

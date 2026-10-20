@@ -34,7 +34,7 @@ impl YamlStore {
         let content = std::fs::read_to_string(&yaml_path).map_err(|e| {
             MagistrError::Config(format!("failed to read {}: {e}", yaml_path.display()))
         })?;
-        let roadmap: Roadmap = serde_yml::from_str(&content).map_err(|e| {
+        let roadmap: Roadmap = serde_saphyr::from_str(&content).map_err(|e| {
             MagistrError::Config(format!("invalid YAML in {}: {e}", yaml_path.display()))
         })?;
         roadmap.validate()?;
@@ -98,7 +98,7 @@ impl YamlStore {
     /// Writes `.magistr-roadmap.yml` atomically. Clears the dirty flag on success.
     /// No markdown is generated — use [`export_markdown`] for opt-in export.
     pub fn save(&mut self) -> Result<()> {
-        let yaml = serde_yml::to_string(self.index.roadmap())
+        let yaml = serde_saphyr::to_string(self.index.roadmap())
             .map_err(|e| MagistrError::Config(format!("failed to serialize roadmap: {e}")))?;
 
         atomic_write(&self.yaml_path, &yaml)?;
@@ -132,7 +132,7 @@ impl YamlStore {
         let content = std::fs::read_to_string(&self.yaml_path).map_err(|e| {
             MagistrError::Config(format!("failed to read {}: {e}", self.yaml_path.display()))
         })?;
-        let roadmap: Roadmap = serde_yml::from_str(&content).map_err(|e| {
+        let roadmap: Roadmap = serde_saphyr::from_str(&content).map_err(|e| {
             MagistrError::Config(format!("invalid YAML in {}: {e}", self.yaml_path.display()))
         })?;
         roadmap.validate()?;
