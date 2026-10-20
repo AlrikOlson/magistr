@@ -39,6 +39,7 @@ mod process_spec;
 #[cfg(unix)]
 mod pty;
 mod reaping_child;
+mod strip_escapes;
 mod termination;
 
 pub use bounded_capture::BoundedCapture;
@@ -52,4 +53,5 @@ pub use process_spec::ProcessSpec;
 #[cfg(unix)]
 pub use pty::Pty;
 pub use reaping_child::ReapingChild;
+pub use strip_escapes::EscapeStripper;
 pub use termination::Termination;

@@ -108,8 +108,12 @@ impl<'a> WorkspaceRun<'a> {
             let output = RunOutput {
                 command: resolved_line.clone(),
                 exit_code: execution.exit_code.unwrap_or_default(),
-                stdout: execution.stdout.clone(),
-                stderr: execution.stderr.clone(),
+                // Parse plain text even when a command forces color on pipes.
+                // Keep the original capture intact for unstructured output.
+                stdout: magistr_process::EscapeStripper::default()
+                    .feed(execution.stdout.as_bytes()),
+                stderr: magistr_process::EscapeStripper::default()
+                    .feed(execution.stderr.as_bytes()),
             };
             for extractor in &self.extractors {
                 if !extractor.can_extract(&resolved_line) {

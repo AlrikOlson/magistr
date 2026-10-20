@@ -1,5 +1,5 @@
-//! Plain text out of a terminal's byte stream — what the agent reads
-//! through `terminal/output` while the cockpit gets the bytes whole.
+//! Plain text from process output, shared by command diagnostics, quality
+//! gates and agent terminals. Raw capture remains with each caller.
 
 /// Where the stripper stands inside a control sequence between two
 /// chunks: a sequence split across reads must still vanish whole.

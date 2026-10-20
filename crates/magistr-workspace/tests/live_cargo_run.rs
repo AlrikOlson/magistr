@@ -75,9 +75,9 @@ fn fixture_workspace(root: &Path) {
         ".magistr/workspace.toml",
         concat!(
             "[commands]\n",
-            "test = \"cargo test --workspace --no-fail-fast\"\n",
-            "build-json = \"cargo build --workspace --message-format=json\"\n",
-            "build = \"cargo build --workspace\"\n",
+            "test = \"cargo test --workspace --no-fail-fast --color=always\"\n",
+            "build-json = \"cargo build --workspace --color=always --message-format=json\"\n",
+            "build = \"cargo build --workspace --color=always\"\n",
         ),
     );
 }

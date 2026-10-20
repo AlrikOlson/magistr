@@ -9,5 +9,4 @@
 pub(crate) mod effects;
 pub(crate) mod fs;
 pub(crate) mod permission;
-pub(crate) mod strip_escapes;
 pub(crate) mod terminal;

@@ -13,8 +13,7 @@
 
 use std::path::Path;
 
-use magistr_acp::EscapeStripper;
-use magistr_process::{OwnedProcess, ProcessOutcome};
+use magistr_process::{EscapeStripper, OwnedProcess, ProcessOutcome};
 use tokio_util::sync::CancellationToken;
 
 use super::subprocess::{

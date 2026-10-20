@@ -20,6 +20,7 @@ struct Server {
     // cannot manufacture a competing, successful client-disconnect exit.
     stdin: ChildStdin,
     lines: Lines<BufReader<ChildStdout>>,
+    last_request: String,
 }
 
 impl Server {
@@ -60,6 +61,7 @@ impl Server {
             child,
             stdin,
             lines,
+            last_request: String::new(),
         };
         server
             .send(json!({
@@ -72,6 +74,7 @@ impl Server {
     }
 
     async fn send(&mut self, value: Value) {
+        self.last_request = value.to_string();
         let bytes = format!("{value}\n");
         self.stdin
             .write_all(bytes.as_bytes())
@@ -82,7 +85,13 @@ impl Server {
     async fn response(&mut self) -> Option<Value> {
         timeout(Duration::from_secs(15), self.lines.next_line())
             .await
-            .expect("bounded response")
+            .unwrap_or_else(|error| {
+                panic!(
+                    "server {:?} did not answer {} within 15 seconds: {error}",
+                    self.child.id(),
+                    self.last_request
+                )
+            })
             .expect("stdout line")
             .map(|line| serde_json::from_str(&line).expect("MCP JSON"))
     }
@@ -357,7 +366,8 @@ async fn simultaneous_stdio_start_has_one_owner_and_kill_allows_fresh_restart() 
     assert_eq!(fresh["records"][0]["id"], "acknowledged", "{fresh}");
     let status = restarted.call("think_engine_status", json!({})).await;
     assert_eq!(
-        status["version"], "0.1.0",
+        status["version"],
+        env!("CARGO_PKG_VERSION"),
         "the served status reports the first-party workflow crate's version: {status}"
     );
     // Orderly owner EOF is survived as well as a crash, with no client restart.
