@@ -16,6 +16,8 @@ mod resolved_config;
 mod resolved_key;
 mod session_flags;
 mod settings;
+mod workspace_config_upgrade;
+pub use workspace_config_upgrade::WorkspaceConfigUpgrade;
 
 pub use command_admission::CommandAdmission;
 pub use config_digest::ConfigDigest;

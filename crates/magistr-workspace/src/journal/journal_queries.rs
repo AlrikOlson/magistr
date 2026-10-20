@@ -119,18 +119,21 @@ impl<'a> JournalQueries<'a> {
     ) -> Result<Vec<JournalLogEntry>, JournalError> {
         validate_limit(query.limit)?;
         validate_session(query.session_id.as_deref())?;
+        let order = super::journal_import::JournalImport::order(self.db)?;
         let mut clauses = Vec::new();
         let mut values = Vec::new();
         if let Some(since) = query.since_seq.filter(|value| *value > 0) {
-            clauses.push("seq>=?");
+            clauses.push("seq>=?".to_owned());
             values.push(Value::Integer(since));
         }
         if let Some(before) = query.before_seq {
-            clauses.push("seq<?");
-            values.push(Value::Integer(before));
+            clauses.push(format!("{order}<?"));
+            values.push(Value::Integer(
+                super::journal_import::JournalImport::position(self.db, before)?,
+            ));
         }
         if let Some(session) = &query.session_id {
-            clauses.push("session_id=?");
+            clauses.push("session_id=?".to_owned());
             values.push(Value::Text(session.clone()));
         }
         values.push(Value::Integer(query.limit as i64));
@@ -140,7 +143,7 @@ impl<'a> JournalQueries<'a> {
             format!(" WHERE {}", clauses.join(" AND "))
         };
         let seqs = self.seqs(
-            &format!("SELECT seq FROM ops{clause} ORDER BY seq DESC LIMIT ?"),
+            &format!("SELECT seq FROM ops{clause} ORDER BY {order} DESC LIMIT ?"),
             values,
         )?;
         let ops = self.hydrate(seqs)?;
@@ -181,7 +184,7 @@ impl<'a> JournalQueries<'a> {
         let version: i64 = self
             .db
             .query_row("PRAGMA user_version", [], |row| row.get(0))?;
-        if version == 3 {
+        if version >= 3 {
             clauses.push(
                 "seq NOT IN (SELECT op_seq FROM native_write_intents WHERE outcome!='applied')"
                     .to_owned(),
@@ -203,8 +206,9 @@ impl<'a> JournalQueries<'a> {
         values.push(Value::Integer(query.limit as i64));
         let seqs = self.seqs(
             &format!(
-                "SELECT seq FROM ops WHERE {} ORDER BY seq DESC LIMIT ?",
-                clauses.join(" AND ")
+                "SELECT seq FROM ops WHERE {} ORDER BY {} DESC LIMIT ?",
+                clauses.join(" AND "),
+                super::journal_import::JournalImport::order(self.db)?
             ),
             values,
         )?;

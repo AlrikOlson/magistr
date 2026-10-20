@@ -1,5 +1,6 @@
 ---
 import "../styles/global.css";
+import { publicAssetUrl } from "../../scripts/asset-url.mjs";
 
 interface Props {
   title?: string;
@@ -10,15 +11,15 @@ interface Props {
 }
 
 const {
-  title = "Magistr — roadmap and workflow for coding agents",
-  description = "Shape a roadmap, run one focused work item, and keep the reasoning, changes, and checks that explain how a project moved.",
+  title = "Magistr — Plan the work. Prove the change.",
+  description = "The workflow layer for Codex and Claude Code. Connect roadmaps, source changes and recorded checks.",
   ogImage,
   jsonLd,
   noindex = false,
 } = Astro.props;
 
 const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
-const ogImageUrl = new URL(ogImage ?? "/og-image.png", Astro.site);
+const ogImageUrl = new URL(ogImage ?? publicAssetUrl("og-image.png"), Astro.site);
 ---
 <!doctype html>
 <html lang="en">
@@ -26,20 +27,20 @@ const ogImageUrl = new URL(ogImage ?? "/og-image.png", Astro.site);
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={description} />
-    <meta name="theme-color" content="#101827" media="(prefers-color-scheme: dark)" />
-    <meta name="theme-color" content="#f6f8fb" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#141916" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#fafaf7" media="(prefers-color-scheme: light)" />
     {noindex && <meta name="robots" content="noindex,nofollow" />}
     <link rel="canonical" href={canonicalUrl.href} />
     <title>{title}</title>
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="icon" type="image/svg+xml" href={publicAssetUrl("favicon.svg")} />
+    <link rel="icon" type="image/png" sizes="32x32" href={publicAssetUrl("favicon-32.png")} />
+    <link rel="icon" type="image/png" sizes="16x16" href={publicAssetUrl("favicon-16.png")} />
+    <link rel="apple-touch-icon" sizes="180x180" href={publicAssetUrl("apple-touch-icon.png")} />
+    <link rel="manifest" href={publicAssetUrl("site.webmanifest")} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={ogImageUrl.href} />
-    <meta property="og:image:alt" content="Magistr — roadmap and verification for coding-agent work" />
+    <meta property="og:image:alt" content="Magistr — Plan the work. Prove the change." />
     <meta property="og:url" content={canonicalUrl.href} />
     <meta property="og:site_name" content="Magistr" />
     <meta property="og:locale" content="en_US" />
@@ -49,11 +50,8 @@ const ogImageUrl = new URL(ogImage ?? "/og-image.png", Astro.site);
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImageUrl.href} />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://api.github.com" />
-    <link rel="preconnect" href="https://cdn.jsdelivr.net" />
-    <link rel="dns-prefetch" href="https://api.github.com" />
-    <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
     {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
     <script defer data-domain="magistr.dev" src="https://plausible.io/js/script.js"></script>
     <script is:inline>
@@ -70,4 +68,3 @@ const ogImageUrl = new URL(ogImage ?? "/og-image.png", Astro.site);
     <slot />
   </body>
 </html>
-

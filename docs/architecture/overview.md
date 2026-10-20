@@ -1,9 +1,11 @@
 # Architecture
 
-Magistr is unreleased. The [pre-release policy](../../AGENTS.md#before-public-release) prohibits backward
-compatibility in every design decision until the owner declares official public
-release. Existing aliases, older formats and reference parity describe current
-or historical implementation; none is a requirement to retain that behavior.
+Magistr is unreleased. The [pre-release policy](../../AGENTS.md#before-public-release)
+keeps one current design while requiring automatic, recoverable upgrades for
+existing installations. Known older configuration and durable records are
+converted by their owning components; retired runtime paths are not maintained.
+Unknown formats and unsafe conflicts are reported without discarding originals.
+See [project upgrades](upgrades.md) for the admission and recovery contracts.
 
 Magistr separates project configuration, workflow state, agent transport, and
 presentation. The root Cargo manifest groups the public Rust crates into one workspace.

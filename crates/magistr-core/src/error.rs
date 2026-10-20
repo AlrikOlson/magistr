@@ -134,7 +134,9 @@ impl MagistrError {
             Self::PresetNotFound(_) => Some(
                 "Run `magistr detect` to check what language was detected.\n  If incorrect, ensure the project has a valid manifest file.",
             ),
-            Self::Config(_) => Some("Run `magistr init` to regenerate the project configuration."),
+            Self::Config(_) => {
+                Some("Correct the configuration reported above, then run the command again.")
+            }
             Self::Template(_) => None,
             Self::DirNotFound(_) => Some("Verify the directory path is correct and exists."),
             Self::Budget(_) => {

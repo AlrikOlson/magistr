@@ -5,24 +5,16 @@
 
 pub use magistr_core::error::*;
 
-/// Convert a `MagistrError` into an `eyre::Report` with an actionable suggestion section.
+/// Convert a `MagistrError` into an `eyre::Report` for command handlers.
 ///
-/// Use this instead of plain `.into()` when converting `MagistrError` to `eyre::Report`
-/// at the application boundary (main.rs command handlers).
+/// The top-level CLI reporter owns suggestion attachment for both explicit
+/// conversions and errors propagated with `?`. Decorating reports here would
+/// print the same suggestion again when the command returns to that reporter.
 pub fn into_report(err: MagistrError) -> color_eyre::eyre::Report {
-    use color_eyre::Section;
-    let suggestion = err.suggestion().map(String::from);
-    let report: color_eyre::eyre::Report = err.into();
-    match suggestion {
-        Some(text) => report.suggestion(text),
-        None => report,
-    }
+    err.into()
 }
 
-/// Extension trait for converting `Result<T, MagistrError>` to `eyre::Result<T>` with suggestions.
-///
-/// Use `.suggest()?` instead of `?` at application boundaries (main.rs command handlers)
-/// to attach actionable suggestions to errors.
+/// Convert command results for reporting with suggestions at the CLI boundary.
 pub trait ResultExt<T> {
     fn suggest(self) -> color_eyre::eyre::Result<T>;
 }

@@ -87,8 +87,12 @@ magistr remove . --dry-run
 magistr remove . --yes
 ```
 
-Repair and removal use the same reviewed change-plan service as setup. MCP
-startup never repairs project files. Removal deletes unchanged generated
+Known older settings and saved work upgrade automatically when Magistr starts.
+Repair includes the same upgrades; `--dry-run` previews file changes without
+applying them. Originals are retained for recovery. See [automatic upgrades](reference/upgrades.md)
+for storage locations and conflict handling.
+
+Repair and removal use the same change-plan service as setup. Removal deletes unchanged generated
 integration files and removes owned configuration entries while keeping custom
 files, unrelated connections, project configuration and native work. Review
 the removal receipt for preserved files. To uninstall the executable, use

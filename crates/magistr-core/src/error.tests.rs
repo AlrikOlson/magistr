@@ -49,7 +49,12 @@ fn preset_not_found_has_suggestion() {
 fn config_has_suggestion() {
     let err = MagistrError::Config("invalid JSON".into());
     assert!(err.suggestion().is_some());
-    assert!(err.suggestion().unwrap().contains("magistr init"));
+    assert!(
+        err.suggestion()
+            .unwrap()
+            .contains("Correct the configuration")
+    );
+    assert!(!err.suggestion().unwrap().contains("magistr init"));
 }
 
 #[test]

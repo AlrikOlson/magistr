@@ -1,16 +1,36 @@
 {
   "name": "Magistr",
   "short_name": "Magistr",
-  "description": "Roadmap and workflow management for coding agents",
+  "description": "The workflow layer for coding agents. Plan the work. Prove the change.",
   "start_url": "/",
   "display": "browser",
-  "background_color": "#1a1b26",
-  "theme_color": "#7c3aed",
+  "background_color": "#fafaf7",
+  "theme_color": "#ad3f0d",
   "icons": [
-    { "src": "/favicon.svg", "type": "image/svg+xml", "sizes": "any" },
-    { "src": "/favicon-16.png", "type": "image/png", "sizes": "16x16" },
-    { "src": "/favicon-32.png", "type": "image/png", "sizes": "32x32" },
-    { "src": "/icon-192.png", "type": "image/png", "sizes": "192x192" },
-    { "src": "/icon-512.png", "type": "image/png", "sizes": "512x512" }
+    {
+      "src": "/favicon.svg?v=39f132daba63",
+      "type": "image/svg+xml",
+      "sizes": "any"
+    },
+    {
+      "src": "/favicon-16.png?v=89d59e69c8e0",
+      "type": "image/png",
+      "sizes": "16x16"
+    },
+    {
+      "src": "/favicon-32.png?v=b0257b19f35a",
+      "type": "image/png",
+      "sizes": "32x32"
+    },
+    {
+      "src": "/icon-192.png?v=28955bd5e1b5",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/icon-512.png?v=e340166b9d1f",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
   ]
 }

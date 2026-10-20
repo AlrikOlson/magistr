@@ -1,27 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
-  <title id="title">Magistr</title>
-  <desc id="desc">Roadmap and workflow management for coding agents.</desc>
-  <defs>
-    <linearGradient id="route" x1="130" y1="128" x2="350" y2="350" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#67e8f9" />
-      <stop offset="0.52" stop-color="#a78bfa" />
-      <stop offset="1" stop-color="#fbbf24" />
-    </linearGradient>
-    <radialGradient id="glow" cx="82%" cy="18%" r="72%">
-      <stop stop-color="#243354" stop-opacity="0.72" />
-      <stop offset="1" stop-color="#0b1220" stop-opacity="0" />
-    </radialGradient>
-  </defs>
-  <rect width="1200" height="630" rx="28" fill="#0b1220" />
-  <rect width="1200" height="630" rx="28" fill="url(#glow)" />
-  <g transform="translate(112 138) scale(7.5)">
-    <rect width="32" height="32" rx="7" fill="#111827" />
-    <path d="M7 24V8l9 10 9-10v16" fill="none" stroke="url(#route)" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" />
-    <circle cx="7" cy="8" r="2" fill="#67e8f9" />
-    <circle cx="16" cy="18" r="2" fill="#a78bfa" />
-    <circle cx="25" cy="8" r="2" fill="#fbbf24" />
+  <title id="title">Magistr — Plan the work. Prove the change.</title>
+  <desc id="desc">The workflow layer for Codex and Claude Code. Plan, change, check and continue.</desc>
+  <rect width="1200" height="630" fill="#202923"/>
+  <path d="M64 114V64l25 34 25-34v50" fill="none" stroke="#ff9b66" stroke-width="7"/>
+  <path d="M80 114h18" stroke="#e7ebe3" stroke-width="5"/>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <text x="138" y="103" fill="#edf0e7" font-size="38" font-weight="600" letter-spacing="-1.5">Magistr</text>
+    <text x="1136" y="96" text-anchor="end" fill="#b0b9ae" font-size="18">THE WORKFLOW LAYER FOR CODING AGENTS</text>
+    <text x="64" y="266" fill="#edf0e7" font-size="94" font-weight="500" letter-spacing="-5">Plan the work.</text>
+    <text x="64" y="372" fill="#ff9b66" font-size="94" font-weight="500" letter-spacing="-5">Prove the change.</text>
+    <path d="M64 440h1072" stroke="#65705e"/>
+    <g font-size="20" fill="#c2ccbd">
+      <text x="64" y="497">01 / PLAN</text>
+      <text x="352" y="497">02 / CHANGE</text>
+      <text x="640" y="497">03 / CHECK</text>
+      <text x="928" y="497">04 / CONTINUE</text>
+    </g>
+    <text x="64" y="578" fill="#b0b9ae" font-size="22">For Codex &amp; Claude Code</text>
+    <text x="1136" y="578" text-anchor="end" fill="#ff9b66" font-size="22">magistr.dev</text>
   </g>
-  <text x="430" y="265" fill="#f8fafc" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="92" font-weight="700" letter-spacing="-3">Magistr</text>
-  <text x="438" y="338" fill="#b9c4d8" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="34">Roadmap and workflow for coding agents</text>
-  <text x="438" y="405" fill="#67e8f9" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="24" letter-spacing="3">MAGISTR.DEV</text>
 </svg>

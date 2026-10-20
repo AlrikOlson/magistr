@@ -16,7 +16,7 @@ from version import product_version
 REPOSITORY = "AlrikOlson/magistr"
 SITE = "https://magistr.dev"
 GUIDE_CONTRACT = (
-    "Only selected integrations are generated.",
+    "Setup adds files only for the agents you choose.",
     "Setup does not start implementation.",
     "magistr doctor .",
     "magistr repair . --dry-run",

@@ -110,6 +110,9 @@ impl WorkspaceService {
             .as_deref()
             .map(super::lifecycle_lock::acquire)
             .transpose()?;
+        let upgrade = super::workspace_upgrade::WorkspaceUpgrade::acquire(&root)
+            .map_err(WorkspaceOpenError::lock)?;
+        crate::config::WorkspaceConfigUpgrade::apply(&root)?;
         let detection = NetworkDetection::detect(&root, options.network_override.as_deref());
         let policy = WorkspacePolicy::resolve(&options.resolve_options(root.clone()))
             .map_err(WorkspaceOpenError::policy)?;
@@ -121,6 +124,9 @@ impl WorkspaceService {
             JournalMode::Wal
         };
         let journal = JournalDb::open(journal_options).map_err(WorkspaceOpenError::journal)?;
+        if let Some(upgrade) = upgrade {
+            upgrade.finish(&journal)?;
+        }
         let applied_journal_mode = journal
             .journal_mode()
             .map_err(WorkspaceOpenError::journal)?;

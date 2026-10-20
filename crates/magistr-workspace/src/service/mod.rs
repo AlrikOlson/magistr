@@ -19,6 +19,7 @@ mod status_row;
 mod tool_schemas;
 mod workspace_service;
 mod workspace_session;
+mod workspace_upgrade;
 
 pub use index_build_state::IndexBuildState;
 pub use index_build_task::IndexBuildTask;
