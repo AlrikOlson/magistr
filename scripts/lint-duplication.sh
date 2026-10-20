@@ -84,7 +84,7 @@ if [[ ! -f "$report" ]]; then
     exit 1
 fi
 
-clones="$(python3 - "$report" "$OWNER" "$SURFACE" "$PROJECT_ROOT" <<'PY'
+python3 - "$report" "$OWNER" "$SURFACE" "$PROJECT_ROOT" > "$report_dir/clones.txt" <<'PY'
 import json, os, sys
 
 report, owner, surface, root = sys.argv[1:5]
@@ -123,13 +123,10 @@ for dup in data.get("duplicates", []):
             f"{rel(b['name'])}:{b['start']}-{b['end']} ({dup.get('tokens', '?')} tokens)"
         )
 PY
-)"
-if [[ -n "$clones" ]]; then
-    while IFS= read -r line; do
-        echo "ERROR: clone — $line"
-        errors=$((errors + 1))
-    done <<< "$clones"
-fi
+while IFS= read -r line; do
+    echo "ERROR: clone — $line"
+    errors=$((errors + 1))
+done < "$report_dir/clones.txt"
 
 if [[ "$errors" -gt 0 ]]; then
     echo ""

@@ -680,6 +680,40 @@ fn by_name<'f>(failures: &'f [RunFailure], test_name: &str) -> &'f RunFailure {
 }
 
 #[tokio::test]
+async fn colored_cargo_reports_preserve_failures_and_diagnostics() {
+    for (name, command) in [
+        (
+            "cargo-test-workspace",
+            "cargo test --workspace --no-fail-fast",
+        ),
+        ("build-human-warn-error", "cargo build --workspace"),
+    ] {
+        let (stdout, stderr) = captured(name);
+        let decorated = |text: &str| {
+            text.lines()
+                .map(|line| {
+                    format!("\x1b[1;32m\x1b]8;;file:///fixture\x1b\\{line}\x1b]8;;\x1b\\\x1b[0m\n")
+                })
+                .collect::<String>()
+        };
+        let executor = Scripted::new(exited(101, &decorated(&stdout), &decorated(&stderr)));
+        let response = run_with(&[("c", command)], &executor, RunInput::new("c")).await;
+        golden(name, row(&response));
+    }
+}
+
+#[tokio::test]
+async fn unstructured_output_keeps_the_original_capture() {
+    let raw = "\x1b[31mred\x1b[0m";
+    let executor = Scripted::new(exited(0, raw, ""));
+    let response = run_with(&[("c", "printf red")], &executor, RunInput::new("c")).await;
+    let RunRow::Output { stdout_head, .. } = row(&response) else {
+        panic!("unclaimed command keeps raw output");
+    };
+    assert_eq!(stdout_head, &[raw]);
+}
+
+#[tokio::test]
 async fn cargo_test_one_binary_matches_the_golden() {
     let response = golden_run("cargo-test-single", "cargo test", 101, None).await;
     let (adapter, failures, summary) = report(row(&response));

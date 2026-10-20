@@ -75,7 +75,9 @@ Release readiness runs the full Rust workspace and website checks on macOS arm64
 It fetches the complete locked dependency graph for offline architecture checks.
 Desktop checks and host archive verification run concurrently; none waits for a
 Windows or Linux Rust build. The Rust/website job is bounded to 30 minutes, with
-its dependency cache reused on later runs.
+its dependency cache reused on later runs. The multi-server owner scenarios reserve
+CPU capacity for cold sandbox compilation; their response deadlines and concurrent
+client/restart assertions remain unchanged.
 
 ## Registry setup for the owner
 
@@ -125,7 +127,7 @@ with the owner's npm login and interactive 2FA; do not publish a placeholder:
 npm publish target/cli-distribution/magistr-*.tgz --access public
 ```
 
-This command is the public first release and must only run after authorization.
+This command publishes the first npm package. Run it only after authorization.
 After that upload, configure the package's trusted publisher at
 [npm package settings](https://www.npmjs.com/package/magistr/access):
 

@@ -8,6 +8,13 @@ failure-output = "immediate"
 [profile.default.junit]
 path = "junit.xml"
 
+# Each owner scenario starts several real servers and cold Wasmtime workers.
+# Their parallel JIT compilation consumes the host CPUs; reserve that capacity
+# instead of overcommitting it with unrelated tests or extending reply deadlines.
+[[profile.default.overrides]]
+filter = 'binary(mcp_project_owner)'
+threads-required = "num-cpus"
+
 [profile.ci]
 fail-fast = false
 failure-output = "immediate-final"

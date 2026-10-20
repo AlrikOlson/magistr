@@ -14,8 +14,8 @@ use agent_client_protocol::schema::v1::{
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 
-use super::strip_escapes::EscapeStripper;
 use crate::{AcpEvent, Result};
+use magistr_process::EscapeStripper;
 
 const INTERNAL_ERROR: i32 = -32603;
 const INVALID_PARAMS: i32 = -32602;
