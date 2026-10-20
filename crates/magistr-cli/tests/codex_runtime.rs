@@ -10,6 +10,7 @@ use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 
 use assert_cmd::Command;
+use magistr::codex_launch::VERIFIED_VERSION;
 
 struct Fixture {
     _temp: tempfile::TempDir,
@@ -100,9 +101,9 @@ fn native_codex_launch_preserves_argv_stdio_environment_and_exit_status() {
 
 #[test]
 fn diagnostic_reports_known_version_and_project_skill_override_without_launching_a_turn() {
-    let f = Fixture::new(
-        "#!/bin/sh\n[ \"$1\" = '--version' ] || exit 99\nprintf 'codex-cli 0.153.4\\n'\n",
-    );
+    let f = Fixture::new(&format!(
+        "#!/bin/sh\n[ \"$1\" = '--version' ] || exit 99\nprintf 'codex-cli {VERIFIED_VERSION}\\n'\n",
+    ));
     f.skill(&f.project.join(".agents/skills"), "next", "next");
     let duplicate = f.skill(&f.codex_home.join("skills"), "legacy-next", "next");
     let output = f
@@ -126,7 +127,7 @@ fn diagnostic_reports_known_version_and_project_skill_override_without_launching
 #[test]
 fn diagnostic_distinguishes_unverified_cli_versions() {
     let f = Fixture::new(
-        "#!/bin/sh\n[ \"$1\" = '--version' ] || exit 99\nprintf 'codex-cli 0.154.0\\n'\n",
+        "#!/bin/sh\n[ \"$1\" = '--version' ] || exit 99\nprintf 'codex-cli 0.0.0-unverified\\n'\n",
     );
     let output = f
         .command()
@@ -138,7 +139,7 @@ fn diagnostic_distinguishes_unverified_cli_versions() {
         .clone();
     let report: serde_json::Value = serde_json::from_slice(&output).expect("JSON diagnosis");
     assert_eq!(report["matches_verified_version"], false);
-    assert_eq!(report["verified_version"], "0.153.4");
+    assert_eq!(report["verified_version"], VERIFIED_VERSION);
 }
 
 #[test]

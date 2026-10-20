@@ -10,7 +10,8 @@ use color_eyre::eyre::{self, WrapErr};
 
 use crate::config::inputs::ProjectInputs;
 
-const VERIFIED_VERSION: &str = "0.163.0";
+/// Codex version exercised by the live project setup acceptance check.
+pub const VERIFIED_VERSION: &str = "0.163.0";
 const PROJECT_SKILLS: [&str; 9] = [
     "craft",
     "init",
