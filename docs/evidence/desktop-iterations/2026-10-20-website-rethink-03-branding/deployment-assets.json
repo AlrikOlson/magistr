@@ -1,0 +1,672 @@
+{
+  "sourceCommit": "19ed15961bfdfa1ca412c91f65202cd259c1ee79",
+  "checkedAt": "2026-10-20T17:07:02.372967+00:00",
+  "origin": "https://magistr.dev",
+  "deployment": "https://83a08a07.magistr.pages.dev",
+  "status": "passed",
+  "results": [
+    {
+      "file": "404.html",
+      "url": "https://83a08a07.magistr.pages.dev/404.html",
+      "finalUrl": "https://83a08a07.magistr.pages.dev/404",
+      "status": 200,
+      "sha256": "f96095e994e1cc827ffee32b43fb742d56749d8157373b58e8d752545394f0d3",
+      "kind": "immutable"
+    },
+    {
+      "file": "_astro/Footer.CUK00YIL.css",
+      "url": "https://83a08a07.magistr.pages.dev/_astro/Footer.CUK00YIL.css",
+      "finalUrl": "https://83a08a07.magistr.pages.dev/_astro/Footer.CUK00YIL.css",
+      "status": 200,
+      "sha256": "b36bbf00430c6f386a87bb4092284782e45e79249c0f0b35ca0f5cb46b8682a2",
+      "kind": "immutable"
+    },
+    {
+      "file": "_astro/ProductEvidence.astro_astro_type_script_index_0_lang.x-ZTRaOD.js",
+      "url": "https://83a08a07.magistr.pages.dev/_astro/ProductEvidence.astro_astro_type_script_index_0_lang.x-ZTRaOD.js",
+      "finalUrl": "https://83a08a07.magistr.pages.dev/_astro/ProductEvidence.astro_astro_type_script_index_0_lang.x-ZTRaOD.js",
+      "status": 200,
+      "sha256": "a056c9905f2a677871a30e390ba837e0acadb269cedd0beb91cad8747ed188fd",
+      "kind": "immutable"
+    },
+    {
+      "file": "_astro/Workflow.astro_astro_type_script_index_0_lang.x-ZTRaOD.js",
+      "url": "https://83a08a07.magistr.pages.dev/_astro/Workflow.astro_astro_type_script_index_0_lang.x-ZTRaOD.js",
+      "finalUrl": "https://83a08a07.magistr.pages.dev/_astro/Workflow.astro_astro_type_script_index_0_lang.x-ZTRaOD.js",
+      "status": 200,
+      "sha256": "a056c9905f2a677871a30e390ba837e0acadb269cedd0beb91cad8747ed188fd",
+      "kind": "immutable"
+    },
+    {
+      "file": "_astro/tabs.Cz3_QxIg.js",
+      "url": "https://83a08a07.magistr.pages.dev/_astro/tabs.Cz3_QxIg.js",
+      "finalUrl": "https://83a08a07.magistr.pages.dev/_astro/tabs.Cz3_QxIg.js",
+      "status": 200,
+      "sha256": "1c131fdd9307e16b927915798862e1f2ca9cf76bec26d89c49c94a2cf900e417",
+      "kind": "immutable"
+    },
+    {
+      "file": "apple-touch-icon.png",
+      "url": "https://83a08a07.magistr.pages.dev/apple-touch-icon.png",
+      "finalUrl": "https://83a08a07.magistr.pages.dev/apple-touch-icon.png",
+      "status": 200,
+      "sha256": "1e79b816230ad7380b83367a3c736c4267822854e7ea1762a6c453d23597ea80",
+      "kind": "immutable"
+    },
+    {
+      "file": "docs/concepts/index.html",
+      "url": "https://83a08a07.magistr.pages.dev/docs/concepts/",
+      "finalUrl": "https://83a08a07.magistr.pages.dev/docs/concepts/",
+      "status": 200,
+      "sha256": "06b9d8462270e469632e3d88d17123c8d6baa83a9dcd874d1b535d9eb4b4e0a3",
+      "kind": "immutable"
+    },
+    {
+      "file": "docs/installation/index.html",
+      "url": "https://83a08a07.magistr.pages.dev/docs/installation/",
+      "finalUrl": "https://83a08a07.magistr.pages.dev/docs/installation/",
+      "status": 200,
+      "sha256": "48a21d7a5c983457457a07d9da39b7937b965e80f430a6e9230514c1bc2ba74a",
+      "kind": "immutable"
+    },
+    {
+      "file": "favicon-16.png",
+      "url": "https://83a08a07.magistr.pages.dev/favicon-16.png",
+      "finalUrl": "https://83a08a07.magistr.pages.dev/favicon-16.png",
+      "status": 200,
+      "sha256": "89d59e69c8e0249c40a43741e7cfd2ede9c9dd23357bad4d692f6cc3e2ba073f",
+      "kind": "immutable"
+    },
+    {
+      "file": "favicon-32.png",
+      "url": "https://83a08a07.magistr.pages.dev/favicon-32.png",
+      "finalUrl": "https://83a08a07.magistr.pages.dev/favicon-32.png",
+      "status": 200,
+      "sha256": "b0257b19f35a5edc0aca030fffecc3c9fc6338956fcf0288303320acbea5a1c4",
+      "kind": "immutable"
+    },
+    {
+      "file": "favicon.svg",
+      "url": "https://83a08a07.magistr.pages.dev/favicon.svg",
+      "finalUrl": "https://83a08a07.magistr.pages.dev/favicon.svg",
+      "status": 200,
+      "sha256": "39f132daba63253e3b52d7196f1da0ccbd79ca6398258856d092d05b0fc713d5",
+      "kind": "immutable"
+    },
+    {
+      "file": "github-social.png",
+      "url": "https://83a08a07.magistr.pages.dev/github-social.png",
+      "finalUrl": "https://83a08a07.magistr.pages.dev/github-social.png",
+      "status": 200,
+      "sha256": "21281be03a6841b0ed9f0e1a7f672a56491d3d08a8fc9b6c994330eee93b17ec",
+      "kind": "immutable"
+    },
+    {
+      "file": "icon-192.png",
+      "url": "https://83a08a07.magistr.pages.dev/icon-192.png",
+      "finalUrl": "https://83a08a07.magistr.pages.dev/icon-192.png",
+      "status": 200,
+      "sha256": "28955bd5e1b5021eb9c0d52ff21d61aa0b9004f94271f21261c4aba06143b330",
+      "kind": "immutable"
+    },
+    {
+      "file": "icon-512.png",
+      "url": "https://83a08a07.magistr.pages.dev/icon-512.png",
+      "finalUrl": "https://83a08a07.magistr.pages.dev/icon-512.png",
+      "status": 200,
+      "sha256": "e340166b9d1f43b7fecdf3556848ee939274b81c32d09cb04ae620cea49c582d",
+      "kind": "immutable"
+    },
+    {
+      "file": "index.html",
+      "url": "https://83a08a07.magistr.pages.dev/",
+      "finalUrl": "https://83a08a07.magistr.pages.dev/",
+      "status": 200,
+      "sha256": "993231732b1ab864087b6e16b4bfb54c8d0bdcac50d71130bacdbfacf3809e24",
+      "kind": "immutable"
+    },
+    {
+      "file": "og-image.png",
+      "url": "https://83a08a07.magistr.pages.dev/og-image.png",
+      "finalUrl": "https://83a08a07.magistr.pages.dev/og-image.png",
+      "status": 200,
+      "sha256": "21281be03a6841b0ed9f0e1a7f672a56491d3d08a8fc9b6c994330eee93b17ec",
+      "kind": "immutable"
+    },
+    {
+      "file": "og-image.svg",
+      "url": "https://83a08a07.magistr.pages.dev/og-image.svg",
+      "finalUrl": "https://83a08a07.magistr.pages.dev/og-image.svg",
+      "status": 200,
+      "sha256": "2612aa733230fa07b8552d69b457e84da1f0435788ca53206c3fe3ec355d7672",
+      "kind": "immutable"
+    },
+    {
+      "file": "pagefind/fragment/en_15f4af7.pf_fragment",
+      "url": "https://83a08a07.magistr.pages.dev/pagefind/fragment/en_15f4af7.pf_fragment",
+      "finalUrl": "https://83a08a07.magistr.pages.dev/pagefind/fragment/en_15f4af7.pf_fragment",
+      "status": 200,
+      "sha256": "2240019c2f60dcfcfce4d87314e4e26e7576b0a622a0d2191b97726c53a05e4b",
+      "kind": "immutable"
+    },
+    {
+      "file": "pagefind/fragment/en_db1880a.pf_fragment",
+      "url": "https://83a08a07.magistr.pages.dev/pagefind/fragment/en_db1880a.pf_fragment",
+      "finalUrl": "https://83a08a07.magistr.pages.dev/pagefind/fragment/en_db1880a.pf_fragment",
+      "status": 200,
+      "sha256": "2c0a8eff93ec8e20429ada50400972da79577150400ed2922fb396817ba2a6b8",
+      "kind": "immutable"
+    },
+    {
+      "file": "pagefind/index/en_ce24189.pf_index",
+      "url": "https://83a08a07.magistr.pages.dev/pagefind/index/en_ce24189.pf_index",
+      "finalUrl": "https://83a08a07.magistr.pages.dev/pagefind/index/en_ce24189.pf_index",
+      "status": 200,
+      "sha256": "7aa6ca1cfec0f432785ada00567ec297cbc79a111298b3801dc0363b88f5eebd",
+      "kind": "immutable"
+    },
+    {
+      "file": "pagefind/pagefind-component-ui.css",
+      "url": "https://83a08a07.magistr.pages.dev/pagefind/pagefind-component-ui.css",
+      "finalUrl": "https://83a08a07.magistr.pages.dev/pagefind/pagefind-component-ui.css",
+      "status": 200,
+      "sha256": "de389c7e5d87d6e2b10d65fb1e36e8989a12a2ad8dd6239b7e070d81fb5d8b0d",
+      "kind": "immutable"
+    },
+    {
+      "file": "pagefind/pagefind-component-ui.js",
+      "url": "https://83a08a07.magistr.pages.dev/pagefind/pagefind-component-ui.js",
+      "finalUrl": "https://83a08a07.magistr.pages.dev/pagefind/pagefind-component-ui.js",
+      "status": 200,
+      "sha256": "958620129dd14bd851805daeb12ce708bd63b9287325d1d5ae6f73a04d1723f8",
+      "kind": "immutable"
+    },
+    {
+      "file": "pagefind/pagefind-entry.json",
+      "url": "https://83a08a07.magistr.pages.dev/pagefind/pagefind-entry.json",
+      "finalUrl": "https://83a08a07.magistr.pages.dev/pagefind/pagefind-entry.json",
+      "status": 200,
+      "sha256": "8f11bb2d335bd1960703dfb0f7e86b67449b450f3d971c2eb2e9aea7126e11f0",
+      "kind": "immutable"
+    },
+    {
+      "file": "pagefind/pagefind-highlight.js",
+      "url": "https://83a08a07.magistr.pages.dev/pagefind/pagefind-highlight.js",
+      "finalUrl": "https://83a08a07.magistr.pages.dev/pagefind/pagefind-highlight.js",
+      "status": 200,
+      "sha256": "04741266a86911636cefc41c8b407e380dda99b7d208724f700f94cdf57e37b5",
+      "kind": "immutable"
+    },
+    {
+      "file": "pagefind/pagefind-modular-ui.css",
+      "url": "https://83a08a07.magistr.pages.dev/pagefind/pagefind-modular-ui.css",
+      "finalUrl": "https://83a08a07.magistr.pages.dev/pagefind/pagefind-modular-ui.css",
+      "status": 200,
+      "sha256": "653ab29e4de5629f6ddf5f6fcdf5d2b3eb539a8c07fff8a56b8ce2156a570788",
+      "kind": "immutable"
+    },
+    {
+      "file": "pagefind/pagefind-modular-ui.js",
+      "url": "https://83a08a07.magistr.pages.dev/pagefind/pagefind-modular-ui.js",
+      "finalUrl": "https://83a08a07.magistr.pages.dev/pagefind/pagefind-modular-ui.js",
+      "status": 200,
+      "sha256": "f3efa0f74b305ccab0bc9edc7c09ab69867180b4c43093d84bb9b508ac4ec32c",
+      "kind": "immutable"
+    },
+    {
+      "file": "pagefind/pagefind-ui.css",
+      "url": "https://83a08a07.magistr.pages.dev/pagefind/pagefind-ui.css",
+      "finalUrl": "https://83a08a07.magistr.pages.dev/pagefind/pagefind-ui.css",
+      "status": 200,
+      "sha256": "e113b816110ed07b017613e901addfe635350f2a5b84990aa76c91a74b158084",
+      "kind": "immutable"
+    },
+    {
+      "file": "pagefind/pagefind-ui.js",
+      "url": "https://83a08a07.magistr.pages.dev/pagefind/pagefind-ui.js",
+      "finalUrl": "https://83a08a07.magistr.pages.dev/pagefind/pagefind-ui.js",
+      "status": 200,
+      "sha256": "2efa93f2e80a199ca742a69bd4cfffabc5c591ebe7763f64f7c655fd00d2209f",
+      "kind": "immutable"
+    },
+    {
+      "file": "pagefind/pagefind-worker.js",
+      "url": "https://83a08a07.magistr.pages.dev/pagefind/pagefind-worker.js",
+      "finalUrl": "https://83a08a07.magistr.pages.dev/pagefind/pagefind-worker.js",
+      "status": 200,
+      "sha256": "4ca50d25bcab9e1c3afbc00ab5f7761114e83c8fc1b83d38655af1558b650c2a",
+      "kind": "immutable"
+    },
+    {
+      "file": "pagefind/pagefind.en_a8725cf69f.pf_meta",
+      "url": "https://83a08a07.magistr.pages.dev/pagefind/pagefind.en_a8725cf69f.pf_meta",
+      "finalUrl": "https://83a08a07.magistr.pages.dev/pagefind/pagefind.en_a8725cf69f.pf_meta",
+      "status": 200,
+      "sha256": "fb69805ddb5cf46a49d80f77b146df98fd882e29df08fe2c5a0fc45ac03e13d1",
+      "kind": "immutable"
+    },
+    {
+      "file": "pagefind/pagefind.js",
+      "url": "https://83a08a07.magistr.pages.dev/pagefind/pagefind.js",
+      "finalUrl": "https://83a08a07.magistr.pages.dev/pagefind/pagefind.js",
+      "status": 200,
+      "sha256": "252d272bd34d483d19a752060f6a065114d15ab12c42d8f905ca565e2768a009",
+      "kind": "immutable"
+    },
+    {
+      "file": "pagefind/wasm.en.pagefind",
+      "url": "https://83a08a07.magistr.pages.dev/pagefind/wasm.en.pagefind",
+      "finalUrl": "https://83a08a07.magistr.pages.dev/pagefind/wasm.en.pagefind",
+      "status": 200,
+      "sha256": "6c8406154b5d460fc8b6cdbf2c99c008c43c465efdb1f9c15c192f5cf30dcd85",
+      "kind": "immutable"
+    },
+    {
+      "file": "pagefind/wasm.unknown.pagefind",
+      "url": "https://83a08a07.magistr.pages.dev/pagefind/wasm.unknown.pagefind",
+      "finalUrl": "https://83a08a07.magistr.pages.dev/pagefind/wasm.unknown.pagefind",
+      "status": 200,
+      "sha256": "2533da887ac06de36813d031310af0f737daadacc931775e342aa5a3857a4959",
+      "kind": "immutable"
+    },
+    {
+      "file": "robots.txt",
+      "url": "https://83a08a07.magistr.pages.dev/robots.txt",
+      "finalUrl": "https://83a08a07.magistr.pages.dev/robots.txt",
+      "status": 200,
+      "sha256": "a7ba2b4ae2cea65e1d71a625d36decd3e200a107592044d4606f186f431e639c",
+      "kind": "immutable"
+    },
+    {
+      "file": "screenshots/captures.json",
+      "url": "https://83a08a07.magistr.pages.dev/screenshots/captures.json",
+      "finalUrl": "https://83a08a07.magistr.pages.dev/screenshots/captures.json",
+      "status": 200,
+      "sha256": "59897446e1905f99041dbc73cb9758d32b9541bb51c676b6eddd30009ab1d5bf",
+      "kind": "immutable"
+    },
+    {
+      "file": "screenshots/claude-code-session.png",
+      "url": "https://83a08a07.magistr.pages.dev/screenshots/claude-code-session.png",
+      "finalUrl": "https://83a08a07.magistr.pages.dev/screenshots/claude-code-session.png",
+      "status": 200,
+      "sha256": "b50927133fc3020481bd61cd8bf31bd261a6d2e777177aad856afaf9b1d4c3b0",
+      "kind": "immutable"
+    },
+    {
+      "file": "screenshots/codex-session.png",
+      "url": "https://83a08a07.magistr.pages.dev/screenshots/codex-session.png",
+      "finalUrl": "https://83a08a07.magistr.pages.dev/screenshots/codex-session.png",
+      "status": 200,
+      "sha256": "56594f1bccb7445a456846f22749dd9e2404bcac84491ba645d11b21292c4dc6",
+      "kind": "immutable"
+    },
+    {
+      "file": "screenshots/desktop-dark.png",
+      "url": "https://83a08a07.magistr.pages.dev/screenshots/desktop-dark.png",
+      "finalUrl": "https://83a08a07.magistr.pages.dev/screenshots/desktop-dark.png",
+      "status": 200,
+      "sha256": "aa9c4aa4f28bb0cb1841461e92ca5275a4235521d657c6db318beb388d20981d",
+      "kind": "immutable"
+    },
+    {
+      "file": "screenshots/desktop-light.png",
+      "url": "https://83a08a07.magistr.pages.dev/screenshots/desktop-light.png",
+      "finalUrl": "https://83a08a07.magistr.pages.dev/screenshots/desktop-light.png",
+      "status": 200,
+      "sha256": "88406b6d69876210fec4ee238aaeea8d115bb3cfd37eec1731901ccf22572b3e",
+      "kind": "immutable"
+    },
+    {
+      "file": "site.webmanifest",
+      "url": "https://83a08a07.magistr.pages.dev/site.webmanifest",
+      "finalUrl": "https://83a08a07.magistr.pages.dev/site.webmanifest",
+      "status": 200,
+      "sha256": "6db718b27f35ac461d9ad4d24f845260e413c166a32aabccf6163c8be9594dd4",
+      "kind": "immutable"
+    },
+    {
+      "file": "sitemap-0.xml",
+      "url": "https://83a08a07.magistr.pages.dev/sitemap-0.xml",
+      "finalUrl": "https://83a08a07.magistr.pages.dev/sitemap-0.xml",
+      "status": 200,
+      "sha256": "5707307ce4b3b1a6f702902242eda8b471a37b4b1af7709e3b39a8b2d5ad47d7",
+      "kind": "immutable"
+    },
+    {
+      "file": "sitemap-index.xml",
+      "url": "https://83a08a07.magistr.pages.dev/sitemap-index.xml",
+      "finalUrl": "https://83a08a07.magistr.pages.dev/sitemap-index.xml",
+      "status": 200,
+      "sha256": "2f82204e697055921b19fc44f0b3893f9b8b3974f31e4a6061479d27b46176ba",
+      "kind": "immutable"
+    },
+    {
+      "file": "404.html",
+      "url": "https://magistr.dev/404.html",
+      "finalUrl": "https://magistr.dev/404",
+      "status": 200,
+      "sha256": "f96095e994e1cc827ffee32b43fb742d56749d8157373b58e8d752545394f0d3",
+      "kind": "public"
+    },
+    {
+      "file": "_astro/Footer.CUK00YIL.css",
+      "url": "https://magistr.dev/_astro/Footer.CUK00YIL.css",
+      "finalUrl": "https://magistr.dev/_astro/Footer.CUK00YIL.css",
+      "status": 200,
+      "sha256": "b36bbf00430c6f386a87bb4092284782e45e79249c0f0b35ca0f5cb46b8682a2",
+      "kind": "public"
+    },
+    {
+      "file": "_astro/ProductEvidence.astro_astro_type_script_index_0_lang.x-ZTRaOD.js",
+      "url": "https://magistr.dev/_astro/ProductEvidence.astro_astro_type_script_index_0_lang.x-ZTRaOD.js",
+      "finalUrl": "https://magistr.dev/_astro/ProductEvidence.astro_astro_type_script_index_0_lang.x-ZTRaOD.js",
+      "status": 200,
+      "sha256": "a056c9905f2a677871a30e390ba837e0acadb269cedd0beb91cad8747ed188fd",
+      "kind": "public"
+    },
+    {
+      "file": "_astro/Workflow.astro_astro_type_script_index_0_lang.x-ZTRaOD.js",
+      "url": "https://magistr.dev/_astro/Workflow.astro_astro_type_script_index_0_lang.x-ZTRaOD.js",
+      "finalUrl": "https://magistr.dev/_astro/Workflow.astro_astro_type_script_index_0_lang.x-ZTRaOD.js",
+      "status": 200,
+      "sha256": "a056c9905f2a677871a30e390ba837e0acadb269cedd0beb91cad8747ed188fd",
+      "kind": "public"
+    },
+    {
+      "file": "_astro/tabs.Cz3_QxIg.js",
+      "url": "https://magistr.dev/_astro/tabs.Cz3_QxIg.js",
+      "finalUrl": "https://magistr.dev/_astro/tabs.Cz3_QxIg.js",
+      "status": 200,
+      "sha256": "1c131fdd9307e16b927915798862e1f2ca9cf76bec26d89c49c94a2cf900e417",
+      "kind": "public"
+    },
+    {
+      "file": "apple-touch-icon.png",
+      "url": "https://magistr.dev/apple-touch-icon.png?v=1e79b816230a",
+      "finalUrl": "https://magistr.dev/apple-touch-icon.png?v=1e79b816230a",
+      "status": 200,
+      "sha256": "1e79b816230ad7380b83367a3c736c4267822854e7ea1762a6c453d23597ea80",
+      "kind": "public"
+    },
+    {
+      "file": "docs/concepts/index.html",
+      "url": "https://magistr.dev/docs/concepts",
+      "finalUrl": "https://magistr.dev/docs/concepts/",
+      "status": 200,
+      "sha256": "06b9d8462270e469632e3d88d17123c8d6baa83a9dcd874d1b535d9eb4b4e0a3",
+      "kind": "public"
+    },
+    {
+      "file": "docs/installation/index.html",
+      "url": "https://magistr.dev/docs/installation",
+      "finalUrl": "https://magistr.dev/docs/installation/",
+      "status": 200,
+      "sha256": "48a21d7a5c983457457a07d9da39b7937b965e80f430a6e9230514c1bc2ba74a",
+      "kind": "public"
+    },
+    {
+      "file": "favicon-16.png",
+      "url": "https://magistr.dev/favicon-16.png?v=89d59e69c8e0",
+      "finalUrl": "https://magistr.dev/favicon-16.png?v=89d59e69c8e0",
+      "status": 200,
+      "sha256": "89d59e69c8e0249c40a43741e7cfd2ede9c9dd23357bad4d692f6cc3e2ba073f",
+      "kind": "public"
+    },
+    {
+      "file": "favicon-32.png",
+      "url": "https://magistr.dev/favicon-32.png?v=b0257b19f35a",
+      "finalUrl": "https://magistr.dev/favicon-32.png?v=b0257b19f35a",
+      "status": 200,
+      "sha256": "b0257b19f35a5edc0aca030fffecc3c9fc6338956fcf0288303320acbea5a1c4",
+      "kind": "public"
+    },
+    {
+      "file": "favicon.svg",
+      "url": "https://magistr.dev/favicon.svg?v=39f132daba63",
+      "finalUrl": "https://magistr.dev/favicon.svg?v=39f132daba63",
+      "status": 200,
+      "sha256": "39f132daba63253e3b52d7196f1da0ccbd79ca6398258856d092d05b0fc713d5",
+      "kind": "public"
+    },
+    {
+      "file": "icon-192.png",
+      "url": "https://magistr.dev/icon-192.png?v=28955bd5e1b5",
+      "finalUrl": "https://magistr.dev/icon-192.png?v=28955bd5e1b5",
+      "status": 200,
+      "sha256": "28955bd5e1b5021eb9c0d52ff21d61aa0b9004f94271f21261c4aba06143b330",
+      "kind": "public"
+    },
+    {
+      "file": "icon-512.png",
+      "url": "https://magistr.dev/icon-512.png?v=e340166b9d1f",
+      "finalUrl": "https://magistr.dev/icon-512.png?v=e340166b9d1f",
+      "status": 200,
+      "sha256": "e340166b9d1f43b7fecdf3556848ee939274b81c32d09cb04ae620cea49c582d",
+      "kind": "public"
+    },
+    {
+      "file": "index.html",
+      "url": "https://magistr.dev/",
+      "finalUrl": "https://magistr.dev/",
+      "status": 200,
+      "sha256": "993231732b1ab864087b6e16b4bfb54c8d0bdcac50d71130bacdbfacf3809e24",
+      "kind": "public"
+    },
+    {
+      "file": "og-image.png",
+      "url": "https://magistr.dev/og-image.png?v=21281be03a68",
+      "finalUrl": "https://magistr.dev/og-image.png?v=21281be03a68",
+      "status": 200,
+      "sha256": "21281be03a6841b0ed9f0e1a7f672a56491d3d08a8fc9b6c994330eee93b17ec",
+      "kind": "public"
+    },
+    {
+      "file": "pagefind/fragment/en_15f4af7.pf_fragment",
+      "url": "https://magistr.dev/pagefind/fragment/en_15f4af7.pf_fragment",
+      "finalUrl": "https://magistr.dev/pagefind/fragment/en_15f4af7.pf_fragment",
+      "status": 200,
+      "sha256": "2240019c2f60dcfcfce4d87314e4e26e7576b0a622a0d2191b97726c53a05e4b",
+      "kind": "public"
+    },
+    {
+      "file": "pagefind/fragment/en_db1880a.pf_fragment",
+      "url": "https://magistr.dev/pagefind/fragment/en_db1880a.pf_fragment",
+      "finalUrl": "https://magistr.dev/pagefind/fragment/en_db1880a.pf_fragment",
+      "status": 200,
+      "sha256": "2c0a8eff93ec8e20429ada50400972da79577150400ed2922fb396817ba2a6b8",
+      "kind": "public"
+    },
+    {
+      "file": "pagefind/index/en_ce24189.pf_index",
+      "url": "https://magistr.dev/pagefind/index/en_ce24189.pf_index",
+      "finalUrl": "https://magistr.dev/pagefind/index/en_ce24189.pf_index",
+      "status": 200,
+      "sha256": "7aa6ca1cfec0f432785ada00567ec297cbc79a111298b3801dc0363b88f5eebd",
+      "kind": "public"
+    },
+    {
+      "file": "pagefind/pagefind-component-ui.css",
+      "url": "https://magistr.dev/pagefind/pagefind-component-ui.css",
+      "finalUrl": "https://magistr.dev/pagefind/pagefind-component-ui.css",
+      "status": 200,
+      "sha256": "de389c7e5d87d6e2b10d65fb1e36e8989a12a2ad8dd6239b7e070d81fb5d8b0d",
+      "kind": "public"
+    },
+    {
+      "file": "pagefind/pagefind-component-ui.js",
+      "url": "https://magistr.dev/pagefind/pagefind-component-ui.js",
+      "finalUrl": "https://magistr.dev/pagefind/pagefind-component-ui.js",
+      "status": 200,
+      "sha256": "958620129dd14bd851805daeb12ce708bd63b9287325d1d5ae6f73a04d1723f8",
+      "kind": "public"
+    },
+    {
+      "file": "pagefind/pagefind-entry.json",
+      "url": "https://magistr.dev/pagefind/pagefind-entry.json",
+      "finalUrl": "https://magistr.dev/pagefind/pagefind-entry.json",
+      "status": 200,
+      "sha256": "8f11bb2d335bd1960703dfb0f7e86b67449b450f3d971c2eb2e9aea7126e11f0",
+      "kind": "public"
+    },
+    {
+      "file": "pagefind/pagefind-highlight.js",
+      "url": "https://magistr.dev/pagefind/pagefind-highlight.js",
+      "finalUrl": "https://magistr.dev/pagefind/pagefind-highlight.js",
+      "status": 200,
+      "sha256": "04741266a86911636cefc41c8b407e380dda99b7d208724f700f94cdf57e37b5",
+      "kind": "public"
+    },
+    {
+      "file": "pagefind/pagefind-modular-ui.css",
+      "url": "https://magistr.dev/pagefind/pagefind-modular-ui.css",
+      "finalUrl": "https://magistr.dev/pagefind/pagefind-modular-ui.css",
+      "status": 200,
+      "sha256": "653ab29e4de5629f6ddf5f6fcdf5d2b3eb539a8c07fff8a56b8ce2156a570788",
+      "kind": "public"
+    },
+    {
+      "file": "pagefind/pagefind-modular-ui.js",
+      "url": "https://magistr.dev/pagefind/pagefind-modular-ui.js",
+      "finalUrl": "https://magistr.dev/pagefind/pagefind-modular-ui.js",
+      "status": 200,
+      "sha256": "f3efa0f74b305ccab0bc9edc7c09ab69867180b4c43093d84bb9b508ac4ec32c",
+      "kind": "public"
+    },
+    {
+      "file": "pagefind/pagefind-ui.css",
+      "url": "https://magistr.dev/pagefind/pagefind-ui.css",
+      "finalUrl": "https://magistr.dev/pagefind/pagefind-ui.css",
+      "status": 200,
+      "sha256": "e113b816110ed07b017613e901addfe635350f2a5b84990aa76c91a74b158084",
+      "kind": "public"
+    },
+    {
+      "file": "pagefind/pagefind-ui.js",
+      "url": "https://magistr.dev/pagefind/pagefind-ui.js",
+      "finalUrl": "https://magistr.dev/pagefind/pagefind-ui.js",
+      "status": 200,
+      "sha256": "2efa93f2e80a199ca742a69bd4cfffabc5c591ebe7763f64f7c655fd00d2209f",
+      "kind": "public"
+    },
+    {
+      "file": "pagefind/pagefind-worker.js",
+      "url": "https://magistr.dev/pagefind/pagefind-worker.js",
+      "finalUrl": "https://magistr.dev/pagefind/pagefind-worker.js",
+      "status": 200,
+      "sha256": "4ca50d25bcab9e1c3afbc00ab5f7761114e83c8fc1b83d38655af1558b650c2a",
+      "kind": "public"
+    },
+    {
+      "file": "pagefind/pagefind.en_a8725cf69f.pf_meta",
+      "url": "https://magistr.dev/pagefind/pagefind.en_a8725cf69f.pf_meta",
+      "finalUrl": "https://magistr.dev/pagefind/pagefind.en_a8725cf69f.pf_meta",
+      "status": 200,
+      "sha256": "fb69805ddb5cf46a49d80f77b146df98fd882e29df08fe2c5a0fc45ac03e13d1",
+      "kind": "public"
+    },
+    {
+      "file": "pagefind/pagefind.js",
+      "url": "https://magistr.dev/pagefind/pagefind.js",
+      "finalUrl": "https://magistr.dev/pagefind/pagefind.js",
+      "status": 200,
+      "sha256": "252d272bd34d483d19a752060f6a065114d15ab12c42d8f905ca565e2768a009",
+      "kind": "public"
+    },
+    {
+      "file": "pagefind/wasm.en.pagefind",
+      "url": "https://magistr.dev/pagefind/wasm.en.pagefind",
+      "finalUrl": "https://magistr.dev/pagefind/wasm.en.pagefind",
+      "status": 200,
+      "sha256": "6c8406154b5d460fc8b6cdbf2c99c008c43c465efdb1f9c15c192f5cf30dcd85",
+      "kind": "public"
+    },
+    {
+      "file": "pagefind/wasm.unknown.pagefind",
+      "url": "https://magistr.dev/pagefind/wasm.unknown.pagefind",
+      "finalUrl": "https://magistr.dev/pagefind/wasm.unknown.pagefind",
+      "status": 200,
+      "sha256": "2533da887ac06de36813d031310af0f737daadacc931775e342aa5a3857a4959",
+      "kind": "public"
+    },
+    {
+      "file": "robots.txt",
+      "url": "https://magistr.dev/robots.txt",
+      "finalUrl": "https://magistr.dev/robots.txt",
+      "status": 200,
+      "sha256": "a7ba2b4ae2cea65e1d71a625d36decd3e200a107592044d4606f186f431e639c",
+      "kind": "public"
+    },
+    {
+      "file": "screenshots/captures.json",
+      "url": "https://magistr.dev/screenshots/captures.json",
+      "finalUrl": "https://magistr.dev/screenshots/captures.json",
+      "status": 200,
+      "sha256": "59897446e1905f99041dbc73cb9758d32b9541bb51c676b6eddd30009ab1d5bf",
+      "kind": "public"
+    },
+    {
+      "file": "screenshots/claude-code-session.png",
+      "url": "https://magistr.dev/screenshots/claude-code-session.png?v=b50927133fc3",
+      "finalUrl": "https://magistr.dev/screenshots/claude-code-session.png?v=b50927133fc3",
+      "status": 200,
+      "sha256": "b50927133fc3020481bd61cd8bf31bd261a6d2e777177aad856afaf9b1d4c3b0",
+      "kind": "public"
+    },
+    {
+      "file": "screenshots/codex-session.png",
+      "url": "https://magistr.dev/screenshots/codex-session.png?v=56594f1bccb7",
+      "finalUrl": "https://magistr.dev/screenshots/codex-session.png?v=56594f1bccb7",
+      "status": 200,
+      "sha256": "56594f1bccb7445a456846f22749dd9e2404bcac84491ba645d11b21292c4dc6",
+      "kind": "public"
+    },
+    {
+      "file": "screenshots/desktop-dark.png",
+      "url": "https://magistr.dev/screenshots/desktop-dark.png?v=aa9c4aa4f28b",
+      "finalUrl": "https://magistr.dev/screenshots/desktop-dark.png?v=aa9c4aa4f28b",
+      "status": 200,
+      "sha256": "aa9c4aa4f28bb0cb1841461e92ca5275a4235521d657c6db318beb388d20981d",
+      "kind": "public"
+    },
+    {
+      "file": "screenshots/desktop-light.png",
+      "url": "https://magistr.dev/screenshots/desktop-light.png?v=88406b6d6987",
+      "finalUrl": "https://magistr.dev/screenshots/desktop-light.png?v=88406b6d6987",
+      "status": 200,
+      "sha256": "88406b6d69876210fec4ee238aaeea8d115bb3cfd37eec1731901ccf22572b3e",
+      "kind": "public"
+    },
+    {
+      "file": "site.webmanifest",
+      "url": "https://magistr.dev/site.webmanifest?v=6db718b27f35",
+      "finalUrl": "https://magistr.dev/site.webmanifest?v=6db718b27f35",
+      "status": 200,
+      "sha256": "6db718b27f35ac461d9ad4d24f845260e413c166a32aabccf6163c8be9594dd4",
+      "kind": "public"
+    },
+    {
+      "file": "sitemap-0.xml",
+      "url": "https://magistr.dev/sitemap-0.xml",
+      "finalUrl": "https://magistr.dev/sitemap-0.xml",
+      "status": 200,
+      "sha256": "5707307ce4b3b1a6f702902242eda8b471a37b4b1af7709e3b39a8b2d5ad47d7",
+      "kind": "public"
+    },
+    {
+      "file": "sitemap-index.xml",
+      "url": "https://magistr.dev/sitemap-index.xml",
+      "finalUrl": "https://magistr.dev/sitemap-index.xml",
+      "status": 200,
+      "sha256": "2f82204e697055921b19fc44f0b3893f9b8b3974f31e4a6061479d27b46176ba",
+      "kind": "public"
+    }
+  ],
+  "unreferencedArtworkOnlyAtImmutableDeployment": [
+    "github-social.png",
+    "og-image.svg"
+  ],
+  "missingRoute": 404,
+  "securityHeaders": "passed",
+  "htmlRevalidation": "passed"
+}
