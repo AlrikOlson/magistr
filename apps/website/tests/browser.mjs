@@ -33,12 +33,46 @@ const server = createServer(async (request, response) => {
   }
 });
 await new Promise((done) => server.listen(0, "127.0.0.1", done));
-const origin = "http://127.0.0.1:" + server.address().port;
+const baseArg = process.argv.indexOf("--base-url");
+const origin = baseArg < 0 ? "http://127.0.0.1:" + server.address().port : new URL(process.argv[baseArg + 1]).origin;
 const browser = await webkit.launch({ headless: true });
 const checks = [];
 const captures = [];
+const paths = [];
+const collect = async (directory) => {
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    const file = resolve(directory, entry.name);
+    if (entry.isDirectory()) await collect(file);
+    else paths.push(file);
+  }
+};
+await collect(resolve(root, "src"));
+for (const name of [
+  "astro.config.mjs", "package.json", "package-lock.json", "tests/browser.mjs",
+  "public/og-image.svg", "public/og-image.png", "public/site.webmanifest",
+  "public/screenshots/captures.json", "scripts/generate-favicons.mjs",
+]) paths.push(resolve(root, name));
+const sourceHashes = Object.fromEntries(await Promise.all(paths.sort().map(async (file) => [
+  relative(repo, file), createHash("sha256").update(await readFile(file)).digest("hex"),
+])));
+const writeReport = async (status, failure) => {
+  if (!evidence) return;
+  const report = {
+    completedAt: new Date().toISOString(), status, failure,
+    renderer: "Playwright WebKit", rendererVersion: browser.version(),
+    platform: process.platform + "-" + process.arch, node: process.version, origin,
+    motion: "reduced", scale: 1, checks, sourceHashes, captures,
+    limitations: [
+      "Headless browser only; no native OS-input or assistive-technology testing.",
+      "Screenshots require separate recorded visual review.",
+      ...(baseArg < 0 ? ["Local build; no deployed-site or registry publication claim."] : ["Deployed website only; no registry publication claim."]),
+    ],
+  };
+  await writeFile(resolve(evidence, "browser-checks.json"), JSON.stringify(report, null, 2) + "\n");
+};
 const capture = async (page, name, state, fullPage = false) => {
   if (!evidence) return;
+  await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
   const file = name + ".png";
   await page.screenshot({ path: resolve(evidence, file), fullPage, animations: "disabled" });
   const bytes = await readFile(resolve(evidence, file));
@@ -49,6 +83,7 @@ const capture = async (page, name, state, fullPage = false) => {
     width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20),
     sha256: createHash("sha256").update(bytes).digest("hex"), review: "pending",
   });
+  await writeReport("running");
 };
 const noOverflow = async (page) => {
   assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), "No horizontal page overflow");
@@ -68,14 +103,19 @@ const legibility = async (page) => {
     });
     const theme = getComputedStyle(document.querySelector("#theme-toggle"));
     const nav = getComputedStyle(document.querySelector(".site-nav"));
+    const controls = [...document.querySelectorAll(".theme-toggle, .menu-toggle, .github-link")].filter((element) => element.getClientRects().length).map((element) => {
+      const rect = element.getBoundingClientRect();
+      return { width: rect.width, height: rect.height };
+    });
     const code = [...document.querySelectorAll("pre")].map((element) => element.scrollWidth - element.clientWidth);
     const arrows = [...document.querySelectorAll(".doc-links a")].map((element) => {
       const title = element.querySelector("strong").getBoundingClientRect();
       const arrow = element.querySelector("[aria-hidden]").getBoundingClientRect();
       return Math.abs(title.y + title.height / 2 - arrow.y - arrow.height / 2);
     });
-    return { primary, theme: ratio(theme.color, nav.backgroundColor), code, arrows };
+    return { primary, theme: ratio(theme.color, nav.backgroundColor), code, arrows, controls };
   });
+  assert(results.controls.every(({ width, height }) => width >= 44 && height >= 44), "Navigation icon targets are at least 44 px");
   assert(results.primary.every((contrast) => contrast >= 4.5), "Primary text contrast: " + JSON.stringify(results));
   assert(results.theme >= 3, "Theme icon contrast: " + JSON.stringify(results));
   assert(results.code.every((overflow) => overflow <= 1), "Code is readable without horizontal clipping");
@@ -92,7 +132,6 @@ try {
       const context = await browser.newContext({ viewport, deviceScaleFactor: 1, colorScheme, reducedMotion: "reduce" });
       await context.route("https://plausible.io/**", (route) => route.fulfill({ status: 204 }));
       const page = await context.newPage();
-      await page.bringToFront();
       const errors = [];
       page.on("pageerror", (error) => errors.push(error.message));
       for (const [name, path] of [["home", "/"], ["installation", "/docs/installation/"], ["concepts", "/docs/concepts/"], ["not-found", "/404.html"]]) {
@@ -111,6 +150,18 @@ try {
         await legibility(page);
         await capture(page, name + "-" + suffix, name + " full page", true);
         if (name === "home") {
+          for (const link of await page.locator(".image-link").all()) {
+            const response = await context.request.get(new URL(await link.getAttribute("href"), origin).href);
+            assert.equal(response.status(), 200, "Full session link opens its original image");
+            assert.match(response.headers()["content-type"], /image\/png/);
+          }
+          await capture(page, "home-intro-" + suffix, "Introduction and desktop preview");
+          for (const [area, selector] of [
+            ["roadmap", "#roadmap"], ["agents", "#agents .section-heading"], ["footer", ".docs-index"],
+          ]) {
+            await scrollHeading(page, selector);
+            await capture(page, "home-" + area + "-" + suffix, area + " section");
+          }
           await page.locator("#install-btn").click();
           await scrollHeading(page, "#install .section-heading");
           assert.match(await page.locator("#install").innerText(), /Setup does not start implementation/);
@@ -124,16 +175,43 @@ try {
           await legibility(page);
           if (layout === "compact") {
             const toggle = page.locator("[data-menu-toggle]");
+            await page.evaluate(() => scrollTo({ top: 0, behavior: "instant" }));
             await toggle.click();
             assert.equal(await toggle.getAttribute("aria-expanded"), "true");
             await capture(page, "home-menu-" + suffix, "Expanded compact navigation");
+            const firstLink = page.locator("#mobile-menu").getByRole("link", { name: "How it works", exact: true });
+            await firstLink.focus();
+            await page.keyboard.press("Escape");
+            assert.equal(await toggle.getAttribute("aria-expanded"), "false");
+            assert(await toggle.evaluate((element) => element === document.activeElement));
+            await capture(page, "home-menu-dismissed-" + suffix, "Escape closes menu and restores visible focus");
+            await toggle.click();
+            await firstLink.click();
+            assert.equal(await toggle.getAttribute("aria-expanded"), "false");
+            assert.equal(new URL(page.url()).hash, "#roadmap");
+            assert(await page.locator("#roadmap").evaluate((element) => element === document.activeElement));
+            await toggle.click();
+            await firstLink.focus();
+            await page.setViewportSize({ width: 1024, height: 1000 });
+            await page.waitForFunction(() => document.querySelector("[data-menu-toggle]").getAttribute("aria-expanded") === "false");
+            assert.equal(await toggle.getAttribute("aria-expanded"), "false");
+            assert(await page.locator("[data-nav-links] a").first().evaluate((element) => element === document.activeElement));
+            await page.setViewportSize(viewport);
+            assert.equal(await toggle.getAttribute("aria-expanded"), "false");
+            await toggle.click();
             await page.locator("#mobile-menu").getByRole("link", { name: "Docs", exact: true }).click();
             assert.equal(new URL(page.url()).pathname.replace(/\/$/, ""), "/docs/installation");
           }
         }
+        if (name === "concepts") {
+          for (const heading of ["your-plan", "your-work-history", "checking-your-work", "agent-sessions", "the-desktop-preview", "where-your-work-is-saved"]) {
+            await scrollHeading(page, "#" + heading);
+            await capture(page, "concepts-" + heading + "-" + suffix, heading.replaceAll("-", " "));
+          }
+        }
         if (name === "installation") {
           const body = await page.locator("article").innerText();
-          assert.match(body, /Only selected integrations are generated/);
+          assert.match(body, /Setup adds files only for the agents you choose/);
           assert.match(body, /magistr init \. --agent codex,claude --dry-run/);
           assert.match(body, /magistr init \. --agent portable --yes/);
           assert.match(body, /magistr remove \. --dry-run/);
@@ -170,31 +248,15 @@ try {
       await page.keyboard.press("Enter");
       assert.equal(new URL(page.url()).hash, "#main-content");
       assert.deepEqual(errors, [], "No uncaught page errors");
-      checks.push({ layout, appearance: colorScheme, passed: true, scenarios: ["four static routes", "primary and theme-control contrast", "wrapped code and aligned documentation arrows", "reflow at 320 px", "images", "install anchor", "theme persistence", "selected agent instructions", "search and result navigation", "keyboard skip link", ...(layout === "compact" ? ["mobile menu navigation"] : [])] });
+      checks.push({ layout, appearance: colorScheme, passed: true, scenarios: ["four static routes", "primary and theme-control contrast", "wrapped code and aligned documentation arrows", "reflow at 320 px", "images", "install anchor", "theme persistence", "selected agent instructions", "search and result navigation", "keyboard skip link", ...(layout === "compact" ? ["mobile menu navigation, Escape, anchor focus and resize recovery"] : [])] });
       await context.close();
     }
   }
-  const paths = [];
-  const collect = async (directory) => {
-    for (const entry of await readdir(directory, { withFileTypes: true })) {
-      const file = resolve(directory, entry.name);
-      if (entry.isDirectory()) await collect(file);
-      else paths.push(file);
-    }
-  };
-  await collect(resolve(root, "src"));
-  for (const name of ["astro.config.mjs", "package.json", "package-lock.json", "tests/browser.mjs"]) paths.push(resolve(root, name));
-  const sourceHashes = Object.fromEntries(await Promise.all(paths.sort().map(async (file) => [
-    relative(repo, file), createHash("sha256").update(await readFile(file)).digest("hex"),
-  ])));
-  const report = {
-    completedAt: new Date().toISOString(), renderer: "Playwright WebKit", rendererVersion: browser.version(),
-    platform: process.platform + "-" + process.arch, node: process.version,
-    motion: "reduced", scale: 1, checks, sourceHashes, captures,
-    limitations: ["Headless browser only; no native OS-input or assistive-technology testing.", "Screenshots require separate recorded visual review.", "No deployed-site or registry publication claim."],
-  };
-  if (evidence) await writeFile(resolve(evidence, "browser-checks.json"), JSON.stringify(report, null, 2) + "\n");
+  await writeReport("passed");
   console.log(JSON.stringify({ passed: true, profiles: checks.length, screenshots: captures.length, evidence }, null, 2));
+} catch (error) {
+  await writeReport("failed", error.message);
+  throw error;
 } finally {
   await browser.close();
   await new Promise((done) => server.close(done));
