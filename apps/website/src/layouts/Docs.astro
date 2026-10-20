@@ -1,10 +1,11 @@
 ---
 import Base from "./Base.astro";
 import Nav from "../components/Nav.astro";
+import Footer from "../components/Footer.astro";
 import { getCollection } from "astro:content";
 
-interface Props { title: string; description: string; currentSlug: string; }
-const { title, description, currentSlug } = Astro.props;
+interface Props { title: string; description: string; currentSlug: string; headings: {depth:number; slug:string; text:string}[]; }
+const { title, description, currentSlug, headings } = Astro.props;
 const allDocs = await getCollection("docs");
 const sorted = allDocs.sort((a,b)=>a.data.order-b.data.order);
 // The docs are a short flat list; the order comes from each page.
@@ -20,20 +21,23 @@ const breadcrumbLd = {"@context":"https://schema.org","@type":"BreadcrumbList","
     <aside class="docs-sidebar" aria-label="Documentation navigation">
       <a class="docs-back" href="/">← Magistr home</a>
       <div id="docs-search">
-        <input type="search" placeholder="Search docs" class="docs-search-input" aria-label="Search documentation" />
+        <label class="docs-search-label" for="search-docs">Documentation</label>
+        <input id="search-docs" type="search" placeholder="Search docs" class="docs-search-input" aria-label="Search documentation" />
         <div class="docs-search-results" aria-live="polite"></div>
       </div>
       <nav class="docs-nav-group" aria-label="Documentation pages"><ul>{sorted.map((doc)=>{
         const active=doc.id===currentSlug;
         return <li><a href={`/docs/${doc.id}`} aria-current={active?"page":undefined} class:list={{active}}>{doc.data.title}</a></li>;
       })}</ul></nav>
-      <div class="docs-repo-links"><a href="https://github.com/AlrikOlson/magistr/blob/main/docs/architecture/overview.md" target="_blank" rel="noopener noreferrer">Architecture ↗</a><a href="https://github.com/AlrikOlson/magistr/blob/main/docs/development.md" target="_blank" rel="noopener noreferrer">Development ↗</a></div>
+      <div class="docs-repo-links"><span class="mono-label">Repository access required</span><a href="https://github.com/AlrikOlson/magistr/blob/main/docs/architecture/overview.md" target="_blank" rel="noopener noreferrer">Architecture ↗</a><a href="https://github.com/AlrikOlson/magistr/blob/main/docs/development.md" target="_blank" rel="noopener noreferrer">Development ↗</a></div>
     </aside>
     <main id="main-content" class="docs-main" data-pagefind-body>
       <div class="docs-breadcrumb"><a href="/">Magistr</a><span aria-hidden="true">/</span><a href="/docs/installation">Docs</a><span aria-hidden="true">/</span><span>{title}</span></div>
       <article class="docs-content"><slot /></article>
     </main>
+    <nav class="docs-toc" aria-label="On this page"><p class="mono-label">On this page</p>{headings.filter(({depth}) => depth === 2).map(({slug,text}) => <a href={`#${slug}`}>{text}</a>)}</nav>
   </div>
+  <Footer />
 </Base>
 <script is:inline>
   (() => {

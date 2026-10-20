@@ -1,0 +1,86 @@
+[
+  {
+    "file": "asset-og-image.png",
+    "source": "apps/website/public/og-image.png",
+    "sha256": "21281be03a6841b0ed9f0e1a7f672a56491d3d08a8fc9b6c994330eee93b17ec",
+    "width": 1200,
+    "height": 630,
+    "viewport": null,
+    "appearance": "fixed artwork",
+    "capturedAt": "2026-10-20T16:52:24.423256+00:00",
+    "renderer": "Sharp raster output from authored SVG; byte-for-byte artifact copy",
+    "review": "pending"
+  },
+  {
+    "file": "asset-github-social.png",
+    "source": "apps/website/public/github-social.png",
+    "sha256": "21281be03a6841b0ed9f0e1a7f672a56491d3d08a8fc9b6c994330eee93b17ec",
+    "width": 1200,
+    "height": 630,
+    "viewport": null,
+    "appearance": "fixed artwork",
+    "capturedAt": "2026-10-20T16:52:24.423518+00:00",
+    "renderer": "Sharp raster output from authored SVG; byte-for-byte artifact copy",
+    "review": "pending"
+  },
+  {
+    "file": "asset-favicon-16.png",
+    "source": "apps/website/public/favicon-16.png",
+    "sha256": "89d59e69c8e0249c40a43741e7cfd2ede9c9dd23357bad4d692f6cc3e2ba073f",
+    "width": 16,
+    "height": 16,
+    "viewport": null,
+    "appearance": "fixed artwork",
+    "capturedAt": "2026-10-20T16:52:24.423618+00:00",
+    "renderer": "Sharp raster output from authored SVG; byte-for-byte artifact copy",
+    "review": "pending"
+  },
+  {
+    "file": "asset-favicon-32.png",
+    "source": "apps/website/public/favicon-32.png",
+    "sha256": "b0257b19f35a5edc0aca030fffecc3c9fc6338956fcf0288303320acbea5a1c4",
+    "width": 32,
+    "height": 32,
+    "viewport": null,
+    "appearance": "fixed artwork",
+    "capturedAt": "2026-10-20T16:52:24.423700+00:00",
+    "renderer": "Sharp raster output from authored SVG; byte-for-byte artifact copy",
+    "review": "pending"
+  },
+  {
+    "file": "asset-apple-touch-icon.png",
+    "source": "apps/website/public/apple-touch-icon.png",
+    "sha256": "1e79b816230ad7380b83367a3c736c4267822854e7ea1762a6c453d23597ea80",
+    "width": 180,
+    "height": 180,
+    "viewport": null,
+    "appearance": "fixed artwork",
+    "capturedAt": "2026-10-20T16:52:24.423790+00:00",
+    "renderer": "Sharp raster output from authored SVG; byte-for-byte artifact copy",
+    "review": "pending"
+  },
+  {
+    "file": "asset-icon-192.png",
+    "source": "apps/website/public/icon-192.png",
+    "sha256": "28955bd5e1b5021eb9c0d52ff21d61aa0b9004f94271f21261c4aba06143b330",
+    "width": 192,
+    "height": 192,
+    "viewport": null,
+    "appearance": "fixed artwork",
+    "capturedAt": "2026-10-20T16:52:24.423863+00:00",
+    "renderer": "Sharp raster output from authored SVG; byte-for-byte artifact copy",
+    "review": "pending"
+  },
+  {
+    "file": "asset-icon-512.png",
+    "source": "apps/website/public/icon-512.png",
+    "sha256": "e340166b9d1f43b7fecdf3556848ee939274b81c32d09cb04ae620cea49c582d",
+    "width": 512,
+    "height": 512,
+    "viewport": null,
+    "appearance": "fixed artwork",
+    "capturedAt": "2026-10-20T16:52:24.423966+00:00",
+    "renderer": "Sharp raster output from authored SVG; byte-for-byte artifact copy",
+    "review": "pending"
+  }
+]

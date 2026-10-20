@@ -1,11 +1,11 @@
 {
   "name": "Magistr",
   "short_name": "Magistr",
-  "description": "Keep your coding project's plan, progress and test results together",
+  "description": "The workflow layer for coding agents. Plan the work. Prove the change.",
   "start_url": "/",
   "display": "browser",
-  "background_color": "#f8f7f4",
-  "theme_color": "#5a3e9e",
+  "background_color": "#fafaf7",
+  "theme_color": "#ad3f0d",
   "icons": [
     { "src": "/favicon.svg", "type": "image/svg+xml", "sizes": "any" },
     { "src": "/favicon-16.png", "type": "image/png", "sizes": "16x16" },
