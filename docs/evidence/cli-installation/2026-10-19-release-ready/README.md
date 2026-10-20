@@ -1,5 +1,10 @@
 # Cargo/npm release candidate — 2026-10-19
 
+**Audit update:** [The subsequent full release audit](../2026-10-19-release-audit/README.md)
+places this candidate on hold for dependency security, publication recovery and
+release-information fixes. The functional and installation evidence below remains
+valid; the owner-only action list is superseded by that audit.
+
 Version `0.1.0`, source [`4fa3788f200c5c807f142f7542e6c159deae777a`](https://github.com/AlrikOlson/magistr/commit/4fa3788f200c5c807f142f7542e6c159deae777a), Apple Silicon macOS.
 
 Registry publication and the declaration of public release have not occurred.

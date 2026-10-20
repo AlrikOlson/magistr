@@ -1,0 +1,1197 @@
+{
+  "capturedAt": "2026-10-20T01:49:12.702403+00:00",
+  "database": {
+    "advisory-count": 1338,
+    "last-commit": "999ec89d5d3f10f20be14750ec8c2d8b44e0ac9b",
+    "last-updated": "2026-10-17T17:23:59+02:00"
+  },
+  "lockfileMatches": 38,
+  "enabledCliMatches": 33,
+  "assessment": "Matches require feature and call-path triage; enabled is not synonymous with exploitable. No exploit attempted.",
+  "rust": [
+    {
+      "id": "RUSTSEC-2026-0342",
+      "package": "quinn-proto",
+      "version": "0.11.14",
+      "title": "Zero-length DATAGRAM frames bypass the receive buffer limit in quinn-proto",
+      "url": "https://rustsec.org/advisories/RUSTSEC-2026-0342.html",
+      "patched": [
+        ">=0.11.17"
+      ],
+      "unaffected": [
+        "<0.5.0"
+      ],
+      "enabledForCli": false
+    },
+    {
+      "id": "RUSTSEC-2026-0339",
+      "package": "quinn-proto",
+      "version": "0.11.14",
+      "title": "Unbounded growth of pending connection ID retirements in quinn-proto",
+      "url": "https://rustsec.org/advisories/RUSTSEC-2026-0339.html",
+      "patched": [
+        ">=0.11.17"
+      ],
+      "unaffected": [
+        "<0.6.0"
+      ],
+      "enabledForCli": false
+    },
+    {
+      "id": "RUSTSEC-2026-0338",
+      "package": "quinn-proto",
+      "version": "0.11.14",
+      "title": "Remote peer can panic quinn-proto with zero-length STREAM frames during unordered reads",
+      "url": "https://rustsec.org/advisories/RUSTSEC-2026-0338.html",
+      "patched": [
+        ">=0.11.18"
+      ],
+      "unaffected": [
+        "<0.7.0"
+      ],
+      "enabledForCli": false
+    },
+    {
+      "id": "RUSTSEC-2026-0340",
+      "package": "quinn-proto",
+      "version": "0.11.14",
+      "title": "Peer minimum ACK delay can panic quinn-proto when ACK_FREQUENCY transmission is enabled",
+      "url": "https://rustsec.org/advisories/RUSTSEC-2026-0340.html",
+      "patched": [
+        ">=0.11.18"
+      ],
+      "unaffected": [
+        "<0.11.0"
+      ],
+      "enabledForCli": false
+    },
+    {
+      "id": "RUSTSEC-2026-0185",
+      "package": "quinn-proto",
+      "version": "0.11.14",
+      "title": " Remote memory exhaustion in quinn-proto from unbounded out-of-order stream reassembly",
+      "url": "https://rustsec.org/advisories/RUSTSEC-2026-0185.html",
+      "patched": [
+        ">=0.11.15"
+      ],
+      "unaffected": [],
+      "enabledForCli": false
+    },
+    {
+      "id": "RUSTSEC-2023-0071",
+      "package": "rsa",
+      "version": "0.9.10",
+      "title": "Marvin Attack: potential key recovery through timing sidechannels",
+      "url": "https://rustsec.org/advisories/RUSTSEC-2023-0071.html",
+      "patched": [],
+      "unaffected": [],
+      "enabledForCli": true
+    },
+    {
+      "id": "RUSTSEC-2026-0346",
+      "package": "rustls",
+      "version": "0.23.37",
+      "title": "`Debug` impls for client session values expose TLS secrets",
+      "url": "https://rustsec.org/advisories/RUSTSEC-2026-0346.html",
+      "patched": [
+        ">=0.23.46"
+      ],
+      "unaffected": [
+        "<0.21.0"
+      ],
+      "enabledForCli": true
+    },
+    {
+      "id": "RUSTSEC-2026-0285",
+      "package": "rustls",
+      "version": "0.23.37",
+      "title": "TLS 1.3 handshake messages incorrectly accepted across encryption level boundaries",
+      "url": "https://rustsec.org/advisories/RUSTSEC-2026-0285.html",
+      "patched": [
+        ">=0.23.45"
+      ],
+      "unaffected": [
+        "<0.23.13"
+      ],
+      "enabledForCli": true
+    },
+    {
+      "id": "RUSTSEC-2026-0348",
+      "package": "rustls",
+      "version": "0.23.37",
+      "title": "Brotli certificate decompression can allocate up to 1 GiB before authentication",
+      "url": "https://rustsec.org/advisories/RUSTSEC-2026-0348.html",
+      "patched": [
+        ">=0.23.46"
+      ],
+      "unaffected": [
+        "<0.23.9"
+      ],
+      "enabledForCli": true
+    },
+    {
+      "id": "RUSTSEC-2026-0349",
+      "package": "rustls",
+      "version": "0.23.37",
+      "title": "Unauthenticated ServerHello can downgrade later connections to classical key exchange",
+      "url": "https://rustsec.org/advisories/RUSTSEC-2026-0349.html",
+      "patched": [
+        ">=0.23.46"
+      ],
+      "unaffected": [],
+      "enabledForCli": true
+    },
+    {
+      "id": "RUSTSEC-2026-0104",
+      "package": "rustls-webpki",
+      "version": "0.103.9",
+      "title": "Reachable panic in certificate revocation list parsing",
+      "url": "https://rustsec.org/advisories/RUSTSEC-2026-0104.html",
+      "patched": [
+        ">=0.103.13, <0.104.0-alpha.1",
+        ">=0.104.0-alpha.7"
+      ],
+      "unaffected": [],
+      "enabledForCli": true
+    },
+    {
+      "id": "RUSTSEC-2026-0098",
+      "package": "rustls-webpki",
+      "version": "0.103.9",
+      "title": "Name constraints for URI names were incorrectly accepted",
+      "url": "https://rustsec.org/advisories/RUSTSEC-2026-0098.html",
+      "patched": [
+        ">=0.103.12, <0.104.0-alpha.1",
+        ">=0.104.0-alpha.6"
+      ],
+      "unaffected": [],
+      "enabledForCli": true
+    },
+    {
+      "id": "RUSTSEC-2026-0099",
+      "package": "rustls-webpki",
+      "version": "0.103.9",
+      "title": "Name constraints were accepted for certificates asserting a wildcard name",
+      "url": "https://rustsec.org/advisories/RUSTSEC-2026-0099.html",
+      "patched": [
+        ">=0.103.12, <0.104.0-alpha.1",
+        ">=0.104.0-alpha.6"
+      ],
+      "unaffected": [],
+      "enabledForCli": true
+    },
+    {
+      "id": "RUSTSEC-2026-0049",
+      "package": "rustls-webpki",
+      "version": "0.103.9",
+      "title": "CRLs not considered authoritative by Distribution Point due to faulty matching logic",
+      "url": "https://rustsec.org/advisories/RUSTSEC-2026-0049.html",
+      "patched": [
+        ">=0.103.10"
+      ],
+      "unaffected": [
+        "<0.102.0-alpha.0"
+      ],
+      "enabledForCli": true
+    },
+    {
+      "id": "RUSTSEC-2026-0316",
+      "package": "wasmtime",
+      "version": "36.0.15",
+      "title": "Dynamic record lifting can allocate beyond the hostcall fuel limit",
+      "url": "https://rustsec.org/advisories/RUSTSEC-2026-0316.html",
+      "patched": [
+        ">=36.0.16, <37.0.0",
+        ">=48.0.3, <49.0.0",
+        ">=49.0.1"
+      ],
+      "unaffected": [],
+      "enabledForCli": true
+    },
+    {
+      "id": "RUSTSEC-2026-0363",
+      "package": "wasmtime",
+      "version": "36.0.15",
+      "title": "Component-model handle tables are capped only per instance and charged to no limit",
+      "url": "https://rustsec.org/advisories/RUSTSEC-2026-0363.html",
+      "patched": [
+        ">=36.0.18, <37.0.0",
+        ">=48.0.6, <49.0.0",
+        ">=49.0.3"
+      ],
+      "unaffected": [],
+      "enabledForCli": true
+    },
+    {
+      "id": "RUSTSEC-2026-0356",
+      "package": "wasmtime",
+      "version": "48.0.2",
+      "title": "Panic on erroneous call-to-host from guest realloc call",
+      "url": "https://rustsec.org/advisories/RUSTSEC-2026-0356.html",
+      "patched": [
+        ">=48.0.6, <49.0.0",
+        ">=49.0.3"
+      ],
+      "unaffected": [
+        "<46.0.0"
+      ],
+      "enabledForCli": true
+    },
+    {
+      "id": "RUSTSEC-2026-0362",
+      "package": "wasmtime",
+      "version": "48.0.2",
+      "title": "Wasmtime may not properly enforce async-entrypoint requirement",
+      "url": "https://rustsec.org/advisories/RUSTSEC-2026-0362.html",
+      "patched": [
+        ">=48.0.6, <49.0.0",
+        ">=49.0.3"
+      ],
+      "unaffected": [
+        "<42.0.0"
+      ],
+      "enabledForCli": true
+    },
+    {
+      "id": "RUSTSEC-2026-0327",
+      "package": "wasmtime",
+      "version": "48.0.2",
+      "title": "Wasmtime component async-lifted callback result count is unvalidated, causing a native stack buffer overflow",
+      "url": "https://rustsec.org/advisories/RUSTSEC-2026-0327.html",
+      "patched": [
+        ">=48.0.4, <49.0.0",
+        ">=49.0.2"
+      ],
+      "unaffected": [
+        "<39.0.0"
+      ],
+      "enabledForCli": true
+    },
+    {
+      "id": "RUSTSEC-2026-0326",
+      "package": "wasmtime",
+      "version": "48.0.2",
+      "title": "Rooting for GC values live across `try_call` may be missing, causing GC heap corruption",
+      "url": "https://rustsec.org/advisories/RUSTSEC-2026-0326.html",
+      "patched": [
+        ">=48.0.4, <49.0.0",
+        ">=49.0.2"
+      ],
+      "unaffected": [
+        "<47.0.0"
+      ],
+      "enabledForCli": true
+    },
+    {
+      "id": "RUSTSEC-2026-0353",
+      "package": "wasmtime",
+      "version": "48.0.2",
+      "title": "Panic when invoking an async-lifted function via `call`",
+      "url": "https://rustsec.org/advisories/RUSTSEC-2026-0353.html",
+      "patched": [
+        ">=48.0.6, <49.0.0",
+        ">=49.0.3"
+      ],
+      "unaffected": [
+        "<46.0.0"
+      ],
+      "enabledForCli": true
+    },
+    {
+      "id": "RUSTSEC-2026-0316",
+      "package": "wasmtime",
+      "version": "48.0.2",
+      "title": "Dynamic record lifting can allocate beyond the hostcall fuel limit",
+      "url": "https://rustsec.org/advisories/RUSTSEC-2026-0316.html",
+      "patched": [
+        ">=36.0.16, <37.0.0",
+        ">=48.0.3, <49.0.0",
+        ">=49.0.1"
+      ],
+      "unaffected": [],
+      "enabledForCli": true
+    },
+    {
+      "id": "RUSTSEC-2026-0357",
+      "package": "wasmtime",
+      "version": "48.0.2",
+      "title": "Out-of-bounds zero-length stream writes can panic",
+      "url": "https://rustsec.org/advisories/RUSTSEC-2026-0357.html",
+      "patched": [
+        ">=48.0.6, <49.0.0",
+        ">=49.0.3"
+      ],
+      "unaffected": [
+        "<46.0.0"
+      ],
+      "enabledForCli": true
+    },
+    {
+      "id": "RUSTSEC-2026-0363",
+      "package": "wasmtime",
+      "version": "48.0.2",
+      "title": "Component-model handle tables are capped only per instance and charged to no limit",
+      "url": "https://rustsec.org/advisories/RUSTSEC-2026-0363.html",
+      "patched": [
+        ">=36.0.18, <37.0.0",
+        ">=48.0.6, <49.0.0",
+        ">=49.0.3"
+      ],
+      "unaffected": [],
+      "enabledForCli": true
+    },
+    {
+      "id": "RUSTSEC-2026-0358",
+      "package": "wasmtime",
+      "version": "48.0.2",
+      "title": "Yielding in a component start function can lead to a host panic",
+      "url": "https://rustsec.org/advisories/RUSTSEC-2026-0358.html",
+      "patched": [
+        ">=48.0.6, <49.0.0",
+        ">=49.0.3"
+      ],
+      "unaffected": [
+        "<46.0.0"
+      ],
+      "enabledForCli": true
+    },
+    {
+      "id": "RUSTSEC-2026-0359",
+      "package": "wasmtime",
+      "version": "48.0.2",
+      "title": "Stack overflow dropping a long chain of recursive types",
+      "url": "https://rustsec.org/advisories/RUSTSEC-2026-0359.html",
+      "patched": [
+        ">=48.0.6, <49.0.0",
+        ">=49.0.3"
+      ],
+      "unaffected": [
+        "<42.0.0"
+      ],
+      "enabledForCli": true
+    },
+    {
+      "id": "RUSTSEC-2026-0325",
+      "package": "wasmtime",
+      "version": "48.0.2",
+      "title": "Mis-typed WebAssembly tag imports can lead to GC heap corruption",
+      "url": "https://rustsec.org/advisories/RUSTSEC-2026-0325.html",
+      "patched": [
+        ">=48.0.4, <49.0.0",
+        ">=49.0.2"
+      ],
+      "unaffected": [
+        "<47.0.0"
+      ],
+      "enabledForCli": true
+    },
+    {
+      "id": "RUSTSEC-2026-0364",
+      "package": "wasmtime",
+      "version": "48.0.2",
+      "title": "Exception tags can cause host data structures to be unaligned",
+      "url": "https://rustsec.org/advisories/RUSTSEC-2026-0364.html",
+      "patched": [
+        ">=48.0.6, <49.0.0",
+        ">=49.0.3"
+      ],
+      "unaffected": [
+        "<47.0.0"
+      ],
+      "enabledForCli": true
+    },
+    {
+      "id": "RUSTSEC-2026-0315",
+      "package": "wasmtime",
+      "version": "48.0.2",
+      "title": "`call_ref` and exception `catch` can drop some fuel accounting, leading to exponential fuel amplification",
+      "url": "https://rustsec.org/advisories/RUSTSEC-2026-0315.html",
+      "patched": [
+        ">=48.0.3, <49.0.0",
+        ">=49.0.1"
+      ],
+      "unaffected": [
+        "<47.0.0"
+      ],
+      "enabledForCli": true
+    },
+    {
+      "id": "RUSTSEC-2026-0354",
+      "package": "wasmtime",
+      "version": "48.0.2",
+      "title": "Host panic when component `call_async` is cancelled under some conditions",
+      "url": "https://rustsec.org/advisories/RUSTSEC-2026-0354.html",
+      "patched": [
+        ">=48.0.6, <49.0.0",
+        ">=49.0.3"
+      ],
+      "unaffected": [
+        "<46.0.0"
+      ],
+      "enabledForCli": true
+    },
+    {
+      "id": "RUSTSEC-2026-0355",
+      "package": "wasmtime",
+      "version": "48.0.2",
+      "title": "Panic viewing component model stream or future as the wrong type",
+      "url": "https://rustsec.org/advisories/RUSTSEC-2026-0355.html",
+      "patched": [
+        ">=48.0.6, <49.0.0",
+        ">=49.0.3"
+      ],
+      "unaffected": [
+        "<46.0.0"
+      ],
+      "enabledForCli": true
+    },
+    {
+      "id": "RUSTSEC-2026-0361",
+      "package": "wasmtime",
+      "version": "48.0.2",
+      "title": "Panic when pending calls are run after a trap",
+      "url": "https://rustsec.org/advisories/RUSTSEC-2026-0361.html",
+      "patched": [
+        ">=48.0.6, <49.0.0",
+        ">=49.0.3"
+      ],
+      "unaffected": [
+        "<46.0.0"
+      ],
+      "enabledForCli": true
+    },
+    {
+      "id": "RUSTSEC-2026-0323",
+      "package": "wasmtime-wasi",
+      "version": "48.0.2",
+      "title": "fd_readdir copies uninitialized struct padding into guest memory",
+      "url": "https://rustsec.org/advisories/RUSTSEC-2026-0323.html",
+      "patched": [
+        ">=36.0.17, <37.0.0",
+        ">=48.0.4, <49.0.0",
+        ">=49.0.2"
+      ],
+      "unaffected": [],
+      "enabledForCli": true
+    },
+    {
+      "id": "RUSTSEC-2026-0352",
+      "package": "wasmtime-wasi",
+      "version": "48.0.2",
+      "title": "Filesystem sandbox escape when renaming symlinks with trailing slashes",
+      "url": "https://rustsec.org/advisories/RUSTSEC-2026-0352.html",
+      "patched": [
+        ">=36.0.18, <37.0.0",
+        ">=48.0.6, <49.0.0",
+        ">=49.0.3"
+      ],
+      "unaffected": [],
+      "enabledForCli": true
+    },
+    {
+      "id": "RUSTSEC-2026-0322",
+      "package": "wasmtime-wasi",
+      "version": "48.0.2",
+      "title": "Excessive allocated memory on the host when guests don't have stdio",
+      "url": "https://rustsec.org/advisories/RUSTSEC-2026-0322.html",
+      "patched": [
+        ">=36.0.17, <37.0.0",
+        ">=48.0.4, <49.0.0",
+        ">=49.0.2"
+      ],
+      "unaffected": [],
+      "enabledForCli": true
+    },
+    {
+      "id": "RUSTSEC-2026-0321",
+      "package": "wasmtime-wasi",
+      "version": "48.0.2",
+      "title": "WASI preview 0 implementation of `poll_oneoff` circumvents fuel consumption",
+      "url": "https://rustsec.org/advisories/RUSTSEC-2026-0321.html",
+      "patched": [
+        ">=36.0.17, <37.0.0",
+        ">=48.0.4, <49.0.0",
+        ">=49.0.2"
+      ],
+      "unaffected": [],
+      "enabledForCli": true
+    },
+    {
+      "id": "RUSTSEC-2026-0314",
+      "package": "wasmtime-wasi",
+      "version": "48.0.2",
+      "title": "Guest can panic host through filesystem datetime overflow",
+      "url": "https://rustsec.org/advisories/RUSTSEC-2026-0314.html",
+      "patched": [
+        ">=36.0.16, <37.0.0",
+        ">=48.0.3, <49.0.0",
+        ">=49.0.1"
+      ],
+      "unaffected": [],
+      "enabledForCli": true
+    },
+    {
+      "id": "RUSTSEC-2026-0324",
+      "package": "wasmtime-wasi",
+      "version": "48.0.2",
+      "title": "Guest can panic host through filesystem timestamp before the epoch on wasip3",
+      "url": "https://rustsec.org/advisories/RUSTSEC-2026-0324.html",
+      "patched": [
+        ">=48.0.4, <49.0.0",
+        ">=49.0.2"
+      ],
+      "unaffected": [
+        "<46.0.0"
+      ],
+      "enabledForCli": true
+    }
+  ],
+  "rustWarnings": [
+    {
+      "kind": "unmaintained",
+      "package": "unsafe-libyaml",
+      "version": "0.2.11",
+      "id": "RUSTSEC-2024-0449",
+      "title": "unsafe-libyaml is unmaintained",
+      "patched": []
+    },
+    {
+      "kind": "unsound",
+      "package": "event-listener",
+      "version": "5.4.1",
+      "id": "RUSTSEC-2026-0221",
+      "title": "`event-listener` allows `!Send` tags to cross thread boundaries via `StackSlot`",
+      "patched": [
+        ">=5.4.2"
+      ]
+    },
+    {
+      "kind": "unsound",
+      "package": "libyml",
+      "version": "0.0.5",
+      "id": "RUSTSEC-2025-0067",
+      "title": "`libyml::string::yaml_string_extend` is unsound and unmaintained",
+      "patched": []
+    },
+    {
+      "kind": "unsound",
+      "package": "rand",
+      "version": "0.8.5",
+      "id": "RUSTSEC-2026-0097",
+      "title": "Rand is unsound with a custom logger using `rand::rng()`",
+      "patched": [
+        ">=0.10.1",
+        "<0.10.0, >=0.9.3",
+        "<0.9.0, >=0.8.6"
+      ]
+    },
+    {
+      "kind": "unsound",
+      "package": "rand",
+      "version": "0.9.2",
+      "id": "RUSTSEC-2026-0097",
+      "title": "Rand is unsound with a custom logger using `rand::rng()`",
+      "patched": [
+        ">=0.10.1",
+        "<0.10.0, >=0.9.3",
+        "<0.9.0, >=0.8.6"
+      ]
+    },
+    {
+      "kind": "unsound",
+      "package": "serde_yml",
+      "version": "0.0.12",
+      "id": "RUSTSEC-2025-0068",
+      "title": "serde_yml crate is unsound and unmaintained",
+      "patched": []
+    }
+  ],
+  "website": {
+    "counts": {
+      "info": 0,
+      "low": 3,
+      "moderate": 1,
+      "high": 12,
+      "critical": 1,
+      "total": 17
+    },
+    "packages": [
+      {
+        "package": "@astrojs/mdx",
+        "severity": "low",
+        "isDirect": true,
+        "range": "<=0.0.0-vercel-upgrade-20230905174957 || 1.0.0-beta.0 - 4.3.14",
+        "fixAvailable": {
+          "name": "@astrojs/mdx",
+          "version": "8.1.0",
+          "isSemVerMajor": true
+        },
+        "advisories": []
+      },
+      {
+        "package": "astro",
+        "severity": "critical",
+        "isDirect": true,
+        "range": "<=7.2.7",
+        "fixAvailable": {
+          "name": "astro",
+          "version": "7.4.1",
+          "isSemVerMajor": true
+        },
+        "advisories": [
+          {
+            "name": "astro",
+            "title": "Astro: XSS in define:vars via incomplete </script> tag sanitization",
+            "url": "https://github.com/advisories/GHSA-j687-52p2-xcff",
+            "severity": "moderate",
+            "range": "<6.1.6"
+          },
+          {
+            "name": "astro",
+            "title": "Astro: Server island encrypted parameters vulnerable to cross-component replay",
+            "url": "https://github.com/advisories/GHSA-xr5h-phrj-8vxv",
+            "severity": "low",
+            "range": "<6.1.10"
+          },
+          {
+            "name": "astro",
+            "title": "Astro: XSS via Unescaped Attribute Names in Spread Props",
+            "url": "https://github.com/advisories/GHSA-jrpj-wcv7-9fh9",
+            "severity": "moderate",
+            "range": "<6.4.6"
+          },
+          {
+            "name": "astro",
+            "title": "Astro: XSS via unescaped spread attribute names in renderHTMLElement (incomplete fix for CVE-2026-54298)",
+            "url": "https://github.com/advisories/GHSA-f48w-9m4c-m7f5",
+            "severity": "moderate",
+            "range": "<7.0.6"
+          },
+          {
+            "name": "astro",
+            "title": "Astro: Cross-site scripting via unescaped transition:* directive values on hydrated islands",
+            "url": "https://github.com/advisories/GHSA-7pw4-f3q4-r2p2",
+            "severity": "low",
+            "range": ">=3.10.0 <7.0.4"
+          },
+          {
+            "name": "astro",
+            "title": "Astro: Reflected XSS via unescaped View Transition animation properties",
+            "url": "https://github.com/advisories/GHSA-4g3v-8h47-v7g6",
+            "severity": "moderate",
+            "range": ">=2.9.0 <=7.0.9"
+          },
+          {
+            "name": "astro",
+            "title": "Astro: Host header SSRF in prerendered error page fetch",
+            "url": "https://github.com/advisories/GHSA-2pvr-wf23-7pc7",
+            "severity": "high",
+            "range": "<6.4.6"
+          },
+          {
+            "name": "astro",
+            "title": "Astro: Reflected XSS via unescaped slot name",
+            "url": "https://github.com/advisories/GHSA-8hv8-536x-4wqp",
+            "severity": "high",
+            "range": "<6.3.3"
+          },
+          {
+            "name": "astro",
+            "title": "Astro: Remote code execution through AVIF image optimization",
+            "url": "https://github.com/advisories/GHSA-26w7-cxv4-gfx2",
+            "severity": "critical",
+            "range": "<7.2.8"
+          },
+          {
+            "name": "astro",
+            "title": "Astro: Authorization bypass from missing path-segment boundary check when stripping the configured base",
+            "url": "https://github.com/advisories/GHSA-376h-93r7-7g6f",
+            "severity": "moderate",
+            "range": "<=7.2.3"
+          }
+        ]
+      },
+      {
+        "package": "astro-pagefind",
+        "severity": "low",
+        "isDirect": true,
+        "range": "<=1.8.5",
+        "fixAvailable": true,
+        "advisories": []
+      },
+      {
+        "package": "defu",
+        "severity": "high",
+        "isDirect": false,
+        "range": "<=6.1.4",
+        "fixAvailable": true,
+        "advisories": [
+          {
+            "name": "defu",
+            "title": "defu: Prototype pollution via `__proto__` key in defaults argument",
+            "url": "https://github.com/advisories/GHSA-737v-mqg7-c878",
+            "severity": "high",
+            "range": "<=6.1.4"
+          }
+        ]
+      },
+      {
+        "package": "devalue",
+        "severity": "high",
+        "isDirect": false,
+        "range": "<=5.9.2",
+        "fixAvailable": true,
+        "advisories": [
+          {
+            "name": "devalue",
+            "title": "Svelte devalue: DoS via sparse array deserialization",
+            "url": "https://github.com/advisories/GHSA-77vg-94rm-hx3p",
+            "severity": "high",
+            "range": ">=5.6.3 <=5.8.0"
+          },
+          {
+            "name": "devalue",
+            "title": "Svelte devalue: DoS via malformed input",
+            "url": "https://github.com/advisories/GHSA-9rgm-9g3h-6x36",
+            "severity": "moderate",
+            "range": "<5.9.1"
+          },
+          {
+            "name": "devalue",
+            "title": "devalue: `stringify`/`uneval` serialize shared memory",
+            "url": "https://github.com/advisories/GHSA-j22f-vq7h-c4qm",
+            "severity": "high",
+            "range": ">=5.1.0 <=5.9.2"
+          },
+          {
+            "name": "devalue",
+            "title": "devalue: Residual sparse-array CPU amplification in uneval",
+            "url": "https://github.com/advisories/GHSA-hx4r-w6wj-j8fg",
+            "severity": "moderate",
+            "range": "<=5.9.2"
+          },
+          {
+            "name": "devalue",
+            "title": "devalue: Repeated primitive strings cause quadratic expansion in uneval",
+            "url": "https://github.com/advisories/GHSA-mcm9-63f2-9j32",
+            "severity": "high",
+            "range": "<=5.9.2"
+          },
+          {
+            "name": "devalue",
+            "title": "devalue: Sparse arrays emitted by uneval cause eager allocation when evaluated",
+            "url": "https://github.com/advisories/GHSA-wf3x-273g-mvxv",
+            "severity": "low",
+            "range": ">=1.0.0 <=5.9.2"
+          },
+          {
+            "name": "devalue",
+            "title": "devalue: Malformed null-prototype object keys bypass __proto__ rejection via property-key coercion",
+            "url": "https://github.com/advisories/GHSA-4q55-j62x-fr9h",
+            "severity": "moderate",
+            "range": "<=5.9.2"
+          },
+          {
+            "name": "devalue",
+            "title": "devalue: Custom ArrayBuffer revivers can bypass typed-array allocation validation",
+            "url": "https://github.com/advisories/GHSA-r9w8-h9r3-54w4",
+            "severity": "high",
+            "range": "<=5.9.2"
+          }
+        ]
+      },
+      {
+        "package": "esbuild",
+        "severity": "low",
+        "isDirect": false,
+        "range": "0.27.3 - 0.28.0",
+        "fixAvailable": {
+          "name": "astro",
+          "version": "7.4.1",
+          "isSemVerMajor": true
+        },
+        "advisories": [
+          {
+            "name": "esbuild",
+            "title": "esbuild allows arbitrary file read when running the development server on Windows",
+            "url": "https://github.com/advisories/GHSA-g7r4-m6w7-qqqr",
+            "severity": "low",
+            "range": ">=0.27.3 <0.28.1"
+          }
+        ]
+      },
+      {
+        "package": "http-cache-semantics",
+        "severity": "high",
+        "isDirect": false,
+        "range": "<=4.2.0",
+        "fixAvailable": true,
+        "advisories": [
+          {
+            "name": "http-cache-semantics",
+            "title": "http-cache-semantics max-stale handling can disclose cross-user cached responses",
+            "url": "https://github.com/advisories/GHSA-ch52-4w7c-c8xp",
+            "severity": "high",
+            "range": "<=4.2.0"
+          }
+        ]
+      },
+      {
+        "package": "js-yaml",
+        "severity": "high",
+        "isDirect": false,
+        "range": "4.0.0 - 4.3.1",
+        "fixAvailable": true,
+        "advisories": [
+          {
+            "name": "js-yaml",
+            "title": "JS-YAML: Quadratic-complexity DoS in merge key handling via repeated aliases",
+            "url": "https://github.com/advisories/GHSA-h67p-54hq-rp68",
+            "severity": "moderate",
+            "range": ">=4.0.0 <=4.1.1"
+          },
+          {
+            "name": "js-yaml",
+            "title": "js-yaml: YAML merge-key chains can force quadratic CPU consumption",
+            "url": "https://github.com/advisories/GHSA-52cp-r559-cp3m",
+            "severity": "high",
+            "range": ">=4.0.0 <4.3.0"
+          },
+          {
+            "name": "js-yaml",
+            "title": "JS-YAML: Quadratic CPU consumption in !!omap resolution (3.x and 4.x) — CVE-2026-59870 fix not backported",
+            "url": "https://github.com/advisories/GHSA-5p4m-2wfm-xmqj",
+            "severity": "high",
+            "range": ">=4.0.0 <4.3.1"
+          },
+          {
+            "name": "js-yaml",
+            "title": "js-yaml: maxTotalMergeKeys does not limit CPU use for empty merge sources",
+            "url": "https://github.com/advisories/GHSA-2883-xcg3-v3hh",
+            "severity": "high",
+            "range": ">=4.0.0 <4.3.2"
+          }
+        ]
+      },
+      {
+        "package": "nanoid",
+        "severity": "high",
+        "isDirect": false,
+        "range": "<=3.3.17",
+        "fixAvailable": true,
+        "advisories": [
+          {
+            "name": "nanoid",
+            "title": "nanoid: non-secure generators can loop indefinitely with negative size",
+            "url": "https://github.com/advisories/GHSA-28wg-ghj8-5hjv",
+            "severity": "high",
+            "range": "<3.3.16"
+          },
+          {
+            "name": "nanoid",
+            "title": "nanoid: custom generators can loop indefinitely when size is zero",
+            "url": "https://github.com/advisories/GHSA-2v37-7h3g-55p8",
+            "severity": "high",
+            "range": "<3.3.18"
+          },
+          {
+            "name": "nanoid",
+            "title": "nanoid: Integer Overflow or Wraparound",
+            "url": "https://github.com/advisories/GHSA-xwg4-73v4-xw9w",
+            "severity": "high",
+            "range": "<3.3.12"
+          }
+        ]
+      },
+      {
+        "package": "picomatch",
+        "severity": "high",
+        "isDirect": false,
+        "range": "<=2.3.1 || 4.0.0 - 4.0.3",
+        "fixAvailable": true,
+        "advisories": [
+          {
+            "name": "picomatch",
+            "title": "Picomatch: Method Injection in POSIX Character Classes causes incorrect Glob Matching",
+            "url": "https://github.com/advisories/GHSA-3v7f-55p6-f55p",
+            "severity": "moderate",
+            "range": "<2.3.2"
+          },
+          {
+            "name": "picomatch",
+            "title": "Picomatch: Method Injection in POSIX Character Classes causes incorrect Glob Matching",
+            "url": "https://github.com/advisories/GHSA-3v7f-55p6-f55p",
+            "severity": "moderate",
+            "range": ">=4.0.0 <4.0.4"
+          },
+          {
+            "name": "picomatch",
+            "title": "Picomatch has a ReDoS vulnerability via extglob quantifiers",
+            "url": "https://github.com/advisories/GHSA-c2c7-rcm5-vvqj",
+            "severity": "high",
+            "range": "<2.3.2"
+          },
+          {
+            "name": "picomatch",
+            "title": "Picomatch has a ReDoS vulnerability via extglob quantifiers",
+            "url": "https://github.com/advisories/GHSA-c2c7-rcm5-vvqj",
+            "severity": "high",
+            "range": ">=4.0.0 <4.0.4"
+          }
+        ]
+      },
+      {
+        "package": "postcss",
+        "severity": "high",
+        "isDirect": false,
+        "range": "<=8.5.22",
+        "fixAvailable": true,
+        "advisories": [
+          {
+            "name": "postcss",
+            "title": "PostCSS has XSS via Unescaped </style> in its CSS Stringify Output",
+            "url": "https://github.com/advisories/GHSA-qx2v-qp2m-jg93",
+            "severity": "moderate",
+            "range": "<8.5.10"
+          },
+          {
+            "name": "postcss",
+            "title": "PostCSS: Arbitrary file read and information disclosure via attacker-controlled sourceMappingURL in CSS comments",
+            "url": "https://github.com/advisories/GHSA-6g55-p6wh-862q",
+            "severity": "high",
+            "range": "<=8.5.11"
+          },
+          {
+            "name": "postcss",
+            "title": "PostCSS: incomplete fix of GHSA-6g55-p6wh-862q — attacker-controlled sourceMappingURL reads arbitrary .map files when `from` is unset",
+            "url": "https://github.com/advisories/GHSA-fxqj-rqcc-2cmp",
+            "severity": "moderate",
+            "range": "<=8.5.22"
+          },
+          {
+            "name": "postcss",
+            "title": "PostCSS: Path Traversal in Previous Source Map Auto-Loading (sourceMappingURL) leads to Arbitrary .map File Disclosure",
+            "url": "https://github.com/advisories/GHSA-r28c-9q8g-f849",
+            "severity": "high",
+            "range": "<=8.5.17"
+          }
+        ]
+      },
+      {
+        "package": "postcss-selector-parser",
+        "severity": "moderate",
+        "isDirect": false,
+        "range": "<=7.1.5",
+        "fixAvailable": true,
+        "advisories": [
+          {
+            "name": "postcss-selector-parser",
+            "title": "postcss-selector-parser allows denial of service through uncontrolled AST recursion",
+            "url": "https://github.com/advisories/GHSA-w9m9-85wc-3x92",
+            "severity": "low",
+            "range": ">=6.1.0 <6.1.3"
+          },
+          {
+            "name": "postcss-selector-parser",
+            "title": "PostCSS: Quadratic complexity in flat selector parsing allows CPU exhaustion",
+            "url": "https://github.com/advisories/GHSA-rj75-hqrm-r3gf",
+            "severity": "moderate",
+            "range": "<7.1.6"
+          }
+        ]
+      },
+      {
+        "package": "sharp",
+        "severity": "high",
+        "isDirect": false,
+        "range": "<=0.35.5-rc.1",
+        "fixAvailable": {
+          "name": "astro",
+          "version": "7.4.1",
+          "isSemVerMajor": true
+        },
+        "advisories": [
+          {
+            "name": "sharp",
+            "title": "sharp inherited vulnerabilities in libvips: CVE-2026-33327, CVE-2026-33328, CVE-2026-35590, CVE-2026-35591",
+            "url": "https://github.com/advisories/GHSA-f88m-g3jw-g9cj",
+            "severity": "high",
+            "range": "<0.35.0"
+          },
+          {
+            "name": "sharp",
+            "title": "sharp: Vulnerabilities in libheif: GHSA-g89c-p67h-r497 and GHSA-2jg2-4ch7-h545",
+            "url": "https://github.com/advisories/GHSA-rgj7-g3m4-5g8c",
+            "severity": "high",
+            "range": "<0.35.4"
+          },
+          {
+            "name": "sharp",
+            "title": "sharp : Vulnerability in librsvg dependency CVE-2026-96889",
+            "url": "https://github.com/advisories/GHSA-wq5f-xc86-pv6w",
+            "severity": "high",
+            "range": "<0.35.5"
+          }
+        ]
+      },
+      {
+        "package": "smol-toml",
+        "severity": "high",
+        "isDirect": false,
+        "range": "<=1.8.0",
+        "fixAvailable": true,
+        "advisories": [
+          {
+            "name": "smol-toml",
+            "title": "smol-toml: Denial of Service via TOML documents containing thousands of consecutive commented lines",
+            "url": "https://github.com/advisories/GHSA-v3rj-xjv7-4jmq",
+            "severity": "moderate",
+            "range": "<1.6.1"
+          },
+          {
+            "name": "smol-toml",
+            "title": "smol-toml: Denial of Service via malformed TOML documents",
+            "url": "https://github.com/advisories/GHSA-7w5x-hrqm-74c2",
+            "severity": "high",
+            "range": "<=1.7.0"
+          },
+          {
+            "name": "smol-toml",
+            "title": "smol-toml: Quadratic-time parse() from parseKey rescanning to end of document on each key line",
+            "url": "https://github.com/advisories/GHSA-r4xh-jqrq-34v2",
+            "severity": "moderate",
+            "range": "<=1.8.0"
+          }
+        ]
+      },
+      {
+        "package": "source-map-js",
+        "severity": "high",
+        "isDirect": false,
+        "range": "1.0.0 - 1.2.1",
+        "fixAvailable": true,
+        "advisories": [
+          {
+            "name": "source-map-js",
+            "title": "source-map-js allows event-loop denial of service through indexed source-map section offsets",
+            "url": "https://github.com/advisories/GHSA-68fv-2mgg-jv7q",
+            "severity": "high",
+            "range": ">=1.0.0 <1.2.2"
+          }
+        ]
+      },
+      {
+        "package": "svgo",
+        "severity": "high",
+        "isDirect": false,
+        "range": "4.0.0 - 4.0.2",
+        "fixAvailable": true,
+        "advisories": [
+          {
+            "name": "svgo",
+            "title": "SVGO removeScripts plugin leaves some executable scripts intact",
+            "url": "https://github.com/advisories/GHSA-2p49-hgcm-8545",
+            "severity": "high",
+            "range": ">=4.0.0 <4.0.2"
+          },
+          {
+            "name": "svgo",
+            "title": "SVGO: removeScripts allows executable links through namespace and control-character bypasses",
+            "url": "https://github.com/advisories/GHSA-w27v-7q3p-w38r",
+            "severity": "high",
+            "range": ">=4.0.0 <4.1.0"
+          },
+          {
+            "name": "svgo",
+            "title": "SVGO: removeScripts incompletely sanitizes executable HTML in SVG foreignObject elements",
+            "url": "https://github.com/advisories/GHSA-4vpr-x523-8j87",
+            "severity": "moderate",
+            "range": ">=4.0.0 <4.1.0"
+          }
+        ]
+      },
+      {
+        "package": "vite",
+        "severity": "high",
+        "isDirect": false,
+        "range": "<=6.4.2 || 8.0.0 - 8.0.15",
+        "fixAvailable": true,
+        "advisories": [
+          {
+            "name": "vite",
+            "title": "Vite Vulnerable to Path Traversal in Optimized Deps `.map` Handling",
+            "url": "https://github.com/advisories/GHSA-4w7w-66w2-5vf9",
+            "severity": "moderate",
+            "range": "<=6.4.1"
+          },
+          {
+            "name": "vite",
+            "title": "Vite Vulnerable to Path Traversal in Optimized Deps `.map` Handling",
+            "url": "https://github.com/advisories/GHSA-4w7w-66w2-5vf9",
+            "severity": "moderate",
+            "range": ">=8.0.0 <=8.0.4"
+          },
+          {
+            "name": "vite",
+            "title": "Vite: `server.fs.deny` bypassed with queries",
+            "url": "https://github.com/advisories/GHSA-v2wj-q39q-566r",
+            "severity": "high",
+            "range": ">=8.0.0 <=8.0.4"
+          },
+          {
+            "name": "vite",
+            "title": "Vite Vulnerable to Arbitrary File Read via Vite Dev Server WebSocket",
+            "url": "https://github.com/advisories/GHSA-p9ff-h696-f583",
+            "severity": "high",
+            "range": ">=6.0.0 <=6.4.1"
+          },
+          {
+            "name": "vite",
+            "title": "Vite Vulnerable to Arbitrary File Read via Vite Dev Server WebSocket",
+            "url": "https://github.com/advisories/GHSA-p9ff-h696-f583",
+            "severity": "high",
+            "range": ">=8.0.0 <=8.0.4"
+          },
+          {
+            "name": "vite",
+            "title": "launch-editor: NTLMv2 hash disclosure via UNC path handling on Windows",
+            "url": "https://github.com/advisories/GHSA-v6wh-96g9-6wx3",
+            "severity": "moderate",
+            "range": "<=6.4.2"
+          },
+          {
+            "name": "vite",
+            "title": "launch-editor: NTLMv2 hash disclosure via UNC path handling on Windows",
+            "url": "https://github.com/advisories/GHSA-v6wh-96g9-6wx3",
+            "severity": "moderate",
+            "range": ">=8.0.0 <=8.0.15"
+          },
+          {
+            "name": "vite",
+            "title": "vite: `server.fs.deny` bypass on Windows alternate paths",
+            "url": "https://github.com/advisories/GHSA-fx2h-pf6j-xcff",
+            "severity": "high",
+            "range": "<=6.4.2"
+          },
+          {
+            "name": "vite",
+            "title": "vite: `server.fs.deny` bypass on Windows alternate paths",
+            "url": "https://github.com/advisories/GHSA-fx2h-pf6j-xcff",
+            "severity": "high",
+            "range": ">=8.0.0 <=8.0.15"
+          }
+        ]
+      }
+    ]
+  },
+  "scripts": {
+    "counts": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0,
+      "total": 0
+    }
+  }
+}

@@ -1,0 +1,1272 @@
+{
+  "schemaVersion": 1,
+  "auditedAt": "2026-10-20T01:51:42.386422+00:00",
+  "localDate": "2026-10-19",
+  "timeZone": "America/Los_Angeles",
+  "verdict": "HOLD",
+  "scope": "Initial Apple Silicon macOS Cargo/npm CLI release; audit and documentation only",
+  "auditHead": "4a2abaef3fd34635bcd28691756d71c2415d205b",
+  "candidate": {
+    "version": "0.1.0",
+    "source": "4fa3788f200c5c807f142f7542e6c159deae777a",
+    "platform": "aarch64-apple-darwin",
+    "artifact": {
+      "created_at": "2026-10-20T01:33:50Z",
+      "digest": "sha256:7afc502338df94fc1cca7164fa99f3d6a72a2dd3fe3d3352a9e63fb3fceada81",
+      "expired": false,
+      "expires_at": "2027-01-18T01:21:13Z",
+      "id": 12234132955,
+      "name": "cli-distribution",
+      "size_in_bytes": 35792059,
+      "run": 39352947283,
+      "url": "https://github.com/AlrikOlson/magistr/actions/runs/39352947283",
+      "localDirectory": "target/release-candidate-4fa3788f",
+      "npmSha256": "9bd932fbf869c4c1c9be9aecae0bad6a05c707db0633ac7dfbe0351afaa17e15",
+      "binarySha256": "f663e784c973c09fe5f468af352cad680cf80b4adccb2df112e75c90f593ded6"
+    }
+  },
+  "counts": {
+    "PASS": 41,
+    "BLOCKED": 8,
+    "OWNER": 7,
+    "LIMITED": 10,
+    "WARN": 2,
+    "PENDING": 5
+  },
+  "checklist": [
+    {
+      "id": "I01",
+      "area": "Identity",
+      "status": "PASS",
+      "criterion": "First-release scope is Apple Silicon macOS CLI",
+      "evidence": "Cargo/npm scope is explicit; desktop, Intel Macs, Linux and Windows are outside acceptance."
+    },
+    {
+      "id": "I02",
+      "area": "Identity",
+      "status": "PASS",
+      "criterion": "One product version owner",
+      "evidence": "Cargo.toml workspace.package.version is 0.1.0; scripts/version.py updates generated manifests and lockfiles; six version tests passed."
+    },
+    {
+      "id": "I03",
+      "area": "Identity",
+      "status": "PASS",
+      "criterion": "Audited candidate is identified and tree is clean",
+      "evidence": "Artifacts identify source 4fa3788f; audit began on clean main at 4a2abaef, whose additional changes are evidence only."
+    },
+    {
+      "id": "I04",
+      "area": "Identity",
+      "status": "BLOCKED",
+      "criterion": "Public tag, release notes and assets identify the candidate",
+      "evidence": "Private v0.1.0 release/tag still identifies 3723c626 from September. Reconcile it before visibility changes."
+    },
+    {
+      "id": "I05",
+      "area": "Identity",
+      "status": "PASS",
+      "criterion": "Requested registry names are currently unused",
+      "evidence": "All 14 Cargo names and npm magistr returned 404. This neither reserves names nor proves publishing access."
+    },
+    {
+      "id": "C01",
+      "area": "Cargo",
+      "status": "PASS",
+      "criterion": "All internal dependencies can be published",
+      "evidence": "Fourteen normalized archives have matching 0.1.0 registry requirements and no remaining internal path dependency; package licenses retained."
+    },
+    {
+      "id": "C02",
+      "area": "Cargo",
+      "status": "PASS",
+      "criterion": "Required assets are in extracted packages",
+      "evidence": "Isolated release-profile Cargo installation and MCP/workspace smoke checks passed without a checkout."
+    },
+    {
+      "id": "C03",
+      "area": "Cargo",
+      "status": "PASS",
+      "criterion": "Cargo package source matches reviewed source",
+      "evidence": "All fourteen archives reproduced byte for byte with Cargo 1.99.1; inventories and checksums retained."
+    },
+    {
+      "id": "C04",
+      "area": "Cargo",
+      "status": "PASS",
+      "criterion": "Advertised Rust minimum builds the CLI",
+      "evidence": "Fresh cargo +1.95.0 check --locked -p magistr-cli --bin magistr passed; this is a check, not a full minimum-toolchain test suite."
+    },
+    {
+      "id": "C05",
+      "area": "Cargo",
+      "status": "PASS",
+      "criterion": "Internal publication order follows dependencies",
+      "evidence": "Fourteen-package publication-order.txt is derived from the dependency closure."
+    },
+    {
+      "id": "C06",
+      "area": "Cargo",
+      "status": "BLOCKED",
+      "criterion": "First publication tolerates quotas and partial failure",
+      "evidence": "Current loop has no rate-limit handling or registry/checksum reconciliation for safe resumption."
+    },
+    {
+      "id": "C07",
+      "area": "Cargo",
+      "status": "OWNER",
+      "criterion": "Account email and a suitable token are ready",
+      "evidence": "CARGO_REGISTRY_TOKEN is absent from cli-release; owner must verify account email and authorize creation of new crates."
+    },
+    {
+      "id": "N01",
+      "area": "npm",
+      "status": "PASS",
+      "criterion": "Packed package contains the versioned native CLI",
+      "evidence": "magistr@0.1.0, macOS arm64 restriction, direct native bin, no runtime JavaScript dependencies or install hooks."
+    },
+    {
+      "id": "N02",
+      "area": "npm",
+      "status": "PASS",
+      "criterion": "Global installation needs no Rust, Bun or checkout",
+      "evidence": "Hosted packed-artifact install passed in an isolated prefix with those tools absent from PATH."
+    },
+    {
+      "id": "N03",
+      "area": "npm",
+      "status": "PASS",
+      "criterion": "npx works from a fresh cache",
+      "evidence": "Loopback registry and fresh-cache test passed, including the generated version-pinned MCP configuration."
+    },
+    {
+      "id": "N04",
+      "area": "npm",
+      "status": "PASS",
+      "criterion": "Stdio, exit codes, signals and worker startup survive installation",
+      "evidence": "Actual packed binary checks passed; there is no wrapper process to lose native signals."
+    },
+    {
+      "id": "N05",
+      "area": "npm",
+      "status": "PASS",
+      "criterion": "Package file inventory is intentional",
+      "evidence": "971 files; no symlinks or unexpected paths; executable mode 0755. Compressed size 31,876,176 bytes."
+    },
+    {
+      "id": "N06",
+      "area": "npm",
+      "status": "PASS",
+      "criterion": "Uninstall works",
+      "evidence": "Packed npm uninstall and executable removal passed."
+    },
+    {
+      "id": "N07",
+      "area": "npm",
+      "status": "OWNER",
+      "criterion": "Publishing account and interactive 2FA are ready",
+      "evidence": "npm whoami returned ENEEDAUTH. Owner must sign in and complete first-publication authentication."
+    },
+    {
+      "id": "N08",
+      "area": "npm",
+      "status": "OWNER",
+      "criterion": "Subsequent trusted publisher is configured",
+      "evidence": "No package exists yet. Configure the exact repository/workflow/environment and allow-publish after first creation; verify current expiry rules."
+    },
+    {
+      "id": "M01",
+      "area": "macOS",
+      "status": "PASS",
+      "criterion": "Executable is arm64 and uses expected system libraries",
+      "evidence": "Mach-O arm64 inspection passed; no non-system dylib dependency found; strict ad-hoc code-signature verification passed."
+    },
+    {
+      "id": "M02",
+      "area": "macOS",
+      "status": "LIMITED",
+      "criterion": "Minimum operating-system claim is tested",
+      "evidence": "Binary targets macOS 11.0; hosted clean install is proven on macOS 15.7.9. macOS 11–14 were not tested; target metadata is not runtime certification."
+    },
+    {
+      "id": "M03",
+      "area": "macOS",
+      "status": "LIMITED",
+      "criterion": "Browser-downloaded archive passes Gatekeeper",
+      "evidence": "No Developer ID/notarization proof. Cargo/npm installation is proven; do not advertise a notarized direct download."
+    },
+    {
+      "id": "U01",
+      "area": "Unified MCP",
+      "status": "PASS",
+      "criterion": "One public MCP connection owns workflow and workspace access",
+      "evidence": "magistr mcp --dir is used by current integrations; workflow/project and workspace/working-copy ownership remain distinct internally."
+    },
+    {
+      "id": "U02",
+      "area": "Unified MCP",
+      "status": "PASS",
+      "criterion": "All capabilities have catalog coverage",
+      "evidence": "One typed catalog covers direct common tools plus discover/execute and advanced workspace/workflow operations; schema/handler coverage passed."
+    },
+    {
+      "id": "U03",
+      "area": "Unified MCP",
+      "status": "PASS",
+      "criterion": "Composition keeps authorization and bounded execution",
+      "evidence": "Native operation checks, sandbox limits, sequential mutation and stop-on-failure receipts passed functional checks; dependency security remains separately blocked."
+    },
+    {
+      "id": "U04",
+      "area": "Unified MCP",
+      "status": "PASS",
+      "criterion": "Edits are verified, journaled and reject stale requests",
+      "evidence": "Source/hash checks, confirmation behavior and session-scoped undo are covered in retained tests."
+    },
+    {
+      "id": "U05",
+      "area": "Unified MCP",
+      "status": "PASS",
+      "criterion": "Concurrent agents and worktrees keep correct owners",
+      "evidence": "Simultaneous clients, separate worktrees and owner restart passed in the eight process scenarios."
+    },
+    {
+      "id": "U06",
+      "area": "Unified MCP",
+      "status": "PASS",
+      "criterion": "Cancellation and partial execution are recoverable",
+      "evidence": "Cancellation, stale confirmations and partial failure tests passed; completed effects remain visible without automatic replay."
+    },
+    {
+      "id": "U07",
+      "area": "Unified MCP",
+      "status": "PASS",
+      "criterion": "Response failures and truncation are explicit",
+      "evidence": "Typed envelope/catalog checks passed; discovery needs no client-specific extension."
+    },
+    {
+      "id": "U08",
+      "area": "Unified MCP",
+      "status": "WARN",
+      "criterion": "Current fixtures use current state names",
+      "evidence": "Four tas-data references remain across three Rust test files. No production legacy endpoint or required directory found in the scoped search."
+    },
+    {
+      "id": "O01",
+      "area": "Onboarding",
+      "status": "PASS",
+      "criterion": "Setup detects the project and proposes changes",
+      "evidence": "Guided interview and administrative plan service are present; configuration and verification commands are reviewed before application."
+    },
+    {
+      "id": "O02",
+      "area": "Onboarding",
+      "status": "PASS",
+      "criterion": "Only selected integrations are generated",
+      "evidence": "Codex, Claude Code and portable setup are supported; selected-agent and multi-agent process cases passed."
+    },
+    {
+      "id": "O03",
+      "area": "Onboarding",
+      "status": "PASS",
+      "criterion": "Repeated setup preserves custom settings and other servers",
+      "evidence": "Customized-config, repeated setup, paths with spaces, repair and removal cases passed."
+    },
+    {
+      "id": "O04",
+      "area": "Onboarding",
+      "status": "PASS",
+      "criterion": "Unavailable clients produce actionable diagnostics",
+      "evidence": "Unavailable-agent checks and doctor behavior passed in the six process scenarios."
+    },
+    {
+      "id": "O05",
+      "area": "Onboarding",
+      "status": "PASS",
+      "criterion": "Setup finishes with a real connection and read-only context",
+      "evidence": "Protocol handshake/context checks passed; setup suggests planning and does not start implementation."
+    },
+    {
+      "id": "O06",
+      "area": "Onboarding",
+      "status": "PASS",
+      "criterion": "MCP startup does not automatically repair project files",
+      "evidence": "Repair belongs to explicit setup/repair through the administrative change service."
+    },
+    {
+      "id": "O07",
+      "area": "Onboarding",
+      "status": "PASS",
+      "criterion": "Upgrade, repair and removal are documented",
+      "evidence": "Current release procedure documents ownership-preserving repair/removal and reopening installed clients."
+    },
+    {
+      "id": "O08",
+      "area": "Onboarding",
+      "status": "LIMITED",
+      "criterion": "Human interactive onboarding is demonstrated",
+      "evidence": "Process tests and interview unit tests exist; no new human TTY walkthrough was performed in this audit."
+    },
+    {
+      "id": "E01",
+      "area": "Agent evaluations",
+      "status": "LIMITED",
+      "criterion": "Codex and Claude Code were exercised on realistic workflows",
+      "evidence": "Recorded small trials cover investigation, edits, planning, feedback, reasoning, verification and resumption; they predate final artifact hashing."
+    },
+    {
+      "id": "E02",
+      "area": "Agent evaluations",
+      "status": "LIMITED",
+      "criterion": "Efficiency claims reflect measured evidence",
+      "evidence": "Small comparisons record success/calls/context; Claude unified timing was worse. No broad performance or reliability claim is justified."
+    },
+    {
+      "id": "T01",
+      "area": "CI",
+      "status": "PASS",
+      "criterion": "Exact candidate passes full Rust checks",
+      "evidence": "8,065 tests passed, 18 skipped, no failures; all-targets check and Clippy passed in hosted run 39352938183."
+    },
+    {
+      "id": "T02",
+      "area": "CI",
+      "status": "PASS",
+      "criterion": "Protocol and onboarding processes pass on release packaging",
+      "evidence": "Eight unified MCP scenarios and six onboarding scenarios passed in run 39352947283."
+    },
+    {
+      "id": "T03",
+      "area": "CI",
+      "status": "PASS",
+      "criterion": "Release does not wait for Windows Rust builds",
+      "evidence": "Rust release gates run on macOS; Windows desktop requires manual opt-in. Remaining Windows adapter coverage is JavaScript only."
+    },
+    {
+      "id": "T04",
+      "area": "CI",
+      "status": "PASS",
+      "criterion": "CI duration is bounded and measured",
+      "evidence": "Rust/website job took 901 seconds and has a 30-minute limit; independent packaging/desktop jobs ran concurrently."
+    },
+    {
+      "id": "T05",
+      "area": "CI",
+      "status": "LIMITED",
+      "criterion": "Skipped live scenarios are accounted for",
+      "evidence": "18 skip records retained. Live Codex/Claude, cloud/tracker/keychain and reference checks are not covered merely by the full-suite pass."
+    },
+    {
+      "id": "T06",
+      "area": "CI",
+      "status": "PASS",
+      "criterion": "Reviewed artifacts are tied to checks and checksums",
+      "evidence": "Publication selector requires the intended successful package run/source and matching installation receipts; source archive reproduction passed."
+    },
+    {
+      "id": "T07",
+      "area": "CI",
+      "status": "PASS",
+      "criterion": "Artifacts are retained long enough for review",
+      "evidence": "Hosted artifact 12234132955 expires 2027-01-18; local copy and tracked inventories exist. Rebuild after dependency fixes."
+    },
+    {
+      "id": "S01",
+      "area": "Security",
+      "status": "BLOCKED",
+      "criterion": "Enabled native dependencies have no unresolved applicable advisories",
+      "evidence": "38 lockfile matches, 33 in enabled CLI dependencies; six warnings. Wasmtime/TLS/YAML work remains."
+    },
+    {
+      "id": "S02",
+      "area": "Security",
+      "status": "BLOCKED",
+      "criterion": "Sandbox runtime is on an acceptable security baseline",
+      "evidence": "Wasmtime 48.0.2 uses fuel accounting affected by an advisory. Other findings require proposal/call-path triage."
+    },
+    {
+      "id": "S03",
+      "area": "Security",
+      "status": "BLOCKED",
+      "criterion": "Website dependencies have a reviewed security baseline",
+      "evidence": "17 affected packages: 1 critical, 12 high, 1 moderate, 3 low. Static output limits exposure but does not clear build-time findings."
+    },
+    {
+      "id": "S04",
+      "area": "Security",
+      "status": "PASS",
+      "criterion": "Release-script JavaScript dependencies pass current audit",
+      "evidence": "scripts npm audit reported zero findings."
+    },
+    {
+      "id": "S05",
+      "area": "Security",
+      "status": "PASS",
+      "criterion": "Git-history secret matches are reviewed",
+      "evidence": "21 gitleaks matches reviewed in source context: synthetic redaction fixtures, source hashes and schema digests; no live credential demonstrated."
+    },
+    {
+      "id": "S06",
+      "area": "Security",
+      "status": "PASS",
+      "criterion": "Embedded JavaScript engine has provenance",
+      "evidence": "QuickJS-ng 0.16.2 WASI hash matches the official release asset; reviewed upstream advisories do not establish an unfixed matching issue."
+    },
+    {
+      "id": "S07",
+      "area": "Security",
+      "status": "LIMITED",
+      "criterion": "Prebuilt embedded engine is reproducible from source",
+      "evidence": "Upstream asset/source/license provenance is retained; original toolchain inputs are insufficient for an independent byte-for-byte rebuild."
+    },
+    {
+      "id": "S08",
+      "area": "Security",
+      "status": "BLOCKED",
+      "criterion": "Security checks are enforced before publication",
+      "evidence": "Current release workflows omit dependency/history scans and the publication selector does not require their results."
+    },
+    {
+      "id": "S09",
+      "area": "Supply chain",
+      "status": "WARN",
+      "criterion": "Action and compiler inputs are immutable",
+      "evidence": "Publication still uses action tags and Rust stable. Pin reviewed action SHAs and packaging toolchain before adding credentials."
+    },
+    {
+      "id": "S10",
+      "area": "Supply chain",
+      "status": "OWNER",
+      "criterion": "Main and release environment have appropriate protection",
+      "evidence": "cli-release accepts only main, but main is unprotected and repository rulesets are empty; reviewers require owner configuration."
+    },
+    {
+      "id": "S11",
+      "area": "Supply chain",
+      "status": "LIMITED",
+      "criterion": "Package provenance is accurately described",
+      "evidence": "Checksums/source receipts exist. First interactive npm upload has no automatic OIDC provenance; later public-repository trusted uploads can have it."
+    },
+    {
+      "id": "L01",
+      "area": "Legal and privacy",
+      "status": "PASS",
+      "criterion": "Package license notices match their inventory",
+      "evidence": "550 dependency records and 963 notice hashes checked; required upstream attribution retained. This is a technical inventory review."
+    },
+    {
+      "id": "L02",
+      "area": "Legal and privacy",
+      "status": "LIMITED",
+      "criterion": "Data and permission behavior is fully observed",
+      "evidence": "Code defaults telemetry consent off and requires an endpoint; local records/provider permissions are documented. No packet-capture audit of every optional integration was performed."
+    },
+    {
+      "id": "W01",
+      "area": "Public launch",
+      "status": "PASS",
+      "criterion": "Public website is reachable",
+      "evidence": "Homepage and installation guide return HTTP 200."
+    },
+    {
+      "id": "W02",
+      "area": "Public launch",
+      "status": "BLOCKED",
+      "criterion": "Deployed instructions match current setup",
+      "evidence": "Installation guide incorrectly says Claude Code setup is always written; source-install instructions must be updated for actual registry availability at launch."
+    },
+    {
+      "id": "W03",
+      "area": "Public launch",
+      "status": "OWNER",
+      "criterion": "Repository and support links are public",
+      "evidence": "Repository/releases/issues/security URLs return anonymous 404 while repository is private. Owner visibility decision is outstanding."
+    },
+    {
+      "id": "W04",
+      "area": "Public launch",
+      "status": "OWNER",
+      "criterion": "Private vulnerability reporting works",
+      "evidence": "Current API/page check could not establish a usable route. Enable and verify private reporting or document a concrete private contact."
+    },
+    {
+      "id": "W05",
+      "area": "Public launch",
+      "status": "BLOCKED",
+      "criterion": "Launch checks verify deployed content and required links",
+      "evidence": "Current public endpoint job is skipped on pushes and continue-on-error; status checks do not catch outdated page content."
+    },
+    {
+      "id": "W06",
+      "area": "Public launch",
+      "status": "LIMITED",
+      "criterion": "Visual evidence describes what is actually deployed",
+      "evidence": "Local version-display captures exist; they do not prove the current public website deployment. Any website fix needs fresh saved visual review."
+    },
+    {
+      "id": "P01",
+      "area": "Publication",
+      "status": "OWNER",
+      "criterion": "Owner approves exact corrected artifacts and public launch",
+      "evidence": "No publication authorization for this audit; candidate must be rebuilt after blocker fixes and approved by run ID, version and checksums."
+    },
+    {
+      "id": "P02",
+      "area": "Publication",
+      "status": "PENDING",
+      "criterion": "Cargo installs successfully from the real registry",
+      "evidence": "Run after publication using an isolated Cargo home/root and --locked; unpublished names cannot be installed from crates.io now."
+    },
+    {
+      "id": "P03",
+      "area": "Publication",
+      "status": "PENDING",
+      "criterion": "npm global and npx install successfully from the real registry",
+      "evidence": "After publication, verify integrity and exact version with fresh cache/prefix and a disposable project."
+    },
+    {
+      "id": "P04",
+      "area": "Publication",
+      "status": "PENDING",
+      "criterion": "Published archives match reviewed hashes and metadata",
+      "evidence": "After upload, fetch registry archives and compare all 14 Cargo checksums, npm integrity/version/bin metadata and release assets."
+    },
+    {
+      "id": "P05",
+      "area": "Publication",
+      "status": "PENDING",
+      "criterion": "Support and correction procedure is ready for a bad upload",
+      "evidence": "Document safe partial-publication recovery before upload; after an immutable bad version, use reviewed deprecation/yank policy and a corrected version."
+    },
+    {
+      "id": "P06",
+      "area": "Publication",
+      "status": "PENDING",
+      "criterion": "Public release is explicitly declared",
+      "evidence": "Only after publication checks, deployed docs and support routes pass; the private historical GitHub release is not this declaration."
+    }
+  ],
+  "security": {
+    "receipt": "53db3db5-eb11-4ab3-821d-49e8b374ffe0",
+    "passed": false,
+    "scanExits": {
+      "capturedAt": "2026-10-20T01:49:12.702403+00:00",
+      "checks": [
+        {
+          "name": "rust-advisories",
+          "exitCode": 1
+        },
+        {
+          "name": "git-secrets",
+          "exitCode": 1
+        },
+        {
+          "name": "website-advisories",
+          "exitCode": 1
+        },
+        {
+          "name": "scripts-advisories",
+          "exitCode": 0
+        }
+      ]
+    },
+    "dependencyReport": "dependency-review.json",
+    "secretReview": "secret-scan-review.json"
+  },
+  "minimumRust": {
+    "version": "1.95.0",
+    "command": "cargo +1.95.0 check --locked -p magistr-cli --bin magistr",
+    "passed": true,
+    "receipt": "f6d94827-9875-41c7-99d6-e7be65c7b820"
+  },
+  "retainedVerification": {
+    "focused": {
+      "passed": true,
+      "acpTests": 199,
+      "acpReceipt": "feb06973-e368-4dab-b2b0-098b96265f62",
+      "priorLoopAndHygieneTests": 91,
+      "priorLoopAndHygieneReceipt": "d8921a56-66fd-4ecf-b047-bf2f2be86551",
+      "checks": [
+        "All ACP agent tests across full run and corrected fixture rerun",
+        "All loop-driver and interface-hygiene tests",
+        "Rust 1.99.1 affected all-targets Clippy",
+        "System Bash duplication gate, workflow ownership, workflow lint, formatting and canonical version consistency"
+      ]
+    },
+    "adapter": {
+      "passed": true,
+      "testsPerPlatform": 27,
+      "platforms": [
+        "Ubuntu",
+        "Windows"
+      ],
+      "source": "83a98358bbafd7fdea409803af6f10fcc27e06ba",
+      "run": 39346480131,
+      "note": "Adapter sources unchanged; retained path-filtered JS-only workflow result. No Windows Rust build."
+    },
+    "hostArchive": {
+      "passed": true,
+      "run": 39352938183,
+      "job": 118401111796
+    },
+    "desktop": {
+      "passed": true,
+      "rustTests": 83,
+      "launcherTests": 4,
+      "run": 39352938348,
+      "job": 118401112671,
+      "processRoles": [
+        "desktop",
+        "workspace worker",
+        "ACP",
+        "MCP"
+      ]
+    },
+    "desktopGates": {
+      "passed": true,
+      "rustTests": 47,
+      "javascriptTests": 93,
+      "run": 39352938183,
+      "job": 118401112197,
+      "visualGatePassed": true
+    },
+    "protocol": {
+      "passed": true,
+      "tests": 8,
+      "durationSeconds": 4.898,
+      "run": 39352947283
+    },
+    "onboarding": {
+      "passed": true,
+      "tests": 6,
+      "durationSeconds": 6.176,
+      "run": 39352947283
+    },
+    "cargoSourceReproduction": {
+      "passed": true,
+      "packageCount": 14,
+      "cargo": "1.99.1",
+      "receipt": "8bf75470-4005-430b-868e-7f733854d90d"
+    },
+    "rust": {
+      "passed": true,
+      "total": 8065,
+      "passedTests": 8065,
+      "failed": 0,
+      "skipped": 18,
+      "slow": 1,
+      "durationSeconds": 571.076,
+      "run": 39352938183,
+      "job": 118401113413
+    },
+    "versionGuards": {
+      "passed": true,
+      "versionTests": 6,
+      "releaseGuardTests": 6,
+      "run": 39352938183
+    },
+    "website": {
+      "passed": true,
+      "command": "npm ci && npm test",
+      "staticPages": 4,
+      "run": 39352938183
+    }
+  },
+  "hosted": {
+    "packages": {
+      "run": 39352947283,
+      "status": "success"
+    },
+    "readiness": {
+      "run": 39352938183,
+      "status": "success",
+      "url": "https://github.com/AlrikOlson/magistr/actions/runs/39352938183",
+      "jobs": [
+        {
+          "name": "Package and verify (macos-latest)",
+          "id": 118401111796,
+          "status": "success",
+          "startedAt": "2026-10-20T01:21:13Z",
+          "completedAt": "2026-10-20T01:27:54Z",
+          "durationSeconds": 401
+        },
+        {
+          "name": "Desktop gates (macos-latest)",
+          "id": 118401112197,
+          "status": "success",
+          "startedAt": "2026-10-20T01:21:12Z",
+          "completedAt": "2026-10-20T01:30:19Z",
+          "durationSeconds": 547
+        },
+        {
+          "name": "Anonymous public endpoint gate",
+          "id": 118401113054,
+          "status": "skipped",
+          "startedAt": "2026-10-20T01:21:07Z",
+          "completedAt": "2026-10-20T01:21:07Z",
+          "durationSeconds": 0
+        },
+        {
+          "name": "Rust and website gates",
+          "id": 118401113413,
+          "status": "success",
+          "startedAt": "2026-10-20T01:21:13Z",
+          "completedAt": "2026-10-20T01:36:14Z",
+          "durationSeconds": 901
+        }
+      ]
+    },
+    "desktop": {
+      "run": 39352938348,
+      "status": "success"
+    }
+  },
+  "liveState": {
+    "capturedAt": "2026-10-20T01:51:42.386422+00:00",
+    "repositoryPrivate": true,
+    "cargoTokenConfigured": false,
+    "npmAuthenticated": false,
+    "npmAuthenticationFailure": "ENEEDAUTH",
+    "releaseEnvironment": {
+      "branchPolicy": "main only",
+      "requiredReviewers": false
+    },
+    "mainProtected": false,
+    "rulesets": [],
+    "privateVulnerabilityReporting": {
+      "error": "gh: Not Found (HTTP 404)"
+    },
+    "endpoints": [
+      {
+        "url": "https://crates.io/api/v1/crates/magistr-domain",
+        "status": 404
+      },
+      {
+        "url": "https://crates.io/api/v1/crates/magistr-application",
+        "status": 404
+      },
+      {
+        "url": "https://crates.io/api/v1/crates/magistr-process",
+        "status": 404
+      },
+      {
+        "url": "https://crates.io/api/v1/crates/magistr-acp",
+        "status": 404
+      },
+      {
+        "url": "https://crates.io/api/v1/crates/magistr-acp-agent",
+        "status": 404
+      },
+      {
+        "url": "https://crates.io/api/v1/crates/magistr-workflow-contracts",
+        "status": 404
+      },
+      {
+        "url": "https://crates.io/api/v1/crates/magistr-cockpit",
+        "status": 404
+      },
+      {
+        "url": "https://crates.io/api/v1/crates/magistr-cockpit-runtime",
+        "status": 404
+      },
+      {
+        "url": "https://crates.io/api/v1/crates/magistr-workflow",
+        "status": 404
+      },
+      {
+        "url": "https://crates.io/api/v1/crates/magistr-engine",
+        "status": 404
+      },
+      {
+        "url": "https://crates.io/api/v1/crates/magistr-workspace",
+        "status": 404
+      },
+      {
+        "url": "https://crates.io/api/v1/crates/magistr-core",
+        "status": 404
+      },
+      {
+        "url": "https://crates.io/api/v1/crates/magistr-mcp",
+        "status": 404
+      },
+      {
+        "url": "https://crates.io/api/v1/crates/magistr-cli",
+        "status": 404
+      },
+      {
+        "url": "https://registry.npmjs.org/magistr",
+        "status": 404
+      },
+      {
+        "url": "https://github.com/AlrikOlson/magistr",
+        "status": 404
+      },
+      {
+        "url": "https://github.com/AlrikOlson/magistr/releases",
+        "status": 404
+      },
+      {
+        "url": "https://github.com/AlrikOlson/magistr/issues",
+        "status": 404
+      },
+      {
+        "url": "https://github.com/AlrikOlson/magistr/security/advisories",
+        "status": 404
+      },
+      {
+        "url": "https://magistr.dev",
+        "status": 200,
+        "finalUrl": "https://magistr.dev",
+        "bytes": 16866
+      },
+      {
+        "url": "https://magistr.dev/docs/installation",
+        "status": 200,
+        "finalUrl": "https://magistr.dev/docs/installation/",
+        "bytes": 16008
+      }
+    ],
+    "oldPrivateRelease": {
+      "id": 385714225,
+      "tag_name": "v0.1.0",
+      "draft": false,
+      "prerelease": false,
+      "immutable": false,
+      "published_at": "2026-09-09T17:23:01Z",
+      "target_commitish": "main"
+    },
+    "oldTagCommit": "3723c626bceb71679019029fb9f13feae92a583b",
+    "oldAssets": [
+      {
+        "name": "magistr-0.1.0-aarch64-apple-darwin.sha256",
+        "size": 108,
+        "digest": "sha256:3b5128c42a934c1d58392c86618fcc2220547a913537773efbeb57818c6dc1cf"
+      },
+      {
+        "name": "magistr-0.1.0-aarch64-apple-darwin.tar.gz",
+        "size": 17919793,
+        "digest": "sha256:31d24a50169ea39ce775577451d076bf0360d251fc538243a96ebd042265a99b"
+      }
+    ]
+  },
+  "cargoManifests": [
+    {
+      "name": "magistr-acp",
+      "version": "0.1.0",
+      "license": "MIT",
+      "readme": false,
+      "rustVersion": null,
+      "internalDependencies": [
+        {
+          "name": "magistr-application",
+          "version": "=0.1.0",
+          "path": null
+        },
+        {
+          "name": "magistr-process",
+          "version": "=0.1.0",
+          "path": null
+        }
+      ]
+    },
+    {
+      "name": "magistr-acp-agent",
+      "version": "0.1.0",
+      "license": "MIT",
+      "readme": false,
+      "rustVersion": null,
+      "internalDependencies": []
+    },
+    {
+      "name": "magistr-application",
+      "version": "0.1.0",
+      "license": "MIT",
+      "readme": false,
+      "rustVersion": null,
+      "internalDependencies": [
+        {
+          "name": "magistr-domain",
+          "version": "=0.1.0",
+          "path": null
+        }
+      ]
+    },
+    {
+      "name": "magistr-cli",
+      "version": "0.1.0",
+      "license": "MIT",
+      "readme": "README.md",
+      "rustVersion": "1.95",
+      "internalDependencies": [
+        {
+          "name": "magistr-acp",
+          "version": "=0.1.0",
+          "path": null
+        },
+        {
+          "name": "magistr-acp-agent",
+          "version": "=0.1.0",
+          "path": null
+        },
+        {
+          "name": "magistr-application",
+          "version": "=0.1.0",
+          "path": null
+        },
+        {
+          "name": "magistr-cockpit",
+          "version": "=0.1.0",
+          "path": null
+        },
+        {
+          "name": "magistr-cockpit-runtime",
+          "version": "=0.1.0",
+          "path": null
+        },
+        {
+          "name": "magistr-core",
+          "version": "=0.1.0",
+          "path": null
+        },
+        {
+          "name": "magistr-domain",
+          "version": "=0.1.0",
+          "path": null
+        },
+        {
+          "name": "magistr-engine",
+          "version": "=0.1.0",
+          "path": null
+        },
+        {
+          "name": "magistr-mcp",
+          "version": "=0.1.0",
+          "path": null
+        },
+        {
+          "name": "magistr-process",
+          "version": "=0.1.0",
+          "path": null
+        },
+        {
+          "name": "magistr-workflow",
+          "version": "=0.1.0",
+          "path": null
+        },
+        {
+          "name": "magistr-workspace",
+          "version": "=0.1.0",
+          "path": null
+        },
+        {
+          "name": "magistr-acp",
+          "version": "=0.1.0",
+          "path": null
+        }
+      ]
+    },
+    {
+      "name": "magistr-cockpit",
+      "version": "0.1.0",
+      "license": "MIT",
+      "readme": false,
+      "rustVersion": "1.95",
+      "internalDependencies": [
+        {
+          "name": "magistr-application",
+          "version": "=0.1.0",
+          "path": null
+        },
+        {
+          "name": "magistr-domain",
+          "version": "=0.1.0",
+          "path": null
+        },
+        {
+          "name": "magistr-workflow-contracts",
+          "version": "=0.1.0",
+          "path": null
+        }
+      ]
+    },
+    {
+      "name": "magistr-cockpit-runtime",
+      "version": "0.1.0",
+      "license": "MIT",
+      "readme": false,
+      "rustVersion": null,
+      "internalDependencies": [
+        {
+          "name": "magistr-application",
+          "version": "=0.1.0",
+          "path": null
+        },
+        {
+          "name": "magistr-cockpit",
+          "version": "=0.1.0",
+          "path": null
+        },
+        {
+          "name": "magistr-domain",
+          "version": "=0.1.0",
+          "path": null
+        }
+      ]
+    },
+    {
+      "name": "magistr-core",
+      "version": "0.1.0",
+      "license": "MIT",
+      "readme": false,
+      "rustVersion": null,
+      "internalDependencies": [
+        {
+          "name": "magistr-domain",
+          "version": "=0.1.0",
+          "path": null
+        },
+        {
+          "name": "magistr-engine",
+          "version": "=0.1.0",
+          "path": null
+        },
+        {
+          "name": "magistr-process",
+          "version": "=0.1.0",
+          "path": null
+        },
+        {
+          "name": "magistr-workspace",
+          "version": "=0.1.0",
+          "path": null
+        }
+      ]
+    },
+    {
+      "name": "magistr-domain",
+      "version": "0.1.0",
+      "license": "MIT",
+      "readme": false,
+      "rustVersion": null,
+      "internalDependencies": []
+    },
+    {
+      "name": "magistr-engine",
+      "version": "0.1.0",
+      "license": "MIT",
+      "readme": false,
+      "rustVersion": "1.89",
+      "internalDependencies": [
+        {
+          "name": "magistr-domain",
+          "version": "=0.1.0",
+          "path": null
+        },
+        {
+          "name": "magistr-workflow",
+          "version": "=0.1.0",
+          "path": null
+        },
+        {
+          "name": "magistr-workflow-contracts",
+          "version": "=0.1.0",
+          "path": null
+        }
+      ]
+    },
+    {
+      "name": "magistr-mcp",
+      "version": "0.1.0",
+      "license": "MIT",
+      "readme": false,
+      "rustVersion": null,
+      "internalDependencies": []
+    },
+    {
+      "name": "magistr-process",
+      "version": "0.1.0",
+      "license": "MIT",
+      "readme": false,
+      "rustVersion": "1.89",
+      "internalDependencies": []
+    },
+    {
+      "name": "magistr-workflow",
+      "version": "0.1.0",
+      "license": "MIT",
+      "readme": false,
+      "rustVersion": "1.89",
+      "internalDependencies": [
+        {
+          "name": "magistr-process",
+          "version": "=0.1.0",
+          "path": null
+        },
+        {
+          "name": "magistr-workflow-contracts",
+          "version": "=0.1.0",
+          "path": null
+        }
+      ]
+    },
+    {
+      "name": "magistr-workflow-contracts",
+      "version": "0.1.0",
+      "license": "MIT",
+      "readme": false,
+      "rustVersion": null,
+      "internalDependencies": [
+        {
+          "name": "magistr-domain",
+          "version": "=0.1.0",
+          "path": null
+        }
+      ]
+    },
+    {
+      "name": "magistr-workspace",
+      "version": "0.1.0",
+      "license": "Apache-2.0",
+      "readme": false,
+      "rustVersion": "1.95",
+      "internalDependencies": [
+        {
+          "name": "magistr-process",
+          "version": "=0.1.0",
+          "path": null
+        }
+      ]
+    }
+  ],
+  "skippedTests": {
+    "source": "GitHub job 118401113413, run 39352938183",
+    "skippedTests": [
+      "magistr-cli::acp_live the_in_binary_claude_agent_advertises_fable_runs_a_tool_turn_and_cancels_the_next",
+      "magistr-cli::codex_runtime_live installed_codex_discovers_relocated_project_and_generated_mcp_tools",
+      "magistr-cli::workspace_queries_conformance native_queries_match_real_reference_in_independent_roots",
+      "magistr-cli::workspace_release_smoke the_release_binary_serves_every_core_tool_with_no_runtime_beside_it",
+      "magistr-workflow cloud::client::tests::live_list_from_real_backend",
+      "magistr-workflow cloud::client::tests::live_push_to_real_backend",
+      "magistr-workflow tracker::credential::store::tests::the_real_os_keychain_round_trips_a_credential",
+      "magistr-workflow::cloud_roadmap_sync a_roadmap_mutation_reaches_the_live_cloud",
+      "magistr-workflow::tracker_live_linear a_blocking_relation_is_accepted_and_points_the_right_way",
+      "magistr-workflow::tracker_live_linear a_fresh_team_resolves_on_the_immediate_reprobe_or_the_seeding_lag_is_real",
+      "magistr-workflow::tracker_live_linear a_real_round_trip_preserves_the_content_hash",
+      "magistr-workflow::tracker_live_linear in_progress_lands_in_the_earliest_started_state_not_whichever_came_first",
+      "magistr-workflow::tracker_live_linear the_projectors_own_body_survives_linears_markdown_normalization",
+      "magistr-workflow::tracker_live_projects_v2 a_live_query_costs_exactly_one_point",
+      "magistr-workflow::tracker_live_projects_v2 a_real_board_resolves_to_a_real_node_id",
+      "magistr-workflow::tracker_live_projects_v2 capture_the_boards_real_field_schema",
+      "magistr-workflow::tracker_live_projects_v2 the_real_board_answers_the_paginated_fields_query",
+      "magistr-workspace::journal_conformance native_append_is_decoded_by_the_pinned_reference_reader"
+    ]
+  },
+  "licenseReview": {
+    "dependencyRecords": 550,
+    "noticeHashesChecked": 963,
+    "passed": true,
+    "limitation": "Technical inventory and hash review, not a separate legal opinion"
+  },
+  "macOS": {
+    "arch": "arm64",
+    "deploymentTarget": "11.0",
+    "sdk": "15.5",
+    "hostedVerifiedVersion": "15.7.9",
+    "dynamicLibraries": "system only",
+    "signature": "ad hoc, strict verification passed",
+    "notarizationVerified": false
+  },
+  "npmArchive": {
+    "files": 971,
+    "symlinks": 0,
+    "unexpectedPaths": 0,
+    "executableMode": "0755"
+  },
+  "quickjs": {
+    "version": "0.16.2",
+    "sha256": "d2939e98c808e8b9f4164cd0d7b0398cbc0121ddf52862bcd92157d923e461cc",
+    "officialAssetDigestMatched": true,
+    "reproducibleBuildVerified": false
+  },
+  "native": {
+    "task": "initial-release-audit",
+    "reasoningStep": 1705,
+    "owningFixes": [
+      "initial-release-dependency-security",
+      "initial-release-publication-recovery",
+      "initial-release-security-gates",
+      "initial-release-website-current",
+      "initial-release-fixture-names"
+    ],
+    "updatedLaunchChunk": "public-link-verification"
+  },
+  "research": [
+    {
+      "claim": "New-crate rate-limit defaults and per-user overrides",
+      "url": "https://github.com/rust-lang/crates.io/blob/6cf63268f7fac38f8d255bbb22497c8ecff35d57/src/rate_limiter.rs"
+    },
+    {
+      "claim": "Cargo publication and immutable versions",
+      "url": "https://doc.rust-lang.org/cargo/reference/publishing.html"
+    },
+    {
+      "claim": "Cargo publish indexing and locked dependencies",
+      "url": "https://doc.rust-lang.org/cargo/commands/cargo-publish.html"
+    },
+    {
+      "claim": "npm trusted publishing and provenance",
+      "url": "https://docs.npmjs.com/trusted-publishers/"
+    },
+    {
+      "claim": "npm trust configuration and first-use expiry",
+      "url": "https://docs.npmjs.com/cli/v11/commands/npm-trust/"
+    },
+    {
+      "claim": "npm package-version unpublish restrictions",
+      "url": "https://docs.npmjs.com/policies/unpublish/"
+    },
+    {
+      "claim": "Wasmtime fuel accounting advisory",
+      "url": "https://github.com/bytecodealliance/wasmtime/security/advisories/GHSA-m63x-6p34-q65x"
+    },
+    {
+      "claim": "macOS WASI directory escape conditions",
+      "url": "https://rustsec.org/advisories/RUSTSEC-2026-0352.html"
+    },
+    {
+      "claim": "Unsound unmaintained YAML implementation",
+      "url": "https://rustsec.org/advisories/RUSTSEC-2025-0068.html"
+    },
+    {
+      "claim": "Conditional Astro AVIF processing advisory",
+      "url": "https://github.com/withastro/astro/security/advisories/GHSA-26w7-cxv4-gfx2"
+    },
+    {
+      "claim": "Pinning GitHub Actions and protecting publication",
+      "url": "https://docs.github.com/en/actions/reference/security/secure-use"
+    },
+    {
+      "claim": "Private vulnerability reporting setup",
+      "url": "https://docs.github.com/en/code-security/how-tos/report-and-fix-vulnerabilities/configure-vulnerability-reporting/configure-for-a-repository"
+    },
+    {
+      "claim": "macOS signing/notarization requirements",
+      "url": "https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution"
+    },
+    {
+      "claim": "Apple Silicon target deployment minimum",
+      "url": "https://doc.rust-lang.org/rustc/platform-support/apple-darwin.html"
+    },
+    {
+      "claim": "QuickJS-ng WASI asset provenance",
+      "url": "https://github.com/quickjs-ng/quickjs/releases/tag/v0.16.2"
+    },
+    {
+      "claim": "QuickJS-ng upstream advisories",
+      "url": "https://github.com/quickjs-ng/quickjs/security/advisories"
+    }
+  ],
+  "publicationPerformed": false,
+  "visibilityChanged": false,
+  "releaseMetadataChanged": false
+}
