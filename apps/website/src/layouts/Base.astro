@@ -1,7 +1,6 @@
 ---
 import "../styles/global.css";
-import { createHash } from "node:crypto";
-import socialImageSource from "../../public/og-image.svg?raw";
+import { publicAssetUrl } from "../../scripts/asset-url.mjs";
 
 interface Props {
   title?: string;
@@ -20,8 +19,7 @@ const {
 } = Astro.props;
 
 const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
-const socialImageHash = createHash("sha256").update(socialImageSource).digest("hex").slice(0, 12);
-const ogImageUrl = new URL(ogImage ?? `/og-image.png?v=${socialImageHash}`, Astro.site);
+const ogImageUrl = new URL(ogImage ?? publicAssetUrl("og-image.png"), Astro.site);
 ---
 <!doctype html>
 <html lang="en">
@@ -34,11 +32,11 @@ const ogImageUrl = new URL(ogImage ?? `/og-image.png?v=${socialImageHash}`, Astr
     {noindex && <meta name="robots" content="noindex,nofollow" />}
     <link rel="canonical" href={canonicalUrl.href} />
     <title>{title}</title>
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="icon" type="image/svg+xml" href={publicAssetUrl("favicon.svg")} />
+    <link rel="icon" type="image/png" sizes="32x32" href={publicAssetUrl("favicon-32.png")} />
+    <link rel="icon" type="image/png" sizes="16x16" href={publicAssetUrl("favicon-16.png")} />
+    <link rel="apple-touch-icon" sizes="180x180" href={publicAssetUrl("apple-touch-icon.png")} />
+    <link rel="manifest" href={publicAssetUrl("site.webmanifest")} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={ogImageUrl.href} />

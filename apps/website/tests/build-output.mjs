@@ -156,6 +156,20 @@ assert(notFoundHtml.includes('name="robots" content="noindex'), "404 page is not
 assert(indexHtml.includes("og-image.png") && existsSync(resolve(distDir, "og-image.png")), "OG image shipped");
 assert(indexHtml.includes("site.webmanifest") && indexHtml.includes("apple-touch-icon"), "manifest and touch icon linked");
 assert(existsSync(resolve(distDir, "favicon.svg")) && existsSync(resolve(distDir, "favicon-32.png")), "favicons shipped");
+// Mutable branding paths must not reuse a previous deployment's CDN cache entry.
+const branding = ["favicon.svg", "favicon-16.png", "favicon-32.png", "apple-touch-icon.png", "site.webmanifest", "og-image.png"];
+for (const file of branding) {
+  const hash = createHash("sha256").update(readFileSync(resolve(distDir, file))).digest("hex").slice(0, 12);
+  for (const [name, html] of productPages) {
+    assert(html.includes(`/${file}?v=${hash}`), `${name} versions ${file} from its shipped bytes`);
+  }
+}
+const webManifest = JSON.parse(page("site.webmanifest"));
+for (const icon of webManifest.icons) {
+  const url = new URL(icon.src, "https://magistr.dev");
+  const hash = createHash("sha256").update(readFileSync(resolve(distDir, "." + url.pathname))).digest("hex").slice(0, 12);
+  assert(url.searchParams.get("v") === hash, `manifest versions ${url.pathname}`);
+}
 assert(indexHtml.includes("prefers-color-scheme") && indexHtml.includes("theme-toggle"), "theme detection and toggle");
 const css = readdirSync(resolve(distDir, "_astro")).filter((f) => f.endsWith(".css")).map((f) => readFileSync(resolve(distDir, "_astro", f), "utf-8")).join("\n");
 assert(css.includes("prefers-reduced-motion"), "reduced motion respected in the stylesheet");

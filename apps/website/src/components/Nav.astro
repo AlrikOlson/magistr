@@ -1,5 +1,6 @@
 ---
 import ThemeToggle from "./ThemeToggle.astro";
+import { publicAssetUrl } from "../../scripts/asset-url.mjs";
 
 /** The site's few destinations; the docs link goes straight to installation. */
 const links = [
@@ -14,7 +15,7 @@ const isDocs = current.startsWith("/docs");
 <nav class="site-nav" aria-label="Primary">
   <div class="nav-inner">
     <a href="/" class="brand" aria-label="Magistr home" aria-current={current === "/" ? "page" : undefined}>
-      <img src="/favicon.svg" alt="" width="28" height="28" />
+      <img src={publicAssetUrl("favicon.svg")} alt="" width="28" height="28" />
       <span>Magistr</span>
     </a>
     <div class="nav-links" data-nav-links>

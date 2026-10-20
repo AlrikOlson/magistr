@@ -1,6 +1,7 @@
 /** Generate every raster website identity asset from its reviewed SVG source. */
 import { createRequire } from "node:module";
-import { readFileSync } from "node:fs";
+import { publicAssetUrl } from "./asset-url.mjs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -18,4 +19,10 @@ const ogSvg = readFileSync(resolve(publicDir, "og-image.svg"));
 for (const name of ["og-image.png", "github-social.png"]) {
   await sharp(ogSvg, { density: 150 }).resize(1200, 630).png().toFile(resolve(publicDir, name));
 }
-console.log("Generated five icons and both social previews from their SVG sources.");
+const manifestPath = resolve(publicDir, "site.webmanifest");
+const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+for (const icon of manifest.icons) {
+  icon.src = publicAssetUrl(icon.src.split("?")[0].slice(1), publicDir);
+}
+writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
+console.log("Generated five icons, both social previews and versioned manifest icons.");
