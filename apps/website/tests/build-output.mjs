@@ -44,6 +44,10 @@ const releaseVersion = JSON.parse(readFileSync(new URL("../../../npm/magistr/pac
 assert(indexHtml.includes(`v${releaseVersion}`), "the current development version is named");
 assert(indexHtml.includes(`"softwareVersion":"${releaseVersion}"`), "structured metadata uses the release version");
 assert(!indexHtml.includes("cargo install magistr"), "no registry installation command");
+assert(indexHtml.includes("Registry packages are not published yet") && indexHtml.includes("repository access"), "preview availability is explicit");
+assert(indexHtml.includes('"operatingSystem":"macOS (Apple Silicon)"'), "first release metadata targets Apple Silicon macOS");
+assert(indexHtml.includes('"downloadUrl":"https://magistr.dev/docs/installation"'), "download metadata points to current installation instructions");
+
 assert(!indexHtml.includes("feature-card") && !indexHtml.includes("walkthrough-step") && !indexHtml.includes("community-link") && !indexHtml.includes("changelog"), "no marketing card grids or changelog");
 const homeImages = [...indexHtml.matchAll(/src="\/screenshots\/([a-z-]+)\.png\?v=[a-f0-9]{12}"/g)].map((m) => m[1]);
 assert(new Set(homeImages).size === 2 && homeImages.length === 2, `each screenshot appears once on the home page (${homeImages.join(", ")})`);
@@ -102,6 +106,24 @@ assert(installHtml.includes("Permission and privacy boundary"), "installation pa
 assert(installHtml.includes("project.json") && !installHtml.includes("roadmap_exports"), "installation page covers the project file without policy notes");
 assert(installHtml.includes("--agent") && installHtml.includes("codex") && installHtml.includes("copilot") && installHtml.includes("cursor") && installHtml.includes("cline") && installHtml.includes("windsurf") && installHtml.includes("aider"), "installation page names every agent target the CLI accepts");
 assert(installHtml.includes("--max-iterations"), "installation page names the loop's bound");
+const installText = installHtml.replace(/<[^>]*>/g, "").replace(/&#x26;/g, "&");
+for (const command of [
+  "magistr init . --agent codex,claude --dry-run",
+  "magistr init . --agent codex --yes",
+  "magistr init . --agent claude --yes",
+  "magistr init . --agent portable --yes",
+  "magistr doctor .",
+  "magistr repair . --dry-run",
+  "magistr remove . --dry-run",
+  "cargo uninstall magistr-cli",
+]) {
+  assert(installText.includes(command), `current setup and recovery command: ${command}`);
+}
+assert(installText.includes("Only selected integrations are generated.") && !installText.includes("setup is always written"), "setup writes only selected integrations");
+assert(installText.includes("Setup does not start implementation.") && installText.includes("starter prompt"), "onboarding finishes with planning");
+assert(installText.includes("MCP server does not repair project files automatically"), "repair is explicit");
+assert(installText.includes("registry packages are not published yet"), "installation guide does not advertise unpublished downloads");
+
 assert(!installHtml.includes("release-inventory") && !installHtml.includes("Release archives"), "installation page carries no release-process links");
 assert(conceptsHtml.includes(">Concepts</h1>"), "concepts page has its title");
 for (const word of ["Roadmap", "Sessions", "Recorded work", "Verification", "Project state"]) {

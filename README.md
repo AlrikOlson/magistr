@@ -16,8 +16,8 @@ records the reasoning, changes and checks alongside the project.
 
 ## Install and initialize
 
-The first supported installation target is Apple Silicon macOS. Registry
-publication is pending; these are the prepared release commands:
+The first supported installation target is Apple Silicon with macOS 15 or later.
+Registry publication is pending; these are the prepared release commands:
 
 ```sh
 npm install -g magistr

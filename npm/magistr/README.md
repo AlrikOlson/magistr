@@ -1,6 +1,6 @@
 # Magistr
 
-Project workflow and verified source tools for coding agents, for Apple Silicon macOS.
+Project workflow and verified source tools for coding agents, for Apple Silicon with macOS 15 or later.
 
 Install with `npm install -g magistr`, then run `magistr init` in your project. Or run `npx magistr init` without a global installation. Select Codex, Claude Code, both, or another MCP agent, review the proposed setup, and begin with the printed planning prompt. Setup does not start implementation.
 

@@ -12,7 +12,7 @@ const screenshot = (name: string) => {
 
 const jsonLd = [
   {"@context":"https://schema.org","@type":"WebSite","name":"Magistr","url":"https://magistr.dev"},
-  {"@context":"https://schema.org","@type":"SoftwareApplication","name":"Magistr","softwareVersion":version,"description":"Roadmap and workflow management for coding agents.","url":"https://magistr.dev","applicationCategory":"DeveloperApplication","operatingSystem":"macOS, Linux, Windows","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"downloadUrl":"https://github.com/AlrikOlson/magistr/releases","softwareRequirements":"Rust 1.95 or later","license":"https://github.com/AlrikOlson/magistr/blob/main/LICENSE"}
+  {"@context":"https://schema.org","@type":"SoftwareApplication","name":"Magistr","softwareVersion":version,"description":"Roadmap and workflow management for coding agents.","url":"https://magistr.dev","applicationCategory":"DeveloperApplication","operatingSystem":"macOS (Apple Silicon)","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"downloadUrl":"https://magistr.dev/docs/installation","softwareRequirements":"Rust 1.95 or later","license":"https://github.com/AlrikOlson/magistr/blob/main/LICENSE"}
 ];
 
 /** The current desktop in both appearances. */
@@ -37,7 +37,7 @@ const docs = [
           <a id="install-btn" class="button button-primary" href="#install">Install <span aria-hidden="true">→</span></a>
           <a class="button button-quiet" href="/docs/installation">Read the docs</a>
         </div>
-        <p class="hero-note">Runs locally · open source · no account</p>
+        <p class="hero-note">Runs locally · Apple Silicon macOS</p>
       </div>
       <figure class="capture hero-capture">
         <a class="capture-light" href={screenshot("desktop-light.png")}><img src={screenshot("desktop-light.png")} alt={alt.overview} width="2560" height="1664" fetchpriority="high" /></a>
@@ -72,11 +72,11 @@ magistr validate</code></pre></div>
           <li><strong>Choose your appearance.</strong> Use light, dark or the system setting, with native text editing and clipboard support.</li>
         </ul>
       </div>
-      <p>The current desktop focuses on conversations. Roadmap planning, recorded work and project setup are available through the command line and the connected agent's tools.</p>
+      <p>The desktop is a separate development build. Roadmap planning, recorded work and project setup are available through the command line and the connected agent's tools.</p>
     </section>
 
     <section id="install" class="section-shell section-block install" aria-labelledby="install-title">
-      <div class="section-heading"><p class="eyebrow">Install</p><h2 id="install-title">Install from the repository.</h2><p>Magistr has not been publicly released. It builds with Rust 1.95 or later; there is no registry package yet.</p></div>
+      <div class="section-heading"><p class="eyebrow">Install</p><h2 id="install-title">Try the preview on macOS.</h2><p>The first release targets Apple Silicon Macs with macOS 15 or later. Registry packages are not published yet. With repository access and Rust 1.95 or later, build the preview:</p></div>
       <div class="install-grid">
         <div class="code-panel">
           <pre><code>git clone https://github.com/AlrikOlson/magistr.git
@@ -87,9 +87,9 @@ magistr --version</code></pre>
         <aside class="callout">
           <p class="card-eyebrow">Then, in your project</p>
           <ol>
-            <li><code>magistr init .</code> detects the stack and writes the project file and the agent setup.</li>
-            <li><code>magistr --help</code> lists commands. Build <code>magistr-desktop</code> to open the desktop.</li>
-            <li><code>magistr next</code> resumes an interrupted work item or starts the next ready one; <code>magistr next-loop</code> continues through fresh sessions.</li>
+            <li><code>magistr init .</code> reviews your stack, selected agents and proposed setup.</li>
+            <li><code>magistr doctor .</code> checks setup and reports how to fix connection problems.</li>
+            <li>Launch your agent and start with the planning prompt. Setup does not start implementation.</li>
           </ol>
           <a href="/docs/installation">Full installation guide →</a>
         </aside>
