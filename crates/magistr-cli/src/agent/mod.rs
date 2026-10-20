@@ -136,8 +136,6 @@ pub struct AgentConfig {
     pub permission_profile: Option<crate::permissions::PermissionProfile>,
     /// Whether the shared policy should admit normal workflow operations.
     pub workflow_permissions: bool,
-    /// Whether to continue from the previous conversation
-    pub continue_conversation: bool,
     /// Session ID to resume from
     pub resume: Option<String>,
     /// Explicit runtime provider for this session. None uses the user's
@@ -181,7 +179,6 @@ impl AgentConfig {
             permission_mode: None,
             permission_profile: None,
             workflow_permissions: false,
-            continue_conversation: false,
             resume: None,
             provider: None,
             model: None,
@@ -260,12 +257,6 @@ impl AgentConfig {
         (policy, config.noninteractive)
     }
 
-    /// Continue from the previous conversation.
-    pub fn continue_conversation(mut self, cont: bool) -> Self {
-        self.continue_conversation = cont;
-        self
-    }
-
     /// Resume a previous session by ID.
     pub fn resume(mut self, session_id: impl Into<String>) -> Self {
         self.resume = Some(session_id.into());
@@ -328,7 +319,7 @@ impl AgentConfig {
     ///
     /// # Errors
     ///
-    /// Unsupported continuation, invalid provider, unavailable runtime, or refused model.
+    /// Invalid provider, unavailable runtime, invalid options, or refused model.
     pub fn resolve(self) -> crate::error::Result<ResolvedSessionSpec> {
         ResolvedSessionSpec::resolve(self)
     }
@@ -342,20 +333,28 @@ impl AgentConfig {
     /// Apply common CLI run arguments in one call.
     ///
     /// A resume ID names a saved Magistr conversation. Its recorded provider
-    /// and provider-session ID are admitted together before startup.
+    /// and provider-session ID are admitted together before startup. Continue
+    /// selects the latest saved conversation in this working copy through that
+    /// same admission owner; providers receive only its resolved session ID.
     pub fn with_run_args(
         mut self,
         model: Option<&str>,
         resume: Option<&str>,
         continue_conversation: bool,
     ) -> crate::error::Result<Self> {
+        if resume.is_some() && continue_conversation {
+            return Err(crate::error::MagistrError::Config(
+                "Choose either --resume or --continue, not both.".into(),
+            ));
+        }
         if let Some(id) = resume {
             self = persistence::resume::saved_config(self, id)?;
+        } else if continue_conversation {
+            self = persistence::resume::latest_config(self)?;
         }
         if let Some(model) = model {
             self.model = Some(model.into());
         }
-        self.continue_conversation = continue_conversation;
         Ok(self)
     }
 

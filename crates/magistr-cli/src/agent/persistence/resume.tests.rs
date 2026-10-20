@@ -226,3 +226,125 @@ fn saved_planning_restores_exact_identity_model_provider_and_purpose() {
     assert_eq!(restored.provider.as_deref(), Some(record.provider.as_str()));
     assert_eq!(restored.prompt, "next request");
 }
+
+fn history_fixture() -> (
+    tempfile::TempDir,
+    crate::config::inputs::ProjectInputs,
+    rusqlite::Connection,
+) {
+    let directory = tempfile::tempdir().unwrap();
+    let root = directory.path().canonicalize().unwrap();
+    let inputs = crate::config::inputs::ProjectInputs::from_lookup(&root, |key| {
+        (key == "XDG_DATA_HOME").then(|| root.join("data").display().to_string())
+    });
+    let db = super::super::storage::sessions_db_path(&inputs).unwrap();
+    let conn = super::super::storage::open_db(&db).unwrap();
+    (directory, inputs, conn)
+}
+
+#[test]
+fn continue_uses_the_latest_checkpoint_in_this_working_copy_and_keeps_its_identity() {
+    let (_directory, inputs, conn) = history_fixture();
+    let mut record = sample_session();
+    record.workspace = inputs.project_root().display().to_string();
+    record.session_id = "older-checkpoint".into();
+    super::super::storage::insert_session(&conn, &record).unwrap();
+    record.session_id = "latest-checkpoint".into();
+    record.started_at -= chrono::Duration::days(1);
+    record.updated_at += chrono::Duration::hours(1);
+    record.provider_session_id = Some("retained-provider-context".into());
+    record.model = Some("recorded-model".into());
+    record.purpose = magistr_application::sessions::SessionPurpose::Roadmap;
+    super::super::storage::insert_session(&conn, &record).unwrap();
+    let mut other = record.clone();
+    other.session_id = "other-working-copy".into();
+    other.workspace.push_str("/other");
+    other.updated_at += chrono::Duration::hours(1);
+    super::super::storage::insert_session(&conn, &other).unwrap();
+    let config =
+        crate::agent::AgentConfig::new("follow up", inputs.project_root()).with_inputs(&inputs);
+    let resumed = config.with_run_args(None, None, true).unwrap();
+    assert_eq!(resumed.history.id(), record.session_id);
+    assert_eq!(resumed.history.purpose(), record.purpose);
+    assert_eq!(resumed.resume, record.provider_session_id);
+    assert_eq!(resumed.provider.as_deref(), Some(record.provider.as_str()));
+    assert_eq!(resumed.model, record.model);
+    assert_eq!(resumed.prompt, "follow up");
+}
+
+#[test]
+fn continue_refuses_an_unresumable_latest_record_without_selecting_an_older_one() {
+    let (_directory, inputs, conn) = history_fixture();
+    let mut record = sample_session();
+    record.workspace = inputs.project_root().display().to_string();
+    super::super::storage::insert_session(&conn, &record).unwrap();
+    record.session_id = "latest-unavailable".into();
+    record.updated_at += chrono::Duration::hours(1);
+    record.resume_supported = false;
+    super::super::storage::insert_session(&conn, &record).unwrap();
+    let config = || crate::agent::AgentConfig::new("", inputs.project_root()).with_inputs(&inputs);
+    let error = config().with_run_args(None, None, true).err().unwrap();
+    assert!(error.to_string().contains("cannot resume"), "{error}");
+    record.resume_supported = true;
+    record.updated_at += chrono::Duration::seconds(1);
+    super::super::storage::insert_session(&conn, &record).unwrap();
+    assert!(
+        config()
+            .provider("another-agent")
+            .with_run_args(None, None, true)
+            .is_err()
+    );
+    let resumed = config()
+        .with_run_args(Some("chosen-model"), None, true)
+        .unwrap();
+    assert_eq!(resumed.model.as_deref(), Some("chosen-model"));
+    assert_eq!(resumed.history.id(), record.session_id);
+    assert!(
+        config()
+            .with_run_args(None, Some(&record.session_id), true)
+            .is_err()
+    );
+}
+
+#[test]
+fn continue_without_history_does_not_create_a_database_or_a_new_conversation() {
+    let directory = tempfile::tempdir().unwrap();
+    let inputs = crate::config::inputs::ProjectInputs::from_lookup(directory.path(), |key| {
+        (key == "XDG_DATA_HOME").then(|| directory.path().join("data").display().to_string())
+    });
+    let path = super::super::storage::sessions_db_path(&inputs).unwrap();
+    let config = || crate::agent::AgentConfig::new("", directory.path()).with_inputs(&inputs);
+    let error = config().with_run_args(None, None, true).err().unwrap();
+    assert!(
+        error.to_string().contains("No saved conversation"),
+        "{error}"
+    );
+    assert!(!path.exists());
+    let conn = super::super::storage::open_db(&path).unwrap();
+    let error = config().with_run_args(None, None, true).err().unwrap();
+    assert!(
+        error.to_string().contains("No saved conversation"),
+        "{error}"
+    );
+    assert!(
+        super::super::storage::query_sessions(
+            &conn,
+            &super::super::session_filter::SessionFilter::new()
+        )
+        .unwrap()
+        .is_empty()
+    );
+}
+
+#[test]
+fn continue_does_not_repair_or_replace_unreadable_history() {
+    let (_directory, inputs, conn) = history_fixture();
+    conn.pragma_update(None, "user_version", 999).unwrap();
+    let config = crate::agent::AgentConfig::new("", inputs.project_root()).with_inputs(&inputs);
+    let error = config.with_run_args(None, None, true).err().unwrap();
+    assert!(error.to_string().contains("cannot be read"), "{error}");
+    let version: i64 = conn
+        .pragma_query_value(None, "user_version", |r| r.get(0))
+        .unwrap();
+    assert_eq!(version, 999);
+}

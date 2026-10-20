@@ -15,7 +15,7 @@ use super::session_record::SessionRecord;
 
 /// Admit a saved conversation through the provider that actually owns it.
 pub(crate) fn saved_config(
-    mut config: crate::agent::AgentConfig,
+    config: crate::agent::AgentConfig,
     id: &str,
 ) -> crate::error::Result<crate::agent::AgentConfig> {
     use crate::error::MagistrError;
@@ -25,6 +25,48 @@ pub(crate) fn saved_config(
     let conn = super::storage::open_readonly_db(&path)?;
     let record = super::storage::get_session(&conn, id)?
         .ok_or_else(|| MagistrError::Config(format!("Saved session {id} was not found.")))?;
+    admit_record(config, record)
+}
+
+/// Select the newest checkpoint in this working copy, without skipping a
+/// conversation that cannot resume or falling back to a different provider.
+pub(crate) fn latest_config(
+    config: crate::agent::AgentConfig,
+) -> crate::error::Result<crate::agent::AgentConfig> {
+    use crate::error::MagistrError;
+    let missing = || {
+        MagistrError::Config(
+            "No saved conversation exists for this working copy. Open a new conversation first."
+                .into(),
+        )
+    };
+    let root = config
+        .cwd
+        .canonicalize()
+        .map_err(|error| MagistrError::io(&config.cwd, error))?;
+    let path = super::storage::sessions_db_path(config.inputs()).ok_or_else(missing)?;
+    if !path
+        .try_exists()
+        .map_err(|error| MagistrError::io(&path, error))?
+    {
+        return Err(missing());
+    }
+    let conn = super::storage::open_readonly_db(&path)?;
+    let filter = super::session_filter::SessionFilter::new()
+        .with_workspace(root.display().to_string())
+        .with_limit(1);
+    let record = super::storage::query_sessions(&conn, &filter)?
+        .into_iter()
+        .next()
+        .ok_or_else(missing)?;
+    admit_record(config, record)
+}
+
+fn admit_record(
+    mut config: crate::agent::AgentConfig,
+    record: SessionRecord,
+) -> crate::error::Result<crate::agent::AgentConfig> {
+    use crate::error::MagistrError;
     let root = config
         .cwd
         .canonicalize()

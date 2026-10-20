@@ -11,7 +11,6 @@ pub(crate) fn config(base: &AgentConfig) -> AgentConfig {
     config.prompt.clear();
     config.history = SessionHistory::for_purpose(SessionPurpose::Roadmap);
     config.resume = None;
-    config.continue_conversation = false;
     config
 }
 

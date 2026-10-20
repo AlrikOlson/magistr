@@ -4,21 +4,6 @@ use crate::in_env as env_test;
 use super::*;
 
 #[test]
-fn unsupported_continue_is_refused_before_runtime_startup() {
-    let dir = tempfile::tempdir().expect("project");
-    let result = AgentConfig::new("continue", dir.path())
-        .provider("openai")
-        .continue_conversation(true)
-        .resolve();
-    assert!(
-        result.is_err(),
-        "an unimplemented continuation cannot start a new session"
-    );
-    let error = result.err().expect("refused continuation").to_string();
-    assert!(error.contains("resume"), "{error}");
-}
-
-#[test]
 fn explicit_auto_bypasses_a_global_api_provider() {
     let path = tempfile::tempdir().expect("empty PATH directory");
     if !env_test::in_env(&[("PATH", Some(path.path().as_os_str()))]) {
@@ -143,7 +128,6 @@ fn agent_config_defaults() {
     assert!(config.system_prompt.is_none());
     assert!(config.max_turns.is_none());
     assert!(config.permission_mode.is_none());
-    assert!(!config.continue_conversation);
     assert!(config.resume.is_none());
 }
 
@@ -210,12 +194,9 @@ fn agent_config_permission_mode_override() {
 }
 
 #[test]
-fn agent_config_resume_and_continue() {
-    let config = AgentConfig::new("follow up", "/tmp/project")
-        .continue_conversation(true)
-        .resume("sess-abc123");
+fn agent_config_runtime_resume() {
+    let config = AgentConfig::new("follow up", "/tmp/project").resume("sess-abc123");
 
-    assert!(config.continue_conversation);
     assert_eq!(config.resume.as_deref(), Some("sess-abc123"));
 }
 
@@ -241,7 +222,6 @@ fn with_run_args_none() {
 
     assert!(config.model.is_none());
     assert!(config.resume.is_none());
-    assert!(!config.continue_conversation);
 }
 
 #[test]
@@ -252,7 +232,6 @@ fn with_run_args_partial() {
 
     assert_eq!(config.model.as_deref(), Some("sonnet"));
     assert!(config.resume.is_none());
-    assert!(!config.continue_conversation);
 }
 
 // ── Backend tests ──────────────────────────────────────────

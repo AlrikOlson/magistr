@@ -138,9 +138,7 @@ fn explicit_choices_win_and_resume_keeps_runtime_model_without_an_override() {
         SessionConfigSource::Explicit
     );
     let resumed = ResolvedSessionSpec::resolve_with_runtime(
-        AgentConfig::new("continue", dir.path())
-            .resume("retained-history")
-            .continue_conversation(true),
+        AgentConfig::new("continue", dir.path()).resume("retained-history"),
         &defaults,
         runtime("claude"),
     )
@@ -184,7 +182,7 @@ fn malformed_or_unsupported_mcp_configuration_is_not_silently_discarded() {
 }
 
 #[test]
-fn unsupported_provider_and_continuation_are_refused_before_runtime_discovery() {
+fn unsupported_provider_is_refused_before_runtime_discovery() {
     let dir = tempfile::tempdir().expect("project");
     let result = ResolvedSessionSpec::resolve_with_defaults(
         AgentConfig::new("hello", dir.path()).provider("unknown-provider"),
@@ -196,19 +194,6 @@ fn unsupported_provider_and_continuation_are_refused_before_runtime_discovery() 
             .expect("unknown provider")
             .to_string()
             .contains("Unsupported agent provider")
-    );
-    let result = ResolvedSessionSpec::resolve_with_defaults(
-        AgentConfig::new("hello", dir.path())
-            .provider("unknown-provider")
-            .continue_conversation(true),
-        &UserConfig::default(),
-    );
-    assert!(
-        result
-            .err()
-            .expect("unknown continuation")
-            .to_string()
-            .contains("--resume")
     );
 }
 

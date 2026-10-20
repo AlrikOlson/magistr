@@ -199,7 +199,6 @@ impl HostedWork {
         config.prompt.clear();
         config.history = crate::agent::persistence::SessionHistory::new();
         config.resume = None;
-        config.continue_conversation = false;
         config.model = None;
         config.effort = None;
         config

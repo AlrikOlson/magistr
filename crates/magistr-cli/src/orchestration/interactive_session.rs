@@ -53,7 +53,6 @@ pub(crate) fn session_with_checkpoints(
                     config.history = conversation_history.clone();
                     config.prompt.clear();
                     config.resume = None;
-                    config.continue_conversation = false;
                     config
                 }
             };

@@ -47,7 +47,7 @@ impl ResolvedSessionSpec {
     }
 
     fn resolve_with_defaults(config: AgentConfig, defaults: &UserConfig) -> Result<Self> {
-        validate_continuation(&config)?;
+        validate_options(&config)?;
         let project = if config.inputs.session_selection().is_some() {
             crate::config::agent_preferences::AgentPreferences::default()
         } else {
@@ -77,7 +77,7 @@ impl ResolvedSessionSpec {
     ) -> Result<Self> {
         use SessionConfigSource::{Explicit, ProjectFile, ProjectPolicy, RuntimeDefault};
         super::purpose_policy::apply(&mut config);
-        validate_continuation(&config)?;
+        validate_options(&config)?;
         config.cwd = std::fs::canonicalize(&config.cwd)
             .map_err(|error| MagistrError::io(&config.cwd, error))?;
         super::work_context::apply(&mut config)?;
@@ -379,10 +379,7 @@ impl ResolvedSessionSpec {
     }
 }
 
-fn validate_continuation(config: &AgentConfig) -> Result<()> {
-    if config.continue_conversation && config.resume.is_none() {
-        return Err(MagistrError::Acp("Continuing the last conversation is unsupported; supply an explicit --resume session ID".into()));
-    }
+fn validate_options(config: &AgentConfig) -> Result<()> {
     if config.max_turns == Some(0) {
         return Err(MagistrError::Config(
             "max_turns must be greater than zero; the host refuses a zero-turn session before provider startup"
