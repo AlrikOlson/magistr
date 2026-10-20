@@ -34,7 +34,7 @@ fn project() -> tempfile::TempDir {
 }
 
 fn store(dir: &Path) -> NativeConfig {
-    magistr_core::evidence::writer_config(dir, |_| None).with_data_dir(dir.join("tas-data"))
+    magistr_core::evidence::writer_config(dir, |_| None).with_data_dir(dir.join("workflow-state"))
 }
 
 /// A connector no test here reaches: a refused start opens no session.

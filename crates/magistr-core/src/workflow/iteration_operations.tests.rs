@@ -793,7 +793,7 @@ fn unreadable_native_outcomes_remain_indeterminate_until_the_store_recovers() {
     engines.roadmap_start_chunk("work").unwrap();
     let path = dir
         .path()
-        .join("tas-data/roadmap/sessions/iteration-native.json");
+        .join("workflow-state/roadmap/sessions/iteration-native.json");
     let valid = std::fs::read(&path).unwrap();
     std::fs::write(&path, b"{ unreadable roadmap").unwrap();
     drop(run);

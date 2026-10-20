@@ -149,303 +149,303 @@
       }
     ]
   },
-  "cranelift-assembler-x64@0.123.15": {
-    "commit": "5dbbe86472adcbec799e16ad85433095f3b11d67",
+  "cranelift-assembler-x64@0.123.19": {
+    "commit": "0d6b8ead4e94b0ce76f925611b831b56570aef94",
     "notices": [
       {
-        "file": "bytecodealliance__wasmtime/5dbbe86472adcbec799e16ad85433095f3b11d67/LICENSE",
+        "file": "bytecodealliance__wasmtime/0d6b8ead4e94b0ce76f925611b831b56570aef94/LICENSE",
         "sha256": "268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5",
-        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/5dbbe86472adcbec799e16ad85433095f3b11d67/LICENSE"
+        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/0d6b8ead4e94b0ce76f925611b831b56570aef94/LICENSE"
       }
     ]
   },
-  "cranelift-assembler-x64-meta@0.123.15": {
-    "commit": "5dbbe86472adcbec799e16ad85433095f3b11d67",
+  "cranelift-assembler-x64-meta@0.123.19": {
+    "commit": "0d6b8ead4e94b0ce76f925611b831b56570aef94",
     "notices": [
       {
-        "file": "bytecodealliance__wasmtime/5dbbe86472adcbec799e16ad85433095f3b11d67/LICENSE",
+        "file": "bytecodealliance__wasmtime/0d6b8ead4e94b0ce76f925611b831b56570aef94/LICENSE",
         "sha256": "268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5",
-        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/5dbbe86472adcbec799e16ad85433095f3b11d67/LICENSE"
+        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/0d6b8ead4e94b0ce76f925611b831b56570aef94/LICENSE"
       }
     ]
   },
-  "cranelift-bitset@0.123.15": {
-    "commit": "5dbbe86472adcbec799e16ad85433095f3b11d67",
+  "cranelift-bitset@0.123.19": {
+    "commit": "0d6b8ead4e94b0ce76f925611b831b56570aef94",
     "notices": [
       {
-        "file": "bytecodealliance__wasmtime/5dbbe86472adcbec799e16ad85433095f3b11d67/LICENSE",
+        "file": "bytecodealliance__wasmtime/0d6b8ead4e94b0ce76f925611b831b56570aef94/LICENSE",
         "sha256": "268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5",
-        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/5dbbe86472adcbec799e16ad85433095f3b11d67/LICENSE"
+        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/0d6b8ead4e94b0ce76f925611b831b56570aef94/LICENSE"
       }
     ]
   },
-  "cranelift-isle@0.123.15": {
-    "commit": "5dbbe86472adcbec799e16ad85433095f3b11d67",
+  "cranelift-isle@0.123.19": {
+    "commit": "0d6b8ead4e94b0ce76f925611b831b56570aef94",
     "notices": [
       {
-        "file": "bytecodealliance__wasmtime/5dbbe86472adcbec799e16ad85433095f3b11d67/LICENSE",
+        "file": "bytecodealliance__wasmtime/0d6b8ead4e94b0ce76f925611b831b56570aef94/LICENSE",
         "sha256": "268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5",
-        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/5dbbe86472adcbec799e16ad85433095f3b11d67/LICENSE"
+        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/0d6b8ead4e94b0ce76f925611b831b56570aef94/LICENSE"
       }
     ]
   },
-  "cranelift-srcgen@0.123.15": {
-    "commit": "5dbbe86472adcbec799e16ad85433095f3b11d67",
+  "cranelift-srcgen@0.123.19": {
+    "commit": "0d6b8ead4e94b0ce76f925611b831b56570aef94",
     "notices": [
       {
-        "file": "bytecodealliance__wasmtime/5dbbe86472adcbec799e16ad85433095f3b11d67/LICENSE",
+        "file": "bytecodealliance__wasmtime/0d6b8ead4e94b0ce76f925611b831b56570aef94/LICENSE",
         "sha256": "268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5",
-        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/5dbbe86472adcbec799e16ad85433095f3b11d67/LICENSE"
+        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/0d6b8ead4e94b0ce76f925611b831b56570aef94/LICENSE"
       }
     ]
   },
-  "pulley-interpreter@36.0.15": {
-    "commit": "5dbbe86472adcbec799e16ad85433095f3b11d67",
+  "pulley-interpreter@36.0.19": {
+    "commit": "0d6b8ead4e94b0ce76f925611b831b56570aef94",
     "notices": [
       {
-        "file": "bytecodealliance__wasmtime/5dbbe86472adcbec799e16ad85433095f3b11d67/LICENSE",
+        "file": "bytecodealliance__wasmtime/0d6b8ead4e94b0ce76f925611b831b56570aef94/LICENSE",
         "sha256": "268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5",
-        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/5dbbe86472adcbec799e16ad85433095f3b11d67/LICENSE"
+        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/0d6b8ead4e94b0ce76f925611b831b56570aef94/LICENSE"
       }
     ]
   },
-  "pulley-macros@36.0.15": {
-    "commit": "5dbbe86472adcbec799e16ad85433095f3b11d67",
+  "pulley-macros@36.0.19": {
+    "commit": "0d6b8ead4e94b0ce76f925611b831b56570aef94",
     "notices": [
       {
-        "file": "bytecodealliance__wasmtime/5dbbe86472adcbec799e16ad85433095f3b11d67/LICENSE",
+        "file": "bytecodealliance__wasmtime/0d6b8ead4e94b0ce76f925611b831b56570aef94/LICENSE",
         "sha256": "268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5",
-        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/5dbbe86472adcbec799e16ad85433095f3b11d67/LICENSE"
+        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/0d6b8ead4e94b0ce76f925611b831b56570aef94/LICENSE"
       }
     ]
   },
-  "wasmtime-c-api-impl@36.0.15": {
-    "commit": "5dbbe86472adcbec799e16ad85433095f3b11d67",
+  "wasmtime-c-api-impl@36.0.19": {
+    "commit": "0d6b8ead4e94b0ce76f925611b831b56570aef94",
     "notices": [
       {
-        "file": "bytecodealliance__wasmtime/5dbbe86472adcbec799e16ad85433095f3b11d67/LICENSE",
+        "file": "bytecodealliance__wasmtime/0d6b8ead4e94b0ce76f925611b831b56570aef94/LICENSE",
         "sha256": "268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5",
-        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/5dbbe86472adcbec799e16ad85433095f3b11d67/LICENSE"
+        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/0d6b8ead4e94b0ce76f925611b831b56570aef94/LICENSE"
       }
     ]
   },
-  "wasmtime-internal-asm-macros@36.0.15": {
-    "commit": "5dbbe86472adcbec799e16ad85433095f3b11d67",
+  "wasmtime-internal-asm-macros@36.0.19": {
+    "commit": "0d6b8ead4e94b0ce76f925611b831b56570aef94",
     "notices": [
       {
-        "file": "bytecodealliance__wasmtime/5dbbe86472adcbec799e16ad85433095f3b11d67/LICENSE",
+        "file": "bytecodealliance__wasmtime/0d6b8ead4e94b0ce76f925611b831b56570aef94/LICENSE",
         "sha256": "268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5",
-        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/5dbbe86472adcbec799e16ad85433095f3b11d67/LICENSE"
+        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/0d6b8ead4e94b0ce76f925611b831b56570aef94/LICENSE"
       }
     ]
   },
-  "wasmtime-internal-c-api-macros@36.0.15": {
-    "commit": "5dbbe86472adcbec799e16ad85433095f3b11d67",
+  "wasmtime-internal-c-api-macros@36.0.19": {
+    "commit": "0d6b8ead4e94b0ce76f925611b831b56570aef94",
     "notices": [
       {
-        "file": "bytecodealliance__wasmtime/5dbbe86472adcbec799e16ad85433095f3b11d67/LICENSE",
+        "file": "bytecodealliance__wasmtime/0d6b8ead4e94b0ce76f925611b831b56570aef94/LICENSE",
         "sha256": "268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5",
-        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/5dbbe86472adcbec799e16ad85433095f3b11d67/LICENSE"
+        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/0d6b8ead4e94b0ce76f925611b831b56570aef94/LICENSE"
       }
     ]
   },
-  "wasmtime-internal-jit-debug@36.0.15": {
-    "commit": "5dbbe86472adcbec799e16ad85433095f3b11d67",
+  "wasmtime-internal-jit-debug@36.0.19": {
+    "commit": "0d6b8ead4e94b0ce76f925611b831b56570aef94",
     "notices": [
       {
-        "file": "bytecodealliance__wasmtime/5dbbe86472adcbec799e16ad85433095f3b11d67/LICENSE",
+        "file": "bytecodealliance__wasmtime/0d6b8ead4e94b0ce76f925611b831b56570aef94/LICENSE",
         "sha256": "268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5",
-        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/5dbbe86472adcbec799e16ad85433095f3b11d67/LICENSE"
+        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/0d6b8ead4e94b0ce76f925611b831b56570aef94/LICENSE"
       }
     ]
   },
-  "wasmtime-internal-jit-icache-coherence@36.0.15": {
-    "commit": "5dbbe86472adcbec799e16ad85433095f3b11d67",
+  "wasmtime-internal-jit-icache-coherence@36.0.19": {
+    "commit": "0d6b8ead4e94b0ce76f925611b831b56570aef94",
     "notices": [
       {
-        "file": "bytecodealliance__wasmtime/5dbbe86472adcbec799e16ad85433095f3b11d67/LICENSE",
+        "file": "bytecodealliance__wasmtime/0d6b8ead4e94b0ce76f925611b831b56570aef94/LICENSE",
         "sha256": "268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5",
-        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/5dbbe86472adcbec799e16ad85433095f3b11d67/LICENSE"
+        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/0d6b8ead4e94b0ce76f925611b831b56570aef94/LICENSE"
       }
     ]
   },
-  "wasmtime-internal-math@36.0.15": {
-    "commit": "5dbbe86472adcbec799e16ad85433095f3b11d67",
+  "wasmtime-internal-math@36.0.19": {
+    "commit": "0d6b8ead4e94b0ce76f925611b831b56570aef94",
     "notices": [
       {
-        "file": "bytecodealliance__wasmtime/5dbbe86472adcbec799e16ad85433095f3b11d67/LICENSE",
+        "file": "bytecodealliance__wasmtime/0d6b8ead4e94b0ce76f925611b831b56570aef94/LICENSE",
         "sha256": "268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5",
-        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/5dbbe86472adcbec799e16ad85433095f3b11d67/LICENSE"
+        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/0d6b8ead4e94b0ce76f925611b831b56570aef94/LICENSE"
       }
     ]
   },
-  "wasmtime-internal-slab@36.0.15": {
-    "commit": "5dbbe86472adcbec799e16ad85433095f3b11d67",
+  "wasmtime-internal-slab@36.0.19": {
+    "commit": "0d6b8ead4e94b0ce76f925611b831b56570aef94",
     "notices": [
       {
-        "file": "bytecodealliance__wasmtime/5dbbe86472adcbec799e16ad85433095f3b11d67/LICENSE",
+        "file": "bytecodealliance__wasmtime/0d6b8ead4e94b0ce76f925611b831b56570aef94/LICENSE",
         "sha256": "268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5",
-        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/5dbbe86472adcbec799e16ad85433095f3b11d67/LICENSE"
+        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/0d6b8ead4e94b0ce76f925611b831b56570aef94/LICENSE"
       }
     ]
   },
-  "wasmtime-internal-versioned-export-macros@36.0.15": {
-    "commit": "5dbbe86472adcbec799e16ad85433095f3b11d67",
+  "wasmtime-internal-versioned-export-macros@36.0.19": {
+    "commit": "0d6b8ead4e94b0ce76f925611b831b56570aef94",
     "notices": [
       {
-        "file": "bytecodealliance__wasmtime/5dbbe86472adcbec799e16ad85433095f3b11d67/LICENSE",
+        "file": "bytecodealliance__wasmtime/0d6b8ead4e94b0ce76f925611b831b56570aef94/LICENSE",
         "sha256": "268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5",
-        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/5dbbe86472adcbec799e16ad85433095f3b11d67/LICENSE"
+        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/0d6b8ead4e94b0ce76f925611b831b56570aef94/LICENSE"
       }
     ]
   },
-  "cranelift-assembler-x64@0.135.2": {
-    "commit": "e9f1ea232fd245aea338ab3eb7d73487ae75cab1",
+  "cranelift-assembler-x64@0.135.7": {
+    "commit": "c6846e13f64b07b7912d372db141397058b55f99",
     "notices": [
       {
-        "file": "bytecodealliance__wasmtime/e9f1ea232fd245aea338ab3eb7d73487ae75cab1/LICENSE",
+        "file": "bytecodealliance__wasmtime/c6846e13f64b07b7912d372db141397058b55f99/LICENSE",
         "sha256": "268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5",
-        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/e9f1ea232fd245aea338ab3eb7d73487ae75cab1/LICENSE"
+        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/c6846e13f64b07b7912d372db141397058b55f99/LICENSE"
       }
     ]
   },
-  "cranelift-assembler-x64-meta@0.135.2": {
-    "commit": "e9f1ea232fd245aea338ab3eb7d73487ae75cab1",
+  "cranelift-assembler-x64-meta@0.135.7": {
+    "commit": "c6846e13f64b07b7912d372db141397058b55f99",
     "notices": [
       {
-        "file": "bytecodealliance__wasmtime/e9f1ea232fd245aea338ab3eb7d73487ae75cab1/LICENSE",
+        "file": "bytecodealliance__wasmtime/c6846e13f64b07b7912d372db141397058b55f99/LICENSE",
         "sha256": "268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5",
-        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/e9f1ea232fd245aea338ab3eb7d73487ae75cab1/LICENSE"
+        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/c6846e13f64b07b7912d372db141397058b55f99/LICENSE"
       }
     ]
   },
-  "cranelift-bitset@0.135.2": {
-    "commit": "e9f1ea232fd245aea338ab3eb7d73487ae75cab1",
+  "cranelift-bitset@0.135.7": {
+    "commit": "c6846e13f64b07b7912d372db141397058b55f99",
     "notices": [
       {
-        "file": "bytecodealliance__wasmtime/e9f1ea232fd245aea338ab3eb7d73487ae75cab1/LICENSE",
+        "file": "bytecodealliance__wasmtime/c6846e13f64b07b7912d372db141397058b55f99/LICENSE",
         "sha256": "268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5",
-        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/e9f1ea232fd245aea338ab3eb7d73487ae75cab1/LICENSE"
+        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/c6846e13f64b07b7912d372db141397058b55f99/LICENSE"
       }
     ]
   },
-  "cranelift-isle@0.135.2": {
-    "commit": "e9f1ea232fd245aea338ab3eb7d73487ae75cab1",
+  "cranelift-isle@0.135.7": {
+    "commit": "c6846e13f64b07b7912d372db141397058b55f99",
     "notices": [
       {
-        "file": "bytecodealliance__wasmtime/e9f1ea232fd245aea338ab3eb7d73487ae75cab1/LICENSE",
+        "file": "bytecodealliance__wasmtime/c6846e13f64b07b7912d372db141397058b55f99/LICENSE",
         "sha256": "268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5",
-        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/e9f1ea232fd245aea338ab3eb7d73487ae75cab1/LICENSE"
+        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/c6846e13f64b07b7912d372db141397058b55f99/LICENSE"
       }
     ]
   },
-  "cranelift-srcgen@0.135.2": {
-    "commit": "e9f1ea232fd245aea338ab3eb7d73487ae75cab1",
+  "cranelift-srcgen@0.135.7": {
+    "commit": "c6846e13f64b07b7912d372db141397058b55f99",
     "notices": [
       {
-        "file": "bytecodealliance__wasmtime/e9f1ea232fd245aea338ab3eb7d73487ae75cab1/LICENSE",
+        "file": "bytecodealliance__wasmtime/c6846e13f64b07b7912d372db141397058b55f99/LICENSE",
         "sha256": "268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5",
-        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/e9f1ea232fd245aea338ab3eb7d73487ae75cab1/LICENSE"
+        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/c6846e13f64b07b7912d372db141397058b55f99/LICENSE"
       }
     ]
   },
-  "pulley-interpreter@48.0.2": {
-    "commit": "e9f1ea232fd245aea338ab3eb7d73487ae75cab1",
+  "pulley-interpreter@48.0.7": {
+    "commit": "c6846e13f64b07b7912d372db141397058b55f99",
     "notices": [
       {
-        "file": "bytecodealliance__wasmtime/e9f1ea232fd245aea338ab3eb7d73487ae75cab1/LICENSE",
+        "file": "bytecodealliance__wasmtime/c6846e13f64b07b7912d372db141397058b55f99/LICENSE",
         "sha256": "268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5",
-        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/e9f1ea232fd245aea338ab3eb7d73487ae75cab1/LICENSE"
+        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/c6846e13f64b07b7912d372db141397058b55f99/LICENSE"
       }
     ]
   },
-  "pulley-macros@48.0.2": {
-    "commit": "e9f1ea232fd245aea338ab3eb7d73487ae75cab1",
+  "pulley-macros@48.0.7": {
+    "commit": "c6846e13f64b07b7912d372db141397058b55f99",
     "notices": [
       {
-        "file": "bytecodealliance__wasmtime/e9f1ea232fd245aea338ab3eb7d73487ae75cab1/LICENSE",
+        "file": "bytecodealliance__wasmtime/c6846e13f64b07b7912d372db141397058b55f99/LICENSE",
         "sha256": "268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5",
-        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/e9f1ea232fd245aea338ab3eb7d73487ae75cab1/LICENSE"
+        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/c6846e13f64b07b7912d372db141397058b55f99/LICENSE"
       }
     ]
   },
-  "wasmtime-internal-component-macro@48.0.2": {
-    "commit": "e9f1ea232fd245aea338ab3eb7d73487ae75cab1",
+  "wasmtime-internal-component-macro@48.0.7": {
+    "commit": "c6846e13f64b07b7912d372db141397058b55f99",
     "notices": [
       {
-        "file": "bytecodealliance__wasmtime/e9f1ea232fd245aea338ab3eb7d73487ae75cab1/LICENSE",
+        "file": "bytecodealliance__wasmtime/c6846e13f64b07b7912d372db141397058b55f99/LICENSE",
         "sha256": "268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5",
-        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/e9f1ea232fd245aea338ab3eb7d73487ae75cab1/LICENSE"
+        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/c6846e13f64b07b7912d372db141397058b55f99/LICENSE"
       }
     ]
   },
-  "wasmtime-internal-component-util@48.0.2": {
-    "commit": "e9f1ea232fd245aea338ab3eb7d73487ae75cab1",
+  "wasmtime-internal-component-util@48.0.7": {
+    "commit": "c6846e13f64b07b7912d372db141397058b55f99",
     "notices": [
       {
-        "file": "bytecodealliance__wasmtime/e9f1ea232fd245aea338ab3eb7d73487ae75cab1/LICENSE",
+        "file": "bytecodealliance__wasmtime/c6846e13f64b07b7912d372db141397058b55f99/LICENSE",
         "sha256": "268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5",
-        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/e9f1ea232fd245aea338ab3eb7d73487ae75cab1/LICENSE"
+        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/c6846e13f64b07b7912d372db141397058b55f99/LICENSE"
       }
     ]
   },
-  "wasmtime-internal-core@48.0.2": {
-    "commit": "e9f1ea232fd245aea338ab3eb7d73487ae75cab1",
+  "wasmtime-internal-core@48.0.7": {
+    "commit": "c6846e13f64b07b7912d372db141397058b55f99",
     "notices": [
       {
-        "file": "bytecodealliance__wasmtime/e9f1ea232fd245aea338ab3eb7d73487ae75cab1/LICENSE",
+        "file": "bytecodealliance__wasmtime/c6846e13f64b07b7912d372db141397058b55f99/LICENSE",
         "sha256": "268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5",
-        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/e9f1ea232fd245aea338ab3eb7d73487ae75cab1/LICENSE"
+        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/c6846e13f64b07b7912d372db141397058b55f99/LICENSE"
       }
     ]
   },
-  "wasmtime-internal-jit-debug@48.0.2": {
-    "commit": "e9f1ea232fd245aea338ab3eb7d73487ae75cab1",
+  "wasmtime-internal-jit-debug@48.0.7": {
+    "commit": "c6846e13f64b07b7912d372db141397058b55f99",
     "notices": [
       {
-        "file": "bytecodealliance__wasmtime/e9f1ea232fd245aea338ab3eb7d73487ae75cab1/LICENSE",
+        "file": "bytecodealliance__wasmtime/c6846e13f64b07b7912d372db141397058b55f99/LICENSE",
         "sha256": "268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5",
-        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/e9f1ea232fd245aea338ab3eb7d73487ae75cab1/LICENSE"
+        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/c6846e13f64b07b7912d372db141397058b55f99/LICENSE"
       }
     ]
   },
-  "wasmtime-internal-jit-icache-coherence@48.0.2": {
-    "commit": "e9f1ea232fd245aea338ab3eb7d73487ae75cab1",
+  "wasmtime-internal-jit-icache-coherence@48.0.7": {
+    "commit": "c6846e13f64b07b7912d372db141397058b55f99",
     "notices": [
       {
-        "file": "bytecodealliance__wasmtime/e9f1ea232fd245aea338ab3eb7d73487ae75cab1/LICENSE",
+        "file": "bytecodealliance__wasmtime/c6846e13f64b07b7912d372db141397058b55f99/LICENSE",
         "sha256": "268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5",
-        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/e9f1ea232fd245aea338ab3eb7d73487ae75cab1/LICENSE"
+        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/c6846e13f64b07b7912d372db141397058b55f99/LICENSE"
       }
     ]
   },
-  "wasmtime-internal-versioned-export-macros@48.0.2": {
-    "commit": "e9f1ea232fd245aea338ab3eb7d73487ae75cab1",
+  "wasmtime-internal-versioned-export-macros@48.0.7": {
+    "commit": "c6846e13f64b07b7912d372db141397058b55f99",
     "notices": [
       {
-        "file": "bytecodealliance__wasmtime/e9f1ea232fd245aea338ab3eb7d73487ae75cab1/LICENSE",
+        "file": "bytecodealliance__wasmtime/c6846e13f64b07b7912d372db141397058b55f99/LICENSE",
         "sha256": "268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5",
-        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/e9f1ea232fd245aea338ab3eb7d73487ae75cab1/LICENSE"
+        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/c6846e13f64b07b7912d372db141397058b55f99/LICENSE"
       }
     ]
   },
-  "wasmtime-internal-wit-bindgen@48.0.2": {
-    "commit": "e9f1ea232fd245aea338ab3eb7d73487ae75cab1",
+  "wasmtime-internal-wit-bindgen@48.0.7": {
+    "commit": "c6846e13f64b07b7912d372db141397058b55f99",
     "notices": [
       {
-        "file": "bytecodealliance__wasmtime/e9f1ea232fd245aea338ab3eb7d73487ae75cab1/LICENSE",
+        "file": "bytecodealliance__wasmtime/c6846e13f64b07b7912d372db141397058b55f99/LICENSE",
         "sha256": "268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5",
-        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/e9f1ea232fd245aea338ab3eb7d73487ae75cab1/LICENSE"
+        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/c6846e13f64b07b7912d372db141397058b55f99/LICENSE"
       }
     ]
   },
-  "wasmtime-wasi-io@48.0.2": {
-    "commit": "e9f1ea232fd245aea338ab3eb7d73487ae75cab1",
+  "wasmtime-wasi-io@48.0.7": {
+    "commit": "c6846e13f64b07b7912d372db141397058b55f99",
     "notices": [
       {
-        "file": "bytecodealliance__wasmtime/e9f1ea232fd245aea338ab3eb7d73487ae75cab1/LICENSE",
+        "file": "bytecodealliance__wasmtime/c6846e13f64b07b7912d372db141397058b55f99/LICENSE",
         "sha256": "268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5",
-        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/e9f1ea232fd245aea338ab3eb7d73487ae75cab1/LICENSE"
+        "source": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/c6846e13f64b07b7912d372db141397058b55f99/LICENSE"
       }
     ]
   },

@@ -122,7 +122,7 @@ fn reload_picks_up_external_changes() {
     // External edit: overwrite the YAML
     let mut modified = sample_roadmap();
     modified.title = "Externally Modified".into();
-    let new_yaml = serde_yml::to_string(&modified).unwrap();
+    let new_yaml = serde_saphyr::to_string(&modified).unwrap();
     std::fs::write(&yaml, new_yaml).unwrap();
 
     // Reload
@@ -151,7 +151,7 @@ fn load_validation_failure_returns_error() {
         phases: vec![],
         ..sample_roadmap()
     };
-    let bad_yaml = serde_yml::to_string(&bad).unwrap();
+    let bad_yaml = serde_saphyr::to_string(&bad).unwrap();
     std::fs::write(&yaml, bad_yaml).unwrap();
     assert!(YamlStore::load(&yaml).is_err());
 }
