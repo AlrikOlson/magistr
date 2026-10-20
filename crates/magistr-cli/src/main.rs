@@ -43,7 +43,7 @@ async fn main() -> eyre::Result<()> {
         // The launcher's own capture: the user's home and the Codex home,
         // read once here and never again inside the launcher.
         let inputs = magistr::config::inputs::ProjectInputs::from_env(project_root);
-        return magistr::codex_launch::launch(project_root, args, diagnose, &inputs);
+        return magistr::launch_codex(project_root, args, diagnose, &inputs);
     }
     utils::panic::install_panic_hook()?;
     utils::signal_handler::install_signal_handler();
