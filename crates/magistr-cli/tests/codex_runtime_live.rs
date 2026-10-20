@@ -226,7 +226,7 @@ fn installed_codex_discovers_relocated_project_and_generated_mcp_tools() {
     write(
         &config_home.join("config.toml"),
         &format!(
-            "[projects.{}]\ntrust_level = 'trusted'\n[[skills.config]]\npath = {}\nenabled = false\n[mcp_servers.magistr/traces]\ncommand = 'standalone-must-not-launch'\nargs = ['serve']\nenabled = true\n",
+            "[projects.{}]\ntrust_level = 'trusted'\n[[skills.config]]\npath = {}\nenabled = false\n[mcp_servers.magistr]\ncommand = 'standalone-must-not-launch'\nargs = ['serve']\nenabled = true\n",
             toml::Value::String(project.to_str().expect("UTF8").to_owned()),
             toml::Value::String(personal.to_str().expect("UTF8").to_owned())
         ),
@@ -297,8 +297,8 @@ fn installed_codex_discovers_relocated_project_and_generated_mcp_tools() {
         server.app_initialize();
         let config = server.request("config/read", json!({"cwd":cwd,"includeLayers":true}));
         assert_eq!(
-            config["config"]["mcp_servers"]["magistr"]["enabled"], false,
-            "effective fixture config: {config}"
+            config["config"]["mcp_servers"]["magistr"]["enabled"], true,
+            "the project connection must stay enabled: {config}"
         );
         {
             let name = "magistr";
