@@ -35,6 +35,8 @@ pub mod delivery;
 pub mod event_cursor;
 mod execution_context;
 mod family_services;
+mod workflow_upgrade;
+pub use workflow_upgrade::WorkflowUpgrade;
 pub mod feed_cursor;
 pub mod feed_status;
 pub mod gate_output;

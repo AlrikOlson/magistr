@@ -417,7 +417,14 @@ async fn run_cli() -> eyre::Result<()> {
 /// of the verbs' process contract, so a malformed workspace invocation
 /// exits 64 instead. Help and version still exit 0.
 fn parse_cli() -> Cli {
-    Cli::try_parse().unwrap_or_else(|error| {
+    // Bootstrap a saved launch registration into the sole current command.
+    // Startup upgrades the registration, so subsequent launches use current argv.
+    let mut args: Vec<_> = std::env::args_os().collect();
+    if args.len() == 4 && args[1] == "mcp-launch" && args[2] == "magistr" {
+        args[1] = "mcp".into();
+        args[2] = "--dir".into();
+    }
+    Cli::try_parse_from(args).unwrap_or_else(|error| {
         let workspace_verb = std::env::args().nth(1).as_deref() == Some("workspace");
         if workspace_verb && error.use_stderr() {
             let _ = error.print();

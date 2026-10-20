@@ -255,7 +255,9 @@ as one [ChangePlan](../../crates/magistr-cli/src/scaffold/change_plan.rs).
 `magistr init --dry-run`, `magistr repair --dry-run` and
 `magistr remove --dry-run` show the corresponding plan. The guided interview
 applies exactly its reviewed PreparedSetup through AdminService; it does not
-recompute the plan after approval. MCP startup never repairs project files.
+recompute the plan after approval. MCP startup applies recognized one-time
+configuration upgrades through the same administrative writer; full scaffold
+repair remains an explicit setup operation.
 Every rendering contains one
 object per path with its action, intent, ownership, expected state and
 reason, plus the per-intent summary; the CLI adds an overwrite's diff and a
@@ -284,7 +286,8 @@ plan creates already carries the lifecycle hooks the interview or the
 language preset chose and, for a polyglot tree, its archetypes, topology and
 relationships ([SetupSeeds](../../crates/magistr-cli/src/scaffold/setup_seeds.rs),
 built by the pipeline and handed to the plan); an existing configuration is
-preserved as the user's and re-detection never rewrites it. `CLAUDE.md` stays
+preserved as the user's and re-detection never rewrites it. Known configuration
+upgrades change only the affected fields and save the original bytes first. `CLAUDE.md` stays
 the user's file, but its marked sections — magistr, and the archetype
 table planted beside a fresh configuration — are magistr's, so the plan shows
 the merged document as an overwrite with its diff rather than a preserved

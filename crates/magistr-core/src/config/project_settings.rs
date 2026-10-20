@@ -21,12 +21,20 @@ pub fn read_project_settings(path: &Path) -> Result<Option<ProjectConfig>> {
         }
         Err(error) => return Err(MagistrError::io(path, error)),
     };
-    serde_json::from_str(&content).map(Some).map_err(|error| {
+    let upgraded = super::ProjectSettingsUpgrade::prepare(&content).map_err(|error| {
         MagistrError::Config(format!(
             "Invalid project settings at {}: {error}",
             path.display()
         ))
-    })
+    })?;
+    serde_json::from_str(upgraded.as_deref().unwrap_or(&content))
+        .map(Some)
+        .map_err(|error| {
+            MagistrError::Config(format!(
+                "Invalid project settings at {}: {error}",
+                path.display()
+            ))
+        })
 }
 
 #[cfg(test)]

@@ -6,7 +6,7 @@ use rusqlite::{Connection, OpenFlags, OptionalExtension};
 
 use super::{JournalDbOptions, JournalError};
 
-const VERSION: i64 = 3;
+const VERSION: i64 = 4;
 const SUFFIXES: [&str; 4] = ["", "-wal", "-shm", "-journal"];
 const SCHEMA: [(&str, &str); 5] = [
     (
@@ -192,11 +192,19 @@ fn validate(db: &Connection, reader: bool) -> Result<(i64, bool), JournalError> 
             "schema version {version} has no registered forward migration"
         )));
     }
-    for (name, expected) in SCHEMA.into_iter().chain(
-        super::intent_store::IntentStore::SCHEMA
-            .into_iter()
-            .filter(|_| version == 3),
-    ) {
+    for (name, expected) in SCHEMA
+        .into_iter()
+        .chain(
+            super::intent_store::IntentStore::SCHEMA
+                .into_iter()
+                .filter(|_| version >= 3),
+        )
+        .chain(
+            super::journal_import::JournalImport::SCHEMA
+                .into_iter()
+                .filter(|_| version >= 4),
+        )
+    {
         let sql: Option<String> = db
             .query_row(
                 "SELECT sql FROM sqlite_master WHERE name=?",
@@ -210,7 +218,7 @@ fn validate(db: &Connection, reader: bool) -> Result<(i64, bool), JournalError> 
             )));
         }
     }
-    let unexpected: i64 = db.query_row("SELECT count(*) FROM sqlite_master WHERE name NOT IN ('ops','ops_session','op_files','blobs','undone','sqlite_sequence','sqlite_autoindex_op_files_1','sqlite_autoindex_blobs_1') AND (?!=3 OR name NOT IN ('native_write_intents','native_intent_undo','sqlite_autoindex_native_intent_undo_1'))", [version], |row| row.get(0))?;
+    let unexpected: i64 = db.query_row("SELECT count(*) FROM sqlite_master WHERE name NOT IN ('ops','ops_session','op_files','blobs','undone','sqlite_sequence','sqlite_autoindex_op_files_1','sqlite_autoindex_blobs_1') AND (?1<3 OR name NOT IN ('native_write_intents','native_intent_undo','sqlite_autoindex_native_intent_undo_1')) AND (?1<4 OR name NOT IN ('imported_ops','journal_upgrades','sqlite_autoindex_imported_ops_1','sqlite_autoindex_journal_upgrades_1'))", [version], |row| row.get(0))?;
     if unexpected != 0 {
         return Err(JournalError::UnsupportedVersion(
             "journal contains unrecognized schema objects".to_owned(),

@@ -43,6 +43,15 @@ impl JournalDb {
         })
     }
 
+    /// Import known older history under both workspace locks.
+    pub(crate) fn import_workbench(&self, path: &std::path::Path) -> Result<(), JournalError> {
+        super::journal_import::JournalImport::run(&mut self.connection(), path)
+    }
+
+    pub(crate) fn workbench_imported(&self) -> Result<bool, JournalError> {
+        super::journal_import::JournalImport::completed(&self.connection())
+    }
+
     /// The connection, recovered from poisoning: a panic that unwound through
     /// an open `Transaction` rolled it back on the way out, so the connection
     /// is consistent and refusing every later call would only turn one bug
@@ -272,7 +281,7 @@ fn evict(
                 "negative compressed blob size".to_owned(),
             ));
         }
-        let unresolved = if native_version == 3 {
+        let unresolved = if native_version >= 3 {
             db.query_row("SELECT EXISTS(SELECT 1 FROM op_files JOIN native_write_intents ON native_write_intents.op_seq=op_files.op_seq WHERE outcome IN ('pending','indeterminate') AND (before_hash=?1 OR after_hash=?1))", [&hash], |row|row.get::<_,bool>(0))?
         } else {
             false
@@ -303,3 +312,7 @@ mod tests;
 #[cfg(test)]
 #[path = "journal_intents.tests.rs"]
 mod intent_tests;
+
+#[cfg(test)]
+#[path = "journal_import.tests.rs"]
+mod import_tests;

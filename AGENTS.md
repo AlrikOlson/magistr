@@ -33,16 +33,20 @@ suspends it.
 
 ## Before public release
 
-Magistr has not been officially publicly released. Until the project owner
-explicitly declares that release, backward compatibility is never a requirement
-or a design consideration anywhere in this project. Do not preserve, add, test,
-or justify compatibility for old APIs, commands, MCP endpoints or names,
-configuration, environment variables, schemas, stored data, checkpoints,
-protocols, imports, aliases, or implementation paths. Do not add shims,
-fallbacks, dual paths, deprecation periods, or migrations for older versions.
-Choose the intended current design, make breaking changes directly, remove
-obsolete paths, and update all current callers, configuration, documentation,
-fixtures, and tests together.
+Magistr has not been officially publicly released. Keep one intended current
+design; do not retain obsolete APIs, runtime paths or parallel live stores for
+backward compatibility. Update current callers, configuration, documentation,
+fixtures and tests together when that design changes.
+
+Existing installations must upgrade automatically and unobtrusively. Recognize
+known older configuration and durable data, convert them once through the
+component that owns them, preserve customizations and recoverable originals,
+and continue in the current format. Upgrade code must be idempotent, safe after
+interruption, respectful of live owners and covered by real old-to-current
+fixtures. Do not silently discard data, replace custom values with defaults or
+require manual edits for a known upgrade. Routine successful upgrades are quiet;
+unsafe conflicts explain the action needed. This upgrade requirement, requested
+by the owner on 2026-10-20, is an explicit exception to the pre-release policy.
 
 This rule overrides contrary compatibility requirements in existing roadmap
 records, acceptance criteria, architecture documents, source comments, tests,
