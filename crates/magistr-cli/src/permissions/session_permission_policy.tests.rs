@@ -559,14 +559,20 @@ fn denies_and_auto_approvals_are_not_audited() {
 }
 
 #[test]
-fn magistrs_own_mcp_tools_are_auto_approved() {
-    let mut policy = policy(PermissionProfile::Cautious, false);
-    let decision = policy.decide(&policy_request(&request(
-        "magistr_gate",
-        serde_json::json!({}),
-        None,
-    )));
-    assert_eq!(decision, PolicyDecision::Allow);
+fn magistrs_public_mcp_tools_reach_their_native_authorization_outside_workflow() {
+    let names = crate::unified_mcp::DIRECT
+        .iter()
+        .map(|(_, public, _)| *public)
+        .chain(["discover", "execute"]);
+    for name in names {
+        let mut policy = policy(PermissionProfile::Cautious, false);
+        let decision = policy.decide(&policy_request(&request(
+            &format!("mcp__magistr__{name}"),
+            serde_json::json!({}),
+            Some(ToolKind::Other),
+        )));
+        assert_eq!(decision, PolicyDecision::Allow, "{name}");
+    }
 }
 
 #[test]
@@ -574,7 +580,7 @@ fn workflow_mode_auto_approves_every_project_mcp_tool() {
     // The session's MCP servers are exactly the project's own under the
     // agent's --strict-mcp-config; an unanswered ask parks the loop.
     let mut policy = policy(PermissionProfile::Standard, true);
-    for tool in ["mcp__magistr__read", "mcp__magistr__roadmap_start_chunk"] {
+    for tool in ["mcp__magistr__read", "mcp__project_docs__search"] {
         assert_eq!(
             policy.decide(&policy_request(&request(
                 tool,
@@ -588,14 +594,52 @@ fn workflow_mode_auto_approves_every_project_mcp_tool() {
 }
 
 #[test]
-fn outside_workflow_an_mcp_tool_is_the_profiles_call() {
-    let mut policy = policy(PermissionProfile::Standard, false);
-    let decision = policy.decide(&policy_request(&request(
-        "mcp__magistr__read",
-        serde_json::json!({}),
-        Some(ToolKind::Other),
-    )));
-    assert_eq!(decision, PolicyDecision::Ask(RiskTier::Medium));
+fn outside_workflow_other_servers_and_unknown_operations_use_the_profile() {
+    for tool in [
+        "mcp__project_docs__read",
+        "mcp__magistr_tools__read",
+        "mcp__magistr__unknown_operation",
+        "magistr_gate",
+        "magistr-read",
+    ] {
+        let mut policy = policy(PermissionProfile::Standard, false);
+        let decision = policy.decide(&policy_request(&request(
+            tool,
+            serde_json::json!({}),
+            Some(ToolKind::Other),
+        )));
+        assert!(matches!(decision, PolicyDecision::Ask(_)), "{tool}");
+    }
+}
+
+#[test]
+fn unified_mcp_allowance_preserves_governance_denials_and_confirmations() {
+    let tool = "mcp__magistr__execute";
+    for (effect, expected) in [
+        (Effect::Deny, PolicyDecision::Deny),
+        (
+            Effect::RequireApproval,
+            PolicyDecision::Ask(RiskTier::Medium),
+        ),
+    ] {
+        let mut policy = policy(PermissionProfile::Cautious, false).governed_by(
+            GovernancePolicy {
+                rules: vec![PolicyRule::new(
+                    "review-composed-work",
+                    PolicyCondition::tool(tool),
+                    effect,
+                )],
+                ..GovernancePolicy::default()
+            }
+            .compile(),
+        );
+        let decision = policy.decide(&policy_request(&request(
+            tool,
+            serde_json::json!({"source": "return magistr.call('read', {file:'names.py'});"}),
+            Some(ToolKind::Other),
+        )));
+        assert_eq!(decision, expected);
+    }
 }
 
 // ── Governance policy ─────────────────────────────────────────
