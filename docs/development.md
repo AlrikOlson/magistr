@@ -2,7 +2,15 @@
 
 Magistr's root Rust workspace owns application services, commands, native
 workflow and source engines. The desktop has a separate Cargo workspace and
-lockfile for its WebView dependencies. Use Rust 1.95 or later, Git and Node.js.
+lockfile for its WebView dependencies. Use Rust 1.95 or later, Git and Node.js 22+.
+Install the locked development tools before running checks:
+
+```sh
+npm ci --prefix scripts
+```
+
+The duplication gate uses this local installation and never installs tools while
+tests are running.
 
 ## Checks
 
@@ -60,9 +68,10 @@ installer under `nsis/`. Copy the Mac app to `~/Applications` or `/Applications`
 or run the Windows installer. Installed apps need neither Rust nor Node.js.
 Agent runtimes are still installed and authenticated separately.
 
-The **desktop apps** workflow builds and checks both native platforms, publishes
-workflow artifacts, verifies packaged child roles, and installs/opens/closes the
-Windows app. These are unsigned development artifacts, not a public release;
+The **desktop apps** workflow builds and checks macOS by default, publishes
+workflow artifacts and verifies packaged child roles. Windows builds and the
+installed-app check run only when explicitly selected in a manual workflow run.
+These are unsigned development artifacts, not a public release;
 macOS bundles use local ad-hoc signing and are not notarized. Native journeys
 record OS input and application-owner integration; background WebKit checks
 cover the production UI's layout and DOM interaction.

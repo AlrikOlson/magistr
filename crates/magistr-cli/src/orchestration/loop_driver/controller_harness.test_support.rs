@@ -1,35 +1,45 @@
 //! Loop contract tests use addressed semantic actions and observations, with no window or terminal.
 use super::{Cmd, Commands, Inbox, LoopDriver, LoopReport, Msg};
 use magistr_application::sessions::{AgentEvent, PermissionKind};
-use magistr_cockpit::cockpit::LoopEvent;
+use magistr_cockpit::cockpit::{LoopCmd, LoopEvent, WorkPhase};
 use std::time::Duration;
 use tokio::sync::mpsc;
 
 enum Action {
     Command(Cmd),
-    Control(magistr_cockpit::cockpit::LoopCmd),
+    Control(LoopCmd),
     Allow,
 }
+enum Trigger {
+    At(Duration),
+    Permission,
+    Paused,
+}
 #[derive(Default)]
-pub(super) struct Actions(Vec<(Duration, Action)>);
+pub(super) struct Actions(Vec<(Trigger, Vec<Action>)>);
 impl Actions {
     pub(super) fn new() -> Self {
         Self::default()
     }
     pub(super) fn command(mut self, at: Duration, command: Cmd) -> Self {
-        self.0.push((at, Action::Command(command)));
+        self.0
+            .push((Trigger::At(at), vec![Action::Command(command)]));
         self
     }
-    pub(super) fn control(
-        mut self,
-        at: Duration,
-        action: magistr_cockpit::cockpit::LoopCmd,
-    ) -> Self {
-        self.0.push((at, Action::Control(action)));
+    pub(super) fn when_permission(mut self, control: Option<LoopCmd>) -> Self {
+        let mut actions: Vec<_> = control.into_iter().map(Action::Control).collect();
+        actions.push(Action::Allow);
+        self.0.push((Trigger::Permission, actions));
         self
     }
-    pub(super) fn allow(mut self, at: Duration) -> Self {
-        self.0.push((at, Action::Allow));
+    pub(super) fn when_paused(mut self, action: LoopCmd) -> Self {
+        self.0
+            .push((Trigger::Paused, vec![Action::Control(action)]));
+        self
+    }
+    pub(super) fn quit_when_paused(mut self) -> Self {
+        self.0
+            .push((Trigger::Paused, vec![Action::Command(Cmd::Quit)]));
         self
     }
 }
@@ -72,36 +82,66 @@ pub(super) async fn run_observed(
     let mut permission = None;
     let mut observed = Vec::new();
     let mut run_id = None;
-    let report=tokio::time::timeout(Duration::from_secs(120),async {
+    let report = tokio::time::timeout(Duration::from_secs(120), async {
         loop {
-            let delay=actions.peek().map_or(Duration::from_secs(120),|(at,_)| at.saturating_sub(started.elapsed()));
-            tokio::select! {
+            let delay = match actions.peek() {
+                Some((Trigger::At(at), _)) => Some(at.saturating_sub(started.elapsed())),
+                _ => None,
+            };
+            let ready = tokio::select! {
                 biased;
-                event=harness.events.recv()=>if let Some(event)=event {
-                    if let Msg::Agent(AgentEvent::PermissionRequest {id,choices,..})=&event {
-                        permission=choices.iter().find(|choice|choice.kind==PermissionKind::AllowOnce).map(|choice|(*id,choice.option_id.clone()));
+                Some(event) = harness.events.recv() => {
+                    if let Msg::Agent(AgentEvent::PermissionRequest { id, choices, .. }) = &event {
+                        permission = choices.iter()
+                            .find(|choice| choice.kind == PermissionKind::AllowOnce)
+                            .map(|choice| (*id, choice.option_id.clone()));
                     }
-                    if let Msg::WorkRun(run) = &event { run_id = Some(run.id.clone()); }
+                    if let Msg::WorkRun(run) = &event {
+                        run_id = Some(run.id.clone());
+                    }
+                    let ready = match actions.peek() {
+                        Some((Trigger::Permission, _)) =>
+                            matches!(&event, Msg::Agent(AgentEvent::PermissionRequest { .. })),
+                        Some((Trigger::Paused, _)) =>
+                            matches!(&event, Msg::WorkRun(run) if run.phase == WorkPhase::Paused),
+                        _ => false,
+                    };
                     observed.push(event);
+                    ready
                 },
-                report=&mut run=>break report.expect("loop task"),
-                _=tokio::time::sleep(delay),if actions.peek().is_some()=>{
-                    match actions.next().expect("scheduled action").1 {
-                        Action::Command(command)=>{let _=harness.sender.send(command);}
-                        Action::Control(action)=>{
-                            harness.sender.send(Cmd::Loop(magistr_cockpit::cockpit::RunCommand {
-                                run_id: run_id.clone().expect("observed running owner"), action,
-                            })).expect("run control");
+                report = &mut run => break report.expect("loop task"),
+                _ = tokio::time::sleep(delay.unwrap_or_default()), if delay.is_some() => true,
+            };
+            if ready {
+                for action in actions.next().expect("scheduled action").1 {
+                    match action {
+                        Action::Command(command) => {
+                            let _ = harness.sender.send(command);
                         }
-                        Action::Allow=>{
-                            let (id,option_id)=permission.take().expect("the provider's pending request");
-                            harness.sender.send(Cmd::Permission {id,option_id}).expect("session command");
+                        Action::Control(action) => {
+                            harness
+                                .sender
+                                .send(Cmd::Loop(magistr_cockpit::cockpit::RunCommand {
+                                    run_id: run_id.clone().expect("observed running owner"),
+                                    action,
+                                }))
+                                .expect("run control");
+                        }
+                        Action::Allow => {
+                            let (id, option_id) =
+                                permission.take().expect("the provider's pending request");
+                            harness
+                                .sender
+                                .send(Cmd::Permission { id, option_id })
+                                .expect("session command");
                         }
                     }
                 }
             }
         }
-    }).await.expect("loop settles");
+    })
+    .await
+    .expect("loop settles");
     while let Ok(event) = harness.events.try_recv() {
         observed.push(event);
     }

@@ -50,6 +50,16 @@ jobs:
         uses: taiki-e/install-action@v2
         with:
           tool: cargo-nextest
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            scripts/package-lock.json
+            apps/website/package-lock.json
+      - name: Install locked development tools
+        run: npm ci --prefix scripts
       - name: Run workspace tests
         run: cargo nextest run --workspace --locked --profile ci
       - name: Run Clippy
@@ -59,12 +69,6 @@ jobs:
         run: |
           df -h .
           test ! -d target || du -sh target
-      - name: Install Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: apps/website/package-lock.json
       - name: Test website
         working-directory: apps/website
         run: npm ci && npm test

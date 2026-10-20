@@ -18,17 +18,22 @@
 #   LINT_DUP_OWNER         owner tree, relative to the root (crates/magistr-cli/src/application)
 #   LINT_DUP_SURFACE            desktop tree, relative to the root (crates/magistr-desktop/src)
 #   LINT_DUP_MIN_TOKENS     jscpd token threshold (50)
-#   JSCPD                   the jscpd command (npx --yes jscpd)
+#   JSCPD                  optional jscpd executable path (defaults to the locked local tool)
 
 set -euo pipefail
 
 # Physical paths (pwd -P): jscpd reports canonical paths, and a temp root
 # under a symlink (macOS /var → /private/var) must still match.
-PROJECT_ROOT="$(cd "${LINT_PROJECT_ROOT:-$(dirname "$0")/..}" && pwd -P)"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -P)"
+PROJECT_ROOT="$(cd "${LINT_PROJECT_ROOT:-$SCRIPT_DIR/..}" && pwd -P)"
 OWNER="$PROJECT_ROOT/${LINT_DUP_OWNER:-crates/magistr-cli/src/application}"
 SURFACE="$PROJECT_ROOT/${LINT_DUP_SURFACE:-crates/magistr-desktop/src}"
 MIN_TOKENS="${LINT_DUP_MIN_TOKENS:-50}"
-JSCPD="${JSCPD:-npx --yes jscpd}"
+JSCPD="${JSCPD:-$SCRIPT_DIR/node_modules/.bin/jscpd}"
+if ! command -v "$JSCPD" >/dev/null 2>&1; then
+    echo "ERROR: jscpd is unavailable — run npm ci --prefix scripts from the repository root"
+    exit 1
+fi
 
 if [[ ! -d "$SURFACE" ]]; then
     echo "ERROR: missing desktop tree at ${SURFACE#"$PROJECT_ROOT/"} "
@@ -70,12 +75,10 @@ done < <(find "$SURFACE" -type f -name '*.rs' 2>/dev/null)
 
 report_dir="$(mktemp -d)"
 trap 'rm -rf "$owner_hashes" "$report_dir"' EXIT
-# shellcheck disable=SC2086 # JSCPD is a command line, split on purpose
-if ! jscpd_said="$($JSCPD --min-tokens "$MIN_TOKENS" --format rust --reporters json --output "$report_dir" \
+if ! jscpd_said="$("$JSCPD" --min-tokens "$MIN_TOKENS" --format rust --reporters json --output "$report_dir" \
         --silent --absolute --no-gitignore "$OWNER" "$SURFACE" 2>&1)"; then
-    echo "ERROR: jscpd did not run (command: $JSCPD) — install node or set JSCPD"
-    printf '%s
-' "$jscpd_said" | tail -n 20
+    echo "ERROR: jscpd did not run (executable: $JSCPD)"
+    printf '%s\n' "$jscpd_said"
     exit 1
 fi
 report="$report_dir/jscpd-report.json"
