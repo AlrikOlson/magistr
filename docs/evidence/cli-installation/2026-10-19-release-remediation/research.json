@@ -1,0 +1,27 @@
+{
+  "checked_on": "2026-10-19",
+  "sources": [
+    {
+      "title": "Publishing on crates.io",
+      "url": "https://doc.rust-lang.org/cargo/reference/publishing.html",
+      "finding": "Publishing creates an immutable package version and requires authenticated registry access; published dependency versions and included files must be intentional."
+    },
+    {
+      "title": "npm trusted publishing",
+      "url": "https://docs.npmjs.com/trusted-publishers/",
+      "finding": "Trusted publishing needs Node 22.14+ and npm 11.5.1+. Exact repository/workflow/environment settings and allowed publish actions matter. New configurations need a successful publish within two days. Automatic provenance requires a public package and public source repository."
+    },
+    {
+      "title": "npm trust command",
+      "url": "https://docs.npmjs.com/cli/v11/commands/npm-trust/",
+      "finding": "Owner-side CLI setup can configure a GitHub trusted publisher with the repository, workflow filename, environment and allow-publish permission; account authentication and 2FA remain owner actions."
+    },
+    {
+      "title": "GitHub deployments and environments",
+      "url": "https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments",
+      "finding": "Environment protection availability depends on repository visibility and account plan. The private repository's required-reviewer API returned 422; no reviewer gate is claimed."
+    }
+  ],
+  "previous_audit": "../2026-10-19-release-audit/README.md",
+  "note": "Primary sources were checked online. Live registry availability, GitHub administration and deployed bytes are separately recorded observations, not inferred from documentation."
+}

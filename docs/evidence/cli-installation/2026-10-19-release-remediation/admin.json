@@ -1,0 +1,132 @@
+{
+  "observedAt": "2026-10-20T03:52:05.819590+00:00",
+  "repository": {
+    "fullName": "AlrikOlson/magistr",
+    "visibility": "private",
+    "private": true
+  },
+  "mainProtection": {
+    "url": "https://api.github.com/repos/AlrikOlson/magistr/branches/main/protection",
+    "required_status_checks": {
+      "url": "https://api.github.com/repos/AlrikOlson/magistr/branches/main/protection/required_status_checks",
+      "strict": true,
+      "contexts": [
+        "Rust and website gates",
+        "Current dependency and secret checks"
+      ],
+      "contexts_url": "https://api.github.com/repos/AlrikOlson/magistr/branches/main/protection/required_status_checks/contexts",
+      "checks": [
+        {
+          "context": "Rust and website gates",
+          "app_id": 15368
+        },
+        {
+          "context": "Current dependency and secret checks",
+          "app_id": 15368
+        }
+      ]
+    },
+    "required_signatures": {
+      "url": "https://api.github.com/repos/AlrikOlson/magistr/branches/main/protection/required_signatures",
+      "enabled": false
+    },
+    "enforce_admins": {
+      "url": "https://api.github.com/repos/AlrikOlson/magistr/branches/main/protection/enforce_admins",
+      "enabled": true
+    },
+    "required_linear_history": {
+      "enabled": false
+    },
+    "allow_force_pushes": {
+      "enabled": false
+    },
+    "allow_deletions": {
+      "enabled": false
+    },
+    "block_creations": {
+      "enabled": false
+    },
+    "required_conversation_resolution": {
+      "enabled": true
+    },
+    "lock_branch": {
+      "enabled": false
+    },
+    "allow_fork_syncing": {
+      "enabled": false
+    }
+  },
+  "releaseEnvironment": {
+    "id": 24756601027,
+    "node_id": "EN_kwDOUT3Ils8AAAAFw5vAww",
+    "name": "cli-release",
+    "url": "https://api.github.com/repos/AlrikOlson/magistr/environments/cli-release",
+    "html_url": "https://github.com/AlrikOlson/magistr/deployments/activity_log?environments_filter=cli-release",
+    "created_at": "2026-10-19T22:22:50Z",
+    "updated_at": "2026-10-19T22:22:50Z",
+    "can_admins_bypass": true,
+    "protection_rules": [
+      {
+        "id": 69384049,
+        "node_id": "GA_kwDOUT3Ils4EIrdx",
+        "type": "branch_policy"
+      }
+    ],
+    "deployment_branch_policy": {
+      "protected_branches": false,
+      "custom_branch_policies": true
+    }
+  },
+  "deploymentBranchPolicies": {
+    "total_count": 1,
+    "branch_policies": [
+      {
+        "id": 63637033,
+        "node_id": "MDE2OkdhdGVCcmFuY2hQb2xpY3k2MzYzNzAzMw==",
+        "name": "main",
+        "type": "branch"
+      }
+    ]
+  },
+  "environmentSecretNames": [],
+  "npmAuthentication": {
+    "authenticated": false,
+    "exitCode": 1,
+    "reason": "ENEEDAUTH"
+  },
+  "archivedRelease": {
+    "id": 385714225,
+    "tag_name": "archive/unpublished-v0.1.0-20260909",
+    "name": "Archived unpublished development snapshot \u2014 2026-09-09",
+    "draft": true,
+    "target_commitish": "3723c626bceb71679019029fb9f13feae92a583b"
+  },
+  "archivedAssets": [
+    {
+      "id": 553318652,
+      "name": "magistr-0.1.0-aarch64-apple-darwin.sha256",
+      "size": 108,
+      "digest": "sha256:3b5128c42a934c1d58392c86618fcc2220547a913537773efbeb57818c6dc1cf"
+    },
+    {
+      "id": 553318653,
+      "name": "magistr-0.1.0-aarch64-apple-darwin.tar.gz",
+      "size": 17919793,
+      "digest": "sha256:31d24a50169ea39ce775577451d076bf0360d251fc538243a96ebd042265a99b"
+    }
+  ],
+  "vulnerabilityReporting": {
+    "availableOnCurrentPrivateRepository": false,
+    "lastObservedHttpStatus": 404,
+    "ownerStep": "Approve public repository, then enable and anonymously verify the reporting route."
+  },
+  "environmentReviewers": {
+    "availableOnCurrentPrivatePlan": false,
+    "lastObservedHttpStatus": 422,
+    "ownerStep": "After the visibility decision, configure supported environment review restrictions."
+  },
+  "administrativeEnforcement": {
+    "enabledAtCapture": true,
+    "finalPushProcedure": "Administrator enforcement may be temporarily suspended only around the final evidence push, then restored in a finally block and verified again in native launch-administration receipts. No force push or deletion is allowed."
+  }
+}

@@ -1,0 +1,1047 @@
+{
+  "schemaVersion": 1,
+  "source": "1e99aba7b9e3d9f76c953ddf03041166f45aa599",
+  "runs": [
+    {
+      "role": "readiness",
+      "id": 39364882173,
+      "url": "https://github.com/AlrikOlson/magistr/actions/runs/39364882173",
+      "workflow": ".github/workflows/public-release.yml",
+      "event": "push",
+      "headBranch": "main",
+      "source": "1e99aba7b9e3d9f76c953ddf03041166f45aa599",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "id": 118439327099,
+          "name": "Desktop gates (macOS)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-20T03:33:09Z",
+          "completed_at": "2026-10-20T03:41:54Z",
+          "html_url": "https://github.com/AlrikOlson/magistr/actions/runs/39364882173/job/118439327099",
+          "runner_name": "GitHub Actions 1000013096",
+          "labels": [
+            "macos-15"
+          ],
+          "seconds": 525.0,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1,
+              "started_at": "2026-10-20T03:33:09Z",
+              "completed_at": "2026-10-20T03:33:10Z"
+            },
+            {
+              "name": "Check out source",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2,
+              "started_at": "2026-10-20T03:33:10Z",
+              "completed_at": "2026-10-20T03:33:19Z"
+            },
+            {
+              "name": "Install Rust toolchain",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3,
+              "started_at": "2026-10-20T03:33:19Z",
+              "completed_at": "2026-10-20T03:33:24Z"
+            },
+            {
+              "name": "Install cargo-nextest",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4,
+              "started_at": "2026-10-20T03:33:24Z",
+              "completed_at": "2026-10-20T03:33:26Z"
+            },
+            {
+              "name": "Install Node.js",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5,
+              "started_at": "2026-10-20T03:33:26Z",
+              "completed_at": "2026-10-20T03:33:31Z"
+            },
+            {
+              "name": "Install desktop test dependencies",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6,
+              "started_at": "2026-10-20T03:33:31Z",
+              "completed_at": "2026-10-20T03:33:33Z"
+            },
+            {
+              "name": "Record available desktop build storage",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7,
+              "started_at": "2026-10-20T03:33:33Z",
+              "completed_at": "2026-10-20T03:33:33Z"
+            },
+            {
+              "name": "Format desktop",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 8,
+              "started_at": "2026-10-20T03:33:33Z",
+              "completed_at": "2026-10-20T03:33:33Z"
+            },
+            {
+              "name": "Check desktop",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 9,
+              "started_at": "2026-10-20T03:33:33Z",
+              "completed_at": "2026-10-20T03:37:16Z"
+            },
+            {
+              "name": "Build desktop",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 10,
+              "started_at": "2026-10-20T03:37:16Z",
+              "completed_at": "2026-10-20T03:41:34Z"
+            },
+            {
+              "name": "Lint desktop",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 11,
+              "started_at": "2026-10-20T03:41:34Z",
+              "completed_at": "2026-10-20T03:41:38Z"
+            },
+            {
+              "name": "Test desktop and protocol roles",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 12,
+              "started_at": "2026-10-20T03:41:38Z",
+              "completed_at": "2026-10-20T03:41:50Z"
+            },
+            {
+              "name": "Record desktop build storage",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 13,
+              "started_at": "2026-10-20T03:41:50Z",
+              "completed_at": "2026-10-20T03:41:50Z"
+            },
+            {
+              "name": "Test desktop input and stream contracts",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 14,
+              "started_at": "2026-10-20T03:41:50Z",
+              "completed_at": "2026-10-20T03:41:51Z"
+            },
+            {
+              "name": "Check current visual evidence, contrast and icon",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 15,
+              "started_at": "2026-10-20T03:41:51Z",
+              "completed_at": "2026-10-20T03:41:51Z"
+            },
+            {
+              "name": "Post Install Node.js",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 29,
+              "started_at": "2026-10-20T03:41:51Z",
+              "completed_at": "2026-10-20T03:41:51Z"
+            },
+            {
+              "name": "Post Check out source",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 30,
+              "started_at": "2026-10-20T03:41:51Z",
+              "completed_at": "2026-10-20T03:41:52Z"
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 31,
+              "started_at": "2026-10-20T03:41:52Z",
+              "completed_at": "2026-10-20T03:41:52Z"
+            }
+          ]
+        },
+        {
+          "id": 118439327363,
+          "name": "Anonymous public endpoint gate",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-20T03:33:06Z",
+          "completed_at": "2026-10-20T03:33:21Z",
+          "html_url": "https://github.com/AlrikOlson/magistr/actions/runs/39364882173/job/118439327363",
+          "runner_name": "GitHub Actions 1000013095",
+          "labels": [
+            "ubuntu-latest"
+          ],
+          "seconds": 15.0,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1,
+              "started_at": "2026-10-20T03:33:07Z",
+              "completed_at": "2026-10-20T03:33:08Z"
+            },
+            {
+              "name": "Check out source",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2,
+              "started_at": "2026-10-20T03:33:08Z",
+              "completed_at": "2026-10-20T03:33:18Z"
+            },
+            {
+              "name": "Probe configured public URLs",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3,
+              "started_at": "2026-10-20T03:33:18Z",
+              "completed_at": "2026-10-20T03:33:18Z"
+            },
+            {
+              "name": "Post Check out source",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6,
+              "started_at": "2026-10-20T03:33:18Z",
+              "completed_at": "2026-10-20T03:33:19Z"
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7,
+              "started_at": "2026-10-20T03:33:19Z",
+              "completed_at": "2026-10-20T03:33:19Z"
+            }
+          ]
+        },
+        {
+          "id": 118439327455,
+          "name": "Package and verify (macOS)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-20T03:33:10Z",
+          "completed_at": "2026-10-20T03:39:26Z",
+          "html_url": "https://github.com/AlrikOlson/magistr/actions/runs/39364882173/job/118439327455",
+          "runner_name": "GitHub Actions 1000013099",
+          "labels": [
+            "macos-15"
+          ],
+          "seconds": 376.0,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1,
+              "started_at": "2026-10-20T03:33:11Z",
+              "completed_at": "2026-10-20T03:33:11Z"
+            },
+            {
+              "name": "Check out source",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2,
+              "started_at": "2026-10-20T03:33:11Z",
+              "completed_at": "2026-10-20T03:33:22Z"
+            },
+            {
+              "name": "Install Rust toolchain",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3,
+              "started_at": "2026-10-20T03:33:22Z",
+              "completed_at": "2026-10-20T03:33:28Z"
+            },
+            {
+              "name": "Build host archive",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4,
+              "started_at": "2026-10-20T03:33:28Z",
+              "completed_at": "2026-10-20T03:39:22Z"
+            },
+            {
+              "name": "Verify archive checksums",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5,
+              "started_at": "2026-10-20T03:39:22Z",
+              "completed_at": "2026-10-20T03:39:22Z"
+            },
+            {
+              "name": "Post Check out source",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 10,
+              "started_at": "2026-10-20T03:39:22Z",
+              "completed_at": "2026-10-20T03:39:23Z"
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 11,
+              "started_at": "2026-10-20T03:39:23Z",
+              "completed_at": "2026-10-20T03:39:24Z"
+            }
+          ]
+        },
+        {
+          "id": 118439327459,
+          "name": "Rust and website gates",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-20T03:33:09Z",
+          "completed_at": "2026-10-20T03:49:49Z",
+          "html_url": "https://github.com/AlrikOlson/magistr/actions/runs/39364882173/job/118439327459",
+          "runner_name": "GitHub Actions 1000013100",
+          "labels": [
+            "macos-15"
+          ],
+          "seconds": 1000.0,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1,
+              "started_at": "2026-10-20T03:33:09Z",
+              "completed_at": "2026-10-20T03:33:10Z"
+            },
+            {
+              "name": "Check out source",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2,
+              "started_at": "2026-10-20T03:33:10Z",
+              "completed_at": "2026-10-20T03:33:21Z"
+            },
+            {
+              "name": "Install Rust toolchain",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3,
+              "started_at": "2026-10-20T03:33:21Z",
+              "completed_at": "2026-10-20T03:33:26Z"
+            },
+            {
+              "name": "Run Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4,
+              "started_at": "2026-10-20T03:33:26Z",
+              "completed_at": "2026-10-20T03:33:27Z"
+            },
+            {
+              "name": "Fetch the complete locked dependency graph",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5,
+              "started_at": "2026-10-20T03:33:27Z",
+              "completed_at": "2026-10-20T03:33:35Z"
+            },
+            {
+              "name": "Record available build storage",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6,
+              "started_at": "2026-10-20T03:33:35Z",
+              "completed_at": "2026-10-20T03:33:35Z"
+            },
+            {
+              "name": "Check formatting",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7,
+              "started_at": "2026-10-20T03:33:35Z",
+              "completed_at": "2026-10-20T03:33:37Z"
+            },
+            {
+              "name": "Check release versions and artifact validation",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 8,
+              "started_at": "2026-10-20T03:33:37Z",
+              "completed_at": "2026-10-20T03:34:19Z"
+            },
+            {
+              "name": "Check workspace",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 9,
+              "started_at": "2026-10-20T03:34:19Z",
+              "completed_at": "2026-10-20T03:35:53Z"
+            },
+            {
+              "name": "Install cargo-nextest",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 10,
+              "started_at": "2026-10-20T03:35:53Z",
+              "completed_at": "2026-10-20T03:35:55Z"
+            },
+            {
+              "name": "Install Node.js",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 11,
+              "started_at": "2026-10-20T03:35:55Z",
+              "completed_at": "2026-10-20T03:36:00Z"
+            },
+            {
+              "name": "Install locked development tools",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 12,
+              "started_at": "2026-10-20T03:36:00Z",
+              "completed_at": "2026-10-20T03:36:02Z"
+            },
+            {
+              "name": "Run workspace tests",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 13,
+              "started_at": "2026-10-20T03:36:02Z",
+              "completed_at": "2026-10-20T03:48:33Z"
+            },
+            {
+              "name": "Run Clippy",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 14,
+              "started_at": "2026-10-20T03:48:33Z",
+              "completed_at": "2026-10-20T03:49:03Z"
+            },
+            {
+              "name": "Record Rust build storage",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 15,
+              "started_at": "2026-10-20T03:49:03Z",
+              "completed_at": "2026-10-20T03:49:03Z"
+            },
+            {
+              "name": "Test website",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 16,
+              "started_at": "2026-10-20T03:49:03Z",
+              "completed_at": "2026-10-20T03:49:26Z"
+            },
+            {
+              "name": "Assert clean-checkout public assets",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 17,
+              "started_at": "2026-10-20T03:49:26Z",
+              "completed_at": "2026-10-20T03:49:26Z"
+            },
+            {
+              "name": "Post Install Node.js",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 32,
+              "started_at": "2026-10-20T03:49:26Z",
+              "completed_at": "2026-10-20T03:49:26Z"
+            },
+            {
+              "name": "Post Run Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 33,
+              "started_at": "2026-10-20T03:49:26Z",
+              "completed_at": "2026-10-20T03:49:44Z"
+            },
+            {
+              "name": "Post Check out source",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 34,
+              "started_at": "2026-10-20T03:49:44Z",
+              "completed_at": "2026-10-20T03:49:44Z"
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 35,
+              "started_at": "2026-10-20T03:49:44Z",
+              "completed_at": "2026-10-20T03:49:48Z"
+            }
+          ]
+        }
+      ],
+      "testSummaries": [
+        "Desktop gates (macOS)\tTest desktop and protocol roles\t2026-10-20T03:41:50.6867650Z      Summary [   0.530s] 47 tests run: 47 passed, 0 skipped",
+        "Rust and website gates\tRun workspace tests\t2026-10-20T03:48:32.9990890Z      Summary [ 600.757s] 8069 tests run: 8069 passed (1 slow), 18 skipped"
+      ],
+      "skips": [
+        "Rust and website gates\tRun workspace tests\t2026-10-20T03:38:52.5674380Z         SKIP [         ] (\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500) magistr-cli::acp_live the_in_binary_claude_agent_advertises_fable_runs_a_tool_turn_and_cancels_the_next",
+        "Rust and website gates\tRun workspace tests\t2026-10-20T03:39:10.3960760Z         SKIP [         ] (\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500) magistr-cli::codex_runtime_live installed_codex_discovers_relocated_project_and_generated_mcp_tools",
+        "Rust and website gates\tRun workspace tests\t2026-10-20T03:42:24.1809920Z         SKIP [         ] (\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500) magistr-cli::workspace_queries_conformance native_queries_match_real_reference_in_independent_roots",
+        "Rust and website gates\tRun workspace tests\t2026-10-20T03:42:25.0350880Z         SKIP [         ] (\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500) magistr-cli::workspace_release_smoke the_release_binary_serves_every_core_tool_with_no_runtime_beside_it",
+        "Rust and website gates\tRun workspace tests\t2026-10-20T03:43:20.1379540Z         SKIP [         ] (\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500) magistr-workflow cloud::client::tests::live_list_from_real_backend",
+        "Rust and website gates\tRun workspace tests\t2026-10-20T03:43:20.1380120Z         SKIP [         ] (\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500) magistr-workflow cloud::client::tests::live_push_to_real_backend",
+        "Rust and website gates\tRun workspace tests\t2026-10-20T03:43:22.6955870Z         SKIP [         ] (\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500) magistr-workflow tracker::credential::store::tests::the_real_os_keychain_round_trips_a_credential",
+        "Rust and website gates\tRun workspace tests\t2026-10-20T03:43:23.5552640Z         SKIP [         ] (\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500) magistr-workflow::cloud_roadmap_sync a_roadmap_mutation_reaches_the_live_cloud",
+        "Rust and website gates\tRun workspace tests\t2026-10-20T03:43:33.0263950Z         SKIP [         ] (\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500) magistr-workflow::tracker_live_linear a_blocking_relation_is_accepted_and_points_the_right_way",
+        "Rust and website gates\tRun workspace tests\t2026-10-20T03:43:33.0265270Z         SKIP [         ] (\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500) magistr-workflow::tracker_live_linear a_fresh_team_resolves_on_the_immediate_reprobe_or_the_seeding_lag_is_real",
+        "Rust and website gates\tRun workspace tests\t2026-10-20T03:43:33.0266020Z         SKIP [         ] (\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500) magistr-workflow::tracker_live_linear a_real_round_trip_preserves_the_content_hash",
+        "Rust and website gates\tRun workspace tests\t2026-10-20T03:43:33.0266910Z         SKIP [         ] (\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500) magistr-workflow::tracker_live_linear in_progress_lands_in_the_earliest_started_state_not_whichever_came_first",
+        "Rust and website gates\tRun workspace tests\t2026-10-20T03:43:33.0267760Z         SKIP [         ] (\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500) magistr-workflow::tracker_live_linear the_projectors_own_body_survives_linears_markdown_normalization",
+        "Rust and website gates\tRun workspace tests\t2026-10-20T03:43:33.0268540Z         SKIP [         ] (\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500) magistr-workflow::tracker_live_projects_v2 a_live_query_costs_exactly_one_point",
+        "Rust and website gates\tRun workspace tests\t2026-10-20T03:43:33.0269360Z         SKIP [         ] (\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500) magistr-workflow::tracker_live_projects_v2 a_real_board_resolves_to_a_real_node_id",
+        "Rust and website gates\tRun workspace tests\t2026-10-20T03:43:33.0270030Z         SKIP [         ] (\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500) magistr-workflow::tracker_live_projects_v2 capture_the_boards_real_field_schema",
+        "Rust and website gates\tRun workspace tests\t2026-10-20T03:43:33.0270760Z         SKIP [         ] (\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500) magistr-workflow::tracker_live_projects_v2 the_real_board_answers_the_paginated_fields_query",
+        "Rust and website gates\tRun workspace tests\t2026-10-20T03:43:41.1470210Z         SKIP [         ] (\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500) magistr-workspace::journal_conformance native_append_is_decoded_by_the_pinned_reference_reader"
+      ]
+    },
+    {
+      "role": "packages",
+      "id": 39364916005,
+      "url": "https://github.com/AlrikOlson/magistr/actions/runs/39364916005",
+      "workflow": ".github/workflows/cli-packages.yml",
+      "event": "workflow_dispatch",
+      "headBranch": "main",
+      "source": "1e99aba7b9e3d9f76c953ddf03041166f45aa599",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "id": 118439435480,
+          "name": "prepare",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-20T03:35:14Z",
+          "completed_at": "2026-10-20T03:49:10Z",
+          "html_url": "https://github.com/AlrikOlson/magistr/actions/runs/39364916005/job/118439435480",
+          "runner_name": "GitHub Actions 1000013101",
+          "labels": [
+            "macos-15"
+          ],
+          "seconds": 836.0,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1,
+              "started_at": "2026-10-20T03:35:14Z",
+              "completed_at": "2026-10-20T03:35:15Z"
+            },
+            {
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2,
+              "started_at": "2026-10-20T03:35:15Z",
+              "completed_at": "2026-10-20T03:35:32Z"
+            },
+            {
+              "name": "Install the pinned Rust toolchain",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3,
+              "started_at": "2026-10-20T03:35:32Z",
+              "completed_at": "2026-10-20T03:35:38Z"
+            },
+            {
+              "name": "Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4,
+              "started_at": "2026-10-20T03:35:38Z",
+              "completed_at": "2026-10-20T03:35:42Z"
+            },
+            {
+              "name": "Run actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5,
+              "started_at": "2026-10-20T03:35:42Z",
+              "completed_at": "2026-10-20T03:35:58Z"
+            },
+            {
+              "name": "Check native platform",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6,
+              "started_at": "2026-10-20T03:35:58Z",
+              "completed_at": "2026-10-20T03:35:58Z"
+            },
+            {
+              "name": "Check release versions",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7,
+              "started_at": "2026-10-20T03:35:58Z",
+              "completed_at": "2026-10-20T03:35:58Z"
+            },
+            {
+              "name": "Build publishable artifacts",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 8,
+              "started_at": "2026-10-20T03:35:58Z",
+              "completed_at": "2026-10-20T03:41:52Z"
+            },
+            {
+              "name": "Verify extracted Cargo installation",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 9,
+              "started_at": "2026-10-20T03:41:52Z",
+              "completed_at": "2026-10-20T03:47:48Z"
+            },
+            {
+              "name": "Verify packed npm installation",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 10,
+              "started_at": "2026-10-20T03:47:48Z",
+              "completed_at": "2026-10-20T03:48:32Z"
+            },
+            {
+              "name": "Test unified protocol and onboarding",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 11,
+              "started_at": "2026-10-20T03:48:32Z",
+              "completed_at": "2026-10-20T03:48:44Z"
+            },
+            {
+              "name": "Scan current security and bind the artifacts",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 12,
+              "started_at": "2026-10-20T03:48:44Z",
+              "completed_at": "2026-10-20T03:49:02Z"
+            },
+            {
+              "name": "Verify complete artifact receipts",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 13,
+              "started_at": "2026-10-20T03:49:02Z",
+              "completed_at": "2026-10-20T03:49:02Z"
+            },
+            {
+              "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 14,
+              "started_at": "2026-10-20T03:49:02Z",
+              "completed_at": "2026-10-20T03:49:06Z"
+            },
+            {
+              "name": "Post Run actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 26,
+              "started_at": "2026-10-20T03:49:06Z",
+              "completed_at": "2026-10-20T03:49:06Z"
+            },
+            {
+              "name": "Post Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 27,
+              "started_at": "2026-10-20T03:49:06Z",
+              "completed_at": "2026-10-20T03:49:06Z"
+            },
+            {
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 28,
+              "started_at": "2026-10-20T03:49:06Z",
+              "completed_at": "2026-10-20T03:49:07Z"
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 29,
+              "started_at": "2026-10-20T03:49:07Z",
+              "completed_at": "2026-10-20T03:49:08Z"
+            }
+          ]
+        }
+      ],
+      "testSummaries": [],
+      "skips": []
+    },
+    {
+      "role": "security",
+      "id": 39364882252,
+      "url": "https://github.com/AlrikOlson/magistr/actions/runs/39364882252",
+      "workflow": ".github/workflows/release-security.yml",
+      "event": "push",
+      "headBranch": "main",
+      "source": "1e99aba7b9e3d9f76c953ddf03041166f45aa599",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "id": 118439327930,
+          "name": "Current dependency and secret checks",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-20T03:33:09Z",
+          "completed_at": "2026-10-20T03:35:09Z",
+          "html_url": "https://github.com/AlrikOlson/magistr/actions/runs/39364882252/job/118439327930",
+          "runner_name": "GitHub Actions 1000013097",
+          "labels": [
+            "macos-15"
+          ],
+          "seconds": 120.0,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1,
+              "started_at": "2026-10-20T03:33:09Z",
+              "completed_at": "2026-10-20T03:33:10Z"
+            },
+            {
+              "name": "Check out complete source history",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2,
+              "started_at": "2026-10-20T03:33:10Z",
+              "completed_at": "2026-10-20T03:34:14Z"
+            },
+            {
+              "name": "Install the pinned Rust toolchain",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3,
+              "started_at": "2026-10-20T03:34:14Z",
+              "completed_at": "2026-10-20T03:34:19Z"
+            },
+            {
+              "name": "Install the pinned Node.js version",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4,
+              "started_at": "2026-10-20T03:34:19Z",
+              "completed_at": "2026-10-20T03:34:26Z"
+            },
+            {
+              "name": "Install Python",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5,
+              "started_at": "2026-10-20T03:34:26Z",
+              "completed_at": "2026-10-20T03:34:42Z"
+            },
+            {
+              "name": "Test security gates",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6,
+              "started_at": "2026-10-20T03:34:42Z",
+              "completed_at": "2026-10-20T03:34:42Z"
+            },
+            {
+              "name": "Scan current source security",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7,
+              "started_at": "2026-10-20T03:34:42Z",
+              "completed_at": "2026-10-20T03:35:04Z"
+            },
+            {
+              "name": "Save sanitized findings",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 8,
+              "started_at": "2026-10-20T03:35:04Z",
+              "completed_at": "2026-10-20T03:35:05Z"
+            },
+            {
+              "name": "Post Install Python",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 14,
+              "started_at": "2026-10-20T03:35:05Z",
+              "completed_at": "2026-10-20T03:35:05Z"
+            },
+            {
+              "name": "Post Install the pinned Node.js version",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 15,
+              "started_at": "2026-10-20T03:35:05Z",
+              "completed_at": "2026-10-20T03:35:05Z"
+            },
+            {
+              "name": "Post Check out complete source history",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 16,
+              "started_at": "2026-10-20T03:35:05Z",
+              "completed_at": "2026-10-20T03:35:05Z"
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 17,
+              "started_at": "2026-10-20T03:35:05Z",
+              "completed_at": "2026-10-20T03:35:06Z"
+            }
+          ]
+        }
+      ],
+      "testSummaries": [],
+      "skips": []
+    },
+    {
+      "role": "desktop",
+      "id": 39364882140,
+      "url": "https://github.com/AlrikOlson/magistr/actions/runs/39364882140",
+      "workflow": ".github/workflows/desktop-apps.yml",
+      "event": "push",
+      "headBranch": "main",
+      "source": "1e99aba7b9e3d9f76c953ddf03041166f45aa599",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "id": 118439327409,
+          "name": "Installable desktop (macOS)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-20T03:33:09Z",
+          "completed_at": "2026-10-20T03:41:12Z",
+          "html_url": "https://github.com/AlrikOlson/magistr/actions/runs/39364882140/job/118439327409",
+          "runner_name": "GitHub Actions 1000013098",
+          "labels": [
+            "macos-15"
+          ],
+          "seconds": 483.0,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1,
+              "started_at": "2026-10-20T03:33:09Z",
+              "completed_at": "2026-10-20T03:33:10Z"
+            },
+            {
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2,
+              "started_at": "2026-10-20T03:33:10Z",
+              "completed_at": "2026-10-20T03:33:20Z"
+            },
+            {
+              "name": "Install the pinned Rust toolchain",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3,
+              "started_at": "2026-10-20T03:33:20Z",
+              "completed_at": "2026-10-20T03:33:25Z"
+            },
+            {
+              "name": "Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4,
+              "started_at": "2026-10-20T03:33:25Z",
+              "completed_at": "2026-10-20T03:33:31Z"
+            },
+            {
+              "name": "Run actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5,
+              "started_at": "2026-10-20T03:33:31Z",
+              "completed_at": "2026-10-20T03:33:49Z"
+            },
+            {
+              "name": "Select the native target",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6,
+              "started_at": "2026-10-20T03:33:49Z",
+              "completed_at": "2026-10-20T03:33:49Z"
+            },
+            {
+              "name": "Run Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7,
+              "started_at": "2026-10-20T03:33:49Z",
+              "completed_at": "2026-10-20T03:34:04Z"
+            },
+            {
+              "name": "Check formatting and launcher syntax",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 8,
+              "started_at": "2026-10-20T03:34:04Z",
+              "completed_at": "2026-10-20T03:34:04Z"
+            },
+            {
+              "name": "Build native app and installer",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 9,
+              "started_at": "2026-10-20T03:34:04Z",
+              "completed_at": "2026-10-20T03:37:39Z"
+            },
+            {
+              "name": "Check desktop",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 10,
+              "started_at": "2026-10-20T03:37:39Z",
+              "completed_at": "2026-10-20T03:38:31Z"
+            },
+            {
+              "name": "Lint desktop",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 11,
+              "started_at": "2026-10-20T03:38:31Z",
+              "completed_at": "2026-10-20T03:38:33Z"
+            },
+            {
+              "name": "Test desktop and process ownership",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 12,
+              "started_at": "2026-10-20T03:38:33Z",
+              "completed_at": "2026-10-20T03:41:04Z"
+            },
+            {
+              "name": "Verify the Mac app contents and child roles",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 13,
+              "started_at": "2026-10-20T03:41:04Z",
+              "completed_at": "2026-10-20T03:41:06Z"
+            },
+            {
+              "name": "Upload app packages",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 14,
+              "started_at": "2026-10-20T03:41:06Z",
+              "completed_at": "2026-10-20T03:41:08Z"
+            },
+            {
+              "name": "Post Run Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 25,
+              "started_at": "2026-10-20T03:41:08Z",
+              "completed_at": "2026-10-20T03:41:08Z"
+            },
+            {
+              "name": "Post Run actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 26,
+              "started_at": "2026-10-20T03:41:08Z",
+              "completed_at": "2026-10-20T03:41:08Z"
+            },
+            {
+              "name": "Post Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 27,
+              "started_at": "2026-10-20T03:41:08Z",
+              "completed_at": "2026-10-20T03:41:09Z"
+            },
+            {
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 28,
+              "started_at": "2026-10-20T03:41:09Z",
+              "completed_at": "2026-10-20T03:41:09Z"
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 29,
+              "started_at": "2026-10-20T03:41:09Z",
+              "completed_at": "2026-10-20T03:41:10Z"
+            }
+          ]
+        }
+      ],
+      "testSummaries": [
+        "Installable desktop (macOS)\tTest desktop and process ownership\t2026-10-20T03:40:56.9213760Z test result: ok. 45 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.28s",
+        "Installable desktop (macOS)\tTest desktop and process ownership\t2026-10-20T03:40:57.2355210Z test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.31s",
+        "Installable desktop (macOS)\tTest desktop and process ownership\t2026-10-20T03:41:04.6199250Z test result: ok. 36 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.54s",
+        "Installable desktop (macOS)\tTest desktop and process ownership\t2026-10-20T03:41:04.6699920Z test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
+      ],
+      "skips": []
+    }
+  ],
+  "observedAt": "2026-10-20T03:50:11.070238+00:00",
+  "passed": true,
+  "processChecks": {
+    "unifiedMcp": {
+      "passed": true,
+      "tests": 8,
+      "seconds": 4.847
+    },
+    "onboarding": {
+      "passed": true,
+      "tests": 8,
+      "seconds": 6.457
+    },
+    "observedLogLines": [
+      "prepare\tTest unified protocol and onboarding\t2026-10-20T03:48:33.6961230Z test_bounds_and_confirmation (__main__.UnifiedMcp.test_bounds_and_confirmation) ... ok",
+      "prepare\tTest unified protocol and onboarding\t2026-10-20T03:48:34.2728720Z test_cancellation_stops_a_native_command (__main__.UnifiedMcp.test_cancellation_stops_a_native_command) ... ok",
+      "prepare\tTest unified protocol and onboarding\t2026-10-20T03:48:34.4399030Z test_catalog_and_schema_coverage (__main__.UnifiedMcp.test_catalog_and_schema_coverage) ... ok",
+      "prepare\tTest unified protocol and onboarding\t2026-10-20T03:48:34.5509030Z test_owner_restart_never_replays_mutations (__main__.UnifiedMcp.test_owner_restart_never_replays_mutations) ... ok",
+      "prepare\tTest unified protocol and onboarding\t2026-10-20T03:48:35.4095760Z test_planning_authority_checks_each_composed_effect (__main__.UnifiedMcp.test_planning_authority_checks_each_composed_effect) ... ok",
+      "prepare\tTest unified protocol and onboarding\t2026-10-20T03:48:36.1029620Z test_safe_edits_partial_failure_and_session_undo (__main__.UnifiedMcp.test_safe_edits_partial_failure_and_session_undo) ... ok",
+      "prepare\tTest unified protocol and onboarding\t2026-10-20T03:48:37.1158420Z test_separate_worktrees_keep_workspace_ownership (__main__.UnifiedMcp.test_separate_worktrees_keep_workspace_ownership) ... ok",
+      "prepare\tTest unified protocol and onboarding\t2026-10-20T03:48:37.8204740Z test_workflow_completion_and_startup_does_not_repair (__main__.UnifiedMcp.test_workflow_completion_and_startup_does_not_repair) ... ok",
+      "prepare\tTest unified protocol and onboarding\t2026-10-20T03:48:37.8205910Z Ran 8 tests in 4.847s",
+      "prepare\tTest unified protocol and onboarding\t2026-10-20T03:48:37.8206080Z OK",
+      "prepare\tTest unified protocol and onboarding\t2026-10-20T03:48:39.2605110Z test_codex_only_repeated_setup_and_read_only_preview (__main__.Onboarding.test_codex_only_repeated_setup_and_read_only_preview) ... ok",
+      "prepare\tTest unified protocol and onboarding\t2026-10-20T03:48:40.6113860Z test_custom_launcher_is_preserved_and_actually_checked (__main__.Onboarding.test_custom_launcher_is_preserved_and_actually_checked) ... ok",
+      "prepare\tTest unified protocol and onboarding\t2026-10-20T03:48:40.9147790Z test_doctor_reports_actionable_missing_setup (__main__.Onboarding.test_doctor_reports_actionable_missing_setup) ... ok",
+      "prepare\tTest unified protocol and onboarding\t2026-10-20T03:48:40.9460340Z test_malformed_custom_settings_fail_before_any_setup (__main__.Onboarding.test_malformed_custom_settings_fail_before_any_setup) ... ok",
+      "prepare\tTest unified protocol and onboarding\t2026-10-20T03:48:43.1877070Z test_multiple_agents_preserve_custom_configuration_and_external_connections (__main__.Onboarding.test_multiple_agents_preserve_custom_configuration_and_external_connections) ... ok",
+      "prepare\tTest unified protocol and onboarding\t2026-10-20T03:48:43.1977740Z test_terminal_decline_leaves_project_untouched (__main__.Onboarding.test_terminal_decline_leaves_project_untouched) ... ok",
+      "prepare\tTest unified protocol and onboarding\t2026-10-20T03:48:43.9127080Z test_terminal_interview_reviews_changes_before_apply (__main__.Onboarding.test_terminal_interview_reviews_changes_before_apply) ... ok",
+      "prepare\tTest unified protocol and onboarding\t2026-10-20T03:48:44.3287500Z test_unavailable_agent_and_portable_setup (__main__.Onboarding.test_unavailable_agent_and_portable_setup) ... ok",
+      "prepare\tTest unified protocol and onboarding\t2026-10-20T03:48:44.3289240Z Ran 8 tests in 6.457s",
+      "prepare\tTest unified protocol and onboarding\t2026-10-20T03:48:44.3289460Z OK"
+    ]
+  },
+  "workspaceTests": {
+    "passed": 8069,
+    "failed": 0,
+    "skipped": 18,
+    "seconds": 600.757
+  }
+}

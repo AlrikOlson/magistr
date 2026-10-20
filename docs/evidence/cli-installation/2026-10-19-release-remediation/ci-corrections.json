@@ -1,0 +1,64 @@
+{
+  "source": "37867c5ade89f7c847231bb97bca2df1b5652be2",
+  "previousSource": "0dad975115c0501fe60557cea64851eeed6f231f",
+  "failedRuns": [
+    {
+      "id": 39359323037,
+      "workflow": "Release security"
+    },
+    {
+      "id": 39359324673,
+      "workflow": "CLI packages"
+    },
+    {
+      "id": 39359323278,
+      "workflow": "desktop apps"
+    }
+  ],
+  "failure": "GitHub setup-python had no macOS arm64 artifact for Python 3.12.15.",
+  "correction": "Changed the canonical .python-version to 3.14.8 after verifying the official actions/python-versions manifest. The corrected hosted security run passes.",
+  "manifest": "https://raw.githubusercontent.com/actions/python-versions/main/versions-manifest.json",
+  "verification": {
+    "run": 39359530275,
+    "result": "success"
+  },
+  "additionalCorrection": "The public endpoint gate now runs website checks on push/PR, and full release checks on manual/tag runs. The website stage passed in run 39359530200.",
+  "finalSource": "1e99aba7b9e3d9f76c953ddf03041166f45aa599",
+  "additionalFindings": [
+    {
+      "run": 39359530200,
+      "result": "8063 passed, 2 failed, 18 skipped",
+      "cause": "Two integration test fixtures still hard-coded the previous verified Codex version.",
+      "correctionCommit": "d50a8b83ee85917d391b742f2473a65eed44d210",
+      "correction": "Fixtures consume the launcher's single version constant; five focused runtime tests, formatting and Clippy pass."
+    },
+    {
+      "candidateSource": "37867c5ade89f7c847231bb97bca2df1b5652be2",
+      "cause": "The evaluator treated an optional deliberately failing baseline diagnostic as an outstanding required check.",
+      "correctionCommit": "577c61e0bf29aa892f9d271c12aea432e8f17605",
+      "correction": "The independent acceptance checker now follows native required-check ordering. Seven tests reject unverified or unrecovered required failures. Reanalysis of unchanged persisted Codex and Claude records passes, without replaying effects.",
+      "originalEvidence": "target/release-client-evals-37867c5a/",
+      "limitation": "These initial client trials exercise the earlier packaged binary; final artifact trials are tracked separately."
+    },
+    {
+      "cause": "A real native read-only Claude session stalled on a unified Magistr permission prompt because the host recognized retired prefixes.",
+      "correctionCommit": "2237d01a993eab0cb909de0523a7c83410c4fad7",
+      "correction": "Allow only names from the public unified catalog to reach native authorization; retain explicit governance denial/confirmation and external-tool policy. Fifty-eight tests and a real completed native turn pass."
+    },
+    {
+      "cause": "The advertised --continue option was always rejected instead of selecting saved history.",
+      "correctionCommit": "cfd80a5718c6642eb3322e4abab70cc04a4b86c0",
+      "correction": "Select the newest checkpoint in the exact working copy through the existing saved-session admission owner. Forty-one focused admission tests, seven desktop argument tests and actual resumed dark/light app captures pass."
+    },
+    {
+      "cause": "The shared verified Codex version made a public implementation module violate the structure rule.",
+      "correctionCommit": "ffc14dc0",
+      "correction": "Keep the module private and expose explicit launcher/version items through the library facade. Fifteen boundary tests, Clippy and the structure gate pass; no allowlist widened."
+    },
+    {
+      "cause": "Website verification waited for offscreen lazy images before scrolling them into view.",
+      "correctionCommit": "1e99aba7b9e3d9f76c953ddf03041166f45aa599",
+      "correction": "Drive the real scroll/load lifecycle before decoding images. Four browser profiles pass. Retained failed framing captures are separate from the corrected reviewed local and deployed gallery."
+    }
+  ]
+}

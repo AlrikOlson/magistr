@@ -1,0 +1,269 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-10-20T03:54:59.931360+00:00",
+  "source": "1e99aba7b9e3d9f76c953ddf03041166f45aa599",
+  "packageRun": 39364916005,
+  "artifactId": 12238999976,
+  "binarySha256": "8c3d78ae31a27482812f88523fb268512a5cdf1471e50a99422f4926ed479317",
+  "versions": {
+    "codex": "codex-cli 0.163.0",
+    "claude": "2.1.304 (Claude Code)"
+  },
+  "trials": [
+    {
+      "host": "codex",
+      "surface": "hybrid",
+      "binary": "/Users/alrik/Code/magistr/target/hosted-release-1e99aba7/eval-magistr",
+      "binarySha256": "8c3d78ae31a27482812f88523fb268512a5cdf1471e50a99422f4926ed479317",
+      "turns": [
+        {
+          "turn": "work",
+          "exit": 0,
+          "seconds": 50.11,
+          "toolCalls": 12,
+          "tools": [
+            "discover",
+            "discover",
+            "discover",
+            "execute",
+            "discover",
+            "execute",
+            "discover",
+            "execute",
+            "execute",
+            "execute",
+            "execute",
+            "execute"
+          ],
+          "toolErrors": 0,
+          "usage": [
+            {
+              "input_tokens": 474989,
+              "cached_input_tokens": 429824,
+              "cache_write_input_tokens": 0,
+              "output_tokens": 1856,
+              "reasoning_output_tokens": 26
+            }
+          ],
+          "model": null,
+          "eventBytes": 193068
+        },
+        {
+          "turn": "resume",
+          "exit": 0,
+          "seconds": 32.17,
+          "toolCalls": 14,
+          "tools": [
+            "context",
+            "discover",
+            "discover",
+            "discover",
+            "execute",
+            "discover",
+            "discover",
+            "context",
+            "read",
+            "execute",
+            "context",
+            "execute",
+            "read",
+            "execute"
+          ],
+          "toolErrors": 0,
+          "usage": [
+            {
+              "input_tokens": 309842,
+              "cached_input_tokens": 275712,
+              "cache_write_input_tokens": 0,
+              "output_tokens": 822,
+              "reasoning_output_tokens": 0
+            }
+          ],
+          "model": null,
+          "eventBytes": 88303
+        }
+      ],
+      "sourceCheckPassed": true,
+      "source": "def normalize_names(names):\n    return [name.strip().lower() for name in names if name and name.strip()]\n",
+      "independentVerification": {
+        "objectiveCompleted": true,
+        "tasksCompleted": true,
+        "recordedCheckPassed": true,
+        "feedbackSaved": true,
+        "futureRoadmapSaved": true,
+        "decisionRecordsSaved": true,
+        "testUnchanged": true,
+        "independentSourceCheckPassed": true,
+        "sourceSha256": "644c44a76f1f310cecaf5fb2e8c04cdd1d5baedb1c6ebfd2396a851c6d69e760",
+        "testSha256": "3f623240777eb4a5307a680e51c74b10758d894d9aef0b5147baa218f2a06681",
+        "verificationCommands": [
+          "python3 -m unittest -q",
+          "python3 -m unittest -q"
+        ],
+        "taskCount": 1,
+        "passed": true
+      }
+    },
+    {
+      "host": "claude",
+      "surface": "hybrid",
+      "binary": "/Users/alrik/Code/magistr/target/hosted-release-1e99aba7/eval-magistr",
+      "binarySha256": "8c3d78ae31a27482812f88523fb268512a5cdf1471e50a99422f4926ed479317",
+      "turns": [
+        {
+          "turn": "work",
+          "exit": 0,
+          "seconds": 161.38,
+          "toolCalls": 21,
+          "tools": [
+            "mcp__magistr__context",
+            "mcp__magistr__read",
+            "mcp__magistr__read",
+            "mcp__magistr__discover",
+            "mcp__magistr__discover",
+            "mcp__magistr__discover",
+            "mcp__magistr__discover",
+            "mcp__magistr__discover",
+            "mcp__magistr__execute",
+            "mcp__magistr__execute",
+            "mcp__magistr__plan_work",
+            "mcp__magistr__start_work",
+            "mcp__magistr__execute",
+            "mcp__magistr__edit",
+            "mcp__magistr__execute",
+            "mcp__magistr__record_progress",
+            "mcp__magistr__check_work",
+            "mcp__magistr__execute",
+            "mcp__magistr__execute",
+            "mcp__magistr__finish_work",
+            "mcp__magistr__execute"
+          ],
+          "toolErrors": 0,
+          "usage": [
+            {
+              "input_tokens": 354,
+              "cache_creation_input_tokens": 33724,
+              "cache_read_input_tokens": 281391,
+              "output_tokens": 6216,
+              "output_tokens_details": {
+                "thinking_tokens": 1005
+              },
+              "server_tool_use": {
+                "web_search_requests": 0,
+                "web_fetch_requests": 0
+              },
+              "service_tier": "standard",
+              "cache_creation": {
+                "ephemeral_1h_input_tokens": 33724,
+                "ephemeral_5m_input_tokens": 0
+              },
+              "inference_geo": "global",
+              "iterations": [
+                {
+                  "input_tokens": 32,
+                  "output_tokens": 684,
+                  "cache_read_input_tokens": 37963,
+                  "cache_creation_input_tokens": 3658,
+                  "cache_creation": {
+                    "ephemeral_5m_input_tokens": 0,
+                    "ephemeral_1h_input_tokens": 3658
+                  },
+                  "type": "message"
+                }
+              ],
+              "speed": "standard",
+              "fallback_credit": null
+            }
+          ],
+          "model": "claude-fable-5-1",
+          "eventBytes": 272884
+        },
+        {
+          "turn": "resume",
+          "exit": 0,
+          "seconds": 45.66,
+          "toolCalls": 10,
+          "tools": [
+            "mcp__magistr__context",
+            "mcp__magistr__discover",
+            "mcp__magistr__execute",
+            "mcp__magistr__discover",
+            "mcp__magistr__read",
+            "mcp__magistr__read",
+            "mcp__magistr__execute",
+            "mcp__magistr__discover",
+            "mcp__magistr__execute",
+            "mcp__magistr__execute"
+          ],
+          "toolErrors": 1,
+          "usage": [
+            {
+              "input_tokens": 226,
+              "cache_creation_input_tokens": 20690,
+              "cache_read_input_tokens": 147270,
+              "output_tokens": 2804,
+              "output_tokens_details": {
+                "thinking_tokens": 827
+              },
+              "server_tool_use": {
+                "web_search_requests": 0,
+                "web_fetch_requests": 0
+              },
+              "service_tier": "standard",
+              "cache_creation": {
+                "ephemeral_1h_input_tokens": 20690,
+                "ephemeral_5m_input_tokens": 0
+              },
+              "inference_geo": "global",
+              "iterations": [
+                {
+                  "input_tokens": 32,
+                  "output_tokens": 576,
+                  "cache_read_input_tokens": 30713,
+                  "cache_creation_input_tokens": 1362,
+                  "cache_creation": {
+                    "ephemeral_5m_input_tokens": 0,
+                    "ephemeral_1h_input_tokens": 1362
+                  },
+                  "type": "message"
+                }
+              ],
+              "speed": "standard",
+              "fallback_credit": null
+            }
+          ],
+          "model": "claude-fable-5-1",
+          "eventBytes": 191727
+        }
+      ],
+      "sourceCheckPassed": true,
+      "source": "def normalize_names(names):\n    stripped = (name.strip() for name in names)\n    return [name.lower() for name in stripped if name]\n",
+      "independentVerification": {
+        "objectiveCompleted": true,
+        "tasksCompleted": true,
+        "recordedCheckPassed": true,
+        "feedbackSaved": true,
+        "futureRoadmapSaved": true,
+        "decisionRecordsSaved": true,
+        "testUnchanged": true,
+        "independentSourceCheckPassed": true,
+        "sourceSha256": "8dd119d94421d4f3fa69e71a1d0e78e067ae9edb6df095a64a1770aca853684d",
+        "testSha256": "3f623240777eb4a5307a680e51c74b10758d894d9aef0b5147baa218f2a06681",
+        "verificationCommands": [
+          "python3 -m unittest -q"
+        ],
+        "taskCount": 1,
+        "passed": true
+      }
+    }
+  ],
+  "observations": [
+    "Each host completed a real implementation turn and a separate fresh-session recovery/finalization turn using the exact hosted npm binary.",
+    "Independent persisted-state checks confirm objective/task completion, actual required verification, unchanged tests, feedback, future roadmap work and a factual decision record.",
+    "Codex recorded an intentionally failing optional baseline diagnostic, then passed the required check. Its two required client turns had zero tool errors.",
+    "Claude resume made one invalid read-only roadmap_focus_get call without its required lane. The server returned an explicit argument error and completed-operation receipts, stopped the composition and performed no automatic replay. The client recovered and completed the objective.",
+    "These are two small final-artifact acceptance trials, not a new baseline comparison or a broad performance/reliability study. Earlier comparisons remain historical and include worse Claude hybrid timing.",
+    "Raw client event logs remain in ignored local evaluation directories. Tracked summaries exclude private model reasoning and authentication files."
+  ],
+  "passed": true
+}
