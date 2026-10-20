@@ -19,7 +19,10 @@ const breadcrumbLd = {"@context":"https://schema.org","@type":"BreadcrumbList","
   <div class="docs-layout section-shell">
     <aside class="docs-sidebar" aria-label="Documentation navigation">
       <a class="docs-back" href="/">← Magistr home</a>
-      <div id="docs-search"></div>
+      <div id="docs-search">
+        <input type="search" placeholder="Search docs" class="docs-search-input" aria-label="Search documentation" />
+        <div class="docs-search-results" aria-live="polite"></div>
+      </div>
       <nav class="docs-nav-group" aria-label="Documentation pages"><ul>{sorted.map((doc)=>{
         const active=doc.id===currentSlug;
         return <li><a href={`/docs/${doc.id}`} aria-current={active?"page":undefined} class:list={{active}}>{doc.data.title}</a></li>;
@@ -33,14 +36,46 @@ const breadcrumbLd = {"@context":"https://schema.org","@type":"BreadcrumbList","
   </div>
 </Base>
 <script is:inline>
-  async function initSearch(){
-    const container=document.getElementById("docs-search"); if(!container) return;
-    try{
-      const pagefind=await import("/pagefind/pagefind.js"); await pagefind.init();
-      const input=document.createElement("input"); input.type="search"; input.placeholder="Search docs"; input.className="docs-search-input"; input.setAttribute("aria-label","Search documentation"); container.appendChild(input);
-      const results=document.createElement("div"); results.className="docs-search-results"; container.appendChild(results);
-      let timer; input.addEventListener("input",()=>{clearTimeout(timer); timer=setTimeout(async()=>{results.innerHTML=""; const q=input.value.trim(); if(!q)return; const search=await pagefind.search(q); for(const result of search.results.slice(0,5)){const data=await result.data(); const link=document.createElement("a"); link.href=data.url; link.textContent=data.meta?.title||data.url; results.appendChild(link);}},180);});
-    }catch{ /* Pagefind is generated for production builds. */ }
-  }
-  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",initSearch); else initSearch();
+  (() => {
+    const input = document.querySelector(".docs-search-input");
+    const results = document.querySelector(".docs-search-results");
+    if (!input || !results) return;
+    let timer, revision = 0, pagefindPromise;
+    const search = async (query, request) => {
+      results.textContent = "Searching…";
+      try {
+        pagefindPromise ??= import("/pagefind/pagefind.js");
+        const pagefind = await pagefindPromise;
+        if (request !== revision) return;
+        const search = await pagefind.search(query);
+        const matches = await Promise.all(search.results.slice(0, 5).map((result) => result.data()));
+        if (request !== revision) return;
+        results.replaceChildren();
+        if (!matches.length) results.textContent = "Nothing found. Try another word.";
+        for (const data of matches) {
+          const link = document.createElement("a");
+          link.href = data.url;
+          link.textContent = data.meta?.title || data.url;
+          results.appendChild(link);
+        }
+      } catch {
+        if (request === revision) results.textContent = "Search is unavailable. Reload or use the links below.";
+      }
+    };
+    input.addEventListener("input", () => {
+      clearTimeout(timer);
+      const request = ++revision;
+      const query = input.value.trim();
+      results.replaceChildren();
+      if (query) timer = setTimeout(() => search(query, request), 180);
+    });
+    addEventListener("pagehide", () => {
+      clearTimeout(timer);
+      revision++;
+      pagefindPromise?.then((pagefind) => pagefind.destroy()).catch(() => {});
+    });
+    addEventListener("pageshow", (event) => {
+      if (event.persisted && input.value.trim()) input.dispatchEvent(new Event("input"));
+    });
+  })();
 </script>

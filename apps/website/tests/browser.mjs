@@ -9,6 +9,9 @@ import { webkit } from "playwright";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const dist = resolve(root, "dist");
 const repo = resolve(root, "../..");
+const scopeArg = process.argv.indexOf("--evidence-scope");
+const evidenceScope = scopeArg < 0 ? "all" : process.argv[scopeArg + 1];
+assert(["all", "search"].includes(evidenceScope), "Evidence scope must be all or search");
 const evidenceArg = process.argv.indexOf("--evidence-dir");
 const evidence = evidenceArg < 0 ? undefined : resolve(repo, process.argv[evidenceArg + 1]);
 if (evidence && !evidence.startsWith(resolve(repo, "docs/evidence/desktop-iterations") + sep)) {
@@ -61,7 +64,7 @@ const writeReport = async (status, failure) => {
     completedAt: new Date().toISOString(), status, failure,
     renderer: "Playwright WebKit", rendererVersion: browser.version(),
     platform: process.platform + "-" + process.arch, node: process.version, origin,
-    motion: "reduced", scale: 1, checks, sourceHashes, captures,
+    motion: "reduced", scale: 1, evidenceScope, checks, sourceHashes, captures,
     limitations: [
       "Headless browser only; no native OS-input or assistive-technology testing.",
       "Screenshots require separate recorded visual review.",
@@ -71,7 +74,7 @@ const writeReport = async (status, failure) => {
   await writeFile(resolve(evidence, "browser-checks.json"), JSON.stringify(report, null, 2) + "\n");
 };
 const capture = async (page, name, state, fullPage = false) => {
-  if (!evidence) return;
+  if (!evidence || (evidenceScope === "search" && !name.includes("search"))) return;
   await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
   const file = name + ".png";
   await page.screenshot({ path: resolve(evidence, file), fullPage, animations: "disabled" });
@@ -133,6 +136,8 @@ try {
       await context.route("https://plausible.io/**", (route) => route.fulfill({ status: 204 }));
       const page = await context.newPage();
       const errors = [];
+      const searchRequests = [];
+      page.on("request", (request) => { if (new URL(request.url()).pathname.startsWith("/pagefind/")) searchRequests.push(request.url()); });
       page.on("pageerror", (error) => errors.push(error.message));
       for (const [name, path] of [["home", "/"], ["installation", "/docs/installation/"], ["concepts", "/docs/concepts/"], ["not-found", "/404.html"]]) {
         const response = await page.goto(origin + path);
@@ -204,6 +209,7 @@ try {
           }
         }
         if (name === "concepts") {
+          await capture(page, "concepts-search-idle-" + suffix, "Search is ready without starting its index");
           for (const heading of ["your-plan", "your-work-history", "checking-your-work", "agent-sessions", "the-desktop-preview", "where-your-work-is-saved"]) {
             await scrollHeading(page, "#" + heading);
             await capture(page, "concepts-" + heading + "-" + suffix, heading.replaceAll("-", " "));
@@ -225,12 +231,32 @@ try {
           }
           await page.evaluate(() => scrollTo({ top: 0, behavior: "instant" }));
           const search = page.getByRole("searchbox", { name: "Search documentation" });
+          assert.deepEqual(searchRequests, [], "Reading docs does not start search downloads");
           await search.fill("repair");
           await page.locator(".docs-search-results a").first().waitFor();
           assert.match(await page.locator(".docs-search-results").innerText(), /Installation/);
           await capture(page, "installation-search-" + suffix, "Documentation search for repair");
+          await search.fill("qzxvbnabcdef");
+          await page.getByText("Nothing found. Try another word.", { exact: true }).waitFor();
+          await capture(page, "installation-search-empty-" + suffix, "No results preserve a clear way to search again");
+          await search.fill("repair");
+          await search.fill("");
+          assert.equal(await page.locator(".docs-search-results").innerText(), "", "Clearing cancels pending results");
+          await search.fill("repair");
+          await page.locator(".docs-search-results a").first().waitFor();
           await page.locator(".docs-search-results a").first().click();
           assert.equal(new URL(page.url()).pathname.replace(/\/$/, ""), "/docs/installation");
+          // A failed module download must leave readable recovery and usable guide links.
+          await context.route("**/pagefind/pagefind.js", (route) => route.fulfill({ status: 503, contentType: "text/javascript", body: "" }));
+          await page.reload();
+          await page.getByRole("searchbox", { name: "Search documentation" }).fill("repair");
+          await page.getByText("Search is unavailable. Reload or use the links below.", { exact: true }).waitFor();
+          await capture(page, "installation-search-unavailable-" + suffix, "Search failure retains navigation and explains recovery");
+          await context.unroute("**/pagefind/pagefind.js");
+          await page.reload();
+          await page.getByRole("searchbox", { name: "Search documentation" }).fill("repair");
+          await page.locator(".docs-search-results a").first().waitFor();
+          assert.match(await page.locator(".docs-search-results").innerText(), /Installation/);
         }
       }
       // The 320 px reflow check catches overflow hidden by the normal mobile viewport.
@@ -248,7 +274,7 @@ try {
       await page.keyboard.press("Enter");
       assert.equal(new URL(page.url()).hash, "#main-content");
       assert.deepEqual(errors, [], "No uncaught page errors");
-      checks.push({ layout, appearance: colorScheme, passed: true, scenarios: ["four static routes", "primary and theme-control contrast", "wrapped code and aligned documentation arrows", "reflow at 320 px", "images", "install anchor", "theme persistence", "selected agent instructions", "search and result navigation", "keyboard skip link", ...(layout === "compact" ? ["mobile menu navigation, Escape, anchor focus and resize recovery"] : [])] });
+      checks.push({ layout, appearance: colorScheme, passed: true, scenarios: ["four static routes", "primary and theme-control contrast", "wrapped code and aligned documentation arrows", "reflow at 320 px", "images", "install anchor", "theme persistence", "selected agent instructions", "lazy search, results, empty and failure recovery, cleared query", "keyboard skip link", ...(layout === "compact" ? ["mobile menu navigation, Escape, anchor focus and resize recovery"] : [])] });
       await context.close();
     }
   }
