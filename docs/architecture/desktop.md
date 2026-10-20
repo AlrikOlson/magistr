@@ -430,9 +430,10 @@ roles serve workflow and source tools. Roadmap editing and browsing arbitrary wo
 ## Verification
 
 The separate Cargo workspace has explicit fmt, check, build, Clippy and Nextest
-CI jobs on macOS and Linux. Node tests cover composition, addressed sequence
+CI jobs on macOS. The first release qualifies Apple Silicon macOS; Linux and
+Windows native builds are outside its required CI. Node tests cover composition, addressed sequence
 handling, stale navigation and bounded retention. `tests/process.rs` exercises
-the actual executable's worker, ACP and both MCP roles and rejects retired
+the actual executable's worker, ACP and unified MCP endpoint and rejects retired
 renderer dependencies.
 
 Storybook owns the named desktop review states in `stories/*.stories.mjs`.
@@ -501,10 +502,10 @@ Performance checks exercise the production conversation reducer and the native
 event-to-accessible-reply receipt. This is not a whole-application release benchmark.
 The [foundation decision](desktop-foundation.md) retains the framework comparison.
 
-macOS has been exercised locally. Linux retains its existing CI checks. The
-separate desktop-app delivery workflow builds on macOS and Windows, checks the
-actual packaged protocol roles and installs/opens/closes the Windows app. It
-also runs the process owner's tests on both platforms; a workflow definition
-alone is not passing native evidence. Complete native IME observation remains
+macOS has been exercised locally. The separate desktop-app delivery workflow
+builds the Mac app and installer, checks the packaged protocol roles and runs
+the process owner's tests on macOS. Native Linux and Windows jobs are excluded
+from first-release qualification. Recorded passing runs remain the evidence;
+a workflow definition alone does not establish native behavior. Complete native IME observation remains
 separate desktop work. Automated Japanese input-source observation must be reported as
 observed; composition unit tests and Unicode paste alone do not prove conversion.

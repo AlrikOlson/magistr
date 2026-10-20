@@ -66,7 +66,11 @@ a:focus-visible, button:focus-visible { outline:3px solid var(--color-accent); o
 .capture { margin:0; min-width:0; }
 .capture a { display:block; border:1px solid var(--color-border); border-radius:.65rem; overflow:hidden; background:var(--color-surface); }
 .capture a:focus-visible { outline-offset:2px; }
-.capture img { display:block; width:100%; height:auto; aspect-ratio:1280 / 832; }
+.capture img { display:block; width:100%; height:auto; }
+.agent-sessions { display:grid; gap:2.5rem; margin-top:2rem; }
+.agent-session { max-width:65rem; }
+.agent-session h3 { margin:0 0 .75rem; font-size:1.3rem; letter-spacing:-.02em; }
+.agent-session figcaption span { display:block; margin-top:.2rem; }
 .capture figcaption { margin-top:.6rem; color:var(--color-text-muted); font-size:.82rem; }
 .capture a.capture-light { display:block; }
 .capture a.capture-dark { display:none; }

@@ -1,23 +1,63 @@
 {
-  "renderer": "magistr-desktop",
-  "surface": "Desktop",
-  "captured_on": "2026-10-13",
-  "state": "Native desktop journey",
+  "captured_on": "2026-10-19",
+  "timezone": "America/Los_Angeles",
   "annotations": false,
   "images": [
     {
       "file": "desktop-dark.png",
-      "screen": "conversation",
-      "sha256": "b80962e98a460548586bf884260f923e21961e0875a3681fe56a9d02ed0065ca",
+      "surface": "Magistr desktop",
+      "appearance": "dark",
+      "version": "0.1.0",
+      "screen": "saved conversation",
+      "sha256": "aa9c4aa4f28bb0cb1841461e92ca5275a4235521d657c6db318beb388d20981d",
       "width": 2560,
-      "height": 1664
+      "height": 1664,
+      "captured_at": "2026-10-20T03:21:49Z",
+      "renderer": "native macOS WKWebView; ScreenCaptureKit window capture",
+      "evidence": "docs/evidence/desktop-iterations/2026-10-19-release-product-captures/desktop-resumed-dark.png",
+      "source_commit": "cfd80a5718c6642eb3322e4abab70cc04a4b86c0"
     },
     {
       "file": "desktop-light.png",
-      "screen": "conversation",
-      "sha256": "d91bac1b7d1a2e9cad074f3f29b5c4d757b1259e42ffc64835d713fdd094c569",
+      "surface": "Magistr desktop",
+      "appearance": "light",
+      "version": "0.1.0",
+      "screen": "saved conversation",
+      "sha256": "88406b6d69876210fec4ee238aaeea8d115bb3cfd37eec1731901ccf22572b3e",
       "width": 2560,
-      "height": 1664
+      "height": 1664,
+      "captured_at": "2026-10-20T03:17:09Z",
+      "renderer": "native macOS WKWebView; ScreenCaptureKit window capture",
+      "evidence": "docs/evidence/desktop-iterations/2026-10-19-release-product-captures/desktop-resumed-light.png",
+      "source_commit": "cfd80a5718c6642eb3322e4abab70cc04a4b86c0"
+    },
+    {
+      "file": "codex-session.png",
+      "surface": "Codex",
+      "appearance": "dark",
+      "version": "0.163.0",
+      "screen": "completed task in a fresh agent session",
+      "sha256": "56594f1bccb7445a456846f22749dd9e2404bcac84491ba645d11b21292c4dc6",
+      "width": 2370,
+      "height": 2120,
+      "captured_at": "2026-10-20T03:17:00.063Z",
+      "renderer": "xterm 6.0.0 in headless WebKit 27.2",
+      "evidence": "docs/evidence/desktop-iterations/2026-10-19-release-product-captures/codex-resume.png",
+      "source_commit": "2237d01a993eab0cb909de0523a7c83410c4fad7"
+    },
+    {
+      "file": "claude-code-session.png",
+      "surface": "Claude Code",
+      "appearance": "dark",
+      "version": "2.1.304",
+      "screen": "completed task in a fresh agent session",
+      "sha256": "b50927133fc3020481bd61cd8bf31bd261a6d2e777177aad856afaf9b1d4c3b0",
+      "width": 2370,
+      "height": 2120,
+      "captured_at": "2026-10-20T03:13:31.842Z",
+      "renderer": "xterm 6.0.0 in headless WebKit 27.2",
+      "evidence": "docs/evidence/desktop-iterations/2026-10-19-release-product-captures/claude-code-resume.png",
+      "source_commit": "2237d01a993eab0cb909de0523a7c83410c4fad7"
     }
   ]
 }

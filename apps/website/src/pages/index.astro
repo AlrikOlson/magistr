@@ -6,7 +6,7 @@ import captures from "../../public/screenshots/captures.json";
 
 const screenshot = (name: string) => {
   const capture = captures.images.find(({ file }) => file === name);
-  if (!capture) throw new Error(`Missing desktop image: ${name}`);
+  if (!capture) throw new Error(`Missing product image: ${name}`);
   return `/screenshots/${name}?v=${capture.sha256.slice(0, 12)}`;
 };
 
@@ -16,7 +16,7 @@ const jsonLd = [
 ];
 
 /** The current desktop in both appearances. */
-const alt = {overview: "Magistr with projects and sessions at left, the agent conversation in the centre and working-copy details at right."};
+const alt = {overview: "Magistr showing a source review in the Contact list project, with project navigation, a Python fix and a verification command."};
 
 const docs = [
   {title:"Installation",text:"Install, initialize a project and connect an agent.",href:"/docs/installation"},
@@ -42,7 +42,7 @@ const docs = [
       <figure class="capture hero-capture">
         <a class="capture-light" href={screenshot("desktop-light.png")}><img src={screenshot("desktop-light.png")} alt={alt.overview} width="2560" height="1664" fetchpriority="high" /></a>
         <a class="capture-dark" href={screenshot("desktop-dark.png")}><img src={screenshot("desktop-dark.png")} alt={alt.overview} width="2560" height="1664" fetchpriority="high" /></a>
-        <figcaption>Switch between projects and sessions while keeping your conversation and draft.</figcaption>
+        <figcaption>Review source, discuss a fix and keep the conversation with your project.</figcaption>
       </figure>
     </section>
 
@@ -73,6 +73,30 @@ magistr validate</code></pre></div>
         </ul>
       </div>
       <p>The desktop is a separate development build. Roadmap planning, recorded work and project setup are available through the command line and the connected agent's tools.</p>
+    </section>
+
+    <section id="agents" class="section-shell section-block" aria-labelledby="agents-title">
+      <div class="section-heading">
+        <p class="eyebrow">In your agent</p>
+        <h2 id="agents-title">Pick up the work in Codex or Claude Code.</h2>
+        <p>Both agents use the same Magistr tools to inspect source, record a plan, make a change and run checks. A new session can read what was completed and verified.</p>
+      </div>
+      <div class="agent-sessions">
+        <figure class="capture agent-session">
+          <h3>Codex</h3>
+          <a href={screenshot("codex-session.png")} aria-label="Open the full-size Codex session screenshot">
+            <img src={screenshot("codex-session.png")} alt="Codex reads a completed Magistr task and reports the whitespace fix and one passing test." width="2370" height="2120" loading="lazy" />
+          </a>
+          <figcaption>A fresh session recovers the completed task and its recorded test result. <span>Open the image to read it at full size.</span></figcaption>
+        </figure>
+        <figure class="capture agent-session">
+          <h3>Claude Code</h3>
+          <a href={screenshot("claude-code-session.png")} aria-label="Open the full-size Claude Code session screenshot">
+            <img src={screenshot("claude-code-session.png")} alt="Claude Code reads a completed Magistr task, describing the source change and verified test receipt." width="2370" height="2120" loading="lazy" />
+          </a>
+          <figcaption>The source change and verification stay available after the original conversation. <span>Open the image to read it at full size.</span></figcaption>
+        </figure>
+      </div>
     </section>
 
     <section id="install" class="section-shell section-block install" aria-labelledby="install-title">
