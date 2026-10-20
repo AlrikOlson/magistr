@@ -61,10 +61,11 @@ personal configuration, skills, or the trust database.
 
 ## Skill selection
 
-The tested runtime is Codex CLI `0.153.4`. At that version, project
-skill-disable entries appear in `config/read` but are not applied by `skills/list`.
-The launcher supplies process-local `-c skills.config=...` overrides so both
-views observe project selections.
+Run `magistr codex-launch --project-root . --diagnose` to see the installed and
+verified Codex versions. The launcher supplies process-local
+`-c skills.config=...` overrides so `config/read` and `skills/list` observe the
+same project selections. The installed-runtime acceptance check covers both
+views, relocated projects, nested directories and the generated MCP connection.
 
 Selections merge by skill path in this order:
 

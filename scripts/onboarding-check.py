@@ -7,6 +7,8 @@ import subprocess
 import tempfile
 import unittest
 
+from onboarding_terminal import interview
+
 BINARY = Path(os.environ.get("MAGISTR_TEST_BINARY", "target/debug/magistr")).resolve()
 
 class Onboarding(unittest.TestCase):
@@ -108,6 +110,35 @@ class Onboarding(unittest.TestCase):
         result = self.run_cli("doctor", ok=False)
         self.assertIn("configured Magistr MCP command", result.stdout + result.stderr)
         self.assertEqual(json.loads(config.read_text())["mcpServers"]["magistr"], custom)
+
+    def test_terminal_interview_reviews_changes_before_apply(self):
+        def review(text):
+            self.assertIn("Proposed project setup", text)
+            self.assertIn("cargo check --locked", text)
+            self.assertFalse((self.root / ".magistr").exists())
+        result = interview(BINARY, self.root, self.env, True, review)
+        self.assertIn("read-only context check passed", result)
+        self.assertIn("Starter prompt:", result)
+        self.assertTrue((self.root / ".codex/config.toml").exists())
+        self.assertTrue((self.root / ".mcp.json").exists())
+        project = json.loads((self.root / ".magistr/project.json").read_text())
+        self.assertEqual(project["project"]["type"], "library")
+        self.assertEqual(project["project"]["description"], "Interactive setup acceptance")
+        self.assertEqual(project["quality_gate"]["check"], "cargo check --locked")
+        self.assertEqual(project["quality_gate"]["test"], "cargo test --lib")
+        self.assertFalse((self.root / "target").exists())
+
+    def test_terminal_decline_leaves_project_untouched(self):
+        before = {str(p.relative_to(self.root)): p.read_bytes()
+                  for p in self.root.rglob("*") if p.is_file()}
+        result = interview(BINARY, self.root, self.env, False, lambda text: None)
+        self.assertIn("Setup cancelled. No files changed.", result)
+        after = {str(p.relative_to(self.root)): p.read_bytes()
+                 for p in self.root.rglob("*") if p.is_file()}
+        self.assertEqual(after, before)
+        self.assertFalse((self.root / ".magistr").exists())
+        self.assertFalse((self.root / ".codex").exists())
+        self.assertFalse((self.root / ".claude").exists())
 
     def test_doctor_reports_actionable_missing_setup(self):
         result = self.run_cli("--json", "doctor", ok=False)

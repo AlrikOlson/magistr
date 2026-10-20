@@ -10,7 +10,7 @@ use color_eyre::eyre::{self, WrapErr};
 
 use crate::config::inputs::ProjectInputs;
 
-const VERIFIED_VERSION: &str = "0.153.4";
+const VERIFIED_VERSION: &str = "0.163.0";
 const PROJECT_SKILLS: [&str; 9] = [
     "craft",
     "init",
@@ -108,7 +108,7 @@ fn diagnose_plan(codex: &Path, plan: &LaunchPlan, locations: &ConfigLocations) -
         "installed_version": version,
         "verified_version": VERIFIED_VERSION,
         "matches_verified_version": version == format!("codex-cli {VERIFIED_VERSION}"),
-        "compatibility": "process-local skill selections; verified against config/read and skills/list on 0.153.4",
+        "compatibility": format!("process-local skill selections; verified against config/read and skills/list on {VERIFIED_VERSION}"),
         "working_root": plan.working_root,
         "codex_home": locations.codex_home,
         "selection_layers": plan.config_layers,
