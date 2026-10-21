@@ -1,0 +1,59 @@
+{
+  "capturedAt": "2026-10-21T08:27:15.181Z",
+  "renderer": "Playwright WebKit",
+  "rendererVersion": "27.2",
+  "sourceHashes": {
+    "examples/bevy-tic-tac-toe/Cargo.toml": "cb637038f2e83f3e04b2d31c0cd155e4fbeeb2c95da1330381ad4e01303e1c9c",
+    "examples/bevy-tic-tac-toe/Cargo.lock": "b7655890d2b8b63d989eba05964add4938d26ad41a3020bab368ae850a16ee12",
+    "examples/bevy-tic-tac-toe/src/lib.rs": "503a68bbfa3679693e3cd03695958629316697d08c6bdb4b07d43d1ee55b726b",
+    "examples/bevy-tic-tac-toe/src/main.rs": "d01516f52d8b6bba767c2afbd2d8c4e9f74df71c9c65affb4526f7ce27b5481a",
+    "examples/bevy-tic-tac-toe/web/index.html": "9f2d150a77996d80be652093adc9350ce26217fabeed22bd6bf8f6805a56c91c"
+  },
+  "captures": [
+    {
+      "file": "desktop-empty.png",
+      "viewport": {
+        "width": 720,
+        "height": 700
+      },
+      "appearance": "light",
+      "state": "A new two-player board"
+    },
+    {
+      "file": "desktop-win.png",
+      "viewport": {
+        "width": 720,
+        "height": 700
+      },
+      "appearance": "light",
+      "state": "X wins; a later input leaves the finished board unchanged"
+    },
+    {
+      "file": "compact-empty.png",
+      "viewport": {
+        "width": 320,
+        "height": 700
+      },
+      "appearance": "light",
+      "state": "A new two-player board"
+    },
+    {
+      "file": "compact-win.png",
+      "viewport": {
+        "width": 320,
+        "height": 700
+      },
+      "appearance": "light",
+      "state": "X wins; a later input leaves the finished board unchanged"
+    }
+  ],
+  "checks": [
+    "Board starts empty",
+    "Number keys play in board order",
+    "Winning line stops play"
+  ],
+  "limitations": [
+    "Headless browser only; native OS and assistive technology not tested.",
+    "The game uses one fixed paper appearance."
+  ]
+}

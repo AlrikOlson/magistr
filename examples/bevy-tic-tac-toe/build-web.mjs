@@ -1,0 +1,11 @@
+import {spawnSync} from "node:child_process";
+import {mkdirSync,copyFileSync} from "node:fs";
+import {resolve,dirname} from "node:path";
+import {fileURLToPath} from "node:url";
+const root=dirname(fileURLToPath(import.meta.url));
+const run=(command,args)=>{const r=spawnSync(command,args,{cwd:root,stdio:"inherit"});if(r.status!==0)process.exit(r.status??1);};
+run("cargo",["build","--locked","--features","game","--target","wasm32-unknown-unknown","--release"]);
+const out=resolve(root,"target/web");mkdirSync(out,{recursive:true});
+run(process.env.WASM_BINDGEN??"wasm-bindgen",["--target","web","--out-dir",out,"--out-name","tic_tac_toe",resolve(root,"target/wasm32-unknown-unknown/release/tic-tac-toe.wasm")]);
+copyFileSync(resolve(root,"web/index.html"),resolve(out,"index.html"));
+console.log("Bevy 0.20.0 browser build: target/web");

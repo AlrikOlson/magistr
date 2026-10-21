@@ -1,0 +1,23 @@
+{
+  "status": "historical failed visual iteration",
+  "renderer": "Playwright WebKit",
+  "rendererVersion": "not recorded for this early capture",
+  "sourceHashes": {},
+  "limitations": [
+    "The early manual capture did not retain complete source hashes; no current-source verification is claimed. Later iterations retain source-bound captures.",
+    "Capture times recovered from the original PNG modification times.",
+    "Headless browser capture; native input and assistive technology not tested."
+  ],
+  "captures": [
+    {
+      "file": "desktop-empty.png",
+      "viewport": {
+        "width": 720,
+        "height": 700
+      },
+      "appearance": "fixed paper palette",
+      "capturedAt": "2026-10-21T08:15:02.564538+00:00",
+      "sha256": "386f3d3a662ba8529dfc87733299d93121b8b5b0772acb24dab686991c22419d"
+    }
+  ]
+}

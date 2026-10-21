@@ -1,0 +1,43 @@
+{
+  "status": "historical failed visual iteration",
+  "renderer": "Playwright WebKit",
+  "rendererVersion": "not recorded for this early capture",
+  "sourceHashes": {},
+  "limitations": [
+    "The early manual capture did not retain complete source hashes; no current-source verification is claimed. Later iterations retain source-bound captures.",
+    "Capture times recovered from the original PNG modification times.",
+    "Headless browser capture; native input and assistive technology not tested."
+  ],
+  "captures": [
+    {
+      "file": "home-desktop.png",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T08:25:26.287953+00:00",
+      "sha256": "bf94f555dfddd30006c88f51af45a625f286abe908ffa0278f524602bc12b677"
+    },
+    {
+      "file": "reasoning-desktop.png",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T08:25:26.509470+00:00",
+      "sha256": "d5c5ad032e76bc83c7d01054b69da28d99c19531f6c4597ddc2f2ae30be116ea"
+    },
+    {
+      "file": "roadmap-desktop.png",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T08:25:26.411736+00:00",
+      "sha256": "5752a085b3a83c08cd166170806d0d34873141f8a007aaa10ecc693339c69a75"
+    }
+  ]
+}

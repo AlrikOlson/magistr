@@ -302,3 +302,8 @@ section[tabindex="-1"]:focus-visible h2 { outline:2px solid var(--color-accent);
 }
 @media(max-width:360px) { .docs-nav-group ul { grid-template-columns:1fr; }.docs-guide-list>summary span { max-width:12ch; text-align:right; } }
 
+
+.project-followthrough{border-top:1px solid var(--color-border);margin-top:2rem;display:grid;grid-template-columns:1fr 1.35fr;gap:4rem}
+.project-capabilities{margin:0}.project-capabilities>div{display:grid;grid-template-columns:11rem 1fr;gap:1.25rem;padding:1.15rem 0;border-bottom:1px solid var(--color-border)}.project-capabilities>div:first-child{padding-top:0}.project-capabilities dt{font-size:.95rem;font-weight:600}.project-capabilities dt a{text-decoration:underline;text-underline-offset:.25em}.project-capabilities dd{margin:0;color:var(--color-text-muted);font-size:.9rem;line-height:1.7}
+@media(max-width:1000px){.project-followthrough{grid-template-columns:1fr;gap:2rem}.project-capabilities>div{grid-template-columns:11rem 1fr}}
+@media(max-width:600px){.project-capabilities>div{grid-template-columns:1fr;gap:.5rem}.project-followthrough{gap:1.5rem}.project-capabilities dt{font-size:1rem}}

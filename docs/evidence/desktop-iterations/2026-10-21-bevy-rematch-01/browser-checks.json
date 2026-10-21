@@ -1,0 +1,30 @@
+{
+  "capturedAt": "2026-10-21T08:30:18.651Z",
+  "status": "failed",
+  "renderer": "Playwright WebKit",
+  "rendererVersion": "27.2",
+  "sourceHashes": {
+    "examples/bevy-tic-tac-toe/Cargo.toml": "cb637038f2e83f3e04b2d31c0cd155e4fbeeb2c95da1330381ad4e01303e1c9c",
+    "examples/bevy-tic-tac-toe/Cargo.lock": "b7655890d2b8b63d989eba05964add4938d26ad41a3020bab368ae850a16ee12",
+    "examples/bevy-tic-tac-toe/src/lib.rs": "6b305bc54c05bc30a03b568cabe5cfda5b7f4e1e98a69d5fc7ba4df428c7d1fe",
+    "examples/bevy-tic-tac-toe/src/main.rs": "7799683d026f740fa95917e5eced89d5d1f8bdae28bacf63a7620c872d7a1d79",
+    "examples/bevy-tic-tac-toe/web/index.html": "9f2d150a77996d80be652093adc9350ce26217fabeed22bd6bf8f6805a56c91c",
+    "apps/website/tests/game-browser.mjs": "807fcba8c0ba5433f4bb3e5e92fdc86e7c54b9c1a6adaddca0a97588e8518453"
+  },
+  "captures": [
+    {
+      "file": "desktop-start.png",
+      "viewport": {
+        "width": 720,
+        "height": 700
+      },
+      "appearance": "light",
+      "state": "Human is X; empty board and zero scores"
+    }
+  ],
+  "errors": [],
+  "limitations": [
+    "Headless browser; native OS input and assistive technology not tested.",
+    "The game has one fixed paper appearance."
+  ]
+}

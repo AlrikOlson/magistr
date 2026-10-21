@@ -6,7 +6,7 @@ order: 1
 
 import { version } from "../../../../../npm/magistr/package.json";
 
-Let's get your project connected. The current source preview is **v{version},
+Start in the project you want to build. The current source preview is **v{version},
 for Apple Silicon macOS**. You'll need
 [repository access](https://github.com/AlrikOlson/magistr); the repository isn't
 publicly accessible yet, and npm and Cargo registry packages are not published yet.
@@ -34,7 +34,7 @@ Move to the project you want to work on. This is your app's folder, rather
 than the Magistr source checkout:
 
 ```sh
-cd ~/src/my-project
+cd ~/src/tic-tac-toe
 magistr init .
 ```
 
@@ -115,7 +115,8 @@ Open your agent and start with the project:
 > Read the code and the saved plan. What's working, what's unfinished, and
 > what would you tackle first? Talk me through it before changing code.
 
-Once you've agreed on a roadmap, use `$next` in Codex or `/next` in Claude
+For the game in the walkthrough, that roadmap covers rules, an opponent, the
+Bevy board, and another round. Once you've agreed on a roadmap, use `$next` in Codex or `/next` in Claude
 Code to finish one chunk. It resumes interrupted work first.
 
 From a terminal, `magistr next` runs one chunk.

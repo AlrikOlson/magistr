@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "engine": "Bevy 0.20.0",
+  "sources": [
+    {
+      "path": "Cargo.toml",
+      "sha256": "cb637038f2e83f3e04b2d31c0cd155e4fbeeb2c95da1330381ad4e01303e1c9c"
+    },
+    {
+      "path": "Cargo.lock",
+      "sha256": "b7655890d2b8b63d989eba05964add4938d26ad41a3020bab368ae850a16ee12"
+    },
+    {
+      "path": "README.md",
+      "sha256": "5d8a01aa6f074c83b3da1174821613fd86b4a3dfaf8374a94c9a9f2b07048e2b"
+    },
+    {
+      "path": "build-web.mjs",
+      "sha256": "ac590c4fd18e879cda7ae2153fc74378f294c62fad449fc321dfa04c82270419"
+    },
+    {
+      "path": "src/lib.rs",
+      "sha256": "f72556c92e443fef9d6f734bf53652fafff90c24b117fccdcae335cb296b33dd"
+    },
+    {
+      "path": "src/main.rs",
+      "sha256": "7799683d026f740fa95917e5eced89d5d1f8bdae28bacf63a7620c872d7a1d79"
+    },
+    {
+      "path": "examples/compare_opponents.rs",
+      "sha256": "9967fbb55331c0b5b284060b73519ca3c6f9e023cf2d1ffe81f9caff599f1596"
+    },
+    {
+      "path": "web/index.html",
+      "sha256": "9f2d150a77996d80be652093adc9350ce26217fabeed22bd6bf8f6805a56c91c"
+    },
+    {
+      "path": ".gitignore",
+      "sha256": "306fd52e74fca6746e12acc750f232de15e71da917756a1270d74c91f5eb7368"
+    }
+  ],
+  "assets": [
+    {
+      "path": "recording.json",
+      "sha256": "6746c075d5de5f08d0d024a8d0588c7df3f5e96778d294c349decbaa0e429cbf"
+    },
+    {
+      "path": "source.zip",
+      "sha256": "2d39cd3983d78a17a295377a05713046452dc9a0165983337dec2d10374ccce4"
+    },
+    {
+      "path": "desktop-result.png",
+      "sha256": "d36f1662d6e0fb9c7643a8b4dd2d4b763442966cfa7b74d14633d57d6ee8c4f4"
+    },
+    {
+      "path": "compact-rematch.png",
+      "sha256": "b9be7b9fbfa0589334502c5be8e1f831618234659957de312402ee343e0fd760"
+    }
+  ],
+  "evidence": "docs/evidence/desktop-iterations/2026-10-21-bevy-rematch-02"
+}

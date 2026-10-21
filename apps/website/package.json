@@ -7,10 +7,11 @@
     "prebuild": "node scripts/generate-favicons.mjs",
     "build": "astro build",
     "preview": "astro preview",
-    "test": "npm run build && node tests/build-output.mjs && node --test tests/project-recording.test.mjs && npm run test:demo",
+    "test": "npm run build && node tests/build-output.mjs && node --test tests/build-recording.test.mjs && npm run test:demo",
     "test:ui": "node tests/browser.mjs",
     "audit": "npm audit",
-    "test:demo": "cd ../../examples/support-inbox && python3 -m unittest discover -s tests -v"
+    "test:demo": "cargo test --locked --manifest-path ../../examples/bevy-tic-tac-toe/Cargo.toml --lib",
+    "publish:game": "node scripts/publish-game.mjs"
   },
   "dependencies": {
     "@astrojs/mdx": "^8.1.0",

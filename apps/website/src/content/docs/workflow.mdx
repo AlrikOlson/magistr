@@ -1,97 +1,99 @@
 ---
 title: Working with Magistr
-description: Start with something you want to build. Work out a plan, try the result, and keep making it better.
+description: Talk through a project, build one useful piece, and keep going from what you learned.
 order: 2
 ---
 
-You can bring Magistr an idea you haven't worked out yet, a half-built app, or a
-project you've been living in for months. Open your coding agent in that project
-and start with what you want to do.
+Open your coding agent in the project you want to work on. That is where the
+conversation happens: in Codex, Claude Code, or another agent connected to
+Magistr. You can start with an empty folder or a project that already has years
+of work in it.
 
-The part I enjoy is being able to take a project seriously: look at the whole
-thing, ask difficult questions, and then actually work through the answers.
-Magistr gives that work somewhere to stay.
+Magistr keeps the parts of that work you will need again: the plan, the findings
+behind a decision, the task in progress, and the results of its checks.
 
-## Look at the project together
+## Start with something you want to build
 
-Start by having the agent read what is there. For an existing project, try:
+The [recorded example](/#workflow) builds tic-tac-toe in **Bevy 0.20.0**.
+The brief is straightforward: play against the computer, see who won, then play
+another round.
 
-> Read the code and the saved plan. What's working, what's unfinished, and
-> what would make the biggest difference? Explain what you find.
+Even that little game raises useful questions. Who starts? Can a player click
+twice? How good should the opponent be? What resets between rounds?
 
-For a new project, describe who it's for and what you want to be able to do.
-Let the agent ask questions. Talk through the awkward cases before they become
-surprises halfway through the build.
+Talk through those questions with the agent. For an existing project, have it
+read the code before suggesting a plan.
 
-When the answer needs research, ask for it. Have the agent keep the sources,
-what it learned, and the decision you made. The [reasoning guide](/docs/reasoning)
-shows how to make those findings useful next time.
+## Give the project a roadmap
 
-## Turn the idea into a plan
+Ask the agent to turn the result into pieces you can finish and check.
+For the game, those pieces are:
 
-A roadmap is the big picture. Break it into **chunks**: pieces of work with a
-clear result and a way to check it. Give each one any dependencies it needs.
+1. Rules and turns.
+2. A computer opponent.
+3. A playable Bevy board.
+4. Another round, with scores and alternating starters.
 
-> Turn this into a roadmap. Put the important work first. Make each chunk
-> small enough to finish and check, while keeping the whole project in view.
+The opponent and board both need the rules. The final piece needs both of them.
+Those are real dependencies, so the agent can tell what is ready to start.
 
-You can have several areas of work on the same roadmap. Focus on one, change
-priorities, or revisit the whole thing when you learn something that changes
-the project. [Planning a project](/docs/roadmap) covers that.
+Open **Roadmap** in the recording to inspect the actual pieces and their
+acceptance criteria. [Planning a project](/docs/roadmap) explains how to keep
+that plan useful as the project grows.
 
-## Build something you can try
+## Investigate the choices that matter
 
-Use `$next` in Codex or `/next` in Claude Code. The agent resumes unfinished
-roadmap work first, or takes the next ready chunk. It reads the current code,
-does the work, runs the relevant checks, and commits the finished change.
+You do not need a research project for every line of code. You do need an answer
+when the implementation depends on an assumption.
 
-You can also make a direct request:
+For the game, we tried a simple opponent: take a win, block a loss, then pick
+the center or a corner. An experiment found a game it could lose when playing
+second. That finding led to full search, followed by a check of every legal
+human reply.
 
-> Fix the project picker. Check it with a long project name and a narrow
-> window, and show me the result.
+The [reasoning guide](/docs/reasoning) follows that decision. The recording keeps
+the experiment and its output, so you can inspect the evidence yourself.
 
-A small fix can stay small. You don't need to create a new roadmap every time
-you notice a bug.
+## Build one piece
 
-For a longer stretch, choose an area and a limit.
-[Working in chunks](/docs/chunks) explains single chunks and runs that start
-a fresh agent session for each piece.
+Use `$next` in Codex or `/next` in Claude Code. The agent resumes interrupted
+roadmap work first, or starts a ready chunk. It reads the requirements and
+current code, plans the change, implements it, checks it, and commits it.
 
-## Try it, then say what you think
+You can also ask directly for a bounded change. “Make the board usable with the
+keyboard” is a useful request on its own. You do not need to rebuild the whole
+roadmap to fix something small.
 
-Use what was built. Read the change. Open the screens. Say what feels wrong,
-even if you haven't worked out the exact fix.
+[Working in chunks](/docs/chunks) covers one chunk and longer runs.
 
-> I can get through the flow, but I keep losing track of which project is
-> selected. Look at it with real data and make that clearer.
+## Use what you built
 
-The next iteration can change the plan as well as the code. Save feedback that
-deserves a closer look, and investigate it before committing to a solution.
+Play a round. Try clicking an occupied square. Play again and check the score.
+A passing rules test cannot tell you whether the board is pleasant to use.
 
-Tests help, and [checking the actual result](/docs/verification) matters too.
-For an interface, ask the agent to save and inspect screenshots. A green test
-doesn't tell you whether a menu is readable.
+Ask the agent to save and inspect screenshots of the actual interface.
+Keep useful feedback, investigate it, and change the plan when the findings
+call for it. [Checking the work](/docs/verification) covers tests and visual review.
 
-## Decide how the work gets delivered
+## Say how you want it delivered
 
-Tell the agent how your project handles commits, reviews and publishing:
+Tell the agent whether you want a local commit, a pull request, a push to main,
+or a deployment. Keep that instruction with the project.
 
-> After the relevant checks pass, commit and push directly to main.
+For example:
 
-That is one delivery policy; use the one you want for your project. At the end,
-you should be able to find the change, what was checked, and anything left to do.
+> Once the relevant checks pass, commit and push directly to main.
 
-## Come back and keep going
+At the end, you should get the change, the checks that ran, and any limitation
+that still matters.
 
-In a fresh session, ask:
+## Pick it up in a fresh session
 
-> Read the saved work and current code. Continue the unfinished task with
-> the same scope and delivery instructions.
+Open the same project and ask the agent to read the saved work and current code.
+It can find the unfinished piece, the decisions already made, and the checks
+that need another run.
 
-The next agent can read the roadmap, decisions, progress and check results.
-It still needs to inspect the current files. [Saved work and sessions](/docs/concepts)
-explains what carries over.
+That is the part I wanted for my own projects: being able to keep going without
+rebuilding the whole explanation in every chat.
 
-For a concrete example, [explore the recorded inbox build](/#workflow).
-You can read its source changes, inspect its failed and passing checks,
-and download the finished project.
+[Saved work and sessions](/docs/concepts) explains what carries over.
