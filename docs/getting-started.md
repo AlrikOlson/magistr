@@ -1,8 +1,8 @@
 # Getting started
 
-Magistr keeps a plan and work history alongside your project while you use
-Codex or Claude Code. Start by connecting an agent, then ask it to inspect the
-project and help you decide what to work on.
+Let's connect the project you want to build. Magistr keeps its roadmap, recorded
+reasoning, work chunks and checks together while you work with your coding agent.
+Start by looking at what you have and talking through what you want to make.
 
 The current source preview targets Apple Silicon with macOS 15 or later.
 Magistr has not been publicly released, and npm and Cargo registry packages
@@ -70,7 +70,7 @@ MCP settings and load `.magistr/instructions.md`. It runs
 
 Open a fresh agent session after changing setup.
 
-## Start with the project
+## Build something you want to use
 
 Try a request like:
 
@@ -78,8 +78,8 @@ Try a request like:
 > and what you recommend doing next. Make a plan before changing anything.
 
 When you're ready to build, use `$next` in Codex or `/next` in Claude Code.
-It resumes interrupted work or finishes one ready roadmap item, including
-relevant checks and a commit.
+It resumes interrupted work or finishes one ready roadmap chunk: a useful piece
+with a clear result, relevant checks and a commit.
 
 From a terminal:
 
@@ -88,9 +88,14 @@ magistr next
 magistr next-loop --agent codex --max-iterations 5
 ```
 
-The second command starts a fresh agent session for each item, up to the limit.
-Use `--agent claude` for Claude Code. For examples of research, changing direction,
-review, and handoffs, see [Work on a project](https://magistr.dev/docs/workflow).
+The second command starts a fresh agent session for each chunk, up to the limit.
+Use `--agent claude` for Claude Code. Talk through what you learn, try the result, and change the plan when it needs
+to change. [Working with Magistr](https://magistr.dev/docs/workflow) follows that
+process from an idea to finished work. The guides cover
+[roadmaps](https://magistr.dev/docs/roadmap),
+[recorded reasoning](https://magistr.dev/docs/reasoning),
+[chunks](https://magistr.dev/docs/chunks) and
+[checking the result](https://magistr.dev/docs/verification).
 
 Ask for checks that cover the change. Use `magistr validate` when you want the
 project's full configured quality gate.

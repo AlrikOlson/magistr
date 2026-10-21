@@ -1,0 +1,94 @@
+---
+title: Working in chunks
+description: Finish one useful piece at a time, or give your agent a longer run with a clear limit.
+order: 5
+---
+
+A large project becomes easier to work on when the next piece has a clear end.
+You can give that piece your attention, check the result, and decide what to do
+afterward.
+
+Magistr connects a roadmap chunk to its detailed work plan, actions, checks
+and finished changes.
+
+## Finish one chunk
+
+In your connected agent, use:
+
+| Agent | Start one chunk |
+| --- | --- |
+| Codex | `$next` |
+| Claude Code | `/next` |
+
+The agent resumes interrupted roadmap work first. Otherwise, it takes one ready
+chunk, reads its requirements and the current code, and makes a plan for the
+change.
+
+It does the work, runs the relevant checks, fixes problems those checks expose,
+and commits the finished result. Required checks need current passing results
+before the roadmap item can be completed.
+
+From a terminal, you can also run:
+
+```sh
+magistr next
+```
+
+## Make “finished” concrete
+
+A useful chunk ends with a result someone can try or inspect. For the recorded
+support inbox, the storage task ended with persistent mail, correct threading,
+duplicate-delivery handling, and passing storage tests.
+
+[Open the work chunks](/#product), then follow one into the recording. The
+original failure is still there beside the later passing check.
+
+A chunk can contain several tasks. Keep the tasks detailed enough to resume
+unfinished work, without turning every small edit into its own ceremony.
+
+## Work through a longer run
+
+Pick an area and set a limit:
+
+> Work through up to five chunks in the desktop track. Finish, check and
+> commit each one before moving on.
+
+To have Magistr start a fresh agent session for each chunk, run:
+
+```sh
+magistr next-loop --agent codex --max-iterations 5
+```
+
+Use `--agent claude` for Claude Code. Add `--track "Desktop"` if that is the
+name of the track you want to work on.
+
+The loop stops at its limit, when there is no ready work in the selected area,
+or when it needs help to continue. Set a limit that suits the work you want
+to review.
+
+Inside an existing chat, `$next-loop` or `/next-loop` finishes one chunk
+and prepares a handoff. The terminal command manages the sequence of fresh
+sessions.
+
+## Resume after an interruption
+
+Have the next session read the saved work before changing files:
+
+> Resume the unfinished chunk. Read the saved plan, actions and checks, then
+> inspect the current code before deciding what remains.
+
+Finished tasks and failed checks are useful context. A result from an earlier
+version of the files may need checking again; it should never be treated as
+current just because it passed once.
+
+## Keep direct requests straightforward
+
+You can still ask for an ordinary fix, a review, or a small copy change.
+Use a focused plan and checks that cover the change. A roadmap is useful for
+work you need to organize, not a prerequisite for every edit.
+
+Tell the agent when to commit, push or publish. Your project's delivery
+instructions apply throughout the run.
+
+See [checking the work](/docs/verification) for choosing checks and
+[planning a project](/docs/roadmap) for changing direction.

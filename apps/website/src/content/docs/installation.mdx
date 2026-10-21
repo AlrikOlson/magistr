@@ -1,20 +1,22 @@
 ---
 title: Installation
-description: Install the source preview and connect it to the project you want to work on.
+description: Connect Magistr to the project you want to build and the agent you like working with.
 order: 1
 ---
 
 import { version } from "../../../../../npm/magistr/package.json";
 
-The current preview is **v{version}, for Apple Silicon macOS**. You'll need
-[repository access](https://github.com/AlrikOlson/magistr); the repository is not
+Let's get your project connected. The current source preview is **v{version},
+for Apple Silicon macOS**. You'll need
+[repository access](https://github.com/AlrikOlson/magistr); the repository isn't
 publicly accessible yet, and npm and Cargo registry packages are not published yet.
-Install and sign in to Codex or Claude Code separately.
+
+Install and sign in to your coding agent separately. Magistr works alongside it.
 
 ## Install the preview
 
 You'll need macOS 15 or later, Git, Rust 1.95 or later, and the macOS command-line
-build tools. In a terminal, run:
+build tools. Run:
 
 ```sh
 git clone https://github.com/AlrikOlson/magistr.git
@@ -23,54 +25,55 @@ cargo install --locked --path crates/magistr-cli
 magistr --version
 ```
 
-The last command prints the installed version. If the shell can't find
+The last command should print the installed version. If your shell can't find
 `magistr`, add Cargo's binary directory, usually `~/.cargo/bin`, to your PATH.
 
 ## Set up your project
 
-Run setup in **your project's folder**, rather than the Magistr source checkout:
+Move to the project you want to work on. This is your app's folder, rather
+than the Magistr source checkout:
 
 ```sh
 cd ~/src/my-project
 magistr init .
 ```
 
-Setup detects the project and asks which agents you use. Review the proposed
-files and check commands before applying them. Setup adds files only for the
-agents you choose. It keeps your custom settings, other tool connections, and saved work.
+Setup detects the project and asks which agents you use. Look through the
+proposed files and check commands before applying them.
 
-Setup checks the connection and gives you a starter prompt for reviewing the
-project. Setup does not start implementation.
+Setup adds files only for the agents you choose. It keeps your custom settings,
+other tool connections and saved work. It checks the connection and gives you
+a starter prompt for reviewing the project. Setup does not start implementation.
 
-To preview setup for both agents without writing files:
+To preview setup for both Codex and Claude Code:
 
 ```sh
 magistr init . --agent codex,claude --dry-run
 ```
 
-Replace `--dry-run` with `--yes` to accept the defaults. Run setup again to add
-another agent.
+Replace `--dry-run` with `--yes` to accept the defaults. You can run setup
+again to add another agent later.
 
 ## Connect Codex
 
-If you didn't select Codex during setup, add it:
+If you didn't choose Codex during setup, add it:
 
 ```sh
 magistr init . --agent codex --yes
 ```
 
-Then open Codex from your project:
+Open it from your project with:
 
 ```sh
 ./.codex/run
 ```
 
-The launcher loads the project's instructions, skills, and Magistr connection.
-Start a fresh session after changing setup.
+The launcher loads the project instructions, skills and Magistr connection.
+Open a fresh session after changing setup.
 
 ## Connect Claude Code
 
-If you didn't select Claude Code during setup, add it:
+Add Claude Code if it wasn't selected during setup:
 
 ```sh
 magistr init . --agent claude --yes
@@ -82,61 +85,66 @@ Then start it from your project:
 claude
 ```
 
-Approve the project's MCP connection when prompted. Claude Code reads it from
-`.mcp.json`, with instructions and skills in `CLAUDE.md` and `.claude/`.
+Approve the project's MCP connection when prompted. Claude Code reads the
+connection from `.mcp.json`, with instructions and skills in `CLAUDE.md`
+and `.claude/`.
 
 ## Connect another agent
 
+MCP is the connection that lets an agent use Magistr's tools.
 Choose **Another MCP agent** during setup, or run:
 
 ```sh
 magistr init . --agent portable --yes
 ```
 
-Setup writes the connection to `.mcp.json` and instructions to
+Setup writes the connection to `.mcp.json` and the instructions to
 `.magistr/instructions.md`. If your agent doesn't read those files, add the
 connection to its MCP settings and load the instructions there. The connection
 runs `magistr mcp --dir /path/to/project`.
 
-Setup also accepts `cursor`, `copilot`, `cline`, `windsurf`, and `aider` as
-`--agent` values for their project instructions. Separate several agents with
-commas, or repeat the option.
+Setup also accepts `cursor`, `copilot`, `cline`, `windsurf`, and `aider`
+as `--agent` values for their project instructions. Separate agents with
+commas or repeat the option. These instruction targets don't promise that
+every agent supports the same session-launching features.
 
 ## Start work when you are ready
 
-Open your agent and ask it to read the project before making changes:
+Open your agent and start with the project:
 
-> Review this project and the saved plan. What's working, what's unfinished,
-> and what would you tackle first? Explain the recommendation before changing code.
+> Read the code and the saved plan. What's working, what's unfinished, and
+> what would you tackle first? Talk me through it before changing code.
 
-Once you've agreed on the work, use `$next` in Codex or `/next` in Claude Code
-to finish one roadmap item. It resumes interrupted work first.
+Once you've agreed on a roadmap, use `$next` in Codex or `/next` in Claude
+Code to finish one chunk. It resumes interrupted work first.
 
-From a terminal, `magistr next` runs one item.
+From a terminal, `magistr next` runs one chunk.
 `magistr next-loop --max-iterations 5` runs up to five in fresh sessions.
-[Working with Magistr](/docs/workflow) covers research, longer runs, and review.
+
+[Working with Magistr](/docs/workflow) walks through the whole process,
+from an idea to something you can try.
 
 ## Check or repair setup
 
-If the agent can't connect, run this in your project:
+If the agent can't connect, start here:
 
 ```sh
 magistr doctor .
 ```
 
-The report checks settings, agent availability, and the connection. Follow the
-instructions for anything that needs attention. To review and apply setup repairs:
+Doctor checks the settings, agent availability and connection. Follow the
+instructions for anything it finds. To preview repairs and then apply them:
 
 ```sh
 magistr repair . --dry-run
 magistr repair .
 ```
 
-Repair keeps customized files and other tool connections. Your project's check
-commands and settings live in `.magistr/project.json`.
+Repair keeps customized files and other tool connections. Your project's
+check commands and settings live in `.magistr/project.json`.
 
-If the agent is missing or signed out, resolve that first and open a fresh session.
-If another session owns the project, check whether that run is still open.
+If the agent is missing or signed out, fix that and open a fresh session.
+If another session owns the project, check whether its work is still running.
 Don't delete its lock files or stop it to force a second connection.
 
 ## Upgrade the preview
@@ -149,23 +157,23 @@ cargo install --locked --path crates/magistr-cli --force
 ```
 
 Recognized older settings and saved work upgrade automatically when Magistr
-opens a project. It keeps customizations and recoverable originals. Conflicting
-data stops the upgrade with an explanation of what needs attention.
+opens a project. It keeps customizations and recoverable originals. If there
+is a conflict it can't safely resolve, it explains what needs attention.
 
-Back in your project, run `magistr doctor .`. If setup needs changes, preview
-them with `magistr repair . --dry-run`.
+Back in your project, run `magistr doctor .`. If setup needs changes,
+preview them with `magistr repair . --dry-run`.
 
 ## Remove setup or uninstall
 
-In each project, preview removal and then remove the agent connections:
+In each connected project, preview removal and then remove the connections:
 
 ```sh
 magistr remove . --dry-run
 magistr remove .
 ```
 
-The report lists what was kept, including project settings, work history,
-customized files, and other tool connections. To uninstall the command as well:
+The report tells you what was kept: project settings, work history, customized
+files and other tool connections. To remove the installed command too:
 
 ```sh
 cargo uninstall magistr-cli
@@ -173,17 +181,17 @@ cargo uninstall magistr-cli
 
 ## Try the desktop preview
 
-The desktop is installed separately. Open **Launch Magistr.command** in the
-Magistr source checkout to build and open it. You'll need Rust, Node.js, and the
-[platform build prerequisites](https://v2.tauri.app/start/prerequisites/).
+The desktop is a separate preview. In the Magistr source checkout, open
+**Launch Magistr.command** to build and open it. You'll need Rust, Node.js,
+and the [platform build prerequisites](https://v2.tauri.app/start/prerequisites/).
 
-The preview isn't signed or notarized for public distribution. Read
-[what the desktop supports](/docs/concepts#the-desktop-preview), or see the
-[development guide](https://github.com/AlrikOlson/magistr/blob/main/docs/development.md)
+It isn't signed or notarized for public distribution yet.
+Read [what the desktop supports](/docs/concepts#the-desktop-preview), or use
+the [development guide](https://github.com/AlrikOlson/magistr/blob/main/docs/development.md)
 for build commands.
 
 ## Your code and permissions
 
 Magistr runs on your Mac. Your agent uses its own account and the permissions
-you give it, including permission to run commands. Review actions that ask for
-approval. Saving work locally doesn't make the agent's model run locally.
+you give it, including permission to run commands. Review actions that ask
+for approval. Local project records don't make the agent's model run locally.

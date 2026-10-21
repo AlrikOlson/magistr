@@ -1,0 +1,88 @@
+---
+title: Checking the work
+description: Know what was tested, what was reviewed, and whether the result still applies.
+order: 6
+---
+
+“It's done” is much more useful when you can see what changed and how it was
+checked. Magistr keeps check results with the work so you and the next agent
+can inspect them.
+
+## Choose checks that answer the question
+
+Start with the behavior you changed. A storage change needs checks for the
+data it saves. A screen needs interaction checks and an actual look at the
+rendered result.
+
+> Check the change against its acceptance criteria. Run the relevant tests,
+> inspect the result, and fix anything that fails.
+
+Use focused verification for bounded work. Run the full configured suite when
+you ask for it or when a concrete risk calls for that breadth.
+
+Project commands and required custom gates are set during setup and kept in
+`.magistr/project.json`.
+
+## Keep the actual result
+
+When Magistr runs a check command, it records the command, exit code, output
+and the source inputs it checked.
+
+The [inbox example](/#product) includes a real storage check that failed before
+the storage module existed. After the implementation, seven storage tests
+passed. You can inspect both results under **Checks & review**.
+
+A failed check belongs in the history. Diagnose it, correct the cause, and
+rerun the affected checks. Repeating the same failing suite without changing
+anything doesn't tell you much.
+
+## Review what people will use
+
+For an interface, open the actual screens and use the controls. Ask the agent
+to capture and inspect the important states:
+
+> Check the inbox at desktop and phone sizes, in light and dark. Try an empty
+> search and a conflicting save. Save the screenshots and review the text,
+> controls and focus before calling it finished.
+
+In the recorded build, the tests passed but the screen review found tiny
+menus and a confusing recovery message. The agent fixed both and captured
+the screens again.
+
+Magistr records a written review separately from a command it executed.
+That distinction matters: a test result doesn't prove that someone looked
+at the screen.
+
+## Check that the result still applies
+
+A check belongs to the files and inputs it ran against. If relevant source
+changes, an earlier pass may no longer establish that the current work is ready.
+
+Have the agent inspect the current evidence and rerun the affected checks.
+Unrelated changes don't justify repeating everything.
+
+Required checks need current passing results before a roadmap chunk can be
+completed. Keep any remaining limitation in the final report.
+
+## Run the full configured checks
+
+When you want the project's full quality gate:
+
+```sh
+magistr validate
+```
+
+You can also use `$validate` in Codex or `/validate` in Claude Code.
+This runs the configured standard and required custom checks.
+
+## Ask for a useful finish
+
+At the end, you should be able to find:
+
+- The finished change or commit.
+- The checks that actually ran and their results.
+- The screens or behavior that were reviewed.
+- Anything still incomplete or unverified.
+
+Then try the result yourself. [Working with Magistr](/docs/workflow) shows
+how to turn that feedback into the next iteration.

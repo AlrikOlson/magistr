@@ -65,3 +65,30 @@ test("guided chapters keep their source and screenshots tied to the original bui
   assert.equal(hash(readFileSync(new URL("../../../"+capture.source,import.meta.url))),capture.sha256);
  }
 });
+test("the product tour uses real dependencies, reasoning links and recorded task evidence",async()=>{
+ const {roadmapNotes,roadmapEdges,reasoningNotes,chunkNotes,taskRecord}=await import("../src/data/product-tour.mjs");
+ const snapshot=JSON.parse(readFileSync(new URL("../public/examples/project-records.json",import.meta.url)));
+ for(const note of roadmapNotes)assert(snapshot.roadmap.some(record=>record.id===note.id));
+ for(const edge of roadmapEdges){
+  assert(snapshot.roadmap.find(record=>record.id===edge.to).deps.includes(edge.from),"Displayed dependency exists in the captured roadmap");
+ }
+ const conclusion=snapshot.reasoning.find(step=>step.step_number===1742);
+ assert(conclusion.pinned);
+ for(const note of reasoningNotes)assert(snapshot.reasoning.some(step=>step.step_number===note.step));
+ for(const branch of snapshot.branches){
+  assert.equal(branch.status,"merged");
+  assert.equal(branch.merged_into,conclusion.step_number);
+  const step=snapshot.reasoning.find(step=>step.branch_id===branch.id);
+  assert.equal(step.branch_from,branch.from_step);
+  assert(conclusion.dependencies.includes(step.step_number));
+ }
+ const {walkthrough}=await import("../src/data/walkthrough.mjs");
+ for(const note of chunkNotes){
+  const task=taskRecord(recording,note.task);
+  assert.equal(task.finish.output.status,"completed");
+  assert(walkthrough[note.scene].event>=task.events[0].id);
+  assert(task.checks.length>0);
+ }
+ const storage=taskRecord(recording,"demo-store");
+ assert.deepEqual(storage.checks.map(check=>check.passed),[false,true]);
+});
