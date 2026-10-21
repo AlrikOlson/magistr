@@ -14,7 +14,7 @@
   --color-text:#202522; --color-text-muted:#59615b;
   --color-accent:#ad3f0d; --color-accent-hover:#8f3108; --color-on-accent:#fff;
   --color-green:#286140; --color-error:#a33927; --color-border:#d4d8d0; --color-border-hover:#858e83;
-  --color-code:#1d2420; --color-code-text:#e9ede5; --color-accent-soft:#f5e5da;
+  --color-code:#f6f8fa; --color-code-text:#24292e; --color-accent-soft:#f5e5da;
 }
 .dark {
   color-scheme:dark;
@@ -137,11 +137,11 @@ section[tabindex="-1"]:focus-visible h2 { outline:2px solid var(--color-accent);
 .install-grid { display:grid; grid-template-columns:1fr 1fr; gap:3rem; align-items:start; }
 .install-grid .text-link { margin-top:1rem; }
 .code-panel { overflow:hidden; background:var(--color-code); color:var(--color-code-text); }
-.code-label { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:.6rem; padding:1rem 1.25rem; color:#c2ccbd; font-size:.9rem; }
-.copy-button { background:transparent; color:#e9ede5; font:inherit; border:1px solid #7d8c74; padding:.45rem .65rem; min-height:44px; }
-.copy-button:hover { background:#303c2e; }
+.code-label { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:.6rem; padding:1rem 1.25rem; color:var(--color-text-muted); font-size:.9rem; }
+.copy-button { background:transparent; color:var(--color-code-text); font:inherit; border:1px solid var(--color-border-hover); padding:.45rem .65rem; min-height:44px; }
+.copy-button:hover { background:var(--color-surface); }
 .code-panel pre { margin:0; padding:0 1.25rem 1.25rem; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; font:.85rem/1.8 var(--font-mono); }
-.copy-status { margin:0; padding:0 1.25rem; font-size:.85rem; color:#c2ccbd; }
+.copy-status { margin:0; padding:0 1.25rem; font-size:.85rem; color:var(--color-text-muted); }
 .copy-status:not(:empty) { padding-bottom:1rem; }
 .install-section { border-top:1px solid var(--color-border); }
 .install-next { max-width:48rem; margin:1.5rem 0 0; color:var(--color-text-muted); line-height:1.75; }

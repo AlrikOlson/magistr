@@ -25,6 +25,7 @@ function assert(condition, message) {
 
 const page = (path) => readFileSync(resolve(distDir, path), "utf-8");
 const indexHtml = page("index.html");
+const indexText = indexHtml.replace(/<[^>]+>/g, "");
 const installHtml = page("docs/installation/index.html");
 const conceptsHtml = page("docs/concepts/index.html");
 const workflowHtml = page("docs/workflow/index.html");
@@ -37,9 +38,9 @@ console.log("Home:");
 assert(indexHtml.includes("Codex") && indexHtml.includes("Claude Code"), "supported agents are named");
 assert(indexHtml.includes('id="install-btn"') && indexHtml.includes('href="#install"') && indexHtml.includes('id="install"'), "install call to action, anchor and section");
 assert(indexHtml.includes('id="workflow"') && indexHtml.includes('href="/#workflow"'), "roadmap section and its nav link match");
-assert(indexHtml.includes("cargo install --locked --path crates/magistr-cli"), "installation command present");
-assert(indexHtml.includes("git clone https://github.com/AlrikOlson/magistr.git"), "clone command targets the repository");
-assert(indexHtml.includes("magistr --version") && indexHtml.includes("magistr init") && indexHtml.includes("magistr next"), "commands after install");
+assert(indexText.includes("cargo install --locked --path crates/magistr-cli"), "installation command present");
+assert(indexText.includes("git clone https://github.com/AlrikOlson/magistr.git"), "clone command targets the repository");
+assert(indexText.includes("magistr --version") && indexText.includes("magistr init") && indexText.includes("magistr next"), "commands after install");
 const releaseVersion = JSON.parse(readFileSync(new URL("../../../npm/magistr/package.json", import.meta.url), "utf8")).version;
 assert(indexHtml.includes(`v${releaseVersion}`), "the current development version is named");
 assert(indexHtml.includes(`"softwareVersion":"${releaseVersion}"`), "structured metadata uses the release version");

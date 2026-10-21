@@ -13,6 +13,24 @@ The public guides are in src/content/docs. The landing page's only interactive
 example is BuildWalkthrough.astro and build-walkthrough.ts. It replays the
 allowlisted records in public/demo/tic-tac-toe/recording.json.
 
+terminal-playback.ts owns the read-only xterm.js terminal. Seeking rebuilds its
+scrollback up to the current action; queued writes coalesce to the latest seek.
+The annotation and optional project details follow the same cursor. Opening a
+record pauses playback and leaves the terminal in place.
+
+scripts/highlight-recording.mjs tokenizes code at build time with Shiki and
+derives unified diffs from successive recorded snapshots with jsdiff. The
+original recording is unchanged. Shared code-theme.mjs supplies both themes to
+the transcript, file readers, terminal ANSI output and Markdown guides. The
+browser loads the generated, content-versioned playback.json; it does not load
+Shiki or calculate diffs. Readers clone the escaped, pre-rendered transcript.
+Source and command copy actions use original text.
+
+The interaction follows the [xterm.js terminal API](https://xtermjs.org/docs/api/terminal/classes/terminal/)
+and [asciinema's marker navigation](https://docs.asciinema.org/manual/player/markers/).
+Chapter controls seek recorded actions; long idle gaps are shortened during
+playback. No keystrokes or private user prompts are invented.
+
 The roadmap and reasoning maps import the actual desktop renderer modules from
 crates/magistr-desktop/ui. The website adapts their surrounding layout and uses
 a readable list on compact screens. Selecting a record opens its requirements

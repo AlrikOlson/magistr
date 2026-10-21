@@ -1,45 +1,59 @@
 ---
 import recording from "../../public/demo/tic-tac-toe/recording.json";
 import {chapters,elapsed,preview,kindLabels} from "../data/build-recording.mjs";
+import {rendered,playbackUrl} from "../data/rendered-recording.mjs";
 import {publicAssetUrl} from "../../scripts/asset-url.mjs";
 import "../styles/build-walkthrough.css";
 const parts=chapters(recording),initial=parts[0].index,event=recording.events[initial];
 const asset=(file)=>publicAssetUrl("demo/tic-tac-toe/"+file);
 ---
-<div class="build-walkthrough" data-build data-url={asset("recording.json")} data-index={initial}>
+<div class="build-walkthrough" data-build data-url={asset("recording.json")} data-playback-url={playbackUrl} data-index={initial}>
   <div class="build-brief"><span>The brief</span><p>{recording.project.brief}</p><span class="build-engine">Rust · Bevy 0.20.0</span></div>
   <nav class="build-chapters" aria-label="Parts of the recorded build">
     {parts.map((part,i)=><button type="button" data-chapter={i} disabled aria-current={i===0?"step":undefined}><span>{String(i+1).padStart(2,"0")}</span>{part.label}</button>)}
   </nav>
   <p class="build-explanation" data-explanation>{parts[0].note}</p>
   <div class="build-window">
-    <div class="build-window-heading"><strong><span aria-hidden="true">›_</span> Codex</strong><span>tic-tac-toe</span><small>Recorded session</small></div>
-    <div class="build-views" role="tablist" aria-label="Inspect the recorded project" hidden>
-      {["Session","Roadmap","Reasoning","Work","Checks"].map((label,i)=><button type="button" role="tab" id={"build-tab-"+label.toLowerCase()} data-view={label.toLowerCase()} aria-selected={i===0?"true":"false"} aria-controls="build-panel" tabindex={i===0?0:-1}>{label}</button>)}
-    </div>
-    <section id="build-panel" class="build-panel" role="tabpanel" aria-labelledby="build-tab-session" tabindex="0">
-      <div class="build-terminal" data-session>
-        <p class="terminal-context">Magistr · {kindLabels[event.kind]}</p>
-        <h3>{event.title}</h3>
-        <pre><code>{preview(event).text}</code></pre>
-        <p class="terminal-help">Open the roadmap to see how the four pieces fit together.</p>
+    <div class="build-window-heading"><strong><span aria-hidden="true">›_</span> Codex</strong><span>tic-tac-toe</span><small>Recorded build</small></div>
+    <div class="build-stage">
+      <div class="terminal-column">
+        <div class="terminal-emulator" data-terminal aria-label="Recorded Codex terminal" hidden></div>
+        <div class="terminal-poster" data-terminal-poster><p>• Called magistr.{event.operation}</p><pre>{preview(event).text}</pre></div>
+        <p class="terminal-keyboard" data-terminal-help hidden>Scroll to read earlier output. <kbd>←</kbd> <kbd>→</kbd> step through the build.</p>
+        <div class="build-transport" hidden>
+          <button type="button" data-play aria-pressed="false">Play</button>
+          <button type="button" data-prev aria-label="Previous recorded action">←</button>
+          <label class="build-timeline"><span class="sr-only">Recorded action</span><input type="range" min="0" max={recording.events.length-1} step="1" value={initial} aria-label="Recorded action" /></label>
+          <button type="button" data-next aria-label="Next recorded action">→</button>
+          <output><span data-time>{elapsed(recording,initial)}</span><span class="time-total"> / {elapsed(recording,recording.events.length-1)}</span></output>
+          <label class="playback-speed"><span class="sr-only">Playback speed</span><select data-speed aria-label="Playback speed"><option value="1">1×</option><option value="2" selected>2×</option><option value="4">4×</option></select></label>
+        </div>
       </div>
-      <div data-record-view hidden></div>
-    </section>
-    <div class="build-transport" hidden>
-      <button type="button" data-play aria-pressed="false">Play steps</button>
-      <button type="button" data-prev aria-label="Previous recorded action">←</button>
-      <label class="build-timeline"><span class="sr-only">Recorded action</span><input type="range" min="0" max={recording.events.length-1} step="1" value={initial} aria-label="Recorded action" /></label>
-      <button type="button" data-next aria-label="Next recorded action">→</button>
-      <output data-time>{elapsed(recording,initial)}</output>
+      <aside class="build-annotation" aria-label="About this action" data-annotation>
+        <div class="annotation-meta"><span data-action-kind>{kindLabels[event.kind]}</span><span data-action-number>{initial+1} / {recording.events.length}</span></div>
+        <h3 data-action-title>{event.title}</h3>
+        <p data-action-note>The game has four pieces. Open the roadmap to see what each one needs.</p>
+        <div data-action-facts></div>
+        <button class="annotation-open" type="button" data-open-action hidden>Open the roadmap <span aria-hidden="true">↗</span></button>
+        <nav class="build-views" aria-label="Explore the project at this point" hidden>
+          {["Roadmap","Reasoning","Work","Checks"].map(label=><button type="button" data-view={label.toLowerCase()} aria-expanded="false" aria-controls="build-details">{label}</button>)}
+        </nav>
+      </aside>
     </div>
+    <section id="build-details" class="build-details" aria-labelledby="build-detail-title" hidden>
+      <header><h3 id="build-detail-title">Roadmap</h3><button type="button" data-close-details aria-label="Close details">Close <span aria-hidden="true">×</span></button></header>
+      <div id="build-panel" class="build-panel" tabindex="-1"><div data-record-view></div></div>
+    </section>
   </div>
   <p class="build-announcement sr-only" role="status" aria-live="polite"></p>
   <p class="build-error" role="status" hidden></p>
-  <div class="build-footnote"><p>Recorded while building this game in Codex · October 21, 2026.</p><div class="build-downloads"><a href={asset("source.zip")} download>Download the game source</a><a href={asset("recording.json")} download>Recording data</a></div></div>
+  <div class="build-footnote"><p>Built in Codex · October 21, 2026. Playback follows the saved tool actions.</p><div class="build-downloads"><a href={asset("source.zip")} download>Download the game source</a><a href={asset("recording.json")} download>Recording data</a></div></div>
   <details class="build-transcript">
     <summary>Read the recorded actions</summary>
-    <ol>{recording.events.map((entry,i)=><li><details><summary><time>{elapsed(recording,i)}</time><span>{entry.title}</span>{entry.check&&<small>{entry.check.passed?"Passed":"Failed"}</small>}</summary><pre>{entry.output}</pre></details></li>)}</ol>
+    <ol>{recording.events.map((entry,i)=><li data-event={entry.id}><details><summary><time>{elapsed(recording,i)}</time><span>{entry.title}</span>{entry.check&&<small>{entry.check.passed?"Passed":"Failed"}</small>}</summary>
+      {rendered[i].diff&&<div class="transcript-change"><p>{entry.file.path} · <span class="change-added">+{rendered[i].diff.added}</span> <span class="change-removed">−{rendered[i].diff.removed}</span></p><div data-event-diff set:html={rendered[i].diff.html} /></div>}
+      <div data-event-output set:html={rendered[i].html} />
+    </details></li>)}</ol>
   </details>
 </div>
 <script>import "../scripts/build-walkthrough";</script>
