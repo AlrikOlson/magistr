@@ -340,3 +340,49 @@ fn a_stale_owner_after_clear_cannot_resurrect_any_session() {
         1
     );
 }
+
+#[test]
+fn incremental_append_preserves_revision_and_branch_views_after_retention() {
+    for durable in [false, true] {
+        let directory = TempDir::new().unwrap();
+        let mut config = persisting_config(&directory);
+        config.persistence.enabled = durable;
+        config.system.max_history_size = 2;
+        let mut owner = ReasoningServer::new_for_project(config.clone(), "append-delta".into());
+        owner.process_step_native(step_n(1)).unwrap();
+        let mut branch = step_n(2);
+        branch.branch_from = Some(1);
+        branch.branch_name = Some("Question".into());
+        let branch_id = owner
+            .process_step_native(branch)
+            .unwrap()
+            .step
+            .branch_id
+            .unwrap();
+        owner.process_step_native(step_n(3)).unwrap();
+        owner.process_step_native(step_n(4)).unwrap();
+        let mut revision = step_n(5);
+        revision.revises_step = Some(2);
+        revision.branch_id = Some(branch_id.clone());
+        owner.process_step_native(revision).unwrap();
+        assert_eq!(owner.history().steps.len(), 2);
+        assert_eq!(owner.status_snapshot(false)["next_step_number"], 6);
+        assert_eq!(
+            owner.branches()[&branch_id]
+                .steps
+                .last()
+                .unwrap()
+                .step_number,
+            5
+        );
+        if durable {
+            let reopened = ReasoningServer::new_for_project(config, "append-delta".into());
+            assert_eq!(reopened.history().steps[1].revised_by, Some(5));
+            assert_eq!(reopened.branches()[&branch_id].steps[0].revised_by, Some(5));
+            assert_eq!(reopened.history().steps.len(), 5);
+        } else {
+            // A session/view change is not needed to make the new projection current.
+            assert_eq!(owner.history().steps.last().unwrap().revises_step, Some(2));
+        }
+    }
+}

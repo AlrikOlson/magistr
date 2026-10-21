@@ -62,11 +62,11 @@ impl ReasoningServer {
 
     /// Count of pinned steps in the current window, excluding `exclude_step`.
     fn pinned_available(&self, exclude_step: Option<u32>) -> usize {
-        self.history
-            .steps
-            .iter()
-            .filter(|s| exclude_step != Some(s.step_number) && s.pinned.unwrap_or(false))
-            .count()
+        self.pinned_order.len().saturating_sub(usize::from(
+            exclude_step
+                .and_then(|n| self.step_index.get(&n))
+                .is_some_and(|index| self.history.steps[*index].pinned.unwrap_or(false)),
+        ))
     }
 
     /// THE TWO-SIDED ROLLUP BUDGET, as `(pinned_budget, tail_budget)`.
@@ -121,7 +121,14 @@ impl ReasoningServer {
         // reverse takes the newest; before the budget existed this pass walked
         // forward and took every pinned step unconditionally, which is what
         // made `limit` a cap on the tail only.
-        for step in self.history.steps.iter().rev() {
+        for number in self.pinned_order.iter().rev() {
+            let Some(step) = self
+                .step_index
+                .get(number)
+                .and_then(|index| self.history.steps.get(*index))
+            else {
+                continue;
+            };
             if selected.len() >= pinned_budget {
                 break;
             }

@@ -31,39 +31,4 @@ impl ReasoningServer {
 
         Ok(())
     }
-
-    pub(crate) fn handle_revision(&mut self, step: &ThinkStep) -> Result<(), String> {
-        self.validate_revision(step)?;
-        let Some(revises) = step.revises_step else {
-            return Ok(());
-        };
-        if !self.config.features.enable_revisions {
-            return Ok(());
-        }
-        if let Some(&idx) = self.step_index.get(&revises) {
-            self.history.steps[idx].revised_by = Some(step.step_number);
-            tracing::debug!(
-                "📝 Revising step {revises}: {}",
-                step.revision_reason
-                    .as_deref()
-                    .unwrap_or("No reason provided")
-            );
-        } else {
-            let available = self.sorted_step_numbers();
-            tracing::warn!(
-                "Cannot find step {revises} to revise. Available steps: {}",
-                if available.is_empty() {
-                    "none".into()
-                } else {
-                    available
-                }
-            );
-        }
-
-        if let Some(meta) = self.history.metadata.as_mut() {
-            meta.revisions_count = Some(meta.revisions_count.unwrap_or(0) + 1);
-        }
-
-        Ok(())
-    }
 }

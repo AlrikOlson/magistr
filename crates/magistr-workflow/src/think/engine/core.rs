@@ -33,6 +33,11 @@ pub struct ReasoningServer {
     pub(crate) sessions: HashMap<String, SessionEntry>,
     pub(crate) step_index: HashMap<u32, usize>,
     pub(crate) step_numbers: HashSet<u32>,
+    /// Index into the complete canonical archive, independent of display retention.
+    pub(crate) project_steps: HashMap<u32, (String, usize)>,
+    pub(crate) project_max_step: u32,
+    pub(crate) append_state_validated: bool,
+    pub(crate) pinned_order: Vec<u32>,
     pub(crate) tools_used: HashSet<String>,
     pub(crate) step_to_branch: HashMap<u32, String>,
     pub(crate) branch_depth_cache: HashMap<u32, u32>,
@@ -207,6 +212,10 @@ impl ReasoningServer {
             sessions: HashMap::new(),
             step_index: HashMap::new(),
             step_numbers: HashSet::new(),
+            project_steps: HashMap::new(),
+            project_max_step: 0,
+            append_state_validated: true,
+            pinned_order: Vec::new(),
             tools_used: HashSet::new(),
             step_to_branch: HashMap::new(),
             branch_depth_cache: HashMap::new(),
@@ -277,9 +286,37 @@ impl ReasoningServer {
         let formatter = Formatter::new(false);
         let persistence = Persistence::for_project(&config.persistence, &project_id);
 
+        let project_steps = project
+            .histories
+            .iter()
+            .flat_map(|(key, history)| {
+                history
+                    .steps
+                    .iter()
+                    .enumerate()
+                    .map(move |(index, step)| (step.step_number, (key.clone(), index)))
+            })
+            .collect();
+        let project_max_step = history
+            .steps
+            .iter()
+            .map(|step| step.step_number)
+            .max()
+            .unwrap_or(0);
+        let pinned_order = history
+            .steps
+            .iter()
+            .filter(|step| step.pinned.unwrap_or(false))
+            .map(|step| step.step_number)
+            .collect();
+
         Self {
             history,
             project,
+            project_steps,
+            project_max_step,
+            append_state_validated: false,
+            pinned_order,
             observation: ReadState::Current(Observed {
                 value: (),
                 source: ReadSource::Memory,
