@@ -47,3 +47,21 @@ test("the downloadable recording, source archive, video and screenshots match th
  assert.equal(manifest.artifacts["inbox-workflow.webm"],"baee474062f23fab399affe511afde9fd8431caadabf910a51324dfbec5c5d67");
  assert(!("projectState" in recording),"No simulated state is included");
 });
+test("guided chapters keep their source and screenshots tied to the original build",async()=>{
+ const {walkthrough,excerptAt}=await import("../src/data/walkthrough.mjs");
+ assert.deepEqual(walkthrough.map(scene=>scene.event),[11,17,22,33,41,46]);
+ for(const scene of walkthrough.filter(scene=>scene.kind==="source")){
+  const excerpt=excerptAt(recording,scene,filesAt);
+  const lines=filesAt(recording,scene.event)[scene.path].split("\n");
+  assert(excerpt.length>4);
+  for(const line of excerpt)assert.equal(line.text.trim(),lines[line.number-1].trim());
+  assert.equal(checkOf(recording.events[scene.check]).passed,true);
+ }
+ const captures=JSON.parse(readFileSync(new URL("../public/demo/inbox/walkthrough/captures.json",import.meta.url)));
+ assert.equal(captures.images.length,8);
+ for(const capture of captures.images){
+  const bytes=readFileSync(new URL("../public/demo/inbox/walkthrough/"+capture.file,import.meta.url));
+  assert.equal(hash(bytes),capture.sha256);
+  assert.equal(hash(readFileSync(new URL("../../../"+capture.source,import.meta.url))),capture.sha256);
+ }
+});

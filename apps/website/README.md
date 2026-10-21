@@ -32,7 +32,9 @@ Add `--evidence-dir` with a new iteration folder when deployed captures are need
 
 ## Recorded project example
 
-The landing page replays the real build in `public/demo/inbox/recording.json`. Every action has capture times and the actual input and result. `src/data/project-recording.mjs` reconstructs files and milestone states from those actions; it does not manufacture progress or check results. The tests compare every reconstructed file with `examples/support-inbox` and its recorded write hash.
+The landing page presents six guided chapters from the real build in `public/demo/inbox/recording.json`. `src/data/walkthrough.mjs` owns the editorial chapter order, explanations and references into that immutable recording; it does not add historical events. The visitor can advance chapters, compare the original review captures, play the actual app video, or open all 47 actions and file snapshots. Chapter playback is opt-in at eight seconds per chapter and stops on manual navigation, inspection, focus changes or leaving the page. Every action has capture times and the actual input and result. `src/data/project-recording.mjs` reconstructs files and milestone states from those actions; it does not manufacture progress or check results. The tests compare every reconstructed file with `examples/support-inbox` and its recorded write hash.
+
+Unmodified before/after captures in `public/demo/inbox/walkthrough/` retain their source paths, capture times and hashes in their own `captures.json`. Responsive framing scrolls these original images without altering them. The browser harness serves byte ranges and checks a decoded frame after seeking, so setting `currentTime` alone cannot pass video verification.
 
 The downloadable source, unmodified app video and screenshots are covered by `public/demo/inbox/manifest.json`. The video shows the completed app; the event recording covers its implementation. The source app is local-only and uses sample mail. See its README for scope and run instructions.
 

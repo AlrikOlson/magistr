@@ -1,0 +1,41 @@
+{
+  "sourceCommit": "4c15e7ea86a32fd4503aac876f5b41784d1e3b2b",
+  "captures": [
+    {
+      "file": "before-desktop.png",
+      "sha256": "2d357c437aaa220a0a6b786b4774ad1559756b7f5a634b8bdc795482331083af",
+      "modified": 1792561411.2543855,
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-10-21T05:43:31.254Z",
+      "renderer": "Playwright browser MCP / Chromium 155.0.8059.85",
+      "appearance": "Dark",
+      "source": "https://magistr.dev/#workflow",
+      "reviewed": true
+    },
+    {
+      "file": "screen-studio-reference.png",
+      "sha256": "ddf2823c10584407d1f865b862d6cc53cc9b17260183387eac49fe590e0051ce",
+      "modified": 1792561423.3001146,
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-10-21T05:43:43.300Z",
+      "renderer": "Playwright browser MCP / Chromium 155.0.8059.85",
+      "appearance": "Dark",
+      "source": "https://screen.studio/",
+      "reviewed": true
+    },
+    {
+      "file": "video-frame-4s.png",
+      "sha256": "85bc060c1d3e6b5d707b04f1dd5a5fd329425c43b36f27e84f187c33a56aa35a",
+      "modified": 1792561911.9939806,
+      "width": 1280,
+      "height": 900,
+      "capturedAt": "2026-10-21T05:51:51.993Z",
+      "renderer": "FFmpeg extraction of original VP9 frame",
+      "appearance": "Original recorded light appearance",
+      "source": "apps/website/public/demo/inbox/inbox-workflow.webm",
+      "reviewed": true
+    }
+  ]
+}
