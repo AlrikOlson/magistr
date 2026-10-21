@@ -1,101 +1,104 @@
 # Magistr
 
-**Roadmap and workflow management for coding agents.**
+**Project planning for Codex and Claude Code.**
 
-[Website](https://magistr.dev) · [Documentation](https://magistr.dev/docs/installation) · [Architecture](docs/architecture/overview.md)
+[Website](https://magistr.dev) · [Work on a project](https://magistr.dev/docs/workflow) · [Installation](docs/getting-started.md)
 
-Magistr has not been publicly released. Interfaces and stored formats can change.
+Magistr gives your coding agent a saved roadmap and a record of the work.
+Ask it to investigate the project, revise the plan, or carry out the next items.
+Review what changed and continue in a fresh session.
 
-Magistr keeps a project's roadmap, runs one focused work item at a time, and
-records the reasoning, changes and checks alongside the project.
+Magistr is a source preview. It has not been publicly released; npm and Cargo
+registry packages are not available yet.
+
+## How you work with it
+
+Start with a question, an idea, or something that isn't working:
+
+> Read the code and the saved plan. What already works, what's unfinished, and
+> what would you work on next?
+
+Ask the agent to research the options and put the useful work on the roadmap.
+Change the plan when you learn something new. When you're ready to build, use
+`$next` in Codex or `/next` in Claude Code to finish one item. The work includes
+relevant checks and a commit.
+
+For a longer run, choose the area and set a limit:
+
+```sh
+magistr next-loop --agent codex --max-iterations 5
+```
+
+Use `--agent claude` for Claude Code, or add `--track` with a track from your
+roadmap. The command starts a fresh session for each item. Inside an existing
+chat, the `next-loop` skill finishes one item and hands off to the next session.
+
+Review the result, give concrete feedback, and keep going. For interfaces, look
+at the actual screens as well as the test output. Tell the agent when to push
+commits, open a pull request, or deploy.
+
+See [Work on a project](https://magistr.dev/docs/workflow) for example requests,
+roadmap changes, review, and handoffs.
+
+## Install and connect
+
+The current CLI preview targets Apple Silicon with macOS 15 or later.
+With repository access, Rust 1.95 or later, and the macOS command-line build tools:
+
+```sh
+git clone https://github.com/AlrikOlson/magistr.git
+cd magistr
+cargo install --locked --path crates/magistr-cli
+magistr --version
+```
+
+Install and sign in to your agent separately. In the project you want to work on,
+run `magistr init .`. Choose your agents and review the proposed files and
+check commands. Setup checks the connection and gives you a planning prompt.
+
+Open Codex with `./.codex/run`, or start `claude` for Claude Code.
+Setup doesn't start implementation.
+
+See [installation, upgrades, and removal](docs/getting-started.md).
+
+## What carries over
+
+The roadmap, recorded decisions, actions, and check results stay with the
+project. A fresh session can read them and inspect the current code before
+continuing. An agent's written review and a command Magistr actually ran are
+recorded separately.
+
+Magistr's source tools search and read code, check edits against the file the
+agent read, and keep a change journal. Your project's tests and your review
+still determine whether a change works.
+
+Codex and Claude Code can read the same project's Magistr records. Their
+conversations and model settings remain separate.
+
+## Desktop preview
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="apps/website/public/screenshots/desktop-dark.png" />
-  <img alt="Magistr with projects and sessions at left, a conversation in the centre and working-copy details at right." src="apps/website/public/screenshots/desktop-light.png" width="1280" height="832" />
+  <img alt="Magistr desktop showing a saved conversation about a contact-list bug." src="apps/website/public/screenshots/desktop-light.png" width="1280" height="832" />
 </picture>
 
-## Install and initialize
+Open **Launch Magistr.command** on macOS or **Launch Magistr.cmd** on Windows
+in this checkout. You'll need Rust 1.95+, Node.js 22+, and the
+[platform build prerequisites](https://v2.tauri.app/start/prerequisites/).
+The launcher builds and opens the app.
 
-The first supported installation target is Apple Silicon with macOS 15 or later.
-Registry publication is pending; these are the prepared release commands:
+You can open projects, keep separate conversations, answer permission requests,
+and return to saved sessions. Use the command line or your connected agent for
+the full planning and change-review workflow.
 
-```sh
-npm install -g magistr
-# Or, with Rust 1.95+:
-cargo install magistr-cli --locked
-```
-
-For the current source build, use `cargo install --locked --path crates/magistr-cli`.
-The npm package includes a native binary; it needs no Rust, Bun or source checkout.
-
-In your project, run `magistr init` (or `npx magistr init`). Select Codex, Claude
-Code, both, or another MCP agent. Review the detected verification commands and
-proposed file changes. Setup checks the connection and gives you a planning prompt.
-It does not start implementation. For unattended setup:
-
-```sh
-magistr init . --agent codex,claude --yes
-magistr doctor .
-```
-
-One `magistr mcp --dir .` connection provides workflow and verified source tools.
-Common tools are direct; `discover` and `execute` expose the complete operation
-catalog. See [installation, upgrades and removal](docs/getting-started.md) and
-[release preparation](docs/releasing-cli.md).
-
-## Desktop
-
-Double-click **Launch Magistr.command** on macOS or **Launch Magistr.cmd** on
-Windows in this checkout. Install Rust 1.95+, Node.js 22+ and the
-[platform build prerequisites](https://v2.tauri.app/start/prerequisites/) once.
-The launcher builds the current source and opens Magistr; later builds reuse
-the compiled dependencies.
-
-For daily use without a checkout or build tools, install a native app package:
-
-- **macOS:** open the `.dmg`, drag **Magistr** to **Applications**, then open it
-  from Applications, Spotlight or the Dock.
-- **Windows:** run the `-setup.exe`, then open **Magistr** from the Start menu.
-  Setup installs WebView2 if it is missing.
-
-The [desktop apps workflow](https://github.com/AlrikOlson/magistr/actions/workflows/desktop-apps.yml)
-builds packages for macOS and Windows. Download the artifact for your computer
-from a successful run. These development builds are not publicly signed or notarized.
-To make a package on your own computer, run `node scripts/desktop.mjs package`.
-
-Choose a folder in the window. From a terminal, you can also run:
-
-```sh
-node scripts/desktop.mjs open --dir /path/to/project
-```
-If the folder needs setup, review each file and apply the changes you select.
-Invalid folders and unavailable agents leave the chooser open so you can recover.
-
-Open projects and working copies, keep separate agent conversations, answer
-permission requests and stop work while keeping your draft. Use native text
-editing and clipboard, with System, Light and Dark appearances.
-
-Roadmap planning, detailed recorded work, file review and settings use the CLI
-and agent tools. The CLI also supports headless runs, initialization and checks.
-
-## Run and verify work
-
-```sh
-magistr next
-magistr next-loop --max-iterations 5
-magistr validate
-```
-
-The CLI streams progress; `magistr --help` lists commands. Headless execution,
-MCP services and provider command processes use the same application owners.
-A work item is done when its acceptance criteria hold and its recorded checks pass.
-
-Agent runtimes are installed and authenticated separately. Magistr does not
-sandbox their operating-system access.
+Development packages are available from successful runs of the
+[desktop apps workflow](https://github.com/AlrikOlson/magistr/actions/workflows/desktop-apps.yml).
+They are not publicly signed or notarized. See [development](docs/development.md)
+for packaging and verification.
 
 ## Development
 
-See [development](docs/development.md) for both Cargo workspaces, native window
-verification, the current screenshots and website checks; see
-[architecture](docs/architecture/desktop.md) for desktop ownership.
-[Contributing](CONTRIBUTING.md) · [MIT license](LICENSE)
+[Development guide](docs/development.md) · [Architecture](docs/architecture/overview.md) · [Contributing](CONTRIBUTING.md) · [MIT license](LICENSE)
+
+Agent runtimes are installed and authenticated separately. Magistr does not
+sandbox their operating-system access; choose permissions that fit your project.

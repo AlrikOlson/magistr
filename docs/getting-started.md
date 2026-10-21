@@ -1,103 +1,147 @@
 # Getting started
 
-The first CLI/npm release supports Apple Silicon with macOS 15 or later. Publication is pending;
-the commands below describe the prepared packages. Install and sign in to Codex
-or Claude Code separately.
+Magistr keeps a plan and work history alongside your project while you use
+Codex or Claude Code. Start by connecting an agent, then ask it to inspect the
+project and help you decide what to work on.
 
-## Install
+The current source preview targets Apple Silicon with macOS 15 or later.
+Magistr has not been publicly released, and npm and Cargo registry packages
+are not available yet.
+
+## Install the preview
+
+You'll need repository access, Rust 1.95 or later, Git, and the macOS
+command-line build tools. Install and sign in to your coding agent separately.
 
 ```sh
-npm install -g magistr
+git clone https://github.com/AlrikOlson/magistr.git
+cd magistr
+cargo install --locked --path crates/magistr-cli
 magistr --version
 ```
 
-The npm package includes the version-matched native binary. No Rust, Bun, source
-checkout or install-time build is required. You can also use `npx magistr init`
-without a global installation. npm-generated connections use a pinned
-`npx --yes --package magistr@VERSION magistr mcp --dir .` command, so later
-connections do not depend on an ephemeral cache path. After an npm upgrade,
-run repair to update the pinned version.
+If your shell can't find `magistr`, add Cargo's binary directory
+(usually `~/.cargo/bin`) to your PATH.
 
-With Rust 1.95 or later and the macOS command-line build tools:
+## Connect a project
+
+In the project you want to work on:
 
 ```sh
-cargo install magistr-cli --locked
+magistr init .
 ```
 
-For unpublished source, clone the repository and run
-`cargo install --locked --path crates/magistr-cli`. Cargo's binary directory
-(usually `~/.cargo/bin`) must be on PATH.
+Setup detects the project, lets you choose agents, and shows the proposed
+files and check commands. It keeps your custom instructions, settings, other
+tool connections, and saved work.
 
-## Configure a project
-
-Run `magistr init` in the project. It detects the stack, lets you select one or
-more agents, shows verification commands and proposed file changes, then applies
-the reviewed setup. Only selected integrations are generated. It preserves
-customized instructions, settings, unrelated MCP connections and native work.
+To preview both Codex and Claude Code setup:
 
 ```sh
-magistr init . --agent codex,claude --yes
-magistr init . --agent portable --dry-run --json
+magistr init . --agent codex,claude --dry-run
 ```
 
-`--yes` accepts defaults. `--dry-run` only previews changes. Repeated init is
-safe; it preserves project identity, saved work and custom settings. Existing
-generated files are refreshed when their content is unchanged.
+Use `--yes` instead of `--dry-run` to accept the defaults. You can run setup
+again to add another agent.
 
-Codex uses `.codex/config.toml`, `AGENTS.md`, `.agents/skills`,
-`.magistr/conventions.md` and `./.codex/run`. Claude Code uses `.mcp.json`,
-`CLAUDE.md` and `.claude/skills`. The portable option writes standard
-`.mcp.json` and `.magistr/instructions.md`; copy that connection into your
-agent's MCP settings if it does not read the file. See the
-[Codex reference](reference/codex.md) for launcher behavior.
+Setup checks the connection and gives you a starter prompt. If an agent is
+missing or signed out, follow the reported instructions. You can still prepare
+its setup files. Setup does not start implementation.
 
-Setup completes with an actual MCP handshake and read-only context check.
-Unavailable agents produce an installation/sign-in diagnostic; they do not
-prevent preparing their files. Start a new trusted agent session to load the
-connection. Begin with the printed prompt to inspect the project and propose
-a plan. Setup never starts roadmap implementation.
+## Open your agent
 
-## Use the connection
+For Codex, use `./.codex/run` from your project. It loads the project's
+instructions, skills, and Magistr connection. See the
+[Codex reference](reference/codex.md) for launcher details.
 
-All tools use one connection: `magistr mcp --dir /path/to/project`. Common
-tools are `context`, `search`, `read`, `edit`, `write`, `plan_work`,
-`start_work`, `record_progress`, `check_work` and `finish_work`.
+For Claude Code, run `claude` and approve the project's MCP connection when
+asked. The connection is in `.mcp.json`; instructions and skills are in
+`CLAUDE.md` and `.claude/`.
 
-Use `discover` to find additional operations and inspect their schemas.
-Use `execute` with synchronous `magistr.call(name, args)` to invoke them.
-This covers roadmap, reasoning, feedback, resumption, file operations, commands,
-undo, scripting, indexing and health. Every call keeps the native permissions,
-confirmation and source checks. Compositions stop on failure and return receipts;
-inspect those receipts and current state before continuing.
-
-Use `$next` in Codex or `/next` in Claude Code when you explicitly want to
-implement one ready roadmap item. Invoke the same skill after interruption to
-recover the saved work. Verification is chosen for the change and recorded.
-
-## Upgrade, diagnose, repair or remove
+For another MCP agent, select the portable option during setup or run:
 
 ```sh
-npm install -g magistr@latest
-# Or:
-cargo install magistr-cli --locked --force
+magistr init . --agent portable --yes
+```
+
+If that agent doesn't read `.mcp.json`, copy the Magistr connection into its
+MCP settings and load `.magistr/instructions.md`. It runs
+`magistr mcp --dir /path/to/project`.
+
+Open a fresh agent session after changing setup.
+
+## Start with the project
+
+Try a request like:
+
+> Read the code and the saved plan. Tell me what works, what needs attention,
+> and what you recommend doing next. Make a plan before changing anything.
+
+When you're ready to build, use `$next` in Codex or `/next` in Claude Code.
+It resumes interrupted work or finishes one ready roadmap item, including
+relevant checks and a commit.
+
+From a terminal:
+
+```sh
+magistr next
+magistr next-loop --agent codex --max-iterations 5
+```
+
+The second command starts a fresh agent session for each item, up to the limit.
+Use `--agent claude` for Claude Code. For examples of research, changing direction,
+review, and handoffs, see [Work on a project](https://magistr.dev/docs/workflow).
+
+Ask for checks that cover the change. Use `magistr validate` when you want the
+project's full configured quality gate.
+
+## Fix a connection or setup problem
+
+```sh
 magistr doctor .
 magistr repair . --dry-run
-magistr repair . --yes
-magistr remove . --dry-run
-magistr remove . --yes
+magistr repair .
 ```
 
-Known older settings and saved work upgrade automatically when Magistr starts.
-Repair includes the same upgrades; `--dry-run` previews file changes without
-applying them. Originals are retained for recovery. See [automatic upgrades](reference/upgrades.md)
-for storage locations and conflict handling.
+Doctor explains missing setup, unreadable settings, unavailable agents, and
+connection failures. Repair previews and applies setup changes while preserving
+customized files and other connections.
 
-Repair and removal use the same change-plan service as setup. Removal deletes unchanged generated
-integration files and removes owned configuration entries while keeping custom
-files, unrelated connections, project configuration and native work. Review
-the removal receipt for preserved files. To uninstall the executable, use
-`npm uninstall -g magistr` or `cargo uninstall magistr-cli`.
+If another session owns the project, check for work that's still running.
+Don't delete lock files or stop another session to get past the message.
 
-`magistr doctor` reports missing setup, malformed configuration, unavailable
-selected agents and connection failures with recovery commands. Do not stop
-another session's workspace owner to diagnose a connection.
+## Update the preview
+
+From the Magistr source checkout:
+
+```sh
+git pull --ff-only
+cargo install --locked --path crates/magistr-cli --force
+```
+
+Recognized older settings and saved work upgrade automatically when Magistr
+opens a project. Your customizations and recoverable originals are kept.
+Conflicting data stops the upgrade with an explanation.
+
+Run `magistr doctor .` to check a project after upgrading, and
+`magistr repair . --dry-run` to review setup changes.
+See [automatic upgrades](reference/upgrades.md) for recovery details.
+
+## Remove Magistr
+
+Remove the agent connections in each project first:
+
+```sh
+magistr remove . --dry-run
+magistr remove .
+```
+
+Removal keeps project settings, saved work, customized files, and other tool
+connections. Read the report to see what it kept. Then uninstall the command:
+
+```sh
+cargo uninstall magistr-cli
+```
+
+Package maintainers can find the prepared registry installation and publication
+process in [the release guide](releasing-cli.md).
