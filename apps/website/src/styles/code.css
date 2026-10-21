@@ -1,0 +1,11 @@
+/* One code palette follows the site's explicit theme, including the transcript. */
+pre.shiki,pre.astro-code{background:var(--color-code)!important;color:var(--color-code-text)!important}
+pre code{font:inherit}
+.dark :is(.shiki,.astro-code,.code-diff,.code-output) span[style]{color:var(--shiki-dark)!important}
+.code-diff,.code-output{color:var(--color-code-text)}
+.diff-line{display:inline-block;min-width:100%;vertical-align:top;padding-inline:.4rem;box-sizing:border-box}
+.diff-sign{display:inline-block;width:1.5ch}
+.diff-add{background:#e6f5eb}.diff-remove{background:#ffebe9}.diff-hunk{background:#eaf0f8;color:#365471}
+.dark .diff-add{background:#173927}.dark .diff-remove{background:#482624}.dark .diff-hunk{background:#25364b;color:#b4c9e3}
+.diff-meta,.output-muted{color:var(--color-text-muted)}.output-error{color:var(--color-error)}.output-success{color:var(--color-green)}
+@media(forced-colors:active){.diff-add{border-left:2px solid CanvasText}.diff-remove{border-left:2px dashed CanvasText}.diff-hunk{border-block:1px solid CanvasText}}

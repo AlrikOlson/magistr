@@ -7,7 +7,7 @@
     "prebuild": "node scripts/generate-favicons.mjs",
     "build": "astro build",
     "preview": "astro preview",
-    "test": "npm run build && node tests/build-output.mjs && node --test tests/build-recording.test.mjs && npm run test:demo",
+    "test": "npm run build && node tests/build-output.mjs && node --test tests/build-recording.test.mjs tests/highlight-recording.test.mjs && npm run test:demo",
     "test:ui": "node tests/browser.mjs",
     "audit": "npm audit",
     "test:demo": "cargo test --locked --manifest-path ../../examples/bevy-tic-tac-toe/Cargo.toml --lib",
@@ -16,14 +16,18 @@
   "dependencies": {
     "@astrojs/mdx": "^8.1.0",
     "@astrojs/sitemap": "^3.7.4",
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/xterm": "^6.0.0",
     "astro": "^7.4.1",
-    "astro-pagefind": "^2.0.1"
+    "astro-pagefind": "^2.0.1",
+    "diff": "^9.0.0",
+    "shiki": "^4.5.0"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
+    "playwright": "1.64.1",
     "tailwindcss": "^4.3.3",
-    "typescript": "^5.7.0",
-    "playwright": "1.64.1"
+    "typescript": "^5.7.0"
   },
   "engines": {
     "node": ">=22.22.0",

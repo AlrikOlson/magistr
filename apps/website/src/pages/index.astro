@@ -4,6 +4,8 @@ import Base from "../layouts/Base.astro";
 import Nav from "../components/Nav.astro";
 import Footer from "../components/Footer.astro";
 import BuildWalkthrough from "../components/BuildWalkthrough.astro";
+import {highlightCode} from "../../scripts/highlight-recording.mjs";
+const installCode = await highlightCode("git clone https://github.com/AlrikOlson/magistr.git\ncd magistr\ncargo install --locked --path crates/magistr-cli\nmagistr --version","shellscript");
 const description = "Build bigger projects with your coding agent. Magistr keeps the roadmap, recorded reasoning, work chunks and checks together so you can keep going.";
 const jsonLd = [
   {"@context":"https://schema.org","@type":"WebSite","name":"Magistr","url":"https://magistr.dev",description},
@@ -68,10 +70,7 @@ const jsonLd = [
         </div>
         <div class="code-panel">
           <div class="code-label"><span>In your terminal</span><button class="copy-button" type="button" aria-label="Copy commands" data-copy="source-install" hidden>Copy commands</button></div>
-          <pre id="source-install"><code>git clone https://github.com/AlrikOlson/magistr.git
-cd magistr
-cargo install --locked --path crates/magistr-cli
-magistr --version</code></pre>
+          <div id="source-install" set:html={installCode} />
           <p class="copy-status" role="status" aria-live="polite"></p>
         </div>
       </div>
