@@ -52,9 +52,11 @@ jobs:
           node --check scripts/desktop.mjs
           node --test scripts/desktop-launcher.tests.mjs crates/magistr-desktop/tests/*.mjs
       - name: Check and lint development desktop targets
-        run: python3 -B scripts/ci_timing.py --name desktop-lint --budget 480 -- cargo clippy --manifest-path crates/magistr-desktop/Cargo.toml --all-targets --locked -- -D warnings
+        run: python3 -B scripts/ci_timing.py --name desktop-lint --budget 480 -- cargo clippy --manifest-path crates/magistr-desktop/Cargo.toml --all-targets --target "$DESKTOP_TARGET" --locked -- -D warnings
+      - name: Compile development desktop tests
+        run: python3 -B scripts/ci_timing.py --name desktop-test-build --budget 600 -- cargo nextest run --manifest-path crates/magistr-desktop/Cargo.toml --target "$DESKTOP_TARGET" --locked --no-run
       - name: Test development desktop
-        run: python3 -B scripts/ci_timing.py --name desktop-tests --budget 240 -- cargo nextest run --manifest-path crates/magistr-desktop/Cargo.toml --locked
+        run: python3 -B scripts/ci_timing.py --name desktop-tests --budget 180 -- cargo nextest run --manifest-path crates/magistr-desktop/Cargo.toml --target "$DESKTOP_TARGET" --locked
       - name: Build native app and installer
         run: python3 -B scripts/ci_timing.py --name desktop-package --budget 720 -- node scripts/desktop.mjs package --debug
       - name: Check and lint packaged desktop targets

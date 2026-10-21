@@ -47,12 +47,12 @@ pub fn execution_policy(
     timeout: Option<u64>,
 ) -> Result<(u64, GateSchedule), String> {
     let (config, policy) = verification_policy(root, name, Some(command))?;
-    let timeout = timeout
-        .or_else(|| policy.as_ref().and_then(|policy| policy.timeout_secs))
-        .unwrap_or(config.timeout_secs);
-    if !(1..=magistr_engine::native::CheckOptions::MAX_TIMEOUT_SECS).contains(&timeout) {
-        return Err("Check timeout must be between 1 and 3600 seconds.".into());
-    }
+    let timeout = magistr_engine::native::CheckBudget::resolve(
+        timeout,
+        policy.as_ref().and_then(|policy| policy.timeout_secs),
+        config.timeout_secs,
+    )?
+    .seconds;
     if !(1..=16).contains(&config.max_parallel) {
         return Err("Check parallelism must be between 1 and 16.".into());
     }

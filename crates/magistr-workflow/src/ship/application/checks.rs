@@ -52,20 +52,17 @@ impl ShipUseCases {
             .unwrap_or_default();
         request.options.max_parallel = Some(schedule.max_parallel);
         request.options.resources = schedule.resources;
-        let default_timeout = self
-            .evidence
-            .as_ref()
-            .map(|port| port.check_timeout_secs(&request.name, request.command.as_deref()))
-            .transpose()
-            .map_err(ShipError::from)?
-            .unwrap_or(super::CheckOptions::DEFAULT_TIMEOUT_SECS);
-        let timeout = request.options.timeout_secs.get_or_insert(default_timeout);
-        if *timeout == 0 || *timeout > super::CheckOptions::MAX_TIMEOUT_SECS {
-            return Err(ShipError::invalid_args(format!(
-                "Check timeout must be between 1 and {} seconds.",
-                super::CheckOptions::MAX_TIMEOUT_SECS
-            )));
+        let budget = match self.evidence.as_ref() {
+            Some(port) => port.check_budget(
+                &request.name,
+                request.command.as_deref(),
+                request.options.timeout_secs,
+            ),
+            None => super::CheckBudget::resolve(request.options.timeout_secs, None, None),
         }
+        .map_err(ShipError::invalid_args)?;
+        request.options.timeout_secs = Some(budget.seconds);
+        request.options.timeout_origin = Some(budget.origin);
         let witness = self
             .evidence
             .as_ref()

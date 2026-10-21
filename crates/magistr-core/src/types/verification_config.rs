@@ -6,7 +6,8 @@ use std::collections::BTreeMap;
 #[serde(default)]
 pub struct VerificationConfig {
     /// Per-command deadline, shared by tools and the iteration runner.
-    pub timeout_secs: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub timeout_secs: Option<u64>,
     /// Maximum independent checks in flight. Resource locks still apply.
     pub max_parallel: usize,
     /// Overrides keyed by configured gate name.
@@ -15,7 +16,7 @@ pub struct VerificationConfig {
 impl Default for VerificationConfig {
     fn default() -> Self {
         Self {
-            timeout_secs: magistr_engine::native::CheckOptions::DEFAULT_TIMEOUT_SECS,
+            timeout_secs: None,
             max_parallel: 4,
             gates: BTreeMap::new(),
         }

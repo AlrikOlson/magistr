@@ -54,6 +54,9 @@ The `verification` object in `.magistr/project.json` sets `timeout_secs`
 queue time. Cargo gates sharing a target directory serialize; `resources: []`
 allows an independent custom gate to overlap. Undeclared custom commands run
 exclusively. A budget may be 1–3600 seconds and parallelism 1–16.
+The deadline comes from the per-call override, then the gate override, then the
+project setting, then the 900-second default. The durable receipt keeps the
+resolved value and its origin, including when the command times out.
 
 Gate batches stop scheduling after a required failure. Use `diagnostic: true`
 when collecting all failures is the task. Correct the failure before rerunning;

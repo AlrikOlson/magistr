@@ -330,6 +330,58 @@ fn a_check_scope_ignores_unrelated_edits_but_tracks_new_inputs_and_toolchain_set
 }
 
 #[test]
+fn deadline_precedence_and_origin_are_shared_by_live_and_native_checks() {
+    use magistr_engine::native::TimeoutOrigin;
+    let (_dir, root, evidence) = rig();
+    let path = root.join(".magistr/project.json");
+    let mut config: serde_json::Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+    for (policy, per_call, seconds, origin) in [
+        (serde_json::json!({}), None, 900, TimeoutOrigin::Default),
+        (
+            serde_json::json!({"timeout_secs": 75}),
+            None,
+            75,
+            TimeoutOrigin::Project,
+        ),
+        (
+            serde_json::json!({"timeout_secs": 75, "gates": {"structure": {"timeout_secs": 25}}}),
+            None,
+            25,
+            TimeoutOrigin::Gate,
+        ),
+        (
+            serde_json::json!({"timeout_secs": 75, "gates": {"structure": {"timeout_secs": 25}}}),
+            Some(5),
+            5,
+            TimeoutOrigin::PerCall,
+        ),
+    ] {
+        config["verification"] = policy;
+        fs::write(&path, config.to_string()).unwrap();
+        let budget = evidence
+            .check_budget("structure", Some("./lint.sh"), per_call)
+            .unwrap();
+        assert_eq!((budget.seconds, budget.origin), (seconds, origin));
+        assert_eq!(
+            crate::gates::execution_policy(&root, "structure", "./lint.sh", per_call)
+                .unwrap()
+                .0,
+            seconds
+        );
+    }
+    for invalid in [0, 3601] {
+        assert!(
+            evidence
+                .check_budget("structure", Some("./lint.sh"), Some(invalid))
+                .is_err()
+        );
+        assert!(
+            crate::gates::execution_policy(&root, "structure", "./lint.sh", Some(invalid)).is_err()
+        );
+    }
+}
+
+#[test]
 fn configured_gate_scopes_deadlines_and_reuse_require_the_configured_command() {
     let (_dir, root, evidence) = rig();
     let path = root.join(".magistr/project.json");
@@ -341,14 +393,16 @@ fn configured_gate_scopes_deadlines_and_reuse_require_the_configured_command() {
     fs::write(&path, config.to_string()).unwrap();
     assert_eq!(
         evidence
-            .check_timeout_secs("structure", Some("./lint.sh"))
-            .unwrap(),
+            .check_budget("structure", Some("./lint.sh"), None)
+            .unwrap()
+            .seconds,
         25
     );
     assert_eq!(
         evidence
-            .check_timeout_secs("structure", Some("different"))
-            .unwrap(),
+            .check_budget("structure", Some("different"), None)
+            .unwrap()
+            .seconds,
         75
     );
     let scoped = evidence

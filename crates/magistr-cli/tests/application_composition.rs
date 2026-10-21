@@ -99,11 +99,12 @@ fn objective(engines: &NativeEngines, task: &str) {
 
 fn objective_with(engines: &NativeEngines, task: &str, acceptance: Vec<String>) {
     engines
-        .ship_set_objective(
+        .ship_set_objective_with_verification(
             "Compose".into(),
             acceptance,
             vec![],
             format!("chunk:{CHUNK}"),
+            magistr_engine::native::VerificationMode::Full,
         )
         .expect("objective");
     engines
@@ -292,11 +293,12 @@ async fn completion_refuses_after_a_source_config_or_acceptance_change_until_the
 
     // The acceptance was edited mid-flight: same run, new revision.
     engines
-        .ship_set_objective(
+        .ship_set_objective_with_verification(
             "Compose".into(),
             vec!["it works".into(), "and reads well".into()],
             vec![],
             format!("chunk:{CHUNK}"),
+            magistr_engine::native::VerificationMode::Full,
         )
         .expect("edited in flight");
     let refused = refusal(&engines, None);
