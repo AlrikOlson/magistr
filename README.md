@@ -1,49 +1,40 @@
 # Magistr
 
-**Project planning for Codex and Claude Code.**
+**Build a project with Magistr. Work with the coding agent you prefer.**
 
-[Website](https://magistr.dev) · [Work on a project](https://magistr.dev/docs/workflow) · [Installation](docs/getting-started.md)
+[Explore Magistr](https://magistr.dev) · [Start building](https://magistr.dev/docs/workflow) · [Install](docs/getting-started.md)
 
-Magistr gives your coding agent a saved roadmap and a record of the work.
-Ask it to investigate the project, revise the plan, or carry out the next items.
-Review what changed and continue in a fresh session.
+I want to take on projects that won't fit in one chat. I want to work out the
+big picture, understand the choices, and let my agent build useful pieces of it.
+Then I want to try the result, change my mind about parts, and keep going.
 
-Magistr is a source preview. It has not been publicly released; npm and Cargo
-registry packages are not available yet.
+That's how I use Magistr. It keeps the roadmap, recorded reasoning, work chunks
+and checks with the project, so the next session has something useful to read.
 
-## How you work with it
+Magistr is a source preview. It hasn't been publicly released; npm and Cargo
+registry packages aren't available yet.
 
-Start with a question, an idea, or something that isn't working:
+## How the work fits together
 
-> Read the code and the saved plan. What already works, what's unfinished, and
-> what would you work on next?
+- **Plan the project.** Keep priorities, dependencies and acceptance criteria
+  on a roadmap you can revise as you learn.
+- **Keep the reasoning.** Record investigations, compare approaches, and
+  connect the decision to the evidence and work it informs.
+- **Finish useful chunks.** Work through one ready piece, or give a longer run
+  a focus and a limit. Keep its tasks, actions and finished changes together.
+- **Check what you built.** Record actual command results and written reviews.
+  Keep failures visible and check whether earlier results still apply.
+- **Keep going.** Save feedback, update the plan, and let a fresh session pick
+  up the unfinished work.
 
-Ask the agent to research the options and put the useful work on the roadmap.
-Change the plan when you learn something new. When you're ready to build, use
-`$next` in Codex or `/next` in Claude Code to finish one item. The work includes
-relevant checks and a commit.
+[Explore real records and a complete recorded build](https://magistr.dev/#product).
+The inbox example includes its original source, failed checks, screen review
+and the finished app.
 
-For a longer run, choose the area and set a limit:
+## Try it in your project
 
-```sh
-magistr next-loop --agent codex --max-iterations 5
-```
-
-Use `--agent claude` for Claude Code, or add `--track` with a track from your
-roadmap. The command starts a fresh session for each item. Inside an existing
-chat, the `next-loop` skill finishes one item and hands off to the next session.
-
-Review the result, give concrete feedback, and keep going. For interfaces, look
-at the actual screens as well as the test output. Tell the agent when to push
-commits, open a pull request, or deploy.
-
-See [Work on a project](https://magistr.dev/docs/workflow) for example requests,
-roadmap changes, review, and handoffs.
-
-## Install and connect
-
-The current CLI preview targets Apple Silicon with macOS 15 or later.
-With repository access, Rust 1.95 or later, and the macOS command-line build tools:
+The current CLI preview targets Apple Silicon macOS 15 or later. With repository
+access, Rust 1.95 or later, Git and the macOS command-line build tools:
 
 ```sh
 git clone https://github.com/AlrikOlson/magistr.git
@@ -52,28 +43,49 @@ cargo install --locked --path crates/magistr-cli
 magistr --version
 ```
 
-Install and sign in to your agent separately. In the project you want to work on,
-run `magistr init .`. Choose your agents and review the proposed files and
-check commands. Setup checks the connection and gives you a planning prompt.
+Install and sign in to your agent separately. In the project you want to build,
+run `magistr init .`. Choose your agents and review the proposed files and check
+commands. Setup connects the project and gives you a planning prompt.
 
 Open Codex with `./.codex/run`, or start `claude` for Claude Code.
-Setup doesn't start implementation.
+Other MCP agents can connect too. [Installation](docs/getting-started.md)
+covers setup, upgrades and removal.
 
-See [installation, upgrades, and removal](docs/getting-started.md).
+## Start with what you want to make
 
-## What carries over
+> Read the code and the saved plan. What's working, what's unfinished, and
+> what would make the biggest difference? Explain what you find.
 
-The roadmap, recorded decisions, actions, and check results stay with the
-project. A fresh session can read them and inspect the current code before
-continuing. An agent's written review and a command Magistr actually ran are
-recorded separately.
+Research what's uncertain. Turn the useful work into roadmap chunks. When you're
+ready, use `$next` in Codex or `/next` in Claude Code to finish one chunk,
+including the relevant checks and a commit.
 
-Magistr's source tools search and read code, check edits against the file the
-agent read, and keep a change journal. Your project's tests and your review
-still determine whether a change works.
+For a longer run with a fresh agent session for each chunk:
 
-Codex and Claude Code can read the same project's Magistr records. Their
-conversations and model settings remain separate.
+```sh
+magistr next-loop --agent codex --max-iterations 5
+```
+
+Use `--agent claude` for Claude Code or add `--track` with a track from your
+roadmap. Inside a chat, the `next-loop` skill finishes one chunk and prepares
+the next session's handoff.
+
+Try the result. Give concrete feedback. Tell the agent how you want commits,
+pushes and publishing handled.
+
+## Learn the workflow
+
+[Working with Magistr](https://magistr.dev/docs/workflow) ·
+[Planning](https://magistr.dev/docs/roadmap) ·
+[Reasoning](https://magistr.dev/docs/reasoning) ·
+[Chunks](https://magistr.dev/docs/chunks) ·
+[Checks](https://magistr.dev/docs/verification) ·
+[Saved work and sessions](https://magistr.dev/docs/concepts)
+
+Project records carry over between connected agents. Their chat transcripts
+and model settings stay separate. Magistr's source tools can check edits
+against the files the agent read and keep a change journal; tests, review and
+Git still matter.
 
 ## Desktop preview
 
@@ -85,16 +97,14 @@ conversations and model settings remain separate.
 Open **Launch Magistr.command** on macOS or **Launch Magistr.cmd** on Windows
 in this checkout. You'll need Rust 1.95+, Node.js 22+, and the
 [platform build prerequisites](https://v2.tauri.app/start/prerequisites/).
-The launcher builds and opens the app.
 
-You can open projects, keep separate conversations, answer permission requests,
-and return to saved sessions. Use the command line or your connected agent for
-the full planning and change-review workflow.
+The preview opens projects and conversations, handles permission requests,
+keeps drafts, and shows the current work plan. Use the connected agent or CLI
+for the full planning and change-review workflow.
 
 Development packages are available from successful runs of the
 [desktop apps workflow](https://github.com/AlrikOlson/magistr/actions/workflows/desktop-apps.yml).
-They are not publicly signed or notarized. See [development](docs/development.md)
-for packaging and verification.
+They are not publicly signed or notarized.
 
 ## Development
 

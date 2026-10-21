@@ -1,0 +1,94 @@
+---
+title: Planning a project
+description: Give a big idea a shape, put the work in order, and leave room to change your mind.
+order: 3
+---
+
+A good plan makes a bigger project feel possible. You can see the pieces,
+understand what depends on what, and choose a useful place to start.
+
+Magistr keeps that plan as a roadmap your agent can read and update. You work
+with it through the connected agent; you don't need to keep a second checklist
+in the chat.
+
+## Start with the result you want
+
+Describe what someone should be able to do when the work is finished.
+For example:
+
+> I want a small team to handle customer mail together. Keep replies in the
+> same conversation, let someone take ownership, and make it clear when two
+> people try to change the same request.
+
+Have the agent inspect the existing project before planning around it.
+Ask which parts already work, which need changing, and which assumptions
+need research.
+
+## Break the work into chunks
+
+A **chunk** is a piece you can finish and verify. It might be reliable mail
+storage, a search flow, or a confusing screen that needs fixing.
+
+Ask the agent to give each chunk:
+
+- A useful result, described in ordinary language.
+- Acceptance criteria: what must be true when it's done.
+- Checks that can establish that result.
+- Dependencies on any work that has to happen first.
+
+Keep related changes together. A chunk should leave the project in a coherent
+state, with its current callers, tests and instructions agreeing.
+
+The [project explorer](/#product) shows a real part of Magistr's own roadmap.
+Open a chunk to see its result and original requirements.
+
+## Put the work in a sensible order
+
+Priority says what matters most. Dependencies say what must happen first.
+They answer different questions.
+
+> Put reliable message storage before the inbox screen. Then show me which
+> chunks are ready and what is waiting on something else.
+
+Group larger areas into workstreams so you can focus on one part of the project.
+You can have unfinished work elsewhere without losing it or pretending it is done.
+
+Before starting, have the agent check readiness against the current roadmap.
+A saved plan can change while another session is working.
+
+## Change the plan when you learn something
+
+Plans are useful because you can revise them. If a review or experiment shows
+that an assumption was wrong, update the affected chunks and record why.
+
+Use `$roadmap-refresh` in Codex or `/roadmap-refresh` in Claude Code to
+research and revise the roadmap without starting implementation.
+
+> Revisit the search plan against the code we have now. Research the options,
+> explain your recommendation, and update the dependencies and checks.
+
+Keep completed work available as history. Work that no longer makes sense can
+be marked obsolete; it doesn't need to keep competing for attention.
+
+## Make room for feedback
+
+You will notice things while using the project that deserve more thought.
+Save that feedback as a **signal**, then come back to it:
+
+> Save this for investigation: search feels slow once the inbox gets large.
+> Find out where the time goes before proposing a fix.
+
+The agent can research a signal, attach sources and findings, and promote it
+into a linked roadmap chunk when there is useful work to do. It can also
+dismiss it or put it aside for later.
+
+Use `$signals` or `/signals` to work through saved feedback. That investigation
+helps you decide what to build; it doesn't start implementation by itself.
+
+## Pick the next piece
+
+Once the plan makes sense, use `$next` or `/next` for one ready chunk.
+Say which area to focus on when the project has several tracks.
+
+[Working in chunks](/docs/chunks) covers what happens during that work and how
+to give a longer run a clear stopping point.

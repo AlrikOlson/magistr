@@ -8,7 +8,9 @@ interface Props { title: string; description: string; currentSlug: string; headi
 const { title, description, currentSlug, headings } = Astro.props;
 const allDocs = await getCollection("docs");
 const sorted = allDocs.sort((a,b)=>a.data.order-b.data.order);
-const nextDoc = sorted[sorted.findIndex((doc) => doc.id === currentSlug) + 1];
+const currentIndex = sorted.findIndex((doc) => doc.id === currentSlug);
+const nextDoc = sorted[currentIndex + 1];
+const previousDoc = sorted[currentIndex - 1];
 // Guides own their place in the reading order.
 const breadcrumbLd = {"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[
   {"@type":"ListItem","position":1,"name":"Home","item":"https://magistr.dev"},
@@ -20,16 +22,16 @@ const breadcrumbLd = {"@context":"https://schema.org","@type":"BreadcrumbList","
   <Nav />
   <div class="docs-layout section-shell">
     <aside class="docs-sidebar" aria-label="Documentation navigation">
-      <p class="docs-label">Guides</p>
+      <p class="docs-label">Build with Magistr</p>
       <div id="docs-search">
         <label class="docs-search-label" for="search-docs">Documentation</label>
         <input id="search-docs" type="search" placeholder="Search docs" class="docs-search-input" aria-label="Search documentation" />
         <div class="docs-search-results" aria-live="polite"></div>
       </div>
-      <nav class="docs-nav-group" aria-label="Documentation pages"><ul>{sorted.map((doc)=>{
+      <details class="docs-guide-list" open><summary>Browse guides <span>{title}</span></summary><nav class="docs-nav-group" aria-label="Documentation pages"><ul>{sorted.map((doc)=>{
         const active=doc.id===currentSlug;
         return <li><a href={`/docs/${doc.id}`} aria-current={active?"page":undefined} class:list={{active}}>{doc.data.title}</a></li>;
-      })}</ul></nav>
+      })}</ul></nav></details>
       <div class="docs-repo-links"><span class="supporting-label">Repository access required</span><a href="https://github.com/AlrikOlson/magistr/blob/main/docs/architecture/overview.md" target="_blank" rel="noopener noreferrer">Architecture</a><a href="https://github.com/AlrikOlson/magistr/blob/main/docs/development.md" target="_blank" rel="noopener noreferrer">Development</a></div>
     </aside>
     <main id="main-content" class="docs-main" data-pagefind-body>
@@ -39,13 +41,22 @@ const breadcrumbLd = {"@context":"https://schema.org","@type":"BreadcrumbList","
         <nav aria-label="On this page">{headings.filter(({depth}) => depth === 2).map(({slug,text}) => <a href={`#${slug}`}>{text}</a>)}</nav>
       </details>
       <article class="docs-content"><slot /></article>
-      {nextDoc && <nav class="docs-next" aria-label="Next guide"><span>Next guide</span><a href={`/docs/${nextDoc.id}`}>{nextDoc.data.title}</a></nav>}
+      <nav class="docs-next" aria-label="More guides">{previousDoc && <a href={`/docs/${previousDoc.id}`}><small>Previous guide</small><span>← {previousDoc.data.title}</span></a>}{nextDoc && <a href={`/docs/${nextDoc.id}`}><small>Keep going</small><span>{nextDoc.data.title} →</span></a>}</nav>
     </main>
   </div>
   <Footer />
 </Base>
 <script is:inline>
   (() => {
+    const guideList = document.querySelector(".docs-guide-list");
+    const compact = matchMedia("(max-width: 800px)");
+    const updateGuides = () => {
+      const focused = guideList?.contains(document.activeElement);
+      if (guideList) guideList.open = !compact.matches;
+      if (focused && compact.matches) guideList.querySelector("summary")?.focus();
+    };
+    updateGuides();
+    compact.addEventListener("change", updateGuides);
     const input = document.querySelector(".docs-search-input");
     const results = document.querySelector(".docs-search-results");
     if (!input || !results) return;

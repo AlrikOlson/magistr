@@ -29,7 +29,7 @@ const installHtml = page("docs/installation/index.html");
 const conceptsHtml = page("docs/concepts/index.html");
 const workflowHtml = page("docs/workflow/index.html");
 const notFoundHtml = page("404.html");
-const productPages = [["home", indexHtml], ["installation", installHtml], ["concepts", conceptsHtml], ["workflow", workflowHtml], ["404", notFoundHtml]];
+const productPages = [["home", indexHtml], ["installation", installHtml], ["concepts", conceptsHtml], ["workflow", workflowHtml], ["404", notFoundHtml], ...["roadmap","reasoning","chunks","verification"].map(slug=>[slug,page("docs/"+slug+"/index.html")])];
 const mainOf = (html) => html.split("<main")[1]?.split("</main>")[0] ?? html;
 const textOf = (html) => mainOf(html).replace(/<code[\s\S]*?<\/code>/g, "").replace(/<pre[\s\S]*?<\/pre>/g, "").replace(/<[^>]+>/g, " ");
 
@@ -51,9 +51,12 @@ assert(indexHtml.includes('"downloadUrl":"https://magistr.dev/docs/installation"
 assert(indexHtml.includes("Full build recording") && indexHtml.includes("Recorded October 20, 2026") && indexHtml.includes("October 19") && !indexHtml.includes("data-simulation"), "the real build and earlier agent sessions are clearly dated");
 const homeImages = [...indexHtml.matchAll(/src="\/screenshots\/([a-z-]+)\.png\?v=[a-f0-9]{12}"/g)].map((m) => m[1]);
 assert(new Set(homeImages).size === 4 && homeImages.length === 4, `each screenshot appears once on the home page (${homeImages.join(", ")})`);
-const roadmapSection = indexHtml.split('id="workflow"')[1]?.split('id="product"')[0] ?? "";
+const roadmapSection = indexHtml.split('id="workflow"')[1]?.split('id="keep-going"')[0] ?? "";
 assert(roadmapSection.includes("data-recording") && roadmapSection.includes("Build chapters") && roadmapSection.includes("Explore all 47 recorded actions") && roadmapSection.includes("Download the project"), "recorded implementation has accessible playback, transcript and source");
 assert(!roadmapSection.includes("Roadmap screen"),"future desktop planning is not advertised");
+assert(indexHtml.includes('data-project-tour') && ["tour-roadmap","tour-reasoning","tour-chunks","tour-checks"].every(id=>indexHtml.includes('id="'+id+'"')), "all four project-record views are present");
+assert(indexHtml.includes("data-playback-scene") && indexHtml.includes("/examples/project-records.json?v="), "the feature tour links actual records and build playback");
+assert(indexHtml.includes("Why I’m building this") && indexHtml.includes("Save feedback"), "the page explains the builder's motivation and feedback loop");
 assert(!roadmapSection.includes("without leaving the conversation") && !roadmapSection.includes("actions beside the conversation"), "full Roadmap is not described as conversation details");
 
 console.log("\nNavigation and accessibility:");
@@ -72,6 +75,25 @@ for (const [name, html] of productPages) {
 const externalLinks = [...indexHtml.matchAll(/<a [^>]*target="_blank"[^>]*>/g)].map((m) => m[0]);
 assert(externalLinks.length > 0 && externalLinks.every((a) => a.includes('rel="noopener noreferrer"')), "every external link is rel=noopener noreferrer");
 assert(mainOf(indexHtml).split('target="_blank"').length - 1 === (mainOf(indexHtml).match(/opens in a new tab/g) || []).length, "every external link in the page body says it opens a new tab");
+
+console.log("\nInternal links:");
+const localDocuments = new Map(productPages.map(([name, html]) => [
+  name === "home" ? "/" : name === "404" ? "/404.html" : "/docs/" + name + "/", html,
+]));
+for (const [path, html] of localDocuments) {
+  const broken = [];
+  for (const [, href] of html.matchAll(/<a\b[^>]*\bhref="([^"]*)"/g)) {
+    const target = new URL(href.replaceAll("&amp;", "&"), "https://magistr.dev" + path);
+    if (target.origin !== "https://magistr.dev") continue;
+    const destination = localDocuments.has(target.pathname) ? target.pathname
+      : localDocuments.has(target.pathname + "/") ? target.pathname + "/" : target.pathname;
+    if (localDocuments.has(destination)) {
+      if (target.hash && ![...localDocuments.get(destination).matchAll(/\bid="([^"]+)"/g)]
+        .some(([, id]) => id === decodeURIComponent(target.hash.slice(1)))) broken.push(href);
+    } else if (!existsSync(resolve(distDir, "." + target.pathname))) broken.push(href);
+  }
+  assert(broken.length === 0, path + " has no broken local links or anchors" + (broken.length ? ": " + broken.join(", ") : ""));
+}
 
 console.log("\nProduct screenshots:");
 const manifest=JSON.parse(readFileSync(resolve(distDir,"screenshots/captures.json"),"utf-8"));
@@ -92,7 +114,7 @@ const figures=[...indexHtml.matchAll(/<figure\b[\s\S]*?<\/figure>/g)];
 assert(figures.length===3 && figures.every(([figure])=>figure.includes("<figcaption>")),"desktop and both agent sessions have captioned figures");
 
 console.log("\nPublic language:");
-const jargon = /TUI2|GUI2|tui2|gui2|think-and-ship|Workbench|think:|ship:|chunk-id|chunk\b|workflow server|native state|admitted|typed command|[Ff]light [Rr]ecorder/;
+const jargon = /TUI2|GUI2|tui2|gui2|think-and-ship|Workbench|think:|ship:|chunk-id|workflow server|native state|admitted|typed command|[Ff]light [Rr]ecorder/;
 const commentary = /\bHarbor\b|\bfixture\b|on purpose|\bgolden|wrangler|Cloudflare|design system|typographic hierarchy/i;
 for (const [name, html] of productPages) {
   const text = textOf(html);
@@ -132,8 +154,8 @@ assert(conceptsHtml.includes("pinned") && conceptsHtml.includes("checkpoint"), "
 assert(conceptsHtml.includes("desktop is a separate preview available from source") && conceptsHtml.includes("command line"), "guide explains desktop availability and planning");
 assert(conceptsHtml.includes("recover your draft"),"concepts explains resident drafts");
 assert(conceptsHtml.includes("Stop") && conceptsHtml.includes("Permission requests") && conceptsHtml.includes("Close session"),"current conversation actions are explained");
-assert(conceptsHtml.includes("continue unfinished") && conceptsHtml.includes("saved plan"), "roadmap recovery is explained");
-for (const slug of ["installation", "workflow", "concepts"]) {
+assert(textOf(conceptsHtml).replace(/\s+/g," ").includes("continue unfinished") && conceptsHtml.includes("saved plan"), "roadmap recovery is explained");
+for (const slug of ["installation", "workflow", "concepts", "roadmap", "reasoning", "chunks", "verification"]) {
   assert(installHtml.includes(`href="/docs/${slug}"`), `sidebar links ${slug}`);
 }
 for (const gone of ["configuration", "hooks", "skills", "deployment", "architecture", "development"]) {

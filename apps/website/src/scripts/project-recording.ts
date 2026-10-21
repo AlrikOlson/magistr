@@ -143,6 +143,7 @@ if(root){
    document.addEventListener("visibilitychange",()=>{if(document.hidden){stop();render();video.pause();}});
    new IntersectionObserver(entries=>{if(!entries[0].isIntersecting){stop();render();video.pause();}}).observe(root);
    for(const selector of [".story-controls",".story-chapters",".review-switch",".recording-inspector"])$(selector).hidden=false;
+   root.addEventListener("show-recording",event=>go((event as CustomEvent<number>).detail));
    inspect(46);render();root.dataset.ready="true";
   }catch{
    $("[data-error]").hidden=false;

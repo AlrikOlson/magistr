@@ -1,0 +1,177 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-10-21T06:17:35.819Z",
+  "project": "Magistr",
+  "note": "Selected records captured from Magistr while this page was built. This is a dated example, not a live roadmap or a desktop screenshot.",
+  "roadmap": [
+    {
+      "id": "workflow-active-workstreams",
+      "title": "Choose current work without sorting through closed tracks.",
+      "name": "Choose current tracks",
+      "status": "done",
+      "description": "Expose the current workstreams and their readiness while retaining completed and obsolete work in browsable history.",
+      "acceptance": [
+        "Current-work selection lists workstreams with unfinished records and accurate ready/waiting/blocked counts; closed-only tracks remain available through an explicit history read.",
+        "Readiness, group discovery and focus validation share the owning native contract; a stale focus yields an actionable outcome without silently selecting another caller's work.",
+        "The complete existing roadmap remains readable with stable IDs, authored details, status and cross-references; no history is deleted or relocated just to hide picker noise.",
+        "Owner/projection/MCP tests cover active and closed-only groups, moving the last open item, obsoletion, independent caller focuses and current next-ready selection.",
+        "Before implementation, verify each behavior's producer, owning service and reader in current code. Fix missing behavior in its owner and update current callers together; add no parallel store or compatibility path. Use focused verification with formatting, affected crate/interface checks, real behavior tests and applicable native accessibility, contrast, icon, screenshot and architecture checks. Do not export roadmap files or widen to unrelated full suites."
+      ],
+      "deps": []
+    },
+    {
+      "id": "workflow-reasoning-scope-ownership",
+      "title": "Browse and read reasoning from the intended session.",
+      "name": "Reasoning sessions",
+      "status": "done",
+      "description": "Expose complete scoped reasoning reads for the desktop browser. Explicit write routing and configuration retirement are a separate mutation-ownership chunk.",
+      "acceptance": [
+        "Owner supplies complete project session discovery and explicit selected-session reads from one validated project document; default, named, missing and unreadable remain distinct.",
+        "Native snapshots and MCP discovery, read, search, status, checkpoint, export and step lookup use complete owner records rather than last-writer selection or bounded caches. Stable numbers, record identities and scopes accompany references.",
+        "Verify default and named sessions, detached reads, cache trimming/expiry, global references, corruption/recovery and read-only behavior with focused owner/interface checks."
+      ],
+      "deps": [
+        "rust-gui-workflow-read-integrity",
+        "workflow-durable-mutation-acknowledgement"
+      ]
+    },
+    {
+      "id": "workflow-agent-context-ownership",
+      "title": "Give agents the plan and task that own their current work.",
+      "name": "Current work context",
+      "status": "done",
+      "description": "Give live desktop and CLI sessions the objective and plan owned by their selected execution.",
+      "acceptance": [
+        "Shared session resolution reads objective and complete plan once from the selected working copy and execution; unavailable work refuses startup while absence is explicit.",
+        "Fresh and resumed launches include stable run/task identity, authored requirements, task states and the active task without importing another execution. Planning purpose remains read-only.",
+        "Recovery instructions require native state rereads after provider context compaction; do not invent unsupported provider compaction events.",
+        "Focused tests use real native owner updates, absence, failure/repair, separate executions and shared session resolution; formatting and relevant architecture checks pass."
+      ],
+      "deps": [
+        "rust-gui-workflow-read-integrity",
+        "workflow-durable-mutation-acknowledgement"
+      ]
+    },
+    {
+      "id": "rust-gui-current-plan",
+      "title": "Read the current work plan in the desktop.",
+      "name": "Current work plan",
+      "status": "done",
+      "description": "Deliver the current-objective portion of the planning and evidence browser through the existing session observation owner.",
+      "acceptance": [
+        "Open the current objective, complete requirements, constraints and ordered tasks from the selected resident session's validated native snapshot.",
+        "Refresh on owner workflow changes without retransmitting complete workflow data for every conversation frame; preserve drafts and ignore late replies from another address.",
+        "Display missing, unreadable and stale records distinctly; verify owner revision behavior plus focused background WebKit interactions and reviewed dark/light/narrow captures."
+      ],
+      "deps": [
+        "rust-gui-execution-history",
+        "workflow-reasoning-scope-ownership",
+        "rust-gui-workflow-read-integrity"
+      ]
+    },
+    {
+      "id": "rust-gui-planning-evidence",
+      "title": "Plan work and inspect its requirements, progress and evidence.",
+      "name": "Plan and inspect work",
+      "status": "pending",
+      "description": "Browse current tracks, requirements and verified work, then plan or run bounded work from the desktop.",
+      "acceptance": [
+        "Browse current work and closed history, dependencies, requirements, reasoning, signals, actions and checks from complete native records. Counts/readiness match the owner across updates and reseed.",
+        "Planning conversation is distinct from implementation sessions. Supported start/pause/resume/step/abort actions invoke current orchestration and show real boundary/cancellation semantics or refusal.",
+        "Keep full authored details and actual check/source evidence readable; distinguish stale, unavailable, absent and verified records.",
+        "Native browse/plan/start/inspect/return journeys use the current full-roadmap corpus, concurrent sessions and changed/deleted dependencies, with stable focus, selection and identity.",
+        "Before implementation, verify each behavior's producer, owning service and reader in current code. Fix missing behavior in its owner and update current callers together; add no parallel store or compatibility path. Use focused verification with formatting, affected crate/interface checks, real behavior tests and applicable native accessibility, contrast, icon, screenshot and architecture checks. Do not export roadmap files or widen to unrelated full suites."
+      ],
+      "deps": [
+        "rust-gui-agent-supervision",
+        "rust-gui-rich-conversation",
+        "workflow-active-workstreams",
+        "rust-gui-workflow-read-integrity",
+        "rust-gui-conversation-context-ownership",
+        "rust-gui-work-run-ownership",
+        "rust-gui-execution-history",
+        "workflow-durable-mutation-acknowledgement",
+        "workflow-reasoning-scope-ownership",
+        "workflow-agent-context-ownership",
+        "rust-gui-current-plan"
+      ]
+    }
+  ],
+  "reasoning": [
+    {
+      "step_number": 1739,
+      "purpose": "Define truthful ownership for the whole-product website revamp",
+      "context": "The owner wants visible roadmapping, recorded reasoning and chunked work, and requested a question-tool interview before implementation. The existing public recording and current native roadmap were inspected.",
+      "thought": "The native roadmap, reasoning, execution and feedback services own the product records. Website components may explain captured records and link to their evidence. The existing inbox recording contains execution tasks and one architecture decision, so it cannot truthfully stand in for a full roadmap or branching reasoning history. The desktop's complete planning/evidence interface is still pending, so explanatory website views must be distinguishable from existing app screens.",
+      "outcome": "Keep original recordings intact. Choose the main visual and any additional real recording after the user's interview answers. Cover the full product in task-oriented docs, including dependency planning, saved decisions, bounded chunks, current checks, feedback, source changes and session continuity.",
+      "next_action": "Use the user's pending story, voice and example-depth answers to finalize the landing-page structure and recording scope.",
+      "rationale": "A visually compelling page still needs to show what Magistr currently does and where its records come from. Native records remain authoritative; presentation must not fabricate progress or capabilities.",
+      "timestamp": "2026-10-21T06:07:34.752186+00:00",
+      "execution_ref": "task:whole-product-revamp",
+      "record_id": "bda54eed-a427-485a-b390-1e3fd99b34fd"
+    },
+    {
+      "step_number": 1740,
+      "purpose": "Assess a recording-first introduction",
+      "context": "The landing-page interview is complete. The owner chose both an explorable project overview and the recorded build.",
+      "thought": "The existing support-inbox recording preserves actual source edits, a saved architecture decision, failures and successful checks. It shows implementation clearly, but it contains no roadmap record or branching investigation.",
+      "outcome": "Keep the full recording as a concrete build example. It cannot explain all Magistr capabilities by itself.",
+      "next_action": "Connect selected work chunks and check results to the matching recorded moments.",
+      "rationale": "Visitors should be able to see the plan and the reasons for the work before inspecting implementation details.",
+      "branch_from": 1739,
+      "branch_id": "branch-7cccdb03-9d24-481b-9baf-75ad5da5565e",
+      "branch_name": "Lead with the build recording",
+      "timestamp": "2026-10-21T06:16:52.318160+00:00",
+      "execution_ref": "task:whole-product-revamp",
+      "record_id": "169ab36a-c754-476b-8622-7a3471a786fb"
+    },
+    {
+      "step_number": 1741,
+      "purpose": "Assess an overview of real project records",
+      "context": "The landing-page interview is complete. The owner chose both an explorable project overview and the recorded build.",
+      "thought": "A small captured part of Magistr’s own roadmap can show real dependencies and unfinished work. Saved decisions and the inbox’s completed tasks and check results can be inspected at a readable size, with each example naming its project.",
+      "outcome": "Lead with the roadmap, reasoning, work chunks and checks. Keep the original records available and distinguish the website’s explanatory view from a desktop app screenshot.",
+      "next_action": "Use native record snapshots for the roadmap and decision, and the original build recording for tasks and checks.",
+      "rationale": "This makes Magistr visible without inventing a product screen or pretending the inbox build recorded operations it did not use.",
+      "branch_from": 1739,
+      "branch_id": "branch-1491514a-d25e-4fe3-b047-3698f8e33c04",
+      "branch_name": "Lead with explorable project records",
+      "timestamp": "2026-10-21T06:16:53.469255+00:00",
+      "execution_ref": "task:whole-product-revamp",
+      "record_id": "cf6d1b81-1f55-4cc7-b8f7-1b8c09128366"
+    },
+    {
+      "step_number": 1742,
+      "purpose": "Make the whole project explorable",
+      "context": "The owner approved building bigger projects as the main story, with an explorable overview and a real build recording.",
+      "thought": "Use the roadmap to show how work fits together, recorded reasoning to explain choices, and completed tasks with their original checks to show what finishing means. Visitors can move from an inbox task to its exact recorded chapter. Label each example with its project and capture date.",
+      "outcome": "Start with the project records. Keep the complete build recording one click away.",
+      "next_action": "Build the explorable records, rewrite the guides, and check the site at desktop and phone sizes.",
+      "rationale": "The overview explains what Magistr contributes; the recording lets people inspect how the work actually happened.",
+      "dependencies": [
+        1740,
+        1741
+      ],
+      "timestamp": "2026-10-21T06:17:03.141307+00:00",
+      "pinned": true,
+      "execution_ref": "task:whole-product-revamp",
+      "record_id": "d754d4dc-373f-4774-967e-751c98bc95b1"
+    }
+  ],
+  "branches": [
+    {
+      "id": "branch-7cccdb03-9d24-481b-9baf-75ad5da5565e",
+      "name": "Lead with the build recording",
+      "from_step": 1739,
+      "status": "merged",
+      "merged_into": 1742
+    },
+    {
+      "id": "branch-1491514a-d25e-4fe3-b047-3698f8e33c04",
+      "name": "Lead with explorable project records",
+      "from_step": 1739,
+      "status": "merged",
+      "merged_into": 1742
+    }
+  ]
+}

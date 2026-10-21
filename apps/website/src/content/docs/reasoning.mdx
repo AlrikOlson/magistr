@@ -1,0 +1,81 @@
+---
+title: Reasoning and research
+description: Keep the findings, alternatives and decisions that make the project understandable.
+order: 4
+---
+
+The code tells you what the project does. It doesn't always tell you why a
+choice was made, what was tried, or which assumption is still uncertain.
+
+Magistr keeps **reasoning traces**: findings and explanations the agent
+deliberately records as it works. Ask it to save the parts you'll want to
+understand later.
+
+## Start with a real question
+
+Good investigations have something to resolve:
+
+> Could two people overwrite each other's assignment changes? Follow the
+> current save path, check how conflicts work, and record what you find.
+
+Have the agent ground its answer in the code. If it needs current information,
+ask it to research primary sources and keep the links with the findings.
+
+Useful recorded reasoning includes the question, the evidence, the conclusion,
+why that conclusion follows, and what to do next. Uncertainty belongs in the
+record too.
+
+## Explore more than one approach
+
+An investigation can branch when there are genuinely different approaches to
+consider. Each branch keeps its own findings. The conclusion can refer back
+to the branches that informed it.
+
+For this website, we compared leading with a build recording against leading
+with explorable project records. We kept both, with the project overview first.
+[Open that actual decision](/#product) under **Reasoning** to read the findings.
+
+Ask for this when the choice matters:
+
+> Compare the approaches against this project's needs. Save the evidence for
+> each one, then record which you recommend and why.
+
+A branch can be merged into a conclusion or abandoned. Its recorded steps
+remain available.
+
+## Correct a decision without losing the story
+
+New evidence can change an earlier conclusion. Have the agent record the
+revision and its reason so a later session can find the current answer and
+understand what changed.
+
+> This assumption no longer holds. Revise the recorded decision, explain
+> what we learned, and update the roadmap items that depended on it.
+
+The point is to help the next piece of work start from what you know now.
+
+## Keep important findings easy to find
+
+A **pin** keeps an important conclusion easy to retrieve. Use it for a decision
+that later work repeatedly depends on, rather than pinning every update.
+
+A reasoning **checkpoint** helps review open questions, unresolved branches and
+decisions affected by revisions. It is a review of the reasoning record, not a
+backup of your source files.
+
+You can ask the agent to search saved reasoning:
+
+> Find the decision about handling repeated mail deliveries. Read the current
+> conclusion and check whether this change still follows it.
+
+## Connect the reasoning to the work
+
+Link an investigation to the task it informs. Keep relevant sources and check
+results nearby so “why did we do this?” has an answer you can inspect.
+
+Magistr records what the agent saves through its tools. It doesn't
+automatically preserve every chat message or reveal a model's private internal
+thinking. A useful explanation should stand on the evidence it cites.
+
+See [checking the work](/docs/verification) for the difference between a
+recorded explanation, a written review, and a command that actually ran.

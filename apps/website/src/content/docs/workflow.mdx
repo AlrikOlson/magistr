@@ -1,127 +1,97 @@
 ---
 title: Working with Magistr
-description: Review a project, agree on the work, and keep improving it across sessions.
+description: Start with something you want to build. Work out a plan, try the result, and keep making it better.
 order: 2
 ---
 
-Use Magistr from the agent you already work with. Bring it an unfinished project,
-a feature idea, or something that needs fixing. The requests below are examples
-you can adapt, after [connecting your agent](/docs/installation).
+You can bring Magistr an idea you haven't worked out yet, a half-built app, or a
+project you've been living in for months. Open your coding agent in that project
+and start with what you want to do.
 
-## Start by looking at what is there
+The part I enjoy is being able to take a project seriously: look at the whole
+thing, ask difficult questions, and then actually work through the answers.
+Magistr gives that work somewhere to stay.
 
-For a project review, ask the agent to compare the code with the saved plan:
+## Look at the project together
 
-> What's left on this project? Read the code and the roadmap, find what isn't
-> working well, and recommend the next changes in order of impact.
+Start by having the agent read what is there. For an existing project, try:
 
-For a narrower review, name the problem: slow checks, confusing setup, an awkward
-screen, or a feature that keeps breaking. Ask for research when the answer
-depends on current tools or unfamiliar behavior. Have the agent save the findings
-and explain why it recommends a particular approach.
+> Read the code and the saved plan. What's working, what's unfinished, and
+> what would make the biggest difference? Explain what you find.
 
-A review should leave you with a decision you can act on. You can ask for the
-changes immediately, or keep the findings until you're ready.
+For a new project, describe who it's for and what you want to be able to do.
+Let the agent ask questions. Talk through the awkward cases before they become
+surprises halfway through the build.
 
-## Make a plan you can change
+When the answer needs research, ask for it. Have the agent keep the sources,
+what it learned, and the decision you made. The [reasoning guide](/docs/reasoning)
+shows how to make those findings useful next time.
 
-Ask the agent to turn the review into roadmap items. Each item needs a useful
-result, a way to check it, and any work that must happen first.
+## Turn the idea into a plan
 
-> Make a plan from this review. Put the changes with the biggest effect first.
-> Keep each item small enough to finish and verify.
+A roadmap is the big picture. Break it into **chunks**: pieces of work with a
+clear result and a way to check it. Give each one any dependencies it needs.
 
-Revisit the plan when the project changes. Tell the agent what no longer makes
-sense and have it update the affected items. `$roadmap-refresh` in Codex or
-`/roadmap-refresh` in Claude Code researches and revises the roadmap without
-starting implementation.
+> Turn this into a roadmap. Put the important work first. Make each chunk
+> small enough to finish and check, while keeping the whole project in view.
 
-For feedback you want to investigate later, ask the agent to save it.
-`$signals` or `/signals` works through that feedback before you decide what to build.
+You can have several areas of work on the same roadmap. Focus on one, change
+priorities, or revisit the whole thing when you learn something that changes
+the project. [Planning a project](/docs/roadmap) covers that.
 
-## Finish one useful piece
+## Build something you can try
 
-Use `$next` in Codex or `/next` in Claude Code. The agent resumes interrupted
-work first, or takes one ready roadmap item. It reads the code, makes the change,
-runs the relevant checks, and commits the finished work.
+Use `$next` in Codex or `/next` in Claude Code. The agent resumes unfinished
+roadmap work first, or takes the next ready chunk. It reads the current code,
+does the work, runs the relevant checks, and commits the finished change.
 
-If you want a different item, say which one:
+You can also make a direct request:
 
-> Work on the settings screen next. Finish it, check it at a narrow window size,
-> and show me what changed.
+> Fix the project picker. Check it with a long project name and a narrow
+> window, and show me the result.
 
-For a direct fix, describe the defect and ask for the fix. A small request doesn't
-need a separate roadmap. Failed checks still need to be resolved before the
-affected work is called finished.
+A small fix can stay small. You don't need to create a new roadmap every time
+you notice a bug.
 
-## Work through a longer stretch
+For a longer stretch, choose an area and a limit.
+[Working in chunks](/docs/chunks) explains single chunks and runs that start
+a fresh agent session for each piece.
 
-Give a longer run a focus and a limit:
+## Try it, then say what you think
 
-> Work through up to five items in the desktop track. Focus on the project
-> picker. Verify and commit each finished item before continuing.
+Use what was built. Read the change. Open the screens. Say what feels wrong,
+even if you haven't worked out the exact fix.
 
-To start a fresh agent session for each item, run this from your project:
+> I can get through the flow, but I keep losing track of which project is
+> selected. Look at it with real data and make that clearer.
 
-```sh
-magistr next-loop --agent codex --max-iterations 5
-```
+The next iteration can change the plan as well as the code. Save feedback that
+deserves a closer look, and investigate it before committing to a solution.
 
-Use `--agent claude` for Claude Code. Add `--track "Desktop"` to choose a track
-with that name. The loop stops at its limit, when the track has no ready work,
-or when it needs help to continue.
+Tests help, and [checking the actual result](/docs/verification) matters too.
+For an interface, ask the agent to save and inspect screenshots. A green test
+doesn't tell you whether a menu is readable.
 
-Inside a chat, `$next-loop` or `/next-loop` finishes one item and prepares a
-handoff for the next session. Use the terminal command when you want Magistr
-to manage those fresh sessions.
+## Decide how the work gets delivered
 
-## Review the result and steer it
+Tell the agent how your project handles commits, reviews and publishing:
 
-Try the changed feature. For an interface, have the agent open the actual screens
-and inspect them at the sizes and appearances you support.
+> After the relevant checks pass, commit and push directly to main.
 
-> Check the updated screens at desktop and phone sizes, in light and dark.
-> Save and inspect the screenshots. Fix anything clipped or hard to read.
+That is one delivery policy; use the one you want for your project. At the end,
+you should be able to find the change, what was checked, and anything left to do.
 
-Tell the agent what you were trying to do and what felt wrong. Keep revising
-until the agreed work is finished. Ask for checks that cover the change; a small
-copy edit doesn't need every test in the project.
+## Come back and keep going
 
-Be explicit about delivery. For example:
+In a fresh session, ask:
 
-> After the checks pass, commit and push directly to main.
+> Read the saved work and current code. Continue the unfinished task with
+> the same scope and delivery instructions.
 
-Use your project's own branch and review rules. At the end, ask for the commit,
-what was checked, and anything that still needs attention.
+The next agent can read the roadmap, decisions, progress and check results.
+It still needs to inspect the current files. [Saved work and sessions](/docs/concepts)
+explains what carries over.
 
-## Pick up in a fresh session
-
-Open the same project with Magistr connected:
-
-> Read the saved work and current code. Continue the unfinished task from where
-> we stopped, with the same scope and delivery instructions.
-
-The next agent can read the roadmap, recorded decisions, progress, and check
-results. It still needs to inspect current files: an earlier result may describe
-older code.
-
-Use `$next` or `/next` to resume roadmap work. For a longer run, keep the track
-and remaining limit in the handoff. Codex and Claude Code can use the same
-project records; their chat transcripts and model settings stay separate.
-
-## Choose the right starting point
-
-Plain requests work. These skills provide the project's usual instructions for
-common tasks. Use `$name` in Codex or `/name` in Claude Code.
-
-| When you want to… | Use |
-| --- | --- |
-| Research and revise the roadmap | `roadmap-refresh` |
-| Investigate saved feedback | `signals` |
-| Finish the next roadmap item | `next` |
-| Finish an item and prepare the next session | `next-loop` |
-| Run the full project checks | `validate` |
-| Apply the project's usual workflow | `craft` |
-
-Read [what Magistr remembers](/docs/concepts) for the difference between saved
-project work and an agent's chat history.
+For a concrete example, [explore the recorded inbox build](/#workflow).
+You can read its source changes, inspect its failed and passing checks,
+and download the finished project.

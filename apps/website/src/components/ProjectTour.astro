@@ -1,0 +1,90 @@
+---
+import "../styles/project-tour.css";
+import snapshot from "../../public/examples/project-records.json";
+import recording from "../../public/demo/inbox/recording.json";
+import {roadmapNotes,roadmapRequirements,roadmapEdges,dependencyNames,reasoningNotes,chunkNotes,taskRecord} from "../data/product-tour.mjs";
+import {publicAssetUrl} from "../../scripts/asset-url.mjs";
+import {elapsed,checkOf} from "../data/project-recording.mjs";
+const records=publicAssetUrl("examples/project-records.json");
+const titles={...dependencyNames,...Object.fromEntries(roadmapNotes.map(r=>[r.id,r.label]))};
+const tour=[{id:"roadmap",label:"Roadmap",number:"01"},{id:"reasoning",label:"Reasoning",number:"02"},{id:"chunks",label:"Work chunks",number:"03"},{id:"checks",label:"Checks & review",number:"04"}];
+---
+<div class="project-tour" data-tabset data-project-tour>
+  <div class="tour-tabs" data-tablist aria-label="Explore Magistr" hidden>
+    {tour.map(item=><button id={"tour-tab-"+item.id} type="button" data-tab aria-controls={"tour-"+item.id}><span>{item.number}</span>{item.label}</button>)}
+  </div>
+  <section id="tour-roadmap" data-panel data-explore="roadmap">
+    <div class="tour-intro"><div><h3>A big idea becomes work you can finish.</h3><p>Keep the whole plan, put dependencies in order, and choose what comes next. Open a chunk to see what it is meant to achieve.</p></div><a href="/docs/roadmap">Planning a project ↗</a></div>
+    <div class="tour-workspace">
+      <div class="roadmap-workspace">
+        <div class="record-context"><strong>Magistr’s own roadmap</strong><span>Desktop work · October 20, 2026</span></div>
+        <div class="roadmap-map">
+          <svg class="map-connections" viewBox="0 0 640 360" preserveAspectRatio="none" aria-hidden="true">
+            <defs><marker id="map-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10z" /></marker></defs>
+            {roadmapEdges.map(edge=><path d={edge.path} data-from={edge.from} data-to={edge.to} marker-end="url(#map-arrow)" />)}
+          </svg>
+          {roadmapNotes.map((note,index)=>{
+            const record=snapshot.roadmap.find(r=>r.id===note.id);
+            return <button type="button" class={"map-node map-"+note.position} disabled data-record-select={index} aria-controls={"roadmap-detail-"+index} aria-pressed={index===4?"true":"false"}><span class:list={["node-state",{"is-planned":record.status!=="done"}]}>{record.status==="done"?"✓ Done":"○ Planned"}</span><strong>{note.label}</strong></button>;
+          })}
+        </div>
+        <p class="map-note">Open a chunk to read its dependencies and requirements.</p>
+      </div>
+      <div class="record-details">
+        {roadmapNotes.map((note,index)=>{
+          const record=snapshot.roadmap.find(r=>r.id===note.id);
+          return <article id={"roadmap-detail-"+index} data-record-detail={index} hidden={index!==4}>
+            <p class="detail-label">{record.status==="done"?"Completed chunk":"Planned chunk"}</p><h4>{note.label}</h4><p>{note.detail}</p>
+            <div class="record-outcome"><strong>What this means</strong><p>{note.outcome}</p></div>
+            <details><summary>What this chunk needs</summary><p>{record.deps.length} recorded dependencies.</p>{record.deps.length>0&&<ul>{record.deps.map(id=><li>{titles[id]||id.replaceAll("-"," ")}</li>)}</ul>}<p class="detail-label">Requirements, in plain language</p><ul>{roadmapRequirements[note.id].map(line=><li>{line}</li>)}</ul></details>
+            <a class="record-source" href={records} download>Read the saved records ↓</a>
+          </article>;
+        })}
+      </div>
+    </div>
+    <p class="tour-provenance">A dated excerpt from the real project, arranged for this guide. The full desktop planning flow shown as planned here is still being built.</p>
+  </section>
+  <section id="tour-reasoning" data-panel data-explore="reasoning">
+    <div class="tour-intro"><div><h3>Keep the “why” with the work.</h3><p>Research a question, compare approaches, and save the decision. When the plan changes, the next agent can follow how you got there.</p></div><a href="/docs/reasoning">Reasoning & research ↗</a></div>
+    <div class="tour-workspace">
+      <div class="reasoning-workspace">
+        <div class="record-context"><strong>A decision from this website</strong><span>Recorded October 20, 2026</span></div>
+        <div class="reasoning-map">
+          <p class="reasoning-question">How should this page explain Magistr?</p>
+          <svg class="reasoning-connections" viewBox="0 0 640 340" preserveAspectRatio="none" aria-hidden="true"><path d="M320 60 V82 H168 V108 M320 82 H472 V108 M168 194 V222 H320 V252 M472 194 V222 H320" /></svg>
+          {reasoningNotes.map((note,index)=><button type="button" class={"reason-node reason-"+note.position} disabled data-record-select={index} aria-controls={"reasoning-detail-"+index} aria-pressed={index===2?"true":"false"}><span>{index===2?"Pinned conclusion":"Approach "+(index+1)}</span><strong>{note.label}</strong></button>)}
+        </div>
+        <p class="map-note">Both approaches feed the saved conclusion. Open either one to read the finding.</p>
+      </div>
+      <div class="record-details">
+        {reasoningNotes.map((note,index)=>{const step=snapshot.reasoning.find(r=>r.step_number===note.step);return <article id={"reasoning-detail-"+index} data-record-detail={index} hidden={index!==2}><p class="detail-label">{step.pinned?"Pinned for later sessions":"Recorded finding"}</p><h4>{note.label}</h4><p>{step.outcome}</p><div class="record-outcome"><strong>Why</strong><p>{step.rationale}</p></div><details><summary>Read the recorded explanation</summary><p>{step.thought}</p><strong>Next action</strong><p>{step.next_action}</p></details><a class="record-source" href={records} download>Read the saved records ↓</a></article>;})}
+      </div>
+    </div>
+    <p class="tour-provenance">These are decisions the agent deliberately recorded while building this page. Reasoning traces keep those findings and their connections.</p>
+  </section>
+  <section id="tour-chunks" data-panel data-explore="chunks">
+    <div class="tour-intro"><div><h3>Finish a useful piece. Then keep going.</h3><p>A chunk has a result you can point to. Give the agent one piece or a bounded run, with the plan, checks and progress saved as it works.</p></div><a href="/docs/chunks">Working in chunks ↗</a></div>
+    <div class="tour-workspace">
+      <div class="chunk-workspace">
+        <div class="record-context"><strong>The support inbox build</strong><span>Five completed tasks · Actual recording</span></div>
+        <ol class="chunk-list">{chunkNotes.map((note,index)=>{const task=taskRecord(recording,note.task);return <li><button type="button" disabled data-record-select={index} aria-controls={"chunk-detail-"+index} aria-pressed={index===1?"true":"false"}><span class="chunk-complete" aria-label="Completed">✓</span><span><strong>{note.label}</strong><small>{elapsed(recording,task.finish)} into the build</small></span><span aria-hidden="true">↗</span></button></li>;})}</ol>
+      </div>
+      <div class="record-details">
+        {chunkNotes.map((note,index)=>{const task=taskRecord(recording,note.task);return <article id={"chunk-detail-"+index} data-record-detail={index} hidden={index!==1}><p class="detail-label">Completed task {index+1} of 5</p><h4>{note.label}</h4><p>{note.result}</p><div class="record-outcome"><strong>Recorded with this task</strong><ul>{task.checks.map(check=><li><span class:list={{"result-pass":check.passed,"result-fail":!check.passed}}>{check.passed?"Passed":"Failed"}</span> {check.name}</li>)}</ul></div><a class="text-link" href="#workflow" data-playback-scene={note.scene}>See this part of the build ↗</a></article>;})}
+      </div>
+    </div>
+    <p class="tour-provenance">The tasks, completion times and results come from the original build recording. Failed checks remain in the record.</p>
+  </section>
+  <section id="tour-checks" data-panel data-explore="checks">
+    <div class="tour-intro"><div><h3>“Done” should come with something to check.</h3><p>Run the tests that cover the change. Use the feature. Review its screens. Keep what passed, what failed, and what you changed afterward.</p></div><a href="/docs/verification">Checking the work ↗</a></div>
+    <div class="check-story" data-explore="check-results">
+      <div class="check-choices"><p class="detail-label">Support inbox / storage tests</p>{[14,16].map((event,index)=><button type="button" disabled data-record-select={index} aria-controls={"check-detail-"+index} aria-pressed={index===1?"true":"false"}><span class:list={{"result-fail":index===0,"result-pass":index===1}}>{index===0?"× Failed":"✓ Passed"}</span><strong>{index===0?"Before the store existed":"After the implementation"}</strong><small>{elapsed(recording,recording.events[event])} into the build</small></button>)}<p>The first run failed because the storage module hadn’t been written yet. After implementation, all seven storage tests passed.</p><a class="text-link" href="#workflow" data-playback-scene="4">See what the screen review caught ↗</a></div>
+      {[14,16].map((event,index)=>{const check=checkOf(recording.events[event]);return <article id={"check-detail-"+index} class="check-output" data-record-detail={index} hidden={index!==1}><div><span>{check.name}</span><strong>Exit {check.exit_code}</strong></div><pre tabindex="0" aria-label={index===0?"Original failed storage check":"Original passing storage check"}><code>{check.details}</code></pre><p>Actual command output · Executed by Magistr</p></article>;})}
+    </div>
+    <p class="tour-provenance">Command results and written reviews are recorded separately. A passing test still needs to apply to the files you’re working on.</p>
+  </section>
+</div>
+<script>
+ import "../scripts/tabs";
+ import "../scripts/product-tour";
+</script>

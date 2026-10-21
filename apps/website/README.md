@@ -12,7 +12,7 @@ npm --prefix apps/website run test:ui
 npm --prefix apps/website audit
 ```
 
-`npm test` builds the site and checks its rendered content, links, metadata, screenshots and deployment assets. `test:ui` serves that build on loopback and checks the five routes in headless WebKit at desktop and compact sizes, in light and dark appearances. It does not control the screen or verify native assistive technology.
+`npm test` builds the site and checks its rendered content, links, metadata, screenshots and deployment assets. `test:ui` serves that build on loopback and checks the nine routes in headless WebKit at desktop and compact sizes, in light and dark appearances. It does not control the screen or verify native assistive technology.
 
 For a visual change, capture into a new dated iteration folder, then open and review every saved image and record the result there:
 
@@ -29,6 +29,16 @@ npm --prefix apps/website run test:ui -- --base-url https://magistr.dev
 ```
 
 Add `--evidence-dir` with a new iteration folder when deployed captures are needed. For a change confined to documentation search, add `--evidence-scope search` to capture its idle, result, empty and unavailable states while still running all interaction checks. `--evidence-scope recovery` includes those search states and the 404 page in all four profiles. For a follow-up review of the home walkthrough and capture reader, `--evidence-scope refinement` captures those areas, their focus states and 320 px reading details. `--evidence-scope branding` captures the shared navigation on every route plus 320 px home reflow. For a complete copy revision, `--evidence-scope copy` captures full pages in all four profiles and readable section frames at desktop/light and compact/dark, plus the new guide at 320 px. All scopes still run the complete interaction checks. Local source hashes identify the checkout used for the check; separately compare deployed assets with the reviewed build before claiming they match.
+
+## Exploring Magistr
+
+The landing page's four feature views explain roadmaps, saved reasoning, work chunks and checks. `ProjectTour.astro` renders the views; `src/data/product-tour.mjs` owns their plain-language explanations and selected relationships. `src/scripts/product-tour.ts` handles record selection and links into the recorded build. These are website explanations, not screenshots of a finished desktop planning interface.
+
+`public/examples/project-records.json` is a dated excerpt from Magistr's actual roadmap and this website's saved design decision. The native roadmap and reasoning engines own the live records. Do not invent statuses, dependencies or historical reasoning when changing the presentation. Update the snapshot only from a new actual capture, with its date and scope stated. The inbox tasks and test results come from the separate original recording below; the page names the source of each example.
+
+The seven guides cover installation, an initial project, roadmap planning, reasoning and research, chunked work, verification, and saved work across sessions. Their source is `src/content/docs/`; the shared navigation lives in `src/layouts/Docs.astro`.
+
+Use `--evidence-scope revamp` for all nine page frames, the feature explorer, new guides and meaningful selected/empty/recovery states. `--evidence-scope revamp-finish` is restricted to the opening, roadmap caption, continued-work section and their reflow states; it is only sufficient alongside the full preceding review when those are the only areas changed. All interaction checks still run.
 
 ## Recorded project example
 

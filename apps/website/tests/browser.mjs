@@ -11,7 +11,7 @@ const dist = resolve(root, "dist");
 const repo = resolve(root, "../..");
 const scopeArg = process.argv.indexOf("--evidence-scope");
 const evidenceScope = scopeArg < 0 ? "all" : process.argv[scopeArg + 1];
-assert(["all", "search", "recovery", "refinement", "branding", "copy", "reading", "noscript", "recording", "recording-video"].includes(evidenceScope), "Unknown evidence scope");
+assert(["all", "search", "recovery", "refinement", "branding", "copy", "reading", "noscript", "recording", "recording-video", "revamp", "revamp-finish", "revamp-hero"].includes(evidenceScope), "Unknown evidence scope");
 const evidenceArg = process.argv.indexOf("--evidence-dir");
 const evidence = evidenceArg < 0 ? undefined : resolve(repo, process.argv[evidenceArg + 1]);
 if (evidence && !evidence.startsWith(resolve(repo, "docs/evidence/desktop-iterations") + sep)) {
@@ -64,6 +64,7 @@ const collect = async (directory) => {
 };
 await collect(resolve(root, "src"));
 await collect(resolve(root, "public/demo"));
+await collect(resolve(root, "public/examples"));
 for (const name of [
   "astro.config.mjs", "package.json", "package-lock.json", "tests/browser.mjs",
   "public/og-image.svg", "public/og-image.png", "public/github-social.png", "public/favicon.svg", "public/icon-192.png", "public/site.webmanifest",
@@ -88,6 +89,21 @@ const writeReport = async (status, failure) => {
   await writeFile(resolve(evidence, "browser-checks.json"), JSON.stringify(report, null, 2) + "\n");
 };
 const capture = async (page, name, state, fullPage = false, region) => {
+  if (evidenceScope === "revamp-hero" && !/^home(?:-intro)?-(wide|compact)-(light|dark)$/.test(name) && !name.startsWith("home-menu")) return;
+  if (evidenceScope === "revamp-finish") {
+    const changedHome=/^home(?:-(?:intro|keep-going))?-(wide|compact)-(light|dark)$/.test(name);
+    const changedTour=/^tour-roadmap-(wide|compact)-(light|dark)$/.test(name);
+    const reflow=/^tour-(320|820)-/.test(name);
+    if(!changedHome&&!changedTour&&!reflow&&!name.startsWith("home-menu")&&name!=="tour-without-javascript")return;
+  }
+  if (evidenceScope === "revamp") {
+    const pageFrame=/^(home|installation|workflow|concepts|roadmap|reasoning|chunks|verification|not-found)-(wide|compact)-(light|dark)$/.test(name);
+    const overview=/^(home-(intro|install|keep-going|agents)|tour-(roadmap|reasoning|chunks|checks))-(wide|compact)-(light|dark)$/.test(name);
+    const detail=/-wide-light$|-compact-dark$/.test(name) && /^(tour-|home-(menu|evidence-[0-2])|(?:installation|workflow|concepts|roadmap|reasoning|chunks|verification)-reading)/.test(name);
+    const recovery=/^installation-search-(empty|unavailable)-compact-dark$/.test(name);
+    const reflow=/^tour-(320|820)-/.test(name);
+    if(!pageFrame&&!overview&&!detail&&!recovery&&!reflow&&name!=="tour-without-javascript")return;
+  }
   if (evidenceScope === "recording-video" && !name.startsWith("recording-video-")) return;
   if (evidenceScope === "recording" && !name.startsWith("recording-") && !name.startsWith("home-intro-")) return;
   if (!evidence || (evidenceScope === "search" && !name.includes("search"))) return;
@@ -176,7 +192,7 @@ try {
       const searchRequests = [];
       page.on("request", (request) => { if (new URL(request.url()).pathname.startsWith("/pagefind/")) searchRequests.push(request.url()); });
       page.on("pageerror", (error) => errors.push(error.message));
-      for (const [name, path] of [["home", "/"], ["installation", "/docs/installation/"], ["concepts", "/docs/concepts/"], ["workflow", "/docs/workflow/"], ["not-found", "/404.html"]]) {
+      for (const [name, path] of [["home", "/"], ...["installation","workflow","roadmap","reasoning","chunks","verification","concepts"].map(slug=>[slug,"/docs/"+slug+"/"]), ["not-found", "/404.html"]]) {
         const response = await page.goto(origin + path);
         assert.equal(response.status(), 200);
         await page.evaluate(() => document.fonts.ready);
@@ -205,6 +221,60 @@ try {
           ]) {
             await scrollHeading(page, selector);
             await capture(page, "home-" + area + "-" + suffix, area + " section");
+          }
+          const tour=page.locator("[data-project-tour]");
+          const tourTabs=tour.getByRole("tab");
+          await tourTabs.first().waitFor();
+          assert.equal(await tourTabs.count(),4);
+          for(const [index,id] of ["roadmap","reasoning","chunks","checks"].entries()){
+            await tourTabs.nth(index).click();
+            assert.equal(await tour.getByRole("tabpanel").count(),1,"One feature view is exposed");
+            await noOverflow(page);
+            await capture(page,"tour-"+id+"-"+suffix,"Explore "+id+" with real records",false,".project-tour");
+            const region=tour.locator("#tour-"+id);
+            const selectors=region.locator("[data-record-select]");
+            const defaultIndex=id==="roadmap"?4:id==="reasoning"?2:1;
+            for(let record=0;record<await selectors.count();record++){
+              await selectors.nth(record).click();
+              assert.equal(await selectors.nth(record).getAttribute("aria-pressed"),"true");
+              assert.equal(await region.locator("[data-record-detail]:visible").count(),1);
+              assert.equal(await region.locator("[data-record-detail]:visible").getAttribute("data-record-detail"),String(record));
+            }
+            await selectors.nth(defaultIndex).click();
+            if(id==="roadmap"){
+              await region.locator("[data-record-detail]:visible summary").click();
+              assert.match(await region.locator("[data-record-detail]:visible").innerText(),/11 recorded dependencies/);
+              if(suffix==="wide-light"||suffix==="compact-dark")await capture(page,"tour-requirements-"+suffix,"Original requirements and dependencies remain inspectable",false,".project-tour");
+              await region.locator("[data-record-detail]:visible summary").click();
+            }
+            if(id==="reasoning"){
+              await selectors.first().click();
+              if(suffix==="wide-light"||suffix==="compact-dark")await capture(page,"tour-alternative-"+suffix,"Inspect an actual recorded alternative",false,".project-tour");
+            }
+            if(id==="checks"){
+              await selectors.first().click();
+              assert.match(await region.locator("[data-record-detail]:visible").innerText(),/No module named 'store'/);
+              if(suffix==="wide-light"||suffix==="compact-dark")await capture(page,"tour-failed-check-"+suffix,"The original failing check is retained",false,".project-tour");
+              await selectors.last().click();
+              assert.match(await region.locator("[data-record-detail]:visible").innerText(),/Ran 7 tests/);
+            }
+          }
+          await tourTabs.first().focus();
+          await page.keyboard.press("End");
+          assert.equal(await tourTabs.last().getAttribute("aria-selected"),"true");
+          await page.keyboard.press("ArrowRight");
+          assert.equal(await tourTabs.first().getAttribute("aria-selected"),"true");
+          assert(await tourTabs.first().evaluate(e=>e===document.activeElement));
+          if(suffix==="wide-light")await capture(page,"tour-keyboard-"+suffix,"Keyboard exploration retains visible focus",false,".project-tour");
+          await tourTabs.nth(2).click();
+          await tour.locator('#tour-chunks [data-record-select="1"]').click();
+          await tour.locator('#tour-chunks [data-record-detail="1"] [data-playback-scene]').click();
+          await page.waitForFunction(()=>document.querySelector("[data-recording]").dataset.scene==="1");
+          assert.equal(new URL(page.url()).hash,"#workflow","A task opens its real recorded chapter");
+          await page.locator('[data-chapter="5"]').click();
+          await tourTabs.first().click();
+          for(const [area,selector] of [["keep-going","#keep-going"],["agents","#agents"]]){
+            await capture(page,"home-"+area+"-"+suffix,area+" feature explanations",false,selector);
           }
           const recording = page.locator("[data-recording]");
           await page.waitForFunction(() => document.querySelector("[data-recording]").dataset.ready === "true");
@@ -378,7 +448,7 @@ try {
             await toggle.click();
             assert.equal(await toggle.getAttribute("aria-expanded"), "true");
             await capture(page, "home-menu-" + suffix, "Expanded compact navigation");
-            const firstLink = page.locator("#mobile-menu").getByRole("link", { name: "Example", exact: true });
+            const firstLink = page.locator("#mobile-menu").getByRole("link", { name: "Explore Magistr", exact: true });
             await firstLink.focus();
             await page.keyboard.press("Escape");
             assert.equal(await toggle.getAttribute("aria-expanded"), "false");
@@ -387,8 +457,8 @@ try {
             await toggle.click();
             await firstLink.click();
             assert.equal(await toggle.getAttribute("aria-expanded"), "false");
-            assert.equal(new URL(page.url()).hash, "#workflow");
-            assert(await page.locator("#workflow").evaluate((element) => element === document.activeElement));
+            assert.equal(new URL(page.url()).hash, "#product");
+            assert(await page.locator("#product").evaluate((element) => element === document.activeElement));
             await toggle.click();
             await firstLink.focus();
             await page.setViewportSize({ width: 1024, height: 1000 });
@@ -402,7 +472,15 @@ try {
             assert.equal(new URL(page.url()).pathname.replace(/\/$/, ""), "/docs/installation");
           }
         }
-        if (["installation", "concepts", "workflow"].includes(name)) {
+        if (["installation", "concepts", "workflow", "roadmap", "reasoning", "chunks", "verification"].includes(name)) {
+          const guideList=page.locator(".docs-guide-list");
+          if(layout==="compact"){
+            assert(!(await guideList.evaluate(e=>e.open)));
+            await guideList.locator("summary").click();
+            assert.equal(await guideList.locator("a:visible").count(),7);
+            if(suffix==="compact-dark")await capture(page,name+"-reading-navigation-"+suffix,"Open compact guide navigation");
+            await guideList.locator("summary").click();
+          }
           const contents = page.locator(".docs-contents");
           const summary = contents.locator("summary");
           await summary.focus();
@@ -422,10 +500,12 @@ try {
           await capture(page, name + "-contents-target-" + suffix, "Section link reaches a readable heading");
           await summary.click();
           assert.equal(await contents.getAttribute("open"), null);
+          let headingIndex=0;
           for (const heading of await page.locator("article h2").all()) {
             const id = await heading.getAttribute("id");
             await scrollHeading(page, "#" + id);
             await capture(page, name + "-" + id + "-" + suffix, await heading.innerText());
+            if((suffix==="wide-light"||suffix==="compact-dark") && headingIndex++===2)await capture(page,name+"-reading-detail-"+suffix,"Readable body text and concrete instructions");
           }
         }
         if (name === "concepts") {
@@ -483,7 +563,7 @@ try {
       await legibility(page);
       if (layout === "compact") {
         await capture(page, "workflow-320-" + colorScheme, "Everyday-use guide at 320 CSS pixels", true);
-        await scrollHeading(page, "#choose-the-right-starting-point");
+        await scrollHeading(page, "#come-back-and-keep-going");
         await capture(page, "workflow-320-shortcuts-" + colorScheme, "Skill table at 320 CSS pixels");
       }
       await page.goto(origin + "/");
@@ -491,6 +571,7 @@ try {
       if (layout === "compact") {
         await capture(page, "home-320-" + colorScheme, "Home at 320 CSS pixels", true);
         await page.waitForFunction(()=>document.querySelector("[data-recording]").dataset.ready==="true");
+        await capture(page,"tour-320-"+colorScheme,"Project explorer at 320 CSS pixels",false,".project-tour");
         await page.locator('[data-chapter="2"]').click();
         await noOverflow(page);
         await scrollHeading(page, ".build-recording");
@@ -513,7 +594,7 @@ try {
       await page.keyboard.press("Enter");
       assert.equal(new URL(page.url()).hash, "#main-content");
       assert.deepEqual(errors, [], "No uncaught page errors");
-      checks.push({ layout, appearance: colorScheme, passed: true, scenarios: ["five static routes", "section navigation: keyboard, links and sticky-header clearance", "primary and theme-control contrast", "wrapped code and aligned documentation arrows", "recorded project: six guided chapters, exact source excerpts, recorded review comparison, all 47 actual actions, failed/passed checks, keyboard, pause and video seek; evidence tabs: pointer, arrows, Home, End, focus", "clipboard success and denial (browser stub)", "reflow at 320 px", "images", "install anchor", "theme persistence", "selected agent instructions", "lazy search, results, empty and failure recovery, cleared query", "keyboard skip link", ...(layout === "compact" ? ["mobile menu navigation, Escape, anchor focus and resize recovery"] : [])] });
+      checks.push({ layout, appearance: colorScheme, passed: true, scenarios: ["nine static routes", "section navigation: keyboard, links and sticky-header clearance", "primary and theme-control contrast", "wrapped code and aligned documentation arrows", "recorded project: six guided chapters, exact source excerpts, recorded review comparison, all 47 actual actions, failed/passed checks, keyboard, pause and video seek; evidence tabs: pointer, arrows, Home, End, focus", "clipboard success and denial (browser stub)", "reflow at 320 px", "images", "install anchor", "theme persistence", "selected agent instructions", "lazy search, results, empty and failure recovery, cleared query", "keyboard skip link", ...(layout === "compact" ? ["mobile menu navigation, Escape, anchor focus and resize recovery"] : [])] });
       await context.close();
     }
   }
@@ -521,6 +602,7 @@ try {
     const context=await browser.newContext({viewport:{width,height:1000},colorScheme:appearance,reducedMotion:"reduce"});
     const page=await context.newPage();await page.goto(origin+"/");
     await page.waitForFunction(()=>document.querySelector("[data-recording]").dataset.ready==="true");
+    await capture(page,"tour-820-"+appearance,"Project explorer at the tablet breakpoint",false,".project-tour");
     await page.locator('[data-chapter="0"]').click();
     await noOverflow(page);
     await scrollHeading(page,".build-recording");
@@ -544,8 +626,10 @@ try {
   assert.equal(await staticPage.locator(".recording-toolbar:visible").count(),0,"No inert playback controls without JavaScript");
   assert(await staticPage.locator(".recording-footnote a").first().isVisible(),"Actual app video link remains available without JavaScript");
   await staticPage.locator("#evidence > summary").click();
-  assert.equal(await staticPage.locator("[data-panel]:visible").count(), 3, "Recorded product evidence remains available without JavaScript");
+  assert.equal(await staticPage.locator(".product-evidence [data-panel]:visible").count(), 3, "Recorded product evidence remains available without JavaScript");
   assert.equal(await staticPage.locator("[data-tablist]:visible").count(), 0, "No inert tab controls without JavaScript");
+  assert.equal(await staticPage.locator("[data-project-tour] > [data-panel]:visible").count(),4,"All feature explanations remain readable without JavaScript");
+  await capture(staticPage,"tour-without-javascript","Static project records and explanations without JavaScript",false,"#tour-roadmap");
   await scrollHeading(staticPage, ".walkthrough");
   await capture(staticPage, evidenceScope === "recording" ? "recording-without-javascript" : "home-without-javascript", "App recording and downloadable transcript remain available without JavaScript", false, evidenceScope === "recording" ? ".build-recording" : undefined);
   await staticContext.close();
