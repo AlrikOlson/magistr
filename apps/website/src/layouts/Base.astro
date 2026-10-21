@@ -11,8 +11,8 @@ interface Props {
 }
 
 const {
-  title = "Magistr — Plan the work. Prove the change.",
-  description = "The workflow layer for Codex and Claude Code. Connect roadmaps, source changes and recorded checks.",
+  title = "Magistr — Project planning for Codex and Claude Code",
+  description = "Research a project, keep a roadmap, and work through it with your coding agent. Saved decisions, progress and checks help the next session continue.",
   ogImage,
   jsonLd,
   noindex = false,
@@ -40,7 +40,7 @@ const ogImageUrl = new URL(ogImage ?? publicAssetUrl("og-image.png"), Astro.site
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={ogImageUrl.href} />
-    <meta property="og:image:alt" content="Magistr — Plan the work. Prove the change." />
+    <meta property="og:image:alt" content="Magistr — Project planning for Codex and Claude Code" />
     <meta property="og:url" content={canonicalUrl.href} />
     <meta property="og:site_name" content="Magistr" />
     <meta property="og:locale" content="en_US" />

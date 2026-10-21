@@ -12,7 +12,7 @@ npm --prefix apps/website run test:ui
 npm --prefix apps/website audit
 ```
 
-`npm test` builds the site and checks its rendered content, links, metadata, screenshots and deployment assets. `test:ui` serves that build on loopback and checks the four routes in headless WebKit at desktop and compact sizes, in light and dark appearances. It does not control the screen or verify native assistive technology.
+`npm test` builds the site and checks its rendered content, links, metadata, screenshots and deployment assets. `test:ui` serves that build on loopback and checks the five routes in headless WebKit at desktop and compact sizes, in light and dark appearances. It does not control the screen or verify native assistive technology.
 
 For a visual change, capture into a new dated iteration folder, then open and review every saved image and record the result there:
 
@@ -28,7 +28,7 @@ After deployment, run the same interaction checks against the live origin:
 npm --prefix apps/website run test:ui -- --base-url https://magistr.dev
 ```
 
-Add `--evidence-dir` with a new iteration folder when deployed captures are needed. For a change confined to documentation search, add `--evidence-scope search` to capture its idle, result, empty and unavailable states while still running all interaction checks. For a follow-up review of the home walkthrough and capture reader, `--evidence-scope refinement` captures those areas, their focus states and 320 px reading details. `--evidence-scope branding` captures the shared navigation on every route plus 320 px home reflow. All scopes still run the complete interaction checks. Local source hashes identify the checkout used for the check; separately compare deployed assets with the reviewed build before claiming they match.
+Add `--evidence-dir` with a new iteration folder when deployed captures are needed. For a change confined to documentation search, add `--evidence-scope search` to capture its idle, result, empty and unavailable states while still running all interaction checks. `--evidence-scope recovery` includes those search states and the 404 page in all four profiles. For a follow-up review of the home walkthrough and capture reader, `--evidence-scope refinement` captures those areas, their focus states and 320 px reading details. `--evidence-scope branding` captures the shared navigation on every route plus 320 px home reflow. For a complete copy revision, `--evidence-scope copy` captures full pages in all four profiles and readable section frames at desktop/light and compact/dark, plus the new guide at 320 px. All scopes still run the complete interaction checks. Local source hashes identify the checkout used for the check; separately compare deployed assets with the reviewed build before claiming they match.
 
 ## Deployment
 

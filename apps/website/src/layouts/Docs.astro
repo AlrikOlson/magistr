@@ -8,7 +8,7 @@ interface Props { title: string; description: string; currentSlug: string; headi
 const { title, description, currentSlug, headings } = Astro.props;
 const allDocs = await getCollection("docs");
 const sorted = allDocs.sort((a,b)=>a.data.order-b.data.order);
-// The docs are a short flat list; the order comes from each page.
+// Guides own their place in the reading order.
 const breadcrumbLd = {"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[
   {"@type":"ListItem","position":1,"name":"Home","item":"https://magistr.dev"},
   {"@type":"ListItem","position":2,"name":"Docs","item":"https://magistr.dev/docs"},
@@ -29,13 +29,13 @@ const breadcrumbLd = {"@context":"https://schema.org","@type":"BreadcrumbList","
         const active=doc.id===currentSlug;
         return <li><a href={`/docs/${doc.id}`} aria-current={active?"page":undefined} class:list={{active}}>{doc.data.title}</a></li>;
       })}</ul></nav>
-      <div class="docs-repo-links"><span class="mono-label">Repository access required</span><a href="https://github.com/AlrikOlson/magistr/blob/main/docs/architecture/overview.md" target="_blank" rel="noopener noreferrer">Architecture ↗</a><a href="https://github.com/AlrikOlson/magistr/blob/main/docs/development.md" target="_blank" rel="noopener noreferrer">Development ↗</a></div>
+      <div class="docs-repo-links"><span class="supporting-label">Repository access required</span><a href="https://github.com/AlrikOlson/magistr/blob/main/docs/architecture/overview.md" target="_blank" rel="noopener noreferrer">Architecture ↗</a><a href="https://github.com/AlrikOlson/magistr/blob/main/docs/development.md" target="_blank" rel="noopener noreferrer">Development ↗</a></div>
     </aside>
     <main id="main-content" class="docs-main" data-pagefind-body>
       <div class="docs-breadcrumb"><a href="/">Magistr</a><span aria-hidden="true">/</span><a href="/docs/installation">Docs</a><span aria-hidden="true">/</span><span>{title}</span></div>
       <article class="docs-content"><slot /></article>
     </main>
-    <nav class="docs-toc" aria-label="On this page"><p class="mono-label">On this page</p>{headings.filter(({depth}) => depth === 2).map(({slug,text}) => <a href={`#${slug}`}>{text}</a>)}</nav>
+    <nav class="docs-toc" aria-label="On this page"><p class="supporting-label">On this page</p>{headings.filter(({depth}) => depth === 2).map(({slug,text}) => <a href={`#${slug}`}>{text}</a>)}</nav>
   </div>
   <Footer />
 </Base>
@@ -55,7 +55,7 @@ const breadcrumbLd = {"@context":"https://schema.org","@type":"BreadcrumbList","
         const matches = await Promise.all(search.results.slice(0, 5).map((result) => result.data()));
         if (request !== revision) return;
         results.replaceChildren();
-        if (!matches.length) results.textContent = "Nothing found. Try another word.";
+        if (!matches.length) results.textContent = "No results. Try a different word.";
         for (const data of matches) {
           const link = document.createElement("a");
           link.href = data.url;
@@ -63,7 +63,7 @@ const breadcrumbLd = {"@context":"https://schema.org","@type":"BreadcrumbList","
           results.appendChild(link);
         }
       } catch {
-        if (request === revision) results.textContent = "Search is unavailable. Reload or use the links below.";
+        if (request === revision) results.textContent = "Search couldn’t load. Try reloading, or use the guide links below.";
       }
     };
     input.addEventListener("input", () => {

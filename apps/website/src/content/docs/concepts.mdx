@@ -1,122 +1,121 @@
 ---
-title: How Magistr works
-description: Connect a roadmap, source changes and recorded checks to the coding agent you already use.
-order: 2
+title: What Magistr remembers
+description: Understand the plan, decisions, source changes, and check results that carry from one session to the next.
+order: 3
 ---
 
-# How Magistr works
+# What Magistr remembers
 
-Magistr is the workflow layer for coding agents. It gives Codex or Claude Code a
-place to plan the work, inspect and change source, record decisions and run
-checks. You keep using your agent; the project keeps a record of what happened.
+A chat is useful while you're working. A project also needs to keep the plan,
+the reasons behind a change, and what was checked. Magistr saves those records
+so your next agent session can read them.
 
-The connection uses **MCP**, the protocol that lets an agent call tools.
-Magistr runs locally. Your agent uses its own account, model and permissions.
+You keep using Codex or Claude Code. Magistr runs locally and connects to the
+agent through **MCP**, the protocol that lets an agent call tools.
+For practical examples, see [Work on a project](/docs/workflow).
 
 ## Your plan
 
-A roadmap breaks a project into work items. Each has a goal, a priority, dependencies
-and acceptance checks. Your agent can help you add, reorder or revise the plan.
-Planning does not start implementation.
+The roadmap holds work you want to do: the result you want, its priority, what
+it depends on, and how to check it. The current task has a more detailed plan
+and a record of what the agent has done.
 
-Use `$next` in Codex or `/next` in Claude Code to continue unfinished work or
-complete one ready item. The agent reads the saved plan and current code, makes
-the change, runs the relevant checks and records the result.
+Ask your agent to read the saved plan before starting. It can continue unfinished
+work, help you choose the next item, or revise the roadmap when the project
+changes direction. Planning alone doesn't start implementation.
 
-From the command line, `magistr next` runs one item. To work through several
-items with a fresh agent session for each, set a limit:
+## Your work history
 
-```sh
-magistr next-loop --max-iterations 5
-```
+The agent can save what it found, the options it considered, why it chose an
+approach, and what happened next. Ask it to record decisions that a future
+session would otherwise have to work out again.
+
+A later finding can correct an earlier one. An important finding can be
+**pinned** to keep it easy to retrieve. A **checkpoint** marks a place to return
+to while reviewing the work; it isn't a backup of your source files.
+
+Feedback can be saved separately from the work you've decided to do.
+That lets you investigate an idea before putting it on the roadmap.
+
+These records are written as the agent works with Magistr. They aren't an
+automatic copy of everything said in every chat.
 
 ## Changing source
 
-Magistr gives the agent tools to search and read the project, then edit the
-source it found. A read includes a file fingerprint; an edit can use it to
-reject a change if the file has moved on since that read.
+Magistr's source tools let the agent find code, read it, and make changes.
+A read includes a file fingerprint. An edit can use that fingerprint to catch a
+file that changed after the agent read it.
 
-For supported languages, edits are checked for newly introduced syntax errors
-before they are written. Changes made through these tools go into a journal
-that supports undo. These checks apply to Magistr's source tools; they do not
-establish that a change behaves correctly. That is what your project's checks
-and review are for.
+For supported languages, the tools check for new syntax errors before writing
+an edit. Changes made through these tools go into a journal that supports undo.
+
+Those protections cover Magistr's source tools. They don't prove that the
+feature works, and they don't cover edits made through other tools. Keep using
+Git and review the changes.
 
 ## Checking your work
 
-A roadmap item is complete when it meets its goal and its required checks
-have current passing results. A failed required check keeps the item open.
+A check run through Magistr saves the command, exit code, and the source it ran
+against. That lets a later session see what actually passed. If the relevant
+source or settings change, the result may need to be checked again.
 
-A check run through Magistr records the command, its exit code and the source
-it was run against. Changes to the relevant source or configuration can make
-that evidence stale. A review recorded by an agent is distinguished from a
-command Magistr actually executed.
+An agent's written review is recorded separately from a command Magistr ran.
+Neither means every possible case has been tested. For interface work, inspect
+the actual screens as well as running tests.
 
-Choose checks that cover the change. For a small edit, run the relevant
-formatting, build, lint and test commands. Run the full suite when you ask for
-it or when a change creates a concrete risk across the project.
+A roadmap item needs current passing results for its required checks before it
+can be completed. A failed required check keeps the item open.
+
+Choose checks that fit the change. For example, a small interface edit may need
+a build, relevant interaction tests, and a visual review. Ask for the full
+project checks when you need the broader check:
 
 ```sh
 magistr validate
 ```
 
-Set the project's commands and required checks during setup, or edit them in
-`.magistr/project.json`. A passing check proves its own result; it does not
-guarantee that all possible behavior is correct.
-
-## Your work history
-
-The agent can record what it found, why it chose an approach, what changed and
-what the checks reported. These records stay with the project across sessions.
-
-Related findings can refer to each other. Later findings can correct earlier
-ones, and a useful finding can be **pinned** so it remains easy to retrieve.
-A **checkpoint** saves a place in the work to return to.
-
-For example, the [Contact list walkthrough](/#workflow) follows a small bug:
-names kept extra spaces. The agent recorded a plan, fixed the function and ran
-the unchanged test. A fresh session retrieved the completed task and its
-passing result before doing more work.
+Set the commands during setup or in `.magistr/project.json`.
+The [contact-list example](/#workflow) shows a failed test, the fix, and the
+same test passing.
 
 ## Agent sessions
 
-There are two ways to work: connect Magistr to your existing agent through
-MCP, or let Magistr launch an agent session from the command line or desktop.
+Your saved project work and your chat history are different things.
+Codex and Claude Code can both read the project's Magistr records. Resuming
+a particular conversation depends on the agent that ran it.
 
-Project work and conversation history serve different purposes. The saved
-plan and check results are available through Magistr's tools. Resuming the
-conversation itself depends on the agent you use.
+In an existing agent session, choose the model and permissions through that
+agent. When Magistr launches a session, its command-line options select the
+agent and supported settings for that run.
 
-In Magistr's interfaces, each session belongs to a copy of your project.
-Switching sessions keeps their work and unanswered permission requests in place.
-Saved conversations include the model, latest reply and whether the work finished.
+Magistr doesn't provide a model account. Your agent's service still handles
+model requests, so keeping work locally doesn't mean the model runs locally.
 
 ## The desktop preview
 
-The desktop is a separate preview available from source. It gives you a place
-to talk to your agent and return to project conversations. Use the command line
-or your connected agent for planning, reviewing changes and project setup.
+The desktop is a separate preview available from source. You can open projects,
+talk to an agent, and return to saved conversations. Use the command line or
+your connected agent for the full planning and change-review workflow.
 
-Open a configured project in `magistr-desktop`. Choose **New session** to start a
-conversation. Switch between projects or copies of a project, then return to a
-session to continue reading and recover your draft.
+Choose **New session** to start a conversation. You can switch projects,
+copies of a project, and conversations, then return and recover your draft.
+Each session keeps its own work and unanswered permission requests.
 
-Press Return to send a message, or Shift Return for a new line. **Stop** cancels
-the current turn and keeps your draft. Permission requests let you approve or
-decline the requested action. **Copy conversation** copies its messages.
-**Close session** ends that conversation; Quit closes the app and its running work.
+Press Return to send, or Shift Return for a new line. **Stop** cancels the
+current turn. Permission requests let you approve or decline an action.
+**Copy conversation** copies the messages. **Close session** ends that session;
+Quit closes the app and its running work.
 
-Choose System, Light or Dark under **Appearance**. Text fields support selection,
-the clipboard and your input methods.
+Choose System, Light, or Dark under **Appearance**. See
+[Try the desktop preview](/docs/installation#try-the-desktop-preview) to open it.
 
 ## Where your work is saved
 
-Setup adds project settings and the files your chosen agents need.
-Plans, progress and findings stay under `.magistr/` in your project.
-Saved conversations also use Magistr's local data folder.
+Project settings, plans, decisions, and progress live under `.magistr/` in
+your project. Saved conversations also use Magistr's local data folder.
+Your agent keeps its own conversation history.
 
-Your agent's own service still handles its model requests. A local work record
-does not mean the model runs locally.
-
-See the [installation guide](/docs/installation) to connect an agent, check the
-setup or remove Magistr from a project.
+Keep the project data when moving or backing up your work. Removing an agent
+connection with `magistr remove` keeps the project settings and saved work.
+See [installation](/docs/installation#remove-setup-or-uninstall) for what removal
+changes.

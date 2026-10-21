@@ -27,14 +27,13 @@ const page = (path) => readFileSync(resolve(distDir, path), "utf-8");
 const indexHtml = page("index.html");
 const installHtml = page("docs/installation/index.html");
 const conceptsHtml = page("docs/concepts/index.html");
+const workflowHtml = page("docs/workflow/index.html");
 const notFoundHtml = page("404.html");
-const productPages = [["home", indexHtml], ["installation", installHtml], ["concepts", conceptsHtml], ["404", notFoundHtml]];
+const productPages = [["home", indexHtml], ["installation", installHtml], ["concepts", conceptsHtml], ["workflow", workflowHtml], ["404", notFoundHtml]];
 const mainOf = (html) => html.split("<main")[1]?.split("</main>")[0] ?? html;
 const textOf = (html) => mainOf(html).replace(/<code[\s\S]*?<\/code>/g, "").replace(/<pre[\s\S]*?<\/pre>/g, "").replace(/<[^>]+>/g, " ");
 
 console.log("Home:");
-assert(indexHtml.includes("Plan the work.") && indexHtml.includes("Prove the change."), "headline gives planning and verification equal prominence");
-assert(indexHtml.includes("workflow layer for coding agents") && indexHtml.includes("source changes to review"), "first screen explains the category and workflow");
 assert(indexHtml.includes("Codex") && indexHtml.includes("Claude Code"), "supported agents are named");
 assert(indexHtml.includes('id="install-btn"') && indexHtml.includes('href="#install"') && indexHtml.includes('id="install"'), "install call to action, anchor and section");
 assert(indexHtml.includes('id="workflow"') && indexHtml.includes('href="/#workflow"'), "roadmap section and its nav link match");
@@ -49,7 +48,7 @@ assert(indexHtml.includes("Registry packages are not published yet") && indexHtm
 assert(indexHtml.includes('"operatingSystem":"macOS (Apple Silicon)"'), "first release metadata targets Apple Silicon macOS");
 assert(indexHtml.includes('"downloadUrl":"https://magistr.dev/docs/installation"'), "download metadata points to current installation instructions");
 
-assert(indexHtml.includes("illustrated walkthrough of a recorded task") && indexHtml.includes("not a live test"), "explanation is clearly separated from actual captures and live execution");
+assert(indexHtml.includes("not a live test") && indexHtml.includes("October 19"), "recorded example is dated and does not claim live execution");
 const homeImages = [...indexHtml.matchAll(/src="\/screenshots\/([a-z-]+)\.png\?v=[a-f0-9]{12}"/g)].map((m) => m[1]);
 assert(new Set(homeImages).size === 4 && homeImages.length === 4, `each screenshot appears once on the home page (${homeImages.join(", ")})`);
 const roadmapSection = indexHtml.split('id="workflow"')[1]?.split('id="product"')[0] ?? "";
@@ -107,7 +106,7 @@ assert(installHtml.includes("Your code and permissions") && installHtml.includes
 assert(installHtml.includes("project.json") && !installHtml.includes("roadmap_exports"), "installation page covers the project file without policy notes");
 assert(installHtml.includes("--agent") && installHtml.includes("codex") && installHtml.includes("copilot") && installHtml.includes("cursor") && installHtml.includes("cline") && installHtml.includes("windsurf") && installHtml.includes("aider"), "installation page names every agent target the CLI accepts");
 assert(installHtml.includes("--max-iterations"), "installation page names the loop's bound");
-const installText = installHtml.replace(/<[^>]*>/g, "").replace(/&#x26;/g, "&");
+const installText = installHtml.replace(/<[^>]*>/g, "").replace(/&#x26;/g, "&").replace(/\s+/g, " ");
 for (const command of [
   "magistr init . --agent codex,claude --dry-run",
   "magistr init . --agent codex --yes",
@@ -122,11 +121,10 @@ for (const command of [
 }
 assert(installText.includes("Setup adds files only for the agents you choose.") && !installText.includes("setup is always written"), "setup writes only selected integrations");
 assert(installText.includes("Setup does not start implementation.") && installText.includes("starter prompt"), "onboarding finishes with planning");
-assert(installText.includes("Magistr changes setup files only when you run setup or repair"), "repair is explicit");
+assert(installText.includes("upgrade automatically") && installText.includes("recoverable originals"), "upgrade guidance covers automatic conversion and recovery");
 assert(installText.includes("registry packages are not published yet"), "installation guide does not advertise unpublished downloads");
 
 assert(!installHtml.includes("release-inventory") && !installHtml.includes("Release archives"), "installation page carries no release-process links");
-assert(conceptsHtml.includes(">How Magistr works</h1>"), "guide has its plain-language title");
 for (const word of ["Your plan", "Agent sessions", "Your work history", "Checking your work", "Where your work is saved"]) {
   assert(conceptsHtml.includes(word), `concepts page covers ${word}`);
 }
@@ -134,8 +132,8 @@ assert(conceptsHtml.includes("pinned") && conceptsHtml.includes("checkpoint"), "
 assert(conceptsHtml.includes("desktop is a separate preview available from source") && conceptsHtml.includes("command line"), "guide explains desktop availability and planning");
 assert(conceptsHtml.includes("recover your draft"),"concepts explains resident drafts");
 assert(conceptsHtml.includes("Stop") && conceptsHtml.includes("Permission requests") && conceptsHtml.includes("Close session"),"current conversation actions are explained");
-assert(conceptsHtml.includes("continue unfinished work") && conceptsHtml.includes("saved plan"), "roadmap recovery is explained");
-for (const slug of ["installation", "concepts"]) {
+assert(conceptsHtml.includes("continue unfinished") && conceptsHtml.includes("saved plan"), "roadmap recovery is explained");
+for (const slug of ["installation", "workflow", "concepts"]) {
   assert(installHtml.includes(`href="/docs/${slug}"`), `sidebar links ${slug}`);
 }
 for (const gone of ["configuration", "hooks", "skills", "deployment", "architecture", "development"]) {
@@ -146,7 +144,7 @@ assert(installHtml.includes("docs-sidebar") && installHtml.includes("data-pagefi
 assert(existsSync(resolve(distDir, "pagefind/pagefind.js")), "pagefind index built");
 
 console.log("\nMetadata:");
-for (const [name, html] of [["home", indexHtml], ["installation", installHtml], ["concepts", conceptsHtml]]) {
+for (const [name, html] of [["home", indexHtml], ["installation", installHtml], ["concepts", conceptsHtml], ["workflow", workflowHtml]]) {
   assert(html.includes('rel="canonical" href="https://magistr.dev/'), `${name} canonical URL`);
   assert(html.includes('property="og:title"') && html.includes('property="og:image"') && html.includes('property="og:url"'), `${name} Open Graph tags`);
   assert(html.includes('name="twitter:card"') && html.includes('name="twitter:image"'), `${name} Twitter card`);
@@ -196,7 +194,9 @@ assert(!notFoundHtml.includes("curl") && !notFoundHtml.includes("rounded-lg"), "
 console.log("\nSource hygiene:");
 const components = readdirSync(resolve(srcDir, "components"));
 assert(components.includes("Workflow.astro") && components.includes("ProductEvidence.astro"), "workflow explanation and original product evidence have separate components");
-assert(readdirSync(resolve(srcDir, "content/docs")).sort().join(",") === "concepts.mdx,installation.mdx", "exactly the two docs pages exist");
+for (const file of readdirSync(resolve(srcDir, "content/docs"))) {
+  assert(existsSync(resolve(distDir, "docs", file.replace(/\.mdx$/, ""), "index.html")), `guide ${file} is built`);
+}
 assert(!existsSync(resolve(distDir, "icons")), "no unused icon assets ship");
 
 console.log(`\n${failures === 0 ? "ALL TESTS PASSED" : `${failures} TEST(S) FAILED`}`);

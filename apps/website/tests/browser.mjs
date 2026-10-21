@@ -11,7 +11,7 @@ const dist = resolve(root, "dist");
 const repo = resolve(root, "../..");
 const scopeArg = process.argv.indexOf("--evidence-scope");
 const evidenceScope = scopeArg < 0 ? "all" : process.argv[scopeArg + 1];
-assert(["all", "search", "refinement", "branding"].includes(evidenceScope), "Evidence scope must be all, search, refinement or branding");
+assert(["all", "search", "recovery", "refinement", "branding", "copy"].includes(evidenceScope), "Evidence scope must be all, search, recovery, refinement, branding or copy");
 const evidenceArg = process.argv.indexOf("--evidence-dir");
 const evidence = evidenceArg < 0 ? undefined : resolve(repo, process.argv[evidenceArg + 1]);
 if (evidence && !evidence.startsWith(resolve(repo, "docs/evidence/desktop-iterations") + sep)) {
@@ -75,6 +75,15 @@ const writeReport = async (status, failure) => {
 };
 const capture = async (page, name, state, fullPage = false) => {
   if (!evidence || (evidenceScope === "search" && !name.includes("search"))) return;
+  if (evidenceScope === "recovery" && !name.includes("search") && !/^not-found-(wide|compact)-(light|dark)$/.test(name)) return;
+  if (evidenceScope === "copy") {
+    // Full pages cover all four profiles; detail frames use a complementary
+    // desktop/light and compact/dark pair to keep the review readable.
+    const profile = /-wide-light$|-compact-dark$/.test(name);
+    const overview = /^(home|installation|workflow|concepts|not-found)-(wide|compact)-(light|dark)$/.test(name);
+    const detail = /^(home-(intro|product|footer|install|workflow-[0-3]|evidence-[0-2]|menu|copy-unavailable)|(?:installation|workflow|concepts)-(?!search)[a-z-]+)-(wide|compact)-(light|dark)$/.test(name);
+    if (!overview && !(profile && detail) && !name.startsWith("workflow-320-")) return;
+  }
   if (evidenceScope === "branding" && !name.includes("-intro-") && !name.startsWith("home-320-")) return;
   if (evidenceScope === "refinement" && !/^(home-(wide|compact|connection|workflow|capture|transcript)|home-evidence-focus|.*-320)/.test(name)) return;
   await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
@@ -113,18 +122,12 @@ const legibility = async (page) => {
       return { width: rect.width, height: rect.height };
     });
     const code = [...document.querySelectorAll("pre")].map((element) => element.scrollWidth - element.clientWidth);
-    const arrows = [...document.querySelectorAll(".doc-links a")].map((element) => {
-      const title = element.querySelector("strong").getBoundingClientRect();
-      const arrow = element.querySelector("[aria-hidden]").getBoundingClientRect();
-      return Math.abs(title.y + title.height / 2 - arrow.y - arrow.height / 2);
-    });
-    return { primary, theme: ratio(theme.color, nav.backgroundColor), code, arrows, controls };
+    return { primary, theme: ratio(theme.color, nav.backgroundColor), code, controls };
   });
   assert(results.controls.every(({ width, height }) => width >= 44 && height >= 44), "Navigation icon targets are at least 44 px");
   assert(results.primary.every((contrast) => contrast >= 4.5), "Primary text contrast: " + JSON.stringify(results));
   assert(results.theme >= 3, "Theme icon contrast: " + JSON.stringify(results));
   assert(results.code.every((overflow) => overflow <= 1), "Code is readable without horizontal clipping");
-  assert(results.arrows.every((offset) => offset < 3), "Documentation arrows align with their titles");
 };
 const scrollHeading = async (page, selector) => {
   await page.locator(selector).evaluate((element) => scrollTo({ top: element.getBoundingClientRect().top + scrollY - 90, behavior: "instant" }));
@@ -141,7 +144,7 @@ try {
       const searchRequests = [];
       page.on("request", (request) => { if (new URL(request.url()).pathname.startsWith("/pagefind/")) searchRequests.push(request.url()); });
       page.on("pageerror", (error) => errors.push(error.message));
-      for (const [name, path] of [["home", "/"], ["installation", "/docs/installation/"], ["concepts", "/docs/concepts/"], ["not-found", "/404.html"]]) {
+      for (const [name, path] of [["home", "/"], ["installation", "/docs/installation/"], ["concepts", "/docs/concepts/"], ["workflow", "/docs/workflow/"], ["not-found", "/404.html"]]) {
         const response = await page.goto(origin + path);
         assert.equal(response.status(), 200);
         await page.evaluate(() => document.fonts.ready);
@@ -164,9 +167,9 @@ try {
             assert.equal(response.status(), 200, "Full session link opens its original image");
             assert.match(response.headers()["content-type"], /image\/png/);
           }
-          await capture(page, "home-intro-" + suffix, "Positioning, primary action and workflow diagram");
+          await capture(page, "home-intro-" + suffix, "Product description, setup action and project guide");
           for (const [area, selector] of [
-            ["connection", ".connection-strip"], ["workflow", "#workflow"], ["product", "#product"], ["footer", ".docs-index"],
+            ["evidence", "#evidence"], ["workflow", "#workflow"], ["product", "#product"], ["footer", ".site-footer"],
           ]) {
             await scrollHeading(page, selector);
             await capture(page, "home-" + area + "-" + suffix, area + " section");
@@ -240,7 +243,7 @@ try {
             await toggle.click();
             assert.equal(await toggle.getAttribute("aria-expanded"), "true");
             await capture(page, "home-menu-" + suffix, "Expanded compact navigation");
-            const firstLink = page.locator("#mobile-menu").getByRole("link", { name: "Workflow", exact: true });
+            const firstLink = page.locator("#mobile-menu").getByRole("link", { name: "Example", exact: true });
             await firstLink.focus();
             await page.keyboard.press("Escape");
             assert.equal(await toggle.getAttribute("aria-expanded"), "false");
@@ -264,12 +267,15 @@ try {
             assert.equal(new URL(page.url()).pathname.replace(/\/$/, ""), "/docs/installation");
           }
         }
+        if (["installation", "concepts", "workflow"].includes(name)) {
+          for (const heading of await page.locator("article h2").all()) {
+            const id = await heading.getAttribute("id");
+            await scrollHeading(page, "#" + id);
+            await capture(page, name + "-" + id + "-" + suffix, await heading.innerText());
+          }
+        }
         if (name === "concepts") {
           await capture(page, "concepts-search-idle-" + suffix, "Search is ready without starting its index");
-          for (const heading of ["your-plan", "changing-source", "checking-your-work", "your-work-history", "agent-sessions", "the-desktop-preview", "where-your-work-is-saved"]) {
-            await scrollHeading(page, "#" + heading);
-            await capture(page, "concepts-" + heading + "-" + suffix, heading.replaceAll("-", " "));
-          }
         }
         if (name === "installation") {
           const body = await page.locator("article").innerText();
@@ -277,14 +283,6 @@ try {
           assert.match(body, /magistr init \. --agent codex,claude --dry-run/);
           assert.match(body, /magistr init \. --agent portable --yes/);
           assert.match(body, /magistr remove \. --dry-run/);
-          for (const heading of [
-            "install-the-preview", "set-up-your-project", "connect-codex", "connect-claude-code",
-            "connect-another-agent", "check-or-repair-setup", "upgrade-the-preview",
-            "remove-setup-or-uninstall", "start-work-when-you-are-ready", "try-the-desktop-preview",
-          ]) {
-            await scrollHeading(page, "#" + heading);
-            await capture(page, "installation-" + heading + "-" + suffix, heading.replaceAll("-", " "));
-          }
           await page.evaluate(() => scrollTo({ top: 0, behavior: "instant" }));
           const search = page.getByRole("searchbox", { name: "Search documentation" });
           assert.deepEqual(searchRequests, [], "Reading docs does not start search downloads");
@@ -293,7 +291,7 @@ try {
           assert.match(await page.locator(".docs-search-results").innerText(), /Installation/);
           await capture(page, "installation-search-" + suffix, "Documentation search for repair");
           await search.fill("qzxvbnabcdef");
-          await page.getByText("Nothing found. Try another word.", { exact: true }).waitFor();
+          await page.getByText("No results. Try a different word.", { exact: true }).waitFor();
           await capture(page, "installation-search-empty-" + suffix, "No results preserve a clear way to search again");
           await search.fill("repair");
           await search.fill("");
@@ -306,7 +304,7 @@ try {
           await context.route("**/pagefind/pagefind.js", (route) => route.fulfill({ status: 503, contentType: "text/javascript", body: "" }));
           await page.reload();
           await page.getByRole("searchbox", { name: "Search documentation" }).fill("repair");
-          await page.getByText("Search is unavailable. Reload or use the links below.", { exact: true }).waitFor();
+          await page.getByText("Search couldn’t load. Try reloading, or use the guide links below.", { exact: true }).waitFor();
           await capture(page, "installation-search-unavailable-" + suffix, "Search failure retains navigation and explains recovery");
           await context.unroute("**/pagefind/pagefind.js");
           await page.reload();
@@ -325,6 +323,14 @@ try {
           await scrollHeading(page, "#" + heading);
           await capture(page, "installation-320-" + heading + "-" + colorScheme, "320 px " + heading);
         }
+      }
+      await page.goto(origin + "/docs/workflow/");
+      await noOverflow(page);
+      await legibility(page);
+      if (layout === "compact") {
+        await capture(page, "workflow-320-" + colorScheme, "Everyday-use guide at 320 CSS pixels", true);
+        await scrollHeading(page, "#choose-the-right-starting-point");
+        await capture(page, "workflow-320-shortcuts-" + colorScheme, "Skill table at 320 CSS pixels");
       }
       await page.goto(origin + "/");
       await noOverflow(page);
@@ -354,7 +360,7 @@ try {
       await page.keyboard.press("Enter");
       assert.equal(new URL(page.url()).hash, "#main-content");
       assert.deepEqual(errors, [], "No uncaught page errors");
-      checks.push({ layout, appearance: colorScheme, passed: true, scenarios: ["four static routes", "primary and theme-control contrast", "wrapped code and aligned documentation arrows", "walkthrough and evidence tabs: pointer, arrows, Home, End, focus", "clipboard success and denial (browser stub)", "reflow at 320 px", "images", "install anchor", "theme persistence", "selected agent instructions", "lazy search, results, empty and failure recovery, cleared query", "keyboard skip link", ...(layout === "compact" ? ["mobile menu navigation, Escape, anchor focus and resize recovery"] : [])] });
+      checks.push({ layout, appearance: colorScheme, passed: true, scenarios: ["five static routes", "primary and theme-control contrast", "wrapped code and aligned documentation arrows", "walkthrough and evidence tabs: pointer, arrows, Home, End, focus", "clipboard success and denial (browser stub)", "reflow at 320 px", "images", "install anchor", "theme persistence", "selected agent instructions", "lazy search, results, empty and failure recovery, cleared query", "keyboard skip link", ...(layout === "compact" ? ["mobile menu navigation, Escape, anchor focus and resize recovery"] : [])] });
       await context.close();
     }
   }

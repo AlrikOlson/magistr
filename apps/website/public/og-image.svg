@@ -1,22 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
-  <title id="title">Magistr — Plan the work. Prove the change.</title>
-  <desc id="desc">The workflow layer for Codex and Claude Code. Plan, change, check and continue.</desc>
+  <title id="title">Magistr — Project planning for Codex and Claude Code</title>
+  <desc id="desc">Keep your roadmap, decisions and check results with the project. Continue the work in your next agent session.</desc>
   <rect width="1200" height="630" fill="#202923"/>
   <path d="M64 114V64l25 34 25-34v50" fill="none" stroke="#ff9b66" stroke-width="7"/>
   <path d="M80 114h18" stroke="#e7ebe3" stroke-width="5"/>
-  <g font-family="Arial, Helvetica, sans-serif">
-    <text x="138" y="103" fill="#edf0e7" font-size="38" font-weight="600" letter-spacing="-1.5">Magistr</text>
-    <text x="1136" y="96" text-anchor="end" fill="#b0b9ae" font-size="18">THE WORKFLOW LAYER FOR CODING AGENTS</text>
-    <text x="64" y="266" fill="#edf0e7" font-size="94" font-weight="500" letter-spacing="-5">Plan the work.</text>
-    <text x="64" y="372" fill="#ff9b66" font-size="94" font-weight="500" letter-spacing="-5">Prove the change.</text>
-    <path d="M64 440h1072" stroke="#65705e"/>
-    <g font-size="20" fill="#c2ccbd">
-      <text x="64" y="497">01 / PLAN</text>
-      <text x="352" y="497">02 / CHANGE</text>
-      <text x="640" y="497">03 / CHECK</text>
-      <text x="928" y="497">04 / CONTINUE</text>
+  <g font-family="Arial, Helvetica, sans-serif" fill="#edf0e7">
+    <text x="138" y="103" font-size="38" font-weight="600">Magistr</text>
+    <text x="64" y="260" font-size="68" font-weight="600">Project planning for</text>
+    <text x="64" y="345" font-size="68" font-weight="600">Codex and Claude Code.</text>
+    <g fill="#b0b9ae" font-size="28">
+      <text x="64" y="430">Keep the roadmap, decisions and check results.</text>
+      <text x="64" y="474">Continue the work in your next session.</text>
+      <text x="64" y="568" font-size="24">magistr.dev</text>
     </g>
-    <text x="64" y="578" fill="#b0b9ae" font-size="22">For Codex &amp; Claude Code</text>
-    <text x="1136" y="578" text-anchor="end" fill="#ff9b66" font-size="22">magistr.dev</text>
   </g>
 </svg>

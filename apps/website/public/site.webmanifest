@@ -1,7 +1,7 @@
 {
   "name": "Magistr",
   "short_name": "Magistr",
-  "description": "The workflow layer for coding agents. Plan the work. Prove the change.",
+  "description": "Project planning for Codex and Claude Code.",
   "start_url": "/",
   "display": "browser",
   "background_color": "#fafaf7",

@@ -3,16 +3,15 @@ import Base from "../layouts/Base.astro";
 import Nav from "../components/Nav.astro";
 import Footer from "../components/Footer.astro";
 ---
-<Base title="Page not found — Magistr" description="This address does not lead to a Magistr page. Return home or find what you need in the documentation." noindex={true}>
+<Base title="Page not found — Magistr" description="We couldn’t find that page. Go back to Magistr or open the docs." noindex={true}>
   <Nav />
   <main id="main-content" class="section-shell not-found">
     <p class="error-number" aria-hidden="true">404</p>
-    <p class="eyebrow">A missing destination</p>
     <h1>Page not found.</h1>
-    <p>This address doesn’t lead to a page. Head back to Magistr or use the documentation to find your next step.</p>
+    <p>The link may be out of date, or the address may have a typo. You can go back to the home page or find what you need in the docs.</p>
     <nav class="hero-actions" aria-label="Where to go instead">
-      <a class="button button-primary" href="/">Back to Magistr <span aria-hidden="true">↗</span></a>
-      <a class="button button-quiet" href="/docs/installation">Open documentation <span aria-hidden="true">↗</span></a>
+      <a class="button button-primary" href="/">Back to Magistr</a>
+      <a class="button button-quiet" href="/docs/installation">Read the docs</a>
     </nav>
   </main>
   <Footer />
