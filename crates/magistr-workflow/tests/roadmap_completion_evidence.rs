@@ -19,6 +19,8 @@ struct Fixed(String);
 impl SourceWitness for Fixed {
     fn observation(&self) -> SourceObservation {
         SourceObservation {
+            inputs: Vec::new(),
+            execution_digest: String::new(),
             workspace_root: "/w".into(),
             workspace_generation: None,
             scheme: "fake/1".into(),
@@ -116,6 +118,7 @@ fn objective(ship: &ShipUseCases, scope: &str) {
 fn gate(ship: &ShipUseCases, code: i32) {
     let admission = ship
         .admit_check(CheckRequest {
+            options: Default::default(),
             task_id: None,
             check_type: CheckType::Test,
             name: "test".into(),

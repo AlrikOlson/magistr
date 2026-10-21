@@ -8,6 +8,8 @@ use serde::{Deserialize, Serialize};
 pub enum CheckExecution {
     /// The command exited with `code`.
     Exited { code: i32 },
+    /// An owner-validated reference to an earlier successful execution.
+    Reused { receipt_id: String },
     /// The command was killed at the caller's deadline.
     TimedOut,
     /// The run was ended from outside before the command finished.
@@ -24,7 +26,7 @@ impl CheckExecution {
     pub const fn passed(&self) -> bool {
         matches!(
             self,
-            Self::Exited { code: 0 } | Self::SelfReported { passed: true }
+            Self::Exited { code: 0 } | Self::SelfReported { passed: true } | Self::Reused { .. }
         )
     }
 
@@ -48,6 +50,7 @@ impl CheckExecution {
     pub fn label(&self) -> String {
         match self {
             Self::Exited { code } => format!("exit {code}"),
+            Self::Reused { receipt_id } => format!("reused {receipt_id}"),
             Self::TimedOut => "timed out".into(),
             Self::Cancelled => "cancelled".into(),
             Self::LaunchFailed { reason } => format!("launch failed: {reason}"),

@@ -157,9 +157,10 @@ pub use magistr_workflow::roadmap::domain::{
     workstream_catalog, workstream_frontier,
 };
 pub use magistr_workflow::ship::application::{
-    CheckAdmission, CheckExecution, CheckSettlement, CompletionEvidence, CompletionRefusal,
-    EvidencePort, ExecutionBinding, GateContract, ObservationDrift, ShipReport, SourceFreshness,
-    SourceObservation, SourceWitness, TaskAdmission,
+    CheckAdmission, CheckExecution, CheckOptions, CheckOutcome, CheckRequest, CheckSettlement,
+    CompletionEvidence, CompletionRefusal, DEFAULT_CHECK_TIMEOUT_SECS, EvidencePort,
+    ExecutionBinding, GateContract, MAX_CHECK_TIMEOUT_SECS, ObservationDrift, ShipReport,
+    SourceFreshness, SourceObservation, SourceWitness, TaskAdmission,
 };
 pub use magistr_workflow::ship::broadcast::BroadcastFrame as ShipFrame;
 pub use magistr_workflow::ship::domain::action::{Action, ActionType};

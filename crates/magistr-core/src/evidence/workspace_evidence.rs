@@ -44,6 +44,37 @@ impl WorkspaceEvidence {
         }
     }
 
+    fn check_policy(
+        &self,
+        name: &str,
+        command: Option<&str>,
+    ) -> Result<
+        (
+            crate::types::VerificationConfig,
+            Option<crate::types::GatePolicy>,
+        ),
+        String,
+    > {
+        let path = crate::paths::project_json(&self.root).map_err(|error| error.to_string())?;
+        let bytes = match std::fs::read(path) {
+            Ok(bytes) => bytes,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                return Ok((Default::default(), None));
+            }
+            Err(error) => return Err(error.to_string()),
+        };
+        let config: ProjectConfig =
+            serde_json::from_slice(&bytes).map_err(|error| error.to_string())?;
+        let matched = resolve_gates(&config, name).ok().and_then(|specs| {
+            specs
+                .into_iter()
+                .find(|spec| Some(spec.command.trim()) == command.map(str::trim))
+                .map(|spec| spec.name)
+        });
+        let policy = matched.and_then(|name| config.verification.gates.get(&name).cloned());
+        Ok((config.verification, policy))
+    }
+
     /// The project root observed.
     #[must_use]
     pub fn root(&self) -> &Path {
@@ -129,20 +160,65 @@ impl EvidencePort for WorkspaceEvidence {
     }
 
     fn observe(&self) -> Result<Box<dyn SourceWitness>, String> {
-        let snapshot = SourceSnapshot::capture(&self.root, self.policy.clone())
-            .map_err(|error| error.to_string())?;
+        self.observe_check("", None, &[])
+    }
+
+    fn observe_check(
+        &self,
+        name: &str,
+        command: Option<&str>,
+        inputs: &[String],
+    ) -> Result<Box<dyn SourceWitness>, String> {
+        if !self.root.exists() {
+            return Err(format!(
+                "The workspace {} does not exist.",
+                self.root.display()
+            ));
+        }
+        let (_, policy) = self.check_policy(name, command)?;
+        let declared = policy.as_ref().map(|policy| &policy.inputs);
+        let mut sources = inputs.to_vec();
+        if let Some(declared) = declared {
+            if declared.is_empty() {
+                sources.clear();
+            } else {
+                sources.extend(declared.iter().cloned());
+            }
+        }
+        let policy = self.policy.clone().with_sources(sources);
+        let snapshot =
+            SourceSnapshot::capture(&self.root, policy).map_err(|error| error.to_string())?;
         let mut layers = self.layers.clone();
         layers.push((
             ConfigLayer::Workspace,
             crate::paths::project_json(&self.root).map_err(|error| error.to_string())?,
         ));
         let configuration = ConfigDigest::observe(&layers).map_err(|error| error.to_string())?;
-        Ok(Box::new(SnapshotWitness::new(
-            self.root.clone(),
-            snapshot,
-            layers,
-            configuration,
-        )))
+        Ok(Box::new(
+            SnapshotWitness::new(self.root.clone(), snapshot, layers, configuration)
+                .with_execution(command)?,
+        ))
+    }
+
+    fn can_reuse(&self, request: &magistr_engine::native::CheckRequest) -> bool {
+        let Ok((_, policy)) = self.check_policy(&request.name, request.command.as_deref()) else {
+            return false;
+        };
+        if let Some(reuse) = policy.and_then(|policy| policy.reuse) {
+            return reuse;
+        }
+        request.command.as_deref().is_some_and(reusable_command)
+    }
+
+    fn check_timeout_secs(&self, name: &str, command: Option<&str>) -> Result<u64, String> {
+        let (config, policy) = self.check_policy(name, command)?;
+        let timeout = policy
+            .and_then(|policy| policy.timeout_secs)
+            .unwrap_or(config.timeout_secs);
+        if !(1..=3600).contains(&timeout) {
+            return Err("Check timeout must be between 1 and 3600 seconds.".into());
+        }
+        Ok(timeout)
     }
 
     fn required_gates(&self) -> Result<Vec<GateContract>, String> {
@@ -153,3 +229,27 @@ impl EvidencePort for WorkspaceEvidence {
 #[cfg(test)]
 #[path = "workspace_evidence.tests.rs"]
 mod tests;
+
+/// Only recognizable local verification commands are reusable by default.
+/// Opaque scripts and network checks need an explicit configured declaration.
+fn reusable_command(command: &str) -> bool {
+    if command.trim().is_empty() {
+        return false;
+    }
+    command.split("&&").all(|part| {
+        let part = part.trim();
+        if part
+            .chars()
+            .any(|ch| matches!(ch, ';' | '|' | '&' | '\n' | '`' | '$' | '>' | '<'))
+        {
+            return false;
+        }
+        let words: Vec<_> = part.split_whitespace().collect();
+        matches!(
+            words.as_slice(),
+            ["cargo", "check" | "clippy", ..]
+                | ["cargo", "test", ..]
+                | ["cargo", "nextest", "run", ..]
+        ) || (words.starts_with(&["cargo", "fmt"]) && words.contains(&"--check"))
+    })
+}

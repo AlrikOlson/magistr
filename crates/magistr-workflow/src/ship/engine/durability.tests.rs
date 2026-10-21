@@ -43,6 +43,7 @@ fn admit(engine: &mut ShipEngine) -> crate::ship::application::CheckAdmission {
         .admit_receipt(
             target,
             CheckRequest {
+                options: Default::default(),
                 task_id: None,
                 check_type: CheckType::Test,
                 name: "test".into(),

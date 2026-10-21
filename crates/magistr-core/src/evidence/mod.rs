@@ -19,6 +19,7 @@
 //! the capability; [`writer_config`] accepts explicit test inputs. A writer
 //! opened without evidence records source-less checks and cannot complete a chunk.
 
+mod execution_fingerprint;
 mod snapshot_witness;
 mod workspace_evidence;
 mod writer_config;

@@ -234,6 +234,7 @@ async fn active_task(svc: &ShipService) {
 
 fn check_args(command: Option<&str>, report: Option<ReportArg>) -> CheckArgs {
     CheckArgs {
+        options: Default::default(),
         task_id: None,
         check_type: magistr_workflow::ship::domain::check::CheckType::Test,
         name: "suite".into(),

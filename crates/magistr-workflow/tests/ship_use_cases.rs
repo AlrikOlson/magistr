@@ -35,6 +35,7 @@ fn planned(cases: &ShipUseCases) {
 
 fn request() -> CheckRequest {
     CheckRequest {
+        options: Default::default(),
         task_id: None,
         check_type: CheckType::Test,
         name: "test".into(),

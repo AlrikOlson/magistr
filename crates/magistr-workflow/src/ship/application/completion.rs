@@ -119,6 +119,29 @@ impl ShipUseCases {
             recovered: Vec::new(),
             outstanding: Vec::new(),
         };
+        let mut observations = BTreeMap::new();
+        let mut observe = |receipt: &CheckReceipt| -> Result<SourceObservation, CompletionRefusal> {
+            let inputs = receipt
+                .source
+                .as_ref()
+                .map(|source| source.inputs.as_slice())
+                .unwrap_or_default();
+            let key = (&receipt.gate, &receipt.command, inputs);
+            let key = serde_json::to_string(&key).map_err(|error| {
+                CompletionRefusal::EvidenceUnavailable {
+                    reason: error.to_string(),
+                }
+            })?;
+            if let Some(observed) = observations.get(&key) {
+                return Ok(Clone::clone(observed));
+            }
+            let observed = port
+                .observe_check(&receipt.gate, receipt.command.as_deref(), inputs)
+                .map_err(|reason| CompletionRefusal::EvidenceUnavailable { reason })?
+                .observation();
+            observations.insert(key, observed.clone());
+            Ok(observed)
+        };
         let mut judged: Vec<&str> = Vec::new();
         for contract in &contracts {
             judged.push(&contract.name);
@@ -131,14 +154,17 @@ impl ShipUseCases {
                         target.task_id, contract.command
                     ),
                 }),
-                Some(attempts) => judge(
-                    &mut evidence,
-                    &contract.name,
-                    attempts,
-                    Some(contract),
-                    &current,
-                    &acceptance_revision,
-                ),
+                Some(attempts) => {
+                    let current = observe(attempts.last().expect("gate attempts"))?;
+                    judge(
+                        &mut evidence,
+                        &contract.name,
+                        attempts,
+                        Some(contract),
+                        &current,
+                        &acceptance_revision,
+                    );
+                }
             }
         }
         // Required checks the caller recorded beyond the configured gates
@@ -157,6 +183,7 @@ impl ShipUseCases {
                 // A self-reported pass neither certifies nor blocks.
                 continue;
             }
+            let current = observe(latest)?;
             judge(
                 &mut evidence,
                 gate,

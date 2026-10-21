@@ -569,6 +569,7 @@ impl NativeEngines {
         required: bool,
     ) -> Result<Observed<CheckAdmission>, ShipError> {
         self.services.ship.admit_check(CheckRequest {
+            options: Default::default(),
             task_id: task_id.map(str::to_owned),
             check_type: check_type_for(gate),
             name: gate.to_owned(),

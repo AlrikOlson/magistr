@@ -769,6 +769,8 @@ struct FixedSource;
 impl magistr_engine::native::SourceWitness for FixedSource {
     fn observation(&self) -> magistr_engine::native::SourceObservation {
         magistr_engine::native::SourceObservation {
+            inputs: Vec::new(),
+            execution_digest: String::new(),
             workspace_root: "/w".into(),
             workspace_generation: None,
             scheme: "fake/1".into(),

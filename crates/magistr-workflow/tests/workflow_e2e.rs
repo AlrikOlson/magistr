@@ -42,6 +42,8 @@ struct Fixed(String);
 impl SourceWitness for Fixed {
     fn observation(&self) -> SourceObservation {
         SourceObservation {
+            inputs: Vec::new(),
+            execution_digest: String::new(),
             workspace_root: self.0.clone(),
             workspace_generation: None,
             scheme: "fake/1".into(),

@@ -30,6 +30,11 @@ pub struct SourceObservation {
     pub config_digest: String,
     pub consistency: String,
     pub captured_at_ms: u64,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub inputs: Vec<String>,
+    /// Toolchain and environment digest; older unbound receipts cannot be reused.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub execution_digest: String,
 }
 
 impl SourceObservation {
@@ -73,6 +78,12 @@ impl SourceObservation {
         if self.config_digest.is_empty() {
             return Some(ObservationDrift::Unbound {
                 identity: "configuration".into(),
+            });
+        }
+        if self.execution_digest != later.execution_digest {
+            return Some(ObservationDrift::Configuration {
+                before: self.execution_digest.clone(),
+                after: later.execution_digest.clone(),
             });
         }
         if self.config_digest != later.config_digest {
