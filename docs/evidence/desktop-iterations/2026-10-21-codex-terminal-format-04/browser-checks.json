@@ -1,0 +1,97 @@
+{
+  "status": "passed",
+  "renderer": "Playwright WebKit",
+  "rendererVersion": "27.2",
+  "capturedAt": "2026-10-21T18:54:02.198Z",
+  "origin": "http://127.0.0.1:49914",
+  "sourceHashes": {
+    "apps/website/src/components/BuildWalkthrough.astro": "bb587dd72d796df0c010c31b35d2ce0db8ba47caeb1dc1da6faf38c1c41401c9",
+    "apps/website/src/components/Footer.astro": "bc5a05a3720be950e140693ed66005f6cef630a6058cfa6b8d1826f2d8db23bf",
+    "apps/website/src/components/Nav.astro": "06a8b7ade4e571814008fcf9e7fec81fb3437624287f6edc12cf3b3f45ea5bcb",
+    "apps/website/src/components/ThemeToggle.astro": "62739fc7a3d3476e13c53f2dfa389150f3e7ca4ba0629c34b71f5cf8202ea211",
+    "apps/website/src/content/docs/chunks.mdx": "c4c02fa3641cef1d7e61a40733d07dc45723dea38f56c200dfb9a23c35714303",
+    "apps/website/src/content/docs/concepts.mdx": "e9e1aa82f4b7e6ad3f8e4b600437fd8491928f5e584cb28664c683e1902f3e2c",
+    "apps/website/src/content/docs/installation.mdx": "bb3abe4a655e816e71442301e06ce5d5515aa4df99c01d079c147ce199fd18c4",
+    "apps/website/src/content/docs/reasoning.mdx": "13d948e5767fa0dfeb86f1d4c0de464b44c9a64acc94fa78e1ddf10dc8dd6b02",
+    "apps/website/src/content/docs/roadmap.mdx": "5a6323bf194cae83ff68bd4703820b3a8a5b10dd80a4bac71826a9ea7a95ed30",
+    "apps/website/src/content/docs/verification.mdx": "b808833c64b39c09ebdac9aa2f81eca96da198256c345c4dc4734846ef7c3a3b",
+    "apps/website/src/content/docs/workflow.mdx": "317a9d309cbf5cdaf02957c11e62079956985c9eb6c465fabbc1e7fe18befa1c",
+    "apps/website/src/content.config.ts": "35db5d681c2146a4e34de514bb5c1472d5da2e75b2652f8ca0fba880afcf1a1a",
+    "apps/website/src/data/build-explanations.mjs": "d23993ec68285145ebeef7622e2292faa0a497447d7bcf8a45959e878cbc469a",
+    "apps/website/src/data/build-recording.mjs": "ba89c0594a3457121f0b1f28aa396749360492b0e2ca30fcc0edd3b90fce9d29",
+    "apps/website/src/data/code-theme.mjs": "90fe4bbdbeac224f0c16b0808fbdfed7ea31aca40efa53b0f3058b86ccb9aa84",
+    "apps/website/src/data/rendered-recording.mjs": "26194262f551accddb1253facb1fc5657284235a721382ec50bd52900df20042",
+    "apps/website/src/data/terminal-format.mjs": "b8b5263489580c6f9a686ecad6fd5cac161c6b2bb58d6157c465e0f035b215da",
+    "apps/website/src/layouts/Base.astro": "5bacc085fcd5b632a1abe2d3f181212523ae503bbcf2dbaf5a748d5d0592b6c0",
+    "apps/website/src/layouts/Docs.astro": "f1fa32a12dd4d15c35b63bd237677c46c03ecd64f5c9ad2cadb70c1608778b73",
+    "apps/website/src/pages/404.astro": "9829e116d2cd8e2a16b6ac66a2be9566acb5e6486dc2848fe8b164f4fd332f74",
+    "apps/website/src/pages/demo/tic-tac-toe/playback.json.ts": "957fccb25265dee832614d3ac675590059b983fdc9bba0ea16c44176ba203531",
+    "apps/website/src/pages/docs/[...slug].astro": "14d87e7c921ba2633ccd4780c9c218031152ebe16e2aa39c3a37f7243bb48e95",
+    "apps/website/src/pages/index.astro": "b2f12049571cb5aba690757ff7c34298b84fbf75b07b0178c4cac08004bb9cb3",
+    "apps/website/src/pages/robots.txt.ts": "55c24c9a347c8d62fe0a071522d6433a9ccdcd5c4013733fe87ca2bc778c2ab2",
+    "apps/website/src/scripts/build-walkthrough.ts": "314fedd72da367da736558cd42ebaad805f5e7abe5c41efa1929d235ebd4ab9d",
+    "apps/website/src/scripts/tabs.ts": "32e6adc7ac689beb534b916a5752b50f21e2d289f9cfd3f99f326472e2a4a0bc",
+    "apps/website/src/scripts/terminal-playback.ts": "bde05e67d3bc3a1ba863643f0b17fbc428624e3503d5d0bed4c3e1999962bfbd",
+    "apps/website/src/styles/build-walkthrough.css": "e6366bd78084951016285d9838dcff8819d0c6490e31977e200710460b7f598f",
+    "apps/website/src/styles/code.css": "9db119f5857093be9ba63d0d28c4f49523729f6cb2145ea3593edcf556bf1fa7",
+    "apps/website/src/styles/global.css": "d58bc2bde7a10478af76eb1288b591fdf53e502822ec168b64581e51463d8163",
+    "apps/website/scripts/asset-url.mjs": "976d11d93e755da868580b92873db6a731aef16a3d6a37058c3a03a73bd54310",
+    "apps/website/scripts/generate-favicons.mjs": "29219764e02ff13ac133f07a70e97fb33f8f3dfda80f2816000efa9a00de99a8",
+    "apps/website/scripts/highlight-recording.mjs": "ef328744cfece17eb3aee9def70622efd311cef09f425997c8e70ed8595d8186",
+    "apps/website/scripts/publish-game.mjs": "3f81b328a16fdddcc1c3892ea5be00b37754bddcef6f5622721483dd7a42eedf",
+    "apps/website/package.json": "bcf10488f0370b6ad259d56b4c89054701f472b167c0f5cb15fc140de7c45fb1",
+    "apps/website/package-lock.json": "d060a02f10e98c5db0142e71ae351ff55bf10615a4e48944ec7059d8c40bae84",
+    "apps/website/public/demo/tic-tac-toe/recording.json": "6746c075d5de5f08d0d024a8d0588c7df3f5e96778d294c349decbaa0e429cbf"
+  },
+  "captures": [
+    {
+      "file": "terminal-static-wide-light.png",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T18:53:58.846Z",
+      "state": "JavaScript disabled"
+    },
+    {
+      "file": "terminal-static-wide-dark.png",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T18:53:59.973Z",
+      "state": "Recording request fails"
+    },
+    {
+      "file": "terminal-static-compact-light.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T18:54:01.065Z",
+      "state": "JavaScript disabled"
+    },
+    {
+      "file": "terminal-static-compact-dark.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T18:54:02.197Z",
+      "state": "Recording request fails"
+    }
+  ],
+  "checks": [
+    "Static result retained in all profiles",
+    "No horizontal overflow",
+    "Hanging-list indentation applied"
+  ],
+  "limitations": [
+    "Headless WebKit only; no native OS input or assistive-technology coverage.",
+    "Separate direct visual review required."
+  ]
+}

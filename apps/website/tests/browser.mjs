@@ -73,7 +73,16 @@ try{
     assert(text.includes(explanation.summary.replaceAll("`","")),id+" explains the selected action");
     assert(!/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f-]{23}|ttt-(rules|opponent|board|rematch)|current tree/.test(await annotation.textContent()));
     assert(await annotation.evaluate(e=>e.scrollWidth<=e.clientWidth+1));
+    if(name==="recheck")await capture(page,"terminal-recheck-"+suffix,"Selected completion refusal with hanging output and matching explanation",{region:".build-window"});
     await capture(page,"annotation-"+name+"-"+suffix,"Plain-language explanation for "+id,{region:width>1000?".build-window":"[data-annotation]"});
+   }
+   if(profile==="wide"&&appearance==="dark"){
+    const columns=await page.locator("[data-terminal]").getAttribute("data-columns");
+    await page.setViewportSize({width:390,height:844});
+    await page.waitForFunction(n=>Number(document.querySelector("[data-terminal]").dataset.columns)<Number(n),columns);
+    await noOverflow(page,"Live terminal resize");
+    await page.setViewportSize({width,height});
+    await page.waitForFunction(n=>document.querySelector("[data-terminal]").dataset.columns===n,columns);
    }
    await seek(page,parts[0].index);
    await capture(page,"terminal-plan-"+suffix,"Terminal scrollback beside the four planned pieces",{region:".build-window"});
@@ -137,6 +146,7 @@ try{
    await page.locator('[aria-label="Recorded action"]').evaluate(e=>{for(const i of [60,5,45,0]){e.value=String(i);e.dispatchEvent(new Event("input",{bubbles:true}));}});
    await page.waitForFunction(()=>document.querySelector("[data-terminal]").dataset.renderedIndex==="0");
    assert(!(await page.locator("[data-terminal]").textContent()).includes("Tactical policy as"));
+   await capture(page,"terminal-start-"+suffix,"Opening recorded reasoning with word-aware output wrapping",{region:".build-window"});
    await openView(page,"checks");assert((await page.locator("[data-record-view]").textContent()).includes("No checks"));
    await page.getByRole("button",{name:"Close details",exact:true}).click();
    await page.locator(".xterm-helper-textarea").focus();await page.keyboard.press("ArrowRight");
@@ -182,7 +192,9 @@ try{
   await page.close();
  }
  const nojs=await browser.newPage({javaScriptEnabled:false,viewport:{width:390,height:844}});
- await nojs.goto(origin);await nojs.locator(".build-transcript>summary").click();
+ await nojs.goto(origin);
+ await capture(nojs,"terminal-static","Codex-style grouped output without JavaScript",{region:".build-window",settle:false});
+ await nojs.locator(".build-transcript>summary").click();
  await nojs.locator('[data-event="'+recording.events[changeIndex].id+'"]>details>summary').click();
  assert(await nojs.locator('[data-event="'+recording.events[changeIndex].id+'"] .diff-add').count()>0);
  await capture(nojs,"no-javascript","Highlighted source and diff transcript without JavaScript",{region:'[data-event="'+recording.events[changeIndex].id+'"]',settle:false});
@@ -190,10 +202,10 @@ try{
  assert((await nojs.locator('[data-event="action-11"] .action-explanation').textContent()).includes("Why Magistr stopped"));
  await capture(nojs,"annotation-transcript","Formatted explanation is available without JavaScript",{region:'[data-event="action-11"]',settle:false});
  await nojs.close();
- const offline=await browser.newPage({viewport:{width:390,height:844}});
+ const offline=await browser.newPage({viewport:{width:1280,height:1000},colorScheme:"dark"});
  await offline.route("**/demo/tic-tac-toe/playback.json*",r=>r.abort());await offline.goto(origin);
  await offline.locator('[data-build][data-ready="error"]').waitFor();assert(await offline.locator(".build-error").isVisible());
- await capture(offline,"recording-unavailable","Readable fallback when playback fails to load",{region:".build-error"});await offline.close();
+ await capture(offline,"recording-unavailable","Readable fallback when playback fails to load",{region:".build-window"});await offline.close();
  assert.deepEqual(errors,[]);status="passed";
  console.log("Website browser checks passed: terminal emulation, synchronized annotations, highlighting, rapid scrubbing, exact copy, four profiles, all guides and recovery.");
 }catch(error){failure=String(error);throw error;}finally{

@@ -1,9 +1,9 @@
 import {Terminal} from "@xterm/xterm";
 import {FitAddon} from "@xterm/addon-fit";
 import "@xterm/xterm/css/xterm.css";
+import {formatTerminalFrame} from "../data/terminal-format.mjs";
 
-type Frame={id:string;terminal:{light:string;dark:string}};
-const header="OpenAI Codex\r\ntic-tac-toe/ · Bevy 0.20.0\r\n\r\n";
+type Frame={id:string;terminal:Parameters<typeof formatTerminalFrame>[0]};
 
 /** Owns terminal cells only. Project records and playback controls live outside it. */
 export class TerminalPlayback{
@@ -15,11 +15,13 @@ export class TerminalPlayback{
   private resize:ResizeObserver;
   private themeObserver:MutationObserver;
   private resizeFrame=0;
+  private formatKey="";
+  private formatted:string[]=[];
   constructor(private host:HTMLElement,private frames:Frame[],onKey:(key:string)=>void){
     this.terminal=new Terminal({
       convertEol:true,disableStdin:true,cursorBlink:false,cursorInactiveStyle:"none",
-      scrollback:10000,fontFamily:getComputedStyle(host).getPropertyValue("--font-mono").trim(),
-      fontSize:13,lineHeight:1.5,screenReaderMode:true,drawBoldTextInBrightColors:false,
+      scrollback:10000,fontFamily:getComputedStyle(host).getPropertyValue("--terminal-font").trim(),
+      fontSize:13,lineHeight:1.35,screenReaderMode:true,drawBoldTextInBrightColors:false,
     });
     this.terminal.loadAddon(this.fit);
     this.terminal.open(host);
@@ -54,15 +56,21 @@ export class TerminalPlayback{
         selectionBackground:dark?"#46564a":"#cddfcf",cursor:dark?"#e1e4e8":"#24292e",
       };
       this.fit.fit();
+      const key=this.terminal.cols+":"+this.terminal.rows+":"+theme;
+      if(key!==this.formatKey){this.formatKey=key;this.formatted=[];}
+      const frame=(i:number)=>this.formatted[i]??=formatTerminalFrame(this.frames[i].terminal,this.terminal.cols,theme,this.terminal.rows-2);
       this.terminal.reset();
       const write=(text:string)=>new Promise<void>(resolve=>this.terminal.write(text,resolve));
-      await write("\x1b[?25l"+header+this.frames.slice(0,index).map(f=>f.terminal[theme]).join(""));
+      await write("\x1b[?25l"+this.frames.slice(0,index).map((_,i)=>frame(i)).join(""));
       const activeLine=this.terminal.buffer.active.baseY+this.terminal.buffer.active.cursorY;
-      await write(this.frames[index].terminal[theme]);
+      const current=frame(index),lineCount=current.split("\n").length-1;
+      // Fill the selected screen, keeping earlier actions in real scrollback.
+      await write(current+"\r\n".repeat(Math.max(0,this.terminal.rows-lineCount)));
       if(revision!==this.revision)return;
       this.terminal.scrollToLine(activeLine);
       this.host.dataset.renderedIndex=String(index);
       this.host.dataset.appearance=theme;
+      this.host.dataset.columns=String(this.terminal.cols);
     });
     return this.queue;
   }
