@@ -145,8 +145,9 @@ impl Broadcaster {
     /// `payload` must serialize to a JSON object so the tags can be
     /// flattened onto it. `seq` is taken from the publisher's counter as
     /// the frame is encoded, so the sequence follows emission order.
-    /// Returns `Err` if encoding fails; otherwise the frame is queued for
-    /// fan-out and the caller does not block.
+    /// Returns `Err` if encoding fails; otherwise the caller does not block.
+    /// Frames with no registered subscribers are discarded immediately; the
+    /// rest are queued for fan-out.
     pub fn emit<T: Serialize>(&self, family: Family, payload: &T) -> Result<(), EmitError> {
         let mut value = serde_json::to_value(payload).map_err(EmitError::Encode)?;
         let obj = value.as_object_mut().ok_or(EmitError::PayloadNotObject)?;
@@ -166,6 +167,11 @@ impl Broadcaster {
             );
         }
         let line = serde_json::to_string(&value).map_err(EmitError::Encode)?;
+        // Decide before queuing: fan-out may run after a new client connects.
+        #[cfg(unix)]
+        if self.subscriber_count() == 0 {
+            return Ok(());
+        }
         self.tx.send(line).map_err(|_| EmitError::Closed)
     }
 
@@ -713,3 +719,7 @@ mod tests {
         assert!(matches!(err, EmitError::PayloadNotObject));
     }
 }
+
+#[cfg(all(test, unix))]
+#[path = "broadcast.tests.rs"]
+mod delivery_tests;
