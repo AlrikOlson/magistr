@@ -1,4 +1,85 @@
 use super::*;
+
+#[tokio::test]
+async fn a_host_gate_reuses_its_actual_execution_and_explicit_reruns_still_run() {
+    let tmp = tempfile::tempdir().unwrap();
+    let (engines, root) = host(&tmp);
+    std::fs::create_dir_all(root.join(".magistr")).unwrap();
+    let config = serde_json::json!({
+        "project":{"name":"test","description":"","type":"cli"},
+        "stack":{"language":"rust","framework":"none","package_manager":"cargo","test_framework":"cargo-test","linter":"clippy","formatter":"rustfmt"},
+        "quality_gate":{"check":"printf checked","test":"true","lint":"true"},
+        "format":{"extensions":["rs"],"command":"cargo fmt"},
+        "testing":{"companion_pattern":"{name}.tests.{ext}","test_dir":"alongside"},
+        "reference_repos":[],"state_prefix":"test",
+        "verification":{"gates":{"check":{"reuse":true,"inputs":["notes.txt"],"resources":[]}}}
+    });
+    std::fs::write(root.join(".magistr/project.json"), config.to_string()).unwrap();
+    objective(&engines, "verify");
+    let admitted = AdmittedCheck::admit(
+        &engines,
+        &root,
+        None,
+        "check",
+        "printf checked".into(),
+        true,
+    )
+    .unwrap();
+    assert!(admitted.reuse(&engines).unwrap().is_none());
+    let run = crate::utils::gate::run_gate(
+        "check",
+        "printf checked",
+        true,
+        &root,
+        5,
+        &tokio_util::sync::CancellationToken::new(),
+        |_| {},
+    )
+    .await;
+    let original = admitted
+        .settle(&engines, run.execution(), run.details())
+        .unwrap();
+    let second = AdmittedCheck::admit(
+        &engines,
+        &root,
+        None,
+        "check",
+        "printf checked".into(),
+        true,
+    )
+    .unwrap();
+    let reused = second.reuse(&engines).unwrap().unwrap();
+    assert!(
+        matches!(reused.receipt().execution(), Some(CheckExecution::Reused { receipt_id }) if receipt_id == &original.receipt().id)
+    );
+    assert_eq!(reused.check().unwrap().exit_code, None);
+    let forced = AdmittedCheck::admit_with_options(
+        &engines,
+        &root,
+        None,
+        "check",
+        "printf checked".into(),
+        true,
+        magistr_engine::native::CheckOptions {
+            reuse: false,
+            ..Default::default()
+        },
+    )
+    .unwrap();
+    assert!(forced.reuse(&engines).unwrap().is_none());
+    std::fs::write(root.join("notes.txt"), "changed").unwrap();
+    let changed = AdmittedCheck::admit(
+        &engines,
+        &root,
+        None,
+        "check",
+        "printf checked".into(),
+        true,
+    )
+    .unwrap();
+    assert!(changed.reuse(&engines).unwrap().is_none());
+}
+
 use magistr_engine::native::{
     CheckSettlement, ProjectAuthority, ReceiptSettlement, SourceFreshness, TaskType, WriterRole,
 };

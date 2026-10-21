@@ -16,8 +16,8 @@ fn make_result(gates: Vec<(Gate, bool, f64)>) -> ProjectValidation {
                 },
                 required: true,
                 exit_code: if passed { 0 } else { 1 },
-                first_exit_code: None,
                 rows: vec![],
+                queue_duration: std::time::Duration::ZERO,
                 duration: Duration::from_secs_f64(secs),
                 output: if passed {
                     String::new()

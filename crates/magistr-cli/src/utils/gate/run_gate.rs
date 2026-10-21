@@ -44,13 +44,63 @@ pub(crate) async fn run_gate(
             required,
             verdict: GateVerdict::Unconfigured,
             exit_code: -1,
-            first_exit_code: None,
             output,
             rows: Vec::new(),
             duration: std::time::Duration::ZERO,
+            queue_duration: std::time::Duration::ZERO,
         };
     }
-    let result = run_command_live(command, dir, timeout_secs, cancel, sink).await;
+    let started = std::time::Instant::now();
+    let policy = magistr_core::gates::execution_policy(
+        dir,
+        name,
+        command,
+        (timeout_secs != 0).then_some(timeout_secs),
+    );
+    let (timeout_secs, schedule) = match policy {
+        Ok(policy) => policy,
+        Err(reason) => {
+            return refused(
+                name,
+                command,
+                required,
+                reason,
+                GateVerdict::Failed,
+                started.elapsed(),
+            );
+        }
+    };
+    let _permit = match magistr_process::acquire_gate(
+        dir,
+        command,
+        &schedule,
+        std::time::Duration::from_secs(timeout_secs),
+        cancel,
+    )
+    .await
+    {
+        Ok(permit) => permit,
+        Err(error) => {
+            return refused(
+                name,
+                command,
+                required,
+                format!("Check did not start: {error:?} while waiting for verification resources"),
+                if error == magistr_process::GateWaitError::Cancelled {
+                    GateVerdict::Cancelled
+                } else {
+                    GateVerdict::TimedOut
+                },
+                started.elapsed(),
+            );
+        }
+    };
+    let queued = started.elapsed();
+    let remaining = std::time::Duration::from_secs(timeout_secs)
+        .saturating_sub(queued)
+        .as_secs_f64()
+        .ceil() as u64;
+    let result = run_command_live(command, dir, remaining.max(1), cancel, sink).await;
 
     let output = if result.stderr.is_empty() {
         result.stdout.clone()
@@ -79,10 +129,31 @@ pub(crate) async fn run_gate(
         required,
         verdict,
         exit_code: result.exit_code,
-        first_exit_code: None,
         output: truncate_output(&output, MAX_OUTPUT_BYTES),
         rows,
-        duration: result.duration,
+        duration: started.elapsed(),
+        queue_duration: queued,
+    }
+}
+
+fn refused(
+    name: &str,
+    command: &str,
+    required: bool,
+    output: String,
+    verdict: GateVerdict,
+    duration: std::time::Duration,
+) -> GateRun {
+    GateRun {
+        name: name.into(),
+        command: command.into(),
+        required,
+        verdict,
+        exit_code: -1,
+        output,
+        rows: vec![],
+        duration,
+        queue_duration: duration,
     }
 }
 

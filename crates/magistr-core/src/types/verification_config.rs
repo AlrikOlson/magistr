@@ -15,7 +15,7 @@ pub struct VerificationConfig {
 impl Default for VerificationConfig {
     fn default() -> Self {
         Self {
-            timeout_secs: 900,
+            timeout_secs: magistr_engine::native::CheckOptions::DEFAULT_TIMEOUT_SECS,
             max_parallel: 4,
             gates: BTreeMap::new(),
         }

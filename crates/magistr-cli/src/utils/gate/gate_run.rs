@@ -44,9 +44,6 @@ pub(crate) struct GateRun {
     pub(crate) verdict: GateVerdict,
     /// The code the process exited with (-1 when it was killed).
     pub(crate) exit_code: i32,
-    /// On a [`GateVerdict::Flaky`] run, the code the *failing* attempt
-    /// exited with. `None` on every other verdict.
-    pub(crate) first_exit_code: Option<i32>,
     /// The escape-stripped transcript — both streams, as the one stream
     /// the gate's pty is — truncated at [`MAX_OUTPUT_BYTES`].
     ///
@@ -54,21 +51,21 @@ pub(crate) struct GateRun {
     pub(crate) output: String,
     /// The failures parsed out of the full output, before truncation.
     pub(crate) rows: Vec<GateFailureRow>,
-    /// Wall-clock time, both attempts summed on a flake.
+    /// Wall-clock time including the resource queue.
     pub(crate) duration: Duration,
+    /// Time waiting for verification resources before the child started.
+    pub(crate) queue_duration: Duration,
 }
 
 impl GateRun {
     /// How the command ended, for the check's receipt: only an exit is a
-    /// statement about the code (a flake is its passing retry's exit), and
+    /// statement about the code, and
     /// a timeout or a cancel is recorded as exactly that.
     pub(crate) fn execution(&self) -> CheckExecution {
         match self.verdict {
-            GateVerdict::Passed | GateVerdict::Failed | GateVerdict::Flaky => {
-                CheckExecution::Exited {
-                    code: self.exit_code,
-                }
-            }
+            GateVerdict::Passed | GateVerdict::Failed => CheckExecution::Exited {
+                code: self.exit_code,
+            },
             GateVerdict::Unconfigured => CheckExecution::LaunchFailed {
                 reason: "no command configured".into(),
             },
@@ -82,54 +79,12 @@ impl GateRun {
         self.verdict.passed()
     }
 
-    /// Whether a red here is worth spending a second run on: a required
-    /// gate that exited non-zero, and nothing else.
-    ///
-    /// A timeout would cost another whole timeout for the same answer; a
-    /// cancel means the cockpit is closing and there is nothing to retry
-    /// into; a not-required gate is one the project expects to fail, so
-    /// paying for it twice buys nothing.
-    pub(crate) const fn is_retryable(&self) -> bool {
-        self.required && matches!(self.verdict, GateVerdict::Failed)
-    }
-
-    /// This (passing) run recast as the successful half of a flake, with
-    /// `failed`'s exit code, output and rows kept — the green attempt has
-    /// nothing to say, and the red one is the whole evidence of the flake.
-    pub(crate) fn as_flake_of(&self, failed: &Self) -> Self {
-        Self {
-            verdict: GateVerdict::Flaky,
-            first_exit_code: Some(failed.exit_code),
-            output: failed.output.clone(),
-            rows: failed.rows.clone(),
-            duration: self.duration.saturating_add(failed.duration),
-            ..self.clone()
-        }
-    }
-
-    /// What the execution trace keeps for this run.
-    ///
-    /// Asymmetric on purpose. A red or flaky run persists its whole
-    /// captured output — that is the evidence the record exists for. A
-    /// green one persists only its tail: a passing `cargo nextest` on a
-    /// large workspace emits hundreds of KB of PASS lines nobody will
-    /// read, the store is re-read and merge-written whole on every
-    /// mutation, and a green run's entire evidentiary content is its
-    /// summary line. A flake leads with both exit codes, because it is
-    /// recorded as passed with the retry's zero — without that line the
-    /// flake would be invisible in the record.
+    /// Retain bounded passing output and the full captured failure diagnostics.
     pub(crate) fn details(&self) -> String {
-        let body = if self.verdict == GateVerdict::Passed {
+        if self.verdict == GateVerdict::Passed {
             tail(&self.output, GREEN_DETAIL_BYTES)
         } else {
             self.output.clone()
-        };
-        match self.first_exit_code {
-            Some(first) => format!(
-                "flaky: exit {first}, then exit {} on the retry\n{body}",
-                self.exit_code
-            ),
-            None => body,
         }
     }
 
@@ -147,11 +102,6 @@ impl GateRun {
             }
             GateVerdict::TimedOut => format!("{} timed out after {secs:.0}s", self.name),
             GateVerdict::Cancelled => format!("{} cancelled after {secs:.1}s", self.name),
-            GateVerdict::Flaky => format!(
-                "{} flaky: failed (exit {}) then passed on the retry, {secs:.1}s",
-                self.name,
-                self.first_exit_code.unwrap_or(-1)
-            ),
         }
     }
 }

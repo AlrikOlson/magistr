@@ -156,12 +156,11 @@ fn all_covers_every_stack_and_custom_gates_once() {
     assert_eq!(
         names,
         vec![
-            "check",
+            "lint",
+            "lint:app-typescript",
             "check:app-typescript",
             "test",
             "test:app-typescript",
-            "lint",
-            "lint:app-typescript",
             "structure",
         ]
     );
@@ -210,7 +209,7 @@ fn all_runs_only_the_required_custom_gates() {
     let names: Vec<&str> = specs.iter().map(|s| s.name.as_str()).collect();
     assert_eq!(
         names,
-        vec!["check", "test", "lint", "structure"],
+        vec!["lint", "test", "structure"],
         "a not-required custom gate is not part of `all`"
     );
 }

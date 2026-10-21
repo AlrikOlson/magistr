@@ -44,13 +44,62 @@ impl AdmittedCheck {
         command: String,
         required: bool,
     ) -> Result<Self, CheckEvidenceError> {
+        Self::admit_with_options(
+            engines,
+            root,
+            task_id,
+            gate,
+            command,
+            required,
+            Default::default(),
+        )
+    }
+
+    /// Admit with an explicit input scope, rerun request or deadline.
+    #[allow(clippy::too_many_arguments)]
+    pub fn admit_with_options(
+        engines: &NativeEngines,
+        root: &Path,
+        task_id: Option<&str>,
+        gate: &str,
+        command: String,
+        required: bool,
+        options: magistr_engine::native::CheckOptions,
+    ) -> Result<Self, CheckEvidenceError> {
         let admission = engines
-            .ship_admit_gate(task_id, gate, command, required)
+            .ship_admit_check(magistr_engine::native::CheckRequest {
+                options,
+                task_id: task_id.map(str::to_owned),
+                check_type: magistr_engine::native::check_type_for(gate),
+                name: gate.into(),
+                passed: None,
+                details: String::new(),
+                required,
+                command: Some(command),
+                report: None,
+            })
             .map_err(CheckEvidenceError::from_admission)?;
         Ok(Self {
             admission,
             root: root.to_path_buf(),
         })
+    }
+
+    /// Reuse matching evidence and settle it under this task, preserving the
+    /// original execution and parsed report through the receipt reference.
+    pub fn reuse(
+        &self,
+        engines: &NativeEngines,
+    ) -> Result<Option<SettledCheck>, CheckEvidenceError> {
+        let outcome = engines
+            .ship_reuse_gate(&self.admission.value)
+            .map_err(CheckEvidenceError::Settlement)?;
+        outcome
+            .map(|outcome| {
+                self.clone()
+                    .settle(engines, outcome.execution, outcome.details)
+            })
+            .transpose()
     }
 
     /// The workflow identity the result will be settled against.

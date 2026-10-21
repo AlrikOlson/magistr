@@ -18,15 +18,12 @@ pub(crate) enum GateVerdict {
     TimedOut,
     /// The run was ended from outside — the cockpit is closing.
     Cancelled,
-    /// The command failed and then passed on its retry: a flake, named
-    /// rather than hidden. Counts as passed, and keeps both exit codes.
-    Flaky,
 }
 
 impl GateVerdict {
-    /// Whether this verdict lets the loop go on. A flake does.
+    /// Whether this verdict lets the loop go on.
     pub(crate) const fn passed(self) -> bool {
-        matches!(self, Self::Passed | Self::Flaky)
+        matches!(self, Self::Passed)
     }
 
     /// Whether this verdict says anything about the code at all.
@@ -45,7 +42,6 @@ impl GateVerdict {
             Self::Failed => "failed",
             Self::TimedOut => "timed out",
             Self::Cancelled => "cancelled",
-            Self::Flaky => "flaky",
         }
     }
 }

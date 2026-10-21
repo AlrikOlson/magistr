@@ -9,9 +9,9 @@ fn outcome(name: &str, verdict: GateVerdict, exit_code: i32, duration: Duration)
         required: true,
         verdict,
         exit_code,
-        first_exit_code: None,
         output: String::new(),
         rows: Vec::new(),
+        queue_duration: std::time::Duration::ZERO,
         duration,
     }
 }
@@ -44,20 +44,6 @@ fn a_passed_gate_says_so() {
         Duration::from_secs(2),
     ));
     assert_eq!(evidence.line(), "- check: PASSED (2.0s)");
-}
-
-#[test]
-fn a_flake_reaches_the_judge_as_passed() {
-    // Green on the retry is green: the judge is not asked to adjudicate a
-    // gate the loop already decided was noise.
-    let evidence = GateEvidence::from(&outcome(
-        "test",
-        GateVerdict::Flaky,
-        0,
-        Duration::from_secs(4),
-    ));
-    assert!(evidence.passed);
-    assert_eq!(evidence.line(), "- test: PASSED (4.0s)");
 }
 
 #[test]

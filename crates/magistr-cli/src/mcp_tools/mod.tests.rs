@@ -663,6 +663,7 @@ async fn gate_all_runs_concurrently() {
                 "test": "sleep 0.5 && echo test-ok",
                 "lint": "sleep 0.5 && echo lint-ok"
             },
+            "verification": {"max_parallel":3,"gates":{"check":{"resources":[]},"test":{"resources":[]},"lint":{"resources":[]}}},
             "format": { "extensions": ["rs"], "command": "echo formatted" },
             "spec": { "file": "ROADMAP.md", "unchecked_pattern": "" },
             "testing": { "companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside" },

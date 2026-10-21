@@ -231,7 +231,7 @@ pub fn output_schema_for(tool_name: &str) -> Option<Arc<JsonObject>> {
         "ship_record" => schema_for!(Observed<ActionOutput>).to_value(),
         "ship_complete" => schema_for!(Observed<TaskOutput>).to_value(),
         "ship_block" => schema_for!(Observed<TaskOutput>).to_value(),
-        "ship_check" => schema_for!(crate::ship::application::CheckSettlement).to_value(),
+        "ship_check" => schema_for!(crate::ship::mcp::check_result::CheckResult).to_value(),
         "ship_gate_open" => schema_for!(GateOpenOutput).to_value(),
         "ship_gate_wait" => schema_for!(GateWaitOutput).to_value(),
         "ship_finalize" => schema_for!(Observed<ShipReport>).to_value(),

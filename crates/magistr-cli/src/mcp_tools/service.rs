@@ -249,7 +249,7 @@ impl MagistrService {
         let timeout_secs = args
             .get("timeout_secs")
             .and_then(Value::as_u64)
-            .unwrap_or(300);
+            .unwrap_or(0);
         let config = crate::validate::load_project_config(&self.project_root).map_err(|e| {
             ErrorData::internal_error(format!("Failed to load project config: {e}"), None)
         })?;
@@ -258,10 +258,34 @@ impl MagistrService {
             Err(message) => return Ok(to_call_tool_result(ToolResult::error(message))),
         };
 
-        let mut results = Vec::with_capacity(specs.len());
-        for spec in &specs {
-            results.push(self.run_gate(spec, timeout_secs).await);
-        }
+        let diagnostic = args
+            .get("diagnostic")
+            .and_then(Value::as_bool)
+            .unwrap_or(false);
+        let options = magistr_engine::native::CheckOptions {
+            inputs: args
+                .get("inputs")
+                .cloned()
+                .map(serde_json::from_value)
+                .transpose()
+                .map_err(|error| {
+                    ErrorData::invalid_params(format!("Invalid check inputs: {error}"), None)
+                })?
+                .unwrap_or_default(),
+            reuse: args.get("reuse").and_then(Value::as_bool).unwrap_or(true),
+            timeout_secs: (timeout_secs != 0).then_some(timeout_secs),
+            ..Default::default()
+        };
+        let mut results = super::gate_batch::run_batch(
+            specs,
+            config.verification.max_parallel,
+            diagnostic,
+            |spec| {
+                let options = options.clone();
+                async move { self.run_gate(&spec, timeout_secs, options).await }
+            },
+        )
+        .await;
 
         // A polyglot project resolves one standard gate to several specs —
         // any multi-spec answer takes the grouped shape, not only `all`.
@@ -298,18 +322,41 @@ impl MagistrService {
     /// `ship_record_gate` the loop driver records its gates with. The
     /// command runs exactly once whether or not there is a task to record
     /// it on; without one the answer says so and why.
-    async fn run_gate(&self, spec: &GateSpec, timeout_secs: u64) -> Value {
+    async fn run_gate(
+        &self,
+        spec: &GateSpec,
+        timeout_secs: u64,
+        options: magistr_engine::native::CheckOptions,
+    ) -> Value {
         // Named *before* the run, so the record lands where the caller
         // stood when it asked — never on a task started while the gate ran
         // — and the receipt observes the source as it is at this moment.
-        let admission = AdmittedCheck::admit(
+        let admission = AdmittedCheck::admit_with_options(
             &self.engines,
             &self.project_root,
             None,
             &spec.name,
             spec.command.clone(),
             spec.required,
+            options,
         );
+        if let Ok(admission) = &admission {
+            match admission.reuse(&self.engines) {
+                Ok(Some(settled)) => {
+                    let receipt = settled.receipt();
+                    return json!({"gate":spec.name,"command":spec.command,"required":spec.required,
+                        "passed":receipt.passed(),"verdict":"reused","verified":receipt.verified(),
+                        "recorded":settled.is_applied(),"receipt":receipt.id,"execution":receipt.execution(),
+                        "source_revision":receipt.source.as_ref().map(|source| &source.revision),
+                        "source_freshness":receipt.freshness,"task_id":admission.target().task_id});
+                }
+                Err(error) => {
+                    return json!({"gate":spec.name,"required":spec.required,"passed":false,
+                    "recorded":false,"receipt":admission.receipt_id(),"note":error.to_string()});
+                }
+                Ok(None) => {}
+            }
+        }
         // A gate this server runs is live on the feed socket: every chunk
         // goes out on the host's own family as a typed gate-output frame
         // keyed by the gate, the event the cockpit's engine feed folds into
@@ -369,8 +416,6 @@ impl MagistrService {
                 result["rows"] = json!(rows);
                 result["recorded"] = json!(true);
                 result["verified"] = json!(check.value.verified);
-                result["saved_check"] = json!(check);
-                result["saved_receipt"] = json!(receipt);
                 result["task_id"] = json!(task);
                 result["receipt"] = json!(receipt.value.id);
                 result["source_revision"] =
@@ -386,9 +431,8 @@ impl MagistrService {
                 result["note"] = json!(unrecorded_note(
                     "the admitted workflow run or task was superseded"
                 ));
-                result["stale_admission"] = json!(admission);
-                result["unsettled_outcome"] = json!(outcome);
-                result["saved_receipt"] = json!(receipt);
+                result["task_id"] = json!(admission.target.task_id);
+                result["execution"] = json!(outcome.execution);
                 result["receipt"] = json!(receipt.value.id);
             }
             Err(why) => {

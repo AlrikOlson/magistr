@@ -165,9 +165,8 @@ fn a_gate_configuration_edit_moves_the_revision_and_the_contracts() {
             .map(|c| (c.name.as_str(), c.command.as_str(), c.check_type.clone()))
             .collect::<Vec<_>>(),
         vec![
-            ("check", "cargo check", CheckType::Typecheck),
-            ("test", "cargo test", CheckType::Test),
             ("lint", "cargo clippy", CheckType::Lint),
+            ("test", "cargo test", CheckType::Test),
             ("structure", "./lint.sh", CheckType::Lint),
         ],
         "required custom gates in, optional ones out"

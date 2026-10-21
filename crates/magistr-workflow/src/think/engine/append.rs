@@ -63,6 +63,24 @@ impl PreparedAppend {
 }
 
 impl ReasoningServer {
+    fn resolve_append_session(&self, step: &mut ThinkStep) {
+        // Resolve the session id for this step. Any caller-supplied id
+        // gets auto-prefixed with the project namespace so agents can't
+        // accidentally write outside their project's bucket — see
+        // config::namespace_session_id. When sessions aren't enabled
+        // we leave session_id as supplied and write the default archive.
+        if self.config.features.enable_sessions && !self.project_id.is_empty() {
+            let raw = step
+                .session_id
+                .clone()
+                .filter(|s| !s.trim().is_empty())
+                .or_else(|| self.config.features.default_session_id.clone())
+                .unwrap_or_else(|| self.project_id.clone());
+            let resolved = namespace_session_id(&self.project_id, &raw);
+            step.session_id = Some(resolved);
+        }
+    }
+
     pub(crate) fn prepare_append(&self, mut step: ThinkStep) -> Result<PreparedAppend, StepError> {
         let step_start = Instant::now();
 
@@ -122,21 +140,7 @@ impl ReasoningServer {
             step.cwd = self.cwd.clone();
         }
 
-        // Resolve the session id for this step. Any caller-supplied id
-        // gets auto-prefixed with the project namespace so agents can't
-        // accidentally write outside their project's bucket — see
-        // config::namespace_session_id. When sessions aren't enabled
-        // we leave session_id as supplied and write the default archive.
-        if self.config.features.enable_sessions && !self.project_id.is_empty() {
-            let raw = step
-                .session_id
-                .clone()
-                .filter(|s| !s.trim().is_empty())
-                .or_else(|| self.config.features.default_session_id.clone())
-                .unwrap_or_else(|| self.project_id.clone());
-            let resolved = namespace_session_id(&self.project_id, &raw);
-            step.session_id = Some(resolved);
-        }
+        self.resolve_append_session(&mut step);
 
         if let Err(e) = self.validate_session_step(&mut step) {
             return Err(self.make_error(&e));

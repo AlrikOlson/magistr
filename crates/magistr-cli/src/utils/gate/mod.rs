@@ -23,6 +23,7 @@ mod run_gate;
 mod truncate_output;
 
 pub(crate) use gate_run::GateRun;
+#[cfg(test)]
 pub(crate) use gate_verdict::GateVerdict;
 pub(crate) use nextest_report::nextest_junit_report_path;
 pub(crate) use run_gate::run_gate;

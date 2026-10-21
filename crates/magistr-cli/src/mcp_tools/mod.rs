@@ -3,6 +3,7 @@
 mod format;
 mod format_runs;
 pub(crate) mod gate;
+mod gate_batch;
 pub(crate) mod hooks;
 mod init;
 mod owner_attach;
