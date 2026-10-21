@@ -1,21 +1,23 @@
 # Cloudflare Pages custom headers
 # https://developers.cloudflare.com/pages/configuration/headers/
 
-# HTML pages: short TTL, always revalidate
+# HTML pages: always revalidate and preserve commands and recorded output verbatim.
+# no-transform prevents Cloudflare from treating paths such as python@3.14 as email.
+# https://developers.cloudflare.com/waf/tools/scrape-shield/email-address-obfuscation/
 /*
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
   Referrer-Policy: strict-origin-when-cross-origin
 
 /*.html
-  Cache-Control: public, max-age=0, must-revalidate
+  Cache-Control: public, max-age=0, must-revalidate, no-transform
 
 # Pages serves a page's index.html at its directory route; those routes
 # revalidate too, so a removed page never lingers at the edge for a week.
 /
-  Cache-Control: public, max-age=0, must-revalidate
+  Cache-Control: public, max-age=0, must-revalidate, no-transform
 /docs/*
-  Cache-Control: public, max-age=0, must-revalidate
+  Cache-Control: public, max-age=0, must-revalidate, no-transform
 
 # Hashed assets (JS, CSS) — immutable, long cache
 /_astro/*
