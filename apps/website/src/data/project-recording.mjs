@@ -12,10 +12,6 @@ export function eventStatus(event) {
   if (event.output?.ok === false) return "Rejected";
   return ({write:"Written",edit:"Edited",finish:"Completed",start:"Started",plan:"Saved",decision:"Recorded"})[event.kind] || "Recorded";
 }
-export function elapsed(recording, event) {
-  const seconds=Math.max(0,Math.round((Date.parse(event.at)-Date.parse(recording.startedAt))/1000));
-  return Math.floor(seconds/60)+":"+String(seconds%60).padStart(2,"0");
-}
 export function eventText(event) {
   const check=checkOf(event);
   if (check) return check.details;

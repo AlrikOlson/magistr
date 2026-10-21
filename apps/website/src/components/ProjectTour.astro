@@ -4,7 +4,10 @@ import snapshot from "../../public/examples/project-records.json";
 import recording from "../../public/demo/inbox/recording.json";
 import {roadmapNotes,roadmapRequirements,roadmapEdges,dependencyNames,reasoningNotes,chunkNotes,taskRecord} from "../data/product-tour.mjs";
 import {publicAssetUrl} from "../../scripts/asset-url.mjs";
-import {elapsed,checkOf} from "../data/project-recording.mjs";
+import {checkOf} from "../data/project-recording.mjs";
+import {sessionEntries,momentIndex,timeLabel,entryPreview} from "../data/session-replay.mjs";
+const entries=sessionEntries(recording);
+const elapsed=event=>timeLabel(entries,momentIndex(entries,{event:event.id}));
 const records=publicAssetUrl("examples/project-records.json");
 const titles={...dependencyNames,...Object.fromEntries(roadmapNotes.map(r=>[r.id,r.label]))};
 const tour=[{id:"roadmap",label:"Roadmap",number:"01"},{id:"reasoning",label:"Reasoning",number:"02"},{id:"chunks",label:"Work chunks",number:"03"},{id:"checks",label:"Checks & review",number:"04"}];
@@ -67,10 +70,10 @@ const tour=[{id:"roadmap",label:"Roadmap",number:"01"},{id:"reasoning",label:"Re
     <div class="tour-workspace">
       <div class="chunk-workspace">
         <div class="record-context"><strong>The support inbox build</strong><span>Five completed tasks · Actual recording</span></div>
-        <ol class="chunk-list">{chunkNotes.map((note,index)=>{const task=taskRecord(recording,note.task);return <li><button type="button" disabled data-record-select={index} aria-controls={"chunk-detail-"+index} aria-pressed={index===1?"true":"false"}><span class="chunk-complete" aria-label="Completed">✓</span><span><strong>{note.label}</strong><small>{elapsed(recording,task.finish)} into the build</small></span><span aria-hidden="true">↗</span></button></li>;})}</ol>
+        <ol class="chunk-list">{chunkNotes.map((note,index)=>{const task=taskRecord(recording,note.task);return <li><button type="button" disabled data-record-select={index} aria-controls={"chunk-detail-"+index} aria-pressed={index===1?"true":"false"}><span class="chunk-complete" aria-label="Completed">✓</span><span><strong>{note.label}</strong><small>{elapsed(task.finish)} into the build</small></span><span aria-hidden="true">↗</span></button></li>;})}</ol>
       </div>
       <div class="record-details">
-        {chunkNotes.map((note,index)=>{const task=taskRecord(recording,note.task);return <article id={"chunk-detail-"+index} data-record-detail={index} hidden={index!==1}><p class="detail-label">Completed task {index+1} of 5</p><h4>{note.label}</h4><p>{note.result}</p><div class="record-outcome"><strong>Recorded with this task</strong><ul>{task.checks.map(check=><li><span class:list={{"result-pass":check.passed,"result-fail":!check.passed}}>{check.passed?"Passed":"Failed"}</span> {check.name}</li>)}</ul></div><a class="text-link" href="#workflow" data-playback-scene={note.scene}>See this part of the build ↗</a></article>;})}
+        {chunkNotes.map((note,index)=>{const task=taskRecord(recording,note.task);return <article id={"chunk-detail-"+index} data-record-detail={index} hidden={index!==1}><p class="detail-label">Completed task {index+1} of 5</p><h4>{note.label}</h4><p>{note.result}</p><div class="record-outcome"><strong>Recorded with this task</strong><ul>{task.checks.map(check=><li><span class:list={{"result-pass":check.passed,"result-fail":!check.passed}}>{check.passed?"Passed":"Failed"}</span> {check.name}</li>)}</ul></div><a class="text-link" href="#workflow" data-playback-event={note.event}>See this part of the build ↗</a></article>;})}
       </div>
     </div>
     <p class="tour-provenance">The tasks, completion times and results come from the original build recording. Failed checks remain in the record.</p>
@@ -78,8 +81,8 @@ const tour=[{id:"roadmap",label:"Roadmap",number:"01"},{id:"reasoning",label:"Re
   <section id="tour-checks" data-panel data-explore="checks">
     <div class="tour-intro"><div><h3>“Done” should come with something to check.</h3><p>Run the tests that cover the change. Use the feature. Review its screens. Keep what passed, what failed, and what you changed afterward.</p></div><a href="/docs/verification">Checking the work ↗</a></div>
     <div class="check-story" data-explore="check-results">
-      <div class="check-choices"><p class="detail-label">Support inbox / storage tests</p>{[14,16].map((event,index)=><button type="button" disabled data-record-select={index} aria-controls={"check-detail-"+index} aria-pressed={index===1?"true":"false"}><span class:list={{"result-fail":index===0,"result-pass":index===1}}>{index===0?"× Failed":"✓ Passed"}</span><strong>{index===0?"Before the store existed":"After the implementation"}</strong><small>{elapsed(recording,recording.events[event])} into the build</small></button>)}<p>The first run failed because the storage module hadn’t been written yet. After implementation, all seven storage tests passed.</p><a class="text-link" href="#workflow" data-playback-scene="4">See what the screen review caught ↗</a></div>
-      {[14,16].map((event,index)=>{const check=checkOf(recording.events[event]);return <article id={"check-detail-"+index} class="check-output" data-record-detail={index} hidden={index!==1}><div><span>{check.name}</span><strong>Exit {check.exit_code}</strong></div><pre tabindex="0" aria-label={index===0?"Original failed storage check":"Original passing storage check"}><code>{check.details}</code></pre><p>Actual command output · Executed by Magistr</p></article>;})}
+      <div class="check-choices"><p class="detail-label">Support inbox / storage tests</p>{[14,16].map((event,index)=><button type="button" disabled data-record-select={index} aria-controls={"check-detail-"+index} aria-pressed={index===1?"true":"false"}><span class:list={{"result-fail":index===0,"result-pass":index===1}}>{index===0?"× Failed":"✓ Passed"}</span><strong>{index===0?"Before the store existed":"After the implementation"}</strong><small>{elapsed(recording.events[event])} into the build</small></button>)}<p>The first run failed because the storage module hadn’t been written yet. After implementation, all seven storage tests passed.</p><a class="text-link" href="#workflow" data-playback-event="34">See what the screen review caught ↗</a></div>
+      {[14,16].map((event,index)=>{const check=checkOf(recording.events[event]);return <article id={"check-detail-"+index} class="check-output" data-record-detail={index} hidden={index!==1}><div><span>{check.name}</span><strong>Exit {check.exit_code}</strong></div><pre tabindex="0" aria-label={index===0?"Original failed storage check":"Original passing storage check"}><code>{entryPreview({kind:"action",event:recording.events[event]}).text}</code></pre><details><summary>Full output</summary><pre><code>{check.details}</code></pre></details><p>Actual command output · Executed by Magistr</p></article>;})}
     </div>
     <p class="tour-provenance">Command results and written reviews are recorded separately. A passing test still needs to apply to the files you’re working on.</p>
   </section>

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "project": "Support inbox",
   "source": {
     "README.md": "9e15d35a9bed6732fd28c336d12b90c9b98fb833ac7e0b04763724cdac32ac32",
@@ -13,13 +13,13 @@
     "record-browser.mjs": "3f5be78e31b01c6e8d928754a37c8d985e2b75774f7d44ba0e27ffbf451af872"
   },
   "artifacts": {
-    "recording.json": "921f86aeb0347ce03d663433cd63e7f0efff09f42d21b56605916d2d1d9debf8",
+    "recording.json": "32d52862b68701592f026daffe9f2e4d3578c582a176ec4f7947b4b47d0382c8",
     "source.zip": "fd2bcbaa8f443d2a6bc566d3485ba8a3156b76dfcb8d29aa1dc4f647d283b0ff",
     "inbox-workflow.webm": "baee474062f23fab399affe511afde9fd8431caadabf910a51324dfbec5c5d67",
     "inbox-light.png": "a47758b2db23c1d3c8ecdbce63663fe2a7ab9446c297efc614189931b7f508bb",
     "inbox-dark.png": "c737665ac3c1481b0f9e3f69cc3c153a7f8df12946a0e429dda2c5918f9c517d"
   },
-  "recording": "47 actual captured tool actions, one Codex session with Magistr",
+  "recording": "47 actual captured tool actions, four recorded Codex replies and two paraphrased user requests from the matching session. Publication removes private machine/session metadata and normalizes personal filesystem prefixes; source bytes, timestamps and outcomes are preserved.",
   "browserEvidence": "docs/evidence/desktop-iterations/2026-10-20-inbox-build-refined/captures.json",
   "video": {
     "seconds": 11.92,

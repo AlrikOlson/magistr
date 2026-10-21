@@ -48,14 +48,14 @@ assert(indexHtml.includes("Registry packages are not published yet") && indexHtm
 assert(indexHtml.includes('"operatingSystem":"macOS (Apple Silicon)"'), "first release metadata targets Apple Silicon macOS");
 assert(indexHtml.includes('"downloadUrl":"https://magistr.dev/docs/installation"'), "download metadata points to current installation instructions");
 
-assert(indexHtml.includes("Full build recording") && indexHtml.includes("Recorded October 20, 2026") && indexHtml.includes("October 19") && !indexHtml.includes("data-simulation"), "the real build and earlier agent sessions are clearly dated");
+assert(indexHtml.includes("Session data") && indexHtml.includes("October 20, 2026") && indexHtml.includes("October 19") && !indexHtml.includes("data-simulation"), "the real build and earlier agent sessions are clearly dated");
 const homeImages = [...indexHtml.matchAll(/src="\/screenshots\/([a-z-]+)\.png\?v=[a-f0-9]{12}"/g)].map((m) => m[1]);
 assert(new Set(homeImages).size === 4 && homeImages.length === 4, `each screenshot appears once on the home page (${homeImages.join(", ")})`);
 const roadmapSection = indexHtml.split('id="workflow"')[1]?.split('id="keep-going"')[0] ?? "";
-assert(roadmapSection.includes("data-recording") && roadmapSection.includes("Build chapters") && roadmapSection.includes("Explore all 47 recorded actions") && roadmapSection.includes("Download the project"), "recorded implementation has accessible playback, transcript and source");
+assert(roadmapSection.includes("data-recording") && roadmapSection.includes('aria-label="Build timeline"') && roadmapSection.includes("Read the complete transcript") && roadmapSection.includes("Download the project"), "recorded implementation has accessible playback, transcript and source");
 assert(!roadmapSection.includes("Roadmap screen"),"future desktop planning is not advertised");
 assert(indexHtml.includes('data-project-tour') && ["tour-roadmap","tour-reasoning","tour-chunks","tour-checks"].every(id=>indexHtml.includes('id="'+id+'"')), "all four project-record views are present");
-assert(indexHtml.includes("data-playback-scene") && indexHtml.includes("/examples/project-records.json?v="), "the feature tour links actual records and build playback");
+assert(indexHtml.includes("data-playback-event") && indexHtml.includes("/examples/project-records.json?v="), "the feature tour links actual records and build playback");
 assert(indexHtml.includes("Why I’m building this") && indexHtml.includes("Save feedback"), "the page explains the builder's motivation and feedback loop");
 assert(!roadmapSection.includes("without leaving the conversation") && !roadmapSection.includes("actions beside the conversation"), "full Roadmap is not described as conversation details");
 

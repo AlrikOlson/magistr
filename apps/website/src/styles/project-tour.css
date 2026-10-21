@@ -47,7 +47,8 @@
 .chunk-list button[aria-pressed="true"] { border-left-color:var(--color-accent); background:var(--color-accent-soft); }.chunk-list button:hover { background:var(--color-surface); }
 .chunk-list strong { display:block; font-size:.95rem; font-weight:500; }.chunk-list small { font-size:.75rem; color:var(--color-text-muted); }.chunk-list button>span:last-child { margin-left:auto; }
 .chunk-complete { color:var(--color-green); font-size:1.15rem; }.result-pass { color:var(--color-green); font-weight:500; }.result-fail { color:var(--color-error); font-weight:500; }
-.check-story { display:grid; grid-template-columns:1fr 1.8fr; border:1px solid var(--color-border); background:var(--color-bg-card); }
+.check-story { display:grid; grid-template-columns:1fr 1.8fr; gap:1rem; align-items:start; }
+.check-story .check-choices { padding:0 1rem 0 0; }
 .check-choices { padding:1.4rem; }
 .check-choices button { width:100%; display:block; text-align:left; color:var(--color-text); border:1px solid var(--color-border); background:transparent; padding:.9rem; margin:.75rem 0; border-radius:3px; }
 .check-choices button[aria-pressed="true"] { border-color:var(--color-accent); background:var(--color-accent-soft); }
@@ -57,6 +58,8 @@
 .check-output>div { display:flex; justify-content:space-between; gap:1rem; font-size:.8rem; border-bottom:1px solid #4b584d; padding:.35rem 0 1rem; }.check-output>div strong { font-family:var(--font-mono); font-weight:400; }
 .check-output pre { font:.75rem/1.8 var(--font-mono); white-space:pre-wrap; overflow-wrap:anywhere; overflow:auto; max-height:335px; margin:1rem 0; }
 .check-output>p { font-size:.7rem; color:#b2bfb4; }
+.check-output details summary { cursor:pointer; font-size:.75rem; min-height:44px; padding:.7rem 0; color:var(--color-code-text); }
+.check-output details pre { border-top:1px solid #4b584d; padding-top:1rem; }
 @media(max-width:1050px) {
  .tour-workspace { grid-template-columns:minmax(0,1.5fr) minmax(0,1fr); }.map-node { padding:.5rem; }.map-node strong { font-size:.8rem; }.record-details { padding:1.2rem; }
 }

@@ -12,11 +12,11 @@ export const reasoningNotes = [
   {step:1742,label:"Make room for both",position:"decision"}
 ];
 export const chunkNotes = [
-  {task:"demo-plan",label:"Agree on the scope",scene:0,result:"A small support inbox with a clear boundary: local mail intake, threaded conversations, search, assignment and resolution."},
-  {task:"demo-store",label:"Make incoming mail reliable",scene:1,result:"Mail is saved in SQLite. Replies stay in the conversation, and delivering a message twice doesn't create a duplicate."},
-  {task:"demo-api",label:"Connect the team's actions",scene:2,result:"Search, assignment and resolution use the real API. A stale save can't silently overwrite a teammate's change."},
-  {task:"demo-ui",label:"Build and review the inbox",scene:4,result:"The browser uses saved data. A screen review caught small menus and confusing recovery text; both were fixed and checked again."},
-  {task:"demo-verify",label:"Check the finished project",scene:5,result:"The storage and HTTP tests pass, and the browser recording shows the completed app being used."}
+  {task:"demo-plan",label:"Agree on the scope",event:11,result:"A small support inbox with a clear boundary: local mail intake, threaded conversations, search, assignment and resolution."},
+  {task:"demo-store",label:"Make incoming mail reliable",event:17,result:"Mail is saved in SQLite. Replies stay in the conversation, and delivering a message twice doesn't create a duplicate."},
+  {task:"demo-api",label:"Connect the team's actions",event:22,result:"Search, assignment and resolution use the real API. A stale save can't silently overwrite a teammate's change."},
+  {task:"demo-ui",label:"Build and review the inbox",event:42,result:"The browser uses saved data. A screen review caught small menus and confusing recovery text; both were fixed and checked again."},
+  {task:"demo-verify",label:"Check the finished project",event:46,result:"The storage and HTTP tests pass, and the browser recording shows the completed app being used."}
 ];
 export function taskRecord(recording,task) {
   const events=recording.events.filter(event=>event.input.task_id===task && event.output?.ok!==false);

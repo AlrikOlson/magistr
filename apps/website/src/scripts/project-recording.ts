@@ -1,153 +1,130 @@
-import {checkOf,elapsed,eventStatus,eventText,filesAt} from "../data/project-recording.mjs";
-import {walkthrough} from "../data/walkthrough.mjs";
+import {checkOf,filesAt} from "../data/project-recording.mjs";
+import {sessionEntries,moments,momentIndex,timeLabel,entryTitle,entryBody,projectAt} from "../data/session-replay.mjs";
 
 const root=document.querySelector<HTMLElement>("[data-recording]");
 if(root){
  const $=<T extends HTMLElement>(selector:string)=>root.querySelector<T>(selector)!;
- const video=$<HTMLVideoElement>("video");
- const panels=[...root.querySelectorAll<HTMLElement>("[data-scene-panel]")];
- const chapterButtons=[...root.querySelectorAll<HTMLButtonElement>("[data-chapter]")];
- const details=$<HTMLDetailsElement>(".recording-details");
- let scene=5, intro=true, playing=false, timer:ReturnType<typeof setTimeout>|undefined;
- let review="after";
- const stop=()=>{
+ const play=$<HTMLButtonElement>("[data-play]");
+ const range=$<HTMLInputElement>("#session-position");
+ const actionSelect=$<HTMLSelectElement>("[data-action-select]");
+ const file=$<HTMLSelectElement>("[data-file]");
+ const inspector=$<HTMLDetailsElement>("[data-inspector]");
+ const scroll=$(".session-scroll");
+ const rows=[...root.querySelectorAll<HTMLElement>("[data-entry]")];
+ let playing=false, timer:ReturnType<typeof setTimeout>|undefined;
+ const pause=()=>{
   playing=false;clearTimeout(timer);root.dataset.playing="false";
-  $("[data-play]").textContent="Play chapters";
-  $("[data-play]").setAttribute("aria-pressed","false");
- };
- const originals=()=>{
-  const theme=document.documentElement.classList.contains("dark")?"Dark":"Light";
-  root.querySelectorAll<HTMLAnchorElement>("[data-capture-original]").forEach(link=>{
-   const version=link.dataset.captureOriginal==="3"?"before":link.dataset.captureOriginal==="4"?review:"after";
-   const movie=link.dataset.captureOriginal==="5"&&!$("[data-movie]").hidden;
-   link.href=movie?video.querySelector("source")!.src:link.dataset[version+theme]!;
-   link.textContent=movie?"Open full video ↗":"Open full capture ↗";
-  });
- };
- originals();
- new MutationObserver(originals).observe(document.documentElement,{attributes:true,attributeFilter:["class"]});
- const frameCapture=()=>{
-  const theme=document.documentElement.classList.contains("dark")?"dark":"light";
-  panels[scene].querySelectorAll<HTMLElement>(".capture-window").forEach(frame=>{
-   if(frame.hidden)return;
-   const img=frame.querySelector<HTMLImageElement>(".capture-"+theme+" img")!;
-   img.decode().then(()=>{
-    const layout=img.naturalWidth<=600?"compact":"wide";
-    if(frame.dataset.framed===layout)return;
-    const offset=scene===4?(layout==="compact"?300:220):(layout==="compact"?470:160);
-    frame.scrollTop=offset*img.clientWidth/img.naturalWidth;
-    frame.dataset.framed=layout;
-   }).catch(()=>{/* The original capture link remains available. */});
-  });
- };
- const render=(announce=false)=>{
-  const chapter=walkthrough[scene];
-  root.dataset.scene=String(scene);root.dataset.playing=String(playing);
-  panels.forEach((panel,index)=>panel.hidden=index!==scene);
-  // A chosen chapter must load even when its stage is above the navigation.
-  panels[scene].querySelectorAll<HTMLImageElement>("img").forEach(img=>img.loading="eager");
-  frameCapture();
-  chapterButtons.forEach((button,index)=>{
-   if(index===scene)button.setAttribute("aria-current","step");else button.removeAttribute("aria-current");
-  });
-  $("[data-story-kicker]").textContent=intro?"One project, from start to finish":"Chapter "+(scene+1)+" / "+walkthrough.length;
-  $("[data-story-title]").textContent=chapter.title;
-  $("[data-story-description]").textContent=chapter.description;
-  $("[data-story-position]").textContent=playing?"8 seconds per chapter":intro?"Choose a chapter or start at the brief":"Chapter "+(scene+1)+" of "+walkthrough.length;
-  const next=$("[data-next]");
-  next.textContent=intro?"Start the walkthrough →":scene===5?"Back to the brief ↺":"Next: "+walkthrough[scene+1].label+" →";
-  $<HTMLButtonElement>("[data-previous]").disabled=intro||scene===0;
-  $("[data-watch]").hidden=scene!==5;
-  if(scene!==5)video.pause();
-  if(announce)$("[data-announcement]").textContent="Chapter "+(scene+1)+": "+chapter.title;
- };
- const hideMovie=()=>{
-  video.pause();$("[data-movie]").hidden=true;
-  panels[5].querySelector<HTMLElement>(".capture-window")!.hidden=false;
-  $("[data-watch]").textContent="Watch the app · 12s";originals();
- };
- const go=(index:number)=>{
-  stop();intro=false;scene=Math.max(0,Math.min(5,index));hideMovie();render(true);
- };
- const schedule=()=>{
-  clearTimeout(timer);
-  timer=setTimeout(()=>{
-   if(!playing)return;
-   if(scene===5){stop();render();return;}
-   scene++;render();schedule();
-  },8000);
+  play.textContent="Play";play.setAttribute("aria-pressed","false");
+  $("[data-session-status]").textContent="Paused";
  };
  const initialize=async()=>{
   try{
    const response=await fetch(root.dataset.recordingUrl!);
    if(!response.ok)throw new Error("Recording unavailable");
    const recording=await response.json();
-   if(!Array.isArray(recording.events)||recording.events.length!==47)throw new Error("Recording unavailable");
-   const events=recording.events;
-   let action=46;
-   const actionSelect=$<HTMLSelectElement>("[data-action-select]");
-   const file=$<HTMLSelectElement>("[data-file]");
-   const output=()=>{
-    const event=events[action];
-    $("[data-output]").textContent=file.value?filesAt(recording,action)[file.value]:eventText(event);
-    $("[data-source-note]").textContent=file.value?"File at this point in the recording":event.kind==="edit"?"Recorded before / after":event.kind==="write"?"Exact written source":"Actual recorded output";
+   if(recording.schemaVersion!==2||recording.events?.length!==47||recording.messages?.length!==6)throw new Error("Recording unavailable");
+   const entries=sessionEntries(recording);
+   let cursor=momentIndex(entries,moments[0]);
+   const snapshots=entries.map(entry=>filesAt(recording,entry.eventIndex));
+   const source=()=>{
+    const entry=entries[cursor],path=file.value;
+    $("[data-output]").textContent=path?snapshots[cursor][path]:entryBody(entry);
+    $("[data-source-note]").textContent=path?"File as it existed at "+timeLabel(entries,cursor)+" · "+path.replace("examples/support-inbox/",""):
+     entry.kind==="message"?(entry.role==="user"?"User request":"Codex message"):entry.event.kind==="edit"?"Recorded edit · before and after":"Recorded action and result";
+    const check=entry.kind==="action"?checkOf(entry.event):undefined;
+    $("[data-receipt]").textContent=check&&!path?
+     (check.verified?"Executed check":"Recorded review")+" · "+(check.passed?"Passed":"Failed")+" · "+check.receipt_id:"";
    };
-   const inspect=(index:number)=>{
-    action=index;root.dataset.index=String(index);actionSelect.value=String(index);
-    const event=events[index],check=checkOf(event);
-    $("[data-action-title]").textContent=event.title;
-    $("[data-action-status]").textContent=eventStatus(event);
-    $("[data-position]").textContent="Action "+(index+1)+" / "+events.length+" · "+elapsed(recording,event);
-    file.replaceChildren(new Option("This action",""),...Object.keys(filesAt(recording,index)).map(path=>new Option(path.replace("examples/support-inbox/",""),path)));
-    $("[data-receipt]").textContent=check?"Recorded check · "+(check.verified?"Executed by Magistr":"Visual / planning review")+" · "+check.receipt_id:
-      event.output?.results?.[0]?.contentHash?"Saved source · SHA-256 "+event.output.results[0].contentHash:"";
-    output();
+   const render=(announce=false,frame=true)=>{
+    const entry=entries[cursor],state=projectAt(recording,entry);
+    root.dataset.index=String(cursor);root.dataset.event=String(entry.eventIndex);
+    range.value=String(cursor);actionSelect.value=String(cursor);
+    range.setAttribute("aria-valuetext",timeLabel(entries,cursor)+", "+(cursor+1)+" of "+entries.length+", "+(entry.kind==="message"?entryTitle(entry)+" message":entry.event.title)+", "+state.status);
+    $("[data-time]").textContent=timeLabel(entries,cursor)+" / "+timeLabel(entries,entries.length-1);
+    $<HTMLButtonElement>("[data-previous]").disabled=cursor===0;
+    $<HTMLButtonElement>("[data-next]").disabled=cursor===entries.length-1;
+    rows.forEach((row,index)=>{
+     row.hidden=index>cursor;row.dataset.selected=String(index===cursor);
+     row.querySelector<HTMLElement>(".entry-summary")!.hidden=index===cursor;
+     row.querySelector<HTMLElement>(".entry-detail")!.hidden=index!==cursor;
+     if(index===cursor)row.setAttribute("aria-current","true");else row.removeAttribute("aria-current");
+    });
+    const moment= moments.findLastIndex(item=>momentIndex(entries,item)<=cursor);
+    $<HTMLSelectElement>("[data-moment-select]").value=String(Math.max(0,moment));
+    const taskList=$("[data-task-list]");
+    taskList.replaceChildren(...state.tasks.map(task=>{
+     const li=document.createElement("li");li.dataset.status=task.status;
+     const mark=document.createElement("span");mark.textContent=task.status==="Completed"?"✓":task.status==="In progress"?"→":"·";mark.setAttribute("aria-hidden","true");
+     const label=document.createElement("span");label.textContent=task.label;
+     const status=document.createElement("small");status.textContent=task.status;
+     li.append(mark,label,status);return li;
+    }));
+    $("[data-no-plan]").hidden=state.tasks.length>0;
+    $("[data-task-count]").textContent=state.tasks.length?state.tasks.filter(task=>task.status==="Completed").length+" of "+state.tasks.length+" complete":"No plan yet";
+    $("[data-decision]").hidden=!state.decision;
+    const failed=state.checks.filter(event=>!checkOf(event).passed).length;
+    $("[data-check-count]").textContent=state.checks.length?
+     state.checks.length+" checks saved"+(failed?" · "+failed+" failed "+(failed===1?"result":"results")+" kept":""):"No checks recorded yet.";
+    const oldFile=file.value;
+    file.replaceChildren(new Option("Selected action or message",""),...Object.keys(snapshots[cursor]).map(path=>new Option(path.replace("examples/support-inbox/",""),path)));
+    if(oldFile in snapshots[cursor])file.value=oldFile;
+    source();
+    if(frame){
+     const row=rows[cursor];
+     scroll.scrollTop=Math.max(0,row.offsetTop-scroll.offsetTop-36);
+    }
+    if(announce)$("[data-announcement]").textContent=range.getAttribute("aria-valuetext");
    };
-   actionSelect.addEventListener("change",()=>{stop();render();inspect(Number(actionSelect.value));});
-   file.addEventListener("change",output);
-   root.querySelectorAll<HTMLButtonElement>("[data-inspect]").forEach(button=>{
-    button.hidden=false;
-    button.addEventListener("click",()=>{
-     stop();render();inspect(Number(button.dataset.inspect));details.open=true;
-     actionSelect.focus({preventScroll:true});
-     $(".recording-inspector").scrollIntoView({block:"center",behavior:"instant"});
+   const seek=(index:number)=>{
+    pause();cursor=Math.max(0,Math.min(entries.length-1,Math.round(index)));file.value="";render(true);
+   };
+   const schedule=()=>{
+    clearTimeout(timer);
+    if(!playing)return;
+    if(cursor===entries.length-1){pause();$("[data-session-status]").textContent="End of recorded build";return;}
+    const speed=Number($<HTMLSelectElement>("[data-speed]").value);
+    const delay=(Date.parse(entries[cursor+1].at)-Date.parse(entries[cursor].at))/speed;
+    timer=setTimeout(()=>{if(!playing)return;cursor++;render();schedule();},Math.max(16,delay));
+   };
+   range.addEventListener("input",()=>seek(Number(range.value)));
+   actionSelect.addEventListener("change",()=>seek(Number(actionSelect.value)));
+   file.addEventListener("change",()=>{pause();source();});
+   $("[data-next]").addEventListener("click",()=>seek(cursor+1));
+   $("[data-previous]").addEventListener("click",()=>seek(cursor-1));
+   $("[data-moment-select]").addEventListener("change",()=>seek(momentIndex(entries,moments[Number($<HTMLSelectElement>("[data-moment-select]").value)])));
+   root.querySelectorAll<HTMLButtonElement>("[data-seek]").forEach(button=>{
+    button.disabled=false;button.addEventListener("click",()=>seek(Number(button.dataset.seek)));
+   });
+   root.querySelectorAll<HTMLButtonElement>("[data-open-action]").forEach(button=>{
+    button.hidden=false;button.addEventListener("click",()=>{
+     pause();file.value="";source();inspector.open=true;
+     actionSelect.focus({preventScroll:true});inspector.scrollIntoView({block:"nearest",behavior:"instant"});
     });
    });
-   $("[data-next]").addEventListener("click",()=>go(intro||scene===5?0:scene+1));
-   $("[data-previous]").addEventListener("click",()=>go(scene-1));
-   chapterButtons.forEach(button=>button.addEventListener("click",()=>go(Number(button.dataset.chapter))));
-   $("[data-play]").addEventListener("click",()=>{
-    if(playing){stop();render();return;}
-    hideMovie();if(intro||scene===5)scene=0;intro=false;playing=true;
-    $("[data-play]").textContent="Pause chapters";$("[data-play]").setAttribute("aria-pressed","true");
-    render(true);schedule();
+   $("[data-decision]").addEventListener("click",()=>{seek(entries.findIndex(entry=>entry.event?.kind==="decision"));inspector.open=true;actionSelect.focus({preventScroll:true});inspector.scrollIntoView({block:"nearest",behavior:"instant"});});
+   play.addEventListener("click",()=>{
+    if(playing){pause();return;}
+    if(cursor===entries.length-1)cursor=0;
+    playing=true;root.dataset.playing="true";play.textContent="Pause";play.setAttribute("aria-pressed","true");
+    $("[data-session-status]").textContent="Playing at "+$<HTMLSelectElement>("[data-speed]").value+"×";
+    render();schedule();
    });
-   $("[data-watch]").addEventListener("click",()=>{
-    stop();render();
-    const movie=$("[data-movie]");
-    if(!movie.hidden){hideMovie();return;}
-    panels[5].querySelector<HTMLElement>(".capture-window")!.hidden=true;movie.hidden=false;
-    $("[data-watch]").textContent="Back to the capture";originals();
-    video.play().catch(()=>{/* Native controls remain available when playback is blocked. */});
+   $("[data-speed]").addEventListener("change",()=>{if(playing){$("[data-session-status]").textContent="Playing at "+$<HTMLSelectElement>("[data-speed]").value+"×";schedule();}});
+   scroll.addEventListener("pointerdown",pause);
+   root.addEventListener("focusin",event=>{if(playing&&event.target!==play&&event.target!==$("[data-speed]"))pause();});
+   inspector.addEventListener("toggle",()=>{if(inspector.open)pause();});
+   document.addEventListener("visibilitychange",()=>{if(document.hidden)pause();});
+   new IntersectionObserver(entries=>{if(!entries[0].isIntersecting)pause();}).observe(root);
+   root.addEventListener("show-recording",event=>{
+    const index=entries.findIndex(entry=>entry.event?.id===(event as CustomEvent<number>).detail);
+    if(index>=0)seek(index);
    });
-   root.querySelectorAll<HTMLButtonElement>("[data-review]").forEach(button=>button.addEventListener("click",()=>{
-    stop();render();review=button.dataset.review!;
-    panels[4].querySelectorAll<HTMLElement>("[data-capture-version]").forEach(image=>image.hidden=image.dataset.captureVersion!==review);
-    panels[4].querySelectorAll<HTMLButtonElement>("[data-review]").forEach(option=>option.setAttribute("aria-pressed",String(option===button)));
-    $("[data-review-note]").textContent=review==="before"?"Review failed: small menus and a misleading recovery message.":"Menus enlarged; recovery message corrected.";
-    originals();frameCapture();
-   }));
-   details.addEventListener("toggle",()=>{if(details.open){stop();render();}});
-   root.addEventListener("focusin",event=>{if(playing&&event.target!==$("[data-play]")){stop();render();}});
-   root.querySelectorAll<HTMLElement>(".capture-window").forEach(frame=>frame.addEventListener("pointerdown",()=>{stop();render();}));
-   document.addEventListener("visibilitychange",()=>{if(document.hidden){stop();render();video.pause();}});
-   new IntersectionObserver(entries=>{if(!entries[0].isIntersecting){stop();render();video.pause();}}).observe(root);
-   for(const selector of [".story-controls",".story-chapters",".review-switch",".recording-inspector"])$(selector).hidden=false;
-   root.addEventListener("show-recording",event=>go((event as CustomEvent<number>).detail));
-   inspect(46);render();root.dataset.ready="true";
+   for(const selector of [".replay-controls",".recording-details"])$(selector).hidden=false;
+   $(".complete-transcript").hidden=true;
+   render(false,false);root.dataset.ready="true";
   }catch{
+   $("[data-error]").textContent="Interactive playback couldn’t load. You can read the complete transcript or download the recording below.";
    $("[data-error]").hidden=false;
-   $("[data-error]").textContent="The walkthrough couldn’t load. You can still view the finished inbox, watch the app recording or download the project below.";
   }
  };
  initialize();
