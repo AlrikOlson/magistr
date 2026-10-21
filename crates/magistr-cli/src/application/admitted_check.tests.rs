@@ -101,7 +101,13 @@ fn host(tmp: &tempfile::TempDir) -> (NativeEngines, PathBuf) {
 
 fn objective(engines: &NativeEngines, task: &str) {
     engines
-        .ship_set_objective("Compose".into(), vec![], vec![], "chunk:test".into())
+        .ship_set_objective_with_verification(
+            "Compose".into(),
+            vec![],
+            vec![],
+            "chunk:test".into(),
+            magistr_engine::native::VerificationMode::Full,
+        )
         .expect("objective");
     engines
         .ship_add_task(task.into(), "Verify".into(), TaskType::Test, None)
@@ -162,7 +168,13 @@ fn a_check_with_no_task_is_refused_before_any_bytes_are_hashed() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let (engines, root) = host(&tmp);
     engines
-        .ship_set_objective("Compose".into(), vec![], vec![], "chunk:test".into())
+        .ship_set_objective_with_verification(
+            "Compose".into(),
+            vec![],
+            vec![],
+            "chunk:test".into(),
+            magistr_engine::native::VerificationMode::Full,
+        )
         .expect("objective");
     let refused = AdmittedCheck::admit(&engines, &root, None, "lint", "true".into(), true)
         .expect_err("no active task");

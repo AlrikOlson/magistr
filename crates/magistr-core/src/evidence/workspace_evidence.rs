@@ -193,15 +193,18 @@ impl EvidencePort for WorkspaceEvidence {
         request.command.as_deref().is_some_and(reusable_command)
     }
 
-    fn check_timeout_secs(&self, name: &str, command: Option<&str>) -> Result<u64, String> {
+    fn check_budget(
+        &self,
+        name: &str,
+        command: Option<&str>,
+        per_call: Option<u64>,
+    ) -> Result<magistr_engine::native::CheckBudget, String> {
         let (config, policy) = self.check_policy(name, command)?;
-        let timeout = policy
-            .and_then(|policy| policy.timeout_secs)
-            .unwrap_or(config.timeout_secs);
-        if !(1..=3600).contains(&timeout) {
-            return Err("Check timeout must be between 1 and 3600 seconds.".into());
-        }
-        Ok(timeout)
+        magistr_engine::native::CheckBudget::resolve(
+            per_call,
+            policy.and_then(|policy| policy.timeout_secs),
+            config.timeout_secs,
+        )
     }
 
     fn check_schedule(

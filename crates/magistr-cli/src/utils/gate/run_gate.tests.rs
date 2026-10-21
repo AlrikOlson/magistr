@@ -188,7 +188,7 @@ async fn configured_deadlines_apply_and_invalid_policy_cannot_start_a_command() 
     let root = tempfile::tempdir().unwrap();
     std::fs::create_dir(root.path().join(".magistr")).unwrap();
     let mut config = magistr_core::validate::load_project_config(&dir().join("../..")).unwrap();
-    config.verification.timeout_secs = 1;
+    config.verification.timeout_secs = Some(1);
     config.verification.gates.clear();
     let path = root.path().join(".magistr/project.json");
     std::fs::write(&path, serde_json::to_vec(&config).unwrap()).unwrap();

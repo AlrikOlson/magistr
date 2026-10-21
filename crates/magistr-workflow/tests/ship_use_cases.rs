@@ -114,6 +114,40 @@ async fn native_and_mcp_views_share_one_engine_and_response_contract() {
     );
 }
 
+#[cfg(unix)]
+#[tokio::test]
+async fn timed_out_checks_keep_the_resolved_budget_and_origin_after_reopen() {
+    use magistr_workflow::ship::application::TimeoutOrigin;
+    let temp = tempfile::tempdir().unwrap();
+    let cases = stored(temp.path());
+    planned(&cases);
+    let mut bounded = request();
+    bounded.command = Some("sleep 30".into());
+    bounded.options.timeout_secs = Some(1);
+    bounded.options.timeout_origin = Some(TimeoutOrigin::Project);
+    let admission = cases.admit_check(bounded).unwrap().value;
+    assert_eq!(
+        admission.request.options.timeout_origin,
+        Some(TimeoutOrigin::PerCall)
+    );
+    let result = ShipUseCases::execute_check(&admission).await;
+    assert_eq!(result.execution, CheckExecution::TimedOut);
+    assert!(!result.passed);
+    let settled = cases.settle_check(admission, result).unwrap();
+    let receipt = &settled.receipt().value;
+    assert_eq!(receipt.options.timeout_secs, Some(1));
+    assert_eq!(receipt.options.timeout_origin, Some(TimeoutOrigin::PerCall));
+    let reopened = stored(temp.path());
+    let ledger = reopened.engine().lock().unwrap().receipts().clone();
+    assert_eq!(ledger.get(&receipt.id).unwrap().as_ref(), Some(receipt));
+    let mut older = serde_json::to_value(receipt).unwrap();
+    older.as_object_mut().unwrap().remove("options");
+    let older: magistr_workflow::ship::domain::check_receipt::CheckReceipt =
+        serde_json::from_value(older).unwrap();
+    assert_eq!(older.options.timeout_origin, None);
+    assert_eq!(older.options.timeout_secs, None);
+}
+
 #[tokio::test]
 async fn ordinary_completion_keeps_failed_required_checks_as_warnings() {
     let temp = tempfile::tempdir().unwrap();

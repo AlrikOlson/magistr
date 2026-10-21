@@ -22,7 +22,7 @@ same commit. No pull request is needed.
 | 14 | Remove duplicate compilation/check commands | An identical Cargo check is covered by Clippy. Different targets, features or directories keep their separate checks. Init runs only its promised setup check. | Resolver and validation tests, including the required-check policy after consolidation. |
 | 15 | Reduce small-operation and response overhead | Architecture gates read sources once instead of launching grep/awk/hash processes per file. Mutation replies return compact summaries with receipt references. Nextest config validation uses real metadata and no build. | Structure 0.712 s; ownership 0.447 s; duplication 0.146 s; nextest config 0.148 s. All 22 existing structure/duplication fixtures and new ownership/parser refusal tests pass. |
 | 16 | Reuse dependencies and browser installs | Cache npm downloads, Cargo registries, WebKit, Rust compilation and Wasmtime artifacts with dependency/tool-sensitive keys. | Pinned workflow configuration; a cache miss still performs installation/build/validation. |
-| 17 | Make time limits and slow stages visible | Shared configurable gate budgets replace unrelated fixed limits. Receipts separate queue and execution time. CI stages enforce process-group deadlines and upload timings plus slow JUnit cases for both profiles. | Actual timeout/descendant-cleanup tests; queue tests; normal and diagnostic report paths are retained. |
+| 17 | Make time limits and slow stages visible | Shared configurable gate budgets replace unrelated fixed limits. Receipts separate queue and execution time and retain the resolved deadline and its configuration origin. CI stages enforce process-group deadlines and upload timings plus slow JUnit cases for both profiles. | Actual timeout/descendant-cleanup tests; queue tests; normal and diagnostic report paths are retained. |
 
 The scheduler/reuse/MCP change passed 318 unit tests and 20 MCP integration tests,
 Clippy, formatting and the structure/ownership gates in recorded check
@@ -30,6 +30,24 @@ Clippy, formatting and the structure/ownership gates in recorded check
 workflow/contracts unit tests, 35 receipt/use-case integration tests and 126
 affected CLI tests during development. The final recorded check and hosted CI
 are attached to delivery, rather than guessed from these intermediate runs.
+
+
+The final recorded timing check `dde8ccc1-abc8-41aa-a1b5-f2e0153cfb7e`
+uses the built production admission, execution, reuse and settlement APIs over
+this checkout, with isolated temporary workflow state. All four results passed.
+
+| Check | Admission | Execution | Settlement | Total |
+|---|---:|---:|---:|---:|
+| No-op, cold source cache | 12,303 ms | 4 ms | 712 ms | 13,020 ms |
+| No-op, warm source cache | 803 ms | 4 ms | 731 ms | 1,539 ms |
+| Configured structure check | 494 ms | 677 ms | 353 ms | 1,525 ms |
+| Same structure check, valid reused receipt | 363 ms | 0 ms | 350 ms | 714 ms |
+
+The audit's recorded no-op took 23,770 ms on this machine. The warm result is
+about 15 times faster; a cold observation still reads the complete selected
+content once. The reused result references its actual successful receipt and
+does not claim another command execution. The already-running MCP server keeps
+its loaded binary until the next session; these measurements use the new build.
 
 Full verification remains available. Source scopes must cover every dependency;
 opaque commands and checks of live external state do not acquire reuse merely

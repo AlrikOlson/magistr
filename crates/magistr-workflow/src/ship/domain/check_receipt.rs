@@ -17,6 +17,9 @@ pub struct CheckReceipt {
     pub check_type: CheckType,
     pub command: Option<String>,
     pub required: bool,
+    /// Resolved execution controls, including the deadline and its origin.
+    #[serde(default)]
+    pub options: crate::ship::application::CheckOptions,
     pub acceptance_revision: String,
     pub source: Option<SourceObservation>,
     pub admitted_at: String,
@@ -49,6 +52,7 @@ impl CheckReceipt {
             check_type: request.check_type.clone(),
             command: request.command.clone(),
             required: request.required,
+            options: request.options.clone(),
             acceptance_revision,
             source,
             admitted_at,

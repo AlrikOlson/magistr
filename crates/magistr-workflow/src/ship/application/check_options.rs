@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 /// Inputs and execution controls for a bounded verification command.
-#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(default)]
 pub struct CheckOptions {
     /// Relative files/directories, including dependencies. Empty observes all source.
@@ -10,6 +10,9 @@ pub struct CheckOptions {
     pub reuse: bool,
     /// Per-command deadline. The host configuration supplies the default.
     pub timeout_secs: Option<u64>,
+    /// Selected by the host at admission; callers cannot supply provenance.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub timeout_origin: Option<super::TimeoutOrigin>,
     /// Resolved by the host when the check is admitted.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub max_parallel: Option<usize>,
@@ -23,6 +26,7 @@ impl Default for CheckOptions {
             inputs: Vec::new(),
             reuse: true,
             timeout_secs: None,
+            timeout_origin: None,
             max_parallel: None,
             resources: None,
         }

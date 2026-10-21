@@ -42,8 +42,13 @@ pub trait EvidencePort: Send + Sync {
     }
 
     /// One deadline contract across native and transport callers.
-    fn check_timeout_secs(&self, _name: &str, _command: Option<&str>) -> Result<u64, String> {
-        Ok(super::CheckOptions::DEFAULT_TIMEOUT_SECS)
+    fn check_budget(
+        &self,
+        _name: &str,
+        _command: Option<&str>,
+        per_call: Option<u64>,
+    ) -> Result<super::CheckBudget, String> {
+        super::CheckBudget::resolve(per_call, None, None)
     }
 
     /// Resource admission shared with every other check runner.
