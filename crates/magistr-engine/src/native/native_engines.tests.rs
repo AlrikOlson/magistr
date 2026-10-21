@@ -18,6 +18,8 @@ struct Fixed;
 impl SourceWitness for Fixed {
     fn observation(&self) -> SourceObservation {
         SourceObservation {
+            inputs: Vec::new(),
+            execution_digest: String::new(),
             workspace_root: "/w".into(),
             workspace_generation: None,
             scheme: "fake/1".into(),

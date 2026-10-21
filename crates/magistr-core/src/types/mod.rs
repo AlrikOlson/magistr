@@ -20,7 +20,9 @@ mod project_tree;
 mod quality_gate;
 mod stack;
 mod test_framework;
+mod verification_config;
 mod workspace;
+pub use verification_config::{GatePolicy, VerificationConfig};
 
 pub use archetype::{Archetype, ArchetypeRelationship, RelationshipKind, resolve_archetype};
 pub use ci::CiProvider;

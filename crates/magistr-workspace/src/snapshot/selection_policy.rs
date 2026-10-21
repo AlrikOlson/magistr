@@ -18,6 +18,10 @@ pub struct SelectionPolicy {
     /// The hard ceiling on manifest entries; exceeding it refuses the
     /// snapshot instead of truncating it.
     pub max_entries: usize,
+    /// Workspace-relative files/directories a check declares as its inputs.
+    /// Empty selects the whole source tree. Ignore rules still apply.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub source_roots: Vec<String>,
     /// Configuration read even when ignored; a missing one is recorded as missing.
     pub config_inputs: Vec<String>,
     /// Caller-declared artifacts read even when ignored.
@@ -29,6 +33,7 @@ impl Default for SelectionPolicy {
         Self {
             version: 1,
             max_entries: 200_000,
+            source_roots: Vec::new(),
             config_inputs: vec![
                 ".magistr/project.json".into(),
                 ".magistr/workspace.toml".into(),
@@ -46,6 +51,14 @@ impl SelectionPolicy {
         self
     }
 
+    #[must_use]
+    pub fn with_sources(mut self, mut roots: Vec<String>) -> Self {
+        roots.sort();
+        roots.dedup();
+        self.source_roots = roots;
+        self
+    }
+
     /// SHA-256 over the version, ceiling and every explicit input, framed.
     #[must_use]
     pub fn digest(&self) -> String {
@@ -54,6 +67,12 @@ impl SelectionPolicy {
         frame(&mut digest, &(self.max_entries as u64).to_le_bytes());
         for input in self.explicit_inputs() {
             frame(&mut digest, input.as_bytes());
+        }
+        if !self.source_roots.is_empty() {
+            frame(&mut digest, b"source-roots/1");
+            for root in &self.source_roots {
+                frame(&mut digest, root.as_bytes());
+            }
         }
         format!("{:x}", digest.finalize())
     }
@@ -69,7 +88,10 @@ impl SelectionPolicy {
     /// Refuse an explicit input that could escape the root or name owner
     /// state: only relative, normal components, never `.git` or `.magistr/workspace`.
     pub(super) fn validate(&self) -> Result<(), SnapshotError> {
-        for input in self.explicit_inputs() {
+        for input in self
+            .explicit_inputs()
+            .chain(self.source_roots.iter().map(String::as_str))
+        {
             let refuse = |reason: &str| SnapshotError::InvalidInput {
                 path: input.to_owned(),
                 reason: reason.to_owned(),

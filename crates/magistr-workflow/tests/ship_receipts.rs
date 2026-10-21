@@ -23,6 +23,7 @@ use magistr_workflow::ship::persistence::{Persistence, PersistenceConfig};
 struct Seen {
     revision: String,
     config: String,
+    execution: String,
     policy: String,
     generation: Option<u64>,
     /// `false` mimics a receipt recorded before digests were bound.
@@ -44,6 +45,7 @@ impl Default for World {
             seen: Mutex::new(Seen {
                 revision: String::new(),
                 config: "c1".into(),
+                execution: "toolchain-env-1".into(),
                 policy: "p".into(),
                 generation: Some(3),
                 bound: true,
@@ -92,6 +94,12 @@ impl SourceWitness for Witness {
         // The workspace's revision folds the owner generation in, exactly
         // as the real snapshot's does; the digests do not.
         SourceObservation {
+            inputs: Vec::new(),
+            execution_digest: if self.seen.bound {
+                self.seen.execution.clone()
+            } else {
+                String::new()
+            },
             workspace_root: "/w".into(),
             workspace_generation: self.seen.generation,
             scheme: "fake/1".into(),
@@ -117,7 +125,7 @@ impl SourceWitness for Witness {
             SourceFreshness::Changed {
                 paths: vec!["src/lib.rs".into()],
             }
-        } else if now.config != self.seen.config {
+        } else if now.config != self.seen.config || now.execution != self.seen.execution {
             SourceFreshness::Reconfigured {
                 layers: vec!["org-policy".into()],
             }
@@ -152,6 +160,9 @@ impl EvidencePort for World {
 struct LivePort(Arc<World>);
 
 impl EvidencePort for LivePort {
+    fn can_reuse(&self, request: &CheckRequest) -> bool {
+        request.command.is_some()
+    }
     fn observe(&self) -> Result<Box<dyn SourceWitness>, String> {
         if let Some(reason) = self.0.refuse.lock().unwrap().clone() {
             return Err(reason);
@@ -216,6 +227,7 @@ fn planned_focused(cases: &ShipUseCases) {
 
 fn request(gate: &str, command: &str) -> CheckRequest {
     CheckRequest {
+        options: Default::default(),
         task_id: None,
         check_type: CheckType::Test,
         name: gate.into(),
@@ -1068,4 +1080,145 @@ fn receipt_compaction_keeps_the_checks_of_saved_unfinished_plans() {
             .unwrap()
             .is_some()
     );
+}
+
+#[test]
+fn verified_inputs_reuse_across_tasks_and_reopened_runs_without_relabeling_execution() {
+    let dir = tempfile::tempdir().unwrap();
+    let world = world();
+    let cases = stored(dir.path(), &world);
+    planned(&cases);
+    let CheckSettlement::Applied { receipt, .. } = run(
+        &cases,
+        "test",
+        "cargo test",
+        CheckExecution::Exited { code: 0 },
+    ) else {
+        panic!("applied")
+    };
+    let original_id = receipt.value.id;
+    cases.complete_task("verify", vec![]).unwrap();
+    drop(cases);
+
+    let reopened = stored(dir.path(), &world);
+    reopened
+        .add_task("second".into(), "Second".into(), TaskType::Test, None, None)
+        .unwrap();
+    reopened.start_task("second").unwrap();
+    let admission = reopened
+        .admit_check(request("test", "cargo test"))
+        .unwrap()
+        .value;
+    let reused = reopened
+        .reuse_check(&admission)
+        .unwrap()
+        .expect("matching inputs");
+    assert_eq!(
+        reused.execution,
+        CheckExecution::Reused {
+            receipt_id: original_id.clone()
+        }
+    );
+    assert_eq!(reused.exit_code, None, "no new process exit is claimed");
+    reopened.settle_check(admission, reused).unwrap();
+    reopened
+        .verify_completion("chunk:c1", Some("second"))
+        .unwrap();
+    reopened.complete_task("second", vec![]).unwrap();
+
+    // The input index is not tied to an objective or its task instances.
+    reopened.reset().unwrap();
+    planned_focused(&reopened);
+    let admission = reopened
+        .admit_check(request("test", "cargo test"))
+        .unwrap()
+        .value;
+    let reused = reopened
+        .reuse_check(&admission)
+        .unwrap()
+        .expect("new objective, same verified inputs");
+    assert_eq!(
+        reused.execution,
+        CheckExecution::Reused {
+            receipt_id: original_id
+        }
+    );
+    reopened.settle_check(admission, reused).unwrap();
+    reopened.compact_receipts().unwrap();
+    let next = reopened
+        .admit_check(request("test", "cargo test"))
+        .unwrap()
+        .value;
+    assert!(
+        reopened.reuse_check(&next).unwrap().is_some(),
+        "compaction retains the referenced execution"
+    );
+}
+
+#[test]
+fn reuse_refuses_changed_inputs_configuration_environment_and_newer_failure() {
+    for change in [
+        "source",
+        "config",
+        "policy",
+        "environment",
+        "command",
+        "forced",
+        "failure",
+    ] {
+        let dir = tempfile::tempdir().unwrap();
+        let world = world();
+        let cases = stored(dir.path(), &world);
+        planned(&cases);
+        run(
+            &cases,
+            "test",
+            "cargo test",
+            CheckExecution::Exited { code: 0 },
+        );
+        let mut check = request("test", "cargo test");
+        match change {
+            "source" => world.set_revision("r2"),
+            "config" => world.set_config("c2"),
+            "policy" => world.set_policy("p2"),
+            "environment" => world.seen.lock().unwrap().execution = "toolchain-env-2".into(),
+            "command" => check.command = Some("cargo test --features new".into()),
+            "forced" => check.options.reuse = false,
+            "failure" => {
+                run(
+                    &cases,
+                    "test",
+                    "cargo test",
+                    CheckExecution::Exited { code: 7 },
+                );
+            }
+            _ => unreachable!(),
+        }
+        let admission = cases.admit_check(check).unwrap().value;
+        assert!(cases.reuse_check(&admission).unwrap().is_none(), "{change}");
+    }
+}
+
+#[test]
+fn a_reused_result_cannot_claim_an_unverified_or_foreign_receipt() {
+    let dir = tempfile::tempdir().unwrap();
+    let world = world();
+    let cases = stored(dir.path(), &world);
+    planned(&cases);
+    let admission = cases
+        .admit_check(request("test", "cargo test"))
+        .unwrap()
+        .value;
+    let error = cases
+        .settle_check(
+            admission,
+            outcome(
+                CheckExecution::Reused {
+                    receipt_id: "does-not-exist".into(),
+                },
+                "cargo test",
+            ),
+        )
+        .unwrap_err();
+    assert_eq!(error.kind(), "invalid_reuse");
 }

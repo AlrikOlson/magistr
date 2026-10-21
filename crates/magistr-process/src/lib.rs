@@ -22,7 +22,9 @@
 
 #![warn(missing_docs)]
 
+mod blocking;
 mod bounded_capture;
+pub use blocking::run_blocking;
 mod child_registry;
 mod launch;
 mod output_mode;

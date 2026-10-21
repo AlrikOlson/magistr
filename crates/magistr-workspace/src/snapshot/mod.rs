@@ -15,6 +15,7 @@
 mod capture;
 mod change_kind;
 mod consistency;
+mod digest_cache;
 mod entry_kind;
 mod manifest_entry;
 mod mutation_receipt;

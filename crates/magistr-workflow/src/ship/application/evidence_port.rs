@@ -1,4 +1,4 @@
-use super::{GateContract, SourceWitness};
+use super::{CheckRequest, GateContract, SourceWitness};
 
 /// The host capability the workflow consumes to bind checks to the inputs
 /// they certify and to know which gates a completion must present. The
@@ -24,6 +24,27 @@ pub trait EvidencePort: Send + Sync {
     /// # Errors
     /// The workspace cannot be observed (missing root, refused selection).
     fn observe(&self) -> Result<Box<dyn SourceWitness>, String>;
+
+    /// Observe the declared inputs of this check. Providers that cannot
+    /// narrow a selection retain their conservative whole-workspace behavior.
+    fn observe_check(
+        &self,
+        _name: &str,
+        _command: Option<&str>,
+        _inputs: &[String],
+    ) -> Result<Box<dyn SourceWitness>, String> {
+        self.observe()
+    }
+
+    /// Only the host can declare a command suitable for receipt reuse.
+    fn can_reuse(&self, _request: &CheckRequest) -> bool {
+        false
+    }
+
+    /// One deadline contract across native and transport callers.
+    fn check_timeout_secs(&self, _name: &str, _command: Option<&str>) -> Result<u64, String> {
+        Ok(super::DEFAULT_CHECK_TIMEOUT_SECS)
+    }
 
     /// The gates the project currently requires, from its configuration as
     /// it is at the moment of asking.

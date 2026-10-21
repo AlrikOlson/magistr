@@ -301,3 +301,65 @@ fn linked_copy_reads_and_writes_shared_settings_and_observes_their_changes() {
     );
     assert!(!linked.join(".magistr/project.json").exists());
 }
+
+#[test]
+fn a_check_scope_ignores_unrelated_edits_but_tracks_new_inputs_and_toolchain_settings() {
+    let (_dir, root, evidence) = rig();
+    fs::create_dir(root.join("src")).unwrap();
+    fs::write(root.join("src/lib.rs"), "pub fn run() {}").unwrap();
+    let witness = evidence
+        .observe_check("focused", Some("true"), &["src".into()])
+        .unwrap();
+    assert_eq!(witness.observation().inputs, ["src"]);
+    assert!(!witness.observation().execution_digest.is_empty());
+    fs::write(root.join("README.md"), "Unrelated copy").unwrap();
+    assert_eq!(witness.validate().unwrap(), SourceFreshness::Unchanged);
+    fs::write(root.join("src/new.rs"), "new input").unwrap();
+    assert!(matches!(
+        witness.validate().unwrap(),
+        SourceFreshness::Changed { .. }
+    ));
+    let witness = evidence
+        .observe_check("focused", Some("true"), &["src".into()])
+        .unwrap();
+    fs::create_dir(root.join(".cargo")).unwrap();
+    fs::write(root.join(".cargo/config.toml"), "[build]\njobs = 2\n").unwrap();
+    assert!(matches!(
+        witness.validate().unwrap(),
+        SourceFreshness::Reconfigured { .. }
+    ));
+}
+
+#[test]
+fn configured_gate_scopes_deadlines_and_reuse_require_the_configured_command() {
+    let (_dir, root, evidence) = rig();
+    let path = root.join(".magistr/project.json");
+    let mut config: serde_json::Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+    config["verification"] = serde_json::json!({
+        "timeout_secs": 75,
+        "gates": {"structure": {"inputs": ["main.rs"], "reuse": true, "timeout_secs": 25}}
+    });
+    fs::write(&path, config.to_string()).unwrap();
+    assert_eq!(
+        evidence
+            .check_timeout_secs("structure", Some("./lint.sh"))
+            .unwrap(),
+        25
+    );
+    assert_eq!(
+        evidence
+            .check_timeout_secs("structure", Some("different"))
+            .unwrap(),
+        75
+    );
+    let scoped = evidence
+        .observe_check("structure", Some("./lint.sh"), &[])
+        .unwrap()
+        .observation();
+    assert_eq!(scoped.inputs, ["main.rs"]);
+    let broad = evidence
+        .observe_check("structure", Some("different"), &[])
+        .unwrap()
+        .observation();
+    assert!(broad.inputs.is_empty());
+}

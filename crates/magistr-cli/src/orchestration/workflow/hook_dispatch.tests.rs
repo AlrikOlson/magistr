@@ -19,6 +19,7 @@ async fn unknown_tool_succeeds_with_skip_message() {
 async fn format_command_runs_successfully() {
     let dir = tempfile::tempdir().unwrap();
     let config = crate::types::ProjectConfig {
+        verification: Default::default(),
         project: crate::types::ProjectMeta {
             id: None,
             name: "test".into(),

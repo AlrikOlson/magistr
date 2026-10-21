@@ -136,6 +136,8 @@ pub struct BlockArgs {
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct CheckArgs {
+    #[serde(flatten)]
+    pub options: crate::ship::application::CheckOptions,
     #[serde(default)]
     pub task_id: Option<String>,
     #[serde(rename = "type")]
@@ -405,6 +407,7 @@ impl ShipService {
     ) -> Result<CallToolResult, ErrorData> {
         use crate::ship::application::{CheckRequest, ShipUseCases};
         let request = CheckRequest {
+            options: args.options,
             task_id: args.task_id,
             check_type: args.check_type,
             name: args.name,
@@ -418,7 +421,11 @@ impl ShipService {
             Ok(admission) => admission.value,
             Err(error) => return Self::typed_result::<()>(Err(error)),
         };
-        let outcome = ShipUseCases::execute_check(&admission).await;
+        let outcome = match self.use_cases.reuse_check(&admission) {
+            Ok(Some(outcome)) => outcome,
+            Ok(None) => ShipUseCases::execute_check(&admission).await,
+            Err(error) => return Self::typed_result::<()>(Err(error)),
+        };
         Self::typed_result(self.use_cases.settle_check(admission, outcome))
     }
 

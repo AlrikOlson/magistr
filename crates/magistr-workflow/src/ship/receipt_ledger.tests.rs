@@ -17,6 +17,7 @@ fn admit(ledger: &ReceiptLedger, run: &str, id: &str) -> CheckReceipt {
                 target.clone(),
                 attempt,
                 &CheckRequest {
+                    options: Default::default(),
                     task_id: None,
                     check_type: CheckType::Test,
                     name: "test".into(),

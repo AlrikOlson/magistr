@@ -23,7 +23,7 @@ impl ShipUseCases {
 
     pub fn admit_check(
         &self,
-        request: CheckRequest,
+        mut request: CheckRequest,
     ) -> Result<Observed<CheckAdmission>, ShipError> {
         if request.command.is_none() && request.passed.is_none() {
             return Err(ShipError::invalid_args(
@@ -38,10 +38,30 @@ impl ShipUseCases {
                 .ok_or("Set an objective before running a check.")?;
             (target, revision)
         };
+        let default_timeout = self
+            .evidence
+            .as_ref()
+            .map(|port| port.check_timeout_secs(&request.name, request.command.as_deref()))
+            .transpose()
+            .map_err(ShipError::from)?
+            .unwrap_or(super::DEFAULT_CHECK_TIMEOUT_SECS);
+        let timeout = request.options.timeout_secs.get_or_insert(default_timeout);
+        if *timeout == 0 || *timeout > super::MAX_CHECK_TIMEOUT_SECS {
+            return Err(ShipError::invalid_args(format!(
+                "Check timeout must be between 1 and {} seconds.",
+                super::MAX_CHECK_TIMEOUT_SECS
+            )));
+        }
         let witness = self
             .evidence
             .as_ref()
-            .map(|port| port.observe())
+            .map(|port| {
+                port.observe_check(
+                    &request.name,
+                    request.command.as_deref(),
+                    &request.options.inputs,
+                )
+            })
             .transpose()
             .map_err(|reason| {
                 ShipError::refused(
@@ -72,6 +92,7 @@ impl ShipUseCases {
         admission: CheckAdmission,
         outcome: CheckOutcome,
     ) -> Result<CheckSettlement, ShipError> {
+        self.validate_reused_outcome(&admission, &outcome)?;
         let witness = self
             .witnesses
             .lock()
@@ -87,22 +108,28 @@ impl ShipUseCases {
             // Another process admitted the check: only the digests can be
             // compared, each identity on its own — a new owner generation
             // of the same bytes is not a change.
-            (None, Some(port), Some(before)) => Some(match port.observe() {
-                Ok(now) => match before.drift_to(&now.observation()) {
-                    None => SourceFreshness::Unchanged,
-                    Some(ObservationDrift::Configuration { .. }) => {
-                        SourceFreshness::Reconfigured { layers: Vec::new() }
-                    }
-                    Some(ObservationDrift::Source { before, after }) => {
-                        SourceFreshness::Diverged { before, after }
-                    }
-                    Some(_) => SourceFreshness::Diverged {
-                        before: before.revision.clone(),
-                        after: now.observation().revision,
+            (None, Some(port), Some(before)) => Some(
+                match port.observe_check(
+                    &admission.request.name,
+                    admission.request.command.as_deref(),
+                    &admission.request.options.inputs,
+                ) {
+                    Ok(now) => match before.drift_to(&now.observation()) {
+                        None => SourceFreshness::Unchanged,
+                        Some(ObservationDrift::Configuration { .. }) => {
+                            SourceFreshness::Reconfigured { layers: Vec::new() }
+                        }
+                        Some(ObservationDrift::Source { before, after }) => {
+                            SourceFreshness::Diverged { before, after }
+                        }
+                        Some(_) => SourceFreshness::Diverged {
+                            before: before.revision.clone(),
+                            after: now.observation().revision,
+                        },
                     },
+                    Err(reason) => SourceFreshness::Unobserved { reason },
                 },
-                Err(reason) => SourceFreshness::Unobserved { reason },
-            }),
+            ),
             _ => None,
         };
 

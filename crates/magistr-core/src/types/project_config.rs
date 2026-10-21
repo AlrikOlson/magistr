@@ -9,6 +9,9 @@ use super::{CustomGate, FormatConfig, QualityGate, TestingConfig};
 /// Full project configuration (written to .magistr/project.json).
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ProjectConfig {
+    /// Check input declarations and shared execution limits.
+    #[serde(default, skip_serializing_if = "super::VerificationConfig::is_default")]
+    pub verification: super::VerificationConfig,
     /// Project identity (name, description, type).
     pub project: ProjectMeta,
     /// Detected or configured technology stack.

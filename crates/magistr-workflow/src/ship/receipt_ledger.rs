@@ -231,6 +231,68 @@ impl ReceiptLedger {
         Ok(receipts)
     }
 
+    /// Derived membership by command and certified inputs. It survives task and
+    /// session changes; canonical receipt payloads remain the only authority.
+    pub fn for_check(
+        &self,
+        request: &crate::ship::application::CheckRequest,
+        source: &crate::ship::application::SourceObservation,
+    ) -> Result<Vec<CheckReceipt>, ShipError> {
+        let key = reuse_key(
+            &request.name,
+            &request.check_type,
+            request.command.as_deref(),
+            Some(source),
+        );
+        let Some(key) = key else {
+            return Ok(Vec::new());
+        };
+        let mut records = if let Some(directory) = &self.directory {
+            let _lock = lock_directory(directory)?;
+            ensure_reuse_index(directory)?;
+            let bucket = directory.join("checks-v1").join(&key);
+            let entries = match fs::read_dir(&bucket) {
+                Ok(entries) => entries,
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
+                Err(error) => return Err(before(format!("Read check index: {error}"))),
+            };
+            let mut records = Vec::new();
+            for entry in entries {
+                let path = entry.map_err(|error| before(error.to_string()))?.path();
+                if path.extension().is_none_or(|extension| extension != "ref") {
+                    continue;
+                }
+                let id = path
+                    .file_stem()
+                    .and_then(|id| id.to_str())
+                    .ok_or("Invalid check index")?;
+                if let Some(receipt) = read_receipt(directory, id)? {
+                    if receipt_reuse_key(&receipt).as_deref() != Some(&key) {
+                        return Err("Check input index does not match its receipt.".into());
+                    }
+                    records.push(receipt);
+                }
+            }
+            records
+        } else {
+            self.memory
+                .lock()
+                .map_err(|_| before("The check history could not be locked."))?
+                .records
+                .values()
+                .filter(|receipt| receipt_reuse_key(receipt).as_deref() == Some(&key))
+                .cloned()
+                .collect()
+        };
+        records.sort_by(|a, b| {
+            a.admitted_at
+                .cmp(&b.admitted_at)
+                .then(a.attempt.cmp(&b.attempt))
+                .then(a.id.cmp(&b.id))
+        });
+        Ok(records)
+    }
+
     pub(crate) fn compact(
         &self,
         current_run: &str,
@@ -241,8 +303,9 @@ impl ReceiptLedger {
             report.storage = ReceiptStorage::File;
             let _lock = lock_directory(directory)?;
             ensure_index(directory)?;
-            let retained = retained()?;
+            let mut retained = retained()?;
             let records = read_directory(directory)?;
+            retain_reuse_origins(records.values(), &mut retained);
             for receipt in records.into_values() {
                 if report.retain(&receipt, current_run, &retained) {
                     continue;
@@ -263,6 +326,9 @@ impl ReceiptLedger {
                     &receipt.id,
                 )
                 .map_err(ShipError::after_commit)?;
+                if let Some(key) = receipt_reuse_key(&receipt) {
+                    remove_membership(&directory.join("checks-v1").join(key), &receipt.id)?;
+                }
                 report.removed += 1;
             }
         } else {
@@ -270,7 +336,8 @@ impl ReceiptLedger {
                 .memory
                 .lock()
                 .map_err(|_| before("The check history could not be locked."))?;
-            let retained = retained()?;
+            let mut retained = retained()?;
+            retain_reuse_origins(memory.records.values(), &mut retained);
             let remove: Vec<_> = memory
                 .records
                 .values()
@@ -477,7 +544,13 @@ fn remove_membership(bucket: &Path, id: &str) -> Result<(), ShipError> {
 }
 
 fn publish(directory: &Path, receipt: &CheckReceipt) -> Result<ReadSource, ShipError> {
-    add_membership(directory, receipt)?;
+    let existing = receipt_path(directory, &receipt.id)?.is_file();
+    let run_member =
+        run_directory(directory, &receipt.target.run_id).join(format!("{}.ref", receipt.id));
+    if !existing || !run_member.is_file() {
+        add_membership(directory, receipt)?;
+    }
+    add_reuse_membership(directory, receipt, existing)?;
     let stamp = write_locked(&receipt_path(directory, &receipt.id)?, receipt)?;
     Ok(ReadSource::File(stamp))
 }
@@ -508,4 +581,93 @@ fn sync_directory(directory: &Path) -> Result<(), ShipError> {
 #[cfg(not(unix))]
 fn sync_directory(_directory: &Path) -> Result<(), ShipError> {
     Ok(())
+}
+
+fn reuse_key(
+    gate: &str,
+    check_type: &crate::ship::domain::check::CheckType,
+    command: Option<&str>,
+    source: Option<&crate::ship::application::SourceObservation>,
+) -> Option<String> {
+    let source = source?;
+    if source.execution_digest.is_empty() {
+        return None;
+    }
+    let key = serde_json::to_vec(&(
+        gate,
+        check_type,
+        command?,
+        &source.workspace_root,
+        &source.scheme,
+        &source.policy_digest,
+        &source.source_digest,
+        &source.config_digest,
+        &source.execution_digest,
+    ))
+    .ok()?;
+    Some(format!("{:x}", Sha256::digest(key)))
+}
+
+fn receipt_reuse_key(receipt: &CheckReceipt) -> Option<String> {
+    reuse_key(
+        &receipt.gate,
+        &receipt.check_type,
+        receipt.command.as_deref(),
+        receipt.source.as_ref(),
+    )
+}
+
+fn add_reuse_membership(
+    directory: &Path,
+    receipt: &CheckReceipt,
+    existing: bool,
+) -> Result<(), ShipError> {
+    let Some(key) = receipt_reuse_key(receipt) else {
+        return Ok(());
+    };
+    let bucket = directory.join("checks-v1").join(key);
+    let member = bucket.join(format!("{}.ref", receipt.id));
+    if existing && member.is_file() {
+        return Ok(());
+    }
+    fs::create_dir_all(&bucket).map_err(|error| before(error.to_string()))?;
+    OpenOptions::new()
+        .create(true)
+        .truncate(false)
+        .write(true)
+        .open(member)
+        .and_then(|file| file.sync_all())
+        .map_err(|error| before(error.to_string()))?;
+    sync_directory(&bucket)?;
+    sync_directory(&directory.join("checks-v1"))?;
+    sync_directory(directory)
+}
+
+fn ensure_reuse_index(directory: &Path) -> Result<(), ShipError> {
+    let marker = directory.join("checks-v1/ready");
+    match fs::read(&marker) {
+        Ok(bytes) if bytes == b"1\n" => return Ok(()),
+        Ok(_) => return Err("Unsupported check input index version.".into()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        Err(error) => return Err(before(error.to_string())),
+    }
+    for receipt in read_directory(directory)?.into_values() {
+        add_reuse_membership(directory, &receipt, false)?;
+    }
+    fs::create_dir_all(directory.join("checks-v1")).map_err(|error| before(error.to_string()))?;
+    sync_directory(directory)?;
+    publish_bytes(&directory.join("checks-v1"), "ready", b"1\n")
+}
+
+fn retain_reuse_origins<'a>(
+    receipts: impl Iterator<Item = &'a CheckReceipt>,
+    retained: &mut BTreeSet<String>,
+) {
+    for receipt in receipts {
+        if let Some(crate::ship::application::CheckExecution::Reused { receipt_id }) =
+            receipt.execution()
+        {
+            retained.insert(receipt_id.clone());
+        }
+    }
 }

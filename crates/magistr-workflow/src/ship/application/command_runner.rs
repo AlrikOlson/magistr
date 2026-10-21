@@ -26,7 +26,7 @@ pub(crate) const CHECK_OUTPUT_TAIL: usize = 4000;
 /// Public because [`crate::mcp::tasks::TASK_TTL_MS`] is *derived* from it: a
 /// task retention window shorter than the longest a gate may run would mark a
 /// still-running gate `failed`.
-pub(crate) const CHECK_TIMEOUT_SECS: u64 = 900;
+pub(crate) const CHECK_TIMEOUT_SECS: u64 = super::MAX_CHECK_TIMEOUT_SECS;
 /// How long the group gets after `SIGTERM` before `SIGKILL` on a timeout.
 const KILL_GRACE: Duration = Duration::from_secs(5);
 
@@ -36,10 +36,19 @@ const KILL_GRACE: Duration = Duration::from_secs(5);
 /// and args work as written — Magistr's owned-process mechanism supplies the
 /// group, the cap and the kill; it never grants the line the workspace's
 /// declared-command admission. Dropping the future mid-run kills the child.
+#[cfg(test)]
 pub(crate) async fn run_check_command(cmd: &str, cwd: Option<&Path>) -> CommandOutcome {
+    run_check_command_with_timeout(cmd, cwd, super::DEFAULT_CHECK_TIMEOUT_SECS).await
+}
+
+async fn run_check_command_with_timeout(
+    cmd: &str,
+    cwd: Option<&Path>,
+    timeout_secs: u64,
+) -> CommandOutcome {
     let mut spec = ProcessSpec::new(
         Launch::Shell(cmd.to_owned()),
-        Duration::from_secs(CHECK_TIMEOUT_SECS),
+        Duration::from_secs(timeout_secs),
     )
     .with_termination(Termination::Graceful { grace: KILL_GRACE });
     spec.cwd = cwd.map(Path::to_path_buf);
@@ -56,7 +65,7 @@ pub(crate) async fn run_check_command(cmd: &str, cwd: Option<&Path>) -> CommandO
             passed: false,
             exit_code: None,
             execution: CheckExecution::TimedOut,
-            output_tail: format!("`{cmd}` timed out after {CHECK_TIMEOUT_SECS}s"),
+            output_tail: format!("`{cmd}` timed out after {timeout_secs}s"),
         };
     }
     let code = outcome.exit_code;
@@ -109,7 +118,15 @@ impl ShipUseCases {
             .map(|source| Path::new(&source.workspace_root));
         let (passed, details, verified, command, exit_code, execution) = match &request.command {
             Some(command) => {
-                let outcome = run_check_command(command, cwd).await;
+                let outcome = run_check_command_with_timeout(
+                    command,
+                    cwd,
+                    request
+                        .options
+                        .timeout_secs
+                        .unwrap_or(super::DEFAULT_CHECK_TIMEOUT_SECS),
+                )
+                .await;
                 let details = if request.details.is_empty() {
                     outcome.output_tail
                 } else {

@@ -317,3 +317,49 @@ fn an_optimistic_snapshot_round_trips_and_refuses_immutable_certification() {
         "{refused}"
     );
 }
+
+#[test]
+fn scoped_observations_track_membership_ignore_rules_and_missing_roots() {
+    let dir = workspace();
+    let policy = SelectionPolicy::default().with_sources(vec!["src".into(), "future".into()]);
+    let snapshot = SourceSnapshot::capture(dir.path(), policy).unwrap();
+    assert!(!snapshot.manifest.entries.contains_key("assets/logo.bin"));
+    assert!(snapshot.manifest.entries.contains_key(".gitignore"));
+    assert_eq!(entry(&snapshot, "future"), &ManifestEntry::missing());
+    fs::write(dir.path().join("assets/logo.bin"), b"irrelevant").unwrap();
+    assert!(snapshot.validate(dir.path()).unwrap().is_unchanged());
+    fs::write(dir.path().join("src/new.rs"), "pub fn new() {}").unwrap();
+    assert!(
+        changes(&snapshot, dir.path())
+            .iter()
+            .any(|change| change.path == "src/new.rs")
+    );
+    fs::create_dir(dir.path().join("future")).unwrap();
+    fs::write(dir.path().join("future/input"), "new dependency").unwrap();
+    assert!(
+        changes(&snapshot, dir.path())
+            .iter()
+            .any(|change| change.path == "future/input")
+    );
+    fs::write(dir.path().join(".gitignore"), "src/new.rs\n").unwrap();
+    assert!(
+        changes(&snapshot, dir.path())
+            .iter()
+            .any(|change| change.path == ".gitignore")
+    );
+    for invalid in [
+        "..",
+        "../outside",
+        "/absolute",
+        ".magistr/workspace",
+        ".git",
+    ] {
+        assert!(
+            SourceSnapshot::capture(
+                dir.path(),
+                SelectionPolicy::default().with_sources(vec![invalid.into()])
+            )
+            .is_err()
+        );
+    }
+}

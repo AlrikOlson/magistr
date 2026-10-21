@@ -14,6 +14,7 @@ pub struct SnapshotWitness {
     snapshot: SourceSnapshot,
     layers: Vec<(ConfigLayer, PathBuf)>,
     configuration: ConfigDigest,
+    execution: Option<super::execution_fingerprint::ExecutionFingerprint>,
 }
 
 impl SnapshotWitness {
@@ -29,7 +30,23 @@ impl SnapshotWitness {
             snapshot,
             layers,
             configuration,
+            execution: None,
         }
+    }
+
+    pub(super) fn with_execution(mut self, command: Option<&str>) -> Result<Self, String> {
+        self.execution = Some(super::execution_fingerprint::ExecutionFingerprint::observe(
+            &self.root,
+            command,
+            &self
+                .snapshot
+                .manifest
+                .entries
+                .keys()
+                .cloned()
+                .collect::<Vec<_>>(),
+        )?);
+        Ok(self)
     }
 
     /// The snapshot as captured.
@@ -57,6 +74,12 @@ impl SourceWitness for SnapshotWitness {
             config_digest: self.configuration.digest(),
             consistency: self.snapshot.consistency.as_str().to_owned(),
             captured_at_ms: self.snapshot.captured_at_ms,
+            inputs: self.snapshot.policy.source_roots.clone(),
+            execution_digest: self
+                .execution
+                .as_ref()
+                .map(|execution| execution.digest.clone())
+                .unwrap_or_default(),
         }
     }
 
@@ -75,6 +98,13 @@ impl SourceWitness for SnapshotWitness {
                         .collect(),
                 });
             }
+        }
+        if let Some(execution) = &self.execution
+            && !execution.unchanged(&self.root)?
+        {
+            return Ok(SourceFreshness::Reconfigured {
+                layers: vec!["toolchain or environment".into()],
+            });
         }
         let configuration =
             ConfigDigest::observe(&self.layers).map_err(|error| error.to_string())?;

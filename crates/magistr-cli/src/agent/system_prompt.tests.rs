@@ -5,6 +5,7 @@ use crate::types::{
 
 fn sample_config() -> ProjectConfig {
     ProjectConfig {
+        verification: Default::default(),
         project: ProjectMeta {
             id: None,
             name: "my-app".into(),
