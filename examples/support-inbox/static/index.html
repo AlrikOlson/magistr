@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Workshop — Support inbox</title><link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script></head>
+<body>
+<header><a href="/" class="brand">Workshop<span>Support inbox</span></a><p>A small team. One place for every conversation.</p><span class="team" aria-label="Team members: Maya, Leo and Sam">Maya · Leo · Sam</span></header>
+<main>
+  <div class="inbox-heading"><div><p class="eyebrow">CUSTOMER CONVERSATIONS</p><h1>Inbox <span id="count">0</span></h1></div><div class="actions"><button id="sample">Load sample mail</button><button id="refresh">Refresh inbox</button></div></div>
+  <p id="notice" role="status" aria-live="polite">Mail is saved as it arrives.</p>
+  <form id="filters" class="filters" role="search">
+    <label class="search-label">Search conversations<input type="search" id="search" placeholder="Search names, subjects or messages" maxlength="200"></label>
+    <label>Status<select id="status"><option value="">All conversations</option><option value="open">Open</option><option value="resolved">Resolved</option></select></label>
+    <label>Assigned to<select id="assigned"><option value="">Everyone</option><option>Maya</option><option>Leo</option><option>Sam</option></select></label>
+  </form>
+  <div class="inbox-layout">
+    <section class="conversation-list" aria-label="Conversations"><div id="list"></div><p id="empty">Your inbox is empty. Load sample mail or receive a message through the mail endpoint.</p></section>
+    <section id="detail" aria-label="Selected conversation"><div class="nothing-selected"><span aria-hidden="true">↗</span><h2>Choose a conversation</h2><p>Read the messages, assign a teammate, and keep track of what still needs an answer.</p></div></section>
+  </div>
+  <p class="local-note">Local demo · Sample customer data · Your changes are saved</p>
+</main>
+</body></html>

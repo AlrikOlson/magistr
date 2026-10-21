@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "project": "Support inbox",
+  "source": {
+    "README.md": "9e15d35a9bed6732fd28c336d12b90c9b98fb833ac7e0b04763724cdac32ac32",
+    "store.py": "bf3c1b939e0ce4c08e15ea1af5cc7036b5d2f2a7b797a7c427f91438802f3327",
+    "server.py": "efc75e46fb639849a019f2b74da715092d6c8b3ff0b8e2f4a3c04139898c0817",
+    "static/index.html": "8fff5cbd1ef6da88cefe60fd43efe74a24c713ddb446c66ba21fdacfac9166f4",
+    "static/style.css": "94e5dcae4600e0f51a9df76061df6ad53bfda212bd672557665fd2f7f733f424",
+    "static/app.js": "1e080043b43c493bb886e10530004534438695f7a62b50d7f2724f9c896e90da",
+    "tests/test_store.py": "1e3a98ae2214071653b85b92c0dc9f9da599cc039a7c63680416edf830789c5e",
+    "tests/test_api.py": "8febe5c8367edea551807c85e759a7fc15c3c0e6ec4394d51f8954e4b8a7708f",
+    "record-browser.mjs": "3f5be78e31b01c6e8d928754a37c8d985e2b75774f7d44ba0e27ffbf451af872"
+  },
+  "artifacts": {
+    "recording.json": "921f86aeb0347ce03d663433cd63e7f0efff09f42d21b56605916d2d1d9debf8",
+    "source.zip": "fd2bcbaa8f443d2a6bc566d3485ba8a3156b76dfcb8d29aa1dc4f647d283b0ff",
+    "inbox-workflow.webm": "baee474062f23fab399affe511afde9fd8431caadabf910a51324dfbec5c5d67",
+    "inbox-light.png": "a47758b2db23c1d3c8ecdbce63663fe2a7ab9446c297efc614189931b7f508bb",
+    "inbox-dark.png": "c737665ac3c1481b0f9e3f69cc3c153a7f8df12946a0e429dda2c5918f9c517d"
+  },
+  "recording": "47 actual captured tool actions, one Codex session with Magistr",
+  "browserEvidence": "docs/evidence/desktop-iterations/2026-10-20-inbox-build-refined/captures.json",
+  "video": {
+    "seconds": 11.92,
+    "width": 1280,
+    "height": 900,
+    "audio": false,
+    "customerData": "sample",
+    "renderer": "Headless WebKit"
+  },
+  "limitations": [
+    "Local demo, one workspace",
+    "No live mail provider or outgoing email",
+    "No authentication or production deployment of the demo app",
+    "The video records the completed app; the build log records the implementation tool actions"
+  ]
+}

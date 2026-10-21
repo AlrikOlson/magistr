@@ -1,0 +1,823 @@
+{
+  "completedAt": "2026-10-21T05:02:52.746Z",
+  "status": "passed",
+  "renderer": "Playwright WebKit",
+  "rendererVersion": "27.2",
+  "platform": "darwin-arm64",
+  "node": "v24.21.0",
+  "origin": "http://127.0.0.1:50353",
+  "motion": "reduced",
+  "scale": 1,
+  "evidenceScope": "recording",
+  "checks": [
+    {
+      "layout": "wide",
+      "appearance": "light",
+      "passed": true,
+      "scenarios": [
+        "five static routes",
+        "section navigation: keyboard, links and sticky-header clearance",
+        "primary and theme-control contrast",
+        "wrapped code and aligned documentation arrows",
+        "recorded project: actual action playback, source, failed/passed checks, completed tasks, canvas timeline, keyboard, pause and video seek; evidence tabs: pointer, arrows, Home, End, focus",
+        "clipboard success and denial (browser stub)",
+        "reflow at 320 px",
+        "images",
+        "install anchor",
+        "theme persistence",
+        "selected agent instructions",
+        "lazy search, results, empty and failure recovery, cleared query",
+        "keyboard skip link"
+      ]
+    },
+    {
+      "layout": "wide",
+      "appearance": "dark",
+      "passed": true,
+      "scenarios": [
+        "five static routes",
+        "section navigation: keyboard, links and sticky-header clearance",
+        "primary and theme-control contrast",
+        "wrapped code and aligned documentation arrows",
+        "recorded project: actual action playback, source, failed/passed checks, completed tasks, canvas timeline, keyboard, pause and video seek; evidence tabs: pointer, arrows, Home, End, focus",
+        "clipboard success and denial (browser stub)",
+        "reflow at 320 px",
+        "images",
+        "install anchor",
+        "theme persistence",
+        "selected agent instructions",
+        "lazy search, results, empty and failure recovery, cleared query",
+        "keyboard skip link"
+      ]
+    },
+    {
+      "layout": "compact",
+      "appearance": "light",
+      "passed": true,
+      "scenarios": [
+        "five static routes",
+        "section navigation: keyboard, links and sticky-header clearance",
+        "primary and theme-control contrast",
+        "wrapped code and aligned documentation arrows",
+        "recorded project: actual action playback, source, failed/passed checks, completed tasks, canvas timeline, keyboard, pause and video seek; evidence tabs: pointer, arrows, Home, End, focus",
+        "clipboard success and denial (browser stub)",
+        "reflow at 320 px",
+        "images",
+        "install anchor",
+        "theme persistence",
+        "selected agent instructions",
+        "lazy search, results, empty and failure recovery, cleared query",
+        "keyboard skip link",
+        "mobile menu navigation, Escape, anchor focus and resize recovery"
+      ]
+    },
+    {
+      "layout": "compact",
+      "appearance": "dark",
+      "passed": true,
+      "scenarios": [
+        "five static routes",
+        "section navigation: keyboard, links and sticky-header clearance",
+        "primary and theme-control contrast",
+        "wrapped code and aligned documentation arrows",
+        "recorded project: actual action playback, source, failed/passed checks, completed tasks, canvas timeline, keyboard, pause and video seek; evidence tabs: pointer, arrows, Home, End, focus",
+        "clipboard success and denial (browser stub)",
+        "reflow at 320 px",
+        "images",
+        "install anchor",
+        "theme persistence",
+        "selected agent instructions",
+        "lazy search, results, empty and failure recovery, cleared query",
+        "keyboard skip link",
+        "mobile menu navigation, Escape, anchor focus and resize recovery"
+      ]
+    }
+  ],
+  "sourceHashes": {
+    "apps/website/astro.config.mjs": "b8e61ea2c65b9c04cd1f44fa09091e134c761266baf1ea90c0efbdf75e795818",
+    "apps/website/package-lock.json": "799cde1b1a6c8048e7e1ec105b283f47a526485028f5ce0fdb06010f5e4a7b53",
+    "apps/website/package.json": "59804f257c100d70e3f8031979ffe3b22c5f88f1bf5cffc39544a63f3283c9f8",
+    "apps/website/public/demo/inbox/inbox-dark.png": "c737665ac3c1481b0f9e3f69cc3c153a7f8df12946a0e429dda2c5918f9c517d",
+    "apps/website/public/demo/inbox/inbox-light.png": "a47758b2db23c1d3c8ecdbce63663fe2a7ab9446c297efc614189931b7f508bb",
+    "apps/website/public/demo/inbox/inbox-workflow.webm": "baee474062f23fab399affe511afde9fd8431caadabf910a51324dfbec5c5d67",
+    "apps/website/public/demo/inbox/manifest.json": "dbff7db3892593ba724d6f4f3af5e3c87068954abc13d600262fd0daa3b5cc13",
+    "apps/website/public/demo/inbox/recording.json": "921f86aeb0347ce03d663433cd63e7f0efff09f42d21b56605916d2d1d9debf8",
+    "apps/website/public/demo/inbox/source.zip": "fd2bcbaa8f443d2a6bc566d3485ba8a3156b76dfcb8d29aa1dc4f647d283b0ff",
+    "apps/website/public/favicon.svg": "39f132daba63253e3b52d7196f1da0ccbd79ca6398258856d092d05b0fc713d5",
+    "apps/website/public/github-social.png": "45bc8034b7c10b95a5ce5a254da914f28f7342e3c48544a9c4cbaebe9f625532",
+    "apps/website/public/icon-192.png": "28955bd5e1b5021eb9c0d52ff21d61aa0b9004f94271f21261c4aba06143b330",
+    "apps/website/public/og-image.png": "45bc8034b7c10b95a5ce5a254da914f28f7342e3c48544a9c4cbaebe9f625532",
+    "apps/website/public/og-image.svg": "1433ab472239193e78668b035d61260e66646185ace83c1086600b8935ea47fd",
+    "apps/website/public/screenshots/captures.json": "59897446e1905f99041dbc73cb9758d32b9541bb51c676b6eddd30009ab1d5bf",
+    "apps/website/public/site.webmanifest": "2bb0d8f16524032f18d2e694c6ce5d42dd33cae1c3ace178f818b4a75caf8975",
+    "apps/website/scripts/asset-url.mjs": "976d11d93e755da868580b92873db6a731aef16a3d6a37058c3a03a73bd54310",
+    "apps/website/scripts/generate-favicons.mjs": "29219764e02ff13ac133f07a70e97fb33f8f3dfda80f2816000efa9a00de99a8",
+    "apps/website/src/components/Footer.astro": "23491fba8cdb8ee7c02bae483be82cb233652c9cd488f7201b46a36553a2d84e",
+    "apps/website/src/components/Nav.astro": "77cab5ab0cdc4d7a92502adbe6746fe008b3763c93550694acff8a84561a36a2",
+    "apps/website/src/components/ProductEvidence.astro": "6b3a4b44a6862cf3010ab7ef02136f84a32d59467e55b9dd23f861258b786f3b",
+    "apps/website/src/components/ThemeToggle.astro": "62739fc7a3d3476e13c53f2dfa389150f3e7ca4ba0629c34b71f5cf8202ea211",
+    "apps/website/src/components/Workflow.astro": "5819e8185e22395dddda5ae13c6e699b8bb136b882403b3b08e1dca201eac791",
+    "apps/website/src/content.config.ts": "35db5d681c2146a4e34de514bb5c1472d5da2e75b2652f8ca0fba880afcf1a1a",
+    "apps/website/src/content/docs/concepts.mdx": "75f3cbb852a2b60f07608e7ec1f3e6e3a94ecd1ae7c7ac03466188d24f1adb66",
+    "apps/website/src/content/docs/installation.mdx": "89cdd1893f6de24ad6928d2f551e03301b4732a3316b5bbc144d4450cb77a3d8",
+    "apps/website/src/content/docs/workflow.mdx": "2d38d306deb4f0752d43ac9145a940b1d6381df762d7875cd3ccf83be2043d21",
+    "apps/website/src/data/project-recording.mjs": "93c618d058960347cbd214270114b1a33e023b135b8105e8cce83518bdc9bf9a",
+    "apps/website/src/layouts/Base.astro": "bda7db4e3bdc2104a00615b3066167db83b4d32757b1860027889b0c9ef271cf",
+    "apps/website/src/layouts/Docs.astro": "a6ccd0f1d616a6c73548c6a751924707c8ac166d275670dd5cbc0327d0f730fc",
+    "apps/website/src/pages/404.astro": "9829e116d2cd8e2a16b6ac66a2be9566acb5e6486dc2848fe8b164f4fd332f74",
+    "apps/website/src/pages/docs/[...slug].astro": "14d87e7c921ba2633ccd4780c9c218031152ebe16e2aa39c3a37f7243bb48e95",
+    "apps/website/src/pages/index.astro": "0e7f8c7569389df633e0a4d996093339e26c194a1192a2b77bbac3f58cc4982b",
+    "apps/website/src/pages/robots.txt.ts": "55c24c9a347c8d62fe0a071522d6433a9ccdcd5c4013733fe87ca2bc778c2ab2",
+    "apps/website/src/scripts/project-recording.ts": "c94033dbff55d6c2bf88c52e4173601959687b08264c02c222df0e17a1288e6b",
+    "apps/website/src/scripts/tabs.ts": "32e6adc7ac689beb534b916a5752b50f21e2d289f9cfd3f99f326472e2a4a0bc",
+    "apps/website/src/styles/global.css": "7f068c82b827cb670299ad9523f8d8d9809265b4eae8982384a4181384edc6ae",
+    "apps/website/tests/browser.mjs": "5ff232ab866b1cd03414d1cf21e7c9d5d5a614496bfa0dd29b085cb001b8d7fb"
+  },
+  "captures": [
+    {
+      "file": "home-intro-wide-light.png",
+      "state": "Product description, setup action and project guide",
+      "url": "/",
+      "capturedAt": "2026-10-21T05:01:29.451Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "ba5787e95adb725c106365adc0d4d1b7eb9d044227aace44e7aea643b1213246",
+      "review": "pending"
+    },
+    {
+      "file": "recording-overview-wide-light.png",
+      "state": "Recorded build with completed app preview and five milestones",
+      "url": "/",
+      "capturedAt": "2026-10-21T05:01:29.629Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1104,
+      "height": 1301,
+      "sha256": "2313595258669fd53c99fcc82f5d3f47646b8c6a20c2aa27262bf1a90fa0d067",
+      "review": "pending"
+    },
+    {
+      "file": "recording-action-14-wide-light.png",
+      "state": "Run the storage checks before building the store",
+      "url": "/",
+      "capturedAt": "2026-10-21T05:01:29.719Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1104,
+      "height": 1129,
+      "sha256": "a356480ec29dbd3dbb6cec9afcd4001737df0a59228e8a12e6d3ebd6a9a207c2",
+      "review": "pending"
+    },
+    {
+      "file": "recording-action-15-wide-light.png",
+      "state": "Implement transactional mail intake and conversation storage",
+      "url": "/",
+      "capturedAt": "2026-10-21T05:01:29.801Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1104,
+      "height": 1129,
+      "sha256": "0fa9306f4648a568f06ff982a5fd3b25c0e77b494054b748215a4d0fb4c7ee76",
+      "review": "pending"
+    },
+    {
+      "file": "recording-action-35-wide-light.png",
+      "state": "Give the filters and assignment menu usable targets",
+      "url": "/",
+      "capturedAt": "2026-10-21T05:01:29.885Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1104,
+      "height": 1129,
+      "sha256": "e6d2c53a8d5ab495b864d7b0235815de26c9682a25e3488b79761a0ba231f124",
+      "review": "pending"
+    },
+    {
+      "file": "recording-action-44-wide-light.png",
+      "state": "Run the finished app’s checks",
+      "url": "/",
+      "capturedAt": "2026-10-21T05:01:29.970Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1104,
+      "height": 1129,
+      "sha256": "5a56d9a226203838ddcf98415872191f398f0e3a768b0492552954397c755307",
+      "review": "pending"
+    },
+    {
+      "file": "recording-keyboard-wide-light.png",
+      "state": "Milestone selected through the keyboard with focus retained",
+      "url": "/",
+      "capturedAt": "2026-10-21T05:01:30.067Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1104,
+      "height": 1128,
+      "sha256": "ac5887b67efd54ab9948b7533f181d9bd78e8707d77a8c3a6e79601cad35def4",
+      "review": "pending"
+    },
+    {
+      "file": "home-intro-wide-dark.png",
+      "state": "Product description, setup action and project guide",
+      "url": "/",
+      "capturedAt": "2026-10-21T05:01:44.085Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "05cf6f939e5a280c370a19b21514596c4988c9d9163d08542f7fd76b17e506be",
+      "review": "pending"
+    },
+    {
+      "file": "recording-overview-wide-dark.png",
+      "state": "Recorded build with completed app preview and five milestones",
+      "url": "/",
+      "capturedAt": "2026-10-21T05:01:44.261Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1104,
+      "height": 1301,
+      "sha256": "9bf08ce431192240b2df2030150e2329722fe2c1a26e211fc3fdb886f1ac5be5",
+      "review": "pending"
+    },
+    {
+      "file": "recording-action-14-wide-dark.png",
+      "state": "Run the storage checks before building the store",
+      "url": "/",
+      "capturedAt": "2026-10-21T05:01:44.352Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1104,
+      "height": 1129,
+      "sha256": "8a3797bdea7030f716e8eb8fe35e6cc3062fca658cc2f5c6bcc5e5b4edb1566a",
+      "review": "pending"
+    },
+    {
+      "file": "recording-action-15-wide-dark.png",
+      "state": "Implement transactional mail intake and conversation storage",
+      "url": "/",
+      "capturedAt": "2026-10-21T05:01:44.436Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1104,
+      "height": 1129,
+      "sha256": "b0cece4b22f508527c29a92fe3cda42ce878f35920acebd63fd26955b97d05dd",
+      "review": "pending"
+    },
+    {
+      "file": "recording-action-35-wide-dark.png",
+      "state": "Give the filters and assignment menu usable targets",
+      "url": "/",
+      "capturedAt": "2026-10-21T05:01:44.519Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1104,
+      "height": 1129,
+      "sha256": "697dafff989e9c5fb1af0c7661573ed74ea042ecbab2de61fc992da3ee87d04a",
+      "review": "pending"
+    },
+    {
+      "file": "recording-action-44-wide-dark.png",
+      "state": "Run the finished app’s checks",
+      "url": "/",
+      "capturedAt": "2026-10-21T05:01:44.607Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1104,
+      "height": 1129,
+      "sha256": "c64d8adf7056d7e299f99bdc9687bb721cd3e3427f8e3cb10b81fa38c1969245",
+      "review": "pending"
+    },
+    {
+      "file": "home-intro-compact-light.png",
+      "state": "Product description, setup action and project guide",
+      "url": "/",
+      "capturedAt": "2026-10-21T05:01:58.559Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "c0a3bf260a71afe39b60bfaf2564ff9e8eca7c4c4f3ae219dfccedc41e9423e5",
+      "review": "pending"
+    },
+    {
+      "file": "recording-overview-compact-light.png",
+      "state": "Recorded build with completed app preview and five milestones",
+      "url": "/",
+      "capturedAt": "2026-10-21T05:01:58.715Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 350,
+      "height": 1437,
+      "sha256": "fd5fe4c1ef80d56ef168589ec9488fad986b9ca64a3b5ecb4a644650727be93f",
+      "review": "pending"
+    },
+    {
+      "file": "recording-action-14-compact-light.png",
+      "state": "Run the storage checks before building the store",
+      "url": "/",
+      "capturedAt": "2026-10-21T05:01:58.798Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 350,
+      "height": 1643,
+      "sha256": "4a1adfcc777afdcbf0c49e949412b5788a0bc8b30e819e62f08594a0cbdaee7e",
+      "review": "pending"
+    },
+    {
+      "file": "recording-action-15-compact-light.png",
+      "state": "Implement transactional mail intake and conversation storage",
+      "url": "/",
+      "capturedAt": "2026-10-21T05:01:58.881Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 350,
+      "height": 1661,
+      "sha256": "c865d92f5174035064cdb448a3f513896b368fc1e6dc607a349480894f3c6cd8",
+      "review": "pending"
+    },
+    {
+      "file": "recording-action-35-compact-light.png",
+      "state": "Give the filters and assignment menu usable targets",
+      "url": "/",
+      "capturedAt": "2026-10-21T05:01:58.964Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 350,
+      "height": 1661,
+      "sha256": "007ed005391f0e6c3e117524a565e8474e227791905547f688e1639ac6301ac4",
+      "review": "pending"
+    },
+    {
+      "file": "recording-action-44-compact-light.png",
+      "state": "Run the finished app’s checks",
+      "url": "/",
+      "capturedAt": "2026-10-21T05:01:59.048Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 350,
+      "height": 1643,
+      "sha256": "a9dad88315f59da43c1e767aa6b539be7470fc486b17b9ef5891b238144e8ff6",
+      "review": "pending"
+    },
+    {
+      "file": "recording-320-light.png",
+      "state": "Recorded source edit at 320 CSS pixels",
+      "url": "/",
+      "capturedAt": "2026-10-21T05:02:09.915Z",
+      "viewport": {
+        "width": 320,
+        "height": 844
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 280,
+      "height": 1819,
+      "sha256": "214d2b3f4a4012acca50fcfe3e34e5f656f452bc683338ee95a4d8bfe6b2ecb1",
+      "review": "pending"
+    },
+    {
+      "file": "home-intro-compact-dark.png",
+      "state": "Product description, setup action and project guide",
+      "url": "/",
+      "capturedAt": "2026-10-21T05:02:13.510Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "cfdb0f5ea8266aabf98461cae41c2f0d9bdae5790d32476e3b0171e13beeadc2",
+      "review": "pending"
+    },
+    {
+      "file": "recording-overview-compact-dark.png",
+      "state": "Recorded build with completed app preview and five milestones",
+      "url": "/",
+      "capturedAt": "2026-10-21T05:02:13.666Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 350,
+      "height": 1437,
+      "sha256": "dc210a983536b306f8fbf4cfc51f26773e82991bc6496a557700828b95fe8fc2",
+      "review": "pending"
+    },
+    {
+      "file": "recording-action-14-compact-dark.png",
+      "state": "Run the storage checks before building the store",
+      "url": "/",
+      "capturedAt": "2026-10-21T05:02:13.748Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 350,
+      "height": 1643,
+      "sha256": "357d29fefab6638ab2bb85e2feec1a8e5f906fd76e19fe66ab6c164f414a48c3",
+      "review": "pending"
+    },
+    {
+      "file": "recording-action-15-compact-dark.png",
+      "state": "Implement transactional mail intake and conversation storage",
+      "url": "/",
+      "capturedAt": "2026-10-21T05:02:13.831Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 350,
+      "height": 1661,
+      "sha256": "9eab819034da18214dba41afd98f60463e3828c2a4f781db9419b8376e5acf58",
+      "review": "pending"
+    },
+    {
+      "file": "recording-action-35-compact-dark.png",
+      "state": "Give the filters and assignment menu usable targets",
+      "url": "/",
+      "capturedAt": "2026-10-21T05:02:13.915Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 350,
+      "height": 1661,
+      "sha256": "858368fd6370720a309571f17d3eb899ae65b2824d27152ea6ba3d7a02f7c6f4",
+      "review": "pending"
+    },
+    {
+      "file": "recording-action-44-compact-dark.png",
+      "state": "Run the finished app’s checks",
+      "url": "/",
+      "capturedAt": "2026-10-21T05:02:14.001Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 350,
+      "height": 1643,
+      "sha256": "ee0ff6484d0e4ec5bc751e478651506e75c68402beefe95e2e4f8ca54a407ccd",
+      "review": "pending"
+    },
+    {
+      "file": "recording-keyboard-compact-dark.png",
+      "state": "Milestone selected through the keyboard with focus retained",
+      "url": "/",
+      "capturedAt": "2026-10-21T05:02:14.096Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 350,
+      "height": 1624,
+      "sha256": "0aaa6373f7db0115a98bc3e1a9c5c8485d95bd508d6029301e7194c3e406bf93",
+      "review": "pending"
+    },
+    {
+      "file": "recording-320-dark.png",
+      "state": "Recorded source edit at 320 CSS pixels",
+      "url": "/",
+      "capturedAt": "2026-10-21T05:02:24.898Z",
+      "viewport": {
+        "width": 320,
+        "height": 844
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 280,
+      "height": 1819,
+      "sha256": "746bf201f9dc8104da228f65adbf5557e84ffec07c535bb414fe867cd3ef839e",
+      "review": "pending"
+    },
+    {
+      "file": "recording-720-light.png",
+      "state": "Source playback at intermediate width",
+      "url": "/",
+      "capturedAt": "2026-10-21T05:02:28.534Z",
+      "viewport": {
+        "width": 720,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 672,
+      "height": 1174,
+      "sha256": "64b44b68c9c26ef60a41400458761fc479172b2e9c0f5753cdc7b3d99d96af76",
+      "review": "pending"
+    },
+    {
+      "file": "recording-720-dark.png",
+      "state": "Source playback at intermediate width",
+      "url": "/",
+      "capturedAt": "2026-10-21T05:02:32.050Z",
+      "viewport": {
+        "width": 720,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 672,
+      "height": 1174,
+      "sha256": "d32bdc8977e1bbf251ba8f40bbe936046356018d28adf315cffbd88632ac8ef6",
+      "review": "pending"
+    },
+    {
+      "file": "recording-820-light.png",
+      "state": "Source playback at intermediate width",
+      "url": "/",
+      "capturedAt": "2026-10-21T05:02:35.512Z",
+      "viewport": {
+        "width": 820,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 756,
+      "height": 1174,
+      "sha256": "8c1b1fc71a507080dd710ca63d10177cf100110af8db1693a94bfe8cc177894c",
+      "review": "pending"
+    },
+    {
+      "file": "recording-820-dark.png",
+      "state": "Source playback at intermediate width",
+      "url": "/",
+      "capturedAt": "2026-10-21T05:02:39.025Z",
+      "viewport": {
+        "width": 820,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 756,
+      "height": 1174,
+      "sha256": "2d30a900ce1a24be404c560364be634410092017b03706d8d52e4393f5d5eab1",
+      "review": "pending"
+    },
+    {
+      "file": "recording-1024-light.png",
+      "state": "Source playback at intermediate width",
+      "url": "/",
+      "capturedAt": "2026-10-21T05:02:42.493Z",
+      "viewport": {
+        "width": 1024,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 960,
+      "height": 1150,
+      "sha256": "8bca051f5725c7516d5fd6fdb4105ee1cf43004c81cdb874b970b3b2004ca0b4",
+      "review": "pending"
+    },
+    {
+      "file": "recording-1024-dark.png",
+      "state": "Source playback at intermediate width",
+      "url": "/",
+      "capturedAt": "2026-10-21T05:02:45.961Z",
+      "viewport": {
+        "width": 1024,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 960,
+      "height": 1150,
+      "sha256": "f60bfeef2c64e07fb1582208bed0581b65915a0ceaca2e82f7d054d7778dfe95",
+      "review": "pending"
+    },
+    {
+      "file": "recording-unavailable.png",
+      "state": "Failed recording download retains real video and downloads",
+      "url": "/",
+      "capturedAt": "2026-10-21T05:02:49.369Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 350,
+      "height": 885,
+      "sha256": "982e04f0031447e01f575442afc845014e9ee9b4f064389c540ff0265cccf96b",
+      "review": "pending"
+    },
+    {
+      "file": "recording-without-javascript.png",
+      "state": "App recording and downloadable transcript remain available without JavaScript",
+      "url": "/",
+      "capturedAt": "2026-10-21T05:02:52.744Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 350,
+      "height": 847,
+      "sha256": "2a0b1b08c7383911b35f490995ac7dc5b3df60b0df901b109099705d733ca6cb",
+      "review": "pending"
+    }
+  ],
+  "limitations": [
+    "Headless browser only; no native OS-input or assistive-technology testing.",
+    "Screenshots require separate recorded visual review.",
+    "Local build; no deployed-site or registry publication claim."
+  ]
+}

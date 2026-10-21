@@ -1,49 +1,70 @@
 ---
-const steps = ["Plan", "Change", "Check", "Continue"];
+import recording from "../../public/demo/inbox/recording.json";
+import { chapters, elapsed, checkOf } from "../data/project-recording.mjs";
+import { publicAssetUrl } from "../../scripts/asset-url.mjs";
+const asset = (name) => publicAssetUrl("demo/inbox/" + name);
+const last = recording.events.at(-1);
+const duration = elapsed(recording, {at:recording.endedAt});
 ---
-<div class="walkthrough" data-tabset>
-  <div class="workflow-tabs tab-controls" data-tablist aria-label="Task walkthrough" hidden>
-    {steps.map((step, index) => <button type="button" id={`step-tab-${index}`} data-tab aria-controls={`step-panel-${index}`}>{step}</button>)}
+<div class="walkthrough build-recording" data-recording data-recording-url={asset("recording.json")} data-ready="false">
+  <div class="recording-heading">
+    <div><h3>A support inbox, built from scratch</h3><p>Codex + Magistr · One recorded session · {duration} · {recording.events.length} actions</p></div>
+    <span class="recording-label">Recorded October 20, 2026</span>
   </div>
-  <section id="step-panel-0" class="workflow-panel" data-panel>
-    <div class="workflow-explanation"><h3>Save the expected result</h3><p>The existing test exposed the bug. The agent recorded what the function should return before changing the code.</p></div>
-    <div class="example-record">
-      <p class="record-label">The agreed change</p>
-      <ul class="acceptance-list"><li>Trim surrounding whitespace.</li><li>Drop names that become empty.</li><li>Lowercase the remaining names.</li></ul>
-      <div class="record-check"><span class="record-note">Run the existing test</span><code>python3 -m unittest -q</code><span>Keep the existing test unchanged.</span></div>
+  <div class="recording-toolbar" hidden>
+    <button type="button" class="record-play" data-play>▶ Play the build</button>
+    <button type="button" data-previous aria-label="Previous recorded action">←</button>
+    <button type="button" data-next aria-label="Next recorded action">→</button>
+    <label class="recording-pace">Pace <select data-speed aria-label="Playback pace"><option value="1">1×</option><option value="2">2×</option><option value="4">4×</option></select></label>
+    <span class="recording-position" data-position>Finished · {duration}</span>
+  </div>
+  <div class="recording-timeline" hidden>
+    <canvas aria-hidden="true" data-timeline></canvas>
+    <label class="sr-only" for="recording-scrub">Recorded action</label>
+    <input id="recording-scrub" type="range" min="0" max={recording.events.length-1} value={recording.events.length-1} step="1" data-scrub />
+    <div class="recording-timeline-note"><span>Each mark is a recorded action. Drag to explore.</span><span>Pauses shortened during playback</span></div>
+  </div>
+  <div class="recording-chapters" role="group" aria-label="Recorded milestones" hidden>
+    {chapters.map((chapter,index)=><button type="button" data-chapter={chapter.id}><span class="chapter-number">{index+1}</span><span><strong>{chapter.label}</strong><small data-milestone-status>Completed</small></span></button>)}
+  </div>
+  <div class="recording-workspace">
+    <div class="recording-events" aria-label="Recorded actions" hidden>
+      {recording.events.map(event=><button type="button" data-event={event.id}><span data-event-time>{elapsed(recording,event)}</span><span>{event.title}</span><i aria-hidden="true" data-event-kind={event.kind} data-check-passed={checkOf(event)?.passed}></i></button>)}
     </div>
-  </section>
-  <section id="step-panel-1" class="workflow-panel" data-panel>
-    <div class="workflow-explanation"><h3>Change the function</h3><p>The function filtered names before trimming them. A string containing spaces counted as a name.</p></div>
-    <div class="example-record code-record">
-      <p class="record-label">names.py</p>
-      <div class="code-change"><span class="change-label">Before</span><pre><code>def normalize_names(names):
-    return [name.lower() for name in names if name]</code></pre></div>
-      <div class="code-change added"><span class="change-label">After</span><pre><code>def normalize_names(names):
-    stripped_names = (name.strip() for name in names)
-    return [name.lower() for name in stripped_names if name]</code></pre></div>
-      <p class="record-foot">One source file changed. The test stayed the same.</p>
+    <div class="recording-stage">
+      <div class="recording-views" role="group" aria-label="Recording view" hidden>
+        <button type="button" data-view="action" aria-pressed="false">Source &amp; output</button>
+        <button type="button" data-view="app" aria-pressed="true">Watch the app</button>
+      </div>
+      <div class="recording-action" hidden>
+        <div class="recording-action-heading"><div><p data-action-meta></p><h4 data-action-title>{last.title}</h4></div><span data-action-status>Completed</span></div>
+        <div class="recording-file-controls"><label>View <select data-file aria-label="Recorded source or output"><option value="">This action</option></select></label><span data-source-note>Actual recorded output</span></div>
+        <pre tabindex="0" aria-label="Recorded source and output"><code data-output></code></pre>
+        <p class="recording-receipt" data-receipt></p>
+      </div>
+      <div class="recording-app">
+        <div class="recording-app-caption"><strong>The working inbox</strong><span>Actual browser recording · 12 seconds · No audio</span></div>
+        <video controls playsinline preload="none" width="1280" height="900" poster={asset("inbox-light.png")} data-poster-light={asset("inbox-light.png")} data-poster-dark={asset("inbox-dark.png")} aria-label="Recorded workflow in the completed support inbox">
+          <source src={asset("inbox-workflow.webm")} type="video/webm" />
+          <p><a href={asset("inbox-workflow.webm")}>Download the app recording</a></p>
+        </video>
+        <p>Receive three messages, retry delivery, search, assign and resolve a request. A reply reopens it; a teammate’s update is kept when a stale save is rejected. <a class="recording-video-link" href={asset("inbox-workflow.webm")}>Open the full-size video</a></p>
+      </div>
     </div>
-  </section>
-  <section id="step-panel-2" class="workflow-panel" data-panel>
-    <div class="workflow-explanation"><h3>Run the same test again</h3><p>The agent reproduced the failure, made the fix, then ran the same test through Magistr. The result was saved with the task.</p></div>
-    <div class="example-record verification-record">
-      <p class="record-label">Test result</p>
-      <code class="check-command">python3 -m unittest -q</code>
-      <div class="check-comparison"><div><span class="record-note">Before the fix</span><strong class="failed-result">Failed</strong><span>1 test · exit 1</span></div><span aria-hidden="true">→</span><div><span class="record-note">After the fix</span><strong class="passed-result">Passed</strong><span>1 test · exit 0</span></div></div>
-      <p class="record-foot">This result belongs to the recorded example. It is not a live test.</p>
-    </div>
-  </section>
-  <section id="step-panel-3" class="workflow-panel" data-panel>
-    <div class="workflow-explanation"><h3>Read the saved work</h3><p>A fresh Codex session read the task and explained the bug, change, and passing test. It would still need to inspect current files before starting new work.</p></div>
-    <div class="example-record resume-record">
-      <p class="record-label">What the next session found</p>
-      <dl><div><dt>Defect</dt><dd>Spaces survived; blank names stayed in the list.</dd></div><div><dt>Change</dt><dd>Trim once, drop empty names, then lowercase.</dd></div><div><dt>Check</dt><dd>One unchanged test passed. Exit code 0.</dd></div></dl>
-      <a class="text-link" href="#evidence">Read the recorded sessions</a>
-    </div>
-  </section>
-  <p class="walkthrough-foot"><a href="/docs/concepts#checking-your-work">How saved checks work</a></p>
+  </div>
+  <p class="recording-context" data-context>Start at the brief or jump to an edit, a check, or the finished app. The source and results come from the recorded build.</p>
+  <p class="recording-error" role="status" data-error hidden></p>
+  <div class="recording-downloads"><a href={asset("source.zip")} download>Download the project</a><a href={asset("recording.json")} download>Full build recording</a><a href={asset("manifest.json")} download>Files and checksums</a></div>
+  <p class="recording-scope">A working local demo with sample customer mail. No live mail provider, outgoing email or account sign-in. The build recording captures tool actions and checks; the video shows the finished app.</p>
+  <p class="sr-only" role="status" aria-live="polite" data-announcement></p>
+  <noscript><details class="recording-transcript"><summary>Read the build transcript</summary><ol>{recording.events.map(event=><li><strong>{elapsed(recording,event)} — {event.title}</strong>{checkOf(event)?<pre>{checkOf(event).details}</pre>:<p>{event.kind === "write" ? event.input.path : event.kind === "edit" ? event.input.file : event.input.title || event.output.title || "Recorded project action"}</p>}</li>)}</ol></details></noscript>
 </div>
 <script>
-  import "../scripts/tabs";
+  import "../scripts/project-recording";
 </script>
+<style is:global>
+.build-recording{margin-top:1.75rem;border:1px solid var(--color-border);background:var(--color-bg-card);padding:1.5rem;min-width:0}.build-recording [hidden]{display:none!important}.recording-heading{display:flex;justify-content:space-between;align-items:start;gap:1rem}.recording-heading h3{font-size:1.4rem;margin:0;font-weight:600;line-height:1.35}.recording-heading p{font-size:.85rem;color:var(--color-text-muted);margin:.4rem 0 0}.recording-label{font-size:.75rem;white-space:nowrap;color:var(--color-text-muted)}.recording-toolbar{display:flex;align-items:center;gap:.5rem;margin-top:1.5rem}.build-recording button{color:var(--color-text);background:transparent;border:1px solid var(--color-border);min-height:44px;padding:.5rem .8rem;border-radius:3px;font-size:.85rem}.build-recording button:hover{background:var(--color-surface);border-color:var(--color-border-hover)}.build-recording button:disabled{opacity:.5;cursor:default}.build-recording .record-play{background:var(--color-accent);border-color:var(--color-accent);color:var(--color-on-accent);font-weight:600;min-width:145px}.recording-pace{display:flex;align-items:center;gap:.4rem;font-size:.8rem;margin-left:.5rem;color:var(--color-text-muted)}.build-recording select{appearance:none;height:44px;padding-right:1.8rem;background-image:linear-gradient(45deg,transparent 50%,var(--color-text-muted) 50%),linear-gradient(135deg,var(--color-text-muted) 50%,transparent 50%);background-position:calc(100% - 14px) 19px,calc(100% - 9px) 19px;background-size:5px 5px;background-repeat:no-repeat;min-height:44px;border:1px solid var(--color-border);background-color:var(--color-bg-card);color:var(--color-text);font:inherit;padding:.4rem 1.8rem .4rem .5rem;max-width:100%}.recording-position{margin-left:auto;font: .8rem var(--font-mono);color:var(--color-text-muted);text-align:right}.recording-timeline{position:relative;margin-top:1.25rem}.recording-timeline canvas{display:block;width:100%;height:50px;cursor:pointer}.recording-timeline input{display:block;width:100%;height:44px;margin:0;accent-color:var(--color-accent);cursor:ew-resize}.recording-timeline-note{display:flex;justify-content:space-between;gap:1rem;font-size:.75rem;color:var(--color-text-muted)}.recording-chapters{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:.6rem;margin:1.25rem 0}.recording-chapters button{display:flex;gap:.6rem;align-items:center;text-align:left;border:0;border-bottom:2px solid var(--color-border);border-radius:0;padding:.5rem}.recording-chapters button[aria-current=step]{border-color:var(--color-accent);background:var(--color-accent-soft)}.chapter-number{color:var(--color-text-muted);font:.8rem var(--font-mono)}.recording-chapters strong{font-size:.85rem;font-weight:600}.recording-chapters small{display:block;font-size:.7rem;color:var(--color-text-muted)}.recording-chapters [data-status=Completed] small{color:var(--color-green)}.recording-workspace{display:grid;grid-template-columns:220px minmax(0,1fr);border:1px solid var(--color-border);margin-top:1.25rem}.recording-workspace:not(:has(.recording-events:not([hidden]))){grid-template-columns:1fr}.recording-events{max-height:580px;overflow:auto;overscroll-behavior:contain;border-right:1px solid var(--color-border);padding:.35rem}.recording-events button{display:grid;grid-template-columns:2.5rem minmax(0,1fr) 6px;gap:.4rem;width:100%;text-align:left;font-size:.75rem;line-height:1.5;border:0;margin-bottom:.2rem;padding:.65rem .45rem}.recording-events button>span:first-child{font:.7rem var(--font-mono);color:var(--color-text-muted);padding-top:.15rem}.recording-events button[aria-current=true]{background:var(--color-accent-soft);box-shadow:inset 2px 0 var(--color-accent)}.recording-events i{width:5px;height:5px;display:block;background:var(--color-border-hover);border-radius:50%;margin-top:.4rem}.recording-events [data-check-passed=true]{background:var(--color-green)}.recording-events [data-check-passed=false]{background:var(--color-error)}.recording-stage{min-width:0}.recording-views{display:flex;gap:.25rem;padding:.5rem;border-bottom:1px solid var(--color-border)}.recording-views button{border:0}.recording-views button[aria-pressed=true]{background:var(--color-surface);font-weight:600}.recording-action{padding:1.25rem}.recording-action-heading{display:flex;justify-content:space-between;gap:1rem;align-items:start;min-height:86px}.recording-action-heading p{font:.7rem var(--font-mono);color:var(--color-text-muted);margin:0 0 .4rem;overflow-wrap:anywhere}.recording-action h4{font-size:1.1rem;line-height:1.4;font-weight:600;margin:0}.recording-action [data-action-status]{font-size:.75rem;padding:.15rem .4rem;border:1px solid var(--color-border);white-space:nowrap}.recording-action [data-action-status][data-result=Failed],.recording-action [data-action-status][data-result=Rejected]{color:var(--color-error)}.recording-action [data-action-status][data-result=Passed]{color:var(--color-green)}.recording-file-controls{display:flex;justify-content:space-between;align-items:center;gap:1rem;font-size:.75rem;margin:.5rem 0;color:var(--color-text-muted)}.recording-file-controls label{min-width:0;display:flex;align-items:center;gap:.5rem}.recording-file-controls select{max-width:260px;min-width:0;font-size:.75rem}.recording-file-controls>span{max-width:160px;text-align:right}.recording-action pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:2;height:330px;overflow:auto;overscroll-behavior:contain;padding:1rem;margin:0;background:var(--color-code);color:var(--color-code-text);font:.78rem/1.75 var(--font-mono)}.recording-receipt{margin:.65rem 0 0;font-size:.7rem;color:var(--color-text-muted);overflow-wrap:anywhere;min-height:1.5em}.recording-app-caption{display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:1rem;font-size:.8rem}.recording-app-caption strong{font-weight:500}.recording-app-caption span{font-size:.7rem;color:var(--color-text-muted)} .recording-app video{display:block;width:100%;height:auto;aspect-ratio:1280/900;object-fit:contain;background:var(--color-surface)}.recording-app>p{font-size:.8rem;color:var(--color-text-muted);margin:1rem;line-height:1.6}.recording-context{font-size:.9rem;line-height:1.7;margin:1.2rem 0 .7rem;max-width:65rem}.recording-downloads{display:flex;gap:1.5rem;flex-wrap:wrap;margin:.75rem 0}.recording-downloads a{font-size:.85rem;text-decoration:underline;text-underline-offset:.2rem}.recording-scope{font-size:.75rem;color:var(--color-text-muted);margin:1rem 0 0;line-height:1.7;max-width:70rem}.build-recording select:focus-visible{outline:2px solid var(--color-accent);outline-offset:3px}.recording-video-link{display:inline-block;text-decoration:underline;text-underline-offset:.2em;margin-top:.4rem}.recording-error{color:var(--color-error);font-size:.9rem}.recording-transcript{margin-top:1rem}.recording-transcript li{margin-block:1rem}.recording-transcript pre{white-space:pre-wrap;overflow-wrap:anywhere;font:.75rem/1.7 var(--font-mono)}
+@media(max-width:1000px){.recording-workspace{grid-template-columns:180px minmax(0,1fr)}.recording-action{padding:1rem}.recording-file-controls{flex-wrap:wrap}.recording-file-controls>span{text-align:left;max-width:none}.recording-file-controls select{max-width:230px}.recording-label{display:none}.recording-action-heading{min-height:100px}}
+@media(max-width:700px){.build-recording{padding:1rem}.recording-heading h3{font-size:1.2rem}.recording-toolbar{flex-wrap:wrap}.recording-position{width:100%;text-align:left;margin-top:.4rem}.recording-pace{margin-left:auto}.recording-timeline-note{display:block}.recording-timeline-note span{display:block}.recording-chapters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));padding-bottom:.4rem;gap:.4rem}.recording-chapters button{min-width:0;padding:.4rem .2rem;gap:.3rem;align-items:start}.recording-chapters strong{font-size:.8rem}.recording-chapters small{font-size:.7rem}.chapter-number{padding-top:.2rem}.recording-workspace{grid-template-columns:minmax(0,1fr)}.recording-events{max-height:150px;border-right:0;border-bottom:1px solid var(--color-border)}.recording-events button{font-size:.8rem;grid-template-columns:2.5rem minmax(0,1fr) 6px}.recording-action-heading{min-height:110px;gap:.5rem}.recording-action h4{font-size:1rem}.recording-action pre{height:340px;font-size:.82rem}.recording-file-controls select{max-width:200px}.recording-app-caption{display:block}.recording-app-caption span{display:block;margin-top:.35rem}.recording-downloads{gap:.6rem 1.2rem}.recording-views button{padding:.5rem .7rem}.build-recording .record-play{min-width:0}.recording-pace{font-size:.75rem}}
+@media(prefers-reduced-motion:reduce){.build-recording *{scroll-behavior:auto}}
+</style>

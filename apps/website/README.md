@@ -30,6 +30,14 @@ npm --prefix apps/website run test:ui -- --base-url https://magistr.dev
 
 Add `--evidence-dir` with a new iteration folder when deployed captures are needed. For a change confined to documentation search, add `--evidence-scope search` to capture its idle, result, empty and unavailable states while still running all interaction checks. `--evidence-scope recovery` includes those search states and the 404 page in all four profiles. For a follow-up review of the home walkthrough and capture reader, `--evidence-scope refinement` captures those areas, their focus states and 320 px reading details. `--evidence-scope branding` captures the shared navigation on every route plus 320 px home reflow. For a complete copy revision, `--evidence-scope copy` captures full pages in all four profiles and readable section frames at desktop/light and compact/dark, plus the new guide at 320 px. All scopes still run the complete interaction checks. Local source hashes identify the checkout used for the check; separately compare deployed assets with the reviewed build before claiming they match.
 
+## Recorded project example
+
+The landing page replays the real build in `public/demo/inbox/recording.json`. Every action has capture times and the actual input and result. `src/data/project-recording.mjs` reconstructs files and milestone states from those actions; it does not manufacture progress or check results. The tests compare every reconstructed file with `examples/support-inbox` and its recorded write hash.
+
+The downloadable source, unmodified app video and screenshots are covered by `public/demo/inbox/manifest.json`. The video shows the completed app; the event recording covers its implementation. The source app is local-only and uses sample mail. See its README for scope and run instructions.
+
+Use `--evidence-scope recording` for the playback, source/check views, keyboard state, compact layout and no-JavaScript fallback. Capture the app itself with `node examples/support-inbox/record-browser.mjs docs/evidence/desktop-iterations/YYYY-MM-DD-inbox-change` from the repository root. The app capture uses the website's installed Playwright and a temporary real SQLite server. New app changes need a new recording, source archive, manifest and captures; never rewrite a past run to imply it built different bytes.
+
 ## Deployment
 
 The existing Cloudflare Pages project is **`magistr`**, with production branch **`main`**, serving **`magistr.pages.dev`** and **`magistr.dev`**. Its output is **`apps/website/dist`**. Reuse that project. There is no website worker or runtime secret to configure.

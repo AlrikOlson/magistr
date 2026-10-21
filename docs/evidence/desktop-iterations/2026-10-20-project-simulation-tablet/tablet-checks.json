@@ -1,0 +1,466 @@
+{
+  "completedAt": "2026-10-21T04:46:00.284Z",
+  "status": "passed",
+  "sourceHashes": {
+    "apps/website/astro.config.mjs": "b8e61ea2c65b9c04cd1f44fa09091e134c761266baf1ea90c0efbdf75e795818",
+    "apps/website/package-lock.json": "799cde1b1a6c8048e7e1ec105b283f47a526485028f5ce0fdb06010f5e4a7b53",
+    "apps/website/package.json": "ddd145317c0a7e4689bd37bc246aa57df584d59ab2bf116e72a06a5410977c39",
+    "apps/website/public/favicon.svg": "39f132daba63253e3b52d7196f1da0ccbd79ca6398258856d092d05b0fc713d5",
+    "apps/website/public/github-social.png": "45bc8034b7c10b95a5ce5a254da914f28f7342e3c48544a9c4cbaebe9f625532",
+    "apps/website/public/icon-192.png": "28955bd5e1b5021eb9c0d52ff21d61aa0b9004f94271f21261c4aba06143b330",
+    "apps/website/public/og-image.png": "45bc8034b7c10b95a5ce5a254da914f28f7342e3c48544a9c4cbaebe9f625532",
+    "apps/website/public/og-image.svg": "1433ab472239193e78668b035d61260e66646185ace83c1086600b8935ea47fd",
+    "apps/website/public/screenshots/captures.json": "59897446e1905f99041dbc73cb9758d32b9541bb51c676b6eddd30009ab1d5bf",
+    "apps/website/public/site.webmanifest": "2bb0d8f16524032f18d2e694c6ce5d42dd33cae1c3ace178f818b4a75caf8975",
+    "apps/website/scripts/asset-url.mjs": "976d11d93e755da868580b92873db6a731aef16a3d6a37058c3a03a73bd54310",
+    "apps/website/scripts/generate-favicons.mjs": "29219764e02ff13ac133f07a70e97fb33f8f3dfda80f2816000efa9a00de99a8",
+    "apps/website/src/components/Footer.astro": "23491fba8cdb8ee7c02bae483be82cb233652c9cd488f7201b46a36553a2d84e",
+    "apps/website/src/components/Nav.astro": "77cab5ab0cdc4d7a92502adbe6746fe008b3763c93550694acff8a84561a36a2",
+    "apps/website/src/components/ProductEvidence.astro": "6b3a4b44a6862cf3010ab7ef02136f84a32d59467e55b9dd23f861258b786f3b",
+    "apps/website/src/components/ThemeToggle.astro": "62739fc7a3d3476e13c53f2dfa389150f3e7ca4ba0629c34b71f5cf8202ea211",
+    "apps/website/src/components/Workflow.astro": "d9c276d7fc26dec25ceb05d4641649264d4bd6419cada68d419c0ffcca404ccf",
+    "apps/website/src/content.config.ts": "35db5d681c2146a4e34de514bb5c1472d5da2e75b2652f8ca0fba880afcf1a1a",
+    "apps/website/src/content/docs/concepts.mdx": "75f3cbb852a2b60f07608e7ec1f3e6e3a94ecd1ae7c7ac03466188d24f1adb66",
+    "apps/website/src/content/docs/installation.mdx": "89cdd1893f6de24ad6928d2f551e03301b4732a3316b5bbc144d4450cb77a3d8",
+    "apps/website/src/content/docs/workflow.mdx": "2d38d306deb4f0752d43ac9145a940b1d6381df762d7875cd3ccf83be2043d21",
+    "apps/website/src/data/project-simulation.mjs": "799670ee52dbafef42a0a6427c8719c62c73ae13651b6c7a1d2bb81b079fbf13",
+    "apps/website/src/layouts/Base.astro": "bda7db4e3bdc2104a00615b3066167db83b4d32757b1860027889b0c9ef271cf",
+    "apps/website/src/layouts/Docs.astro": "a6ccd0f1d616a6c73548c6a751924707c8ac166d275670dd5cbc0327d0f730fc",
+    "apps/website/src/pages/404.astro": "9829e116d2cd8e2a16b6ac66a2be9566acb5e6486dc2848fe8b164f4fd332f74",
+    "apps/website/src/pages/docs/[...slug].astro": "14d87e7c921ba2633ccd4780c9c218031152ebe16e2aa39c3a37f7243bb48e95",
+    "apps/website/src/pages/index.astro": "00a2d54647b95bbda4941df9d96304c199510bfd59f77f4d9db1b1ba13bc0250",
+    "apps/website/src/pages/robots.txt.ts": "55c24c9a347c8d62fe0a071522d6433a9ccdcd5c4013733fe87ca2bc778c2ab2",
+    "apps/website/src/scripts/project-simulation.ts": "2a21c1b520bcc85b16058d157d4eb730698748bb7ddbeeda202e096c12546d15",
+    "apps/website/src/scripts/tabs.ts": "32e6adc7ac689beb534b916a5752b50f21e2d289f9cfd3f99f326472e2a4a0bc",
+    "apps/website/src/styles/global.css": "7f068c82b827cb670299ad9523f8d8d9809265b4eae8982384a4181384edc6ae",
+    "apps/website/tests/browser.mjs": "54e98dfaa7b7d05eeb7fad2355631c4fe2a6c5bc808668a2dffe6068523b3d73"
+  },
+  "captures": [
+    {
+      "file": "simulation-tablet-720-light.png",
+      "viewport": {
+        "width": 720,
+        "height": 1100
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T04:45:58.363Z",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 672,
+      "height": 1682,
+      "sha256": "0bcd95845cbaadb83eddbbb8ac9ba11f29d9a94d2b942e1fa53016e7e234496a",
+      "bounds": [
+        {
+          "name": "Teams & accessDone3/3Start here",
+          "left": 0,
+          "top": 197.046875,
+          "right": 119.703125,
+          "bottom": 320.546875,
+          "mapWidth": 630,
+          "mapHeight": 519.125
+        },
+        {
+          "name": "Email deliveryDone3/3After Teams & access",
+          "left": 170.09375,
+          "top": 16.828125,
+          "right": 289.796875,
+          "bottom": 139.453125,
+          "mapWidth": 630,
+          "mapHeight": 519.125
+        },
+        {
+          "name": "SubscriptionsNeeds a fix2/3After Teams & access",
+          "left": 170.09375,
+          "top": 369.3125,
+          "right": 289.796875,
+          "bottom": 511.125,
+          "mapWidth": 630,
+          "mapHeight": 519.125
+        },
+        {
+          "name": "Search & assignmentDone3/3After Email delivery",
+          "left": 340.1875,
+          "top": 8,
+          "right": 459.890625,
+          "bottom": 148.296875,
+          "mapWidth": 630,
+          "mapHeight": 519.125
+        },
+        {
+          "name": "Conversation importDone3/3After Teams & access",
+          "left": 340.1875,
+          "top": 188.65625,
+          "right": 459.890625,
+          "bottom": 328.953125,
+          "mapWidth": 630,
+          "mapHeight": 519.125
+        },
+        {
+          "name": "Launch checksWaiting0/3After Search & assignment + Conversation import + Subscriptions",
+          "left": 510.28125,
+          "top": 172.296875,
+          "right": 630,
+          "bottom": 345.3125,
+          "mapWidth": 630,
+          "mapHeight": 519.125
+        }
+      ],
+      "review": "pending"
+    },
+    {
+      "file": "simulation-tablet-720-dark.png",
+      "viewport": {
+        "width": 720,
+        "height": 1100
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T04:45:58.761Z",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 672,
+      "height": 1682,
+      "sha256": "86a7ba538bd7771202ff6e31c64112f3b08157f7dd2d6b16776733a63a50918c",
+      "bounds": [
+        {
+          "name": "Teams & accessDone3/3Start here",
+          "left": 0,
+          "top": 197.046875,
+          "right": 119.703125,
+          "bottom": 320.546875,
+          "mapWidth": 630,
+          "mapHeight": 519.125
+        },
+        {
+          "name": "Email deliveryDone3/3After Teams & access",
+          "left": 170.09375,
+          "top": 16.828125,
+          "right": 289.796875,
+          "bottom": 139.453125,
+          "mapWidth": 630,
+          "mapHeight": 519.125
+        },
+        {
+          "name": "SubscriptionsNeeds a fix2/3After Teams & access",
+          "left": 170.09375,
+          "top": 369.3125,
+          "right": 289.796875,
+          "bottom": 511.125,
+          "mapWidth": 630,
+          "mapHeight": 519.125
+        },
+        {
+          "name": "Search & assignmentDone3/3After Email delivery",
+          "left": 340.1875,
+          "top": 8,
+          "right": 459.890625,
+          "bottom": 148.296875,
+          "mapWidth": 630,
+          "mapHeight": 519.125
+        },
+        {
+          "name": "Conversation importDone3/3After Teams & access",
+          "left": 340.1875,
+          "top": 188.65625,
+          "right": 459.890625,
+          "bottom": 328.953125,
+          "mapWidth": 630,
+          "mapHeight": 519.125
+        },
+        {
+          "name": "Launch checksWaiting0/3After Search & assignment + Conversation import + Subscriptions",
+          "left": 510.28125,
+          "top": 172.296875,
+          "right": 630,
+          "bottom": 345.3125,
+          "mapWidth": 630,
+          "mapHeight": 519.125
+        }
+      ],
+      "review": "pending"
+    },
+    {
+      "file": "simulation-tablet-820-light.png",
+      "viewport": {
+        "width": 820,
+        "height": 1100
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T04:45:59.144Z",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 756,
+      "height": 1623,
+      "sha256": "453edba715cfc9fe608714727d0a9590672ee168b97615cf6e77f00c2eb10937",
+      "bounds": [
+        {
+          "name": "Teams & accessDone3/3Start here",
+          "left": 0,
+          "top": 189.09375,
+          "right": 135.65625,
+          "bottom": 294.921875,
+          "mapWidth": 714,
+          "mapHeight": 483.140625
+        },
+        {
+          "name": "Email deliveryDone3/3After Teams & access",
+          "left": 192.765625,
+          "top": 8.4375,
+          "right": 328.4375,
+          "bottom": 131.0625,
+          "mapWidth": 714,
+          "mapHeight": 483.140625
+        },
+        {
+          "name": "SubscriptionsNeeds a fix2/3After Teams & access",
+          "left": 192.765625,
+          "top": 352.515625,
+          "right": 328.4375,
+          "bottom": 475.140625,
+          "mapWidth": 714,
+          "mapHeight": 483.140625
+        },
+        {
+          "name": "Search & assignmentDone3/3After Email delivery",
+          "left": 385.546875,
+          "top": 8,
+          "right": 521.21875,
+          "bottom": 131.5,
+          "mapWidth": 714,
+          "mapHeight": 483.140625
+        },
+        {
+          "name": "Conversation importDone3/3After Teams & access",
+          "left": 385.546875,
+          "top": 171.859375,
+          "right": 521.21875,
+          "bottom": 312.15625,
+          "mapWidth": 714,
+          "mapHeight": 483.140625
+        },
+        {
+          "name": "Launch checksWaiting0/3After Search & assignment + Conversation import + Subscriptions",
+          "left": 578.328125,
+          "top": 155.5,
+          "right": 714,
+          "bottom": 328.515625,
+          "mapWidth": 714,
+          "mapHeight": 483.140625
+        }
+      ],
+      "review": "pending"
+    },
+    {
+      "file": "simulation-tablet-820-dark.png",
+      "viewport": {
+        "width": 820,
+        "height": 1100
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T04:45:59.527Z",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 756,
+      "height": 1623,
+      "sha256": "ce8133fccfa8bd2ec0bd30487b1314e46744cd41c917877fe6cdc65fa76c1037",
+      "bounds": [
+        {
+          "name": "Teams & accessDone3/3Start here",
+          "left": 0,
+          "top": 189.09375,
+          "right": 135.65625,
+          "bottom": 294.921875,
+          "mapWidth": 714,
+          "mapHeight": 483.140625
+        },
+        {
+          "name": "Email deliveryDone3/3After Teams & access",
+          "left": 192.765625,
+          "top": 8.4375,
+          "right": 328.4375,
+          "bottom": 131.0625,
+          "mapWidth": 714,
+          "mapHeight": 483.140625
+        },
+        {
+          "name": "SubscriptionsNeeds a fix2/3After Teams & access",
+          "left": 192.765625,
+          "top": 352.515625,
+          "right": 328.4375,
+          "bottom": 475.140625,
+          "mapWidth": 714,
+          "mapHeight": 483.140625
+        },
+        {
+          "name": "Search & assignmentDone3/3After Email delivery",
+          "left": 385.546875,
+          "top": 8,
+          "right": 521.21875,
+          "bottom": 131.5,
+          "mapWidth": 714,
+          "mapHeight": 483.140625
+        },
+        {
+          "name": "Conversation importDone3/3After Teams & access",
+          "left": 385.546875,
+          "top": 171.859375,
+          "right": 521.21875,
+          "bottom": 312.15625,
+          "mapWidth": 714,
+          "mapHeight": 483.140625
+        },
+        {
+          "name": "Launch checksWaiting0/3After Search & assignment + Conversation import + Subscriptions",
+          "left": 578.328125,
+          "top": 155.5,
+          "right": 714,
+          "bottom": 328.515625,
+          "mapWidth": 714,
+          "mapHeight": 483.140625
+        }
+      ],
+      "review": "pending"
+    },
+    {
+      "file": "simulation-tablet-1024-light.png",
+      "viewport": {
+        "width": 1024,
+        "height": 1100
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T04:45:59.912Z",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 960,
+      "height": 1503,
+      "sha256": "5f00ed04a8d07f8728c3b02d427f851a1c83d441b660e4af5ac5c576af971201",
+      "bounds": [
+        {
+          "name": "Teams & accessDone3/3Start here",
+          "left": 0,
+          "top": 190.90625,
+          "right": 171.375,
+          "bottom": 304.890625,
+          "mapWidth": 902,
+          "mapHeight": 476.078125
+        },
+        {
+          "name": "Email deliveryDone3/3After Teams & access",
+          "left": 243.53125,
+          "top": 17.859375,
+          "right": 414.921875,
+          "bottom": 131.84375,
+          "mapWidth": 902,
+          "mapHeight": 476.078125
+        },
+        {
+          "name": "SubscriptionsNeeds a fix2/3After Teams & access",
+          "left": 243.53125,
+          "top": 354.09375,
+          "right": 414.921875,
+          "bottom": 468.078125,
+          "mapWidth": 902,
+          "mapHeight": 476.078125
+        },
+        {
+          "name": "Search & assignmentDone3/3After Email delivery",
+          "left": 487.078125,
+          "top": 8,
+          "right": 658.453125,
+          "bottom": 141.71875,
+          "mapWidth": 902,
+          "mapHeight": 476.078125
+        },
+        {
+          "name": "Conversation importDone3/3After Teams & access",
+          "left": 487.078125,
+          "top": 181.046875,
+          "right": 658.453125,
+          "bottom": 314.765625,
+          "mapWidth": 902,
+          "mapHeight": 476.078125
+        },
+        {
+          "name": "Launch checksWaiting0/3After Search & assignment + Conversation import + Subscriptions",
+          "left": 730.609375,
+          "top": 165.71875,
+          "right": 902,
+          "bottom": 330.09375,
+          "mapWidth": 902,
+          "mapHeight": 476.078125
+        }
+      ],
+      "review": "pending"
+    },
+    {
+      "file": "simulation-tablet-1024-dark.png",
+      "viewport": {
+        "width": 1024,
+        "height": 1100
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T04:46:00.280Z",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 960,
+      "height": 1503,
+      "sha256": "9f1ceec3eef10e0117a0ed42c913ac546db9127230d1a21e1eedee27f7aa3a20",
+      "bounds": [
+        {
+          "name": "Teams & accessDone3/3Start here",
+          "left": 0,
+          "top": 190.90625,
+          "right": 171.375,
+          "bottom": 304.890625,
+          "mapWidth": 902,
+          "mapHeight": 476.078125
+        },
+        {
+          "name": "Email deliveryDone3/3After Teams & access",
+          "left": 243.53125,
+          "top": 17.859375,
+          "right": 414.921875,
+          "bottom": 131.84375,
+          "mapWidth": 902,
+          "mapHeight": 476.078125
+        },
+        {
+          "name": "SubscriptionsNeeds a fix2/3After Teams & access",
+          "left": 243.53125,
+          "top": 354.09375,
+          "right": 414.921875,
+          "bottom": 468.078125,
+          "mapWidth": 902,
+          "mapHeight": 476.078125
+        },
+        {
+          "name": "Search & assignmentDone3/3After Email delivery",
+          "left": 487.078125,
+          "top": 8,
+          "right": 658.453125,
+          "bottom": 141.71875,
+          "mapWidth": 902,
+          "mapHeight": 476.078125
+        },
+        {
+          "name": "Conversation importDone3/3After Teams & access",
+          "left": 487.078125,
+          "top": 181.046875,
+          "right": 658.453125,
+          "bottom": 314.765625,
+          "mapWidth": 902,
+          "mapHeight": 476.078125
+        },
+        {
+          "name": "Launch checksWaiting0/3After Search & assignment + Conversation import + Subscriptions",
+          "left": 730.609375,
+          "top": 165.71875,
+          "right": 902,
+          "bottom": 330.09375,
+          "mapWidth": 902,
+          "mapHeight": 476.078125
+        }
+      ],
+      "review": "pending"
+    }
+  ]
+}

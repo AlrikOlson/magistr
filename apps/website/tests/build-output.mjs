@@ -48,11 +48,11 @@ assert(indexHtml.includes("Registry packages are not published yet") && indexHtm
 assert(indexHtml.includes('"operatingSystem":"macOS (Apple Silicon)"'), "first release metadata targets Apple Silicon macOS");
 assert(indexHtml.includes('"downloadUrl":"https://magistr.dev/docs/installation"'), "download metadata points to current installation instructions");
 
-assert(indexHtml.includes("not a live test") && indexHtml.includes("October 19"), "recorded example is dated and does not claim live execution");
+assert(indexHtml.includes("Full build recording") && indexHtml.includes("Recorded October 20, 2026") && indexHtml.includes("October 19") && !indexHtml.includes("data-simulation"), "the real build and earlier agent sessions are clearly dated");
 const homeImages = [...indexHtml.matchAll(/src="\/screenshots\/([a-z-]+)\.png\?v=[a-f0-9]{12}"/g)].map((m) => m[1]);
 assert(new Set(homeImages).size === 4 && homeImages.length === 4, `each screenshot appears once on the home page (${homeImages.join(", ")})`);
 const roadmapSection = indexHtml.split('id="workflow"')[1]?.split('id="product"')[0] ?? "";
-assert(roadmapSection.includes("Keep the existing test unchanged") && roadmapSection.includes("fresh") && roadmapSection.includes("exit 0"), "one coherent task connects a goal, source change, real check and fresh session");
+assert(roadmapSection.includes("data-recording") && roadmapSection.includes("Recorded milestones") && roadmapSection.includes("Read the build transcript") && roadmapSection.includes("Download the project"), "recorded implementation has accessible playback, transcript and source");
 assert(!roadmapSection.includes("Roadmap screen"),"future desktop planning is not advertised");
 assert(!roadmapSection.includes("without leaving the conversation") && !roadmapSection.includes("actions beside the conversation"), "full Roadmap is not described as conversation details");
 

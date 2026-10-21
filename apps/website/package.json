@@ -7,9 +7,10 @@
     "prebuild": "node scripts/generate-favicons.mjs",
     "build": "astro build",
     "preview": "astro preview",
-    "test": "npm run build && node tests/build-output.mjs",
+    "test": "npm run build && node tests/build-output.mjs && node --test tests/project-recording.test.mjs && npm run test:demo",
     "test:ui": "node tests/browser.mjs",
-    "audit": "npm audit"
+    "audit": "npm audit",
+    "test:demo": "cd ../../examples/support-inbox && python3 -m unittest discover -s tests -v"
   },
   "dependencies": {
     "@astrojs/mdx": "^8.1.0",

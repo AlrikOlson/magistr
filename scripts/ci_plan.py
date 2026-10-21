@@ -45,7 +45,7 @@ def affected(paths, packages, locations, full=False):
     plan = {key: False for key in JOBS}
     changed = set()
     for path in paths:
-        if path.startswith(("docs/", "apps/website/")) or path in ("README.md", "CHANGELOG.md"):
+        if path.startswith(("docs/", "apps/website/", "examples/support-inbox/")) or path in ("README.md", "CHANGELOG.md"):
             plan["website"] = True
             plan["visual"] |= path.startswith(("docs/evidence/", "docs/assets/"))
         elif path.startswith("crates/"):

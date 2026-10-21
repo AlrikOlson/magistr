@@ -1,0 +1,263 @@
+{
+  "capturedAt": "2026-10-21T04:53:10.190Z",
+  "renderer": "Headless WebKit 27.2",
+  "sources": {
+    "README.md": "9e15d35a9bed6732fd28c336d12b90c9b98fb833ac7e0b04763724cdac32ac32",
+    "store.py": "bf3c1b939e0ce4c08e15ea1af5cc7036b5d2f2a7b797a7c427f91438802f3327",
+    "server.py": "efc75e46fb639849a019f2b74da715092d6c8b3ff0b8e2f4a3c04139898c0817",
+    "static/index.html": "8fff5cbd1ef6da88cefe60fd43efe74a24c713ddb446c66ba21fdacfac9166f4",
+    "static/style.css": "94e5dcae4600e0f51a9df76061df6ad53bfda212bd672557665fd2f7f733f424",
+    "static/app.js": "1e080043b43c493bb886e10530004534438695f7a62b50d7f2724f9c896e90da",
+    "tests/test_store.py": "1e3a98ae2214071653b85b92c0dc9f9da599cc039a7c63680416edf830789c5e",
+    "tests/test_api.py": "8febe5c8367edea551807c85e759a7fc15c3c0e6ec4394d51f8954e4b8a7708f",
+    "record-browser.mjs": "3f5be78e31b01c6e8d928754a37c8d985e2b75774f7d44ba0e27ffbf451af872"
+  },
+  "captures": [
+    {
+      "file": "inbox-empty-wide-light.png",
+      "appearance": "light",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "capturedAt": "2026-10-21T04:53:10.454Z",
+      "sha256": "46be9e38d68cc22dd7fb3d9ecef793adf3cb2d3c1d080f86e8196e42ecb9ae75",
+      "review": "pending"
+    },
+    {
+      "file": "inbox-assigned-wide-light.png",
+      "appearance": "light",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "capturedAt": "2026-10-21T04:53:15.617Z",
+      "sha256": "d699c7d23b9b237863db6ccfc10620f45225d9eb41f67ec77ac1ce00986096ed",
+      "review": "pending"
+    },
+    {
+      "file": "inbox-conflict-wide-light.png",
+      "appearance": "light",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "capturedAt": "2026-10-21T04:53:19.386Z",
+      "sha256": "1232a2709bd054368f05c86f7afe6cdb2dc0aa4e8815db47852051fd2f34d949",
+      "review": "pending"
+    },
+    {
+      "file": "inbox-finished-wide-light.png",
+      "appearance": "light",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "capturedAt": "2026-10-21T04:53:20.811Z",
+      "sha256": "a47758b2db23c1d3c8ecdbce63663fe2a7ab9446c297efc614189931b7f508bb",
+      "review": "pending"
+    },
+    {
+      "file": "inbox-search-empty-wide-light.png",
+      "appearance": "light",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "capturedAt": "2026-10-21T04:53:21.029Z",
+      "sha256": "e1a552171fd6ee1b3c5bd5b4cfe11829abb609a5b77a3026fd461e0948be53fb",
+      "review": "pending"
+    },
+    {
+      "file": "inbox-empty-wide-dark.png",
+      "appearance": "dark",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "capturedAt": "2026-10-21T04:53:21.375Z",
+      "sha256": "3fd22ceea99cbaa2ba1dd6a71e90f72173e3e8019059e1e1e4c010b24023e3e8",
+      "review": "pending"
+    },
+    {
+      "file": "inbox-assigned-wide-dark.png",
+      "appearance": "dark",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "capturedAt": "2026-10-21T04:53:21.728Z",
+      "sha256": "24f4c6f80ad23adaa517a129efd5a18d6eab0f15bcf9c71e64b1f3dcc8f33241",
+      "review": "pending"
+    },
+    {
+      "file": "inbox-finished-wide-dark.png",
+      "appearance": "dark",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "capturedAt": "2026-10-21T04:53:21.896Z",
+      "sha256": "c737665ac3c1481b0f9e3f69cc3c153a7f8df12946a0e429dda2c5918f9c517d",
+      "review": "pending"
+    },
+    {
+      "file": "inbox-empty-compact-light.png",
+      "appearance": "light",
+      "viewport": {
+        "width": 390,
+        "height": 900
+      },
+      "capturedAt": "2026-10-21T04:53:22.272Z",
+      "sha256": "4950e3e06389e36bbd940526a14296ad2e23d2f0369114d94d641af0da1cbfb8",
+      "review": "pending"
+    },
+    {
+      "file": "inbox-assigned-compact-light.png",
+      "appearance": "light",
+      "viewport": {
+        "width": 390,
+        "height": 900
+      },
+      "capturedAt": "2026-10-21T04:53:22.632Z",
+      "sha256": "3836dc52e597fb310b73b2d095bb6c332aa5de1111c139fc6548333d580fb2de",
+      "review": "pending"
+    },
+    {
+      "file": "inbox-finished-compact-light.png",
+      "appearance": "light",
+      "viewport": {
+        "width": 390,
+        "height": 900
+      },
+      "capturedAt": "2026-10-21T04:53:22.801Z",
+      "sha256": "cafba2094c2e5ebf688c6d1ec429d7c65e17cc362b9ea4c4276b1b1df50d9f47",
+      "review": "pending"
+    },
+    {
+      "file": "inbox-empty-compact-dark.png",
+      "appearance": "dark",
+      "viewport": {
+        "width": 390,
+        "height": 900
+      },
+      "capturedAt": "2026-10-21T04:53:23.180Z",
+      "sha256": "51c2aa82af1a32c03fc0701d603d89ca8f94ee70141c512f3be18093afab9647",
+      "review": "pending"
+    },
+    {
+      "file": "inbox-assigned-compact-dark.png",
+      "appearance": "dark",
+      "viewport": {
+        "width": 390,
+        "height": 900
+      },
+      "capturedAt": "2026-10-21T04:53:23.539Z",
+      "sha256": "daf2b91ade57b1edd0b0918f17b6c1c0571bad2f20582669b9195a2e41633cd8",
+      "review": "pending"
+    },
+    {
+      "file": "inbox-finished-compact-dark.png",
+      "appearance": "dark",
+      "viewport": {
+        "width": 390,
+        "height": 900
+      },
+      "capturedAt": "2026-10-21T04:53:23.709Z",
+      "sha256": "647b7267fca0f4aa1a0a084abb2f3aad712a26b583aed67171eafb9a896f934d",
+      "review": "pending"
+    }
+  ],
+  "checks": [
+    {
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "appearance": "light",
+      "passed": true,
+      "scenarios": [
+        "empty inbox",
+        "real mail delivery",
+        "duplicate retry",
+        "search",
+        "assignment",
+        "resolution",
+        "reply reopens thread",
+        "concurrent update conflict",
+        "reload persistence",
+        "empty search"
+      ]
+    },
+    {
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "appearance": "dark",
+      "passed": true,
+      "scenarios": [
+        "empty inbox",
+        "real mail delivery",
+        "duplicate retry",
+        "search",
+        "assignment",
+        "resolution",
+        "reply reopens thread",
+        "concurrent update conflict",
+        "reload persistence",
+        "empty search"
+      ]
+    },
+    {
+      "viewport": {
+        "width": 390,
+        "height": 900
+      },
+      "appearance": "light",
+      "passed": true,
+      "scenarios": [
+        "empty inbox",
+        "real mail delivery",
+        "duplicate retry",
+        "search",
+        "assignment",
+        "resolution",
+        "reply reopens thread",
+        "concurrent update conflict",
+        "reload persistence",
+        "empty search"
+      ]
+    },
+    {
+      "viewport": {
+        "width": 390,
+        "height": 900
+      },
+      "appearance": "dark",
+      "passed": true,
+      "scenarios": [
+        "empty inbox",
+        "real mail delivery",
+        "duplicate retry",
+        "search",
+        "assignment",
+        "resolution",
+        "reply reopens thread",
+        "concurrent update conflict",
+        "reload persistence",
+        "empty search"
+      ]
+    }
+  ],
+  "video": {
+    "file": "inbox-workflow.webm",
+    "sha256": "baee474062f23fab399affe511afde9fd8431caadabf910a51324dfbec5c5d67",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "description": "Unmodified browser recording of the real local API workflow; sample customer data; no audio."
+  },
+  "passed": true
+}

@@ -1,0 +1,111 @@
+{
+  "completedAt": "2026-10-21T04:42:00.592Z",
+  "status": "failed",
+  "failure": "Expected values to be strictly equal:\n\n'ready' !== 'waiting'\n",
+  "renderer": "Playwright WebKit",
+  "rendererVersion": "27.2",
+  "platform": "darwin-arm64",
+  "node": "v24.21.0",
+  "origin": "http://127.0.0.1:49624",
+  "motion": "reduced",
+  "scale": 1,
+  "evidenceScope": "simulation",
+  "checks": [],
+  "sourceHashes": {
+    "apps/website/astro.config.mjs": "b8e61ea2c65b9c04cd1f44fa09091e134c761266baf1ea90c0efbdf75e795818",
+    "apps/website/package-lock.json": "799cde1b1a6c8048e7e1ec105b283f47a526485028f5ce0fdb06010f5e4a7b53",
+    "apps/website/package.json": "ddd145317c0a7e4689bd37bc246aa57df584d59ab2bf116e72a06a5410977c39",
+    "apps/website/public/favicon.svg": "39f132daba63253e3b52d7196f1da0ccbd79ca6398258856d092d05b0fc713d5",
+    "apps/website/public/github-social.png": "45bc8034b7c10b95a5ce5a254da914f28f7342e3c48544a9c4cbaebe9f625532",
+    "apps/website/public/icon-192.png": "28955bd5e1b5021eb9c0d52ff21d61aa0b9004f94271f21261c4aba06143b330",
+    "apps/website/public/og-image.png": "45bc8034b7c10b95a5ce5a254da914f28f7342e3c48544a9c4cbaebe9f625532",
+    "apps/website/public/og-image.svg": "1433ab472239193e78668b035d61260e66646185ace83c1086600b8935ea47fd",
+    "apps/website/public/screenshots/captures.json": "59897446e1905f99041dbc73cb9758d32b9541bb51c676b6eddd30009ab1d5bf",
+    "apps/website/public/site.webmanifest": "2bb0d8f16524032f18d2e694c6ce5d42dd33cae1c3ace178f818b4a75caf8975",
+    "apps/website/scripts/asset-url.mjs": "976d11d93e755da868580b92873db6a731aef16a3d6a37058c3a03a73bd54310",
+    "apps/website/scripts/generate-favicons.mjs": "29219764e02ff13ac133f07a70e97fb33f8f3dfda80f2816000efa9a00de99a8",
+    "apps/website/src/components/Footer.astro": "23491fba8cdb8ee7c02bae483be82cb233652c9cd488f7201b46a36553a2d84e",
+    "apps/website/src/components/Nav.astro": "77cab5ab0cdc4d7a92502adbe6746fe008b3763c93550694acff8a84561a36a2",
+    "apps/website/src/components/ProductEvidence.astro": "6b3a4b44a6862cf3010ab7ef02136f84a32d59467e55b9dd23f861258b786f3b",
+    "apps/website/src/components/ThemeToggle.astro": "62739fc7a3d3476e13c53f2dfa389150f3e7ca4ba0629c34b71f5cf8202ea211",
+    "apps/website/src/components/Workflow.astro": "3a19beecff9b935785beffa51f4265dfe383731bcf0c545227288b5d32602726",
+    "apps/website/src/content.config.ts": "35db5d681c2146a4e34de514bb5c1472d5da2e75b2652f8ca0fba880afcf1a1a",
+    "apps/website/src/content/docs/concepts.mdx": "75f3cbb852a2b60f07608e7ec1f3e6e3a94ecd1ae7c7ac03466188d24f1adb66",
+    "apps/website/src/content/docs/installation.mdx": "89cdd1893f6de24ad6928d2f551e03301b4732a3316b5bbc144d4450cb77a3d8",
+    "apps/website/src/content/docs/workflow.mdx": "2d38d306deb4f0752d43ac9145a940b1d6381df762d7875cd3ccf83be2043d21",
+    "apps/website/src/data/project-simulation.mjs": "8f42d8587985cca963efbd0967b3106911255fd859e67eda780ad050e0da3605",
+    "apps/website/src/layouts/Base.astro": "bda7db4e3bdc2104a00615b3066167db83b4d32757b1860027889b0c9ef271cf",
+    "apps/website/src/layouts/Docs.astro": "a6ccd0f1d616a6c73548c6a751924707c8ac166d275670dd5cbc0327d0f730fc",
+    "apps/website/src/pages/404.astro": "9829e116d2cd8e2a16b6ac66a2be9566acb5e6486dc2848fe8b164f4fd332f74",
+    "apps/website/src/pages/docs/[...slug].astro": "14d87e7c921ba2633ccd4780c9c218031152ebe16e2aa39c3a37f7243bb48e95",
+    "apps/website/src/pages/index.astro": "00a2d54647b95bbda4941df9d96304c199510bfd59f77f4d9db1b1ba13bc0250",
+    "apps/website/src/pages/robots.txt.ts": "55c24c9a347c8d62fe0a071522d6433a9ccdcd5c4013733fe87ca2bc778c2ab2",
+    "apps/website/src/scripts/project-simulation.ts": "2a21c1b520bcc85b16058d157d4eb730698748bb7ddbeeda202e096c12546d15",
+    "apps/website/src/scripts/tabs.ts": "32e6adc7ac689beb534b916a5752b50f21e2d289f9cfd3f99f326472e2a4a0bc",
+    "apps/website/src/styles/global.css": "7f068c82b827cb670299ad9523f8d8d9809265b4eae8982384a4181384edc6ae",
+    "apps/website/tests/browser.mjs": "54e98dfaa7b7d05eeb7fad2355631c4fe2a6c5bc808668a2dffe6068523b3d73"
+  },
+  "captures": [
+    {
+      "file": "home-intro-wide-light.png",
+      "state": "Product description, setup action and project guide",
+      "url": "/",
+      "capturedAt": "2026-10-21T04:42:00.327Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "4f56bdfd39e4403c9e90081753107a64344a9cbce72064741e8a27de9336fd6e",
+      "review": "pending"
+    },
+    {
+      "file": "simulation-stage-0-wide-light.png",
+      "state": "Project stage 0",
+      "url": "/",
+      "capturedAt": "2026-10-21T04:42:00.468Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "region": ".project-simulation",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1104,
+      "height": 1292,
+      "sha256": "b52a5a2d221a03a1f4511da89fbdb16d7a018abb4e2ed39edc142c77a7adda5d",
+      "review": "pending"
+    },
+    {
+      "file": "simulation-stage-1-wide-light.png",
+      "state": "Project stage 1",
+      "url": "/",
+      "capturedAt": "2026-10-21T04:42:00.567Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "region": ".project-simulation",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1104,
+      "height": 1292,
+      "sha256": "87b5e67b9a9e402067b117cd9d23956f73b2eb5af1a4912f94573c5b33a599a2",
+      "review": "pending"
+    }
+  ],
+  "limitations": [
+    "Headless browser only; no native OS-input or assistive-technology testing.",
+    "Screenshots require separate recorded visual review.",
+    "Local build; no deployed-site or registry publication claim."
+  ]
+}

@@ -20,9 +20,22 @@ const jsonLd = [
       <p class="hero-lede">Magistr keeps the plan and work history for your coding agent. Ask it to review the project, work through the changes, and check the result. When you start a fresh session, the next agent can read where you stopped.</p>
       <div class="hero-actions">
         <a id="install-btn" class="button button-primary" href="#install">Install Magistr</a>
-        <a class="text-link" href="#workflow">See a recorded task</a>
+        <a class="text-link" href="#workflow">Watch a project take shape</a>
       </div>
       <p class="hero-note">Source preview for Apple Silicon macOS. Repository access required.</p>
+    </section>
+
+    <section id="workflow" class="section-shell section-block example-section" tabindex="-1" aria-labelledby="workflow-title">
+      <div class="section-heading">
+        <h2 id="workflow-title">Watch an agent build a working support inbox.</h2>
+        <p>Incoming mail, conversation threads, search, assignment, and the awkward cases: retries and two people changing the same request. Follow the actual build from its plan through the working app.</p>
+      </div>
+      <Workflow />
+      <details id="evidence" class="example-sessions recorded-example">
+        <summary>More agent sessions</summary>
+        <p>These earlier captures show a separate Python fix in Codex, Claude Code and the desktop.</p>
+        <ProductEvidence />
+      </details>
     </section>
 
     <section id="product" class="section-shell section-block product-section" tabindex="-1" aria-labelledby="product-title">
@@ -37,18 +50,6 @@ const jsonLd = [
         <article><h3>Try it and give feedback</h3><p>Read the diff, use the feature, and inspect the screens. Tell the agent what still feels wrong and have it revise the work. Ask for the checks that cover the change, and say when you want it pushed.</p></article>
       </div>
       <a class="text-link section-link" href="/docs/workflow">Example requests and commands</a>
-    </section>
-
-    <section id="workflow" class="section-shell section-block example-section" tabindex="-1" aria-labelledby="workflow-title">
-      <div class="section-heading">
-        <h2 id="workflow-title">What survives a fresh session?</h2>
-        <p>Here is a small recorded example. A Python contact list kept blank names and extra spaces. The agent saved the fix and its test result; a fresh session could then explain the work.</p>
-      </div>
-      <Workflow />
-      <div id="evidence" class="example-sessions" tabindex="-1" aria-labelledby="evidence-title">
-        <h3 id="evidence-title">Read the recorded sessions</h3>
-        <ProductEvidence />
-      </div>
     </section>
 
     <section id="install" class="section-shell section-block install-section" tabindex="-1" aria-labelledby="install-title">
