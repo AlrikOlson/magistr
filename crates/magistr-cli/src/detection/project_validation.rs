@@ -12,6 +12,7 @@ use crate::utils::gate::{GateRun, run_gate};
 /// Results for standard, archetype, and required custom project gates.
 pub(crate) struct ProjectValidation {
     pub(crate) results: Vec<GateRun>,
+    pub(crate) checks: Vec<magistr_core::gates::GateSpec>,
 }
 
 impl ProjectValidation {
@@ -28,7 +29,7 @@ impl ProjectValidation {
                     &spec.command,
                     spec.required,
                     &dir,
-                    300,
+                    0,
                     &tokio_util::sync::CancellationToken::new(),
                     |_| {},
                 )
@@ -43,7 +44,9 @@ impl ProjectValidation {
                     .map_err(|e| MagistrError::TaskJoin(e.to_string()))?,
             );
         }
-        Ok(Self { results })
+        let checks =
+            magistr_core::gates::resolve_gates(&config, "check").map_err(MagistrError::Config)?;
+        Ok(Self { results, checks })
     }
 
     pub(crate) fn all_passed(&self) -> bool {
@@ -71,6 +74,19 @@ impl ProjectValidation {
             .required_gates
             .iter()
             .filter(|name| {
+                if name.as_str() == "check" && !self.checks.is_empty() {
+                    return self.checks.iter().all(|check| {
+                        self.results.iter().any(|actual| {
+                            actual.passed()
+                                && !actual.command.is_empty()
+                                && (actual.name == check.name
+                                    || magistr_core::gates::clippy_covers(
+                                        &check.command,
+                                        &actual.command,
+                                    ))
+                        })
+                    });
+                }
                 let prefix = format!("{name}:");
                 let mut matching = self
                     .results

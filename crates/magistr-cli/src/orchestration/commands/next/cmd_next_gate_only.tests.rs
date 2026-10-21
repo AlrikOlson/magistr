@@ -5,6 +5,7 @@ use std::time::Duration;
 
 fn make_result(gates: Vec<(Gate, bool, f64)>) -> ProjectValidation {
     ProjectValidation {
+        checks: vec![],
         results: gates
             .into_iter()
             .map(|(gate, passed, secs)| GateRun {

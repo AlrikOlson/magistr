@@ -182,7 +182,7 @@ fn probes(command: &str) -> Vec<Vec<&'static str>> {
     if command.contains("python") {
         result.push(vec!["python3", "--version"]);
     }
-    if command.contains("git ") {
+    if command.split_whitespace().any(|word| word == "git") {
         result.push(vec!["git", "--version"]);
     }
     result

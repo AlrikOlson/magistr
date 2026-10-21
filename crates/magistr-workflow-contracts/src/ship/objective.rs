@@ -20,7 +20,10 @@ pub struct Objective {
     pub acceptance_criteria: Vec<String>,
     pub constraints: Vec<String>,
     pub scope: String,
-    #[serde(default, skip_serializing_if = "VerificationMode::is_full")]
+    #[serde(
+        default = "VerificationMode::legacy_full",
+        skip_serializing_if = "VerificationMode::is_full"
+    )]
     pub verification: VerificationMode,
     pub status: ObjectiveStatus,
     pub project_id: String,

@@ -72,6 +72,7 @@ def affected(paths, packages, locations, full=False):
     plan["desktop"] = desktop in selected
     plan["rust_packages"] = sorted(selected - {desktop})
     plan["rust"] = bool(plan["rust_packages"])
+    plan["contracts"] = bool(selected)
     if full:
         plan.update({key: True for key in JOBS})
         plan["rust_packages"] = sorted(set(packages) - {desktop})

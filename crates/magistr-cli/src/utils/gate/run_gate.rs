@@ -65,7 +65,7 @@ pub(crate) async fn run_gate(
                 command,
                 required,
                 reason,
-                GateVerdict::Failed,
+                GateVerdict::LaunchFailed,
                 started.elapsed(),
             );
         }
@@ -117,6 +117,8 @@ pub(crate) async fn run_gate(
         GateVerdict::Cancelled
     } else if result.timed_out {
         GateVerdict::TimedOut
+    } else if result.exit_code == -1 {
+        GateVerdict::LaunchFailed
     } else if result.exit_code == 0 {
         GateVerdict::Passed
     } else {

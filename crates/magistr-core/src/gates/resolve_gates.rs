@@ -23,22 +23,7 @@ pub fn resolve_gates(config: &ProjectConfig, gate: &str) -> Result<Vec<GateSpec>
             for g in ["check", "test", "lint"] {
                 specs.extend(standard_specs(config, g));
             }
-            // Clippy already type-checks the identical Cargo selection. Drop
-            // only proven duplicates; different targets/features/cwds still run.
-            let covered: Vec<_> = specs
-                .iter()
-                .filter(|spec| spec.name == "check" || spec.name.starts_with("check:"))
-                .filter(|check| {
-                    specs
-                        .iter()
-                        .any(|lint| clippy_covers(&check.command, &lint.command))
-                })
-                .map(|spec| spec.name.clone())
-                .collect();
-            if !covered.is_empty() {
-                specs.retain(|spec| !covered.contains(&spec.name));
-                specs.sort_by_key(|spec| !spec.name.starts_with("lint"));
-            }
+            consolidate_gates(&mut specs);
             // Standard + *required* custom gates, as the tool's own
             // description has always claimed. A gate registered
             // `required: false` is one the project expects to fail; `all`
@@ -149,7 +134,28 @@ fn standard_specs(config: &ProjectConfig, gate: &str) -> Vec<GateSpec> {
     specs
 }
 
-fn clippy_covers(check: &str, lint: &str) -> bool {
+/// Consolidate only commands whose Cargo targets and options prove coverage.
+pub fn consolidate_gates(specs: &mut Vec<GateSpec>) {
+    // Clippy already type-checks the identical Cargo selection. Drop
+    // only proven duplicates; different targets/features/cwds still run.
+    let covered: Vec<_> = specs
+        .iter()
+        .filter(|spec| spec.name == "check" || spec.name.starts_with("check:"))
+        .filter(|check| {
+            specs
+                .iter()
+                .any(|lint| clippy_covers(&check.command, &lint.command))
+        })
+        .map(|spec| spec.name.clone())
+        .collect();
+    if !covered.is_empty() {
+        specs.retain(|spec| !covered.contains(&spec.name));
+        specs.sort_by_key(|spec| !spec.name.starts_with("lint"));
+    }
+}
+
+/// Whether running this Clippy command also proves this exact check selection.
+pub fn clippy_covers(check: &str, lint: &str) -> bool {
     // Splitting keeps a literal cd prefix as part of the coverage identity.
     // Unknown shell syntax refuses consolidation rather than guessing.
     fn selection(command: &str, verb: &str) -> Option<Vec<String>> {

@@ -1,6 +1,37 @@
 use super::*;
 use serde_json::json;
 
+#[test]
+fn a_consolidated_clippy_result_satisfies_only_the_exact_check_contract() {
+    let check = magistr_core::gates::GateSpec {
+        name: "check".into(),
+        command: "cargo check --all-targets".into(),
+        required: true,
+    };
+    let run = GateRun {
+        name: "lint".into(),
+        command: "cargo clippy --all-targets -- -D warnings".into(),
+        required: true,
+        verdict: crate::utils::gate::GateVerdict::Passed,
+        exit_code: 0,
+        output: String::new(),
+        rows: vec![],
+        duration: Duration::ZERO,
+        queue_duration: Duration::ZERO,
+    };
+    let mut result = ProjectValidation {
+        results: vec![run],
+        checks: vec![check],
+    };
+    let policy = GovernancePolicy {
+        required_gates: vec!["check".into()],
+        ..Default::default()
+    };
+    assert!(result.policy_violations(&policy).is_empty());
+    result.checks[0].command.push_str(" --features another");
+    assert_eq!(result.policy_violations(&policy), vec!["check"]);
+}
+
 fn config() -> crate::types::ProjectConfig {
     serde_json::from_value(json!({
         "project": {"name": "gate-fixture"},

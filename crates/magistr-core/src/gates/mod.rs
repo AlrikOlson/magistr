@@ -12,4 +12,4 @@ mod gate_spec;
 mod resolve_gates;
 
 pub use gate_spec::GateSpec;
-pub use resolve_gates::resolve_gates;
+pub use resolve_gates::{clippy_covers, consolidate_gates, resolve_gates};

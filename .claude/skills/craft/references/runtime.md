@@ -34,10 +34,12 @@ remain the target; legacy search tool names describe a capability.
 Follow the project's explicit release and backward-compatibility policy before
 using roadmap acceptance, older instructions, reference implementations, or
 existing tests as requirements. A project that forbids backward compatibility
-before official public release has no compatibility exceptions: make intended
-breaking changes directly and update current callers, configuration, docs and
-tests together. Correct conflicting preservation requirements instead of adding
-aliases, shims, fallbacks, dual paths, deprecations or old-format migrations.
+before official public release should keep one current design: update callers,
+configuration, docs and tests together. Follow explicit project exceptions for
+upgrading existing installations. Where required, the owning component converts
+known old configuration and data once, preserves customizations and recoverable
+originals, and resumes safely after interruption. Do not retain parallel live
+stores or obsolete runtime APIs. Correct conflicting preservation requirements.
 Do not infer an official public release from package versions, tags or release
 tooling.
 
@@ -71,8 +73,9 @@ tooling.
   changes, including code and roadmap chunks, and record the relevant checks.
   Use `verification: "full"` and `magistr_gate(gate: "all")` only when the user
   requests the full suite or a concrete cross-cutting risk needs every gate;
-  state the reason first. The tool's default is not a scope
-  decision. An active ship task supplies recording context. Inspect `passed`,
+  state the reason first. New objectives default to focused; saved objectives
+  retain their promised verification. An active ship task supplies recording
+  context. Inspect `passed`,
   `recorded`, `note`, exit codes, and native errors; transport success is not evidence.
 - Run focused checks while implementing, then the chosen verification once on
   the final source. After a failure, diagnose it and rerun affected checks.
@@ -86,8 +89,22 @@ tooling.
   the checkpoint and report the blocker; do not repeat green unrecorded runs.
 - For targeted `check_work`, supply the actual `command` and check type:
   `test`, `lint`, `typecheck`, `build`, `review`, or `manual`. The server must
-  execute it. Never manufacture checks with `passed: true` or copied shell
-  summaries. Inspect native errors and lifecycle refusals before proceeding.
+  execute it. Set `inputs` to every source/configuration input and affected
+  dependency for a bounded command; omit it when the full input set is unknown.
+  Matching successful checks can reuse a receipt for up to 24 hours when source,
+  command, configuration, tools and environment still match. Read its original
+  `receipt_id`; reuse has no new exit code. Use `reuse: false` for a deliberate
+  rerun. Reviews, builds and network-dependent checks never inherit reuse from
+  ordinary test commands. Configure custom gate reuse explicitly only when its
+  inputs fully describe the result.
+  Gate batches stop scheduling after a required failure; `diagnostic: true`
+  collects all results. Cargo commands sharing a target directory serialize;
+  independent resources may overlap. Budgets and resource declarations live in
+  `verification` in project.json; `timeout_secs` overrides one check's budget.
+  Mutation responses return compact receipt/task summaries; use `context` or
+  native queries for the full record instead of requesting the whole trace.
+  Never manufacture checks with `passed: true` or copied shell summaries.
+  Inspect native errors and lifecycle refusals before proceeding.
 - Append iteration receipts to `.magistr/iteration-log.md`; include the file
   in a commit only if Git already tracks it. Never force-add ignored local
   state. Stage and commit only the current iteration's changes.

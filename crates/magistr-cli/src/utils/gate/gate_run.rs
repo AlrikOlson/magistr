@@ -69,6 +69,9 @@ impl GateRun {
             GateVerdict::Unconfigured => CheckExecution::LaunchFailed {
                 reason: "no command configured".into(),
             },
+            GateVerdict::LaunchFailed => CheckExecution::LaunchFailed {
+                reason: self.output.clone(),
+            },
             GateVerdict::TimedOut => CheckExecution::TimedOut,
             GateVerdict::Cancelled => CheckExecution::Cancelled,
         }
@@ -94,6 +97,7 @@ impl GateRun {
         match self.verdict {
             GateVerdict::Passed => format!("{} passed in {secs:.1}s", self.name),
             GateVerdict::Unconfigured => format!("{} is not configured; no check ran", self.name),
+            GateVerdict::LaunchFailed => format!("{} could not start: {}", self.name, self.output),
             GateVerdict::Failed => {
                 format!(
                     "{} failed (exit {}) in {secs:.1}s",

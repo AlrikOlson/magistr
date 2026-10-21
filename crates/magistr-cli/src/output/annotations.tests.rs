@@ -166,6 +166,7 @@ fn parse_colon_rejects_non_file() {
 #[test]
 fn format_annotations_skips_passing_gates() {
     let result = ValidationResult {
+        checks: vec![],
         results: vec![make_gate_result(Gate::Check, true, "all good")],
     };
     let output = format_annotations(&result);
@@ -175,6 +176,7 @@ fn format_annotations_skips_passing_gates() {
 #[test]
 fn format_annotations_emits_general_error_for_unparseable_output() {
     let result = ValidationResult {
+        checks: vec![],
         results: vec![make_gate_result(
             Gate::Test,
             false,
@@ -189,6 +191,7 @@ fn format_annotations_emits_general_error_for_unparseable_output() {
 fn format_annotations_emits_file_annotations_for_parseable_output() {
     let output_text = "error[E0308]: mismatched types\n  --> src/main.rs:10:5\n  |\n";
     let result = ValidationResult {
+        checks: vec![],
         results: vec![make_gate_result(Gate::Check, false, output_text)],
     };
     let output = format_annotations(&result);
@@ -198,6 +201,7 @@ fn format_annotations_emits_file_annotations_for_parseable_output() {
 #[test]
 fn format_annotations_handles_multiple_failed_gates() {
     let result = ValidationResult {
+        checks: vec![],
         results: vec![
             make_gate_result(Gate::Check, true, "ok"),
             make_gate_result(Gate::Test, false, "src/lib.rs:20: error: assertion failed"),
@@ -218,6 +222,7 @@ fn format_annotations_preserves_custom_and_archetype_gate_names() {
     let mut custom = make_gate_result(Gate::Lint, false, "custom check failed");
     custom.name = "architecture".into();
     let output = format_annotations(&ValidationResult {
+        checks: vec![],
         results: vec![archetype, custom],
     });
     assert!(output.contains("title=check%3Awebsite::"));
@@ -230,6 +235,7 @@ fn custom_gate_annotations_escape_workflow_command_delimiters() {
     gate.name = "check:website,1\n::notice::injected".into();
     gate.command = "first\r\nsecond%".into();
     let output = format_annotations(&ValidationResult {
+        checks: vec![],
         results: vec![gate],
     });
     assert_eq!(output.lines().count(), 1);

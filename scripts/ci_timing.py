@@ -20,6 +20,31 @@ def slow_tests(path, limit=20):
         key=lambda item: item["seconds"], reverse=True)[:limit]
 
 
+def stop_group(child, grace=5):
+    try:
+        os.killpg(child.pid, signal.SIGTERM)
+    except ProcessLookupError:
+        child.wait()
+        return
+    deadline = time.monotonic() + grace
+    while time.monotonic() < deadline:
+        child.poll()
+        try:
+            os.killpg(child.pid, 0)
+        except ProcessLookupError:
+            break
+        except PermissionError:
+            # macOS can refuse signal 0 during the exit/reap transition.
+            # Keep waiting; a real failure to terminate still propagates below.
+            pass
+        time.sleep(0.02)
+    try:
+        os.killpg(child.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+    child.wait()
+
+
 def run(command, budget):
     started = time.monotonic()
     child = subprocess.Popen(command, start_new_session=True)
@@ -28,13 +53,11 @@ def run(command, budget):
         code = child.wait(timeout=budget)
     except subprocess.TimeoutExpired:
         timed_out = True
-        os.killpg(child.pid, signal.SIGTERM)
-        try:
-            child.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            os.killpg(child.pid, signal.SIGKILL)
-            child.wait()
+        stop_group(child)
         code = 124
+    except BaseException:
+        stop_group(child)
+        raise
     return {"seconds": round(time.monotonic() - started, 3), "exit_code": code,
             "budget_seconds": budget, "timed_out": timed_out}
 
@@ -43,7 +66,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--name", required=True)
     parser.add_argument("--budget", type=float, required=True)
-    parser.add_argument("--junit", type=Path)
+    parser.add_argument("--junit", type=Path, action="append", default=[])
     parser.add_argument("command", nargs=argparse.REMAINDER)
     args = parser.parse_args()
     command = args.command[1:] if args.command[:1] == ["--"] else args.command
@@ -53,7 +76,9 @@ def main():
     receipt.update({"name": args.name, "source": os.environ.get("GITHUB_SHA"),
                     "run_id": os.environ.get("GITHUB_RUN_ID")})
     if args.junit:
-        receipt["slow_tests"] = slow_tests(args.junit)
+        receipt["slow_tests"] = sorted(
+            (test for path in args.junit for test in slow_tests(path)),
+            key=lambda test: test["seconds"], reverse=True)[:20]
     directory = Path("target/ci-timings")
     directory.mkdir(parents=True, exist_ok=True)
     (directory / f"{args.name}.json").write_text(json.dumps(receipt, indent=2) + "\n")

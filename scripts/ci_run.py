@@ -29,11 +29,15 @@ def main():
     args = parser.parse_args()
     if args.stage == "rust-build":
         selected = packages()
+        run(sys.executable, "-B", "scripts/nextest-config-gate.py", "--syntax-only")
+        run(sys.executable, "-B", "scripts/verification_scripts.tests.py")
         run("cargo", "fmt", "--all", "--", "--check")
         # Clippy performs the all-target type check and lint in one compilation pass.
         run("cargo", "clippy", *selected, "--all-targets", "--locked", "--", "-D", "warnings")
         run("cargo", "nextest", "archive", *selected, "--locked",
             "--archive-file", "target/ci-tests.tar.zst")
+        run(sys.executable, "-B", "scripts/nextest-config-gate.py", "--filters-only",
+            "--archive", "target/ci-tests.tar.zst")
     elif args.stage == "rust-test":
         if not re.fullmatch(r"[1-9][0-9]*/[1-9][0-9]*", args.partition):
             raise ValueError("Invalid test partition")
@@ -42,6 +46,9 @@ def main():
             "--profile", "diagnostic" if os.environ.get("GITHUB_EVENT_NAME") in
             ("schedule", "workflow_dispatch") else "ci", "--partition", f"hash:{args.partition}")
     else:
+        for script in ("lint-structure", "native-write-path-gate", "workflow-source-gate",
+                       "workspace-source-gate", "lint-duplication", "legacy-gui-ratchet"):
+            run("bash", f"scripts/{script}.sh")
         run(sys.executable, "-B", "scripts/version.py", "check")
         for name in ("version", "cli-release", "cargo_publication", "public_link_check",
                      "release-security", "agent-mcp-eval"):

@@ -21,10 +21,16 @@ jobs:
           persist-credentials: false
       - name: Install the pinned Rust toolchain
         run: rustup show active-toolchain
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+        with:
+          shared-key: cli-release
+          cache-workspace-crates: true
+          key: ${{ hashFiles('crates/**/*.rs', 'scripts/package-release.sh') }}
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version-file: .node-version
-          package-manager-cache: false
+          cache: npm
+          cache-dependency-path: scripts/package-lock.json
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version-file: .python-version
@@ -33,11 +39,11 @@ jobs:
       - name: Check release versions
         run: python3 -B scripts/version.py check
       - name: Build publishable artifacts
-        run: python3 scripts/distribution.py prepare --out target/cli-distribution
+        run: python3 -B scripts/ci_timing.py --name distribution-build --budget 1200 -- python3 scripts/distribution.py prepare --out target/cli-distribution
       - name: Verify extracted Cargo installation
-        run: python3 scripts/distribution.py verify-cargo --out target/cli-distribution
+        run: python3 -B scripts/ci_timing.py --name distribution-cargo --budget 1200 -- python3 scripts/distribution.py verify-cargo --out target/cli-distribution
       - name: Verify packed npm installation
-        run: python3 scripts/distribution.py verify-npm --out target/cli-distribution
+        run: python3 -B scripts/ci_timing.py --name distribution-npm --budget 300 -- python3 scripts/distribution.py verify-npm --out target/cli-distribution
       - name: Test unified protocol and onboarding
         run: |
           MAGISTR_TEST_BINARY=target/release/magistr python3 scripts/unified-mcp-check.py
@@ -50,6 +56,13 @@ jobs:
           artifacts: target/cli-distribution
       - name: Verify complete artifact receipts
         run: python3 scripts/cli-release.py verify --out target/cli-distribution --source "$GITHUB_SHA"
+      - name: Save distribution timings
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: timing-cli-distribution
+          path: target/ci-timings/
+          if-no-files-found: warn
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: cli-distribution

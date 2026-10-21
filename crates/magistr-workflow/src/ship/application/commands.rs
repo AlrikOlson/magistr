@@ -61,7 +61,7 @@ impl ShipUseCases {
             acceptance_criteria,
             constraints,
             scope,
-            VerificationMode::Full,
+            VerificationMode::Focused,
         )
     }
 
