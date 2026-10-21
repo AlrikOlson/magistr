@@ -211,6 +211,36 @@
       "reason": "Telemetry redaction test with explicitly planted synthetic secrets",
       "reviewedOn": "2026-10-19",
       "evidence": "docs/evidence/cli-installation/2026-10-19-release-audit/secret-scan-review.json"
+    },
+    {
+      "commit": "bc110fa442f49e0f6d17cc017ba6a10633186382",
+      "file": "apps/website/public/demo/inbox/manifest.json",
+      "rule": "generic-api-key",
+      "line": 12,
+      "contextVerified": true,
+      "reason": "SHA-256 of the recorded HTTP test source; recomputed from the immutable commit and matched exactly. The filename contains api; the value is a content digest.",
+      "reviewedOn": "2026-10-20",
+      "evidence": "docs/evidence/website-recording/2026-10-20-secret-review.json"
+    },
+    {
+      "commit": "bc110fa442f49e0f6d17cc017ba6a10633186382",
+      "file": "docs/evidence/desktop-iterations/2026-10-20-inbox-build-refined/captures.json",
+      "rule": "generic-api-key",
+      "line": 12,
+      "contextVerified": true,
+      "reason": "SHA-256 of the recorded HTTP test source; recomputed from the immutable commit and matched exactly. The filename contains api; the value is a content digest.",
+      "reviewedOn": "2026-10-20",
+      "evidence": "docs/evidence/website-recording/2026-10-20-secret-review.json"
+    },
+    {
+      "commit": "bc110fa442f49e0f6d17cc017ba6a10633186382",
+      "file": "docs/evidence/desktop-iterations/2026-10-20-inbox-build/captures.json",
+      "rule": "generic-api-key",
+      "line": 12,
+      "contextVerified": true,
+      "reason": "SHA-256 of the recorded HTTP test source; recomputed from the immutable commit and matched exactly. The filename contains api; the value is a content digest.",
+      "reviewedOn": "2026-10-20",
+      "evidence": "docs/evidence/website-recording/2026-10-20-secret-review.json"
     }
   ]
 }
