@@ -214,7 +214,8 @@ try {
   const nojsResponse = await nojs.goto(origin + "/docs/");
   assert.equal(nojsResponse.status(), 200);
   await nojs.getByRole("navigation", { name:"Documentation pages", exact:true }).getByRole("link", { name:"Installation", exact:true }).click();
-  await nojs.waitForURL("**/docs/installation");
+  // Hosts may canonicalize directory routes with a trailing slash.
+  await nojs.waitForURL(url => url.pathname.replace(/\/$/, "") === "/docs/installation");
   await nojs.waitForLoadState("load");
   await nojs.locator("main h1").waitFor({ state:"visible" });
   assert.equal(await nojs.locator("main h1").textContent(), "Installation");
