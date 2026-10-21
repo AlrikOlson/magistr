@@ -1,11 +1,13 @@
 ---
 import { getCollection, render } from "astro:content";
 import Docs from "../../layouts/Docs.astro";
+import { groupDocs } from "../../data/docs.mjs";
 
 export async function getStaticPaths() {
   const docs = await getCollection("docs");
+  groupDocs(docs); // Reject broken relationships before emitting any routes.
   return docs.map((doc) => ({
-    params: { slug: doc.id },
+    params: { slug: doc.id === "index" ? undefined : doc.id },
     props: { doc },
   }));
 }
@@ -13,7 +15,6 @@ export async function getStaticPaths() {
 const { doc } = Astro.props;
 const { Content, headings } = await render(doc);
 ---
-
-<Docs title={doc.data.title} description={doc.data.description} currentSlug={doc.id} headings={headings}>
+<Docs doc={doc} headings={headings}>
   <Content />
 </Docs>

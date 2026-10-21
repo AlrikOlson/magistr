@@ -7,8 +7,10 @@ seven authored fields before entering the engine: estimated_total, purpose,
 context, thought, outcome, next_action and rationale. Missing, blank or wrongly
 typed values produce field-level problems. Embedded XML cannot substitute for
 an omitted field. Persisted defaults and recovery describe the current
-implementation; the [pre-release policy](../../AGENTS.md#before-public-release) permits changing
-or removing old-format handling with the current consumers and tests.
+implementation. The [pre-release policy](../../AGENTS.md#before-public-release)
+requires one current design, while its automatic-upgrade exception requires
+recognized older configuration and durable data to convert safely through their
+owner, preserving customizations and recoverable originals.
 
 Known-tool argument failures return `isError:true`, stable `code` and
 `error_kind`, the original diagnostic, `problems`, `effect` and `recovery`.
@@ -60,4 +62,3 @@ The contract follows the [MCP tools specification](https://modelcontextprotocol.
 Schema overrides use Schemars'
 [`!default` behavior](https://docs.rs/schemars/1.2.1/schemars/derive.JsonSchema.html);
 `required` alone only changes an Option field's nullability.
-

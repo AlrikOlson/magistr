@@ -1,15 +1,9 @@
-# Pages that no longer exist on the site: send readers to the nearest live page.
-/docs/architecture   https://github.com/AlrikOlson/magistr/blob/main/docs/architecture/overview.md  301
-/docs/architecture/  https://github.com/AlrikOlson/magistr/blob/main/docs/architecture/overview.md  301
-/docs/development    https://github.com/AlrikOlson/magistr/blob/main/docs/development.md            301
-/docs/development/   https://github.com/AlrikOlson/magistr/blob/main/docs/development.md            301
-/docs/deployment     https://github.com/AlrikOlson/magistr/blob/main/docs/development.md            301
-/docs/deployment/    https://github.com/AlrikOlson/magistr/blob/main/docs/development.md            301
-/docs/configuration  /docs/installation  301
-/docs/configuration/ /docs/installation  301
-/docs/skills         /docs/installation  301
-/docs/skills/        /docs/installation  301
-/docs/hooks          /docs/installation  301
-/docs/hooks/         /docs/installation  301
-/docs                /docs/installation  301
-/docs/               /docs/installation  301
+# Retired contributor routes keep their subject and remain publicly navigable.
+/docs/architecture   /docs/contributing#architecture  301
+/docs/architecture/  /docs/contributing#architecture  301
+/docs/development    /docs/contributing#development  301
+/docs/development/   /docs/contributing#development  301
+/docs/deployment     /docs/contributing#releases-and-deployment  301
+/docs/deployment/    /docs/contributing#releases-and-deployment  301
+/docs/hooks          /docs/contributing#integration  301
+/docs/hooks/         /docs/contributing#integration  301

@@ -1,0 +1,116 @@
+---
+title: Troubleshooting
+description: Diagnose setup, connection, ownership, and verification failures without losing work.
+section: help
+order: 1
+related: [agents, verification, upgrades, storage]
+---
+Start in the root of the affected project. Keep the full error and note which
+command or agent action produced it. If the CLI is missing, follow
+[Installation](/docs/installation) first.
+
+## Start with diagnostics
+
+```sh
+magistr --version
+magistr doctor .
+magistr config check .
+magistr workspace doctor .
+```
+
+Doctor checks project setup and agent readiness. Configuration checking reports
+invalid settings. Workspace doctor inspects source-tool health and active
+connections without interrupting their owner.
+
+Follow the specific diagnostic. A successful diagnostic command does not prove
+an agent has loaded new configuration; reopen the host after setup changes.
+
+## The agent cannot see Magistr
+
+Confirm that the agent opened the intended project and that you selected its
+integration during setup. Codex should use `./.codex/run`; Claude Code reads
+the project's MCP configuration and may ask you to approve it.
+
+Preview repairs:
+
+```sh
+magistr repair . --dry-run
+```
+
+Apply the reviewed repair with `magistr repair .`, then open a fresh session.
+Ask the agent to call `context` and report the project. See
+[Connect an agent](/docs/agents) for portable hosts.
+
+A missing runtime or expired agent login must be fixed in that agent. Repairing
+Magistr's files does not authenticate a provider.
+
+## Another session owns the project
+
+An active connection can own the workspace or workflow service. Other connections
+should attach through Magistr's normal connection.
+
+Use `magistr workspace doctor .` and the reported owner information to locate
+the active session. If it is doing useful work, let it continue. If it should end,
+close it through its normal controls and retry.
+
+Do not delete lock files, kill an unknown owner, or launch a competing server.
+If ownership still cannot be resolved after a normal close, keep the diagnostic
+and seek help with the original data preserved.
+
+## An agent attempt has an unknown outcome
+
+A process can stop after an agent starts work but before its result is recorded.
+Blindly rerunning that attempt could duplicate changes or an external action.
+
+First inspect the current files, commits, saved task, and the actual outcome.
+Confirm that the loop and every agent it started have stopped. Then inspect:
+
+```sh
+magistr resolve-dispatch --help
+```
+
+The recovery command requires the saved run ID, command ID, attempt number,
+an outcome (`completed`, `failed`, or `cancelled`), an explanation, and
+`--confirm-stopped`. Use the identifiers reported by workspace doctor.
+Completed work is not retried; failed or cancelled work can be retried.
+
+Do not supply a guessed outcome merely to clear the warning.
+
+## Checks fail or completion is refused
+
+Read the actual check output. A compiler failure, unavailable command, timeout,
+and stale source evidence require different fixes.
+
+If the command passed but inputs changed during or after it, save the intended
+files and rerun the affected check against the current source. If a dependency
+was omitted from a bounded input list, correct the boundary before relying on
+reuse.
+
+Verify that checks were recorded on the active task and that every required
+check passed. See [Verification](/docs/verification) and
+[check configuration](/docs/configuration#configure-checks).
+
+## Saved work appears missing
+
+Confirm the project directory, `project.id`, and storage environment settings.
+Workflow records are not all stored inside the repository. A different data
+directory can show an empty project while the original records still exist.
+
+Do not reset the project or delete a database to investigate missing history.
+Back up the original files and sidecars before recovery. Some CLI error
+messages suggest deleting `sessions.db`; that discards saved conversations
+and drafts and is not a general repair.
+
+If a moved folder cannot resume a conversation, open the original working
+directory or begin a fresh conversation with the saved project evidence.
+[Storage](/docs/storage) explains path-bound records and backups.
+
+## An upgrade or repair stops
+
+A conflict, malformed file, unknown storage version, or live owner may prevent
+safe conversion. Preserve both versions and follow the reported action.
+[Upgrades](/docs/upgrades) identifies recovery copies and what is automatic.
+
+For a useful report, include the Magistr version, operating system, failing
+command, complete error, and relevant redacted configuration. Review diagnostics
+before sharing them; do not post credentials, private prompts, or database files.

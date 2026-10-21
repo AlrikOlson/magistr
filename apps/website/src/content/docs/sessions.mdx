@@ -1,0 +1,97 @@
+---
+title: Sessions and resuming work
+description: Continue unfinished work, return to a conversation, or change agents.
+section: working
+order: 5
+related: [storage, chunks, troubleshooting]
+---
+A new conversation can continue a project using Magistr's saved records.
+Resuming the exact old conversation is a separate action and depends on the
+agent that owns it.
+
+First open the correct project with [Magistr connected](/docs/agents). If another
+session is working there, coordinate file ownership and preserve its changes.
+
+## Resume work in a fresh conversation
+
+Ask:
+
+> Read Magistr's current context, the selected objective, remaining tasks,
+> recorded decisions, and checks. Compare them with the current files and
+> explain where to resume before editing.
+
+The agent should find unfinished work rather than reconstruct it from memory.
+It should retain completed tasks and earlier failures, inspect changes made
+since the last session, and rerun only verification affected by those changes.
+
+The `next` skill resumes interrupted roadmap work before selecting a ready
+chunk. Inspect saved plans in the project terminal:
+
+```sh
+magistr plans .
+magistr plans . --status active
+```
+
+`magistr next --continue` continues the selected unfinished objective and
+task plan. Use it only when you intend that work to continue.
+
+## Return to a saved conversation
+
+For conversations launched through Magistr, list saved sessions:
+
+```sh
+magistr sessions --limit 10
+```
+
+Resume one from its original working directory. Replace `SESSION_ID` with an
+ID from the listing:
+
+```sh
+magistr run --resume SESSION_ID "Read the current work and continue."
+```
+
+To use the most recent saved conversation for that working copy:
+
+```sh
+magistr run --continue "Read the current work and continue."
+```
+
+These commands start an agent turn. A saved conversation must support resume,
+belong to the current working directory, and use its owning agent. Magistr
+refuses a mismatched provider or directory instead of silently opening a
+different conversation.
+
+For conversations started directly in Codex or Claude Code, use that host's
+history and resume controls. They are not automatically imported into
+Magistr's conversation list.
+
+## Change agents
+
+Connect the new agent to the same project, open a new conversation, and ask it
+to read the saved work. Roadmap records, reasoning, work plans, checks, and
+feedback can be shared through Magistr.
+
+The previous agent's entire transcript, authentication, and model settings do
+not transfer. A fresh conversation can still continue the task from the
+recorded project evidence.
+
+## Use the desktop
+
+In the [desktop preview](/docs/desktop), select a saved conversation to return
+to it. Saved drafts belong to their conversation. **New session** starts a
+conversation; **Stop** cancels its current turn; **Close session** ends that
+session.
+
+Changing the visible conversation does not stop another conversation's work.
+Read its status before issuing a conflicting request.
+
+## Recover carefully
+
+If records appear missing, check the project directory, project identity,
+and data-directory settings before creating replacement work. If a session
+still owns the project, use its normal controls to finish or close it.
+
+A renamed folder may retain shared project records while its saved conversations
+still refer to the old path. [Storage](/docs/storage#move-a-project) explains
+that limitation. [Troubleshooting](/docs/troubleshooting) covers connection
+and interrupted-attempt failures.

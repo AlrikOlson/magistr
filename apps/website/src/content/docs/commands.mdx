@@ -1,0 +1,139 @@
+---
+title: Command reference
+description: Look up terminal commands, important options, and their effects.
+section: reference
+order: 1
+related: [skills, configuration, troubleshooting]
+---
+Run these commands in a terminal after [installing Magistr](/docs/installation).
+Unless stated otherwise, use the root of the project you want to work on.
+`.` means the current directory. Uppercase words such as `SESSION_ID` are
+placeholders to replace, not literal arguments.
+
+Skills such as `$next` are entered in an agent conversation; they are listed
+on the [Skills](/docs/skills) page.
+
+## Help and diagnostics
+
+```sh
+magistr --version
+magistr --help
+magistr next --help
+magistr doctor .
+magistr config check .
+```
+
+Use `magistr COMMAND --help` for the installed version's full options.
+Help does not start an agent. Doctor diagnoses setup and availability;
+configuration checks report invalid settings.
+
+| Command | Purpose and effect |
+| --- | --- |
+| `magistr detect .` | Print detected project stack as JSON; does not scaffold files. |
+| `magistr doctor .` | Inspect setup, agent availability, and connection readiness. |
+| `magistr config show .` | Show effective configuration. Review before sharing; settings can contain private values. |
+| `magistr config check .` | Validate project and user configuration. |
+| `magistr lint .` | Check project configuration for known problems. |
+| `magistr workspace doctor .` | Inspect source-workspace health and active ownership without interrupting a session. |
+
+## Setup and removal
+
+| Command | Purpose and significant options |
+| --- | --- |
+| `magistr init .` | Review and create project setup. `--agent codex,claude` selects integrations; `--yes` accepts defaults; `--dry-run --json` prints a preview. |
+| `magistr init . --check` | Report drift and the proposed repair plan. |
+| `magistr repair .` | Review and apply setup repairs. `--dry-run` previews; `--yes` accepts the repair. |
+| `magistr remove .` | Remove eligible generated connections while retaining project settings and work. Preview with `--dry-run`. |
+| `magistr codex-remove .` | Remove eligible managed Codex setup only. |
+| `magistr reset .` | Delete project configuration and state after confirmation. This is destructive and is not an ordinary connection repair. |
+
+Setup accepts `codex`, `claude`, `portable`, `cursor`, `copilot`,
+`cline`, `windsurf`, and `aider`. These are setup targets, not a promise
+that all can be launched by every command.
+
+## Work and verification
+
+```sh
+magistr next --agent codex
+magistr next-loop --agent codex --max-iterations 3
+magistr validate
+```
+
+The first two commands start implementation. The third runs the full configured
+quality gate without implementing work.
+
+| Command or option | Effect |
+| --- | --- |
+| `magistr run "YOUR REQUEST"` | Start an agent turn with the quoted request. |
+| `magistr next` | Run one roadmap iteration. |
+| `magistr next --continue` | Continue the selected unfinished objective and task plan. |
+| `magistr next --gate-only` | Run quality gates without an AI implementation iteration. |
+| `magistr next-loop --max-iterations 3` | Bound a run to three iterations, with fresh agent sessions. |
+| `--track "WORKSTREAM"` on `next-loop` | Limit selection to the named roadmap workstream or unambiguous fragment. |
+| `--agent`, `--model`, `--effort` | Override saved launch preferences; `--provider` aliases `--agent`, and `-m` aliases `--model`. |
+| `--show-config` on `run`, `next`, or `next-loop` | Print resolved launch settings and exit without starting work. `run` still requires its prompt argument. |
+| `--headless --format plain` | Stream plain output; `--format json` selects newline-delimited event JSON. |
+| `--budget 5.00` | Set a session spending limit where cost reporting is available. |
+
+Use [Configuration](/docs/configuration) for preference precedence and
+[Permissions](/docs/permissions) for the limits of permission and cost controls.
+
+## Read plans and sessions
+
+```sh
+magistr roadmap status
+magistr roadmap next
+magistr plans . --status active
+magistr sessions --limit 10
+```
+
+| Command | Purpose and effect |
+| --- | --- |
+| `magistr roadmap show` | Display roadmap progress. |
+| `magistr roadmap status` | Display a status snapshot; `--json` requests machine-readable output. |
+| `magistr roadmap next` | Report a ready chunk without implementing it. |
+| `magistr roadmap generate --help` | Inspect options for agent-assisted roadmap generation before requesting changes. |
+| `magistr plans .` | List current and retained plans; filter with `--status active`, `completed`, or `abandoned`. |
+| `magistr sessions` | List saved Magistr conversations; `--project` filters names and `--since-days` filters age. |
+| `magistr run --resume SESSION_ID "YOUR REQUEST"` | Resume a supported saved conversation and send a new request. |
+| `magistr run --continue "YOUR REQUEST"` | Continue the latest conversation for the current working copy. |
+
+`sessions --tag` and `--handoff` change saved metadata. `--purge` removes
+old session records; inspect its help and back up before using it.
+[Sessions](/docs/sessions) explains provider and directory restrictions.
+
+## Source tools and integration
+
+| Command | Purpose |
+| --- | --- |
+| `magistr mcp --dir /absolute/path/to/project` | Serve the connection started by an MCP agent. |
+| `magistr codex-launch --project-root . --` | Launch Codex with project skill selections. Arguments after `--` go to Codex. |
+| `magistr codex-launch --project-root . --diagnose` | Inspect the launcher without starting a model turn. |
+| `magistr workspace journal .` | Inspect the saved source-change journal. |
+| `magistr workspace snapshot .` | Inspect the source snapshot used for verification. |
+| `magistr workspace init .` | Seed command declarations when absent; existing declarations are preserved. |
+| `magistr workspace working-copy --help` | Inspect commands for separate task working copies. |
+| `magistr resolve-dispatch --help` | Inspect recovery options for an interrupted attempt whose outcome needs review. |
+
+Do not start a second server to bypass an existing owner. Recovery details are
+in [Troubleshooting](/docs/troubleshooting).
+
+## Additional command families
+
+The installed CLI also exposes these specialized commands. Inspect
+`magistr NAME --help` before using their mutation options.
+
+| Family | Purpose |
+| --- | --- |
+| `config set` | Save agent, model, or effort preferences. |
+| `models`, `costs`, `permissions` | Inspect model availability, recorded costs, or permission audit history. |
+| `login`, `logout`, `team`, `policy` | Configured team identity, roster, and policy. Agent-provider login is separate. |
+| `learn`, `memory` | Build or inspect saved project memory. |
+| `plugins`, `preset`, `archetypes` | Manage setup extensions and inspect configured project patterns. |
+| `import`, `export` | Import setup presets or export project configuration as a shareable preset. These are not backups of workflow records. |
+| `completions`, `man-pages` | Generate shell completion scripts or manual pages. |
+| `guard` | Run the Claude Code hook integration; normally called by configured hooks. |
+| `roadmap export` | Produce a roadmap view only when the project's export policy permits it. |
+
+For everyday setup and work, follow the focused guides instead of invoking
+administrative commands merely because they appear in help.

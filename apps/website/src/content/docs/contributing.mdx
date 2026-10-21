@@ -1,0 +1,81 @@
+---
+title: Contributing
+description: Find the source, development instructions, and technical contracts for changing Magistr.
+section: contributing
+order: 1
+related: [installation, desktop, concepts]
+---
+This page is for developers changing Magistr itself or integrating with its
+implementation. To use Magistr on your own project, start with
+[Installation](/docs/installation) and [Connect an agent](/docs/agents).
+
+Magistr is a source preview. The repository and its workflow artifacts require
+[repository access](https://github.com/AlrikOlson/magistr). A repository link may
+be unavailable when you are signed out or do not have access.
+
+## Development
+
+Read the repository's
+[contribution guide](https://github.com/AlrikOlson/magistr/blob/main/CONTRIBUTING.md),
+[development guide](https://github.com/AlrikOlson/magistr/blob/main/docs/development.md),
+and project instructions before changing code.
+
+Magistr has a Rust workspace and a separate desktop workspace. The website uses
+Astro and MDX. Development guidance identifies the commands, prerequisites,
+and affected checks for each area.
+
+Choose verification for the behavior you change. Record actual results and
+review interface screenshots where applicable. Foreground native input tests
+need explicit authorization for that run.
+
+## Architecture
+
+The [architecture overview](https://github.com/AlrikOlson/magistr/blob/main/docs/architecture/overview.md)
+maps component ownership and links to the detailed contracts.
+
+Use the relevant contract before changing a shared boundary:
+
+- [Sessions](https://github.com/AlrikOlson/magistr/blob/main/docs/architecture/sessions.md)
+  covers agent sessions and their owners.
+- [Desktop](https://github.com/AlrikOlson/magistr/blob/main/docs/architecture/desktop.md)
+  covers the graphical application and verification limits.
+- [Terminal](https://github.com/AlrikOlson/magistr/blob/main/docs/architecture/terminal.md)
+  covers terminal presentation.
+
+Product instructions live in this public manual. Repository architecture pages
+explain implementation responsibilities and are not a second installation guide.
+
+## Integration
+
+The [Codex reference](https://github.com/AlrikOlson/magistr/blob/main/docs/reference/codex.md)
+documents launcher and skill-selection behavior for integration work.
+
+[Tool recovery](https://github.com/AlrikOlson/magistr/blob/main/docs/reference/tool-recovery.md)
+covers tool errors and recovery contracts.
+[Authentication](https://github.com/AlrikOlson/magistr/blob/main/docs/reference/authentication.md)
+describes the configured team-identity protocol and its verification limits.
+
+For ordinary model choices and approval behavior, use
+[Configuration](/docs/configuration) and [Permissions](/docs/permissions).
+
+## Releases and deployment
+
+The [release inventory](https://github.com/AlrikOlson/magistr/blob/main/docs/release-inventory.md)
+and [CLI release guide](https://github.com/AlrikOlson/magistr/blob/main/docs/releasing-cli.md)
+describe maintainer packaging and publication work.
+[Release security](https://github.com/AlrikOlson/magistr/blob/main/docs/release-security.md)
+covers release checks.
+
+Website build and verification instructions are in the
+[website README](https://github.com/AlrikOlson/magistr/blob/main/apps/website/README.md).
+These maintainer procedures do not mean a public package is already available.
+
+## Historical evidence
+
+The [repository documentation index](https://github.com/AlrikOlson/magistr/blob/main/docs/index.md)
+separates current guidance from dated investigations, benchmarks, and screenshot
+evidence. Historical evidence describes the source and environment recorded at
+that time; it is not a current installation or support guarantee.
+
+The landing page's [recorded build](/#workflow) is an independent example.
+Its original records remain useful even when the current manual changes.

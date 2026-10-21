@@ -30,7 +30,8 @@ const installHtml = page("docs/installation/index.html");
 const conceptsHtml = page("docs/concepts/index.html");
 const workflowHtml = page("docs/workflow/index.html");
 const notFoundHtml = page("404.html");
-const productPages = [["home", indexHtml], ["installation", installHtml], ["concepts", conceptsHtml], ["workflow", workflowHtml], ["404", notFoundHtml], ...["roadmap","reasoning","chunks","verification"].map(slug=>[slug,page("docs/"+slug+"/index.html")])];
+const docIds = readdirSync(resolve(srcDir, "content/docs")).filter(file => file.endsWith(".mdx")).map(file => file.slice(0, -4));
+const productPages = [["home", indexHtml], ["404", notFoundHtml], ...docIds.map(id => [id === "index" ? "docs" : id, page(id === "index" ? "docs/index.html" : `docs/${id}/index.html`)])];
 const mainOf = (html) => html.split("<main")[1]?.split("</main>")[0] ?? html;
 const textOf = (html) => mainOf(html).replace(/<code[\s\S]*?<\/code>/g, "").replace(/<pre[\s\S]*?<\/pre>/g, "").replace(/<[^>]+>/g, " ");
 
@@ -74,7 +75,7 @@ assert(mainOf(indexHtml).split('target="_blank"').length - 1 === (mainOf(indexHt
 
 console.log("\nInternal links:");
 const localDocuments = new Map(productPages.map(([name, html]) => [
-  name === "home" ? "/" : name === "404" ? "/404.html" : "/docs/" + name + "/", html,
+  name === "home" ? "/" : name === "404" ? "/404.html" : name === "docs" ? "/docs/" : "/docs/" + name + "/", html,
 ]));
 for (const [path, html] of localDocuments) {
   const broken = [];
@@ -93,54 +94,14 @@ for (const [path, html] of localDocuments) {
 
 console.log("\nPublic language:");
 const jargon = /TUI2|GUI2|tui2|gui2|think-and-ship|Workbench|think:|ship:|chunk-id|workflow server|native state|admitted|typed command|[Ff]light [Rr]ecorder/;
-const commentary = /\bHarbor\b|\bfixture\b|on purpose|\bgolden|wrangler|Cloudflare|design system|typographic hierarchy/i;
+const commentary = /\bHarbor\b|on purpose|design system|typographic hierarchy/i;
 for (const [name, html] of productPages) {
   const text = textOf(html);
   assert(!jargon.test(text), `${name} page carries no internal jargon`);
   assert(!commentary.test(text), `${name} page carries no production commentary`);
 }
 
-console.log("\nDocs:");
-assert(installHtml.includes("Your code and permissions") && /permissions\s+you give it/.test(installHtml), "installation explains agent permissions");
-assert(installHtml.includes("project.json") && !installHtml.includes("roadmap_exports"), "installation page covers the project file without policy notes");
-assert(installHtml.includes("--agent") && installHtml.includes("codex") && installHtml.includes("copilot") && installHtml.includes("cursor") && installHtml.includes("cline") && installHtml.includes("windsurf") && installHtml.includes("aider"), "installation page names every agent target the CLI accepts");
-assert(installHtml.includes("--max-iterations"), "installation page names the loop's bound");
-const installText = installHtml.replace(/<[^>]*>/g, "").replace(/&#x26;/g, "&").replace(/\s+/g, " ");
-for (const command of [
-  "magistr init . --agent codex,claude --dry-run",
-  "magistr init . --agent codex --yes",
-  "magistr init . --agent claude --yes",
-  "magistr init . --agent portable --yes",
-  "magistr doctor .",
-  "magistr repair . --dry-run",
-  "magistr remove . --dry-run",
-  "cargo uninstall magistr-cli",
-]) {
-  assert(installText.includes(command), `current setup and recovery command: ${command}`);
-}
-assert(installText.includes("Setup adds files only for the agents you choose.") && !installText.includes("setup is always written"), "setup writes only selected integrations");
-assert(installText.includes("Setup does not start implementation.") && installText.includes("starter prompt"), "onboarding finishes with planning");
-assert(installText.includes("upgrade automatically") && installText.includes("recoverable originals"), "upgrade guidance covers automatic conversion and recovery");
-assert(installText.includes("registry packages are not published yet"), "installation guide does not advertise unpublished downloads");
-
-assert(!installHtml.includes("release-inventory") && !installHtml.includes("Release archives"), "installation page carries no release-process links");
-for (const word of ["Your plan", "Agent sessions", "Your work history", "Checking your work", "Where your work is saved"]) {
-  assert(conceptsHtml.includes(word), `concepts page covers ${word}`);
-}
-assert(conceptsHtml.includes("pinned") && conceptsHtml.includes("checkpoint"), "concepts page separates pin from checkpoint");
-assert(conceptsHtml.includes("desktop is a separate preview available from source") && conceptsHtml.includes("command line"), "guide explains desktop availability and planning");
-assert(conceptsHtml.includes("recover your draft"),"concepts explains resident drafts");
-assert(conceptsHtml.includes("Stop") && conceptsHtml.includes("Permission requests") && conceptsHtml.includes("Close session"),"current conversation actions are explained");
-assert(textOf(conceptsHtml).replace(/\s+/g," ").includes("continue unfinished") && conceptsHtml.includes("saved plan"), "roadmap recovery is explained");
-for (const slug of ["installation", "workflow", "concepts", "roadmap", "reasoning", "chunks", "verification"]) {
-  assert(installHtml.includes(`href="/docs/${slug}"`), `sidebar links ${slug}`);
-}
-for (const gone of ["configuration", "hooks", "skills", "deployment", "architecture", "development"]) {
-  assert(!existsSync(resolve(distDir, "docs", gone)), `no ${gone} page is built`);
-}
-assert(installHtml.includes("docs/architecture/overview.md") && installHtml.includes("docs/development.md"), "sidebar points contributors at the repository guides");
-assert(installHtml.includes("docs-sidebar") && installHtml.includes("data-pagefind-body"), "docs layout and search body");
-assert(existsSync(resolve(distDir, "pagefind/pagefind.js")), "pagefind index built");
+await import("./docs-content.mjs");
 
 console.log("\nMetadata:");
 for (const [name, html] of [["home", indexHtml], ["installation", installHtml], ["concepts", conceptsHtml], ["workflow", workflowHtml]]) {
@@ -182,19 +143,19 @@ assert(headersFile.includes("immutable") && headersFile.includes("must-revalidat
 assert(headersFile.includes("X-Content-Type-Options") && headersFile.includes("X-Frame-Options"), "security headers present");
 assert(headersFile.includes("/docs/*") && headersFile.split("/docs/*")[1].includes("must-revalidate"), "page routes revalidate at the edge");
 const redirects = readFileSync(resolve(distDir, "_redirects"), "utf-8");
-for (const gone of ["/docs/architecture", "/docs/development", "/docs/deployment", "/docs/configuration", "/docs/skills", "/docs/hooks", "/docs"]) {
+for (const gone of ["/docs/architecture", "/docs/development", "/docs/deployment", "/docs/hooks"]) {
   assert(new RegExp(`^${gone}/?\\s+\\S+\\s+301`, "m").test(redirects), `${gone} redirects permanently`);
 }
 
 console.log("\n404:");
-assert(notFoundHtml.includes("Page not found") && notFoundHtml.includes('href="/docs/installation"') && notFoundHtml.includes('href="/"'), "404 page links home and to the docs");
+assert(notFoundHtml.includes("Page not found") && notFoundHtml.includes('href="/docs"') && notFoundHtml.includes('href="/"'), "404 page links home and to the docs");
 assert(!notFoundHtml.includes("curl") && !notFoundHtml.includes("rounded-lg"), "404 page uses the site's own style");
 
 console.log("\nSource hygiene:");
 const components = readdirSync(resolve(srcDir, "components"));
 assert(components.includes("BuildWalkthrough.astro") && !components.includes("ProjectTour.astro"), "one current walkthrough owns the example");
 for (const file of readdirSync(resolve(srcDir, "content/docs"))) {
-  assert(existsSync(resolve(distDir, "docs", file.replace(/\.mdx$/, ""), "index.html")), `guide ${file} is built`);
+  assert(existsSync(resolve(distDir, "docs", file === "index.mdx" ? "" : file.replace(/\.mdx$/, ""), "index.html")), `guide ${file} is built`);
 }
 assert(!existsSync(resolve(distDir, "icons")), "no unused icon assets ship");
 

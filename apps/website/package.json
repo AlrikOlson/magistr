@@ -8,10 +8,13 @@
     "build": "astro build",
     "preview": "astro preview",
     "test": "npm run build && node tests/build-output.mjs && node --test tests/build-recording.test.mjs tests/highlight-recording.test.mjs && npm run test:demo",
-    "test:ui": "node tests/browser.mjs",
+    "test:ui": "node tests/ui.mjs",
     "audit": "npm audit",
     "test:demo": "cargo test --locked --manifest-path ../../examples/bevy-tic-tac-toe/Cargo.toml --lib",
-    "publish:game": "node scripts/publish-game.mjs"
+    "publish:game": "node scripts/publish-game.mjs",
+    "test:docs": "node tests/docs-content.mjs && node tests/docs-browser.mjs",
+    "test:docs:cli": "node tests/docs-cli.mjs",
+    "test:docs:links": "node tests/repository-links.mjs"
   },
   "dependencies": {
     "@astrojs/mdx": "^8.1.0",

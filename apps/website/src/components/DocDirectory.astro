@@ -1,0 +1,14 @@
+---
+import { getCollection } from "astro:content";
+import { docPath, groupDocs } from "../data/docs.mjs";
+const sections = groupDocs(await getCollection("docs")).filter(section => section.id !== "overview");
+---
+<div class="docs-directory">
+  {sections.map(section => <section aria-labelledby={section.id}>
+    <h3 id={section.id}>{section.title}</h3>
+    <ul>{section.pages.map(doc => <li>
+      <a href={docPath(doc.id)} data-doc-id={doc.id}>{doc.data.title}</a>
+      <p>{doc.data.description}</p>
+    </li>)}</ul>
+  </section>)}
+</div>

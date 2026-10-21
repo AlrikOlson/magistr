@@ -1,0 +1,121 @@
+---
+title: Connect an agent
+description: Set up a project for Codex, Claude Code, or another MCP agent.
+section: getting-started
+order: 2
+related: [workflow, skills, troubleshooting]
+---
+Connecting an agent lets it read and update Magistr's saved project records and
+use Magistr's source tools. First [install Magistr](/docs/installation), then
+install and authenticate the agent you want to use.
+
+## Choose the project
+
+Open a terminal in the root folder of the project you want to work on. This may
+be an existing repository or an empty folder. It is usually separate from the
+Magistr source checkout.
+
+Run the interactive setup:
+
+```sh
+magistr init .
+```
+
+Setup detects the project, asks which agents you use, and shows proposed files
+and check commands. Review the commands: an empty project may not have a build
+or test command yet. Setup creates settings and instructions for the selected
+agents, checks the connection, and supplies a planning prompt. It does not start
+implementation.
+
+To preview setup for two agents without applying it:
+
+```sh
+magistr init . --agent codex,claude --dry-run --json
+```
+
+For an unattended setup that accepts defaults, use `--yes` instead of
+`--dry-run`. Setup preserves custom settings, unrelated tool connections,
+and saved work. Inspect the report for files it kept or could not update.
+
+## Codex
+
+In the project's terminal, add Codex if it was not selected:
+
+```sh
+magistr init . --agent codex --yes
+./.codex/run
+```
+
+The launcher starts Codex with the project's Magistr connection and skills.
+Setup writes a managed block in `AGENTS.md`, project configuration under
+`.codex/`, and skills under `.agents/skills/`. Open a fresh trusted session
+after setup changes. In that conversation, use skills such as `$next`.
+
+If the launcher fails, run:
+
+```sh
+magistr codex-launch --project-root . --diagnose
+```
+
+This prints launcher diagnostics without starting a model turn. Choose the
+model and permissions for an already-open Codex session in Codex.
+
+## Claude Code
+
+In the project's terminal:
+
+```sh
+magistr init . --agent claude --yes
+claude
+```
+
+Approve the project's MCP connection when Claude Code asks. Setup uses
+`.mcp.json` for the connection, `CLAUDE.md` for instructions, and
+`.claude/` for skills and hooks. Open a fresh session after setup changes.
+In the conversation, use skills such as `/next`.
+
+## Other agents
+
+**MCP** is the protocol through which an agent calls Magistr's tools. For an
+agent that supports MCP, prepare the portable setup:
+
+```sh
+magistr init . --agent portable --yes
+```
+
+Read the generated `.mcp.json` and `.magistr/instructions.md`. If your agent
+does not load these files, add the Magistr connection in its MCP settings and
+load the instructions using that agent's supported mechanism.
+
+The connection runs this command; replace the placeholder with the project's
+absolute path in your agent configuration:
+
+```sh
+magistr mcp --dir /absolute/path/to/project
+```
+
+Your agent starts this process for the connection. Running it interactively in
+a terminal is not a connectivity test.
+
+Setup also accepts `cursor`, `copilot`, `cline`, `windsurf`, and `aider`
+as instruction targets. Repeat `--agent` or separate values with commas.
+Generating instructions does not guarantee that a host supports MCP, skills,
+or Magistr-managed session launches. Follow that host's connection support.
+
+## Confirm the connection
+
+Ask in your agent conversation:
+
+> Read Magistr's current context and saved work for this project. Report the
+> project and any unfinished work. Do not start implementation.
+
+Success means the agent can call Magistr's `context` tool and report the
+correct project. An empty roadmap is normal in a new project. To diagnose a
+missing connection, run `magistr doctor .` in the project terminal and follow
+[troubleshooting](/docs/troubleshooting).
+
+## Next: complete a first task
+
+Use [Your first task](/docs/workflow) to plan and deliver a bounded change.
+[Skills](/docs/skills) lists conversation shortcuts; [Commands](/docs/commands)
+covers terminal commands.

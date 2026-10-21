@@ -1,22 +1,39 @@
 ---
 title: Installation
-description: Connect Magistr to the project you want to build and the agent you like working with.
+description: Install the CLI preview and confirm that your shell can run it.
+section: getting-started
 order: 1
+related: [agents, upgrades, troubleshooting]
 ---
+Magistr's command-line program connects a project to your coding agent and manages
+its saved work. This page installs the program. [Agent setup](/docs/agents) connects
+it to a particular project.
 
 import { version } from "../../../../../npm/magistr/package.json";
 
-Start in the project you want to build. The current source preview is **v{version},
-for Apple Silicon macOS**. You'll need
-[repository access](https://github.com/AlrikOlson/magistr); the repository isn't
-publicly accessible yet, and npm and Cargo registry packages are not published yet.
+The current source preview is **v{version}**, for **Apple Silicon macOS 15 or
+later**. Magistr has not been publicly released. The
+[repository](https://github.com/AlrikOlson/magistr) requires access, and npm and
+Cargo registry packages are not published yet.
 
-Install and sign in to your coding agent separately. Magistr works alongside it.
+## Before you install
 
-## Install the preview
+You need repository access, Git, Rust **1.95 or later**, and the macOS command-line
+build tools. Check Git and Rust in a terminal:
 
-You'll need macOS 15 or later, Git, Rust 1.95 or later, and the macOS command-line
-build tools. Run:
+```sh
+git --version
+rustc --version
+cargo --version
+```
+
+If the macOS build tools are missing, run `xcode-select --install` and finish
+the system installer. Install and sign in to your coding agent separately;
+Magistr does not provide an agent subscription.
+
+## Build and install
+
+In a terminal, choose a parent folder for the Magistr source checkout, then run:
 
 ```sh
 git clone https://github.com/AlrikOlson/magistr.git
@@ -25,174 +42,33 @@ cargo install --locked --path crates/magistr-cli
 magistr --version
 ```
 
-The last command should print the installed version. If your shell can't find
-`magistr`, add Cargo's binary directory, usually `~/.cargo/bin`, to your PATH.
+Cargo builds the CLI and places the executable in Cargo's binary directory,
+normally `~/.cargo/bin`. The source checkout is the copy of Magistr you build.
+It can be separate from the project where you will use Magistr.
 
-## Set up your project
-
-Move to the project you want to work on. This is your app's folder, rather
-than the Magistr source checkout:
+The last command should print the installed version. Confirm that help opens:
 
 ```sh
-cd ~/src/tic-tac-toe
-magistr init .
+magistr --help
 ```
 
-Setup detects the project and asks which agents you use. Look through the
-proposed files and check commands before applying them.
+Installation alone does not connect any project or start implementation.
 
-Setup adds files only for the agents you choose. It keeps your custom settings,
-other tool connections and saved work. It checks the connection and gives you
-a starter prompt for reviewing the project. Setup does not start implementation.
+## If installation fails
 
-To preview setup for both Codex and Claude Code:
+| Symptom | What to do |
+| --- | --- |
+| Git reports that the repository is unavailable | Confirm that your GitHub account has repository access and that Git uses that account. |
+| Rust reports an unsupported version | Install Rust 1.95 or later, then retry the locked build. |
+| A compiler or linker is missing | Finish installing the macOS command-line build tools. |
+| The shell cannot find `magistr` | Add Cargo's binary directory to your shell's `PATH`, reopen the terminal, and run `magistr --version`. |
+| An older executable still runs | Use `command -v magistr` to check which installation the shell selects. |
 
-```sh
-magistr init . --agent codex,claude --dry-run
-```
+Keep the complete build error if these steps do not resolve it. A connection
+repair cannot fix a CLI that has not built successfully.
 
-Replace `--dry-run` with `--yes` to accept the defaults. You can run setup
-again to add another agent later.
+## Next: connect your project
 
-## Connect Codex
-
-If you didn't choose Codex during setup, add it:
-
-```sh
-magistr init . --agent codex --yes
-```
-
-Open it from your project with:
-
-```sh
-./.codex/run
-```
-
-The launcher loads the project instructions, skills and Magistr connection.
-Open a fresh session after changing setup.
-
-## Connect Claude Code
-
-Add Claude Code if it wasn't selected during setup:
-
-```sh
-magistr init . --agent claude --yes
-```
-
-Then start it from your project:
-
-```sh
-claude
-```
-
-Approve the project's MCP connection when prompted. Claude Code reads the
-connection from `.mcp.json`, with instructions and skills in `CLAUDE.md`
-and `.claude/`.
-
-## Connect another agent
-
-MCP is the connection that lets an agent use Magistr's tools.
-Choose **Another MCP agent** during setup, or run:
-
-```sh
-magistr init . --agent portable --yes
-```
-
-Setup writes the connection to `.mcp.json` and the instructions to
-`.magistr/instructions.md`. If your agent doesn't read those files, add the
-connection to its MCP settings and load the instructions there. The connection
-runs `magistr mcp --dir /path/to/project`.
-
-Setup also accepts `cursor`, `copilot`, `cline`, `windsurf`, and `aider`
-as `--agent` values for their project instructions. Separate agents with
-commas or repeat the option. These instruction targets don't promise that
-every agent supports the same session-launching features.
-
-## Start work when you are ready
-
-Open your agent and start with the project:
-
-> Read the code and the saved plan. What's working, what's unfinished, and
-> what would you tackle first? Talk me through it before changing code.
-
-For the game in the walkthrough, that roadmap covers rules, an opponent, the
-Bevy board, and another round. Once you've agreed on a roadmap, use `$next` in Codex or `/next` in Claude
-Code to finish one chunk. It resumes interrupted work first.
-
-From a terminal, `magistr next` runs one chunk.
-`magistr next-loop --max-iterations 5` runs up to five in fresh sessions.
-
-[Working with Magistr](/docs/workflow) walks through the whole process,
-from an idea to something you can try.
-
-## Check or repair setup
-
-If the agent can't connect, start here:
-
-```sh
-magistr doctor .
-```
-
-Doctor checks the settings, agent availability and connection. Follow the
-instructions for anything it finds. To preview repairs and then apply them:
-
-```sh
-magistr repair . --dry-run
-magistr repair .
-```
-
-Repair keeps customized files and other tool connections. Your project's
-check commands and settings live in `.magistr/project.json`.
-
-If the agent is missing or signed out, fix that and open a fresh session.
-If another session owns the project, check whether its work is still running.
-Don't delete its lock files or stop it to force a second connection.
-
-## Upgrade the preview
-
-In the **Magistr source checkout**, pull the latest code and reinstall:
-
-```sh
-git pull --ff-only
-cargo install --locked --path crates/magistr-cli --force
-```
-
-Recognized older settings and saved work upgrade automatically when Magistr
-opens a project. It keeps customizations and recoverable originals. If there
-is a conflict it can't safely resolve, it explains what needs attention.
-
-Back in your project, run `magistr doctor .`. If setup needs changes,
-preview them with `magistr repair . --dry-run`.
-
-## Remove setup or uninstall
-
-In each connected project, preview removal and then remove the connections:
-
-```sh
-magistr remove . --dry-run
-magistr remove .
-```
-
-The report tells you what was kept: project settings, work history, customized
-files and other tool connections. To remove the installed command too:
-
-```sh
-cargo uninstall magistr-cli
-```
-
-## Try the desktop preview
-
-The desktop is a separate preview. In the Magistr source checkout, open
-**Launch Magistr.command** to build and open it. You'll need Rust, Node.js,
-and the [platform build prerequisites](https://v2.tauri.app/start/prerequisites/).
-
-It isn't signed or notarized for public distribution yet.
-Read [what the desktop supports](/docs/concepts#the-desktop-preview), or use
-the [development guide](https://github.com/AlrikOlson/magistr/blob/main/docs/development.md)
-for build commands.
-
-## Your code and permissions
-
-Magistr runs on your Mac. Your agent uses its own account and the permissions
-you give it, including permission to run commands. Review actions that ask
-for approval. Local project records don't make the agent's model run locally.
+Continue with [Connect an agent](/docs/agents). That step creates project settings
+and agent connections. For the graphical application, use the separate
+[desktop instructions](/docs/desktop).

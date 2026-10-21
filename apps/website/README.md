@@ -9,7 +9,26 @@ npm test
 npm run test:ui
 ```
 
-The public guides are in src/content/docs. The landing page's only interactive
+## Documentation manual
+
+User instructions live in `src/content/docs/*.mdx`; repository user guides link
+to them. Every page must introduce its topic without the landing-page example.
+`index.mdx` owns `/docs`; other IDs own `/docs/<id>`.
+
+Frontmatter supplies `title`, `description`, `section`, `order`, and explicit
+`related` IDs. `src/data/docs.mjs` defines section labels and validates relationships.
+The home directory, grouped navigation, breadcrumbs and related links use that
+collection. Do not add a second hard-coded page list. Retired routes in
+`public/_redirects` must not shadow current content.
+
+`Docs.astro` marks documentation with Pagefind's `collection:docs` filter;
+`src/scripts/docs.ts` passes that filter to the search API. It also owns compact
+navigation and focus recovery on resize. Shared browser helpers serve both test
+suites; documentation scenarios live in `tests/docs-browser.mjs`.
+
+## Recorded example
+
+ The landing page's only interactive
 example is BuildWalkthrough.astro and build-walkthrough.ts. It replays the
 allowlisted records in public/demo/tic-tac-toe/recording.json.
 
@@ -81,15 +100,30 @@ compile Bevy, download models or run an agent.
 
 npm test checks generated routes, links, preview availability, privacy,
 record chronology and downloads, then runs the game rules tests without
-compiling Bevy. test:ui runs the actual website in headless WebKit.
+compiling Bevy. `test:ui` runs both the landing page and documentation suites
+in headless WebKit; `test:docs` runs only collection/link checks and documentation
+browser scenarios. Build before either browser command. `test:docs:links` checks
+current repository guidance, excluding dated evidence. `test:docs:cli` validates
+examples against an installed CLI and exercises setup, configuration, repair and
+removal in disposable folders without a model turn.
+
+The documentation suite derives page coverage from the collection and checks direct
+entry, every on-page anchor, related navigation, real search queries, empty and
+failed search, keyboard access, resize focus, 320-pixel reflow and 200% text.
+Both appearances and desktop/compact viewports are covered.
 
 To retain a visual iteration:
 
 ```sh
-npm run test:ui -- --evidence-dir docs/evidence/desktop-iterations/YYYY-MM-DD-name
+npm run test:docs -- --evidence-dir docs/evidence/desktop-iterations/YYYY-MM-DD-manual
+# Or capture both website suites in separate subfolders:
+npm run test:ui -- --evidence-dir ../../docs/evidence/desktop-iterations/YYYY-MM-DD-website
 ```
 
-Use a fresh folder, open the images and add REVIEW.md. The browser report keeps
+Evidence paths for `test:docs` are relative to the repository root. For
+`test:ui`, use the repository-relative path shown from this website directory.
+Use a fresh folder, open every image and add REVIEW.md with per-image observations
+and verdicts. The browser report keeps
 viewports, appearance, timestamps, renderer and source hashes. A passing browser
 run is not a visual review.
 

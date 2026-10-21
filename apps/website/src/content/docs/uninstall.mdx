@@ -1,0 +1,80 @@
+---
+title: Remove Magistr
+description: Remove project connections or the executable while keeping control of saved data.
+section: help
+order: 3
+related: [storage, agents, troubleshooting]
+---
+Removing an agent connection, uninstalling the CLI, and deleting saved data are
+different operations. Use this guide to choose the effect you intend.
+
+Finish or close active sessions normally before changing their setup. Back up
+[project and user data](/docs/storage) if you may need it later.
+
+## Remove a project's connections
+
+In each connected project's root folder:
+
+```sh
+magistr remove . --dry-run
+magistr remove .
+```
+
+The first command previews removal. The second reviews and applies it.
+Read the report: unchanged generated setup can be removed, while customized
+files and unrelated tool connections are preserved. Project settings and saved
+work remain.
+
+To remove only managed Codex setup:
+
+```sh
+magistr codex-remove . --dry-run
+magistr codex-remove .
+```
+
+Open a fresh agent session and confirm that the removed connection is no longer
+loaded. Preserved custom registrations may still need your review in the
+agent's settings. Removing one project's connection does not remove another's.
+
+## Uninstall the executable
+
+For the Cargo source installation, run in a terminal:
+
+```sh
+cargo uninstall magistr-cli
+```
+
+This removes the Cargo-installed executable. It does not remove the source
+checkout, your projects, agent accounts, or saved Magistr data.
+
+If `magistr --version` still works, use `command -v magistr` to locate
+another installation. Remove it using the method that installed it.
+
+For the desktop, quit the app and use the operating system's ordinary app
+removal process. A Windows installer has its own uninstaller. Removing the
+desktop app does not imply that user data was erased.
+
+## Understand what remains
+
+| Data | After ordinary connection or executable removal |
+| --- | --- |
+| Your source and Git history | Retained. |
+| Project settings and customized instructions | Retained where removal cannot safely identify unchanged generated content. |
+| Workflow records and saved checks | Retained in the workflow store. |
+| Magistr conversations and drafts | Retained in user-level storage. |
+| Source-change journal and recovery copies | Retained with project data. |
+| Agent-provider history and authentication | Managed separately by the agent. |
+
+Reinstall and [connect the project](/docs/agents) again to use retained records,
+provided the identity and storage locations still match.
+
+## If you intend to erase data
+
+`magistr reset` is a destructive project reset, not an uninstall or
+troubleshooting shortcut. Read `magistr reset --help`, back up first, and
+review its confirmation before using it.
+
+User-level conversation and workflow stores may contain records for several
+projects. Do not delete an entire shared directory to remove one project's
+connection. Consult [Storage](/docs/storage) and identify exactly what you
+intend to erase.

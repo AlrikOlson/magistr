@@ -256,9 +256,9 @@ The desktop launcher consumes this coordinator through the host below.
 A real ACP channel test restores both purposes after provider failure and checks
 that loaded history does not duplicate the next response. The native desktop
 check uses a controlled Ollama peer to verify failure, unsupported restoration
-and the retained request. The opt-in [live desktop journeys](desktop.md#live-codex-acceptance)
-also exercise Codex approval, separate planning, cancellation, provider death,
-restored conversation context and source/check operations on macOS.
+and the retained request. The [desktop verification contract](desktop.md#verification)
+distinguishes controlled-provider native evidence from the remaining real-provider
+matrix. Do not infer live Codex acceptance from a fixture or workflow definition.
 
 ### Live interface host
 
@@ -484,7 +484,8 @@ tests and does not select this session provider.
 API sessions send their accumulated conversation history to the configured
 service. External runtimes use their own authentication and storage. Local
 records can contain prompts, paths, and outputs; see
-[running agents](../development.md#running-agents).
+[permissions](https://magistr.dev/docs/permissions) and
+[storage](https://magistr.dev/docs/storage).
 
 ## Saved session history
 

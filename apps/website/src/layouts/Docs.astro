@@ -2,100 +2,72 @@
 import Base from "./Base.astro";
 import Nav from "../components/Nav.astro";
 import Footer from "../components/Footer.astro";
-import { getCollection } from "astro:content";
+import { getCollection, type CollectionEntry } from "astro:content";
+import { docPath, groupDocs } from "../data/docs.mjs";
+import "../styles/docs.css";
 
-interface Props { title: string; description: string; currentSlug: string; headings: {depth:number; slug:string; text:string}[]; }
-const { title, description, currentSlug, headings } = Astro.props;
+interface Props {
+  doc: CollectionEntry<"docs">;
+  headings: { depth: number; slug: string; text: string }[];
+}
+const { doc, headings } = Astro.props;
 const allDocs = await getCollection("docs");
-const sorted = allDocs.sort((a,b)=>a.data.order-b.data.order);
-const currentIndex = sorted.findIndex((doc) => doc.id === currentSlug);
-const nextDoc = sorted[currentIndex + 1];
-const previousDoc = sorted[currentIndex - 1];
-// Guides own their place in the reading order.
-const breadcrumbLd = {"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[
-  {"@type":"ListItem","position":1,"name":"Home","item":"https://magistr.dev"},
-  {"@type":"ListItem","position":2,"name":"Docs","item":"https://magistr.dev/docs"},
-  {"@type":"ListItem","position":3,"name":title,"item":`https://magistr.dev/docs/${currentSlug}`}
-]};
+const sections = groupDocs(allDocs);
+const section = sections.find(section => section.id === doc.data.section)!;
+const related = doc.data.related.map(id => allDocs.find(page => page.id === id)!);
+const home = doc.id === "index";
+const crumbs = home
+  ? [{ name: "Documentation", href: "/docs" }]
+  : [
+      { name: "Documentation", href: "/docs" },
+      { name: section.title, href: `/docs#${section.id}` },
+      { name: doc.data.title, href: docPath(doc.id) },
+    ];
+const breadcrumbLd = {
+  "@context": "https://schema.org", "@type": "BreadcrumbList",
+  itemListElement: crumbs.map((crumb, index) => ({
+    "@type": "ListItem", position: index + 1, name: crumb.name,
+    item: new URL(crumb.href, Astro.site).href,
+  })),
+};
 ---
-<Base title={`${title} — Magistr docs`} description={description} jsonLd={breadcrumbLd}>
+<Base title={home ? "Documentation — Magistr" : `${doc.data.title} — Magistr docs`} description={doc.data.description} jsonLd={breadcrumbLd}>
   <Nav />
   <div class="docs-layout section-shell">
     <aside class="docs-sidebar" aria-label="Documentation navigation">
-      <p class="docs-label">Build with Magistr</p>
       <div id="docs-search">
-        <label class="docs-search-label" for="search-docs">Documentation</label>
-        <input id="search-docs" type="search" placeholder="Search docs" class="docs-search-input" aria-label="Search documentation" />
-        <div class="docs-search-results" aria-live="polite"></div>
+        <label class="docs-search-label" for="search-docs">Search documentation</label>
+        <input id="search-docs" type="search" placeholder="Search documentation" class="docs-search-input" autocomplete="off" />
+        <div class="docs-search-results" aria-live="polite" aria-busy="false"></div>
       </div>
-      <details class="docs-guide-list" open><summary>Browse guides <span>{title}</span></summary><nav class="docs-nav-group" aria-label="Documentation pages"><ul>{sorted.map((doc)=>{
-        const active=doc.id===currentSlug;
-        return <li><a href={`/docs/${doc.id}`} aria-current={active?"page":undefined} class:list={{active}}>{doc.data.title}</a></li>;
-      })}</ul></nav></details>
-      <div class="docs-repo-links"><span class="supporting-label">Repository access required</span><a href="https://github.com/AlrikOlson/magistr/blob/main/docs/architecture/overview.md" target="_blank" rel="noopener noreferrer">Architecture</a><a href="https://github.com/AlrikOlson/magistr/blob/main/docs/development.md" target="_blank" rel="noopener noreferrer">Development</a></div>
-    </aside>
-    <main id="main-content" class="docs-main" data-pagefind-body>
-      <header class="docs-header"><h1>{title}</h1><p>{description}</p></header>
-      <details class="docs-contents">
-        <summary>On this page</summary>
-        <nav aria-label="On this page">{headings.filter(({depth}) => depth === 2).map(({slug,text}) => <a href={`#${slug}`}>{text}</a>)}</nav>
+      <details class="docs-guide-list" open>
+        <summary>Browse documentation <span aria-hidden="true">+</span></summary>
+        <nav aria-label="Documentation pages">
+          {sections.map(section => <div class="docs-nav-group">
+            <p>{section.title}</p>
+            <ul>{section.pages.map(page => <li><a href={docPath(page.id)} aria-current={page.id === doc.id ? "page" : undefined}>{page.data.title}</a></li>)}</ul>
+          </div>)}
+        </nav>
       </details>
+    </aside>
+    <main id="main-content" class="docs-main" tabindex="-1" data-doc-id={doc.id} data-pagefind-body data-pagefind-filter="collection:docs">
+      <nav class="docs-breadcrumbs" aria-label="Breadcrumb" data-pagefind-ignore>
+        <ol>{crumbs.map((crumb, index) => <li>{index === crumbs.length - 1 ? <span aria-current="page">{crumb.name}</span> : <a href={crumb.href}>{crumb.name}</a>}</li>)}</ol>
+      </nav>
+      <header class="docs-header"><h1 data-pagefind-meta="title">{doc.data.title}</h1><p>{doc.data.description}</p></header>
+      {headings.some(heading => heading.depth === 2) && <details class="docs-contents" data-pagefind-ignore>
+        <summary>On this page</summary>
+        <nav aria-label="On this page">{headings.filter(heading => heading.depth === 2).map(heading => <a href={`#${heading.slug}`}>{heading.text}</a>)}</nav>
+      </details>}
       <article class="docs-content"><slot /></article>
-      <nav class="docs-next" aria-label="More guides">{previousDoc && <a href={`/docs/${previousDoc.id}`}><small>Previous guide</small><span>← {previousDoc.data.title}</span></a>}{nextDoc && <a href={`/docs/${nextDoc.id}`}><small>Keep going</small><span>{nextDoc.data.title} →</span></a>}</nav>
+      <nav class="docs-related" aria-label="Related pages" data-pagefind-ignore>
+        <h2>Related pages</h2>
+        <ul>{related.map(page => <li><a href={docPath(page.id)}>{page.data.title}</a><p>{page.data.description}</p></li>)}</ul>
+      </nav>
     </main>
   </div>
   <Footer />
 </Base>
-<script is:inline>
-  (() => {
-    const guideList = document.querySelector(".docs-guide-list");
-    const compact = matchMedia("(max-width: 800px)");
-    const updateGuides = () => {
-      const focused = guideList?.contains(document.activeElement);
-      if (guideList) guideList.open = !compact.matches;
-      if (focused && compact.matches) guideList.querySelector("summary")?.focus();
-    };
-    updateGuides();
-    compact.addEventListener("change", updateGuides);
-    const input = document.querySelector(".docs-search-input");
-    const results = document.querySelector(".docs-search-results");
-    if (!input || !results) return;
-    let timer, revision = 0, pagefindPromise;
-    const search = async (query, request) => {
-      results.textContent = "Searching…";
-      try {
-        pagefindPromise ??= import("/pagefind/pagefind.js");
-        const pagefind = await pagefindPromise;
-        if (request !== revision) return;
-        const search = await pagefind.search(query);
-        const matches = await Promise.all(search.results.slice(0, 5).map((result) => result.data()));
-        if (request !== revision) return;
-        results.replaceChildren();
-        if (!matches.length) results.textContent = "No results. Try a different word.";
-        for (const data of matches) {
-          const link = document.createElement("a");
-          link.href = data.url;
-          link.textContent = data.meta?.title || data.url;
-          results.appendChild(link);
-        }
-      } catch {
-        if (request === revision) results.textContent = "Search couldn’t load. Try reloading, or use the guide links below.";
-      }
-    };
-    input.addEventListener("input", () => {
-      clearTimeout(timer);
-      const request = ++revision;
-      const query = input.value.trim();
-      results.replaceChildren();
-      if (query) timer = setTimeout(() => search(query, request), 180);
-    });
-    addEventListener("pagehide", () => {
-      clearTimeout(timer);
-      revision++;
-      pagefindPromise?.then((pagefind) => pagefind.destroy()).catch(() => {});
-    });
-    addEventListener("pageshow", (event) => {
-      if (event.persisted && input.value.trim()) input.dispatchEvent(new Event("input"));
-    });
-  })();
+<script>
+  import "../scripts/docs";
 </script>

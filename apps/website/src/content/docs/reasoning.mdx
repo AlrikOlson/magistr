@@ -1,94 +1,75 @@
 ---
 title: Reasoning and research
-description: Keep the question, the evidence, and the decision you will want to understand later.
-order: 4
+description: Save findings and decisions that a later session can inspect and revise.
+section: working
+order: 2
+related: [verification, roadmap, sessions]
 ---
+Recorded reasoning explains why work should take a particular direction.
+It is a deliberate record of questions, evidence, decisions, and uncertainty,
+not a transcript of a model's private thinking.
 
-Sometimes the most useful thing to save is why you chose an approach.
+Use a [connected agent](/docs/agents) in the project. Ask it to read existing
+decisions before investigating the same question again.
 
-Magistr's reasoning traces are explanations the agent deliberately records.
-They can hold a question, findings from code or research, alternatives,
-uncertainty, and a conclusion. They are useful when the next session asks,
-“Why did we do it this way?”
+## Ask an answerable question
 
-## Start with a question you can answer
+State the decision and what would change it. For example, if an application
+already imports customer records, ask whether it needs to stream large files
+instead of reading them entirely into memory.
 
-In the [Bevy game recording](/#workflow), the question is: **does the opponent
-need to search ahead?**
+> Inspect the importer and measure representative file sizes. Record the
+> evidence, the memory limit we need to meet, and a recommendation. Do not
+> change the importer yet.
 
-One candidate takes an immediate win, blocks an immediate loss, then chooses
-the center or a corner. It is short and easy to read. But can it handle a fork,
-where the other player creates two winning threats?
+This prompt assumes an existing importer and an agreed memory limit. Your own
+question should identify its assumptions just as clearly.
 
-That is something we can test.
+## Record evidence and its limits
 
-## Follow the evidence
+A useful finding includes the question, relevant context, observations, sources,
+conclusion, rationale, and next action. Link source files, documentation, or
+executed checks when they support the answer.
 
-The experiment enumerated legal human replies. The simple policy had no losing
-game when it played first, but lost when it played second.
+Distinguish a measurement from an estimate. A benchmark on a small fixture
+does not establish production performance. A document describing a library
+feature does not establish that your code uses it correctly.
 
-The recorded losing sequence uses cells numbered left to right, top to bottom:
+Magistr saves findings only when the agent records them through its tools.
+Ask it to record consequential decisions during the work, not merely summarize
+them at the end of the conversation.
 
-```text
-X: 1    O: 5
-X: 8    O: 3
-X: 7    O: 9
-X: 4    → X wins
-```
+## Follow a separate investigation
 
-At X's move in cell 7, O has two threats to deal with. Blocking cell 9 leaves
-cell 4 open.
+A **branch** gives a real question its own investigation, linked to the earlier
+finding that prompted it. Continue findings on that branch. When the result
+informs the main decision, record a conclusion that links the supporting steps
+and mark the investigation merged.
 
-The first experiment also had an incorrect assertion: it expected a losing
-game for both marks. That failure remains in the check history. We corrected
-the experiment to report its findings.
+An investigation that stops without contributing a result can be marked
+abandoned with an explanation. A still-open question should remain open with
+a concrete next action.
 
-## Give an investigation its own branch
+You do not need a branch for every task. “Implement, test, commit” is an
+execution sequence, not an investigation.
 
-The opponent question branches from the game plan. Its findings lead back to
-a conclusion: use minimax for either mark.
+## Retrieve or revise a decision
 
-A reasoning branch has an origin, its own steps, and a status. When it reaches
-a conclusion, that conclusion can refer to the branch. Abandoned investigations
-remain in the history too.
+Ask the agent to find the saved reasoning for the affected feature and explain
+which evidence still applies. Important conclusions can be **pinned** for
+retrieval. A reasoning **checkpoint** helps review open questions and decisions
+affected by revisions; it does not copy your source files.
 
-Open **Reasoning** in the walkthrough. Select a step to read its context,
-finding, rationale, and next action. The lines show recorded relationships
-between those steps, including branch origins and conclusions.
+When new evidence changes the answer, record a revision and why it changed.
+Keep the earlier finding as history. Update affected roadmap requirements too,
+so the next implementation does not follow a superseded decision.
 
-A list of “plan, code, test” would describe the work sequence. It would not
-explain this decision.
+Success means another session can retrieve the question, evidence, decision,
+and remaining uncertainty without relying on the original chat.
 
-## Keep the conclusion and its limits
+## Connect reasoning to verification
 
-The chosen opponent searches the remaining legal games. The check found:
-
-| Computer plays | Wins | Draws | Losses |
-| --- | ---: | ---: | ---: |
-| X | 82 | 10 | 0 |
-| O | 368 | 153 | 0 |
-
-These counts cover every legal human reply to this deterministic opponent.
-They are not a count of every possible tic-tac-toe game.
-
-The recorded conclusion keeps the evidence and the reason for choosing full
-search. A later session can find it before changing the opponent.
-
-## Revise an answer when new evidence arrives
-
-Record a revision and its reason when an assumption stops holding. Relations
-between steps can show support, contradiction, or dependence. Update affected
-roadmap work as well.
-
-A **pin** keeps an important conclusion easy to retrieve. A reasoning
-**checkpoint** helps review open questions, branches, and decisions affected
-by revisions. It is a review of the reasoning record, not a source backup.
-
-## Know what is being saved
-
-Magistr saves what the agent records through its tools. It does not automatically
-copy every chat message or expose a model's private internal thinking.
-
-Ask for a useful explanation with evidence. Link it to the work it informs.
-[Checking the work](/docs/verification) explains how a saved explanation differs
-from a command that actually ran.
+A recorded explanation is not proof that a command ran. Execute a test,
+experiment, or benchmark through the verification workflow when the claim
+depends on its result. [Verification](/docs/verification) explains how those
+results are recorded and when they become stale.

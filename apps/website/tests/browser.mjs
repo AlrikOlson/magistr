@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import {createServer} from "node:http";
 import {readFile,readdir,mkdir,writeFile,stat} from "node:fs/promises";
 import {createHash} from "node:crypto";
 import {resolve,dirname,extname,sep} from "node:path";
@@ -7,36 +6,15 @@ import {fileURLToPath} from "node:url";
 import {webkit} from "playwright";
 import {chapters} from "../src/data/build-recording.mjs";
 import {explanationFor} from "../src/data/build-explanations.mjs";
-const root=resolve(dirname(fileURLToPath(import.meta.url)),".."),repo=resolve(root,"../.."),dist=resolve(root,"dist");
-const arg=name=>{const i=process.argv.indexOf(name);return i<0?null:process.argv[i+1];};
+import {root,repo,dist,arg,startServer,configureNetwork,stable,noOverflow,tree} from "./browser-support.mjs";
 const captureOnly=arg("--capture-only")?new RegExp(arg("--capture-only")):null;
 const evidence=arg("--evidence-dir")?resolve(repo,arg("--evidence-dir")):null;
 if(evidence){assert(evidence.startsWith(resolve(repo,"docs/evidence/desktop-iterations")+sep));await mkdir(evidence,{recursive:true});assert(!(await readdir(evidence)).some(n=>n.endsWith(".png")),"Use a new iteration folder");}
-const mime={".html":"text/html",".css":"text/css",".js":"text/javascript",".json":"application/json",".png":"image/png",".svg":"image/svg+xml",".wasm":"application/wasm"};
-const server=createServer(async(req,res)=>{try{let path=resolve(dist,"."+decodeURIComponent(new URL(req.url,"http://localhost").pathname));assert(path.startsWith(dist+sep)||path===dist);if((await stat(path)).isDirectory())path=resolve(path,"index.html");res.setHeader("Content-Type",mime[extname(path)]??"application/octet-stream");res.end(await readFile(path));}catch{res.writeHead(404);res.end("Not found");}});
-let origin=arg("--base-url");if(!origin){await new Promise(r=>server.listen(0,"127.0.0.1",r));origin="http://127.0.0.1:"+server.address().port;}
+const {server,origin}=await startServer();
 const browser=await webkit.launch(),captures=[],checks=[],errors=[];
-const externalAssets=new Map();
-// Test the shipped fonts, but download each resource only once across isolated
-// browser contexts. Analytics is unrelated to these checks and must not hold
-// page.load open or count CI visits as real traffic.
-async function configureNetwork(context){
- await context.route("https://plausible.io/**",route=>route.fulfill({status:204,body:""}));
- await context.route(/^https:\/\/fonts\.(?:googleapis|gstatic)\.com\//,async route=>{
-  const url=route.request().url();
-  if(!externalAssets.has(url))externalAssets.set(url,(async()=>{
-   const response=await route.fetch({timeout:15000});
-   assert(response.ok(),"Font request failed: "+url);
-   return {status:response.status(),headers:{"content-type":response.headers()["content-type"],"access-control-allow-origin":"*"},body:await response.body()};
-  })());
-  await route.fulfill(await externalAssets.get(url));
- });
-}
 const recording=JSON.parse(await readFile(resolve(root,"public/demo/tic-tac-toe/recording.json"),"utf8")),parts=chapters(recording);
-async function tree(path){const out=[];for(const e of await readdir(resolve(repo,path),{withFileTypes:true})){const p=path+"/"+e.name;if(e.isDirectory())out.push(...await tree(p));else if(/\.(astro|mjs|ts|css|mdx|json)$/.test(e.name))out.push(p);}return out;}
 const sourcePaths=evidence?[...await tree("apps/website/src"),...await tree("crates/magistr-desktop/ui"),...await tree("apps/website/scripts"),"apps/website/astro.config.mjs","apps/website/package.json","apps/website/package-lock.json","apps/website/tests/browser.mjs","apps/website/public/demo/tic-tac-toe/recording.json","apps/website/public/demo/tic-tac-toe/manifest.json"]:[];
 const sourceHashes=Object.fromEntries(await Promise.all(sourcePaths.map(async p=>[p,createHash("sha256").update(await readFile(resolve(repo,p))).digest("hex")])));
-const stable=async p=>{await p.evaluate(()=>document.fonts.ready);await p.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));};
 async function capture(page,name,state,{full=false,region,settle=true}={}){
  if(!evidence||(captureOnly&&!captureOnly.test(name)))return;
  if(region&&region!=="#build-details")await page.locator(region).evaluate(e=>scrollTo({top:e.getBoundingClientRect().top+scrollY-90,behavior:"instant"}));
@@ -52,7 +30,6 @@ async function playbackLayout(page){
  if(metrics.width<=1000)assert(metrics.transportBottom<=metrics.annotationTop+1,"Playback controls precede the mobile annotation");
  if(metrics.width<=600)assert(metrics.sliderWidth>230,"Compact timeline has room to scrub precisely");
 }
-async function noOverflow(page,label){assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),label+" has no horizontal overflow");}
 async function seek(page,index){await page.locator('[aria-label="Recorded action"]').evaluate((e,n)=>{e.value=String(n);e.dispatchEvent(new Event("input",{bubbles:true}));},index);await page.waitForFunction(i=>document.querySelector("[data-terminal]").dataset.renderedIndex===String(i),index);}
 const changeIndex=recording.events.findLastIndex(e=>e.file?.path==="src/main.rs");
 const checkIndex=recording.events.findIndex(e=>e.check?.verified&&!e.check.passed);
@@ -265,19 +242,8 @@ try{
     assert.equal(await page.locator("[data-menu-toggle]").getAttribute("aria-expanded"),"false");
    }
    checks.push("Terminal rendering, real diffs, layout and annotations: "+suffix);
-   for(const slug of ["installation","workflow","roadmap","reasoning","chunks","verification","concepts"]){
-    await page.goto(origin+"/docs/"+slug+"/");await stable(page);await noOverflow(page,slug+" "+suffix);
-    assert.equal(await page.locator("main h1").count(),1);
-    if(["installation","chunks","verification","reasoning"].includes(slug)){
-     assert(await page.locator(".astro-code").count()>0);
-     await capture(page,"docs-"+slug+"-"+suffix,"Theme-aware code in the "+slug+" guide",{full:true});
-    }
-   }
-   const search=page.locator('input[type="search"]');await search.fill("minimax");
-   await page.waitForFunction(()=>document.querySelectorAll(".docs-search-results a").length>0);
-   await search.fill("zzzz-no-such-doc");await page.waitForFunction(()=>document.querySelector(".docs-search-results")?.textContent?.includes("No results"));
    await page.goto(origin+"/404.html");assert(await page.getByRole("heading",{name:"Page not found"}).isVisible());
-   checks.push("Seven guides, code themes, search, reflow and 404: "+suffix);await context.close();
+   await context.close();
    console.log(suffix+" browser checks passed in "+Math.round(performance.now()-profileStarted)+"ms");
   }
  }
@@ -308,7 +274,7 @@ try{
  await offline.locator('[data-build][data-ready="error"]').waitFor();assert(await offline.locator(".build-error").isVisible());
  await capture(offline,"recording-unavailable","Readable fallback when playback fails to load",{region:".build-window"});await offline.close();
  assert.deepEqual(errors,[]);status="passed";
- console.log("Website browser checks passed: terminal emulation, synchronized annotations, highlighting, rapid scrubbing, exact copy, four profiles, all guides and recovery.");
+ console.log("Website browser checks passed: terminal emulation, synchronized annotations, highlighting, rapid scrubbing, exact copy, four profiles and recovery.");
 }catch(error){failure=String(error);throw error;}finally{
  if(evidence)await writeFile(resolve(evidence,"browser-checks.json"),JSON.stringify({status,failure,capturedAt:new Date().toISOString(),renderer:"Playwright WebKit",rendererVersion:browser.version(),origin,sourceHashes,checks,captures,limitations:["Headless WebKit only; native OS input and assistive technology not tested.","Clipboard contents verified through a browser stub; OS clipboard not changed.","Screenshots require a separate visual review."]},null,2)+"\n");
  await browser.close();server.close();

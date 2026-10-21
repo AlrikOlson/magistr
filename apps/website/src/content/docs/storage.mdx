@@ -1,0 +1,109 @@
+---
+title: Storage and backups
+description: Locate saved work, back it up, and understand what moving a project preserves.
+section: reference
+order: 4
+related: [sessions, upgrades, uninstall]
+---
+Magistr uses both project-local files and user-level storage. A Git clone alone
+is not a backup of every saved plan, conversation, or source-change journal.
+
+The locations below describe the current defaults. Environment overrides can
+change them; preserve those settings when restoring data.
+
+## Project-local files
+
+| Location | Contents |
+| --- | --- |
+| `.magistr/project.json` | Project identity and check configuration. |
+| `.magistr/agents.toml` | Optional project launch preferences. |
+| `.magistr/conventions.md` | Shared practices. |
+| `.magistr/workspace.toml` | Source-tool configuration and command declarations. |
+| `.magistr/workspace/` | Source index, write journal, snapshots, and undo-related data for this working copy. |
+| `.magistr/upgrades/` | Upgrade records and recovery copies. |
+| Agent-specific files | Connections, instructions, and skills created by setup. |
+
+Some of these paths are ignored by Git. Inspect your backup selection instead
+of assuming all of `.magistr/` is committed. The source index can be rebuilt;
+the journal and recovery copies contain history that a rebuild does not recreate.
+
+## User-level files
+
+On a typical macOS setup:
+
+| Location | Contents |
+| --- | --- |
+| `~/.local/share/magistr/workflow/` | Roadmaps, reasoning, execution plans, checks, feedback, and their saved history. |
+| `~/.local/share/magistr/sessions.db` | Magistr-managed conversations, turns, and drafts. |
+| `~/.local/share/magistr/` | Other local records, including costs and permission audit data. |
+| `~/.config/magistr/config.toml` | Personal settings. |
+| `~/.magistr/` | Additional user state used by Magistr features. |
+
+`XDG_DATA_HOME` replaces `~/.local/share` and `XDG_CONFIG_HOME` replaces
+`~/.config`. `MAGISTR_WORKFLOW_DATA_DIR` directly overrides the workflow
+directory. `MAGISTR_HOME` overrides the additional user-state directory; it
+does **not** relocate all workflow and conversation data.
+
+Workflow storage tries its explicit override, then `XDG_DATA_HOME`, then
+`HOME`, then Windows `APPDATA` or `USERPROFILE` locations. Ordinary
+application data uses `XDG_DATA_HOME`, then the home directory, then
+`LOCALAPPDATA` as a fallback. These are not one universal Windows path.
+If no normal workflow location is available, a temporary-directory fallback
+can be used; do not rely on that for durable backups.
+
+Codex, Claude Code, and other hosts also maintain their own history and
+authentication outside Magistr's stores.
+
+## Make a backup
+
+1. Finish or stop active work using its normal controls. Close the relevant
+   agent connections and desktop sessions so writers are no longer changing data.
+2. Back up the repository, uncommitted files, and the project's `.magistr/`
+   directory, including ignored journal and upgrade files.
+3. Back up the resolved user data, workflow, configuration, and additional
+   state directories. Keep SQLite sidecar files with their database if present;
+   copying a database alone while it is being written can lose recent data.
+4. Preserve the agent's own history separately if you need to resume its
+   conversations.
+5. Test restoration into a separate location before relying on the backup.
+
+Keep backups private: source snapshots, prompts, command output, and saved
+drafts can contain project information. A preset export or roadmap view does
+not replace this backup.
+
+## Move a project
+
+Preserve `project.id` in `.magistr/project.json` and the matching workflow
+store. Shared project records use that identity. Without a declared identity,
+the project identity is derived from its path; moving it can make the records
+appear unrelated.
+
+**Execution plans and saved conversations also retain working-copy paths.**
+Moving a folder does not automatically relocate every execution record or
+make an old conversation resumable from its new location. Keep the original
+path available for recovering that work, or start a fresh conversation and
+explicitly review the saved project evidence.
+
+On a new machine, restore the user-level stores as well as the project files.
+Do not merge conflicting live stores by copying one over another. Close their
+writers and preserve both originals before seeking recovery help.
+
+After moving, review the agent connection's project path, then run in the project:
+
+```sh
+magistr doctor .
+magistr repair . --dry-run
+```
+
+Ask the connected agent to confirm the project identity and expected records
+before starting new work. If records are missing, check paths and overrides;
+do not reset the project as a diagnostic step.
+
+## Restore or remove
+
+Restore while Magistr and the relevant agent connections are closed. Preserve
+current files before replacing them with a backup. Reopen the project, inspect
+saved work, and compare it with the restored source before continuing.
+
+[Upgrades](/docs/upgrades) covers automatic conversion and preserved originals.
+[Uninstall](/docs/uninstall) explains what removal deliberately retains.

@@ -1,99 +1,103 @@
 ---
-title: Working with Magistr
-description: Talk through a project, build one useful piece, and keep going from what you learned.
-order: 2
+title: Your first task
+description: Take one useful change from a clear request to a checked result.
+section: getting-started
+order: 3
+related: [roadmap, verification, sessions]
 ---
+Use this guide after [installing Magistr](/docs/installation) and
+[connecting your agent](/docs/agents) in the project. You will describe a result,
+agree on a bounded piece of work, and inspect what was delivered.
 
-Open your coding agent in the project you want to work on. That is where the
-conversation happens: in Codex, Claude Code, or another agent connected to
-Magistr. You can start with an empty folder or a project that already has years
-of work in it.
+Work in your agent conversation unless a step explicitly says to use a terminal.
+Save unrelated work first and tell the agent which files or areas belong to
+other sessions.
 
-Magistr keeps the parts of that work you will need again: the plan, the findings
-behind a decision, the task in progress, and the results of its checks.
+## Start from what you have
 
-## Start with something you want to build
+For an existing project, ask:
 
-The [recorded example](/#workflow) builds tic-tac-toe in **Bevy 0.20.0**.
-The brief is straightforward: play against the computer, see who won, then play
-another round.
+> Read the code and Magistr's saved work. Explain what already works, any
+> unfinished task, and the smallest useful change toward my request. Make a
+> plan before editing.
 
-Even that little game raises useful questions. Who starts? Can a player click
-twice? How good should the opponent be? What resets between rounds?
+Add your actual request and constraints. For example, in a web application with
+an existing sign-in form, you might ask for a readable error when the password
+is wrong. The agent should inspect how that form works before proposing changes.
 
-Talk through those questions with the agent. For an existing project, have it
-read the code before suggesting a plan.
+For an empty project, describe who will use it and one thing they should be
+able to do. Ask the agent to establish the stack, project structure, and check
+commands before implementation. Setup cannot infer a working test command from
+files that do not exist yet.
 
-## Give the project a roadmap
+## Agree on a finish
 
-Ask the agent to turn the result into pieces you can finish and check.
-For the game, those pieces are:
+A useful first task has a small, observable result. Define what should work,
+how to check it, and what is outside the task.
 
-1. Rules and turns.
-2. A computer opponent.
-3. A playable Bevy board.
-4. Another round, with scores and alternating starters.
+For the sign-in example, a finish might be: a rejected password shows a readable
+message, entered email remains available, and a valid sign-in still works.
+That is an example of **acceptance criteria**: conditions you can check before
+calling the task complete.
 
-The opponent and board both need the rules. The final piece needs both of them.
-Those are real dependencies, so the agent can tell what is ready to start.
+For a larger project, ask the agent to save deliverables and dependencies on a
+[roadmap](/docs/roadmap). Each deliverable is a **chunk**. A direct, small request
+can use a saved work plan without creating a roadmap chunk.
 
-Open **Roadmap** in the recording to inspect the actual pieces and their
-acceptance criteria. [Planning a project](/docs/roadmap) explains how to keep
-that plan useful as the project grows.
+## Start the change
 
-## Investigate the choices that matter
+If the agreed work is a ready roadmap chunk, invoke the skill inside your chat:
 
-You do not need a research project for every line of code. You do need an answer
-when the implementation depends on an assumption.
+| Agent | Start one chunk |
+| --- | --- |
+| Codex | `$next` |
+| Claude Code | `/next` |
 
-For the game, we tried a simple opponent: take a win, block a loss, then pick
-the center or a corner. An experiment found a game it could lose when playing
-second. That finding led to full search, followed by a check of every legal
-human reply.
+These skills resume interrupted roadmap work first. Otherwise they select one
+ready chunk, read its requirements and current code, save an objective and task
+plan, implement, verify, and commit the finished change.
 
-The [reasoning guide](/docs/reasoning) follows that decision. The recording keeps
-the experiment and its output, so you can inspect the evidence yourself.
+For a direct task, say to implement the agreed change and record its work and
+checks in Magistr. Do not invoke `next` merely to execute an unrelated request.
 
-## Build one piece
+Terminal users can instead run `magistr next` from the project root. This
+launches a separate agent session. [Working in chunks](/docs/chunks) explains
+the difference and how to bound a longer run.
 
-Use `$next` in Codex or `/next` in Claude Code. The agent resumes interrupted
-roadmap work first, or starts a ready chunk. It reads the requirements and
-current code, plans the change, implements it, checks it, and commits it.
+## Inspect the result
 
-You can also ask directly for a bounded change. “Make the board usable with the
-keyboard” is a useful request on its own. You do not need to rebuild the whole
-roadmap to fix something small.
+Ask the agent to report:
 
-[Working in chunks](/docs/chunks) covers one chunk and longer runs.
+- What changed and where to inspect it.
+- Which acceptance criteria it checked.
+- The commands that actually ran and their results.
+- Any unverified behavior or remaining limitation.
 
-## Use what you built
+Try the changed behavior yourself. For an interface, use the real controls and
+review screenshots at relevant sizes and appearances. A successful build does
+not establish that a screen is usable.
 
-Play a round. Try clicking an occupied square. Play again and check the score.
-A passing rules test cannot tell you whether the board is pleasant to use.
+Magistr keeps the task, actions, recorded decisions, checks, and artifact links.
+A failed check stays useful history; the agent should diagnose it and rerun the
+affected check after a correction. See [Verification](/docs/verification).
 
-Ask the agent to save and inspect screenshots of the actual interface.
-Keep useful feedback, investigate it, and change the plan when the findings
-call for it. [Checking the work](/docs/verification) covers tests and visual review.
+## Decide how to deliver
 
-## Say how you want it delivered
+State your delivery instructions before work starts: a local commit, a pull
+request, a push to a branch, or a deployment. For example:
 
-Tell the agent whether you want a local commit, a pull request, a push to main,
-or a deployment. Keep that instruction with the project.
+> After the relevant checks pass, make a local commit and report its hash.
 
-For example:
+The roadmap skills include a commit; a push or deployment also needs your
+instruction. Store persistent delivery preferences in the project's agent
+instructions so future sessions can read them.
 
-> Once the relevant checks pass, commit and push directly to main.
+## Continue later
 
-At the end, you should get the change, the checks that ran, and any limitation
-that still matters.
+Open the same project with Magistr connected and ask the agent to read the saved
+objective, remaining tasks, decisions, and checks before editing. It should
+compare those records with the current files. [Sessions](/docs/sessions)
+explains recovery and switching agents.
 
-## Pick it up in a fresh session
-
-Open the same project and ask the agent to read the saved work and current code.
-It can find the unfinished piece, the decisions already made, and the checks
-that need another run.
-
-That is the part I wanted for my own projects: being able to keep going without
-rebuilding the whole explanation in every chat.
-
-[Saved work and sessions](/docs/concepts) explains what carries over.
+If trying the result reveals a new problem, save it as [feedback](/docs/feedback)
+or make a new bounded request.

@@ -1,80 +1,90 @@
 ---
-title: Checking the work
-description: See what ran, what it found, and whether the result still applies.
-order: 6
+title: Verification
+description: Choose checks, read their results, and know when earlier evidence still applies.
+section: working
+order: 4
+related: [configuration, chunks, troubleshooting]
 ---
+Magistr records verification with the work it checks. A result can include the
+command, output, exit code, observed source inputs, and a receipt identifying
+that attempt. Written reviews are separate from executed commands.
 
-A completed task should come with something you can inspect. Magistr keeps
-the checks with the work: commands, output, exit codes, and the source inputs
-those results belong to.
+Before verification, [connect the agent](/docs/agents), agree on the task's
+acceptance criteria, and [configure check commands](/docs/configuration#configure-checks)
+that actually work in your project.
 
-## Choose checks for the behavior
+## Choose checks for the change
 
-The game rules need checks for turns, occupied squares, winning lines, and a
-draw. The opponent needs a stronger check: try every legal human reply and
-make sure it cannot lose.
+Use **focused verification** for a bounded change: select checks for the changed
+behavior and affected consumers. Explain why those checks establish the result.
+A documentation link fix and a persistence-format change need different checks.
 
-The Bevy board also needs to be opened and used. Keyboard input, readable
-labels, and the rematch button are separate questions from whether minimax
-returns a good move.
+Use **full verification** for an explicit full-suite request or a concrete risk
+requiring every configured gate. A roadmap chunk does not by itself require
+every test, package build, or release check.
 
-Use focused verification for bounded changes. Run the full configured suite
-when requested or when a concrete risk calls for it. Project commands and
-required custom gates live in `.magistr/project.json`.
+For an interface change, include interaction and visual review. For example,
+a form validation change needs both the rejected-input behavior and a readable,
+usable error state.
 
-## Read the actual result
+## Run and record checks
 
-Open **Checks** in the [recorded build](/#workflow). A command result includes
-what ran and what it printed.
+Ask the connected agent to run named project gates or use `check_work` with
+the actual command. Command checks are executed by Magistr; their recorded
+exit status comes from that execution.
 
-The opponent experiment initially failed because its assertion expected a
-losing game for both marks. The corrected experiment found no loss when the
-simple policy played first and a losing sequence when it played second.
-Both attempts stay in the history.
+The check belongs to an active work task. A standalone command that passes
+without being recorded for the task is useful diagnostic output, but does not
+establish completion of that task.
 
-A failed check is useful information. Diagnose the failure, correct its cause,
-then rerun the affected checks.
+Read the command, selected inputs, result, and output. A tool returning
+successfully is not the same as the check passing. Timeouts, launch failures,
+and failed tests must remain visible.
 
-## Review the interface separately
+## Interpret failures and stale results
 
-Try the actual controls. For the game, play a round with a pointer, play with
-number keys, try an occupied square, and start another round.
+| Result | Meaning and next action |
+| --- | --- |
+| Passed | The command succeeded for the recorded inputs. Check that it covers the acceptance criterion. |
+| Failed | Inspect the actual failure, correct its cause, then rerun the affected check. |
+| Timed out or could not launch | The intended verification did not complete. Diagnose the command, environment, or budget. |
+| Inputs changed | Earlier evidence may no longer describe the current work. Rerun checks affected by those inputs. |
+| Reused receipt | A matching successful result was reused. Read its original receipt; no new execution occurred. |
 
-Capture the interface at the sizes people will use. Open those images and
-inspect the text, spacing, contrast, controls, and selected state.
+Eligible successful test, lint, and typecheck results can be reused for up to
+24 hours when command, source, configuration, tools, and environment still match.
+Builds and reviews need fresh results. Custom gate reuse must be explicitly
+configured with adequate inputs.
 
-Magistr records a written review separately from an executed command.
-A screenshot file or a passing test does not establish that someone inspected
-the screen.
+If files change during a check, its tests can pass while completion remains
+refused because the evidence no longer describes stable inputs. Save the intended
+changes and rerun the affected command. Include dependencies in bounded input
+lists; omit the list when the full dependency set is unknown.
 
-## Check the current files
+## Review the interface
 
-A result belongs to the inputs it checked. If those inputs change, an earlier
-pass may no longer establish that the work is ready.
+Exercise the real controls and meaningful states. Capture at supported sizes
+and appearances, then open the images and inspect layout, readable text,
+contrast, focus, clipping, and control placement.
 
-The recording includes a simple example: Cargo created the first lockfile
-while the rules check ran. The tests passed, but completing the chunk was
-refused because the inputs changed during the check. Running against the saved
-lockfile produced current evidence.
+Record what was inspected and its limitations as a review. A screenshot's
+existence does not establish visual review. Headless browser testing does not
+establish native operating-system input or assistive-technology behavior.
 
-That does not mean repeating everything after every edit. Rerun checks affected
-by the change and keep the scope explicit.
+## Run the full configured gate
 
-## Run the full configured checks
-
-When you want the full quality gate:
+From the project root:
 
 ```sh
 magistr validate
 ```
 
-You can also use `$validate` in Codex or `/validate` in Claude Code.
-This runs the configured standard and required custom checks.
+Or use `$validate` in Codex or `/validate` in Claude Code. This runs the
+configured standard checks and required custom checks. It does not implement
+a roadmap item. A required failure blocks a successful full-gate result.
 
-## Ask for a useful finish
+## Finish with evidence
 
-The final report should point to the finished change, the checks that actually
-ran, the interface states reviewed, and any remaining limitation.
-
-Then try the result yourself. The next thing you notice may become a small fix
-or feedback for the [roadmap](/docs/roadmap#make-room-for-feedback).
+Before completion, ask the agent to identify the current checks, the acceptance
+criteria they support, reviewed interface evidence, and any unverified behavior.
+Required checks must pass and remain applicable to the finished source.
