@@ -1925,9 +1925,8 @@ impl LoopDriver {
     /// One at a time. `cargo check`, `cargo nextest` and `cargo clippy`
     /// contend for one build lock on one target directory, so racing them
     /// buys no wall clock and costs the ability to say which gate spent
-    /// which second. A red required gate gets exactly one more run: green
-    /// on the retry is a flake, named rather than hidden, and not a reason
-    /// to stop the loop; red twice is real.
+    /// which second. A required failure stops the set; another run needs
+    /// diagnosis or a correction.
     async fn gates(&mut self, started: Instant, ticks: &mut Interval) -> Option<Vec<GateOutcome>> {
         // The agent is gone and its feed with it (the socket is the
         // agent's own mcp's): the stage is what the cockpit shows
@@ -1947,31 +1946,9 @@ impl LoopDriver {
                 return Some(Vec::new());
             }
         };
-        // Focused work owns its chosen checks. A finalized objective has
-        // already closed its recording task. In both cases validate the
-        // existing receipts through the same authority as completion;
-        // never expand to the whole suite or run checks without a task.
         if let Some(engines) = &engines
             && let Some(objective) = objective
-            && (objective.verification
-                == magistr_workflow::ship::domain::objective::VerificationMode::Focused
-                || objective.status
-                    == magistr_workflow::ship::domain::objective::ObjectiveStatus::Completed)
         {
-            let belongs = match self.is_iteration_work(engines, &objective) {
-                Ok(belongs) => belongs,
-                Err(error) => {
-                    self.gates_unresolved =
-                        Some(format!("Work records could not be read: {error}"));
-                    return Some(Vec::new());
-                }
-            };
-            if !belongs {
-                self.gates_unresolved = Some(
-                    "The recorded checks belong to different work. Restore this item's verification task before continuing.".to_owned(),
-                );
-                return Some(Vec::new());
-            }
             // An item the agent already completed was judged at that moment:
             // the completion authority accepted its evidence as current. What
             // the tree did afterwards — the commit, and whatever the project's
@@ -1984,37 +1961,61 @@ impl LoopDriver {
                     return Some(Vec::new());
                 }
             };
-            if let Some((task, checks)) = completed {
-                self.split_part = objective
-                    .scope
-                    .strip_prefix("chunk:")
-                    .filter(|part| self.target.as_deref() != Some(*part))
-                    .map(str::to_owned);
-                self.verification_task = Some(task);
-                self.completed_checks = checks;
-                return Some(Vec::new());
-            }
-            match engines.ship_verify_completion(&objective.scope, None) {
-                Ok(evidence) if !evidence.accepted.is_empty() => {
+            // Completion is authoritative in either verification mode, even
+            // while the agent still has its objective open for finalization.
+            // Focused and finalized work also use recorded checks exclusively.
+            if completed.is_some()
+                || objective.verification
+                    == magistr_workflow::ship::domain::objective::VerificationMode::Focused
+                || objective.status
+                    == magistr_workflow::ship::domain::objective::ObjectiveStatus::Completed
+            {
+                let belongs = match self.is_iteration_work(engines, &objective) {
+                    Ok(belongs) => belongs,
+                    Err(error) => {
+                        self.gates_unresolved =
+                            Some(format!("Work records could not be read: {error}"));
+                        return Some(Vec::new());
+                    }
+                };
+                if !belongs {
+                    self.gates_unresolved = Some(
+                        "The recorded checks belong to different work. Restore this item's verification task before continuing.".to_owned(),
+                    );
+                    return Some(Vec::new());
+                }
+                if let Some((task, checks)) = completed {
                     self.split_part = objective
                         .scope
                         .strip_prefix("chunk:")
                         .filter(|part| self.target.as_deref() != Some(*part))
                         .map(str::to_owned);
-                    self.verification_task = Some(evidence.task_id);
-                    self.recorded_verification = evidence.accepted.into_iter()
-                        .map(|receipt| receipt.gate).collect();
+                    self.verification_task = Some(task);
+                    self.completed_checks = checks;
+                    return Some(Vec::new());
                 }
-                Ok(_) => self.gates_unresolved = Some(
-                    "No passing checks are recorded for this work. Run and record the relevant checks before continuing.".to_owned(),
-                ),
-                Err(why) => {
-                    // The full refusal, with its identifiers, is for the log.
-                    tracing::warn!(refusal = %why, "recorded checks were refused");
-                    self.gates_unresolved = Some(Self::plain_refusal(&why));
+                match engines.ship_verify_completion(&objective.scope, None) {
+                    Ok(evidence) if !evidence.accepted.is_empty() => {
+                        self.split_part = objective
+                            .scope
+                            .strip_prefix("chunk:")
+                            .filter(|part| self.target.as_deref() != Some(*part))
+                            .map(str::to_owned);
+                        self.verification_task = Some(evidence.task_id);
+                        self.recorded_verification = evidence.accepted.into_iter()
+                            .map(|receipt| receipt.gate).collect();
+                    }
+                    Ok(_) => self.gates_unresolved = Some(
+                        "No passing checks are recorded for this work. Run and record the relevant checks before continuing.".to_owned(),
+                    ),
+                    Err(why) => {
+                        // The full refusal, with its identifiers, is for the log.
+                        tracing::warn!(refusal = %why, "recorded checks were refused");
+                        self.gates_unresolved = Some(Self::plain_refusal(&why));
+                    }
                 }
+                return Some(Vec::new());
             }
-            return Some(Vec::new());
         }
         // Named once for the set, before any gate runs: every record of
         // this set lands on this task, and the completion names it.
@@ -2350,28 +2351,12 @@ impl LoopDriver {
         None
     }
 
-    /// The gates as the independent verifier of the agent's own claim.
+    /// Apply actual required failures from this iteration's unfinished work.
     ///
-    /// They run after the agent has already run its own gates, completed
-    /// its chunk and committed, so they can prevent none of it — the
-    /// commit boundary is the inner/outer-loop split and the pre-commit
-    /// position is already held by the agent's `magistr_gate`. Their
-    /// authority is over the ROADMAP instead: a chunk the
-    /// agent completed itself while a required gate is red does not stay
-    /// done. Nothing here reaches git; no commit is reverted, reset or
-    /// stashed. `Done -> InProgress` is the roadmap's own legal
-    /// transition, the one its lifecycle table names `reopen`.
-    ///
-    /// Reopening is also what puts the chunk back in front of
-    /// [`Decision::reconcile`](crate::orchestration::goal::Decision):
-    /// `judged` skips a chunk that is `Done`, which is exactly what the
-    /// `/next` workflow tells the agent to leave behind, so the authority
-    /// rule could never run on the real path. It runs now.
-    ///
-    /// Three kinds of red are deliberately not evidence of anything and
-    /// reopen nothing: a flake (it passed), a cancelled gate (the cockpit
-    /// is closing and nobody let it finish), and a gate the project
-    /// registered not-required (it is expected to fail).
+    /// Work accepted before gate selection is handled by its completion record
+    /// and produces no new outcomes. If another writer completes an item while
+    /// these checks are running, an actual failure reopens it before judging.
+    /// Cancelled and optional checks cannot reopen work. Git is never changed.
     fn verify(&mut self, gates: &[GateOutcome]) {
         let red: Vec<&GateOutcome> = gates
             .iter()
