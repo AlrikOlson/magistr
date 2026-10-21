@@ -57,17 +57,6 @@ try{
    assert(await page.locator(".xterm").isVisible(),"A terminal emulator is mounted");
    await noOverflow(page,"Home "+suffix);await playbackLayout(page);
    const annotation=page.locator("[data-annotation]");
-   if(suffix==="wide-light"){
-    for(let i=0;i<recording.events.length;i++){
-     await seek(page,i);
-     const explanation=explanationFor(recording.events[i].id);
-     assert.equal(await page.locator("[data-action-title]").textContent(),explanation.title);
-     const text=await page.locator("[data-action-explanation]").textContent();
-     assert(text.includes(explanation.summary.replaceAll("`","")),recording.events[i].id+" explains the selected action");
-     assert(!/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f-]{23}|ttt-(rules|opponent|board|rematch)|current tree/.test(await annotation.textContent()));
-    }
-    checks.push("All 65 recorded actions have synchronized, readable explanations without raw-log fallback");
-   }
    const scenes=[
     ["action-11","recheck","all"],["action-5","plan","a"],["change-65","source","b"],
     ["action-16","rerun","a"],["action-19","experiment","b"],["action-21","decision","a"],
@@ -78,6 +67,11 @@ try{
    for(const [id,name,group]of scenes){
     if(group!=="all"&&group!==pair)continue;
     await seek(page,recording.events.findIndex(e=>e.id===id));await noOverflow(page,"Annotation "+id+" "+suffix);
+    const explanation=explanationFor(id);
+    assert.equal(await page.locator("[data-action-title]").textContent(),explanation.title);
+    const text=await page.locator("[data-action-explanation]").textContent();
+    assert(text.includes(explanation.summary.replaceAll("`","")),id+" explains the selected action");
+    assert(!/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f-]{23}|ttt-(rules|opponent|board|rematch)|current tree/.test(await annotation.textContent()));
     assert(await annotation.evaluate(e=>e.scrollWidth<=e.clientWidth+1));
     await capture(page,"annotation-"+name+"-"+suffix,"Plain-language explanation for "+id,{region:width>1000?".build-window":"[data-annotation]"});
    }
@@ -147,7 +141,11 @@ try{
    await page.getByRole("button",{name:"Close details",exact:true}).click();
    await page.locator(".xterm-helper-textarea").focus();await page.keyboard.press("ArrowRight");
    await page.waitForFunction(()=>document.querySelector("[data-terminal]").dataset.renderedIndex==="1");
-   await page.keyboard.press(" ");await page.waitForFunction(()=>Number(document.querySelector("[data-terminal]").dataset.renderedIndex)>1);
+   await page.keyboard.press(" ");
+   await page.waitForFunction(()=>Number(document.querySelector("[data-terminal]").dataset.renderedIndex)>1,undefined,{timeout:10000}).catch(async error=>{
+    const state=await page.evaluate(()=>({active:document.activeElement?.outerHTML,hidden:document.hidden,play:document.querySelector("[data-play]")?.outerHTML,index:document.querySelector("[data-build]")?.dataset.index,rendered:document.querySelector("[data-terminal]")?.dataset.renderedIndex}));
+    throw new Error(suffix+" keyboard playback stalled: "+JSON.stringify(state),{cause:error});
+   });
    await page.getByRole("button",{name:"Pause",exact:true}).click();
    assert.equal(await page.getByRole("button",{name:"Play",exact:true}).getAttribute("aria-pressed"),"false");
 
