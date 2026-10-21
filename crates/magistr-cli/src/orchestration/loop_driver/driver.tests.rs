@@ -159,12 +159,8 @@ fn work_config(dir: &Path) -> NativeConfig {
     magistr_core::evidence::writer_config(dir, |_| None).with_data_dir(dir.join("workflow-data"))
 }
 
-/// The agent's own process completing `work` inside its turn the only way
-/// a chunk completes: an objective scoped to it, a verification task, every
-/// configured gate recorded on that task with the outcome the agent claims,
-/// then `roadmap_complete_chunk` naming the task. The loop's own gates land
-/// on the same task afterwards — it is the one active in the trace.
-fn agent_completes_work(agent_side: &NativeEngines, root: &Path, gates: [(&str, &str); 3]) {
+/// Prepare unfinished full-verification work for the loop's actual gates.
+fn agent_starts_work(agent_side: &NativeEngines) {
     agent_side.roadmap_start_chunk("work").expect("start");
     agent_side
         .ship_set_objective_with_verification(
@@ -184,6 +180,11 @@ fn agent_completes_work(agent_side: &NativeEngines, root: &Path, gates: [(&str, 
         )
         .expect("task");
     agent_side.ship_start_task("verify").expect("active");
+}
+
+/// Complete work on admitted receipts before returning control to the loop.
+fn agent_completes_work(agent_side: &NativeEngines, root: &Path, gates: [(&str, &str); 3]) {
+    agent_starts_work(agent_side);
     for (gate, command) in gates {
         crate::application::AdmittedCheck::admit(
             agent_side,
@@ -2516,28 +2517,16 @@ async fn a_store_with_no_active_task_says_why_the_gates_were_not_recorded() {
     );
 }
 
-/// The gates run after the agent has already completed its chunk and
-/// committed, so they can prevent none of it. Their authority is over the
-/// roadmap: a chunk the agent completed itself while a required gate is
-/// red does not stay done.
+/// A failed required check leaves unfinished work in progress.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn a_red_gate_reopens_the_chunk_the_agent_completed_itself() {
+async fn a_red_gate_keeps_the_chunk_in_progress() {
     let dir = project("true", "true", "exit 3");
     let engines = engines_with_work(dir.path());
-    // The agent's own process, completing the chunk inside its turn the
-    // way the /next workflow mandates.
     let agent_side = agent_side(&engines);
     let (inner, seen) = fake_connector(FakeAcpAgent::new().reply("shipped it"));
     let inner = Arc::new(inner);
-    let root = dir.path().to_path_buf();
     let connector = Connector::new(move |config| {
-        // The agent's receipts claim lint green; the loop's own run of it
-        // is what finds it red.
-        agent_completes_work(
-            &agent_side,
-            &root,
-            [("check", "true"), ("test", "true"), ("lint", "exit 3")],
-        );
+        agent_starts_work(&agent_side);
         let inner = Arc::clone(&inner);
         async move { inner.connect(config).await }
     });
@@ -2561,12 +2550,12 @@ async fn a_red_gate_reopens_the_chunk_the_agent_completed_itself() {
             .expect("the chunk")
             .status,
         ChunkStatus::InProgress,
-        "the chunk does not stay done over a red gate"
+        "a failed required check cannot complete the chunk"
     );
     let notes = notes(&model);
     assert!(
-        notes.iter().any(|n| n.contains("work reopened")),
-        "the stage names the reopen: {notes:?}"
+        notes.iter().any(|n| n.contains("quality gates failed")),
+        "the stage names the failed verification: {notes:?}"
     );
     assert!(
         notes.iter().any(|n| n.contains("lint")),
@@ -2939,17 +2928,24 @@ async fn completed_evidence_is_not_rerun_to_reopen_a_chunk() {
             &root,
             [("check", "true"), ("test", flake), ("lint", "true")],
         );
+        // Completion already accepted these checks. A subsequent commit hook
+        // can change the tree, so a cache hit must not conceal a second run.
+        std::fs::write(
+            root.join("after-completion.txt"),
+            "changed after completion",
+        )
+        .unwrap();
         let inner = Arc::clone(&inner);
         async move { inner.connect(config).await }
     });
-    let script = Actions::new().command(MS(4_000), Cmd::Quit);
-    let (model, _, _) = run_over(
+    let script = Actions::new();
+    let (model, report, _) = run_over(
         dir.path(),
         1,
         script,
         connector,
         seen,
-        true,
+        false,
         Some(engines.clone()),
         None,
     )
@@ -2962,7 +2958,17 @@ async fn completed_evidence_is_not_rerun_to_reopen_a_chunk() {
             .expect("the chunk")
             .status,
         ChunkStatus::Done,
-        "a flake is not a reason to reopen"
+        "completed work stays completed: {report}; {:?}",
+        notes(&model)
+    );
+    assert!(
+        !dir.path().join("flake.marker").exists(),
+        "checks were rerun"
+    );
+    assert!(
+        stage_text(&model).contains("Completed on its recorded checks"),
+        "{report}: {}",
+        stage_text(&model)
     );
     assert!(
         !notes(&model).iter().any(|n| n.contains("reopened")),
@@ -3028,26 +3034,17 @@ async fn the_carry_is_appended_once_and_never_accumulated() {
     );
 }
 
-/// The authority rule finally runs on the real path. `judged` skips a
-/// chunk that is `Done`, which is exactly what the `/next` workflow tells
-/// the agent to leave behind — so before the reopen, a self-completed
-/// chunk over a red gate never reached `Decision::reconcile` at all. It
-/// does now, and the judge's "met" over a red gate is a disagreement.
+/// The judge cannot complete unfinished work over a failed required check.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn a_self_completed_chunk_over_a_red_gate_reaches_the_authority_rule() {
+async fn a_red_gate_overrules_the_judges_completion_claim() {
     let dir = project("true", "true", "exit 3");
     let engines = engines_with_work(dir.path());
     let agent_side = agent_side(&engines);
     let judge = Scripted::new([Verdict::met("I shipped it")]);
     let (inner, seen) = fake_connector(FakeAcpAgent::new().reply("shipped it"));
     let inner = Arc::new(inner);
-    let root = dir.path().to_path_buf();
     let connector = Connector::new(move |config| {
-        agent_completes_work(
-            &agent_side,
-            &root,
-            [("check", "true"), ("test", "true"), ("lint", "exit 3")],
-        );
+        agent_starts_work(&agent_side);
         let inner = Arc::clone(&inner);
         async move { inner.connect(config).await }
     });
@@ -3067,7 +3064,7 @@ async fn a_self_completed_chunk_over_a_red_gate_reaches_the_authority_rule() {
     assert_eq!(
         judge.asked().len(),
         1,
-        "the judge is asked about a chunk the reopen put back in progress"
+        "the judge is asked about the unfinished chunk"
     );
     let notes = notes(&model);
     assert!(
