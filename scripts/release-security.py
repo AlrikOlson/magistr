@@ -222,7 +222,8 @@ def check_release_configuration(root=ROOT, workflows=None):
             if action.startswith("./"):
                 relative = Path(action)
                 require(".." not in relative.parts, "Local release action escapes source")
-                candidates = [relative / "action.yml", relative / "action.yaml"]
+                candidates = ([relative] if relative.suffix in (".yml", ".yaml")
+                              else [relative / "action.yml", relative / "action.yaml"])
                 candidate = next((item for item in candidates if (root / item).is_file()), None)
                 require(candidate is not None, f"Local release action is missing: {action}")
                 pending.append(candidate.as_posix())

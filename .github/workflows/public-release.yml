@@ -2,15 +2,17 @@ name: public release readiness
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'verify/**']
     tags: ["v*"]
   pull_request:
   workflow_dispatch:
+  schedule:
+    - cron: '23 8 * * 1'
 
 permissions:
   contents: read
+  actions: read
 
-# Keep debug output bounded; reusable dependency builds are cached separately.
 env:
   CARGO_INCREMENTAL: '0'
   CARGO_PROFILE_DEV_DEBUG: '0'
@@ -21,73 +23,166 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  quality:
-    name: Rust and website gates
-    runs-on: macos-15
-    timeout-minutes: 30
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      plan: ${{ steps.plan.outputs.plan }}
+      rust: ${{ steps.plan.outputs.rust }}
+      website: ${{ steps.plan.outputs.website }}
+      desktop: ${{ steps.plan.outputs.desktop }}
+      package: ${{ steps.plan.outputs.package }}
+      contracts: ${{ steps.plan.outputs.contracts }}
+      visual: ${{ steps.plan.outputs.visual }}
+      reuse: ${{ steps.plan.outputs.reuse }}
+      rust_packages: ${{ steps.plan.outputs.rust_packages }}
+      partitions: ${{ steps.plan.outputs.partitions }}
+      partition_count: ${{ steps.plan.outputs.partition_count }}
     steps:
-      - name: Check out source
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
-      - name: Install Rust toolchain
-        run: rustup show active-toolchain
+          fetch-depth: 0
+      - name: Resolve the affected verification contract
+        id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -B scripts/ci_plan.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: verification-plan
+          path: target/ci-plan.json
+
+  policy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Verify selection, required-check handling and timing deadlines
+        run: python3 -B scripts/ci_plan.tests.py
+
+  rust-build:
+    needs: plan
+    if: needs.plan.outputs.rust == 'true' && needs.plan.outputs.reuse != 'true'
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - run: rustup show active-toolchain
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
-      - name: Fetch the complete locked dependency graph
-        run: cargo fetch --locked
-      - name: Record available build storage
-        run: df -h .
-      - name: Check formatting
-        run: cargo fmt --all -- --check
-      - name: Check release versions and artifact validation
-        run: |
-          python3 -B scripts/version.py check
-          python3 -B scripts/version.tests.py
-          python3 -B scripts/cli-release.tests.py
-          python3 -B scripts/cargo_publication.tests.py
-          python3 -B scripts/public_link_check.tests.py
-          python3 -B scripts/release-security.tests.py
-          python3 -B scripts/agent-mcp-eval.tests.py
-      - name: Check workspace
-        run: cargo check --workspace --all-targets --locked
-      - name: Install cargo-nextest
-        uses: ./.github/actions/install-nextest
-      - name: Install Node.js
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          shared-key: ci-rust
+          cache-workspace-crates: true
+          key: ${{ hashFiles('crates/**/*.rs', 'crates/**/build.rs', '.config/nextest.toml') }}
+      - uses: ./.github/actions/install-nextest
+      - name: Check selected Rust targets and compile their tests once
+        env:
+          CI_PACKAGES: ${{ needs.plan.outputs.rust_packages }}
+        run: python3 -B scripts/ci_timing.py --name rust-build --budget 900 -- python3 -B scripts/ci_run.py rust-build
+      - name: Share the exact build with test workers
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: rust-test-build
+          path: target/ci-tests.tar.zst
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
+      - name: Save timing evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: timing-rust-build
+          path: |
+            target/ci-timings/
+            target/nextest/ci/junit.xml
+          retention-days: 7
+          if-no-files-found: warn
+
+  rust-tests:
+    needs: [plan, rust-build]
+    if: needs.plan.outputs.rust == 'true' && needs.plan.outputs.reuse != 'true'
+    runs-on: macos-15
+    timeout-minutes: 15
+    strategy:
+      fail-fast: ${{ github.event_name != 'schedule' && github.event_name != 'workflow_dispatch' }}
+      matrix:
+        partition: ${{ fromJSON(needs.plan.outputs.partitions) }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - run: rustup show active-toolchain
+      - uses: ./.github/actions/install-nextest
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version-file: .node-version
           cache: npm
           cache-dependency-path: |
             scripts/package-lock.json
             apps/website/package-lock.json
-      - name: Install locked development tools
-        run: npm ci --prefix scripts
-      - name: Run workspace tests
-        run: cargo nextest run --workspace --locked --profile ci
-      - name: Run Clippy
-        run: cargo clippy --workspace --all-targets --locked -- -D warnings
-      - name: Record Rust build storage
+      - run: npm ci --prefix scripts
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/registry/src
+          key: test-registry-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
+      - run: cargo fetch --locked
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: rust-test-build
+          path: target
+      - name: Run this partition of the compiled tests
+        env:
+          CI_PARTITION: ${{ matrix.partition }}/${{ needs.plan.outputs.partition_count }}
+        run: python3 -B scripts/ci_timing.py --name rust-tests --budget 600 --junit target/nextest/ci/junit.xml -- python3 -B scripts/ci_run.py rust-test --partition "$CI_PARTITION"
+      - name: Save timing evidence
         if: always()
-        run: |
-          df -h .
-          test ! -d target || du -sh target
-      - name: Test website
-        working-directory: apps/website
-        run: |
-          npm ci
-          npm test
-          npx --no-install playwright install webkit
-          npm run test:ui
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: timing-rust-tests-${{ matrix.partition }}
+          path: |
+            target/ci-timings/
+            target/nextest/ci/junit.xml
+          retention-days: 7
+          if-no-files-found: warn
+
+  website:
+    needs: plan
+    if: needs.plan.outputs.website == 'true' && needs.plan.outputs.reuse != 'true'
+    runs-on: macos-15
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .node-version
+          cache: npm
+          cache-dependency-path: |
+            scripts/package-lock.json
+            apps/website/package-lock.json
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ~/Library/Caches/ms-playwright
+          key: webkit-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('apps/website/package-lock.json') }}
+      - run: npm ci --prefix apps/website
+      - run: cd apps/website && npx --no-install playwright install webkit
+      - name: Build and verify website content
+        run: python3 -B scripts/ci_timing.py --name website-build --budget 120 -- npm --prefix apps/website test
+      - name: Verify website interactions
+        run: python3 -B scripts/ci_timing.py --name website-ui --budget 120 -- npm --prefix apps/website run test:ui
       - name: Assert clean-checkout public assets
         shell: bash
         run: |
           set -euo pipefail
-          for asset in \
-            apps/website/public/favicon.svg \
-            apps/website/public/screenshots/desktop-dark.png \
-            apps/website/public/screenshots/desktop-light.png \
-            apps/website/public/screenshots/captures.json \
-            crates/magistr-desktop/ui/icon.png; do
+          for asset in apps/website/public/favicon.svg apps/website/public/screenshots/desktop-dark.png apps/website/public/screenshots/desktop-light.png apps/website/public/screenshots/captures.json crates/magistr-desktop/ui/icon.png; do
             git ls-files --error-unmatch "$asset" >/dev/null
             if git check-ignore --no-index -q "$asset"; then
               echo "Tracked public asset is still ignored: $asset" >&2
@@ -95,78 +190,126 @@ jobs:
             fi
           done
           ! grep -R -n '/logo\.png' apps/website/src
+      - name: Save timing evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: timing-website
+          path: |
+            target/ci-timings/
+            target/nextest/ci/junit.xml
+          retention-days: 7
+          if-no-files-found: warn
 
-  desktop:
-    name: Desktop gates (macOS)
+  contracts:
+    needs: plan
+    if: needs.plan.outputs.contracts == 'true' && needs.plan.outputs.reuse != 'true'
     runs-on: macos-15
-    timeout-minutes: 30
+    timeout-minutes: 5
     steps:
-      - name: Check out source
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
-      - name: Install Rust toolchain
-        run: rustup show active-toolchain
-      - name: Install cargo-nextest
-        uses: ./.github/actions/install-nextest
-      - name: Install Node.js
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version-file: .node-version
-      - name: Install desktop test dependencies
-        working-directory: crates/magistr-desktop
-        run: npm ci
-      - name: Record available desktop build storage
-        run: df -h .
-      - name: Format desktop
-        run: cargo fmt --manifest-path crates/magistr-desktop/Cargo.toml -- --check
-      - name: Check desktop
-        run: cargo check --manifest-path crates/magistr-desktop/Cargo.toml --all-targets --locked
-      - name: Build desktop
-        run: cargo build --manifest-path crates/magistr-desktop/Cargo.toml --locked
-      - name: Lint desktop
-        run: cargo clippy --manifest-path crates/magistr-desktop/Cargo.toml --all-targets --locked -- -D warnings
-      - name: Test desktop and protocol roles
-        run: cargo nextest run --manifest-path crates/magistr-desktop/Cargo.toml --locked
-      - name: Record desktop build storage
+          cache: npm
+          cache-dependency-path: |
+            scripts/package-lock.json
+            apps/website/package-lock.json
+      - run: npm ci --prefix scripts
+      - run: python3 -B scripts/ci_timing.py --name contracts --budget 180 -- python3 -B scripts/ci_run.py contracts
+      - name: Save timing evidence
         if: always()
-        run: |
-          df -h .
-          test ! -d crates/magistr-desktop/target || du -sh crates/magistr-desktop/target
-      - name: Test desktop input and stream contracts
-        run: node --test crates/magistr-desktop/tests/*.mjs
-      - name: Check current visual evidence, contrast and icon
-        run: ./scripts/screenshot-gate.sh
-
-  package:
-    name: Package and verify (macOS)
-    runs-on: macos-15
-    timeout-minutes: 30
-    steps:
-      - name: Check out source
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          persist-credentials: false
-      - name: Install Rust toolchain
-        run: rustup show active-toolchain
-      - name: Build host archive
-        run: ./scripts/package-release.sh
-      - name: Verify archive checksums
-        shell: bash
-        run: |
-          set -euo pipefail
-          cd target/release-dist
-          for checksum in *.sha256; do
-            shasum -a 256 -c "$checksum"
-          done
+          name: timing-contracts
+          path: |
+            target/ci-timings/
+            target/nextest/ci/junit.xml
+          retention-days: 7
+          if-no-files-found: warn
 
-  public-links:
-    name: Anonymous public endpoint gate
+  visual:
+    needs: plan
+    if: needs.plan.outputs.visual == 'true' && needs.plan.outputs.reuse != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Check out source
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - run: python3 -B scripts/ci_timing.py --name visual-evidence --budget 120 -- bash scripts/screenshot-gate.sh
+      - name: Save timing evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: timing-visual
+          path: |
+            target/ci-timings/
+            target/nextest/ci/junit.xml
+          retention-days: 7
+          if-no-files-found: warn
+
+  desktop:
+    needs: plan
+    if: needs.plan.outputs.desktop == 'true' && needs.plan.outputs.reuse != 'true'
+    uses: ./.github/workflows/desktop-apps.yml
+
+  package:
+    needs: plan
+    if: needs.plan.outputs.package == 'true' && needs.plan.outputs.reuse != 'true'
+    name: Package and verify (macOS)
+    runs-on: macos-15
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - run: rustup show active-toolchain
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+        with:
+          shared-key: cli-release
+          cache-workspace-crates: true
+          key: ${{ hashFiles('crates/**/*.rs', 'scripts/package-release.sh') }}
+      - name: Build host archive
+        run: python3 -B scripts/ci_timing.py --name cli-package --budget 720 -- bash scripts/package-release.sh
+      - name: Verify archive checksums
+        run: cd target/release-dist && for checksum in *.sha256; do shasum -a 256 -c "$checksum"; done
+      - name: Save timing evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: timing-package
+          path: |
+            target/ci-timings/
+            target/nextest/ci/junit.xml
+          retention-days: 7
+          if-no-files-found: warn
+
+  quality:
+    name: Rust and website gates
+    needs: [plan, policy, rust-build, rust-tests, website, contracts, visual, desktop, package]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Require every selected result, including all test partitions
+        env:
+          CI_PLAN: ${{ needs.plan.outputs.plan }}
+          CI_NEEDS: ${{ toJSON(needs) }}
+        run: python3 -B scripts/ci_plan.py --assert-needs
+
+  public-links:
+    name: Anonymous public endpoint gate
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
       - name: Probe configured public URLs

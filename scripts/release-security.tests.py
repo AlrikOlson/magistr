@@ -185,6 +185,13 @@ class SecurityGateTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "full commit SHA"):
             security.check_release_configuration(self.root, ["workflow.yml"])
 
+    def test_release_configuration_follows_reusable_workflows(self):
+        self.configuration_fixture()
+        (self.root / "workflow.yml").write_text("jobs:\n  check:\n    uses: ./nested/desktop.yml\n")
+        (self.root / "nested/desktop.yml").write_text("steps:\n  - uses: owner/action@v4\n")
+        with self.assertRaisesRegex(ValueError, "full commit SHA"):
+            security.check_release_configuration(self.root, ["workflow.yml"])
+
     def test_release_configuration_refuses_floating_toolchains_and_missing_local_actions(self):
         self.configuration_fixture()
         (self.root / ".node-version").write_text("24\n")
