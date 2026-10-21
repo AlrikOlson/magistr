@@ -6,6 +6,7 @@ import {resolve,dirname,extname,sep} from "node:path";
 import {fileURLToPath} from "node:url";
 import {webkit} from "playwright";
 import {chapters} from "../src/data/build-recording.mjs";
+import {explanationFor} from "../src/data/build-explanations.mjs";
 const root=resolve(dirname(fileURLToPath(import.meta.url)),".."),repo=resolve(root,"../.."),dist=resolve(root,"dist");
 const arg=name=>{const i=process.argv.indexOf(name);return i<0?null:process.argv[i+1];};
 const captureOnly=arg("--capture-only")?new RegExp(arg("--capture-only")):null;
@@ -20,10 +21,10 @@ async function tree(path){const out=[];for(const e of await readdir(resolve(repo
 const sourcePaths=[...await tree("apps/website/src"),...await tree("crates/magistr-desktop/ui"),...await tree("apps/website/scripts"),"apps/website/astro.config.mjs","apps/website/package.json","apps/website/package-lock.json","apps/website/tests/browser.mjs","apps/website/public/demo/tic-tac-toe/recording.json","apps/website/public/demo/tic-tac-toe/manifest.json"];
 const sourceHashes=Object.fromEntries(await Promise.all(sourcePaths.map(async p=>[p,createHash("sha256").update(await readFile(resolve(repo,p))).digest("hex")])));
 const stable=async p=>{await p.evaluate(()=>document.fonts.ready);await p.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));};
-async function capture(page,name,state,{full=false,region}={}){
+async function capture(page,name,state,{full=false,region,settle=true}={}){
  if(!evidence||(captureOnly&&!captureOnly.test(name)))return;
  if(region)await page.locator(region).evaluate(e=>scrollTo({top:e.getBoundingClientRect().top+scrollY-90,behavior:"instant"}));
- if(name!=="no-javascript")await stable(page);await page.screenshot({path:resolve(evidence,name+".png"),fullPage:full});
+ if(settle)await stable(page);await page.screenshot({path:resolve(evidence,name+".png"),fullPage:full});
  captures.push({file:name+".png",state,viewport:page.viewportSize(),appearance:await page.evaluate(()=>document.documentElement.classList.contains("dark")?"dark":"light"),capturedAt:new Date().toISOString()});
 }
 async function playbackLayout(page){
@@ -55,6 +56,32 @@ try{
    const suffix=profile+"-"+appearance;
    assert(await page.locator(".xterm").isVisible(),"A terminal emulator is mounted");
    await noOverflow(page,"Home "+suffix);await playbackLayout(page);
+   const annotation=page.locator("[data-annotation]");
+   if(suffix==="wide-light"){
+    for(let i=0;i<recording.events.length;i++){
+     await seek(page,i);
+     const explanation=explanationFor(recording.events[i].id);
+     assert.equal(await page.locator("[data-action-title]").textContent(),explanation.title);
+     const text=await page.locator("[data-action-explanation]").textContent();
+     assert(text.includes(explanation.summary.replaceAll("`","")),recording.events[i].id+" explains the selected action");
+     assert(!/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f-]{23}|ttt-(rules|opponent|board|rematch)|current tree/.test(await annotation.textContent()));
+    }
+    checks.push("All 65 recorded actions have synchronized, readable explanations without raw-log fallback");
+   }
+   const scenes=[
+    ["action-11","recheck","all"],["action-5","plan","a"],["change-65","source","b"],
+    ["action-16","rerun","a"],["action-19","experiment","b"],["action-21","decision","a"],
+    ["action-24","conclusion","b"],["action-31","layout","a"],["action-46","timeout","b"],
+    ["action-49","cleanup","a"],["action-56","complete","b"]
+   ];
+   const pair=(profile==="wide"&&appearance==="light")||(profile==="compact"&&appearance==="dark")?"a":"b";
+   for(const [id,name,group]of scenes){
+    if(group!=="all"&&group!==pair)continue;
+    await seek(page,recording.events.findIndex(e=>e.id===id));await noOverflow(page,"Annotation "+id+" "+suffix);
+    assert(await annotation.evaluate(e=>e.scrollWidth<=e.clientWidth+1));
+    await capture(page,"annotation-"+name+"-"+suffix,"Plain-language explanation for "+id,{region:width>1000?".build-window":"[data-annotation]"});
+   }
+   await seek(page,parts[0].index);
    await capture(page,"terminal-plan-"+suffix,"Terminal scrollback beside the four planned pieces",{region:".build-window"});
 
    await seek(page,changeIndex);
@@ -160,7 +187,11 @@ try{
  await nojs.goto(origin);await nojs.locator(".build-transcript>summary").click();
  await nojs.locator('[data-event="'+recording.events[changeIndex].id+'"]>details>summary').click();
  assert(await nojs.locator('[data-event="'+recording.events[changeIndex].id+'"] .diff-add').count()>0);
- await capture(nojs,"no-javascript","Highlighted source and diff transcript without JavaScript",{region:'[data-event="'+recording.events[changeIndex].id+'"]'});await nojs.close();
+ await capture(nojs,"no-javascript","Highlighted source and diff transcript without JavaScript",{region:'[data-event="'+recording.events[changeIndex].id+'"]',settle:false});
+ await nojs.locator('[data-event="action-11"]>details>summary').click();
+ assert((await nojs.locator('[data-event="action-11"] .action-explanation').textContent()).includes("Why Magistr stopped"));
+ await capture(nojs,"annotation-transcript","Formatted explanation is available without JavaScript",{region:'[data-event="action-11"]',settle:false});
+ await nojs.close();
  const offline=await browser.newPage({viewport:{width:390,height:844}});
  await offline.route("**/demo/tic-tac-toe/playback.json*",r=>r.abort());await offline.goto(origin);
  await offline.locator('[data-build][data-ready="error"]').waitFor();assert(await offline.locator(".build-error").isVisible());
