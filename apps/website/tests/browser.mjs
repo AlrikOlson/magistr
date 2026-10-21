@@ -39,7 +39,7 @@ const sourceHashes=Object.fromEntries(await Promise.all(sourcePaths.map(async p=
 const stable=async p=>{await p.evaluate(()=>document.fonts.ready);await p.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));};
 async function capture(page,name,state,{full=false,region,settle=true}={}){
  if(!evidence||(captureOnly&&!captureOnly.test(name)))return;
- if(region)await page.locator(region).evaluate(e=>scrollTo({top:e.getBoundingClientRect().top+scrollY-90,behavior:"instant"}));
+ if(region&&region!=="#build-details")await page.locator(region).evaluate(e=>scrollTo({top:e.getBoundingClientRect().top+scrollY-90,behavior:"instant"}));
  if(settle)await stable(page);await page.screenshot({path:resolve(evidence,name+".png"),fullPage:full});
  captures.push({file:name+".png",state,viewport:page.viewportSize(),appearance:await page.evaluate(()=>document.documentElement.classList.contains("dark")?"dark":"light"),capturedAt:new Date().toISOString()});
 }
@@ -72,6 +72,10 @@ try{
    const page=await context.newPage();page.on("pageerror",e=>errors.push(String(e)));
    await page.goto(origin);await page.locator('[data-build][data-ready="true"]').waitFor();await stable(page);
    const suffix=profile+"-"+appearance;
+   assert.equal(await page.locator("[data-build]").getAttribute("data-index"),"0","The session opens with the human request");
+   await capture(page,"conversation-start-"+suffix,"First request, fixed transport and matching explanation",{region:".build-window"});
+   await seek(page,recording.events.findIndex(e=>e.id==="message-5"));
+   await capture(page,"conversation-followup-"+suffix,"Human version follow-up at its real point in the build",{region:".build-window"});
    assert(await page.locator(".xterm").isVisible(),"A terminal emulator is mounted");
    await noOverflow(page,"Home "+suffix);await playbackLayout(page);
    const annotation=page.locator("[data-annotation]");
@@ -112,6 +116,10 @@ try{
    // retain every reader state in every profile for direct visual review.
    if(pair==="a"||evidence){
    await page.locator("[data-open-action]").click();
+   assert(await page.locator("#build-details").evaluate(e=>e.open&&e.matches(":modal")),"Details use a native modal dialog");
+   const scrollBefore=await page.evaluate(()=>scrollY);
+   await page.keyboard.press("Tab");
+   assert(await page.locator("#build-details").evaluate(e=>e.contains(document.activeElement)),"Focus remains in the inspector");
    assert(await page.locator(".record-reader .diff-add").count()>0);
    assert(await page.locator(".record-reader .diff-remove").count()>0);
    assert(await page.locator(".record-reader .diff-line span[style]").count()>10);
@@ -121,17 +129,20 @@ try{
    await page.getByRole("button",{name:"Copy file",exact:true}).click();
    assert.equal(await page.evaluate(()=>window.__copied),recording.events[changeIndex].file.content);
    await capture(page,"source-reader-"+suffix,"Highlighted recorded Rust with exact source copying",{region:"#build-details"});
+   if(profile==="compact")assert(await page.locator(".record-reader pre").evaluate(e=>{e.scrollLeft=80;const moved=e.scrollLeft>0;e.scrollLeft=0;return moved;}),"Long source lines scroll within the file reader");
    const codeSpan=page.locator(".record-reader pre span[style]").first();
    const beforeColor=await codeSpan.evaluate(e=>getComputedStyle(e).color);
-   await page.locator(".theme-toggle").click();
+   await page.evaluate(()=>document.documentElement.classList.toggle("dark"));
    await page.waitForFunction(theme=>document.querySelector("[data-terminal]").dataset.appearance!==theme,appearance);
    assert.notEqual(await codeSpan.evaluate(e=>getComputedStyle(e).color),beforeColor,"Open code reader responds to the theme toggle");
-   await page.locator(".theme-toggle").click();
+   await page.evaluate(()=>document.documentElement.classList.toggle("dark"));
    await page.waitForFunction(theme=>document.querySelector("[data-terminal]").dataset.appearance===theme,appearance);
    await page.getByRole("button",{name:"Close details",exact:true}).click();
    assert(await page.locator("#build-details").isHidden());
+   assert.equal(await page.evaluate(()=>scrollY),scrollBefore,"Closing the dialog preserves page position");
+   assert(await page.locator("[data-open-action]").evaluate(e=>e===document.activeElement));
 
-   await seek(page,parts[0].index);await openView(page,"roadmap");
+   await seek(page,recording.events.findLastIndex(e=>e.operation==="roadmap_add_chunk"));await openView(page,"roadmap");
    assert(await page.locator(".xterm").isVisible(),"Project visuals never replace the terminal");
    await capture(page,"roadmap-"+suffix,"Roadmap remains attached to the terminal at the selected action",{region:"#build-details"});
    await page.locator("[data-record-view]").getByRole("button",{name:recording.events.find(e=>e.chunk).chunk.title,exact:width>1000}).click();
@@ -168,7 +179,7 @@ try{
    await page.locator('[aria-label="Recorded action"]').evaluate(e=>{for(const i of [60,5,45,0]){e.value=String(i);e.dispatchEvent(new Event("input",{bubbles:true}));}});
    await page.waitForFunction(()=>document.querySelector("[data-terminal]").dataset.renderedIndex==="0");
    assert(!(await page.locator("[data-terminal]").textContent()).includes("Tactical policy as"));
-   await capture(page,"terminal-start-"+suffix,"Opening recorded reasoning with word-aware output wrapping",{region:".build-window"});
+   await capture(page,"terminal-start-"+suffix,"Opening human request in the Codex prompt gutter",{region:".build-window"});
    await openView(page,"checks");assert((await page.locator("[data-record-view]").textContent()).includes("No checks"));
    await page.getByRole("button",{name:"Close details",exact:true}).click();
    await page.locator(".xterm-helper-textarea").focus();await page.keyboard.press("ArrowRight");
@@ -181,7 +192,68 @@ try{
    await page.getByRole("button",{name:"Pause",exact:true}).click();
    assert.equal(await page.getByRole("button",{name:"Play",exact:true}).getAttribute("aria-pressed"),"false");
 
-   checks.push("Readers, exact copy, theme toggle, quick seeks and keyboard playback: "+suffix);
+   // Keep pointer targets stationary through every message, long annotation,
+   // failed check and source change. One batch avoids 98 browser round trips.
+   await seek(page,0);
+   await page.locator(".build-transport").scrollIntoViewIfNeeded();
+   const stability=await page.evaluate(async count=>{
+    const target=document.querySelector("[data-next]"),slider=document.querySelector('[aria-label="Recorded action"]');
+    const first=target.getBoundingClientRect(),failures=[];
+    for(let i=0;i<count;i++){
+     slider.value=String(i);slider.dispatchEvent(new Event("input",{bubbles:true}));
+     for(let wait=0;document.querySelector("[data-terminal]").dataset.renderedIndex!==String(i);wait++){
+      if(wait>120)throw Error("Seek stalled at "+i);
+      await new Promise(r=>requestAnimationFrame(r));
+     }
+     const r=target.getBoundingClientRect();
+     if(Math.abs(r.top-first.top)>1||Math.abs(r.left-first.left)>1)failures.push({i,top:r.top,left:r.left});
+    }
+    return failures;
+   },recording.events.length);
+   assert.deepEqual(stability,[],"Step controls stay put through the whole session");
+   await page.locator("[data-open-transcript]").click();
+   assert.equal(await page.locator(".session-conversation>li").count(),recording.events.length);
+   assert.equal(await page.locator('.session-conversation [data-role="user"]').count(),2);
+   await capture(page,"session-dialog-"+suffix,"Full conversation with timestamps that return to the selected moment",{region:"#build-details"});
+   await page.keyboard.press("Escape");
+
+   if(pair==="a"){
+    await page.emulateMedia({reducedMotion:"no-preference"});
+    await seek(page,1);await page.locator("[data-speed]").selectOption("1");
+    await page.locator("[data-play]").click();
+    await page.evaluate(()=>{const play=document.querySelector("[data-play]");for(let i=0;i<10;i++){play.click();play.click();}});
+    await page.waitForFunction(()=>Number(document.querySelector("[data-terminal]").dataset.revealed)>5);
+    await page.locator("[data-play]").click();
+    await page.waitForTimeout(80); // Allow the single acknowledged write to settle.
+    const paused=await page.locator("[data-terminal]").getAttribute("data-revealed");
+    await page.waitForTimeout(160);
+    assert.equal(await page.locator("[data-terminal]").getAttribute("data-revealed"),paused,"Pause freezes partial text");
+    await page.locator("[data-open-action]").click();
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(80);
+    assert.equal(await page.locator("[data-terminal]").getAttribute("data-revealed"),paused,"Opening and closing details preserves partial text");
+    await capture(page,"stream-paused-"+suffix,"Paused reply after opening and closing its message inspector",{region:".build-window"});
+    await page.locator("[data-play]").click();
+    await page.waitForFunction(n=>Number(document.querySelector("[data-terminal]").dataset.revealed)>Number(n),paused);
+    await page.locator("[data-speed]").selectOption("4");
+    await seek(page,0);
+    await page.waitForTimeout(100);
+    assert.equal(await page.locator("[data-terminal]").getAttribute("data-rendered-index"),"0","Scrubbing cancels an active stream");
+    assert(!(await page.locator("[data-terminal]").textContent()).includes("playable board"),"Canceled text cannot arrive after a seek");
+    await seek(page,recording.events.length-1);await page.locator("[data-speed]").selectOption("1");
+    await page.locator("[data-play]").click();
+    await page.waitForFunction(()=>Number(document.querySelector("[data-terminal]").dataset.revealed)>5);
+    await page.locator("[data-play]").click();
+    await capture(page,"stream-final-paused-"+suffix,"Pause the final handover and resume it without restarting the session",{region:".build-window"});
+    await page.locator("[data-speed]").selectOption("4");await page.locator("[data-play]").click();
+    assert.equal(await page.locator("[data-build]").getAttribute("data-index"),String(recording.events.length-1),"Resume stays on the incomplete final reply");
+    await page.getByRole("button",{name:"Play",exact:true}).waitFor();
+    await page.locator("[data-play]").click();
+    await page.waitForFunction(()=>document.querySelector("[data-build]").dataset.index==="0");
+    await page.locator("[data-play]").click();
+    await page.emulateMedia({reducedMotion:"reduce"});
+   }
+   checks.push("Modal focus/return, complete conversation, stationary controls, streaming pause/resume/cancel, reduced motion, copy and keyboard playback: "+suffix);
    }
 
    await capture(page,"install-"+suffix,"Highlighted installation commands",{region:"#install"});

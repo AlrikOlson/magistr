@@ -3,7 +3,7 @@ import test from "node:test";
 import {applyPatch} from "diff";
 import {readFile} from "node:fs/promises";
 import {recordedDiff,renderRecording} from "../scripts/highlight-recording.mjs";
-import {formatTerminalFrame,terminalFrameHTML,terminalText} from "../src/data/terminal-format.mjs";
+import {formatTerminalFrame,terminalFrameHTML,terminalText,terminalStreamParts} from "../src/data/terminal-format.mjs";
 const plain=text=>text.replace(/\x1b\[[0-9;]*m/g,"");
 
 test("recorded diffs reconstruct the new file, including replacements and missing final newlines",async()=>{
@@ -46,7 +46,7 @@ test("the published recording retains real failures and changes with both palett
    assert(output.startsWith("\x1b["));assert(!/\x1b\]/.test(output));
    const lines=plain(output).split(/\r?\n/);
    assert(lines.every(line=>Array.from(line).length<columns),frames[i].id+" fits "+columns+" columns");
-   assert(lines.length<=26,"Preview stays inside its terminal screen");
+   if(recording.events[i].kind!=="message")assert(lines.length<=26,"Tool preview stays inside its terminal screen");
    assert(lines.filter(Boolean).slice(1).every(line=>line.startsWith("  ")),frames[i].id+" retains its output gutter");
   }
  }
@@ -93,4 +93,23 @@ test("wrapping is independent of syntax token boundaries and bounds long output"
  ]);
  const rows=Array.from({length:30},(_,i)=>({prefix:"    ",continuation:"    ",spans:[{text:"Line "+i}]}));
  assert(plain(formatTerminalFrame({rows},40,"dark",8)).includes("… more in details"));
+});
+
+test("conversation has human and agent gutters, full messages, and lossless stream chunks",async()=>{
+ const text="A message with enough words to continue across a narrow terminal.\n\nA final sentence.";
+ const frames=await renderRecording({events:[
+  {id:"user",kind:"message",role:"user",output:text},
+  {id:"assistant",kind:"message",role:"assistant",output:text+" ✓"},
+ ]});
+ for(const [i,frame]of frames.entries()){
+  const ansi=formatTerminalFrame(frame.terminal,30,"dark",3);
+  assert(plain(ansi).startsWith(i===0?"› ":"• "));
+  assert(!plain(ansi).includes("Called"));
+  assert(plain(ansi).includes("sentence."));
+  assert(!plain(ansi).includes("more in details"));
+  const parts=terminalStreamParts(ansi,frame.terminal.role);
+  assert.equal(parts.join(""),ansi);
+  assert.equal(parts.length===1,i===0,"Submitted human messages appear whole; agent replies stream");
+  assert(parts.every(p=>!/\x1b[^\[]|\x1b$|\x1b\[[^m]*$/.test(p)),"ANSI controls stay intact");
+ }
 });

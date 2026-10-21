@@ -1,0 +1,36 @@
+# Conversation iteration 02
+
+All 26 original PNGs were opened at full frame and readable detail on 2026-10-21. `browser-checks.json` records renderer/version, viewport, appearance, timestamps and source hashes. Headless WebKit interactions passed in 41.75 seconds.
+
+| Capture | Human task and concrete observations | Verdict |
+| --- | --- | --- |
+| conversation-start-wide-light.png | First request, fixed transport and matching explanation. Opening request uses a clear prompt gutter. The fixed transport precedes the stable terminal and remains readable. | Pass |
+| conversation-followup-wide-light.png | Human version follow-up at its real point in the build. The version follow-up appears below the earlier test output, in its real chronology. Message wrapping and speaker distinction are clear. | Pass |
+| diff-reader-wide-light.png | Added and removed Rust lines with hunk context. The filename stays in the header when focus scrolls the diff. Additions, deletions, tabs and Close are legible. Compact code uses its own horizontal scroll. | Pass |
+| source-reader-wide-light.png | Highlighted recorded Rust with exact source copying. Full-file tab and copied confirmation are distinct. Source indentation is preserved; compact code scrolls inside the inspector. | Pass |
+| roadmap-wide-light.png | Roadmap remains attached to the terminal at the selected action. Desktop dependency edges attach correctly, with no crossings that obscure their meaning; compact rows are readable and open their requirements. The small blocks are the real renderer’s checklist tally. | Pass |
+| reasoning-wide-light.png | Recorded opponent investigation and its conclusion. Desktop question, finding and conclusion remain connected; compact view keeps the same records in a readable list. | Pass |
+| check-reader-wide-light.png | Failed command with highlighted shell input and actual failure output. Failed command, result, source paths and output remain readable. Close and return controls stay accessible. | Pass |
+| session-dialog-wide-light.png | Full conversation with timestamps that return to the selected moment. Human and Codex turns have clear labels and spacing. The timeline links are separate from message text. Full conversation can be scrolled without moving the background. | Pass |
+| stream-paused-wide-light.png | Paused partway through a streamed Codex reply. The original request remains above the incomplete assistant reply. Paused text is legible and transport stays fixed. | Pass |
+| conversation-start-wide-dark.png | First request, fixed transport and matching explanation. Opening request uses a clear prompt gutter. The fixed transport precedes the stable terminal and remains readable. | Pass |
+| conversation-followup-wide-dark.png | Human version follow-up at its real point in the build. The version follow-up appears below the earlier test output, in its real chronology. Message wrapping and speaker distinction are clear. | Pass |
+| conversation-start-compact-light.png | First request, fixed transport and matching explanation. Opening request uses a clear prompt gutter. The fixed transport precedes the stable terminal and remains readable. | Pass |
+| conversation-followup-compact-light.png | Human version follow-up at its real point in the build. The version follow-up appears below the earlier test output, in its real chronology. Message wrapping and speaker distinction are clear. | Pass |
+| conversation-start-compact-dark.png | First request, fixed transport and matching explanation. Opening request uses a clear prompt gutter. The fixed transport precedes the stable terminal and remains readable. | Pass |
+| conversation-followup-compact-dark.png | Human version follow-up at its real point in the build. The version follow-up appears below the earlier test output, in its real chronology. Message wrapping and speaker distinction are clear. | Pass |
+| diff-reader-compact-dark.png | Added and removed Rust lines with hunk context. The filename stays in the header when focus scrolls the diff. Additions, deletions, tabs and Close are legible. Compact code uses its own horizontal scroll. | Pass |
+| source-reader-compact-dark.png | Highlighted recorded Rust with exact source copying. Full-file tab and copied confirmation are distinct. Source indentation is preserved; compact code scrolls inside the inspector. | Pass |
+| roadmap-compact-dark.png | Roadmap remains attached to the terminal at the selected action. Desktop dependency edges attach correctly, with no crossings that obscure their meaning; compact rows are readable and open their requirements. The small blocks are the real renderer’s checklist tally. | Pass |
+| reasoning-compact-dark.png | Recorded opponent investigation and its conclusion. Desktop question, finding and conclusion remain connected; compact view keeps the same records in a readable list. | Pass |
+| check-reader-compact-dark.png | Failed command with highlighted shell input and actual failure output. Failed command, result, source paths and output remain readable. Close and return controls stay accessible. | Pass |
+| session-dialog-compact-dark.png | Full conversation with timestamps that return to the selected moment. Human and Codex turns have clear labels and spacing. The timeline links are separate from message text. Full conversation can be scrolled without moving the background. | Pass |
+| stream-paused-compact-dark.png | Paused partway through a streamed Codex reply. The original request remains above the incomplete assistant reply. Paused text is legible and transport stays fixed. | Pass |
+| reflow-320-light.png | Readable terminal and controls at 320 pixels. Transport fits the narrow viewport; numbered diff preview wraps inside the terminal. Full changes are available in the inspector. | Pass |
+| reflow-320-dark.png | Readable terminal and controls at 320 pixels. Transport fits the narrow viewport; numbered diff preview wraps inside the terminal. Full changes are available in the inspector. | Pass |
+| terminal-static.png | Codex-style grouped output without JavaScript. The opening request and explanatory text are readable without JavaScript; the full transcript remains available. | Pass |
+| recording-unavailable.png | Readable fallback when playback fails to load. The missing-playback state retains the opening request, readable error and full-session fallback. | Pass |
+
+The time display now reserves its width; all 98 entries were swept at all four primary profiles without moving the step controls. Dialog opening/closing preserves page position and returns focus. Checks cover keyboard focus containment, copy, conversation completeness, no future records, reduced motion and partial streaming pause/resume/cancel.
+
+Pairwise dialog captures use desktop/light and compact/dark; both themes and sizes are exercised by the browser suite. All four initial/follow-up states, 320px light/dark, no-JavaScript and failed-load states were directly inspected. Native OS input and assistive technology were not tested. A final controller review found an acknowledgement race on extremely fast pause/resume during initial rendering; iteration 03 records its correction and recaptures the affected terminal states. Static layouts here passed.

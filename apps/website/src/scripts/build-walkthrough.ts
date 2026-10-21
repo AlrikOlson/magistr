@@ -18,34 +18,36 @@ async function setup(root:HTMLElement){
   if(recording.version!==1||playback.version!==2||!recording.events?.length||playback.events?.length!==recording.events.length||playback.events.some((e:any,i:number)=>e.id!==recording.events[i].id))throw Error("Recording unavailable");
   const events=recording.events,parts=chapters(recording);
  events.forEach(e=>explanationFor(e.id));
-  const host=root.querySelector<HTMLElement>("[data-terminal]")!,details=root.querySelector<HTMLElement>("#build-details")!;
+  const host=root.querySelector<HTMLElement>("[data-terminal]")!,details=root.querySelector<HTMLDialogElement>("#build-details")!;
   const panel=root.querySelector<HTMLElement>("#build-panel")!,records=root.querySelector<HTMLElement>("[data-record-view]")!;
   const slider=root.querySelector<HTMLInputElement>('input[type="range"]')!,play=root.querySelector<HTMLButtonElement>("[data-play]")!;
   const prev=root.querySelector<HTMLButtonElement>("[data-prev]")!,next=root.querySelector<HTMLButtonElement>("[data-next]")!,speed=root.querySelector<HTMLSelectElement>("[data-speed]")!;
   const views=[...root.querySelectorAll<HTMLButtonElement>("[data-view]")],chapterButtons=[...root.querySelectorAll<HTMLButtonElement>("[data-chapter]")];
   const openAction=root.querySelector<HTMLButtonElement>("[data-open-action]")!;
   const compact=matchMedia("(max-width:1000px)");
-  let index=Number(root.dataset.index),view="",timer:ReturnType<typeof setTimeout>|undefined;
+  let index=Number(root.dataset.index),view="",timer:ReturnType<typeof setTimeout>|undefined,playing=false,ended=false,cycle=0;
+  let terminal:TerminalPlayback;
   let opener:HTMLElement=openAction;
   const roadmap=new RoadmapSurface(()=>renderRecords()),reasoning=new ReasoningMap();
   const button=(text:string,fn:()=>void)=>{const b=el("button",text) as HTMLButtonElement;b.type="button";b.onclick=fn;return b;};
-  const stop=()=>{clearTimeout(timer);timer=undefined;play.textContent="Play";play.setAttribute("aria-pressed","false");};
+  const stop=()=>{playing=false;++cycle;clearTimeout(timer);timer=undefined;terminal?.pause();play.textContent="Play";play.setAttribute("aria-pressed","false");};
   const cloneOutput=(id:string,diff=false)=>{
    const source=root.querySelector<HTMLElement>('[data-event="'+CSS.escape(id)+'"] [data-event-'+(diff?"diff":"output")+"]")!;
    return source.firstElementChild!.cloneNode(true) as HTMLElement;
   };
-  const closeDetails=(focus=true)=>{view="";details.hidden=true;root.dataset.view="session";views.forEach(b=>b.setAttribute("aria-expanded","false"));if(focus)opener.focus({preventScroll:true});};
+  const closeDetails=(focus=true)=>{view="";details.close();document.documentElement.classList.remove("record-dialog-open");root.dataset.view="session";views.forEach(b=>b.setAttribute("aria-expanded","false"));if(focus)opener.focus({preventScroll:true});};
   const showDetails=(name:string,focus=true)=>{
-   stop();view=name;details.hidden=false;root.dataset.view=name;panel.dataset.mode=name;panel.scrollTop=0;
-   root.querySelector("#build-detail-title")!.textContent=({roadmap:"Roadmap",reasoning:"Reasoning",work:"Work",checks:"Checks",file:"Recorded file",output:"Recorded output"} as any)[name]+" · "+elapsed(recording,index);
+   stop();view=name;if(!details.open){details.showModal();document.documentElement.classList.add("record-dialog-open");}root.dataset.view=name;panel.dataset.mode=name;panel.scrollTop=0;
+   root.querySelector("#build-detail-title")!.textContent=({roadmap:"Roadmap",reasoning:"Reasoning",work:"Work",checks:"Checks",file:"Changes",output:"Session message",transcript:"Full session"} as any)[name]+" · "+elapsed(recording,index);
    views.forEach(b=>b.setAttribute("aria-expanded",String(b.dataset.view===name)));
-   if(focus){panel.focus({preventScroll:true});details.scrollIntoView({behavior:"instant",block:"nearest"});}
+   if(focus){panel.focus({preventScroll:true});}
   };
-  const openView=(name:string,focus=true)=>{showDetails(name,false);renderRecords();if(focus){panel.focus({preventScroll:true});details.scrollIntoView({behavior:"instant",block:"nearest"});}};
+  const openView=(name:string,focus=true)=>{showDetails(name,false);renderRecords();if(focus){panel.focus({preventScroll:true});}};
   const reader=(title:string,back:string)=>{
    panel.dataset.mode="reader";panel.scrollTop=0;
    const article=el("article","","record-reader");
-   article.append(button("← Back to "+back,()=>{if(back==="recording")closeDetails();else{renderRecords();panel.focus({preventScroll:true});}}),el("h3",title));
+   if(back!=="recording")article.append(button("← Back to "+back,()=>{renderRecords();panel.focus({preventScroll:true});}));
+   article.append(el("h3",title));
    records.replaceChildren(article);article.tabIndex=-1;article.focus({preventScroll:true});return article;
   };
   const paragraph=(article:HTMLElement,label:string,value:string)=>{if(value)article.append(el("h4",label),el("p",value));};
@@ -75,7 +77,8 @@ async function setup(root:HTMLElement){
   }
   function openFile(mode="changes"){
    showDetails("file",false);
-   const e=events[index],a=reader(e.file.path,"recording"),controls=el("div","","file-views");
+   const e=events[index],a=reader(e.file.path,"recording"),controls=el("div","","file-views");a.classList.add("file-reader");a.querySelector("h3")!.remove();
+   root.querySelector("#build-detail-title")!.textContent=e.file.path+" · "+elapsed(recording,index);
    for(const [value,label]of [["changes","Changes"],["file","Full file"]]){
     const b=button(label,()=>openFile(value));b.setAttribute("aria-pressed",String(mode===value));controls.append(b);
    }
@@ -84,7 +87,7 @@ async function setup(root:HTMLElement){
    a.append(cloneOutput(e.id,mode==="changes"));
   }
   function openOutput(){
-   showDetails("output",false);const e=events[index],a=reader(e.title,"recording");a.append(copyButton(e.output,"Copy output"),cloneOutput(e.id));
+   showDetails("output",false);const e=events[index],a=reader(e.kind==="message"?(e.role==="user"?"You":"Codex"):e.title,"recording");a.append(copyButton(e.output,e.kind==="message"?"Copy message":"Copy output"),cloneOutput(e.id));
   }
   function list(items:any[],label:(x:any)=>string,status:(x:any)=>string,open:(x:any)=>void,empty:string){
    if(!items.length){records.replaceChildren(el("p",empty,"record-empty"));return;}
@@ -94,7 +97,20 @@ async function setup(root:HTMLElement){
   }
   function renderRecords(){
    const s=stateAt(recording,index);panel.dataset.mode=view;panel.scrollTop=0;
+   if(view==="transcript"){
+    const list=el("ol","","session-conversation");
+    for(const [i,e]of events.entries()){
+     const item=el("li");item.dataset.role=e.role??"tool";
+     const heading=el("div","","conversation-heading");
+     heading.append(el("strong",e.kind==="message"?(e.role==="user"?"You":"Codex"):explanationFor(e.id).title),button(elapsed(recording,i)+" ↗",()=>{closeDetails();seek(i,true);}));
+     item.append(heading);
+     if(e.kind==="message")item.append(cloneOutput(e.id));
+     list.append(item);
+    }
+    records.replaceChildren(list);return;
+   }
    if(view==="roadmap"){
+    if(!s.chunks.length){records.replaceChildren(el("p","No roadmap has been saved at this point.","record-empty"));return;}
     if(compact.matches){list(s.chunks,c=>c.title,c=>statusLabels[c.status]??c.status,openChunk,"No roadmap has been saved at this point.");return;}
     const all=new Map(s.chunks.map(c=>[c.id,c]));
     const items=s.chunks.map(c=>({id:c.id,readiness:{state:c.status==="pending"?(c.deps.every(d=>all.get(d)?.status==="done")?"ready":"waiting"):c.status}}));
@@ -121,7 +137,7 @@ async function setup(root:HTMLElement){
   }
   function annotate(){
    const e=events[index],s=stateAt(recording,index),facts=root.querySelector<HTMLElement>("[data-action-facts]")!;
-   root.querySelector("[data-action-kind]")!.textContent=kindLabels[e.kind];
+   root.querySelector("[data-action-kind]")!.textContent=e.kind==="message"?(e.role==="user"?"You":"Codex"):kindLabels[e.kind];
    root.querySelector("[data-action-number]")!.textContent=(index+1)+" / "+events.length;
    const explanation=explanationFor(e.id);
    root.querySelector("[data-action-title]")!.textContent=explanation.title;
@@ -138,14 +154,14 @@ async function setup(root:HTMLElement){
     facts.append(el("p",(e.check.passed?"✓ Passed":"× Failed")+(e.check.verified?" · Automated check":" · Visual review"),e.check.passed?"check-passed":"check-failed"));
    }
    const target=({roadmap:"roadmap",reasoning:"reasoning",work:"work",check:"checks"} as Record<string,string>)[e.kind];
-   openAction.textContent=e.file?"Open changes":e.check?"Inspect this check":target?"Open "+({roadmap:"the roadmap",reasoning:"the reasoning",work:"the work plan"} as any)[e.kind]:"Read full output";
+   openAction.textContent=e.file?"Open changes":e.check?"Inspect this check":target?"Open "+({roadmap:"the roadmap",reasoning:"the reasoning",work:"the work plan"} as any)[e.kind]:e.kind==="message"?"Read message":"Read full output";
    openAction.onclick=()=>{
     opener=openAction;
     if(e.file)openFile();
     else if(e.check){showDetails("checks",false);openCheck({...e.check,eventId:e.id});}
     else if(target)openView(target,false);
     else openOutput();
-    panel.focus({preventScroll:true});details.scrollIntoView({behavior:"instant",block:"nearest"});
+    panel.focus({preventScroll:true});
    };
   }
   function render(){
@@ -159,24 +175,38 @@ async function setup(root:HTMLElement){
    if(view){showDetails(view,false);renderRecords();}
   }
   const seek=(value:number,announce=false)=>{
-   index=Math.max(0,Math.min(events.length-1,value));if(view==="file"||view==="output")closeDetails(false);
+   ended=false;index=Math.max(0,Math.min(events.length-1,value));if(view==="file"||view==="output")closeDetails(false);
    render();void terminal.seek(index);if(announce)root.querySelector(".build-announcement")!.textContent=explanationFor(events[index].id).title;
   };
-  const schedule=()=>{
-   if(index>=events.length-1){stop();return;}
-   const recordedDelay=Date.parse(events[index+1].at)-Date.parse(events[index].at);
-   timer=setTimeout(()=>{seek(index+1);schedule();},Math.max(500,Math.min(recordedDelay,6000)/Number(speed.value)));
+  const playCurrent=async()=>{
+   const run=++cycle;
+   await terminal.play(index,Number(speed.value));
+   if(!playing||run!==cycle)return;
+   if(index>=events.length-1){ended=true;stop();return;}
+   const delay=Math.max(800,Math.min(4000,(Date.parse(events[index+1].at)-Date.parse(events[index].at))))/Number(speed.value);
+   timer=setTimeout(()=>{timer=undefined;index++;render();void playCurrent();},delay);
   };
-  const toggle=()=>{if(timer){stop();return;}closeDetails(false);if(index===events.length-1)seek(0);play.textContent="Pause";play.setAttribute("aria-pressed","true");schedule();};
+  const toggle=()=>{
+   if(playing){stop();return;}
+   if(details.open)closeDetails(false);
+   if(ended)seek(0);
+   playing=true;play.textContent="Pause";play.setAttribute("aria-pressed","true");void playCurrent();
+  };
   await document.fonts.ready;host.hidden=false;
-  const terminal=new TerminalPlayback(host,playback.events,key=>{if(key===" ")toggle();else{stop();seek(index+(key==="ArrowRight"?1:-1),true);}});
+  terminal=new TerminalPlayback(host,playback.events,key=>{if(key===" ")toggle();else{stop();seek(index+(key==="ArrowRight"?1:-1),true);}},stop);
   play.onclick=toggle;
   slider.oninput=()=>{stop();seek(Number(slider.value));};prev.onclick=()=>{stop();seek(index-1,true);};next.onclick=()=>{stop();seek(index+1,true);};
-  speed.onchange=()=>{if(timer){clearTimeout(timer);schedule();}};
+  speed.onchange=()=>{terminal.setSpeed(Number(speed.value));if(playing&&timer){clearTimeout(timer);timer=undefined;void playCurrent();}};
   for(const b of chapterButtons){b.disabled=false;b.onclick=()=>{stop();seek(parts[Number(b.dataset.chapter)].index,true);};}
   for(const b of views)b.onclick=()=>{opener=b;if(view===b.dataset.view)closeDetails();else openView(b.dataset.view!);};
   root.querySelector<HTMLButtonElement>("[data-close-details]")!.onclick=()=>closeDetails();
-  root.addEventListener("keydown",event=>{if(event.key==="Escape"&&!details.hidden){event.preventDefault();closeDetails();}});
+  details.addEventListener("cancel",event=>{event.preventDefault();closeDetails();});
+  let backdrop=false;
+  details.addEventListener("pointerdown",event=>{const r=details.getBoundingClientRect();backdrop=event.target===details&&(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom);});
+  details.addEventListener("click",event=>{if(backdrop&&event.target===details)closeDetails();backdrop=false;});
+  const transcriptButton=root.querySelector<HTMLButtonElement>("[data-open-transcript]")!;
+  transcriptButton.hidden=false;transcriptButton.onclick=()=>{opener=transcriptButton;openView("transcript");};
+  root.querySelector<HTMLElement>("[data-transcript]")!.hidden=true;
   compact.addEventListener("change",()=>{if(view&&view!=="file"&&view!=="output")renderRecords();});
   const syncTheme=()=>{document.documentElement.dataset.theme=document.documentElement.classList.contains("dark")?"dark":"light";};
   const theme=new MutationObserver(syncTheme);theme.observe(document.documentElement,{attributes:true,attributeFilter:["class"]});syncTheme();
@@ -187,6 +217,6 @@ async function setup(root:HTMLElement){
  }catch(error){
   root.querySelector<HTMLElement>("[data-terminal]")!.hidden=true;
   root.querySelector<HTMLElement>("[data-terminal-poster]")!.hidden=false;
-  failure.hidden=false;failure.textContent="The interactive recording could not load. You can still read the recorded actions below.";root.dataset.ready="error";
+  failure.hidden=false;failure.textContent="The interactive recording could not load. You can still read the full session below.";root.dataset.ready="error";
  }
 }

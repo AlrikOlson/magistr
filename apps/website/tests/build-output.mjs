@@ -51,7 +51,7 @@ assert(indexHtml.includes('"downloadUrl":"https://magistr.dev/docs/installation"
 
 assert(indexHtml.includes("Bevy 0.20.0") && indexHtml.includes("Recording data"), "one real Bevy build is available");
 assert(indexHtml.includes('data-build') && indexHtml.includes('aria-label="Recorded action"'), "recorded actions have an accessible timeline");
-assert(indexHtml.includes("Read the recorded actions"), "the published record is available without JavaScript");
+assert(indexHtml.includes("Read the full session"), "the published record is available without JavaScript");
 assert(!indexHtml.includes("data-project-tour") && !indexHtml.includes("support-inbox"), "the obsolete unrelated feature tour is gone");
 assert(indexHtml.includes("Save feedback"), "saved feedback remains discoverable");
 

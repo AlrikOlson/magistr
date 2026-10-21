@@ -8,11 +8,17 @@ import {explanations,explanationFor,explanationHTML} from "../src/data/build-exp
 const dir=new URL("../public/demo/tic-tac-toe/",import.meta.url),recording=JSON.parse(readFileSync(new URL("recording.json",dir)));
 const manifest=()=>JSON.parse(readFileSync(new URL("manifest.json",dir)));
 const hash=b=>createHash("sha256").update(b).digest("hex");
-test("publication contains no private paths, user prompts or credentials",()=>{
+test("publication contains conversation without private paths or credentials",()=>{
  const text=JSON.stringify(recording);
  for(const pattern of [/\/Users\//,/\.codex\/sessions/,/\.claude\/projects/,/sk-[a-zA-Z0-9]{16,}/,/Bearer\s+[a-zA-Z0-9]/,/alrik@/i])assert(!pattern.test(text),String(pattern));
  assert.equal(recording.project.engine,"Bevy 0.20.0");
- assert(!recording.events.some(e=>e.role==="user"));
+ const messages=recording.events.filter(e=>e.kind==="message");
+ assert.equal(messages.length,recording.provenance.conversation.messages);
+ assert.equal(messages.filter(e=>e.role==="user").length,2);
+ assert.equal(messages.filter(e=>e.role==="assistant").length,31);
+ assert.equal(recording.events[0].role,"user");assert.equal(recording.events.at(-1).source.phase,"final_answer");
+ assert.equal(stateAt(recording,0).steps.length,0);
+ assert(messages.every(e=>e.output&&/^[a-f0-9]{64}$/.test(e.source.sha256)));
 });
 test("the cursor cannot reveal future records, checks or file contents",()=>{
  for(let i=0;i<recording.events.length;i++){
@@ -53,7 +59,7 @@ test("explanations format labels and filenames without allowing markup from text
  assert(!html.includes("<script>"));assert(html.includes("&lt;script&gt;"));
 });
 test("chapters seek to recorded events in order",()=>{
- const parts=chapters(recording);assert.equal(parts.length,5);
+ const parts=chapters(recording);assert.equal(parts.length,6);assert.equal(parts[0].index,0);
  assert(parts.every(p=>p.index>=0&&p.index<recording.events.length));
  assert(parts.every((p,i)=>i===0||p.index>parts[i-1].index));
  for(let i=1;i<recording.events.length;i++)assert(recording.events[i].at>=recording.events[i-1].at);
@@ -64,4 +70,16 @@ test("download and captures match the recorded manifest; source archive is allow
  for(const source of m.sources)assert.equal(hash(readFileSync(new URL("../../../examples/bevy-tic-tac-toe/"+source.path,import.meta.url))),source.sha256,source.path);
  const entries=JSON.parse(execFileSync("python3",["-c","import zipfile,sys,json; z=zipfile.ZipFile(sys.argv[1]); print(json.dumps(z.namelist()))",new URL("source.zip",dir).pathname],{encoding:"utf8"}));
  assert.deepEqual(entries,m.sources.map(s=>"tic-tac-toe/"+s.path));
+});
+
+test("conversation import includes every visible turn once and excludes internal messages",async()=>{
+ const {conversationMessages,auditConversation}=await import("../scripts/audit-conversation.mjs");
+ const make=(role,phase,text,type="response_item")=>JSON.stringify({timestamp:"2026-10-21T08:00:00Z",type,payload:{type:"message",role,phase,content:[{type:"output_text",text}]}});
+ const jsonl=[make("user",null,"A personal request"),make("assistant","analysis","Private deliberation"),make("system",null,"System instructions"),make("assistant","commentary","Starting now."),make("assistant","final_answer","Finished."),make("assistant","commentary","Duplicate","event_msg")].join("\n");
+ const bounds={start:"2026-10-21T07:00:00Z",end:"2026-10-21T09:00:00Z",messages:3};
+ const source=conversationMessages(jsonl,bounds);
+ assert.deepEqual(source.map(m=>m.role),["user","assistant","assistant"]);
+ const events=source.map(m=>({kind:"message",role:m.role,at:m.at,source:{phase:m.phase,sha256:m.sha256},output:m.role==="user"?"A reviewed request":m.text}));
+ assert.equal(auditConversation({events,provenance:{conversation:bounds}},jsonl).messages,3);
+ assert.throws(()=>auditConversation({events:events.slice(1),provenance:{conversation:bounds}},jsonl),/Every visible message/);
 });
