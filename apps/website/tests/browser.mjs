@@ -11,7 +11,7 @@ const dist = resolve(root, "dist");
 const repo = resolve(root, "../..");
 const scopeArg = process.argv.indexOf("--evidence-scope");
 const evidenceScope = scopeArg < 0 ? "all" : process.argv[scopeArg + 1];
-assert(["all", "search", "recovery", "refinement", "branding", "copy"].includes(evidenceScope), "Evidence scope must be all, search, recovery, refinement, branding or copy");
+assert(["all", "search", "recovery", "refinement", "branding", "copy", "reading", "noscript"].includes(evidenceScope), "Unknown evidence scope");
 const evidenceArg = process.argv.indexOf("--evidence-dir");
 const evidence = evidenceArg < 0 ? undefined : resolve(repo, process.argv[evidenceArg + 1]);
 if (evidence && !evidence.startsWith(resolve(repo, "docs/evidence/desktop-iterations") + sep)) {
@@ -76,17 +76,29 @@ const writeReport = async (status, failure) => {
 const capture = async (page, name, state, fullPage = false) => {
   if (!evidence || (evidenceScope === "search" && !name.includes("search"))) return;
   if (evidenceScope === "recovery" && !name.includes("search") && !/^not-found-(wide|compact)-(light|dark)$/.test(name)) return;
+  if (evidenceScope === "noscript" && name !== "home-without-javascript") return;
+  if (evidenceScope === "reading") {
+    const overview = /^(home|installation|workflow|concepts|not-found)-(wide|compact)-(light|dark)$/.test(name);
+    const home = /^home-(intro|product)-(wide|compact)-(light|dark)$/.test(name);
+    const docs = /^(installation|workflow|concepts)-(?!search)[a-z-]+-wide-(light|dark)$/.test(name);
+    if (!overview && !home && !docs) return;
+  }
   if (evidenceScope === "copy") {
     // Full pages cover all four profiles; detail frames use a complementary
     // desktop/light and compact/dark pair to keep the review readable.
     const profile = /-wide-light$|-compact-dark$/.test(name);
     const overview = /^(home|installation|workflow|concepts|not-found)-(wide|compact)-(light|dark)$/.test(name);
     const detail = /^(home-(intro|product|footer|install|workflow-[0-3]|evidence-[0-2]|menu|copy-unavailable)|(?:installation|workflow|concepts)-(?!search)[a-z-]+)-(wide|compact)-(light|dark)$/.test(name);
-    if (!overview && !(profile && detail) && !name.startsWith("workflow-320-")) return;
+    const states = /-(contents|contents-target)-(wide|compact)-(light|dark)$/.test(name)
+      || /^home-(workflow-[0-3]|evidence-[0-2])-(wide|compact)-(light|dark)$/.test(name)
+      || (profile && /^(installation-search|home-(transcript|capture|copy-success|menu-dismissed))/.test(name))
+      || name === "home-without-javascript";
+    if (!overview && !(profile && detail) && !states && !name.startsWith("workflow-320-")) return;
   }
   if (evidenceScope === "branding" && !name.includes("-intro-") && !name.startsWith("home-320-")) return;
   if (evidenceScope === "refinement" && !/^(home-(wide|compact|connection|workflow|capture|transcript)|home-evidence-focus|.*-320)/.test(name)) return;
-  await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+  // screenshot waits for fonts and a stable render itself. A page-script frame
+  // callback never fires when JavaScript is disabled.
   const file = name + ".png";
   await page.screenshot({ path: resolve(evidence, file), fullPage, animations: "disabled" });
   const bytes = await readFile(resolve(evidence, file));
@@ -195,6 +207,7 @@ try {
               await scrollHeading(page, selector);
               await capture(page, "home-" + groupName + "-" + index + "-" + suffix, labels[index] + " selected");
               if (groupName === "evidence") {
+                assert(await panel.locator(".capture-excerpt").isVisible(), "Recorded excerpts are readable at every viewport");
                 if (layout === "compact") {
                   await scrollHeading(page, "#" + await panel.getAttribute("id") + " .capture-excerpt");
                   await capture(page, "home-transcript-" + index + "-" + suffix, labels[index] + " transcript for compact reading");
@@ -268,6 +281,25 @@ try {
           }
         }
         if (["installation", "concepts", "workflow"].includes(name)) {
+          const contents = page.locator(".docs-contents");
+          const summary = contents.locator("summary");
+          await summary.focus();
+          await page.keyboard.press("Enter");
+          assert.equal(await contents.getAttribute("open"), "", "Contents opens with the keyboard");
+          const sectionLinks = contents.getByRole("link");
+          assert.equal(await sectionLinks.count(), await page.locator("article h2").count());
+          await scrollHeading(page, ".docs-header");
+          await capture(page, name + "-contents-" + suffix, "Expanded section navigation");
+          const sectionLink = sectionLinks.first();
+          const target = await sectionLink.getAttribute("href");
+          await sectionLink.click();
+          assert.equal(new URL(page.url()).hash, target);
+          const targetY = await page.locator(target).evaluate((element) => element.getBoundingClientRect().top);
+          const headerBottom = await page.locator(".site-nav").evaluate((element) => element.getBoundingClientRect().bottom);
+          assert(targetY >= headerBottom, "Section link keeps its heading below the sticky header");
+          await capture(page, name + "-contents-target-" + suffix, "Section link reaches a readable heading");
+          await summary.click();
+          assert.equal(await contents.getAttribute("open"), null);
           for (const heading of await page.locator("article h2").all()) {
             const id = await heading.getAttribute("id");
             await scrollHeading(page, "#" + id);
@@ -360,7 +392,7 @@ try {
       await page.keyboard.press("Enter");
       assert.equal(new URL(page.url()).hash, "#main-content");
       assert.deepEqual(errors, [], "No uncaught page errors");
-      checks.push({ layout, appearance: colorScheme, passed: true, scenarios: ["five static routes", "primary and theme-control contrast", "wrapped code and aligned documentation arrows", "walkthrough and evidence tabs: pointer, arrows, Home, End, focus", "clipboard success and denial (browser stub)", "reflow at 320 px", "images", "install anchor", "theme persistence", "selected agent instructions", "lazy search, results, empty and failure recovery, cleared query", "keyboard skip link", ...(layout === "compact" ? ["mobile menu navigation, Escape, anchor focus and resize recovery"] : [])] });
+      checks.push({ layout, appearance: colorScheme, passed: true, scenarios: ["five static routes", "section navigation: keyboard, links and sticky-header clearance", "primary and theme-control contrast", "wrapped code and aligned documentation arrows", "walkthrough and evidence tabs: pointer, arrows, Home, End, focus", "clipboard success and denial (browser stub)", "reflow at 320 px", "images", "install anchor", "theme persistence", "selected agent instructions", "lazy search, results, empty and failure recovery, cleared query", "keyboard skip link", ...(layout === "compact" ? ["mobile menu navigation, Escape, anchor focus and resize recovery"] : [])] });
       await context.close();
     }
   }
@@ -369,6 +401,8 @@ try {
   await staticPage.goto(origin + "/");
   assert.equal(await staticPage.locator("[data-panel]:visible").count(), 7, "Without JavaScript every explanation and actual capture remains in reading order");
   assert.equal(await staticPage.locator("[data-tablist]:visible").count(), 0, "No inert tab controls without JavaScript");
+  await scrollHeading(staticPage, ".walkthrough");
+  await capture(staticPage, "home-without-javascript", "Recorded task remains readable without JavaScript");
   await staticContext.close();
   await writeReport("passed");
   console.log(JSON.stringify({ passed: true, profiles: checks.length, screenshots: captures.length, evidence }, null, 2));

@@ -5,12 +5,11 @@ import { publicAssetUrl } from "../../scripts/asset-url.mjs";
 /** The site's few destinations; the docs link goes straight to installation. */
 const links = [
   { label: "Example", href: "/#workflow" },
-  { label: "How you work", href: "/#product" },
+  { label: "Working with Magistr", href: "/docs/workflow" },
   { label: "Docs", href: "/docs/installation" },
-  { label: "Get started", href: "/#install" },
+  { label: "Install", href: "/#install" },
 ];
 const current = Astro.url.pathname;
-const isDocs = current.startsWith("/docs");
 ---
 <nav class="site-nav" aria-label="Primary">
   <div class="nav-inner">
@@ -20,7 +19,7 @@ const isDocs = current.startsWith("/docs");
     </a>
     <div class="nav-links" data-nav-links>
       {links.map(({ label, href }) => (
-        <a href={href} aria-current={href.startsWith("/docs") && isDocs ? "page" : undefined}>{label}</a>
+        <a href={href} aria-current={href === current.replace(/\/$/, "") ? "page" : undefined}>{label}</a>
       ))}
     </div>
     <div class="nav-actions">
@@ -35,8 +34,8 @@ const isDocs = current.startsWith("/docs");
     </div>
   </div>
   <ul id="mobile-menu" class="mobile-menu" data-mobile-menu hidden>
-    {links.map(({ label, href }) => <li><a href={href} aria-current={href.startsWith("/docs") && isDocs ? "page" : undefined}>{label}</a></li>)}
-    <li><a href="https://github.com/AlrikOlson/magistr" target="_blank" rel="noopener noreferrer">Repository (access required) <span aria-hidden="true">↗</span><span class="sr-only">(opens in a new tab)</span></a></li>
+    {links.map(({ label, href }) => <li><a href={href} aria-current={href === current.replace(/\/$/, "") ? "page" : undefined}>{label}</a></li>)}
+    <li><a href="https://github.com/AlrikOlson/magistr" target="_blank" rel="noopener noreferrer">Repository (access required)<span class="sr-only">(opens in a new tab)</span></a></li>
   </ul>
 </nav>
 <script is:inline>

@@ -102,7 +102,7 @@ for (const [name, html] of productPages) {
 assert(indexHtml.includes("not a transfer of the Codex session") && indexHtml.includes("did not execute the fix"), "independent agent runs and the desktop proposal have truthful scope");
 
 console.log("\nDocs:");
-assert(installHtml.includes("Your code and permissions") && installHtml.includes("permissions you give it"), "installation explains agent permissions");
+assert(installHtml.includes("Your code and permissions") && /permissions\s+you give it/.test(installHtml), "installation explains agent permissions");
 assert(installHtml.includes("project.json") && !installHtml.includes("roadmap_exports"), "installation page covers the project file without policy notes");
 assert(installHtml.includes("--agent") && installHtml.includes("codex") && installHtml.includes("copilot") && installHtml.includes("cursor") && installHtml.includes("cline") && installHtml.includes("windsurf") && installHtml.includes("aider"), "installation page names every agent target the CLI accepts");
 assert(installHtml.includes("--max-iterations"), "installation page names the loop's bound");
