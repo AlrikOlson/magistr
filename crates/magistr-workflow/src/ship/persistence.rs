@@ -12,6 +12,9 @@ use crate::ship::domain::execution_identity::ExecutionIdentity;
 use crate::ship::domain::objective::Objective;
 use crate::ship::domain::task::Task;
 
+#[path = "persistence_upgrade.rs"]
+mod upgrade;
+
 const SCHEMA_VERSION: u32 = 2;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

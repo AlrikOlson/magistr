@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "history": {
+    "steps": [
+      {
+        "step_number": 7,
+        "estimated_total": 8,
+        "purpose": "Inspect the saved work",
+        "context": "The project",
+        "thought": "Keep the implementation and its evidence",
+        "outcome": "Continue from the saved result",
+        "next_action": "Check the implementation",
+        "rationale": "Preserve authored decisions",
+        "timestamp": "2026-08-03T09:59:00Z",
+        "duration_ms": 135,
+        "pinned": true,
+        "execution_ref": "task:one",
+        "record_id": "retained-step"
+      }
+    ],
+    "branches": [],
+    "completed": false,
+    "created_at": "2026-08-03T09:59:00Z",
+    "updated_at": "2026-08-03T09:59:00Z",
+    "metadata": {
+      "total_duration_ms": 135,
+      "revisions_count": 0,
+      "branches_created": 0,
+      "tools_used": [
+        "read"
+      ],
+      "project_id": "saved-project"
+    }
+  }
+}

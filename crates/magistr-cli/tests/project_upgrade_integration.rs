@@ -160,3 +160,70 @@ fn explicit_repair_applies_the_same_upgrade_and_checks_the_new_connection() {
         1
     );
 }
+#[test]
+fn repair_converts_version_one_work_and_reasoning_before_checking_the_connection() {
+    let dir = fixture();
+    let root = dir.path();
+    let config_path = root.join(".magistr/project.json");
+    let mut settings: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&config_path).unwrap()).unwrap();
+    settings["project"]["id"] = "saved-project".into();
+    std::fs::write(&config_path, serde_json::to_vec(&settings).unwrap()).unwrap();
+    let old = root.join("data/think-and-ship");
+    let current = root.join("data/magistr/workflow");
+    let originals = [
+        (
+            "ship/sessions/saved-project.json",
+            include_bytes!("../../magistr-workflow/src/ship/fixtures/v1.json").as_slice(),
+        ),
+        (
+            "think/sessions/saved-project.json",
+            include_bytes!("../../magistr-workflow/src/think/fixtures/v1.json").as_slice(),
+        ),
+        (
+            "roadmap/sessions/saved-project.json",
+            include_bytes!("../../magistr-workflow/src/roadmap/fixtures/older.json").as_slice(),
+        ),
+        (
+            "signal/sessions/saved-project.json",
+            include_bytes!("../../magistr-workflow/src/signal/fixtures/older.json").as_slice(),
+        ),
+    ];
+    for (path, bytes) in &originals {
+        let path = old.join(path);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(path, bytes).unwrap();
+    }
+    let request = root.join(magistr_engine::native::WorkflowUpgrade::REQUEST);
+    std::fs::create_dir_all(request.parent().unwrap()).unwrap();
+    std::fs::write(
+        request,
+        magistr_engine::native::WorkflowUpgrade::request("saved-project"),
+    )
+    .unwrap();
+    for _ in 0..2 {
+        let out = command(root)
+            .env("MAGISTR_WORKFLOW_DATA_DIR", &current)
+            .args(["repair", ".", "--yes"])
+            .output()
+            .unwrap();
+        assert!(
+            out.status.success(),
+            "{}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+        let config = magistr_engine::native::NativeConfig::from_lookup(root, |_| None)
+            .with_data_dir(&current);
+        let reader = magistr_engine::native::NativeReader::open(&config);
+        assert_eq!(reader.ship_tasks().unwrap()[0].id, "one");
+        assert_eq!(reader.roadmap_chunks().unwrap()[0].id, "saved");
+        assert_eq!(reader.signal_list().unwrap()[0].id, "saved-signal");
+        assert_eq!(
+            reader.think_step(7).unwrap().unwrap().record_id.as_deref(),
+            Some("retained-step")
+        );
+        for (path, bytes) in &originals {
+            assert_eq!(std::fs::read(old.join(path)).unwrap(), *bytes);
+        }
+    }
+}
