@@ -1,16 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
-  <title id="title">Magistr — Project planning for Codex and Claude Code</title>
-  <desc id="desc">Keep your roadmap, decisions and check results with the project. Continue the work in your next agent session.</desc>
-  <rect width="1200" height="630" fill="#202923"/>
+  <title id="title">Magistr — Build a project with Codex or Claude Code</title>
+  <desc id="desc">Keep the plan and work history with your project. Pick up the work in your next agent session.</desc>
+  <rect width="1200" height="630" fill="#141916"/>
   <path d="M64 114V64l25 34 25-34v50" fill="none" stroke="#ff9b66" stroke-width="7"/>
   <path d="M80 114h18" stroke="#e7ebe3" stroke-width="5"/>
   <g font-family="Arial, Helvetica, sans-serif" fill="#edf0e7">
     <text x="138" y="103" font-size="38" font-weight="600">Magistr</text>
-    <text x="64" y="260" font-size="68" font-weight="600">Project planning for</text>
-    <text x="64" y="345" font-size="68" font-weight="600">Codex and Claude Code.</text>
+    <text x="64" y="255" font-size="68" font-weight="600">Build a project with</text>
+    <text x="64" y="340" font-size="68" font-weight="600">Codex or Claude Code.</text>
     <g fill="#b0b9ae" font-size="28">
-      <text x="64" y="430">Keep the roadmap, decisions and check results.</text>
-      <text x="64" y="474">Continue the work in your next session.</text>
+      <text x="64" y="430">Keep the plan and work history with the project.</text>
+      <text x="64" y="474">Pick up the work in your next agent session.</text>
       <text x="64" y="568" font-size="24">magistr.dev</text>
     </g>
   </g>

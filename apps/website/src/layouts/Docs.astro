@@ -8,6 +8,7 @@ interface Props { title: string; description: string; currentSlug: string; headi
 const { title, description, currentSlug, headings } = Astro.props;
 const allDocs = await getCollection("docs");
 const sorted = allDocs.sort((a,b)=>a.data.order-b.data.order);
+const nextDoc = sorted[sorted.findIndex((doc) => doc.id === currentSlug) + 1];
 // Guides own their place in the reading order.
 const breadcrumbLd = {"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[
   {"@type":"ListItem","position":1,"name":"Home","item":"https://magistr.dev"},
@@ -19,7 +20,7 @@ const breadcrumbLd = {"@context":"https://schema.org","@type":"BreadcrumbList","
   <Nav />
   <div class="docs-layout section-shell">
     <aside class="docs-sidebar" aria-label="Documentation navigation">
-      <a class="docs-back" href="/">← Magistr home</a>
+      <p class="docs-label">Guides</p>
       <div id="docs-search">
         <label class="docs-search-label" for="search-docs">Documentation</label>
         <input id="search-docs" type="search" placeholder="Search docs" class="docs-search-input" aria-label="Search documentation" />
@@ -29,13 +30,17 @@ const breadcrumbLd = {"@context":"https://schema.org","@type":"BreadcrumbList","
         const active=doc.id===currentSlug;
         return <li><a href={`/docs/${doc.id}`} aria-current={active?"page":undefined} class:list={{active}}>{doc.data.title}</a></li>;
       })}</ul></nav>
-      <div class="docs-repo-links"><span class="supporting-label">Repository access required</span><a href="https://github.com/AlrikOlson/magistr/blob/main/docs/architecture/overview.md" target="_blank" rel="noopener noreferrer">Architecture ↗</a><a href="https://github.com/AlrikOlson/magistr/blob/main/docs/development.md" target="_blank" rel="noopener noreferrer">Development ↗</a></div>
+      <div class="docs-repo-links"><span class="supporting-label">Repository access required</span><a href="https://github.com/AlrikOlson/magistr/blob/main/docs/architecture/overview.md" target="_blank" rel="noopener noreferrer">Architecture</a><a href="https://github.com/AlrikOlson/magistr/blob/main/docs/development.md" target="_blank" rel="noopener noreferrer">Development</a></div>
     </aside>
     <main id="main-content" class="docs-main" data-pagefind-body>
-      <div class="docs-breadcrumb"><a href="/">Magistr</a><span aria-hidden="true">/</span><a href="/docs/installation">Docs</a><span aria-hidden="true">/</span><span>{title}</span></div>
+      <header class="docs-header"><h1>{title}</h1><p>{description}</p></header>
+      <details class="docs-contents">
+        <summary>On this page</summary>
+        <nav aria-label="On this page">{headings.filter(({depth}) => depth === 2).map(({slug,text}) => <a href={`#${slug}`}>{text}</a>)}</nav>
+      </details>
       <article class="docs-content"><slot /></article>
+      {nextDoc && <nav class="docs-next" aria-label="Next guide"><span>Next guide</span><a href={`/docs/${nextDoc.id}`}>{nextDoc.data.title}</a></nav>}
     </main>
-    <nav class="docs-toc" aria-label="On this page"><p class="supporting-label">On this page</p>{headings.filter(({depth}) => depth === 2).map(({slug,text}) => <a href={`#${slug}`}>{text}</a>)}</nav>
   </div>
   <Footer />
 </Base>
