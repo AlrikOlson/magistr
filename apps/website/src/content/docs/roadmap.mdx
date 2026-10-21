@@ -1,94 +1,90 @@
 ---
 title: Planning a project
-description: Give a big idea a shape, put the work in order, and leave room to change your mind.
+description: Put the work in order and make each piece clear enough to finish.
 order: 3
 ---
 
-A good plan makes a bigger project feel possible. You can see the pieces,
-understand what depends on what, and choose a useful place to start.
+A roadmap answers two everyday questions: what are we trying to build, and
+what is the next useful piece?
 
-Magistr keeps that plan as a roadmap your agent can read and update. You work
-with it through the connected agent; you don't need to keep a second checklist
-in the chat.
+Magistr keeps that plan in the project. Your connected agent reads and updates
+it as the work changes.
 
-## Start with the result you want
+## Start with a result
 
-Describe what someone should be able to do when the work is finished.
-For example:
+Describe something a person should be able to do. For the Bevy game:
 
-> I want a small team to handle customer mail together. Keep replies in the
-> same conversation, let someone take ownership, and make it clear when two
-> people try to change the same request.
+> Play tic-tac-toe against the computer. Show the result, keep the score, and
+> let me start another round.
 
-Have the agent inspect the existing project before planning around it.
-Ask which parts already work, which need changing, and which assumptions
-need research.
+That gives the agent something to plan around. For an existing game, have it
+inspect the code first so the plan accounts for what already works.
 
 ## Break the work into chunks
 
-A **chunk** is a piece you can finish and verify. It might be reliable mail
-storage, a search flow, or a confusing screen that needs fixing.
+A chunk is a deliverable with a finish you can recognize. “Rules and turns”
+means legal moves, alternating marks, all eight winning lines, and a draw.
+It is more useful than a box called “Backend.”
 
-Ask the agent to give each chunk:
+Each chunk keeps its title, description, acceptance criteria, priority,
+dependencies, and status. It can also hold sections, notes, and a checklist.
 
-- A useful result, described in ordinary language.
-- Acceptance criteria: what must be true when it's done.
-- Checks that can establish that result.
-- Dependencies on any work that has to happen first.
+The [recorded roadmap](/#workflow) has four pieces:
 
-Keep related changes together. A chunk should leave the project in a coherent
-state, with its current callers, tests and instructions agreeing.
+| Piece | What it needs first | What you get |
+| --- | --- | --- |
+| Rules and turns | Nothing | A board that rejects illegal moves and recognizes endings |
+| Computer opponent | Rules and turns | An opponent checked against every legal human reply |
+| Playable Bevy board | Rules and turns | A board you can use with a pointer or keyboard |
+| Another round | Opponent and board | Scores, rematches, and alternating starters |
 
-The [project explorer](/#product) shows a real part of Magistr's own roadmap.
-Open a chunk to see its result and original requirements.
+Open a piece in the walkthrough to read its actual requirements. The
+connections show prerequisites. They are not a sequence of generic workflow stages.
 
-## Put the work in a sensible order
+## Separate priority from dependencies
 
-Priority says what matters most. Dependencies say what must happen first.
-They answer different questions.
+Priority says which work matters most. A dependency says which work must be
+finished first.
 
-> Put reliable message storage before the inbox screen. Then show me which
-> chunks are ready and what is waiting on something else.
+The board and opponent can both follow the rules. Making the opponent a higher
+priority does not make it a prerequisite for drawing the board.
 
-Group larger areas into workstreams so you can focus on one part of the project.
-You can have unfinished work elsewhere without losing it or pretending it is done.
+Magistr checks current prerequisites before starting a chunk. A pending item
+can still be waiting for another piece; “planned” does not always mean “ready.”
 
-Before starting, have the agent check readiness against the current roadmap.
-A saved plan can change while another session is working.
+## Keep larger areas together
 
-## Change the plan when you learn something
+Use workstreams for areas such as gameplay, level tools, or publishing. They
+let you focus on part of a growing project while keeping the rest of the plan.
 
-Plans are useful because you can revise them. If a review or experiment shows
-that an assumption was wrong, update the affected chunks and record why.
+A chunk has its own detailed work plan when implementation starts. The roadmap
+does not need a separate node for every file edit or test command.
 
-Use `$roadmap-refresh` in Codex or `/roadmap-refresh` in Claude Code to
-research and revise the roadmap without starting implementation.
+## Change the plan when the facts change
 
-> Revisit the search plan against the code we have now. Research the options,
-> explain your recommendation, and update the dependencies and checks.
+Ask the agent to revisit a decision against the current code and research.
+Then update the affected requirements and dependencies.
 
-Keep completed work available as history. Work that no longer makes sense can
-be marked obsolete; it doesn't need to keep competing for attention.
+Use `$roadmap-refresh` in Codex or `/roadmap-refresh` in Claude Code to research
+and revise the plan without starting implementation. Completed work stays
+available as history. Work you no longer intend to build can be marked obsolete.
 
 ## Make room for feedback
 
-You will notice things while using the project that deserve more thought.
-Save that feedback as a **signal**, then come back to it:
+Suppose the finished opponent feels too difficult. Save that observation as a
+**signal** instead of interrupting the current task to invent a difficulty system.
 
-> Save this for investigation: search feels slow once the inbox gets large.
-> Find out where the time goes before proposing a fix.
+A signal can keep the feedback, research, sources, and the findings that lead
+to a decision. Useful work can become a linked roadmap chunk. You can also
+dismiss the idea or leave it for later.
 
-The agent can research a signal, attach sources and findings, and promote it
-into a linked roadmap chunk when there is useful work to do. It can also
-dismiss it or put it aside for later.
+Use `$signals` or `/signals` to investigate saved feedback. Investigating it
+does not itself start implementation.
 
-Use `$signals` or `/signals` to work through saved feedback. That investigation
-helps you decide what to build; it doesn't start implementation by itself.
+## Start the next piece
 
-## Pick the next piece
+Use `$next` or `/next` when you want implementation to begin. Name the
+workstream if you want to stay in one area.
 
-Once the plan makes sense, use `$next` or `/next` for one ready chunk.
-Say which area to focus on when the project has several tracks.
-
-[Working in chunks](/docs/chunks) covers what happens during that work and how
-to give a longer run a clear stopping point.
+[Working in chunks](/docs/chunks) explains the work and checks behind a
+completed roadmap item.

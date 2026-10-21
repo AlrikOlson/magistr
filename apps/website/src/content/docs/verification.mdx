@@ -1,72 +1,68 @@
 ---
 title: Checking the work
-description: Know what was tested, what was reviewed, and whether the result still applies.
+description: See what ran, what it found, and whether the result still applies.
 order: 6
 ---
 
-“It's done” is much more useful when you can see what changed and how it was
-checked. Magistr keeps check results with the work so you and the next agent
-can inspect them.
+A completed task should come with something you can inspect. Magistr keeps
+the checks with the work: commands, output, exit codes, and the source inputs
+those results belong to.
 
-## Choose checks that answer the question
+## Choose checks for the behavior
 
-Start with the behavior you changed. A storage change needs checks for the
-data it saves. A screen needs interaction checks and an actual look at the
-rendered result.
+The game rules need checks for turns, occupied squares, winning lines, and a
+draw. The opponent needs a stronger check: try every legal human reply and
+make sure it cannot lose.
 
-> Check the change against its acceptance criteria. Run the relevant tests,
-> inspect the result, and fix anything that fails.
+The Bevy board also needs to be opened and used. Keyboard input, readable
+labels, and the rematch button are separate questions from whether minimax
+returns a good move.
 
-Use focused verification for bounded work. Run the full configured suite when
-you ask for it or when a concrete risk calls for that breadth.
+Use focused verification for bounded changes. Run the full configured suite
+when requested or when a concrete risk calls for it. Project commands and
+required custom gates live in `.magistr/project.json`.
 
-Project commands and required custom gates are set during setup and kept in
-`.magistr/project.json`.
+## Read the actual result
 
-## Keep the actual result
+Open **Checks** in the [recorded build](/#workflow). A command result includes
+what ran and what it printed.
 
-When Magistr runs a check command, it records the command, exit code, output
-and the source inputs it checked.
+The opponent experiment initially failed because its assertion expected a
+losing game for both marks. The corrected experiment found no loss when the
+simple policy played first and a losing sequence when it played second.
+Both attempts stay in the history.
 
-The [inbox example](/#product) includes a real storage check that failed before
-the storage module existed. After the implementation, seven storage tests
-passed. You can inspect both results under **Checks & review**.
+A failed check is useful information. Diagnose the failure, correct its cause,
+then rerun the affected checks.
 
-A failed check belongs in the history. Diagnose it, correct the cause, and
-rerun the affected checks. Repeating the same failing suite without changing
-anything doesn't tell you much.
+## Review the interface separately
 
-## Review what people will use
+Try the actual controls. For the game, play a round with a pointer, play with
+number keys, try an occupied square, and start another round.
 
-For an interface, open the actual screens and use the controls. Ask the agent
-to capture and inspect the important states:
+Capture the interface at the sizes people will use. Open those images and
+inspect the text, spacing, contrast, controls, and selected state.
 
-> Check the inbox at desktop and phone sizes, in light and dark. Try an empty
-> search and a conflicting save. Save the screenshots and review the text,
-> controls and focus before calling it finished.
+Magistr records a written review separately from an executed command.
+A screenshot file or a passing test does not establish that someone inspected
+the screen.
 
-In the recorded build, the tests passed but the screen review found tiny
-menus and a confusing recovery message. The agent fixed both and captured
-the screens again.
+## Check the current files
 
-Magistr records a written review separately from a command it executed.
-That distinction matters: a test result doesn't prove that someone looked
-at the screen.
+A result belongs to the inputs it checked. If those inputs change, an earlier
+pass may no longer establish that the work is ready.
 
-## Check that the result still applies
+The recording includes a simple example: Cargo created the first lockfile
+while the rules check ran. The tests passed, but completing the chunk was
+refused because the inputs changed during the check. Running against the saved
+lockfile produced current evidence.
 
-A check belongs to the files and inputs it ran against. If relevant source
-changes, an earlier pass may no longer establish that the current work is ready.
-
-Have the agent inspect the current evidence and rerun the affected checks.
-Unrelated changes don't justify repeating everything.
-
-Required checks need current passing results before a roadmap chunk can be
-completed. Keep any remaining limitation in the final report.
+That does not mean repeating everything after every edit. Rerun checks affected
+by the change and keep the scope explicit.
 
 ## Run the full configured checks
 
-When you want the project's full quality gate:
+When you want the full quality gate:
 
 ```sh
 magistr validate
@@ -77,12 +73,8 @@ This runs the configured standard and required custom checks.
 
 ## Ask for a useful finish
 
-At the end, you should be able to find:
+The final report should point to the finished change, the checks that actually
+ran, the interface states reviewed, and any remaining limitation.
 
-- The finished change or commit.
-- The checks that actually ran and their results.
-- The screens or behavior that were reviewed.
-- Anything still incomplete or unverified.
-
-Then try the result yourself. [Working with Magistr](/docs/workflow) shows
-how to turn that feedback into the next iteration.
+Then try the result yourself. The next thing you notice may become a small fix
+or feedback for the [roadmap](/docs/roadmap#make-room-for-feedback).

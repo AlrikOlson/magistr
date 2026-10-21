@@ -48,16 +48,11 @@ assert(indexHtml.includes("Registry packages are not published yet") && indexHtm
 assert(indexHtml.includes('"operatingSystem":"macOS (Apple Silicon)"'), "first release metadata targets Apple Silicon macOS");
 assert(indexHtml.includes('"downloadUrl":"https://magistr.dev/docs/installation"'), "download metadata points to current installation instructions");
 
-assert(indexHtml.includes("Session data") && indexHtml.includes("October 20, 2026") && indexHtml.includes("October 19") && !indexHtml.includes("data-simulation"), "the real build and earlier agent sessions are clearly dated");
-const homeImages = [...indexHtml.matchAll(/src="\/screenshots\/([a-z-]+)\.png\?v=[a-f0-9]{12}"/g)].map((m) => m[1]);
-assert(new Set(homeImages).size === 4 && homeImages.length === 4, `each screenshot appears once on the home page (${homeImages.join(", ")})`);
-const roadmapSection = indexHtml.split('id="workflow"')[1]?.split('id="keep-going"')[0] ?? "";
-assert(roadmapSection.includes("data-recording") && roadmapSection.includes('aria-label="Build timeline"') && roadmapSection.includes("Read the complete transcript") && roadmapSection.includes("Download the project"), "recorded implementation has accessible playback, transcript and source");
-assert(!roadmapSection.includes("Roadmap screen"),"future desktop planning is not advertised");
-assert(indexHtml.includes('data-project-tour') && ["tour-roadmap","tour-reasoning","tour-chunks","tour-checks"].every(id=>indexHtml.includes('id="'+id+'"')), "all four project-record views are present");
-assert(indexHtml.includes("data-playback-event") && indexHtml.includes("/examples/project-records.json?v="), "the feature tour links actual records and build playback");
-assert(indexHtml.includes("Why I’m building this") && indexHtml.includes("Save feedback"), "the page explains the builder's motivation and feedback loop");
-assert(!roadmapSection.includes("without leaving the conversation") && !roadmapSection.includes("actions beside the conversation"), "full Roadmap is not described as conversation details");
+assert(indexHtml.includes("Bevy 0.20.0") && indexHtml.includes("Recording data"), "one real Bevy build is available");
+assert(indexHtml.includes('data-build') && indexHtml.includes('aria-label="Recorded action"'), "recorded actions have an accessible timeline");
+assert(indexHtml.includes("Read the recorded actions"), "the published record is available without JavaScript");
+assert(!indexHtml.includes("data-project-tour") && !indexHtml.includes("support-inbox"), "the obsolete unrelated feature tour is gone");
+assert(indexHtml.includes("Save feedback"), "saved feedback remains discoverable");
 
 console.log("\nNavigation and accessibility:");
 assert(indexHtml.includes('aria-label="Primary"'), "primary navigation labelled");
@@ -95,24 +90,6 @@ for (const [path, html] of localDocuments) {
   assert(broken.length === 0, path + " has no broken local links or anchors" + (broken.length ? ": " + broken.join(", ") : ""));
 }
 
-console.log("\nProduct screenshots:");
-const manifest=JSON.parse(readFileSync(resolve(distDir,"screenshots/captures.json"),"utf-8"));
-assert(manifest.annotations===false && manifest.images.length===4,"four unannotated product screenshots");
-assert(manifest.images.map(({file})=>file).sort().join(",")==="claude-code-session.png,codex-session.png,desktop-dark.png,desktop-light.png","desktop appearances and both agent sessions are present");
-for(const capture of manifest.images){
- assert(Boolean(capture.renderer && capture.captured_at && capture.source_commit && capture.evidence),"each image names its renderer, source and retained evidence");
- const png=readFileSync(resolve(distDir,"screenshots",capture.file));
- assert(createHash("sha256").update(png).digest("hex")===capture.sha256,"capture matches reviewed bytes");
- assert(png.readUInt32BE(16)===capture.width && png.readUInt32BE(20)===capture.height,"capture keeps its full native viewport");
- const url=`/screenshots/${capture.file}?v=${capture.sha256.slice(0,12)}`;
- assert(indexHtml.includes(`src="${url}"`) && indexHtml.includes(`href="${url}"`),"image and full-size link use content hashes");
- const tag=[...indexHtml.matchAll(/<img [^>]*>/g)].map(([tag])=>tag).find(tag=>tag.includes(`src="${url}"`));
- assert(tag?.includes(`width="${capture.width}"`) && tag?.includes(`height="${capture.height}"`),"image dimensions reserve its actual aspect ratio");
-}
-assert(!readdirSync(resolve(distDir,"screenshots")).some(name=>name.startsWith("terminal-")||name.startsWith("tui2-")),"retired captures are absent");
-const figures=[...indexHtml.matchAll(/<figure\b[\s\S]*?<\/figure>/g)];
-assert(figures.length===3 && figures.every(([figure])=>figure.includes("<figcaption>")),"desktop and both agent sessions have captioned figures");
-
 console.log("\nPublic language:");
 const jargon = /TUI2|GUI2|tui2|gui2|think-and-ship|Workbench|think:|ship:|chunk-id|workflow server|native state|admitted|typed command|[Ff]light [Rr]ecorder/;
 const commentary = /\bHarbor\b|\bfixture\b|on purpose|\bgolden|wrangler|Cloudflare|design system|typographic hierarchy/i;
@@ -121,7 +98,6 @@ for (const [name, html] of productPages) {
   assert(!jargon.test(text), `${name} page carries no internal jargon`);
   assert(!commentary.test(text), `${name} page carries no production commentary`);
 }
-assert(indexHtml.includes("not a transfer of the Codex session") && indexHtml.includes("did not execute the fix"), "independent agent runs and the desktop proposal have truthful scope");
 
 console.log("\nDocs:");
 assert(installHtml.includes("Your code and permissions") && /permissions\s+you give it/.test(installHtml), "installation explains agent permissions");
@@ -215,7 +191,7 @@ assert(!notFoundHtml.includes("curl") && !notFoundHtml.includes("rounded-lg"), "
 
 console.log("\nSource hygiene:");
 const components = readdirSync(resolve(srcDir, "components"));
-assert(components.includes("Workflow.astro") && components.includes("ProductEvidence.astro"), "workflow explanation and original product evidence have separate components");
+assert(components.includes("BuildWalkthrough.astro") && !components.includes("ProjectTour.astro"), "one current walkthrough owns the example");
 for (const file of readdirSync(resolve(srcDir, "content/docs"))) {
   assert(existsSync(resolve(distDir, "docs", file.replace(/\.mdx$/, ""), "index.html")), `guide ${file} is built`);
 }

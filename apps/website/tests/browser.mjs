@@ -1,637 +1,103 @@
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
-import { createServer } from "node:http";
-import { readFile, readdir, mkdir, writeFile, stat } from "node:fs/promises";
-import { dirname, extname, resolve, sep, relative } from "node:path";
-import { fileURLToPath } from "node:url";
-import { webkit } from "playwright";
-import {sessionEntries,timeLabel} from "../src/data/session-replay.mjs";
-
-const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const dist = resolve(root, "dist");
-const repo = resolve(root, "../..");
-const scopeArg = process.argv.indexOf("--evidence-scope");
-const evidenceScope = scopeArg < 0 ? "all" : process.argv[scopeArg + 1];
-assert(["all", "search", "recovery", "refinement", "branding", "copy", "reading", "noscript", "recording", "recording-video", "revamp", "revamp-finish", "revamp-hero", "agent-session", "session-replay", "session-replay-finish"].includes(evidenceScope), "Unknown evidence scope");
-const evidenceArg = process.argv.indexOf("--evidence-dir");
-const evidence = evidenceArg < 0 ? undefined : resolve(repo, process.argv[evidenceArg + 1]);
-if (evidence && !evidence.startsWith(resolve(repo, "docs/evidence/desktop-iterations") + sep)) {
-  throw new Error("Save captures under docs/evidence/desktop-iterations/<dated-iteration>.");
+import {createServer} from "node:http";
+import {readFile,readdir,mkdir,writeFile,stat} from "node:fs/promises";
+import {createHash} from "node:crypto";
+import {resolve,dirname,extname,sep} from "node:path";
+import {fileURLToPath} from "node:url";
+import {webkit} from "playwright";
+import {chapters} from "../src/data/build-recording.mjs";
+const root=resolve(dirname(fileURLToPath(import.meta.url)),".."),repo=resolve(root,"../.."),dist=resolve(root,"dist");
+const arg=name=>{const i=process.argv.indexOf(name);return i<0?null:process.argv[i+1];};
+const captureOnly=arg("--capture-only")?new RegExp(arg("--capture-only")):null;
+const evidence=arg("--evidence-dir")?resolve(repo,arg("--evidence-dir")):null;
+if(evidence){assert(evidence.startsWith(resolve(repo,"docs/evidence/desktop-iterations")+sep));await mkdir(evidence,{recursive:true});assert(!(await readdir(evidence)).some(n=>n.endsWith(".png")),"Use a new iteration folder");}
+const mime={".html":"text/html",".css":"text/css",".js":"text/javascript",".json":"application/json",".png":"image/png",".svg":"image/svg+xml",".wasm":"application/wasm"};
+const server=createServer(async(req,res)=>{try{let path=resolve(dist,"."+decodeURIComponent(new URL(req.url,"http://localhost").pathname));assert(path.startsWith(dist+sep)||path===dist);if((await stat(path)).isDirectory())path=resolve(path,"index.html");res.setHeader("Content-Type",mime[extname(path)]??"application/octet-stream");res.end(await readFile(path));}catch{res.writeHead(404);res.end("Not found");}});
+let origin=arg("--base-url");if(!origin){await new Promise(r=>server.listen(0,"127.0.0.1",r));origin="http://127.0.0.1:"+server.address().port;}
+const browser=await webkit.launch(),captures=[],checks=[],errors=[];
+const recording=JSON.parse(await readFile(resolve(root,"public/demo/tic-tac-toe/recording.json"),"utf8")),parts=chapters(recording);
+async function tree(path){const out=[];for(const e of await readdir(resolve(repo,path),{withFileTypes:true})){const p=path+"/"+e.name;if(e.isDirectory())out.push(...await tree(p));else if(/\.(astro|mjs|ts|css|mdx|json)$/.test(e.name))out.push(p);}return out;}
+const sourcePaths=[...await tree("apps/website/src"),...await tree("crates/magistr-desktop/ui"),"apps/website/tests/browser.mjs","apps/website/public/demo/tic-tac-toe/recording.json","apps/website/public/demo/tic-tac-toe/manifest.json"];
+const sourceHashes=Object.fromEntries(await Promise.all(sourcePaths.map(async p=>[p,createHash("sha256").update(await readFile(resolve(repo,p))).digest("hex")])));
+const stable=async p=>{await p.evaluate(()=>document.fonts.ready);await p.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));};
+async function capture(page,name,state,{full=false,region}={}){
+ if(!evidence||(captureOnly&&!captureOnly.test(name)))return;
+ if(region)await page.locator(region).evaluate(e=>scrollTo({top:e.getBoundingClientRect().top+scrollY-90,behavior:"instant"}));
+ if(name!=="no-javascript")await stable(page);await page.screenshot({path:resolve(evidence,name+".png"),fullPage:full});
+ captures.push({file:name+".png",state,viewport:page.viewportSize(),appearance:await page.evaluate(()=>document.documentElement.classList.contains("dark")?"dark":"light"),capturedAt:new Date().toISOString()});
 }
-if (evidence) {
-  await mkdir(evidence, { recursive: true });
-  assert(!(await readdir(evidence)).some((name) => name.endsWith(".png")), "Use a new evidence directory; never overwrite captures.");
-}
-const mime = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".png": "image/png", ".svg": "image/svg+xml", ".json": "application/json", ".wasm": "application/wasm", ".webm": "video/webm" };
-const server = createServer(async (request, response) => {
-  try {
-    const path = decodeURIComponent(new URL(request.url, "http://localhost").pathname);
-    let file = resolve(dist, "." + path);
-    assert(file.startsWith(dist + sep) || file === dist);
-    if ((await stat(file)).isDirectory()) file = resolve(file, "index.html");
-    const bytes=await readFile(file);
-    const headers={"Content-Type":mime[extname(file)]??"application/octet-stream","Accept-Ranges":"bytes"};
-    const range=/^bytes=(\d*)-(\d*)$/.exec(request.headers.range||"");
-    if(range&&(range[1]||range[2])){
-      const start=range[1]?Number(range[1]):Math.max(0,bytes.length-Number(range[2]));
-      const end=range[1]&&range[2]?Math.min(Number(range[2]),bytes.length-1):bytes.length-1;
-      if(start>=bytes.length||end<start){
-        response.writeHead(416,{...headers,"Content-Range":"bytes */"+bytes.length});
-        response.end();return;
-      }
-      response.writeHead(206,{...headers,"Content-Range":"bytes "+start+"-"+end+"/"+bytes.length,"Content-Length":end-start+1});
-      response.end(bytes.subarray(start,end+1));return;
-    }
-    response.writeHead(200,{...headers,"Content-Length":bytes.length});
-    response.end(bytes);
-  } catch {
-    response.writeHead(404);
-    response.end("Not found");
+async function noOverflow(page,label){assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),label+" has no horizontal overflow");}
+async function seek(page,index){await page.locator('[aria-label="Recorded action"]').evaluate((e,n)=>{e.value=String(n);e.dispatchEvent(new Event("input",{bubbles:true}));},index);await page.waitForFunction(i=>document.querySelector("[data-build]").dataset.index===String(i),index);}
+let status="failed",failure="";
+try{
+ for(const [profile,width,height]of [["wide",1280,1000],["compact",390,844]]){
+  for(const appearance of ["light","dark"]){
+   const context=await browser.newContext({viewport:{width,height},colorScheme:appearance,reducedMotion:"reduce",deviceScaleFactor:1});
+   await context.addInitScript(theme=>localStorage.setItem("theme",theme),appearance);
+   const page=await context.newPage();page.on("pageerror",e=>errors.push(String(e)));
+   await page.goto(origin);await page.locator('[data-build][data-ready="true"]').waitFor();await stable(page);
+   const suffix=profile+"-"+appearance;
+   await noOverflow(page,"Home "+suffix);
+   await capture(page,"home-"+suffix,"Hero, favorite-agent subtitle and game introduction");
+   await capture(page,"session-"+suffix,"Codex session at the first complete roadmap",{region:".build-window"});
+   await page.getByRole("tab",{name:"Roadmap",exact:true}).click();
+   await capture(page,"roadmap-"+suffix,"Recorded four-piece roadmap and actual prerequisites",{region:".build-window"});
+   const chunk=page.locator("[data-record-view]").getByRole("button",{name:recording.events.find(e=>e.chunk).chunk.title,exact:width>1000});
+   await chunk.click();assert(await page.locator(".record-reader").textContent().then(t=>t.includes("Done when")));
+   await capture(page,"roadmap-reader-"+suffix,"Read the actual rules chunk and its acceptance criteria",{region:".build-window"});
+   await page.getByRole("tab",{name:"Session",exact:true}).click();
+   await seek(page,parts[2].index);await page.getByRole("tab",{name:"Reasoning",exact:true}).click();
+   await capture(page,"reasoning-"+suffix,"Opponent investigation and its recorded conclusion",{region:".build-window"});
+   const finding=page.locator("[data-record-view]").getByRole("button",{name:"The short policy misses a fork when it plays second",exact:width>1000});
+   await finding.click();assert((await page.locator(".record-reader").textContent()).includes("Why"));
+   await capture(page,"reasoning-reader-"+suffix,"Read the losing-policy finding and its rationale",{region:".build-window"});
+   await seek(page,recording.events.length-1);await page.getByRole("tab",{name:"Work",exact:true}).click();
+   assert.equal(await page.locator(".record-list>li").count(),4);
+   await capture(page,"work-"+suffix,"Four completed implementation tasks",{region:".build-window"});
+   await page.locator(".record-list button").first().click();
+   await capture(page,"work-reader-"+suffix,"Read the rules task and its actual checks",{region:".build-window"});
+   await page.locator(".record-reader button").filter({hasText:"Passed:"}).first().click();
+   await capture(page,"work-check-"+suffix,"Inspect a check from Work and return to that view",{region:".build-window"});
+   await page.getByRole("button",{name:"Back to work",exact:false}).click();assert.equal(await page.locator(".record-list>li").count(),4);
+   await page.getByRole("tab",{name:"Checks",exact:true}).click();
+   assert((await page.locator(".record-list").textContent()).includes("Failed"));
+   await capture(page,"checks-"+suffix,"Executed checks and written reviews, including earlier failures",{region:".build-window"});
+   const failed=page.locator(".record-list button").filter({hasText:"Failed"}).first();await failed.click();
+   await capture(page,"check-reader-"+suffix,"Earlier failed check retained with its actual output",{region:".build-window"});
+   await page.getByRole("tab",{name:"Session",exact:true}).click();
+   const change=recording.events.findIndex(e=>e.kind==="change");await seek(page,change);
+   await page.getByRole("button",{name:"Read the recorded file",exact:true}).click();assert((await page.locator(".record-reader pre").textContent()).length>50);
+   await page.getByRole("button",{name:"Back to session",exact:false}).click();assert(await page.locator("[data-session]").isVisible());
+   await seek(page,0);await page.getByRole("tab",{name:"Checks",exact:true}).click();assert((await page.locator("[data-record-view]").textContent()).includes("No checks"));
+   await page.getByRole("tab",{name:"Session",exact:true}).focus();await page.keyboard.press("ArrowRight");assert.equal(await page.getByRole("tab",{name:"Roadmap",exact:true}).getAttribute("aria-selected"),"true");
+   await page.getByRole("button",{name:"Play steps",exact:true}).click();await page.waitForFunction(()=>Number(document.querySelector("[data-build]").dataset.index)>0);await page.getByRole("button",{name:"Pause",exact:true}).click();
+   await capture(page,"followthrough-"+suffix,"Saved work, feedback and source tools",{region:"#product"});
+   await capture(page,"install-"+suffix,"Agent choice and source-preview installation",{region:"#agents"});
+   if(profile==="compact"){
+    await page.locator("[data-menu-toggle]").click();assert.equal(await page.locator("[data-menu-toggle]").getAttribute("aria-expanded"),"true");await capture(page,"menu-open-"+suffix,"Mobile navigation open");await page.keyboard.press("Escape");assert.equal(await page.locator("[data-menu-toggle]").getAttribute("aria-expanded"),"false");await capture(page,"menu-closed-"+suffix,"Escape closes navigation and returns focus to its button");
+   }
+   checks.push("Playback, records, keyboard tabs, future-state protection, source reader and navigation: "+suffix);
+   for(const slug of ["installation","workflow","roadmap","reasoning","chunks","verification","concepts"]){
+    await page.goto(origin+"/docs/"+slug+"/");await stable(page);await noOverflow(page,slug+" "+suffix);assert.equal(await page.locator("main h1").count(),1);
+    await capture(page,"docs-"+slug+"-"+suffix,"Complete "+slug+" guide",{full:true});
+   }
+   const search=page.locator('input[type="search"]');await search.fill("minimax");
+   await page.waitForFunction(()=>document.querySelectorAll(".docs-search-results a").length>0);assert((await page.locator(".docs-search-results").textContent()).length>5);
+   await search.fill("zzzz-no-such-doc");await page.waitForFunction(()=>document.querySelector(".docs-search-results")?.textContent?.includes("No results"));
+   await page.goto(origin+"/404.html");assert(await page.getByRole("heading",{name:"Page not found"}).isVisible());
+   checks.push("Seven guides, reflow, real search and 404: "+suffix);await context.close();
   }
-});
-await new Promise((done) => server.listen(0, "127.0.0.1", done));
-const baseArg = process.argv.indexOf("--base-url");
-const origin = baseArg < 0 ? "http://127.0.0.1:" + server.address().port : new URL(process.argv[baseArg + 1]).origin;
-const browser = await webkit.launch({ headless: true });
-const checks = [];
-const captures = [];
-const paths = [];
-const collect = async (directory) => {
-  for (const entry of await readdir(directory, { withFileTypes: true })) {
-    const file = resolve(directory, entry.name);
-    if (entry.isDirectory()) await collect(file);
-    else paths.push(file);
-  }
-};
-await collect(resolve(root, "src"));
-await collect(resolve(root, "public/demo"));
-await collect(resolve(root, "public/examples"));
-for (const name of [
-  "astro.config.mjs", "package.json", "package-lock.json", "tests/browser.mjs",
-  "public/og-image.svg", "public/og-image.png", "public/github-social.png", "public/favicon.svg", "public/icon-192.png", "public/site.webmanifest",
-  "public/screenshots/captures.json", "scripts/generate-favicons.mjs", "scripts/asset-url.mjs", "scripts/publish-recording.mjs", "tests/project-recording.test.mjs",
-]) paths.push(resolve(root, name));
-const sourceHashes = Object.fromEntries(await Promise.all(paths.sort().map(async (file) => [
-  relative(repo, file), createHash("sha256").update(await readFile(file)).digest("hex"),
-])));
-const writeReport = async (status, failure) => {
-  if (!evidence) return;
-  const report = {
-    completedAt: new Date().toISOString(), status, failure,
-    renderer: "Playwright WebKit", rendererVersion: browser.version(),
-    platform: process.platform + "-" + process.arch, node: process.version, origin,
-    motion: "reduced", scale: 1, evidenceScope, checks, sourceHashes, captures,
-    limitations: [
-      "Headless browser only; no native OS-input or assistive-technology testing.",
-      "Screenshots require separate recorded visual review.",
-      ...(baseArg < 0 ? ["Local build; no deployed-site or registry publication claim."] : ["Deployed website only; no registry publication claim."]),
-    ],
-  };
-  await writeFile(resolve(evidence, "browser-checks.json"), JSON.stringify(report, null, 2) + "\n");
-};
-const capture = async (page, name, state, fullPage = false, region) => {
-  if(evidenceScope==="session-replay-finish"&&!/^recording-(overview-|moment-[123]-|320-|820-|unavailable|without-javascript)/.test(name)&&name!=="recording-moment-4-wide-light"&&name!=="recording-moment-5-compact-dark")return;
-  if (evidenceScope === "session-replay" && !name.startsWith("recording-") && !/^tour-(chunks|checks|failed-check)-/.test(name)) return;
-  if (evidenceScope === "agent-session" && !name.startsWith("recording-")) return;
-  if (evidenceScope === "revamp-hero" && !/^home(?:-intro)?-(wide|compact)-(light|dark)$/.test(name) && !name.startsWith("home-menu")) return;
-  if (evidenceScope === "revamp-finish") {
-    const changedHome=/^home(?:-(?:intro|keep-going))?-(wide|compact)-(light|dark)$/.test(name);
-    const changedTour=/^tour-roadmap-(wide|compact)-(light|dark)$/.test(name);
-    const reflow=/^tour-(320|820)-/.test(name);
-    if(!changedHome&&!changedTour&&!reflow&&!name.startsWith("home-menu")&&name!=="tour-without-javascript")return;
-  }
-  if (evidenceScope === "revamp") {
-    const pageFrame=/^(home|installation|workflow|concepts|roadmap|reasoning|chunks|verification|not-found)-(wide|compact)-(light|dark)$/.test(name);
-    const overview=/^(home-(intro|install|keep-going|agents)|tour-(roadmap|reasoning|chunks|checks))-(wide|compact)-(light|dark)$/.test(name);
-    const detail=/-wide-light$|-compact-dark$/.test(name) && /^(tour-|home-(menu|evidence-[0-2])|(?:installation|workflow|concepts|roadmap|reasoning|chunks|verification)-reading)/.test(name);
-    const recovery=/^installation-search-(empty|unavailable)-compact-dark$/.test(name);
-    const reflow=/^tour-(320|820)-/.test(name);
-    if(!pageFrame&&!overview&&!detail&&!recovery&&!reflow&&name!=="tour-without-javascript")return;
-  }
-  if (evidenceScope === "recording-video" && !name.startsWith("recording-video-")) return;
-  if (evidenceScope === "recording" && !name.startsWith("recording-") && !name.startsWith("home-intro-")) return;
-  if (!evidence || (evidenceScope === "search" && !name.includes("search"))) return;
-  if (evidenceScope === "recovery" && !name.includes("search") && !/^not-found-(wide|compact)-(light|dark)$/.test(name)) return;
-  if (evidenceScope === "noscript" && name !== "home-without-javascript") return;
-  if (evidenceScope === "reading") {
-    const overview = /^(home|installation|workflow|concepts|not-found)-(wide|compact)-(light|dark)$/.test(name);
-    const home = /^home-(intro|product)-(wide|compact)-(light|dark)$/.test(name);
-    const docs = /^(installation|workflow|concepts)-(?!search)[a-z-]+-wide-(light|dark)$/.test(name);
-    if (!overview && !home && !docs) return;
-  }
-  if (evidenceScope === "copy") {
-    // Full pages cover all four profiles; detail frames use a complementary
-    // desktop/light and compact/dark pair to keep the review readable.
-    const profile = /-wide-light$|-compact-dark$/.test(name);
-    const overview = /^(home|installation|workflow|concepts|not-found)-(wide|compact)-(light|dark)$/.test(name);
-    const detail = /^(home-(intro|product|footer|install|workflow-[0-3]|evidence-[0-2]|menu|copy-unavailable)|(?:installation|workflow|concepts)-(?!search)[a-z-]+)-(wide|compact)-(light|dark)$/.test(name);
-    const states = /-(contents|contents-target)-(wide|compact)-(light|dark)$/.test(name)
-      || /^home-(workflow-[0-3]|evidence-[0-2])-(wide|compact)-(light|dark)$/.test(name)
-      || (profile && /^(installation-search|home-(transcript|capture|copy-success|menu-dismissed))/.test(name))
-      || name === "home-without-javascript";
-    if (!overview && !(profile && detail) && !states && !name.startsWith("workflow-320-")) return;
-  }
-  if (evidenceScope === "branding" && !name.includes("-intro-") && !name.startsWith("home-320-")) return;
-  if (evidenceScope === "refinement" && !/^(home-(wide|compact|connection|workflow|capture|transcript)|home-evidence-focus|.*-320)/.test(name)) return;
-  // screenshot waits for fonts and a stable render itself. A page-script frame
-  // callback never fires when JavaScript is disabled.
-  const file = name + ".png";
-  if (region) {
-    await page.locator(region).evaluate(e=>scrollTo({top:e.getBoundingClientRect().top+scrollY-90,behavior:"instant"}));
-    await page.locator(region).screenshot({ path: resolve(evidence, file), animations: "disabled" });
-  }
-  else await page.screenshot({ path: resolve(evidence, file), fullPage, animations: "disabled" });
-  const bytes = await readFile(resolve(evidence, file));
-  captures.push({
-    file, state, url: new URL(page.url()).pathname, capturedAt: new Date().toISOString(),
-    viewport: page.viewportSize(), appearance: await page.evaluate(() => document.documentElement.classList.contains("dark") ? "dark" : "light"),
-    fullPage, region, renderer: "Playwright WebKit", rendererVersion: browser.version(),
-    width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20),
-    sha256: createHash("sha256").update(bytes).digest("hex"), review: "pending",
-  });
-  await writeReport("running");
-};
-const noOverflow = async (page) => {
-  assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), "No horizontal page overflow");
-  assert(await page.locator("main h1").count() === 1, "One primary heading");
-  assert(await page.locator("img").evaluateAll((images) => images.filter((image) => image.getClientRects().length && !image.closest("details:not([open])")).every((image) => image.complete && image.naturalWidth > 0)), "All images loaded");
-};
-const legibility = async (page) => {
-  const results = await page.evaluate(() => {
-    const luminance = (color) => color.match(/[\d.]+/g).slice(0, 3)
-      .map(Number).map((value) => value / 255)
-      .map((value) => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4)
-      .reduce((sum, value, index) => sum + value * [0.2126, 0.7152, 0.0722][index], 0);
-    const ratio = (a, b) => (Math.max(luminance(a), luminance(b)) + 0.05) / (Math.min(luminance(a), luminance(b)) + 0.05);
-    const primary = [...document.querySelectorAll(".button-primary")].map((element) => {
-      const style = getComputedStyle(element);
-      return ratio(style.color, style.backgroundColor);
-    });
-    const theme = getComputedStyle(document.querySelector("#theme-toggle"));
-    const nav = getComputedStyle(document.querySelector(".site-nav"));
-    const controls = [...document.querySelectorAll(".theme-toggle, .menu-toggle, .github-link")].filter((element) => element.getClientRects().length).map((element) => {
-      const rect = element.getBoundingClientRect();
-      return { width: rect.width, height: rect.height };
-    });
-    const code = [...document.querySelectorAll("pre")].map((element) => element.scrollWidth - element.clientWidth);
-    return { primary, theme: ratio(theme.color, nav.backgroundColor), code, controls };
-  });
-  assert(results.controls.every(({ width, height }) => width >= 44 && height >= 44), "Navigation icon targets are at least 44 px");
-  assert(results.primary.every((contrast) => contrast >= 4.5), "Primary text contrast: " + JSON.stringify(results));
-  assert(results.theme >= 3, "Theme icon contrast: " + JSON.stringify(results));
-  assert(results.code.every((overflow) => overflow <= 1), "Code is readable without horizontal clipping");
-};
-const scrollHeading = async (page, selector) => {
-  await page.locator(selector).evaluate((element) => scrollTo({ top: element.getBoundingClientRect().top + scrollY - 90, behavior: "instant" }));
-};
-try {
-  for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844 }]) {
-    for (const colorScheme of ["light", "dark"]) {
-      const layout = viewport.width > 800 ? "wide" : "compact";
-      const suffix = layout + "-" + colorScheme;
-      const context = await browser.newContext({ viewport, deviceScaleFactor: 1, colorScheme, reducedMotion: "reduce" });
-      await context.route("https://plausible.io/**", (route) => route.fulfill({ status: 204 }));
-      const page = await context.newPage();
-      const errors = [];
-      const searchRequests = [];
-      page.on("request", (request) => { if (new URL(request.url()).pathname.startsWith("/pagefind/")) searchRequests.push(request.url()); });
-      page.on("pageerror", (error) => errors.push(error.message));
-      for (const [name, path] of [["home", "/"], ...["installation","workflow","roadmap","reasoning","chunks","verification","concepts"].map(slug=>[slug,"/docs/"+slug+"/"]), ["not-found", "/404.html"]]) {
-        const response = await page.goto(origin + path);
-        assert.equal(response.status(), 200);
-        await page.evaluate(() => document.fonts.ready);
-        // Scroll lazy images into view before awaiting their actual load.
-        for (const image of await page.locator("img").all()) {
-          if (!(await image.isVisible())) continue;
-          await image.scrollIntoViewIfNeeded();
-          await page.waitForFunction((element) => element.complete && element.naturalWidth > 0,
-            await image.elementHandle(), { timeout: 10000 });
-          await image.evaluate((element) => element.decode());
-        }
-        await page.evaluate(() => scrollTo({ top: 0, behavior: "instant" }));
-        await noOverflow(page);
-        await legibility(page);
-        await capture(page, name + "-" + suffix, name + " full page", true);
-        if (name !== "home") await capture(page, name + "-intro-" + suffix, name + " navigation and opening");
-        if (name === "home") {
-          for (const link of await page.locator(".image-link").all()) {
-            const response = await context.request.get(new URL(await link.getAttribute("href"), origin).href);
-            assert.equal(response.status(), 200, "Full session link opens its original image");
-            assert.match(response.headers()["content-type"], /image\/png/);
-          }
-          await capture(page, "home-intro-" + suffix, "Product description, setup action and project guide");
-          for (const [area, selector] of [
-            ["evidence", "#evidence"], ["workflow", "#workflow"], ["product", "#product"], ["footer", ".site-footer"],
-          ]) {
-            await scrollHeading(page, selector);
-            await capture(page, "home-" + area + "-" + suffix, area + " section");
-          }
-          const tour=page.locator("[data-project-tour]");
-          const tourTabs=tour.getByRole("tab");
-          await tourTabs.first().waitFor();
-          assert.equal(await tourTabs.count(),4);
-          for(const [index,id] of ["roadmap","reasoning","chunks","checks"].entries()){
-            await tourTabs.nth(index).click();
-            assert.equal(await tour.getByRole("tabpanel").count(),1,"One feature view is exposed");
-            await noOverflow(page);
-            await capture(page,"tour-"+id+"-"+suffix,"Explore "+id+" with real records",false,".project-tour");
-            const region=tour.locator("#tour-"+id);
-            const selectors=region.locator("[data-record-select]");
-            const defaultIndex=id==="roadmap"?4:id==="reasoning"?2:1;
-            for(let record=0;record<await selectors.count();record++){
-              await selectors.nth(record).click();
-              assert.equal(await selectors.nth(record).getAttribute("aria-pressed"),"true");
-              assert.equal(await region.locator("[data-record-detail]:visible").count(),1);
-              assert.equal(await region.locator("[data-record-detail]:visible").getAttribute("data-record-detail"),String(record));
-            }
-            await selectors.nth(defaultIndex).click();
-            if(id==="roadmap"){
-              await region.locator("[data-record-detail]:visible summary").click();
-              assert.match(await region.locator("[data-record-detail]:visible").innerText(),/11 recorded dependencies/);
-              if(suffix==="wide-light"||suffix==="compact-dark")await capture(page,"tour-requirements-"+suffix,"Original requirements and dependencies remain inspectable",false,".project-tour");
-              await region.locator("[data-record-detail]:visible summary").click();
-            }
-            if(id==="reasoning"){
-              await selectors.first().click();
-              if(suffix==="wide-light"||suffix==="compact-dark")await capture(page,"tour-alternative-"+suffix,"Inspect an actual recorded alternative",false,".project-tour");
-            }
-            if(id==="checks"){
-              await selectors.first().click();
-              assert.match(await region.locator("[data-record-detail]:visible").innerText(),/No module named 'store'/);
-              if(evidenceScope==="session-replay"||suffix==="wide-light"||suffix==="compact-dark")await capture(page,"tour-failed-check-"+suffix,"The original failing check is retained",false,".project-tour");
-              await selectors.last().click();
-              assert.match(await region.locator("[data-record-detail]:visible").innerText(),/Ran 7 tests/);
-            }
-          }
-          await tourTabs.first().focus();
-          await page.keyboard.press("End");
-          assert.equal(await tourTabs.last().getAttribute("aria-selected"),"true");
-          await page.keyboard.press("ArrowRight");
-          assert.equal(await tourTabs.first().getAttribute("aria-selected"),"true");
-          assert(await tourTabs.first().evaluate(e=>e===document.activeElement));
-          if(suffix==="wide-light")await capture(page,"tour-keyboard-"+suffix,"Keyboard exploration retains visible focus",false,".project-tour");
-          await tourTabs.nth(2).click();
-          await tour.locator('#tour-chunks [data-record-select="1"]').click();
-          await tour.locator('#tour-chunks [data-record-detail="1"] [data-playback-event]').click();
-          await page.waitForFunction(()=>document.querySelector("[data-recording]").dataset.event==="17");
-          assert.equal(new URL(page.url()).hash,"#workflow","A task opens its real recorded completion");
-          await page.locator('[data-moment-select]').selectOption("0");
-          await tourTabs.first().click();
-          for(const [area,selector] of [["keep-going","#keep-going"],["agents","#agents"]]){
-            await capture(page,"home-"+area+"-"+suffix,area+" feature explanations",false,selector);
-          }
-          const recording = page.locator("[data-recording]");
-          await page.waitForFunction(() => document.querySelector("[data-recording]").dataset.ready === "true");
-          assert.equal(await recording.locator("[data-moment-select] option").count(),6);
-          const controls=await recording.locator(".replay-transport button:visible").evaluateAll(buttons=>buttons.map(b=>({text:b.textContent,...b.getBoundingClientRect().toJSON()})));
-          assert(controls.every(b=>b.width>=44&&b.height>=44),"Playback controls keep usable targets");
-          for(let i=0;i<controls.length;i++)for(let j=i+1;j<controls.length;j++){
-            const a=controls[i],b=controls[j];
-            assert(Math.min(a.right,b.right)-Math.max(a.left,b.left)<=1||Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)<=1,"Playback controls do not overlap");
-          }
-          const transcript=await(await context.request.get(new URL(await recording.getAttribute("data-recording-url"),origin).href)).json();
-          const entries=sessionEntries(transcript);
-          assert.equal(entries.length,53);
-          assert.equal(await recording.locator(".complete-transcript:visible").count(),0,"Interactive playback does not repeat the full transcript");
-          assert.equal(await recording.locator(".recording-details details[open]").count(),0,"Saved records start closed");
-          assert(!(await recording.innerText()).includes("paraphrased"),"Speaker labels do not carry editing annotations");
-          assert.equal(await recording.locator('.session-entry[data-kind="message"] .entry-label').first().textContent(),"You");
-          const actionTime=id=>timeLabel(entries,entries.findIndex(entry=>entry.event?.id===id));
-          assert.deepEqual(await tour.locator(".chunk-list small").allTextContents(),[11,17,22,42,46].map(id=>actionTime(id)+" into the build"),"Task times use the replay clock");
-          assert.deepEqual(await tour.locator(".check-choices button small").allTextContents(),[14,16].map(id=>actionTime(id)+" into the build"),"Check times use the replay clock");
-          assert(!JSON.stringify(transcript).match(/\/Users\/|\/home\/|session_id|inode/),"Published recording excludes private paths and metadata");
-          await capture(page,"recording-overview-"+suffix,"Real Codex conversation, paused replay and saved project context",false,"#workflow");
-          for(let moment=1;moment<6;moment++){
-            await recording.locator('[data-moment-select]').selectOption(String(moment));
-            assert.equal(await recording.locator("[data-entry][data-selected=true]:visible").count(),1);
-            const cursor=Number(await recording.getAttribute("data-index"));
-            assert.equal(await recording.locator(".session-entry:visible").count(),cursor+1,"Only past and current entries are visible");
-            assert.equal(await recording.locator(".session-entry[data-selected=true] .entry-output").textContent()!==null,true);
-            await noOverflow(page);
-            await capture(page,"recording-moment-"+moment+"-"+suffix,"Recorded build moment "+moment+" without competing panels",false,".build-recording");
-            if(moment===1){
-              await recording.locator("[data-saved-work] > summary").click();
-              assert.equal(await recording.locator("[data-task-list] li:visible").count(),5);
-              await capture(page,"recording-saved-"+suffix,"Open the saved plan only when requested",false,".build-recording");
-              await recording.locator("[data-saved-work] > summary").click();
-            }
-          }
-          const seek=async id=>{
-            const index=entries.findIndex(entry=>entry.event?.id===id);
-            await recording.locator("#session-position").evaluate((input,index)=>{input.value=String(index);input.dispatchEvent(new Event("input",{bubbles:true}));},index);
-            assert.equal(await recording.getAttribute("data-event"),String(id));
-          };
-          await seek(14);
-          assert.match(await recording.locator(".session-entry[data-selected=true]").innerText(),/No module named 'store'/);
-          await recording.locator(".session-entry[data-selected=true] [data-open-action]").click();
-          assert(await recording.locator("[data-action-select]").evaluate(e=>e===document.activeElement));
-          assert(!(await recording.locator("[data-file] option").allTextContents()).some(text=>text==="store.py"),"Future files are absent");
-          if(suffix==="wide-light")await capture(page,"recording-action-14-"+suffix,"Failed check, public paths and inspectable original result",false,".recording-inspector");
-          await seek(15);
-          await recording.locator("[data-file]").selectOption("examples/support-inbox/store.py");
-          assert.match(await recording.locator("[data-output]").innerText(),/BEGIN IMMEDIATE/);
-          if(suffix==="compact-dark")await capture(page,"recording-source-"+suffix,"Complete source file at the selected build moment",false,".recording-inspector");
-          await seek(35);
-          assert.match(await recording.locator("[data-output]").innerText(),/Before[\s\S]*After/);
-          if(suffix==="compact-dark")await capture(page,"recording-action-35-"+suffix,"Original menu-size fix in the actual development sequence",false,".build-recording");
-          await recording.locator("[data-inspector] > summary").click();
-          const states=await recording.evaluate(root=>{
-            const range=root.querySelector("#session-position"),states=[];
-            for(let index=0;index<=Number(range.max);index++){
-              range.value=String(index);range.dispatchEvent(new Event("input",{bubbles:true}));
-              states.push({index:root.dataset.index,visible:root.querySelectorAll(".session-entry:not([hidden])").length,event:root.dataset.event});
-            }
-            return states;
-          });
-          assert.deepEqual(states,entries.map((entry,index)=>({index:String(index),visible:index+1,event:String(entry.eventIndex)})));
-          await seek(16);
-          await recording.locator("#session-position").focus();
-          await page.keyboard.press("ArrowLeft");
-          assert.equal(await recording.getAttribute("data-event"),"15");
-          assert(await recording.locator("#session-position").evaluate(e=>e===document.activeElement));
-          if(suffix==="wide-light")await capture(page,"recording-keyboard-"+suffix,"Keyboard scrubbing keeps focus and updates source/task state",false,".build-recording");
-          await page.keyboard.press("Home");
-          assert.equal(await recording.getAttribute("data-index"),"0");
-          await page.keyboard.press("End");
-          assert.equal(await recording.getAttribute("data-event"),"46");
-          if(suffix==="wide-light"){
-            await seek(15);
-            await recording.locator("[data-speed]").selectOption("8");
-            await recording.locator("[data-play]").click();
-            await page.waitForFunction(()=>document.querySelector("[data-recording]").dataset.event==="17",null,{timeout:5000});
-            await recording.locator("[data-play]").click();
-            const paused=await recording.getAttribute("data-index");
-            await page.waitForTimeout(250);
-            assert.equal(await recording.getAttribute("data-index"),paused,"Pause stops the actual session clock");
-            await recording.locator("[data-play]").click();
-            await recording.locator('[data-moment-select]').selectOption("4");
-            assert.equal(await recording.getAttribute("data-playing"),"false","Manual navigation stops playback");
-          }
-          await recording.locator('[data-moment-select]').selectOption("0");
-          await page.locator("#evidence > summary").click();
-          assert(await page.locator("#evidence").evaluate(e=>e.open));
-          for (const [groupName, selector, labels] of [
-            ["evidence", ".product-evidence", ["Codex", "Claude Code", "Magistr desktop"]],
-          ]) {
-            const group = page.locator(selector);
-            const tabs = group.getByRole("tab");
-            assert.equal(await tabs.count(), labels.length);
-            for (let index = 0; index < labels.length; index++) {
-              await tabs.nth(index).click();
-              assert.equal(await tabs.nth(index).getAttribute("aria-selected"), "true");
-              assert.equal(await group.getByRole("tabpanel").count(), 1, "Only the selected panel is exposed");
-              const panel = group.getByRole("tabpanel");
-              for (const img of await panel.locator("img").all()) {
-                if (!(await img.isVisible())) continue;
-                await img.scrollIntoViewIfNeeded();
-                await img.evaluate((element) => element.decode());
-              }
-              await noOverflow(page);
-              await scrollHeading(page, selector);
-              await capture(page, "home-" + groupName + "-" + index + "-" + suffix, labels[index] + " selected");
-              if (groupName === "evidence") {
-                assert(await panel.locator(".capture-excerpt").isVisible(), "Recorded excerpts are readable at every viewport");
-                if (layout === "compact") {
-                  await scrollHeading(page, "#" + await panel.getAttribute("id") + " .capture-excerpt");
-                  await capture(page, "home-transcript-" + index + "-" + suffix, labels[index] + " transcript for compact reading");
-                }
-                await panel.locator(".capture").scrollIntoViewIfNeeded();
-                await capture(page, "home-capture-" + index + "-" + suffix, labels[index] + " actual capture");
-              }
-            }
-            await tabs.first().focus();
-            await page.keyboard.press("End");
-            assert.equal(await tabs.last().getAttribute("aria-selected"), "true");
-            assert(await tabs.last().evaluate((element) => element === document.activeElement));
-            await page.keyboard.press("ArrowRight");
-            assert.equal(await tabs.first().getAttribute("aria-selected"), "true", "Arrow navigation wraps");
-            await page.keyboard.press("ArrowLeft");
-            assert.equal(await tabs.last().getAttribute("aria-selected"), "true");
-            await page.keyboard.press("Home");
-            assert.equal(await tabs.first().getAttribute("aria-selected"), "true");
-            await capture(page, "home-" + groupName + "-focus-" + suffix, "Keyboard selection and visible tab focus");
-          }
-          await page.locator("#install-btn").click();
-          await scrollHeading(page, "#install .section-heading");
-          assert.match(await page.locator("#install").innerText(), /Setup does not start implementation/);
-          await capture(page, "home-install-" + suffix, "Preview installation and planning handoff");
-          await page.evaluate(() => {
-            Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: async (value) => { window.__copiedCommands = value; } } });
-          });
-          await page.getByRole("button", { name: "Copy commands" }).click();
-          await page.getByRole("status").filter({ hasText: "Commands copied." }).waitFor();
-          assert((await page.evaluate(() => window.__copiedCommands)).includes("cargo install --locked --path crates/magistr-cli"));
-          await capture(page, "home-copy-success-" + suffix, "Copy confirms the exact source commands");
-          await page.evaluate(() => { navigator.clipboard.writeText = async () => { throw new Error("unavailable"); }; });
-          await page.getByRole("button", { name: "Copy commands" }).click();
-          await page.getByText("Copy is unavailable. Select the commands above to copy them.", { exact: true }).waitFor();
-          await capture(page, "home-copy-unavailable-" + suffix, "Denied clipboard offers manual selection");
-          // Theme switches persist across a new document.
-          await page.getByRole("button", { name: "Toggle dark mode" }).click();
-          assert.equal(await page.evaluate(() => document.documentElement.classList.contains("dark")), colorScheme !== "dark");
-          await page.reload();
-          assert.equal(await page.evaluate(() => document.documentElement.classList.contains("dark")), colorScheme !== "dark");
-          await page.getByRole("button", { name: "Toggle dark mode" }).click();
-          await legibility(page);
-          if (layout === "compact") {
-            const toggle = page.locator("[data-menu-toggle]");
-            await page.evaluate(() => scrollTo({ top: 0, behavior: "instant" }));
-            await toggle.click();
-            assert.equal(await toggle.getAttribute("aria-expanded"), "true");
-            await capture(page, "home-menu-" + suffix, "Expanded compact navigation");
-            const firstLink = page.locator("#mobile-menu").getByRole("link", { name: "Explore Magistr", exact: true });
-            await firstLink.focus();
-            await page.keyboard.press("Escape");
-            assert.equal(await toggle.getAttribute("aria-expanded"), "false");
-            assert(await toggle.evaluate((element) => element === document.activeElement));
-            await capture(page, "home-menu-dismissed-" + suffix, "Escape closes menu and restores visible focus");
-            await toggle.click();
-            await firstLink.click();
-            assert.equal(await toggle.getAttribute("aria-expanded"), "false");
-            assert.equal(new URL(page.url()).hash, "#product");
-            assert(await page.locator("#product").evaluate((element) => element === document.activeElement));
-            await toggle.click();
-            await firstLink.focus();
-            await page.setViewportSize({ width: 1024, height: 1000 });
-            await page.waitForFunction(() => document.querySelector("[data-menu-toggle]").getAttribute("aria-expanded") === "false");
-            assert.equal(await toggle.getAttribute("aria-expanded"), "false");
-            assert(await page.locator("[data-nav-links] a").first().evaluate((element) => element === document.activeElement));
-            await page.setViewportSize(viewport);
-            assert.equal(await toggle.getAttribute("aria-expanded"), "false");
-            await toggle.click();
-            await page.locator("#mobile-menu").getByRole("link", { name: "Docs", exact: true }).click();
-            assert.equal(new URL(page.url()).pathname.replace(/\/$/, ""), "/docs/installation");
-          }
-        }
-        if (["installation", "concepts", "workflow", "roadmap", "reasoning", "chunks", "verification"].includes(name)) {
-          const guideList=page.locator(".docs-guide-list");
-          if(layout==="compact"){
-            assert(!(await guideList.evaluate(e=>e.open)));
-            await guideList.locator("summary").click();
-            assert.equal(await guideList.locator("a:visible").count(),7);
-            if(suffix==="compact-dark")await capture(page,name+"-reading-navigation-"+suffix,"Open compact guide navigation");
-            await guideList.locator("summary").click();
-          }
-          const contents = page.locator(".docs-contents");
-          const summary = contents.locator("summary");
-          await summary.focus();
-          await page.keyboard.press("Enter");
-          assert.equal(await contents.getAttribute("open"), "", "Contents opens with the keyboard");
-          const sectionLinks = contents.getByRole("link");
-          assert.equal(await sectionLinks.count(), await page.locator("article h2").count());
-          await scrollHeading(page, ".docs-header");
-          await capture(page, name + "-contents-" + suffix, "Expanded section navigation");
-          const sectionLink = sectionLinks.first();
-          const target = await sectionLink.getAttribute("href");
-          await sectionLink.click();
-          assert.equal(new URL(page.url()).hash, target);
-          const targetY = await page.locator(target).evaluate((element) => element.getBoundingClientRect().top);
-          const headerBottom = await page.locator(".site-nav").evaluate((element) => element.getBoundingClientRect().bottom);
-          assert(targetY >= headerBottom, "Section link keeps its heading below the sticky header");
-          await capture(page, name + "-contents-target-" + suffix, "Section link reaches a readable heading");
-          await summary.click();
-          assert.equal(await contents.getAttribute("open"), null);
-          let headingIndex=0;
-          for (const heading of await page.locator("article h2").all()) {
-            const id = await heading.getAttribute("id");
-            await scrollHeading(page, "#" + id);
-            await capture(page, name + "-" + id + "-" + suffix, await heading.innerText());
-            if((suffix==="wide-light"||suffix==="compact-dark") && headingIndex++===2)await capture(page,name+"-reading-detail-"+suffix,"Readable body text and concrete instructions");
-          }
-        }
-        if (name === "concepts") {
-          await capture(page, "concepts-search-idle-" + suffix, "Search is ready without starting its index");
-        }
-        if (name === "installation") {
-          const body = await page.locator("article").innerText();
-          assert.match(body, /Setup adds files only for the agents you choose/);
-          assert.match(body, /magistr init \. --agent codex,claude --dry-run/);
-          assert.match(body, /magistr init \. --agent portable --yes/);
-          assert.match(body, /magistr remove \. --dry-run/);
-          await page.evaluate(() => scrollTo({ top: 0, behavior: "instant" }));
-          const search = page.getByRole("searchbox", { name: "Search documentation" });
-          assert.deepEqual(searchRequests, [], "Reading docs does not start search downloads");
-          await search.fill("repair");
-          await page.locator(".docs-search-results a").first().waitFor();
-          assert.match(await page.locator(".docs-search-results").innerText(), /Installation/);
-          await capture(page, "installation-search-" + suffix, "Documentation search for repair");
-          await search.fill("qzxvbnabcdef");
-          await page.getByText("No results. Try a different word.", { exact: true }).waitFor();
-          await capture(page, "installation-search-empty-" + suffix, "No results preserve a clear way to search again");
-          await search.fill("repair");
-          await search.fill("");
-          assert.equal(await page.locator(".docs-search-results").innerText(), "", "Clearing cancels pending results");
-          await search.fill("repair");
-          await page.locator(".docs-search-results a").first().waitFor();
-          await page.locator(".docs-search-results a").first().click();
-          assert.equal(new URL(page.url()).pathname.replace(/\/$/, ""), "/docs/installation");
-          // A failed module download must leave readable recovery and usable guide links.
-          await context.route("**/pagefind/pagefind.js", (route) => route.fulfill({ status: 503, contentType: "text/javascript", body: "" }));
-          await page.reload();
-          await page.getByRole("searchbox", { name: "Search documentation" }).fill("repair");
-          await page.getByText("Search couldn’t load. Try reloading, or use the guide links below.", { exact: true }).waitFor();
-          await capture(page, "installation-search-unavailable-" + suffix, "Search failure retains navigation and explains recovery");
-          await context.unroute("**/pagefind/pagefind.js");
-          await page.reload();
-          await page.getByRole("searchbox", { name: "Search documentation" }).fill("repair");
-          await page.locator(".docs-search-results a").first().waitFor();
-          assert.match(await page.locator(".docs-search-results").innerText(), /Installation/);
-        }
-      }
-      // The 320 px reflow check catches overflow hidden by the normal mobile viewport.
-      await page.setViewportSize({ width: 320, height: 844 });
-      await page.goto(origin + "/docs/installation/");
-      await noOverflow(page);
-      if (layout === "compact") {
-        await capture(page, "installation-320-" + colorScheme, "Installation at 320 CSS pixels", true);
-        for (const heading of ["install-the-preview", "connect-another-agent", "start-work-when-you-are-ready"]) {
-          await scrollHeading(page, "#" + heading);
-          await capture(page, "installation-320-" + heading + "-" + colorScheme, "320 px " + heading);
-        }
-      }
-      await page.goto(origin + "/docs/workflow/");
-      await noOverflow(page);
-      await legibility(page);
-      if (layout === "compact") {
-        await capture(page, "workflow-320-" + colorScheme, "Everyday-use guide at 320 CSS pixels", true);
-        await scrollHeading(page, "#come-back-and-keep-going");
-        await capture(page, "workflow-320-shortcuts-" + colorScheme, "Skill table at 320 CSS pixels");
-      }
-      await page.goto(origin + "/");
-      await noOverflow(page);
-      if (layout === "compact") {
-        await capture(page, "home-320-" + colorScheme, "Home at 320 CSS pixels", true);
-        await page.waitForFunction(()=>document.querySelector("[data-recording]").dataset.ready==="true");
-        await capture(page,"tour-320-"+colorScheme,"Project explorer at 320 CSS pixels",false,".project-tour");
-        await page.locator('[data-moment-select]').selectOption("2");
-        await noOverflow(page);
-        await scrollHeading(page, ".build-recording");
-        await capture(page, "recording-320-" + colorScheme, "Recorded failure and playback controls at 320 CSS pixels", false, ".build-recording");
-        await page.locator("#evidence > summary").click();
-        for (const [index, tab] of (await page.locator(".product-evidence").getByRole("tab").all()).entries()) {
-          await tab.click();
-          const panel = page.locator(".evidence-panel:not([hidden])");
-          await scrollHeading(page, "#" + await panel.getAttribute("id") + " .capture-excerpt");
-          await capture(page, "home-transcript-320-" + index + "-" + colorScheme, "320 px transcript " + index);
-        }
-        await scrollHeading(page, ".build-recording");
-      }
-      // A keyboard user can reach content without traversing the navigation.
-      const skip = page.getByRole("link", { name: "Skip to content" });
-      await skip.focus();
-      await page.waitForFunction(() => document.querySelector(".skip-link").getBoundingClientRect().y >= 0, null, { timeout: 2000 });
-      const skipState = await page.evaluate(() => ({ active: document.activeElement?.outerHTML, y: document.querySelector(".skip-link").getBoundingClientRect().y, scrollY }));
-      assert(skipState.y >= 0, "Focused skip link: " + JSON.stringify(skipState));
-      await page.keyboard.press("Enter");
-      assert.equal(new URL(page.url()).hash, "#main-content");
-      assert.deepEqual(errors, [], "No uncaught page errors");
-      checks.push({ layout, appearance: colorScheme, passed: true, scenarios: ["nine static routes", "section navigation: keyboard, links and sticky-header clearance", "primary and theme-control contrast", "wrapped code and aligned documentation arrows", "recorded project: six real conversation messages and 47 actions, scrubbing, no future source, failed/passed checks, keyboard, pause, exact files and publication redaction; evidence tabs: pointer, arrows, Home, End, focus", "clipboard success and denial (browser stub)", "reflow at 320 px", "images", "install anchor", "theme persistence", "selected agent instructions", "lazy search, results, empty and failure recovery, cleared query", "keyboard skip link", ...(layout === "compact" ? ["mobile menu navigation, Escape, anchor focus and resize recovery"] : [])] });
-      await context.close();
-    }
-  }
-  for(const width of [820])for(const appearance of ["light","dark"]){
-    const context=await browser.newContext({viewport:{width,height:1000},colorScheme:appearance,reducedMotion:"reduce"});
-    const page=await context.newPage();await page.goto(origin+"/");
-    await page.waitForFunction(()=>document.querySelector("[data-recording]").dataset.ready==="true");
-    await capture(page,"tour-820-"+appearance,"Project explorer at the tablet breakpoint",false,".project-tour");
-    await page.locator('[data-moment-select]').selectOption("1");
-    await noOverflow(page);
-    await scrollHeading(page,".build-recording");
-    await capture(page,"recording-"+width+"-"+appearance,"Saved project plan at the tablet breakpoint",false,".build-recording");
-    await context.close();
-  }
-  const unavailableContext=await browser.newContext({viewport:{width:390,height:844},colorScheme:"light"});
-  await unavailableContext.route("**/demo/inbox/recording.json?*",route=>route.fulfill({status:503,body:"Unavailable"}));
-  const unavailablePage=await unavailableContext.newPage();
-  await unavailablePage.goto(origin+"/");
-  await unavailablePage.locator("[data-error]:visible").waitFor();
-  assert.equal(await unavailablePage.locator(".replay-controls:visible").count(),0);
-  assert(await unavailablePage.locator(".session-terminal").isVisible());
-  await unavailablePage.locator(".complete-transcript > summary").click();
-  assert.equal(await unavailablePage.locator(".complete-transcript > ol > li").count(),53);
-  await scrollHeading(unavailablePage,".build-recording");
-  await capture(unavailablePage,"recording-unavailable","Failed recording download retains real conversation and complete static transcript",false,".build-recording");
-  await unavailableContext.close();
-  const staticContext = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 390, height: 844 } });
-  const staticPage = await staticContext.newPage();
-  await staticPage.goto(origin + "/");
-  assert.equal(await staticPage.locator(".complete-transcript > ol > li").count(),53,"Without JavaScript the full build transcript remains available");
-  assert.equal(await staticPage.locator(".replay-controls:visible").count(),0,"No inert playback controls without JavaScript");
-  assert(await staticPage.locator(".recording-downloads a").first().isVisible(),"Project and session downloads remain available without JavaScript");
-  await staticPage.locator("#evidence > summary").click();
-  assert.equal(await staticPage.locator(".product-evidence [data-panel]:visible").count(), 3, "Recorded product evidence remains available without JavaScript");
-  assert.equal(await staticPage.locator("[data-tablist]:visible").count(), 0, "No inert tab controls without JavaScript");
-  assert.equal(await staticPage.locator("[data-project-tour] > [data-panel]:visible").count(),4,"All feature explanations remain readable without JavaScript");
-  await capture(staticPage,"tour-without-javascript","Static project records and explanations without JavaScript",false,"#tour-roadmap");
-  await scrollHeading(staticPage, ".build-recording");
-  await capture(staticPage, ["recording","agent-session","session-replay","session-replay-finish"].includes(evidenceScope) ? "recording-without-javascript" : "home-without-javascript", "Real conversation and complete transcript remain readable without JavaScript", false, ["recording","agent-session","session-replay","session-replay-finish"].includes(evidenceScope) ? ".build-recording" : undefined);
-  await staticContext.close();
-  await writeReport("passed");
-  console.log(JSON.stringify({ passed: true, profiles: checks.length, screenshots: captures.length, evidence }, null, 2));
-} catch (error) {
-  await writeReport("failed", error.message);
-  throw error;
-} finally {
-  await browser.close();
-  await new Promise((done) => server.close(done));
+ }
+ for(const width of [320,820])for(const appearance of ["light","dark"]){
+  const page=await browser.newPage({viewport:{width,height:900},colorScheme:appearance,reducedMotion:"reduce"});await page.addInitScript(theme=>localStorage.setItem("theme",theme),appearance);await page.goto(origin);await page.locator('[data-build][data-ready="true"]').waitFor();
+  await page.getByRole("tab",{name:"Roadmap",exact:true}).click();await noOverflow(page,"Roadmap "+width);
+  assert(await page.locator(".build-views").evaluate(e=>{const bounds=e.getBoundingClientRect();return [...e.querySelectorAll("button")].every(b=>{const r=b.getBoundingClientRect();return r.left>=bounds.left&&r.right<=bounds.right;});}),"All tabs stay inside the session at "+width);
+  await capture(page,"reflow-"+width+"-"+appearance,"Roadmap and transport at "+width+" pixels",{region:".build-window"});await page.close();
+ }
+ const nojs=await browser.newPage({javaScriptEnabled:false,viewport:{width:390,height:844}});await nojs.goto(origin);await nojs.locator(".build-transcript>summary").click();assert(await nojs.locator(".build-transcript ol").isVisible());await capture(nojs,"no-javascript","Recorded actions remain readable without scripts",{region:".build-transcript"});await nojs.close();
+ const offline=await browser.newPage({viewport:{width:390,height:844}});await offline.route("**/demo/tic-tac-toe/recording.json*",r=>r.abort());await offline.goto(origin);await offline.locator('[data-build][data-ready="error"]').waitFor();assert(await offline.locator(".build-error").isVisible());await capture(offline,"recording-unavailable","Readable fallback when the recording request fails",{region:".build-window"});await offline.close();
+ assert.deepEqual(errors,[]);status="passed";console.log("Website browser checks passed: four profiles, all guides, playback, actual records, search, keyboard controls, reflow and recovery.");
+}catch(error){failure=String(error);throw error;}finally{
+ if(evidence)await writeFile(resolve(evidence,"browser-checks.json"),JSON.stringify({status,failure,capturedAt:new Date().toISOString(),renderer:"Playwright WebKit",rendererVersion:browser.version(),origin,sourceHashes,checks,captures,limitations:["Headless WebKit only; native OS input and assistive technology not tested.","Screenshots require a separate visual review."]},null,2)+"\n");
+ await browser.close();server.close();
 }

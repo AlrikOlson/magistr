@@ -50,7 +50,7 @@ const current = Astro.url.pathname;
       menu.hidden = !open;
     };
     toggle.addEventListener("click", () => setOpen(menu.hidden));
-    nav.addEventListener("keydown", (event) => {
+    document.addEventListener("keydown", (event) => {
       if (event.key === "Escape" && !menu.hidden) {
         setOpen(false);
         toggle.focus();

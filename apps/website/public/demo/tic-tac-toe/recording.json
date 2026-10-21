@@ -1,0 +1,1706 @@
+{
+  "version": 1,
+  "project": {
+    "name": "Tic-tac-toe",
+    "engine": "Bevy 0.20.0",
+    "agent": "Codex",
+    "recorded": "2026-10-21",
+    "brief": "Build a tic-tac-toe game in Bevy 0.20.0. Play against the computer, show the result, then play another round with a running score."
+  },
+  "provenance": {
+    "description": "Selected tool actions and saved project records from the actual implementation. Routine setup is omitted. No user prompts or private session files are included.",
+    "source": "examples/bevy-tic-tac-toe",
+    "limitations": [
+      "The re-enacted terminal groups recorded tool actions; it is not a screen recording of Codex.",
+      "The game uses the same Rust rules in Bevy and in the exhaustive tests."
+    ]
+  },
+  "events": [
+    {
+      "id": "action-1",
+      "at": "2026-10-21T08:07:54.896Z",
+      "kind": "reasoning",
+      "operation": "think_record_step",
+      "title": "Build a Bevy game that can carry the whole website example",
+      "step": {
+        "step_number": 1749,
+        "purpose": "Build a Bevy game that can carry the whole website example",
+        "context": "The owner replaced the proposed booking app with a video game in Bevy, suggesting tic-tac-toe. The website must show real project work rather than generic feature diagrams.",
+        "thought": "Use one small complete game: a legal board, an opponent, a Bevy interface and a second round. Keep rules independent of rendering so game behavior can be checked exhaustively without opening a window. Record genuine roadmap changes and decisions through the existing owner; the example lives inside this repository and has its own Cargo workspace.",
+        "outcome": "Build the game in examples/bevy-tic-tac-toe and make its actual recorded work the single website story.",
+        "rationale": "These deliverables are easy to recognize, have real dependencies, and expose a meaningful algorithm decision without requiring private project context.",
+        "next_action": "Create four dependent roadmap pieces and implement the rules.",
+        "pinned": true,
+        "timestamp": "2026-10-21T08:07:54.123061+00:00",
+        "execution_ref": "task:concrete-feature-tour",
+        "record_id": "step-1749"
+      },
+      "output": "Build the game in examples/bevy-tic-tac-toe and make its actual recorded work the single website story.\n\nThese deliverables are easy to recognize, have real dependencies, and expose a meaningful algorithm decision without requiring private project context."
+    },
+    {
+      "id": "action-2",
+      "at": "2026-10-21T08:07:56.040Z",
+      "kind": "roadmap",
+      "operation": "roadmap_add_chunk",
+      "title": "Plan: Rules and turns",
+      "chunk": {
+        "id": "example-ttt-rules",
+        "title": "Reject illegal moves and recognize every game ending",
+        "name": "Rules and turns",
+        "status": "pending",
+        "priority": 400,
+        "description": "Reject illegal moves and recognize every game ending.",
+        "content": {
+          "version": 1,
+          "summary": "Reject illegal moves and recognize every game ending.",
+          "facts": [
+            {
+              "label": "Project",
+              "value": "Bevy tic-tac-toe"
+            }
+          ],
+          "sections": [
+            {
+              "heading": "Done when",
+              "list": [
+                {
+                  "text": "X and O alternate; occupied and out-of-range cells cannot change the board.",
+                  "done": false
+                },
+                {
+                  "text": "All eight winning lines and a full-board draw are recognized.",
+                  "done": false
+                },
+                {
+                  "text": "A finished game accepts no further moves.",
+                  "done": false
+                }
+              ]
+            }
+          ]
+        },
+        "acceptance": [
+          "X and O alternate; occupied and out-of-range cells cannot change the board.",
+          "All eight winning lines and a full-board draw are recognized.",
+          "A finished game accepts no further moves."
+        ],
+        "deps": [],
+        "cross_refs": [],
+        "group": "Website example"
+      },
+      "output": "Reject illegal moves and recognize every game ending\n• X and O alternate; occupied and out-of-range cells cannot change the board.\n• All eight winning lines and a full-board draw are recognized.\n• A finished game accepts no further moves."
+    },
+    {
+      "id": "action-3",
+      "at": "2026-10-21T08:07:57.181Z",
+      "kind": "roadmap",
+      "operation": "roadmap_add_chunk",
+      "title": "Plan: Computer opponent",
+      "chunk": {
+        "id": "example-ttt-opponent",
+        "title": "Make an opponent that never loses",
+        "name": "Computer opponent",
+        "status": "pending",
+        "priority": 400,
+        "description": "Make an opponent that never loses.",
+        "content": {
+          "version": 1,
+          "summary": "Make an opponent that never loses.",
+          "facts": [
+            {
+              "label": "Project",
+              "value": "Bevy tic-tac-toe"
+            }
+          ],
+          "sections": [
+            {
+              "heading": "Done when",
+              "list": [
+                {
+                  "text": "The computer plays legal moves for either mark.",
+                  "done": false
+                },
+                {
+                  "text": "An exhaustive search of human replies finds no computer losses.",
+                  "done": false
+                },
+                {
+                  "text": "Record the comparison between a simple tactical policy and full search.",
+                  "done": false
+                }
+              ]
+            }
+          ]
+        },
+        "acceptance": [
+          "The computer plays legal moves for either mark.",
+          "An exhaustive search of human replies finds no computer losses.",
+          "Record the comparison between a simple tactical policy and full search."
+        ],
+        "deps": [
+          "example-ttt-rules"
+        ],
+        "cross_refs": [],
+        "group": "Website example"
+      },
+      "output": "Make an opponent that never loses\n• The computer plays legal moves for either mark.\n• An exhaustive search of human replies finds no computer losses.\n• Record the comparison between a simple tactical policy and full search."
+    },
+    {
+      "id": "action-4",
+      "at": "2026-10-21T08:07:58.316Z",
+      "kind": "roadmap",
+      "operation": "roadmap_add_chunk",
+      "title": "Plan: Playable Bevy board",
+      "chunk": {
+        "id": "example-ttt-board",
+        "title": "Play a complete game through the Bevy board",
+        "name": "Playable Bevy board",
+        "status": "pending",
+        "priority": 400,
+        "description": "Play a complete game through the Bevy board.",
+        "content": {
+          "version": 1,
+          "summary": "Play a complete game through the Bevy board.",
+          "facts": [
+            {
+              "label": "Project",
+              "value": "Bevy tic-tac-toe"
+            }
+          ],
+          "sections": [
+            {
+              "heading": "Done when",
+              "list": [
+                {
+                  "text": "Nine visible cells accept pointer and keyboard input.",
+                  "done": false
+                },
+                {
+                  "text": "Turn and game-result text reflect the shared rules.",
+                  "done": false
+                },
+                {
+                  "text": "The same Rust game builds for a browser with Bevy.",
+                  "done": false
+                }
+              ]
+            }
+          ]
+        },
+        "acceptance": [
+          "Nine visible cells accept pointer and keyboard input.",
+          "Turn and game-result text reflect the shared rules.",
+          "The same Rust game builds for a browser with Bevy."
+        ],
+        "deps": [
+          "example-ttt-rules"
+        ],
+        "cross_refs": [],
+        "group": "Website example"
+      },
+      "output": "Play a complete game through the Bevy board\n• Nine visible cells accept pointer and keyboard input.\n• Turn and game-result text reflect the shared rules.\n• The same Rust game builds for a browser with Bevy."
+    },
+    {
+      "id": "action-5",
+      "at": "2026-10-21T08:07:59.455Z",
+      "kind": "roadmap",
+      "operation": "roadmap_add_chunk",
+      "title": "Plan: Another round",
+      "chunk": {
+        "id": "example-ttt-rematch",
+        "title": "Play again, keep the score and alternate who starts",
+        "name": "Another round",
+        "status": "pending",
+        "priority": 400,
+        "description": "Play again, keep the score and alternate who starts.",
+        "content": {
+          "version": 1,
+          "summary": "Play again, keep the score and alternate who starts.",
+          "facts": [
+            {
+              "label": "Project",
+              "value": "Bevy tic-tac-toe"
+            }
+          ],
+          "sections": [
+            {
+              "heading": "Done when",
+              "list": [
+                {
+                  "text": "The computer responds through the same game rules.",
+                  "done": false
+                },
+                {
+                  "text": "Finished rounds add one score; further input cannot add another.",
+                  "done": false
+                },
+                {
+                  "text": "Play again clears the board, preserves the score and alternates the opening player.",
+                  "done": false
+                }
+              ]
+            }
+          ]
+        },
+        "acceptance": [
+          "The computer responds through the same game rules.",
+          "Finished rounds add one score; further input cannot add another.",
+          "Play again clears the board, preserves the score and alternates the opening player."
+        ],
+        "deps": [
+          "example-ttt-opponent",
+          "example-ttt-board"
+        ],
+        "cross_refs": [],
+        "group": "Website example"
+      },
+      "output": "Play again, keep the score and alternate who starts\n• The computer responds through the same game rules.\n• Finished rounds add one score; further input cannot add another.\n• Play again clears the board, preserves the score and alternates the opening player."
+    },
+    {
+      "id": "action-6",
+      "at": "2026-10-21T08:08:30.806Z",
+      "kind": "roadmap",
+      "operation": "roadmap_start_chunk",
+      "title": "Start: Rules and turns",
+      "chunk": {
+        "id": "example-ttt-rules",
+        "title": "Reject illegal moves and recognize every game ending",
+        "name": "Rules and turns",
+        "status": "in_progress",
+        "priority": 400,
+        "description": "Reject illegal moves and recognize every game ending.",
+        "content": {
+          "version": 1,
+          "summary": "Reject illegal moves and recognize every game ending.",
+          "facts": [
+            {
+              "label": "Project",
+              "value": "Bevy tic-tac-toe"
+            }
+          ],
+          "sections": [
+            {
+              "heading": "Done when",
+              "list": [
+                {
+                  "text": "X and O alternate; occupied and out-of-range cells cannot change the board.",
+                  "done": false
+                },
+                {
+                  "text": "All eight winning lines and a full-board draw are recognized.",
+                  "done": false
+                },
+                {
+                  "text": "A finished game accepts no further moves.",
+                  "done": false
+                }
+              ]
+            }
+          ]
+        },
+        "acceptance": [
+          "X and O alternate; occupied and out-of-range cells cannot change the board.",
+          "All eight winning lines and a full-board draw are recognized.",
+          "A finished game accepts no further moves."
+        ],
+        "deps": [],
+        "cross_refs": [],
+        "group": "Website example"
+      },
+      "output": "Reject illegal moves and recognize every game ending\n• X and O alternate; occupied and out-of-range cells cannot change the board.\n• All eight winning lines and a full-board draw are recognized.\n• A finished game accepts no further moves."
+    },
+    {
+      "id": "action-7",
+      "at": "2026-10-21T08:08:32.665Z",
+      "kind": "work",
+      "operation": "plan_work",
+      "title": "Implement legal moves, alternating turns and game endings",
+      "task": {
+        "id": "ttt-rules",
+        "title": "Implement legal moves, alternating turns and game endings",
+        "status": "planned",
+        "type": "implement"
+      },
+      "output": "Implement legal moves, alternating turns and game endings\nStatus: planned"
+    },
+    {
+      "id": "action-8",
+      "at": "2026-10-21T08:08:33.596Z",
+      "kind": "work",
+      "operation": "start_work",
+      "title": "Implement legal moves, alternating turns and game endings",
+      "task": {
+        "id": "ttt-rules",
+        "title": "Implement legal moves, alternating turns and game endings",
+        "status": "active",
+        "type": "implement"
+      },
+      "output": "Implement legal moves, alternating turns and game endings\nStatus: active"
+    },
+    {
+      "id": "change-58",
+      "at": "2026-10-21T08:08:34.631Z",
+      "kind": "change",
+      "operation": "write",
+      "title": "Write Cargo.toml",
+      "file": {
+        "path": "Cargo.toml",
+        "content": "[package]\nname = \"magistr-tic-tac-toe\"\nversion = \"0.1.0\"\nedition = \"2024\"\npublish = false\n\n# The website example builds independently of Magistr.\n[workspace]\n\n[profile.release]\nopt-level = \"s\"\nlto = \"thin\"\n"
+      },
+      "output": "[package]\nname = \"magistr-tic-tac-toe\"\nversion = \"0.1.0\"\nedition = \"2024\"\npublish = false\n\n# The website example builds independently of Magistr.\n[workspace]\n\n[profile.release]\nopt-level = \"s\"\nlto = \"thin\"\n"
+    },
+    {
+      "id": "change-59",
+      "at": "2026-10-21T08:08:34.813Z",
+      "kind": "change",
+      "operation": "write",
+      "title": "Write src/lib.rs",
+      "file": {
+        "path": "src/lib.rs",
+        "content": "//! Game rules shared by the Bevy interface and exhaustive opponent checks.\n#[derive(Clone, Copy, Debug, Eq, PartialEq)]\npub enum Mark {\n    X,\n    O,\n}\n\nimpl Mark {\n    pub fn other(self) -> Self {\n        match self {\n            Self::X => Self::O,\n            Self::O => Self::X,\n        }\n    }\n    pub fn label(self) -> &'static str {\n        match self {\n            Self::X => \"X\",\n            Self::O => \"O\",\n        }\n    }\n}\n\npub const LINES: [[usize; 3]; 8] = [\n    [0, 1, 2], [3, 4, 5], [6, 7, 8],\n    [0, 3, 6], [1, 4, 7], [2, 5, 8],\n    [0, 4, 8], [2, 4, 6],\n];\n\n#[derive(Clone, Copy, Debug, Eq, PartialEq)]\npub enum Outcome {\n    Playing,\n    Won(Mark, [usize; 3]),\n    Draw,\n}\n\n#[derive(Clone, Copy, Debug, Eq, PartialEq)]\npub enum MoveError {\n    OutsideBoard,\n    Occupied,\n    Finished,\n}\n\n#[derive(Clone, Debug, Eq, PartialEq)]\npub struct Board {\n    cells: [Option<Mark>; 9],\n    turn: Mark,\n}\n\nimpl Default for Board {\n    fn default() -> Self {\n        Self { cells: [None; 9], turn: Mark::X }\n    }\n}\n\nimpl Board {\n    pub fn cells(&self) -> &[Option<Mark>; 9] { &self.cells }\n    pub fn turn(&self) -> Mark { self.turn }\n    pub fn outcome(&self) -> Outcome {\n        for line in LINES {\n            if let Some(mark) = self.cells[line[0]] {\n                if line.iter().all(|&cell| self.cells[cell] == Some(mark)) {\n                    return Outcome::Won(mark, line);\n                }\n            }\n        }\n        if self.cells.iter().all(Option::is_some) { Outcome::Draw } else { Outcome::Playing }\n    }\n    pub fn play(&mut self, cell: usize) -> Result<(), MoveError> {\n        if cell >= 9 { return Err(MoveError::OutsideBoard); }\n        if self.outcome() != Outcome::Playing { return Err(MoveError::Finished); }\n        if self.cells[cell].is_some() { return Err(MoveError::Occupied); }\n        self.cells[cell] = Some(self.turn);\n        self.turn = self.turn.other();\n        Ok(())\n    }\n    pub fn legal_moves(&self) -> impl Iterator<Item = usize> + '_ {\n        (0..9).filter(|&i| self.outcome() == Outcome::Playing && self.cells[i].is_none())\n    }\n}\n\n#[cfg(test)]\nmod tests {\n    use super::*;\n\n    fn played(moves: &[usize]) -> Board {\n        let mut board = Board::default();\n        for &cell in moves { board.play(cell).unwrap(); }\n        board\n    }\n\n    #[test]\n    fn illegal_moves_leave_both_board_and_turn_unchanged() {\n        let mut board = played(&[4]);\n        let before = board.clone();\n        assert_eq!(board.play(4), Err(MoveError::Occupied));\n        assert_eq!(board.play(9), Err(MoveError::OutsideBoard));\n        assert_eq!(board, before);\n        assert_eq!(board.turn(), Mark::O);\n    }\n\n    #[test]\n    fn recognizes_all_eight_winning_lines_for_both_players() {\n        for line in LINES {\n            for mark in [Mark::X, Mark::O] {\n                let mut board = Board::default();\n                for cell in line { board.cells[cell] = Some(mark); }\n                assert_eq!(board.outcome(), Outcome::Won(mark, line));\n            }\n        }\n    }\n\n    #[test]\n    fn completed_games_reject_more_moves() {\n        let mut board = played(&[0, 3, 1, 4, 2]);\n        assert_eq!(board.outcome(), Outcome::Won(Mark::X, [0, 1, 2]));\n        let before = board.clone();\n        assert_eq!(board.play(8), Err(MoveError::Finished));\n        assert_eq!(board, before);\n        assert_eq!(board.legal_moves().count(), 0);\n    }\n\n    #[test]\n    fn a_full_board_without_a_line_is_a_draw() {\n        let board = played(&[0, 4, 8, 1, 7, 6, 2, 5, 3]);\n        assert_eq!(board.outcome(), Outcome::Draw);\n        assert_eq!(board.legal_moves().count(), 0);\n    }\n\n    #[test]\n    fn a_win_on_the_ninth_move_is_not_a_draw() {\n        let board = played(&[0, 1, 2, 3, 4, 5, 7, 6, 8]);\n        assert_eq!(board.outcome(), Outcome::Won(Mark::X, [0, 4, 8]));\n    }\n}\n"
+      },
+      "output": "//! Game rules shared by the Bevy interface and exhaustive opponent checks.\n#[derive(Clone, Copy, Debug, Eq, PartialEq)]\npub enum Mark {\n    X,\n    O,\n}\n\nimpl Mark {\n    pub fn other(self) -> Self {\n        match self {\n            Self::X => Self::O,\n            Self::O => Self::X,\n        }\n    }\n    pub fn label(self) -> &'static str {\n        match self {\n            Self::X => \"X\",\n            Self::O => \"O\",\n        }\n    }\n}\n\npub const LINES: [[usize; 3]; 8] = [\n    [0, 1, 2], [3, 4, 5], [6, 7, 8],\n    [0, 3, 6], [1, 4, 7], [2, 5, 8],\n    [0, 4, 8], [2, 4, 6],\n];\n\n#[derive(Clone, Copy, Debug, Eq, PartialEq)]\npub enum Outcome {\n    Playing,\n    Won(Mark, [usize; 3]),\n    Draw,\n}\n\n#[derive(Clone, Copy, Debug, Eq, PartialEq)]\npub enum MoveError {\n    OutsideBoard,\n    Occupied,\n    Finished,\n}\n\n#[derive(Clone, Debug, Eq, PartialEq)]\npub struct Board {\n    cells: [Option<Mark>; 9],\n    turn: Mark,\n}\n\nimpl Default for Board {\n    fn default() -> Self {\n        Self { cells: [None; 9], turn: Mark::X }\n    }\n}\n\nimpl Board {\n    pub fn cells(&self) -> &[Option<Mark>; 9] { &self.cells }\n    pub fn turn(&self) -> Mark { self.turn }\n    pub fn outcome(&self) -> Outcome {\n        for line in LINES {\n            if let Some(mark) = self.cells[line[0]] {\n                if line.iter().all(|&cell| self.cells[cell] == Some(mark)) {\n                    return Outcome::Won(mark, line);\n                }\n            }\n        }\n        if self.cells.iter().all(Option::is_some) { Outcome::Draw } else { Outcome::Playing }\n    }\n    pub fn play(&mut self, cell: usize) -> Result<(), MoveError> {\n        if cell >= 9 { return Err(MoveError::OutsideBoard); }\n        if self.outcome() != Outcome::Playing { return Err(MoveError::Finished); }\n        if self.cells[cell].is_some() { return Err(MoveError::Occupied); }\n        self.cells[cell] = Some(self.turn);\n        self.turn = self.turn.other();\n        Ok(())\n    }\n    pub fn legal_moves(&self) -> impl Iterator<Item = usize> + '_ {\n        (0..9).filter(|&i| self.outcome() == Outcome::Playing && self.cells[i].is_none())\n    }\n}\n\n#[cfg(test)]\nmod tests {\n    use super::*;\n\n    fn played(moves: &[usize]) -> Board {\n        let mut board = Board::default();\n        for &cell in moves { board.play(cell).unwrap(); }\n        board\n    }\n\n    #[test]\n    fn illegal_moves_leave_both_board_and_turn_unchanged() {\n        let mut board = played(&[4]);\n        let before = board.clone();\n        assert_eq!(board.play(4), Err(MoveError::Occupied));\n        assert_eq!(board.play(9), Err(MoveError::OutsideBoard));\n        assert_eq!(board, before);\n        assert_eq!(board.turn(), Mark::O);\n    }\n\n    #[test]\n    fn recognizes_all_eight_winning_lines_for_both_players() {\n        for line in LINES {\n            for mark in [Mark::X, Mark::O] {\n                let mut board = Board::default();\n                for cell in line { board.cells[cell] = Some(mark); }\n                assert_eq!(board.outcome(), Outcome::Won(mark, line));\n            }\n        }\n    }\n\n    #[test]\n    fn completed_games_reject_more_moves() {\n        let mut board = played(&[0, 3, 1, 4, 2]);\n        assert_eq!(board.outcome(), Outcome::Won(Mark::X, [0, 1, 2]));\n        let before = board.clone();\n        assert_eq!(board.play(8), Err(MoveError::Finished));\n        assert_eq!(board, before);\n        assert_eq!(board.legal_moves().count(), 0);\n    }\n\n    #[test]\n    fn a_full_board_without_a_line_is_a_draw() {\n        let board = played(&[0, 4, 8, 1, 7, 6, 2, 5, 3]);\n        assert_eq!(board.outcome(), Outcome::Draw);\n        assert_eq!(board.legal_moves().count(), 0);\n    }\n\n    #[test]\n    fn a_win_on_the_ninth_move_is_not_a_draw() {\n        let board = played(&[0, 1, 2, 3, 4, 5, 7, 6, 8]);\n        assert_eq!(board.outcome(), Outcome::Won(Mark::X, [0, 4, 8]));\n    }\n}\n"
+    },
+    {
+      "id": "action-9",
+      "at": "2026-10-21T08:08:36.797Z",
+      "kind": "check",
+      "operation": "check_work",
+      "title": "Game rules",
+      "check": {
+        "type": "test",
+        "name": "Game rules",
+        "passed": true,
+        "details": "$ cargo test --manifest-path examples/bevy-tic-tac-toe/Cargo.toml --lib\n[exit 0; queue 0ms; execution 710ms]\n\nrunning 5 tests\ntest tests::illegal_moves_leave_both_board_and_turn_unchanged ... ok\ntest tests::completed_games_reject_more_moves ... ok\ntest tests::a_win_on_the_ninth_move_is_not_a_draw ... ok\ntest tests::recognizes_all_eight_winning_lines_for_both_players ... ok\ntest tests::a_full_board_without_a_line_is_a_draw ... ok\n\ntest result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n   Compiling magistr-tic-tac-toe v0.1.0 (./examples/bevy-tic-tac-toe)\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.68s\n     Running unittests src/lib.rs (examples/bevy-tic-tac-toe/target/debug/deps/magistr_tic_tac_toe-81fc08b301c7cda0)",
+        "verified": true,
+        "command": "cargo test --manifest-path examples/bevy-tic-tac-toe/Cargo.toml --lib",
+        "exit_code": 0,
+        "timestamp": "2026-10-21T08:08:36.208739+00:00"
+      },
+      "task": "ttt-rules",
+      "output": "$ cargo test --manifest-path examples/bevy-tic-tac-toe/Cargo.toml --lib\n[exit 0; queue 0ms; execution 710ms]\n\nrunning 5 tests\ntest tests::illegal_moves_leave_both_board_and_turn_unchanged ... ok\ntest tests::completed_games_reject_more_moves ... ok\ntest tests::a_win_on_the_ninth_move_is_not_a_draw ... ok\ntest tests::recognizes_all_eight_winning_lines_for_both_players ... ok\ntest tests::a_full_board_without_a_line_is_a_draw ... ok\n\ntest result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n   Compiling magistr-tic-tac-toe v0.1.0 (./examples/bevy-tic-tac-toe)\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.68s\n     Running unittests src/lib.rs (examples/bevy-tic-tac-toe/target/debug/deps/magistr_tic_tac_toe-81fc08b301c7cda0)"
+    },
+    {
+      "id": "action-10",
+      "at": "2026-10-21T08:08:53.590Z",
+      "kind": "check",
+      "operation": "check_work",
+      "title": "Rules formatting",
+      "check": {
+        "type": "lint",
+        "name": "Rules formatting",
+        "passed": true,
+        "details": "$ cargo fmt --manifest-path examples/bevy-tic-tac-toe/Cargo.toml --check\n[exit 0; queue 0ms; execution 48ms]\n",
+        "verified": true,
+        "command": "cargo fmt --manifest-path examples/bevy-tic-tac-toe/Cargo.toml --check",
+        "exit_code": 0,
+        "timestamp": "2026-10-21T08:08:53.001486+00:00"
+      },
+      "task": "ttt-rules",
+      "output": "$ cargo fmt --manifest-path examples/bevy-tic-tac-toe/Cargo.toml --check\n[exit 0; queue 0ms; execution 48ms]\n"
+    },
+    {
+      "id": "action-11",
+      "at": "2026-10-21T08:08:55.130Z",
+      "kind": "work",
+      "operation": "roadmap_complete_chunk",
+      "title": "The rules passed, but their inputs changed",
+      "output": "completion refused: 1 required gate(s) lack current evidence on task `ttt-rules` (run 1a837f38-9167-4a81-b33d-361db7f90ad7):\n  - Game rules: the workspace changed while the gate ran: examples/bevy-tic-tac-toe/Cargo.lock (Added)\nRe-run the outstanding gates on `ttt-rules` against the current tree and complete again."
+    },
+    {
+      "id": "action-12",
+      "at": "2026-10-21T08:08:56.115Z",
+      "kind": "work",
+      "operation": "finish_work",
+      "title": "Implement legal moves, alternating turns and game endings",
+      "task": {
+        "id": "ttt-rules",
+        "title": "Implement legal moves, alternating turns and game endings",
+        "status": "completed",
+        "type": "implement"
+      },
+      "output": "Implement legal moves, alternating turns and game endings\nStatus: completed"
+    },
+    {
+      "id": "action-13",
+      "at": "2026-10-21T08:08:58.526Z",
+      "kind": "work",
+      "operation": "plan_work",
+      "title": "Compare a tactical opponent with minimax, then verify every human reply",
+      "task": {
+        "id": "ttt-opponent",
+        "title": "Compare a tactical opponent with minimax, then verify every human reply",
+        "status": "planned",
+        "type": "implement"
+      },
+      "output": "Compare a tactical opponent with minimax, then verify every human reply\nStatus: planned"
+    },
+    {
+      "id": "action-14",
+      "at": "2026-10-21T08:08:59.508Z",
+      "kind": "work",
+      "operation": "start_work",
+      "title": "Compare a tactical opponent with minimax, then verify every human reply",
+      "task": {
+        "id": "ttt-opponent",
+        "title": "Compare a tactical opponent with minimax, then verify every human reply",
+        "status": "active",
+        "type": "implement"
+      },
+      "output": "Compare a tactical opponent with minimax, then verify every human reply\nStatus: active"
+    },
+    {
+      "id": "action-15",
+      "at": "2026-10-21T08:09:00.766Z",
+      "kind": "reasoning",
+      "operation": "think_record_step",
+      "title": "Does the opponent need to search ahead?",
+      "step": {
+        "step_number": 1750,
+        "purpose": "Does the opponent need to search ahead?",
+        "context": "The game needs a computer opponent. The rules are implemented and five behavior tests pass. There are only nine cells, so both a short tactical policy and a full search are practical candidates.",
+        "thought": "A policy that takes a win, blocks a loss, then chooses the center or a corner is easy to read. It may still miss a fork, where one move creates two winning threats. Compare that candidate against every legal human reply before deciding.",
+        "outcome": "Test the short tactical policy before choosing the opponent.",
+        "rationale": "A concrete losing game is better evidence than assuming a familiar heuristic is sufficient.",
+        "next_action": "Enumerate games against the tactical policy and retain the first losing sequence.",
+        "branch_id": "branch-3f6f5891-22e6-43b5-ae94-87b4851d8976",
+        "branch_from": 1749,
+        "branch_name": "How should the opponent choose a move?",
+        "timestamp": "2026-10-21T08:08:59.946020+00:00",
+        "execution_ref": "task:ttt-opponent",
+        "record_id": "step-1750"
+      },
+      "output": "Test the short tactical policy before choosing the opponent.\n\nA concrete losing game is better evidence than assuming a familiar heuristic is sufficient."
+    },
+    {
+      "id": "action-16",
+      "at": "2026-10-21T08:09:17.528Z",
+      "kind": "check",
+      "operation": "check_work",
+      "title": "Game rules",
+      "check": {
+        "type": "test",
+        "name": "Game rules",
+        "passed": true,
+        "details": "$ cargo test --locked --manifest-path examples/bevy-tic-tac-toe/Cargo.toml --lib\n[exit 0; queue 0ms; execution 30ms]\n\nrunning 5 tests\ntest tests::a_full_board_without_a_line_is_a_draw ... ok\ntest tests::completed_games_reject_more_moves ... ok\ntest tests::a_win_on_the_ninth_move_is_not_a_draw ... ok\ntest tests::illegal_moves_leave_both_board_and_turn_unchanged ... ok\ntest tests::recognizes_all_eight_winning_lines_for_both_players ... ok\n\ntest result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.00s\n     Running unittests src/lib.rs (examples/bevy-tic-tac-toe/target/debug/deps/magistr_tic_tac_toe-81fc08b301c7cda0)",
+        "verified": true,
+        "command": "cargo test --locked --manifest-path examples/bevy-tic-tac-toe/Cargo.toml --lib",
+        "exit_code": 0,
+        "timestamp": "2026-10-21T08:09:16.969383+00:00"
+      },
+      "task": "ttt-rules",
+      "output": "$ cargo test --locked --manifest-path examples/bevy-tic-tac-toe/Cargo.toml --lib\n[exit 0; queue 0ms; execution 30ms]\n\nrunning 5 tests\ntest tests::a_full_board_without_a_line_is_a_draw ... ok\ntest tests::completed_games_reject_more_moves ... ok\ntest tests::a_win_on_the_ninth_move_is_not_a_draw ... ok\ntest tests::illegal_moves_leave_both_board_and_turn_unchanged ... ok\ntest tests::recognizes_all_eight_winning_lines_for_both_players ... ok\n\ntest result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.00s\n     Running unittests src/lib.rs (examples/bevy-tic-tac-toe/target/debug/deps/magistr_tic_tac_toe-81fc08b301c7cda0)"
+    },
+    {
+      "id": "action-17",
+      "at": "2026-10-21T08:09:19.530Z",
+      "kind": "roadmap",
+      "operation": "roadmap_complete_chunk",
+      "title": "Finish: Rules and turns",
+      "chunk": {
+        "id": "example-ttt-rules",
+        "title": "Reject illegal moves and recognize every game ending",
+        "name": "Rules and turns",
+        "status": "done",
+        "priority": 400,
+        "description": "Reject illegal moves and recognize every game ending.",
+        "content": {
+          "version": 1,
+          "summary": "Reject illegal moves and recognize every game ending.",
+          "facts": [
+            {
+              "label": "Project",
+              "value": "Bevy tic-tac-toe"
+            }
+          ],
+          "sections": [
+            {
+              "heading": "Done when",
+              "list": [
+                {
+                  "text": "X and O alternate; occupied and out-of-range cells cannot change the board.",
+                  "done": false
+                },
+                {
+                  "text": "All eight winning lines and a full-board draw are recognized.",
+                  "done": false
+                },
+                {
+                  "text": "A finished game accepts no further moves.",
+                  "done": false
+                }
+              ]
+            }
+          ]
+        },
+        "acceptance": [
+          "X and O alternate; occupied and out-of-range cells cannot change the board.",
+          "All eight winning lines and a full-board draw are recognized.",
+          "A finished game accepts no further moves."
+        ],
+        "deps": [],
+        "cross_refs": [
+          "task:ttt-rules"
+        ],
+        "group": "Website example"
+      },
+      "output": "Reject illegal moves and recognize every game ending\n• X and O alternate; occupied and out-of-range cells cannot change the board.\n• All eight winning lines and a full-board draw are recognized.\n• A finished game accepts no further moves."
+    },
+    {
+      "id": "action-18",
+      "at": "2026-10-21T08:09:20.671Z",
+      "kind": "roadmap",
+      "operation": "roadmap_start_chunk",
+      "title": "Start: Computer opponent",
+      "chunk": {
+        "id": "example-ttt-opponent",
+        "title": "Make an opponent that never loses",
+        "name": "Computer opponent",
+        "status": "in_progress",
+        "priority": 400,
+        "description": "Make an opponent that never loses.",
+        "content": {
+          "version": 1,
+          "summary": "Make an opponent that never loses.",
+          "facts": [
+            {
+              "label": "Project",
+              "value": "Bevy tic-tac-toe"
+            }
+          ],
+          "sections": [
+            {
+              "heading": "Done when",
+              "list": [
+                {
+                  "text": "The computer plays legal moves for either mark.",
+                  "done": false
+                },
+                {
+                  "text": "An exhaustive search of human replies finds no computer losses.",
+                  "done": false
+                },
+                {
+                  "text": "Record the comparison between a simple tactical policy and full search.",
+                  "done": false
+                }
+              ]
+            }
+          ]
+        },
+        "acceptance": [
+          "The computer plays legal moves for either mark.",
+          "An exhaustive search of human replies finds no computer losses.",
+          "Record the comparison between a simple tactical policy and full search."
+        ],
+        "deps": [
+          "example-ttt-rules"
+        ],
+        "cross_refs": [],
+        "group": "Website example"
+      },
+      "output": "Make an opponent that never loses\n• The computer plays legal moves for either mark.\n• An exhaustive search of human replies finds no computer losses.\n• Record the comparison between a simple tactical policy and full search."
+    },
+    {
+      "id": "change-60",
+      "at": "2026-10-21T08:09:21.719Z",
+      "kind": "change",
+      "operation": "write",
+      "title": "Write examples/compare_opponents.rs",
+      "file": {
+        "path": "examples/compare_opponents.rs",
+        "content": "//! Evaluate the proposed win/block/center/corner policy against every human reply.\nuse magistr_tic_tac_toe::{Board, Mark, Outcome};\n\nfn tactical(board: &Board) -> Option<usize> {\n    let me = board.turn();\n    let moves: Vec<_> = board.legal_moves().collect();\n    for &cell in &moves {\n        let mut next = board.clone();\n        next.play(cell).unwrap();\n        if matches!(next.outcome(), Outcome::Won(mark, _) if mark == me) { return Some(cell); }\n    }\n    for line in magistr_tic_tac_toe::LINES {\n        let threats = line.iter().filter(|&&i| board.cells()[i] == Some(me.other())).count();\n        if threats == 2 {\n            if let Some(&cell) = line.iter().find(|&&i| board.cells()[i].is_none()) { return Some(cell); }\n        }\n    }\n    [4, 0, 2, 6, 8, 1, 3, 5, 7].into_iter().find(|i| moves.contains(i))\n}\n\nfn find_loss(board: Board, computer: Mark, history: &mut Vec<usize>) -> bool {\n    match board.outcome() {\n        Outcome::Won(mark, _) => return mark != computer,\n        Outcome::Draw => return false,\n        Outcome::Playing => {}\n    }\n    let moves: Vec<_> = if board.turn() == computer { tactical(&board).into_iter().collect() }\n        else { board.legal_moves().collect() };\n    for cell in moves {\n        let mut next = board.clone();\n        next.play(cell).unwrap();\n        history.push(cell);\n        if find_loss(next, computer, history) { return true; }\n        history.pop();\n    }\n    false\n}\n\nfn main() {\n    for computer in [Mark::X, Mark::O] {\n        let mut history = Vec::new();\n        let loses = find_loss(Board::default(), computer, &mut history);\n        assert!(loses, \"This experiment expects a counterexample, not a production failure.\");\n        println!(\"Tactical policy as {} loses. Move sequence (cells 1–9): {:?}\", computer.label(),\n            history.iter().map(|i| i + 1).collect::<Vec<_>>());\n    }\n}\n"
+      },
+      "output": "//! Evaluate the proposed win/block/center/corner policy against every human reply.\nuse magistr_tic_tac_toe::{Board, Mark, Outcome};\n\nfn tactical(board: &Board) -> Option<usize> {\n    let me = board.turn();\n    let moves: Vec<_> = board.legal_moves().collect();\n    for &cell in &moves {\n        let mut next = board.clone();\n        next.play(cell).unwrap();\n        if matches!(next.outcome(), Outcome::Won(mark, _) if mark == me) { return Some(cell); }\n    }\n    for line in magistr_tic_tac_toe::LINES {\n        let threats = line.iter().filter(|&&i| board.cells()[i] == Some(me.other())).count();\n        if threats == 2 {\n            if let Some(&cell) = line.iter().find(|&&i| board.cells()[i].is_none()) { return Some(cell); }\n        }\n    }\n    [4, 0, 2, 6, 8, 1, 3, 5, 7].into_iter().find(|i| moves.contains(i))\n}\n\nfn find_loss(board: Board, computer: Mark, history: &mut Vec<usize>) -> bool {\n    match board.outcome() {\n        Outcome::Won(mark, _) => return mark != computer,\n        Outcome::Draw => return false,\n        Outcome::Playing => {}\n    }\n    let moves: Vec<_> = if board.turn() == computer { tactical(&board).into_iter().collect() }\n        else { board.legal_moves().collect() };\n    for cell in moves {\n        let mut next = board.clone();\n        next.play(cell).unwrap();\n        history.push(cell);\n        if find_loss(next, computer, history) { return true; }\n        history.pop();\n    }\n    false\n}\n\nfn main() {\n    for computer in [Mark::X, Mark::O] {\n        let mut history = Vec::new();\n        let loses = find_loss(Board::default(), computer, &mut history);\n        assert!(loses, \"This experiment expects a counterexample, not a production failure.\");\n        println!(\"Tactical policy as {} loses. Move sequence (cells 1–9): {:?}\", computer.label(),\n            history.iter().map(|i| i + 1).collect::<Vec<_>>());\n    }\n}\n"
+    },
+    {
+      "id": "action-19",
+      "at": "2026-10-21T08:09:23.334Z",
+      "kind": "check",
+      "operation": "check_work",
+      "title": "Tactical opponent experiment",
+      "check": {
+        "type": "test",
+        "name": "Tactical opponent experiment",
+        "passed": false,
+        "details": "$ cargo run --locked --manifest-path examples/bevy-tic-tac-toe/Cargo.toml --example compare_opponents\n[exit 101; queue 0ms; execution 435ms]\n   Compiling magistr-tic-tac-toe v0.1.0 (./examples/bevy-tic-tac-toe)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.40s\n     Running `examples/bevy-tic-tac-toe/target/debug/examples/compare_opponents`\n\nthread 'main' panicked at examples/compare_opponents.rs:57:9:\nThis experiment expects a counterexample, not a production failure.\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace",
+        "verified": true,
+        "command": "cargo run --locked --manifest-path examples/bevy-tic-tac-toe/Cargo.toml --example compare_opponents",
+        "exit_code": 101,
+        "timestamp": "2026-10-21T08:09:22.737553+00:00"
+      },
+      "task": "ttt-opponent",
+      "output": "$ cargo run --locked --manifest-path examples/bevy-tic-tac-toe/Cargo.toml --example compare_opponents\n[exit 101; queue 0ms; execution 435ms]\n   Compiling magistr-tic-tac-toe v0.1.0 (./examples/bevy-tic-tac-toe)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.40s\n     Running `examples/bevy-tic-tac-toe/target/debug/examples/compare_opponents`\n\nthread 'main' panicked at examples/compare_opponents.rs:57:9:\nThis experiment expects a counterexample, not a production failure.\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace"
+    },
+    {
+      "id": "action-20",
+      "at": "2026-10-21T08:09:58.679Z",
+      "kind": "check",
+      "operation": "check_work",
+      "title": "Tactical opponent experiment",
+      "check": {
+        "type": "test",
+        "name": "Tactical opponent experiment",
+        "passed": true,
+        "details": "$ cargo run --locked --manifest-path examples/bevy-tic-tac-toe/Cargo.toml --example compare_opponents\n[exit 0; queue 0ms; execution 269ms]\nTactical policy as X: no losing game found.\nTactical policy as O loses. Move sequence (cells 1–9): [1, 5, 8, 3, 7, 9, 4]\n   Compiling magistr-tic-tac-toe v0.1.0 (./examples/bevy-tic-tac-toe)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.24s\n     Running `examples/bevy-tic-tac-toe/target/debug/examples/compare_opponents`",
+        "verified": true,
+        "command": "cargo run --locked --manifest-path examples/bevy-tic-tac-toe/Cargo.toml --example compare_opponents",
+        "exit_code": 0,
+        "timestamp": "2026-10-21T08:09:58.080828+00:00"
+      },
+      "task": "ttt-opponent",
+      "output": "$ cargo run --locked --manifest-path examples/bevy-tic-tac-toe/Cargo.toml --example compare_opponents\n[exit 0; queue 0ms; execution 269ms]\nTactical policy as X: no losing game found.\nTactical policy as O loses. Move sequence (cells 1–9): [1, 5, 8, 3, 7, 9, 4]\n   Compiling magistr-tic-tac-toe v0.1.0 (./examples/bevy-tic-tac-toe)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.24s\n     Running `examples/bevy-tic-tac-toe/target/debug/examples/compare_opponents`"
+    },
+    {
+      "id": "action-21",
+      "at": "2026-10-21T08:09:59.928Z",
+      "kind": "reasoning",
+      "operation": "think_record_step",
+      "title": "The short policy misses a fork when it plays second",
+      "step": {
+        "step_number": 1751,
+        "purpose": "The short policy misses a fork when it plays second",
+        "context": "The comparison enumerated legal human replies. The first experiment incorrectly asserted that both opening positions must have a loss; that assertion was removed so the experiment reports what it actually finds.",
+        "thought": "The short policy has no losing path when playing X, but loses as O. The recorded move sequence shows that blocking one immediate threat is not enough against two threats. A single policy is required for both marks because the game alternates the opening player.",
+        "outcome": "Reject the tactical policy for this game; implement full minimax search for either mark.",
+        "rationale": "Nine cells make a complete search affordable, and exhaustive human replies can check the promised behavior directly.",
+        "next_action": "Implement minimax with deterministic tie-breaking and enumerate every human reply for X and O.",
+        "branch_id": "branch-3f6f5891-22e6-43b5-ae94-87b4851d8976",
+        "branch_from": 1749,
+        "branch_name": "How should the opponent choose a move?",
+        "dependencies": [
+          {
+            "step": 1750,
+            "relation": "supports"
+          }
+        ],
+        "timestamp": "2026-10-21T08:09:59.116882+00:00",
+        "execution_ref": "task:ttt-opponent",
+        "record_id": "step-1751"
+      },
+      "output": "Reject the tactical policy for this game; implement full minimax search for either mark.\n\nNine cells make a complete search affordable, and exhaustive human replies can check the promised behavior directly."
+    },
+    {
+      "id": "change-61",
+      "at": "2026-10-21T08:10:00.031Z",
+      "kind": "change",
+      "operation": "write",
+      "title": "Write src/lib.rs",
+      "file": {
+        "path": "src/lib.rs",
+        "content": "//! Game rules shared by the Bevy interface and exhaustive opponent checks.\n#[derive(Clone, Copy, Debug, Eq, PartialEq)]\npub enum Mark {\n    X,\n    O,\n}\n\nimpl Mark {\n    pub fn other(self) -> Self {\n        match self {\n            Self::X => Self::O,\n            Self::O => Self::X,\n        }\n    }\n    pub fn label(self) -> &'static str {\n        match self {\n            Self::X => \"X\",\n            Self::O => \"O\",\n        }\n    }\n}\n\npub const LINES: [[usize; 3]; 8] = [\n    [0, 1, 2],\n    [3, 4, 5],\n    [6, 7, 8],\n    [0, 3, 6],\n    [1, 4, 7],\n    [2, 5, 8],\n    [0, 4, 8],\n    [2, 4, 6],\n];\n\n#[derive(Clone, Copy, Debug, Eq, PartialEq)]\npub enum Outcome {\n    Playing,\n    Won(Mark, [usize; 3]),\n    Draw,\n}\n\n#[derive(Clone, Copy, Debug, Eq, PartialEq)]\npub enum MoveError {\n    OutsideBoard,\n    Occupied,\n    Finished,\n}\n\n#[derive(Clone, Debug, Eq, PartialEq)]\npub struct Board {\n    cells: [Option<Mark>; 9],\n    turn: Mark,\n}\n\nimpl Default for Board {\n    fn default() -> Self {\n        Self {\n            cells: [None; 9],\n            turn: Mark::X,\n        }\n    }\n}\n\nimpl Board {\n    pub fn cells(&self) -> &[Option<Mark>; 9] {\n        &self.cells\n    }\n    pub fn turn(&self) -> Mark {\n        self.turn\n    }\n    pub fn outcome(&self) -> Outcome {\n        for line in LINES {\n            if let Some(mark) = self.cells[line[0]] {\n                if line.iter().all(|&cell| self.cells[cell] == Some(mark)) {\n                    return Outcome::Won(mark, line);\n                }\n            }\n        }\n        if self.cells.iter().all(Option::is_some) {\n            Outcome::Draw\n        } else {\n            Outcome::Playing\n        }\n    }\n    pub fn play(&mut self, cell: usize) -> Result<(), MoveError> {\n        if cell >= 9 {\n            return Err(MoveError::OutsideBoard);\n        }\n        if self.outcome() != Outcome::Playing {\n            return Err(MoveError::Finished);\n        }\n        if self.cells[cell].is_some() {\n            return Err(MoveError::Occupied);\n        }\n        self.cells[cell] = Some(self.turn);\n        self.turn = self.turn.other();\n        Ok(())\n    }\n    pub fn legal_moves(&self) -> impl Iterator<Item = usize> + '_ {\n        (0..9).filter(|&i| self.outcome() == Outcome::Playing && self.cells[i].is_none())\n    }\n}\n\n#[cfg(test)]\nmod tests {\n    use super::*;\n\n    fn played(moves: &[usize]) -> Board {\n        let mut board = Board::default();\n        for &cell in moves {\n            board.play(cell).unwrap();\n        }\n        board\n    }\n\n    #[test]\n    fn illegal_moves_leave_both_board_and_turn_unchanged() {\n        let mut board = played(&[4]);\n        let before = board.clone();\n        assert_eq!(board.play(4), Err(MoveError::Occupied));\n        assert_eq!(board.play(9), Err(MoveError::OutsideBoard));\n        assert_eq!(board, before);\n        assert_eq!(board.turn(), Mark::O);\n    }\n\n    #[test]\n    fn recognizes_all_eight_winning_lines_for_both_players() {\n        for line in LINES {\n            for mark in [Mark::X, Mark::O] {\n                let mut board = Board::default();\n                for cell in line {\n                    board.cells[cell] = Some(mark);\n                }\n                assert_eq!(board.outcome(), Outcome::Won(mark, line));\n            }\n        }\n    }\n\n    #[test]\n    fn completed_games_reject_more_moves() {\n        let mut board = played(&[0, 3, 1, 4, 2]);\n        assert_eq!(board.outcome(), Outcome::Won(Mark::X, [0, 1, 2]));\n        let before = board.clone();\n        assert_eq!(board.play(8), Err(MoveError::Finished));\n        assert_eq!(board, before);\n        assert_eq!(board.legal_moves().count(), 0);\n    }\n\n    #[test]\n    fn a_full_board_without_a_line_is_a_draw() {\n        let board = played(&[0, 4, 8, 1, 7, 6, 2, 5, 3]);\n        assert_eq!(board.outcome(), Outcome::Draw);\n        assert_eq!(board.legal_moves().count(), 0);\n    }\n\n    #[test]\n    fn a_win_on_the_ninth_move_is_not_a_draw() {\n        let board = played(&[0, 1, 2, 3, 4, 5, 7, 6, 8]);\n        assert_eq!(board.outcome(), Outcome::Won(Mark::X, [0, 4, 8]));\n    }\n}\n\n/// Choose an optimal legal move. Stable ordering makes recordings reproducible.\npub fn best_move(board: &Board) -> Option<usize> {\n    if board.outcome() != Outcome::Playing { return None; }\n    let player = board.turn();\n    let mut best = None;\n    let mut best_score = i16::MIN;\n    for cell in [4, 0, 2, 6, 8, 1, 3, 5, 7] {\n        if board.cells[cell].is_some() { continue; }\n        let mut next = board.clone();\n        next.play(cell).expect(\"an empty cell on a live board is legal\");\n        let score = minimax(&next, player, 1);\n        if score > best_score {\n            best_score = score;\n            best = Some(cell);\n        }\n    }\n    best\n}\n\nfn minimax(board: &Board, player: Mark, depth: i16) -> i16 {\n    match board.outcome() {\n        Outcome::Won(mark, _) => return if mark == player { 10 - depth } else { depth - 10 },\n        Outcome::Draw => return 0,\n        Outcome::Playing => {}\n    }\n    let scores = board.legal_moves().map(|cell| {\n        let mut next = board.clone();\n        next.play(cell).unwrap();\n        minimax(&next, player, depth + 1)\n    });\n    if board.turn() == player { scores.max().unwrap() } else { scores.min().unwrap() }\n}\n\n#[cfg(test)]\nmod opponent_tests {\n    use super::*;\n\n    fn count_games(board: Board, computer: Mark) -> (usize, usize) {\n        match board.outcome() {\n            Outcome::Won(mark, _) => {\n                assert_eq!(mark, computer, \"computer lost: {:?}\", board.cells());\n                return (1, 0);\n            }\n            Outcome::Draw => return (0, 1),\n            Outcome::Playing => {}\n        }\n        let moves: Vec<_> = if board.turn() == computer {\n            vec![best_move(&board).expect(\"live board has a move\")]\n        } else { board.legal_moves().collect() };\n        let mut result = (0, 0);\n        for cell in moves {\n            let mut next = board.clone();\n            next.play(cell).expect(\"opponent only returns legal moves\");\n            let (wins, draws) = count_games(next, computer);\n            result.0 += wins;\n            result.1 += draws;\n        }\n        result\n    }\n\n    #[test]\n    fn computer_never_loses_against_any_legal_human_reply() {\n        for computer in [Mark::X, Mark::O] {\n            let (wins, draws) = count_games(Board::default(), computer);\n            println!(\"Computer {}: {wins} wins, {draws} draws, 0 losses.\", computer.label());\n            assert!(wins > 0 && draws > 0);\n        }\n    }\n\n    #[test]\n    fn takes_a_win_before_blocking_and_stops_after_game_over() {\n        let mut board = Board::default();\n        for cell in [0, 3, 1, 4] { board.play(cell).unwrap(); }\n        assert_eq!(best_move(&board), Some(2));\n        board.play(2).unwrap();\n        assert_eq!(best_move(&board), None);\n    }\n\n    #[test]\n    fn answers_opposite_corners_with_an_edge() {\n        let mut board = Board::default();\n        for cell in [0, 4, 8] { board.play(cell).unwrap(); }\n        assert!([1, 3, 5, 7].contains(&best_move(&board).unwrap()));\n    }\n}\n"
+      },
+      "output": "//! Game rules shared by the Bevy interface and exhaustive opponent checks.\n#[derive(Clone, Copy, Debug, Eq, PartialEq)]\npub enum Mark {\n    X,\n    O,\n}\n\nimpl Mark {\n    pub fn other(self) -> Self {\n        match self {\n            Self::X => Self::O,\n            Self::O => Self::X,\n        }\n    }\n    pub fn label(self) -> &'static str {\n        match self {\n            Self::X => \"X\",\n            Self::O => \"O\",\n        }\n    }\n}\n\npub const LINES: [[usize; 3]; 8] = [\n    [0, 1, 2],\n    [3, 4, 5],\n    [6, 7, 8],\n    [0, 3, 6],\n    [1, 4, 7],\n    [2, 5, 8],\n    [0, 4, 8],\n    [2, 4, 6],\n];\n\n#[derive(Clone, Copy, Debug, Eq, PartialEq)]\npub enum Outcome {\n    Playing,\n    Won(Mark, [usize; 3]),\n    Draw,\n}\n\n#[derive(Clone, Copy, Debug, Eq, PartialEq)]\npub enum MoveError {\n    OutsideBoard,\n    Occupied,\n    Finished,\n}\n\n#[derive(Clone, Debug, Eq, PartialEq)]\npub struct Board {\n    cells: [Option<Mark>; 9],\n    turn: Mark,\n}\n\nimpl Default for Board {\n    fn default() -> Self {\n        Self {\n            cells: [None; 9],\n            turn: Mark::X,\n        }\n    }\n}\n\nimpl Board {\n    pub fn cells(&self) -> &[Option<Mark>; 9] {\n        &self.cells\n    }\n    pub fn turn(&self) -> Mark {\n        self.turn\n    }\n    pub fn outcome(&self) -> Outcome {\n        for line in LINES {\n            if let Some(mark) = self.cells[line[0]] {\n                if line.iter().all(|&cell| self.cells[cell] == Some(mark)) {\n                    return Outcome::Won(mark, line);\n                }\n            }\n        }\n        if self.cells.iter().all(Option::is_some) {\n            Outcome::Draw\n        } else {\n            Outcome::Playing\n        }\n    }\n    pub fn play(&mut self, cell: usize) -> Result<(), MoveError> {\n        if cell >= 9 {\n            return Err(MoveError::OutsideBoard);\n        }\n        if self.outcome() != Outcome::Playing {\n            return Err(MoveError::Finished);\n        }\n        if self.cells[cell].is_some() {\n            return Err(MoveError::Occupied);\n        }\n        self.cells[cell] = Some(self.turn);\n        self.turn = self.turn.other();\n        Ok(())\n    }\n    pub fn legal_moves(&self) -> impl Iterator<Item = usize> + '_ {\n        (0..9).filter(|&i| self.outcome() == Outcome::Playing && self.cells[i].is_none())\n    }\n}\n\n#[cfg(test)]\nmod tests {\n    use super::*;\n\n    fn played(moves: &[usize]) -> Board {\n        let mut board = Board::default();\n        for &cell in moves {\n            board.play(cell).unwrap();\n        }\n        board\n    }\n\n    #[test]\n    fn illegal_moves_leave_both_board_and_turn_unchanged() {\n        let mut board = played(&[4]);\n        let before = board.clone();\n        assert_eq!(board.play(4), Err(MoveError::Occupied));\n        assert_eq!(board.play(9), Err(MoveError::OutsideBoard));\n        assert_eq!(board, before);\n        assert_eq!(board.turn(), Mark::O);\n    }\n\n    #[test]\n    fn recognizes_all_eight_winning_lines_for_both_players() {\n        for line in LINES {\n            for mark in [Mark::X, Mark::O] {\n                let mut board = Board::default();\n                for cell in line {\n                    board.cells[cell] = Some(mark);\n                }\n                assert_eq!(board.outcome(), Outcome::Won(mark, line));\n            }\n        }\n    }\n\n    #[test]\n    fn completed_games_reject_more_moves() {\n        let mut board = played(&[0, 3, 1, 4, 2]);\n        assert_eq!(board.outcome(), Outcome::Won(Mark::X, [0, 1, 2]));\n        let before = board.clone();\n        assert_eq!(board.play(8), Err(MoveError::Finished));\n        assert_eq!(board, before);\n        assert_eq!(board.legal_moves().count(), 0);\n    }\n\n    #[test]\n    fn a_full_board_without_a_line_is_a_draw() {\n        let board = played(&[0, 4, 8, 1, 7, 6, 2, 5, 3]);\n        assert_eq!(board.outcome(), Outcome::Draw);\n        assert_eq!(board.legal_moves().count(), 0);\n    }\n\n    #[test]\n    fn a_win_on_the_ninth_move_is_not_a_draw() {\n        let board = played(&[0, 1, 2, 3, 4, 5, 7, 6, 8]);\n        assert_eq!(board.outcome(), Outcome::Won(Mark::X, [0, 4, 8]));\n    }\n}\n\n/// Choose an optimal legal move. Stable ordering makes recordings reproducible.\npub fn best_move(board: &Board) -> Option<usize> {\n    if board.outcome() != Outcome::Playing { return None; }\n    let player = board.turn();\n    let mut best = None;\n    let mut best_score = i16::MIN;\n    for cell in [4, 0, 2, 6, 8, 1, 3, 5, 7] {\n        if board.cells[cell].is_some() { continue; }\n        let mut next = board.clone();\n        next.play(cell).expect(\"an empty cell on a live board is legal\");\n        let score = minimax(&next, player, 1);\n        if score > best_score {\n            best_score = score;\n            best = Some(cell);\n        }\n    }\n    best\n}\n\nfn minimax(board: &Board, player: Mark, depth: i16) -> i16 {\n    match board.outcome() {\n        Outcome::Won(mark, _) => return if mark == player { 10 - depth } else { depth - 10 },\n        Outcome::Draw => return 0,\n        Outcome::Playing => {}\n    }\n    let scores = board.legal_moves().map(|cell| {\n        let mut next = board.clone();\n        next.play(cell).unwrap();\n        minimax(&next, player, depth + 1)\n    });\n    if board.turn() == player { scores.max().unwrap() } else { scores.min().unwrap() }\n}\n\n#[cfg(test)]\nmod opponent_tests {\n    use super::*;\n\n    fn count_games(board: Board, computer: Mark) -> (usize, usize) {\n        match board.outcome() {\n            Outcome::Won(mark, _) => {\n                assert_eq!(mark, computer, \"computer lost: {:?}\", board.cells());\n                return (1, 0);\n            }\n            Outcome::Draw => return (0, 1),\n            Outcome::Playing => {}\n        }\n        let moves: Vec<_> = if board.turn() == computer {\n            vec![best_move(&board).expect(\"live board has a move\")]\n        } else { board.legal_moves().collect() };\n        let mut result = (0, 0);\n        for cell in moves {\n            let mut next = board.clone();\n            next.play(cell).expect(\"opponent only returns legal moves\");\n            let (wins, draws) = count_games(next, computer);\n            result.0 += wins;\n            result.1 += draws;\n        }\n        result\n    }\n\n    #[test]\n    fn computer_never_loses_against_any_legal_human_reply() {\n        for computer in [Mark::X, Mark::O] {\n            let (wins, draws) = count_games(Board::default(), computer);\n            println!(\"Computer {}: {wins} wins, {draws} draws, 0 losses.\", computer.label());\n            assert!(wins > 0 && draws > 0);\n        }\n    }\n\n    #[test]\n    fn takes_a_win_before_blocking_and_stops_after_game_over() {\n        let mut board = Board::default();\n        for cell in [0, 3, 1, 4] { board.play(cell).unwrap(); }\n        assert_eq!(best_move(&board), Some(2));\n        board.play(2).unwrap();\n        assert_eq!(best_move(&board), None);\n    }\n\n    #[test]\n    fn answers_opposite_corners_with_an_edge() {\n        let mut board = Board::default();\n        for cell in [0, 4, 8] { board.play(cell).unwrap(); }\n        assert!([1, 3, 5, 7].contains(&best_move(&board).unwrap()));\n    }\n}\n"
+    },
+    {
+      "id": "action-22",
+      "at": "2026-10-21T08:10:03.468Z",
+      "kind": "check",
+      "operation": "check_work",
+      "title": "Every legal human reply",
+      "check": {
+        "type": "test",
+        "name": "Every legal human reply",
+        "passed": true,
+        "details": "$ cargo test --locked --manifest-path examples/bevy-tic-tac-toe/Cargo.toml --lib -- --nocapture\n[exit 0; queue 0ms; execution 2244ms]\n\nrunning 8 tests\ntest tests::a_win_on_the_ninth_move_is_not_a_draw ... ok\ntest tests::a_full_board_without_a_line_is_a_draw ... ok\ntest tests::completed_games_reject_more_moves ... ok\ntest tests::illegal_moves_leave_both_board_and_turn_unchanged ... ok\ntest tests::recognizes_all_eight_winning_lines_for_both_players ... ok\ntest opponent_tests::takes_a_win_before_blocking_and_stops_after_game_over ... ok\ntest opponent_tests::answers_opposite_corners_with_an_edge ... ok\nComputer X: 82 wins, 10 draws, 0 losses.\nComputer O: 368 wins, 153 draws, 0 losses.\ntest opponent_tests::computer_never_loses_against_any_legal_human_reply ... ok\n\ntest result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.06s\n\n   Compiling magistr-tic-tac-toe v0.1.0 (./examples/bevy-tic-tac-toe)\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.15s\n     Running unittests src/lib.rs (examples/bevy-tic-tac-toe/target/debug/deps/magistr_tic_tac_toe-81fc08b301c7cda0)",
+        "verified": true,
+        "command": "cargo test --locked --manifest-path examples/bevy-tic-tac-toe/Cargo.toml --lib -- --nocapture",
+        "exit_code": 0,
+        "timestamp": "2026-10-21T08:10:02.869736+00:00"
+      },
+      "task": "ttt-opponent",
+      "output": "$ cargo test --locked --manifest-path examples/bevy-tic-tac-toe/Cargo.toml --lib -- --nocapture\n[exit 0; queue 0ms; execution 2244ms]\n\nrunning 8 tests\ntest tests::a_win_on_the_ninth_move_is_not_a_draw ... ok\ntest tests::a_full_board_without_a_line_is_a_draw ... ok\ntest tests::completed_games_reject_more_moves ... ok\ntest tests::illegal_moves_leave_both_board_and_turn_unchanged ... ok\ntest tests::recognizes_all_eight_winning_lines_for_both_players ... ok\ntest opponent_tests::takes_a_win_before_blocking_and_stops_after_game_over ... ok\ntest opponent_tests::answers_opposite_corners_with_an_edge ... ok\nComputer X: 82 wins, 10 draws, 0 losses.\nComputer O: 368 wins, 153 draws, 0 losses.\ntest opponent_tests::computer_never_loses_against_any_legal_human_reply ... ok\n\ntest result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.06s\n\n   Compiling magistr-tic-tac-toe v0.1.0 (./examples/bevy-tic-tac-toe)\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.15s\n     Running unittests src/lib.rs (examples/bevy-tic-tac-toe/target/debug/deps/magistr_tic_tac_toe-81fc08b301c7cda0)"
+    },
+    {
+      "id": "action-23",
+      "at": "2026-10-21T08:10:54.238Z",
+      "kind": "reasoning",
+      "operation": "think_record_step",
+      "title": "Use complete search and keep game rules outside the renderer",
+      "step": {
+        "step_number": 1752,
+        "purpose": "Use complete search and keep game rules outside the renderer",
+        "context": "The tactical opponent loses when playing second. Minimax passed exhaustive human replies: 82 wins and 10 draws as X; 368 wins and 153 draws as O, with no losses. The owner specified Bevy 0.20.0.",
+        "thought": "The opponent decision now has executable evidence. Keep Board and best_move in the engine-independent library; Bevy owns input and display. Pin Bevy exactly to 0.20.0 and check its versioned APIs before wiring the game. The browser build will run the same Rust logic.",
+        "outcome": "Use minimax for both marks and Bevy 0.20.0 for the interface.",
+        "rationale": "One rule implementation serves the visual game and exhaustive checks, so the demo cannot quietly test a different game.",
+        "next_action": "Build the interactive board in Bevy 0.20.0.",
+        "dependencies": [
+          {
+            "step": 1751,
+            "relation": "supports"
+          }
+        ],
+        "pinned": true,
+        "timestamp": "2026-10-21T08:10:53.452722+00:00",
+        "execution_ref": "task:ttt-opponent",
+        "record_id": "step-1752"
+      },
+      "output": "Use minimax for both marks and Bevy 0.20.0 for the interface.\n\nOne rule implementation serves the visual game and exhaustive checks, so the demo cannot quietly test a different game."
+    },
+    {
+      "id": "action-24",
+      "at": "2026-10-21T08:10:55.423Z",
+      "kind": "reasoning",
+      "operation": "think_set_branch_status",
+      "title": "Bring the investigation back to the decision",
+      "branch": {
+        "branch_id": "branch-3f6f5891-22e6-43b5-ae94-87b4851d8976",
+        "status": "merged",
+        "merged_into": 1752
+      },
+      "output": "Investigation concluded at step 1752."
+    },
+    {
+      "id": "action-25",
+      "at": "2026-10-21T08:10:56.648Z",
+      "kind": "check",
+      "operation": "check_work",
+      "title": "Tactical opponent experiment",
+      "check": {
+        "type": "test",
+        "name": "Tactical opponent experiment",
+        "passed": true,
+        "details": "$ cargo run --locked --manifest-path examples/bevy-tic-tac-toe/Cargo.toml --example compare_opponents\n[exit 0; queue 0ms; execution 187ms]\nTactical policy as X: no losing game found.\nTactical policy as O loses. Move sequence (cells 1–9): [1, 5, 8, 3, 7, 9, 4]\n   Compiling magistr-tic-tac-toe v0.1.0 (./examples/bevy-tic-tac-toe)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.15s\n     Running `examples/bevy-tic-tac-toe/target/debug/examples/compare_opponents`",
+        "verified": true,
+        "command": "cargo run --locked --manifest-path examples/bevy-tic-tac-toe/Cargo.toml --example compare_opponents",
+        "exit_code": 0,
+        "timestamp": "2026-10-21T08:10:56.052979+00:00"
+      },
+      "task": "ttt-opponent",
+      "output": "$ cargo run --locked --manifest-path examples/bevy-tic-tac-toe/Cargo.toml --example compare_opponents\n[exit 0; queue 0ms; execution 187ms]\nTactical policy as X: no losing game found.\nTactical policy as O loses. Move sequence (cells 1–9): [1, 5, 8, 3, 7, 9, 4]\n   Compiling magistr-tic-tac-toe v0.1.0 (./examples/bevy-tic-tac-toe)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.15s\n     Running `examples/bevy-tic-tac-toe/target/debug/examples/compare_opponents`"
+    },
+    {
+      "id": "action-26",
+      "at": "2026-10-21T08:10:58.795Z",
+      "kind": "roadmap",
+      "operation": "roadmap_complete_chunk",
+      "title": "Finish: Computer opponent",
+      "chunk": {
+        "id": "example-ttt-opponent",
+        "title": "Make an opponent that never loses",
+        "name": "Computer opponent",
+        "status": "done",
+        "priority": 400,
+        "description": "Make an opponent that never loses.",
+        "content": {
+          "version": 1,
+          "summary": "Make an opponent that never loses.",
+          "facts": [
+            {
+              "label": "Project",
+              "value": "Bevy tic-tac-toe"
+            }
+          ],
+          "sections": [
+            {
+              "heading": "Done when",
+              "list": [
+                {
+                  "text": "The computer plays legal moves for either mark.",
+                  "done": false
+                },
+                {
+                  "text": "An exhaustive search of human replies finds no computer losses.",
+                  "done": false
+                },
+                {
+                  "text": "Record the comparison between a simple tactical policy and full search.",
+                  "done": false
+                }
+              ]
+            }
+          ]
+        },
+        "acceptance": [
+          "The computer plays legal moves for either mark.",
+          "An exhaustive search of human replies finds no computer losses.",
+          "Record the comparison between a simple tactical policy and full search."
+        ],
+        "deps": [
+          "example-ttt-rules"
+        ],
+        "cross_refs": [
+          "task:ttt-opponent"
+        ],
+        "group": "Website example"
+      },
+      "output": "Make an opponent that never loses\n• The computer plays legal moves for either mark.\n• An exhaustive search of human replies finds no computer losses.\n• Record the comparison between a simple tactical policy and full search."
+    },
+    {
+      "id": "action-27",
+      "at": "2026-10-21T08:10:59.773Z",
+      "kind": "work",
+      "operation": "finish_work",
+      "title": "Compare a tactical opponent with minimax, then verify every human reply",
+      "task": {
+        "id": "ttt-opponent",
+        "title": "Compare a tactical opponent with minimax, then verify every human reply",
+        "status": "completed",
+        "type": "implement"
+      },
+      "output": "Compare a tactical opponent with minimax, then verify every human reply\nStatus: completed"
+    },
+    {
+      "id": "action-28",
+      "at": "2026-10-21T08:11:00.974Z",
+      "kind": "roadmap",
+      "operation": "roadmap_start_chunk",
+      "title": "Start: Playable Bevy board",
+      "chunk": {
+        "id": "example-ttt-board",
+        "title": "Play a complete game through the Bevy board",
+        "name": "Playable Bevy board",
+        "status": "in_progress",
+        "priority": 400,
+        "description": "Play a complete game through the Bevy board.",
+        "content": {
+          "version": 1,
+          "summary": "Play a complete game through the Bevy board.",
+          "facts": [
+            {
+              "label": "Project",
+              "value": "Bevy tic-tac-toe"
+            }
+          ],
+          "sections": [
+            {
+              "heading": "Done when",
+              "list": [
+                {
+                  "text": "Nine visible cells accept pointer and keyboard input.",
+                  "done": false
+                },
+                {
+                  "text": "Turn and game-result text reflect the shared rules.",
+                  "done": false
+                },
+                {
+                  "text": "The same Rust game builds for a browser with Bevy.",
+                  "done": false
+                }
+              ]
+            }
+          ]
+        },
+        "acceptance": [
+          "Nine visible cells accept pointer and keyboard input.",
+          "Turn and game-result text reflect the shared rules.",
+          "The same Rust game builds for a browser with Bevy."
+        ],
+        "deps": [
+          "example-ttt-rules"
+        ],
+        "cross_refs": [],
+        "group": "Website example"
+      },
+      "output": "Play a complete game through the Bevy board\n• Nine visible cells accept pointer and keyboard input.\n• Turn and game-result text reflect the shared rules.\n• The same Rust game builds for a browser with Bevy."
+    },
+    {
+      "id": "action-29",
+      "at": "2026-10-21T08:11:02.933Z",
+      "kind": "work",
+      "operation": "plan_work",
+      "title": "Render and play the board in Bevy 0.20.0",
+      "task": {
+        "id": "ttt-board",
+        "title": "Render and play the board in Bevy 0.20.0",
+        "status": "planned",
+        "type": "implement"
+      },
+      "output": "Render and play the board in Bevy 0.20.0\nStatus: planned"
+    },
+    {
+      "id": "action-30",
+      "at": "2026-10-21T08:11:03.914Z",
+      "kind": "work",
+      "operation": "start_work",
+      "title": "Render and play the board in Bevy 0.20.0",
+      "task": {
+        "id": "ttt-board",
+        "title": "Render and play the board in Bevy 0.20.0",
+        "status": "active",
+        "type": "implement"
+      },
+      "output": "Render and play the board in Bevy 0.20.0\nStatus: active"
+    },
+    {
+      "id": "change-62",
+      "at": "2026-10-21T08:11:49.903Z",
+      "kind": "change",
+      "operation": "write",
+      "title": "Write Cargo.toml",
+      "file": {
+        "path": "Cargo.toml",
+        "content": "[package]\nname = \"magistr-tic-tac-toe\"\nversion = \"0.1.0\"\nedition = \"2024\"\nrust-version = \"1.97.1\"\npublish = false\n\n# This playable website example builds independently of Magistr.\n[workspace]\n\n[features]\ndefault = []\ngame = [\"dep:bevy\", \"dep:web-sys\"]\n\n[dependencies]\nbevy = { version = \"=0.20.0\", optional = true, default-features = false, features = [\n    \"std\", \"default_app\", \"ui_bevy_render\", \"bevy_ui_widgets\", \"ui_picking\",\n    \"bevy_winit\", \"default_font\", \"webgl2\", \"x11\",\n] }\n\n[target.'cfg(target_arch = \"wasm32\")'.dependencies]\nweb-sys = { version = \"0.3\", optional = true, features = [\"Window\", \"Document\", \"Element\"] }\n\n[[bin]]\nname = \"tic-tac-toe\"\npath = \"src/main.rs\"\nrequired-features = [\"game\"]\n\n[profile.release]\nopt-level = \"s\"\nlto = \"thin\"\nstrip = \"debuginfo\"\n"
+      },
+      "output": "[package]\nname = \"magistr-tic-tac-toe\"\nversion = \"0.1.0\"\nedition = \"2024\"\nrust-version = \"1.97.1\"\npublish = false\n\n# This playable website example builds independently of Magistr.\n[workspace]\n\n[features]\ndefault = []\ngame = [\"dep:bevy\", \"dep:web-sys\"]\n\n[dependencies]\nbevy = { version = \"=0.20.0\", optional = true, default-features = false, features = [\n    \"std\", \"default_app\", \"ui_bevy_render\", \"bevy_ui_widgets\", \"ui_picking\",\n    \"bevy_winit\", \"default_font\", \"webgl2\", \"x11\",\n] }\n\n[target.'cfg(target_arch = \"wasm32\")'.dependencies]\nweb-sys = { version = \"0.3\", optional = true, features = [\"Window\", \"Document\", \"Element\"] }\n\n[[bin]]\nname = \"tic-tac-toe\"\npath = \"src/main.rs\"\nrequired-features = [\"game\"]\n\n[profile.release]\nopt-level = \"s\"\nlto = \"thin\"\nstrip = \"debuginfo\"\n"
+    },
+    {
+      "id": "change-63",
+      "at": "2026-10-21T08:11:49.999Z",
+      "kind": "change",
+      "operation": "write",
+      "title": "Write src/main.rs",
+      "file": {
+        "path": "src/main.rs",
+        "content": "use bevy::{prelude::*, ui_widgets::{Activate, Button}};\nuse magistr_tic_tac_toe::{Board, Mark, Outcome};\n\n#[derive(Resource, Default)]\nstruct Game(Board);\n#[derive(Component)]\nstruct CellLabel(usize);\n#[derive(Component)]\nstruct StatusLabel;\n#[derive(Component)]\nstruct Cell(usize);\n\nconst INK: Color = Color::srgb(0.12, 0.15, 0.19);\nconst PAPER: Color = Color::srgb(0.96, 0.95, 0.91);\nconst CELL: Color = Color::srgb(1.0, 0.99, 0.96);\nconst X_COLOR: Color = Color::srgb(0.12, 0.34, 0.52);\nconst O_COLOR: Color = Color::srgb(0.65, 0.24, 0.12);\n\nfn main() {\n    App::new()\n        .add_plugins(DefaultPlugins.set(WindowPlugin {\n            primary_window: Some(Window {\n                title: \"Tic-tac-toe\".into(),\n                resolution: (640, 620).into(),\n                canvas: Some(\"#game\".into()),\n                fit_canvas_to_parent: true,\n                prevent_default_event_handling: false,\n                ..default()\n            }),\n            ..default()\n        }))\n        .insert_resource(ClearColor(PAPER))\n        .init_resource::<Game>()\n        .add_systems(Startup, setup)\n        .add_systems(Update, (keyboard, draw).chain())\n        .run();\n}\n\nfn label(text: impl Into<String>, size: f32) -> impl Bundle {\n    (Text::new(text), TextFont { font_size: FontSize::Px(size), ..default() }, TextColor(INK))\n}\n\nfn setup(mut commands: Commands) {\n    commands.spawn(Camera2d);\n    commands.spawn(Node {\n        width: percent(100), height: percent(100),\n        flex_direction: FlexDirection::Column,\n        align_items: AlignItems::Center, justify_content: JustifyContent::Center,\n        row_gap: px(18), padding: UiRect::all(px(12)),\n        ..default()\n    }).with_children(|root| {\n        root.spawn(label(\"Tic-tac-toe\", 32.0));\n        root.spawn((label(\"X to move\", 18.0), StatusLabel));\n        root.spawn(Node {\n            display: Display::Grid, width: percent(100), max_width: px(330),\n            aspect_ratio: Some(1.0), column_gap: px(6), row_gap: px(6),\n            grid_template_columns: RepeatedGridTrack::flex(3, 1.0),\n            grid_template_rows: RepeatedGridTrack::flex(3, 1.0), ..default()\n        }).with_children(|grid| {\n            for cell in 0..9 {\n                grid.spawn((\n                    Button, Cell(cell),\n                    Node {\n                        width: percent(100), height: percent(100),\n                        align_items: AlignItems::Center, justify_content: JustifyContent::Center,\n                        border: UiRect::all(px(1)), ..default()\n                    },\n                    BackgroundColor(CELL), BorderColor::all(Color::srgb(0.57, 0.59, 0.55)),\n                )).with_child((label((cell + 1).to_string(), 40.0), CellLabel(cell)))\n                  .observe(move |_: On<Activate>, mut game: ResMut<Game>| { let _ = game.0.play(cell); });\n            }\n        });\n        root.spawn(label(\"Click a square or press 1–9\", 15.0));\n    });\n}\n\nfn keyboard(keys: Res<ButtonInput<KeyCode>>, mut game: ResMut<Game>) {\n    let digits = [KeyCode::Digit1, KeyCode::Digit2, KeyCode::Digit3, KeyCode::Digit4,\n        KeyCode::Digit5, KeyCode::Digit6, KeyCode::Digit7, KeyCode::Digit8, KeyCode::Digit9];\n    for (cell, key) in digits.into_iter().enumerate() {\n        if keys.just_pressed(key) { let _ = game.0.play(cell); }\n    }\n}\n\nfn status(board: &Board) -> String {\n    match board.outcome() {\n        Outcome::Playing => format!(\"{} to move\", board.turn().label()),\n        Outcome::Won(mark, _) => format!(\"{} wins\", mark.label()),\n        Outcome::Draw => \"A draw\".into(),\n    }\n}\n\nfn draw(\n    game: Res<Game>,\n    mut labels: Query<(&mut Text, &mut TextColor, Option<&CellLabel>, Has<StatusLabel>)>,\n    mut cells: Query<(&Cell, &mut BackgroundColor)>,\n) {\n    if !game.is_changed() { return; }\n    let message = status(&game.0);\n    for (mut text, mut color, cell, is_status) in &mut labels {\n        if let Some(cell) = cell {\n            let mark = game.0.cells()[cell.0];\n            **text = mark.map_or_else(|| (cell.0 + 1).to_string(), |m| m.label().into());\n            color.0 = match mark { Some(Mark::X) => X_COLOR, Some(Mark::O) => O_COLOR, None => Color::srgb(0.56, 0.58, 0.54) };\n        } else if is_status { **text = message.clone(); }\n    }\n    for (cell, mut background) in &mut cells {\n        let winning = matches!(game.0.outcome(), Outcome::Won(_, line) if line.contains(&cell.0));\n        background.0 = if winning { Color::srgb(0.79, 0.87, 0.77) } else { CELL };\n    }\n    announce(&game.0, &message);\n}\n\n// A read-only description of the Rust state for screen readers and browser checks.\nfn announce(board: &Board, message: &str) {\n    #[cfg(target_arch = \"wasm32\")]\n    if let Some(document) = web_sys::window().and_then(|window| window.document()) {\n        if let Some(element) = document.get_element_by_id(\"game-status\") {\n            element.set_text_content(Some(message));\n            let cells: String = board.cells().iter().map(|m| m.map_or('.', |m| if m == Mark::X { 'X' } else { 'O' })).collect();\n            let _ = element.set_attribute(\"data-cells\", &cells);\n            let _ = element.set_attribute(\"data-turn\", board.turn().label());\n        }\n    }\n    #[cfg(not(target_arch = \"wasm32\"))]\n    let _ = (board, message);\n}\n"
+      },
+      "output": "use bevy::{prelude::*, ui_widgets::{Activate, Button}};\nuse magistr_tic_tac_toe::{Board, Mark, Outcome};\n\n#[derive(Resource, Default)]\nstruct Game(Board);\n#[derive(Component)]\nstruct CellLabel(usize);\n#[derive(Component)]\nstruct StatusLabel;\n#[derive(Component)]\nstruct Cell(usize);\n\nconst INK: Color = Color::srgb(0.12, 0.15, 0.19);\nconst PAPER: Color = Color::srgb(0.96, 0.95, 0.91);\nconst CELL: Color = Color::srgb(1.0, 0.99, 0.96);\nconst X_COLOR: Color = Color::srgb(0.12, 0.34, 0.52);\nconst O_COLOR: Color = Color::srgb(0.65, 0.24, 0.12);\n\nfn main() {\n    App::new()\n        .add_plugins(DefaultPlugins.set(WindowPlugin {\n            primary_window: Some(Window {\n                title: \"Tic-tac-toe\".into(),\n                resolution: (640, 620).into(),\n                canvas: Some(\"#game\".into()),\n                fit_canvas_to_parent: true,\n                prevent_default_event_handling: false,\n                ..default()\n            }),\n            ..default()\n        }))\n        .insert_resource(ClearColor(PAPER))\n        .init_resource::<Game>()\n        .add_systems(Startup, setup)\n        .add_systems(Update, (keyboard, draw).chain())\n        .run();\n}\n\nfn label(text: impl Into<String>, size: f32) -> impl Bundle {\n    (Text::new(text), TextFont { font_size: FontSize::Px(size), ..default() }, TextColor(INK))\n}\n\nfn setup(mut commands: Commands) {\n    commands.spawn(Camera2d);\n    commands.spawn(Node {\n        width: percent(100), height: percent(100),\n        flex_direction: FlexDirection::Column,\n        align_items: AlignItems::Center, justify_content: JustifyContent::Center,\n        row_gap: px(18), padding: UiRect::all(px(12)),\n        ..default()\n    }).with_children(|root| {\n        root.spawn(label(\"Tic-tac-toe\", 32.0));\n        root.spawn((label(\"X to move\", 18.0), StatusLabel));\n        root.spawn(Node {\n            display: Display::Grid, width: percent(100), max_width: px(330),\n            aspect_ratio: Some(1.0), column_gap: px(6), row_gap: px(6),\n            grid_template_columns: RepeatedGridTrack::flex(3, 1.0),\n            grid_template_rows: RepeatedGridTrack::flex(3, 1.0), ..default()\n        }).with_children(|grid| {\n            for cell in 0..9 {\n                grid.spawn((\n                    Button, Cell(cell),\n                    Node {\n                        width: percent(100), height: percent(100),\n                        align_items: AlignItems::Center, justify_content: JustifyContent::Center,\n                        border: UiRect::all(px(1)), ..default()\n                    },\n                    BackgroundColor(CELL), BorderColor::all(Color::srgb(0.57, 0.59, 0.55)),\n                )).with_child((label((cell + 1).to_string(), 40.0), CellLabel(cell)))\n                  .observe(move |_: On<Activate>, mut game: ResMut<Game>| { let _ = game.0.play(cell); });\n            }\n        });\n        root.spawn(label(\"Click a square or press 1–9\", 15.0));\n    });\n}\n\nfn keyboard(keys: Res<ButtonInput<KeyCode>>, mut game: ResMut<Game>) {\n    let digits = [KeyCode::Digit1, KeyCode::Digit2, KeyCode::Digit3, KeyCode::Digit4,\n        KeyCode::Digit5, KeyCode::Digit6, KeyCode::Digit7, KeyCode::Digit8, KeyCode::Digit9];\n    for (cell, key) in digits.into_iter().enumerate() {\n        if keys.just_pressed(key) { let _ = game.0.play(cell); }\n    }\n}\n\nfn status(board: &Board) -> String {\n    match board.outcome() {\n        Outcome::Playing => format!(\"{} to move\", board.turn().label()),\n        Outcome::Won(mark, _) => format!(\"{} wins\", mark.label()),\n        Outcome::Draw => \"A draw\".into(),\n    }\n}\n\nfn draw(\n    game: Res<Game>,\n    mut labels: Query<(&mut Text, &mut TextColor, Option<&CellLabel>, Has<StatusLabel>)>,\n    mut cells: Query<(&Cell, &mut BackgroundColor)>,\n) {\n    if !game.is_changed() { return; }\n    let message = status(&game.0);\n    for (mut text, mut color, cell, is_status) in &mut labels {\n        if let Some(cell) = cell {\n            let mark = game.0.cells()[cell.0];\n            **text = mark.map_or_else(|| (cell.0 + 1).to_string(), |m| m.label().into());\n            color.0 = match mark { Some(Mark::X) => X_COLOR, Some(Mark::O) => O_COLOR, None => Color::srgb(0.56, 0.58, 0.54) };\n        } else if is_status { **text = message.clone(); }\n    }\n    for (cell, mut background) in &mut cells {\n        let winning = matches!(game.0.outcome(), Outcome::Won(_, line) if line.contains(&cell.0));\n        background.0 = if winning { Color::srgb(0.79, 0.87, 0.77) } else { CELL };\n    }\n    announce(&game.0, &message);\n}\n\n// A read-only description of the Rust state for screen readers and browser checks.\nfn announce(board: &Board, message: &str) {\n    #[cfg(target_arch = \"wasm32\")]\n    if let Some(document) = web_sys::window().and_then(|window| window.document()) {\n        if let Some(element) = document.get_element_by_id(\"game-status\") {\n            element.set_text_content(Some(message));\n            let cells: String = board.cells().iter().map(|m| m.map_or('.', |m| if m == Mark::X { 'X' } else { 'O' })).collect();\n            let _ = element.set_attribute(\"data-cells\", &cells);\n            let _ = element.set_attribute(\"data-turn\", board.turn().label());\n        }\n    }\n    #[cfg(not(target_arch = \"wasm32\"))]\n    let _ = (board, message);\n}\n"
+    },
+    {
+      "id": "action-31",
+      "at": "2026-10-21T08:18:30.908Z",
+      "kind": "reasoning",
+      "operation": "think_record_step",
+      "title": "Give the board a definite size before arranging the controls",
+      "step": {
+        "step_number": 1753,
+        "purpose": "Give the board a definite size before arranging the controls",
+        "context": "The first real Bevy frame showed the last row clipped and the keyboard instructions below the canvas. The canvas itself was correctly sized at 720 by 620 pixels.",
+        "thought": "The board used percentage width and aspect ratio inside a flex column. Its auto height did not reserve the expected space for the neighboring labels. Give both dimensions the same viewport-relative value with a 330-pixel cap, so the parent lays out the complete board and instructions.",
+        "outcome": "Replace the board's implicit height with matching bounded width and height.",
+        "rationale": "The board owns its square geometry. Fixing that measurement lets the parent center all the controls without offsets or hiding the clipped content.",
+        "next_action": "Rebuild and capture desktop and compact playthroughs, waiting for each actual input result.",
+        "branch_id": "branch-607f5db1-f3ad-449b-ac72-1cb45b759a9b",
+        "branch_from": 1752,
+        "branch_name": "Does the board fit at both sizes?",
+        "timestamp": "2026-10-21T08:18:30.073559+00:00",
+        "execution_ref": "task:ttt-board",
+        "record_id": "step-1753"
+      },
+      "output": "Replace the board's implicit height with matching bounded width and height.\n\nThe board owns its square geometry. Fixing that measurement lets the parent center all the controls without offsets or hiding the clipped content."
+    },
+    {
+      "id": "action-32",
+      "at": "2026-10-21T08:19:06.000Z",
+      "kind": "roadmap",
+      "operation": "roadmap_update_chunk",
+      "title": "Update: Rules and turns",
+      "chunk": {
+        "id": "example-ttt-rules",
+        "title": "Reject illegal moves and recognize every game ending",
+        "name": "Rules and turns",
+        "status": "done",
+        "priority": 400,
+        "description": "Reject illegal moves and recognize every game ending.",
+        "content": {
+          "version": 1,
+          "summary": "Reject illegal moves and recognize every game ending.",
+          "facts": [
+            {
+              "label": "Project",
+              "value": "Bevy tic-tac-toe"
+            }
+          ],
+          "sections": [
+            {
+              "heading": "Done when",
+              "list": [
+                {
+                  "text": "X and O alternate; occupied and out-of-range cells cannot change the board.",
+                  "done": true
+                },
+                {
+                  "text": "All eight winning lines and a full-board draw are recognized.",
+                  "done": true
+                },
+                {
+                  "text": "A finished game accepts no further moves.",
+                  "done": true
+                }
+              ]
+            }
+          ]
+        },
+        "acceptance": [
+          "X and O alternate; occupied and out-of-range cells cannot change the board.",
+          "All eight winning lines and a full-board draw are recognized.",
+          "A finished game accepts no further moves."
+        ],
+        "deps": [],
+        "cross_refs": [
+          "task:ttt-rules"
+        ],
+        "group": "Website example"
+      },
+      "output": "Reject illegal moves and recognize every game ending\n• X and O alternate; occupied and out-of-range cells cannot change the board.\n• All eight winning lines and a full-board draw are recognized.\n• A finished game accepts no further moves."
+    },
+    {
+      "id": "action-33",
+      "at": "2026-10-21T08:19:07.211Z",
+      "kind": "roadmap",
+      "operation": "roadmap_update_chunk",
+      "title": "Update: Computer opponent",
+      "chunk": {
+        "id": "example-ttt-opponent",
+        "title": "Make an opponent that never loses",
+        "name": "Computer opponent",
+        "status": "done",
+        "priority": 400,
+        "description": "Make an opponent that never loses.",
+        "content": {
+          "version": 1,
+          "summary": "Make an opponent that never loses.",
+          "facts": [
+            {
+              "label": "Project",
+              "value": "Bevy tic-tac-toe"
+            }
+          ],
+          "sections": [
+            {
+              "heading": "Done when",
+              "list": [
+                {
+                  "text": "The computer plays legal moves for either mark.",
+                  "done": true
+                },
+                {
+                  "text": "An exhaustive search of human replies finds no computer losses.",
+                  "done": true
+                },
+                {
+                  "text": "Record the comparison between a simple tactical policy and full search.",
+                  "done": true
+                }
+              ]
+            }
+          ]
+        },
+        "acceptance": [
+          "The computer plays legal moves for either mark.",
+          "An exhaustive search of human replies finds no computer losses.",
+          "Record the comparison between a simple tactical policy and full search."
+        ],
+        "deps": [
+          "example-ttt-rules"
+        ],
+        "cross_refs": [
+          "task:ttt-opponent"
+        ],
+        "group": "Website example"
+      },
+      "output": "Make an opponent that never loses\n• The computer plays legal moves for either mark.\n• An exhaustive search of human replies finds no computer losses.\n• Record the comparison between a simple tactical policy and full search."
+    },
+    {
+      "id": "action-34",
+      "at": "2026-10-21T08:27:15.804Z",
+      "kind": "check",
+      "operation": "check_work",
+      "title": "Bevy browser playthrough",
+      "check": {
+        "type": "test",
+        "name": "Bevy browser playthrough",
+        "passed": true,
+        "details": "$ cd apps/website && node tests/game-browser.mjs\n[exit 0; queue 0ms; execution 3925ms]\nBevy 0.20.0: desktop and compact boards, keyboard play and finished-game protection passed.",
+        "verified": true,
+        "command": "cd apps/website && node tests/game-browser.mjs",
+        "exit_code": 0,
+        "timestamp": "2026-10-21T08:27:15.211146+00:00"
+      },
+      "task": "ttt-board",
+      "output": "$ cd apps/website && node tests/game-browser.mjs\n[exit 0; queue 0ms; execution 3925ms]\nBevy 0.20.0: desktop and compact boards, keyboard play and finished-game protection passed."
+    },
+    {
+      "id": "action-35",
+      "at": "2026-10-21T08:27:56.251Z",
+      "kind": "check",
+      "operation": "check_work",
+      "title": "Bevy pointer input",
+      "check": {
+        "type": "test",
+        "name": "Bevy pointer input",
+        "passed": true,
+        "details": "$ cd apps/website && node --input-type=module - <<'JS'\nimport assert from 'node:assert/strict';import {webkit} from 'playwright';const b=await webkit.launch();try{const p=await b.newPage({viewport:{width:720,height:700}});await p.goto('http://127.0.0.1:4322');await p.locator('#game-status[data-cells]').waitFor({state:'attached',timeout:45000});await p.mouse.click(262,243);await p.waitForFunction(()=>document.getElementById('game-status').getAttribute('data-cells')==='X........');await p.mouse.click(262,243);assert.equal(await p.locator('#game-status').getAttribute('data-cells'),'X........');console.log('Pointer move accepted; occupied square unchanged.');}finally{await b.close();}\nJS\n[exit 0; queue 0ms; execution 1997ms]\nPointer move accepted; occupied square unchanged.",
+        "verified": true,
+        "command": "cd apps/website && node --input-type=module - <<'JS'\nimport assert from 'node:assert/strict';import {webkit} from 'playwright';const b=await webkit.launch();try{const p=await b.newPage({viewport:{width:720,height:700}});await p.goto('http://127.0.0.1:4322');await p.locator('#game-status[data-cells]').waitFor({state:'attached',timeout:45000});await p.mouse.click(262,243);await p.waitForFunction(()=>document.getElementById('game-status').getAttribute('data-cells')==='X........');await p.mouse.click(262,243);assert.equal(await p.locator('#game-status').getAttribute('data-cells'),'X........');console.log('Pointer move accepted; occupied square unchanged.');}finally{await b.close();}\nJS",
+        "exit_code": 0,
+        "timestamp": "2026-10-21T08:27:55.676816+00:00"
+      },
+      "task": "ttt-board",
+      "output": "$ cd apps/website && node --input-type=module - <<'JS'\nimport assert from 'node:assert/strict';import {webkit} from 'playwright';const b=await webkit.launch();try{const p=await b.newPage({viewport:{width:720,height:700}});await p.goto('http://127.0.0.1:4322');await p.locator('#game-status[data-cells]').waitFor({state:'attached',timeout:45000});await p.mouse.click(262,243);await p.waitForFunction(()=>document.getElementById('game-status').getAttribute('data-cells')==='X........');await p.mouse.click(262,243);assert.equal(await p.locator('#game-status').getAttribute('data-cells'),'X........');console.log('Pointer move accepted; occupied square unchanged.');}finally{await b.close();}\nJS\n[exit 0; queue 0ms; execution 1997ms]\nPointer move accepted; occupied square unchanged."
+    },
+    {
+      "id": "action-36",
+      "at": "2026-10-21T08:27:57.403Z",
+      "kind": "check",
+      "operation": "check_work",
+      "title": "GUI visual review",
+      "check": {
+        "type": "review",
+        "name": "GUI visual review",
+        "passed": true,
+        "details": "Opened all four full-resolution frames in docs/evidence/desktop-iterations/2026-10-21-bevy-board-05. Board, turn/result, winning row and supported-character keyboard instructions fit desktop and compact frames. No overlap or clipping. See REVIEW.md and browser-checks.json. Headless WebKit only.",
+        "verified": false,
+        "timestamp": "2026-10-21T08:27:56.801341+00:00"
+      },
+      "task": "ttt-board",
+      "output": "Opened all four full-resolution frames in docs/evidence/desktop-iterations/2026-10-21-bevy-board-05. Board, turn/result, winning row and supported-character keyboard instructions fit desktop and compact frames. No overlap or clipping. See REVIEW.md and browser-checks.json. Headless WebKit only."
+    },
+    {
+      "id": "action-37",
+      "at": "2026-10-21T08:27:58.651Z",
+      "kind": "reasoning",
+      "operation": "think_record_step",
+      "title": "The complete board fits at desktop and compact sizes",
+      "step": {
+        "step_number": 1754,
+        "purpose": "The complete board fits at desktop and compact sizes",
+        "context": "The viewport-unit and maximum-size combination still misplaced the desktop instructions. A definite 288-pixel board fits both supported widths. The first font also lacked the en dash used in the keyboard label.",
+        "thought": "Use the board's definite size and a supported ASCII range label. The real browser accepted pointer and keyboard moves; all four reviewed frames now show the complete board and instructions, with the winning row visible.",
+        "outcome": "Keep the definite-size board and proceed to scores and rematches.",
+        "rationale": "The fix is verified in the actual Bevy browser renderer, separately from the rules tests. The earlier visual failures remain part of the record.",
+        "next_action": "Add a match owner that records each finished round once and alternates the human mark on rematch.",
+        "dependencies": [
+          {
+            "step": 1753,
+            "relation": "supports"
+          }
+        ],
+        "execution_ref": "task:ttt-board",
+        "record_id": "step-1754"
+      },
+      "output": "Keep the definite-size board and proceed to scores and rematches.\n\nThe fix is verified in the actual Bevy browser renderer, separately from the rules tests. The earlier visual failures remain part of the record."
+    },
+    {
+      "id": "action-38",
+      "at": "2026-10-21T08:27:59.952Z",
+      "kind": "reasoning",
+      "operation": "think_set_branch_status",
+      "title": "Bring the investigation back to the decision",
+      "branch": {
+        "branch_id": "branch-607f5db1-f3ad-449b-ac72-1cb45b759a9b",
+        "status": "merged",
+        "merged_into": 1754
+      },
+      "output": "Investigation concluded at step 1754."
+    },
+    {
+      "id": "action-39",
+      "at": "2026-10-21T08:28:01.209Z",
+      "kind": "roadmap",
+      "operation": "roadmap_update_chunk",
+      "title": "Update: Playable Bevy board",
+      "chunk": {
+        "id": "example-ttt-board",
+        "title": "Play a complete game through the Bevy board",
+        "name": "Playable Bevy board",
+        "status": "in_progress",
+        "priority": 400,
+        "description": "Play a complete game through the Bevy board.",
+        "content": {
+          "version": 1,
+          "summary": "Play a complete game through the Bevy board.",
+          "sections": [
+            {
+              "heading": "Done when",
+              "list": [
+                {
+                  "text": "Nine visible cells accept pointer and keyboard input.",
+                  "done": true
+                },
+                {
+                  "text": "Turn and game-result text reflect the shared rules.",
+                  "done": true
+                },
+                {
+                  "text": "The same Rust game builds for a browser with Bevy.",
+                  "done": true
+                }
+              ]
+            }
+          ]
+        },
+        "acceptance": [
+          "Nine visible cells accept pointer and keyboard input.",
+          "Turn and game-result text reflect the shared rules.",
+          "The same Rust game builds for a browser with Bevy."
+        ],
+        "deps": [
+          "example-ttt-rules"
+        ],
+        "cross_refs": [],
+        "group": "Website example"
+      },
+      "output": "Play a complete game through the Bevy board\n• Nine visible cells accept pointer and keyboard input.\n• Turn and game-result text reflect the shared rules.\n• The same Rust game builds for a browser with Bevy."
+    },
+    {
+      "id": "action-40",
+      "at": "2026-10-21T08:28:03.534Z",
+      "kind": "roadmap",
+      "operation": "roadmap_complete_chunk",
+      "title": "Finish: Playable Bevy board",
+      "chunk": {
+        "id": "example-ttt-board",
+        "title": "Play a complete game through the Bevy board",
+        "name": "Playable Bevy board",
+        "status": "done",
+        "priority": 400,
+        "description": "Play a complete game through the Bevy board.",
+        "content": {
+          "version": 1,
+          "summary": "Play a complete game through the Bevy board.",
+          "sections": [
+            {
+              "heading": "Done when",
+              "list": [
+                {
+                  "text": "Nine visible cells accept pointer and keyboard input.",
+                  "done": true
+                },
+                {
+                  "text": "Turn and game-result text reflect the shared rules.",
+                  "done": true
+                },
+                {
+                  "text": "The same Rust game builds for a browser with Bevy.",
+                  "done": true
+                }
+              ]
+            }
+          ]
+        },
+        "acceptance": [
+          "Nine visible cells accept pointer and keyboard input.",
+          "Turn and game-result text reflect the shared rules.",
+          "The same Rust game builds for a browser with Bevy."
+        ],
+        "deps": [
+          "example-ttt-rules"
+        ],
+        "cross_refs": [
+          "task:ttt-board"
+        ],
+        "group": "Website example"
+      },
+      "output": "Play a complete game through the Bevy board\n• Nine visible cells accept pointer and keyboard input.\n• Turn and game-result text reflect the shared rules.\n• The same Rust game builds for a browser with Bevy."
+    },
+    {
+      "id": "action-41",
+      "at": "2026-10-21T08:28:04.549Z",
+      "kind": "work",
+      "operation": "finish_work",
+      "title": "Render and play the board in Bevy 0.20.0",
+      "task": {
+        "id": "ttt-board",
+        "title": "Render and play the board in Bevy 0.20.0",
+        "status": "completed",
+        "type": "implement"
+      },
+      "output": "Render and play the board in Bevy 0.20.0\nStatus: completed"
+    },
+    {
+      "id": "action-42",
+      "at": "2026-10-21T08:28:05.820Z",
+      "kind": "roadmap",
+      "operation": "roadmap_start_chunk",
+      "title": "Start: Another round",
+      "chunk": {
+        "id": "example-ttt-rematch",
+        "title": "Play again, keep the score and alternate who starts",
+        "name": "Another round",
+        "status": "in_progress",
+        "priority": 400,
+        "description": "Play again, keep the score and alternate who starts.",
+        "content": {
+          "version": 1,
+          "summary": "Play again, keep the score and alternate who starts.",
+          "facts": [
+            {
+              "label": "Project",
+              "value": "Bevy tic-tac-toe"
+            }
+          ],
+          "sections": [
+            {
+              "heading": "Done when",
+              "list": [
+                {
+                  "text": "The computer responds through the same game rules.",
+                  "done": false
+                },
+                {
+                  "text": "Finished rounds add one score; further input cannot add another.",
+                  "done": false
+                },
+                {
+                  "text": "Play again clears the board, preserves the score and alternates the opening player.",
+                  "done": false
+                }
+              ]
+            }
+          ]
+        },
+        "acceptance": [
+          "The computer responds through the same game rules.",
+          "Finished rounds add one score; further input cannot add another.",
+          "Play again clears the board, preserves the score and alternates the opening player."
+        ],
+        "deps": [
+          "example-ttt-opponent",
+          "example-ttt-board"
+        ],
+        "cross_refs": [],
+        "group": "Website example"
+      },
+      "output": "Play again, keep the score and alternate who starts\n• The computer responds through the same game rules.\n• Finished rounds add one score; further input cannot add another.\n• Play again clears the board, preserves the score and alternates the opening player."
+    },
+    {
+      "id": "action-43",
+      "at": "2026-10-21T08:28:07.854Z",
+      "kind": "work",
+      "operation": "plan_work",
+      "title": "Connect the opponent and finish the match flow",
+      "task": {
+        "id": "ttt-rematch",
+        "title": "Connect the opponent and finish the match flow",
+        "status": "planned",
+        "type": "implement"
+      },
+      "output": "Connect the opponent and finish the match flow\nStatus: planned"
+    },
+    {
+      "id": "action-44",
+      "at": "2026-10-21T08:28:08.869Z",
+      "kind": "work",
+      "operation": "start_work",
+      "title": "Connect the opponent and finish the match flow",
+      "task": {
+        "id": "ttt-rematch",
+        "title": "Connect the opponent and finish the match flow",
+        "status": "active",
+        "type": "implement"
+      },
+      "output": "Connect the opponent and finish the match flow\nStatus: active"
+    },
+    {
+      "id": "change-64",
+      "at": "2026-10-21T08:29:05.705Z",
+      "kind": "change",
+      "operation": "write",
+      "title": "Write src/lib.rs",
+      "file": {
+        "path": "src/lib.rs",
+        "content": "//! Game rules shared by the Bevy interface and exhaustive opponent checks.\n#[derive(Clone, Copy, Debug, Eq, PartialEq)]\npub enum Mark {\n    X,\n    O,\n}\n\nimpl Mark {\n    pub fn other(self) -> Self {\n        match self {\n            Self::X => Self::O,\n            Self::O => Self::X,\n        }\n    }\n    pub fn label(self) -> &'static str {\n        match self {\n            Self::X => \"X\",\n            Self::O => \"O\",\n        }\n    }\n}\n\npub const LINES: [[usize; 3]; 8] = [\n    [0, 1, 2],\n    [3, 4, 5],\n    [6, 7, 8],\n    [0, 3, 6],\n    [1, 4, 7],\n    [2, 5, 8],\n    [0, 4, 8],\n    [2, 4, 6],\n];\n\n#[derive(Clone, Copy, Debug, Eq, PartialEq)]\npub enum Outcome {\n    Playing,\n    Won(Mark, [usize; 3]),\n    Draw,\n}\n\n#[derive(Clone, Copy, Debug, Eq, PartialEq)]\npub enum MoveError {\n    NotYourTurn,\n    OutsideBoard,\n    Occupied,\n    Finished,\n}\n\n#[derive(Clone, Debug, Eq, PartialEq)]\npub struct Board {\n    cells: [Option<Mark>; 9],\n    turn: Mark,\n}\n\nimpl Default for Board {\n    fn default() -> Self {\n        Self {\n            cells: [None; 9],\n            turn: Mark::X,\n        }\n    }\n}\n\nimpl Board {\n    pub fn cells(&self) -> &[Option<Mark>; 9] {\n        &self.cells\n    }\n    pub fn turn(&self) -> Mark {\n        self.turn\n    }\n    pub fn outcome(&self) -> Outcome {\n        for line in LINES {\n            if let Some(mark) = self.cells[line[0]] {\n                if line.iter().all(|&cell| self.cells[cell] == Some(mark)) {\n                    return Outcome::Won(mark, line);\n                }\n            }\n        }\n        if self.cells.iter().all(Option::is_some) {\n            Outcome::Draw\n        } else {\n            Outcome::Playing\n        }\n    }\n    pub fn play(&mut self, cell: usize) -> Result<(), MoveError> {\n        if cell >= 9 {\n            return Err(MoveError::OutsideBoard);\n        }\n        if self.outcome() != Outcome::Playing {\n            return Err(MoveError::Finished);\n        }\n        if self.cells[cell].is_some() {\n            return Err(MoveError::Occupied);\n        }\n        self.cells[cell] = Some(self.turn);\n        self.turn = self.turn.other();\n        Ok(())\n    }\n    pub fn legal_moves(&self) -> impl Iterator<Item = usize> + '_ {\n        (0..9).filter(|&i| self.outcome() == Outcome::Playing && self.cells[i].is_none())\n    }\n}\n\n#[cfg(test)]\nmod tests {\n    use super::*;\n\n    fn played(moves: &[usize]) -> Board {\n        let mut board = Board::default();\n        for &cell in moves {\n            board.play(cell).unwrap();\n        }\n        board\n    }\n\n    #[test]\n    fn illegal_moves_leave_both_board_and_turn_unchanged() {\n        let mut board = played(&[4]);\n        let before = board.clone();\n        assert_eq!(board.play(4), Err(MoveError::Occupied));\n        assert_eq!(board.play(9), Err(MoveError::OutsideBoard));\n        assert_eq!(board, before);\n        assert_eq!(board.turn(), Mark::O);\n    }\n\n    #[test]\n    fn recognizes_all_eight_winning_lines_for_both_players() {\n        for line in LINES {\n            for mark in [Mark::X, Mark::O] {\n                let mut board = Board::default();\n                for cell in line {\n                    board.cells[cell] = Some(mark);\n                }\n                assert_eq!(board.outcome(), Outcome::Won(mark, line));\n            }\n        }\n    }\n\n    #[test]\n    fn completed_games_reject_more_moves() {\n        let mut board = played(&[0, 3, 1, 4, 2]);\n        assert_eq!(board.outcome(), Outcome::Won(Mark::X, [0, 1, 2]));\n        let before = board.clone();\n        assert_eq!(board.play(8), Err(MoveError::Finished));\n        assert_eq!(board, before);\n        assert_eq!(board.legal_moves().count(), 0);\n    }\n\n    #[test]\n    fn a_full_board_without_a_line_is_a_draw() {\n        let board = played(&[0, 4, 8, 1, 7, 6, 2, 5, 3]);\n        assert_eq!(board.outcome(), Outcome::Draw);\n        assert_eq!(board.legal_moves().count(), 0);\n    }\n\n    #[test]\n    fn a_win_on_the_ninth_move_is_not_a_draw() {\n        let board = played(&[0, 1, 2, 3, 4, 5, 7, 6, 8]);\n        assert_eq!(board.outcome(), Outcome::Won(Mark::X, [0, 4, 8]));\n    }\n}\n\n/// Choose an optimal legal move. Stable ordering makes recordings reproducible.\npub fn best_move(board: &Board) -> Option<usize> {\n    if board.outcome() != Outcome::Playing {\n        return None;\n    }\n    let player = board.turn();\n    let mut best = None;\n    let mut best_score = i16::MIN;\n    for cell in [4, 0, 2, 6, 8, 1, 3, 5, 7] {\n        if board.cells[cell].is_some() {\n            continue;\n        }\n        let mut next = board.clone();\n        next.play(cell)\n            .expect(\"an empty cell on a live board is legal\");\n        let score = minimax(&next, player, 1);\n        if score > best_score {\n            best_score = score;\n            best = Some(cell);\n        }\n    }\n    best\n}\n\nfn minimax(board: &Board, player: Mark, depth: i16) -> i16 {\n    match board.outcome() {\n        Outcome::Won(mark, _) => {\n            return if mark == player {\n                10 - depth\n            } else {\n                depth - 10\n            };\n        }\n        Outcome::Draw => return 0,\n        Outcome::Playing => {}\n    }\n    let scores = board.legal_moves().map(|cell| {\n        let mut next = board.clone();\n        next.play(cell).unwrap();\n        minimax(&next, player, depth + 1)\n    });\n    if board.turn() == player {\n        scores.max().unwrap()\n    } else {\n        scores.min().unwrap()\n    }\n}\n\n#[cfg(test)]\nmod opponent_tests {\n    use super::*;\n\n    fn count_games(board: Board, computer: Mark) -> (usize, usize) {\n        match board.outcome() {\n            Outcome::Won(mark, _) => {\n                assert_eq!(mark, computer, \"computer lost: {:?}\", board.cells());\n                return (1, 0);\n            }\n            Outcome::Draw => return (0, 1),\n            Outcome::Playing => {}\n        }\n        let moves: Vec<_> = if board.turn() == computer {\n            vec![best_move(&board).expect(\"live board has a move\")]\n        } else {\n            board.legal_moves().collect()\n        };\n        let mut result = (0, 0);\n        for cell in moves {\n            let mut next = board.clone();\n            next.play(cell).expect(\"opponent only returns legal moves\");\n            let (wins, draws) = count_games(next, computer);\n            result.0 += wins;\n            result.1 += draws;\n        }\n        result\n    }\n\n    #[test]\n    fn computer_never_loses_against_any_legal_human_reply() {\n        for computer in [Mark::X, Mark::O] {\n            let (wins, draws) = count_games(Board::default(), computer);\n            println!(\n                \"Computer {}: {wins} wins, {draws} draws, 0 losses.\",\n                computer.label()\n            );\n            assert!(wins > 0 && draws > 0);\n        }\n    }\n\n    #[test]\n    fn takes_a_win_before_blocking_and_stops_after_game_over() {\n        let mut board = Board::default();\n        for cell in [0, 3, 1, 4] {\n            board.play(cell).unwrap();\n        }\n        assert_eq!(best_move(&board), Some(2));\n        board.play(2).unwrap();\n        assert_eq!(best_move(&board), None);\n    }\n\n    #[test]\n    fn answers_opposite_corners_with_an_edge() {\n        let mut board = Board::default();\n        for cell in [0, 4, 8] {\n            board.play(cell).unwrap();\n        }\n        assert!([1, 3, 5, 7].contains(&best_move(&board).unwrap()));\n    }\n}\n\n#[derive(Clone, Debug)]\npub struct Match {\n    pub board: Board,\n    pub human: Mark,\n    /// Human wins, computer wins, draws.\n    pub score: [u32; 3],\n}\n\nimpl Default for Match {\n    fn default() -> Self {\n        Self { board: Board::default(), human: Mark::X, score: [0; 3] }\n    }\n}\n\nimpl Match {\n    pub fn human_move(&mut self, cell: usize) -> Result<(), MoveError> {\n        if self.board.turn() != self.human { return Err(MoveError::NotYourTurn); }\n        self.board.play(cell)?;\n        self.record_ending();\n        Ok(())\n    }\n\n    pub fn computer_move(&mut self) -> bool {\n        if self.board.turn() == self.human { return false; }\n        let Some(cell) = best_move(&self.board) else { return false; };\n        self.board.play(cell).expect(\"minimax returns a legal move\");\n        self.record_ending();\n        true\n    }\n\n    fn record_ending(&mut self) {\n        // Called only after an accepted move. A finished board rejects every later move.\n        match self.board.outcome() {\n            Outcome::Won(mark, _) => self.score[usize::from(mark != self.human)] += 1,\n            Outcome::Draw => self.score[2] += 1,\n            Outcome::Playing => {}\n        }\n    }\n\n    pub fn next_round(&mut self) -> bool {\n        if self.board.outcome() == Outcome::Playing { return false; }\n        self.board = Board::default();\n        self.human = self.human.other();\n        true\n    }\n\n    pub fn status(&self) -> String {\n        match self.board.outcome() {\n            Outcome::Playing if self.board.turn() == self.human => \"Your turn\".into(),\n            Outcome::Playing => \"Computer's turn\".into(),\n            Outcome::Won(mark, _) if mark == self.human => \"You win\".into(),\n            Outcome::Won(_, _) => \"Computer wins\".into(),\n            Outcome::Draw => \"A draw\".into(),\n        }\n    }\n}\n\n#[cfg(test)]\nmod match_tests {\n    use super::*;\n    fn finish(game: &mut Match) {\n        while game.board.outcome() == Outcome::Playing {\n            if game.board.turn() == game.human {\n                game.human_move(best_move(&game.board).unwrap()).unwrap();\n            } else { assert!(game.computer_move()); }\n        }\n    }\n\n    #[test]\n    fn completed_round_scores_once_and_rematch_alternates_the_starter() {\n        let mut game = Match::default();\n        finish(&mut game);\n        assert_eq!(game.score, [0, 0, 1]);\n        let before = game.board.clone();\n        assert!(game.human_move(0).is_err());\n        assert!(!game.computer_move());\n        assert_eq!(game.board, before);\n        assert_eq!(game.score, [0, 0, 1]);\n        assert!(game.next_round());\n        assert_eq!(game.human, Mark::O);\n        assert_eq!(game.board, Board::default());\n        assert_eq!(game.score, [0, 0, 1]);\n        assert_eq!(game.human_move(0), Err(MoveError::NotYourTurn));\n        assert!(game.computer_move());\n        assert_eq!(game.board.turn(), Mark::O);\n        finish(&mut game);\n        assert_eq!(game.score, [0, 0, 2]);\n        assert!(game.next_round());\n        assert_eq!(game.human, Mark::X);\n    }\n\n    #[test]\n    fn cannot_restart_an_unfinished_round_or_play_twice() {\n        let mut game = Match::default();\n        assert!(!game.next_round());\n        game.human_move(0).unwrap();\n        assert_eq!(game.human_move(1), Err(MoveError::NotYourTurn));\n        assert_eq!(game.score, [0; 3]);\n        assert_eq!(game.board.cells().iter().flatten().count(), 1);\n    }\n}\n"
+      },
+      "output": "//! Game rules shared by the Bevy interface and exhaustive opponent checks.\n#[derive(Clone, Copy, Debug, Eq, PartialEq)]\npub enum Mark {\n    X,\n    O,\n}\n\nimpl Mark {\n    pub fn other(self) -> Self {\n        match self {\n            Self::X => Self::O,\n            Self::O => Self::X,\n        }\n    }\n    pub fn label(self) -> &'static str {\n        match self {\n            Self::X => \"X\",\n            Self::O => \"O\",\n        }\n    }\n}\n\npub const LINES: [[usize; 3]; 8] = [\n    [0, 1, 2],\n    [3, 4, 5],\n    [6, 7, 8],\n    [0, 3, 6],\n    [1, 4, 7],\n    [2, 5, 8],\n    [0, 4, 8],\n    [2, 4, 6],\n];\n\n#[derive(Clone, Copy, Debug, Eq, PartialEq)]\npub enum Outcome {\n    Playing,\n    Won(Mark, [usize; 3]),\n    Draw,\n}\n\n#[derive(Clone, Copy, Debug, Eq, PartialEq)]\npub enum MoveError {\n    NotYourTurn,\n    OutsideBoard,\n    Occupied,\n    Finished,\n}\n\n#[derive(Clone, Debug, Eq, PartialEq)]\npub struct Board {\n    cells: [Option<Mark>; 9],\n    turn: Mark,\n}\n\nimpl Default for Board {\n    fn default() -> Self {\n        Self {\n            cells: [None; 9],\n            turn: Mark::X,\n        }\n    }\n}\n\nimpl Board {\n    pub fn cells(&self) -> &[Option<Mark>; 9] {\n        &self.cells\n    }\n    pub fn turn(&self) -> Mark {\n        self.turn\n    }\n    pub fn outcome(&self) -> Outcome {\n        for line in LINES {\n            if let Some(mark) = self.cells[line[0]] {\n                if line.iter().all(|&cell| self.cells[cell] == Some(mark)) {\n                    return Outcome::Won(mark, line);\n                }\n            }\n        }\n        if self.cells.iter().all(Option::is_some) {\n            Outcome::Draw\n        } else {\n            Outcome::Playing\n        }\n    }\n    pub fn play(&mut self, cell: usize) -> Result<(), MoveError> {\n        if cell >= 9 {\n            return Err(MoveError::OutsideBoard);\n        }\n        if self.outcome() != Outcome::Playing {\n            return Err(MoveError::Finished);\n        }\n        if self.cells[cell].is_some() {\n            return Err(MoveError::Occupied);\n        }\n        self.cells[cell] = Some(self.turn);\n        self.turn = self.turn.other();\n        Ok(())\n    }\n    pub fn legal_moves(&self) -> impl Iterator<Item = usize> + '_ {\n        (0..9).filter(|&i| self.outcome() == Outcome::Playing && self.cells[i].is_none())\n    }\n}\n\n#[cfg(test)]\nmod tests {\n    use super::*;\n\n    fn played(moves: &[usize]) -> Board {\n        let mut board = Board::default();\n        for &cell in moves {\n            board.play(cell).unwrap();\n        }\n        board\n    }\n\n    #[test]\n    fn illegal_moves_leave_both_board_and_turn_unchanged() {\n        let mut board = played(&[4]);\n        let before = board.clone();\n        assert_eq!(board.play(4), Err(MoveError::Occupied));\n        assert_eq!(board.play(9), Err(MoveError::OutsideBoard));\n        assert_eq!(board, before);\n        assert_eq!(board.turn(), Mark::O);\n    }\n\n    #[test]\n    fn recognizes_all_eight_winning_lines_for_both_players() {\n        for line in LINES {\n            for mark in [Mark::X, Mark::O] {\n                let mut board = Board::default();\n                for cell in line {\n                    board.cells[cell] = Some(mark);\n                }\n                assert_eq!(board.outcome(), Outcome::Won(mark, line));\n            }\n        }\n    }\n\n    #[test]\n    fn completed_games_reject_more_moves() {\n        let mut board = played(&[0, 3, 1, 4, 2]);\n        assert_eq!(board.outcome(), Outcome::Won(Mark::X, [0, 1, 2]));\n        let before = board.clone();\n        assert_eq!(board.play(8), Err(MoveError::Finished));\n        assert_eq!(board, before);\n        assert_eq!(board.legal_moves().count(), 0);\n    }\n\n    #[test]\n    fn a_full_board_without_a_line_is_a_draw() {\n        let board = played(&[0, 4, 8, 1, 7, 6, 2, 5, 3]);\n        assert_eq!(board.outcome(), Outcome::Draw);\n        assert_eq!(board.legal_moves().count(), 0);\n    }\n\n    #[test]\n    fn a_win_on_the_ninth_move_is_not_a_draw() {\n        let board = played(&[0, 1, 2, 3, 4, 5, 7, 6, 8]);\n        assert_eq!(board.outcome(), Outcome::Won(Mark::X, [0, 4, 8]));\n    }\n}\n\n/// Choose an optimal legal move. Stable ordering makes recordings reproducible.\npub fn best_move(board: &Board) -> Option<usize> {\n    if board.outcome() != Outcome::Playing {\n        return None;\n    }\n    let player = board.turn();\n    let mut best = None;\n    let mut best_score = i16::MIN;\n    for cell in [4, 0, 2, 6, 8, 1, 3, 5, 7] {\n        if board.cells[cell].is_some() {\n            continue;\n        }\n        let mut next = board.clone();\n        next.play(cell)\n            .expect(\"an empty cell on a live board is legal\");\n        let score = minimax(&next, player, 1);\n        if score > best_score {\n            best_score = score;\n            best = Some(cell);\n        }\n    }\n    best\n}\n\nfn minimax(board: &Board, player: Mark, depth: i16) -> i16 {\n    match board.outcome() {\n        Outcome::Won(mark, _) => {\n            return if mark == player {\n                10 - depth\n            } else {\n                depth - 10\n            };\n        }\n        Outcome::Draw => return 0,\n        Outcome::Playing => {}\n    }\n    let scores = board.legal_moves().map(|cell| {\n        let mut next = board.clone();\n        next.play(cell).unwrap();\n        minimax(&next, player, depth + 1)\n    });\n    if board.turn() == player {\n        scores.max().unwrap()\n    } else {\n        scores.min().unwrap()\n    }\n}\n\n#[cfg(test)]\nmod opponent_tests {\n    use super::*;\n\n    fn count_games(board: Board, computer: Mark) -> (usize, usize) {\n        match board.outcome() {\n            Outcome::Won(mark, _) => {\n                assert_eq!(mark, computer, \"computer lost: {:?}\", board.cells());\n                return (1, 0);\n            }\n            Outcome::Draw => return (0, 1),\n            Outcome::Playing => {}\n        }\n        let moves: Vec<_> = if board.turn() == computer {\n            vec![best_move(&board).expect(\"live board has a move\")]\n        } else {\n            board.legal_moves().collect()\n        };\n        let mut result = (0, 0);\n        for cell in moves {\n            let mut next = board.clone();\n            next.play(cell).expect(\"opponent only returns legal moves\");\n            let (wins, draws) = count_games(next, computer);\n            result.0 += wins;\n            result.1 += draws;\n        }\n        result\n    }\n\n    #[test]\n    fn computer_never_loses_against_any_legal_human_reply() {\n        for computer in [Mark::X, Mark::O] {\n            let (wins, draws) = count_games(Board::default(), computer);\n            println!(\n                \"Computer {}: {wins} wins, {draws} draws, 0 losses.\",\n                computer.label()\n            );\n            assert!(wins > 0 && draws > 0);\n        }\n    }\n\n    #[test]\n    fn takes_a_win_before_blocking_and_stops_after_game_over() {\n        let mut board = Board::default();\n        for cell in [0, 3, 1, 4] {\n            board.play(cell).unwrap();\n        }\n        assert_eq!(best_move(&board), Some(2));\n        board.play(2).unwrap();\n        assert_eq!(best_move(&board), None);\n    }\n\n    #[test]\n    fn answers_opposite_corners_with_an_edge() {\n        let mut board = Board::default();\n        for cell in [0, 4, 8] {\n            board.play(cell).unwrap();\n        }\n        assert!([1, 3, 5, 7].contains(&best_move(&board).unwrap()));\n    }\n}\n\n#[derive(Clone, Debug)]\npub struct Match {\n    pub board: Board,\n    pub human: Mark,\n    /// Human wins, computer wins, draws.\n    pub score: [u32; 3],\n}\n\nimpl Default for Match {\n    fn default() -> Self {\n        Self { board: Board::default(), human: Mark::X, score: [0; 3] }\n    }\n}\n\nimpl Match {\n    pub fn human_move(&mut self, cell: usize) -> Result<(), MoveError> {\n        if self.board.turn() != self.human { return Err(MoveError::NotYourTurn); }\n        self.board.play(cell)?;\n        self.record_ending();\n        Ok(())\n    }\n\n    pub fn computer_move(&mut self) -> bool {\n        if self.board.turn() == self.human { return false; }\n        let Some(cell) = best_move(&self.board) else { return false; };\n        self.board.play(cell).expect(\"minimax returns a legal move\");\n        self.record_ending();\n        true\n    }\n\n    fn record_ending(&mut self) {\n        // Called only after an accepted move. A finished board rejects every later move.\n        match self.board.outcome() {\n            Outcome::Won(mark, _) => self.score[usize::from(mark != self.human)] += 1,\n            Outcome::Draw => self.score[2] += 1,\n            Outcome::Playing => {}\n        }\n    }\n\n    pub fn next_round(&mut self) -> bool {\n        if self.board.outcome() == Outcome::Playing { return false; }\n        self.board = Board::default();\n        self.human = self.human.other();\n        true\n    }\n\n    pub fn status(&self) -> String {\n        match self.board.outcome() {\n            Outcome::Playing if self.board.turn() == self.human => \"Your turn\".into(),\n            Outcome::Playing => \"Computer's turn\".into(),\n            Outcome::Won(mark, _) if mark == self.human => \"You win\".into(),\n            Outcome::Won(_, _) => \"Computer wins\".into(),\n            Outcome::Draw => \"A draw\".into(),\n        }\n    }\n}\n\n#[cfg(test)]\nmod match_tests {\n    use super::*;\n    fn finish(game: &mut Match) {\n        while game.board.outcome() == Outcome::Playing {\n            if game.board.turn() == game.human {\n                game.human_move(best_move(&game.board).unwrap()).unwrap();\n            } else { assert!(game.computer_move()); }\n        }\n    }\n\n    #[test]\n    fn completed_round_scores_once_and_rematch_alternates_the_starter() {\n        let mut game = Match::default();\n        finish(&mut game);\n        assert_eq!(game.score, [0, 0, 1]);\n        let before = game.board.clone();\n        assert!(game.human_move(0).is_err());\n        assert!(!game.computer_move());\n        assert_eq!(game.board, before);\n        assert_eq!(game.score, [0, 0, 1]);\n        assert!(game.next_round());\n        assert_eq!(game.human, Mark::O);\n        assert_eq!(game.board, Board::default());\n        assert_eq!(game.score, [0, 0, 1]);\n        assert_eq!(game.human_move(0), Err(MoveError::NotYourTurn));\n        assert!(game.computer_move());\n        assert_eq!(game.board.turn(), Mark::O);\n        finish(&mut game);\n        assert_eq!(game.score, [0, 0, 2]);\n        assert!(game.next_round());\n        assert_eq!(game.human, Mark::X);\n    }\n\n    #[test]\n    fn cannot_restart_an_unfinished_round_or_play_twice() {\n        let mut game = Match::default();\n        assert!(!game.next_round());\n        game.human_move(0).unwrap();\n        assert_eq!(game.human_move(1), Err(MoveError::NotYourTurn));\n        assert_eq!(game.score, [0; 3]);\n        assert_eq!(game.board.cells().iter().flatten().count(), 1);\n    }\n}\n"
+    },
+    {
+      "id": "change-65",
+      "at": "2026-10-21T08:29:05.814Z",
+      "kind": "change",
+      "operation": "write",
+      "title": "Write src/main.rs",
+      "file": {
+        "path": "src/main.rs",
+        "content": "use bevy::{prelude::*, ui::InteractionDisabled, ui_widgets::{Activate, Button}};\nuse magistr_tic_tac_toe::{Mark, Match, Outcome};\n\n#[derive(Resource, Default)]\nstruct Game(Match);\n#[derive(Component)]\nstruct CellLabel(usize);\n#[derive(Component)]\nstruct StatusLabel;\n#[derive(Component)]\nstruct ScoreLabel;\n#[derive(Component)]\nstruct RoleLabel;\n#[derive(Component)]\nstruct Cell(usize);\n#[derive(Component)]\nstruct Rematch;\n\nconst INK: Color = Color::srgb(0.12, 0.15, 0.19);\nconst PAPER: Color = Color::srgb(0.96, 0.95, 0.91);\nconst CELL: Color = Color::srgb(1.0, 0.99, 0.96);\nconst X_COLOR: Color = Color::srgb(0.12, 0.34, 0.52);\nconst O_COLOR: Color = Color::srgb(0.65, 0.24, 0.12);\n\nfn main() {\n    App::new()\n        .add_plugins(DefaultPlugins.set(WindowPlugin {\n            primary_window: Some(Window {\n                title: \"Tic-tac-toe\".into(), resolution: (640, 620).into(),\n                canvas: Some(\"#game\".into()), fit_canvas_to_parent: true,\n                prevent_default_event_handling: false, ..default()\n            }), ..default()\n        }))\n        .insert_resource(ClearColor(PAPER))\n        .init_resource::<Game>()\n        .add_systems(Startup, setup)\n        .add_systems(Update, (keyboard, computer, draw).chain())\n        .run();\n}\n\nfn label(text: impl Into<String>, size: f32) -> impl Bundle {\n    (Text::new(text), TextFont { font_size: FontSize::Px(size), ..default() }, TextColor(INK))\n}\n\nfn setup(mut commands: Commands) {\n    commands.spawn(Camera2d);\n    commands.spawn(Node {\n        width: percent(100), height: percent(100), flex_direction: FlexDirection::Column,\n        align_items: AlignItems::Center, justify_content: JustifyContent::Center,\n        row_gap: px(10), padding: UiRect::all(px(12)), ..default()\n    }).with_children(|root| {\n        root.spawn(label(\"Tic-tac-toe\", 30.0));\n        root.spawn((label(\"You are X\", 15.0), RoleLabel));\n        root.spawn((label(\"Your turn\", 18.0), StatusLabel));\n        root.spawn(Node {\n            display: Display::Grid, width: px(264), height: px(264), flex_shrink: 0.0,\n            column_gap: px(6), row_gap: px(6),\n            grid_template_columns: RepeatedGridTrack::flex(3, 1.0),\n            grid_template_rows: RepeatedGridTrack::flex(3, 1.0), ..default()\n        }).with_children(|grid| {\n            for cell in 0..9 {\n                grid.spawn((\n                    Button, Cell(cell),\n                    Node { width: percent(100), height: percent(100), align_items: AlignItems::Center,\n                        justify_content: JustifyContent::Center, border: UiRect::all(px(1)), ..default() },\n                    BackgroundColor(CELL), BorderColor::all(Color::srgb(0.57, 0.59, 0.55)),\n                )).with_child((label((cell + 1).to_string(), 38.0), CellLabel(cell)))\n                  .observe(move |_: On<Activate>, mut game: ResMut<Game>| { let _ = game.0.human_move(cell); });\n            }\n        });\n        root.spawn((label(\"You 0   Computer 0   Draws 0\", 14.0), ScoreLabel));\n        root.spawn((\n            Button, Rematch, InteractionDisabled,\n            Node { width: px(190), height: px(42), flex_shrink: 0.0, align_items: AlignItems::Center,\n                justify_content: JustifyContent::Center, border: UiRect::all(px(1)), ..default() },\n            BackgroundColor(PAPER), BorderColor::all(Color::srgb(0.57,0.59,0.55)),\n        )).with_child(label(\"Play again [R]\", 16.0))\n          .observe(|_: On<Activate>, mut game: ResMut<Game>| { game.0.next_round(); });\n        root.spawn(label(\"Choose a square: click or 1-9\", 13.0));\n    });\n}\n\nfn keyboard(keys: Res<ButtonInput<KeyCode>>, mut game: ResMut<Game>) {\n    if keys.just_pressed(KeyCode::KeyR) { game.0.next_round(); return; }\n    let digits = [KeyCode::Digit1, KeyCode::Digit2, KeyCode::Digit3, KeyCode::Digit4,\n        KeyCode::Digit5, KeyCode::Digit6, KeyCode::Digit7, KeyCode::Digit8, KeyCode::Digit9];\n    for (cell, key) in digits.into_iter().enumerate() {\n        if keys.just_pressed(key) { let _ = game.0.human_move(cell); break; }\n    }\n}\n\nfn computer(mut game: ResMut<Game>) {\n    if game.0.board.turn() != game.0.human && game.0.board.outcome() == Outcome::Playing {\n        game.0.computer_move();\n    }\n}\n\nfn draw(\n    game: Res<Game>, mut commands: Commands,\n    mut labels: Query<(&mut Text, &mut TextColor, Option<&CellLabel>, Has<StatusLabel>, Has<ScoreLabel>, Has<RoleLabel>)>,\n    mut surfaces: Query<(Entity, Option<&Cell>, Has<Rematch>, &mut BackgroundColor)>,\n) {\n    if !game.is_changed() { return; }\n    let message = game.0.status();\n    let [you, computer, draws] = game.0.score;\n    for (mut text, mut color, cell, is_status, is_score, is_role) in &mut labels {\n        if let Some(cell) = cell {\n            let mark = game.0.board.cells()[cell.0];\n            **text = mark.map_or_else(|| (cell.0 + 1).to_string(), |m| m.label().into());\n            color.0 = match mark { Some(Mark::X) => X_COLOR, Some(Mark::O) => O_COLOR, None => Color::srgb(0.49,0.51,0.47) };\n        } else if is_status { **text = message.clone(); }\n        else if is_score { **text = format!(\"You {you}   Computer {computer}   Draws {draws}\"); }\n        else if is_role { **text = format!(\"You are {}   Computer is {}\", game.0.human.label(), game.0.human.other().label()); }\n    }\n    for (entity, cell, rematch, mut background) in &mut surfaces {\n        if let Some(cell) = cell {\n            let winning = matches!(game.0.board.outcome(), Outcome::Won(_, line) if line.contains(&cell.0));\n            background.0 = if winning { Color::srgb(0.79,0.87,0.77) } else { CELL };\n        } else if rematch {\n            if game.0.board.outcome() == Outcome::Playing {\n                commands.entity(entity).insert(InteractionDisabled);\n                background.0 = PAPER;\n            } else {\n                commands.entity(entity).remove::<InteractionDisabled>();\n                background.0 = Color::srgb(0.79,0.87,0.77);\n            }\n        }\n    }\n    announce(&game.0, &message);\n}\n\n// Read-only Rust state for screen readers and browser verification.\nfn announce(game: &Match, message: &str) {\n    #[cfg(target_arch = \"wasm32\")]\n    if let Some(document) = web_sys::window().and_then(|window| window.document()) {\n        if let Some(element) = document.get_element_by_id(\"game-status\") {\n            element.set_text_content(Some(message));\n            let cells: String = game.board.cells().iter().map(|m| m.map_or('.', |m| if m == Mark::X { 'X' } else { 'O' })).collect();\n            let _ = element.set_attribute(\"data-cells\", &cells);\n            let _ = element.set_attribute(\"data-turn\", game.board.turn().label());\n            let _ = element.set_attribute(\"data-human\", game.human.label());\n            let _ = element.set_attribute(\"data-score\", &format!(\"{},{},{}\",game.score[0],game.score[1],game.score[2]));\n        }\n    }\n    #[cfg(not(target_arch = \"wasm32\"))]\n    let _ = (game, message);\n}\n"
+      },
+      "output": "use bevy::{prelude::*, ui::InteractionDisabled, ui_widgets::{Activate, Button}};\nuse magistr_tic_tac_toe::{Mark, Match, Outcome};\n\n#[derive(Resource, Default)]\nstruct Game(Match);\n#[derive(Component)]\nstruct CellLabel(usize);\n#[derive(Component)]\nstruct StatusLabel;\n#[derive(Component)]\nstruct ScoreLabel;\n#[derive(Component)]\nstruct RoleLabel;\n#[derive(Component)]\nstruct Cell(usize);\n#[derive(Component)]\nstruct Rematch;\n\nconst INK: Color = Color::srgb(0.12, 0.15, 0.19);\nconst PAPER: Color = Color::srgb(0.96, 0.95, 0.91);\nconst CELL: Color = Color::srgb(1.0, 0.99, 0.96);\nconst X_COLOR: Color = Color::srgb(0.12, 0.34, 0.52);\nconst O_COLOR: Color = Color::srgb(0.65, 0.24, 0.12);\n\nfn main() {\n    App::new()\n        .add_plugins(DefaultPlugins.set(WindowPlugin {\n            primary_window: Some(Window {\n                title: \"Tic-tac-toe\".into(), resolution: (640, 620).into(),\n                canvas: Some(\"#game\".into()), fit_canvas_to_parent: true,\n                prevent_default_event_handling: false, ..default()\n            }), ..default()\n        }))\n        .insert_resource(ClearColor(PAPER))\n        .init_resource::<Game>()\n        .add_systems(Startup, setup)\n        .add_systems(Update, (keyboard, computer, draw).chain())\n        .run();\n}\n\nfn label(text: impl Into<String>, size: f32) -> impl Bundle {\n    (Text::new(text), TextFont { font_size: FontSize::Px(size), ..default() }, TextColor(INK))\n}\n\nfn setup(mut commands: Commands) {\n    commands.spawn(Camera2d);\n    commands.spawn(Node {\n        width: percent(100), height: percent(100), flex_direction: FlexDirection::Column,\n        align_items: AlignItems::Center, justify_content: JustifyContent::Center,\n        row_gap: px(10), padding: UiRect::all(px(12)), ..default()\n    }).with_children(|root| {\n        root.spawn(label(\"Tic-tac-toe\", 30.0));\n        root.spawn((label(\"You are X\", 15.0), RoleLabel));\n        root.spawn((label(\"Your turn\", 18.0), StatusLabel));\n        root.spawn(Node {\n            display: Display::Grid, width: px(264), height: px(264), flex_shrink: 0.0,\n            column_gap: px(6), row_gap: px(6),\n            grid_template_columns: RepeatedGridTrack::flex(3, 1.0),\n            grid_template_rows: RepeatedGridTrack::flex(3, 1.0), ..default()\n        }).with_children(|grid| {\n            for cell in 0..9 {\n                grid.spawn((\n                    Button, Cell(cell),\n                    Node { width: percent(100), height: percent(100), align_items: AlignItems::Center,\n                        justify_content: JustifyContent::Center, border: UiRect::all(px(1)), ..default() },\n                    BackgroundColor(CELL), BorderColor::all(Color::srgb(0.57, 0.59, 0.55)),\n                )).with_child((label((cell + 1).to_string(), 38.0), CellLabel(cell)))\n                  .observe(move |_: On<Activate>, mut game: ResMut<Game>| { let _ = game.0.human_move(cell); });\n            }\n        });\n        root.spawn((label(\"You 0   Computer 0   Draws 0\", 14.0), ScoreLabel));\n        root.spawn((\n            Button, Rematch, InteractionDisabled,\n            Node { width: px(190), height: px(42), flex_shrink: 0.0, align_items: AlignItems::Center,\n                justify_content: JustifyContent::Center, border: UiRect::all(px(1)), ..default() },\n            BackgroundColor(PAPER), BorderColor::all(Color::srgb(0.57,0.59,0.55)),\n        )).with_child(label(\"Play again [R]\", 16.0))\n          .observe(|_: On<Activate>, mut game: ResMut<Game>| { game.0.next_round(); });\n        root.spawn(label(\"Choose a square: click or 1-9\", 13.0));\n    });\n}\n\nfn keyboard(keys: Res<ButtonInput<KeyCode>>, mut game: ResMut<Game>) {\n    if keys.just_pressed(KeyCode::KeyR) { game.0.next_round(); return; }\n    let digits = [KeyCode::Digit1, KeyCode::Digit2, KeyCode::Digit3, KeyCode::Digit4,\n        KeyCode::Digit5, KeyCode::Digit6, KeyCode::Digit7, KeyCode::Digit8, KeyCode::Digit9];\n    for (cell, key) in digits.into_iter().enumerate() {\n        if keys.just_pressed(key) { let _ = game.0.human_move(cell); break; }\n    }\n}\n\nfn computer(mut game: ResMut<Game>) {\n    if game.0.board.turn() != game.0.human && game.0.board.outcome() == Outcome::Playing {\n        game.0.computer_move();\n    }\n}\n\nfn draw(\n    game: Res<Game>, mut commands: Commands,\n    mut labels: Query<(&mut Text, &mut TextColor, Option<&CellLabel>, Has<StatusLabel>, Has<ScoreLabel>, Has<RoleLabel>)>,\n    mut surfaces: Query<(Entity, Option<&Cell>, Has<Rematch>, &mut BackgroundColor)>,\n) {\n    if !game.is_changed() { return; }\n    let message = game.0.status();\n    let [you, computer, draws] = game.0.score;\n    for (mut text, mut color, cell, is_status, is_score, is_role) in &mut labels {\n        if let Some(cell) = cell {\n            let mark = game.0.board.cells()[cell.0];\n            **text = mark.map_or_else(|| (cell.0 + 1).to_string(), |m| m.label().into());\n            color.0 = match mark { Some(Mark::X) => X_COLOR, Some(Mark::O) => O_COLOR, None => Color::srgb(0.49,0.51,0.47) };\n        } else if is_status { **text = message.clone(); }\n        else if is_score { **text = format!(\"You {you}   Computer {computer}   Draws {draws}\"); }\n        else if is_role { **text = format!(\"You are {}   Computer is {}\", game.0.human.label(), game.0.human.other().label()); }\n    }\n    for (entity, cell, rematch, mut background) in &mut surfaces {\n        if let Some(cell) = cell {\n            let winning = matches!(game.0.board.outcome(), Outcome::Won(_, line) if line.contains(&cell.0));\n            background.0 = if winning { Color::srgb(0.79,0.87,0.77) } else { CELL };\n        } else if rematch {\n            if game.0.board.outcome() == Outcome::Playing {\n                commands.entity(entity).insert(InteractionDisabled);\n                background.0 = PAPER;\n            } else {\n                commands.entity(entity).remove::<InteractionDisabled>();\n                background.0 = Color::srgb(0.79,0.87,0.77);\n            }\n        }\n    }\n    announce(&game.0, &message);\n}\n\n// Read-only Rust state for screen readers and browser verification.\nfn announce(game: &Match, message: &str) {\n    #[cfg(target_arch = \"wasm32\")]\n    if let Some(document) = web_sys::window().and_then(|window| window.document()) {\n        if let Some(element) = document.get_element_by_id(\"game-status\") {\n            element.set_text_content(Some(message));\n            let cells: String = game.board.cells().iter().map(|m| m.map_or('.', |m| if m == Mark::X { 'X' } else { 'O' })).collect();\n            let _ = element.set_attribute(\"data-cells\", &cells);\n            let _ = element.set_attribute(\"data-turn\", game.board.turn().label());\n            let _ = element.set_attribute(\"data-human\", game.human.label());\n            let _ = element.set_attribute(\"data-score\", &format!(\"{},{},{}\",game.score[0],game.score[1],game.score[2]));\n        }\n    }\n    #[cfg(not(target_arch = \"wasm32\"))]\n    let _ = (game, message);\n}\n"
+    },
+    {
+      "id": "action-45",
+      "at": "2026-10-21T08:29:11.420Z",
+      "kind": "check",
+      "operation": "check_work",
+      "title": "Rules, opponent and rematches",
+      "check": {
+        "type": "test",
+        "name": "Rules, opponent and rematches",
+        "passed": true,
+        "details": "$ cargo test --locked --manifest-path examples/bevy-tic-tac-toe/Cargo.toml --lib -- --nocapture\n[exit 0; queue 0ms; execution 3230ms]\n\nrunning 10 tests\ntest match_tests::cannot_restart_an_unfinished_round_or_play_twice ... ok\ntest tests::illegal_moves_leave_both_board_and_turn_unchanged ... ok\ntest tests::recognizes_all_eight_winning_lines_for_both_players ... ok\ntest tests::completed_games_reject_more_moves ... ok\ntest tests::a_win_on_the_ninth_move_is_not_a_draw ... ok\ntest tests::a_full_board_without_a_line_is_a_draw ... ok\ntest opponent_tests::takes_a_win_before_blocking_and_stops_after_game_over ... ok\ntest opponent_tests::answers_opposite_corners_with_an_edge ... ok\nComputer X: 82 wins, 10 draws, 0 losses.\ntest match_tests::completed_round_scores_once_and_rematch_alternates_the_starter ... ok\nComputer O: 368 wins, 153 draws, 0 losses.\ntest opponent_tests::computer_never_loses_against_any_legal_human_reply ... ok\n\ntest result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.67s\n\n   Compiling magistr-tic-tac-toe v0.1.0 (./examples/bevy-tic-tac-toe)\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.52s\n     Running unittests src/lib.rs (examples/bevy-tic-tac-toe/target/debug/deps/magistr_tic_tac_toe-56e483b27c34fd56)",
+        "verified": true,
+        "command": "cargo test --locked --manifest-path examples/bevy-tic-tac-toe/Cargo.toml --lib -- --nocapture",
+        "exit_code": 0,
+        "timestamp": "2026-10-21T08:29:10.702120+00:00"
+      },
+      "task": "ttt-rematch",
+      "output": "$ cargo test --locked --manifest-path examples/bevy-tic-tac-toe/Cargo.toml --lib -- --nocapture\n[exit 0; queue 0ms; execution 3230ms]\n\nrunning 10 tests\ntest match_tests::cannot_restart_an_unfinished_round_or_play_twice ... ok\ntest tests::illegal_moves_leave_both_board_and_turn_unchanged ... ok\ntest tests::recognizes_all_eight_winning_lines_for_both_players ... ok\ntest tests::completed_games_reject_more_moves ... ok\ntest tests::a_win_on_the_ninth_move_is_not_a_draw ... ok\ntest tests::a_full_board_without_a_line_is_a_draw ... ok\ntest opponent_tests::takes_a_win_before_blocking_and_stops_after_game_over ... ok\ntest opponent_tests::answers_opposite_corners_with_an_edge ... ok\nComputer X: 82 wins, 10 draws, 0 losses.\ntest match_tests::completed_round_scores_once_and_rematch_alternates_the_starter ... ok\nComputer O: 368 wins, 153 draws, 0 losses.\ntest opponent_tests::computer_never_loses_against_any_legal_human_reply ... ok\n\ntest result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.67s\n\n   Compiling magistr-tic-tac-toe v0.1.0 (./examples/bevy-tic-tac-toe)\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.52s\n     Running unittests src/lib.rs (examples/bevy-tic-tac-toe/target/debug/deps/magistr_tic_tac_toe-56e483b27c34fd56)"
+    },
+    {
+      "id": "action-46",
+      "at": "2026-10-21T08:33:46.125Z",
+      "kind": "check",
+      "operation": "check_work",
+      "title": "Bevy game and rematch playthrough",
+      "check": {
+        "type": "test",
+        "name": "Bevy game and rematch playthrough",
+        "passed": false,
+        "details": "$ cd apps/website && node tests/game-browser.mjs\n[exit 1; queue 0ms; execution 31910ms]\nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\n\npage.waitForFunction: Timeout 30000ms exceeded.\n    at ./apps/website/tests/game-browser.mjs:31:15 {\n  log: [],\n  name: 'TimeoutError'\n}\n\nNode.js v24.21.0",
+        "verified": true,
+        "command": "cd apps/website && node tests/game-browser.mjs",
+        "exit_code": 1,
+        "timestamp": "2026-10-21T08:33:45.423890+00:00"
+      },
+      "task": "ttt-rematch",
+      "output": "$ cd apps/website && node tests/game-browser.mjs\n[exit 1; queue 0ms; execution 31910ms]\nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\n\npage.waitForFunction: Timeout 30000ms exceeded.\n    at ./apps/website/tests/game-browser.mjs:31:15 {\n  log: [],\n  name: 'TimeoutError'\n}\n\nNode.js v24.21.0"
+    },
+    {
+      "id": "action-47",
+      "at": "2026-10-21T08:35:52.028Z",
+      "kind": "check",
+      "operation": "check_work",
+      "title": "Bevy game and rematch playthrough",
+      "check": {
+        "type": "test",
+        "name": "Bevy game and rematch playthrough",
+        "passed": true,
+        "details": "$ cd apps/website && node tests/game-browser.mjs\n[exit 0; queue 0ms; execution 4347ms]\nBevy 0.20.0: real computer replies, terminal input protection, one score per round and alternating rematches passed at 720px and 320px.",
+        "verified": true,
+        "command": "cd apps/website && node tests/game-browser.mjs",
+        "exit_code": 0,
+        "timestamp": "2026-10-21T08:35:51.463015+00:00"
+      },
+      "task": "ttt-rematch",
+      "output": "$ cd apps/website && node tests/game-browser.mjs\n[exit 0; queue 0ms; execution 4347ms]\nBevy 0.20.0: real computer replies, terminal input protection, one score per round and alternating rematches passed at 720px and 320px."
+    },
+    {
+      "id": "action-48",
+      "at": "2026-10-21T08:35:53.418Z",
+      "kind": "check",
+      "operation": "check_work",
+      "title": "Bevy 0.20.0 browser build",
+      "check": {
+        "type": "build",
+        "name": "Bevy 0.20.0 browser build",
+        "passed": true,
+        "details": "$ cargo build --locked --manifest-path examples/bevy-tic-tac-toe/Cargo.toml --features game --target wasm32-unknown-unknown --release\n[exit 0; queue 0ms; execution 340ms]\n    Finished `release` profile [optimized] target(s) in 0.29s",
+        "verified": true,
+        "command": "cargo build --locked --manifest-path examples/bevy-tic-tac-toe/Cargo.toml --features game --target wasm32-unknown-unknown --release",
+        "exit_code": 0,
+        "timestamp": "2026-10-21T08:35:52.826549+00:00"
+      },
+      "task": "ttt-rematch",
+      "output": "$ cargo build --locked --manifest-path examples/bevy-tic-tac-toe/Cargo.toml --features game --target wasm32-unknown-unknown --release\n[exit 0; queue 0ms; execution 340ms]\n    Finished `release` profile [optimized] target(s) in 0.29s"
+    },
+    {
+      "id": "action-49",
+      "at": "2026-10-21T08:35:54.886Z",
+      "kind": "check",
+      "operation": "check_work",
+      "title": "Game formatting and rules lint",
+      "check": {
+        "type": "lint",
+        "name": "Game formatting and rules lint",
+        "passed": false,
+        "details": "$ cargo fmt --manifest-path examples/bevy-tic-tac-toe/Cargo.toml --check && cargo clippy --locked --manifest-path examples/bevy-tic-tac-toe/Cargo.toml --lib -- -D warnings\n[exit 101; queue 0ms; execution 411ms]\n    Checking magistr-tic-tac-toe v0.1.0 (./examples/bevy-tic-tac-toe)\nerror: this `if` statement can be collapsed\n  --> src/lib.rs:73:13\n   |\n73 | /             if let Some(mark) = self.cells[line[0]] {\n74 | |                 if line.iter().all(|&cell| self.cells[cell] == Some(mark)) {\n75 | |                     return Outcome::Won(mark, line);\n76 | |                 }\n77 | |             }\n   | |_____________^\n   |\n   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#collapsible_if\n   = note: `-D clippy::collapsible-if` implied by `-D warnings`\n   = help: to override `-D warnings` add `#[allow(clippy::collapsible_if)]`\nhelp: collapse nested if block\n   |\n73 ~             if let Some(mark) = self.cells[line[0]]\n74 ~                 && line.iter().all(|&cell| self.cells[cell] == Some(mark)) {\n75 |                     return Outcome::Won(mark, line);\n76 ~                 }\n   |\n\nerror: could not compile `magistr-tic-tac-toe` (lib) due to 1 previous error",
+        "verified": true,
+        "command": "cargo fmt --manifest-path examples/bevy-tic-tac-toe/Cargo.toml --check && cargo clippy --locked --manifest-path examples/bevy-tic-tac-toe/Cargo.toml --lib -- -D warnings",
+        "exit_code": 101,
+        "timestamp": "2026-10-21T08:35:54.294419+00:00"
+      },
+      "task": "ttt-rematch",
+      "output": "$ cargo fmt --manifest-path examples/bevy-tic-tac-toe/Cargo.toml --check && cargo clippy --locked --manifest-path examples/bevy-tic-tac-toe/Cargo.toml --lib -- -D warnings\n[exit 101; queue 0ms; execution 411ms]\n    Checking magistr-tic-tac-toe v0.1.0 (./examples/bevy-tic-tac-toe)\nerror: this `if` statement can be collapsed\n  --> src/lib.rs:73:13\n   |\n73 | /             if let Some(mark) = self.cells[line[0]] {\n74 | |                 if line.iter().all(|&cell| self.cells[cell] == Some(mark)) {\n75 | |                     return Outcome::Won(mark, line);\n76 | |                 }\n77 | |             }\n   | |_____________^\n   |\n   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#collapsible_if\n   = note: `-D clippy::collapsible-if` implied by `-D warnings`\n   = help: to override `-D warnings` add `#[allow(clippy::collapsible_if)]`\nhelp: collapse nested if block\n   |\n73 ~             if let Some(mark) = self.cells[line[0]]\n74 ~                 && line.iter().all(|&cell| self.cells[cell] == Some(mark)) {\n75 |                     return Outcome::Won(mark, line);\n76 ~                 }\n   |\n\nerror: could not compile `magistr-tic-tac-toe` (lib) due to 1 previous error"
+    },
+    {
+      "id": "action-50",
+      "at": "2026-10-21T08:40:02.885Z",
+      "kind": "check",
+      "operation": "check_work",
+      "title": "Rules, opponent and rematches",
+      "check": {
+        "type": "test",
+        "name": "Rules, opponent and rematches",
+        "passed": true,
+        "details": "$ cargo test --locked --manifest-path examples/bevy-tic-tac-toe/Cargo.toml --lib\n[exit 0; queue 0ms; execution 2499ms]\n\nrunning 10 tests\ntest match_tests::cannot_restart_an_unfinished_round_or_play_twice ... ok\ntest tests::a_full_board_without_a_line_is_a_draw ... ok\ntest tests::a_win_on_the_ninth_move_is_not_a_draw ... ok\ntest tests::completed_games_reject_more_moves ... ok\ntest tests::illegal_moves_leave_both_board_and_turn_unchanged ... ok\ntest tests::recognizes_all_eight_winning_lines_for_both_players ... ok\ntest opponent_tests::takes_a_win_before_blocking_and_stops_after_game_over ... ok\ntest opponent_tests::answers_opposite_corners_with_an_edge ... ok\ntest match_tests::completed_round_scores_once_and_rematch_alternates_the_starter ... ok\ntest opponent_tests::computer_never_loses_against_any_legal_human_reply ... ok\n\ntest result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.07s\n\n   Compiling magistr-tic-tac-toe v0.1.0 (./examples/bevy-tic-tac-toe)\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.38s\n     Running unittests src/lib.rs (examples/bevy-tic-tac-toe/target/debug/deps/magistr_tic_tac_toe-56e483b27c34fd56)",
+        "verified": true,
+        "command": "cargo test --locked --manifest-path examples/bevy-tic-tac-toe/Cargo.toml --lib",
+        "exit_code": 0,
+        "timestamp": "2026-10-21T08:40:02.290231+00:00"
+      },
+      "task": "ttt-rematch",
+      "output": "$ cargo test --locked --manifest-path examples/bevy-tic-tac-toe/Cargo.toml --lib\n[exit 0; queue 0ms; execution 2499ms]\n\nrunning 10 tests\ntest match_tests::cannot_restart_an_unfinished_round_or_play_twice ... ok\ntest tests::a_full_board_without_a_line_is_a_draw ... ok\ntest tests::a_win_on_the_ninth_move_is_not_a_draw ... ok\ntest tests::completed_games_reject_more_moves ... ok\ntest tests::illegal_moves_leave_both_board_and_turn_unchanged ... ok\ntest tests::recognizes_all_eight_winning_lines_for_both_players ... ok\ntest opponent_tests::takes_a_win_before_blocking_and_stops_after_game_over ... ok\ntest opponent_tests::answers_opposite_corners_with_an_edge ... ok\ntest match_tests::completed_round_scores_once_and_rematch_alternates_the_starter ... ok\ntest opponent_tests::computer_never_loses_against_any_legal_human_reply ... ok\n\ntest result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.07s\n\n   Compiling magistr-tic-tac-toe v0.1.0 (./examples/bevy-tic-tac-toe)\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.38s\n     Running unittests src/lib.rs (examples/bevy-tic-tac-toe/target/debug/deps/magistr_tic_tac_toe-56e483b27c34fd56)"
+    },
+    {
+      "id": "action-51",
+      "at": "2026-10-21T08:40:04.181Z",
+      "kind": "check",
+      "operation": "check_work",
+      "title": "Game formatting and rules lint",
+      "check": {
+        "type": "lint",
+        "name": "Game formatting and rules lint",
+        "passed": true,
+        "details": "$ cargo fmt --manifest-path examples/bevy-tic-tac-toe/Cargo.toml --check && cargo clippy --locked --manifest-path examples/bevy-tic-tac-toe/Cargo.toml --lib -- -D warnings\n[exit 0; queue 0ms; execution 243ms]\n    Checking magistr-tic-tac-toe v0.1.0 (./examples/bevy-tic-tac-toe)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.13s",
+        "verified": true,
+        "command": "cargo fmt --manifest-path examples/bevy-tic-tac-toe/Cargo.toml --check && cargo clippy --locked --manifest-path examples/bevy-tic-tac-toe/Cargo.toml --lib -- -D warnings",
+        "exit_code": 0,
+        "timestamp": "2026-10-21T08:40:03.596490+00:00"
+      },
+      "task": "ttt-rematch",
+      "output": "$ cargo fmt --manifest-path examples/bevy-tic-tac-toe/Cargo.toml --check && cargo clippy --locked --manifest-path examples/bevy-tic-tac-toe/Cargo.toml --lib -- -D warnings\n[exit 0; queue 0ms; execution 243ms]\n    Checking magistr-tic-tac-toe v0.1.0 (./examples/bevy-tic-tac-toe)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.13s"
+    },
+    {
+      "id": "action-52",
+      "at": "2026-10-21T08:40:05.583Z",
+      "kind": "check",
+      "operation": "check_work",
+      "title": "Bevy 0.20.0 browser build",
+      "check": {
+        "type": "build",
+        "name": "Bevy 0.20.0 browser build",
+        "passed": true,
+        "details": "$ cargo build --locked --manifest-path examples/bevy-tic-tac-toe/Cargo.toml --features game --target wasm32-unknown-unknown --release\n[exit 0; queue 0ms; execution 343ms]\n    Finished `release` profile [optimized] target(s) in 0.30s",
+        "verified": true,
+        "command": "cargo build --locked --manifest-path examples/bevy-tic-tac-toe/Cargo.toml --features game --target wasm32-unknown-unknown --release",
+        "exit_code": 0,
+        "timestamp": "2026-10-21T08:40:04.993335+00:00"
+      },
+      "task": "ttt-rematch",
+      "output": "$ cargo build --locked --manifest-path examples/bevy-tic-tac-toe/Cargo.toml --features game --target wasm32-unknown-unknown --release\n[exit 0; queue 0ms; execution 343ms]\n    Finished `release` profile [optimized] target(s) in 0.30s"
+    },
+    {
+      "id": "action-53",
+      "at": "2026-10-21T08:40:10.983Z",
+      "kind": "check",
+      "operation": "check_work",
+      "title": "Bevy game and rematch playthrough",
+      "check": {
+        "type": "test",
+        "name": "Bevy game and rematch playthrough",
+        "passed": true,
+        "details": "$ cd apps/website && node tests/game-browser.mjs\n[exit 0; queue 0ms; execution 4342ms]\nBevy 0.20.0: real computer replies, terminal input protection, one score per round and alternating rematches passed at 720px and 320px.",
+        "verified": true,
+        "command": "cd apps/website && node tests/game-browser.mjs",
+        "exit_code": 0,
+        "timestamp": "2026-10-21T08:40:10.391270+00:00"
+      },
+      "task": "ttt-rematch",
+      "output": "$ cd apps/website && node tests/game-browser.mjs\n[exit 0; queue 0ms; execution 4342ms]\nBevy 0.20.0: real computer replies, terminal input protection, one score per round and alternating rematches passed at 720px and 320px."
+    },
+    {
+      "id": "action-54",
+      "at": "2026-10-21T08:40:36.422Z",
+      "kind": "check",
+      "operation": "check_work",
+      "title": "GUI visual review",
+      "check": {
+        "type": "review",
+        "name": "GUI visual review",
+        "passed": true,
+        "details": "Opened and inspected all six original frames in docs/evidence/desktop-iterations/2026-10-21-bevy-rematch-02. Desktop 720x700 and compact 320x700: start, computer win and alternating rematch. Board, scores, role, result and controls remain readable and contained. Fixed paper appearance; no graph connections. Full observations and limitations in REVIEW.md.",
+        "verified": false,
+        "timestamp": "2026-10-21T08:40:35.832598+00:00"
+      },
+      "task": "ttt-rematch",
+      "output": "Opened and inspected all six original frames in docs/evidence/desktop-iterations/2026-10-21-bevy-rematch-02. Desktop 720x700 and compact 320x700: start, computer win and alternating rematch. Board, scores, role, result and controls remain readable and contained. Fixed paper appearance; no graph connections. Full observations and limitations in REVIEW.md."
+    },
+    {
+      "id": "action-55",
+      "at": "2026-10-21T08:40:37.628Z",
+      "kind": "roadmap",
+      "operation": "roadmap_update_chunk",
+      "title": "Update: Another round",
+      "chunk": {
+        "id": "example-ttt-rematch",
+        "title": "Play again, keep the score and alternate who starts",
+        "name": "Another round",
+        "status": "in_progress",
+        "priority": 400,
+        "description": "Play again, keep the score and alternate who starts.",
+        "content": {
+          "version": 1,
+          "summary": "Play against the computer, then keep the score and alternate who starts each new round.",
+          "sections": [
+            {
+              "heading": "Done when",
+              "list": [
+                {
+                  "text": "The computer responds through the same game rules.",
+                  "done": true
+                },
+                {
+                  "text": "Finished rounds add one score; further input cannot add another.",
+                  "done": true
+                },
+                {
+                  "text": "Play again clears the board, preserves the score and alternates the opening player.",
+                  "done": true
+                }
+              ]
+            }
+          ]
+        },
+        "acceptance": [
+          "The computer responds through the same game rules.",
+          "Finished rounds add one score; further input cannot add another.",
+          "Play again clears the board, preserves the score and alternates the opening player."
+        ],
+        "deps": [
+          "example-ttt-opponent",
+          "example-ttt-board"
+        ],
+        "cross_refs": [],
+        "group": "Website example"
+      },
+      "output": "Play again, keep the score and alternate who starts\n• The computer responds through the same game rules.\n• Finished rounds add one score; further input cannot add another.\n• Play again clears the board, preserves the score and alternates the opening player."
+    },
+    {
+      "id": "action-56",
+      "at": "2026-10-21T08:40:39.782Z",
+      "kind": "roadmap",
+      "operation": "roadmap_complete_chunk",
+      "title": "Finish: Another round",
+      "chunk": {
+        "id": "example-ttt-rematch",
+        "title": "Play again, keep the score and alternate who starts",
+        "name": "Another round",
+        "status": "done",
+        "priority": 400,
+        "description": "Play again, keep the score and alternate who starts.",
+        "content": {
+          "version": 1,
+          "summary": "Play against the computer, then keep the score and alternate who starts each new round.",
+          "sections": [
+            {
+              "heading": "Done when",
+              "list": [
+                {
+                  "text": "The computer responds through the same game rules.",
+                  "done": true
+                },
+                {
+                  "text": "Finished rounds add one score; further input cannot add another.",
+                  "done": true
+                },
+                {
+                  "text": "Play again clears the board, preserves the score and alternates the opening player.",
+                  "done": true
+                }
+              ]
+            }
+          ]
+        },
+        "acceptance": [
+          "The computer responds through the same game rules.",
+          "Finished rounds add one score; further input cannot add another.",
+          "Play again clears the board, preserves the score and alternates the opening player."
+        ],
+        "deps": [
+          "example-ttt-opponent",
+          "example-ttt-board"
+        ],
+        "cross_refs": [
+          "task:ttt-rematch"
+        ],
+        "group": "Website example"
+      },
+      "output": "Play again, keep the score and alternate who starts\n• The computer responds through the same game rules.\n• Finished rounds add one score; further input cannot add another.\n• Play again clears the board, preserves the score and alternates the opening player."
+    },
+    {
+      "id": "action-57",
+      "at": "2026-10-21T08:40:40.771Z",
+      "kind": "work",
+      "operation": "finish_work",
+      "title": "Connect the opponent and finish the match flow",
+      "task": {
+        "id": "ttt-rematch",
+        "title": "Connect the opponent and finish the match flow",
+        "status": "completed",
+        "type": "implement"
+      },
+      "output": "Connect the opponent and finish the match flow\nStatus: completed"
+    }
+  ]
+}

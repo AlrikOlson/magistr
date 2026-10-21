@@ -1,94 +1,81 @@
 ---
 title: Working in chunks
-description: Finish one useful piece at a time, or give your agent a longer run with a clear limit.
+description: Finish a useful piece, check it, and leave the next session a clear place to start.
 order: 5
 ---
 
-A large project becomes easier to work on when the next piece has a clear end.
-You can give that piece your attention, check the result, and decide what to do
-afterward.
+A roadmap chunk is a piece of the project. The work plan beneath it explains
+how the agent will deliver that piece.
 
-Magistr connects a roadmap chunk to its detailed work plan, actions, checks
-and finished changes.
+For the game, “Computer opponent” is a chunk. Comparing a tactical policy,
+implementing minimax, and checking legal replies are the work needed to finish it.
+They do not need to become three separate roadmap projects.
 
 ## Finish one chunk
-
-In your connected agent, use:
 
 | Agent | Start one chunk |
 | --- | --- |
 | Codex | `$next` |
 | Claude Code | `/next` |
 
-The agent resumes interrupted roadmap work first. Otherwise, it takes one ready
-chunk, reads its requirements and the current code, and makes a plan for the
-change.
+The agent resumes interrupted roadmap work first. Otherwise, it starts a ready
+chunk, reads its requirements and the current code, and plans the change.
 
-It does the work, runs the relevant checks, fixes problems those checks expose,
-and commits the finished result. Required checks need current passing results
-before the roadmap item can be completed.
+The work keeps an objective, tasks, actions, checks, and artifacts such as
+files or commits. Tasks can record progress without pretending the whole
+chunk is already finished.
 
-From a terminal, you can also run:
+From a terminal:
 
 ```sh
 magistr next
 ```
 
-## Make “finished” concrete
+## Make the finish concrete
 
-A useful chunk ends with a result someone can try or inspect. For the recorded
-support inbox, the storage task ended with persistent mail, correct threading,
-duplicate-delivery handling, and passing storage tests.
+For the opponent, “done” meant that it returned legal moves for either mark
+and could not lose against any legal human reply. A passing build alone would
+not have established that.
 
-[Open the work chunks](/#product), then follow one into the recording. The
-original failure is still there beside the later passing check.
+Open **Work** or **Checks** in the [recording](/#workflow). You can follow the
+task, read the experiment, and inspect the command that checked the opponent.
 
-A chunk can contain several tasks. Keep the tasks detailed enough to resume
-unfinished work, without turning every small edit into its own ceremony.
+Required checks need current passing results before the roadmap piece can
+be completed. The agent fixes failures and commits the finished change.
 
 ## Work through a longer run
 
-Pick an area and set a limit:
-
-> Work through up to five chunks in the desktop track. Finish, check and
-> commit each one before moving on.
-
-To have Magistr start a fresh agent session for each chunk, run:
+Choose an area and a limit. To start a fresh Codex session for each chunk:
 
 ```sh
 magistr next-loop --agent codex --max-iterations 5
 ```
 
-Use `--agent claude` for Claude Code. Add `--track "Desktop"` if that is the
-name of the track you want to work on.
+Use `--agent claude` for Claude Code. Add `--track "Gameplay"` if that is
+the workstream you want to work on.
 
-The loop stops at its limit, when there is no ready work in the selected area,
-or when it needs help to continue. Set a limit that suits the work you want
-to review.
+The loop stops at its limit, when no work is ready in the chosen area, or when
+it needs help to continue. Each session reads the saved work and current code.
 
-Inside an existing chat, `$next-loop` or `/next-loop` finishes one chunk
-and prepares a handoff. The terminal command manages the sequence of fresh
-sessions.
+Inside a chat, `$next-loop` or `/next-loop` finishes one chunk and prepares
+a handoff. The terminal command manages the sequence of fresh sessions.
 
-## Resume after an interruption
+## Resume unfinished work
 
-Have the next session read the saved work before changing files:
+Ask the next session to read the saved objective, tasks, actions, and checks
+before editing files.
 
-> Resume the unfinished chunk. Read the saved plan, actions and checks, then
-> inspect the current code before deciding what remains.
+If the opponent was implemented but its checks failed, that is where the work
+should resume. A fresh chat should not silently start a different roadmap item.
 
-Finished tasks and failed checks are useful context. A result from an earlier
-version of the files may need checking again; it should never be treated as
-current just because it passed once.
+Earlier passes may need another run when relevant files have changed.
+[Checking the work](/docs/verification) covers that.
 
-## Keep direct requests straightforward
+## Keep small requests small
 
-You can still ask for an ordinary fix, a review, or a small copy change.
-Use a focused plan and checks that cover the change. A roadmap is useful for
-work you need to organize, not a prerequisite for every edit.
+A direct request can use a focused plan without becoming a roadmap chunk.
+A copy correction, a review, or a small bug fix should stay proportionate to
+the work.
 
-Tell the agent when to commit, push or publish. Your project's delivery
-instructions apply throughout the run.
-
-See [checking the work](/docs/verification) for choosing checks and
-[planning a project](/docs/roadmap) for changing direction.
+Keep your commit, push, and publishing instructions with the project so they
+apply across sessions and longer runs.

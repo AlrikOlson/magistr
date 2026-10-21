@@ -21,9 +21,12 @@ class SelectionTests(unittest.TestCase):
         self.assertFalse(any(plan[key] for key in ("rust", "desktop", "package")))
 
     def test_recorded_website_demo_runs_website_checks_without_rust(self):
-        plan = self.plan("examples/support-inbox/store.py")
-        self.assertTrue(plan["website"])
-        self.assertFalse(any(plan[key] for key in ("rust", "desktop", "package", "contracts")))
+        for path in ("examples/support-inbox/store.py", "examples/bevy-tic-tac-toe/src/lib.rs",
+                     "examples/bevy-tic-tac-toe/Cargo.toml", "examples/bevy-tic-tac-toe/Cargo.lock"):
+            with self.subTest(path=path):
+                plan = self.plan(path)
+                self.assertTrue(plan["website"])
+                self.assertFalse(any(plan[key] for key in ("rust", "desktop", "package", "contracts")))
         self.assertTrue(self.plan("examples/unclassified-project/main.py")["full"])
 
     def test_reverse_dependencies_include_desktop_and_exclude_unrelated_crates(self):

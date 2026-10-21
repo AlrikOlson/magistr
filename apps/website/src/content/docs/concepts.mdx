@@ -1,118 +1,108 @@
 ---
 title: Saved work and sessions
-description: Keep the project moving when the conversation ends or you switch agents.
+description: Give the next session the project context it needs to keep going.
 order: 7
 ---
 
-The work shouldn't disappear just because you need a fresh chat. Magistr
-keeps the project records your next agent can read: the roadmap, recorded
-reasoning, tasks, actions and check results.
+A new chat should be able to find the work you already did. Magistr keeps
+project records that Codex, Claude Code, or another connected agent can read.
 
-You still work in your own repository, with your own coding agent and model
-account.
+Your code stays in your repository. You keep using your own coding agent
+and model account.
 
 ## Your plan
 
-The roadmap keeps the bigger plan: chunks, priorities, dependencies and
-acceptance criteria. The current piece of work has its own objective and
-ordered tasks.
+The roadmap holds deliverables, priorities, dependencies, and acceptance
+criteria. A piece being implemented has an objective and a more detailed
+task plan.
 
-Ask the agent to read the saved plan before it starts. It can continue
-unfinished work or help you choose what comes next. Update the plan when
-your direction changes so the next session follows the current decision.
-
-[Planning a project](/docs/roadmap) explains how to organize and revise it.
+For the game, the next agent can see that the rules are finished, the opponent
+was checked, and the rematch work still needs attention. It can continue
+unfinished work after reading the saved plan and current files.
 
 ## Your work history
 
-Saved reasoning keeps findings, alternatives and decisions. A conclusion can
-be revised when new evidence changes the answer. Important findings can be
-**pinned** for later work.
+Saved reasoning holds findings and decisions. In the game example, the useful
+finding is that the short opponent policy can lose when it moves second.
+The next agent can retrieve that evidence before replacing the search.
 
-A reasoning **checkpoint** reviews the state of that investigation. It
-doesn't copy your source files. Keep using Git and your normal backups.
+Important conclusions can be **pinned**. A reasoning **checkpoint** reviews
+open questions and decisions; it is not a copy of the source.
 
-Actions record what happened during a task. Checks keep the result of
-verification. Saved feedback gives an idea somewhere to wait until you
-investigate it.
-
-Magistr only knows what is recorded through it. It doesn't automatically
-copy every conversation.
+Actions record work performed during a task. Checks keep verification results.
+Artifacts point to the resulting files, commits, and other evidence. Saved
+feedback can wait until you have time to investigate it.
 
 ## Work in your source
 
-Magistr's source tools let your agent search, read and edit the actual project.
-An edit can check the file's fingerprint against the version the agent read,
-so a newer change isn't silently overwritten.
+Magistr's tools let the agent find, read, and edit the actual project.
+An edit can check that the file still matches the version the agent read,
+so it does not silently overwrite a newer change.
 
-For supported languages, the tools also check for new syntax errors before
-writing. They keep a change journal, and journaled edits can be undone.
-If a later edit conflicts with undo, the tool reports the conflict.
+For supported languages, edits are checked for new syntax errors before
+writing. Changes made through these tools have a journal and can be undone.
+A conflicting later edit is reported instead of silently discarded.
 
-These protections apply to changes made through those tools. They don't
-replace tests, code review, or Git, and they don't cover edits made elsewhere.
+These protections apply to the tools that provide them. Keep using tests,
+code review, Git, and your normal backups.
 
 ## Checking your work
 
-A command run through Magistr records its exit code and the inputs it checked.
-A written review is a separate record. A later session can inspect whether an
-earlier result still applies to the current work.
+An executed check records the command, exit code, output, and checked inputs.
+A written review is a separate record.
 
-See [checking the work](/docs/verification) for focused checks, visual review
-and the full configured quality gate.
+A later session can inspect the result and whether it still applies.
+[Checking the work](/docs/verification) covers focused checks, visual review,
+and the full quality gate.
 
 ## Pick up in another session
 
-Open the same project with Magistr connected:
+Open the same project with Magistr connected and ask the agent to read the
+saved work before continuing.
 
-> Read the saved work and current code. Continue the unfinished task from
-> where we stopped, keeping the same scope and delivery instructions.
+Codex and Claude Code can read the same Magistr records. This does not transfer
+a conversation transcript or model settings between providers. The next agent
+still needs to inspect the current code.
 
-Codex and Claude Code can read the same project's Magistr records. Other
-MCP agents can use the connected tools too.
-
-Resuming an agent's particular chat is separate. Magistr doesn't transfer
-conversation transcripts or model settings between providers. The next
-agent reads the saved project work and still needs to inspect the current code.
+Magistr only knows what is recorded through it; it does not automatically
+preserve every chat message.
 
 ## Agent sessions
 
-Choose the model and permissions in your agent. When Magistr launches a
-session, its supported command-line options select the agent and settings
-for that run.
+Choose the model and permissions in your agent. Magistr's supported launch
+options select the agent and settings for that run.
 
-The agent's service handles model requests. Keeping project records locally
-doesn't make those model requests run locally.
+The agent's service handles its model requests. Keeping project records on
+your Mac does not make those model requests run locally.
 
-You can work on different areas in different sessions. Have each session
-read its own selected task and preserve the changes made by others.
+Different sessions can work on different areas. Each should read its selected
+work and preserve changes made by the others.
 
 ## The desktop preview
 
-The desktop is a separate preview available from source. Open projects,
-talk to an agent, return to saved conversations, and read the current work
-plan. Use the command line or your connected agent for the full planning
-and change-review workflow.
+The desktop is a separate preview available from source. It lets you open
+projects, talk to an agent, return to saved conversations, and browse the
+roadmap, reasoning, tasks, checks, activity, and feedback.
 
-**New session** starts a conversation. Switch between projects and
-conversations, then return to recover your draft. Each session keeps its
-own work and unanswered permission requests.
+The roadmap shows actual work and its prerequisites. Reasoning investigations
+have origins, branches, and conclusions; selecting a step opens its explanation.
+Use the command line or your connected agent for the full planning and
+change-review workflow.
 
-**Stop** cancels the current turn. **Close session** ends that session;
-quitting the app closes its running work. Permission requests let you
-approve or decline an action. Appearance can follow the system or stay
-light or dark.
+**New session** starts a conversation. Return to an existing conversation to
+recover your draft. **Stop** cancels the current turn. **Close session** ends
+that session. Permission requests let you approve or decline an action.
 
-[Try the desktop preview](/docs/installation#try-the-desktop-preview)
-explains how to open it.
+Appearance can follow the system or stay light or dark.
+[Try the desktop preview](/docs/installation#try-the-desktop-preview) explains
+how to open it.
 
 ## Where your work is saved
 
-Project settings, plans, decisions and progress live under `.magistr/`
-in the project. Saved conversations also use Magistr's local data folder.
-Your agent keeps its own conversation history.
+Project settings and saved work live under `.magistr/` in the project.
+Saved conversations also use Magistr's local data folder. Your agent keeps
+its own conversation history.
 
-Include the project data when moving or backing up your work.
-`magistr remove` removes agent connections and keeps saved work.
-The [removal instructions](/docs/installation#remove-setup-or-uninstall)
-explain what stays.
+Include project data when moving or backing up your work. Removing an agent
+connection with `magistr remove` keeps saved work.
+See the [removal instructions](/docs/installation#remove-setup-or-uninstall).
