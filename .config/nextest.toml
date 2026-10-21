@@ -1,23 +1,41 @@
 # https://nexte.st/docs/configuration/
-# Select ignored tests with the --run-ignored CLI flag.
+# Select ignored tests with --run-ignored. CI archives are shared by all partitions.
 
 [profile.default]
-status-level = "all"
+status-level = "fail"
+final-status-level = "slow"
 failure-output = "immediate"
 
 [profile.default.junit]
 path = "junit.xml"
 
-# Each owner scenario starts several real servers and cold Wasmtime workers.
-# Their parallel JIT compilation consumes the host CPUs; reserve that capacity
-# instead of overcommitting it with unrelated tests or extending reply deadlines.
+# Start the measured long-tail scenario early; keep its real scale coverage.
+[[profile.default.overrides]]
+filter = 'test(a_10k_step_trace_still_answers_a_rollup_and_a_search)'
+priority = 100
+
+# Real servers and cold Wasmtime workers consume the host CPUs. Reserve that
+# capacity instead of oversubscribing the machine or extending reply deadlines.
 [[profile.default.overrides]]
 filter = 'binary(mcp_project_owner)'
 threads-required = "num-cpus"
+priority = 80
+
+[[profile.default.overrides]]
+filter = 'binary(workspace_attachment) | test(reinit) | binary(workspace_script)'
+priority = 60
 
 [profile.ci]
+fail-fast = true
+failure-output = "immediate"
+
+[profile.ci.junit]
+path = "junit.xml"
+
+# Scheduled/manual diagnosis collects all failures; ordinary iterations stop early.
+[profile.diagnostic]
 fail-fast = false
 failure-output = "immediate-final"
 
-[profile.ci.junit]
+[profile.diagnostic.junit]
 path = "junit.xml"
