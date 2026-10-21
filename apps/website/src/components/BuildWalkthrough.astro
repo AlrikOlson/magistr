@@ -1,9 +1,10 @@
 ---
 import recording from "../../public/demo/tic-tac-toe/recording.json";
-import {chapters,elapsed,preview,kindLabels} from "../data/build-recording.mjs";
+import {chapters,elapsed,kindLabels} from "../data/build-recording.mjs";
 import {rendered,playbackUrl} from "../data/rendered-recording.mjs";
 import {explanationFor,explanationHTML} from "../data/build-explanations.mjs";
 import {publicAssetUrl} from "../../scripts/asset-url.mjs";
+import {terminalFrameHTML} from "../data/terminal-format.mjs";
 import "../styles/build-walkthrough.css";
 const parts=chapters(recording),initial=parts[0].index,event=recording.events[initial];
 const explanation=explanationFor(event.id);
@@ -20,7 +21,7 @@ const asset=(file)=>publicAssetUrl("demo/tic-tac-toe/"+file);
     <div class="build-stage">
       <div class="terminal-column">
         <div class="terminal-emulator" data-terminal aria-label="Recorded Codex terminal" hidden></div>
-        <div class="terminal-poster" data-terminal-poster><p>• Called magistr.{event.operation}</p><pre>{preview(event).text}</pre></div>
+        <div class="terminal-poster" data-terminal-poster set:html={terminalFrameHTML(rendered[initial].terminal)} />
         <p class="terminal-keyboard" data-terminal-help hidden>Scroll to read earlier output. <kbd>←</kbd> <kbd>→</kbd> step through the build.</p>
         <div class="build-transport" hidden>
           <button type="button" data-play aria-pressed="false">Play</button>

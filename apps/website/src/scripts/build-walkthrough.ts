@@ -15,7 +15,7 @@ async function setup(root:HTMLElement){
   const responses=await Promise.all([fetch(root.dataset.url!),fetch(root.dataset.playbackUrl!)]);
   if(responses.some(r=>!r.ok))throw Error("Recording unavailable");
   const [recording,playback]=await Promise.all(responses.map(r=>r.json()));
-  if(recording.version!==1||playback.version!==1||!recording.events?.length||playback.events?.length!==recording.events.length||playback.events.some((e:any,i:number)=>e.id!==recording.events[i].id))throw Error("Recording unavailable");
+  if(recording.version!==1||playback.version!==2||!recording.events?.length||playback.events?.length!==recording.events.length||playback.events.some((e:any,i:number)=>e.id!==recording.events[i].id))throw Error("Recording unavailable");
   const events=recording.events,parts=chapters(recording);
  events.forEach(e=>explanationFor(e.id));
   const host=root.querySelector<HTMLElement>("[data-terminal]")!,details=root.querySelector<HTMLElement>("#build-details")!;

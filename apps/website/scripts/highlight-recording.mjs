@@ -1,22 +1,15 @@
 import {createHighlighter} from "shiki";
 import {structuredPatch} from "diff";
 import {codeThemes} from "../src/data/code-theme.mjs";
+import {terminalText} from "../src/data/terminal-format.mjs";
 
 const highlighter = createHighlighter({
   themes: Object.values(codeThemes),
   langs: ["rust", "toml", "shellscript", "javascript", "json"],
 });
 const escape = text => String(text).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
-export const terminalText = text => String(text).replace(/\r\n?/g, "\n").replace(/[\x00-\x08\x0b-\x1f\x7f-\x9f]/g, "");
 const language = path => ({rs:"rust",toml:"toml",js:"javascript",mjs:"javascript",json:"json",sh:"shellscript"})[path?.split(".").at(-1)] ?? "text";
-const palette = {
-  light:{fg:"#24292e",muted:"#586069",success:"#17633c",error:"#a12622",add:"#e6f5eb",remove:"#ffebe9",hunk:"#365471"},
-  dark:{fg:"#e1e4e8",muted:"#abb4bf",success:"#a5d8b0",error:"#ffb1a3",add:"#173927",remove:"#482624",hunk:"#b4c9e3"},
-};
-const rgb = hex => [1,3,5].map(i=>parseInt(hex.slice(i,i+2),16)).join(";");
-const color = (text,hex) => "\x1b[38;2;"+rgb(hex)+"m"+terminalText(text)+"\x1b[39m";
 const tokensHtml = tokens => tokens.map(t=>'<span style="'+Object.entries(t.htmlStyle??{}).map(([k,v])=>k+":"+v).join(";")+'">'+escape(t.content)+'</span>').join("");
-const tokensAnsi = (tokens,theme) => tokens.map(t=>color(t.content,t.htmlStyle?.[theme==="dark"?"--shiki-dark":"color"]??palette[theme].fg)).join("");
 async function tokenLines(text,lang){return (await highlighter).codeToTokens(text,{lang,themes:codeThemes}).tokens;}
 export async function highlightCode(text,lang="text"){
   return (await highlighter).codeToHtml(text,{lang,themes:codeThemes});
@@ -83,23 +76,31 @@ export async function renderRecording(recording){
       lines=await checkLines(event);
       html=outputHtml(lines);
     }
-    const terminal={};
-    for(const theme of ["light","dark"]){
-      const p=palette[theme];
-      const heading=event.file
-        ? "• Edited "+event.file.path+" (+"+diff.added+" −"+diff.removed+")"
-        : "• Called magistr."+event.operation;
-      const limit=event.file?20:14;
-      const body=lines.slice(0,limit).map(line=>{
-        const content=line.tokens?tokensAnsi(line.tokens,theme):color(line.text,p[line.kind]??p.fg);
-        if(["add","remove"].includes(line.kind)){
-          return "\x1b[48;2;"+rgb(p[line.kind])+"m"+color(line.text[0],line.kind==="add"?p.success:p.error)+content+"\x1b[K\x1b[49m";
-        }
-        return (line.kind==="context"?" ":"")+content;
-      }).join("\n");
-      terminal[theme]=color(heading,p.fg)+"\n"+color(event.title,p.muted)+"\n\n"+body+
-        (lines.length>limit?"\n"+color("… "+(lines.length-limit)+" more lines",p.muted):"")+"\n\n";
+    const terminal={rows:[]};
+    const span=(text,tone="muted",bold=false)=>({text:terminalText(text),tone,...(bold?{bold}: {})});
+    terminal.rows.push({prefix:"• ",continuation:"  ",heading:true,spans:event.file
+      ? [span("Edited ","fg",true),span(event.file.path,"fg"),span(" (+"+diff.added+" -"+diff.removed+")")]
+      : [span("Called ","fg",true),span("magistr."+event.operation,"accent")]});
+    const displayLines=event.file?lines.filter(line=>line.kind!=="hunk"):lines;
+    while(displayLines.at(-1)?.text==="")displayLines.pop();
+    const numberWidth=event.file?String(Math.max(1,...displayLines.map(l=>l.newLine??l.oldLine??0))).length:0;
+    const limit=event.file?20:14;
+    for(const [index,line]of displayLines.slice(0,limit).entries()){
+      const tone=line.kind==="error"||line.kind==="success"?line.kind:"muted";
+      const spans=line.tokens?line.tokens.map(t=>({
+        text:terminalText(t.content),light:t.htmlStyle?.color,dark:t.htmlStyle?.["--shiki-dark"],
+      })):[span(line.text,tone)];
+      const numbered=event.file&&line.tokens;
+      const prefix=numbered
+        ? "    "+String(line.newLine??line.oldLine).padStart(numberWidth)+" "+line.text[0]
+        : index===0?"  └ ":"    ";
+      // Wrapped list items align under their text. Source indentation stays in
+      // its original tokens; the continuation gutter does not repeat a number.
+      const listIndent=!event.file?line.text.match(/^(\s*(?:[-*•]|\d+\.) )/)?.[0].length??0:0;
+      terminal.rows.push({prefix,continuation:" ".repeat(prefix.length+listIndent),spans,
+        ...(["add","remove"].includes(line.kind)?{background:line.kind}:{})});
     }
+    if(displayLines.length>limit)terminal.rows.push({prefix:"    ",continuation:"    ",spans:[span("… more in details")]});
     rendered.push({id:event.id,html,diff:diff?{html:diff.html,added:diff.added,removed:diff.removed,first:diff.first}:null,terminal});
   }
   return rendered;
