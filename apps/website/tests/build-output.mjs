@@ -52,7 +52,7 @@ assert(indexHtml.includes("Full build recording") && indexHtml.includes("Recorde
 const homeImages = [...indexHtml.matchAll(/src="\/screenshots\/([a-z-]+)\.png\?v=[a-f0-9]{12}"/g)].map((m) => m[1]);
 assert(new Set(homeImages).size === 4 && homeImages.length === 4, `each screenshot appears once on the home page (${homeImages.join(", ")})`);
 const roadmapSection = indexHtml.split('id="workflow"')[1]?.split('id="product"')[0] ?? "";
-assert(roadmapSection.includes("data-recording") && roadmapSection.includes("Recorded milestones") && roadmapSection.includes("Read the build transcript") && roadmapSection.includes("Download the project"), "recorded implementation has accessible playback, transcript and source");
+assert(roadmapSection.includes("data-recording") && roadmapSection.includes("Build chapters") && roadmapSection.includes("Explore all 47 recorded actions") && roadmapSection.includes("Download the project"), "recorded implementation has accessible playback, transcript and source");
 assert(!roadmapSection.includes("Roadmap screen"),"future desktop planning is not advertised");
 assert(!roadmapSection.includes("without leaving the conversation") && !roadmapSection.includes("actions beside the conversation"), "full Roadmap is not described as conversation details");
 

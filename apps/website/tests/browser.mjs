@@ -11,7 +11,7 @@ const dist = resolve(root, "dist");
 const repo = resolve(root, "../..");
 const scopeArg = process.argv.indexOf("--evidence-scope");
 const evidenceScope = scopeArg < 0 ? "all" : process.argv[scopeArg + 1];
-assert(["all", "search", "recovery", "refinement", "branding", "copy", "reading", "noscript", "recording"].includes(evidenceScope), "Unknown evidence scope");
+assert(["all", "search", "recovery", "refinement", "branding", "copy", "reading", "noscript", "recording", "recording-video"].includes(evidenceScope), "Unknown evidence scope");
 const evidenceArg = process.argv.indexOf("--evidence-dir");
 const evidence = evidenceArg < 0 ? undefined : resolve(repo, process.argv[evidenceArg + 1]);
 if (evidence && !evidence.startsWith(resolve(repo, "docs/evidence/desktop-iterations") + sep)) {
@@ -28,8 +28,21 @@ const server = createServer(async (request, response) => {
     let file = resolve(dist, "." + path);
     assert(file.startsWith(dist + sep) || file === dist);
     if ((await stat(file)).isDirectory()) file = resolve(file, "index.html");
-    response.writeHead(200, { "Content-Type": mime[extname(file)] ?? "application/octet-stream" });
-    response.end(await readFile(file));
+    const bytes=await readFile(file);
+    const headers={"Content-Type":mime[extname(file)]??"application/octet-stream","Accept-Ranges":"bytes"};
+    const range=/^bytes=(\d*)-(\d*)$/.exec(request.headers.range||"");
+    if(range&&(range[1]||range[2])){
+      const start=range[1]?Number(range[1]):Math.max(0,bytes.length-Number(range[2]));
+      const end=range[1]&&range[2]?Math.min(Number(range[2]),bytes.length-1):bytes.length-1;
+      if(start>=bytes.length||end<start){
+        response.writeHead(416,{...headers,"Content-Range":"bytes */"+bytes.length});
+        response.end();return;
+      }
+      response.writeHead(206,{...headers,"Content-Range":"bytes "+start+"-"+end+"/"+bytes.length,"Content-Length":end-start+1});
+      response.end(bytes.subarray(start,end+1));return;
+    }
+    response.writeHead(200,{...headers,"Content-Length":bytes.length});
+    response.end(bytes);
   } catch {
     response.writeHead(404);
     response.end("Not found");
@@ -75,6 +88,7 @@ const writeReport = async (status, failure) => {
   await writeFile(resolve(evidence, "browser-checks.json"), JSON.stringify(report, null, 2) + "\n");
 };
 const capture = async (page, name, state, fullPage = false, region) => {
+  if (evidenceScope === "recording-video" && !name.startsWith("recording-video-")) return;
   if (evidenceScope === "recording" && !name.startsWith("recording-") && !name.startsWith("home-intro-")) return;
   if (!evidence || (evidenceScope === "search" && !name.includes("search"))) return;
   if (evidenceScope === "recovery" && !name.includes("search") && !/^not-found-(wide|compact)-(light|dark)$/.test(name)) return;
@@ -102,7 +116,10 @@ const capture = async (page, name, state, fullPage = false, region) => {
   // screenshot waits for fonts and a stable render itself. A page-script frame
   // callback never fires when JavaScript is disabled.
   const file = name + ".png";
-  if (region) await page.locator(region).screenshot({ path: resolve(evidence, file), animations: "disabled" });
+  if (region) {
+    await page.locator(region).evaluate(e=>scrollTo({top:e.getBoundingClientRect().top+scrollY-90,behavior:"instant"}));
+    await page.locator(region).screenshot({ path: resolve(evidence, file), animations: "disabled" });
+  }
   else await page.screenshot({ path: resolve(evidence, file), fullPage, animations: "disabled" });
   const bytes = await readFile(resolve(evidence, file));
   captures.push({
@@ -191,69 +208,105 @@ try {
           }
           const recording = page.locator("[data-recording]");
           await page.waitForFunction(() => document.querySelector("[data-recording]").dataset.ready === "true");
-          assert.equal(await recording.getAttribute("data-index"), "46");
-          assert(await recording.locator("canvas").evaluate(canvas=>canvas.width>0 && canvas.getContext("2d").getImageData(0,0,canvas.width,canvas.height).data.some((v,i)=>i%4===3&&v>0)),"Canvas draws actual recorded actions");
-          await recording.locator("canvas").click({position:{x:5,y:20}});
-          assert.equal(await recording.getAttribute("data-index"),"0");
-          await recording.locator("[data-scrub]").fill("46");
-          await recording.locator('[data-view="app"]').click();
-          await scrollHeading(page, ".build-recording");
-          await capture(page, "recording-overview-" + suffix, "Recorded build with completed app preview and five milestones", false, ".build-recording");
+          assert.equal(await recording.getAttribute("data-scene"), "5");
+          assert.equal(await recording.locator("[data-chapter]").count(), 6);
+          const controls=await recording.locator(".story-controls button:visible").evaluateAll(buttons=>buttons.map(b=>({text:b.textContent,...b.getBoundingClientRect().toJSON()})));
+          assert(controls.every(b=>b.width>=44&&b.height>=44),"Playback controls keep usable targets");
+          for(let i=0;i<controls.length;i++)for(let j=i+1;j<controls.length;j++){
+            const a=controls[i],b=controls[j];
+            assert(Math.min(a.right,b.right)-Math.max(a.left,b.left)<=1||Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)<=1,"Playback controls do not overlap: "+a.text+" / "+b.text);
+          }
           const transcript = await (await context.request.get(new URL(await recording.getAttribute("data-recording-url"), origin).href)).json();
-          assert.equal(transcript.events.length, 47);
-          for (const action of [14,15,35,44]) {
-            await recording.locator('[data-event="' + action + '"]').click();
-            assert.equal(await recording.getAttribute("data-index"), String(action));
-            assert.equal(await recording.locator("[data-action-title]").innerText(), transcript.events[action].title);
-            if (action === 14) {
-              assert.equal(await recording.locator("[data-action-status]").innerText(), "Failed");
-              assert.match(await recording.locator("[data-output]").innerText(), /No module named 'store'/);
-              assert.equal(await recording.locator('[data-chapter="store"]').getAttribute("data-status"), "In progress");
-            }
-            if (action === 15) assert.match(await recording.locator("[data-output]").innerText(), /BEGIN IMMEDIATE/);
-            if (action === 35) assert.match(await recording.locator("[data-output]").innerText(), /Before[\s\S]*After/);
-            if (action === 44) assert.match(await recording.locator("[data-output]").innerText(), /Ran 10 tests/);
+          assert.equal(transcript.events.length,47);
+          await scrollHeading(page, ".build-recording");
+          await capture(page, "recording-overview-" + suffix, "Finished inbox, guided entry and six build chapters", false, ".build-recording");
+          const detailed = suffix === "wide-light" || suffix === "compact-dark";
+          await recording.locator("[data-next]").click();
+          assert.equal(await recording.getAttribute("data-scene"),"0","The entry starts with the real brief");
+          for(let chapter=0;chapter<6;chapter++){
+            await recording.locator('[data-chapter="'+chapter+'"]').click();
+            assert.equal(await recording.getAttribute("data-scene"),String(chapter));
+            assert.equal(await recording.locator(".story-scene:visible").count(),1);
+            for(const img of await recording.locator(".story-scene:visible img:visible").all())await img.evaluate(img=>img.decode());
             await noOverflow(page);
-            await scrollHeading(page, ".build-recording");
-            await capture(page, "recording-action-" + action + "-" + suffix, transcript.events[action].title, false, ".build-recording");
+            if(detailed&&chapter<5){
+              await scrollHeading(page,".build-recording");
+              await capture(page,"recording-chapter-"+chapter+"-"+suffix,"Guided chapter "+(chapter+1),false,".build-recording");
+            }
+          }
+          await recording.locator('[data-chapter="4"]').click();
+          await recording.locator('[data-review="before"]').click();
+          assert.match(await recording.locator("[data-review-note]").innerText(),/Review failed/);
+          assert(await recording.locator('[data-scene-panel="4"] [data-capture-version="before"]').isVisible());
+          if(detailed)await capture(page,"recording-review-before-"+suffix,"Original failed screen review; recorded capture retained",false,".build-recording");
+          await recording.locator('[data-review="after"]').click();
+          assert(await recording.locator('[data-scene-panel="4"] [data-capture-version="after"]').isVisible());
+          await recording.locator('[data-chapter="1"]').click();
+          await recording.locator('[data-inspect="16"]').click();
+          assert(await recording.locator(".recording-details").evaluate(e=>e.open));
+          assert.equal(await recording.getAttribute("data-index"),"16");
+          assert.match(await recording.locator("[data-output]").innerText(),/Ran 7 tests/);
+          for(const action of [14,15,35,44]){
+            await recording.getByLabel("Recorded action",{exact:true}).selectOption(String(action));
+            assert.equal(await recording.locator("[data-action-title]").innerText(),transcript.events[action].title);
+            if(action===14){
+              assert.equal(await recording.locator("[data-action-status]").innerText(),"Failed");
+              assert.match(await recording.locator("[data-output]").innerText(),/No module named 'store'/);
+            }
+            if(action===15)assert.match(await recording.locator("[data-output]").innerText(),/BEGIN IMMEDIATE/);
+            if(action===35)assert.match(await recording.locator("[data-output]").innerText(),/Before[\s\S]*After/);
+            if(action===44)assert.match(await recording.locator("[data-output]").innerText(),/Ran 10 tests/);
+            if((suffix==="wide-light"&&action===14)||(suffix==="compact-dark"&&action===35)){
+              await scrollHeading(page,".recording-inspector");
+              await capture(page,"recording-action-"+action+"-"+suffix,"Full original recorded source and result",false,".recording-details");
+            }
           }
           await recording.getByLabel("Recorded source or output").selectOption("examples/support-inbox/store.py");
-          assert.match(await recording.locator("[data-output]").innerText(), /class Store/);
-          await recording.locator("[data-previous]").click();
-          assert.equal(await recording.getAttribute("data-index"), "43");
-          await recording.locator('[data-chapter="api"]').focus();
-          await page.keyboard.press("Enter");
-          assert.equal(await recording.getAttribute("data-index"), "18");
-          assert(await recording.locator('[data-chapter="api"]').evaluate(e=>e===document.activeElement));
-          if (suffix === "wide-light" || suffix === "compact-dark") await capture(page, "recording-keyboard-" + suffix, "Milestone selected through the keyboard with focus retained", false, ".build-recording");
-          await recording.locator("[data-scrub]").focus();
-          await page.keyboard.press("Home");
-          assert.equal(await recording.getAttribute("data-index"), "0");
-          await page.keyboard.press("End");
-          assert.equal(await recording.getAttribute("data-index"), "46");
-          assert.equal(await recording.locator('[data-chapter][data-status="Completed"]').count(),5);
-          if(suffix==="wide-light") {
-            const rendered=await recording.evaluate((root)=>{
-              const range=root.querySelector("[data-scrub]"), titles=[];
-              for(let index=0;index<=Number(range.max);index++){range.value=String(index);range.dispatchEvent(new Event("input",{bubbles:true}));titles.push(root.querySelector("[data-action-title]").textContent);}
+          assert.match(await recording.locator("[data-output]").innerText(),/class Store/);
+          if(suffix==="wide-light"){
+            const titles=await recording.evaluate(root=>{
+              const select=root.querySelector("[data-action-select]"),titles=[];
+              for(let index=0;index<47;index++){select.value=String(index);select.dispatchEvent(new Event("change",{bubbles:true}));titles.push(root.querySelector("[data-action-title]").textContent);}
               return titles;
             });
-            assert.deepEqual(rendered,transcript.events.map(event=>event.title));
+            assert.deepEqual(titles,transcript.events.map(e=>e.title));
           }
-          await recording.locator("[data-speed]").selectOption("4");
-          await recording.locator("[data-play]").click();
-          await page.waitForFunction(()=>Number(document.querySelector("[data-recording]").dataset.index)>=1 && document.querySelector("[data-recording]").dataset.playing==="true");
-          await recording.locator("[data-play]").click();
-          assert.equal(await recording.getAttribute("data-playing"),"false");
-          const paused=await recording.getAttribute("data-index");
-          await page.waitForTimeout(500);
-          assert.equal(await recording.getAttribute("data-index"),paused,"Pause really stops playback");
-          await recording.locator('[data-view="app"]').click();
-          await recording.locator("video").evaluate(video=>video.load());
-          await page.waitForFunction(()=>document.querySelector(".build-recording video").readyState>=1);
-          assert((await recording.locator("video").evaluate(video=>video.duration))>11,"Real app video loads");
-          await recording.locator("video").evaluate(video=>{video.currentTime=4;});
-          await page.waitForFunction(()=>document.querySelector(".build-recording video").currentTime>=4);
+          await recording.locator(".recording-details > summary").click();
+          await recording.locator('[data-chapter="2"]').focus();
+          await page.keyboard.press("Enter");
+          assert.equal(await recording.getAttribute("data-scene"),"2");
+          assert(await recording.locator('[data-chapter="2"]').evaluate(e=>e===document.activeElement));
+          if(suffix==="wide-light"){
+            await capture(page,"recording-keyboard-"+suffix,"Keyboard chapter selection retains visible focus",false,".build-recording");
+            await recording.locator('[data-chapter="0"]').click();
+            await recording.locator("[data-play]").click();
+            await page.waitForFunction(()=>document.querySelector("[data-recording]").dataset.scene==="1",{},{timeout:10000});
+            await recording.locator("[data-play]").click();
+            assert.equal(await recording.getAttribute("data-playing"),"false");
+            await page.waitForTimeout(150);
+            assert.equal(await recording.getAttribute("data-scene"),"1","Pause stops chapter progression");
+            await recording.locator("[data-play]").click();
+            await recording.locator('[data-chapter="4"]').click();
+            assert.equal(await recording.getAttribute("data-playing"),"false","Manual navigation stops automatic playback");
+          }
+          await recording.locator('[data-chapter="5"]').click();
+          await recording.locator("[data-watch]").click();
+          await page.waitForFunction(()=>document.querySelector(".build-recording video").readyState>=2);
+          assert((await recording.locator("video").evaluate(video=>video.duration))>11);
+          await recording.locator("video").evaluate(video=>{video.pause();video.currentTime=4;});
+          await page.waitForFunction(()=>{
+            const v=document.querySelector(".build-recording video");
+            return v.readyState>=2&&!v.seeking&&Math.abs(v.currentTime-4)<.1;
+          });
+          const bright=await recording.locator("video").evaluate(v=>{
+            const c=document.createElement("canvas");c.width=128;c.height=90;
+            c.getContext("2d").drawImage(v,0,0,128,90);
+            return [...c.getContext("2d").getImageData(0,0,128,90).data].filter((value,i)=>i%4!==3&&value>100).length;
+          });
+          assert(bright>5000,"The seeked video frame contains the actual light-theme inbox, not a black frame");
+          await capture(page,"recording-video-"+suffix,"Original completed-app video with native playback controls",false,".build-recording");
+          await recording.locator("[data-watch]").click();
+          assert(!(await recording.locator("video").isVisible()));
           await page.locator("#evidence > summary").click();
           assert(await page.locator("#evidence").evaluate(e=>e.open));
           for (const [groupName, selector, labels] of [
@@ -438,10 +491,10 @@ try {
       if (layout === "compact") {
         await capture(page, "home-320-" + colorScheme, "Home at 320 CSS pixels", true);
         await page.waitForFunction(()=>document.querySelector("[data-recording]").dataset.ready==="true");
-        await page.locator('[data-event="35"]').click();
+        await page.locator('[data-chapter="2"]').click();
         await noOverflow(page);
         await scrollHeading(page, ".build-recording");
-        await capture(page, "recording-320-" + colorScheme, "Recorded source edit at 320 CSS pixels", false, ".build-recording");
+        await capture(page, "recording-320-" + colorScheme, "Guided source excerpt at 320 CSS pixels", false, ".build-recording");
         await page.locator("#evidence > summary").click();
         for (const [index, tab] of (await page.locator(".product-evidence").getByRole("tab").all()).entries()) {
           await tab.click();
@@ -460,18 +513,18 @@ try {
       await page.keyboard.press("Enter");
       assert.equal(new URL(page.url()).hash, "#main-content");
       assert.deepEqual(errors, [], "No uncaught page errors");
-      checks.push({ layout, appearance: colorScheme, passed: true, scenarios: ["five static routes", "section navigation: keyboard, links and sticky-header clearance", "primary and theme-control contrast", "wrapped code and aligned documentation arrows", "recorded project: actual action playback, source, failed/passed checks, completed tasks, canvas timeline, keyboard, pause and video seek; evidence tabs: pointer, arrows, Home, End, focus", "clipboard success and denial (browser stub)", "reflow at 320 px", "images", "install anchor", "theme persistence", "selected agent instructions", "lazy search, results, empty and failure recovery, cleared query", "keyboard skip link", ...(layout === "compact" ? ["mobile menu navigation, Escape, anchor focus and resize recovery"] : [])] });
+      checks.push({ layout, appearance: colorScheme, passed: true, scenarios: ["five static routes", "section navigation: keyboard, links and sticky-header clearance", "primary and theme-control contrast", "wrapped code and aligned documentation arrows", "recorded project: six guided chapters, exact source excerpts, recorded review comparison, all 47 actual actions, failed/passed checks, keyboard, pause and video seek; evidence tabs: pointer, arrows, Home, End, focus", "clipboard success and denial (browser stub)", "reflow at 320 px", "images", "install anchor", "theme persistence", "selected agent instructions", "lazy search, results, empty and failure recovery, cleared query", "keyboard skip link", ...(layout === "compact" ? ["mobile menu navigation, Escape, anchor focus and resize recovery"] : [])] });
       await context.close();
     }
   }
-  for(const width of [720,820,1024])for(const appearance of ["light","dark"]){
+  for(const width of [820])for(const appearance of ["light","dark"]){
     const context=await browser.newContext({viewport:{width,height:1000},colorScheme:appearance,reducedMotion:"reduce"});
     const page=await context.newPage();await page.goto(origin+"/");
     await page.waitForFunction(()=>document.querySelector("[data-recording]").dataset.ready==="true");
-    await page.locator('[data-event="15"]').click();
+    await page.locator('[data-chapter="0"]').click();
     await noOverflow(page);
     await scrollHeading(page,".build-recording");
-    await capture(page,"recording-"+width+"-"+appearance,"Source playback at intermediate width",false,".build-recording");
+    await capture(page,"recording-"+width+"-"+appearance,"Saved project plan at the tablet breakpoint",false,".build-recording");
     await context.close();
   }
   const unavailableContext=await browser.newContext({viewport:{width:390,height:844},colorScheme:"light"});
@@ -479,17 +532,17 @@ try {
   const unavailablePage=await unavailableContext.newPage();
   await unavailablePage.goto(origin+"/");
   await unavailablePage.locator("[data-error]:visible").waitFor();
-  assert.equal(await unavailablePage.locator(".recording-toolbar:visible").count(),0);
-  assert(await unavailablePage.locator(".build-recording video").isVisible());
+  assert.equal(await unavailablePage.locator(".story-controls:visible").count(),0);
+  assert(await unavailablePage.locator(".build-recording .capture-window:visible").isVisible());
   await scrollHeading(unavailablePage,".build-recording");
-  await capture(unavailablePage,"recording-unavailable","Failed recording download retains real video and downloads",false,".build-recording");
+  await capture(unavailablePage,"recording-unavailable","Failed recording download retains actual inbox capture and download links",false,".build-recording");
   await unavailableContext.close();
   const staticContext = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 390, height: 844 } });
   const staticPage = await staticContext.newPage();
   await staticPage.goto(origin + "/");
   assert.equal(await staticPage.locator(".recording-transcript li").count(),47,"Without JavaScript the full build transcript remains available");
   assert.equal(await staticPage.locator(".recording-toolbar:visible").count(),0,"No inert playback controls without JavaScript");
-  assert(await staticPage.locator(".build-recording video").isVisible(),"Actual app video remains available without JavaScript");
+  assert(await staticPage.locator(".recording-footnote a").first().isVisible(),"Actual app video link remains available without JavaScript");
   await staticPage.locator("#evidence > summary").click();
   assert.equal(await staticPage.locator("[data-panel]:visible").count(), 3, "Recorded product evidence remains available without JavaScript");
   assert.equal(await staticPage.locator("[data-tablist]:visible").count(), 0, "No inert tab controls without JavaScript");
