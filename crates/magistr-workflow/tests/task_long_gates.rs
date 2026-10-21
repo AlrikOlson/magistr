@@ -284,7 +284,7 @@ async fn a_client_that_declared_nothing_still_gets_the_blocking_result() {
 /// the same envelope, because there is only one implementation of a check.
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn the_tasks_terminal_result_is_the_same_envelope_as_the_inline_one() {
-    let command = "exit 0";
+    let command = "printf parity-output";
 
     let inline = session("tasks-parity-inline", false).await;
     arm_an_active_task(&inline).await;
@@ -308,22 +308,33 @@ async fn the_tasks_terminal_result_is_the_same_envelope_as_the_inline_one() {
     let payload = await_terminal(&tasked, &task_id_of(&handle), Duration::from_secs(30)).await;
     let task_body = completed_envelope(&payload);
 
-    // `timestamp` is wall-clock and legitimately differs; everything the check
-    // MEANS must not.
-    for field in [
-        "passed",
-        "verified",
-        "exit_code",
-        "command",
-        "name",
-        "type",
-        "details",
-    ] {
+    // Wall-clock timestamps and measured durations differ between executions.
+    // The execution result and command output must still agree.
+    for field in ["passed", "verified", "exit_code", "command", "name", "type"] {
         assert_eq!(
             task_body["check"]["value"][field], inline_body["check"]["value"][field],
             "field `{field}` diverged between the task and inline paths\n\
              task:   {task_body}\ninline: {inline_body}"
         );
+    }
+    for body in [&task_body, &inline_body] {
+        let details = body["check"]["value"]["details"].as_str().unwrap();
+        let (header, output) = details.split_once("]\n").expect("execution header");
+        let (result, timings) = header.split_once("; queue ").expect("queue measurement");
+        assert_eq!(result, format!("$ {command}\n[exit 0"));
+        let (queue, execution) = timings
+            .split_once("ms; execution ")
+            .expect("execution measurement");
+        assert!(queue.parse::<u128>().is_ok(), "{details}");
+        assert!(
+            execution
+                .strip_suffix("ms")
+                .unwrap()
+                .parse::<u128>()
+                .is_ok(),
+            "{details}"
+        );
+        assert_eq!(output, "parity-output");
     }
     assert_not_a_soft_error(&task_body);
     assert_eq!(task_body["check"]["value"]["verified"], json!(true));
