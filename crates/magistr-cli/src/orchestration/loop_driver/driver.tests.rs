@@ -2231,33 +2231,31 @@ async fn the_gates_run_one_at_a_time_not_three_at_once() {
     assert_eq!(log, "sesese", "the gates overlapped: {log}");
 }
 
-/// A red required gate is run once more before the loop believes it. The
-/// strip still shows one LED per gate, not one per attempt.
+/// A failed gate is recorded once and returned for diagnosis.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn a_red_required_gate_is_run_once_more_before_the_loop_believes_it() {
-    let dir = project("true", "true", "exit 3");
+async fn a_red_required_gate_is_not_repeated_without_a_correction() {
+    let dir = project("true", "true", "printf x >> attempts.log; exit 3");
     let script = Actions::new().command(MS(3_000), Cmd::Quit);
     let (model, _, _) = run(dir.path(), 1, script, FakeAcpAgent::new(), true).await;
 
     let notes = notes(&model);
     assert!(
-        notes
-            .iter()
-            .any(|n| n.contains("lint failed (exit 3)") && n.contains("running it once more")),
-        "the retry is announced with the exit code it failed with: {notes:?}"
+        notes.iter().all(|n| !n.contains("running it once more")),
+        "a failing command is not retried speculatively: {notes:?}"
     );
     assert!(
         notes.contains(&"error: quality gates failed: lint failed".to_owned()),
-        "red twice is real: {notes:?}"
+        "the first failure is preserved: {notes:?}"
+    );
+    assert_eq!(
+        std::fs::read_to_string(dir.path().join("attempts.log")).unwrap(),
+        "x"
     );
 }
 
-/// Green on the retry is a flake: named rather than hidden, and not a
-/// reason to pause the loop. 2026 flaky-test guidance is that an
-/// always-fails verdict is a real failure retries were masking, while the
-/// 1-99% band is what classification is for.
+/// Even a command that would pass on retry must first surface its failure.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn a_gate_that_fails_then_passes_is_a_flake_and_does_not_pause_the_loop() {
+async fn a_transient_failure_stays_failed_until_an_explicit_rerun() {
     // Fails the first time it is run in this directory, passes after.
     let flake = "if [ -e flake.marker ]; then exit 0; else touch flake.marker; exit 9; fi";
     let dir = project("true", flake, "true");
@@ -2266,13 +2264,11 @@ async fn a_gate_that_fails_then_passes_is_a_flake_and_does_not_pause_the_loop() 
 
     let notes = notes(&model);
     assert!(
-        notes
-            .iter()
-            .any(|n| n.contains("flaky, passed on the retry: test")),
-        "the flake is named, not hidden: {notes:?}"
+        notes.iter().all(|n| !n.contains("passed on the retry")),
+        "no speculative retry: {notes:?}"
     );
     assert!(
-        !notes.iter().any(|n| n.contains("quality gates failed")),
+        notes.iter().any(|n| n.contains("quality gates failed")),
         "{notes:?}"
     );
 }
@@ -2374,10 +2370,9 @@ async fn every_gate_the_loop_runs_reaches_the_trace_as_a_verified_check() {
     );
 }
 
-/// The record is where the flake stops being invisible: it is stored as
-/// passed with the retry's exit code, so both codes have to be on it.
+/// Preserve the first execution and leave subsequent checks unexecuted.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn a_flake_is_recorded_as_passed_with_both_exit_codes_on_the_record() {
+async fn the_original_failed_execution_is_recorded_and_later_gates_do_not_run() {
     let flake = "if [ -e flake.marker ]; then exit 0; else touch flake.marker; exit 9; fi";
     let dir = project("true", flake, "true");
     let engines = engines_with_active_task(dir.path());
@@ -2394,12 +2389,16 @@ async fn a_flake_is_recorded_as_passed_with_both_exit_codes_on_the_record() {
     .await;
 
     let checks = recorded(&engines);
-    assert_eq!(checks.len(), 3, "one record per gate, not per attempt");
+    assert_eq!(
+        checks.len(),
+        2,
+        "stop after the failed test; lint did not run"
+    );
     let test = checks.iter().find(|c| c.name == "test").expect("test");
-    assert!(test.passed, "green on the retry is green");
-    assert_eq!(test.exit_code, Some(0));
+    assert!(!test.passed, "the original failure remains failed");
+    assert_eq!(test.exit_code, Some(9));
     assert!(
-        test.details.contains("exit 9") && test.details.contains("retry"),
+        !test.details.contains("retry"),
         "the failing attempt is on the record: {}",
         test.details
     );
@@ -2912,9 +2911,9 @@ async fn an_item_the_agent_split_is_verified_by_the_part_it_completed() {
     assert!(stage.contains("work-part"), "{stage}");
 }
 
-/// A flake passed, so it is not evidence of anything to act on.
+/// A completed chunk is accepted on its recorded evidence; no rerun reopens it.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn a_flake_never_reopens_a_chunk() {
+async fn completed_evidence_is_not_rerun_to_reopen_a_chunk() {
     let flake = "if [ -e flake.marker ]; then exit 0; else touch flake.marker; exit 9; fi";
     let dir = project("true", flake, "true");
     let engines = engines_with_work(dir.path());

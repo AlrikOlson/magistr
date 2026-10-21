@@ -43,7 +43,16 @@ pub trait EvidencePort: Send + Sync {
 
     /// One deadline contract across native and transport callers.
     fn check_timeout_secs(&self, _name: &str, _command: Option<&str>) -> Result<u64, String> {
-        Ok(super::DEFAULT_CHECK_TIMEOUT_SECS)
+        Ok(super::CheckOptions::DEFAULT_TIMEOUT_SECS)
+    }
+
+    /// Resource admission shared with every other check runner.
+    fn check_schedule(
+        &self,
+        _name: &str,
+        _command: Option<&str>,
+    ) -> Result<magistr_process::GateSchedule, String> {
+        Ok(Default::default())
     }
 
     /// The gates the project currently requires, from its configuration as

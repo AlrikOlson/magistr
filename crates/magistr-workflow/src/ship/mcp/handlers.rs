@@ -426,7 +426,11 @@ impl ShipService {
             Ok(None) => ShipUseCases::execute_check(&admission).await,
             Err(error) => return Self::typed_result::<()>(Err(error)),
         };
-        Self::typed_result(self.use_cases.settle_check(admission, outcome))
+        Self::typed_result(
+            self.use_cases
+                .settle_check(admission, outcome)
+                .map(super::check_result::CheckResult::from),
+        )
     }
 
     #[tool(

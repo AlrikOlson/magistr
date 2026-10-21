@@ -38,9 +38,9 @@ pub use approval_gate_request::ApprovalGateRequest;
 pub use check_admission::CheckAdmission;
 pub use check_execution::CheckExecution;
 pub use check_outcome::CheckOutcome;
-pub use check_request::{
-    CheckOptions, CheckRequest, DEFAULT_CHECK_TIMEOUT_SECS, MAX_CHECK_TIMEOUT_SECS,
-};
+mod check_options;
+pub use check_options::CheckOptions;
+pub use check_request::CheckRequest;
 mod reuse;
 pub use check_settlement::CheckSettlement;
 pub use completion_evidence::CompletionEvidence;

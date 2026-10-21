@@ -14,11 +14,6 @@ use tokio_util::sync::CancellationToken;
 use super::gate_outcome::GateOutcome;
 use crate::utils::gate::run_gate;
 
-/// How long one gate may run. The set is the project's whole contract —
-/// its custom gates included, a release smoke among them — not the three
-/// cargo commands the legacy runner's 300 s was sized for.
-const GATE_TIMEOUT_SECS: u64 = 1800;
-
 /// The closure [`Jobs::spawn_job`](magistr_cockpit_runtime::Jobs::spawn_job)
 /// runs for the gate `name`: `command` under `sh -c` in `dir` through the
 /// shared gate runner — the same one `magistr_gate` goes through, so the
@@ -58,13 +53,9 @@ pub(crate) fn gate_job(
         // the required contracts completion verifies, never an optional
         // custom gate.
         let run = Handle::current().block_on(run_gate(
-            &name,
-            &command,
-            true,
-            &dir,
-            GATE_TIMEOUT_SECS,
-            &cancel,
-            stream,
+            &name, &command, true, &dir,
+            0, // Resolve the same configured deadline as MCP and native checks.
+            &cancel, stream,
         ));
         let (line, passed) = (run.line(), run.passed());
         let _ = report.send(run);

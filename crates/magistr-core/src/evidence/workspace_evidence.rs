@@ -55,24 +55,7 @@ impl WorkspaceEvidence {
         ),
         String,
     > {
-        let path = crate::paths::project_json(&self.root).map_err(|error| error.to_string())?;
-        let bytes = match std::fs::read(path) {
-            Ok(bytes) => bytes,
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-                return Ok((Default::default(), None));
-            }
-            Err(error) => return Err(error.to_string()),
-        };
-        let config: ProjectConfig =
-            serde_json::from_slice(&bytes).map_err(|error| error.to_string())?;
-        let matched = resolve_gates(&config, name).ok().and_then(|specs| {
-            specs
-                .into_iter()
-                .find(|spec| Some(spec.command.trim()) == command.map(str::trim))
-                .map(|spec| spec.name)
-        });
-        let policy = matched.and_then(|name| config.verification.gates.get(&name).cloned());
-        Ok((config.verification, policy))
+        crate::gates::verification_policy(&self.root, name, command)
     }
 
     /// The project root observed.
@@ -219,6 +202,21 @@ impl EvidencePort for WorkspaceEvidence {
             return Err("Check timeout must be between 1 and 3600 seconds.".into());
         }
         Ok(timeout)
+    }
+
+    fn check_schedule(
+        &self,
+        name: &str,
+        command: Option<&str>,
+    ) -> Result<magistr_process::GateSchedule, String> {
+        let (config, policy) = self.check_policy(name, command)?;
+        if !(1..=16).contains(&config.max_parallel) {
+            return Err("Check parallelism must be between 1 and 16.".into());
+        }
+        Ok(magistr_process::GateSchedule {
+            max_parallel: config.max_parallel,
+            resources: policy.and_then(|policy| policy.resources),
+        })
     }
 
     fn required_gates(&self) -> Result<Vec<GateContract>, String> {

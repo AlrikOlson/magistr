@@ -38,18 +38,32 @@ impl ShipUseCases {
                 .ok_or("Set an objective before running a check.")?;
             (target, revision)
         };
+        let schedule = self
+            .evidence
+            .as_ref()
+            .map(|port| port.check_schedule(&request.name, request.command.as_deref()))
+            .transpose()
+            .map_err(|reason| {
+                ShipError::refused(
+                    "source_unavailable",
+                    format!("The source could not be checked: {reason}"),
+                )
+            })?
+            .unwrap_or_default();
+        request.options.max_parallel = Some(schedule.max_parallel);
+        request.options.resources = schedule.resources;
         let default_timeout = self
             .evidence
             .as_ref()
             .map(|port| port.check_timeout_secs(&request.name, request.command.as_deref()))
             .transpose()
             .map_err(ShipError::from)?
-            .unwrap_or(super::DEFAULT_CHECK_TIMEOUT_SECS);
+            .unwrap_or(super::CheckOptions::DEFAULT_TIMEOUT_SECS);
         let timeout = request.options.timeout_secs.get_or_insert(default_timeout);
-        if *timeout == 0 || *timeout > super::MAX_CHECK_TIMEOUT_SECS {
+        if *timeout == 0 || *timeout > super::CheckOptions::MAX_TIMEOUT_SECS {
             return Err(ShipError::invalid_args(format!(
                 "Check timeout must be between 1 and {} seconds.",
-                super::MAX_CHECK_TIMEOUT_SECS
+                super::CheckOptions::MAX_TIMEOUT_SECS
             )));
         }
         let witness = self

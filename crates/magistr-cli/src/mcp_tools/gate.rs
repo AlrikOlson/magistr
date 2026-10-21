@@ -47,6 +47,8 @@ pub(super) fn gate_json(run: &crate::utils::gate::GateRun) -> serde_json::Value 
         "output": run.output,
         "rows": run.rows,
         "duration_ms": run.duration.as_millis() as u64,
+        "queue_ms": run.queue_duration.as_millis() as u64,
+        "execution_ms": run.duration.saturating_sub(run.queue_duration).as_millis() as u64,
         "exit_code": run.exit_code,
         "command": run.command
     })
@@ -65,7 +67,7 @@ pub(crate) use magistr_core::gates::{GateSpec, resolve_gates};
 ///
 /// When the project defines archetypes, an optional `archetype` parameter
 /// selects a specific sub-project. When omitted, gates run for all archetypes
-/// in parallel.
+/// with bounded concurrency.
 pub(super) fn build_gate_tool(project_root: PathBuf) -> SdkMcpTool {
     SdkMcpTool::new(
         "magistr_gate",
@@ -90,10 +92,14 @@ pub(super) fn build_gate_tool(project_root: PathBuf) -> SdkMcpTool {
                     "type": "string",
                     "description": "Optional archetype ID to target. When set, runs only that archetype's gates from its root path. When omitted in a polyglot project, runs gates for all archetypes."
                 },
+                "diagnostic": {"type":"boolean","default":false,"description":"Collect all selected failures instead of stopping after the first required failure."},
+                "reuse": {"type":"boolean","default":true,"description":"Reuse matching verified evidence; false forces execution."},
+                "inputs": {"type":"array","items":{"type":"string"},"description":"Relative source files/directories including dependencies; omitted observes the whole source tree."},
                 "timeout_secs": {
                     "type": "integer",
-                    "description": "Timeout in seconds for each gate command. Default: 300.",
-                    "default": 300
+                    "description": "Override the configured per-check deadline (1–3600 seconds).",
+                    "minimum": 1,
+                    "maximum": 3600
                 }
             },
             "required": ["gate"]
@@ -105,7 +111,7 @@ pub(super) fn build_gate_tool(project_root: PathBuf) -> SdkMcpTool {
                     magistr_mcp::ToolError::Mcp("missing 'gate' parameter".into())
                 })?;
                 let archetype_filter = input["archetype"].as_str();
-                let timeout_secs = input["timeout_secs"].as_u64().unwrap_or(300);
+                let timeout_secs = input["timeout_secs"].as_u64().unwrap_or(0);
                 debug!(
                     tool = "magistr_gate",
                     gate = gate_name,
@@ -147,28 +153,35 @@ pub(super) fn build_gate_tool(project_root: PathBuf) -> SdkMcpTool {
                     Err(message) => return Ok(ToolResult::error(message)),
                 };
 
-                let mut handles = Vec::new();
-                for spec in &specs {
-                    let spec = spec.clone();
-                    let dir = root.clone();
-                    handles.push(tokio::spawn(async move {
-                        // The standalone tool has no feed socket to stream
-                        // on; `magistr mcp`'s service is the caller
-                        // that broadcasts a gate's bytes.
-                        let mut result =
-                            run_gate_command(&spec.command, &dir, timeout_secs, |_| {}).await?;
-                        result["gate"] = json!(spec.name);
-                        result["required"] = json!(spec.required);
-                        Ok::<_, magistr_mcp::ToolError>(result)
-                    }));
-                }
-                let mut results = Vec::with_capacity(handles.len());
-                for handle in handles {
-                    let result = handle.await.map_err(|e| {
-                        magistr_mcp::ToolError::Mcp(format!("gate task panicked: {e}"))
-                    })??;
-                    results.push(result);
-                }
+                let diagnostic = input["diagnostic"].as_bool().unwrap_or(false);
+                let mut results = super::gate_batch::run_batch(
+                    specs,
+                    cfg.verification.max_parallel,
+                    diagnostic,
+                    |spec| {
+                        let dir = root.clone();
+                        async move {
+                            let run = crate::utils::gate::run_gate(
+                                &spec.name,
+                                &spec.command,
+                                spec.required,
+                                &dir,
+                                timeout_secs,
+                                &tokio_util::sync::CancellationToken::new(),
+                                |_| {},
+                            )
+                            .await;
+                            let mut result = gate_json(&run);
+                            result["gate"] = json!(spec.name);
+                            result["required"] = json!(spec.required);
+                            result["recorded"] = json!(false);
+                            result["note"] =
+                                json!("No workflow owner is attached to this standalone tool.");
+                            result
+                        }
+                    },
+                )
+                .await;
 
                 // A single-spec gate answers with the bare record; anything
                 // multi-spec (a polyglot standard gate, or `all`) answers

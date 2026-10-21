@@ -581,6 +581,22 @@ impl NativeEngines {
         })
     }
 
+    /// Find current evidence for this command under its new task admission.
+    pub fn ship_reuse_gate(
+        &self,
+        admission: &CheckAdmission,
+    ) -> Result<Option<CheckOutcome>, ShipError> {
+        self.services.ship.reuse_check(admission)
+    }
+
+    /// Admit a caller's bounded check through the canonical policy owner.
+    pub fn ship_admit_check(
+        &self,
+        request: CheckRequest,
+    ) -> Result<Observed<CheckAdmission>, ShipError> {
+        self.services.ship.admit_check(request)
+    }
+
     /// Settle only against the captured native identity. A stale result retains
     /// its admission and execution data for recovery, never another task; the
     /// receipt is settled under its original identity either way. Only an
@@ -593,6 +609,17 @@ impl NativeEngines {
         details: String,
         report: Option<(&str, &str)>,
     ) -> Result<CheckSettlement, ShipError> {
+        if matches!(execution, CheckExecution::Reused { .. }) {
+            let outcome = self
+                .services
+                .ship
+                .reuse_check(&admission)?
+                .filter(|outcome| outcome.execution == execution)
+                .ok_or_else(|| {
+                    ShipError::from("The earlier result no longer matches; run the check again.")
+                })?;
+            return self.services.ship.settle_check(admission, outcome);
+        }
         let (report, results) = match report {
             Some((format, path)) => {
                 let (record, results) = magistr_workflow::ship::report::read_report(format, path);

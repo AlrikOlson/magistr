@@ -23,6 +23,22 @@ pub fn resolve_gates(config: &ProjectConfig, gate: &str) -> Result<Vec<GateSpec>
             for g in ["check", "test", "lint"] {
                 specs.extend(standard_specs(config, g));
             }
+            // Clippy already type-checks the identical Cargo selection. Drop
+            // only proven duplicates; different targets/features/cwds still run.
+            let covered: Vec<_> = specs
+                .iter()
+                .filter(|spec| spec.name == "check" || spec.name.starts_with("check:"))
+                .filter(|check| {
+                    specs
+                        .iter()
+                        .any(|lint| clippy_covers(&check.command, &lint.command))
+                })
+                .map(|spec| spec.name.clone())
+                .collect();
+            if !covered.is_empty() {
+                specs.retain(|spec| !covered.contains(&spec.name));
+                specs.sort_by_key(|spec| !spec.name.starts_with("lint"));
+            }
             // Standard + *required* custom gates, as the tool's own
             // description has always claimed. A gate registered
             // `required: false` is one the project expects to fail; `all`
@@ -132,3 +148,34 @@ fn standard_specs(config: &ProjectConfig, gate: &str) -> Vec<GateSpec> {
     }
     specs
 }
+
+fn clippy_covers(check: &str, lint: &str) -> bool {
+    // Splitting keeps a literal cd prefix as part of the coverage identity.
+    // Unknown shell syntax refuses consolidation rather than guessing.
+    fn selection(command: &str, verb: &str) -> Option<Vec<String>> {
+        if command
+            .chars()
+            .any(|ch| matches!(ch, ';' | '|' | '\n' | '`' | '$' | '>' | '<'))
+        {
+            return None;
+        }
+        let mut words: Vec<_> = command.split_whitespace().map(str::to_owned).collect();
+        let cargo = words.iter().position(|word| word == "cargo")?;
+        if words.get(cargo + 1)? != verb {
+            return None;
+        }
+        if words[..cargo].contains(&"cargo".into()) {
+            return None;
+        }
+        if let Some(end) = words.iter().position(|word| word == "--") {
+            words.truncate(end);
+        }
+        words[cargo + 1] = "verify".into();
+        Some(words)
+    }
+    matches!((selection(check, "check"), selection(lint, "clippy")), (Some(a), Some(b)) if a == b)
+}
+
+#[cfg(test)]
+#[path = "resolve_gates.tests.rs"]
+mod tests;

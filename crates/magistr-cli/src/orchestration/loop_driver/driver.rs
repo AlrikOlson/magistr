@@ -40,7 +40,7 @@ use crate::orchestration::goal::{
     JudgeInput,
 };
 use crate::permissions::PermissionProfile;
-use crate::utils::gate::GateVerdict;
+
 use crate::workflow::WorkflowConfig;
 use crate::workflow::iteration::{
     AttemptId, IterationLoop, OperationKind, OperationOutcome, PostCheckResult, PreCheckResult,
@@ -2069,6 +2069,23 @@ impl LoopDriver {
                 ),
                 Err(why) => Err(why.clone()),
             };
+            if let (Some(engines), Ok(recording)) = (&engines, &admission) {
+                match recording.admission.reuse(engines) {
+                    Ok(Some(settled)) if settled.is_applied() => {
+                        if let Some(receipt) = &recording.receipt {
+                            self.settled(receipt, OperationOutcome::Completed);
+                        }
+                        self.recorded_verification.push(name.clone());
+                        self.note(format!("{name}: reused matching verification"));
+                        continue;
+                    }
+                    Ok(Some(_)) | Err(_) => {
+                        self.gates_unresolved = Some("The saved check changed during verification. Review its receipt before continuing.".into());
+                        break;
+                    }
+                    Ok(None) => {}
+                }
+            }
             let first = match self
                 .one_gate(&name, &command, &cancel, started, ticks)
                 .await
@@ -2080,38 +2097,13 @@ impl LoopDriver {
                     return None;
                 }
             };
-            if !first.is_retryable() {
-                self.record_gate(engines.as_ref(), &admission, &first, &mut said_why_not);
-                outcomes.push(first);
-                continue;
-            }
-            self.note(format!(
-                "{} failed (exit {}) — running it once more to tell a flake from a failure",
-                first.name, first.exit_code
-            ));
-            match self
-                .one_gate(&name, &command, &cancel, started, ticks)
-                .await
-            {
-                GateStep::Ran(again) if again.passed() => {
-                    let flake = again.as_flake_of(&first);
-                    self.record_gate(engines.as_ref(), &admission, &flake, &mut said_why_not);
-                    outcomes.push(flake);
-                }
-                // Red twice is real, and the second run's own evidence is
-                // the fresher of the two.
-                GateStep::Ran(again) => {
-                    self.record_gate(engines.as_ref(), &admission, &again, &mut said_why_not);
-                    outcomes.push(again);
-                }
-                GateStep::Gone => {
-                    self.record_gate(engines.as_ref(), &admission, &first, &mut said_why_not);
-                    outcomes.push(first);
-                }
-                GateStep::Closed => {
-                    cancel.cancel();
-                    return None;
-                }
+            self.record_gate(engines.as_ref(), &admission, &first, &mut said_why_not);
+            let failed = first.required && !first.passed();
+            outcomes.push(first);
+            if failed {
+                // A failure needs diagnosis or a correction before another run.
+                // Keep the original failure; do not repeat the suite speculatively.
+                break;
             }
         }
         Some(outcomes)
@@ -2318,17 +2310,6 @@ impl LoopDriver {
             } else {
                 self.note(format!("completed chunk(s): {}", self.completed.join(", ")));
             }
-        }
-        let flaky: Vec<&str> = gates
-            .iter()
-            .filter(|gate| gate.verdict == GateVerdict::Flaky)
-            .map(|gate| gate.name.as_str())
-            .collect();
-        if !flaky.is_empty() {
-            self.note(format!(
-                "flaky, passed on the retry: {} — not treated as a failure",
-                flaky.join(", ")
-            ));
         }
         let failed: Vec<String> = gates
             .iter()

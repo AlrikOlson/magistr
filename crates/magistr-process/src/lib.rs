@@ -22,6 +22,8 @@
 
 #![warn(missing_docs)]
 
+mod gate_scheduler;
+pub use gate_scheduler::{GatePermit, GateSchedule, GateWaitError, acquire_gate};
 mod blocking;
 mod bounded_capture;
 pub use blocking::run_blocking;

@@ -96,7 +96,6 @@ impl ShipUseCases {
                 reason: reason.to_string(),
             })?
             .observation();
-
         let mut by_gate: BTreeMap<&str, Vec<&CheckReceipt>> = BTreeMap::new();
         for receipt in receipts
             .iter()
@@ -120,28 +119,6 @@ impl ShipUseCases {
             outstanding: Vec::new(),
         };
         let mut observations = BTreeMap::new();
-        let mut observe = |receipt: &CheckReceipt| -> Result<SourceObservation, CompletionRefusal> {
-            let inputs = receipt
-                .source
-                .as_ref()
-                .map(|source| source.inputs.as_slice())
-                .unwrap_or_default();
-            let key = (&receipt.gate, &receipt.command, inputs);
-            let key = serde_json::to_string(&key).map_err(|error| {
-                CompletionRefusal::EvidenceUnavailable {
-                    reason: error.to_string(),
-                }
-            })?;
-            if let Some(observed) = observations.get(&key) {
-                return Ok(Clone::clone(observed));
-            }
-            let observed = port
-                .observe_check(&receipt.gate, receipt.command.as_deref(), inputs)
-                .map_err(|reason| CompletionRefusal::EvidenceUnavailable { reason })?
-                .observation();
-            observations.insert(key, observed.clone());
-            Ok(observed)
-        };
         let mut judged: Vec<&str> = Vec::new();
         for contract in &contracts {
             judged.push(&contract.name);
@@ -155,7 +132,11 @@ impl ShipUseCases {
                     ),
                 }),
                 Some(attempts) => {
-                    let current = observe(attempts.last().expect("gate attempts"))?;
+                    let current = observe_receipt(
+                        port.as_ref(),
+                        &mut observations,
+                        attempts.last().expect("gate attempts"),
+                    )?;
                     judge(
                         &mut evidence,
                         &contract.name,
@@ -183,7 +164,7 @@ impl ShipUseCases {
                 // A self-reported pass neither certifies nor blocks.
                 continue;
             }
-            let current = observe(latest)?;
+            let current = observe_receipt(port.as_ref(), &mut observations, latest)?;
             judge(
                 &mut evidence,
                 gate,
@@ -325,4 +306,30 @@ fn reason_to_refuse(
         return Some("the objective's acceptance changed since the gate ran".into());
     }
     None
+}
+
+fn observe_receipt(
+    port: &dyn super::EvidencePort,
+    observations: &mut BTreeMap<String, SourceObservation>,
+    receipt: &CheckReceipt,
+) -> Result<SourceObservation, CompletionRefusal> {
+    let inputs = receipt
+        .source
+        .as_ref()
+        .map(|source| source.inputs.as_slice())
+        .unwrap_or_default();
+    let key = (&receipt.gate, &receipt.command, inputs);
+    let key =
+        serde_json::to_string(&key).map_err(|error| CompletionRefusal::EvidenceUnavailable {
+            reason: error.to_string(),
+        })?;
+    if let Some(observed) = observations.get(&key) {
+        return Ok(Clone::clone(observed));
+    }
+    let observed = port
+        .observe_check(&receipt.gate, receipt.command.as_deref(), inputs)
+        .map_err(|reason| CompletionRefusal::EvidenceUnavailable { reason })?
+        .observation();
+    observations.insert(key, observed.clone());
+    Ok(observed)
 }

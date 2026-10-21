@@ -91,7 +91,8 @@ async fn the_stream_carries_the_colour_and_the_record_keeps_the_text() {
         "the escape reached the sink: {seen:?}"
     );
     assert_eq!(gate.output, "all-good\n");
-    assert_eq!(gate.details(), "all-good\n");
+    assert!(gate.queue_duration <= gate.duration);
+    assert_eq!(gate.details(), gate.output);
 }
 
 #[tokio::test]
@@ -180,8 +181,4 @@ async fn a_not_required_gate_says_so() {
     let gate = run_gate("mock-parity", "exit 1", false, &dir(), 10, &never(), quiet).await;
     assert!(!gate.required);
     assert_eq!(gate.verdict, GateVerdict::Failed);
-    assert!(
-        !gate.is_retryable(),
-        "an expected red is not paid for twice"
-    );
 }

@@ -26,7 +26,7 @@ pub(crate) const CHECK_OUTPUT_TAIL: usize = 4000;
 /// Public because [`crate::mcp::tasks::TASK_TTL_MS`] is *derived* from it: a
 /// task retention window shorter than the longest a gate may run would mark a
 /// still-running gate `failed`.
-pub(crate) const CHECK_TIMEOUT_SECS: u64 = super::MAX_CHECK_TIMEOUT_SECS;
+pub(crate) const CHECK_TIMEOUT_SECS: u64 = super::CheckOptions::MAX_TIMEOUT_SECS;
 /// How long the group gets after `SIGTERM` before `SIGKILL` on a timeout.
 const KILL_GRACE: Duration = Duration::from_secs(5);
 
@@ -38,17 +38,52 @@ const KILL_GRACE: Duration = Duration::from_secs(5);
 /// declared-command admission. Dropping the future mid-run kills the child.
 #[cfg(test)]
 pub(crate) async fn run_check_command(cmd: &str, cwd: Option<&Path>) -> CommandOutcome {
-    run_check_command_with_timeout(cmd, cwd, super::DEFAULT_CHECK_TIMEOUT_SECS).await
+    run_check_command_with_timeout(
+        cmd,
+        cwd,
+        super::CheckOptions::DEFAULT_TIMEOUT_SECS,
+        &Default::default(),
+    )
+    .await
 }
 
 async fn run_check_command_with_timeout(
     cmd: &str,
     cwd: Option<&Path>,
     timeout_secs: u64,
+    schedule: &magistr_process::GateSchedule,
 ) -> CommandOutcome {
+    let started = std::time::Instant::now();
+    let cancel = CancellationToken::new();
+    let root = cwd
+        .map(Path::to_path_buf)
+        .or_else(|| std::env::current_dir().ok())
+        .unwrap_or_default();
+    let _permit = match magistr_process::acquire_gate(
+        &root,
+        cmd,
+        schedule,
+        Duration::from_secs(timeout_secs),
+        &cancel,
+    )
+    .await
+    {
+        Ok(permit) => permit,
+        Err(_) => {
+            return CommandOutcome {
+                passed: false,
+                exit_code: None,
+                execution: CheckExecution::TimedOut,
+                output_tail: format!(
+                    "`{cmd}` exceeded its {timeout_secs}s deadline waiting for verification resources"
+                ),
+            };
+        }
+    };
+    let queued = started.elapsed();
     let mut spec = ProcessSpec::new(
         Launch::Shell(cmd.to_owned()),
-        Duration::from_secs(timeout_secs),
+        Duration::from_secs(timeout_secs).saturating_sub(queued),
     )
     .with_termination(Termination::Graceful { grace: KILL_GRACE });
     spec.cwd = cwd.map(Path::to_path_buf);
@@ -82,7 +117,12 @@ async fn run_check_command_with_timeout(
         execution: CheckExecution::Exited {
             code: code.unwrap_or(-1),
         },
-        output_tail: format!("$ {cmd}\n[exit {code_str}]\n{}", tail_chars(&combined)),
+        output_tail: format!(
+            "$ {cmd}\n[exit {code_str}; queue {}ms; execution {}ms]\n{}",
+            queued.as_millis(),
+            started.elapsed().saturating_sub(queued).as_millis(),
+            tail_chars(&combined)
+        ),
     }
 }
 
@@ -124,7 +164,11 @@ impl ShipUseCases {
                     request
                         .options
                         .timeout_secs
-                        .unwrap_or(super::DEFAULT_CHECK_TIMEOUT_SECS),
+                        .unwrap_or(super::CheckOptions::DEFAULT_TIMEOUT_SECS),
+                    &magistr_process::GateSchedule {
+                        max_parallel: request.options.max_parallel.unwrap_or(4),
+                        resources: request.options.resources.clone(),
+                    },
                 )
                 .await;
                 let details = if request.details.is_empty() {

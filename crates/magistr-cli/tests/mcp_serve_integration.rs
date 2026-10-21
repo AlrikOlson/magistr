@@ -140,12 +140,15 @@ async fn check_keeps_its_admitted_run(tool: &str) {
     if tool == "magistr_gate" {
         assert_eq!(result["passed"], true, "{result}");
         assert_eq!(result["recorded"], false, "{result}");
-        assert_eq!(result["stale_admission"]["target"]["task_id"], "reused");
-        assert_eq!(result["unsettled_outcome"]["exit_code"], 0);
+        assert_eq!(result["task_id"], "reused");
+        assert_eq!(result["execution"]["code"], 0);
+        assert!(result["receipt"].as_str().is_some());
+        assert!(result.get("saved_receipt").is_none());
     } else {
         assert_eq!(result["settlement"], "stale", "{result}");
-        assert_eq!(result["admission"]["target"]["task_id"], "reused");
-        assert_eq!(result["outcome"]["exit_code"], 0);
+        assert_eq!(result["receipt"]["task_id"], "reused");
+        assert_eq!(result["receipt"]["execution"]["code"], 0);
+        assert!(result["receipt"]["id"].as_str().is_some());
     }
     let status = text_json(&call(&client, "ship_status", json!({})).await);
     assert_eq!(status["objective"]["description"], "second", "{status}");

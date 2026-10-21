@@ -6,6 +6,8 @@
 //! capability's `required_gates` — the gates the loop driver runs between
 //! iterations, so the loop's receipts are the contracts completion checks.
 
+mod execution_policy;
+pub use execution_policy::{configured_policy, execution_policy, verification_policy};
 mod gate_spec;
 mod resolve_gates;
 

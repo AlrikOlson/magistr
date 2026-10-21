@@ -24,9 +24,9 @@ fn gate(name: &str, exit_code: i32, rows: Vec<GateFailureRow>, output: &str) -> 
         required: true,
         verdict: GateVerdict::Failed,
         exit_code,
-        first_exit_code: None,
         output: output.to_owned(),
         rows,
+        queue_duration: std::time::Duration::ZERO,
         duration: Duration::from_secs(3),
     }
 }

@@ -14,7 +14,7 @@ path = "src/lib.rs"
 
 [dependencies]
 # `net` for the AsyncFd the pty master is read through.
-tokio = { version = "1", features = ["io-util", "macros", "net", "process", "rt", "time"] }
+tokio = { version = "1", features = ["io-util", "macros", "net", "process", "rt", "sync", "time"] }
 tokio-util = "0.7"
 
 [target.'cfg(unix)'.dependencies]
