@@ -23,12 +23,30 @@ checks that dependency before publishing the identity.
 
 After taking the current project lease, `ProjectAuthority` completes a requested
 workflow relocation. It takes older project and document locks, selects only that
-project's workflow records, validates them through current readers, checks every
-destination, and publishes complete files atomically. Existing different bytes
+project's workflow records, converts recognized older envelopes through each
+family's persistence owner, validates the resulting current documents, checks
+every destination, and publishes complete files atomically. Existing different bytes
 are a conflict. A completion receipt lists copied paths and hashes; an
 interrupted batch accepts only identical prior copies. Subsequent admissions
 never overwrite newer work with the retained originals. Read views report a
 pending relocation instead of presenting an empty project.
+
+Version-1 saved work receives the same stable run and task identities the older
+writer assigned, preserving receipt references. Project-wide work and receipts
+move into the primary working copy's default execution. Version-1 reasoning
+histories consolidate into one project document, retaining session names, step
+numbers and existing identities. Missing step identities are derived deterministically;
+conflicting identities or numbers are refused. Roadmap and signal owners fill
+omitted item origins from the validated enclosing project, preserving all authored
+fields and rejecting explicit foreign origins. Current readers remain strict.
+Conversion is deterministic, so an interrupted copy can resume without minting
+new identities or replacing newer work. The older files remain byte-for-byte intact.
+
+The older JSON fixtures under each workflow family's `fixtures` directory
+use the envelope and record shapes captured from an existing installation on
+2026-10-21, with synthetic content replacing private project information.
+Admission and CLI repair tests exercise those fixtures, interruption, repeat
+admission, invalid input and live document owners.
 
 The default older user-data location is recognized. Explicit custom storage,
 unsupported historical schemas and conflicting identities are not guessed.

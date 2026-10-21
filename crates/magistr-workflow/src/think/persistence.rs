@@ -10,6 +10,9 @@ use crate::infra::transaction::{Committed, TransactionError, TransactionTarget, 
 use crate::infra::{PersistenceConfig, read_json};
 use crate::think::domain::ThinkHistory;
 
+#[path = "persistence_upgrade.rs"]
+mod upgrade;
+
 const SCHEMA_VERSION: u32 = 2;
 
 /// The complete transaction boundary. Selected histories are projections of it.

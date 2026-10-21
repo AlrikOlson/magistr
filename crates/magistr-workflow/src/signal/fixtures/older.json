@@ -1,0 +1,17 @@
+{
+  "project_id": "saved-project",
+  "signals": [
+    {
+      "id": "saved-signal",
+      "kind": "bug",
+      "from": "Project owner",
+      "body": "Preserve the saved feedback",
+      "created": "2026-08-03T09:00:00Z",
+      "status": "new",
+      "enrichment": [],
+      "cross_refs": [
+        "chunk:saved"
+      ]
+    }
+  ]
+}

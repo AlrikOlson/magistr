@@ -11,6 +11,7 @@ mod editing;
 mod mutation_error;
 mod observation;
 mod transaction;
+mod upgrade;
 use magistr_workflow_contracts::Observed;
 pub use mutation_error::RoadmapMutationError;
 mod proposal_resolution;

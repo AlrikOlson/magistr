@@ -1,5 +1,5 @@
 use super::*;
-use crate::native::{ProjectAuthority, WriterRole};
+use crate::native::{NativeReader, ProjectAuthority, WriterRole};
 use magistr_workflow::{roadmap::domain::ChunkStatus, ship::domain::task::TaskType};
 
 fn fixture() -> (tempfile::TempDir, NativeConfig, NativeConfig) {
@@ -200,4 +200,169 @@ fn a_linked_destination_is_refused_before_copying() {
     std::os::unix::fs::symlink(&external, current.data_dir().join("ship")).unwrap();
     assert!(ProjectAuthority::admit(&current, WriterRole::Host).is_err());
     assert_eq!(fs::read_dir(external).unwrap().count(), 0);
+}
+const SHIP_V1: &[u8] = include_bytes!("fixtures/older-ship.json");
+const THINK_V1: &[u8] = include_bytes!("fixtures/older-think.json");
+
+fn older_fixture() -> (tempfile::TempDir, NativeConfig, NativeConfig) {
+    let fixture = fixture();
+    let (_, current, old) = &fixture;
+    for path in records(old.data_dir(), "saved-project").unwrap() {
+        if path.starts_with("ship") {
+            fs::remove_file(old.data_dir().join(path)).unwrap();
+        }
+    }
+    for (path, bytes) in [
+        ("ship/sessions/saved-project.json", SHIP_V1),
+        ("think/sessions/saved-project.json", THINK_V1),
+        (
+            "roadmap/sessions/saved-project.json",
+            include_bytes!("fixtures/older-roadmap.json").as_slice(),
+        ),
+        (
+            "signal/sessions/saved-project.json",
+            include_bytes!("fixtures/older-signal.json").as_slice(),
+        ),
+    ] {
+        publish(&old.data_dir().join(path), bytes, true).unwrap();
+    }
+    request(current);
+    fixture
+}
+
+#[test]
+fn old_work_and_reasoning_are_converted_into_the_records_current_readers_use() {
+    let (_dir, current, old) = older_fixture();
+    let before = records(old.data_dir(), "saved-project")
+        .unwrap()
+        .into_iter()
+        .map(|path| {
+            let bytes = fs::read(old.data_dir().join(&path)).unwrap();
+            (path, bytes)
+        })
+        .collect::<Vec<_>>();
+    let owner = ProjectAuthority::admit(&current, WriterRole::Host).unwrap();
+    let reader = NativeReader::open(&current);
+    let work = reader.ship_snapshot().unwrap();
+    assert_eq!(
+        reader.ship_tasks().unwrap()[0].actions[0].think_step,
+        Some(7)
+    );
+    assert_eq!(reader.ship_tasks().unwrap()[0].id, "one");
+    assert_eq!(
+        reader.ship_tasks().unwrap()[0].checks[0].name,
+        "Saved check"
+    );
+    assert_eq!(
+        reader.think_step(7).unwrap().unwrap().record_id.as_deref(),
+        Some("retained-step")
+    );
+    assert_eq!(
+        reader.roadmap_chunks().unwrap()[0].project_id.as_deref(),
+        Some("saved-project")
+    );
+    assert_eq!(
+        reader.signal_list().unwrap()[0].project_id.as_deref(),
+        Some("saved-project")
+    );
+    assert!(
+        !current
+            .data_dir()
+            .join("ship/sessions/saved-project.json")
+            .exists()
+    );
+    for (path, bytes) in &before {
+        assert_eq!(fs::read(old.data_dir().join(path)).unwrap(), *bytes);
+    }
+    drop(owner);
+    let next = ProjectAuthority::admit(&current, WriterRole::Host)
+        .unwrap()
+        .open();
+    assert_eq!(NativeReader::open(&current).ship_snapshot().unwrap(), work);
+    next.ship_add_task(
+        "two".into(),
+        "Continue saved work".into(),
+        TaskType::Implement,
+        None,
+    )
+    .unwrap();
+    drop(next);
+    drop(ProjectAuthority::admit(&current, WriterRole::Host).unwrap());
+    assert_eq!(NativeReader::open(&current).ship_tasks().unwrap().len(), 2);
+}
+
+#[test]
+fn interrupted_old_format_conversion_reuses_exact_published_identities() {
+    let (_dir, current, old) = older_fixture();
+    let source = records(old.data_dir(), "saved-project")
+        .unwrap()
+        .into_iter()
+        .map(|path| {
+            let bytes = fs::read(old.data_dir().join(&path)).unwrap();
+            (path, bytes)
+        })
+        .collect();
+    let planned = converted_records(&current, "saved-project", source).unwrap();
+    let (relative, bytes) = planned
+        .iter()
+        .find(|(path, _)| path.starts_with("ship"))
+        .unwrap();
+    publish(&current.data_dir().join(relative), bytes, false).unwrap();
+    drop(ProjectAuthority::admit(&current, WriterRole::Host).unwrap());
+    assert_eq!(fs::read(current.data_dir().join(relative)).unwrap(), *bytes);
+    assert_eq!(NativeReader::open(&current).ship_tasks().unwrap().len(), 1);
+    assert!(
+        NativeReader::open(&current)
+            .think_step(7)
+            .unwrap()
+            .is_some()
+    );
+}
+
+#[test]
+fn invalid_old_history_refuses_the_whole_copy_and_keeps_the_request_pending() {
+    let (_dir, current, old) = older_fixture();
+    let path = old.data_dir().join("think/sessions/saved-project.json");
+    let mut invalid: serde_json::Value = serde_json::from_slice(THINK_V1).unwrap();
+    invalid["schema_version"] = serde_json::json!(99);
+    let bytes = serde_json::to_vec(&invalid).unwrap();
+    fs::write(&path, &bytes).unwrap();
+    assert!(ProjectAuthority::admit(&current, WriterRole::Host).is_err());
+    assert!(
+        records(current.data_dir(), "saved-project")
+            .unwrap()
+            .is_empty()
+    );
+    assert_eq!(fs::read(path).unwrap(), bytes);
+    let pending: Request = serde_json::from_slice(
+        &fs::read(current.workflow_root().join(WorkflowUpgrade::REQUEST)).unwrap(),
+    )
+    .unwrap();
+    assert!(!pending.complete);
+}
+
+#[test]
+fn a_live_older_document_owner_blocks_conversion_before_any_copy() {
+    let (_dir, current, old) = older_fixture();
+    let lock = File::options()
+        .create(true)
+        .truncate(false)
+        .read(true)
+        .write(true)
+        .open(old.data_dir().join("ship/sessions/saved-project.json.lock"))
+        .unwrap();
+    lock.try_lock().unwrap();
+    assert_eq!(
+        ProjectAuthority::admit(&current, WriterRole::Host)
+            .unwrap_err()
+            .kind(),
+        io::ErrorKind::WouldBlock
+    );
+    assert!(
+        records(current.data_dir(), "saved-project")
+            .unwrap()
+            .is_empty()
+    );
+    drop(lock);
+    drop(ProjectAuthority::admit(&current, WriterRole::Host).unwrap());
 }

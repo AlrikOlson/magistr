@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "project_id": "saved-project",
+  "objective": {
+    "description": "Keep the project work",
+    "acceptance_criteria": [
+      "Retain the saved results"
+    ],
+    "constraints": [],
+    "scope": "saved",
+    "status": "active",
+    "project_id": "saved-project",
+    "created_at": "2026-08-03T10:00:00Z"
+  },
+  "tasks": [
+    {
+      "id": "one",
+      "title": "Saved task",
+      "type": "implement",
+      "status": "active",
+      "estimate": null,
+      "started_at": "2026-08-03T10:01:00Z",
+      "artifacts": [
+        {
+          "type": "file",
+          "ref": "src/example.rs",
+          "description": "Saved implementation"
+        }
+      ],
+      "checks": [
+        {
+          "type": "test",
+          "name": "Saved check",
+          "passed": true,
+          "details": "Recorded before upgrade",
+          "required": true,
+          "verified": true,
+          "command": "cargo test",
+          "exit_code": 0,
+          "timestamp": "2026-08-03T10:03:00Z"
+        }
+      ],
+      "actions": [
+        {
+          "id": 1,
+          "task_id": "one",
+          "deliberate_step": 7,
+          "timestamp": "2026-08-03T10:02:00Z",
+          "type": "code",
+          "description": "Implement the saved task",
+          "files_touched": [
+            "src/example.rs"
+          ],
+          "tools_used": [
+            "edit"
+          ],
+          "result": "Saved changes"
+        }
+      ]
+    }
+  ],
+  "next_action_id": 2
+}

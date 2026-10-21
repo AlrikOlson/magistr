@@ -14,6 +14,7 @@
 mod editing;
 mod mutation_error;
 mod transaction;
+mod upgrade;
 pub use mutation_error::SignalMutationError;
 
 use chrono::Utc;

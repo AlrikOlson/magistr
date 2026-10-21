@@ -1,4 +1,4 @@
-use super::{NativeConfig, NativeReader, owner_lease::OwnerLease};
+use super::{NativeConfig, owner_lease::OwnerLease};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{
@@ -91,36 +91,34 @@ impl WorkflowUpgrade {
                 let relative = Path::new("roadmap/sessions").join(format!("{id}.{name}"));
                 lease.lock(&checked_path(&source, &relative)?, "older workflow history")?;
             }
-            // Discover records only after fencing the previous writer,
-            // including an owner that has not saved its first record yet.
+            // Fence every source before conversion. The originals remain recovery
+            // evidence; only current documents are published to the new store.
             for relative in records(&source, id)? {
-                let old = source.join(&relative);
-                let new = checked_path(config.data_dir(), &relative)?;
+                let old = checked_path(&source, &relative)?;
                 lease.lock(&old.with_extension("json.lock"), "older saved record")?;
-                lease.lock(&new.with_extension("json.lock"), "saved record upgrade")?;
                 let bytes = read_regular(&old)?
                     .ok_or_else(|| io::Error::other("Saved work moved during upgrade; retry."))?;
-                validate(&relative, &bytes, id)?;
-                if let Some(current) = read_regular(&new)?
-                    && current != bytes
-                {
-                    return Err(io::Error::other(format!(
-                        "Saved work differs between {} and {}. Both copies are intact; reconcile this record before retrying the upgrade.",
-                        old.display(),
-                        new.display()
-                    )));
-                }
                 imported.push((relative, bytes));
             }
-            // The family owners validate the selected project using their
-            // actual readers before anything is published to the new store.
-            let reader =
-                NativeReader::open_for_project(&config.clone().with_data_dir(&source), id.into());
-            reader.roadmap_chunks().map_err(io::Error::other)?;
-            reader.think_sessions().map_err(io::Error::other)?;
-            reader.ship_snapshot().map_err(io::Error::other)?;
-            reader.signal_list().map_err(io::Error::other)?;
         }
+        // The family codecs validate converted documents. In particular the
+        // strict current readers must never decode old bytes before conversion.
+        let imported = converted_records(config, id, imported)?;
+        for (relative, bytes) in &imported {
+            let path = checked_path(config.data_dir(), relative)?;
+            lease.lock(&path.with_extension("json.lock"), "saved record upgrade")?;
+            if let Some(current) = read_regular(&path)?
+                && current != *bytes
+            {
+                return Err(io::Error::other(format!(
+                    "Saved work differs at {}. Both copies are intact; reconcile this record before retrying the upgrade.",
+                    path.display()
+                )));
+            }
+        }
+        // Validate every destination before the first publish. Deterministic
+        // conversion makes a partial copy byte-identical on the next admission.
+        request.files.clear();
         for (relative, bytes) in &imported {
             let path = config.data_dir().join(relative);
             if read_regular(&path)?.is_none() {
@@ -197,22 +195,71 @@ fn visit(root: &Path, relative: &Path, id: &str, found: &mut Vec<PathBuf>) -> io
     Ok(())
 }
 
-fn validate(path: &Path, bytes: &[u8], id: &str) -> io::Result<()> {
-    let value: serde_json::Value = serde_json::from_slice(bytes).map_err(io::Error::other)?;
-    if path.components().any(|part| part.as_os_str() == "receipts") {
-        return Ok(());
+fn converted_records(
+    config: &NativeConfig,
+    id: &str,
+    records: Vec<(PathBuf, Vec<u8>)>,
+) -> io::Result<Vec<(PathBuf, Vec<u8>)>> {
+    use magistr_workflow::{roadmap::RoadmapEngine, ship, signal::SignalEngine, think};
+    use std::collections::BTreeMap;
+    let execution = super::ExecutionContext::new(&config.workflow_root(), "default")?;
+    let execution_root = Path::new("ship/executions").join(execution.key());
+    let mut converted = BTreeMap::new();
+    let mut histories = BTreeMap::new();
+    for (relative, bytes) in records {
+        serde_json::from_slice::<serde_json::Value>(&bytes)
+            .map_err(|error| io::Error::other(format!("{}: {error}", relative.display())))?;
+        if relative.parent() == Some(Path::new("think/sessions")) {
+            let session = relative
+                .file_stem()
+                .and_then(|s| s.to_str())
+                .ok_or_else(|| io::Error::other("The saved reasoning filename is invalid."))?;
+            histories.insert(session.to_owned(), bytes);
+            continue;
+        }
+        let mut target = relative.clone();
+        let bytes = if relative.starts_with("ship") {
+            if let Ok(receipt) = relative.strip_prefix("ship/receipts") {
+                target = execution_root.join("receipts").join(receipt);
+                bytes
+            } else if relative
+                .components()
+                .any(|part| part.as_os_str() == "receipts")
+            {
+                bytes
+            } else {
+                if relative.parent() == Some(Path::new("ship/sessions")) {
+                    target = execution_root.join("sessions").join(format!("{id}.json"));
+                }
+                ship::persistence::Persistence::upgrade_document(&bytes, id)
+                    .map_err(|error| io::Error::other(format!("{}: {error}", relative.display())))?
+            }
+        } else if relative == Path::new("roadmap/sessions").join(format!("{id}.json")) {
+            RoadmapEngine::upgrade_document(&bytes, id).map_err(io::Error::other)?
+        } else if relative == Path::new("signal/sessions").join(format!("{id}.json")) {
+            SignalEngine::upgrade_document(&bytes, id).map_err(io::Error::other)?
+        } else {
+            bytes
+        };
+        if let Some(existing) = converted.insert(target, bytes.clone())
+            && existing != bytes
+        {
+            return Err(io::Error::other(
+                "Two different saved work records have the same destination; originals are unchanged.",
+            ));
+        }
     }
-    if path.starts_with("ship") {
-        return magistr_workflow::ship::persistence::Persistence::validate_document(bytes, id)
-            .map_err(io::Error::other);
+    if !histories.is_empty() {
+        let owner = think::persistence::Persistence::for_project(&config.persistence_config(), id);
+        let bytes = owner
+            .upgrade_documents(&histories)
+            .map_err(io::Error::other)?;
+        converted.insert(
+            Path::new("think/sessions").join(format!("{id}.json")),
+            bytes,
+        );
     }
-    if path.starts_with("think") && (value["schema_version"] != 2 || value["project_id"] != id) {
-        return Err(io::Error::other(format!(
-            "{} uses an older reasoning format this upgrade cannot safely convert; original preserved.",
-            path.display()
-        )));
-    }
-    Ok(())
+    Ok(converted.into_iter().collect())
 }
 
 fn read_regular(path: &Path) -> io::Result<Option<Vec<u8>>> {
