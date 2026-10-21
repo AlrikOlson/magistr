@@ -64,6 +64,16 @@ function outputHtml(lines){
 export async function renderRecording(recording){
   const files=new Map(),rendered=[];
   for(const event of recording.events){
+    if(event.kind==="message"){
+      const user=event.role==="user";
+      const rows=event.output.split("\n").map((text,i)=>({
+        prefix:i===0?(user?"› ":"• "):"  ",continuation:"  ",
+        ...(user?{background:"user"}:{}),
+        spans:[{text:terminalText(text.replace(/\[([^\]]+)\]\([^)]+\)/g,"$1").replace(/\*\*([^*]+)\*\*/g,"$1").replace(/`([^`]+)`/g,"$1")),tone:"fg"}],
+      }));
+      rendered.push({id:event.id,html:'<pre class="conversation-message"><code>'+escape(event.output)+'</code></pre>',diff:null,terminal:{role:event.role,rows}});
+      continue;
+    }
     let diff,lines,html;
     if(event.file){
       const before=files.get(event.file.path)??"";

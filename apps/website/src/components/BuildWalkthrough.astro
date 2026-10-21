@@ -18,41 +18,41 @@ const asset=(file)=>publicAssetUrl("demo/tic-tac-toe/"+file);
   <p class="build-explanation" data-explanation>{parts[0].note}</p>
   <div class="build-window">
     <div class="build-window-heading"><strong><span aria-hidden="true">›_</span> Codex</strong><span>tic-tac-toe</span><small>Recorded build</small></div>
+    <div class="build-transport" hidden>
+      <button type="button" data-play aria-pressed="false">Play</button>
+      <button type="button" data-prev aria-label="Previous recorded action">←</button>
+      <label class="build-timeline"><span class="sr-only">Recorded action</span><input type="range" min="0" max={recording.events.length-1} step="1" value={initial} aria-label="Recorded action" /></label>
+      <button type="button" data-next aria-label="Next recorded action">→</button>
+      <output><span data-time>{elapsed(recording,initial)}</span><span class="time-total"> / {elapsed(recording,recording.events.length-1)}</span></output>
+      <label class="playback-speed"><span class="sr-only">Playback speed</span><select data-speed aria-label="Playback speed"><option value="1">1×</option><option value="2" selected>2×</option><option value="4">4×</option></select></label>
+    </div>
     <div class="build-stage">
       <div class="terminal-column">
         <div class="terminal-emulator" data-terminal aria-label="Recorded Codex terminal" hidden></div>
         <div class="terminal-poster" data-terminal-poster set:html={terminalFrameHTML(rendered[initial].terminal)} />
         <p class="terminal-keyboard" data-terminal-help hidden>Scroll to read earlier output. <kbd>←</kbd> <kbd>→</kbd> step through the build.</p>
-        <div class="build-transport" hidden>
-          <button type="button" data-play aria-pressed="false">Play</button>
-          <button type="button" data-prev aria-label="Previous recorded action">←</button>
-          <label class="build-timeline"><span class="sr-only">Recorded action</span><input type="range" min="0" max={recording.events.length-1} step="1" value={initial} aria-label="Recorded action" /></label>
-          <button type="button" data-next aria-label="Next recorded action">→</button>
-          <output><span data-time>{elapsed(recording,initial)}</span><span class="time-total"> / {elapsed(recording,recording.events.length-1)}</span></output>
-          <label class="playback-speed"><span class="sr-only">Playback speed</span><select data-speed aria-label="Playback speed"><option value="1">1×</option><option value="2" selected>2×</option><option value="4">4×</option></select></label>
-        </div>
       </div>
       <aside class="build-annotation" aria-label="About this action" data-annotation>
-        <div class="annotation-meta"><span data-action-kind>{kindLabels[event.kind]}</span><span data-action-number>{initial+1} / {recording.events.length}</span></div>
+        <div class="annotation-meta"><span data-action-kind>{event.kind==="message"?(event.role==="user"?"You":"Codex"):kindLabels[event.kind]}</span><span data-action-number>{initial+1} / {recording.events.length}</span></div>
         <h3 data-action-title>{explanation.title}</h3>
         <div data-action-explanation set:html={explanationHTML(explanation)} />
         <div data-action-facts></div>
-        <button class="annotation-open" type="button" data-open-action hidden>Open the roadmap <span aria-hidden="true">↗</span></button>
+        <button class="annotation-open" type="button" data-open-action aria-haspopup="dialog" hidden>Open the roadmap <span aria-hidden="true">↗</span></button>
         <nav class="build-views" aria-label="Explore the project at this point" hidden>
-          {["Roadmap","Reasoning","Work","Checks"].map(label=><button type="button" data-view={label.toLowerCase()} aria-expanded="false" aria-controls="build-details">{label}</button>)}
+          {["Roadmap","Reasoning","Work","Checks"].map(label=><button type="button" data-view={label.toLowerCase()} aria-expanded="false" aria-haspopup="dialog" aria-controls="build-details">{label}</button>)}
         </nav>
       </aside>
     </div>
-    <section id="build-details" class="build-details" aria-labelledby="build-detail-title" hidden>
+    <dialog id="build-details" class="build-details" aria-labelledby="build-detail-title">
       <header><h3 id="build-detail-title">Roadmap</h3><button type="button" data-close-details aria-label="Close details">Close <span aria-hidden="true">×</span></button></header>
       <div id="build-panel" class="build-panel" tabindex="-1"><div data-record-view></div></div>
-    </section>
+    </dialog>
   </div>
   <p class="build-announcement sr-only" role="status" aria-live="polite"></p>
   <p class="build-error" role="status" hidden></p>
-  <div class="build-footnote"><p>Built in Codex · October 21, 2026. Playback follows the saved tool actions.</p><div class="build-downloads"><a href={asset("source.zip")} download>Download the game source</a><a href={asset("recording.json")} download>Recording data</a></div></div>
-  <details class="build-transcript">
-    <summary>Read the recorded actions</summary>
+  <div class="build-footnote"><p>Built in Codex · October 21, 2026. The conversation and recorded work, from the first request to delivery.</p><div class="build-downloads"><button type="button" data-open-transcript aria-haspopup="dialog" hidden>Read the full session</button><a href={asset("source.zip")} download>Download the game source</a><a href={asset("recording.json")} download>Recording data</a></div></div>
+  <details class="build-transcript" data-transcript>
+    <summary>Read the full session</summary>
     <ol>{recording.events.map((entry,i)=><li data-event={entry.id}><details><summary><time>{elapsed(recording,i)}</time><span>{explanationFor(entry.id).title}</span>{entry.check&&<small>{entry.check.passed?"Passed":"Failed"}</small>}</summary>
       <div set:html={explanationHTML(explanationFor(entry.id))} />
       {rendered[i].diff&&<div class="transcript-change"><p>{entry.file.path} · <span class="change-added">+{rendered[i].diff.added}</span> <span class="change-removed">−{rendered[i].diff.removed}</span></p><div data-event-diff set:html={rendered[i].diff.html} /></div>}

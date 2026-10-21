@@ -536,6 +536,174 @@ export const explanations = {
   }
 };
 
+Object.assign(explanations, {
+  "message-1": {
+    "title": "Ask for a Bevy game",
+    "summary": "You ask the agent to build a small game. This is where the project starts.",
+    "details": []
+  },
+  "message-2": {
+    "title": "Agree on what to build",
+    "summary": "Codex proposes a playable board, a computer opponent, and rematches.",
+    "details": []
+  },
+  "message-3": {
+    "title": "Make the work concrete",
+    "summary": "The agent identifies the game behavior it will build and check.",
+    "details": []
+  },
+  "message-4": {
+    "title": "Report what the experiment found",
+    "summary": "The first opponent looks promising when it starts. Playing second still needs checking.",
+    "details": []
+  },
+  "message-5": {
+    "title": "Specify the Bevy version",
+    "summary": "You add a requirement while the agent is working: use Bevy 0.20.0.",
+    "details": []
+  },
+  "message-6": {
+    "title": "Apply your follow-up",
+    "summary": "Codex acknowledges the version and moves on to the interface.",
+    "details": []
+  },
+  "message-7": {
+    "title": "Report the first working browser build",
+    "summary": "The game compiles for the browser, and the opponent has survived every legal human reply.",
+    "details": []
+  },
+  "message-8": {
+    "title": "Explain a visual problem",
+    "summary": "Playing the game works, but its instructions are clipped. The agent reports the problem before fixing it.",
+    "details": []
+  },
+  "message-9": {
+    "title": "Report the finished game features",
+    "summary": "Scores and rematches are working. The agent is reviewing the walkthrough and its published data.",
+    "details": []
+  },
+  "message-10": {
+    "title": "Prepare the final review",
+    "summary": "The agent checks that the recording includes the decisions, failures, fixes, and completed work.",
+    "details": []
+  },
+  "message-11": {
+    "title": "Check the publication",
+    "summary": "The game’s four pieces are complete. The agent checks the public files for private material.",
+    "details": []
+  },
+  "message-12": {
+    "title": "Fix a keyboard issue",
+    "summary": "Browser testing catches a menu that does not close with Escape. Codex fixes it and reports what changed.",
+    "details": []
+  },
+  "message-13": {
+    "title": "Finish the browser checks",
+    "summary": "Playback, details, search, and recovery pass at desktop and phone sizes in both themes.",
+    "details": []
+  },
+  "message-14": {
+    "title": "Explain the opponent decision",
+    "summary": "The agent sums up the losing fork and the tested replacement while reviewing the phone layout.",
+    "details": []
+  },
+  "message-15": {
+    "title": "Catch a narrow-screen overflow",
+    "summary": "One tab extends beyond the player at 320 pixels. The agent fixes it before shipping.",
+    "details": []
+  },
+  "message-16": {
+    "title": "Prepare the commit",
+    "summary": "Visual fixes are complete. The same commit now needs to pass the repository’s required checks.",
+    "details": []
+  },
+  "message-17": {
+    "title": "Report the commit",
+    "summary": "The changes are committed. Codex explains which checks must finish before pushing to main.",
+    "details": []
+  },
+  "message-18": {
+    "title": "Report the first CI results",
+    "summary": "Security and screenshot checks pass. The remaining build jobs are still running.",
+    "details": []
+  },
+  "message-19": {
+    "title": "Confirm the website checks passed",
+    "summary": "The website passes its CI checks; the wider repository checks are still running.",
+    "details": []
+  },
+  "message-20": {
+    "title": "Keep you updated while CI runs",
+    "summary": "Rust and desktop builds are still in progress. The agent reports that no failure has appeared.",
+    "details": []
+  },
+  "message-21": {
+    "title": "Share the local preview",
+    "summary": "You can inspect the walkthrough while the build checks continue.",
+    "details": []
+  },
+  "message-22": {
+    "title": "Report successful builds",
+    "summary": "Rust compilation and macOS packaging pass. Tests and desktop verification continue.",
+    "details": []
+  },
+  "message-23": {
+    "title": "Report test progress",
+    "summary": "The compiled tests are running. The agent is waiting for the results before pushing.",
+    "details": []
+  },
+  "message-24": {
+    "title": "Narrow down what remains",
+    "summary": "Three test workers have passed. The final worker is saving its cache.",
+    "details": []
+  },
+  "message-25": {
+    "title": "Finish the Rust tests",
+    "summary": "All four Rust test groups pass. Desktop compilation is the remaining prerequisite.",
+    "details": []
+  },
+  "message-26": {
+    "title": "Build the installer",
+    "summary": "Desktop checks move on to packaging the app and installer.",
+    "details": []
+  },
+  "message-27": {
+    "title": "Wait for the installer",
+    "summary": "The installer is still building; the completed checks have passed.",
+    "details": []
+  },
+  "message-28": {
+    "title": "Check the packaged app",
+    "summary": "The installer build passes. GitHub checks the packaged targets next.",
+    "details": []
+  },
+  "message-29": {
+    "title": "Run the last package tests",
+    "summary": "The packaged targets pass their checks. The final job tests the app and its process ownership.",
+    "details": []
+  },
+  "message-30": {
+    "title": "Wait for GitHub to finish",
+    "summary": "The tests and packaging pass. GitHub is saving the final cache.",
+    "details": []
+  },
+  "message-31": {
+    "title": "Push and publish",
+    "summary": "The required checks pass. The agent pushes directly to main and publishes the site.",
+    "details": []
+  },
+  "message-32": {
+    "title": "Check the live site",
+    "summary": "The published walkthrough, guides, search, controls, and mobile layouts pass their browser checks.",
+    "details": []
+  },
+  "message-33": {
+    "title": "Hand over the finished work",
+    "summary": "Codex provides the live site, commit, downloadable game, and verification results.",
+    "details": []
+  }
+});
+
 export function explanationFor(id) {
   if (!Object.hasOwn(explanations, id)) throw new Error("Missing recording explanation: " + id);
   const explanation = explanations[id];
