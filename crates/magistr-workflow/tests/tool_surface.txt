@@ -2,6 +2,6 @@
 # A RECORD, NOT A GATE — nothing here is asserted. The ceiling is
 # tools_list_payload_stays_within_budget; this file is the slope.
 tools 56
-wire_bytes 156962
-model_facing_bytes 55935
-description_bytes 28278
+wire_bytes 154543
+model_facing_bytes 56985
+description_bytes 28283
