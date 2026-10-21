@@ -1,0 +1,29 @@
+{
+  "renderer": "Playwright WebKit",
+  "rendererVersion": "27.2",
+  "task": "Compare enlarged-text viewport paint with full-page screenshot paint",
+  "captures": [
+    {
+      "file": "diagnostic-text-viewport.png",
+      "viewport": {
+        "width": 800,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "capturedAt": "2026-10-21T22:04:03.931Z",
+      "sha256": "5c800395874c1048978501e1f7dda80f7702f243d3982bcf8ad5dac45381d8f3"
+    },
+    {
+      "file": "diagnostic-text-full.png",
+      "viewport": {
+        "width": 800,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": true,
+      "capturedAt": "2026-10-21T22:04:04.028Z",
+      "sha256": "93dc103fed42f900338f3f8aa501b35fb11f12bc2a03e0827704cc2bee37a62b"
+    }
+  ]
+}

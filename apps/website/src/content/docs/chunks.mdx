@@ -1,81 +1,93 @@
 ---
 title: Working in chunks
-description: Finish a useful piece, check it, and leave the next session a clear place to start.
-order: 5
+description: Complete one deliverable or run a bounded sequence of ready work.
+section: working
+order: 3
+related: [verification, sessions, configuration]
 ---
+A **chunk** is a roadmap deliverable with acceptance criteria. Its implementation
+has an objective, tasks, actions, checks, and resulting artifacts.
 
-A roadmap chunk is a piece of the project. The work plan beneath it explains
-how the agent will deliver that piece.
+Before starting, [connect your agent](/docs/agents), review the
+[roadmap](/docs/roadmap), and confirm the project's check and delivery instructions.
+Save or identify unrelated changes so the agent can preserve them.
 
-For the game, “Computer opponent” is a chunk. Comparing a tactical policy,
-implementing minimax, and checking legal replies are the work needed to finish it.
-They do not need to become three separate roadmap projects.
+## Complete one chunk in your conversation
 
-## Finish one chunk
-
-| Agent | Start one chunk |
+| Agent | Skill |
 | --- | --- |
 | Codex | `$next` |
 | Claude Code | `/next` |
 
-The agent resumes interrupted roadmap work first. Otherwise, it starts a ready
-chunk, reads its requirements and the current code, and plans the change.
+The skill resumes interrupted roadmap work first. Otherwise it selects one
+ready chunk. It reads requirements and code, records a task plan, implements
+the change, runs relevant checks, and commits the completed result.
 
-The work keeps an objective, tasks, actions, checks, and artifacts such as
-files or commits. Tasks can record progress without pretending the whole
-chunk is already finished.
+Required checks and acceptance criteria must pass before completion.
+If verification fails, work remains unfinished. The agent should diagnose the
+failure, correct it, and rerun the affected checks.
 
-From a terminal:
+A direct small request can have a work plan without a roadmap chunk. Use the
+direct request instead of selecting unrelated roadmap work.
 
-```sh
-magistr next
-```
+## Start a separate session from a terminal
 
-## Make the finish concrete
-
-For the opponent, “done” meant that it returned legal moves for either mark
-and could not lose against any legal human reply. A passing build alone would
-not have established that.
-
-Open **Work** or **Checks** in the [recording](/#workflow). You can follow the
-task, read the experiment, and inspect the command that checked the opponent.
-
-Required checks need current passing results before the roadmap piece can
-be completed. The agent fixes failures and commits the finished change.
-
-## Work through a longer run
-
-Choose an area and a limit. To start a fresh Codex session for each chunk:
+From the project root:
 
 ```sh
-magistr next-loop --agent codex --max-iterations 5
+magistr next --agent codex
 ```
 
-Use `--agent claude` for Claude Code. Add `--track "Gameplay"` if that is
-the workstream you want to work on.
+Use `--agent claude` for Claude Code. This command starts an agent session;
+it is different from invoking a skill inside an existing chat. These terminal
+commands support coding agents Claude, Copilot, and Codex,
+subject to installation and authentication.
 
-The loop stops at its limit, when no work is ready in the chosen area, or when
-it needs help to continue. Each session reads the saved work and current code.
+Check the effective choice without starting work:
 
-Inside a chat, `$next-loop` or `/next-loop` finishes one chunk and prepares
-a handoff. The terminal command manages the sequence of fresh sessions.
+```sh
+magistr next --show-config
+```
 
-## Resume unfinished work
+[Configuration](/docs/configuration) explains saved preferences and overrides.
 
-Ask the next session to read the saved objective, tasks, actions, and checks
-before editing files.
+## Bound a longer run
 
-If the opponent was implemented but its checks failed, that is where the work
-should resume. A fresh chat should not silently start a different roadmap item.
+From the project terminal, this runs up to three iterations with a fresh Codex
+session for each:
 
-Earlier passes may need another run when relevant files have changed.
-[Checking the work](/docs/verification) covers that.
+```sh
+magistr next-loop --agent codex --max-iterations 3
+```
 
-## Keep small requests small
+To focus on a workstream, add `--track "Account access"`, replacing the quoted
+example with an actual roadmap workstream name or an unambiguous fragment.
+The default limit is ten iterations; specify your intended limit explicitly.
 
-A direct request can use a focused plan without becoming a roadmap chunk.
-A copy correction, a review, or a small bug fix should stay proportionate to
-the work.
+The loop stops when its limit is reached, no eligible work is ready, or it
+cannot continue safely. A failed check or unresolved agent attempt may require
+attention before another iteration can start.
 
-Keep your commit, push, and publishing instructions with the project so they
-apply across sessions and longer runs.
+Inside a chat, `$next-loop` or `/next-loop` completes one chunk and writes a
+handoff. Continue that bound only in a fresh agent session. The terminal command
+manages the sequence of new sessions automatically.
+
+## Resume after interruption
+
+Reopen the same project and inspect the saved work before editing. The
+roadmap workflow gives interrupted work precedence over new pending work.
+For a loop started in a terminal, rerun the same command and settings.
+
+An unfinished loop retains its saved agent settings. Conflicting options are
+refused instead of silently changing its agent or model. An unresolved agent
+attempt must be inspected; it must not be blindly retried. See
+[interrupted attempts](/docs/troubleshooting#an-agent-attempt-has-an-unknown-outcome).
+
+## Recognize completion
+
+The final report should identify the delivered behavior, current passing checks,
+commit, and remaining limitations. A completed task is only one part of the
+chunk; a successful command does not by itself prove every acceptance criterion.
+
+Pushes and deployments follow your explicit project instructions. Keep those
+instructions available to every session, including longer runs.

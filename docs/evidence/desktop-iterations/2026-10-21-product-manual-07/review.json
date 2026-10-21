@@ -1,0 +1,68 @@
+{
+  "verdict": "pass",
+  "reviewedAt": "2026-10-21 22:15:22 UTC",
+  "renderer": "Playwright WebKit",
+  "rendererVersion": "27.2",
+  "method": "Opened all four original-resolution full frames from this folder, inspecting text, hierarchy, spacing, contrast, controls, footer links and compact wrapping.",
+  "limitations": [
+    "Headless browser and DOM input only; native input and assistive technology were not tested."
+  ],
+  "images": [
+    {
+      "file": "page-404-desktop-light.png",
+      "task": "Recover from a missing page and open the documentation",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:15:06.831Z",
+      "fullPage": true,
+      "sha256": "7874381b58f58870c57738a9720459a7be6e8c2615f6d783d3a26e9bca77c822",
+      "observations": "Opened full frame: the error heading and recovery sentence have a clear hierarchy; both actions fit on one row, and the updated documentation footer links are legible and evenly spaced.",
+      "verdict": "pass"
+    },
+    {
+      "file": "page-404-desktop-dark.png",
+      "task": "Recover from a missing page and open the documentation",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:15:07.086Z",
+      "fullPage": true,
+      "sha256": "0a1878c7a8ae36a348ce9e95a3e68386bb4a071b5f30aaf426649796828d375b",
+      "observations": "Opened full frame: the muted error number, bright heading and orange primary action remain distinct; the documentation action and footer links have readable contrast without clipping.",
+      "verdict": "pass"
+    },
+    {
+      "file": "page-404-compact-light.png",
+      "task": "Recover from a missing page and open the documentation",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:15:07.322Z",
+      "fullPage": true,
+      "sha256": "26857519ae2778b9b74c075be49cefaf8155a0c0e98c3961a1472639e3cd401a",
+      "observations": "Opened full frame: the recovery sentence wraps naturally, buttons stack with comfortable spacing, and footer links wrap into two readable rows. The header controls remain clear.",
+      "verdict": "pass"
+    },
+    {
+      "file": "page-404-compact-dark.png",
+      "task": "Recover from a missing page and open the documentation",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:15:07.556Z",
+      "fullPage": true,
+      "sha256": "efd62a9e3403197e3a98de4b88ec29af8170d2597bee7f304d84dd5074023e35",
+      "observations": "Opened full frame: the title fits, paragraph and stacked buttons retain clear contrast and touch spacing, and the footer links and access note remain fully readable.",
+      "verdict": "pass"
+    }
+  ]
+}

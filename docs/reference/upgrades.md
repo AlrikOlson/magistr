@@ -1,4 +1,8 @@
-# Automatic upgrades
+# Upgrade contracts
+
+User instructions for [updating and recovering an installation](https://magistr.dev/docs/upgrades)
+live in the product manual. This contributor reference describes the recognized
+conversion formats, owning components, and recovery copies.
 
 Magistr upgrades recognized older project settings, agent launch commands and
 saved work when you start it. `magistr repair . --yes` applies the same

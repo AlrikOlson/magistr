@@ -1,0 +1,61 @@
+---
+title: Feedback
+description: Capture a problem or idea, investigate it, and turn useful findings into work.
+section: working
+order: 6
+related: [roadmap, reasoning, chunks]
+---
+Magistr calls saved feedback a **signal**. It can be a bug report, a question,
+an idea, or an observation from trying the product. Saving a signal lets you
+keep it without interrupting the task currently in progress.
+
+Use a [connected agent](/docs/agents) in the relevant project. You do not need
+a complete solution before recording feedback.
+
+## Capture the observation
+
+Tell the agent to save the feedback as a signal. Include the action, expected
+result, actual result, environment, and evidence you have.
+
+For example, for an application that uploads documents:
+
+> Save this feedback: uploading a PDF on a narrow screen hides the Cancel
+> button. I expected to be able to stop the upload. Investigate later; keep the
+> current task focused.
+
+Attach or link the relevant screenshot or reproduction steps through your agent.
+Avoid putting credentials or private user data in material that may be shared.
+
+## Investigate the signal
+
+Use `$signals` in Codex or `/signals` in Claude Code, and name the feedback
+to investigate. The skill reads the report, checks current code, researches
+uncertain claims, and records evidence and a recommendation.
+
+This is investigation, not authorization to implement a feature. A useful
+result distinguishes a reproduced defect, an unsupported assumption, and a
+product choice that still needs a decision.
+
+Ask the agent to link the findings to the signal so another session can retrieve
+them. A suggestion made only in chat is not necessarily saved.
+
+## Decide what happens next
+
+| Outcome | What to keep |
+| --- | --- |
+| Ready to build | A linked roadmap chunk with acceptance criteria, priority, and dependencies. |
+| Needs more evidence | The unanswered question and a concrete next investigation. |
+| Useful later | The signal and reason for deferring it. |
+| Dismissed or already covered | The reason and a link to any existing work. |
+
+A promoted signal should point to the work it informed. Creating a chunk does
+not mean the implementation has started or completed.
+
+## Follow through
+
+Review the proposed chunk and use [Working in chunks](/docs/chunks) when you
+want implementation to begin. After delivery, retry the original scenario and
+check that the result addresses the observation.
+
+If the behavior is still wrong, record the new evidence on the existing issue
+or linked work instead of creating an unexplained duplicate.

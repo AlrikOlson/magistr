@@ -1,4 +1,9 @@
-# Codex integration
+# Codex integration contract
+
+For project setup, use [Connect an agent](https://magistr.dev/docs/agents#codex).
+For everyday work and recovery, use [Skills](https://magistr.dev/docs/skills)
+and [Sessions](https://magistr.dev/docs/sessions). This page is the contributor
+reference for launcher, selection, and generated-file ownership.
 
 Magistr provides two Codex integrations. The project launcher runs the Codex CLI
 directly with project skills and MCP configuration. The

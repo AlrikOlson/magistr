@@ -1,0 +1,148 @@
+---
+title: Configuration
+description: Set agent preferences and choose the commands that verify your project.
+section: reference
+order: 3
+related: [verification, permissions, storage]
+---
+Magistr has project settings, personal preferences, and agent-specific setup.
+Use this reference after [connecting a project](/docs/agents).
+Run commands from that project's root unless you pass an explicit directory.
+
+## Settings and their owners
+
+| Location | What it controls |
+| --- | --- |
+| `.magistr/project.json` | Project identity, stack, check commands, custom gates, and verification policy. |
+| `.magistr/agents.toml` | Agent, model, and effort preferences for launches in this project. |
+| `~/.config/magistr/config.toml` | Personal Magistr preferences, unless `XDG_CONFIG_HOME` changes the config directory. |
+| `.magistr/conventions.md` | Shared project practices the agent should follow. |
+| `AGENTS.md`, `CLAUDE.md`, and host settings | Instructions and host-specific setup for your selected agents. |
+| `.magistr/workspace.toml` | Source-tool settings and declared commands allowed through the workspace command tool. |
+
+Keep the generated project identity stable. It connects the project to saved
+workflow records. Do not replace it just to change the project's display name.
+
+## Choose the agent and model
+
+These commands save personal preferences for sessions launched by Magistr:
+
+```sh
+magistr config set agent codex
+magistr config set model YOUR_MODEL
+magistr config set effort high
+```
+
+Replace `YOUR_MODEL` with a model offered by your agent. Model and effort
+preferences are saved separately for each agent. To save a preference for a
+different agent, add `--agent claude`.
+
+Add `--project` to save a project preference:
+
+```sh
+magistr config set agent codex --project
+magistr config set model YOUR_MODEL --project
+magistr next --show-config
+```
+
+The last command prints the resolved values and where they came from, then
+exits without starting work. Inspect the output before launching.
+
+Precedence is command options, then project preferences, then personal
+preferences, then the agent's defaults. `--agent auto` explicitly requests
+automatic selection. A command-line model or effort of `default` asks the
+agent to choose; `config set model default` clears the saved override at that
+level. An unavailable explicit choice fails instead of silently substituting
+another agent or model.
+
+These settings apply to `magistr run`, `next`, and `next-loop`.
+They do not change a model in an already-open Codex or Claude Code conversation.
+An unfinished loop keeps its saved launch settings during recovery.
+
+## Configure checks
+
+Edit the existing `.magistr/project.json` fields for your actual stack.
+The following is a **JSON fragment to merge into an existing file**, not a
+complete project configuration. It assumes the npm scripts named here exist:
+
+```json
+{
+  "quality_gate": {
+    "check": "npm run typecheck",
+    "test": "npm test",
+    "lint": "npm run lint"
+  },
+  "format": {
+    "command": "npm run format",
+    "extensions": ["ts", "tsx"]
+  },
+  "custom_gates": [
+    {
+      "name": "docs",
+      "command": "npm run test:docs",
+      "required": true
+    }
+  ],
+  "verification": {
+    "timeout_secs": 900,
+    "max_parallel": 4,
+    "gates": {
+      "docs": {
+        "inputs": ["docs", "scripts", "package.json", "package-lock.json"],
+        "timeout_secs": 120,
+        "reuse": false,
+        "resources": []
+      }
+    }
+  }
+}
+```
+
+The standard gate names are `check`, `test`, and `lint`. Custom gates
+have a name, command, and `required` flag; required defaults to true.
+Formatting is configured separately. These commands run in the project context.
+
+Include every source and dependency needed by a bounded check in `inputs`.
+Omit the list when that boundary is unknown. `resources: []` declares an
+independent command; shared tools such as Cargo must not race over one target
+directory. Reuse is appropriate only when the inputs fully describe the result.
+
+Timeout precedence is a check's explicit override, a named gate override,
+the project setting, then the 900-second default. The accepted timeout range
+is 1–3600 seconds; parallelism is 1–16, with a default of four. Queue time
+counts toward the deadline.
+
+Validate the edited file:
+
+```sh
+magistr config check .
+magistr doctor .
+```
+
+Syntax validation does not prove that a command exists or passes. Run the
+affected checks, and use `magistr validate` when you intend the full configured
+gate.
+
+## Source-tool command declarations
+
+The workspace command tool executes only commands declared in
+`.magistr/workspace.toml`. Setup seeds that list; `magistr workspace init .`
+can seed it when absent. Existing declarations are not silently replaced.
+
+A project owner must review changes to this allowlist. Declaring a quality gate
+in `project.json` is not permission to bypass a refused workspace command.
+Inspect resolved source-tool settings with:
+
+```sh
+magistr workspace doctor . config
+```
+
+## Share the intended settings
+
+Commit project settings and instructions that your team should share after
+checking for secrets. Check ignore rules before assuming `agents.toml` is
+tracked. Keep personal authentication and machine-specific host configuration
+local.
+
+[Storage](/docs/storage) distinguishes shareable settings from saved workflow
+and conversation data.

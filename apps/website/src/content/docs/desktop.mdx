@@ -1,0 +1,99 @@
+---
+title: Desktop preview
+description: Open projects, work with an agent, and inspect saved project records.
+section: working
+order: 7
+related: [agents, sessions, permissions]
+---
+The desktop is a separate Magistr preview. It provides project selection,
+agent conversations, saved drafts, permission requests, and views of the
+roadmap, reasoning, tasks, checks, activity, and feedback.
+
+Use the connected agent or CLI for the full planning and change-review workflow.
+Desktop availability does not mean every operation has a dedicated graphical
+control.
+
+## Build and open
+
+You need access to the [Magistr source repository](https://github.com/AlrikOlson/magistr),
+Rust **1.95 or later**, Node.js **22 or later**, and the
+[Tauri platform build prerequisites](https://v2.tauri.app/start/prerequisites/).
+Install and authenticate your agent separately.
+
+In the source checkout, double-click **Launch Magistr.command** on macOS or
+**Launch Magistr.cmd** on Windows. Both build the current checkout before
+opening it. From a terminal in that checkout, the equivalent command is:
+
+```sh
+node scripts/desktop.mjs open
+```
+
+On Windows, use the MSVC Rust toolchain and Visual Studio Build Tools with
+**Desktop development with C++**. macOS needs Xcode Command Line Tools.
+The desktop has a Windows build path; current release verification focuses on
+Apple Silicon macOS. Windows packaging does not establish the same interface
+and accessibility coverage.
+
+Successful development packages can also be downloaded from the
+[desktop apps workflow](https://github.com/AlrikOlson/magistr/actions/workflows/desktop-apps.yml),
+with repository access. Packages are not publicly signed or notarized.
+Installed packages do not need Rust or Node.js; those are build prerequisites.
+
+## Open a project
+
+Choose the folder of the project you want to work on. The chooser itself does
+not start an agent. If setup is needed, review the proposed settings and files.
+An unavailable agent or invalid configuration remains visible with a reason.
+
+Once the project opens, confirm the selected agent, model, permissions, and
+project before sending a request. The agent uses its own authentication and
+service.
+
+## Use conversations
+
+| Control | Effect |
+| --- | --- |
+| New session | Starts a separate conversation. |
+| A saved conversation | Returns to that conversation when it can be resumed. |
+| Stop | Cancels the current turn. |
+| Close session | Ends the selected session. |
+| Permission response | Approves or declines the requested action. |
+
+Drafts belong to their conversation and are retained when you return.
+Switching views does not stop work in another conversation. Close a session
+when you intend to end it.
+
+Appearance can follow the system or stay light or dark.
+
+## Start planned work
+
+When a project has ready work, **Planned work** provides **Work on next item**
+and a bounded multi-item run. The current preview offers **Start 10 items**.
+Review the intended scope and selected agent before starting.
+
+**Pause after this item** waits for the current item to finish. **Continue work**
+resumes the run, **One more item** advances it once, and **Finish item and stop**
+ends the run after the current item. These work controls are separate from
+**Stop**, which cancels a conversation turn. Check the reported status before
+assuming a requested pause or stop has completed.
+
+## Inspect the work
+
+Use the roadmap to see deliverables and prerequisites. Select a reasoning step
+to read its saved explanation. Tasks and checks show recorded work and evidence;
+a view showing a record is not proof that its check is still current.
+
+Ask the agent to make planning changes through Magistr when the preview has no
+control for the operation you need. Use [Concepts](/docs/concepts) to understand
+the records and [Verification](/docs/verification) to assess them.
+
+## If the preview does not open
+
+Read the build output; the launcher does not intentionally substitute an old app
+after a failed build. Verify the platform prerequisites and installed agent.
+For connection or project failures, run `magistr doctor .` in the affected
+project if the CLI is installed.
+
+[Contributor documentation](/docs/contributing#development) covers packaging,
+renderer tests, and technical diagnostics. Ordinary desktop use does not require
+running native input test journeys.

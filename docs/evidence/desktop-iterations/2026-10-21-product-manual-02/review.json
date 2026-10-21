@@ -1,0 +1,1608 @@
+{
+  "verdict": "fail",
+  "reviewedAt": "2026-10-21T22:04:37.429Z",
+  "reviewer": "Codex visual inspection",
+  "method": "Opened every full frame, and reviewed viewport detail captures. Original resolution used for long compact frames. Visual judgments are independent of browser assertions.",
+  "limitations": [
+    "Headless browser layout and DOM input only; native OS input and assistive technology were not tested.",
+    "Screenshots require separate inspection and review verdicts."
+  ],
+  "images": [
+    {
+      "file": "page-agents-desktop-light.png",
+      "task": "Read Connect an agent from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:07.207Z",
+      "fullPage": true,
+      "sha256": "4aaacfd9efd1d21c80735e2a66f0ebaf65a7eb009657eea4fdcc3d2bc4b78fa8",
+      "verdict": "pass",
+      "observations": "Full frame reviewed: agent-specific headings, command boxes and confirmation prompt have distinct spacing; the current agent-connection link is visible and highlighted; no clipped commands."
+    },
+    {
+      "file": "page-chunks-desktop-light.png",
+      "task": "Read Working in chunks from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:07.682Z",
+      "fullPage": true,
+      "sha256": "3347c98b655178715c2cd2b87c55c0aa654e821f24f580c9a0736b244c005945",
+      "verdict": "pass",
+      "observations": "Full frame and readable detail reviewed: skill table and terminal command blocks are clearly separated, the bounded-loop example and recovery section fit, and related links align."
+    },
+    {
+      "file": "page-commands-desktop-light.png",
+      "task": "Read Command reference from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:08.165Z",
+      "fullPage": true,
+      "sha256": "56177adcf1a7891af9fec830268389309c6dd3e18f09b04f4e8ddd235d3a93b9",
+      "verdict": "pass",
+      "observations": "Full frame reviewed: command tables align, code cells wrap inside borders, sections remain distinct down the long reference; readable detail checked separately."
+    },
+    {
+      "file": "page-concepts-desktop-light.png",
+      "task": "Read Concepts from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:08.636Z",
+      "fullPage": true,
+      "sha256": "95a22127155f98c4d004a270309ce074ae9358afac98b5fd987f6ce14fec2750",
+      "verdict": "pass",
+      "observations": "Full frame reviewed: definition and persistence tables have consistent rows; explanations connect planning, evidence and session concepts without relying on another page; no overlapping content."
+    },
+    {
+      "file": "page-configuration-desktop-light.png",
+      "task": "Read Configuration from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:09.081Z",
+      "fullPage": true,
+      "sha256": "28fa2981f52a78a2a6f0e7a841b148762dd3e4d88ac6d41ceba1e5df23981386",
+      "verdict": "pass",
+      "observations": "Full frame reviewed: owner table, agent-setting examples and long JSON fragment remain within the article; headings and related links retain separation. JSON detail reviewed in the dedicated capture."
+    },
+    {
+      "file": "page-contributing-desktop-light.png",
+      "task": "Read Contributing from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:09.474Z",
+      "fullPage": true,
+      "sha256": "817246b23f1758d6ee4e079b5e6ecaed5f60adf3cce03046481a1243eba12a68",
+      "verdict": "pass",
+      "observations": "Full frame and readable detail reviewed: Contributing is visibly selected in the scrolled sidebar. Access requirements, development sections and historical boundary are clear; no clipped links."
+    },
+    {
+      "file": "page-desktop-desktop-light.png",
+      "task": "Read Desktop preview from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:09.919Z",
+      "fullPage": true,
+      "sha256": "4faf02c6e021b6500d8c85213d2be0157394865ca37f5ecc381d329dff48a5ae",
+      "verdict": "pass",
+      "observations": "Full frame and readable detail reviewed: preview requirements and platform limits are explicit; conversation controls align in the table, work controls have distinct paragraphs, and related pages fit."
+    },
+    {
+      "file": "page-feedback-desktop-light.png",
+      "task": "Read Feedback from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:10.357Z",
+      "fullPage": true,
+      "sha256": "e6c2ec48dc0f59583f69cad5dc1b1180400c7c9775856a456796333c944aef26",
+      "verdict": "pass",
+      "observations": "Full frame and readable detail reviewed: locally introduced upload example is legible in its inset; outcome table rows and follow-through links align, active Feedback link visible."
+    },
+    {
+      "file": "page-index-desktop-light.png",
+      "task": "Read Documentation from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:10.772Z",
+      "fullPage": true,
+      "sha256": "ced33c9fb42f5617cfcea9a8610f9776e1820fe7ddb1731691e4efb71cba0a9e",
+      "verdict": "pass",
+      "observations": "Full frame and readable detail reviewed: start-here sequence precedes the grouped directory. Two-column sections and descriptions are readable and aligned; availability and independent example are clearly separated."
+    },
+    {
+      "file": "page-installation-desktop-light.png",
+      "task": "Read Installation from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:11.177Z",
+      "fullPage": true,
+      "sha256": "03b84245c4f347c844cf2df5d1262cf175b606e7ddbf58a977aff57e84d1021c",
+      "verdict": "pass",
+      "observations": "Full frame and readable detail reviewed: preview prerequisites, install commands, recovery table and next setup step have clear hierarchy; commands and paths stay inside their boxes."
+    },
+    {
+      "file": "page-permissions-desktop-light.png",
+      "task": "Read Permissions from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:11.578Z",
+      "fullPage": true,
+      "sha256": "ea4f204196599e3d1388392dcbc22769392234b7b64a7b96ea614e60bcae1320",
+      "verdict": "pass",
+      "observations": "Full frame and readable detail reviewed: approval profiles have clean table rows, responsibilities are separated by headings, and active page and related links are readable."
+    },
+    {
+      "file": "page-reasoning-desktop-light.png",
+      "task": "Read Reasoning and research from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:11.976Z",
+      "fullPage": true,
+      "sha256": "cec2ea5d09ae5136c0f680360c84d46c06f3a4d15d0750fae0be2e3b4615d363",
+      "verdict": "pass",
+      "observations": "Full frame and readable detail reviewed: research example stands apart in its inset, definitions and evidence limits are locally explained, and heading rhythm supports scanning."
+    },
+    {
+      "file": "page-roadmap-desktop-light.png",
+      "task": "Read Plan a project from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:12.395Z",
+      "fullPage": true,
+      "sha256": "e051210555ef672165ad2cdbc5949b0f57a73446348c5c9a582a2459ead8fc4e",
+      "verdict": "pass",
+      "observations": "Full frame and readable detail reviewed: planning prompt, dependency explanation and read-only commands have distinct treatments; no clipping or visual reliance on another page."
+    },
+    {
+      "file": "page-sessions-desktop-light.png",
+      "task": "Read Sessions and resuming work from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:12.834Z",
+      "fullPage": true,
+      "sha256": "403a802f7de85925f8db09890bfe8c3a4aff0c9ff85e28ce887b29f8d8a3bedd",
+      "verdict": "pass",
+      "observations": "Full frame and readable detail reviewed: recovery prompt, plans commands and conversation-resume commands are clearly separated; long commands fit and the current navigation label stays visible."
+    },
+    {
+      "file": "page-skills-desktop-light.png",
+      "task": "Read Skills from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:13.264Z",
+      "fullPage": true,
+      "sha256": "985aa47c873e3449cf1290ca27fa341e7a16b69621fda550ef73371bba5efabf",
+      "verdict": "pass",
+      "observations": "Full frame and readable detail reviewed: nine-skill comparison has separated rows and three readable columns; prompt syntax, missing-skill recovery and related pages are visually distinct."
+    },
+    {
+      "file": "page-storage-desktop-light.png",
+      "task": "Read Storage and backups from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:13.641Z",
+      "fullPage": true,
+      "sha256": "b7373e586bc81a99f945788fcf2d7634cce858c840404763c3b75ace54b75735",
+      "verdict": "pass",
+      "observations": "Full frame and readable detail reviewed: project and user locations are separated into tables; long paths fit, numbered backup steps align, and moving-project limitations are prominent."
+    },
+    {
+      "file": "page-troubleshooting-desktop-light.png",
+      "task": "Read Troubleshooting from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:14.090Z",
+      "fullPage": true,
+      "sha256": "4a352cba7a2934d03023e40c2092ca795dc1deb4681343924176f05b1eb404ca",
+      "verdict": "pass",
+      "observations": "Full frame and readable detail reviewed: the active Troubleshooting item is now visible in the help group; diagnostic commands and recovery sections remain aligned, with no overlap or clipped text."
+    },
+    {
+      "file": "page-uninstall-desktop-light.png",
+      "task": "Read Remove Magistr from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:14.595Z",
+      "fullPage": true,
+      "sha256": "7fc30f42b2ec24f6b22227aa9567faae51535d557416adc506d6689f31720163",
+      "verdict": "pass",
+      "observations": "Full frame and readable detail reviewed: Remove Magistr is now visibly selected beside its help group; removal commands and retained-data table remain readable and within the article."
+    },
+    {
+      "file": "page-upgrades-desktop-light.png",
+      "task": "Read Upgrades from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:14.997Z",
+      "fullPage": true,
+      "sha256": "e2a7d8dd468809029e35d737ead5737e64d70368bfa6af1ba71e75e1b26e5c2d",
+      "verdict": "pass",
+      "observations": "Full frame and readable detail reviewed: the active Upgrades item is now visible alongside nearby maintenance pages. Command blocks, preserved-copy table and related links fit without clipping."
+    },
+    {
+      "file": "page-verification-desktop-light.png",
+      "task": "Read Verification from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:15.435Z",
+      "fullPage": true,
+      "sha256": "f5b3f084334aed6fd9a29e67b1af44c65380cf7563a60cb756bb97f8ce51a5f3",
+      "verdict": "pass",
+      "observations": "Full frame and readable detail reviewed: result meanings have separate table rows, focused versus full checks are clearly headed, and the single terminal command stands apart from explanatory prose."
+    },
+    {
+      "file": "page-workflow-desktop-light.png",
+      "task": "Read Your first task from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:15.905Z",
+      "fullPage": true,
+      "sha256": "229cc6ddab7647d155aca2173528bec4fd840103e7412d1b01fb5bdae87cd68e",
+      "verdict": "pass",
+      "observations": "Full frame reviewed: existing and empty project starting points are explicit, sample prompts and skill table have clear boundaries, and continuation links are independent of the homepage example."
+    },
+    {
+      "file": "search-results-desktop-light.png",
+      "task": "Find upgrade instructions from documentation search",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:16.949Z",
+      "fullPage": false,
+      "sha256": "cdb899ac27fa1e684316bf0721ecea3182ee1c3034cb6efedcc898fafbac1fd2",
+      "verdict": "pass",
+      "observations": "Full frame and readable detail reviewed: four upgrade-related results are distinct links above navigation; search focus ring and clear control are visible, article content does not shift horizontally."
+    },
+    {
+      "file": "search-empty-desktop-light.png",
+      "task": "Recover from a documentation query with no results",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:17.265Z",
+      "fullPage": false,
+      "sha256": "6d0e9832adafeaa7d2b96f2724e21d6d11920e3b916b9d02e7196b6c6759e521",
+      "verdict": "pass",
+      "observations": "Full frame and readable detail reviewed: no-results message is readable directly under the focused input; grouped navigation remains available and has no overlapping elements."
+    },
+    {
+      "file": "contents-open-desktop-light.png",
+      "task": "Choose a section within configuration",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:17.613Z",
+      "fullPage": false,
+      "sha256": "296a75a4190994f6b03b98b90ee4fc6fda08b7c6af5211f2c4004a2493ec2394",
+      "verdict": "pass",
+      "observations": "Full frame and readable detail reviewed: five configuration anchors form a readable two-column list; disclosure marker, separators and article start remain clear and unclipped."
+    },
+    {
+      "file": "configuration-detail-desktop-light.png",
+      "task": "Read and adapt the labeled JSON configuration fragment",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:17.697Z",
+      "fullPage": false,
+      "sha256": "6fd03b983a92c73515cf647b301ba37b013ccd94142d05e3946c50eac948a4c3",
+      "verdict": "pass",
+      "observations": "Readable viewport reviewed: JSON fragment label is clear above the box; 13.6px monospace tokens have adequate contrast and indentation, and the long inputs row stays within the content width."
+    },
+    {
+      "file": "commands-detail-desktop-light.png",
+      "task": "Compare command options and effects in a reference table",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:17.849Z",
+      "fullPage": false,
+      "sha256": "9e91c90a5366996705897077cb265b563f244e9b6eaf8003bcec025de943f79d",
+      "verdict": "pass",
+      "observations": "Readable viewport reviewed: command tokens and effects are distinguishable at normal size, table row rules are visible, and the work-and-verification heading and command block are separated clearly."
+    },
+    {
+      "file": "page-agents-desktop-dark.png",
+      "task": "Read Connect an agent from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:18.201Z",
+      "fullPage": true,
+      "sha256": "291f8c1960783987c9e7f3ace42ac46bb61df8a7646658639be79666d3c6e817",
+      "verdict": "pass",
+      "observations": "Full frame reviewed: muted navigation and orange active link remain readable on dark surfaces, code blocks and quoted confirmation prompt are visually distinct, footer and related links fit."
+    },
+    {
+      "file": "page-chunks-desktop-dark.png",
+      "task": "Read Working in chunks from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:18.678Z",
+      "fullPage": true,
+      "sha256": "5f0a9338f07685f592bb0d31a0b767e9dcc87fcd21576e34d56f94fd322d09da",
+      "verdict": "pass",
+      "observations": "Full frame reviewed: bounded-run instructions, skill table and command boxes have clear hierarchy on dark surfaces; active chunk link and related links are visible without clipping."
+    },
+    {
+      "file": "page-commands-desktop-dark.png",
+      "task": "Read Command reference from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:19.141Z",
+      "fullPage": true,
+      "sha256": "070ac63c4637ee3c970b188dccc9ee55dc7ee92ca5ce4d43c7c4b52603d2ca26",
+      "verdict": "pass",
+      "observations": "Full frame reviewed: long reference retains consistent table rules, section spacing and code-box boundaries. Command text is inspected at normal scale in the dedicated detail capture."
+    },
+    {
+      "file": "page-concepts-desktop-dark.png",
+      "task": "Read Concepts from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:19.618Z",
+      "fullPage": true,
+      "sha256": "94e61605858ea04bee437c59c531346c6bd5ac25d15b98b233e4dcad6ef66b26",
+      "verdict": "pass",
+      "observations": "Full frame and readable detail reviewed: definitions and saved-information tables have balanced columns; explanatory paragraphs and related links are readable with no overlap."
+    },
+    {
+      "file": "page-configuration-desktop-dark.png",
+      "task": "Read Configuration from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:20.061Z",
+      "fullPage": true,
+      "sha256": "ccce0eb155085fdef36abe86a908de71409a911309f3fca8c5d4a2e60efb8315",
+      "verdict": "pass",
+      "observations": "Full frame reviewed: owners table and settings examples fit, the long JSON block stays contained, and headings clearly separate setup from validation. JSON inspected separately at normal scale."
+    },
+    {
+      "file": "page-contributing-desktop-dark.png",
+      "task": "Read Contributing from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:20.450Z",
+      "fullPage": true,
+      "sha256": "837c40a4623456d42611e78140db896af9176cc4c4af6f987aeebd6b48305345",
+      "verdict": "pass",
+      "observations": "Full frame and readable detail reviewed: active Contributing item is visible at the bottom of the scrolled navigation. Links, source-access notice and contributor sections have readable contrast."
+    },
+    {
+      "file": "page-desktop-desktop-dark.png",
+      "task": "Read Desktop preview from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:20.895Z",
+      "fullPage": true,
+      "sha256": "436356237192d16258c2d833981bb56213e83d480223a5a268e7d246ef5c2aad",
+      "verdict": "pass",
+      "observations": "Full frame and readable detail reviewed: preview heading, prerequisites, command and controls table remain legible in dark appearance; work and recovery sections have consistent spacing."
+    },
+    {
+      "file": "page-feedback-desktop-dark.png",
+      "task": "Read Feedback from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:21.335Z",
+      "fullPage": true,
+      "sha256": "112bb0a883cdf2c2c647792b9b1ef0d7d4d9f127143d34e8da31c65f36891bcc",
+      "verdict": "pass",
+      "observations": "Full frame and readable detail reviewed: feedback definition and local upload example stand alone; outcome table lines and related links retain contrast on the dark surface."
+    },
+    {
+      "file": "page-index-desktop-dark.png",
+      "task": "Read Documentation from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:21.744Z",
+      "fullPage": true,
+      "sha256": "eb2248db98ba6e148b5d7587206245a0472738b19bf03ca0637fc165f259adc8",
+      "verdict": "pass",
+      "observations": "Full frame and readable detail reviewed: overview, numbered setup steps and grouped directory preserve hierarchy; orange links are distinct and section descriptions remain readable."
+    },
+    {
+      "file": "page-installation-desktop-dark.png",
+      "task": "Read Installation from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:22.141Z",
+      "fullPage": true,
+      "sha256": "74d6d0cea1745f8a182874510a78b88026983b85bb4fcf56b88b9c0899c8bec9",
+      "verdict": "pass",
+      "observations": "Full frame and readable detail reviewed: requirements and version are prominent, code highlighting is legible, troubleshooting rows are clear, and next setup link is easy to locate."
+    },
+    {
+      "file": "page-permissions-desktop-dark.png",
+      "task": "Read Permissions from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:22.537Z",
+      "fullPage": true,
+      "sha256": "9bc4da80650bca86e3befe870ae5026cab141d23751cccef391bdb0451e7cfaa",
+      "verdict": "pass",
+      "observations": "Full frame and readable detail reviewed: permissions table and source-tool guidance fit the content column; dark inline code and navigation highlight remain distinguishable."
+    },
+    {
+      "file": "page-reasoning-desktop-dark.png",
+      "task": "Read Reasoning and research from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:22.935Z",
+      "fullPage": true,
+      "sha256": "f8e7540a1ea5ac5c304e8b2881aca18a870d3c47daef1440c5abc2a6b9635102",
+      "verdict": "pass",
+      "observations": "Full frame and readable detail reviewed: prompt inset and evidence paragraphs retain contrast, research sections have clear spacing, and related pages align."
+    },
+    {
+      "file": "page-roadmap-desktop-dark.png",
+      "task": "Read Plan a project from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:23.357Z",
+      "fullPage": true,
+      "sha256": "dcb0f3e2ddf06b3ce3ee0e8900dd1c80e08c7d3437e2dcac441d832f4dd941c3",
+      "verdict": "pass",
+      "observations": "Full frame and readable detail reviewed: active plan link, prompt inset and code commands are distinct; local dependency example and follow-through are readable without clipping."
+    },
+    {
+      "file": "page-sessions-desktop-dark.png",
+      "task": "Read Sessions and resuming work from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:23.776Z",
+      "fullPage": true,
+      "sha256": "d0b5f285a1b75ef2b053befc9d58fee8cb23bd10aa2963981b40d55f75b55a92",
+      "verdict": "pass",
+      "observations": "Full frame and readable detail reviewed: dark command blocks fit the full resume syntax, saved conversation versus project-work sections are visually separate, and current-page highlight is clear."
+    },
+    {
+      "file": "page-skills-desktop-dark.png",
+      "task": "Read Skills from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:24.206Z",
+      "fullPage": true,
+      "sha256": "5fd03c9b56928986c9b1152f649b846c42ff61bc63fc032238bf9ad90ac21653",
+      "verdict": "pass",
+      "observations": "Full frame and readable detail reviewed: nine-skill table is readable across three columns with consistent row rules; chat example and terminal recovery commands have clear spacing."
+    },
+    {
+      "file": "page-storage-desktop-dark.png",
+      "task": "Read Storage and backups from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:24.587Z",
+      "fullPage": true,
+      "sha256": "b75409d960e22bd5c1030a3407f0bb71af24701894f63655576fa2ac8c6728f3",
+      "verdict": "pass",
+      "observations": "Full frame and readable detail reviewed: paths and environment settings are readable on dark surfaces, location tables have consistent columns, and numbered backup steps are distinct."
+    },
+    {
+      "file": "page-troubleshooting-desktop-dark.png",
+      "task": "Read Troubleshooting from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:25.032Z",
+      "fullPage": true,
+      "sha256": "fc00302ddb262f5a097e555acd1afcc44659d37f11a877a0f9fa0216d39334a2",
+      "verdict": "pass",
+      "observations": "Full frame and readable detail reviewed: current Troubleshooting link is visible after sidebar scroll; diagnostic blocks, interruption recovery and saved-data sections have clear boundaries."
+    },
+    {
+      "file": "page-uninstall-desktop-dark.png",
+      "task": "Read Remove Magistr from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:25.541Z",
+      "fullPage": true,
+      "sha256": "ae720bddd5dce6c82f1cd2b64ecdff3dc0889399fd74ebce70667c75ae8924ee",
+      "verdict": "pass",
+      "observations": "Full frame and readable detail reviewed: Remove Magistr is visible and selected; removal commands and retained-data table are readable, with explicit separation from data deletion."
+    },
+    {
+      "file": "page-upgrades-desktop-dark.png",
+      "task": "Read Upgrades from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:25.942Z",
+      "fullPage": true,
+      "sha256": "ebf3a7b537fcae0ee9fe4bfd2f14bbf2af94f8f58956dad548fe56dd006724eb",
+      "verdict": "pass",
+      "observations": "Full frame and readable detail reviewed: Upgrades is visible in help navigation; update commands and recovery-copy table fit without overflow, and conflict guidance has clear hierarchy."
+    },
+    {
+      "file": "page-verification-desktop-dark.png",
+      "task": "Read Verification from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:26.384Z",
+      "fullPage": true,
+      "sha256": "1ab6449fc9500e57509115ee3bcdc9da90c0461cf0251730c8d5f49b5680c1a1",
+      "verdict": "pass",
+      "observations": "Full frame and readable detail reviewed: focused checks, result meanings and stale evidence are clearly headed; table rows and final command have adequate contrast."
+    },
+    {
+      "file": "page-workflow-desktop-dark.png",
+      "task": "Read Your first task from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:26.860Z",
+      "fullPage": true,
+      "sha256": "525b7f60cec021df593348eaefdc089018f8197f3d121b35299a67c4bed811e2",
+      "verdict": "pass",
+      "observations": "Full frame and readable detail reviewed: existing versus empty project guidance, skill table and delivery example are locally understandable and visually separated; related pages fit."
+    },
+    {
+      "file": "search-results-desktop-dark.png",
+      "task": "Find upgrade instructions from documentation search",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:27.891Z",
+      "fullPage": false,
+      "sha256": "55356917732009668943a1a4f452a023d5a424f1a0f620bcfb6fa9c34baeab84",
+      "verdict": "pass",
+      "observations": "Full viewport reviewed: four relevant results have clear borders and underlined titles; input focus ring and clear control are visible, and the article remains aligned."
+    },
+    {
+      "file": "search-empty-desktop-dark.png",
+      "task": "Recover from a documentation query with no results",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:28.203Z",
+      "fullPage": false,
+      "sha256": "75df6a75dca7cfed93019870cd26ec0fa2924c0b506dcad8ae0b519857393952",
+      "verdict": "pass",
+      "observations": "Full viewport reviewed: no-results message sits directly below the input; grouped navigation and selected Configuration link remain readable with no overlap."
+    },
+    {
+      "file": "contents-open-desktop-dark.png",
+      "task": "Choose a section within configuration",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:28.551Z",
+      "fullPage": false,
+      "sha256": "2e6f80e61d77c95bdcc28c28065c276df7984f7bd8c1b3ee2f248853e88ebcb8",
+      "verdict": "pass",
+      "observations": "Full viewport reviewed: expanded page contents use two aligned columns, all five anchors are readable, and disclosure marker and separators are visible."
+    },
+    {
+      "file": "configuration-detail-desktop-dark.png",
+      "task": "Read and adapt the labeled JSON configuration fragment",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:28.635Z",
+      "fullPage": false,
+      "sha256": "204450532996fa4c9d242b1b6076c1e477039cf4586e2eeb131a27344626453e",
+      "verdict": "pass",
+      "observations": "Readable viewport reviewed: JSON fragment warning, indentation, punctuation and long inputs row are legible at normal size with sufficient contrast and no horizontal clipping."
+    },
+    {
+      "file": "commands-detail-desktop-dark.png",
+      "task": "Compare command options and effects in a reference table",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:28.787Z",
+      "fullPage": false,
+      "sha256": "39982cb301a02ee5ed9dd20994e1ed83b6ddcc2850ae8d28d43b0bf7f05cfb3f",
+      "verdict": "pass",
+      "observations": "Readable viewport reviewed: table command tokens and their effects are distinct, row rules and work-section heading are clear, and highlighted command examples fit."
+    },
+    {
+      "file": "page-agents-compact-light.png",
+      "task": "Read Connect an agent from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:29.102Z",
+      "fullPage": true,
+      "sha256": "906056b022ad38b23dc1de665fd7d3ee6c26787ff04f0d84b01fe28ffa623c6e",
+      "verdict": "pass",
+      "observations": "Full frame opened at original resolution: search stays visible, Browse documentation is clearly labeled, agent headings and confirmation prompt are readable. Long commands wrap inside boxes without page overflow; related links stack cleanly."
+    },
+    {
+      "file": "page-chunks-compact-light.png",
+      "task": "Read Working in chunks from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:29.564Z",
+      "fullPage": true,
+      "sha256": "0740974ee078fd1abfefe3ca2047befb76fcc43b7de36ec4978c99713e201b3b",
+      "verdict": "pass",
+      "observations": "Full frame opened at original resolution: breadcrumb wraps without overlap; two-column skill table fits, terminal commands wrap within boxes, and recovery and related pages remain easy to scan."
+    },
+    {
+      "file": "page-commands-compact-light.png",
+      "task": "Read Command reference from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:30.008Z",
+      "fullPage": true,
+      "sha256": "9191ab4d9e760d7c9b7809d4132217d75ea937557df522c41303e28944861c12",
+      "verdict": "pass",
+      "observations": "Full frame opened at original resolution: the long command reference stays within the compact column, sections and table rules remain distinct, and long tokens wrap. Dedicated viewport detail verifies normal-size table readability."
+    },
+    {
+      "file": "page-concepts-compact-light.png",
+      "task": "Read Concepts from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:30.469Z",
+      "fullPage": true,
+      "sha256": "e4004a15a756ade65e418736ddadfcba60bd12a763c75d6eec716653c77db43c",
+      "verdict": "pass",
+      "observations": "Full frame opened at original resolution: definitions and carry-over tables wrap into readable rows, headings remain distinct, and related pages stack with consistent spacing; no overlap or horizontal clipping."
+    },
+    {
+      "file": "page-configuration-compact-light.png",
+      "task": "Read Configuration from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:30.908Z",
+      "fullPage": true,
+      "sha256": "535fe8b3e291c2eff3c1b519f3bc9b2402c7b02e34759186d6a580af40ffb0e9",
+      "verdict": "pass",
+      "observations": "Full frame opened at original resolution: settings paths wrap within table cells, command blocks and JSON stay contained, and configuration sections retain readable hierarchy; JSON detail checked separately."
+    },
+    {
+      "file": "page-contributing-compact-light.png",
+      "task": "Read Contributing from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:31.294Z",
+      "fullPage": true,
+      "sha256": "1313a598eea81470df503a376151d7f3f68191a902285dff58b7bc52ea28f3a5",
+      "verdict": "pass",
+      "observations": "Full frame opened at original resolution: audience and access notes appear before contributor links; architecture bullets and historical evidence boundary remain readable with no clipped text."
+    },
+    {
+      "file": "page-desktop-compact-light.png",
+      "task": "Read Desktop preview from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:31.700Z",
+      "fullPage": true,
+      "sha256": "8b2ec69749f6ed385f84b5421752dc54a782b86f43b0f02ec234927106a25b95",
+      "verdict": "pass",
+      "observations": "Full frame opened at original resolution: long prerequisite names wrap naturally, controls table fits, and bold work controls remain readable within explanatory paragraphs; footer and related links stack cleanly."
+    },
+    {
+      "file": "page-feedback-compact-light.png",
+      "task": "Read Feedback from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:32.126Z",
+      "fullPage": true,
+      "sha256": "d6243ff2636d1fbd06d588c3d16e85a34244e043a216b8c155cc9810c85e8f54",
+      "verdict": "pass",
+      "observations": "Full frame opened at original resolution: upload example is a readable inset, outcome table wraps without collisions, and follow-through and related links have clear separation."
+    },
+    {
+      "file": "page-index-compact-light.png",
+      "task": "Read Documentation from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:32.502Z",
+      "fullPage": true,
+      "sha256": "33716c804a919862332028cf0ed929016980da8d7ddc2e608f37330b39f7f35d",
+      "verdict": "pass",
+      "observations": "Full frame opened at original resolution: setup steps and grouped directory become one readable column, section spacing makes the long index scannable, and availability remains clearly labeled."
+    },
+    {
+      "file": "page-installation-compact-light.png",
+      "task": "Read Installation from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:32.895Z",
+      "fullPage": true,
+      "sha256": "5d1360cfb29f4a6660f34cfaa1641f99c88bf9314bcbd9a79ee9d7c2d908046c",
+      "verdict": "pass",
+      "observations": "Full frame opened at original resolution: installation scope and prerequisites remain prominent, source commands wrap within boxes, and recovery table and next-step links fit the narrow width."
+    },
+    {
+      "file": "page-permissions-compact-light.png",
+      "task": "Read Permissions from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:33.247Z",
+      "fullPage": true,
+      "sha256": "f37e852f128d556ce4329925cb1994c6de593defa89dad4371ae628a56433a26",
+      "verdict": "pass",
+      "observations": "Full frame opened at original resolution: profile labels and approval effects are readable in two columns; headings separate agent, tool and team responsibilities, with no clipped inline commands."
+    },
+    {
+      "file": "page-reasoning-compact-light.png",
+      "task": "Read Reasoning and research from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:33.627Z",
+      "fullPage": true,
+      "sha256": "fb58bbb696c61d980aa27940adf1913f9ffe40f92ee4108b2254ffbdaa3af1eb",
+      "verdict": "pass",
+      "observations": "Full frame opened at original resolution: long title fits, prompt inset has comfortable padding, and research, revision and verification guidance retains clear section hierarchy."
+    },
+    {
+      "file": "page-roadmap-compact-light.png",
+      "task": "Read Plan a project from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:34.032Z",
+      "fullPage": true,
+      "sha256": "1899436a1c395dac2f6f27fc3c44a430402c44cd24cc16144944cfda6e1e22b9",
+      "verdict": "pass",
+      "observations": "Full frame opened at original resolution: local planning example, command block and revision instructions fit; long headings and skill names remain legible without overflow."
+    },
+    {
+      "file": "page-sessions-compact-light.png",
+      "task": "Read Sessions and resuming work from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:34.431Z",
+      "fullPage": true,
+      "sha256": "fb52b5c15f57ec5ffbf72c6eda35777936aecd43ad824b556e5aca828276d4e5",
+      "verdict": "pass",
+      "observations": "Full frame opened at original resolution: long title wraps cleanly; saved-work prompt and conversation commands fit without clipping, and path/provider limitations remain readable."
+    },
+    {
+      "file": "page-skills-compact-light.png",
+      "task": "Read Skills from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:34.850Z",
+      "fullPage": true,
+      "sha256": "207f9d5e4fc7104735b46a37163929bdc7ff6026a87633d18d995cb939e3028c",
+      "verdict": "pass",
+      "observations": "Full frame opened at original resolution: three-column comparison is dense but readable; implementation heading and long skill names wrap inside cells, row rules preserve associations, and prompt and recovery blocks remain clear."
+    },
+    {
+      "file": "page-storage-compact-light.png",
+      "task": "Read Storage and backups from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:35.222Z",
+      "fullPage": true,
+      "sha256": "85daf6bd80ad3e1b1e5f8cc195c9b54381eace23e44a0af44429e1b50d794ee6",
+      "verdict": "pass",
+      "observations": "Full frame opened at original resolution: long paths and environment names wrap within the column, backup steps are readable and aligned, and moving-project limitations remain prominent."
+    },
+    {
+      "file": "page-troubleshooting-compact-light.png",
+      "task": "Read Troubleshooting from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:35.640Z",
+      "fullPage": true,
+      "sha256": "8f2d954298888d6bbe0ce773527226de8815a67cf4ecd5d3fe8efec5e4e6c26c",
+      "verdict": "pass",
+      "observations": "Full frame opened at original resolution: diagnostics fit, long recovery headings wrap clearly, saved-data warning is readable, and four related links stack without collision."
+    },
+    {
+      "file": "page-uninstall-compact-light.png",
+      "task": "Read Remove Magistr from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:36.134Z",
+      "fullPage": true,
+      "sha256": "0a037341f15d87277efdf1238f2f7374f96bdc0297d1050a5222db25637b8c97",
+      "verdict": "pass",
+      "observations": "Full frame opened at original resolution: removal and uninstall commands are readable, retained-data table preserves associations, and erasure guidance is separated from ordinary removal."
+    },
+    {
+      "file": "page-upgrades-compact-light.png",
+      "task": "Read Upgrades from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:36.531Z",
+      "fullPage": true,
+      "sha256": "7a72d8327a44aebe6ed0a3c00c471ba0e5993975802a77f8953572137a963dbd",
+      "verdict": "pass",
+      "observations": "Full frame opened at original resolution: update and repair steps have distinct boxes, long recovery paths wrap inside their cells, and success/conflict guidance remains easy to follow."
+    },
+    {
+      "file": "page-verification-compact-light.png",
+      "task": "Read Verification from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:36.933Z",
+      "fullPage": true,
+      "sha256": "5342b5d399fcc1039bf61b4196a740648a1d66b7a26477d876b018d2ee2cd781",
+      "verdict": "pass",
+      "observations": "Full frame opened at original resolution: long headings and results table wrap clearly, focused/full guidance is legible, and final command and related links remain contained."
+    },
+    {
+      "file": "page-workflow-compact-light.png",
+      "task": "Read Your first task from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:37.369Z",
+      "fullPage": true,
+      "sha256": "d973687f23f99638d27e611f11691f8b13b3af674dfb8e0dc9d0c5f3137e9351",
+      "verdict": "pass",
+      "observations": "Full frame opened at original resolution: existing and empty project starts are distinct, prompt insets and skill table fit, and acceptance and delivery instructions have clear hierarchy."
+    },
+    {
+      "file": "navigation-open-compact-light.png",
+      "task": "Browse grouped documentation with a keyboard",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:37.769Z",
+      "fullPage": true,
+      "sha256": "741cd69bc8fafdec6f13216cf5c7b5f5eaba03f6c2a66396200e4ce85effeec0",
+      "verdict": "pass",
+      "observations": "Full frame opened at original resolution: all grouped navigation entries are visible in document flow, keyboard focus outline encloses Documentation, selected Configuration uses its own highlight, and the expanded control does not overlay the article."
+    },
+    {
+      "file": "search-results-compact-light.png",
+      "task": "Find upgrade instructions from documentation search",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:38.487Z",
+      "fullPage": false,
+      "sha256": "afe1edcb967df4b2b311e2958d5e7a5dded2701661a87ca075da12ead1ce43f7",
+      "verdict": "pass",
+      "observations": "Full viewport reviewed: four result links fit above the collapsed navigation, search focus and clear button are visible, and the article follows without overlay."
+    },
+    {
+      "file": "search-empty-compact-light.png",
+      "task": "Recover from a documentation query with no results",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:38.803Z",
+      "fullPage": false,
+      "sha256": "fb2104ea6f47ed25110a196746d07f3bc6af1cc9ca4cd0955aa2590a9bb7c108",
+      "verdict": "pass",
+      "observations": "Full viewport reviewed: empty-result text is readable below the focused input; Browse documentation stays reachable and the article remains aligned."
+    },
+    {
+      "file": "contents-open-compact-light.png",
+      "task": "Choose a section within configuration",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:39.150Z",
+      "fullPage": false,
+      "sha256": "f63004b628719e9017dcf403ce8cb5ac0e07cb25950f250eed569a04754cd4d5",
+      "verdict": "pass",
+      "observations": "Full viewport reviewed: five contents links form a single readable column, disclosure direction is clear, and the following introduction has sufficient separation."
+    },
+    {
+      "file": "configuration-detail-compact-light.png",
+      "task": "Read and adapt the labeled JSON configuration fragment",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:39.216Z",
+      "fullPage": false,
+      "sha256": "180753312b97b2540a016cea20b47372d5a0e7b07f5a9983b327044d778f65c7",
+      "verdict": "pass",
+      "observations": "Readable viewport reviewed: fragment instructions, 13.6px JSON tokens and indentation are legible at normal size; code remains within the narrow box."
+    },
+    {
+      "file": "commands-detail-compact-light.png",
+      "task": "Compare command options and effects in a reference table",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:39.369Z",
+      "fullPage": false,
+      "sha256": "0a4cd31b08a3731f740e43bf18ce3fe83b4b29f64be79c210721c3d81b882136",
+      "verdict": "pass",
+      "observations": "Readable viewport reviewed: table text and command labels are legible at normal size; wrapped loop command and its explanation remain clearly separated."
+    },
+    {
+      "file": "page-agents-compact-dark.png",
+      "task": "Read Connect an agent from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:39.706Z",
+      "fullPage": true,
+      "sha256": "d1b03236a1fbd52b37ed904cb828bf9246b0b186b6f9dc0895b3c40601fe71ba",
+      "verdict": "pass",
+      "observations": "Full frame opened at original resolution: dark search control and disclosures remain visible; agent-specific commands, prompt and related links have clear contrast and no clipping."
+    },
+    {
+      "file": "page-chunks-compact-dark.png",
+      "task": "Read Working in chunks from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:40.150Z",
+      "fullPage": true,
+      "sha256": "f69acdc40c849807f41a47be9f030fb8e4d535d25f6a0ee5d31bcfeb6daef219",
+      "verdict": "pass",
+      "observations": "Full frame opened at original resolution: dark skill table and command boxes fit, long headings wrap cleanly, and recovery guidance and related pages remain readable."
+    },
+    {
+      "file": "page-commands-compact-dark.png",
+      "task": "Read Command reference from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:40.594Z",
+      "fullPage": true,
+      "sha256": "463d387e8d9d737dcd07c55e86c3b237234c16ffec76d5df0f692e83015f6d68",
+      "verdict": "pass",
+      "observations": "Full frame opened at original resolution: compact command tables remain contained across the long reference, with readable row associations and separate section headings; viewport detail provides normal-size inspection."
+    },
+    {
+      "file": "page-concepts-compact-dark.png",
+      "task": "Read Concepts from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:41.040Z",
+      "fullPage": true,
+      "sha256": "38737804117a8fe59b7e0c0561aafb8407ea0700cfe853db70022dbbcde95e77",
+      "verdict": "pass",
+      "observations": "Full frame opened at original resolution: dark table rows keep labels associated with definitions, bold terms and related links are distinguishable, and no content overflows."
+    },
+    {
+      "file": "page-configuration-compact-dark.png",
+      "task": "Read Configuration from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:41.477Z",
+      "fullPage": true,
+      "sha256": "afa6885f7f52c3178e7d34ac0b6686a26fb0bb944f73903d58fb07d443d58ad9",
+      "verdict": "pass",
+      "observations": "Full frame opened at original resolution: settings paths and JSON wrap within their containers, blue syntax tokens remain readable, and settings versus checks sections are clearly separated."
+    },
+    {
+      "file": "page-contributing-compact-dark.png",
+      "task": "Read Contributing from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:41.859Z",
+      "fullPage": true,
+      "sha256": "7441c4d47f98fe2ef1ef2c97c25d4f8ba802d433f881350c9be92271cde78cd5",
+      "verdict": "pass",
+      "observations": "Full frame opened at original resolution: contributor links and access qualifications have readable contrast, bullets align, and historical evidence is clearly labeled apart from current guidance."
+    },
+    {
+      "file": "page-desktop-compact-dark.png",
+      "task": "Read Desktop preview from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:42.285Z",
+      "fullPage": true,
+      "sha256": "b2cac28bf236574c64ffdab68a0614aca05e17381264aec13b10b75815d7e443",
+      "verdict": "pass",
+      "observations": "Full frame opened at original resolution: platform requirements and controls table are readable in dark appearance; work-control names retain emphasis and related pages fit."
+    },
+    {
+      "file": "page-feedback-compact-dark.png",
+      "task": "Read Feedback from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:42.711Z",
+      "fullPage": true,
+      "sha256": "837cf5f4073f28717d6b3f2fbd2a2061acd8b0427687d5c236950328ef7d81c1",
+      "verdict": "pass",
+      "observations": "Full frame opened at original resolution: example inset remains distinct from the article, outcome table rows retain readable contrast, and follow-through links are clear."
+    },
+    {
+      "file": "page-index-compact-dark.png",
+      "task": "Read Documentation from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:43.102Z",
+      "fullPage": true,
+      "sha256": "49298a80e83456240fd9f5f266e9c33d139ff34259c10145b6db860f82080f15",
+      "verdict": "pass",
+      "observations": "Full frame opened at original resolution: setup sequence and directory groups are readable in one column; orange links, muted descriptions and section headings retain a clear hierarchy."
+    },
+    {
+      "file": "page-installation-compact-dark.png",
+      "task": "Read Installation from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:43.495Z",
+      "fullPage": true,
+      "sha256": "a16dcef6d5e8b6b2e4c886e7bbc08116124c6ad181488e12e7e97ecc121a1722",
+      "verdict": "pass",
+      "observations": "Full frame opened at original resolution: preview availability, source commands and recovery rows remain legible in dark appearance; next project-connection step is distinct."
+    },
+    {
+      "file": "page-permissions-compact-dark.png",
+      "task": "Read Permissions from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:43.865Z",
+      "fullPage": true,
+      "sha256": "2be58b8bb2ce13febf7dbaa7c3634d45ede2ea5322539cbd41981b96b974a9ef",
+      "verdict": "pass",
+      "observations": "Full frame opened at original resolution: approval table preserves row associations and readable contrast; source-tool and team guidance remains within the compact column."
+    },
+    {
+      "file": "page-reasoning-compact-dark.png",
+      "task": "Read Reasoning and research from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:44.247Z",
+      "fullPage": true,
+      "sha256": "8cb1fc2cce522595c368f7865f5c48ac3e38c4abf5472b70f5381a661168ccaf",
+      "verdict": "pass",
+      "observations": "Full frame opened at original resolution: research prompt inset and bold definitions are legible on dark surfaces; long headings wrap without collisions and related links are distinct."
+    },
+    {
+      "file": "page-roadmap-compact-dark.png",
+      "task": "Read Plan a project from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:44.648Z",
+      "fullPage": true,
+      "sha256": "eaa8fb7b334f75fa4895705a5f0f29f6e07b7181dabf918f0e51dbe5b5d34089",
+      "verdict": "pass",
+      "observations": "Full frame opened at original resolution: planning prompt, dependencies and commands retain contrast and clear section spacing; skill and export settings wrap within the article."
+    },
+    {
+      "file": "page-sessions-compact-dark.png",
+      "task": "Read Sessions and resuming work from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:45.054Z",
+      "fullPage": true,
+      "sha256": "6dfef8c7fef3045447e8d9e7a1c9dd731f0bd6a5c4f8964fc389e6f023865edb",
+      "verdict": "pass",
+      "observations": "Full frame opened at original resolution: long title and headings wrap cleanly, dark resume-command blocks remain readable, and recovery instructions are visually distinct."
+    },
+    {
+      "file": "page-skills-compact-dark.png",
+      "task": "Read Skills from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:45.481Z",
+      "fullPage": true,
+      "sha256": "d0efbc40ad337eeb227a66eeb1bf60027937a117aaa2ef3898ab51cd0d82b950",
+      "verdict": "pass",
+      "observations": "Full frame opened at original resolution: dense three-column table is readable with visible row rules; long labels wrap without overlap, and the chat example remains distinct from terminal recovery."
+    },
+    {
+      "file": "page-storage-compact-dark.png",
+      "task": "Read Storage and backups from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:45.840Z",
+      "fullPage": true,
+      "sha256": "580fbf65870e04acccbc2cc347be79a68e622cb4a66cf6b625828e0debcb8316",
+      "verdict": "pass",
+      "observations": "Full frame opened at original resolution: long paths and override names remain legible on dark surfaces, table boundaries are visible, and backup/move sections have clear hierarchy."
+    },
+    {
+      "file": "page-troubleshooting-compact-dark.png",
+      "task": "Read Troubleshooting from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:46.259Z",
+      "fullPage": true,
+      "sha256": "d39503e64b8b7adafcebe38d314e1a3e505a656a0db467ef64d948d05a5bef21",
+      "verdict": "pass",
+      "observations": "Full frame opened at original resolution: diagnostic commands and interruption states are readable, headings wrap without overlap, and data-preservation guidance remains clear."
+    },
+    {
+      "file": "page-uninstall-compact-dark.png",
+      "task": "Read Remove Magistr from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:46.730Z",
+      "fullPage": true,
+      "sha256": "1a0a474412066049e988a08ff48a1592d9a09e17b6a20c65b37a5e03a63d79fc",
+      "verdict": "pass",
+      "observations": "Full frame opened at original resolution: removal commands and retained-data table fit; dark inline code is readable, and erasure guidance is clearly separated."
+    },
+    {
+      "file": "page-upgrades-compact-dark.png",
+      "task": "Read Upgrades from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:47.099Z",
+      "fullPage": true,
+      "sha256": "bb0a67507035fba2268d579bbcc2b2714df73641520e4632e9d8ebc38b8bbe24",
+      "verdict": "pass",
+      "observations": "Full frame opened at original resolution: dark command blocks and recovery-copy rows remain readable, long paths wrap inside cells, and conflict instructions and expected success are distinct."
+    },
+    {
+      "file": "page-verification-compact-dark.png",
+      "task": "Read Verification from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:47.500Z",
+      "fullPage": true,
+      "sha256": "f2a7925fe65eab05e71fcf7f14425aa3f54971ddac31670a1f6a7c15dbd6d7b9",
+      "verdict": "pass",
+      "observations": "Full frame opened at original resolution: results table, stale-input explanations and interface-review section retain hierarchy and contrast; no clipping or overlapping text."
+    },
+    {
+      "file": "page-workflow-compact-dark.png",
+      "task": "Read Your first task from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:47.950Z",
+      "fullPage": true,
+      "sha256": "034b7e07cb0bf35d7a3e6d348563ef421373f97519937378fd6b954f00ad0134",
+      "verdict": "pass",
+      "observations": "Full frame opened at original resolution: prompts, acceptance example, skills and delivery instructions are readable in dark appearance; lists align and related links stack cleanly."
+    },
+    {
+      "file": "navigation-open-compact-dark.png",
+      "task": "Browse grouped documentation with a keyboard",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:48.332Z",
+      "fullPage": true,
+      "sha256": "4a4274c22ec516654646f0d28db30ba166b89b31b36eb805008a83e1dbd1eb3a",
+      "verdict": "pass",
+      "observations": "Full frame opened at original resolution: all navigation groups are in document flow, focused Documentation has a visible orange outline, and selected Configuration has a distinct fill; article begins below the open list."
+    },
+    {
+      "file": "search-results-compact-dark.png",
+      "task": "Find upgrade instructions from documentation search",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:49.054Z",
+      "fullPage": false,
+      "sha256": "f2e932264fd4c6e8eefc8f78bb99e1928f55b4c44d18579b407fdcec10b74780",
+      "verdict": "pass",
+      "observations": "Full viewport reviewed: four results have readable titles and borders, focus outline and clear control are visible, and navigation/article remain reachable below."
+    },
+    {
+      "file": "search-empty-compact-dark.png",
+      "task": "Recover from a documentation query with no results",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:49.397Z",
+      "fullPage": false,
+      "sha256": "4d18cee24692a618a3513307579f1b993bca9108340148cd38268ca8d91a43b6",
+      "verdict": "pass",
+      "observations": "Full viewport reviewed: no-results feedback is readable directly under the input; collapsed navigation and article preserve their spacing without overlap."
+    },
+    {
+      "file": "contents-open-compact-dark.png",
+      "task": "Choose a section within configuration",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:49.734Z",
+      "fullPage": false,
+      "sha256": "73974e404194c92ab49360842a4dab13497436857eb30d19e388ef1a5b9acf9f",
+      "verdict": "pass",
+      "observations": "Full viewport reviewed: all five contents links are legible in one column, separators and disclosure direction are clear, and the introduction follows with consistent spacing."
+    },
+    {
+      "file": "configuration-detail-compact-dark.png",
+      "task": "Read and adapt the labeled JSON configuration fragment",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:49.817Z",
+      "fullPage": false,
+      "sha256": "8e1e25c8543ac1a74aa7cbefecf485fac1b30e63a4de4190500a5543c24fab2e",
+      "verdict": "pass",
+      "observations": "Readable viewport reviewed: JSON fragment instructions and syntax tokens have adequate contrast at normal size, indentation is clear, and the box stays within the compact column."
+    },
+    {
+      "file": "commands-detail-compact-dark.png",
+      "task": "Compare command options and effects in a reference table",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:49.954Z",
+      "fullPage": false,
+      "sha256": "e0e3efb69d91d0b860df20bf7c468941aef3cd28e79519e77c536497ec5114f3",
+      "verdict": "pass",
+      "observations": "Readable viewport reviewed: command tokens, row description and wrapped loop example remain legible; heading and explanation retain separation on dark surfaces."
+    },
+    {
+      "file": "resize-compact-focus.png",
+      "task": "Keep navigation focus when the sidebar becomes a disclosure",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:50.212Z",
+      "fullPage": false,
+      "sha256": "109e49d05776c106a896ebfd903f204d1ac80252b9255df839bf7e2561639795",
+      "verdict": "pass",
+      "observations": "Full viewport reviewed: focus visibly moves to Browse documentation when the sidebar collapses, the outline encloses the control, and the sessions title wraps without overlap."
+    },
+    {
+      "file": "resize-desktop-focus.png",
+      "task": "Return focus to the current page when the sidebar expands",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:50.272Z",
+      "fullPage": false,
+      "sha256": "8d5451d159a1fb50dd6e2fc6a87c7e4c4c1775a75a8a548b7dfd71d2071d5363",
+      "verdict": "pass",
+      "observations": "Full viewport reviewed: focus returns visibly to the selected Sessions link after expansion; the sidebar and article align and the active target remains easy to identify."
+    },
+    {
+      "file": "reflow-320-light.png",
+      "task": "Read storage at 320 CSS pixels",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:50.677Z",
+      "fullPage": true,
+      "sha256": "b4509a8c6d0b0748417de285963455202b24e4dd20751e9ca091a072b52a6954",
+      "verdict": "pass",
+      "observations": "Full frame opened at original resolution: at 320 CSS pixels, heading, path tables, backup list and footer reflow within the viewport without clipping or overlapping content."
+    },
+    {
+      "file": "text-200-light.png",
+      "task": "Read configuration with text enlarged to 200%",
+      "viewport": {
+        "width": 800,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:50.873Z",
+      "fullPage": true,
+      "sha256": "9cfb3fbc2ed19c7b3a4d10e44f038d5404d3f4330566f2874f8d4e8a233174d9",
+      "verdict": "fail",
+      "observations": "Full frame opened at original resolution: text enlargement is inconsistent. Paragraphs enlarge while inline links, code and table text stay small, producing unreadable size relationships. Investigate stylesheet and enlargement scenario before passing."
+    },
+    {
+      "file": "search-unavailable-light.png",
+      "task": "Keep browsing when the search index cannot load",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T21:53:51.707Z",
+      "fullPage": false,
+      "sha256": "446b87ca6effcc8d57c76232c1647c4813c18ef8b60ac8dd01439a0627e423a0",
+      "verdict": "pass",
+      "observations": "Full viewport reviewed: search-load failure offers reload or navigation in readable text, the focused input stays visible, and Browse documentation remains available."
+    },
+    {
+      "file": "reflow-320-dark.png",
+      "task": "Read storage at 320 CSS pixels",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:52.120Z",
+      "fullPage": true,
+      "sha256": "433b679c9f20513a48b75e026738adf377b4a56c8d44c333f98ad1231a55a9bc",
+      "verdict": "pass",
+      "observations": "Full frame opened at original resolution: paths, table rows, backup list and footer wrap within 320 CSS pixels. Dark text contrast and section spacing remain readable."
+    },
+    {
+      "file": "text-200-dark.png",
+      "task": "Read configuration with text enlarged to 200%",
+      "viewport": {
+        "width": 800,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:52.287Z",
+      "fullPage": true,
+      "sha256": "3b698dfaf609d1ed404dd7c59a1a4d1152190d99cca60370c7c1f2321a07ef12",
+      "verdict": "fail",
+      "observations": "Full frame opened at original resolution: paragraph text grows but inline links, code and table text are painted small. Computed styles do double, and fresh viewport paint is consistent; this full-page capture is unreliable and must be replaced."
+    },
+    {
+      "file": "search-unavailable-dark.png",
+      "task": "Keep browsing when the search index cannot load",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T21:53:53.129Z",
+      "fullPage": false,
+      "sha256": "8eb08705490d41d95baaaee1db401af6796af5eb14a2e7c6f15d624201696d1c",
+      "verdict": "pass",
+      "observations": "Full viewport reviewed: the search failure message is readable in dark appearance; the focused input and Browse documentation control remain available."
+    }
+  ]
+}

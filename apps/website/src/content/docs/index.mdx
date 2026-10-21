@@ -1,0 +1,52 @@
+---
+title: Documentation
+description: Plan work, keep decisions, and finish checked changes with your coding agent.
+section: overview
+order: 0
+related: [installation, workflow, concepts]
+---
+import DocDirectory from "../../components/DocDirectory.astro";
+
+Magistr keeps a project's roadmap, decisions, work in progress, and verification
+results available to your coding agent. Use it when a project spans tasks or
+conversations and you want the next session to understand what has already happened.
+
+Your agent still reads and writes code, runs commands, and uses its own model
+account. Magistr supplies shared project records and tools for planning, source
+changes, and checks. It does not replace your agent, Git, or backups.
+
+## Start here
+
+1. [Install Magistr](/docs/installation). The current preview requires access to
+   the source repository.
+2. [Connect your agent](/docs/agents) in the project you want to work on.
+3. [Complete a first task](/docs/workflow), starting from an existing project or
+   an empty folder.
+
+Already connected? Ask your agent to read Magistr's current context and saved work
+before making changes. [Resume work](/docs/sessions) explains what a new session
+can recover.
+
+## Understand the work
+
+A **roadmap** describes deliverables and their dependencies. A **chunk** is one
+deliverable with a clear finish. During implementation, an **objective** and
+**tasks** track the work needed to deliver it. **Checks** record verification;
+**artifacts** link to the files, commits, and other results.
+
+[Concepts](/docs/concepts) explains these relationships. The guides below can also
+be read independently. Terminal commands run in your shell; skills such as
+`$next` in Codex or `/next` in Claude Code run inside your agent conversation.
+
+## Find an answer
+
+<DocDirectory />
+
+## Availability
+
+Magistr is a source preview and has not been publicly released. The CLI preview
+targets Apple Silicon macOS 15 or later. Registry packages are not published yet.
+The [desktop preview](/docs/desktop) has its own build requirements and limitations.
+
+The [recorded build](/#workflow) is an optional example of a project using
+Magistr. You do not need to watch it to follow this manual.

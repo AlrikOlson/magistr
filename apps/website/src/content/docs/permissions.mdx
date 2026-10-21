@@ -1,0 +1,81 @@
+---
+title: Permissions
+description: Understand which actions your agent and Magistr can approve or restrict.
+section: reference
+order: 5
+related: [configuration, troubleshooting, storage]
+---
+Your coding agent, Magistr's tools, and the operating system each control
+different parts of access. Set permissions in the host you actually use and
+review the scope of requested actions.
+
+A local Magistr record does not mean the model runs locally. The agent's service
+handles model requests using its own account, unless you deliberately use a
+local model setup.
+
+## Agent permissions
+
+Codex, Claude Code, and other hosts have their own permissions for commands,
+files, network access, and approvals. Magistr does not sandbox the agent's
+operating-system access.
+
+For a session Magistr launches, `--trust` selects a permission profile.
+Use a profile appropriate to the project and read the request before approving
+a consequential action.
+
+| Profile | Intended approval behavior |
+| --- | --- |
+| `cautious` | Ask for actions. |
+| `standard` | Automatically allow reads; request approval for other actions as required. |
+| `trusted` | Automatically allow most actions. |
+| `yolo` | Automatically allow actions under that profile. |
+
+These profiles do not override operating-system restrictions, provider behavior,
+or project policy. Changing a Magistr launch preference does not change the
+permissions of an already-open host conversation.
+
+## Magistr source tools
+
+Magistr's source tools check workspace boundaries, protected paths, current file
+content, and supported syntax before applying edits. Changes through those tools
+are journaled.
+
+Broad changes can require confirmation depending on configuration. An operation
+may be refused even after approval if its path is protected, source changed,
+syntax is invalid, or policy forbids it. Approval is not evidence that a change
+was successfully applied; inspect the returned result.
+
+The workspace command tool runs declared commands from
+`.magistr/workspace.toml`. A refusal for an undeclared command requires the
+project owner to review that declaration. Do not reroute the same forbidden
+operation through another tool.
+
+## Respond to an approval
+
+Check the project, target files or service, proposed effect, and whether it is
+within the work you requested. Approve or decline using the current host's
+control. In the desktop, permission requests belong to a particular
+conversation; return to that conversation to review the action.
+
+Tell the agent your commit, push, and deployment expectations before work begins.
+A routine edit, a publication, and deleting saved data have different effects.
+
+## Team policy and identity
+
+Projects can configure team identity, roles, and policy. When these restrictions
+apply, an approval from the conversation does not remove them. Use
+`magistr policy --help`, `magistr team --help`, and the reported diagnostic
+to inspect the applicable setup.
+
+`magistr login` handles configured team identity. It is separate from signing
+in to your coding agent. It does not supply a model subscription.
+
+## Costs and private data
+
+Magistr can record reported usage and apply spending controls to sessions it
+manages. A cost limit depends on the provider's usage reporting; it is not an
+independent guarantee about billing outside that session.
+
+Saved records can include source snippets, commands, output, and prompts.
+Review material before sharing a diagnostic or publishing evidence.
+[Storage](/docs/storage) lists the local records to protect and back up.

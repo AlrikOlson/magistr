@@ -6,7 +6,7 @@ import { publicAssetUrl } from "../../scripts/asset-url.mjs";
 const links = [
   { label: "Explore Magistr", href: "/#product" },
   { label: "Recorded build", href: "/#workflow" },
-  { label: "Docs", href: "/docs/installation" },
+  { label: "Docs", href: "/docs" },
   { label: "Install", href: "/#install" },
 ];
 const current = Astro.url.pathname;
@@ -19,7 +19,7 @@ const current = Astro.url.pathname;
     </a>
     <div class="nav-links" data-nav-links>
       {links.map(({ label, href }) => (
-        <a href={href} aria-current={href === current.replace(/\/$/, "") ? "page" : undefined}>{label}</a>
+        <a href={href} aria-current={href === "/docs" && current.startsWith("/docs") ? "location" : href === current.replace(/\/$/, "") ? "page" : undefined}>{label}</a>
       ))}
     </div>
     <div class="nav-actions">
@@ -34,7 +34,7 @@ const current = Astro.url.pathname;
     </div>
   </div>
   <ul id="mobile-menu" class="mobile-menu" data-mobile-menu hidden>
-    {links.map(({ label, href }) => <li><a href={href} aria-current={href === current.replace(/\/$/, "") ? "page" : undefined}>{label}</a></li>)}
+    {links.map(({ label, href }) => <li><a href={href} aria-current={href === "/docs" && current.startsWith("/docs") ? "location" : href === current.replace(/\/$/, "") ? "page" : undefined}>{label}</a></li>)}
     <li><a href="https://github.com/AlrikOlson/magistr" target="_blank" rel="noopener noreferrer">Repository (access required)<span class="sr-only">(opens in a new tab)</span></a></li>
   </ul>
 </nav>

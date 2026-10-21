@@ -1,24 +1,61 @@
 # Contributing to Magistr
 
-Magistr is in early public development. Contributions that improve roadmap and workflow management, make recorded work easier to review, or clarify the source-first release path are welcome.
+Magistr is a source preview and has not been publicly released. Contributions
+require repository access. For using Magistr on another project, read the
+[product manual](https://magistr.dev/docs).
 
 ## Start here
 
-1. Read the [development guide](docs/development.md) and the [architecture overview](docs/architecture/overview.md).
-2. Search the native roadmap and existing issues before starting work.
-3. Keep a change focused on one problem and describe the user-visible result.
-4. Add or update meaningful checks when behavior changes.
+1. Read [project instructions](AGENTS.md), the [development guide](docs/development.md),
+   and the [architecture overview](docs/architecture/overview.md).
+2. Inspect existing code and native roadmap records before proposing work.
+3. Identify which component owns the behavior and fix the problem there.
+4. Keep the change coherent, preserve unrelated work, and describe the observable
+   result and acceptance criteria.
 
-Magistr's own workflow uses one ready roadmap item at a time. A typical implementation runs research, planning, execution, verification, and an atomic commit. The repository keeps roadmap state in native Magistr storage; do not generate `ROADMAP.md` or `ROADMAP.json`.
+The repository keeps roadmaps and work plans in Magistr. Do not generate
+`ROADMAP.md` or `ROADMAP.json`. Planning and reviews do not authorize
+implementation of unrelated roadmap items.
 
-## Required checks
+## Verification
 
-Run formatting and the commands in `.magistr/project.json` before opening a pull request. Record the results through Magistr's gate or ship-check workflow when possible. Website changes also require `npm test` from `apps/website`; release changes should run `./scripts/package-release.sh` and verify the matching checksum.
+Choose focused verification for bounded changes, including code. Run formatting
+and checks for the affected behavior, dependencies and acceptance criteria.
+Record actual results through named Magistr gates or server-executed
+`check_work`. Use the full configured suite only for an explicit request or
+a concrete cross-cutting risk; state the reason first.
 
-Keep shared contracts independent of presentation. Read the desktop and session architecture guides before changing those boundaries. Preserve reduced-motion behavior, contrast, icon, screenshot, and architecture-index checks.
+For website changes, run `npm test` in `apps/website` and the affected browser
+scenarios. `npm run test:docs` isolates documentation; `npm run test:ui`
+includes documentation and the landing page. See the
+[website guide](apps/website/README.md).
 
-## Pull requests
+Every interface iteration needs reviewed screenshots saved directly under a new
+dated folder in `docs/evidence/desktop-iterations/`. Record viewport, appearance,
+renderer, source hashes, time, observations and verdicts. Passing tests do not
+replace visual review. Native OS-input journeys require explicit authorization
+for that run; routine layout checks run in the background.
 
-Explain the problem, the behavior after the change, and the checks you ran. Include screenshots for intentional visual changes. Keep generated files and unrelated formatting out of the diff.
+Read the relevant desktop or terminal contract before changing an interface.
+Preserve contrast, reduced motion, icon, screenshot and architecture-index checks.
+Run release packaging checks when packaging is affected, not for every change.
 
-By participating, you agree to follow the [Code of Conduct](CODE_OF_CONDUCT.md). For security issues, use the private reporting guidance in [SECURITY.md](SECURITY.md).
+## Documentation
+
+Public user instructions belong in `apps/website/src/content/docs/`.
+Repository entry points link to that manual. Technical contracts, development
+commands and dated evidence stay in their contributor sections. The
+[documentation index](docs/index.md) identifies those audiences.
+
+## Delivery
+
+Explain the problem, resulting behavior, checks, and material limitations.
+Include reviewed evidence for visual changes. Use one coherent conventional
+commit and stage only the intended files.
+
+For authorized direct delivery to protected `main`, follow the
+[verification-branch process](docs/development.md#ci-and-direct-pushes).
+A request to edit files does not independently authorize publication.
+
+By participating, you agree to the [Code of Conduct](CODE_OF_CONDUCT.md).
+For security issues, use [private reporting](SECURITY.md).

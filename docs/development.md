@@ -1,5 +1,9 @@
 # Development
 
+This guide is for changing Magistr itself. Using Magistr on your own project?
+Start with the [product manual](https://magistr.dev/docs). The
+[documentation index](index.md) separates development contracts from historical evidence.
+
 Magistr's root Rust workspace owns application services, commands, native
 workflow and source engines. The desktop has a separate Cargo workspace and
 lockfile for its WebView dependencies. Use Rust 1.95 or later, Git and Node.js 22+.
@@ -244,7 +248,14 @@ See [desktop architecture](architecture/desktop.md),
 cd apps/website
 npm ci
 npm test
+npm run test:docs
+# Complete website interactions, including the landing-page recording:
+npm run test:ui
 ```
+
+The [website README](../apps/website/README.md) describes collection metadata,
+content ownership, screenshot capture and verification. Use the focused docs suite
+for documentation changes; retain homepage coverage when shared navigation changes.
 
 The roadmap and execution plan live in native Magistr state. Never generate or
 commit a roadmap export. See [architecture](architecture/overview.md),

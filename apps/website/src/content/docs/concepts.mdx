@@ -1,108 +1,95 @@
 ---
-title: Saved work and sessions
-description: Give the next session the project context it needs to keep going.
-order: 7
+title: Concepts
+description: Understand the records Magistr keeps and how they relate to your project.
+section: concepts
+order: 1
+related: [roadmap, reasoning, sessions, storage]
 ---
+Magistr stores project records that a connected coding agent can read and update.
+These records describe planned work, decisions, execution, and evidence. Your
+source files remain in your repository.
 
-A new chat should be able to find the work you already did. Magistr keeps
-project records that Codex, Claude Code, or another connected agent can read.
+## Plan and execution
 
-Your code stays in your repository. You keep using your own coding agent
-and model account.
+| Record | What it means |
+| --- | --- |
+| Project | The shared identity and settings for the work you are building. |
+| Roadmap | Deliverables, their priorities, dependencies, and status. |
+| Workstream | A named area of the roadmap, such as account access or reporting. Some command options call this a track. |
+| Chunk | One deliverable with acceptance criteria and dependencies. |
+| Objective | The result an active work plan is trying to achieve. It can serve a chunk or a direct request. |
+| Task | One step in that work plan, such as investigating a failure or implementing a change. |
+| Action | A recorded account of work performed on a task. |
 
-## Your plan
+A project can have several workstreams. Each contains chunks. When a chunk is
+implemented, its objective and task plan explain how it will be delivered.
+Completing one task does not by itself complete the chunk.
 
-The roadmap holds deliverables, priorities, dependencies, and acceptance
-criteria. A piece being implemented has an objective and a more detailed
-task plan.
+**Priority** expresses importance. A **dependency** says another chunk must
+finish first. A pending chunk may therefore be waiting, while a ready chunk
+has satisfied its prerequisites.
 
-For the game, the next agent can see that the rules are finished, the opponent
-was checked, and the rematch work still needs attention. It can continue
-unfinished work after reading the saved plan and current files.
+For example, a reporting feature might need a data import before it can generate
+reports. The import is a dependency. Giving reports a higher priority does not
+remove that requirement.
 
-## Your work history
+## Decisions and evidence
 
-Saved reasoning holds findings and decisions. In the game example, the useful
-finding is that the short opponent policy can lose when it moves second.
-The next agent can retrieve that evidence before replacing the search.
+**Recorded reasoning** is an explanation deliberately saved by the agent: a
+question, findings, sources, alternatives, a decision, and its limits.
+An investigation may branch from an earlier question and feed into a later
+conclusion. Revisions preserve the earlier finding and explain what changed.
 
-Important conclusions can be **pinned**. A reasoning **checkpoint** reviews
-open questions and decisions; it is not a copy of the source.
+A **pin** makes an important finding easy to retrieve. A reasoning
+**checkpoint** reviews the reasoning record and open questions; it is not a
+backup of source files.
 
-Actions record work performed during a task. Checks keep verification results.
-Artifacts point to the resulting files, commits, and other evidence. Saved
-feedback can wait until you have time to investigate it.
+A **check** records verification. An executed command has its command, output,
+exit status, and observed inputs. A written review records what was inspected.
+A passing test and a reviewed screen answer different questions.
 
-## Work in your source
+An **artifact** links to a result, such as a file, commit, pull request, or
+deployment. An artifact link alone does not establish that its contents passed
+verification.
 
-Magistr's tools let the agent find, read, and edit the actual project.
-An edit can check that the file still matches the version the agent read,
-so it does not silently overwrite a newer change.
+A **signal** is saved feedback, a question, an idea, or a reported problem.
+Investigation can lead to a linked roadmap chunk, a dismissal, or a decision
+to wait.
 
-For supported languages, edits are checked for new syntax errors before
-writing. Changes made through these tools have a journal and can be undone.
-A conflicting later edit is reported instead of silently discarded.
+## Sessions and saved work
 
-These protections apply to the tools that provide them. Keep using tests,
-code review, Git, and your normal backups.
+A **session** is a conversation with an agent. Magistr's project records can
+outlive that conversation and be read by another connected agent.
 
-## Checking your work
+| Information | What carries over |
+| --- | --- |
+| Roadmap, saved reasoning, work plans, checks, feedback | Available through Magistr for the same project. |
+| Source files and commits | Available through the repository and working copy. |
+| Conversation history | Kept by the host that recorded it; Magistr-managed conversations have their own saved history. |
+| Model, authentication, and host permissions | Belong to the agent or to the settings used for a particular launch. |
 
-An executed check records the command, exit code, output, and checked inputs.
-A written review is a separate record.
+Connecting a different agent does not translate the previous agent's full chat
+transcript or transfer its model settings. Magistr does not automatically copy
+every chat message or reveal a model's private internal thinking.
 
-A later session can inspect the result and whether it still applies.
-[Checking the work](/docs/verification) covers focused checks, visual review,
-and the full quality gate.
+Ask a new session to read the saved work and inspect current source before
+continuing. Earlier verification can become stale when the relevant source,
+configuration, or environment changes.
 
-## Pick up in another session
+## Source tools
 
-Open the same project with Magistr connected and ask the agent to read the
-saved work before continuing.
+Magistr's source tools search, read, and change files in a working copy. Edits
+can check that a file still matches the version read. Supported syntax checks
+reject edits that introduce parse errors. Changes made through these tools are
+journaled; undo reports conflicts with later edits.
 
-Codex and Claude Code can read the same Magistr records. This does not transfer
-a conversation transcript or model settings between providers. The next agent
-still needs to inspect the current code.
+These protections apply to those tools. They do not replace tests, Git, code
+review, or backups, and they do not sandbox every command an agent can run.
 
-Magistr only knows what is recorded through it; it does not automatically
-preserve every chat message.
+## Where the records live
 
-## Agent sessions
-
-Choose the model and permissions in your agent. Magistr's supported launch
-options select the agent and settings for that run.
-
-The agent's service handles its model requests. Keeping project records on
-your Mac does not make those model requests run locally.
-
-Different sessions can work on different areas. Each should read its selected
-work and preserve changes made by the others.
-
-## The desktop preview
-
-The desktop is a separate preview available from source. It lets you open
-projects, talk to an agent, return to saved conversations, and browse the
-roadmap, reasoning, tasks, checks, activity, and feedback.
-
-The roadmap shows actual work and its prerequisites. Reasoning investigations
-have origins, branches, and conclusions; selecting a step opens its explanation.
-Use the command line or your connected agent for the full planning and
-change-review workflow.
-
-**New session** starts a conversation. Return to an existing conversation to
-recover your draft. **Stop** cancels the current turn. **Close session** ends
-that session. Permission requests let you approve or decline an action.
-
-Appearance can follow the system or stay light or dark.
-[Try the desktop preview](/docs/installation#try-the-desktop-preview) explains
-how to open it.
-
-## Where your work is saved
-
-Project settings and saved work live under `.magistr/` in the project.
-Saved conversations also use Magistr's local data folder. Your agent keeps
-its own conversation history.
-
-Include project data when moving or backing up your work. Removing an agent
-connection with `magistr remove` keeps saved work.
-See the [removal instructions](/docs/installation#remove-setup-or-uninstall).
+Project setup and the source-change journal are stored under the project's
+`.magistr/` directory. Workflow records and Magistr-managed conversation
+history also use user-level data directories. Copying only the repository may
+leave those records behind. [Storage and backups](/docs/storage) lists the
+locations and the limits of moving a project.

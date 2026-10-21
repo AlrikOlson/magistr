@@ -1,0 +1,74 @@
+---
+title: Skills
+description: Choose a workflow shortcut inside your agent conversation.
+section: reference
+order: 2
+related: [agents, chunks, commands]
+---
+A skill is a set of instructions your agent follows. Magistr installs nine
+project skills for supported Codex and Claude Code setups.
+[Connect the agent](/docs/agents) and open a fresh session before using them.
+
+Enter `$name` in Codex or `/name` in Claude Code. These are conversation
+commands, not shell commands. A portable MCP connection exposes tools but does
+not promise the same skill invocation syntax in every host.
+
+## Available skills
+
+| Name | Use it to | Starts implementation? |
+| --- | --- | --- |
+| `init` | Interview you and tailor project setup to the stack and workflow. | No |
+| `craft` | Apply the project's usual planning, evidence, delivery, and verification practices to your request. | Only within the work you requested |
+| `next` | Resume interrupted roadmap work or finish one ready chunk. | Yes |
+| `roadmap` | Implement one ready roadmap chunk. | Yes |
+| `next-loop` | Finish one chunk, save a bounded-run handoff, then stop for a fresh session. | Yes, one chunk per invocation |
+| `roadmap-refresh` | Research and revise a focused part of the roadmap. | No |
+| `signals` | Investigate feedback and surface or promote supported ideas. | No |
+| `validate` | Run the configured standard and required custom quality gates. | No |
+| `workspace-routing` | Use Magistr's source search, reading, editing, commands, and undo tools. | Supports the requested work |
+
+## Make the scope explicit
+
+For planning without implementation, ask for `roadmap-refresh` and name the
+area. For one implementation, use `next`. The `roadmap` skill is also an
+implementation workflow despite its name.
+
+For example, in a Codex conversation:
+
+```text
+$roadmap-refresh
+Review the import workstream against the current code. Update its plan;
+do not implement features.
+```
+
+Replace “import” with an actual workstream in your project. The expected result
+is recorded research and an updated plan.
+
+## Understand the loop
+
+The chat `next-loop` skill completes one chunk and prepares a handoff. A new
+session must read that handoff and saved state before the next invocation.
+It does not launch an unlimited sequence inside the same conversation.
+
+The terminal command `magistr next-loop --max-iterations 3` instead manages
+up to three fresh agent sessions. See [Working in chunks](/docs/chunks).
+
+## Find missing or outdated skills
+
+Codex project skills live in `.agents/skills/`; Claude Code project skills
+live in `.claude/skills/`. Use `./.codex/run` for Codex's project selection.
+An already-open host may need a fresh session after setup changes.
+
+In the project terminal:
+
+```sh
+magistr doctor .
+magistr repair . --dry-run
+```
+
+Review the repair report before applying it with `magistr repair .`.
+Customizations may be preserved instead of overwritten; inspect preserved files
+if the behavior differs from the current guide.
+
+Skills guide the agent. Required checks and permissions still apply, and a skill
+invocation does not establish that all of its steps succeeded.

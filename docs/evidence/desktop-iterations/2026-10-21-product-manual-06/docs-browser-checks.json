@@ -1,0 +1,1508 @@
+{
+  "status": "passed",
+  "failure": "",
+  "capturedAt": "2026-10-21T22:07:32.186Z",
+  "renderer": "Playwright WebKit",
+  "rendererVersion": "27.2",
+  "origin": "http://127.0.0.1:55590",
+  "sourceHashes": {
+    "apps/website/src/components/BuildWalkthrough.astro": "331bd51d5d82aa4658402d1422854aff85db4b8e3f39bef3d62af6537f95ed81",
+    "apps/website/src/components/DocDirectory.astro": "41bc5b65c9954bdabf1fe8afb3407e96a374b31dbe5690a5df7c19eef2b2bdba",
+    "apps/website/src/components/Footer.astro": "e116748096f9af7827a2d89eacb0b6036488c8c0fa2a6121b2efb4168edae720",
+    "apps/website/src/components/Nav.astro": "d0efc132e09aa2f68ebb420d87b7a3b3413c2590c56242f5824ad7fedefde61e",
+    "apps/website/src/components/ThemeToggle.astro": "62739fc7a3d3476e13c53f2dfa389150f3e7ca4ba0629c34b71f5cf8202ea211",
+    "apps/website/src/content/docs/agents.mdx": "e78bb7ae82fd017139240d054b1309f6b6082bf834948627f144c81637364c51",
+    "apps/website/src/content/docs/chunks.mdx": "50c1e447e86637d24b7b6498747a76e8692d8b463c7cb43aa8ea5d6cbe4e1704",
+    "apps/website/src/content/docs/commands.mdx": "4c3caeecd12b64e7c2b29eed6dba7d2ae038508943cc0384565293ee9830d763",
+    "apps/website/src/content/docs/concepts.mdx": "4670f3be12c363fee3d6599e5724b6bc39f0d5ac894e7391f0eb6b89732e79bf",
+    "apps/website/src/content/docs/configuration.mdx": "110d356b33eb4ae67e0506eb3c1b40fa90b2a8476a79eb8c8986f6e73ca5a215",
+    "apps/website/src/content/docs/contributing.mdx": "ac0199308f9ea42280e1d7e7ff8de3f16082dec530bf803daa870ad48ec33a6a",
+    "apps/website/src/content/docs/desktop.mdx": "654dc9d8824af9e657fa99c32a79218646b7a9a626e02588a5285beb3b3dae82",
+    "apps/website/src/content/docs/feedback.mdx": "30b2b383172a9cc609284b144ecdeef8c1eba52f5f6b8177202029c60e9fe324",
+    "apps/website/src/content/docs/index.mdx": "a1164972013b5f97cbb92db20be3b806c6dd1ad7f006ecd7d49b3a73974c4f80",
+    "apps/website/src/content/docs/installation.mdx": "ba93ba50c92518410835b233133899f5b9194a5bbbf17e5112ef4197731cad56",
+    "apps/website/src/content/docs/permissions.mdx": "6b765cf131c85e65a9905bf3630e12f079c77ba32a1fec7b8a8737069549e439",
+    "apps/website/src/content/docs/reasoning.mdx": "09c36c19720b7fd1cda1e03f46d6d3e0be27b73a259cf8bb57d6b25f05364d22",
+    "apps/website/src/content/docs/roadmap.mdx": "eaf8b34ca6d344289f49f8bcd963334228682b76068f7480463f9e8b7f9ad793",
+    "apps/website/src/content/docs/sessions.mdx": "0145401600aac0eea328fb221fdfe14d50f3e32839b8b92762d08c9122d02517",
+    "apps/website/src/content/docs/skills.mdx": "fb5de34f4d176651729c71f076679b6698913ea8e8ca2b88f7c893d67137db8d",
+    "apps/website/src/content/docs/storage.mdx": "23d594bf77b9be0e3d7ee06246e7a3398c8ff9a15d2ae2831bd15bd24d8cd7b8",
+    "apps/website/src/content/docs/troubleshooting.mdx": "87c26cffb8b729f8e36447bf0dab88f5a7ec4a08e78f9cec63f9e900e053ae15",
+    "apps/website/src/content/docs/uninstall.mdx": "851969126d8a8d76a234942f5e5d7ad3604b75ec47eb5603fc559e54d917b7af",
+    "apps/website/src/content/docs/upgrades.mdx": "2b72d7c8fe34b1236f1f493683d83e374f6f88dc0b9e1d82149d85c0eb2974b7",
+    "apps/website/src/content/docs/verification.mdx": "30e6a6f201a2cd7819d4b63a640a4a193e5cbb6d94d8cbbcdd199a312c2a06d8",
+    "apps/website/src/content/docs/workflow.mdx": "0a6fe497b9848f43cd2340c26fae277bca80cf6611866638562e32bbd990da6d",
+    "apps/website/src/content.config.ts": "803b66847804db477996fbf7d5eebd6db50903c8d802d1c510fb53c94e6d7bc5",
+    "apps/website/src/data/build-explanations.mjs": "5841f1da02e87155b6a9eaaadb238af00c5f00f5f2cfa3840468ab35d4ba6548",
+    "apps/website/src/data/build-recording.mjs": "d08404e6f9b53acf63c492b2d6584be73e1d8ac371aaefbcec7a87db4c44de90",
+    "apps/website/src/data/code-theme.mjs": "90fe4bbdbeac224f0c16b0808fbdfed7ea31aca40efa53b0f3058b86ccb9aa84",
+    "apps/website/src/data/docs.mjs": "e147664725e4ebc0891fe5eb6c709e7578992a8c18e18295cab74cdefcf0d87b",
+    "apps/website/src/data/rendered-recording.mjs": "26194262f551accddb1253facb1fc5657284235a721382ec50bd52900df20042",
+    "apps/website/src/data/terminal-format.mjs": "aa6bda53e59e701523c6c4bc960ca6ed03bbb56905471c8215e1c2817896a976",
+    "apps/website/src/layouts/Base.astro": "5bacc085fcd5b632a1abe2d3f181212523ae503bbcf2dbaf5a748d5d0592b6c0",
+    "apps/website/src/layouts/Docs.astro": "aab7738bf7df69e1e1018b1b3be1edf590792a87607a23488caf1b0536934cde",
+    "apps/website/src/pages/404.astro": "0e07a1ac6c089109c3da68c52f7f27513b36da8eb9d37863dba1e66bd32d1bff",
+    "apps/website/src/pages/demo/tic-tac-toe/playback.json.ts": "957fccb25265dee832614d3ac675590059b983fdc9bba0ea16c44176ba203531",
+    "apps/website/src/pages/docs/[...slug].astro": "cc864f14c23640c1a492ee338b743939636e5ad40cd47e2f1d8dec3fadbe5f0e",
+    "apps/website/src/pages/index.astro": "44cf977d8fb75acd530e820ac3fcc974e9ec12e28ef4e2b0ae4e2af63865e221",
+    "apps/website/src/pages/robots.txt.ts": "55c24c9a347c8d62fe0a071522d6433a9ccdcd5c4013733fe87ca2bc778c2ab2",
+    "apps/website/src/scripts/build-walkthrough.ts": "c2673fd874962f9d5de38856c6d86c784a5e9bd9fb6587e397c2f47a73c6aa88",
+    "apps/website/src/scripts/docs.ts": "e92eae80afbdd88be856743c5aca49a23e0a7445d22cf188d9955be570160d9b",
+    "apps/website/src/scripts/tabs.ts": "32e6adc7ac689beb534b916a5752b50f21e2d289f9cfd3f99f326472e2a4a0bc",
+    "apps/website/src/scripts/terminal-playback.ts": "b6e5f874a48ce865daa0f7afaf1e5faec252887a3e07dfec4126ab4316ffe6f0",
+    "apps/website/src/styles/build-walkthrough.css": "9e227ef71ef4e453c4cee944de449426dcf93870a60dd83f730375bf8224aafd",
+    "apps/website/src/styles/code.css": "9db119f5857093be9ba63d0d28c4f49523729f6cb2145ea3593edcf556bf1fa7",
+    "apps/website/src/styles/docs.css": "0c621478786bc05716e8fa780b9457d2c56e117d7543d7c08bbb1e52fe191db4",
+    "apps/website/src/styles/global.css": "fbdc0bd6e84b8bd8b124822254915fb68e2db31e911aefe84eaa7c519e66a7dd",
+    "apps/website/scripts/asset-url.mjs": "976d11d93e755da868580b92873db6a731aef16a3d6a37058c3a03a73bd54310",
+    "apps/website/scripts/audit-conversation.mjs": "7ca044caec72ed449ce248c10ab24aa96adfe1c0474fff634c71aee12d119035",
+    "apps/website/scripts/generate-favicons.mjs": "29219764e02ff13ac133f07a70e97fb33f8f3dfda80f2816000efa9a00de99a8",
+    "apps/website/scripts/highlight-recording.mjs": "94ee09584ba34c9011e6b00977c242fc9b3fa5f86da9fa3dfaedc4e4afbe178a",
+    "apps/website/scripts/publish-game.mjs": "3f81b328a16fdddcc1c3892ea5be00b37754bddcef6f5622721483dd7a42eedf",
+    "apps/website/tests/browser-support.mjs": "5c58c1165d860739f77a0d4ef45f6f798fc9545e171c386f2a5d25aa12135c05",
+    "apps/website/tests/browser.mjs": "6be33a9b7a0ec248a769e3674652cc93bf6f524bd80aaaa031ada1913398799d",
+    "apps/website/tests/build-output.mjs": "e96c9d9afb4c070cff1be96acb1eb34e522f41e56f9e683440d336a20dfb4aa0",
+    "apps/website/tests/build-recording.test.mjs": "f1781eb4e08c4d81540cbf2fb444b32f729068d2b6891160ebee7a1bbdfdd095",
+    "apps/website/tests/docs-browser.mjs": "e4d082a4c0736fddd4ee91df33f78d4d80779e5e6194cbbcb2fe12d71b7cfcc3",
+    "apps/website/tests/docs-cli.mjs": "b47ee571a1943ed54c05ea74a40d4da850a5e761ec2fb310873421b9be61678d",
+    "apps/website/tests/docs-content.mjs": "6e0b9e4f144eb859e1fa63d822f04c1ece4d96ba0c4f9c1d69e4705e7bce8654",
+    "apps/website/tests/docs-evidence.mjs": "e7d24a516fc71c7a45ef343a9c4f09aa08358dc6710c750a72da359fa73f75f0",
+    "apps/website/tests/game-browser.mjs": "9cf09e67bf393579a83a1553a7166a8fdde8f4498eb59124110c5a8a44149fe5",
+    "apps/website/tests/highlight-recording.test.mjs": "cb6f43a822e9d7a5da67347b9fe19d473ecbf488c88985603b11fa4219862748",
+    "apps/website/tests/repository-links.mjs": "7175ca4859131d333428852bafc255793894b1a96629f338899c07471704e3c4",
+    "apps/website/tests/ui.mjs": "986680f86295a2417d8144c0fcdd1690d60ff7a23b202bcefa58f1f0ec91f685",
+    "apps/website/astro.config.mjs": "9e5bfb46f2ff03c8176ef0c0b5c1928a365b8a6d869a370726c416e7befa9c22",
+    "apps/website/package.json": "2b5ac1a3ad79a5c1f786cd368f5f2976110e71a0b72cc3197bd53db2766d3571",
+    "apps/website/package-lock.json": "d060a02f10e98c5db0142e71ae351ff55bf10615a4e48944ec7059d8c40bae84",
+    "apps/website/public/_redirects": "a678d5ee42f4665b978e47b518465961f41e6f6126a68da54aa8c0e147d98050"
+  },
+  "checks": [
+    "Direct entry to 21 pages, active navigation, all anchors, related links/back, real search queries and keyboard use: desktop-light",
+    "Direct entry to 21 pages, active navigation, all anchors, related links/back, real search queries and keyboard use: desktop-dark",
+    "Direct entry to 21 pages, active navigation, all anchors, related links/back, real search queries and keyboard use: compact-light",
+    "Direct entry to 21 pages, active navigation, all anchors, related links/back, real search queries and keyboard use: compact-dark",
+    "Resize focus both directions; 320 CSS pixel reflow; 200% text; search-load failure with working fallback; navigation without JavaScript"
+  ],
+  "captures": [
+    {
+      "file": "page-agents-desktop-light.png",
+      "task": "Read Connect an agent from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:06:45.667Z",
+      "fullPage": true,
+      "sha256": "4aaacfd9efd1d21c80735e2a66f0ebaf65a7eb009657eea4fdcc3d2bc4b78fa8"
+    },
+    {
+      "file": "page-chunks-desktop-light.png",
+      "task": "Read Working in chunks from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:06:46.142Z",
+      "fullPage": true,
+      "sha256": "3347c98b655178715c2cd2b87c55c0aa654e821f24f580c9a0736b244c005945"
+    },
+    {
+      "file": "page-commands-desktop-light.png",
+      "task": "Read Command reference from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:06:46.626Z",
+      "fullPage": true,
+      "sha256": "56177adcf1a7891af9fec830268389309c6dd3e18f09b04f4e8ddd235d3a93b9"
+    },
+    {
+      "file": "page-concepts-desktop-light.png",
+      "task": "Read Concepts from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:06:47.099Z",
+      "fullPage": true,
+      "sha256": "95a22127155f98c4d004a270309ce074ae9358afac98b5fd987f6ce14fec2750"
+    },
+    {
+      "file": "page-configuration-desktop-light.png",
+      "task": "Read Configuration from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:06:47.548Z",
+      "fullPage": true,
+      "sha256": "28fa2981f52a78a2a6f0e7a841b148762dd3e4d88ac6d41ceba1e5df23981386"
+    },
+    {
+      "file": "page-contributing-desktop-light.png",
+      "task": "Read Contributing from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:06:47.934Z",
+      "fullPage": true,
+      "sha256": "817246b23f1758d6ee4e079b5e6ecaed5f60adf3cce03046481a1243eba12a68"
+    },
+    {
+      "file": "page-desktop-desktop-light.png",
+      "task": "Read Desktop preview from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:06:48.376Z",
+      "fullPage": true,
+      "sha256": "4faf02c6e021b6500d8c85213d2be0157394865ca37f5ecc381d329dff48a5ae"
+    },
+    {
+      "file": "page-feedback-desktop-light.png",
+      "task": "Read Feedback from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:06:48.818Z",
+      "fullPage": true,
+      "sha256": "e6c2ec48dc0f59583f69cad5dc1b1180400c7c9775856a456796333c944aef26"
+    },
+    {
+      "file": "page-index-desktop-light.png",
+      "task": "Read Documentation from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:06:49.232Z",
+      "fullPage": true,
+      "sha256": "ced33c9fb42f5617cfcea9a8610f9776e1820fe7ddb1731691e4efb71cba0a9e"
+    },
+    {
+      "file": "page-installation-desktop-light.png",
+      "task": "Read Installation from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:06:49.622Z",
+      "fullPage": true,
+      "sha256": "03b84245c4f347c844cf2df5d1262cf175b606e7ddbf58a977aff57e84d1021c"
+    },
+    {
+      "file": "page-permissions-desktop-light.png",
+      "task": "Read Permissions from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:06:50.027Z",
+      "fullPage": true,
+      "sha256": "ea4f204196599e3d1388392dcbc22769392234b7b64a7b96ea614e60bcae1320"
+    },
+    {
+      "file": "page-reasoning-desktop-light.png",
+      "task": "Read Reasoning and research from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:06:50.420Z",
+      "fullPage": true,
+      "sha256": "cec2ea5d09ae5136c0f680360c84d46c06f3a4d15d0750fae0be2e3b4615d363"
+    },
+    {
+      "file": "page-roadmap-desktop-light.png",
+      "task": "Read Plan a project from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:06:50.859Z",
+      "fullPage": true,
+      "sha256": "e051210555ef672165ad2cdbc5949b0f57a73446348c5c9a582a2459ead8fc4e"
+    },
+    {
+      "file": "page-sessions-desktop-light.png",
+      "task": "Read Sessions and resuming work from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:06:51.290Z",
+      "fullPage": true,
+      "sha256": "403a802f7de85925f8db09890bfe8c3a4aff0c9ff85e28ce887b29f8d8a3bedd"
+    },
+    {
+      "file": "page-skills-desktop-light.png",
+      "task": "Read Skills from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:06:51.728Z",
+      "fullPage": true,
+      "sha256": "985aa47c873e3449cf1290ca27fa341e7a16b69621fda550ef73371bba5efabf"
+    },
+    {
+      "file": "page-storage-desktop-light.png",
+      "task": "Read Storage and backups from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:06:52.101Z",
+      "fullPage": true,
+      "sha256": "b7373e586bc81a99f945788fcf2d7634cce858c840404763c3b75ace54b75735"
+    },
+    {
+      "file": "page-troubleshooting-desktop-light.png",
+      "task": "Read Troubleshooting from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:06:52.547Z",
+      "fullPage": true,
+      "sha256": "4a352cba7a2934d03023e40c2092ca795dc1deb4681343924176f05b1eb404ca"
+    },
+    {
+      "file": "page-uninstall-desktop-light.png",
+      "task": "Read Remove Magistr from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:06:53.041Z",
+      "fullPage": true,
+      "sha256": "7fc30f42b2ec24f6b22227aa9567faae51535d557416adc506d6689f31720163"
+    },
+    {
+      "file": "page-upgrades-desktop-light.png",
+      "task": "Read Upgrades from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:06:53.442Z",
+      "fullPage": true,
+      "sha256": "e2a7d8dd468809029e35d737ead5737e64d70368bfa6af1ba71e75e1b26e5c2d"
+    },
+    {
+      "file": "page-verification-desktop-light.png",
+      "task": "Read Verification from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:06:53.876Z",
+      "fullPage": true,
+      "sha256": "f5b3f084334aed6fd9a29e67b1af44c65380cf7563a60cb756bb97f8ce51a5f3"
+    },
+    {
+      "file": "page-workflow-desktop-light.png",
+      "task": "Read Your first task from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:06:54.345Z",
+      "fullPage": true,
+      "sha256": "229cc6ddab7647d155aca2173528bec4fd840103e7412d1b01fb5bdae87cd68e"
+    },
+    {
+      "file": "search-results-desktop-light.png",
+      "task": "Find upgrade instructions from documentation search",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:06:55.377Z",
+      "fullPage": false,
+      "sha256": "cdb899ac27fa1e684316bf0721ecea3182ee1c3034cb6efedcc898fafbac1fd2"
+    },
+    {
+      "file": "search-empty-desktop-light.png",
+      "task": "Recover from a documentation query with no results",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:06:55.693Z",
+      "fullPage": false,
+      "sha256": "6d0e9832adafeaa7d2b96f2724e21d6d11920e3b916b9d02e7196b6c6759e521"
+    },
+    {
+      "file": "contents-open-desktop-light.png",
+      "task": "Choose a section within configuration",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:06:56.058Z",
+      "fullPage": false,
+      "sha256": "296a75a4190994f6b03b98b90ee4fc6fda08b7c6af5211f2c4004a2493ec2394"
+    },
+    {
+      "file": "configuration-detail-desktop-light.png",
+      "task": "Read and adapt the labeled JSON configuration fragment",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:06:56.143Z",
+      "fullPage": false,
+      "sha256": "6fd03b983a92c73515cf647b301ba37b013ccd94142d05e3946c50eac948a4c3"
+    },
+    {
+      "file": "commands-detail-desktop-light.png",
+      "task": "Compare command options and effects in a reference table",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:06:56.293Z",
+      "fullPage": false,
+      "sha256": "9e91c90a5366996705897077cb265b563f244e9b6eaf8003bcec025de943f79d"
+    },
+    {
+      "file": "page-agents-desktop-dark.png",
+      "task": "Read Connect an agent from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:06:56.658Z",
+      "fullPage": true,
+      "sha256": "291f8c1960783987c9e7f3ace42ac46bb61df8a7646658639be79666d3c6e817"
+    },
+    {
+      "file": "page-chunks-desktop-dark.png",
+      "task": "Read Working in chunks from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:06:57.135Z",
+      "fullPage": true,
+      "sha256": "5f0a9338f07685f592bb0d31a0b767e9dcc87fcd21576e34d56f94fd322d09da"
+    },
+    {
+      "file": "page-commands-desktop-dark.png",
+      "task": "Read Command reference from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:06:57.618Z",
+      "fullPage": true,
+      "sha256": "070ac63c4637ee3c970b188dccc9ee55dc7ee92ca5ce4d43c7c4b52603d2ca26"
+    },
+    {
+      "file": "page-concepts-desktop-dark.png",
+      "task": "Read Concepts from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:06:58.090Z",
+      "fullPage": true,
+      "sha256": "94e61605858ea04bee437c59c531346c6bd5ac25d15b98b233e4dcad6ef66b26"
+    },
+    {
+      "file": "page-configuration-desktop-dark.png",
+      "task": "Read Configuration from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:06:58.534Z",
+      "fullPage": true,
+      "sha256": "ccce0eb155085fdef36abe86a908de71409a911309f3fca8c5d4a2e60efb8315"
+    },
+    {
+      "file": "page-contributing-desktop-dark.png",
+      "task": "Read Contributing from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:06:58.930Z",
+      "fullPage": true,
+      "sha256": "837c40a4623456d42611e78140db896af9176cc4c4af6f987aeebd6b48305345"
+    },
+    {
+      "file": "page-desktop-desktop-dark.png",
+      "task": "Read Desktop preview from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:06:59.370Z",
+      "fullPage": true,
+      "sha256": "436356237192d16258c2d833981bb56213e83d480223a5a268e7d246ef5c2aad"
+    },
+    {
+      "file": "page-feedback-desktop-dark.png",
+      "task": "Read Feedback from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:06:59.810Z",
+      "fullPage": true,
+      "sha256": "112bb0a883cdf2c2c647792b9b1ef0d7d4d9f127143d34e8da31c65f36891bcc"
+    },
+    {
+      "file": "page-index-desktop-dark.png",
+      "task": "Read Documentation from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:00.221Z",
+      "fullPage": true,
+      "sha256": "eb2248db98ba6e148b5d7587206245a0472738b19bf03ca0637fc165f259adc8"
+    },
+    {
+      "file": "page-installation-desktop-dark.png",
+      "task": "Read Installation from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:00.617Z",
+      "fullPage": true,
+      "sha256": "74d6d0cea1745f8a182874510a78b88026983b85bb4fcf56b88b9c0899c8bec9"
+    },
+    {
+      "file": "page-permissions-desktop-dark.png",
+      "task": "Read Permissions from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:01.016Z",
+      "fullPage": true,
+      "sha256": "9bc4da80650bca86e3befe870ae5026cab141d23751cccef391bdb0451e7cfaa"
+    },
+    {
+      "file": "page-reasoning-desktop-dark.png",
+      "task": "Read Reasoning and research from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:01.412Z",
+      "fullPage": true,
+      "sha256": "f8e7540a1ea5ac5c304e8b2881aca18a870d3c47daef1440c5abc2a6b9635102"
+    },
+    {
+      "file": "page-roadmap-desktop-dark.png",
+      "task": "Read Plan a project from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:01.831Z",
+      "fullPage": true,
+      "sha256": "dcb0f3e2ddf06b3ce3ee0e8900dd1c80e08c7d3437e2dcac441d832f4dd941c3"
+    },
+    {
+      "file": "page-sessions-desktop-dark.png",
+      "task": "Read Sessions and resuming work from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:02.267Z",
+      "fullPage": true,
+      "sha256": "d0b5f285a1b75ef2b053befc9d58fee8cb23bd10aa2963981b40d55f75b55a92"
+    },
+    {
+      "file": "page-skills-desktop-dark.png",
+      "task": "Read Skills from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:02.701Z",
+      "fullPage": true,
+      "sha256": "5fd03c9b56928986c9b1152f649b846c42ff61bc63fc032238bf9ad90ac21653"
+    },
+    {
+      "file": "page-storage-desktop-dark.png",
+      "task": "Read Storage and backups from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:03.077Z",
+      "fullPage": true,
+      "sha256": "b75409d960e22bd5c1030a3407f0bb71af24701894f63655576fa2ac8c6728f3"
+    },
+    {
+      "file": "page-troubleshooting-desktop-dark.png",
+      "task": "Read Troubleshooting from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:03.522Z",
+      "fullPage": true,
+      "sha256": "fc00302ddb262f5a097e555acd1afcc44659d37f11a877a0f9fa0216d39334a2"
+    },
+    {
+      "file": "page-uninstall-desktop-dark.png",
+      "task": "Read Remove Magistr from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:04.014Z",
+      "fullPage": true,
+      "sha256": "ae720bddd5dce6c82f1cd2b64ecdff3dc0889399fd74ebce70667c75ae8924ee"
+    },
+    {
+      "file": "page-upgrades-desktop-dark.png",
+      "task": "Read Upgrades from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:04.421Z",
+      "fullPage": true,
+      "sha256": "ebf3a7b537fcae0ee9fe4bfd2f14bbf2af94f8f58956dad548fe56dd006724eb"
+    },
+    {
+      "file": "page-verification-desktop-dark.png",
+      "task": "Read Verification from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:04.853Z",
+      "fullPage": true,
+      "sha256": "1ab6449fc9500e57509115ee3bcdc9da90c0461cf0251730c8d5f49b5680c1a1"
+    },
+    {
+      "file": "page-workflow-desktop-dark.png",
+      "task": "Read Your first task from direct entry",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:05.320Z",
+      "fullPage": true,
+      "sha256": "525b7f60cec021df593348eaefdc089018f8197f3d121b35299a67c4bed811e2"
+    },
+    {
+      "file": "search-results-desktop-dark.png",
+      "task": "Find upgrade instructions from documentation search",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:06.336Z",
+      "fullPage": false,
+      "sha256": "55356917732009668943a1a4f452a023d5a424f1a0f620bcfb6fa9c34baeab84"
+    },
+    {
+      "file": "search-empty-desktop-dark.png",
+      "task": "Recover from a documentation query with no results",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:06.652Z",
+      "fullPage": false,
+      "sha256": "75df6a75dca7cfed93019870cd26ec0fa2924c0b506dcad8ae0b519857393952"
+    },
+    {
+      "file": "contents-open-desktop-dark.png",
+      "task": "Choose a section within configuration",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:06.999Z",
+      "fullPage": false,
+      "sha256": "2e6f80e61d77c95bdcc28c28065c276df7984f7bd8c1b3ee2f248853e88ebcb8"
+    },
+    {
+      "file": "configuration-detail-desktop-dark.png",
+      "task": "Read and adapt the labeled JSON configuration fragment",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:07.083Z",
+      "fullPage": false,
+      "sha256": "204450532996fa4c9d242b1b6076c1e477039cf4586e2eeb131a27344626453e"
+    },
+    {
+      "file": "commands-detail-desktop-dark.png",
+      "task": "Compare command options and effects in a reference table",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:07.235Z",
+      "fullPage": false,
+      "sha256": "39982cb301a02ee5ed9dd20994e1ed83b6ddcc2850ae8d28d43b0bf7f05cfb3f"
+    },
+    {
+      "file": "page-agents-compact-light.png",
+      "task": "Read Connect an agent from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:07:07.550Z",
+      "fullPage": true,
+      "sha256": "906056b022ad38b23dc1de665fd7d3ee6c26787ff04f0d84b01fe28ffa623c6e"
+    },
+    {
+      "file": "page-chunks-compact-light.png",
+      "task": "Read Working in chunks from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:07:07.996Z",
+      "fullPage": true,
+      "sha256": "0740974ee078fd1abfefe3ca2047befb76fcc43b7de36ec4978c99713e201b3b"
+    },
+    {
+      "file": "page-commands-compact-light.png",
+      "task": "Read Command reference from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:07:08.435Z",
+      "fullPage": true,
+      "sha256": "9191ab4d9e760d7c9b7809d4132217d75ea937557df522c41303e28944861c12"
+    },
+    {
+      "file": "page-concepts-compact-light.png",
+      "task": "Read Concepts from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:07:08.884Z",
+      "fullPage": true,
+      "sha256": "e4004a15a756ade65e418736ddadfcba60bd12a763c75d6eec716653c77db43c"
+    },
+    {
+      "file": "page-configuration-compact-light.png",
+      "task": "Read Configuration from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:07:09.324Z",
+      "fullPage": true,
+      "sha256": "535fe8b3e291c2eff3c1b519f3bc9b2402c7b02e34759186d6a580af40ffb0e9"
+    },
+    {
+      "file": "page-contributing-compact-light.png",
+      "task": "Read Contributing from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:07:09.709Z",
+      "fullPage": true,
+      "sha256": "1313a598eea81470df503a376151d7f3f68191a902285dff58b7bc52ea28f3a5"
+    },
+    {
+      "file": "page-desktop-compact-light.png",
+      "task": "Read Desktop preview from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:07:10.115Z",
+      "fullPage": true,
+      "sha256": "8b2ec69749f6ed385f84b5421752dc54a782b86f43b0f02ec234927106a25b95"
+    },
+    {
+      "file": "page-feedback-compact-light.png",
+      "task": "Read Feedback from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:07:10.525Z",
+      "fullPage": true,
+      "sha256": "d6243ff2636d1fbd06d588c3d16e85a34244e043a216b8c155cc9810c85e8f54"
+    },
+    {
+      "file": "page-index-compact-light.png",
+      "task": "Read Documentation from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:07:10.900Z",
+      "fullPage": true,
+      "sha256": "33716c804a919862332028cf0ed929016980da8d7ddc2e608f37330b39f7f35d"
+    },
+    {
+      "file": "page-installation-compact-light.png",
+      "task": "Read Installation from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:07:11.293Z",
+      "fullPage": true,
+      "sha256": "5d1360cfb29f4a6660f34cfaa1641f99c88bf9314bcbd9a79ee9d7c2d908046c"
+    },
+    {
+      "file": "page-permissions-compact-light.png",
+      "task": "Read Permissions from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:07:11.662Z",
+      "fullPage": true,
+      "sha256": "f37e852f128d556ce4329925cb1994c6de593defa89dad4371ae628a56433a26"
+    },
+    {
+      "file": "page-reasoning-compact-light.png",
+      "task": "Read Reasoning and research from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:07:12.044Z",
+      "fullPage": true,
+      "sha256": "fb58bbb696c61d980aa27940adf1913f9ffe40f92ee4108b2254ffbdaa3af1eb"
+    },
+    {
+      "file": "page-roadmap-compact-light.png",
+      "task": "Read Plan a project from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:07:12.431Z",
+      "fullPage": true,
+      "sha256": "1899436a1c395dac2f6f27fc3c44a430402c44cd24cc16144944cfda6e1e22b9"
+    },
+    {
+      "file": "page-sessions-compact-light.png",
+      "task": "Read Sessions and resuming work from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:07:12.849Z",
+      "fullPage": true,
+      "sha256": "fb52b5c15f57ec5ffbf72c6eda35777936aecd43ad824b556e5aca828276d4e5"
+    },
+    {
+      "file": "page-skills-compact-light.png",
+      "task": "Read Skills from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:07:13.263Z",
+      "fullPage": true,
+      "sha256": "207f9d5e4fc7104735b46a37163929bdc7ff6026a87633d18d995cb939e3028c"
+    },
+    {
+      "file": "page-storage-compact-light.png",
+      "task": "Read Storage and backups from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:07:13.620Z",
+      "fullPage": true,
+      "sha256": "85daf6bd80ad3e1b1e5f8cc195c9b54381eace23e44a0af44429e1b50d794ee6"
+    },
+    {
+      "file": "page-troubleshooting-compact-light.png",
+      "task": "Read Troubleshooting from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:07:14.035Z",
+      "fullPage": true,
+      "sha256": "8f2d954298888d6bbe0ce773527226de8815a67cf4ecd5d3fe8efec5e4e6c26c"
+    },
+    {
+      "file": "page-uninstall-compact-light.png",
+      "task": "Read Remove Magistr from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:07:14.517Z",
+      "fullPage": true,
+      "sha256": "0a037341f15d87277efdf1238f2f7374f96bdc0297d1050a5222db25637b8c97"
+    },
+    {
+      "file": "page-upgrades-compact-light.png",
+      "task": "Read Upgrades from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:07:14.899Z",
+      "fullPage": true,
+      "sha256": "7a72d8327a44aebe6ed0a3c00c471ba0e5993975802a77f8953572137a963dbd"
+    },
+    {
+      "file": "page-verification-compact-light.png",
+      "task": "Read Verification from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:07:15.317Z",
+      "fullPage": true,
+      "sha256": "5342b5d399fcc1039bf61b4196a740648a1d66b7a26477d876b018d2ee2cd781"
+    },
+    {
+      "file": "page-workflow-compact-light.png",
+      "task": "Read Your first task from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:07:15.748Z",
+      "fullPage": true,
+      "sha256": "d973687f23f99638d27e611f11691f8b13b3af674dfb8e0dc9d0c5f3137e9351"
+    },
+    {
+      "file": "navigation-open-compact-light.png",
+      "task": "Browse grouped documentation with a keyboard",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:07:16.129Z",
+      "fullPage": true,
+      "sha256": "741cd69bc8fafdec6f13216cf5c7b5f5eaba03f6c2a66396200e4ce85effeec0"
+    },
+    {
+      "file": "search-results-compact-light.png",
+      "task": "Find upgrade instructions from documentation search",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:07:16.852Z",
+      "fullPage": false,
+      "sha256": "afe1edcb967df4b2b311e2958d5e7a5dded2701661a87ca075da12ead1ce43f7"
+    },
+    {
+      "file": "search-empty-compact-light.png",
+      "task": "Recover from a documentation query with no results",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:07:17.169Z",
+      "fullPage": false,
+      "sha256": "fb2104ea6f47ed25110a196746d07f3bc6af1cc9ca4cd0955aa2590a9bb7c108"
+    },
+    {
+      "file": "contents-open-compact-light.png",
+      "task": "Choose a section within configuration",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:07:17.515Z",
+      "fullPage": false,
+      "sha256": "f63004b628719e9017dcf403ce8cb5ac0e07cb25950f250eed569a04754cd4d5"
+    },
+    {
+      "file": "configuration-detail-compact-light.png",
+      "task": "Read and adapt the labeled JSON configuration fragment",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:07:17.583Z",
+      "fullPage": false,
+      "sha256": "180753312b97b2540a016cea20b47372d5a0e7b07f5a9983b327044d778f65c7"
+    },
+    {
+      "file": "commands-detail-compact-light.png",
+      "task": "Compare command options and effects in a reference table",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:07:17.736Z",
+      "fullPage": false,
+      "sha256": "0a4cd31b08a3731f740e43bf18ce3fe83b4b29f64be79c210721c3d81b882136"
+    },
+    {
+      "file": "page-agents-compact-dark.png",
+      "task": "Read Connect an agent from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:18.069Z",
+      "fullPage": true,
+      "sha256": "d1b03236a1fbd52b37ed904cb828bf9246b0b186b6f9dc0895b3c40601fe71ba"
+    },
+    {
+      "file": "page-chunks-compact-dark.png",
+      "task": "Read Working in chunks from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:18.533Z",
+      "fullPage": true,
+      "sha256": "f69acdc40c849807f41a47be9f030fb8e4d535d25f6a0ee5d31bcfeb6daef219"
+    },
+    {
+      "file": "page-commands-compact-dark.png",
+      "task": "Read Command reference from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:18.985Z",
+      "fullPage": true,
+      "sha256": "463d387e8d9d737dcd07c55e86c3b237234c16ffec76d5df0f692e83015f6d68"
+    },
+    {
+      "file": "page-concepts-compact-dark.png",
+      "task": "Read Concepts from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:19.419Z",
+      "fullPage": true,
+      "sha256": "38737804117a8fe59b7e0c0561aafb8407ea0700cfe853db70022dbbcde95e77"
+    },
+    {
+      "file": "page-configuration-compact-dark.png",
+      "task": "Read Configuration from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:19.859Z",
+      "fullPage": true,
+      "sha256": "afa6885f7f52c3178e7d34ac0b6686a26fb0bb944f73903d58fb07d443d58ad9"
+    },
+    {
+      "file": "page-contributing-compact-dark.png",
+      "task": "Read Contributing from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:20.244Z",
+      "fullPage": true,
+      "sha256": "7441c4d47f98fe2ef1ef2c97c25d4f8ba802d433f881350c9be92271cde78cd5"
+    },
+    {
+      "file": "page-desktop-compact-dark.png",
+      "task": "Read Desktop preview from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:20.656Z",
+      "fullPage": true,
+      "sha256": "b2cac28bf236574c64ffdab68a0614aca05e17381264aec13b10b75815d7e443"
+    },
+    {
+      "file": "page-feedback-compact-dark.png",
+      "task": "Read Feedback from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:21.080Z",
+      "fullPage": true,
+      "sha256": "837cf5f4073f28717d6b3f2fbd2a2061acd8b0427687d5c236950328ef7d81c1"
+    },
+    {
+      "file": "page-index-compact-dark.png",
+      "task": "Read Documentation from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:21.468Z",
+      "fullPage": true,
+      "sha256": "49298a80e83456240fd9f5f266e9c33d139ff34259c10145b6db860f82080f15"
+    },
+    {
+      "file": "page-installation-compact-dark.png",
+      "task": "Read Installation from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:21.844Z",
+      "fullPage": true,
+      "sha256": "a16dcef6d5e8b6b2e4c886e7bbc08116124c6ad181488e12e7e97ecc121a1722"
+    },
+    {
+      "file": "page-permissions-compact-dark.png",
+      "task": "Read Permissions from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:22.196Z",
+      "fullPage": true,
+      "sha256": "2be58b8bb2ce13febf7dbaa7c3634d45ede2ea5322539cbd41981b96b974a9ef"
+    },
+    {
+      "file": "page-reasoning-compact-dark.png",
+      "task": "Read Reasoning and research from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:22.579Z",
+      "fullPage": true,
+      "sha256": "8cb1fc2cce522595c368f7865f5c48ac3e38c4abf5472b70f5381a661168ccaf"
+    },
+    {
+      "file": "page-roadmap-compact-dark.png",
+      "task": "Read Plan a project from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:22.980Z",
+      "fullPage": true,
+      "sha256": "eaa8fb7b334f75fa4895705a5f0f29f6e07b7181dabf918f0e51dbe5b5d34089"
+    },
+    {
+      "file": "page-sessions-compact-dark.png",
+      "task": "Read Sessions and resuming work from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:23.397Z",
+      "fullPage": true,
+      "sha256": "6dfef8c7fef3045447e8d9e7a1c9dd731f0bd6a5c4f8964fc389e6f023865edb"
+    },
+    {
+      "file": "page-skills-compact-dark.png",
+      "task": "Read Skills from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:23.796Z",
+      "fullPage": true,
+      "sha256": "d0efbc40ad337eeb227a66eeb1bf60027937a117aaa2ef3898ab51cd0d82b950"
+    },
+    {
+      "file": "page-storage-compact-dark.png",
+      "task": "Read Storage and backups from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:24.158Z",
+      "fullPage": true,
+      "sha256": "580fbf65870e04acccbc2cc347be79a68e622cb4a66cf6b625828e0debcb8316"
+    },
+    {
+      "file": "page-troubleshooting-compact-dark.png",
+      "task": "Read Troubleshooting from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:24.586Z",
+      "fullPage": true,
+      "sha256": "d39503e64b8b7adafcebe38d314e1a3e505a656a0db467ef64d948d05a5bef21"
+    },
+    {
+      "file": "page-uninstall-compact-dark.png",
+      "task": "Read Remove Magistr from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:25.048Z",
+      "fullPage": true,
+      "sha256": "1a0a474412066049e988a08ff48a1592d9a09e17b6a20c65b37a5e03a63d79fc"
+    },
+    {
+      "file": "page-upgrades-compact-dark.png",
+      "task": "Read Upgrades from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:25.415Z",
+      "fullPage": true,
+      "sha256": "bb0a67507035fba2268d579bbcc2b2714df73641520e4632e9d8ebc38b8bbe24"
+    },
+    {
+      "file": "page-verification-compact-dark.png",
+      "task": "Read Verification from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:25.816Z",
+      "fullPage": true,
+      "sha256": "f2a7925fe65eab05e71fcf7f14425aa3f54971ddac31670a1f6a7c15dbd6d7b9"
+    },
+    {
+      "file": "page-workflow-compact-dark.png",
+      "task": "Read Your first task from direct entry",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:26.254Z",
+      "fullPage": true,
+      "sha256": "034b7e07cb0bf35d7a3e6d348563ef421373f97519937378fd6b954f00ad0134"
+    },
+    {
+      "file": "navigation-open-compact-dark.png",
+      "task": "Browse grouped documentation with a keyboard",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:26.649Z",
+      "fullPage": true,
+      "sha256": "4a4274c22ec516654646f0d28db30ba166b89b31b36eb805008a83e1dbd1eb3a"
+    },
+    {
+      "file": "search-results-compact-dark.png",
+      "task": "Find upgrade instructions from documentation search",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:27.370Z",
+      "fullPage": false,
+      "sha256": "f2e932264fd4c6e8eefc8f78bb99e1928f55b4c44d18579b407fdcec10b74780"
+    },
+    {
+      "file": "search-empty-compact-dark.png",
+      "task": "Recover from a documentation query with no results",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:27.686Z",
+      "fullPage": false,
+      "sha256": "4d18cee24692a618a3513307579f1b993bca9108340148cd38268ca8d91a43b6"
+    },
+    {
+      "file": "contents-open-compact-dark.png",
+      "task": "Choose a section within configuration",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:28.032Z",
+      "fullPage": false,
+      "sha256": "73974e404194c92ab49360842a4dab13497436857eb30d19e388ef1a5b9acf9f"
+    },
+    {
+      "file": "configuration-detail-compact-dark.png",
+      "task": "Read and adapt the labeled JSON configuration fragment",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:28.114Z",
+      "fullPage": false,
+      "sha256": "8e1e25c8543ac1a74aa7cbefecf485fac1b30e63a4de4190500a5543c24fab2e"
+    },
+    {
+      "file": "commands-detail-compact-dark.png",
+      "task": "Compare command options and effects in a reference table",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:28.251Z",
+      "fullPage": false,
+      "sha256": "e0e3efb69d91d0b860df20bf7c468941aef3cd28e79519e77c536497ec5114f3"
+    },
+    {
+      "file": "resize-compact-focus.png",
+      "task": "Keep navigation focus when the sidebar becomes a disclosure",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:07:28.482Z",
+      "fullPage": false,
+      "sha256": "109e49d05776c106a896ebfd903f204d1ac80252b9255df839bf7e2561639795"
+    },
+    {
+      "file": "resize-desktop-focus.png",
+      "task": "Return focus to the current page when the sidebar expands",
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:07:28.540Z",
+      "fullPage": false,
+      "sha256": "8d5451d159a1fb50dd6e2fc6a87c7e4c4c1775a75a8a548b7dfd71d2071d5363"
+    },
+    {
+      "file": "reflow-320-light.png",
+      "task": "Read storage at 320 CSS pixels",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:07:28.944Z",
+      "fullPage": true,
+      "sha256": "b4509a8c6d0b0748417de285963455202b24e4dd20751e9ca091a072b52a6954"
+    },
+    {
+      "file": "text-200-top-light.png",
+      "task": "Find navigation and the title with text enlarged to 200%",
+      "viewport": {
+        "width": 800,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:07:29.185Z",
+      "fullPage": false,
+      "sha256": "5c800395874c1048978501e1f7dda80f7702f243d3982bcf8ad5dac45381d8f3"
+    },
+    {
+      "file": "text-200-detail-light.png",
+      "task": "Read paragraph links and table headings with text enlarged to 200%",
+      "viewport": {
+        "width": 800,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:07:29.271Z",
+      "fullPage": false,
+      "sha256": "451d53c94a081cfe89d495dda23e901786d322be277db75c631eb125c55ac5b5"
+    },
+    {
+      "file": "text-200-light.png",
+      "task": "Read configuration with text enlarged to 200%",
+      "viewport": {
+        "width": 800,
+        "height": 1000
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:07:29.395Z",
+      "fullPage": true,
+      "sha256": "93dc103fed42f900338f3f8aa501b35fb11f12bc2a03e0827704cc2bee37a62b"
+    },
+    {
+      "file": "search-unavailable-light.png",
+      "task": "Keep browsing when the search index cannot load",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "capturedAt": "2026-10-21T22:07:30.223Z",
+      "fullPage": false,
+      "sha256": "446b87ca6effcc8d57c76232c1647c4813c18ef8b60ac8dd01439a0627e423a0"
+    },
+    {
+      "file": "reflow-320-dark.png",
+      "task": "Read storage at 320 CSS pixels",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:30.648Z",
+      "fullPage": true,
+      "sha256": "433b679c9f20513a48b75e026738adf377b4a56c8d44c333f98ad1231a55a9bc"
+    },
+    {
+      "file": "text-200-top-dark.png",
+      "task": "Find navigation and the title with text enlarged to 200%",
+      "viewport": {
+        "width": 800,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:30.902Z",
+      "fullPage": false,
+      "sha256": "344cfd8a428433e35b97b804a52b6074f38fa9f8bbec57636cde1c8b0ada767c"
+    },
+    {
+      "file": "text-200-detail-dark.png",
+      "task": "Read paragraph links and table headings with text enlarged to 200%",
+      "viewport": {
+        "width": 800,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:30.986Z",
+      "fullPage": false,
+      "sha256": "b30f3e0c747a439a50fb71bbc6b540b094cdb3b361d5f8cf3c843c787ebdfddc"
+    },
+    {
+      "file": "text-200-dark.png",
+      "task": "Read configuration with text enlarged to 200%",
+      "viewport": {
+        "width": 800,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:31.112Z",
+      "fullPage": true,
+      "sha256": "47f590b8941e98e540f9df8b46c0687543f8e87aada41225230558b947eb8203"
+    },
+    {
+      "file": "search-unavailable-dark.png",
+      "task": "Keep browsing when the search index cannot load",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "capturedAt": "2026-10-21T22:07:31.957Z",
+      "fullPage": false,
+      "sha256": "8eb08705490d41d95baaaee1db401af6796af5eb14a2e7c6f15d624201696d1c"
+    }
+  ],
+  "limitations": [
+    "Headless browser layout and DOM input only; native OS input and assistive technology were not tested.",
+    "Screenshots require separate inspection and review verdicts."
+  ]
+}
