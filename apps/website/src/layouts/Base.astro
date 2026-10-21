@@ -11,7 +11,7 @@ interface Props {
 }
 
 const {
-  title = "Magistr — Build a project with Codex or Claude Code",
+  title = "Build a project with Magistr",
   description = "Magistr keeps the roadmap, decisions and checked work for your project, so Codex or Claude Code can pick up where you left off.",
   ogImage,
   jsonLd,
@@ -40,7 +40,7 @@ const ogImageUrl = new URL(ogImage ?? publicAssetUrl("og-image.png"), Astro.site
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={ogImageUrl.href} />
-    <meta property="og:image:alt" content="Magistr — Build a project with Codex or Claude Code" />
+    <meta property="og:image:alt" content="Build a project with Magistr" />
     <meta property="og:url" content={canonicalUrl.href} />
     <meta property="og:site_name" content="Magistr" />
     <meta property="og:locale" content="en_US" />

@@ -1,0 +1,13 @@
+{
+  "capturedAt": "2026-10-21T04:20:11.419112+00:00",
+  "renderer": "Sharp SVG rasterization through npm test",
+  "size": {
+    "width": 1200,
+    "height": 630
+  },
+  "appearance": "dark fixed social image",
+  "source": "apps/website/public/og-image.svg",
+  "sourceSha256": "1433ab472239193e78668b035d61260e66646185ace83c1086600b8935ea47fd",
+  "sha256": "45bc8034b7c10b95a5ce5a254da914f28f7342e3c48544a9c4cbaebe9f625532",
+  "review": "pending; see REVIEW.md for visual verdict"
+}

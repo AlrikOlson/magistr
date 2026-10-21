@@ -1,0 +1,531 @@
+{
+  "completedAt": "2026-10-21T04:20:05.769Z",
+  "status": "passed",
+  "renderer": "Playwright WebKit",
+  "rendererVersion": "27.2",
+  "platform": "darwin-arm64",
+  "node": "v24.21.0",
+  "origin": "http://127.0.0.1:49188",
+  "motion": "reduced",
+  "scale": 1,
+  "evidenceScope": "branding",
+  "checks": [
+    {
+      "layout": "wide",
+      "appearance": "light",
+      "passed": true,
+      "scenarios": [
+        "five static routes",
+        "section navigation: keyboard, links and sticky-header clearance",
+        "primary and theme-control contrast",
+        "wrapped code and aligned documentation arrows",
+        "walkthrough and evidence tabs: pointer, arrows, Home, End, focus",
+        "clipboard success and denial (browser stub)",
+        "reflow at 320 px",
+        "images",
+        "install anchor",
+        "theme persistence",
+        "selected agent instructions",
+        "lazy search, results, empty and failure recovery, cleared query",
+        "keyboard skip link"
+      ]
+    },
+    {
+      "layout": "wide",
+      "appearance": "dark",
+      "passed": true,
+      "scenarios": [
+        "five static routes",
+        "section navigation: keyboard, links and sticky-header clearance",
+        "primary and theme-control contrast",
+        "wrapped code and aligned documentation arrows",
+        "walkthrough and evidence tabs: pointer, arrows, Home, End, focus",
+        "clipboard success and denial (browser stub)",
+        "reflow at 320 px",
+        "images",
+        "install anchor",
+        "theme persistence",
+        "selected agent instructions",
+        "lazy search, results, empty and failure recovery, cleared query",
+        "keyboard skip link"
+      ]
+    },
+    {
+      "layout": "compact",
+      "appearance": "light",
+      "passed": true,
+      "scenarios": [
+        "five static routes",
+        "section navigation: keyboard, links and sticky-header clearance",
+        "primary and theme-control contrast",
+        "wrapped code and aligned documentation arrows",
+        "walkthrough and evidence tabs: pointer, arrows, Home, End, focus",
+        "clipboard success and denial (browser stub)",
+        "reflow at 320 px",
+        "images",
+        "install anchor",
+        "theme persistence",
+        "selected agent instructions",
+        "lazy search, results, empty and failure recovery, cleared query",
+        "keyboard skip link",
+        "mobile menu navigation, Escape, anchor focus and resize recovery"
+      ]
+    },
+    {
+      "layout": "compact",
+      "appearance": "dark",
+      "passed": true,
+      "scenarios": [
+        "five static routes",
+        "section navigation: keyboard, links and sticky-header clearance",
+        "primary and theme-control contrast",
+        "wrapped code and aligned documentation arrows",
+        "walkthrough and evidence tabs: pointer, arrows, Home, End, focus",
+        "clipboard success and denial (browser stub)",
+        "reflow at 320 px",
+        "images",
+        "install anchor",
+        "theme persistence",
+        "selected agent instructions",
+        "lazy search, results, empty and failure recovery, cleared query",
+        "keyboard skip link",
+        "mobile menu navigation, Escape, anchor focus and resize recovery"
+      ]
+    }
+  ],
+  "sourceHashes": {
+    "apps/website/astro.config.mjs": "b8e61ea2c65b9c04cd1f44fa09091e134c761266baf1ea90c0efbdf75e795818",
+    "apps/website/package-lock.json": "799cde1b1a6c8048e7e1ec105b283f47a526485028f5ce0fdb06010f5e4a7b53",
+    "apps/website/package.json": "4ffc0f1dfc9044f05e349d92aa4ff33d0ece890a32ea0a29c43cf87fd3141e74",
+    "apps/website/public/favicon.svg": "39f132daba63253e3b52d7196f1da0ccbd79ca6398258856d092d05b0fc713d5",
+    "apps/website/public/github-social.png": "45bc8034b7c10b95a5ce5a254da914f28f7342e3c48544a9c4cbaebe9f625532",
+    "apps/website/public/icon-192.png": "28955bd5e1b5021eb9c0d52ff21d61aa0b9004f94271f21261c4aba06143b330",
+    "apps/website/public/og-image.png": "45bc8034b7c10b95a5ce5a254da914f28f7342e3c48544a9c4cbaebe9f625532",
+    "apps/website/public/og-image.svg": "1433ab472239193e78668b035d61260e66646185ace83c1086600b8935ea47fd",
+    "apps/website/public/screenshots/captures.json": "59897446e1905f99041dbc73cb9758d32b9541bb51c676b6eddd30009ab1d5bf",
+    "apps/website/public/site.webmanifest": "2bb0d8f16524032f18d2e694c6ce5d42dd33cae1c3ace178f818b4a75caf8975",
+    "apps/website/scripts/asset-url.mjs": "976d11d93e755da868580b92873db6a731aef16a3d6a37058c3a03a73bd54310",
+    "apps/website/scripts/generate-favicons.mjs": "29219764e02ff13ac133f07a70e97fb33f8f3dfda80f2816000efa9a00de99a8",
+    "apps/website/src/components/Footer.astro": "23491fba8cdb8ee7c02bae483be82cb233652c9cd488f7201b46a36553a2d84e",
+    "apps/website/src/components/Nav.astro": "77cab5ab0cdc4d7a92502adbe6746fe008b3763c93550694acff8a84561a36a2",
+    "apps/website/src/components/ProductEvidence.astro": "6b3a4b44a6862cf3010ab7ef02136f84a32d59467e55b9dd23f861258b786f3b",
+    "apps/website/src/components/ThemeToggle.astro": "62739fc7a3d3476e13c53f2dfa389150f3e7ca4ba0629c34b71f5cf8202ea211",
+    "apps/website/src/components/Workflow.astro": "258728fd8876bb0e8064fdca8a54120c57234086ba09604295d19ed0bfa22f1f",
+    "apps/website/src/content.config.ts": "35db5d681c2146a4e34de514bb5c1472d5da2e75b2652f8ca0fba880afcf1a1a",
+    "apps/website/src/content/docs/concepts.mdx": "75f3cbb852a2b60f07608e7ec1f3e6e3a94ecd1ae7c7ac03466188d24f1adb66",
+    "apps/website/src/content/docs/installation.mdx": "89cdd1893f6de24ad6928d2f551e03301b4732a3316b5bbc144d4450cb77a3d8",
+    "apps/website/src/content/docs/workflow.mdx": "2d38d306deb4f0752d43ac9145a940b1d6381df762d7875cd3ccf83be2043d21",
+    "apps/website/src/layouts/Base.astro": "bda7db4e3bdc2104a00615b3066167db83b4d32757b1860027889b0c9ef271cf",
+    "apps/website/src/layouts/Docs.astro": "a6ccd0f1d616a6c73548c6a751924707c8ac166d275670dd5cbc0327d0f730fc",
+    "apps/website/src/pages/404.astro": "9829e116d2cd8e2a16b6ac66a2be9566acb5e6486dc2848fe8b164f4fd332f74",
+    "apps/website/src/pages/docs/[...slug].astro": "14d87e7c921ba2633ccd4780c9c218031152ebe16e2aa39c3a37f7243bb48e95",
+    "apps/website/src/pages/index.astro": "ae1d2c3e114945a89b60e838f5079f93b014d134956d878e55fe5487e5f889ea",
+    "apps/website/src/pages/robots.txt.ts": "55c24c9a347c8d62fe0a071522d6433a9ccdcd5c4013733fe87ca2bc778c2ab2",
+    "apps/website/src/scripts/tabs.ts": "32e6adc7ac689beb534b916a5752b50f21e2d289f9cfd3f99f326472e2a4a0bc",
+    "apps/website/src/styles/global.css": "07a3e60f15481d9da134f73313dda1ed643d23f10f19982fab16785db175ee1d",
+    "apps/website/tests/browser.mjs": "2c91e4b5893be343af2ecbeb8a80f4d1284fdb2d71b6c5c4511afd198af3fdde"
+  },
+  "captures": [
+    {
+      "file": "home-intro-wide-light.png",
+      "state": "Product description, setup action and project guide",
+      "url": "/",
+      "capturedAt": "2026-10-21T04:19:50.142Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "4d4ff4c9260836d7143201483cb4a331774feaafdc1b40cf12fa052e7addf6cc",
+      "review": "pending"
+    },
+    {
+      "file": "installation-intro-wide-light.png",
+      "state": "installation navigation and opening",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-21T04:19:50.965Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "dc2885bd66e41d7acebfba62a835352f082743d7cf5556c3011a791cc1c87f63",
+      "review": "pending"
+    },
+    {
+      "file": "concepts-intro-wide-light.png",
+      "state": "concepts navigation and opening",
+      "url": "/docs/concepts/",
+      "capturedAt": "2026-10-21T04:19:52.779Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "4890115a48d56eed8de5d9afc1ca3caac65277c67da4894ebf8e34610274ffe8",
+      "review": "pending"
+    },
+    {
+      "file": "workflow-intro-wide-light.png",
+      "state": "workflow navigation and opening",
+      "url": "/docs/workflow/",
+      "capturedAt": "2026-10-21T04:19:52.997Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "d5ff90791e0ab277974ea1a8aab663c22c97f177353770e68a01fc6f06dd3dcb",
+      "review": "pending"
+    },
+    {
+      "file": "not-found-intro-wide-light.png",
+      "state": "not-found navigation and opening",
+      "url": "/404.html",
+      "capturedAt": "2026-10-21T04:19:53.191Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "ce0ee4f487a902be36a355388e50510f7ea346fa6e0ed7cae3914acfb9448032",
+      "review": "pending"
+    },
+    {
+      "file": "home-intro-wide-dark.png",
+      "state": "Product description, setup action and project guide",
+      "url": "/",
+      "capturedAt": "2026-10-21T04:19:53.822Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "a8bb6bfe41dbc75127aff0fa68944a6dec929a1b5729cab0f55bb0a995191820",
+      "review": "pending"
+    },
+    {
+      "file": "installation-intro-wide-dark.png",
+      "state": "installation navigation and opening",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-21T04:19:54.649Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "323f59bb91ca59228185c25aa2693277514eda09d3b59bb2de11d7a87540b53b",
+      "review": "pending"
+    },
+    {
+      "file": "concepts-intro-wide-dark.png",
+      "state": "concepts navigation and opening",
+      "url": "/docs/concepts/",
+      "capturedAt": "2026-10-21T04:19:56.480Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "487be8316eeb063ee30072e2a592d640aa039979e190ad27840d35d1cc067ba1",
+      "review": "pending"
+    },
+    {
+      "file": "workflow-intro-wide-dark.png",
+      "state": "workflow navigation and opening",
+      "url": "/docs/workflow/",
+      "capturedAt": "2026-10-21T04:19:56.697Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "fa9d5d21df34ec96374cd0a6fdf45da72ffffcfbef7cb084b4352d8e0553ac24",
+      "review": "pending"
+    },
+    {
+      "file": "not-found-intro-wide-dark.png",
+      "state": "not-found navigation and opening",
+      "url": "/404.html",
+      "capturedAt": "2026-10-21T04:19:56.891Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "7a62d369f88dcac503fe75cc7c7679c3ba9611ea4f3623425b0ffdce20ea68cb",
+      "review": "pending"
+    },
+    {
+      "file": "home-intro-compact-light.png",
+      "state": "Product description, setup action and project guide",
+      "url": "/",
+      "capturedAt": "2026-10-21T04:19:57.542Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "5705c89345fb50f3fc3954f072fc0a690aae4b2192ef60ae552a24f993202205",
+      "review": "pending"
+    },
+    {
+      "file": "installation-intro-compact-light.png",
+      "state": "installation navigation and opening",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-21T04:19:58.629Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "81650824eb6ac0dfb6f937c088b46afafa74bbf319a79824d4b4fc821a2a2b64",
+      "review": "pending"
+    },
+    {
+      "file": "concepts-intro-compact-light.png",
+      "state": "concepts navigation and opening",
+      "url": "/docs/concepts/",
+      "capturedAt": "2026-10-21T04:20:00.442Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "81867332e95e21f18dd804185e8db21033fd1a7020afbced8726e3fc5e0f31e2",
+      "review": "pending"
+    },
+    {
+      "file": "workflow-intro-compact-light.png",
+      "state": "workflow navigation and opening",
+      "url": "/docs/workflow/",
+      "capturedAt": "2026-10-21T04:20:00.648Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "fb4bc1d736d55d09de3eba512b36b9f6a030011fc8392202fc2e664adb0bda02",
+      "review": "pending"
+    },
+    {
+      "file": "not-found-intro-compact-light.png",
+      "state": "not-found navigation and opening",
+      "url": "/404.html",
+      "capturedAt": "2026-10-21T04:20:00.839Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "3a339a5f296e275f77046529d430105e92145d75a18973488e2b809aec0122f1",
+      "review": "pending"
+    },
+    {
+      "file": "home-320-light.png",
+      "state": "Home at 320 CSS pixels",
+      "url": "/",
+      "capturedAt": "2026-10-21T04:20:01.141Z",
+      "viewport": {
+        "width": 320,
+        "height": 844
+      },
+      "appearance": "light",
+      "fullPage": true,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 320,
+      "height": 4947,
+      "sha256": "ddd11e78a82a373cc84811b08d76b08752d24ce5828563edfb41fca2c99c7f02",
+      "review": "pending"
+    },
+    {
+      "file": "home-intro-compact-dark.png",
+      "state": "Product description, setup action and project guide",
+      "url": "/",
+      "capturedAt": "2026-10-21T04:20:01.761Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "8cce9f2408a0333b11451bcf204da32e6a35aa642f1e85b5dd4d4b72cabfc7b3",
+      "review": "pending"
+    },
+    {
+      "file": "installation-intro-compact-dark.png",
+      "state": "installation navigation and opening",
+      "url": "/docs/installation/",
+      "capturedAt": "2026-10-21T04:20:02.813Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "d4bab775c437e6788f20eaeef9f71e736383821028207392b389dc28777deda7",
+      "review": "pending"
+    },
+    {
+      "file": "concepts-intro-compact-dark.png",
+      "state": "concepts navigation and opening",
+      "url": "/docs/concepts/",
+      "capturedAt": "2026-10-21T04:20:04.609Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "b49170e6eed70454bd9223d9f74a7688dcbd073dc2481faaf5ad1cf31302c35c",
+      "review": "pending"
+    },
+    {
+      "file": "workflow-intro-compact-dark.png",
+      "state": "workflow navigation and opening",
+      "url": "/docs/workflow/",
+      "capturedAt": "2026-10-21T04:20:04.814Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "edc5c35e5470b3b364e5446dc96eafcfa833c7c27fb51935bfecd01886d91c51",
+      "review": "pending"
+    },
+    {
+      "file": "not-found-intro-compact-dark.png",
+      "state": "not-found navigation and opening",
+      "url": "/404.html",
+      "capturedAt": "2026-10-21T04:20:05.006Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 844,
+      "sha256": "182cb770be3542005a701c0c4daa7c0e74624172badcbfaf8ae6d9abfcb270ac",
+      "review": "pending"
+    },
+    {
+      "file": "home-320-dark.png",
+      "state": "Home at 320 CSS pixels",
+      "url": "/",
+      "capturedAt": "2026-10-21T04:20:05.302Z",
+      "viewport": {
+        "width": 320,
+        "height": 844
+      },
+      "appearance": "dark",
+      "fullPage": true,
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 320,
+      "height": 4947,
+      "sha256": "840bc12ee98765792dd75daf3c933a5e7176fe8b5f025c8f8bdc3258716c57a6",
+      "review": "pending"
+    }
+  ],
+  "limitations": [
+    "Headless browser only; no native OS-input or assistive-technology testing.",
+    "Screenshots require separate recorded visual review.",
+    "Local build; no deployed-site or registry publication claim."
+  ]
+}
