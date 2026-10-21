@@ -26,7 +26,7 @@ export function chapters(recording){
  return [
   {label:"Plan the game",index:Math.max(0,lastPlan),note:"Four pieces, with the rules underneath both the board and the opponent."},
   {label:"Check the rules",index:find(e=>e.operation==="roadmap_complete_chunk"&&e.chunk?.id==="example-ttt-rules"),note:"Occupied squares, alternating turns, all eight winning lines, and a full-board draw."},
-  {label:"Choose the opponent",index:find(e=>e.branch?.merged_into===1752),note:"A short tactical policy lost when it played second. The recorded experiment led to full search."},
+  {label:"Choose the opponent",index:find(e=>e.branch?.merged_into===1752),note:"Try a simple opponent, find its losing game, then check an opponent that looks ahead."},
   {label:"Build the board",index:find(e=>e.operation==="roadmap_complete_chunk"&&e.chunk?.id==="example-ttt-board"),note:"The same Rust rules now drive a real Bevy 0.20.0 board, with pointer and keyboard input."},
   {label:"Play another round",index:find(e=>e.operation==="roadmap_complete_chunk"&&e.chunk?.id==="example-ttt-rematch"),note:"Keep the score, clear the board, and let the other player start."},
  ];

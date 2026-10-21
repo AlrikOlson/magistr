@@ -4,6 +4,7 @@ import {readFileSync} from "node:fs";
 import {createHash} from "node:crypto";
 import {execFileSync} from "node:child_process";
 import {stateAt,chapters} from "../src/data/build-recording.mjs";
+import {explanations,explanationFor,explanationHTML} from "../src/data/build-explanations.mjs";
 const dir=new URL("../public/demo/tic-tac-toe/",import.meta.url),recording=JSON.parse(readFileSync(new URL("recording.json",dir)));
 const manifest=()=>JSON.parse(readFileSync(new URL("manifest.json",dir)));
 const hash=b=>createHash("sha256").update(b).digest("hex");
@@ -32,6 +33,24 @@ test("the completed project has actual prerequisite relationships and retained f
  assert(state.checks.some(c=>c.passed===true&&c.name==="Rules, opponent and rematches"));
  const steps=new Set(state.steps.map(s=>s.step_number));
  for(const b of state.branches){assert(steps.has(b.from_step));if(b.status==="merged")assert(steps.has(b.merged_into));}
+});
+test("every published action has a concise explanation, with no raw response fallback",()=>{
+ assert.deepEqual(Object.keys(explanations).sort(),recording.events.map(e=>e.id).sort());
+ for(const event of recording.events){
+  const explanation=explanationFor(event.id),copy=JSON.stringify(explanation);
+  assert(explanation.title&&explanation.summary,event.id);
+  assert(explanation.details.length<=2,event.id+" has at most two supporting points");
+  assert(!/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f-]{23}|ttt-(rules|opponent|board|rematch)|required gate\(s\)|current tree|step 175\d/.test(copy),event.id+" exposes internal log language");
+  assert(copy.split(/\s+/).length<100,event.id+" is short enough to scan");
+ }
+ assert.throws(()=>explanationFor("new-action"),/Missing recording explanation/);
+ assert.throws(()=>explanationFor("__proto__"),/Missing recording explanation/);
+});
+test("explanations format labels and filenames without allowing markup from text",()=>{
+ const html=explanationHTML({summary:'Read `Cargo.lock` and <script>alert(1)</script>.',details:[["Next","Run it again."]]});
+ assert(html.includes("<code>Cargo.lock</code>"));
+ assert(html.includes("<dt>Next</dt><dd>Run it again.</dd>"));
+ assert(!html.includes("<script>"));assert(html.includes("&lt;script&gt;"));
 });
 test("chapters seek to recorded events in order",()=>{
  const parts=chapters(recording);assert.equal(parts.length,5);

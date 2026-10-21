@@ -2,9 +2,11 @@
 import recording from "../../public/demo/tic-tac-toe/recording.json";
 import {chapters,elapsed,preview,kindLabels} from "../data/build-recording.mjs";
 import {rendered,playbackUrl} from "../data/rendered-recording.mjs";
+import {explanationFor,explanationHTML} from "../data/build-explanations.mjs";
 import {publicAssetUrl} from "../../scripts/asset-url.mjs";
 import "../styles/build-walkthrough.css";
 const parts=chapters(recording),initial=parts[0].index,event=recording.events[initial];
+const explanation=explanationFor(event.id);
 const asset=(file)=>publicAssetUrl("demo/tic-tac-toe/"+file);
 ---
 <div class="build-walkthrough" data-build data-url={asset("recording.json")} data-playback-url={playbackUrl} data-index={initial}>
@@ -31,8 +33,8 @@ const asset=(file)=>publicAssetUrl("demo/tic-tac-toe/"+file);
       </div>
       <aside class="build-annotation" aria-label="About this action" data-annotation>
         <div class="annotation-meta"><span data-action-kind>{kindLabels[event.kind]}</span><span data-action-number>{initial+1} / {recording.events.length}</span></div>
-        <h3 data-action-title>{event.title}</h3>
-        <p data-action-note>The game has four pieces. Open the roadmap to see what each one needs.</p>
+        <h3 data-action-title>{explanation.title}</h3>
+        <div data-action-explanation set:html={explanationHTML(explanation)} />
         <div data-action-facts></div>
         <button class="annotation-open" type="button" data-open-action hidden>Open the roadmap <span aria-hidden="true">↗</span></button>
         <nav class="build-views" aria-label="Explore the project at this point" hidden>
@@ -50,7 +52,8 @@ const asset=(file)=>publicAssetUrl("demo/tic-tac-toe/"+file);
   <div class="build-footnote"><p>Built in Codex · October 21, 2026. Playback follows the saved tool actions.</p><div class="build-downloads"><a href={asset("source.zip")} download>Download the game source</a><a href={asset("recording.json")} download>Recording data</a></div></div>
   <details class="build-transcript">
     <summary>Read the recorded actions</summary>
-    <ol>{recording.events.map((entry,i)=><li data-event={entry.id}><details><summary><time>{elapsed(recording,i)}</time><span>{entry.title}</span>{entry.check&&<small>{entry.check.passed?"Passed":"Failed"}</small>}</summary>
+    <ol>{recording.events.map((entry,i)=><li data-event={entry.id}><details><summary><time>{elapsed(recording,i)}</time><span>{explanationFor(entry.id).title}</span>{entry.check&&<small>{entry.check.passed?"Passed":"Failed"}</small>}</summary>
+      <div set:html={explanationHTML(explanationFor(entry.id))} />
       {rendered[i].diff&&<div class="transcript-change"><p>{entry.file.path} · <span class="change-added">+{rendered[i].diff.added}</span> <span class="change-removed">−{rendered[i].diff.removed}</span></p><div data-event-diff set:html={rendered[i].diff.html} /></div>}
       <div data-event-output set:html={rendered[i].html} />
     </details></li>)}</ol>

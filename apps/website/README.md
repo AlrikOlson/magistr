@@ -18,6 +18,13 @@ scrollback up to the current action; queued writes coalesce to the latest seek.
 The annotation and optional project details follow the same cursor. Opening a
 record pauses playback and leaves the terminal in place.
 
+build-explanations.mjs owns the website's explanations, keyed to all 65 recorded
+actions. The sidebar, timeline labels and readable transcript share this copy.
+Summaries explain the event; labeled details add the reason or next action when
+needed. New recording actions must supply explanations: raw tool responses are
+never an annotation fallback. The terminal keeps the original output, and an
+explanation must not invent a cause or claim a later result has already happened.
+
 scripts/highlight-recording.mjs tokenizes code at build time with Shiki and
 derives unified diffs from successive recorded snapshots with jsdiff. The
 original recording is unchanged. Shared code-theme.mjs supplies both themes to

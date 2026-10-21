@@ -3,6 +3,7 @@ import {RoadmapSurface} from "../../../../crates/magistr-desktop/ui/work_roadmap
 import {ReasoningMap} from "../../../../crates/magistr-desktop/ui/work_reasoning_map.mjs";
 import "../../../../crates/magistr-desktop/ui/work_surface.css";
 import {TerminalPlayback} from "./terminal-playback";
+import {explanationFor,explanationHTML} from "../data/build-explanations.mjs";
 
 const el=(tag:string,text="",cls="")=>{const node=document.createElement(tag);node.textContent=text;if(cls)node.className=cls;return node;};
 const root=document.querySelector<HTMLElement>("[data-build]");
@@ -16,6 +17,7 @@ async function setup(root:HTMLElement){
   const [recording,playback]=await Promise.all(responses.map(r=>r.json()));
   if(recording.version!==1||playback.version!==1||!recording.events?.length||playback.events?.length!==recording.events.length||playback.events.some((e:any,i:number)=>e.id!==recording.events[i].id))throw Error("Recording unavailable");
   const events=recording.events,parts=chapters(recording);
+ events.forEach(e=>explanationFor(e.id));
   const host=root.querySelector<HTMLElement>("[data-terminal]")!,details=root.querySelector<HTMLElement>("#build-details")!;
   const panel=root.querySelector<HTMLElement>("#build-panel")!,records=root.querySelector<HTMLElement>("[data-record-view]")!;
   const slider=root.querySelector<HTMLInputElement>('input[type="range"]')!,play=root.querySelector<HTMLButtonElement>("[data-play]")!;
@@ -68,7 +70,7 @@ async function setup(root:HTMLElement){
   }
   function openCheck(check:any){
    const a=reader(check.name,view);
-   a.append(el("p",(check.passed?"Passed":"Failed")+" · "+(check.verified?"Executed command":"Written review"),"record-status"),copyButton(check.details,"Copy output"));
+   a.append(el("p",(check.passed?"Passed":"Failed")+" · "+(check.verified?"Automated check":"Visual review"),"record-status"),copyButton(check.details,"Copy output"));
    a.append(check.eventId?cloneOutput(check.eventId):el("pre",check.details));
   }
   function openFile(mode="changes"){
@@ -121,23 +123,19 @@ async function setup(root:HTMLElement){
    const e=events[index],s=stateAt(recording,index),facts=root.querySelector<HTMLElement>("[data-action-facts]")!;
    root.querySelector("[data-action-kind]")!.textContent=kindLabels[e.kind];
    root.querySelector("[data-action-number]")!.textContent=(index+1)+" / "+events.length;
-   root.querySelector("[data-action-title]")!.textContent=e.file?.path??e.title;
-   const note=root.querySelector("[data-action-note]")!;facts.replaceChildren();
-   if(e.kind==="roadmap"){
-    note.textContent=e.chunk?.status==="done"?"This piece is complete. The roadmap keeps its prerequisites and acceptance criteria.":"Each piece has a finish to aim for and names what it needs first.";
+   const explanation=explanationFor(e.id);
+   root.querySelector("[data-action-title]")!.textContent=explanation.title;
+   root.querySelector("[data-action-explanation]")!.innerHTML=explanationHTML(explanation);
+   facts.replaceChildren();
+   if(e.operation==="roadmap_add_chunk"){
     const ul=el("ul","","annotation-roadmap");
     for(const c of s.chunks){const li=el("li");li.dataset.status=c.status;li.append(el("span",c.name??c.title),el("small",statusLabels[c.status]??c.status));ul.append(li);}facts.append(ul);
-   }else if(e.kind==="reasoning"){
-    note.textContent=e.step?.outcome??e.output;
    }else if(e.file){
     const change=playback.events[index].changes;
-    note.textContent=e.title;
+    facts.append(el("p",e.file.path,"annotation-file"));
     const counts=el("p","","change-counts");counts.append(el("span","+"+change.added+" added","change-added"),el("span","−"+change.removed+" removed","change-removed"));facts.append(counts);
    }else if(e.check){
-    note.textContent=e.check.verified?(e.check.passed?"The command passed. Its output stays attached to this work.":"This command failed. Open the output to see what needed fixing."):"The visual review is saved alongside the work.";
-    facts.append(el("p",(e.check.passed?"✓ Passed":"× Failed")+(e.check.verified?" · Executed command":" · Written review"),e.check.passed?"check-passed":"check-failed"));
-   }else{
-    note.textContent=e.output;
+    facts.append(el("p",(e.check.passed?"✓ Passed":"× Failed")+(e.check.verified?" · Automated check":" · Visual review"),e.check.passed?"check-passed":"check-failed"));
    }
    const target=({roadmap:"roadmap",reasoning:"reasoning",work:"work",check:"checks"} as Record<string,string>)[e.kind];
    openAction.textContent=e.file?"Open changes":e.check?"Inspect this check":target?"Open "+({roadmap:"the roadmap",reasoning:"the reasoning",work:"the work plan"} as any)[e.kind]:"Read full output";
@@ -151,7 +149,7 @@ async function setup(root:HTMLElement){
    };
   }
   function render(){
-   root.dataset.index=String(index);slider.value=String(index);slider.setAttribute("aria-valuetext",elapsed(recording,index)+" · "+events[index].title);
+   root.dataset.index=String(index);slider.value=String(index);slider.setAttribute("aria-valuetext",elapsed(recording,index)+" · "+explanationFor(events[index].id).title);
    root.querySelector("[data-time]")!.textContent=elapsed(recording,index);
    prev.disabled=index===0;next.disabled=index===events.length-1;
    const chapter=parts.reduce((found,p,i)=>index>=p.index?i:found,0);
@@ -162,7 +160,7 @@ async function setup(root:HTMLElement){
   }
   const seek=(value:number,announce=false)=>{
    index=Math.max(0,Math.min(events.length-1,value));if(view==="file"||view==="output")closeDetails(false);
-   render();void terminal.seek(index);if(announce)root.querySelector(".build-announcement")!.textContent=events[index].title;
+   render();void terminal.seek(index);if(announce)root.querySelector(".build-announcement")!.textContent=explanationFor(events[index].id).title;
   };
   const schedule=()=>{
    if(index>=events.length-1){stop();return;}
