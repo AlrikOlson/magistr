@@ -172,7 +172,7 @@ async fn an_occupied_host_is_reached_through_its_endpoint_and_takes_no_second_le
         io::ErrorKind::WouldBlock
     );
     drop(attached);
-    drop(endpoint);
+    endpoint.shutdown().await.expect("endpoint cleanup");
     drop(owner);
     admit_host(&cfg).expect("released with the writer");
 }
@@ -188,7 +188,10 @@ async fn a_stale_generation_is_refused_until_the_client_reconnects() {
     assert_eq!(attached.generation(), g1);
 
     // The project changes hands.
-    drop(first_endpoint);
+    first_endpoint
+        .shutdown()
+        .await
+        .expect("first endpoint cleanup");
     drop(first);
     let second = admit_host(&cfg).expect("released").open();
     let second_endpoint = OwnerEndpoint::serve(second.clone())
@@ -481,7 +484,7 @@ async fn owner_shutdown_leaves_an_attached_client_without_a_writer() {
     let path = endpoint.path().to_path_buf();
 
     // The owner stops accepting work and releases ownership.
-    drop(endpoint);
+    endpoint.shutdown().await.expect("endpoint cleanup");
     drop(owner);
     assert!(!path.exists(), "the endpoint unlinks its socket");
 
@@ -564,7 +567,7 @@ async fn a_live_endpoint_is_refused_and_a_stale_socket_is_reclaimed() {
         .expect_err("one endpoint per owner");
     assert_eq!(twice.kind(), io::ErrorKind::AddrInUse, "{twice}");
     let path = endpoint.path().to_path_buf();
-    drop(endpoint);
+    endpoint.shutdown().await.expect("endpoint cleanup");
     // A socket file nobody listens on — a crashed owner's leftover.
     drop(std::os::unix::net::UnixListener::bind(&path).expect("stale"));
     assert!(path.exists());

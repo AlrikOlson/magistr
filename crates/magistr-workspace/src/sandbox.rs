@@ -46,6 +46,10 @@ use wasmtime_wasi::{I32Exit, WasiCtxBuilder};
 #[path = "sandbox_process.tests.rs"]
 mod process_tests;
 
+#[cfg(test)]
+#[path = "sandbox_cache.tests.rs"]
+mod cache_tests;
+
 /// Cap on captured guest stdout/stderr, per stream.
 const OUTPUT_PIPE_CAPACITY: usize = 64 * 1024;
 
@@ -864,24 +868,34 @@ fn engine() -> Result<&'static Engine, SandboxError> {
     static ENGINE: OnceLock<Result<Engine, String>> = OnceLock::new();
     ENGINE
         .get_or_init(|| {
-            let mut config = Config::new();
-            config.consume_fuel(true);
-            config.wasm_component_model(true);
-            // Two wasmtime majors share this process: this engine (48) and
-            // tree-sitter's grammar engine (36, `lang_registry`). Wasmtime
-            // implements guest traps as native faults; on macOS its default
-            // Mach exception port is process-wide and does not recognise the
-            // OTHER copy's JIT code, so a trap raised by one engine after the
-            // other installed its port surfaces as a plain SIGILL and kills
-            // the host (observed under `bun test` once a lang pack had been
-            // loaded before a sandbox guest trapped). POSIX signal handlers
-            // chain to the previously installed handler, so both copies
-            // coexist; the setting is a no-op off macOS.
-            config.macos_use_mach_ports(false);
-            Engine::new(&config).map_err(|e| e.to_string())
+            // Wasmtime keys compiled code by guest bytes, compiler and engine
+            // configuration. Only immutable code is shared across workers;
+            // stores, capabilities, fuel and memory limits remain per run.
+            // A missing/unwritable cache must not prevent sandbox execution.
+            let cache = wasmtime::Cache::from_file(None).ok();
+            build_engine(cache)
         })
         .as_ref()
         .map_err(|e| SandboxError::Engine(e.clone()))
+}
+
+fn build_engine(cache: Option<wasmtime::Cache>) -> Result<Engine, String> {
+    let mut config = Config::new();
+    config.consume_fuel(true);
+    config.cache(cache);
+    config.wasm_component_model(true);
+    // Two wasmtime majors share this process: this engine (48) and
+    // tree-sitter's grammar engine (36, `lang_registry`). Wasmtime
+    // implements guest traps as native faults; on macOS its default
+    // Mach exception port is process-wide and does not recognise the
+    // OTHER copy's JIT code, so a trap raised by one engine after the
+    // other installed its port surfaces as a plain SIGILL and kills
+    // the host (observed under `bun test` once a lang pack had been
+    // loaded before a sandbox guest trapped). POSIX signal handlers
+    // chain to the previously installed handler, so both copies
+    // coexist; the setting is a no-op off macOS.
+    config.macos_use_mach_ports(false);
+    Engine::new(&config).map_err(|e| e.to_string())
 }
 
 /// [`StoreLimits`] wrapper that records the breach, so classification after a
@@ -2306,19 +2320,18 @@ fn cached_wasi_module(engine: &Engine, guest: &[u8]) -> Result<Module, wasmtime:
     static CACHE: OnceLock<Mutex<WasiModuleCache>> = OnceLock::new();
     let digest: [u8; 32] = sha2::Sha256::digest(guest).into();
     let cache = CACHE.get_or_init(|| Mutex::new(Vec::new()));
-    let hit = cache
-        .lock()
-        .unwrap_or_else(std::sync::PoisonError::into_inner)
-        .iter()
-        .find(|(known, _)| *known == digest)
-        .map(|(_, module)| module.clone());
-    if let Some(module) = hit {
-        return Ok(module);
-    }
-    let module = Module::new(engine, guest)?;
+    // Hold the cache lock through a miss: concurrent requests for the same
+    // interpreter must not compile identical code independently.
     let mut cache = cache
         .lock()
         .unwrap_or_else(std::sync::PoisonError::into_inner);
+    if let Some((_, module)) = cache
+        .iter()
+        .find(|(known, module)| *known == digest && Engine::same(module.engine(), engine))
+    {
+        return Ok(module.clone());
+    }
+    let module = Module::new(engine, guest)?;
     if cache.len() >= WASI_MODULE_CACHE {
         cache.remove(0);
     }
