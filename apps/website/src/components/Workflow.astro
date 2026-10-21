@@ -1,99 +1,144 @@
 ---
 import recording from "../../public/demo/inbox/recording.json";
-import { elapsed, checkOf, filesAt, milestonesAt } from "../data/project-recording.mjs";
-import { walkthrough, excerptAt } from "../data/walkthrough.mjs";
-import { publicAssetUrl } from "../../scripts/asset-url.mjs";
-const asset = (name) => publicAssetUrl("demo/inbox/" + name);
-const capture = (phase, layout, theme) => asset("walkthrough/" + phase + "-" + layout + "-" + theme + ".png");
-const duration = elapsed(recording, {at:recording.endedAt});
-const final = walkthrough.at(-1);
+import {checkOf,eventStatus} from "../data/project-recording.mjs";
+import {sessionEntries,moments,momentIndex,timeLabel,entryTitle,entryBody,entryPreview} from "../data/session-replay.mjs";
+import {publicAssetUrl} from "../../scripts/asset-url.mjs";
+const asset=(name)=>publicAssetUrl("demo/inbox/"+name);
+const entries=sessionEntries(recording);
+const initial=momentIndex(entries,moments[0]);
 ---
-<div class="walkthrough build-recording" data-recording data-recording-url={asset("recording.json")} data-ready="false" data-scene="5">
-  <div class="recording-heading"><span><strong>Workshop</strong> / A support inbox</span><span>Codex + Magistr · {duration} recorded</span></div>
-  <nav class="story-chapters" aria-label="Build chapters" hidden>
-    {walkthrough.map((scene,index)=><button type="button" data-chapter={index} aria-controls="recording-stage" aria-current={index===5?"step":undefined}><span>{String(index+1).padStart(2,"0")}</span>{scene.label}</button>)}
-  </nav>
-
-  <div class="story-caption">
-    <div><p class="story-kicker" data-story-kicker>One project, from start to finish</p><h3 data-story-title>{final.title}</h3></div>
-    <p data-story-description>{final.description}</p>
-  </div>
-  <div class="story-controls" hidden>
-    <button type="button" class="story-primary" data-next>Start the walkthrough <span aria-hidden="true">→</span></button>
-    <button type="button" data-previous aria-label="Previous chapter" disabled>←</button>
-    <span data-story-position>6 chapters</span>
-    <button type="button" class="story-auto" data-play aria-pressed="false">Play chapters</button>
-    <button type="button" data-watch>Watch the app · 12s</button>
-  </div>
-  <div class="story-stage" id="recording-stage" aria-label="Recorded project walkthrough">
-    {walkthrough.map((scene,index)=>{
-      const event=recording.events[scene.event];
-      const excerpt=scene.kind==="source"?excerptAt(recording,scene,filesAt):[];
-      const phase=scene.kind==="capture"?"before":"after";
-      return <section class="story-scene" data-scene-panel={index} hidden={index!==5} aria-label={scene.label}>
-        <div class="stage-label"><span>{scene.kind==="plan"?"Saved project plan":scene.kind==="source"?scene.path.replace("examples/support-inbox/",""):scene.kind==="review"?"Screen review":scene.kind==="capture"?"First working inbox":"The completed app"}</span><span>{elapsed(recording,event)} into the build</span></div>
-        {scene.kind==="plan" ? <div class="plan-stage">
-          <div class="plan-brief"><p class="story-kicker">The project</p><h4>A shared inbox for a small support team.</h4><p>Receive mail, keep replies together, find a conversation, assign it, and mark it resolved.</p><p class="plan-boundary">Local app · Sample customer mail</p></div>
-          <ol class="saved-plan">{milestonesAt(recording,scene.event).map((task,i)=><li><span class="plan-number">{i+1}</span><div><strong>{recording.events[i].input.title}</strong><small>{task.status}</small></div></li>)}</ol>
-        </div> : scene.kind==="source" ? <div class="source-stage">
-          <div class="source-excerpt"><p>From the recorded source</p><ol class="code-lines" start={excerpt[0].number}>{excerpt.map(line=><li><code>{line.text||" "}</code></li>)}</ol></div>
-          <div class="chapter-check"><span class="check-mark" aria-hidden="true">✓</span><div><strong>{scene.id==="mail"?"7 storage checks passed":"10 storage and API checks passed"}</strong><p>{scene.id==="mail"?"Including persistence, repeated delivery and replies.":"Including a rejected stale save and the assignment that survives it."}</p></div><button type="button" data-inspect={scene.check} hidden>Read the result ↗</button></div>
-        </div> : <div class="capture-stage">
-          {scene.kind==="review" && <div class="review-switch" role="group" aria-label="Compare the review fix" hidden><button type="button" data-review="before" aria-pressed="false">Before review</button><button type="button" data-review="after" aria-pressed="true">After fixes</button><span data-review-note>Menus enlarged; recovery message corrected.</span></div>}
-          { (scene.kind==="review"?["before","after"]:[phase]).map(version=><div class="capture-window" data-capture-version={version} hidden={scene.kind==="review"&&version==="before"} tabindex="0" aria-label={scene.kind==="review"?(version==="before"?"Inbox before the review fixes":"Inbox after the review fixes"):"Recorded inbox screen"}>
-            {["light","dark"].map(theme=><picture class={"capture-"+theme}>
-              <source media="(max-width: 600px)" srcset={capture(version,"compact",theme)} width="390" height="900" />
-              <img src={capture(version,"wide",theme)} alt={"Actual inbox "+(version==="before"?"before":"after")+" the screen review, showing a selected conversation assigned to Maya."} width="1280" height="900" loading="lazy" />
-            </picture>)}
-          </div>)}
-          {scene.kind==="video"&&<div class="app-movie" hidden data-movie>
-            <video controls playsinline preload="none" width="1280" height="900" poster={asset("inbox-light.png")} aria-label="Recorded workflow in the completed support inbox">
-              <source src={asset("inbox-workflow.webm")} type="video/webm" />
-            </video>
-          </div>}
-          <div class="capture-caption">
-            <span>{scene.kind==="review"?"Actual captures from the same build. Scroll the image to inspect it.":scene.kind==="video"?"Recorded in WebKit · Sample mail · No audio":"Actual browser capture · Scroll the image to inspect it."}</span>
-            <a class="capture-original" data-capture-original={index} data-before-light={capture("before","wide","light")} data-before-dark={capture("before","wide","dark")} data-after-light={capture("after","wide","light")} data-after-dark={capture("after","wide","dark")} href={capture(phase,"wide","light")}>Open full capture ↗</a>
+<div class="build-recording" data-recording data-recording-url={asset("recording.json")} data-ready="false" data-index={initial}>
+  <div class="session-terminal">
+    <div class="terminal-heading"><strong><span aria-hidden="true">›_</span> Codex</strong><span>support-inbox</span><small data-session-status>Paused</small></div>
+    <div class="session-scroll" tabindex="0" aria-label="Codex session transcript">
+      {entries.map((entry,index)=>{
+        const preview=entryPreview(entry);
+        const selected=index===initial;
+        return <article class="session-entry" data-entry={index} data-kind={entry.kind} data-selected={String(selected)} hidden={index>initial}>
+          <button type="button" data-seek={index} disabled aria-label={"Go to "+timeLabel(entries,index)+": "+(entry.kind==="message"?entryTitle(entry)+" message":entry.event.title)}>
+            <span class="entry-bullet" aria-hidden="true">{entry.kind==="message"&&entry.role==="user"?"›":"•"}</span>
+            <span class="entry-label">{entryTitle(entry)}</span>
+            <time>{timeLabel(entries,index)}</time>
+            {entry.kind==="action"&&<span class="entry-status" data-status={eventStatus(entry.event)}>{eventStatus(entry.event)}</span>}
+          </button>
+          <p class="entry-summary" hidden={selected}>{entry.kind==="message"?entry.text:entry.event.title}</p>
+          <div class="entry-detail" hidden={!selected}>
+            {entry.kind==="action"&&<p class="entry-purpose">{entry.event.title}</p>}
+            {entry.kind==="action"&&checkOf(entry.event)?.command&&<pre class="entry-command"><code>$ {checkOf(entry.event).command}</code></pre>}
+            {entry.kind==="message"?<p class="entry-message">{preview.text}</p>:<pre class="entry-output"><code>{preview.text}</code></pre>}
+            <button type="button" class="entry-expand" data-open-action hidden>{entry.kind==="message"?"Full message":preview.omitted>0?"Full "+(entry.event.kind==="write"?"file":"output")+" · "+preview.total+" lines":"Details"} <span aria-hidden="true">↗</span></button>
           </div>
-        </div>}
-      </section>;
-    })}
+        </article>;
+      })}
+    </div>
   </div>
-
-  <p class="recording-error" role="status" data-error hidden></p>
-  <details class="recording-details">
-    <summary>Explore all {recording.events.length} recorded actions <span>Source, checks and failures</span></summary>
-    <div class="recording-inspector" hidden>
-      <div class="inspector-controls"><label>Recorded action<select data-action-select aria-label="Recorded action">{recording.events.map(event=><option value={event.id}>{elapsed(recording,event)} · {event.title}</option>)}</select></label><label>Show<select data-file aria-label="Recorded source or output"><option value="">This action</option></select></label></div>
-      <div class="inspector-position"><span data-action-status></span><span data-position></span></div>
-      <h4 data-action-title></h4><p data-source-note></p>
+  <div class="replay-controls" hidden>
+    <div class="replay-scrubber"><label for="session-position" class="sr-only">Build timeline</label><input id="session-position" type="range" min="0" max={entries.length-1} step="1" value={initial} aria-label="Build timeline" /><output for="session-position" data-time>{timeLabel(entries,initial)} / {timeLabel(entries,entries.length-1)}</output></div>
+    <div class="replay-transport">
+      <button type="button" data-play aria-pressed="false">Play</button>
+      <button type="button" data-previous aria-label="Previous message or action">←</button>
+      <button type="button" data-next aria-label="Next message or action">→</button>
+      <label class="replay-jump"><span class="sr-only">Jump to part of the build</span><select data-moment-select aria-label="Jump to part of the build">{moments.map((moment,index)=><option value={index}>{timeLabel(entries,momentIndex(entries,moment))} · {moment.label}</option>)}</select></label>
+      <label class="replay-speed"><span class="sr-only">Playback speed</span><select data-speed aria-label="Playback speed"><option value="1">1×</option><option value="4" selected>4×</option><option value="8">8×</option></select></label>
+    </div>
+  </div>
+  <div class="recording-details" hidden>
+    <details class="saved-work" data-saved-work>
+      <summary>Plan & decisions <span data-task-count>No plan yet</span></summary>
+      <p data-no-plan>Codex hasn’t saved a plan yet.</p>
+      <ol data-task-list></ol>
+      <button type="button" class="saved-decision" data-decision hidden>Read the saved decision <span aria-hidden="true">↗</span></button>
+      <p class="saved-checks" data-check-count>No checks recorded yet.</p>
+    </details>
+    <details class="recording-inspector" data-inspector>
+      <summary>Files & output</summary>
+      <div class="inspector-controls">
+        <label>Message or action<select data-action-select aria-label="Message or action">{entries.map((entry,index)=><option value={index}>{timeLabel(entries,index)} · {entry.kind==="message"?entryTitle(entry):entry.event.title}</option>)}</select></label>
+        <label>Show<select data-file aria-label="Recorded source or output"><option value="">Selected action or message</option></select></label>
+      </div>
+      <p class="source-note" data-source-note></p>
       <pre tabindex="0" aria-label="Recorded source and output"><code data-output></code></pre>
       <p class="recording-receipt" data-receipt></p>
-    </div>
-    <noscript><ol class="recording-transcript">{recording.events.map(event=><li><strong>{elapsed(recording,event)} — {event.title}</strong>{checkOf(event)?<pre>{checkOf(event).details}</pre>:<p>{event.kind==="write"?event.input.path:event.kind==="edit"?event.input.file:event.input.title||event.title}</p>}</li>)}</ol></noscript>
-    <p class="recording-downloads"><a href={asset("source.zip")} download>Download the project</a><a href={asset("recording.json")} download>Full build recording</a><a href={asset("manifest.json")} download>Files and checksums</a></p>
+    </details>
+  </div>
+  <p data-error role="status" class="recording-error" hidden></p>
+  <details class="complete-transcript">
+    <summary>Read the complete transcript</summary>
+    <ol>{entries.map((entry,index)=><li><details><summary><time>{timeLabel(entries,index)}</time><span>{entry.kind==="message"?entryTitle(entry):entry.event.title}</span>{entry.kind==="action"&&<small>{eventStatus(entry.event)}</small>}</summary><pre>{entryBody(entry)}</pre></details></li>)}</ol>
   </details>
-  <div class="recording-footnote"><p>Recorded October 20, 2026. Chapters explain selected moments in the full build recording.</p><p>A local demo with sample mail. No live mail provider, outgoing email or account sign-in. <a href={asset("inbox-workflow.webm")}>Watch the app recording</a> or <a href={asset("source.zip")} download>run it yourself</a>.</p></div>
   <p class="sr-only" role="status" aria-live="polite" data-announcement></p>
+  <div class="recording-footer">
+    <p>Adapted from a Codex session · October 20, 2026.</p>
+    <div class="recording-downloads"><a href={asset("source.zip")} download>Download the project</a><a href={asset("recording.json")} download>Session data</a></div>
+  </div>
 </div>
 <script>
-  import "../scripts/project-recording";
+ import "../scripts/project-recording";
 </script>
 <style is:global>
-.build-recording{margin-top:2rem;min-width:0;border-top:1px solid var(--color-border)}.build-recording [hidden]{display:none!important}
-.recording-heading{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1rem 0;color:var(--color-text-muted);font-size:.8rem}.recording-heading strong{color:var(--color-text);font-size:1rem;margin-right:.5rem}
-.story-caption{display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:end;padding:.5rem 0 1rem;min-height:120px}.story-kicker{margin:0 0 .6rem;font-size:.78rem;color:var(--color-text-muted)}.story-caption h3{font-size:1.75rem;line-height:1.2;letter-spacing:-.02em;max-width:23ch;margin:0;font-weight:600}.story-caption>p{font-size:.95rem;line-height:1.65;color:var(--color-text-muted);margin:0;max-width:57ch}
-.story-stage{border:1px solid var(--color-border);background:var(--color-bg-card);min-width:0}.stage-label{min-height:42px;display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.65rem 1.25rem;border-bottom:1px solid var(--color-border);font-family:var(--font-mono);font-size:.72rem;color:var(--color-text-muted)}.stage-label>span:first-child{overflow-wrap:anywhere}
-.plan-stage{min-height:426px;padding:2rem 2.5rem;display:grid;grid-template-columns:.9fr 1.1fr;gap:3rem;align-items:center}.plan-brief h4{font-size:1.8rem;letter-spacing:-.02em;line-height:1.25;font-weight:500;margin:.7rem 0 1.3rem;max-width:20ch}.plan-brief p{color:var(--color-text-muted);font-size:.95rem}.plan-brief .plan-boundary{font-size:.8rem;border-top:1px solid var(--color-border);padding-top:1rem;margin-top:1.5rem}.saved-plan{list-style:none;margin:0;padding:0}.saved-plan li{display:flex;gap:1rem;padding:.85rem 0;border-bottom:1px solid var(--color-border)}.saved-plan li:last-child{border-bottom:0}.plan-number{color:var(--color-accent);font-family:var(--font-mono);padding-top:.1rem;font-size:.8rem}.saved-plan strong{display:block;font-size:.9rem;font-weight:500;line-height:1.4}.saved-plan small{color:var(--color-text-muted);font-size:.75rem}
-.source-stage{min-height:426px;display:flex;flex-direction:column}.source-excerpt{background:var(--color-code);color:var(--color-code-text);padding:1.35rem 2rem;flex:1;overflow:auto}.source-excerpt>p{font-family:var(--font-mono);font-size:.7rem;color:#b2bfb4;margin:0 0 1.2rem}.code-lines{list-style:decimal;padding-left:2.4rem;margin:0;font-family:var(--font-mono);font-size:.84rem;line-height:1.7}.code-lines li{padding-left:1.1rem;white-space:pre-wrap;overflow-wrap:anywhere}.code-lines li::marker{color:#9dab9e;font-size:.72rem}.code-lines code{font:inherit}
-.chapter-check{display:flex;align-items:center;gap:1rem;padding:1rem 1.5rem}.check-mark{color:var(--color-green);font-size:1.4rem}.chapter-check strong{font-weight:500;font-size:.9rem}.chapter-check p{margin:.2rem 0 0;font-size:.8rem;color:var(--color-text-muted)}.chapter-check button{margin-left:auto;white-space:nowrap}
-.capture-window{height:380px;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;background:var(--color-surface)}.capture-window img{display:block;width:100%;height:auto;max-width:none}.capture-dark{display:none}.dark .capture-light{display:none}.dark .capture-dark{display:block}.capture-caption{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.8rem 1.25rem;font-size:.75rem;color:var(--color-text-muted);min-height:46px}.capture-caption a{white-space:nowrap;text-decoration:underline;text-underline-offset:3px}
-.app-movie{height:auto;aspect-ratio:1280 / 900;background:#101511}.app-movie video{display:block;width:100%;height:100%;object-fit:contain}.review-switch{display:flex;gap:.4rem;align-items:center;padding:.55rem 1rem;border-bottom:1px solid var(--color-border)}.review-switch span{margin-left:auto;font-size:.75rem;color:var(--color-text-muted)}.story-scene[data-scene-panel="4"] .capture-window{height:324px}
-.build-recording button{font:inherit;font-size:.8rem;min-height:44px;padding:.5rem .8rem;border:1px solid transparent;border-radius:3px;color:var(--color-text);background:transparent}.build-recording button:hover{background:var(--color-surface)}.build-recording button:focus-visible,.build-recording select:focus-visible,.build-recording summary:focus-visible,.capture-window:focus-visible{outline:2px solid var(--color-accent);outline-offset:3px}.build-recording button:disabled{opacity:.4;cursor:default}.build-recording .story-primary{background:var(--color-accent);color:var(--color-on-accent);font-weight:600;padding-inline:1.1rem;min-width:190px;display:flex;align-items:center;justify-content:space-between;gap:1.25rem}.story-controls{display:flex;gap:.7rem;align-items:center;padding:0 0 1rem}.story-controls>[data-previous]{border-color:var(--color-border);width:44px;padding:.5rem}.story-controls>[data-story-position]{font-size:.75rem;color:var(--color-text-muted);font-family:var(--font-mono)}.story-controls .story-auto{margin-left:auto}.story-controls>[data-watch]{border-color:var(--color-border)}.build-recording [aria-pressed="true"]{background:var(--color-surface);font-weight:600}
-.story-chapters{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:.6rem;padding-bottom:.5rem}.story-chapters button{display:flex;gap:.65rem;align-items:center;justify-content:start;border-radius:0;border-top:2px solid var(--color-border);padding:.8rem .25rem;font-size:.8rem;white-space:nowrap}.story-chapters button span{font-family:var(--font-mono);font-size:.7rem;color:var(--color-text-muted)}.story-chapters button[aria-current]{border-top-color:var(--color-accent);color:var(--color-accent);font-weight:600}
-.recording-details{margin-top:1.5rem;border-top:1px solid var(--color-border);border-bottom:1px solid var(--color-border)}.recording-details summary{cursor:pointer;padding:1.2rem 0;font-size:.9rem;font-weight:500}.recording-details summary span{float:right;font-size:.8rem;font-weight:400;color:var(--color-text-muted)}.recording-inspector{padding:0 0 1rem}.inspector-controls{display:grid;grid-template-columns:2fr 1fr;gap:1rem}.inspector-controls label{display:block;font-size:.75rem;color:var(--color-text-muted)}.build-recording select{display:block;appearance:none;background:var(--color-bg-card);color:var(--color-text);border:1px solid var(--color-border);padding:.6rem 2rem .6rem .8rem;height:44px;width:100%;min-width:0;font:inherit;font-size:.8rem;margin-top:.4rem;background-image:linear-gradient(45deg,transparent 50%,var(--color-text-muted) 50%),linear-gradient(135deg,var(--color-text-muted) 50%,transparent 50%);background-position:calc(100% - 16px) 19px,calc(100% - 11px) 19px;background-size:5px 5px;background-repeat:no-repeat}.inspector-position{display:flex;justify-content:space-between;font-size:.75rem;color:var(--color-text-muted);margin-top:1.25rem}.recording-inspector h4{font-size:1.05rem;font-weight:500;margin:.5rem 0}.recording-inspector [data-source-note]{font-size:.75rem;color:var(--color-text-muted)}.recording-inspector pre,.recording-transcript pre{padding:1.25rem;background:var(--color-code);color:var(--color-code-text);font-family:var(--font-mono);font-size:.8rem;line-height:1.65;max-height:400px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}.recording-receipt{font-size:.7rem;color:var(--color-text-muted);overflow-wrap:anywhere}.recording-downloads{display:flex;flex-wrap:wrap;gap:.5rem 1.5rem;font-size:.85rem;margin:0 0 1.25rem}.recording-downloads a,.recording-footnote a{text-decoration:underline;text-underline-offset:3px}.recording-footnote{padding-top:1rem;color:var(--color-text-muted);font-size:.75rem;line-height:1.6}.recording-footnote p{margin:.4rem 0}.recording-error{font-size:.9rem;color:var(--color-error)}
-@media(min-width:1400px){.capture-window{height:430px}.plan-stage,.source-stage{min-height:476px}.story-scene[data-scene-panel="4"] .capture-window{height:374px}}
-@media(max-width:900px){.story-chapters{grid-template-columns:repeat(3,minmax(0,1fr));gap:.25rem .75rem}.story-caption{gap:1.5rem}.plan-stage{gap:1.5rem;padding:1.5rem}.code-lines{font-size:.78rem}.source-excerpt{padding:1.2rem}.story-controls{flex-wrap:wrap}.story-controls .story-auto{margin-left:auto}.chapter-check{flex-wrap:wrap}.chapter-check button{margin-left:2rem}}
-@media(max-width:600px){.recording-heading{font-size:.7rem;align-items:start;gap:.5rem}.recording-heading>span:last-child{max-width:120px;text-align:right}.recording-heading strong{display:block;margin:0}.story-caption{display:block;padding:.7rem 0 1.3rem;min-height:0}.story-caption h3{font-size:1.5rem;max-width:24ch}.story-caption>p{font-size:.9rem;margin-top:.85rem}.story-kicker{font-size:.72rem}.stage-label{font-size:.65rem;padding:.6rem .8rem;gap:.6rem}.stage-label>span:last-child{white-space:nowrap}.capture-window{height:360px}.capture-caption{align-items:start;flex-direction:column;gap:.4rem;padding:.7rem .85rem;font-size:.7rem}.review-switch{flex-wrap:wrap;padding:.5rem}.review-switch span{width:100%;margin:.2rem .3rem}.story-scene[data-scene-panel="4"] .capture-window{height:310px}.plan-stage{display:block;padding:1.25rem;min-height:0}.plan-brief h4{font-size:1.45rem;margin:.5rem 0 .7rem}.plan-brief .plan-boundary{margin:1rem 0;padding-top:.75rem}.plan-brief p{font-size:.85rem}.saved-plan strong{font-size:.8rem}.saved-plan li{padding:.65rem 0}.source-excerpt{padding:1rem .6rem}.code-lines{font-size:.72rem;line-height:1.7;padding-left:2.1rem}.code-lines li{padding-left:.4rem}.chapter-check{gap:.6rem;padding:.9rem}.chapter-check>div{flex:1}.chapter-check strong{font-size:.85rem}.chapter-check p{font-size:.75rem}.chapter-check button{margin-left:1.7rem}.story-controls{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.5rem}.story-controls .story-primary{grid-column:1 / span 3;min-width:0;font-size:.8rem;min-height:48px;justify-content:center}.story-controls>[data-previous]{grid-column:4;grid-row:1;width:100%;min-height:48px}.story-controls>[data-story-position]{grid-column:1 / -1;grid-row:3;width:100%;text-align:center}.story-controls .story-auto{grid-column:1 / span 2;grid-row:2;margin:0;text-align:left}.story-controls>[data-watch]{grid-column:3 / span 2;grid-row:2;margin:0;font-size:.75rem;line-height:1.4}.chapter-check{display:grid;grid-template-columns:24px minmax(0,1fr)}.chapter-check button{grid-column:2;margin:0;justify-self:start}.story-chapters{padding-bottom:1rem;gap:0 .5rem}.story-chapters button{font-size:.72rem;gap:.4rem;white-space:normal;text-align:left;line-height:1.4}.recording-details summary{font-size:.85rem}.recording-details summary span{display:block;float:none;margin:.2rem 0 0 1rem;font-size:.75rem}.inspector-controls{grid-template-columns:1fr}.recording-inspector pre{font-size:.72rem;padding:.8rem}.recording-downloads{flex-direction:column;gap:.8rem}.recording-footnote{font-size:.72rem}}
-@media(prefers-reduced-motion:reduce){.build-recording *{scroll-behavior:auto}}
+.build-recording{margin-top:1.8rem;min-width:0}
+.build-recording [hidden]{display:none!important}
+.build-recording button{font:inherit;cursor:pointer;color:var(--color-text);background:transparent;border:1px solid transparent;border-radius:3px;min-height:44px;padding:.5rem .75rem;font-size:.8rem}
+.build-recording button:hover{background:var(--color-surface)}
+.build-recording button:disabled{cursor:default}
+.build-recording :is(button,select,summary,input,.session-scroll,pre):focus-visible{outline:2px solid var(--color-accent);outline-offset:3px}
+.session-terminal{--terminal-bg:#f8f8f5;--terminal-text:#232922;--terminal-muted:#5d655b;--terminal-rule:#d4d8d0;background:var(--terminal-bg);color:var(--terminal-text);border:1px solid var(--terminal-rule);font-family:var(--font-mono);font-size:.79rem;line-height:1.65}
+.dark .session-terminal{--terminal-bg:#15191b;--terminal-text:#e2e6df;--terminal-muted:#a5aea3;--terminal-rule:#394139}
+.terminal-heading{display:flex;align-items:center;gap:1rem;padding:.8rem 1.2rem;border-bottom:1px solid var(--terminal-rule)}
+.terminal-heading strong{font-size:.96rem;font-weight:600;white-space:nowrap}.terminal-heading>span{color:var(--terminal-muted);font-size:.74rem}.terminal-heading small{margin-left:auto;color:var(--terminal-muted);font-size:.65rem}
+.session-scroll{height:340px;overflow:auto;overscroll-behavior:contain;padding:1.2rem;scrollbar-width:thin;scroll-padding:1rem}
+.session-entry{padding:0 0 1rem;scroll-margin:1rem}
+.session-entry>button{width:100%;display:flex;align-items:baseline;gap:.55rem;text-align:left;color:var(--terminal-text);font:inherit;padding:0;min-height:28px;line-height:1.55}
+.session-entry>button:hover{background:transparent;text-decoration:underline;text-underline-offset:3px}
+.entry-bullet{color:var(--terminal-muted)}.entry-label{font-weight:500;overflow-wrap:anywhere}
+.session-entry time{color:var(--terminal-muted);font-size:.65rem;margin-left:auto;white-space:nowrap}
+.entry-status{font-size:.65rem;color:var(--terminal-muted);white-space:nowrap}
+.entry-status[data-status="Failed"],.entry-status[data-status="Rejected"]{color:var(--color-error)}
+.entry-status[data-status="Passed"],.entry-status[data-status="Completed"]{color:var(--color-green)}
+.entry-summary{margin:0 0 0 1.05rem;color:var(--terminal-muted);font-size:.74rem;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:1;overflow:hidden}
+.entry-detail{padding-left:1.05rem}.entry-purpose{margin:.25rem 0 .7rem;color:var(--terminal-muted);font-size:.74rem}
+.entry-message{margin:.4rem 0 0;line-height:1.75;white-space:pre-wrap;overflow-wrap:anywhere;max-width:85ch}
+.session-terminal pre{font:inherit;font-size:.74rem;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere;margin:.5rem 0;color:inherit;background:transparent}
+.session-terminal .entry-command{padding:.35rem 0 .65rem;border-bottom:1px solid var(--terminal-rule)}
+.session-terminal .entry-expand{color:var(--terminal-muted);padding:.4rem 0;font:.71rem var(--font-mono);text-decoration:underline;text-underline-offset:3px}
+.replay-controls{padding:.5rem 0 1rem}
+.replay-scrubber{display:flex;align-items:center;gap:1rem}
+.replay-scrubber input{flex:1;min-width:0;height:32px;margin:0;accent-color:var(--color-accent);cursor:ew-resize}
+.replay-scrubber output{font:.7rem var(--font-mono);color:var(--color-text-muted);white-space:nowrap}
+.replay-transport{display:flex;align-items:center;gap:.35rem;flex-wrap:wrap}
+.replay-transport [data-play]{background:var(--color-accent);color:var(--color-on-accent);font-weight:600;min-width:72px}
+.replay-transport :is([data-previous],[data-next]){width:44px;padding:.5rem;border-color:var(--color-border)}
+.replay-transport button:disabled{opacity:.4}
+.replay-jump{margin-left:auto}
+.build-recording select{color:var(--color-text);background:var(--color-bg-card);border:1px solid var(--color-border);border-radius:3px;height:44px;font:inherit;max-width:100%;min-width:0;padding:.4rem .6rem}
+.replay-jump select,.replay-speed select{font-size:.75rem}
+.replay-speed select{width:60px}.replay-jump select{max-width:190px}
+.recording-details{border-top:1px solid var(--color-border);margin-top:.25rem}
+.build-recording summary{cursor:pointer;min-height:44px;font-size:.8rem;line-height:1.5;padding:.85rem 0;color:var(--color-text)}
+.build-recording summary::marker{color:var(--color-text-muted);font-size:.7rem}
+.recording-details>details+details,.complete-transcript{border-top:1px solid var(--color-border)}
+.saved-work summary span{float:right;font:.69rem var(--font-mono);color:var(--color-text-muted);padding-top:.2rem}
+.saved-work>p{font-size:.78rem;color:var(--color-text-muted);line-height:1.6}
+.saved-work ol{list-style:none;padding:0;margin:.25rem 0;max-width:560px}
+.saved-work li{display:grid;grid-template-columns:16px minmax(0,1fr) auto;gap:.45rem;padding:.4rem 0;font-size:.8rem}
+.saved-work li small{color:var(--color-text-muted);font-size:.7rem}
+.saved-work li[data-status="In progress"]{font-weight:600}.saved-work li[data-status="Completed"]>span:first-child{color:var(--color-green)}
+.build-recording .saved-decision{padding:.4rem 0;text-decoration:underline;text-underline-offset:3px}
+.inspector-controls{display:grid;grid-template-columns:3fr 2fr;gap:1rem;margin:.5rem 0 1rem}
+.inspector-controls label{display:flex;flex-direction:column;gap:.4rem;font-size:.72rem;color:var(--color-text-muted);min-width:0}
+.inspector-controls select{font-size:.8rem;width:100%}
+.source-note{font-size:.73rem;color:var(--color-text-muted)}
+.recording-inspector pre,.complete-transcript pre{background:var(--color-code);color:var(--color-code-text);font:.74rem/1.7 var(--font-mono);white-space:pre-wrap;overflow-wrap:anywhere;padding:1rem;max-height:430px;overflow:auto;scrollbar-width:thin}
+.recording-receipt{font:.65rem/1.6 var(--font-mono);color:var(--color-text-muted);overflow-wrap:anywhere}
+.complete-transcript>ol{max-height:600px;overflow:auto;list-style:none;margin:0;padding:0}
+.complete-transcript li{border-top:1px solid var(--color-border)}
+.complete-transcript li summary{display:flex;gap:.7rem;align-items:baseline}
+.complete-transcript li summary::before{content:"›"}.complete-transcript li details[open]>summary::before{content:"⌄"}
+.complete-transcript time,.complete-transcript small{font:.65rem var(--font-mono);color:var(--color-text-muted);white-space:nowrap}
+.complete-transcript small{margin-left:auto}
+.recording-footer{display:flex;align-items:baseline;justify-content:space-between;gap:.75rem 1rem;flex-wrap:wrap;border-top:1px solid var(--color-border);padding-top:1rem;margin-top:.25rem;font-size:.73rem;color:var(--color-text-muted)}
+.recording-footer p{margin:0}.recording-downloads{display:flex;gap:1rem;flex-wrap:wrap}.recording-downloads a{color:var(--color-text);text-decoration:underline;text-underline-offset:3px}
+.recording-error{color:var(--color-error);font-size:.85rem;line-height:1.6}
+@media(max-width:600px){.session-scroll{height:400px;padding:.9rem}.terminal-heading{padding:.75rem .9rem;gap:.7rem}.terminal-heading small{font-size:.6rem}.entry-label{font-size:.75rem}.inspector-controls{grid-template-columns:1fr}.replay-jump select{max-width:155px}.recording-footer{padding-top:.85rem}}
+@media(max-width:420px){.replay-jump{margin-left:0}.replay-jump select{max-width:145px}.replay-transport{display:grid;grid-template-columns:72px 44px 44px 1fr 60px}.replay-jump{grid-column:1/5}.replay-jump select{width:100%;max-width:none}.replay-speed{grid-column:5}.saved-work summary span{font-size:.64rem}}
 </style>

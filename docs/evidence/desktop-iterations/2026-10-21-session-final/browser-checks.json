@@ -1,0 +1,1114 @@
+{
+  "completedAt": "2026-10-21T07:32:31.743Z",
+  "status": "passed",
+  "renderer": "Playwright WebKit",
+  "rendererVersion": "27.2",
+  "platform": "darwin-arm64",
+  "node": "v24.21.0",
+  "origin": "http://127.0.0.1:54877",
+  "motion": "reduced",
+  "scale": 1,
+  "evidenceScope": "session-replay",
+  "checks": [
+    {
+      "layout": "wide",
+      "appearance": "light",
+      "passed": true,
+      "scenarios": [
+        "nine static routes",
+        "section navigation: keyboard, links and sticky-header clearance",
+        "primary and theme-control contrast",
+        "wrapped code and aligned documentation arrows",
+        "recorded project: six real conversation messages and 47 actions, scrubbing, no future source, failed/passed checks, keyboard, pause, exact files and publication redaction; evidence tabs: pointer, arrows, Home, End, focus",
+        "clipboard success and denial (browser stub)",
+        "reflow at 320 px",
+        "images",
+        "install anchor",
+        "theme persistence",
+        "selected agent instructions",
+        "lazy search, results, empty and failure recovery, cleared query",
+        "keyboard skip link"
+      ]
+    },
+    {
+      "layout": "wide",
+      "appearance": "dark",
+      "passed": true,
+      "scenarios": [
+        "nine static routes",
+        "section navigation: keyboard, links and sticky-header clearance",
+        "primary and theme-control contrast",
+        "wrapped code and aligned documentation arrows",
+        "recorded project: six real conversation messages and 47 actions, scrubbing, no future source, failed/passed checks, keyboard, pause, exact files and publication redaction; evidence tabs: pointer, arrows, Home, End, focus",
+        "clipboard success and denial (browser stub)",
+        "reflow at 320 px",
+        "images",
+        "install anchor",
+        "theme persistence",
+        "selected agent instructions",
+        "lazy search, results, empty and failure recovery, cleared query",
+        "keyboard skip link"
+      ]
+    },
+    {
+      "layout": "compact",
+      "appearance": "light",
+      "passed": true,
+      "scenarios": [
+        "nine static routes",
+        "section navigation: keyboard, links and sticky-header clearance",
+        "primary and theme-control contrast",
+        "wrapped code and aligned documentation arrows",
+        "recorded project: six real conversation messages and 47 actions, scrubbing, no future source, failed/passed checks, keyboard, pause, exact files and publication redaction; evidence tabs: pointer, arrows, Home, End, focus",
+        "clipboard success and denial (browser stub)",
+        "reflow at 320 px",
+        "images",
+        "install anchor",
+        "theme persistence",
+        "selected agent instructions",
+        "lazy search, results, empty and failure recovery, cleared query",
+        "keyboard skip link",
+        "mobile menu navigation, Escape, anchor focus and resize recovery"
+      ]
+    },
+    {
+      "layout": "compact",
+      "appearance": "dark",
+      "passed": true,
+      "scenarios": [
+        "nine static routes",
+        "section navigation: keyboard, links and sticky-header clearance",
+        "primary and theme-control contrast",
+        "wrapped code and aligned documentation arrows",
+        "recorded project: six real conversation messages and 47 actions, scrubbing, no future source, failed/passed checks, keyboard, pause, exact files and publication redaction; evidence tabs: pointer, arrows, Home, End, focus",
+        "clipboard success and denial (browser stub)",
+        "reflow at 320 px",
+        "images",
+        "install anchor",
+        "theme persistence",
+        "selected agent instructions",
+        "lazy search, results, empty and failure recovery, cleared query",
+        "keyboard skip link",
+        "mobile menu navigation, Escape, anchor focus and resize recovery"
+      ]
+    }
+  ],
+  "sourceHashes": {
+    "apps/website/astro.config.mjs": "b8e61ea2c65b9c04cd1f44fa09091e134c761266baf1ea90c0efbdf75e795818",
+    "apps/website/package-lock.json": "799cde1b1a6c8048e7e1ec105b283f47a526485028f5ce0fdb06010f5e4a7b53",
+    "apps/website/package.json": "59804f257c100d70e3f8031979ffe3b22c5f88f1bf5cffc39544a63f3283c9f8",
+    "apps/website/public/demo/inbox/inbox-dark.png": "c737665ac3c1481b0f9e3f69cc3c153a7f8df12946a0e429dda2c5918f9c517d",
+    "apps/website/public/demo/inbox/inbox-light.png": "a47758b2db23c1d3c8ecdbce63663fe2a7ab9446c297efc614189931b7f508bb",
+    "apps/website/public/demo/inbox/inbox-workflow.webm": "baee474062f23fab399affe511afde9fd8431caadabf910a51324dfbec5c5d67",
+    "apps/website/public/demo/inbox/manifest.json": "421ab2a48715caf0b317801608fb5ad0dd23be19ef32809301fa58af285d9ed3",
+    "apps/website/public/demo/inbox/recording.json": "32d52862b68701592f026daffe9f2e4d3578c582a176ec4f7947b4b47d0382c8",
+    "apps/website/public/demo/inbox/source.zip": "fd2bcbaa8f443d2a6bc566d3485ba8a3156b76dfcb8d29aa1dc4f647d283b0ff",
+    "apps/website/public/demo/inbox/walkthrough/after-compact-dark.png": "daf2b91ade57b1edd0b0918f17b6c1c0571bad2f20582669b9195a2e41633cd8",
+    "apps/website/public/demo/inbox/walkthrough/after-compact-light.png": "3836dc52e597fb310b73b2d095bb6c332aa5de1111c139fc6548333d580fb2de",
+    "apps/website/public/demo/inbox/walkthrough/after-wide-dark.png": "24f4c6f80ad23adaa517a129efd5a18d6eab0f15bcf9c71e64b1f3dcc8f33241",
+    "apps/website/public/demo/inbox/walkthrough/after-wide-light.png": "d699c7d23b9b237863db6ccfc10620f45225d9eb41f67ec77ac1ce00986096ed",
+    "apps/website/public/demo/inbox/walkthrough/before-compact-dark.png": "9f1fc6b398a833d9483774353af7c661ef197fad116f5f0fd202e1a99ff2a775",
+    "apps/website/public/demo/inbox/walkthrough/before-compact-light.png": "65b968d50ed2a534981957c100e2949e613e0e8486e59fb5b7865922f94cba77",
+    "apps/website/public/demo/inbox/walkthrough/before-wide-dark.png": "11c661e0b5193d037613b67a84f41a216100bf0ad3742d4f1e86635c120e3193",
+    "apps/website/public/demo/inbox/walkthrough/before-wide-light.png": "29203be2b3041223a5d73a403537664896f5204fcff8a9ffc349065e07618ea5",
+    "apps/website/public/demo/inbox/walkthrough/captures.json": "4a8edeaf3593740391313c2ccfaf134e44e014f9a126138876b5bdc299f19394",
+    "apps/website/public/examples/project-records.json": "8e9e9782d80124559de0647916657dc828383879e30cb67b25204594da548484",
+    "apps/website/public/favicon.svg": "39f132daba63253e3b52d7196f1da0ccbd79ca6398258856d092d05b0fc713d5",
+    "apps/website/public/github-social.png": "45bc8034b7c10b95a5ce5a254da914f28f7342e3c48544a9c4cbaebe9f625532",
+    "apps/website/public/icon-192.png": "28955bd5e1b5021eb9c0d52ff21d61aa0b9004f94271f21261c4aba06143b330",
+    "apps/website/public/og-image.png": "45bc8034b7c10b95a5ce5a254da914f28f7342e3c48544a9c4cbaebe9f625532",
+    "apps/website/public/og-image.svg": "1433ab472239193e78668b035d61260e66646185ace83c1086600b8935ea47fd",
+    "apps/website/public/screenshots/captures.json": "59897446e1905f99041dbc73cb9758d32b9541bb51c676b6eddd30009ab1d5bf",
+    "apps/website/public/site.webmanifest": "2bb0d8f16524032f18d2e694c6ce5d42dd33cae1c3ace178f818b4a75caf8975",
+    "apps/website/scripts/asset-url.mjs": "976d11d93e755da868580b92873db6a731aef16a3d6a37058c3a03a73bd54310",
+    "apps/website/scripts/generate-favicons.mjs": "29219764e02ff13ac133f07a70e97fb33f8f3dfda80f2816000efa9a00de99a8",
+    "apps/website/scripts/publish-recording.mjs": "aa6a5a96a458dd33e2325b5a62182583242c6ec1db177ec053e41d125a476065",
+    "apps/website/src/components/Footer.astro": "bc5a05a3720be950e140693ed66005f6cef630a6058cfa6b8d1826f2d8db23bf",
+    "apps/website/src/components/Nav.astro": "c157c679eff63422c631d1e41c725900c40e42d8c79d83b5645dc42faf9aa98a",
+    "apps/website/src/components/ProductEvidence.astro": "6b3a4b44a6862cf3010ab7ef02136f84a32d59467e55b9dd23f861258b786f3b",
+    "apps/website/src/components/ProjectTour.astro": "3c5eb1c5982c495431e9d1e0a371b72bf74ca04c3252fc7dd9954172853f0257",
+    "apps/website/src/components/ThemeToggle.astro": "62739fc7a3d3476e13c53f2dfa389150f3e7ca4ba0629c34b71f5cf8202ea211",
+    "apps/website/src/components/Workflow.astro": "14dc73b5f65baa03e326169a03e67b27f23db5c5457a141f2021853f0dcc3c2c",
+    "apps/website/src/content.config.ts": "35db5d681c2146a4e34de514bb5c1472d5da2e75b2652f8ca0fba880afcf1a1a",
+    "apps/website/src/content/docs/chunks.mdx": "276cb73a0774f25b771eb216f4d2bd718117cfa0255a49aa27d714c6e6839088",
+    "apps/website/src/content/docs/concepts.mdx": "47560c42ade2e7282ac5e531bac3069e6c87e6070dd07f1741823607d4ef8242",
+    "apps/website/src/content/docs/installation.mdx": "a77bfa0de9ca013e10d3dd0a0e71bc6680844e95f2e7b1029d76cc74067da9fa",
+    "apps/website/src/content/docs/reasoning.mdx": "82837e96d8c749c678979afcf14d9861e070cd8823b46d9f6750f4aabb1482db",
+    "apps/website/src/content/docs/roadmap.mdx": "b25c114a72bc48c3ca172e0b53801d28470c43ac29897917329925b07b965b2b",
+    "apps/website/src/content/docs/verification.mdx": "20c7e7cee0650d786bc477cdc50adfa7e9d3bb84de0eacd8bd8adc9f822e8364",
+    "apps/website/src/content/docs/workflow.mdx": "827f94e6c5f40bcecfa1b91fd7e645488163e50e100b025fcad77c02d214c4f3",
+    "apps/website/src/data/product-tour.mjs": "625549ed0bd6c363685dcf8132cfd6488f63d0fea89a099d94de868619f7a22a",
+    "apps/website/src/data/project-recording.mjs": "510b8d4af84c0fbd19b9cea343fc9846664e58c537ccf318e06093fc8873811c",
+    "apps/website/src/data/session-replay.mjs": "64cd2d8fec72eb1eff0c40e568aabe529898235cdd0d15a0672abcb3c2c2f997",
+    "apps/website/src/layouts/Base.astro": "0e23e44a028773e081f46a924b8e94ea3d42cf744365ec3ee81a9ae63a8b9ab4",
+    "apps/website/src/layouts/Docs.astro": "f1fa32a12dd4d15c35b63bd237677c46c03ecd64f5c9ad2cadb70c1608778b73",
+    "apps/website/src/pages/404.astro": "9829e116d2cd8e2a16b6ac66a2be9566acb5e6486dc2848fe8b164f4fd332f74",
+    "apps/website/src/pages/docs/[...slug].astro": "14d87e7c921ba2633ccd4780c9c218031152ebe16e2aa39c3a37f7243bb48e95",
+    "apps/website/src/pages/index.astro": "5725b18f232e58960bb734d0a443c839c1cf2d75d825a80dfcef59aa3c4457f7",
+    "apps/website/src/pages/robots.txt.ts": "55c24c9a347c8d62fe0a071522d6433a9ccdcd5c4013733fe87ca2bc778c2ab2",
+    "apps/website/src/scripts/product-tour.ts": "a806939e47699fd19bd979936bdfa6ffa3eb2807ae1320d7450984ff08cf4af6",
+    "apps/website/src/scripts/project-recording.ts": "b11a123f83d0bd642b9a3ad4ef0dfec6f58960835c55979160373f50c4d17ecc",
+    "apps/website/src/scripts/tabs.ts": "32e6adc7ac689beb534b916a5752b50f21e2d289f9cfd3f99f326472e2a4a0bc",
+    "apps/website/src/styles/global.css": "5f4b73817a748b5248d3b20e2559c16a9b3a4150af9969b96c2de1a98f3bfe83",
+    "apps/website/src/styles/project-tour.css": "a0d1e141364e5aa58af006d1817fbb45dd15784d5d1c5e4a55e48b00d80f87ae",
+    "apps/website/tests/browser.mjs": "90cd50bbb38e069c1db965a6beefee4514f24464e7cc075231ee2648d6c8238c",
+    "apps/website/tests/project-recording.test.mjs": "aec8de95f9c02521e2ab09207b50f5b8179dc90fa1860fe288bafd78d8575d6e"
+  },
+  "captures": [
+    {
+      "file": "tour-chunks-wide-light.png",
+      "state": "Explore chunks with real records",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:03.959Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "region": ".project-tour",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1104,
+      "height": 692,
+      "sha256": "d6d316e3b11ef9b2e6d9c27dd01d9557a5e2b978da47ead531aaa97c915e8a5d",
+      "review": "pending"
+    },
+    {
+      "file": "tour-checks-wide-light.png",
+      "state": "Explore checks with real records",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:04.240Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "region": ".project-tour",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1104,
+      "height": 597,
+      "sha256": "bf951ecb31a1ece15693ac868fcb0c83bde1db926d8dab4af21f44073d2de555",
+      "review": "pending"
+    },
+    {
+      "file": "tour-failed-check-wide-light.png",
+      "state": "The original failing check is retained",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:04.423Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "region": ".project-tour",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1104,
+      "height": 597,
+      "sha256": "3fa6b9cd7686e73031d96117eed2ce07b59a58385e792c1a13b34a9f73d703de",
+      "review": "pending"
+    },
+    {
+      "file": "recording-overview-wide-light.png",
+      "state": "Real Codex conversation, paused replay and saved project context",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:04.643Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "region": "#workflow",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1200,
+      "height": 858,
+      "sha256": "6e807f42f84b74e577f117b83ae3e909831ae63fb85e40cd20f4f712a96417bf",
+      "review": "pending"
+    },
+    {
+      "file": "recording-moment-1-wide-light.png",
+      "state": "Recorded build moment 1 without competing panels",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:04.707Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1104,
+      "height": 633,
+      "sha256": "75e940528d93d83eef60d0fefe87e6bf5ded0277747dec82ed4392acd866c7c4",
+      "review": "pending"
+    },
+    {
+      "file": "recording-saved-wide-light.png",
+      "state": "Open the saved plan only when requested",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:04.794Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1104,
+      "height": 872,
+      "sha256": "1a5779aff8b79721a30316388ec70482008286b95b6207fdaa180976abc94c15",
+      "review": "pending"
+    },
+    {
+      "file": "recording-moment-2-wide-light.png",
+      "state": "Recorded build moment 2 without competing panels",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:04.875Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1104,
+      "height": 633,
+      "sha256": "cb8275022606eea7d95e039f31351de1f4e893143aad4997b280ff2fc7c392f6",
+      "review": "pending"
+    },
+    {
+      "file": "recording-moment-3-wide-light.png",
+      "state": "Recorded build moment 3 without competing panels",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:04.939Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1104,
+      "height": 633,
+      "sha256": "c42374529040287b9977dcc10b5980c7e0823e42d05574da33324975880a3aae",
+      "review": "pending"
+    },
+    {
+      "file": "recording-moment-4-wide-light.png",
+      "state": "Recorded build moment 4 without competing panels",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:05.007Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1104,
+      "height": 633,
+      "sha256": "cf1dedc029a2dd288798acee7e6b3efdd9167fc626ff854f0e3761ddd7aeb92d",
+      "review": "pending"
+    },
+    {
+      "file": "recording-moment-5-wide-light.png",
+      "state": "Recorded build moment 5 without competing panels",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:05.073Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1104,
+      "height": 633,
+      "sha256": "09d4a3e15ec261fdde05673826a8cd933a2a2830f3d3a42eb4798573b90fe21e",
+      "review": "pending"
+    },
+    {
+      "file": "recording-action-14-wide-light.png",
+      "state": "Failed check, public paths and inspectable original result",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:05.157Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "region": ".recording-inspector",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1104,
+      "height": 607,
+      "sha256": "a022fb842809c303414af0a7676f18bad1b6ea64822b1c58e6c1e786223e25ea",
+      "review": "pending"
+    },
+    {
+      "file": "recording-keyboard-wide-light.png",
+      "state": "Keyboard scrubbing keeps focus and updates source/task state",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:05.306Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1104,
+      "height": 633,
+      "sha256": "4c8759fe23619ba8df2fc0b93eb04ee79b4890ffd03c0b720b35aa9f949f9ad1",
+      "review": "pending"
+    },
+    {
+      "file": "tour-chunks-wide-dark.png",
+      "state": "Explore chunks with real records",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:10.796Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "region": ".project-tour",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1104,
+      "height": 692,
+      "sha256": "3c6aa5a20f8f16e888584c6ccceeeb455da739ddfe31dfb76740ae8cffa7dd69",
+      "review": "pending"
+    },
+    {
+      "file": "tour-checks-wide-dark.png",
+      "state": "Explore checks with real records",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:11.078Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "region": ".project-tour",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1104,
+      "height": 597,
+      "sha256": "57daefe21dfd2393a77628436bcfbd487ac88657f968887692edb471f18e975b",
+      "review": "pending"
+    },
+    {
+      "file": "tour-failed-check-wide-dark.png",
+      "state": "The original failing check is retained",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:11.246Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "region": ".project-tour",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1104,
+      "height": 597,
+      "sha256": "cc60627638b02447c3f9877080573f55f4acde343b055000a442ccc26f19c977",
+      "review": "pending"
+    },
+    {
+      "file": "recording-overview-wide-dark.png",
+      "state": "Real Codex conversation, paused replay and saved project context",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:11.463Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "region": "#workflow",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1200,
+      "height": 858,
+      "sha256": "f35cff46b4bf9521a443f047ec4370e2427694d771a8e06124bad289c3e7b48f",
+      "review": "pending"
+    },
+    {
+      "file": "recording-moment-1-wide-dark.png",
+      "state": "Recorded build moment 1 without competing panels",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:11.529Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1104,
+      "height": 633,
+      "sha256": "be3c069030f673f9cbefa68b56d16db135aff9fd67e02279ca87ad5aa98a6b17",
+      "review": "pending"
+    },
+    {
+      "file": "recording-saved-wide-dark.png",
+      "state": "Open the saved plan only when requested",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:11.615Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1104,
+      "height": 872,
+      "sha256": "115e69e19079453c08855c5395b38f6db48b2d4fcd79a9aae34272b1de4cbac8",
+      "review": "pending"
+    },
+    {
+      "file": "recording-moment-2-wide-dark.png",
+      "state": "Recorded build moment 2 without competing panels",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:11.693Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1104,
+      "height": 633,
+      "sha256": "66f2775c6f19bfee00edd1f5fe246e93aae1a452795b624bd606908dc4a2b8b3",
+      "review": "pending"
+    },
+    {
+      "file": "recording-moment-3-wide-dark.png",
+      "state": "Recorded build moment 3 without competing panels",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:11.745Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1104,
+      "height": 633,
+      "sha256": "1286702034f1abd2ca2badf62b18110557a08dbfcc0a5c4bcf6c814515905160",
+      "review": "pending"
+    },
+    {
+      "file": "recording-moment-4-wide-dark.png",
+      "state": "Recorded build moment 4 without competing panels",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:11.810Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1104,
+      "height": 633,
+      "sha256": "a5d14edef2f0cb2623c15b1ef63bb10bca9d17d03d28725b813f26939d4f56d3",
+      "review": "pending"
+    },
+    {
+      "file": "recording-moment-5-wide-dark.png",
+      "state": "Recorded build moment 5 without competing panels",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:11.877Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 1104,
+      "height": 633,
+      "sha256": "455fd7a9ed22b06d57f50a2ce014ed50b7176f96a89a7285ba934d56fe2b343c",
+      "review": "pending"
+    },
+    {
+      "file": "tour-chunks-compact-light.png",
+      "state": "Explore chunks with real records",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:17.227Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "region": ".project-tour",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 350,
+      "height": 1179,
+      "sha256": "a59803cfaca3f9e447309fabc3b1f4b9dc794b67eb45efe56cd5fa05bec62af5",
+      "review": "pending"
+    },
+    {
+      "file": "tour-checks-compact-light.png",
+      "state": "Explore checks with real records",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:17.509Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "region": ".project-tour",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 350,
+      "height": 986,
+      "sha256": "dd7ccf8be7d959f6018589ad35e3caf972b4d75cc27c19f6ae5dfcee3974f7b0",
+      "review": "pending"
+    },
+    {
+      "file": "tour-failed-check-compact-light.png",
+      "state": "The original failing check is retained",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:17.675Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "region": ".project-tour",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 350,
+      "height": 1073,
+      "sha256": "e1803a780551ed08045611c4ac0e79b89a4fc34fd5f6f30bc2fd98ce65ee591b",
+      "review": "pending"
+    },
+    {
+      "file": "recording-overview-compact-light.png",
+      "state": "Real Codex conversation, paused replay and saved project context",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:17.892Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "region": "#workflow",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 1010,
+      "sha256": "e7ffb466cc726b0cb4fab83928bf9d45e9a9ab1756dec7527dda2159e888bd90",
+      "review": "pending"
+    },
+    {
+      "file": "recording-moment-1-compact-light.png",
+      "state": "Recorded build moment 1 without competing panels",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:17.943Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 350,
+      "height": 769,
+      "sha256": "c4ec53fb1c32c6507a12324f42388ed012041272b86c15d51b1d1f331474dc4f",
+      "review": "pending"
+    },
+    {
+      "file": "recording-saved-compact-light.png",
+      "state": "Open the saved plan only when requested",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:18.026Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 350,
+      "height": 1007,
+      "sha256": "818096a31d2a9591207ad7adf3c9c939851c07a9312001f37664843505710a08",
+      "review": "pending"
+    },
+    {
+      "file": "recording-moment-2-compact-light.png",
+      "state": "Recorded build moment 2 without competing panels",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:18.108Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 350,
+      "height": 769,
+      "sha256": "47568a1badf37d4886a3bed67e5b15247da5667fd764246c8c73657c8dbad1d6",
+      "review": "pending"
+    },
+    {
+      "file": "recording-moment-3-compact-light.png",
+      "state": "Recorded build moment 3 without competing panels",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:18.158Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 350,
+      "height": 769,
+      "sha256": "d541f4e93560423d770a9f16c27ddc3fd0a5f0f8e16ebe3e459a6129b82cd32e",
+      "review": "pending"
+    },
+    {
+      "file": "recording-moment-4-compact-light.png",
+      "state": "Recorded build moment 4 without competing panels",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:18.208Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 350,
+      "height": 769,
+      "sha256": "85f92cf5dcbab35b445a39a7b657687da8aa843abd5e68ee30fc894e700c33be",
+      "review": "pending"
+    },
+    {
+      "file": "recording-moment-5-compact-light.png",
+      "state": "Recorded build moment 5 without competing panels",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:18.257Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 350,
+      "height": 769,
+      "sha256": "e96b9604840d782b614f348616b53689d271a82ee8a744a31e19f7d559a7b8a2",
+      "review": "pending"
+    },
+    {
+      "file": "recording-320-light.png",
+      "state": "Recorded failure and playback controls at 320 CSS pixels",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:23.120Z",
+      "viewport": {
+        "width": 320,
+        "height": 844
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 280,
+      "height": 770,
+      "sha256": "647ed1ad930819f9d7f4050dc41ab7ee4c9c1b7ac5dd0c4967ed0aa3a1fd99f7",
+      "review": "pending"
+    },
+    {
+      "file": "tour-chunks-compact-dark.png",
+      "state": "Explore chunks with real records",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:24.223Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "region": ".project-tour",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 350,
+      "height": 1179,
+      "sha256": "3a66270de15ec516dcbd5f2ca303f69820d72a9102206fe24cb7a45d6cb39c4b",
+      "review": "pending"
+    },
+    {
+      "file": "tour-checks-compact-dark.png",
+      "state": "Explore checks with real records",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:24.505Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "region": ".project-tour",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 350,
+      "height": 986,
+      "sha256": "69accb38266ed0780e31e291525f6e96c01bac17078d96434fd8832180d00f3e",
+      "review": "pending"
+    },
+    {
+      "file": "tour-failed-check-compact-dark.png",
+      "state": "The original failing check is retained",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:24.674Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "region": ".project-tour",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 350,
+      "height": 1073,
+      "sha256": "e2c6609cbc5b349c292c12d2cc5cf7da32fafe2cc597f06d90b6a9936b143055",
+      "review": "pending"
+    },
+    {
+      "file": "recording-overview-compact-dark.png",
+      "state": "Real Codex conversation, paused replay and saved project context",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:24.889Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "region": "#workflow",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 390,
+      "height": 1010,
+      "sha256": "1389826c72932dc6434c7d50fbe1946b23b0a971bd042b7417ce3d7e97b87e34",
+      "review": "pending"
+    },
+    {
+      "file": "recording-moment-1-compact-dark.png",
+      "state": "Recorded build moment 1 without competing panels",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:24.954Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 350,
+      "height": 769,
+      "sha256": "0e9e86b31301ba2820aeecdc8ca10b3b1a28e3d8b25eab0c15addcaddc374b39",
+      "review": "pending"
+    },
+    {
+      "file": "recording-saved-compact-dark.png",
+      "state": "Open the saved plan only when requested",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:25.040Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 350,
+      "height": 1007,
+      "sha256": "ba353f4ddce7097af0d37ef15a8bc95614a45dd95de3431fd40c978407e81940",
+      "review": "pending"
+    },
+    {
+      "file": "recording-moment-2-compact-dark.png",
+      "state": "Recorded build moment 2 without competing panels",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:25.121Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 350,
+      "height": 769,
+      "sha256": "67b885380dec47a387be58bfb9d9cf7683a9018a5433df5ae76805a9e3a90f00",
+      "review": "pending"
+    },
+    {
+      "file": "recording-moment-3-compact-dark.png",
+      "state": "Recorded build moment 3 without competing panels",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:25.172Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 350,
+      "height": 769,
+      "sha256": "2f142ac3ad6a9e438becc97a579a3d4ee51ff5d36769e5359ed8bfc9e0578b58",
+      "review": "pending"
+    },
+    {
+      "file": "recording-moment-4-compact-dark.png",
+      "state": "Recorded build moment 4 without competing panels",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:25.222Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 350,
+      "height": 769,
+      "sha256": "0cf9fc96a9ea0044d7f2424517e8320aa52fcffd46a2c5ad73e6ab50fcfe930e",
+      "review": "pending"
+    },
+    {
+      "file": "recording-moment-5-compact-dark.png",
+      "state": "Recorded build moment 5 without competing panels",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:25.269Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 350,
+      "height": 769,
+      "sha256": "81f4fe63db78a85a0314006c4413c386e0e7c95061e0f2b0492d7d122d4b232b",
+      "review": "pending"
+    },
+    {
+      "file": "recording-source-compact-dark.png",
+      "state": "Complete source file at the selected build moment",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:25.353Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "region": ".recording-inspector",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 350,
+      "height": 675,
+      "sha256": "7e25749ad395e4d67dff66cc718283d59a1cb449b75b3cae52e8dbce2543f0b8",
+      "review": "pending"
+    },
+    {
+      "file": "recording-action-35-compact-dark.png",
+      "state": "Original menu-size fix in the actual development sequence",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:25.408Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 350,
+      "height": 1279,
+      "sha256": "b7744531b5130ed88e878380f5e15d8e0d996696aae0b82196189b32f22d8295",
+      "review": "pending"
+    },
+    {
+      "file": "recording-320-dark.png",
+      "state": "Recorded failure and playback controls at 320 CSS pixels",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:30.208Z",
+      "viewport": {
+        "width": 320,
+        "height": 844
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 280,
+      "height": 770,
+      "sha256": "c71f3122e60f1973dc233fdaab8075bd4cc88541b1fbde56577273838047b107",
+      "review": "pending"
+    },
+    {
+      "file": "recording-820-light.png",
+      "state": "Saved project plan at the tablet breakpoint",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:30.710Z",
+      "viewport": {
+        "width": 820,
+        "height": 1000
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 756,
+      "height": 633,
+      "sha256": "0bf1d24dad607ae6f7a971583d6484ac92d281f0197bdd6df37f5dce73eb3a54",
+      "review": "pending"
+    },
+    {
+      "file": "recording-820-dark.png",
+      "state": "Saved project plan at the tablet breakpoint",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:31.027Z",
+      "viewport": {
+        "width": 820,
+        "height": 1000
+      },
+      "appearance": "dark",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 756,
+      "height": 633,
+      "sha256": "2770ce05ad127ad3972c6acc705d54ba54d10839cd64a6e11d224aed10ec233f",
+      "review": "pending"
+    },
+    {
+      "file": "recording-unavailable.png",
+      "state": "Failed recording download retains real conversation and complete static transcript",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:31.419Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 350,
+      "height": 1212,
+      "sha256": "d73db2706f2c405ce96072f5b12e4163ba9636cc07ca52dfaa46dac611a44c51",
+      "review": "pending"
+    },
+    {
+      "file": "recording-without-javascript.png",
+      "state": "Real conversation and complete transcript remain readable without JavaScript",
+      "url": "/",
+      "capturedAt": "2026-10-21T07:32:31.741Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "appearance": "light",
+      "fullPage": false,
+      "region": ".build-recording",
+      "renderer": "Playwright WebKit",
+      "rendererVersion": "27.2",
+      "width": 350,
+      "height": 568,
+      "sha256": "35e68c39f680d49f7386ec9f7561cb7b110422b655724ac155f4b86906e0e347",
+      "review": "pending"
+    }
+  ],
+  "limitations": [
+    "Headless browser only; no native OS-input or assistive-technology testing.",
+    "Screenshots require separate recorded visual review.",
+    "Local build; no deployed-site or registry publication claim."
+  ]
+}

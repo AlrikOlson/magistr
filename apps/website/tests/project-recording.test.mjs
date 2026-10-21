@@ -47,16 +47,7 @@ test("the downloadable recording, source archive, video and screenshots match th
  assert.equal(manifest.artifacts["inbox-workflow.webm"],"baee474062f23fab399affe511afde9fd8431caadabf910a51324dfbec5c5d67");
  assert(!("projectState" in recording),"No simulated state is included");
 });
-test("guided chapters keep their source and screenshots tied to the original build",async()=>{
- const {walkthrough,excerptAt}=await import("../src/data/walkthrough.mjs");
- assert.deepEqual(walkthrough.map(scene=>scene.event),[11,17,22,33,41,46]);
- for(const scene of walkthrough.filter(scene=>scene.kind==="source")){
-  const excerpt=excerptAt(recording,scene,filesAt);
-  const lines=filesAt(recording,scene.event)[scene.path].split("\n");
-  assert(excerpt.length>4);
-  for(const line of excerpt)assert.equal(line.text.trim(),lines[line.number-1].trim());
-  assert.equal(checkOf(recording.events[scene.check]).passed,true);
- }
+test("original app captures retain their recorded bytes",()=>{
  const captures=JSON.parse(readFileSync(new URL("../public/demo/inbox/walkthrough/captures.json",import.meta.url)));
  assert.equal(captures.images.length,8);
  for(const capture of captures.images){
@@ -82,13 +73,50 @@ test("the product tour uses real dependencies, reasoning links and recorded task
   assert.equal(step.branch_from,branch.from_step);
   assert(conclusion.dependencies.includes(step.step_number));
  }
- const {walkthrough}=await import("../src/data/walkthrough.mjs");
+
  for(const note of chunkNotes){
   const task=taskRecord(recording,note.task);
   assert.equal(task.finish.output.status,"completed");
-  assert(walkthrough[note.scene].event>=task.events[0].id);
+  assert.equal(recording.events[note.event].input.task_id,note.task);
   assert(task.checks.length>0);
  }
  const storage=taskRecord(recording,"demo-store");
  assert.deepEqual(storage.checks.map(check=>check.passed),[false,true]);
+});
+test("one chronological session cursor never exposes future source or completion",async()=>{
+ const {sessionEntries,projectAt,moments,momentIndex}=await import("../src/data/session-replay.mjs");
+ const entries=sessionEntries(recording);
+ assert.equal(entries.length,53);
+ assert.deepEqual(entries.filter(e=>e.kind==="action").map(e=>e.event.id),recording.events.map(e=>e.id));
+ assert.deepEqual(entries.filter(e=>e.kind==="message").map(e=>e.text),recording.messages.map(e=>e.text));
+ for(const [i,entry]of entries.entries()){
+  if(i)assert(Date.parse(entry.at)>=Date.parse(entries[i-1].at));
+  const state=projectAt(recording,entry);
+  for(const check of state.checks)assert(check.id<=entry.eventIndex);
+  for(const task of state.tasks)if(task.status==="Completed")assert(recording.events.slice(0,entry.eventIndex+1).some(e=>e.kind==="finish"&&e.input.task_id===task.task));
+ }
+ const beforeStore=entries.find(e=>e.event?.id===14),afterStore=entries.find(e=>e.event?.id===15);
+ assert(!("examples/support-inbox/store.py" in filesAt(recording,beforeStore.eventIndex)));
+ assert("examples/support-inbox/store.py" in filesAt(recording,afterStore.eventIndex));
+ assert.equal(projectAt(recording,entries[0]).tasks.length,0);
+ assert(moments.every(moment=>momentIndex(entries,moment)>=0));
+});
+
+test("publication excludes private metadata and preserves the reviewed conversation",async()=>{
+ const {publishRecording,scrubText}=await import("../scripts/publish-recording.mjs");
+ assert.deepEqual(publishRecording(recording,recording.messages),recording,"The publication allowlist is idempotent");
+ const sensitive=structuredClone(recording);
+ sensitive.private_session="must not ship";
+ sensitive.events[0].input.private_account="must not ship";
+ sensitive.events[0].output.source={inode:123,home:"/Users/private-person"};
+ const extra={at:recording.messages[0].at,role:"assistant",channel:"analysis",text:"must not ship"};
+ const result=publishRecording(sensitive,[...recording.messages,extra,{at:"2026-10-22T00:00:00Z",role:"user",text:"unrelated message"}]);
+ assert.equal(JSON.stringify(result).includes("must not ship"),false);
+ assert.equal(result.messages.length,6);
+ assert.equal(result.messages[0].text,"Record a real project being built from start to finish.");
+ assert.equal(result.messages.filter(message=>message.presentation==="paraphrased").length,2);
+ assert.equal(result.messages[2].role,"assistant");
+ assert.equal(scrubText("/Users/example/Code/magistr/example.py /home/someone/file"),"[project]/example.py [home]/file");
+ assert(!JSON.stringify(recording).match(/\/Users\/|\/home\/|session_id|call_id|inode|source_revision/));
+ assert.equal(scrubText("Authorization: Bearer fake-secret-token"),"Authorization: Bearer [redacted credential]");
 });

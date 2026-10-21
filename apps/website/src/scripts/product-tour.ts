@@ -9,10 +9,10 @@ for(const region of document.querySelectorAll<HTMLElement>("[data-explore]")){
   details.forEach(panel=>panel.hidden=panel.dataset.recordDetail!==selected);
  });
 }
-for(const link of document.querySelectorAll<HTMLAnchorElement>("[data-playback-scene]")){
+for(const link of document.querySelectorAll<HTMLAnchorElement>("[data-playback-event]")){
  link.addEventListener("click",()=>{
   const root=document.querySelector<HTMLElement>("[data-recording]");
-  if(root?.dataset.ready==="true")root.dispatchEvent(new CustomEvent("show-recording",{detail:Number(link.dataset.playbackScene)}));
+  if(root?.dataset.ready==="true")root.dispatchEvent(new CustomEvent("show-recording",{detail:Number(link.dataset.playbackEvent)}));
   document.querySelector<HTMLElement>("#workflow")?.focus({preventScroll:true});
  });
 }
