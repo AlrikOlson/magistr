@@ -31,7 +31,7 @@ pub struct SetObjectiveArgs {
     pub constraints: Vec<String>,
     #[serde(default)]
     pub scope: String,
-    /// `full` (the default) requires every configured project gate.
+    /// `focused` (the default) requires the recorded acceptance checks.
     /// Explicitly select `focused` for bounded changes, including code, with
     /// recorded checks covering their behavior, dependencies, and acceptance.
     #[serde(default)]
@@ -241,7 +241,7 @@ use crate::ship::application::command_runner::{CHECK_OUTPUT_TAIL, run_check_comm
 impl ShipService {
     #[tool(
         name = "ship_set_objective",
-        description = "Define the objective before planning tasks. Choose focused verification for bounded changes, including code: all recorded acceptance checks must pass, while unrelated project gates are omitted. Full is the default; use it only for an explicit full-suite request or concrete cross-cutting risk. Updating the same scope preserves its tasks. Choosing a different scope saves the unfinished objective and plan; returning to a saved scope restores its objective details, verification mode, tasks and checks unchanged. Supplied details seed a new scope; read ship_status after selecting a scope. An unrelated unfinished objective is not a blocker and must not be reset or finalized to make room. Replacing a completed or abandoned objective retains its full records in work history and starts a new run, reporting retained_tasks. Criteria and constraints accept arrays or a single string.",
+        description = "Define the objective before planning tasks. Choose focused verification for bounded changes, including code: all recorded acceptance checks must pass, while unrelated project gates are omitted. Focused is the default. Use full only for an explicit full-suite request or concrete cross-cutting risk. Updating the same scope preserves its tasks. Choosing a different scope saves the unfinished objective and plan; returning to a saved scope restores its objective details, verification mode, tasks and checks unchanged. Supplied details seed a new scope; read ship_status after selecting a scope. An unrelated unfinished objective is not a blocker and must not be reset or finalized to make room. Replacing a completed or abandoned objective retains its full records in work history and starts a new run, reporting retained_tasks. Criteria and constraints accept arrays or a single string.",
         annotations(
             title = "Set objective",
             read_only_hint = false,

@@ -190,11 +190,12 @@ fn stored(root: &std::path::Path, world: &Arc<World>) -> ShipUseCases {
 
 fn planned(cases: &ShipUseCases) {
     cases
-        .set_objective(
+        .set_objective_with_verification(
             "Current run".into(),
             vec!["it works".into()],
             vec![],
             "chunk:c1".into(),
+            VerificationMode::Full,
         )
         .unwrap();
     cases
@@ -527,11 +528,12 @@ fn completion_refuses_evidence_taken_under_another_source_or_acceptance_or_comma
 
     // The acceptance was edited mid-flight (same run).
     cases
-        .set_objective(
+        .set_objective_with_verification(
             "Current run".into(),
             vec!["it works".into(), "and it is fast".into()],
             vec![],
             "chunk:c1".into(),
+            VerificationMode::Full,
         )
         .unwrap();
     let refusal = cases.verify_completion("chunk:c1", None).unwrap_err();

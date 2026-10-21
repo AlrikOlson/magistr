@@ -12,6 +12,8 @@ pub(crate) enum GateVerdict {
     Passed,
     /// No command was configured, so no check ran.
     Unconfigured,
+    /// Policy or process launch failed before a command could run.
+    LaunchFailed,
     /// The command exited non-zero.
     Failed,
     /// The command was killed at the timeout.
@@ -31,7 +33,10 @@ impl GateVerdict {
     /// A cancelled gate does not: the cockpit is closing and nobody let
     /// the command finish. Nothing consequential may be decided on one.
     pub(crate) const fn is_evidence(self) -> bool {
-        !matches!(self, Self::Cancelled | Self::Unconfigured)
+        !matches!(
+            self,
+            Self::Cancelled | Self::Unconfigured | Self::LaunchFailed
+        )
     }
 
     /// The word for this verdict.
@@ -39,6 +44,7 @@ impl GateVerdict {
         match self {
             Self::Passed => "passed",
             Self::Unconfigured => "not configured",
+            Self::LaunchFailed => "could not start",
             Self::Failed => "failed",
             Self::TimedOut => "timed out",
             Self::Cancelled => "cancelled",

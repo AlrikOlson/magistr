@@ -167,7 +167,13 @@ fn work_config(dir: &Path) -> NativeConfig {
 fn agent_completes_work(agent_side: &NativeEngines, root: &Path, gates: [(&str, &str); 3]) {
     agent_side.roadmap_start_chunk("work").expect("start");
     agent_side
-        .ship_set_objective("do the work".into(), vec![], vec![], "chunk:work".into())
+        .ship_set_objective_with_verification(
+            "do the work".into(),
+            vec![],
+            vec![],
+            "chunk:work".into(),
+            magistr_engine::native::VerificationMode::Full,
+        )
         .expect("objective");
     agent_side
         .ship_add_task(
@@ -2302,7 +2308,13 @@ fn the_loop_resolves_its_gates_through_the_evidence_capability() {
 fn engines_with_active_task(dir: &Path) -> NativeEngines {
     let engines = engines_with_work(dir);
     engines
-        .ship_set_objective("do the work".into(), vec![], vec![], "chunk:work".into())
+        .ship_set_objective_with_verification(
+            "do the work".into(),
+            vec![],
+            vec![],
+            "chunk:work".into(),
+            magistr_engine::native::VerificationMode::Full,
+        )
         .expect("objective");
     engines
         .ship_add_task(

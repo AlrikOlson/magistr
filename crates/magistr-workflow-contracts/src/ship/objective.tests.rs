@@ -1,4 +1,10 @@
 use super::*;
+
+#[test]
+fn new_work_defaults_to_focused() {
+    assert_eq!(VerificationMode::default(), VerificationMode::Focused);
+}
+
 #[test]
 fn old_objectives_default_full_and_focused_changes_the_acceptance_revision() {
     let mut objective: Objective = serde_json::from_value(serde_json::json!({

@@ -15,24 +15,51 @@ tests are running.
 ## Checks
 
 ```sh
-cargo fmt
-cargo check --workspace --all-targets
-cargo nextest run --workspace
-cargo clippy --workspace --all-targets -- -D warnings
+cargo fmt --all --check
+# Select the package and behavior changed, plus affected consumers:
+cargo clippy -p magistr-process --all-targets --locked -- -D warnings
+cargo nextest run -p magistr-process --locked -E 'test(gate_scheduler)'
 
-cargo fmt --manifest-path crates/magistr-desktop/Cargo.toml
-cargo check --manifest-path crates/magistr-desktop/Cargo.toml --all-targets --locked
-cargo build --manifest-path crates/magistr-desktop/Cargo.toml --locked
+# For a desktop Rust change:
+cargo fmt --manifest-path crates/magistr-desktop/Cargo.toml --check
 cargo clippy --manifest-path crates/magistr-desktop/Cargo.toml --all-targets --locked -- -D warnings
-cargo nextest run --manifest-path crates/magistr-desktop/Cargo.toml --locked
-node --test crates/magistr-desktop/tests/*.mjs
+cargo nextest run --manifest-path crates/magistr-desktop/Cargo.toml --locked -E 'test(the_changed_behavior)'
+# For a frontend behavior change, select its test file:
+node --test crates/magistr-desktop/tests/drafts.mjs
 ```
 
 Install the OS WebView prerequisites from [Tauri's official guide](https://v2.tauri.app/start/prerequisites/).
 Both workspaces have explicit CI checks. The project gates are configured in
 `.magistr/project.json`. Choose focused verification for bounded changes and
 record real commands through Magistr. Use `just gate` or `$validate` for an
-explicit complete-suite request.
+explicit complete-suite request. Clippy already checks the same targets, so an
+identical `cargo check` does not need a second pass.
+
+New objectives default to focused verification. Existing objectives keep their
+recorded contract. Select checks for the changed behavior and its consumers;
+a roadmap chunk alone does not require release packaging or every project gate.
+
+`check_work` accepts `inputs` (files/directories relative to the project),
+`timeout_secs`, and `reuse`. Include every dependency of the command in its
+inputs, or omit the list for the full source selection. A successful test, lint
+or typecheck receipt may be reused for 24 hours when the command, selected source,
+configuration, tools and environment still match. A reused result links to its
+original receipt and has no new exit code. Use `reuse: false` to rerun deliberately.
+Builds and human reviews require fresh results. Network-dependent custom gates
+should keep reuse disabled.
+
+The `verification` object in `.magistr/project.json` sets `timeout_secs`
+(default 900), `max_parallel` (default 4), and per-name `gates` overrides for
+`inputs`, `reuse`, `timeout_secs` and `resources`. Deadlines include resource
+queue time. Cargo gates sharing a target directory serialize; `resources: []`
+allows an independent custom gate to overlap. Undeclared custom commands run
+exclusively. A budget may be 1–3600 seconds and parallelism 1–16.
+
+Gate batches stop scheduling after a required failure. Use `diagnostic: true`
+when collecting all failures is the task. Correct the failure before rerunning;
+the loop does not automatically repeat failed commands. Task/check mutations
+return compact summaries; retrieve the full record with `context` and its
+`receipt_id` when needed.
 
 The structure gate enforces cohesive modules, companion tests and dependency
 direction. Its allowlists only shrink. The duplication gate checks the desktop
@@ -40,6 +67,33 @@ against application-owned behavior; shared decisions belong to the application,
 with the desktop calling its typed client. The frozen GUI ratchet remains zero.
 The [interface module index](reference/cockpit-modules.md) is checked against
 current sources.
+
+## CI and direct pushes
+
+CI selects changed packages and their reverse dependencies. Website/docs changes
+run website checks; shared build inputs and unclassified paths select the full
+matrix. Rust tests compile once into a nextest archive shared by test partitions.
+Normal pushes fail fast; scheduled/manual diagnostic runs collect all failures.
+Each stage has a deadline and uploads timing JSON and the slowest test results.
+
+Direct delivery to protected `main` uses the actual required push checks:
+
+```sh
+git push origin HEAD:verify/my-change
+# After both required checks pass on this exact commit:
+git push origin HEAD:main
+```
+
+This does not create a pull request. If `main` moves, integrate it and verify the
+new commit. A successful verification push of the same commit within 24 hours
+lets the main workflow reuse its quality result. Security checks still run with
+current advisories. Anonymous public-link checks belong to release readiness
+and scheduled monitoring; private/unpublished endpoints do not block copy edits.
+
+`scripts/nextest-config-gate.sh` uses nextest's parser without compiling tests.
+If a profile defines `default-filter`, also provide `--archive <path>` from a
+real nextest build to verify that it selects tests. Missing tools, invalid keys
+and failed builds are failures, never successful skips.
 
 ## Desktop
 

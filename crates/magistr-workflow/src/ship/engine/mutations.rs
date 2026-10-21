@@ -27,7 +27,7 @@ impl ShipEngine {
             acceptance_criteria,
             constraints,
             scope,
-            VerificationMode::Full,
+            VerificationMode::Focused,
         )
     }
 

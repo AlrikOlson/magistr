@@ -94,12 +94,12 @@ async fn post_scaffold_check_all_pass() {
         lint: "true".into(),
     };
     let results = post_scaffold_check(&qg, &dir).await;
-    assert_eq!(results.len(), 3);
+    assert_eq!(results.len(), 1);
     assert!(results.iter().all(|r| r.passed));
 }
 
 #[tokio::test]
-async fn post_scaffold_check_partial_fail() {
+async fn post_scaffold_check_does_not_run_the_test_or_lint_suites() {
     let dir = std::env::current_dir().unwrap();
     let qg = QualityGate {
         check: "true".into(),
@@ -107,10 +107,9 @@ async fn post_scaffold_check_partial_fail() {
         lint: "true".into(),
     };
     let results = post_scaffold_check(&qg, &dir).await;
-    assert_eq!(results.len(), 3);
-    let failed: Vec<_> = results.iter().filter(|r| !r.passed).collect();
-    assert_eq!(failed.len(), 1);
-    assert_eq!(failed[0].gate, Gate::Test);
+    assert_eq!(results.len(), 1);
+    assert!(results[0].passed);
+    assert_eq!(results[0].gate, Gate::Check);
 }
 
 #[tokio::test]
@@ -122,7 +121,7 @@ async fn post_scaffold_check_skips_empty_commands() {
         lint: "true".into(),
     };
     let results = post_scaffold_check(&qg, &dir).await;
-    assert_eq!(results.len(), 2);
+    assert_eq!(results.len(), 1);
 }
 
 #[test]

@@ -24,6 +24,7 @@ class SelectionTests(unittest.TestCase):
         plan = self.plan("crates/leaf/src/lib.rs")
         self.assertEqual(plan["rust_packages"], ["consumer", "leaf"])
         self.assertTrue(plan["desktop"])
+        self.assertTrue(plan["contracts"])
         self.assertFalse(plan["package"])
 
     def test_unknown_inputs_and_workflows_select_every_gate(self):

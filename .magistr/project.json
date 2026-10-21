@@ -109,5 +109,191 @@
 	"testing": {
 		"companion_pattern": "{name}.tests.{ext}",
 		"test_dir": "alongside"
+	},
+	"verification": {
+		"timeout_secs": 900,
+		"max_parallel": 4,
+		"gates": {
+			"check": {
+				"inputs": [
+					"Cargo.toml",
+					"Cargo.lock",
+					"rust-toolchain.toml",
+					".cargo",
+					".config",
+					"crates",
+					"subsystems"
+				],
+				"timeout_secs": 600,
+				"resources": [
+					"cargo"
+				]
+			},
+			"lint": {
+				"inputs": [
+					"Cargo.toml",
+					"Cargo.lock",
+					"rust-toolchain.toml",
+					".cargo",
+					".config",
+					"crates",
+					"subsystems"
+				],
+				"timeout_secs": 900,
+				"resources": [
+					"cargo"
+				]
+			},
+			"test": {
+				"timeout_secs": 900,
+				"resources": [
+					"cargo"
+				]
+			},
+			"workspace-source": {
+				"inputs": [
+					"Cargo.toml",
+					"Cargo.lock",
+					"rust-toolchain.toml",
+					".cargo",
+					"crates",
+					"scripts",
+					"subsystems",
+					".magistr"
+				],
+				"reuse": true,
+				"timeout_secs": 60,
+				"resources": []
+			},
+			"workflow-source": {
+				"inputs": [
+					"Cargo.toml",
+					"Cargo.lock",
+					"rust-toolchain.toml",
+					".cargo",
+					"crates",
+					"scripts",
+					"subsystems",
+					".magistr",
+					".claude/settings.json",
+					".codex/config.toml",
+					"ROADMAP.md",
+					"ROADMAP.json"
+				],
+				"reuse": false,
+				"timeout_secs": 60,
+				"resources": []
+			},
+			"structure": {
+				"inputs": [
+					"Cargo.toml",
+					"Cargo.lock",
+					"rust-toolchain.toml",
+					".cargo",
+					"crates",
+					"scripts",
+					"subsystems",
+					".magistr"
+				],
+				"reuse": true,
+				"timeout_secs": 60,
+				"resources": []
+			},
+			"duplication": {
+				"inputs": [
+					"crates/magistr-cli/src/application",
+					"crates/magistr-desktop/src",
+					"scripts"
+				],
+				"reuse": true,
+				"timeout_secs": 60,
+				"resources": []
+			},
+			"native-write-path": {
+				"inputs": [
+					"Cargo.toml",
+					"Cargo.lock",
+					"rust-toolchain.toml",
+					".cargo",
+					"crates",
+					"scripts",
+					"subsystems",
+					".magistr"
+				],
+				"reuse": true,
+				"timeout_secs": 60,
+				"resources": []
+			},
+			"nextest-config": {
+				"inputs": [
+					"Cargo.toml",
+					"Cargo.lock",
+					"rust-toolchain.toml",
+					".cargo",
+					".config",
+					"crates",
+					"scripts/nextest-config-gate.py",
+					"scripts/nextest-config-gate.sh",
+					"subsystems"
+				],
+				"reuse": true,
+				"timeout_secs": 60,
+				"resources": []
+			},
+			"screenshots": {
+				"inputs": [
+					"crates",
+					"docs",
+					"scripts"
+				],
+				"reuse": true,
+				"timeout_secs": 120,
+				"resources": []
+			},
+			"release-latency": {
+				"inputs": [
+					"crates/magistr-desktop",
+					"docs/evidence/desktop-current",
+					"scripts"
+				],
+				"reuse": true,
+				"timeout_secs": 60,
+				"resources": []
+			},
+			"machete": {
+				"reuse": false,
+				"timeout_secs": 120,
+				"resources": [
+					"cargo"
+				]
+			},
+			"legacy-gui": {
+				"reuse": false,
+				"timeout_secs": 60,
+				"resources": []
+			},
+			"workspace-native": {
+				"reuse": false,
+				"timeout_secs": 1200,
+				"resources": [
+					"cargo"
+				]
+			},
+			"workspace-reference": {
+				"reuse": false,
+				"timeout_secs": 1800,
+				"resources": [
+					"cargo",
+					"workspace-reference"
+				]
+			},
+			"workspace-release-smoke": {
+				"reuse": false,
+				"timeout_secs": 1200,
+				"resources": [
+					"cargo"
+				]
+			}
+		}
 	}
 }

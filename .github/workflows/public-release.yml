@@ -61,7 +61,9 @@ jobs:
         with:
           persist-credentials: false
       - name: Verify selection, required-check handling and timing deadlines
-        run: python3 -B scripts/ci_plan.tests.py
+        run: |
+          python3 -B scripts/ci_plan.tests.py
+          python3 -B scripts/ci_timing.tests.py
 
   rust-build:
     needs: plan
@@ -98,7 +100,7 @@ jobs:
           name: timing-rust-build
           path: |
             target/ci-timings/
-            target/nextest/ci/junit.xml
+            target/nextest/*/junit.xml
           retention-days: 7
           if-no-files-found: warn
 
@@ -133,6 +135,11 @@ jobs:
             ~/.cargo/registry/src
           key: test-registry-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
       - run: cargo fetch --locked
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ~/Library/Caches/BytecodeAlliance.wasmtime
+          key: wasmtime-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Cargo.lock', 'crates/magistr-workspace/**/*.wasm') }}
+          restore-keys: wasmtime-${{ runner.os }}-${{ runner.arch }}-
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: rust-test-build
@@ -140,7 +147,7 @@ jobs:
       - name: Run this partition of the compiled tests
         env:
           CI_PARTITION: ${{ matrix.partition }}/${{ needs.plan.outputs.partition_count }}
-        run: python3 -B scripts/ci_timing.py --name rust-tests --budget 600 --junit target/nextest/ci/junit.xml -- python3 -B scripts/ci_run.py rust-test --partition "$CI_PARTITION"
+        run: python3 -B scripts/ci_timing.py --name rust-tests --budget 600 --junit target/nextest/ci/junit.xml --junit target/nextest/diagnostic/junit.xml -- python3 -B scripts/ci_run.py rust-test --partition "$CI_PARTITION"
       - name: Save timing evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -148,7 +155,7 @@ jobs:
           name: timing-rust-tests-${{ matrix.partition }}
           path: |
             target/ci-timings/
-            target/nextest/ci/junit.xml
+            target/nextest/*/junit.xml
           retention-days: 7
           if-no-files-found: warn
 
@@ -197,7 +204,7 @@ jobs:
           name: timing-website
           path: |
             target/ci-timings/
-            target/nextest/ci/junit.xml
+            target/nextest/*/junit.xml
           retention-days: 7
           if-no-files-found: warn
 
@@ -226,7 +233,7 @@ jobs:
           name: timing-contracts
           path: |
             target/ci-timings/
-            target/nextest/ci/junit.xml
+            target/nextest/*/junit.xml
           retention-days: 7
           if-no-files-found: warn
 
@@ -247,7 +254,7 @@ jobs:
           name: timing-visual
           path: |
             target/ci-timings/
-            target/nextest/ci/junit.xml
+            target/nextest/*/junit.xml
           retention-days: 7
           if-no-files-found: warn
 
@@ -283,7 +290,7 @@ jobs:
           name: timing-package
           path: |
             target/ci-timings/
-            target/nextest/ci/junit.xml
+            target/nextest/*/junit.xml
           retention-days: 7
           if-no-files-found: warn
 

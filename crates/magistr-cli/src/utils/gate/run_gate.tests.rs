@@ -182,3 +182,35 @@ async fn a_not_required_gate_says_so() {
     assert!(!gate.required);
     assert_eq!(gate.verdict, GateVerdict::Failed);
 }
+
+#[tokio::test]
+async fn configured_deadlines_apply_and_invalid_policy_cannot_start_a_command() {
+    let root = tempfile::tempdir().unwrap();
+    std::fs::create_dir(root.path().join(".magistr")).unwrap();
+    let mut config = magistr_core::validate::load_project_config(&dir().join("../..")).unwrap();
+    config.verification.timeout_secs = 1;
+    config.verification.gates.clear();
+    let path = root.path().join(".magistr/project.json");
+    std::fs::write(&path, serde_json::to_vec(&config).unwrap()).unwrap();
+    let timed = run_gate("bounded", "sleep 30", true, root.path(), 0, &never(), quiet).await;
+    assert_eq!(timed.verdict, GateVerdict::TimedOut);
+    assert!(timed.duration < Duration::from_secs(4));
+    config.verification.max_parallel = 0;
+    std::fs::write(&path, serde_json::to_vec(&config).unwrap()).unwrap();
+    let refused = run_gate(
+        "invalid",
+        "touch should-not-run",
+        true,
+        root.path(),
+        0,
+        &never(),
+        quiet,
+    )
+    .await;
+    assert_eq!(refused.verdict, GateVerdict::LaunchFailed);
+    assert!(matches!(
+        refused.execution(),
+        magistr_engine::native::CheckExecution::LaunchFailed { .. }
+    ));
+    assert!(!root.path().join("should-not-run").exists());
+}

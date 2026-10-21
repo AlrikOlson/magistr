@@ -64,9 +64,19 @@ fn outcome() -> CheckOutcome {
 async fn native_and_mcp_views_share_one_engine_and_response_contract() {
     let temp = tempfile::tempdir().unwrap();
     let cases = stored(temp.path());
+    let args: magistr_workflow::ship::mcp::handlers::SetObjectiveArgs =
+        serde_json::from_value(json!({"description":"Goal"})).unwrap();
+    assert_eq!(
+        args.verification,
+        magistr_workflow::ship::domain::objective::VerificationMode::Focused
+    );
     cases
         .set_objective("Goal".into(), vec![], vec![], "scope".into())
         .unwrap();
+    assert_eq!(
+        cases.snapshot().unwrap().objective.unwrap().verification,
+        args.verification
+    );
     let service = ShipService::from_use_cases(cases.clone());
     assert!(Arc::ptr_eq(&cases.engine(), &service.engine()));
     let answer = service

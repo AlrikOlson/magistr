@@ -36,9 +36,6 @@ impl GateResultExt for GateResult {
     }
 }
 
-/// Default timeout for gate commands (5 minutes).
-const DEFAULT_GATE_TIMEOUT_SECS: u64 = 300;
-
 /// Maximum output size from gate commands (100 KB) to prevent overwhelming
 /// LLM context with huge test/lint output.
 const MAX_OUTPUT_BYTES: usize = 100_000;
@@ -90,7 +87,35 @@ pub async fn run_single_gate(gate: Gate, command: &str, dir: &Path) -> GateResul
         };
     }
 
-    let result = run_command_with_timeout(command, dir, DEFAULT_GATE_TIMEOUT_SECS, None).await;
+    let started = std::time::Instant::now();
+    let policy = magistr_core::gates::execution_policy(dir, gate.label(), command, None);
+    let (timeout, schedule) = match policy {
+        Ok(policy) => policy,
+        Err(reason) => return refused_gate(gate, command, reason, started.elapsed()),
+    };
+    let cancel = tokio_util::sync::CancellationToken::new();
+    let _permit = match magistr_process::acquire_gate(
+        dir,
+        command,
+        &schedule,
+        Duration::from_secs(timeout),
+        &cancel,
+    )
+    .await
+    {
+        Ok(permit) => permit,
+        Err(reason) => {
+            return refused_gate(
+                gate,
+                command,
+                format!("Check did not start: {reason:?} while waiting for verification resources"),
+                started.elapsed(),
+            );
+        }
+    };
+    let remaining = Duration::from_secs(timeout).saturating_sub(started.elapsed());
+    let result =
+        run_command_with_timeout(command, dir, remaining.as_secs_f64().ceil() as u64, None).await;
 
     let raw = if result.stderr.is_empty() {
         result.stdout
@@ -103,13 +128,23 @@ pub async fn run_single_gate(gate: Gate, command: &str, dir: &Path) -> GateResul
     GateResult {
         gate,
         passed: !result.timed_out && result.exit_code == 0,
-        duration: result.duration,
+        duration: started.elapsed(),
         output: truncate_output(&raw, MAX_OUTPUT_BYTES),
         command: command.to_string(),
     }
 }
 
-/// Run all quality gates in parallel.
+fn refused_gate(gate: Gate, command: &str, output: String, duration: Duration) -> GateResult {
+    GateResult {
+        gate,
+        passed: false,
+        duration,
+        output,
+        command: command.into(),
+    }
+}
+
+/// Run quality gates under the shared resource limits.
 pub async fn run_gates(dir: &Path) -> Result<ValidationResult> {
     let config = load_project_config(dir)?;
     run_gates_with_config(&config.quality_gate, dir).await
@@ -125,7 +160,7 @@ pub async fn run_gates(dir: &Path) -> Result<ValidationResult> {
 pub async fn post_scaffold_check(qg: &QualityGate, dir: &Path) -> Vec<PostScaffoldResult> {
     let mut results = Vec::new();
 
-    for gate in Gate::all() {
+    for gate in [Gate::Check] {
         let cmd = gate_command(qg, gate);
         if cmd.is_empty() {
             continue;
@@ -165,18 +200,31 @@ impl PostScaffoldResult {
 
 /// Run all quality gates in parallel with an explicit config.
 pub async fn run_gates_with_config(qg: &QualityGate, dir: &Path) -> Result<ValidationResult> {
-    let gates = Gate::all();
-    let mut handles = Vec::with_capacity(gates.len());
+    let mut specs = Gate::all()
+        .into_iter()
+        .map(|gate| magistr_core::gates::GateSpec {
+            name: gate.label().into(),
+            command: gate_command(qg, gate).into(),
+            required: true,
+        })
+        .collect();
+    magistr_core::gates::consolidate_gates(&mut specs);
+    let mut handles = Vec::with_capacity(specs.len());
 
-    for gate in gates {
-        let cmd = gate_command(qg, gate).to_string();
+    for spec in specs {
+        let gate = match spec.name.as_str() {
+            "check" => Gate::Check,
+            "lint" => Gate::Lint,
+            _ => Gate::Test,
+        };
+        let cmd = spec.command;
         let dir = dir.to_path_buf();
         handles.push(tokio::spawn(async move {
             run_single_gate(gate, &cmd, &dir).await
         }));
     }
 
-    let mut results = Vec::with_capacity(gates.len());
+    let mut results = Vec::with_capacity(handles.len());
     for handle in handles {
         let result = handle
             .await
