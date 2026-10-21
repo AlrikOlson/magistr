@@ -75,6 +75,7 @@ section[tabindex="-1"]:focus-visible h2 { outline:2px solid var(--color-accent);
 
 .hero { padding-block:3.5rem 2.75rem; }
 .hero h1 { text-wrap:balance; max-width:24ch; margin:0; font-size:clamp(2rem,3.5vw,3rem); font-weight:600; line-height:1.2; letter-spacing:-.02em; }
+.hero-subtitle { margin:1rem 0 0; color:var(--color-text); font-size:1.25rem; line-height:1.5; }
 .hero-lede { max-width:43rem; margin:1.5rem 0 0; color:var(--color-text-muted); font-size:1.12rem; line-height:1.7; }
 .hero-actions { display:flex; flex-wrap:wrap; align-items:center; gap:1.5rem; margin-top:1.5rem; }
 .button { display:inline-flex; justify-content:center; align-items:center; gap:1rem; min-height:3rem; border:1px solid transparent; border-radius:3px; padding:.65rem 1rem; font-weight:600; font-size:.95rem; }
