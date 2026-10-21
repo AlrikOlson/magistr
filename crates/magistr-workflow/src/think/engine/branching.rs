@@ -8,8 +8,6 @@
 
 use std::collections::HashMap;
 
-use chrono::Utc;
-
 use crate::think::domain::{Branch, BranchStatus, ThinkHistory, ThinkStep};
 
 use super::core::ReasoningServer;
@@ -97,10 +95,6 @@ impl ReasoningServer {
         self.branch_depth_cache.clear();
     }
 
-    pub(crate) fn next_branch_id(&mut self) -> String {
-        format!("branch-{}", uuid::Uuid::new_v4())
-    }
-
     /// Validate branch metadata without changing stored records. Continuing an
     /// existing branch needs only its id; every member retains the same origin
     /// and question so broadcasts and persisted steps describe the same path.
@@ -163,7 +157,7 @@ impl ReasoningServer {
             tracing::warn!("{msg}");
             return Err(msg);
         }
-        if !self.step_numbers.contains(&from) {
+        if !self.step_numbers.contains(&from) && self.archived_step(from).is_none() {
             let available = self.sorted_step_numbers();
             let msg = format!(
                 "Cannot branch from step {from}: step does not exist. Available steps: {}",
@@ -180,6 +174,10 @@ impl ReasoningServer {
         let depth = self
             .step_to_branch
             .get(&from)
+            .or_else(|| {
+                self.archived_step(from)
+                    .and_then(|step| step.branch_id.as_ref())
+            })
             .and_then(|id| self.branches.get(id))
             .map_or(1, |branch| branch.depth + 1);
         if depth > self.config.system.max_branch_depth {
@@ -189,49 +187,5 @@ impl ReasoningServer {
             ));
         }
         Ok(())
-    }
-
-    /// Register a branch that has already passed resolve_branch.
-    pub(crate) fn handle_branching(&mut self, step: &mut ThinkStep) {
-        let Some(from) = step.branch_from else {
-            return;
-        };
-        let branch_id = step
-            .branch_id
-            .clone()
-            .unwrap_or_else(|| self.next_branch_id());
-        let branch_name = step
-            .branch_name
-            .clone()
-            .unwrap_or_else(|| format!("Alternative {}", self.branches.len() + 1));
-
-        if !self.branches.contains_key(&branch_id) {
-            let depth = self.calculate_branch_depth(from);
-            let branch = Branch {
-                id: branch_id.clone(),
-                name: branch_name.clone(),
-                from_step: from,
-                steps: Vec::new(),
-                status: BranchStatus::Active,
-                created_at: Utc::now().to_rfc3339(),
-                depth,
-                merged_into: None,
-            };
-            self.branches.insert(branch_id.clone(), branch);
-            self.invalidate_branch_depth_cache();
-            if let Some(meta) = self.history.metadata.as_mut() {
-                meta.branches_created = Some(meta.branches_created.unwrap_or(0) + 1);
-            }
-            tracing::debug!(
-                "🌿 Created branch \"{branch_name}\" from step {from} (depth: {depth})"
-            );
-        }
-
-        step.branch_id = Some(branch_id.clone());
-        step.branch_name = Some(branch_name);
-        if let Some(branch) = self.branches.get_mut(&branch_id) {
-            branch.steps.push(step.clone());
-        }
-        self.step_to_branch.insert(step.step_number, branch_id);
     }
 }

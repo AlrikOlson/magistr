@@ -63,6 +63,25 @@ impl ReasoningServer {
         } else {
             HashMap::new()
         };
+        self.project_steps = project
+            .histories
+            .iter()
+            .flat_map(|(key, history)| {
+                history
+                    .steps
+                    .iter()
+                    .enumerate()
+                    .map(move |(index, step)| (step.step_number, (key.clone(), index)))
+            })
+            .collect();
+        self.project_max_step = self.project_steps.keys().copied().max().unwrap_or(0);
+        self.append_state_validated = true;
+        self.pinned_order = history
+            .steps
+            .iter()
+            .filter(|step| step.pinned.unwrap_or(false))
+            .map(|step| step.step_number)
+            .collect();
         self.project = project;
         self.history = history;
         self.active_session = selected;
@@ -90,7 +109,7 @@ impl ReasoningServer {
         }
     }
 
-    fn candidate(&self, project: &PersistedProject, selected: Option<String>) -> Self {
+    pub(crate) fn candidate(&self, project: &PersistedProject, selected: Option<String>) -> Self {
         let mut candidate = Self::for_analysis(Self::new_history(), HashMap::new());
         candidate.config = self.config.clone();
         candidate.project_id = self.project_id.clone();

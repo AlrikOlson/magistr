@@ -2930,6 +2930,8 @@ fn a_10k_step_trace_still_answers_a_rollup_and_a_search() {
     c.system.max_history_size = 10_100;
     let mut s = ReasoningServer::new(c);
 
+    let append_started = std::time::Instant::now();
+    let mut append_marks = Vec::new();
     let mut needle = step_n(1);
     needle.thought = "the ZZQNEEDLE claim, recorded first and pinned".into();
     needle.pinned = Some(true);
@@ -2937,8 +2939,17 @@ fn a_10k_step_trace_still_answers_a_rollup_and_a_search() {
     for i in 2..=10_000u32 {
         let mut step = step_n(i);
         step.pinned = Some(true);
-        let _ = s.process_step_native(step);
+        s.process_step_native(step).expect("record scale fixture");
+        if matches!(i, 1_000 | 5_000 | 10_000) {
+            append_marks.push((i, append_started.elapsed().as_millis()));
+        }
     }
+    let append_ms = append_started.elapsed().as_millis();
+    eprintln!("append scaling (records, elapsed ms): {append_marks:?}");
+    assert!(
+        append_ms < 10_000,
+        "10k appends took {append_ms}ms; budget 10s; {append_marks:?}"
+    );
     assert_eq!(s.history().steps.len(), 10_000, "the window held all 10k");
 
     let t0 = std::time::Instant::now();

@@ -20,17 +20,13 @@
 //! [`super::export`], [`super::recovery`]).
 
 use std::collections::HashSet;
-use std::time::Instant;
 
-use chrono::Utc;
 use serde_json::{Map, Value, json};
 
 use crate::think::broadcast::BroadcastFrame;
 use crate::think::config::namespace_session_id;
-use crate::think::constants::{
-    COMPLETION_PHRASES, LOW_CONFIDENCE_THRESHOLD, VALID_PREFIXES, VALID_PURPOSES,
-};
-use crate::think::domain::{ThinkHistory, ThinkStep};
+use crate::think::constants::LOW_CONFIDENCE_THRESHOLD;
+use crate::think::domain::ThinkStep;
 use crate::think::util::text::truncate_excerpt;
 
 use super::core::ReasoningServer;
@@ -48,6 +44,8 @@ impl ReasoningServer {
             .map(|s| s.step_number)
             .collect();
         self.history.steps.drain(..drop_count);
+        self.pinned_order
+            .retain(|number| !removed_step_numbers.contains(number));
 
         for n in &removed_step_numbers {
             self.step_index.remove(n);
@@ -96,12 +94,10 @@ impl ReasoningServer {
         };
         let record_id = uuid::Uuid::new_v4().to_string();
         step.record_id = Some(record_id.clone());
-        let committed = self
-            .transact_history(selected, |candidate| candidate.append_step(step))
-            .map_err(|mut error| {
-                error.record_id = Some(record_id);
-                error
-            })?;
+        let committed = self.transact_append(selected, step).map_err(|mut error| {
+            error.record_id = Some(record_id);
+            error
+        })?;
         let mut recorded = committed.value;
         recorded.source = committed.source;
         recorded.report["source"] = json!(committed.source);
@@ -125,126 +121,12 @@ impl ReasoningServer {
         Ok(recorded)
     }
 
-    fn append_step(
-        &mut self,
-        mut step: ThinkStep,
-    ) -> Result<(RecordedStep, ThinkHistory), StepError> {
-        let step_start = Instant::now();
-
-        // Try to recover from XML-injection corruption BEFORE validating.
-        // If the agent's `thought` contains embedded `<parameter name=X>VALUE</parameter>`
-        // segments, we extract them and fill in the corresponding empty
-        // fields. The caller (the model) sees a successful step plus a
-        // warning that we recovered — far better than a hard reject.
-        let recovered_fields = Self::recover_xml_injection(&mut step);
-
-        // Every call appends a new record, including branches and revisions.
-        // Allocate before required-field validation so omitted numbers work
-        // consistently; references to earlier records keep their own fields.
-        let mut auto_numbered: Option<u32> = None;
-        if step.step_number == 0 || self.step_number_taken_in_project(step.step_number) {
-            let requested = step.step_number;
-            step.step_number = self
-                .max_step_number_in_project()
-                .checked_add(1)
-                .ok_or_else(|| self.make_error("There are no unused reasoning numbers left."))?;
-            auto_numbered = Some(requested);
-        }
-
-        if let Err(e) = Self::validate_required_fields(&step, &recovered_fields) {
-            return Err(self.make_error(&e));
-        }
-        if let Err(e) = Self::validate_confidence(&step) {
-            return Err(self.make_error(&e));
-        }
-
-        if self.config.validation.strict_mode {
-            if !self.validate_thought_prefix(&step.thought) {
-                return Err(self.make_error(&format!(
-                    "Thought must start with one of: {} (strict mode)",
-                    VALID_PREFIXES.join(", ")
-                )));
-            }
-            if !self.validate_rationale(&step.rationale) {
-                return Err(self.make_error("Rationale must start with \"To \" (strict mode)"));
-            }
-            if !self.validate_purpose(&step.purpose) {
-                return Err(self.make_error(&format!(
-                    "Invalid purpose \"{}\". Valid: {} (strict mode)",
-                    step.purpose,
-                    VALID_PURPOSES.join(", ")
-                )));
-            }
-        } else if !self.validate_purpose(&step.purpose) {
-            tracing::debug!("⚠️ Using custom purpose: {}", step.purpose);
-        }
-
-        step.timestamp = Some(Utc::now().to_rfc3339());
-        // Stamp project root so the step carries its provenance to
-        // disk. Cached at server-construction time — one syscall per
-        // server, not per step.
-        if step.cwd.is_none() {
-            step.cwd = self.cwd.clone();
-        }
-
-        // Resolve the session id for this step. Any caller-supplied id
-        // gets auto-prefixed with the project namespace so agents can't
-        // accidentally write outside their project's bucket — see
-        // config::namespace_session_id. When sessions aren't enabled
-        // we leave session_id as supplied and write the default archive.
-        if self.config.features.enable_sessions && !self.project_id.is_empty() {
-            let raw = step
-                .session_id
-                .clone()
-                .filter(|s| !s.trim().is_empty())
-                .or_else(|| self.config.features.default_session_id.clone())
-                .unwrap_or_else(|| self.project_id.clone());
-            let resolved = namespace_session_id(&self.project_id, &raw);
-            step.session_id = Some(resolved);
-        }
-
-        if let Err(e) = self.validate_session_step(&mut step) {
-            return Err(self.make_error(&e));
-        }
-        let completed = step.is_final_step.unwrap_or(false) || {
-            let lower = step.thought.to_ascii_lowercase();
-            COMPLETION_PHRASES.iter().any(|p| lower.contains(p))
-        };
-        if let Err(e) = self.handle_revision(&step) {
-            return Err(self.make_error(&e));
-        }
-
-        self.handle_branching(&mut step);
-        if completed {
-            self.history.completed = true;
-        }
-
-        let tools_used = Self::extract_tools_used(&step);
-        for t in &tools_used {
-            self.tools_used.insert(t.clone());
-        }
-        if let Some(meta) = self.history.metadata.as_mut() {
-            let mut sorted: Vec<String> = self.tools_used.iter().cloned().collect();
-            sorted.sort();
-            meta.tools_used = Some(sorted);
-            // Stamp the resolved project id so the viewer can group by
-            // it without parsing the session-id filename. Cheap — only
-            // overwrites when the value would actually change.
-            if !self.project_id.is_empty()
-                && meta.project_id.as_deref() != Some(self.project_id.as_str())
-            {
-                meta.project_id = Some(self.project_id.clone());
-            }
-        }
-
-        step.duration_ms =
-            Some(u64::try_from(step_start.elapsed().as_millis()).unwrap_or(u64::MAX));
-        if let Some(meta) = self.history.metadata.as_mut() {
-            meta.total_duration_ms =
-                Some(u64::try_from(self.start_time.elapsed().as_millis()).unwrap_or(u64::MAX));
-        }
-        self.history.updated_at = Some(Utc::now().to_rfc3339());
-
+    pub(crate) fn append_report(&self, prepared: &super::append::PreparedAppend) -> RecordedStep {
+        let step = &prepared.step;
+        let recorded_step = step.clone();
+        let auto_numbered = prepared.auto_numbered;
+        let recovered_fields = &prepared.recovered_fields;
+        let tools_used = &prepared.tools_used;
         let step_number = step.step_number;
         let confidence = step.confidence;
         let revises_step = step.revises_step;
@@ -257,7 +139,7 @@ impl ReasoningServer {
             .unwrap_or(false);
         let uncertainty_notes = step.uncertainty_notes.clone();
 
-        let formatted = self.format_output(&step);
+        let formatted = self.format_output(step);
         tracing::debug!("{formatted}");
         if low_confidence {
             let pct = (confidence.unwrap_or(0.0) * 100.0).round() as i32;
@@ -268,16 +150,6 @@ impl ReasoningServer {
                     .unwrap_or("Consider verification")
             );
         }
-
-        // Push and index.
-        let idx = self.history.steps.len();
-        let recorded_step = step.clone();
-        self.history.steps.push(step);
-        self.step_index.insert(step_number, idx);
-        self.step_numbers.insert(step_number);
-
-        let archive = self.history_with_branches();
-        self.trim_history();
 
         // Response is intentionally tight — the caller already has the step
         // it sent in its own context, so we don't echo `next_action`,
@@ -410,15 +282,12 @@ impl ReasoningServer {
             response.insert("branches_summary".into(), Value::Array(branches_summary));
         }
 
-        Ok((
-            RecordedStep {
-                project_id: self.project_id.clone(),
-                step: recorded_step,
-                source: Self::memory_source(),
-                report: Value::Object(response),
-            },
-            archive,
-        ))
+        RecordedStep {
+            project_id: self.project_id.clone(),
+            step: recorded_step,
+            source: Self::memory_source(),
+            report: Value::Object(response),
+        }
     }
 
     /// Mirror the most-recently-recorded step into the git-native trace
@@ -538,7 +407,7 @@ impl ReasoningServer {
         out
     }
 
-    fn make_error(&self, msg: &str) -> StepError {
+    pub(crate) fn make_error(&self, msg: &str) -> StepError {
         let hint = if self.config.validation.strict_mode {
             "Strict mode is enabled. Set MAGISTR_WORKFLOW_STRICT_MODE=false for flexible validation."
         } else {

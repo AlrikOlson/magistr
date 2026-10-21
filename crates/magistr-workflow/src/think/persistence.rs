@@ -13,7 +13,7 @@ use crate::think::domain::ThinkHistory;
 const SCHEMA_VERSION: u32 = 2;
 
 /// The complete transaction boundary. Selected histories are projections of it.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub(crate) struct PersistedProject {
     pub schema_version: u32,
     pub project_id: String,
@@ -145,7 +145,7 @@ impl Persistence {
         Ok(())
     }
 
-    fn validate(&self, project: &PersistedProject) -> Result<(), ReadError> {
+    pub(crate) fn validate(&self, project: &PersistedProject) -> Result<(), ReadError> {
         if project.schema_version != SCHEMA_VERSION {
             return Err(ReadError::new(
                 ReadErrorKind::Schema,

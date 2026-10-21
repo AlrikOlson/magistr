@@ -13,6 +13,8 @@
 //! stays single-source in `core`.
 
 pub mod adoption;
+mod append;
+mod append_transaction;
 pub mod branching;
 pub mod core;
 pub mod export;
