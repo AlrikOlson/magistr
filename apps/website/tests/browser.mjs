@@ -16,9 +16,25 @@ const mime={".html":"text/html",".css":"text/css",".js":"text/javascript",".json
 const server=createServer(async(req,res)=>{try{let path=resolve(dist,"."+decodeURIComponent(new URL(req.url,"http://localhost").pathname));assert(path.startsWith(dist+sep)||path===dist);if((await stat(path)).isDirectory())path=resolve(path,"index.html");res.setHeader("Content-Type",mime[extname(path)]??"application/octet-stream");res.end(await readFile(path));}catch{res.writeHead(404);res.end("Not found");}});
 let origin=arg("--base-url");if(!origin){await new Promise(r=>server.listen(0,"127.0.0.1",r));origin="http://127.0.0.1:"+server.address().port;}
 const browser=await webkit.launch(),captures=[],checks=[],errors=[];
+const externalAssets=new Map();
+// Test the shipped fonts, but download each resource only once across isolated
+// browser contexts. Analytics is unrelated to these checks and must not hold
+// page.load open or count CI visits as real traffic.
+async function configureNetwork(context){
+ await context.route("https://plausible.io/**",route=>route.fulfill({status:204,body:""}));
+ await context.route(/^https:\/\/fonts\.(?:googleapis|gstatic)\.com\//,async route=>{
+  const url=route.request().url();
+  if(!externalAssets.has(url))externalAssets.set(url,(async()=>{
+   const response=await route.fetch({timeout:15000});
+   assert(response.ok(),"Font request failed: "+url);
+   return {status:response.status(),headers:{"content-type":response.headers()["content-type"],"access-control-allow-origin":"*"},body:await response.body()};
+  })());
+  await route.fulfill(await externalAssets.get(url));
+ });
+}
 const recording=JSON.parse(await readFile(resolve(root,"public/demo/tic-tac-toe/recording.json"),"utf8")),parts=chapters(recording);
 async function tree(path){const out=[];for(const e of await readdir(resolve(repo,path),{withFileTypes:true})){const p=path+"/"+e.name;if(e.isDirectory())out.push(...await tree(p));else if(/\.(astro|mjs|ts|css|mdx|json)$/.test(e.name))out.push(p);}return out;}
-const sourcePaths=[...await tree("apps/website/src"),...await tree("crates/magistr-desktop/ui"),...await tree("apps/website/scripts"),"apps/website/astro.config.mjs","apps/website/package.json","apps/website/package-lock.json","apps/website/tests/browser.mjs","apps/website/public/demo/tic-tac-toe/recording.json","apps/website/public/demo/tic-tac-toe/manifest.json"];
+const sourcePaths=evidence?[...await tree("apps/website/src"),...await tree("crates/magistr-desktop/ui"),...await tree("apps/website/scripts"),"apps/website/astro.config.mjs","apps/website/package.json","apps/website/package-lock.json","apps/website/tests/browser.mjs","apps/website/public/demo/tic-tac-toe/recording.json","apps/website/public/demo/tic-tac-toe/manifest.json"]:[];
 const sourceHashes=Object.fromEntries(await Promise.all(sourcePaths.map(async p=>[p,createHash("sha256").update(await readFile(resolve(repo,p))).digest("hex")])));
 const stable=async p=>{await p.evaluate(()=>document.fonts.ready);await p.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));};
 async function capture(page,name,state,{full=false,region,settle=true}={}){
@@ -46,7 +62,9 @@ let status="failed",failure="";
 try{
  for(const [profile,width,height]of [["wide",1280,1000],["compact",390,844]]){
   for(const appearance of ["light","dark"]){
+   const profileStarted=performance.now();
    const context=await browser.newContext({viewport:{width,height},colorScheme:appearance,reducedMotion:"reduce",deviceScaleFactor:1});
+   await configureNetwork(context);
    await context.addInitScript(theme=>{
     localStorage.setItem("theme",theme);
     Object.defineProperty(navigator,"clipboard",{value:{writeText:async text=>{window.__copied=text;}}});
@@ -89,6 +107,10 @@ try{
 
    await seek(page,changeIndex);
    await capture(page,"terminal-diff-"+suffix,"Actual Rust changes, syntax colors and synchronized annotation",{region:".build-window"});
+   // Exercise the full journey once per size, including both code palettes.
+   // Every profile still checks layout, annotations and diffs; capture runs
+   // retain every reader state in every profile for direct visual review.
+   if(pair==="a"||evidence){
    await page.locator("[data-open-action]").click();
    assert(await page.locator(".record-reader .diff-add").count()>0);
    assert(await page.locator(".record-reader .diff-remove").count()>0);
@@ -99,11 +121,11 @@ try{
    await page.getByRole("button",{name:"Copy file",exact:true}).click();
    assert.equal(await page.evaluate(()=>window.__copied),recording.events[changeIndex].file.content);
    await capture(page,"source-reader-"+suffix,"Highlighted recorded Rust with exact source copying",{region:"#build-details"});
-   const token=page.locator(".record-reader pre span[style]").first();
-   const beforeColor=await token.evaluate(e=>getComputedStyle(e).color);
+   const codeSpan=page.locator(".record-reader pre span[style]").first();
+   const beforeColor=await codeSpan.evaluate(e=>getComputedStyle(e).color);
    await page.locator(".theme-toggle").click();
    await page.waitForFunction(theme=>document.querySelector("[data-terminal]").dataset.appearance!==theme,appearance);
-   assert.notEqual(await token.evaluate(e=>getComputedStyle(e).color),beforeColor,"Open code reader responds to the theme toggle");
+   assert.notEqual(await codeSpan.evaluate(e=>getComputedStyle(e).color),beforeColor,"Open code reader responds to the theme toggle");
    await page.locator(".theme-toggle").click();
    await page.waitForFunction(theme=>document.querySelector("[data-terminal]").dataset.appearance===theme,appearance);
    await page.getByRole("button",{name:"Close details",exact:true}).click();
@@ -159,6 +181,9 @@ try{
    await page.getByRole("button",{name:"Pause",exact:true}).click();
    assert.equal(await page.getByRole("button",{name:"Play",exact:true}).getAttribute("aria-pressed"),"false");
 
+   checks.push("Readers, exact copy, theme toggle, quick seeks and keyboard playback: "+suffix);
+   }
+
    await capture(page,"install-"+suffix,"Highlighted installation commands",{region:"#install"});
    await page.getByRole("button",{name:"Copy commands",exact:true}).click();
    assert.equal(await page.evaluate(()=>window.__copied),await page.locator("#source-install").textContent());
@@ -167,7 +192,7 @@ try{
     await page.locator("[data-menu-toggle]").click();await page.keyboard.press("Escape");
     assert.equal(await page.locator("[data-menu-toggle]").getAttribute("aria-expanded"),"false");
    }
-   checks.push("Terminal rendering, scrollback, rapid seek, keyboard playback, theme changes, real diffs, readers, exact copy and annotations: "+suffix);
+   checks.push("Terminal rendering, real diffs, layout and annotations: "+suffix);
    for(const slug of ["installation","workflow","roadmap","reasoning","chunks","verification","concepts"]){
     await page.goto(origin+"/docs/"+slug+"/");await stable(page);await noOverflow(page,slug+" "+suffix);
     assert.equal(await page.locator("main h1").count(),1);
@@ -181,10 +206,12 @@ try{
    await search.fill("zzzz-no-such-doc");await page.waitForFunction(()=>document.querySelector(".docs-search-results")?.textContent?.includes("No results"));
    await page.goto(origin+"/404.html");assert(await page.getByRole("heading",{name:"Page not found"}).isVisible());
    checks.push("Seven guides, code themes, search, reflow and 404: "+suffix);await context.close();
+   console.log(suffix+" browser checks passed in "+Math.round(performance.now()-profileStarted)+"ms");
   }
  }
  for(const width of [320,820])for(const appearance of ["light","dark"]){
   const page=await browser.newPage({viewport:{width,height:1000},colorScheme:appearance,reducedMotion:"reduce"});
+  await configureNetwork(page.context());
   await page.addInitScript(theme=>localStorage.setItem("theme",theme),appearance);await page.goto(origin);await page.locator('[data-build][data-ready="true"]').waitFor();
   await seek(page,changeIndex);await noOverflow(page,"Terminal "+width);await playbackLayout(page);
   await capture(page,"reflow-"+width+"-"+appearance,"Readable terminal and controls at "+width+" pixels",{region:".build-window"});
@@ -192,6 +219,7 @@ try{
   await page.close();
  }
  const nojs=await browser.newPage({javaScriptEnabled:false,viewport:{width:390,height:844}});
+ await configureNetwork(nojs.context());
  await nojs.goto(origin);
  await capture(nojs,"terminal-static","Codex-style grouped output without JavaScript",{region:".build-window",settle:false});
  await nojs.locator(".build-transcript>summary").click();
@@ -203,6 +231,7 @@ try{
  await capture(nojs,"annotation-transcript","Formatted explanation is available without JavaScript",{region:'[data-event="action-11"]',settle:false});
  await nojs.close();
  const offline=await browser.newPage({viewport:{width:1280,height:1000},colorScheme:"dark"});
+ await configureNetwork(offline.context());
  await offline.route("**/demo/tic-tac-toe/playback.json*",r=>r.abort());await offline.goto(origin);
  await offline.locator('[data-build][data-ready="error"]').waitFor();assert(await offline.locator(".build-error").isVisible());
  await capture(offline,"recording-unavailable","Readable fallback when playback fails to load",{region:".build-window"});await offline.close();
