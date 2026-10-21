@@ -28,8 +28,7 @@ The scheduler/reuse/MCP change passed 318 unit tests and 20 MCP integration test
 Clippy, formatting and the structure/ownership gates in recorded check
 `d8e0c1a9-da5b-486c-b62c-51ad27d3c1ff`. The default-policy change passed 905
 workflow/contracts unit tests, 35 receipt/use-case integration tests and 126
-affected CLI tests during development. The final recorded check and hosted CI
-are attached to delivery, rather than guessed from these intermediate runs.
+affected CLI tests during development. Final hosted verification and delivery are recorded below.
 
 
 The final recorded timing check `dde8ccc1-abc8-41aa-a1b5-f2e0153cfb7e`
@@ -46,8 +45,10 @@ this checkout, with isolated temporary workflow state. All four results passed.
 The audit's recorded no-op took 23,770 ms on this machine. The warm result is
 about 15 times faster; a cold observation still reads the complete selected
 content once. The reused result references its actual successful receipt and
-does not claim another command execution. The already-running MCP server keeps
-its loaded binary until the next session; these measurements use the new build.
+does not claim another command execution. These measurements use the new build.
+The installed CLI was rebuilt from the delivered source; recorded check
+`76ae5a33-d8e4-4e9e-b609-ed40709e89e4` confirms that its bytes match the release
+build and that it starts successfully.
 
 Full verification remains available. Source scopes must cover every dependency;
 opaque commands and checks of live external state do not acquire reuse merely
@@ -55,6 +56,41 @@ because their previous result was green. The project leaves live-policy,
 Git-index, package-install and external-reference checks uncached. Missing tools,
 invalid nextest configuration, command failures and absent required CI results
 are failures, never successful skips.
+
+## Hosted verification and delivery
+
+Commit `d1a97b44c4700ec6b521b85e0a80080ffe86477e` was pushed directly to `main`
+after [quality run 39539129253](https://github.com/AlrikOlson/magistr/actions/runs/39539129253)
+and [security run 39539129150](https://github.com/AlrikOlson/magistr/actions/runs/39539129150)
+both passed on that exact commit. No pull request was created for this delivery.
+All 8,113 selected Rust tests passed across four partitions of one compiled
+archive. Website, visual evidence, workflow contracts, CLI packaging, desktop
+checks, installer creation and packaged-process checks also passed.
+
+| Measurement | Audit baseline | Delivered full run | Change |
+|---|---:|---:|---:|
+| Workflow elapsed time | 15m25s | 12m15s | 20.5% shorter |
+| Sum of job execution times | 30.90 runner-minutes | 27.42 runner-minutes | 11.3% less |
+| CLI packaging job | 6m13s | 2m43s | 56.3% shorter |
+
+The baseline is [run 39520938573](https://github.com/AlrikOlson/magistr/actions/runs/39520938573).
+Elapsed time is workflow creation to completion; runner time sums each executed
+job's start-to-finish duration and excludes skipped jobs. These are observed
+runs with their actual cache state, not a controlled benchmark. The baseline's
+Rust/website, CLI and desktop jobs passed; its public-endpoint prerequisite
+failed. The delivered run also builds and verifies the desktop installer, which
+was previously a separate workflow. Security runs are separate from both sets
+of quality-workflow timings.
+
+Hosted verification exposed timing-sensitive tests and an actual loop defect.
+Fixtures now declare full verification where they test that contract, and
+result-parity tests validate timing fields without requiring identical elapsed
+milliseconds. The loop accepts completed work on its recorded evidence in both
+verification modes, even before objective finalization. Its regression changes
+the source after completion to ensure a cache hit cannot hide a duplicate run;
+all 82 loop tests, Clippy and architecture checks passed in recorded check
+`53dd8d91-496d-4191-b2df-cae5ebfb9172`. Arbitrary timed quitting was removed from
+that regression so a loaded runner cannot end it before verification.
 
 The website copy/docs rewrite is included in the same direct-main delivery.
 Its corpus and reviewed screenshot evidence remain in their dated evidence
