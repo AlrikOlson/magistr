@@ -212,6 +212,11 @@ jobs:
         run: python3 -B scripts/ci_timing.py --name website-build --budget 120 -- npm --prefix apps/website test
       - name: Verify website interactions
         run: python3 -B scripts/ci_timing.py --name website-ui --budget 240 -- npm --prefix apps/website run test:ui
+      - name: Assert generated website assets match the commit
+        # prebuild regenerates the icons, the outlined social image and the
+        # manifest; a difference here means the generator is not deterministic
+        # on this runner or someone edited a generated file by hand.
+        run: git diff --exit-code --stat -- apps/website/public
       - name: Assert clean-checkout public assets
         shell: bash
         run: |

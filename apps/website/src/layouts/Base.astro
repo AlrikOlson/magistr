@@ -2,6 +2,7 @@
 import "../styles/global.css";
 import "../styles/code.css";
 import { publicAssetUrl } from "../../scripts/asset-url.mjs";
+import { siteName, tagline, description as brandDescription } from "../data/brand.mjs";
 
 interface Props {
   title?: string;
@@ -12,8 +13,8 @@ interface Props {
 }
 
 const {
-  title = "Magistr · Build bigger projects with your coding agent",
-  description = "Build bigger projects with your coding agent. Magistr keeps the roadmap, the reasons behind decisions and the checks with your project, so the next session can continue where this one stopped.",
+  title = siteName + " · " + tagline,
+  description = brandDescription,
   ogImage,
   jsonLd,
   noindex = false,
@@ -41,7 +42,7 @@ const ogImageUrl = new URL(ogImage ?? publicAssetUrl("og-image.png"), Astro.site
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={ogImageUrl.href} />
-    <meta property="og:image:alt" content="Magistr: build bigger projects with your coding agent." />
+    <meta property="og:image:alt" content={siteName + ": " + tagline} />
     <meta property="og:url" content={canonicalUrl.href} />
     <meta property="og:site_name" content="Magistr" />
     <meta property="og:locale" content="en_US" />

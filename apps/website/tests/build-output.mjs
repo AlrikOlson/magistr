@@ -114,6 +114,14 @@ for (const [name, html] of [["home", indexHtml], ["installation", installHtml], 
 }
 assert(notFoundHtml.includes('name="robots" content="noindex'), "404 page is not indexed");
 assert(indexHtml.includes("og-image.png") && existsSync(resolve(distDir, "og-image.png")), "OG image shipped");
+// One brand line everywhere, and a social image that needs no font on any machine.
+const brand = await import("../src/data/brand.mjs");
+const ogSvg = readFileSync(resolve(distDir, "og-image.svg"), "utf-8");
+assert(!/<text[\s>]/.test(ogSvg), "the social image carries outlined glyphs, not font-dependent text");
+assert(/<title[\s>]/.test(ogSvg) && ogSvg.includes(brand.tagline), "the social image names the tagline for assistive readers");
+assert(indexHtml.includes(`<meta name="description" content="${brand.description}"`), "the page description is the brand description");
+assert(indexHtml.includes(`<h1 id="hero-title">${brand.tagline}</h1>`), "the hero headline is the brand tagline");
+assert(indexHtml.includes(`<meta property="og:title" content="${brand.siteName} · ${brand.tagline}"`), "the social title is the brand tagline");
 assert(indexHtml.includes("site.webmanifest") && indexHtml.includes("apple-touch-icon"), "manifest and touch icon linked");
 assert(existsSync(resolve(distDir, "favicon.svg")) && existsSync(resolve(distDir, "favicon-32.png")), "favicons shipped");
 // Mutable branding paths must not reuse a previous deployment's CDN cache entry.
@@ -125,6 +133,7 @@ for (const file of branding) {
   }
 }
 const webManifest = JSON.parse(page("site.webmanifest"));
+assert(webManifest.description === brand.tagline, "the manifest description is the tagline");
 for (const icon of webManifest.icons) {
   const url = new URL(icon.src, "https://magistr.dev");
   const hash = createHash("sha256").update(readFileSync(resolve(distDir, "." + url.pathname))).digest("hex").slice(0, 12);

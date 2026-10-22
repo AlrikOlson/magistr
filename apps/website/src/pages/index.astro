@@ -2,22 +2,20 @@
 import { version } from "../../../../npm/magistr/package.json";
 import recording from "../../public/demo/tic-tac-toe/recording.json";
 import { minutes, walkthroughEnd } from "../data/build-recording.mjs";
+import { siteName, tagline, definition, description } from "../data/brand.mjs";
 import Base from "../layouts/Base.astro";
 import Nav from "../components/Nav.astro";
 import Footer from "../components/Footer.astro";
 import BuildWalkthrough from "../components/BuildWalkthrough.astro";
 import {highlightCode} from "../../scripts/highlight-recording.mjs";
 const installCode = await highlightCode("git clone https://github.com/AlrikOlson/magistr.git\ncd magistr\ncargo install --locked --path crates/magistr-cli\nmagistr --version","shellscript");
-const tagline = "Build bigger projects with your coding agent.";
-const definition = "Magistr keeps the roadmap, the reasons behind decisions and the checks with your project, so the next session can continue where this one stopped.";
-const description = tagline + " " + definition;
 const buildMinutes = minutes(recording, walkthroughEnd(recording));
 const jsonLd = [
   {"@context":"https://schema.org","@type":"WebSite","name":"Magistr","url":"https://magistr.dev",description},
   {"@context":"https://schema.org","@type":"SoftwareApplication","name":"Magistr","applicationCategory":"DeveloperApplication","operatingSystem":"macOS (Apple Silicon)","softwareVersion":version,description,"url":"https://magistr.dev","downloadUrl":"https://magistr.dev/docs/installation","softwareRequirements":"macOS 15 or later, Rust 1.95 or later, Git"}
 ];
 ---
-<Base title={"Magistr · " + tagline} description={description} jsonLd={jsonLd}>
+<Base title={siteName + " · " + tagline} description={description} jsonLd={jsonLd}>
   <Nav />
   <main id="main-content">
     <section class="hero section-shell" aria-labelledby="hero-title">

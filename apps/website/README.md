@@ -26,6 +26,16 @@ collection. Do not add a second hard-coded page list. Retired routes in
 navigation and focus recovery on resize. Shared browser helpers serve both test
 suites; documentation scenarios live in `tests/docs-browser.mjs`.
 
+## Brand line and social image
+
+`src/data/brand.mjs` is the one source of the tagline and definition. The hero,
+the page metadata, the web manifest and the social image derive from it.
+`scripts/generate-favicons.mjs` (the `prebuild` step) outlines the social text
+from the vendored Instrument Sans files in `scripts/fonts/` (SIL Open Font
+License, `OFL.txt` beside them) and writes `public/og-image.svg` plus both PNGs,
+so the image renders the same on a Mac and on the Linux runner. Do not edit the
+generated SVG by hand; CI fails when a build changes the committed assets.
+
 ## Recorded example
 
  The landing page's only interactive
