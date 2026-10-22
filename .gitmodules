@@ -1,0 +1,3 @@
+[submodule "docs/evidence/desktop-iterations"]
+	path = docs/evidence/desktop-iterations
+	url = https://github.com/AlrikOlson/magistr-evidence.git

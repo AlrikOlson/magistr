@@ -59,7 +59,11 @@ They are evidence, not current setup instructions.
 - [Desktop foundation decision](architecture/desktop-foundation.md).
 - [Desktop layout evidence](evidence/desktop-layout/README.md).
 - [Native desktop evidence](evidence/desktop-current/README.md).
-- [Dated interface iterations](evidence/desktop-iterations/).
-- [Recorded example source](../examples/bevy-tic-tac-toe/README.md).
+- [Dated interface iterations](https://github.com/AlrikOlson/magistr-evidence):
+  the `magistr-evidence` repository, mounted as the submodule
+  `docs/evidence/desktop-iterations` (`git submodule update --init`).
+- [Recorded example sources](../examples/bevy-tic-tac-toe/README.md): the Bevy
+  game behind the website walkthrough and the
+  [support inbox](../examples/support-inbox/README.md) behind the recorded session.
 
 Retain original records and earlier screenshots when new evidence is added.

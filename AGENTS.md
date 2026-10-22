@@ -84,8 +84,10 @@ Scope changes and commits to the requested task; preserve other sessions' work.
 
 Every GUI iteration must save updated screenshots of every area it changes before
 completion or commit. Capture directly into a dated, named iteration folder under
-`docs/evidence/desktop-iterations/`; open and review images from that location,
-never from an ignored scratch directory. Keep consistent view names and record viewport
+`docs/evidence/desktop-iterations/` (the `magistr-evidence` submodule; initialize
+it with `git submodule update --init` and commit the iteration there, then update
+the submodule pointer here); open and review images from that location, never
+from an ignored scratch directory. Keep consistent view names and record viewport
 sizes, appearance, renderer, source hashes and capture time. Inspect the images and
 record what was checked and any limitations alongside them. Include the evidence
 in the iteration's commit and link it in the receipt. Cover affected meaningful

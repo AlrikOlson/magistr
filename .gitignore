@@ -61,10 +61,10 @@ vendor/
 # Public visual assets are reviewed source material, not disposable build output.
 !docs/assets/**/*.png
 !apps/website/public/**/*.png
-# Versioned screenshots; iteration review status is recorded beside each capture
+# Versioned screenshots; iteration review status is recorded beside each capture.
+# Dated iterations live in the magistr-evidence submodule, which has its own rules.
 !docs/evidence/desktop-current/*.png
 !docs/evidence/desktop-layout/*.png
-!docs/evidence/desktop-iterations/**/*.png
 !crates/magistr-desktop/ui/icon.png
 .magistr/desktop-native/
 .magistr/desktop-storybook/

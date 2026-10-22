@@ -54,6 +54,13 @@ class IterationEvidenceTests(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, "No reviewed iteration"):
             current_iteration(self.root)
 
+    def test_uninitialized_evidence_submodule_is_named_not_mistaken_for_stale_evidence(self):
+        for path in self.directory.iterdir():
+            path.unlink()
+        self.directory.rmdir()
+        with self.assertRaisesRegex(AssertionError, "git submodule update --init"):
+            current_iteration(self.root)
+
     def test_selection_does_not_hide_a_failed_current_review(self):
         self.review["images"]["dark-desktop.png"]["verdict"] = "fail"
         self.save()

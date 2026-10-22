@@ -42,6 +42,10 @@ def validate_iteration(root, name):
 def current_iteration(root):
     """Choose the latest reviewed iteration whose captures match current sources."""
     archive = root / "docs/evidence/desktop-iterations"
+    # The archive is the magistr-evidence submodule; an empty folder means it was
+    # never initialized, which is not the same as having no current review.
+    assert any(archive.glob("*/review.json")), (
+        "Iteration evidence is not checked out; run git submodule update --init docs/evidence/desktop-iterations")
     candidates = []
     for review_path in archive.glob("*/review.json"):
         try:

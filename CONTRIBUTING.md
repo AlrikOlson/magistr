@@ -31,7 +31,10 @@ includes documentation and the landing page. See the
 [website guide](apps/website/README.md).
 
 Every interface iteration needs reviewed screenshots saved directly under a new
-dated folder in `docs/evidence/desktop-iterations/`. Record viewport, appearance,
+dated folder in `docs/evidence/desktop-iterations/`. That folder is the
+[magistr-evidence](https://github.com/AlrikOlson/magistr-evidence) submodule:
+initialize it with `git submodule update --init`, commit the iteration there,
+then update the submodule pointer in this repository. Record viewport, appearance,
 renderer, source hashes, time, observations and verdicts. Passing tests do not
 replace visual review. Native OS-input journeys require explicit authorization
 for that run; routine layout checks run in the background.

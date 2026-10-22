@@ -32,6 +32,21 @@ cargo nextest run --manifest-path crates/magistr-desktop/Cargo.toml --locked -E 
 node --test crates/magistr-desktop/tests/drafts.mjs
 ```
 
+## Repository layout
+
+| Path | Holds |
+| --- | --- |
+| `crates/` | The root Cargo workspace: CLI, engine, domain, application, workflow, workspace, MCP, ACP and process crates, plus the separately locked `magistr-desktop` |
+| `subsystems/` | Imported workflow and workspace sources retained with provenance; inputs of the source gates, never shipped |
+| `apps/website/` | The product manual and website (Astro), deployed to magistr.dev |
+| `npm/magistr/`, `plugins/magistr/`, `.claude-plugin/` | The npm package manifest, the Claude Code plugin and its marketplace entry |
+| `scripts/` | Project gates, release tooling and CI helpers, with their companion tests |
+| `docs/` | Contributor guides, architecture contracts, release procedures and dated evidence; `docs/evidence/desktop-iterations` is the `magistr-evidence` submodule |
+| `examples/`, `benchmarks/` | The recorded Bevy game and support inbox behind the website walkthrough; the desktop foundation benchmark |
+| `.github/`, `.config/`, `.magistr/` | Workflows, nextest configuration, and Magistr's own project settings and gate baselines |
+| `.claude/`, `.agents/`, `.codex/`, `.cursor/` | This repository's own agent setup, generated and repaired by `magistr init` |
+| `Launch Magistr.command`, `Launch Magistr.cmd`, `justfile` | Double-click desktop launchers and development recipes |
+
 Install the OS WebView prerequisites from [Tauri's official guide](https://v2.tauri.app/start/prerequisites/).
 Both workspaces have explicit CI checks. The project gates are configured in
 `.magistr/project.json`. Choose focused verification for bounded changes and
@@ -201,7 +216,12 @@ visible heading, selected view, source hashes and capture time. A passing story
 assertion still requires opening and reviewing every archived image.
 
 The workspace scenario writes captures and a source-bound receipt directly under
-`docs/evidence/desktop-iterations/<iteration>/gallery/`. Set `MAGISTR_GUI_ITERATION`
+`docs/evidence/desktop-iterations/<iteration>/gallery/`. That folder is the
+[magistr-evidence](https://github.com/AlrikOlson/magistr-evidence) submodule:
+run `git submodule update --init docs/evidence/desktop-iterations` once after
+cloning (the screenshot gate refuses an uninitialized archive), commit new
+iterations inside it, and update the submodule pointer here in the same change.
+Set `MAGISTR_GUI_ITERATION`
 to a new dated folder, or let the gallery create a timestamped folder. Existing
 images cannot be overwritten. Open the archived images and record each review
 there before promoting accepted captures to `docs/evidence/desktop-layout` and

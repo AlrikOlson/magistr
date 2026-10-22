@@ -246,6 +246,8 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
+          # The iteration archive the gate validates is the magistr-evidence submodule.
+          submodules: true
       - run: python3 -B scripts/ci_timing.py --name visual-evidence --budget 120 -- bash scripts/screenshot-gate.sh
       - name: Save timing evidence
         if: always()
