@@ -112,6 +112,8 @@ was not (the first run after a lockfile change, or `main` itself after one).
 `scripts/ci_timing.py` selects the deadline from the cache's `cache-hit` output
 and records the real duration, whether the run was cold, and the slowest tests.
 Normal pushes fail fast; scheduled and manual diagnostic runs collect all failures.
+The measurements behind this layout, and the remaining critical path, are in
+`docs/evidence/ci/2026-10-22-workflow-rewrite/README.md`.
 
 Direct delivery to protected `main` uses the actual required push checks:
 
