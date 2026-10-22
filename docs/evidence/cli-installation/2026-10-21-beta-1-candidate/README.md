@@ -69,3 +69,32 @@ registry packages are not published.
 
 The repository's [pre-release policy](../../../../AGENTS.md#before-public-release)
 stays in force for the beta line.
+
+## History rewrite before the repository became public (22 October 2026)
+
+With the owner's authorization, the repository history was rewritten once so a
+public clone is small: `docs/evidence/desktop-iterations` (89 dated iterations,
+881 MB) moved to the [magistr-evidence](https://github.com/AlrikOlson/magistr-evidence)
+repository with its own history and is mounted back as a submodule at the same
+path, and media blobs that no current file uses (deleted screenshots, goldens
+and fonts; 8,136 blobs, 1.25 GB uncompressed) were dropped from every commit.
+Source and document history is complete; the pack went from 940 MB to 78 MB.
+
+Commit hashes before the rewrite therefore no longer resolve in this repository.
+[history-rewrite-commit-map.txt](history-rewrite-commit-map.txt) maps every old
+commit to its rewritten commit. The identities recorded by the October audits:
+
+| Record | Before | After |
+| --- | --- | --- |
+| 19 October release-ready candidate source | `4fa3788f200c5c807f142f7542e6c159deae777a` | `57c258a8` |
+| 19 October remediation candidate source | `1e99aba7b9e3d9f76c953ddf03041166f45aa599` | `a66d7e9e` |
+| Unchanged adapter contracts source | `83a98358` | `12455cc4` |
+| Archived September release tag target | `3723c626bceb71679019029fb9f13feae92a583b` | `30507646` |
+| Beta-1 preparation commit | `1cfe3a68` | `93bf0b3e` |
+
+The reviewed secret fixtures in `scripts/release-security-policy.json` were
+remapped through the same map (24 entries, none lost). Hosted workflow run ids
+in the audits still identify their runs; the artifacts they produced were built
+from the pre-rewrite commits and are byte-identical to what the mapped commits
+contain. A complete pre-rewrite bundle of every ref is kept offline by the owner
+(`magistr-pre-rewrite-20261021.bundle`).

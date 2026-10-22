@@ -3,7 +3,7 @@
   "dependencyExceptions": [],
   "secretReviews": [
     {
-      "commit": "fb9f61bcc722cb94ccd2e487cbac80e6f6d6af01",
+      "commit": "0279de7a98418817b4029fc1b26b0937c3e5d9ea",
       "file": "crates/magistr-workspace/fixtures/contracts/responses.json",
       "rule": "jwt",
       "line": 401,
@@ -13,7 +13,7 @@
       "evidence": "docs/evidence/cli-installation/2026-10-19-release-audit/secret-scan-review.json"
     },
     {
-      "commit": "fb9f61bcc722cb94ccd2e487cbac80e6f6d6af01",
+      "commit": "0279de7a98418817b4029fc1b26b0937c3e5d9ea",
       "file": "crates/magistr-workspace/fixtures/contracts/responses.json",
       "rule": "slack-bot-token",
       "line": 365,
@@ -23,7 +23,7 @@
       "evidence": "docs/evidence/cli-installation/2026-10-19-release-audit/secret-scan-review.json"
     },
     {
-      "commit": "fb9f61bcc722cb94ccd2e487cbac80e6f6d6af01",
+      "commit": "0279de7a98418817b4029fc1b26b0937c3e5d9ea",
       "file": "crates/magistr-workspace/fixtures/contracts/responses.json",
       "rule": "gcp-api-key",
       "line": 392,
@@ -33,7 +33,7 @@
       "evidence": "docs/evidence/cli-installation/2026-10-19-release-audit/secret-scan-review.json"
     },
     {
-      "commit": "3ce05bc652f25ff72d73593ece59d9c6b1bf1a7d",
+      "commit": "bd4ec8f813b2a9b51f97c4e544cc1a4a237c46d6",
       "file": "docs/evidence/desktop-current/work-receipt.json",
       "rule": "generic-api-key",
       "line": 601,
@@ -43,7 +43,7 @@
       "evidence": "docs/evidence/cli-installation/2026-10-19-release-audit/secret-scan-review.json"
     },
     {
-      "commit": "25ee837095804bb701020fb162c0e692f3fe18d4",
+      "commit": "a0c661331fc4c01c68a2d3424f0a71e47b882916",
       "file": "docs/evidence/desktop-current/draft-persistence-receipt.json",
       "rule": "generic-api-key",
       "line": 824,
@@ -53,7 +53,7 @@
       "evidence": "docs/evidence/cli-installation/2026-10-19-release-audit/secret-scan-review.json"
     },
     {
-      "commit": "ed74337de61e84aafacdd1140d0f814e32d79d29",
+      "commit": "dbb7684fd42cd5ca2fc8cbe6b13e22e816a5f429",
       "file": "docs/evidence/desktop-current/receipt.json",
       "rule": "generic-api-key",
       "line": 1763,
@@ -63,7 +63,7 @@
       "evidence": "docs/evidence/cli-installation/2026-10-19-release-audit/secret-scan-review.json"
     },
     {
-      "commit": "982433e96d265f3f45ba8301956e645bea0e00fe",
+      "commit": "4f065b0ff042c51c9617c91b9877551fdaa55b56",
       "file": "subsystems/workspace/conformance/responses.json",
       "rule": "slack-bot-token",
       "line": 365,
@@ -73,7 +73,7 @@
       "evidence": "docs/evidence/cli-installation/2026-10-19-release-audit/secret-scan-review.json"
     },
     {
-      "commit": "982433e96d265f3f45ba8301956e645bea0e00fe",
+      "commit": "4f065b0ff042c51c9617c91b9877551fdaa55b56",
       "file": "subsystems/workspace/conformance/responses.json",
       "rule": "gcp-api-key",
       "line": 392,
@@ -83,7 +83,7 @@
       "evidence": "docs/evidence/cli-installation/2026-10-19-release-audit/secret-scan-review.json"
     },
     {
-      "commit": "982433e96d265f3f45ba8301956e645bea0e00fe",
+      "commit": "4f065b0ff042c51c9617c91b9877551fdaa55b56",
       "file": "subsystems/workspace/conformance/responses.json",
       "rule": "jwt",
       "line": 401,
@@ -93,7 +93,7 @@
       "evidence": "docs/evidence/cli-installation/2026-10-19-release-audit/secret-scan-review.json"
     },
     {
-      "commit": "0fada99b00651f19f7ae78aaae31ab08468ddcf1",
+      "commit": "e8453ca4c4e4ec669bfb7db7ee47599cf05f7146",
       "file": "subsystems/workspace/reference/test/redaction.test.ts",
       "rule": "gcp-api-key",
       "line": 26,
@@ -103,7 +103,7 @@
       "evidence": "docs/evidence/cli-installation/2026-10-19-release-audit/secret-scan-review.json"
     },
     {
-      "commit": "0fada99b00651f19f7ae78aaae31ab08468ddcf1",
+      "commit": "e8453ca4c4e4ec669bfb7db7ee47599cf05f7146",
       "file": "subsystems/workspace/reference/test/redaction.test.ts",
       "rule": "generic-api-key",
       "line": 25,
@@ -113,7 +113,7 @@
       "evidence": "docs/evidence/cli-installation/2026-10-19-release-audit/secret-scan-review.json"
     },
     {
-      "commit": "0fada99b00651f19f7ae78aaae31ab08468ddcf1",
+      "commit": "e8453ca4c4e4ec669bfb7db7ee47599cf05f7146",
       "file": "subsystems/workspace/reference/test/redaction.test.ts",
       "rule": "generic-api-key",
       "line": 65,
@@ -123,7 +123,7 @@
       "evidence": "docs/evidence/cli-installation/2026-10-19-release-audit/secret-scan-review.json"
     },
     {
-      "commit": "0fada99b00651f19f7ae78aaae31ab08468ddcf1",
+      "commit": "e8453ca4c4e4ec669bfb7db7ee47599cf05f7146",
       "file": "subsystems/workspace/reference/test/redaction.test.ts",
       "rule": "jwt",
       "line": 29,
@@ -133,7 +133,7 @@
       "evidence": "docs/evidence/cli-installation/2026-10-19-release-audit/secret-scan-review.json"
     },
     {
-      "commit": "0fada99b00651f19f7ae78aaae31ab08468ddcf1",
+      "commit": "e8453ca4c4e4ec669bfb7db7ee47599cf05f7146",
       "file": "subsystems/workspace/reference/test/redaction.test.ts",
       "rule": "slack-bot-token",
       "line": 23,
@@ -143,7 +143,7 @@
       "evidence": "docs/evidence/cli-installation/2026-10-19-release-audit/secret-scan-review.json"
     },
     {
-      "commit": "0fada99b00651f19f7ae78aaae31ab08468ddcf1",
+      "commit": "e8453ca4c4e4ec669bfb7db7ee47599cf05f7146",
       "file": "subsystems/workspace/reference/test/redteam-jail.test.ts",
       "rule": "generic-api-key",
       "line": 277,
@@ -153,7 +153,7 @@
       "evidence": "docs/evidence/cli-installation/2026-10-19-release-audit/secret-scan-review.json"
     },
     {
-      "commit": "25b7227dc22ab9890b6fed39cc4be56ea3849a0a",
+      "commit": "4826328d3fa02055ecf4082e5b063bae48d69de5",
       "file": "subsystems/workflow/contract/signal-envelope.schema.json",
       "rule": "generic-api-key",
       "line": 175,
@@ -163,7 +163,7 @@
       "evidence": "docs/evidence/cli-installation/2026-10-19-release-audit/secret-scan-review.json"
     },
     {
-      "commit": "25b7227dc22ab9890b6fed39cc4be56ea3849a0a",
+      "commit": "4826328d3fa02055ecf4082e5b063bae48d69de5",
       "file": "subsystems/workflow/contract/unified-record-envelope.schema.json",
       "rule": "generic-api-key",
       "line": 397,
@@ -173,7 +173,7 @@
       "evidence": "docs/evidence/cli-installation/2026-10-19-release-audit/secret-scan-review.json"
     },
     {
-      "commit": "25b7227dc22ab9890b6fed39cc4be56ea3849a0a",
+      "commit": "4826328d3fa02055ecf4082e5b063bae48d69de5",
       "file": "subsystems/workflow/contract/unified-record-envelope.schema.json",
       "rule": "generic-api-key",
       "line": 523,
@@ -183,7 +183,7 @@
       "evidence": "docs/evidence/cli-installation/2026-10-19-release-audit/secret-scan-review.json"
     },
     {
-      "commit": "25b7227dc22ab9890b6fed39cc4be56ea3849a0a",
+      "commit": "4826328d3fa02055ecf4082e5b063bae48d69de5",
       "file": "subsystems/workflow/crates/think-and-ship/src/otel_logs.rs",
       "rule": "generic-api-key",
       "line": 708,
@@ -193,7 +193,7 @@
       "evidence": "docs/evidence/cli-installation/2026-10-19-release-audit/secret-scan-review.json"
     },
     {
-      "commit": "25b7227dc22ab9890b6fed39cc4be56ea3849a0a",
+      "commit": "4826328d3fa02055ecf4082e5b063bae48d69de5",
       "file": "subsystems/workflow/crates/think-and-ship/tests/ship_check_report.rs",
       "rule": "generic-api-key",
       "line": 102,
@@ -203,7 +203,7 @@
       "evidence": "docs/evidence/cli-installation/2026-10-19-release-audit/secret-scan-review.json"
     },
     {
-      "commit": "25b7227dc22ab9890b6fed39cc4be56ea3849a0a",
+      "commit": "4826328d3fa02055ecf4082e5b063bae48d69de5",
       "file": "subsystems/workflow/crates/think-and-ship/tests/telemetry_shape.rs",
       "rule": "stripe-access-token",
       "line": 17,
@@ -213,7 +213,7 @@
       "evidence": "docs/evidence/cli-installation/2026-10-19-release-audit/secret-scan-review.json"
     },
     {
-      "commit": "bc110fa442f49e0f6d17cc017ba6a10633186382",
+      "commit": "95d40da8fbdd575a988c2673513dbdc485427a50",
       "file": "apps/website/public/demo/inbox/manifest.json",
       "rule": "generic-api-key",
       "line": 12,
@@ -223,7 +223,7 @@
       "evidence": "docs/evidence/website-recording/2026-10-20-secret-review.json"
     },
     {
-      "commit": "bc110fa442f49e0f6d17cc017ba6a10633186382",
+      "commit": "95d40da8fbdd575a988c2673513dbdc485427a50",
       "file": "docs/evidence/desktop-iterations/2026-10-20-inbox-build-refined/captures.json",
       "rule": "generic-api-key",
       "line": 12,
@@ -233,7 +233,7 @@
       "evidence": "docs/evidence/website-recording/2026-10-20-secret-review.json"
     },
     {
-      "commit": "bc110fa442f49e0f6d17cc017ba6a10633186382",
+      "commit": "95d40da8fbdd575a988c2673513dbdc485427a50",
       "file": "docs/evidence/desktop-iterations/2026-10-20-inbox-build/captures.json",
       "rule": "generic-api-key",
       "line": 12,
