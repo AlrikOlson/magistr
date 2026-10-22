@@ -245,10 +245,11 @@ runs the publication stage before uploads. The **Public endpoints** workflow
 checks the deployed website stage weekly and runs the release stage on manual
 and tag runs, failing when any required check fails. The CI deploy job also
 runs the website stage against the live site after every deployment from
-`main`; until the Cloudflare secrets exist, run the website stage locally after
-changing the manual.
-No stage changes repository visibility, enables reporting, deploys the website
-or publishes packages.
+`main` (the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` repository
+secrets exist since 2026-10-22). The website stage also runs locally with
+`./scripts/public-link-check.sh --stage website` after changing the manual.
+No stage changes repository visibility, enables reporting or publishes
+packages; the website deploys only from the CI deploy job on `main`.
 
 ## Publish reviewed artifacts
 
