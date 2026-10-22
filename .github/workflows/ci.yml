@@ -350,7 +350,9 @@ jobs:
   deploy-website:
     name: Deploy website
     needs: [plan, ci]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.plan.outputs.website == 'true' && needs.ci.result == 'success'
+    # !cancelled() keeps the implicit success() check from skipping this job whenever
+    # a job upstream of the aggregate was skipped by the plan (a docs-only push).
+    if: ${{ !cancelled() && github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.plan.outputs.website == 'true' && needs.ci.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
