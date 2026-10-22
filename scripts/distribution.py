@@ -182,6 +182,10 @@ def verify_npm(args):
         env.update(MAGISTR_WORKFLOW_DATA_DIR=str(scratch/"workflow-state"),XDG_CONFIG_HOME=str(scratch/"user-config"),XDG_DATA_HOME=str(scratch/"user-data"))
         env["PATH"]=f"{commands}:/usr/bin:/bin:/usr/sbin:/sbin"
         env["npm_config_cache"]=str(scratch/"cache")
+        # Installation proves the packed artifact, not the advisory service: the security scan owns
+        # auditing, and npm's bulk advisory request hung every install during the registry incident
+        # of 2026-10-22. Fund notices need the registry too.
+        env["npm_config_audit"]="false";env["npm_config_fund"]="false"
         run(["npm","install","--global","--prefix",prefix,"--ignore-scripts",tarball],cwd=scratch,env=env,stdout=subprocess.PIPE)
         binary=prefix/"bin/magistr"
         assert output([binary,"--version"],scratch).strip()==f"magistr {version}"
