@@ -36,13 +36,7 @@ impl McpTarget {
                     && args[2]
                         .as_str()
                         .and_then(|s| s.strip_prefix("magistr@"))
-                        .is_some_and(|v| {
-                            let parts: Vec<_> = v.split('.').collect();
-                            parts.len() == 3
-                                && parts
-                                    .iter()
-                                    .all(|p| !p.is_empty() && p.bytes().all(|b| b.is_ascii_digit()))
-                        }) =>
+                        .is_some_and(is_semantic_version) =>
             {
                 &args[4..]
             }
@@ -56,6 +50,37 @@ impl McpTarget {
     pub fn mcp_entry(self, project_root: &str) -> serde_json::Value {
         serde_json::json!({"command":self.command(),"args":self.args(project_root),"type":"stdio"})
     }
+}
+
+/// A pinned registry version as `scripts/version.py` generates it: a numeric
+/// core with optional pre-release (`1.0.0-beta.1`) and build identifiers. Any
+/// other spec (`latest`, a dist-tag, a range) is a customized launcher.
+fn is_semantic_version(version: &str) -> bool {
+    let (rest, build) = match version.split_once('+') {
+        Some((rest, build)) => (rest, Some(build)),
+        None => (version, None),
+    };
+    let (core, prerelease) = match rest.split_once('-') {
+        Some((core, prerelease)) => (core, Some(prerelease)),
+        None => (rest, None),
+    };
+    let numeric = |part: &str| {
+        !part.is_empty()
+            && part.bytes().all(|b| b.is_ascii_digit())
+            && (part == "0" || !part.starts_with('0'))
+    };
+    let identifier = |part: &str| {
+        !part.is_empty() && part.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-')
+    };
+    let prerelease_identifier = |part: &str| {
+        identifier(part) && (!part.bytes().all(|b| b.is_ascii_digit()) || numeric(part))
+    };
+    let mut parts = core.split('.');
+    let core_ok =
+        parts.by_ref().take(3).filter(|part| numeric(part)).count() == 3 && parts.next().is_none();
+    core_ok
+        && prerelease.is_none_or(|pre| pre.split('.').all(prerelease_identifier))
+        && build.is_none_or(|meta| meta.split('.').all(identifier))
 }
 
 /// npm installs include a version-matched native executable. Persist an npx
@@ -112,3 +137,7 @@ pub(crate) fn project_root(dir: &std::path::Path) -> std::io::Result<std::path::
         .unwrap_or(&dir)
         .to_path_buf())
 }
+
+#[cfg(test)]
+#[path = "mcp_target.tests.rs"]
+mod tests;

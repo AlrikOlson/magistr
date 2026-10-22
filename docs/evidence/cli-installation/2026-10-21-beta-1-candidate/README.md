@@ -43,6 +43,20 @@ registry packages are not published.
   (`npm install -g magistr@beta`, `npx magistr@beta init`). Generated MCP
   configurations pin `magistr@<exact version>` and are unaffected by the tag.
 
+## Found by the first hosted package run
+
+The first **CLI packages** run on the beta source (run 39702214174) failed in
+the packed npm verification: `npx --package <tarball> magistr init` wrote the
+pinned registration `npx --yes --package magistr@1.0.0-beta.1 magistr mcp`, and
+the setup connection check then executed that command against the public
+registry (404, unpublished) instead of recognizing it as the generated entry.
+`McpTarget::owns_entry` only accepted three all-digit version parts, so every
+pre-release registration counted as a customized launcher; `repair` and
+`remove` would have preserved generated beta entries for the same reason. The
+owner now accepts any semantic version with pre-release and build identifiers,
+covered by `crates/magistr-cli/src/mcp_target.tests.rs`. The package run is
+repeated on the corrected source.
+
 ## Owner actions, in order
 
 1. Account readiness, unchanged from the audit: crates.io token able to create new
