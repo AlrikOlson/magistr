@@ -93,29 +93,33 @@ class ArtifactTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
-        crate = self.root / "magistr-cli-0.1.0.crate"
-        archive(crate, {"magistr-cli-0.1.0/.cargo_vcs_info.json": {"git": {"sha1": SOURCE}}})
-        cargo = [{"package": "magistr-cli", "version": "0.1.0", "file": crate.name,
+        self.build("0.1.0")
+
+    def build(self, version):
+        """Write a complete reviewed artifact set for one product version."""
+        crate = self.root / f"magistr-cli-{version}.crate"
+        archive(crate, {f"magistr-cli-{version}/.cargo_vcs_info.json": {"git": {"sha1": SOURCE}}})
+        cargo = [{"package": "magistr-cli", "version": version, "file": crate.name,
                   "sha256": release.digest(crate)}]
         native = b"verified native binary fixture"
-        npm = self.root / "magistr-0.1.0.tgz"
-        archive(npm, {"package/package.json": {"name": "magistr", "version": "0.1.0",
+        npm = self.root / f"magistr-{version}.tgz"
+        archive(npm, {"package/package.json": {"name": "magistr", "version": version,
                                              "os": ["darwin"], "cpu": ["arm64"]},
                       "package/bin/magistr": native})
         write_json(self.root / "cargo-inventory.json", cargo)
         (self.root / "publication-order.txt").write_text("magistr-cli\n")
         write_json(self.root / "npm-inventory.json",
-                   {"name": "magistr", "version": "0.1.0", "filename": npm.name})
+                   {"name": "magistr", "version": version, "filename": npm.name})
         write_json(self.root / "binary-inventory.json",
-                   {"version": "0.1.0", "target": "aarch64-apple-darwin",
+                   {"version": version, "target": "aarch64-apple-darwin",
                     "binarySha256": hashlib.sha256(native).hexdigest()})
         (self.root / "SHA256SUMS").write_text(
             f"{release.digest(crate)}  {crate.name}\n{release.digest(npm)}  {npm.name}\n")
         write_json(self.root / "cargo-install-verification.json",
-                   {"passed": True, "version": "0.1.0", "profile": "release", "checkoutRequired": False,
+                   {"passed": True, "version": version, "profile": "release", "checkoutRequired": False,
                     "artifacts": {crate.name: release.digest(crate)}})
         write_json(self.root / "npm-install-verification.json",
-                   {"passed": True, "version": "0.1.0", "artifactSha256": release.digest(npm),
+                   {"passed": True, "version": version, "artifactSha256": release.digest(npm),
                     "rustOrBunOnPath": False, "globalInstall": True, "npxInit": True,
                     "pinnedConfigFreshCache": True, "nativeMcpAndWorker": True, "sigterm": True,
                     "removal": True, "usageExitCode": 2})
@@ -145,7 +149,18 @@ class ArtifactTests(unittest.TestCase):
             release.verify(self.root, SOURCE)
 
     def test_reviewed_archives_and_matching_receipts_are_accepted(self):
-        self.assertEqual(release.verify(self.root, SOURCE)["version"], "0.1.0")
+        result = release.verify(self.root, SOURCE)
+        self.assertEqual(result["version"], "0.1.0")
+        self.assertEqual(result["npmTag"], "latest")
+
+    def test_pre_release_artifacts_publish_on_the_beta_tag(self):
+        for path in self.root.iterdir():
+            path.unlink()
+        self.build("1.0.0-beta.1")
+        result = release.verify(self.root, SOURCE)
+        self.assertEqual(result["version"], "1.0.0-beta.1")
+        self.assertEqual(result["npm"], "magistr-1.0.0-beta.1.tgz")
+        self.assertEqual(result["npmTag"], "beta")
 
     def test_invalid_archive_version_is_refused_before_reading_paths(self):
         path = self.root / "cargo-inventory.json"

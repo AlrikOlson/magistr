@@ -18,7 +18,7 @@ import tarfile
 import tempfile
 import tomllib
 from distribution_licenses import collect as collect_notices
-from version import check as check_version
+from version import check as check_version, npm_dist_tag
 
 ROOT=Path(__file__).resolve().parents[1]
 def run(args, cwd=ROOT, **kwargs):
@@ -205,7 +205,8 @@ def verify_npm(args):
                     package=dict(json.loads((ROOT/"npm/magistr/package.json").read_text()))
                     package["dist"]={"tarball":f"http://127.0.0.1:{self.server.server_port}/magistr/-/magistr-{version}.tgz",
                         "integrity":"sha512-"+base64.b64encode(hashlib.sha512(blob).digest()).decode()}
-                    payload=json.dumps({"name":"magistr","dist-tags":{"latest":version},
+                    # Mirror the real registry: a pre-release sits on `beta`, not `latest`.
+                    payload=json.dumps({"name":"magistr","dist-tags":{npm_dist_tag(version):version},
                         "versions":{version:package}}).encode();kind="application/json"
                 else:
                     self.send_error(404);return

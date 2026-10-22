@@ -23,25 +23,25 @@ resolver = "3"
 
 # Canonical product version. Use scripts/version.py set to change it.
 [workspace.package]
-version = "0.1.0"
+version = "1.0.0-beta.1"
 
 [workspace.dependencies]
 # Registry requirements are generated from workspace.package.version.
-magistr-cli = { version = "=0.1.0", path = "crates/magistr-cli" }
-magistr-engine = { version = "=0.1.0", path = "crates/magistr-engine" }
-magistr-domain = { version = "=0.1.0", path = "crates/magistr-domain" }
-magistr-application = { version = "=0.1.0", path = "crates/magistr-application" }
-magistr-acp = { version = "=0.1.0", path = "crates/magistr-acp" }
-magistr-acp-agent = { version = "=0.1.0", path = "crates/magistr-acp-agent" }
-magistr-core = { version = "=0.1.0", path = "crates/magistr-core" }
-magistr-mcp = { version = "=0.1.0", path = "crates/magistr-mcp" }
-magistr-theme = { version = "=0.1.0", path = "crates/magistr-theme" }
-magistr-cockpit = { version = "=0.1.0", path = "crates/magistr-cockpit" }
-magistr-cockpit-runtime = { version = "=0.1.0", path = "crates/magistr-cockpit-runtime" }
-magistr-workflow = { version = "=0.1.0", path = "crates/magistr-workflow" }
-magistr-workflow-contracts = { version = "=0.1.0", path = "crates/magistr-workflow-contracts" }
-magistr-workspace = { version = "=0.1.0", path = "crates/magistr-workspace" }
-magistr-process = { version = "=0.1.0", path = "crates/magistr-process" }
+magistr-cli = { version = "=1.0.0-beta.1", path = "crates/magistr-cli" }
+magistr-engine = { version = "=1.0.0-beta.1", path = "crates/magistr-engine" }
+magistr-domain = { version = "=1.0.0-beta.1", path = "crates/magistr-domain" }
+magistr-application = { version = "=1.0.0-beta.1", path = "crates/magistr-application" }
+magistr-acp = { version = "=1.0.0-beta.1", path = "crates/magistr-acp" }
+magistr-acp-agent = { version = "=1.0.0-beta.1", path = "crates/magistr-acp-agent" }
+magistr-core = { version = "=1.0.0-beta.1", path = "crates/magistr-core" }
+magistr-mcp = { version = "=1.0.0-beta.1", path = "crates/magistr-mcp" }
+magistr-theme = { version = "=1.0.0-beta.1", path = "crates/magistr-theme" }
+magistr-cockpit = { version = "=1.0.0-beta.1", path = "crates/magistr-cockpit" }
+magistr-cockpit-runtime = { version = "=1.0.0-beta.1", path = "crates/magistr-cockpit-runtime" }
+magistr-workflow = { version = "=1.0.0-beta.1", path = "crates/magistr-workflow" }
+magistr-workflow-contracts = { version = "=1.0.0-beta.1", path = "crates/magistr-workflow-contracts" }
+magistr-workspace = { version = "=1.0.0-beta.1", path = "crates/magistr-workspace" }
+magistr-process = { version = "=1.0.0-beta.1", path = "crates/magistr-process" }
 clap = { version = "4", features = ["derive"] }
 anyhow = "1"
 serde-saphyr = { version = "2", default-features = false }

@@ -112,6 +112,25 @@ magistr-domain = { path = "../magistr-domain" }
                 version.sync(self.root, candidate)
         self.assertEqual(self.snapshot(), before)
 
+    def test_pre_release_versions_publish_on_the_beta_channel(self):
+        for candidate in ("1.0.0-beta.1", "0.2.0-rc.1", "2.0.0-alpha"):
+            with self.subTest(version=candidate):
+                self.assertEqual(version.npm_dist_tag(candidate), "beta")
+        for candidate in ("1.0.0", "0.1.0", "1.2.3+build.5"):
+            with self.subTest(version=candidate):
+                self.assertEqual(version.npm_dist_tag(candidate), "latest")
+        with self.assertRaises(ValueError):
+            version.npm_dist_tag("1.0.0.beta-1")
+
+    def test_beta_round_trip_keeps_every_consumer_on_the_pre_release(self):
+        version.sync(self.root, "1.0.0-beta.1")
+        self.assertEqual(version.check(self.root), "1.0.0-beta.1")
+        self.assertEqual(version.npm_dist_tag(version.product_version(self.root)), "beta")
+        workspace = version.toml(self.root / "Cargo.toml")["workspace"]
+        self.assertEqual(workspace["dependencies"]["magistr-cli"]["version"], "=1.0.0-beta.1")
+        for relative in version.JSON_COPIES:
+            self.assertEqual(json.loads((self.root / relative).read_text())["version"], "1.0.0-beta.1")
+
     def test_missing_product_lock_entry_and_extra_tauri_version_are_refused(self):
         path = self.root / "Cargo.lock"
         original = path.read_text()

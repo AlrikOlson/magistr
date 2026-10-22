@@ -75,7 +75,9 @@ jobs:
         run: |
           verified=$(python3 scripts/cli-release.py verify --out target/cli-distribution --source "$SOURCE_SHA")
           npm_archive=$(printf '%s' "$verified" | python3 -c 'import json,sys; print(json.load(sys.stdin)["npm"])')
+          npm_tag=$(printf '%s' "$verified" | python3 -c 'import json,sys; print(json.load(sys.stdin)["npmTag"])')
           echo "npm=$npm_archive" >> "$GITHUB_OUTPUT"
+          echo "npm_tag=$npm_tag" >> "$GITHUB_OUTPUT"
       - name: Check current public installation and support routes
         run: ./scripts/public-link-check.sh --stage publication --out target/publication-readiness.json
       - name: Publish exact Cargo archives in dependency order
@@ -102,4 +104,7 @@ jobs:
         if: inputs.registry == 'npm'
         env:
           NPM_ARCHIVE: ${{ steps.artifacts.outputs.npm }}
-        run: npm publish "target/cli-distribution/$NPM_ARCHIVE" --access public
+          # The dist-tag comes from the reviewed artifact version: a pre-release
+          # publishes on `beta`; `latest` is reserved for stable versions.
+          NPM_TAG: ${{ steps.artifacts.outputs.npm_tag }}
+        run: npm publish "target/cli-distribution/$NPM_ARCHIVE" --access public --tag "$NPM_TAG"

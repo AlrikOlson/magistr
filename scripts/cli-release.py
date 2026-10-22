@@ -10,7 +10,7 @@ import re
 import subprocess
 import tarfile
 from cargo_publication import Publisher
-from version import SEMVER
+from version import SEMVER, npm_dist_tag
 
 
 def security_verifier():
@@ -142,8 +142,10 @@ def verify(artifacts, source):
         require(npm_check[field] is True, f"npm installation did not verify {field}")
     require(npm_check["usageExitCode"] == 2, "npm usage exit status was not verified")
     security_verifier()(artifacts / "security-verification.json", source, expected)
+    # The npm dist-tag follows the reviewed artifact version, not the checkout:
+    # a pre-release publishes on `beta`, a stable version on `latest`.
     return {"version": version, "source": source, "cargoPackages": len(cargo),
-            "npm": npm["filename"], "verified": True}
+            "npm": npm["filename"], "npmTag": npm_dist_tag(version), "verified": True}
 
 
 def main():

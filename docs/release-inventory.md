@@ -1,8 +1,11 @@
 # Release inventory
 
 Magistr has not been officially publicly released. The development version is
-defined in the root Cargo workspace, and does not establish a public release. This inventory describes
-current capabilities and planned package contents. The
+defined in the root Cargo workspace, and does not establish a public release.
+The first public version is planned as `1.0.0-beta.1`: a semver pre-release
+published on the npm `beta` dist-tag and as an exact Cargo version, with the
+stable `1.0.0` to follow (see [CLI package release](releasing-cli.md)). This
+inventory describes current capabilities and planned package contents. The
 [pre-release policy](../AGENTS.md#before-public-release) governs all interfaces,
 configuration and stored formats until the owner declares official public release.
 

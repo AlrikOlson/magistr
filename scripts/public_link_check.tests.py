@@ -61,15 +61,21 @@ class PublicReadinessTests(unittest.TestCase):
     def set_route(self, path, body, status=200, headers=None):
         self.server.routes[path] = (status, body, headers or {})
 
-    def guide(self, strings=gate.GUIDE_CONTRACT, extra=""):
-        # Simulate Shiki's nested tokens and HTML entities without removing semantic whitespace.
-        text = "".join("<p>" + "<span>".join(
-            escape(item).replace(" ", "&nbsp;", 1).split("~")) + "</p>" for item in strings)
-        text = text.replace("magistr", "<span>magistr</span>")
-        self.set_route("/site/docs/installation/", "<html><body>" + text + extra + "</body></html>")
+    def guide(self, pages=None, strings=None, extra=""):
+        """Serve every manual guide; `strings` and `extra` address the installation guide."""
+        pages = dict(gate.GUIDE_CONTRACT if pages is None else pages)
+        if strings is not None:
+            pages["installation"] = strings
+        for name, items in pages.items():
+            # Simulate Shiki's nested tokens and HTML entities without removing semantic whitespace.
+            text = "".join("<p>" + "<span>".join(
+                escape(item).replace(" ", "&nbsp;", 1).split("~")) + "</p>" for item in items)
+            text = text.replace("magistr", "<span>magistr</span>")
+            tail = extra if name == "installation" else ""
+            self.set_route(f"/site/docs/{name}/", "<html><body>" + text + tail + "</body></html>")
 
-    def audit(self, stage="release"):
-        return gate.audit(stage, "0.1.0", site=self.site, repository=self.repository,
+    def audit(self, stage="release", version="0.1.0"):
+        return gate.audit(stage, version, site=self.site, repository=self.repository,
                           github=self.github, api=self.base + "/api",
                           npm=self.base + "/npm", cargo=self.base + "/cargo")
 
@@ -81,15 +87,20 @@ class PublicReadinessTests(unittest.TestCase):
 
     def test_old_guide_returning_200_is_blocked(self):
         self.guide(strings=(), extra="<p>Claude Code setup is always written.</p>")
-        self.assertIn("Current installation behavior", self.failures(self.audit("website")))
+        self.assertIn("Current installation guide", self.failures(self.audit("website")))
 
     def test_missing_contract_is_blocked_even_when_other_steps_and_status_pass(self):
-        self.guide(strings=gate.GUIDE_CONTRACT[:-1])
-        self.assertEqual(self.failures(self.audit("website")), ["Current installation behavior"])
+        self.guide(pages={**gate.GUIDE_CONTRACT, "agents": gate.GUIDE_CONTRACT["agents"][:-1]})
+        self.assertEqual(self.failures(self.audit("website")), ["Current agents guide"])
+
+    def test_every_manual_guide_is_checked_for_its_own_commands(self):
+        self.server.routes.pop("/site/docs/uninstall/")
+        self.assertEqual(self.failures(self.audit("website")),
+                         ["Uninstall guide", "Current uninstall guide"])
 
     def test_script_text_cannot_fake_visible_instructions(self):
-        self.guide(strings=(), extra="<script>" + " ".join(gate.GUIDE_CONTRACT) + "</script>")
-        self.assertIn("Current installation behavior", self.failures(self.audit("website")))
+        self.guide(strings=(), extra="<script>" + " ".join(gate.GUIDE_CONTRACT["installation"]) + "</script>")
+        self.assertIn("Current installation guide", self.failures(self.audit("website")))
 
     def test_html_entities_and_spans_are_read_but_styles_are_ignored(self):
         self.guide(extra="<style>.old::after { content: 'Claude Code setup is always written'; }</style>")
@@ -134,6 +145,18 @@ class PublicReadinessTests(unittest.TestCase):
         self.set_route("/github/owner/repo/issues", "", status=302,
                        headers={"Location": self.site + "/"})
         self.assertEqual(self.failures(self.audit("publication")), ["Issues"])
+
+    def test_pre_release_is_verified_on_the_beta_tag_not_latest(self):
+        self.set_route("/npm/magistr/latest", '{"name":"magistr","version":"1.0.0-beta.1"}')
+        self.set_route("/cargo/api/v1/crates/magistr-cli/1.0.0-beta.1",
+                       '{"version":{"crate":"magistr-cli","num":"1.0.0-beta.1","yanked":false}}')
+        self.assertEqual(self.failures(self.audit(version="1.0.0-beta.1")), ["Published npm version"])
+        self.assertNotIn("/npm/magistr/latest", self.server.requests)
+        self.set_route("/npm/magistr/beta", '{"name":"magistr","version":"1.0.0-beta.1"}')
+        receipt = self.audit(version="1.0.0-beta.1")
+        self.assertEqual(self.failures(receipt), [])
+        self.assertEqual(receipt["npmTag"], "beta")
+        self.assertEqual(self.audit()["npmTag"], "latest")
 
     def test_yanked_cargo_version_does_not_pass_release(self):
         self.set_route("/cargo/api/v1/crates/magistr-cli/0.1.0",

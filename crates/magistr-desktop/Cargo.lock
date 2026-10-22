@@ -3595,7 +3595,7 @@ checksum = "dae608c151f68243f2b000364e1f7b186d9c29845f7d2d85bd31b9ad77ad552b"
 
 [[package]]
 name = "magistr-acp"
-version = "0.1.0"
+version = "1.0.0-beta.1"
 dependencies = [
  "agent-client-protocol",
  "base64 0.22.1",
@@ -3613,7 +3613,7 @@ dependencies = [
 
 [[package]]
 name = "magistr-acp-agent"
-version = "0.1.0"
+version = "1.0.0-beta.1"
 dependencies = [
  "agent-client-protocol",
  "reqwest 0.12.28",
@@ -3628,14 +3628,14 @@ dependencies = [
 
 [[package]]
 name = "magistr-application"
-version = "0.1.0"
+version = "1.0.0-beta.1"
 dependencies = [
  "magistr-domain",
 ]
 
 [[package]]
 name = "magistr-cli"
-version = "0.1.0"
+version = "1.0.0-beta.1"
 dependencies = [
  "agent-client-protocol",
  "base64 0.22.1",
@@ -3681,7 +3681,7 @@ dependencies = [
 
 [[package]]
 name = "magistr-cockpit"
-version = "0.1.0"
+version = "1.0.0-beta.1"
 dependencies = [
  "magistr-application",
  "magistr-domain",
@@ -3692,7 +3692,7 @@ dependencies = [
 
 [[package]]
 name = "magistr-cockpit-runtime"
-version = "0.1.0"
+version = "1.0.0-beta.1"
 dependencies = [
  "magistr-application",
  "magistr-cockpit",
@@ -3701,7 +3701,7 @@ dependencies = [
 
 [[package]]
 name = "magistr-core"
-version = "0.1.0"
+version = "1.0.0-beta.1"
 dependencies = [
  "chrono",
  "glob",
@@ -3725,7 +3725,7 @@ dependencies = [
 
 [[package]]
 name = "magistr-desktop"
-version = "0.1.0"
+version = "1.0.0-beta.1"
 dependencies = [
  "base64 0.22.1",
  "clap",
@@ -3753,14 +3753,14 @@ dependencies = [
 
 [[package]]
 name = "magistr-domain"
-version = "0.1.0"
+version = "1.0.0-beta.1"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "magistr-engine"
-version = "0.1.0"
+version = "1.0.0-beta.1"
 dependencies = [
  "chrono",
  "libc",
@@ -3780,7 +3780,7 @@ dependencies = [
 
 [[package]]
 name = "magistr-mcp"
-version = "0.1.0"
+version = "1.0.0-beta.1"
 dependencies = [
  "jsonschema",
  "serde",
@@ -3790,7 +3790,7 @@ dependencies = [
 
 [[package]]
 name = "magistr-process"
-version = "0.1.0"
+version = "1.0.0-beta.1"
 dependencies = [
  "libc",
  "rustix 1.1.4",
@@ -3801,7 +3801,7 @@ dependencies = [
 
 [[package]]
 name = "magistr-workflow"
-version = "0.1.0"
+version = "1.0.0-beta.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3832,7 +3832,7 @@ dependencies = [
 
 [[package]]
 name = "magistr-workflow-contracts"
-version = "0.1.0"
+version = "1.0.0-beta.1"
 dependencies = [
  "chrono",
  "magistr-domain",
@@ -3844,7 +3844,7 @@ dependencies = [
 
 [[package]]
 name = "magistr-workspace"
-version = "0.1.0"
+version = "1.0.0-beta.1"
 dependencies = [
  "ast-grep-core",
  "flate2",
