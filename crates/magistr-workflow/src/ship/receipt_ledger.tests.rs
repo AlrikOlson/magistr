@@ -277,3 +277,63 @@ fn deletion_followed_by_index_failure_reports_uncertain_and_recovers() {
     assert_eq!(recovered.removed, 1);
     assert!(ledger.get("b").unwrap().is_none());
 }
+
+/// Receipts written before the staged settlement model carry no `stage`,
+/// `outcome` or `recorded_at` and keep the execution at the top level. They
+/// are real history: the ledger reads them as settled records so the derived
+/// indexes, run scans and compaction over an older installation keep working.
+#[test]
+fn receipts_from_before_the_staged_model_read_as_settled_history() {
+    let temp = tempfile::tempdir().unwrap();
+    let legacy = serde_json::json!({
+        "id": "legacy",
+        "target": {
+            "project_id": "project",
+            "execution": null,
+            "run_id": "older",
+            "task_id": "verify",
+            "task_instance": "older-task"
+        },
+        "attempt": 1,
+        "gate": "test",
+        "check_type": "test",
+        "command": "cargo test",
+        "required": true,
+        "acceptance_revision": "acceptance",
+        "source": null,
+        "admitted_at": "2026-10-14T00:47:16.891016+00:00",
+        "settled_at": "2026-10-14T00:47:30.595621+00:00",
+        "duration_ms": 13704,
+        "execution": {"kind": "exited", "code": 0},
+        "freshness": {"freshness": "unchanged"},
+        "settlement": {"settlement": "applied"}
+    });
+    fs::write(
+        temp.path().join("legacy.json"),
+        serde_json::to_vec(&legacy).unwrap(),
+    )
+    .unwrap();
+    let ledger = ReceiptLedger::on_disk(temp.path());
+    // Admission builds the derived indexes from every receipt in the directory.
+    let current = admit(&ledger, "current", "current");
+    let older = ledger.for_run("older").unwrap();
+    assert_eq!(older.len(), 1, "the older run keeps its settled receipt");
+    let receipt = &older[0];
+    assert_eq!(receipt.stage, ReceiptStage::Settled);
+    assert!(receipt.passed() && receipt.verified() && receipt.is_applied());
+    assert_eq!(
+        receipt.outcome.as_ref().map(|outcome| outcome.exit_code),
+        Some(Some(0))
+    );
+    assert_eq!(
+        receipt.recorded_at.as_deref(),
+        Some("2026-10-14T00:47:30.595621+00:00")
+    );
+    assert_eq!(ledger.get("legacy").unwrap().as_ref(), Some(receipt));
+    let report = ledger.compact("current", || Ok(BTreeSet::new())).unwrap();
+    assert_eq!(
+        report.removed, 1,
+        "settled history of another run compacts away"
+    );
+    assert_eq!(ledger.for_run("current").unwrap(), vec![current]);
+}

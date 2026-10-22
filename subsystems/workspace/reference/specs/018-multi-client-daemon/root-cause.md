@@ -5,7 +5,7 @@ Session date: 2026-09-09. Recorded natively as think step 1 (pinned). Companion 
 
 ## Question
 
-A Codex CLI 0.153.4 parent agent in `/Users/alrik/Code/mtg-edh-mcp` had all nine Workbench
+A Codex CLI 0.153.4 parent agent in a separate project checkout had all nine Workbench
 tools; its subagent briefly saw them, then every call answered "MCP tool `workbench-mcp/read`
 is not available to the model", then the names disappeared from its inventory while Magistr
 and SerpAPI names stayed. Hypothesis to verify: the process-lifetime project lock conflicts

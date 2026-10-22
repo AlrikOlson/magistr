@@ -128,6 +128,12 @@
 			"sha256": "65f5e5302d58835eeaa489703c9aa294d8e5587e79d2148d05748517d0c855c8",
 			"mode": "100644",
 			"reason": "Withdraw inherited backward-compatibility, additive-only and deprecation obligations under Magistr's explicit no-backward-compatibility policy before official public release; reference implementation unchanged."
+		},
+		{
+			"path": "specs/018-multi-client-daemon/root-cause.md",
+			"sha256": "d61116d78fe6c014ab081300b45217db6b1cbcdb5045e789f15d39d2abbc59b8",
+			"mode": "100644",
+			"reason": "Replace the maintainer's home-directory path in the narrative with a neutral description; the root-cause record and its evidence are otherwise unchanged."
 		}
 	]
 }
