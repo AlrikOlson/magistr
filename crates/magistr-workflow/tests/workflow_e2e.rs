@@ -459,26 +459,28 @@ async fn resources_list_and_read_end_to_end() {
 /// WHAT THIS PROVES, precisely — the wording matters because a run against
 /// deliberately broken code caught the first version of this test claiming
 /// more than it showed.
-/// rmcp's `negotiate_protocol_version` echoes any version found in the GLOBAL
-/// `ProtocolVersion::KNOWN_VERSIONS` constant; it does **not** consult this
-/// server's `supported_protocol_versions()`. So the `protocol_version`
-/// assertion below is evidence that the SDK will carry a 2026-07-28
-/// connection and that our handlers work over one — it is NOT evidence that
-/// we declare support. That declaration is a separate claim with its own
-/// test (`we_declare_support_for_2026_07_28` in tests/unified_service.rs),
-/// because neither implies the other.
+/// `2026-07-28` has no `initialize` handshake (SEP-2567): a client bootstraps
+/// with `server/discover` and carries the lifecycle in per-request metadata,
+/// which is why the client below connects with the discover lifecycle rather
+/// than `serve`. The version the client settles on is the first of its
+/// preferences that the server's `discover` answer lists, and that answer is
+/// built from `supported_protocol_versions()` — so the assertion below is
+/// evidence that the SDK carries a 2026-07-28 connection and that our
+/// handlers work over one. The declaration itself has its own test
+/// (`we_declare_support_for_2026_07_28` in tests/unified_service.rs).
 ///
-/// The round trip is the load-bearing part: negotiate at `2026-07-28`, list
+/// The round trip is the load-bearing part: settle on `2026-07-28`, list
 /// tools, then complete a real `tools/call`.
 #[tokio::test]
 async fn a_2026_07_28_client_negotiates_and_calls_a_tool() {
-    use rmcp::model::{ClientCapabilities, ClientInfo, Implementation, ProtocolVersion};
+    use rmcp::model::{ClientCapabilities, ClientConfig, Implementation, ProtocolVersion};
+    use rmcp::{ClientLifecycleMode, ClientServiceExt};
 
     #[derive(Clone)]
     struct Client2026;
     impl ClientHandler for Client2026 {
-        fn get_info(&self) -> ClientInfo {
-            ClientInfo::new(
+        fn get_info(&self) -> ClientConfig {
+            ClientConfig::new(
                 ClientCapabilities::default(),
                 Implementation::new("magistr-spec-test", "0.0.0"),
             )
@@ -493,7 +495,12 @@ async fn a_2026_07_28_client_negotiates_and_calls_a_tool() {
         let _ = running.waiting().await;
     });
     let client = Client2026
-        .serve(client_tx)
+        .serve_with_lifecycle(
+            client_tx,
+            ClientLifecycleMode::Discover {
+                preferred_versions: vec![ProtocolVersion::V_2026_07_28],
+            },
+        )
         .await
         .expect("a 2026-07-28 client must be able to connect");
 

@@ -29,7 +29,7 @@ impl ScriptInterpreter {
     #[must_use]
     pub fn from_bytes(bytes: Vec<u8>) -> Self {
         Self {
-            sha256: format!("{:x}", Sha256::digest(&bytes)),
+            sha256: hex::encode(Sha256::digest(&bytes)),
             bytes: Arc::new(bytes),
         }
     }

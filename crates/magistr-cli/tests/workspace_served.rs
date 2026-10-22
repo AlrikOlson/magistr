@@ -21,7 +21,7 @@ use magistr_workspace::{
 use rmcp::{
     ClientHandler, ErrorData, ServiceExt,
     model::{
-        CallToolRequestParams, CallToolResult, ClientCapabilities, ClientInfo, ClientRequest,
+        CallToolRequestParams, CallToolResult, ClientCapabilities, ClientConfig, ClientRequest,
         CustomRequest, ElicitRequestParams, ElicitResult, ElicitationAction, ElicitationCapability,
         FormElicitationCapability, GetTaskParams, RequestMetaObject, ServerResult, TaskStatus,
     },
@@ -74,8 +74,8 @@ impl TestClient {
 }
 
 impl ClientHandler for TestClient {
-    fn get_info(&self) -> ClientInfo {
-        let mut info = ClientInfo::default();
+    fn get_info(&self) -> ClientConfig {
+        let mut info = ClientConfig::default();
         let mut capabilities = ClientCapabilities::builder().enable_tasks().build();
         if self.elicitation.is_some() {
             capabilities.elicitation =
@@ -1073,7 +1073,7 @@ const ECHO_TOOL_WAT: &str = r#"
       (i32.const 16)))
   (core instance $i (instantiate $m))
   (func (export "invoke") (param "payload" string) (result string)
-    (canon lift (core func $i "echo") (memory $i "mem") (realloc (func $i "realloc"))))
+    (canon lift (core func $i "echo") (memory (core memory $i "mem")) (realloc (core func $i "realloc"))))
 )
 "#;
 

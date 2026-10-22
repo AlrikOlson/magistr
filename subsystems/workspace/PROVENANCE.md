@@ -20,7 +20,7 @@ deployment of the standalone Workbench server.
 
 ## Source identity and import boundary
 
-- Source checkout: `/Users/alrik/Serious_Code/workbench-mcp`.
+- Source checkout: a local clone of the standalone `workbench-mcp` repository.
 - Revision: `2a2430bbcd5dcbed00920f92c6f3e6928f387d95`.
 - Git tree: `c264c99904d406721c2af2760cac2ceaec0aa4f9`.
 - Import date: 2026-09-10.

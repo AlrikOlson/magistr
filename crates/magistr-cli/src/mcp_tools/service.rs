@@ -41,7 +41,7 @@ use rmcp::model::{
     CallToolRequestParams, CallToolResponse, CallToolResult, CancelTaskParams, ContentBlock,
     GetTaskParams, GetTaskResult, Implementation, JsonObject, ListResourceTemplatesResult,
     ListResourcesResult, ListToolsResult, PaginatedRequestParams, ReadResourceRequestParams,
-    ReadResourceResponse, ServerInfo, Tool, UpdateTaskParams,
+    ReadResourceResponse, ServerConfig, Tool, UpdateTaskParams,
 };
 use rmcp::service::{RequestContext, RoleServer};
 use rmcp::{ErrorData, ServerHandler};
@@ -569,7 +569,7 @@ const SERVED_PROTOCOL_VERSIONS: &[rmcp::model::ProtocolVersion] = &[
 ];
 
 impl ServerHandler for MagistrService {
-    fn get_info(&self) -> ServerInfo {
+    fn get_info(&self) -> ServerConfig {
         let mut info = self.unified.get_info();
         info.server_info = Implementation::new("magistr", env!("CARGO_PKG_VERSION"));
         if let Some(tools) = info.capabilities.tools.as_mut() {

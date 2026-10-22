@@ -96,20 +96,20 @@ fn parse(content: &str) -> Result<TestResults, String> {
             Event::Start(ref e) | Event::Empty(ref e) => {
                 let is_empty = matches!(event, Event::Empty(_));
                 match e.name().as_ref() {
-                    b"testsuites" => {
+                    "testsuites" => {
                         saw_suite = true;
                         if suites_secs.is_none() {
                             suites_secs = secs_attr(e);
                         }
                     }
-                    b"testsuite" => {
+                    "testsuite" => {
                         saw_suite = true;
                         if let Some(s) = secs_attr(e) {
                             suite_secs += s;
                             saw_suite_time = true;
                         }
                     }
-                    b"testcase" => {
+                    "testcase" => {
                         if let Some(s) = secs_attr(e) {
                             case_secs += s;
                             saw_case_time = true;
@@ -125,7 +125,7 @@ fn parse(content: &str) -> Result<TestResults, String> {
                             current = Some(state);
                         }
                     }
-                    b"failure" | b"error" => {
+                    "failure" | "error" => {
                         if let Some(case) = current.as_mut() {
                             case.status = CaseStatus::Failed;
                             if case.message.is_none() {
@@ -134,7 +134,7 @@ fn parse(content: &str) -> Result<TestResults, String> {
                             in_failure_body = !is_empty && case.message.is_none();
                         }
                     }
-                    b"skipped" => {
+                    "skipped" => {
                         if let Some(case) = current.as_mut()
                             && case.status == CaseStatus::Passed
                         {
@@ -150,18 +150,19 @@ fn parse(content: &str) -> Result<TestResults, String> {
             Event::Text(ref t) if in_failure_body => {
                 if let Some(case) = current.as_mut()
                     && case.message.is_none()
-                    && let Ok(text) = t.xml_content(XmlVersion::default())
-                    && !text.trim().is_empty()
                 {
-                    case.message = Some(text.into_owned());
-                    in_failure_body = false;
+                    let text = t.xml_content(XmlVersion::default());
+                    if !text.trim().is_empty() {
+                        case.message = Some(text.into_owned());
+                        in_failure_body = false;
+                    }
                 }
             }
             Event::CData(ref c) if in_failure_body => {
                 if let Some(case) = current.as_mut()
                     && case.message.is_none()
                 {
-                    let text = String::from_utf8_lossy(c).into_owned();
+                    let text = c.xml_content(XmlVersion::default()).into_owned();
                     if !text.trim().is_empty() {
                         case.message = Some(text);
                         in_failure_body = false;
@@ -169,13 +170,13 @@ fn parse(content: &str) -> Result<TestResults, String> {
                 }
             }
             Event::End(ref e) => match e.name().as_ref() {
-                b"testcase" => {
+                "testcase" => {
                     if let Some(case) = current.take() {
                         tally(&mut results, case);
                     }
                     in_failure_body = false;
                 }
-                b"failure" | b"error" => in_failure_body = false,
+                "failure" | "error" => in_failure_body = false,
                 _ => {}
             },
             _ => {}

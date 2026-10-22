@@ -18,17 +18,32 @@ Cargo registry packages are not published yet.
 
 ## Before you install
 
-You need Git, Rust **1.95 or later**, and the macOS command-line build tools. Check Git and Rust in a terminal:
+You need Git, Rust **1.95 or later**, CMake, and the macOS command-line build
+tools. Check Git, Rust, and CMake in a terminal:
 
 ```sh
 git --version
 rustc --version
 cargo --version
+cmake --version
 ```
 
 If the macOS build tools are missing, run `xcode-select --install` and finish
-the system installer. Install and sign in to your coding agent separately;
-Magistr does not provide an agent subscription.
+the system installer.
+
+If `cmake` is not found, install it with [Homebrew](https://brew.sh):
+
+```sh
+brew install cmake
+```
+
+The Cargo build needs CMake for one dependency. Magistr reads language packs
+whose grammars are WebAssembly modules, and the WebAssembly runtime that loads
+them installs its C headers through CMake while it compiles. CMake is used only
+during the build; the installed program does not need it.
+
+Install and sign in to your coding agent separately; Magistr does not provide
+an agent subscription.
 
 ## Build and install
 
@@ -60,6 +75,7 @@ Installation alone does not connect any project or start implementation.
 | Git reports that the repository is unavailable | Check your network connection and the repository URL in the clone command. |
 | Rust reports an unsupported version | Install Rust 1.95 or later, then retry the locked build. |
 | A compiler or linker is missing | Finish installing the macOS command-line build tools. |
+| `failed to run custom build command for wasmtime-c-api-impl` and `failed to spawn cmake` | Install CMake with `brew install cmake`, open a new terminal, and run the install command again. |
 | The shell cannot find `magistr` | Add Cargo's binary directory to your shell's `PATH`, reopen the terminal, and run `magistr --version`. |
 | An older executable still runs | Use `command -v magistr` to check which installation the shell selects. |
 

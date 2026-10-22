@@ -70,8 +70,8 @@ impl Persistence {
                 if step.record_id.is_none() {
                     let identity = format!("{}\0{session}\0{}", self.project_id, step.step_number);
                     history["steps"][index]["record_id"] = json!(format!(
-                        "upgraded:{:x}",
-                        Sha256::digest(identity.as_bytes())
+                        "upgraded:{}",
+                        hex::encode(Sha256::digest(identity.as_bytes()))
                     ));
                 }
             }

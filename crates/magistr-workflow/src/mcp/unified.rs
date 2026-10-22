@@ -25,7 +25,7 @@ use rmcp::{
         Implementation, ListResourceTemplatesResult, ListResourcesResult, ListToolsResult,
         PaginatedRequestParams, ReadResourceRequestParams, ReadResourceResponse,
         ReadResourceResult, Resource, ResourceContents, ResourceTemplate, ServerCapabilities,
-        ServerInfo, UpdateTaskParams,
+        ServerConfig, UpdateTaskParams,
     },
     service::RequestContext,
     task_manager::TaskManager,
@@ -739,8 +739,8 @@ impl UnifiedService {
 }
 
 impl ServerHandler for UnifiedService {
-    fn get_info(&self) -> ServerInfo {
-        ServerInfo::new(
+    fn get_info(&self) -> ServerConfig {
+        ServerConfig::new(
             ServerCapabilities::builder()
                 .enable_tools()
                 // Read-only resources only — no subscriptions until the

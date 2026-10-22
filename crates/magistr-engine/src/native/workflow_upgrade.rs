@@ -126,7 +126,7 @@ impl WorkflowUpgrade {
             }
             request
                 .files
-                .push((relative.clone(), format!("{:x}", Sha256::digest(bytes))));
+                .push((relative.clone(), hex::encode(Sha256::digest(bytes))));
         }
         // A crash before this atomic receipt leaves a pending request. Retrying
         // accepts only byte-identical prior copies and never imports twice.

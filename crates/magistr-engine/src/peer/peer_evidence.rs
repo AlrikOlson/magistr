@@ -32,5 +32,5 @@ fn commitment(kind: &str, text: &str) -> String {
     hash.update(kind.as_bytes());
     hash.update(b"\0");
     hash.update(text.as_bytes());
-    format!("sha256:{:x}", hash.finalize())
+    format!("sha256:{}", hex::encode(hash.finalize()))
 }

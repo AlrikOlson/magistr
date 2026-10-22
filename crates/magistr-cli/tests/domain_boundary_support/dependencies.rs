@@ -250,7 +250,18 @@ fn check_development_features(name: &str, features: &Value, errors: &mut Vec<Str
 
 fn allowed_development_children(name: &str) -> &'static [&'static str] {
     match name {
-        "serde_json" => &["indexmap", "itoa", "memchr", "serde", "serde_core", "zmij"],
+        // serde_json 1.0.154 hashes its preserve_order maps with foldhash
+        // directly (optional, default features off); the feature check below
+        // keeps that leaf without std, so it stays the reviewed clock-free hash.
+        "serde_json" => &[
+            "foldhash",
+            "indexmap",
+            "itoa",
+            "memchr",
+            "serde",
+            "serde_core",
+            "zmij",
+        ],
         "indexmap" => &["equivalent", "hashbrown", "serde", "serde_core"],
         // Wasmtime 48 requires indexmap >=2.14, which shares hashbrown 0.17
         // features with the workspace. These reviewed edges provide allocation,

@@ -76,7 +76,7 @@ impl SourceSnapshot {
         frame(&mut digest, self.identity.digest().as_bytes());
         frame(&mut digest, self.policy_digest.as_bytes());
         frame(&mut digest, self.manifest.digest().as_bytes());
-        format!("{:x}", digest.finalize())
+        hex::encode(digest.finalize())
     }
 
     /// Re-observe `root` under this snapshot's policy and report what

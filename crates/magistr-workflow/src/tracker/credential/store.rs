@@ -89,7 +89,7 @@
 use std::path::{Path, PathBuf};
 
 use base64::Engine as _;
-use chacha20poly1305::aead::{Aead, AeadCore, KeyInit, OsRng};
+use chacha20poly1305::aead::{Aead, Generate, KeyInit};
 use chacha20poly1305::{ChaCha20Poly1305, Key, Nonce};
 use serde::{Deserialize, Serialize};
 
@@ -250,12 +250,12 @@ impl FileCredentialStore {
     fn key(&self) -> Result<Key, CredentialError> {
         let path = self.key_path();
         if let Ok(existing) = std::fs::read(&path)
-            && existing.len() == 32
+            && let Ok(key) = Key::try_from(&existing[..])
         {
-            return Ok(*Key::from_slice(&existing));
+            return Ok(key);
         }
         std::fs::create_dir_all(&self.dir)?;
-        let key = ChaCha20Poly1305::generate_key(&mut OsRng);
+        let key = Key::generate();
         write_private(&path, &key)?;
         Ok(key)
     }
@@ -305,7 +305,15 @@ impl CredentialStore for FileCredentialStore {
 
         let plaintext = self
             .cipher()?
-            .decrypt(Nonce::from_slice(&nonce_bytes), ciphertext.as_ref())
+            .decrypt(
+                &Nonce::try_from(&nonce_bytes[..]).map_err(|_| {
+                    CredentialError::Undecryptable(
+                        provider.into(),
+                        "the stored nonce has the wrong length".into(),
+                    )
+                })?,
+                ciphertext.as_ref(),
+            )
             .map_err(|_| {
                 CredentialError::Undecryptable(
                     provider.into(),
@@ -321,7 +329,7 @@ impl CredentialStore for FileCredentialStore {
     fn save(&self, credential: &StoredCredential) -> Result<(), CredentialError> {
         let plaintext =
             serde_json::to_vec(credential).map_err(|e| CredentialError::Invalid(e.to_string()))?;
-        let nonce = ChaCha20Poly1305::generate_nonce(&mut OsRng);
+        let nonce = Nonce::generate();
         let ciphertext = self
             .cipher()?
             .encrypt(&nonce, plaintext.as_ref())

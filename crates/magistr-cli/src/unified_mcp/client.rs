@@ -8,7 +8,7 @@ use rmcp::{
     ClientHandler, ErrorData, Peer,
     model::{
         CallToolRequest, CallToolRequestParams, CallToolResult, CancelledNotificationParam,
-        ClientCapabilities, ClientInfo, ClientRequest, ElicitRequestParams, ElicitResult,
+        ClientCapabilities, ClientConfig, ClientRequest, ElicitRequestParams, ElicitResult,
         LoggingMessageNotificationParam, ProgressNotificationParam, ProtocolVersion,
         RequestMetaObject, ResourceUpdatedNotificationParam, ServerResult,
         TaskStatusNotificationParams,
@@ -24,8 +24,8 @@ pub(super) struct ForwardClient {
 }
 
 impl ClientHandler for ForwardClient {
-    fn get_info(&self) -> ClientInfo {
-        let mut info = ClientInfo::default();
+    fn get_info(&self) -> ClientConfig {
+        let mut info = ClientConfig::default();
         info.protocol_version = ProtocolVersion::V_2025_06_18;
         info.capabilities = ClientCapabilities::builder().enable_elicitation().build();
         info

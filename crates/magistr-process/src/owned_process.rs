@@ -409,7 +409,12 @@ async fn read_terminal(
     use tokio::io::Interest;
     use tokio::io::unix::AsyncFd;
 
-    let master = match AsyncFd::with_interest(std::fs::File::from(master), Interest::READABLE) {
+    // SAFETY: the pty master is an owned `File` built from an `OwnedFd` this
+    // function received by value, so the descriptor stays valid and uniquely
+    // owned for as long as the registration lives.
+    let master = match unsafe {
+        AsyncFd::register_with_interest(std::fs::File::from(master), Interest::READABLE)
+    } {
         Ok(master) => master,
         Err(error) => {
             outcome.fault = Some(format!("pty master: {error}"));

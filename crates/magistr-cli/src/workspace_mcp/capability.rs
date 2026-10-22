@@ -7,7 +7,7 @@ use std::borrow::Cow;
 
 use rmcp::model::{
     Implementation, InitializeResult, ListToolsResult, ProtocolVersion, ServerCapabilities,
-    ServerInfo,
+    ServerConfig,
 };
 use serde_json::Value;
 
@@ -39,11 +39,11 @@ impl Capability {
 
     /// Discovery information before negotiation: tools and tasks, the
     /// instructions, this binary's version and the default served era.
-    pub(super) fn server_info() -> ServerInfo {
+    pub(super) fn server_info() -> ServerConfig {
         // SEP-2663: declaring tasks is what makes `tasks/get` reachable at
         // all — rmcp answers the tasks/* methods with -32601 unless the
         // server advertised the extension.
-        let mut info = ServerInfo::new(
+        let mut info = ServerConfig::new(
             ServerCapabilities::builder()
                 .enable_tools()
                 .enable_tasks()

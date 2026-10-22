@@ -9,7 +9,7 @@ use rmcp::{
     model::{
         CallToolRequestParams, CallToolResponse, CustomRequest, CustomResult, ErrorCode,
         GetTaskParams, GetTaskResult, ListToolsResult, PaginatedRequestParams, ProtocolVersion,
-        ServerInfo,
+        ServerConfig,
     },
     service::{RequestContext, RoleServer},
 };
@@ -57,7 +57,7 @@ impl WorkspaceMcpService {
 impl ServerHandler for WorkspaceMcpService {
     /// The shared capability definition; the bridge answers `initialize`
     /// from the same one while no owner is reachable.
-    fn get_info(&self) -> ServerInfo {
+    fn get_info(&self) -> ServerConfig {
         Capability::server_info()
     }
 

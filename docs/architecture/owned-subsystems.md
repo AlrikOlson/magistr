@@ -379,7 +379,8 @@ integrated or full required gates and is not committed or finalized.
 Its objective/task recovery remains native `think:714`. On the owner's request
 to continue on `main`, the exact draft (16 tracked changes and nine untracked
 source files) moved to the verified recovery bundle
-`/Users/alrik/Backups/magistr-main-integration-20260910T190025Z/receipt-draft`.
+`magistr-main-integration-20260910T190025Z/receipt-draft` in the maintainer's
+local backups, outside this repository.
 The bundle includes file bytes, modes, a manifest, and the original tracked
 patch (`aef0050960e1faf9e96442abbfe51380ce86b69ade95907393cbebfc68f4e2cb`).
 Main contains the reviewed native extraction; the paused receipt draft was

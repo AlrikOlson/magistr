@@ -44,7 +44,7 @@ use magistr_workflow::think::engine::core::ReasoningServer;
 use rmcp::{
     ClientHandler, RoleClient, ServiceExt,
     model::{
-        CallToolRequestParams, ClientCapabilities, ClientInfo, ElicitRequestParams, ElicitResult,
+        CallToolRequestParams, ClientCapabilities, ClientConfig, ElicitRequestParams, ElicitResult,
         ElicitationAction,
     },
     service::RequestContext,
@@ -59,8 +59,8 @@ struct EagerClient {
 }
 
 impl ClientHandler for EagerClient {
-    fn get_info(&self) -> ClientInfo {
-        let mut info = ClientInfo::default();
+    fn get_info(&self) -> ClientConfig {
+        let mut info = ClientConfig::default();
         info.capabilities = ClientCapabilities::builder().enable_elicitation().build();
         info
     }

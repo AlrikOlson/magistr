@@ -50,8 +50,9 @@ use magistr_workflow::think::engine::core::ReasoningServer;
 use rmcp::{
     ClientHandler, RoleClient, ServiceExt,
     model::{
-        CallToolRequestParams, CallToolResponse, CancelTaskParams, ClientCapabilities, ClientInfo,
-        GetTaskParams, JsonObject, ProgressNotificationParam, TaskPayload, TaskStatus,
+        CallToolRequestParams, CallToolResponse, CancelTaskParams, ClientCapabilities,
+        ClientConfig, GetTaskParams, JsonObject, ProgressNotificationParam, TaskPayload,
+        TaskStatus,
     },
     service::NotificationContext,
 };
@@ -78,8 +79,8 @@ impl TaskClient {
 }
 
 impl ClientHandler for TaskClient {
-    fn get_info(&self) -> ClientInfo {
-        let mut info = ClientInfo::default();
+    fn get_info(&self) -> ClientConfig {
+        let mut info = ClientConfig::default();
         if self.declares {
             info.capabilities = ClientCapabilities::builder().enable_tasks().build();
         }

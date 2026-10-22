@@ -144,7 +144,7 @@ fn observe(
             kind: EntryKind::Symlink,
             mode: mode(&metadata),
             size: bytes.len() as u64,
-            digest: format!("{:x}", Sha256::digest(bytes)),
+            digest: hex::encode(Sha256::digest(bytes)),
         }));
     }
     if !file_type.is_file() {
@@ -199,7 +199,7 @@ fn observe(
         },
         mode: mode(&before),
         size: before.len(),
-        digest: format!("{:x}", digest.finalize()),
+        digest: hex::encode(digest.finalize()),
     };
     super::digest_cache::put(absolute, &after, &record);
     Ok(Some(record))

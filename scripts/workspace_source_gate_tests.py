@@ -116,12 +116,11 @@ class NativeComposition(unittest.TestCase):
             {"id": "native", "name": "magistr-workspace", "version": "0.1.0", "source": None,
              "manifest_path": str(native / "Cargo.toml"), "license": "Apache-2.0",
              "targets": [{"kind": ["rlib"], "crate_types": ["rlib"]}]},
-            {"id": "w36", "name": "wasmtime", "version": "36.0.0", "source": "registry"},
             {"id": "w48", "name": "wasmtime", "version": "48.0.0", "source": "registry"},
         ]
         self.metadata = {"workspace_root": str(self.root), "workspace_members": ["native"], "packages": packages,
-                         "resolve": {"nodes": [{"id": "native", "deps": [self.edge("w36"), self.edge("w48")]},
-                                               {"id": "w36", "deps": []}, {"id": "w48", "deps": []}]}}
+                         "resolve": {"nodes": [{"id": "native", "deps": [self.edge("w48")]},
+                                               {"id": "w48", "deps": []}]}}
 
     @staticmethod
     def edge(package):
@@ -132,7 +131,7 @@ class NativeComposition(unittest.TestCase):
         with patch.object(source.subprocess, "run", return_value=result):
             return source.cargo_errors(self.root)
 
-    def test_local_rlib_with_both_runtime_majors_is_accepted(self):
+    def test_local_rlib_on_one_runtime_major_is_accepted(self):
         self.assertEqual(self.errors(), [])
 
     def test_transitive_napi_dependency_is_rejected(self):
@@ -145,11 +144,11 @@ class NativeComposition(unittest.TestCase):
         native = self.metadata["packages"][0]
         native["manifest_path"] = str(self.root.parent / "external/Cargo.toml")
         native["targets"][0] = {"kind": ["cdylib"], "crate_types": ["cdylib"]}
-        self.metadata["resolve"]["nodes"][0]["deps"] = [self.edge("w48")]
+        self.metadata["resolve"]["nodes"][0]["deps"] = []
         errors = self.errors()
         self.assertTrue(any("repository-local manifest" in error for error in errors))
         self.assertTrue(any("ordinary Rust library" in error for error in errors))
-        self.assertTrue(any("Wasmtime 36" in error for error in errors))
+        self.assertTrue(any("one Wasmtime major" in error for error in errors))
 
 
 class StructureRatchet(unittest.TestCase):

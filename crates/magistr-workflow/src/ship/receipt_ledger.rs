@@ -380,7 +380,7 @@ fn receipt_path(directory: &Path, id: &str) -> Result<PathBuf, ShipError> {
 fn run_directory(directory: &Path, run: &str) -> PathBuf {
     directory
         .join("runs-v1")
-        .join(format!("{:x}", Sha256::digest(run.as_bytes())))
+        .join(hex::encode(Sha256::digest(run.as_bytes())))
 }
 
 fn lock_directory(directory: &Path) -> Result<File, ShipError> {
@@ -605,7 +605,7 @@ fn reuse_key(
         &source.execution_digest,
     ))
     .ok()?;
-    Some(format!("{:x}", Sha256::digest(key)))
+    Some(hex::encode(Sha256::digest(key)))
 }
 
 fn receipt_reuse_key(receipt: &CheckReceipt) -> Option<String> {

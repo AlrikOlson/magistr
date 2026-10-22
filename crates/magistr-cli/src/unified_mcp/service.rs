@@ -9,7 +9,7 @@ use rmcp::{
         CallToolRequestParams, CallToolResponse, CallToolResult, CancelTaskParams, ContentBlock,
         GetTaskParams, GetTaskResult, Implementation, ListResourceTemplatesResult,
         ListResourcesResult, ListToolsResult, PaginatedRequestParams, ProtocolVersion,
-        ReadResourceRequestParams, ReadResourceResponse, ServerInfo, UpdateTaskParams,
+        ReadResourceRequestParams, ReadResourceResponse, ServerConfig, UpdateTaskParams,
     },
     service::{RequestContext, RoleClient, RoleServer, RunningService},
 };
@@ -29,7 +29,7 @@ pub(super) struct Service {
     pub catalog: Arc<tokio::sync::RwLock<Catalog>>,
     access: super::Access,
     forward: ForwardClient,
-    info: ServerInfo,
+    info: ServerConfig,
 }
 
 struct NativeConnection {
@@ -113,7 +113,7 @@ async fn serve(
         .client
         .peer_info()
         .ok_or_else(|| eyre::eyre!("Workflow connection did not initialize"))?;
-    let mut info = ServerInfo::new(native_info.capabilities.clone());
+    let mut info = ServerConfig::new(native_info.capabilities.clone());
     info.protocol_version = ProtocolVersion::V_2025_06_18;
     info.server_info = Implementation::new("magistr", env!("CARGO_PKG_VERSION"));
     info.instructions = Some("Use context to resume work and search/read/edit/write for source. Use discover to find advanced workflow and workspace operations and their schemas; execute composes them with magistr.call(name,args). Every operation uses native authorization. Failed compositions stop and report completed effects; inspect receipts before continuing.".into());
@@ -196,7 +196,7 @@ pub(super) fn response(value: Value, failed: bool) -> CallToolResult {
 }
 
 impl ServerHandler for Service {
-    fn get_info(&self) -> ServerInfo {
+    fn get_info(&self) -> ServerConfig {
         self.info.clone()
     }
     fn supported_protocol_versions(&self) -> std::borrow::Cow<'static, [ProtocolVersion]> {

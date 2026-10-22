@@ -37,7 +37,7 @@ impl PluginComponent {
         let bytes = std::fs::read(path).ok()?;
         Some(Self {
             abs_path: path.to_path_buf(),
-            sha256: format!("{:x}", Sha256::digest(&bytes)),
+            sha256: hex::encode(Sha256::digest(&bytes)),
             bytes,
         })
     }

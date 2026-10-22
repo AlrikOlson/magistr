@@ -13,7 +13,7 @@
     {
       "host": "codex",
       "surface": "hybrid",
-      "binary": "/Users/alrik/Code/magistr/target/hosted-release-1e99aba7/eval-magistr",
+      "binary": "/Users/maintainer/Code/magistr/target/hosted-release-1e99aba7/eval-magistr",
       "binarySha256": "8c3d78ae31a27482812f88523fb268512a5cdf1471e50a99422f4926ed479317",
       "turns": [
         {
@@ -107,7 +107,7 @@
     {
       "host": "claude",
       "surface": "hybrid",
-      "binary": "/Users/alrik/Code/magistr/target/hosted-release-1e99aba7/eval-magistr",
+      "binary": "/Users/maintainer/Code/magistr/target/hosted-release-1e99aba7/eval-magistr",
       "binarySha256": "8c3d78ae31a27482812f88523fb268512a5cdf1471e50a99422f4926ed479317",
       "turns": [
         {

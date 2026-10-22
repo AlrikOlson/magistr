@@ -35,7 +35,7 @@ impl ExecutionContext {
         hash.update(self.working_copy.as_os_str().as_encoded_bytes());
         hash.update([0]);
         hash.update(self.execution_id.as_bytes());
-        format!("{:x}", hash.finalize())
+        hex::encode(hash.finalize())
     }
 }
 

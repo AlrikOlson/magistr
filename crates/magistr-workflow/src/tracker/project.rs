@@ -425,7 +425,7 @@ fn relations_hash(external_ids: &[String]) -> String {
         h.update((id.len() as u64).to_le_bytes());
         h.update(id.as_bytes());
     }
-    format!("{:x}", h.finalize())
+    hex::encode(h.finalize())
 }
 
 /// Project every opted-in chunk into `tracker`.

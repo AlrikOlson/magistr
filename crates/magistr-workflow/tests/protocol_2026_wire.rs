@@ -12,6 +12,10 @@
 //! Hence a hand-rolled JSON-RPC driver over the same newline-delimited
 //! transport the stdio deployment uses: no SDK types on the client side,
 //! nothing to paper over an absent field.
+//!
+//! `2026-07-28` has no `initialize` handshake (SEP-2567): the driver bootstraps
+//! with `server/discover` and stamps every request with the lifecycle
+//! metadata a client of that revision must carry.
 
 use std::time::Duration;
 
@@ -69,12 +73,19 @@ impl RawClient {
 
     /// Send a request and return its `result` object.
     ///
-    /// Reads until the response with the matching id turns up: the server is
-    /// free to interleave notifications, and skipping them here is what keeps
-    /// this driver from being sensitive to unrelated wire traffic.
-    async fn request(&mut self, method: &str, params: Value) -> Value {
+    /// Every request carries the `_meta` a `2026-07-28` client must send in
+    /// place of a handshake. Reads until the response with the matching id
+    /// turns up: the server is free to interleave notifications, and skipping
+    /// them here is what keeps this driver from being sensitive to unrelated
+    /// wire traffic.
+    async fn request(&mut self, method: &str, mut params: Value) -> Value {
         let id = self.next_id;
         self.next_id += 1;
+        params["_meta"] = json!({
+            "io.modelcontextprotocol/protocolVersion": PROTOCOL,
+            "io.modelcontextprotocol/clientCapabilities": {},
+            "io.modelcontextprotocol/clientInfo": {"name": "strict-wire-probe", "version": "0.0.0"},
+        });
         self.send(json!({"jsonrpc": "2.0", "id": id, "method": method, "params": params}))
             .await;
 
@@ -102,7 +113,7 @@ impl RawClient {
     }
 }
 
-/// Handshake at [`PROTOCOL`] and hand back a driver on an initialized session.
+/// Bootstrap at [`PROTOCOL`] and hand back a driver whose requests carry it.
 async fn connect() -> (RawClient, tokio::task::JoinHandle<()>) {
     let server = build_unified();
     let (server_io, client_io) = tokio::io::duplex(1 << 16);
@@ -118,30 +129,20 @@ async fn connect() -> (RawClient, tokio::task::JoinHandle<()>) {
         next_id: 1,
     };
 
-    let initialized = client
-        .request(
-            "initialize",
-            json!({
-                "protocolVersion": PROTOCOL,
-                "capabilities": {},
-                "clientInfo": {"name": "strict-wire-probe", "version": "0.0.0"},
-            }),
-        )
-        .await;
+    let discovered = client.request("server/discover", json!({})).await;
 
-    // The premise of every assertion below. If this ever fails, the server has
-    // started negotiating down — at which point the fields stop being required
-    // and these tests are asking the wrong question, so fail loudly here
-    // rather than quietly passing for the wrong reason.
-    assert_eq!(
-        initialized["protocolVersion"], PROTOCOL,
-        "server did not agree to {PROTOCOL}; it answered {}",
-        initialized["protocolVersion"]
+    // The premise of every assertion below. A `2026-07-28` request is served
+    // at exactly that revision or refused outright, so the server declaring
+    // the revision in `discover` is what makes the fields required. If this
+    // ever fails these tests are asking the wrong question, so fail loudly
+    // here rather than quietly passing for the wrong reason.
+    assert!(
+        discovered["supportedVersions"]
+            .as_array()
+            .is_some_and(|versions| versions.iter().any(|v| v == PROTOCOL)),
+        "server did not declare {PROTOCOL}; it discovers as {}",
+        discovered["supportedVersions"]
     );
-
-    client
-        .send(json!({"jsonrpc": "2.0", "method": "notifications/initialized"}))
-        .await;
 
     (client, handle)
 }

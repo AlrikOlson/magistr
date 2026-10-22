@@ -10,7 +10,7 @@
       "target": {
         "project_id": "magistr-5a5bc6",
         "execution": {
-          "working_copy": "/Users/alrik/Code/magistr",
+          "working_copy": "/Users/maintainer/Code/magistr",
           "execution_id": "default",
           "owner_generation": 28
         },
@@ -25,7 +25,7 @@
       "required": true,
       "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
       "source": {
-        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_root": "/Users/maintainer/Code/magistr",
         "workspace_generation": 137,
         "scheme": "magistr-source-snapshot/1",
         "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
@@ -66,7 +66,7 @@
       "target": {
         "project_id": "magistr-5a5bc6",
         "execution": {
-          "working_copy": "/Users/alrik/Code/magistr",
+          "working_copy": "/Users/maintainer/Code/magistr",
           "execution_id": "default",
           "owner_generation": 28
         },
@@ -81,7 +81,7 @@
       "required": true,
       "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
       "source": {
-        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_root": "/Users/maintainer/Code/magistr",
         "workspace_generation": 137,
         "scheme": "magistr-source-snapshot/1",
         "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
@@ -122,7 +122,7 @@
       "target": {
         "project_id": "magistr-5a5bc6",
         "execution": {
-          "working_copy": "/Users/alrik/Code/magistr",
+          "working_copy": "/Users/maintainer/Code/magistr",
           "execution_id": "default",
           "owner_generation": 28
         },
@@ -137,7 +137,7 @@
       "required": true,
       "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
       "source": {
-        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_root": "/Users/maintainer/Code/magistr",
         "workspace_generation": 137,
         "scheme": "magistr-source-snapshot/1",
         "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
@@ -178,7 +178,7 @@
       "target": {
         "project_id": "magistr-5a5bc6",
         "execution": {
-          "working_copy": "/Users/alrik/Code/magistr",
+          "working_copy": "/Users/maintainer/Code/magistr",
           "execution_id": "default",
           "owner_generation": 28
         },
@@ -193,7 +193,7 @@
       "required": true,
       "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
       "source": {
-        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_root": "/Users/maintainer/Code/magistr",
         "workspace_generation": 137,
         "scheme": "magistr-source-snapshot/1",
         "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
@@ -234,7 +234,7 @@
       "target": {
         "project_id": "magistr-5a5bc6",
         "execution": {
-          "working_copy": "/Users/alrik/Code/magistr",
+          "working_copy": "/Users/maintainer/Code/magistr",
           "execution_id": "default",
           "owner_generation": 28
         },
@@ -249,7 +249,7 @@
       "required": true,
       "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
       "source": {
-        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_root": "/Users/maintainer/Code/magistr",
         "workspace_generation": 137,
         "scheme": "magistr-source-snapshot/1",
         "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
@@ -302,7 +302,7 @@
       "target": {
         "project_id": "magistr-5a5bc6",
         "execution": {
-          "working_copy": "/Users/alrik/Code/magistr",
+          "working_copy": "/Users/maintainer/Code/magistr",
           "execution_id": "default",
           "owner_generation": 28
         },
@@ -317,7 +317,7 @@
       "required": true,
       "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
       "source": {
-        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_root": "/Users/maintainer/Code/magistr",
         "workspace_generation": 137,
         "scheme": "magistr-source-snapshot/1",
         "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
@@ -358,7 +358,7 @@
       "target": {
         "project_id": "magistr-5a5bc6",
         "execution": {
-          "working_copy": "/Users/alrik/Code/magistr",
+          "working_copy": "/Users/maintainer/Code/magistr",
           "execution_id": "default",
           "owner_generation": 28
         },
@@ -373,7 +373,7 @@
       "required": true,
       "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
       "source": {
-        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_root": "/Users/maintainer/Code/magistr",
         "workspace_generation": 137,
         "scheme": "magistr-source-snapshot/1",
         "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
@@ -414,7 +414,7 @@
       "target": {
         "project_id": "magistr-5a5bc6",
         "execution": {
-          "working_copy": "/Users/alrik/Code/magistr",
+          "working_copy": "/Users/maintainer/Code/magistr",
           "execution_id": "default",
           "owner_generation": 28
         },
@@ -429,7 +429,7 @@
       "required": true,
       "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
       "source": {
-        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_root": "/Users/maintainer/Code/magistr",
         "workspace_generation": 137,
         "scheme": "magistr-source-snapshot/1",
         "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
@@ -470,7 +470,7 @@
       "target": {
         "project_id": "magistr-5a5bc6",
         "execution": {
-          "working_copy": "/Users/alrik/Code/magistr",
+          "working_copy": "/Users/maintainer/Code/magistr",
           "execution_id": "default",
           "owner_generation": 28
         },
@@ -485,7 +485,7 @@
       "required": true,
       "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
       "source": {
-        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_root": "/Users/maintainer/Code/magistr",
         "workspace_generation": 137,
         "scheme": "magistr-source-snapshot/1",
         "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
@@ -526,7 +526,7 @@
       "target": {
         "project_id": "magistr-5a5bc6",
         "execution": {
-          "working_copy": "/Users/alrik/Code/magistr",
+          "working_copy": "/Users/maintainer/Code/magistr",
           "execution_id": "default",
           "owner_generation": 28
         },
@@ -541,7 +541,7 @@
       "required": true,
       "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
       "source": {
-        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_root": "/Users/maintainer/Code/magistr",
         "workspace_generation": 137,
         "scheme": "magistr-source-snapshot/1",
         "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
@@ -582,7 +582,7 @@
       "target": {
         "project_id": "magistr-5a5bc6",
         "execution": {
-          "working_copy": "/Users/alrik/Code/magistr",
+          "working_copy": "/Users/maintainer/Code/magistr",
           "execution_id": "default",
           "owner_generation": 28
         },
@@ -597,7 +597,7 @@
       "required": true,
       "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
       "source": {
-        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_root": "/Users/maintainer/Code/magistr",
         "workspace_generation": 137,
         "scheme": "magistr-source-snapshot/1",
         "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
@@ -638,7 +638,7 @@
       "target": {
         "project_id": "magistr-5a5bc6",
         "execution": {
-          "working_copy": "/Users/alrik/Code/magistr",
+          "working_copy": "/Users/maintainer/Code/magistr",
           "execution_id": "default",
           "owner_generation": 28
         },
@@ -653,7 +653,7 @@
       "required": true,
       "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
       "source": {
-        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_root": "/Users/maintainer/Code/magistr",
         "workspace_generation": 137,
         "scheme": "magistr-source-snapshot/1",
         "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
@@ -694,7 +694,7 @@
       "target": {
         "project_id": "magistr-5a5bc6",
         "execution": {
-          "working_copy": "/Users/alrik/Code/magistr",
+          "working_copy": "/Users/maintainer/Code/magistr",
           "execution_id": "default",
           "owner_generation": 28
         },
@@ -709,7 +709,7 @@
       "required": true,
       "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
       "source": {
-        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_root": "/Users/maintainer/Code/magistr",
         "workspace_generation": 137,
         "scheme": "magistr-source-snapshot/1",
         "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
@@ -750,7 +750,7 @@
       "target": {
         "project_id": "magistr-5a5bc6",
         "execution": {
-          "working_copy": "/Users/alrik/Code/magistr",
+          "working_copy": "/Users/maintainer/Code/magistr",
           "execution_id": "default",
           "owner_generation": 28
         },
@@ -765,7 +765,7 @@
       "required": true,
       "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
       "source": {
-        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_root": "/Users/maintainer/Code/magistr",
         "workspace_generation": 137,
         "scheme": "magistr-source-snapshot/1",
         "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
@@ -806,7 +806,7 @@
       "target": {
         "project_id": "magistr-5a5bc6",
         "execution": {
-          "working_copy": "/Users/alrik/Code/magistr",
+          "working_copy": "/Users/maintainer/Code/magistr",
           "execution_id": "default",
           "owner_generation": 28
         },
@@ -821,7 +821,7 @@
       "required": true,
       "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
       "source": {
-        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_root": "/Users/maintainer/Code/magistr",
         "workspace_generation": 137,
         "scheme": "magistr-source-snapshot/1",
         "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
@@ -862,7 +862,7 @@
       "target": {
         "project_id": "magistr-5a5bc6",
         "execution": {
-          "working_copy": "/Users/alrik/Code/magistr",
+          "working_copy": "/Users/maintainer/Code/magistr",
           "execution_id": "default",
           "owner_generation": 28
         },
@@ -877,7 +877,7 @@
       "required": true,
       "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
       "source": {
-        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_root": "/Users/maintainer/Code/magistr",
         "workspace_generation": 137,
         "scheme": "magistr-source-snapshot/1",
         "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
@@ -918,7 +918,7 @@
       "target": {
         "project_id": "magistr-5a5bc6",
         "execution": {
-          "working_copy": "/Users/alrik/Code/magistr",
+          "working_copy": "/Users/maintainer/Code/magistr",
           "execution_id": "default",
           "owner_generation": 28
         },
@@ -929,11 +929,11 @@
       "attempt": 1,
       "gate": "Saved codex baseline evaluation",
       "check_type": "test",
-      "command": "python3 -B scripts/agent-mcp-eval.py --candidate target/release/magistr --baseline /Users/alrik/.cargo/bin/magistr --out /tmp/magistr-agent-eval-20261019-batched --host codex --surface baseline --verify-existing",
+      "command": "python3 -B scripts/agent-mcp-eval.py --candidate target/release/magistr --baseline /Users/maintainer/.cargo/bin/magistr --out /tmp/magistr-agent-eval-20261019-batched --host codex --surface baseline --verify-existing",
       "required": true,
       "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
       "source": {
-        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_root": "/Users/maintainer/Code/magistr",
         "workspace_generation": 137,
         "scheme": "magistr-source-snapshot/1",
         "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
@@ -950,9 +950,9 @@
       "duration_ms": 1108,
       "outcome": {
         "passed": true,
-        "details": "$ python3 -B scripts/agent-mcp-eval.py --candidate target/release/magistr --baseline /Users/alrik/.cargo/bin/magistr --out /tmp/magistr-agent-eval-20261019-batched --host codex --surface baseline --verify-existing\n[exit 0]\n{\"objectiveCompleted\": true, \"tasksCompleted\": true, \"recordedCheckPassed\": true, \"feedbackSaved\": true, \"futureRoadmapSaved\": true, \"decisionRecordsSaved\": true, \"testUnchanged\": true, \"independentSourceCheckPassed\": true, \"sourceSha256\": \"291406d7db5697791d44efbc0383c79888b821e3c92e074cec166a829c999c35\", \"testSha256\": \"3f623240777eb4a5307a680e51c74b10758d894d9aef0b5147baa218f2a06681\", \"verificationCommands\": [\"python3 -m unittest -q\", \"python3 -m unittest -q\"], \"taskCount\": 1, \"passed\": true}",
+        "details": "$ python3 -B scripts/agent-mcp-eval.py --candidate target/release/magistr --baseline /Users/maintainer/.cargo/bin/magistr --out /tmp/magistr-agent-eval-20261019-batched --host codex --surface baseline --verify-existing\n[exit 0]\n{\"objectiveCompleted\": true, \"tasksCompleted\": true, \"recordedCheckPassed\": true, \"feedbackSaved\": true, \"futureRoadmapSaved\": true, \"decisionRecordsSaved\": true, \"testUnchanged\": true, \"independentSourceCheckPassed\": true, \"sourceSha256\": \"291406d7db5697791d44efbc0383c79888b821e3c92e074cec166a829c999c35\", \"testSha256\": \"3f623240777eb4a5307a680e51c74b10758d894d9aef0b5147baa218f2a06681\", \"verificationCommands\": [\"python3 -m unittest -q\", \"python3 -m unittest -q\"], \"taskCount\": 1, \"passed\": true}",
         "verified": true,
-        "command": "python3 -B scripts/agent-mcp-eval.py --candidate target/release/magistr --baseline /Users/alrik/.cargo/bin/magistr --out /tmp/magistr-agent-eval-20261019-batched --host codex --surface baseline --verify-existing",
+        "command": "python3 -B scripts/agent-mcp-eval.py --candidate target/release/magistr --baseline /Users/maintainer/.cargo/bin/magistr --out /tmp/magistr-agent-eval-20261019-batched --host codex --surface baseline --verify-existing",
         "exit_code": 0,
         "execution": {
           "kind": "exited",
@@ -974,7 +974,7 @@
       "target": {
         "project_id": "magistr-5a5bc6",
         "execution": {
-          "working_copy": "/Users/alrik/Code/magistr",
+          "working_copy": "/Users/maintainer/Code/magistr",
           "execution_id": "default",
           "owner_generation": 28
         },
@@ -985,11 +985,11 @@
       "attempt": 1,
       "gate": "Saved codex hybrid evaluation",
       "check_type": "test",
-      "command": "python3 -B scripts/agent-mcp-eval.py --candidate target/release/magistr --baseline /Users/alrik/.cargo/bin/magistr --out /tmp/magistr-agent-eval-20261019-batched --host codex --surface hybrid --verify-existing",
+      "command": "python3 -B scripts/agent-mcp-eval.py --candidate target/release/magistr --baseline /Users/maintainer/.cargo/bin/magistr --out /tmp/magistr-agent-eval-20261019-batched --host codex --surface hybrid --verify-existing",
       "required": true,
       "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
       "source": {
-        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_root": "/Users/maintainer/Code/magistr",
         "workspace_generation": 137,
         "scheme": "magistr-source-snapshot/1",
         "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
@@ -1006,9 +1006,9 @@
       "duration_ms": 1108,
       "outcome": {
         "passed": true,
-        "details": "$ python3 -B scripts/agent-mcp-eval.py --candidate target/release/magistr --baseline /Users/alrik/.cargo/bin/magistr --out /tmp/magistr-agent-eval-20261019-batched --host codex --surface hybrid --verify-existing\n[exit 0]\n{\"objectiveCompleted\": true, \"tasksCompleted\": true, \"recordedCheckPassed\": true, \"feedbackSaved\": true, \"futureRoadmapSaved\": true, \"decisionRecordsSaved\": true, \"testUnchanged\": true, \"independentSourceCheckPassed\": true, \"sourceSha256\": \"644c44a76f1f310cecaf5fb2e8c04cdd1d5baedb1c6ebfd2396a851c6d69e760\", \"testSha256\": \"3f623240777eb4a5307a680e51c74b10758d894d9aef0b5147baa218f2a06681\", \"verificationCommands\": [\"python3 -m unittest -q\"], \"taskCount\": 1, \"passed\": true}",
+        "details": "$ python3 -B scripts/agent-mcp-eval.py --candidate target/release/magistr --baseline /Users/maintainer/.cargo/bin/magistr --out /tmp/magistr-agent-eval-20261019-batched --host codex --surface hybrid --verify-existing\n[exit 0]\n{\"objectiveCompleted\": true, \"tasksCompleted\": true, \"recordedCheckPassed\": true, \"feedbackSaved\": true, \"futureRoadmapSaved\": true, \"decisionRecordsSaved\": true, \"testUnchanged\": true, \"independentSourceCheckPassed\": true, \"sourceSha256\": \"644c44a76f1f310cecaf5fb2e8c04cdd1d5baedb1c6ebfd2396a851c6d69e760\", \"testSha256\": \"3f623240777eb4a5307a680e51c74b10758d894d9aef0b5147baa218f2a06681\", \"verificationCommands\": [\"python3 -m unittest -q\"], \"taskCount\": 1, \"passed\": true}",
         "verified": true,
-        "command": "python3 -B scripts/agent-mcp-eval.py --candidate target/release/magistr --baseline /Users/alrik/.cargo/bin/magistr --out /tmp/magistr-agent-eval-20261019-batched --host codex --surface hybrid --verify-existing",
+        "command": "python3 -B scripts/agent-mcp-eval.py --candidate target/release/magistr --baseline /Users/maintainer/.cargo/bin/magistr --out /tmp/magistr-agent-eval-20261019-batched --host codex --surface hybrid --verify-existing",
         "exit_code": 0,
         "execution": {
           "kind": "exited",
@@ -1030,7 +1030,7 @@
       "target": {
         "project_id": "magistr-5a5bc6",
         "execution": {
-          "working_copy": "/Users/alrik/Code/magistr",
+          "working_copy": "/Users/maintainer/Code/magistr",
           "execution_id": "default",
           "owner_generation": 28
         },
@@ -1041,11 +1041,11 @@
       "attempt": 1,
       "gate": "Saved claude baseline evaluation",
       "check_type": "test",
-      "command": "python3 -B scripts/agent-mcp-eval.py --candidate target/release/magistr --baseline /Users/alrik/.cargo/bin/magistr --out /tmp/magistr-agent-eval-20261019-decisions --host claude --surface baseline --verify-existing",
+      "command": "python3 -B scripts/agent-mcp-eval.py --candidate target/release/magistr --baseline /Users/maintainer/.cargo/bin/magistr --out /tmp/magistr-agent-eval-20261019-decisions --host claude --surface baseline --verify-existing",
       "required": true,
       "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
       "source": {
-        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_root": "/Users/maintainer/Code/magistr",
         "workspace_generation": 137,
         "scheme": "magistr-source-snapshot/1",
         "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
@@ -1062,9 +1062,9 @@
       "duration_ms": 1109,
       "outcome": {
         "passed": true,
-        "details": "$ python3 -B scripts/agent-mcp-eval.py --candidate target/release/magistr --baseline /Users/alrik/.cargo/bin/magistr --out /tmp/magistr-agent-eval-20261019-decisions --host claude --surface baseline --verify-existing\n[exit 0]\n{\"objectiveCompleted\": true, \"tasksCompleted\": true, \"recordedCheckPassed\": true, \"feedbackSaved\": true, \"futureRoadmapSaved\": true, \"decisionRecordsSaved\": true, \"testUnchanged\": true, \"independentSourceCheckPassed\": true, \"sourceSha256\": \"26f4eb47832a79bcc3583b308efb98333f3ab4152e2b9b63827b8e0a4688a693\", \"testSha256\": \"3f623240777eb4a5307a680e51c74b10758d894d9aef0b5147baa218f2a06681\", \"verificationCommands\": [\"python3 -m unittest -q\"], \"taskCount\": 2, \"passed\": true}",
+        "details": "$ python3 -B scripts/agent-mcp-eval.py --candidate target/release/magistr --baseline /Users/maintainer/.cargo/bin/magistr --out /tmp/magistr-agent-eval-20261019-decisions --host claude --surface baseline --verify-existing\n[exit 0]\n{\"objectiveCompleted\": true, \"tasksCompleted\": true, \"recordedCheckPassed\": true, \"feedbackSaved\": true, \"futureRoadmapSaved\": true, \"decisionRecordsSaved\": true, \"testUnchanged\": true, \"independentSourceCheckPassed\": true, \"sourceSha256\": \"26f4eb47832a79bcc3583b308efb98333f3ab4152e2b9b63827b8e0a4688a693\", \"testSha256\": \"3f623240777eb4a5307a680e51c74b10758d894d9aef0b5147baa218f2a06681\", \"verificationCommands\": [\"python3 -m unittest -q\"], \"taskCount\": 2, \"passed\": true}",
         "verified": true,
-        "command": "python3 -B scripts/agent-mcp-eval.py --candidate target/release/magistr --baseline /Users/alrik/.cargo/bin/magistr --out /tmp/magistr-agent-eval-20261019-decisions --host claude --surface baseline --verify-existing",
+        "command": "python3 -B scripts/agent-mcp-eval.py --candidate target/release/magistr --baseline /Users/maintainer/.cargo/bin/magistr --out /tmp/magistr-agent-eval-20261019-decisions --host claude --surface baseline --verify-existing",
         "exit_code": 0,
         "execution": {
           "kind": "exited",
@@ -1086,7 +1086,7 @@
       "target": {
         "project_id": "magistr-5a5bc6",
         "execution": {
-          "working_copy": "/Users/alrik/Code/magistr",
+          "working_copy": "/Users/maintainer/Code/magistr",
           "execution_id": "default",
           "owner_generation": 28
         },
@@ -1097,11 +1097,11 @@
       "attempt": 1,
       "gate": "Saved claude hybrid evaluation",
       "check_type": "test",
-      "command": "python3 -B scripts/agent-mcp-eval.py --candidate target/release/magistr --baseline /Users/alrik/.cargo/bin/magistr --out /tmp/magistr-agent-eval-20261019-decisions --host claude --surface hybrid --verify-existing",
+      "command": "python3 -B scripts/agent-mcp-eval.py --candidate target/release/magistr --baseline /Users/maintainer/.cargo/bin/magistr --out /tmp/magistr-agent-eval-20261019-decisions --host claude --surface hybrid --verify-existing",
       "required": true,
       "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
       "source": {
-        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_root": "/Users/maintainer/Code/magistr",
         "workspace_generation": 137,
         "scheme": "magistr-source-snapshot/1",
         "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
@@ -1118,9 +1118,9 @@
       "duration_ms": 1106,
       "outcome": {
         "passed": true,
-        "details": "$ python3 -B scripts/agent-mcp-eval.py --candidate target/release/magistr --baseline /Users/alrik/.cargo/bin/magistr --out /tmp/magistr-agent-eval-20261019-decisions --host claude --surface hybrid --verify-existing\n[exit 0]\n{\"objectiveCompleted\": true, \"tasksCompleted\": true, \"recordedCheckPassed\": true, \"feedbackSaved\": true, \"futureRoadmapSaved\": true, \"decisionRecordsSaved\": true, \"testUnchanged\": true, \"independentSourceCheckPassed\": true, \"sourceSha256\": \"8dd119d94421d4f3fa69e71a1d0e78e067ae9edb6df095a64a1770aca853684d\", \"testSha256\": \"3f623240777eb4a5307a680e51c74b10758d894d9aef0b5147baa218f2a06681\", \"verificationCommands\": [\"python3 -m unittest -q\"], \"taskCount\": 2, \"passed\": true}",
+        "details": "$ python3 -B scripts/agent-mcp-eval.py --candidate target/release/magistr --baseline /Users/maintainer/.cargo/bin/magistr --out /tmp/magistr-agent-eval-20261019-decisions --host claude --surface hybrid --verify-existing\n[exit 0]\n{\"objectiveCompleted\": true, \"tasksCompleted\": true, \"recordedCheckPassed\": true, \"feedbackSaved\": true, \"futureRoadmapSaved\": true, \"decisionRecordsSaved\": true, \"testUnchanged\": true, \"independentSourceCheckPassed\": true, \"sourceSha256\": \"8dd119d94421d4f3fa69e71a1d0e78e067ae9edb6df095a64a1770aca853684d\", \"testSha256\": \"3f623240777eb4a5307a680e51c74b10758d894d9aef0b5147baa218f2a06681\", \"verificationCommands\": [\"python3 -m unittest -q\"], \"taskCount\": 2, \"passed\": true}",
         "verified": true,
-        "command": "python3 -B scripts/agent-mcp-eval.py --candidate target/release/magistr --baseline /Users/alrik/.cargo/bin/magistr --out /tmp/magistr-agent-eval-20261019-decisions --host claude --surface hybrid --verify-existing",
+        "command": "python3 -B scripts/agent-mcp-eval.py --candidate target/release/magistr --baseline /Users/maintainer/.cargo/bin/magistr --out /tmp/magistr-agent-eval-20261019-decisions --host claude --surface hybrid --verify-existing",
         "exit_code": 0,
         "execution": {
           "kind": "exited",
@@ -1142,7 +1142,7 @@
       "target": {
         "project_id": "magistr-5a5bc6",
         "execution": {
-          "working_copy": "/Users/alrik/Code/magistr",
+          "working_copy": "/Users/maintainer/Code/magistr",
           "execution_id": "default",
           "owner_generation": 28
         },
@@ -1157,7 +1157,7 @@
       "required": true,
       "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
       "source": {
-        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_root": "/Users/maintainer/Code/magistr",
         "workspace_generation": 137,
         "scheme": "magistr-source-snapshot/1",
         "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
@@ -1198,7 +1198,7 @@
       "target": {
         "project_id": "magistr-5a5bc6",
         "execution": {
-          "working_copy": "/Users/alrik/Code/magistr",
+          "working_copy": "/Users/maintainer/Code/magistr",
           "execution_id": "default",
           "owner_generation": 28
         },
@@ -1213,7 +1213,7 @@
       "required": true,
       "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
       "source": {
-        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_root": "/Users/maintainer/Code/magistr",
         "workspace_generation": 137,
         "scheme": "magistr-source-snapshot/1",
         "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
@@ -1254,7 +1254,7 @@
       "target": {
         "project_id": "magistr-5a5bc6",
         "execution": {
-          "working_copy": "/Users/alrik/Code/magistr",
+          "working_copy": "/Users/maintainer/Code/magistr",
           "execution_id": "default",
           "owner_generation": 28
         },
@@ -1269,7 +1269,7 @@
       "required": true,
       "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
       "source": {
-        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_root": "/Users/maintainer/Code/magistr",
         "workspace_generation": 137,
         "scheme": "magistr-source-snapshot/1",
         "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
@@ -1310,7 +1310,7 @@
       "target": {
         "project_id": "magistr-5a5bc6",
         "execution": {
-          "working_copy": "/Users/alrik/Code/magistr",
+          "working_copy": "/Users/maintainer/Code/magistr",
           "execution_id": "default",
           "owner_generation": 28
         },
@@ -1325,7 +1325,7 @@
       "required": true,
       "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
       "source": {
-        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_root": "/Users/maintainer/Code/magistr",
         "workspace_generation": 137,
         "scheme": "magistr-source-snapshot/1",
         "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
@@ -1385,7 +1385,7 @@
       "target": {
         "project_id": "magistr-5a5bc6",
         "execution": {
-          "working_copy": "/Users/alrik/Code/magistr",
+          "working_copy": "/Users/maintainer/Code/magistr",
           "execution_id": "default",
           "owner_generation": 28
         },
@@ -1400,7 +1400,7 @@
       "required": true,
       "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
       "source": {
-        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_root": "/Users/maintainer/Code/magistr",
         "workspace_generation": 137,
         "scheme": "magistr-source-snapshot/1",
         "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
@@ -1417,7 +1417,7 @@
       "duration_ms": 5737,
       "outcome": {
         "passed": false,
-        "details": "$ python3 -B scripts/distribution.py verify-npm --out target/cli-distribution\n[exit 1]\nnpm notice\nnpm notice New major version of npm available! 11.19.0 -> 12.2.0\nnpm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0\nnpm notice To update run: npm install -g npm@12.2.0\nnpm notice\n\u001b[36m→\u001b[0m Detecting stack in /private/var/folders/ml/51b226t50rxf09jwljnq7tn00000gn/T/magistr clean npm xb3vcy97/npx project...\n\u001b[1mProposed project setup\u001b[0m\n\n  \u001b[32m+ .magistr/.gitignore\u001b[0m  (create)\n  \u001b[32m+ .magistr/project.json\u001b[0m  (create)\n  \u001b[32m+ .magistr/conventions.md\u001b[0m  (create)\n  \u001b[32m+ .magistr/instructions.md\u001b[0m  (create)\n  \u001b[32m+ .mcp.json\u001b[0m  (create)\n  \u001b[32m+ .gitignore\u001b[0m  (create)\n  \u001b[32m+ .think-and-ship/project.json\u001b[0m  (create)\n\u001b[1mSummary:\u001b[0m 7 create, 0 overwrite, 0 remove, 0 unchanged, 0 preserved, 0 refused\n\u001b[32m✓\u001b[0m .magistr/.gitignore\n\u001b[32m✓\u001b[0m .magistr/project.json\n\u001b[32m✓\u001b[0m .magistr/conventions.md\n\u001b[32m✓\u001b[0m .magistr/instructions.md\n\u001b[32m✓\u001b[0m .mcp.json\n\u001b[32m✓\u001b[0m .gitignore\n\u001b[32m✓\u001b[0m .think-and-ship/project.json\n\n\u001b[1mmagistr scaffolded successfully\u001b[0m\n  Project: npx project\n  Stack:   unknown + none\n  Files:   7 generated\nMCP connection and read-only context check passed.\nStarter prompt: Read the project context and source, then propose the first plan. Wait for my instruction before implementing it.\n\u001b[36m→\u001b[0m Detecting stack in /private/var/folders/ml/51b226t50rxf09jwljnq7tn00000gn/T/magistr clean npm xb3vcy97/global project...\n\u001b[1mProposed project setup\u001b[0m\n\n  \u001b[32m+ .magistr/.gitignore\u001b[0m  (create)\n  \u001b[32m+ .magistr/project.json\u001b[0m  (create)\n  \u001b[32m+ .magistr/conventions.md\u001b[0m  (create)\n  \u001b[32m+ .magistr/instructions.md\u001b[0m  (create)\n  \u001b[32m+ .mcp.json\u001b[0m  (create)\n  \u001b[32m+ .gitignore\u001b[0m  (create)\n  \u001b[32m+ .think-and-ship/project.json\u001b[0m  (create)\n\u001b[1mSummary:\u001b[0m 7 create, 0 overwrite, 0 remove, 0 unchanged, 0 preserved, 0 refused\n\u001b[32m✓\u001b[0m .magistr/.gitignore\n\u001b[32m✓\u001b[0m .magistr/project.json\n\u001b[32m✓\u001b[0m .magistr/conventions.md\n\u001b[32m✓\u001b[0m .magistr/instructions.md\n\u001b[32m✓\u001b[0m .mcp.json\n\u001b[32m✓\u001b[0m .gitignore\n\u001b[32m✓\u001b[0m .think-and-ship/project.json\n\n\u001b[1mmagistr scaffolded successfully\u001b[0m\n  Project: global project\n  Stack:   unknown + none\n  Files:   7 generated\nMCP connection and read-only context check passed.\nStarter prompt: Read the project context and source, then propose the first plan. Wait for my instruction before implementing it.\nTraceback (most recent call last):\n  File \"/Users/alrik/Code/magistr/scripts/distribution.py\", line 271, in <module>\n    if __name__==\"__main__\":main()\n                            ~~~~^^\n  File \"/Users/alrik/Code/magistr/scripts/distribution.py\", line 269, in main\n    elif args.action==\"verify-npm\":verify_npm(args)\n                                   ~~~~~~~~~~^^^^^^\n  File \"/Users/alrik/Code/magistr/scripts/distribution.py\", line 252, in verify_npm\n    assert not any(n.endswith(\".rs\") or \"/node_modules/\" in n for n in names)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError",
+        "details": "$ python3 -B scripts/distribution.py verify-npm --out target/cli-distribution\n[exit 1]\nnpm notice\nnpm notice New major version of npm available! 11.19.0 -> 12.2.0\nnpm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0\nnpm notice To update run: npm install -g npm@12.2.0\nnpm notice\n\u001b[36m→\u001b[0m Detecting stack in /private/var/folders/ml/51b226t50rxf09jwljnq7tn00000gn/T/magistr clean npm xb3vcy97/npx project...\n\u001b[1mProposed project setup\u001b[0m\n\n  \u001b[32m+ .magistr/.gitignore\u001b[0m  (create)\n  \u001b[32m+ .magistr/project.json\u001b[0m  (create)\n  \u001b[32m+ .magistr/conventions.md\u001b[0m  (create)\n  \u001b[32m+ .magistr/instructions.md\u001b[0m  (create)\n  \u001b[32m+ .mcp.json\u001b[0m  (create)\n  \u001b[32m+ .gitignore\u001b[0m  (create)\n  \u001b[32m+ .think-and-ship/project.json\u001b[0m  (create)\n\u001b[1mSummary:\u001b[0m 7 create, 0 overwrite, 0 remove, 0 unchanged, 0 preserved, 0 refused\n\u001b[32m✓\u001b[0m .magistr/.gitignore\n\u001b[32m✓\u001b[0m .magistr/project.json\n\u001b[32m✓\u001b[0m .magistr/conventions.md\n\u001b[32m✓\u001b[0m .magistr/instructions.md\n\u001b[32m✓\u001b[0m .mcp.json\n\u001b[32m✓\u001b[0m .gitignore\n\u001b[32m✓\u001b[0m .think-and-ship/project.json\n\n\u001b[1mmagistr scaffolded successfully\u001b[0m\n  Project: npx project\n  Stack:   unknown + none\n  Files:   7 generated\nMCP connection and read-only context check passed.\nStarter prompt: Read the project context and source, then propose the first plan. Wait for my instruction before implementing it.\n\u001b[36m→\u001b[0m Detecting stack in /private/var/folders/ml/51b226t50rxf09jwljnq7tn00000gn/T/magistr clean npm xb3vcy97/global project...\n\u001b[1mProposed project setup\u001b[0m\n\n  \u001b[32m+ .magistr/.gitignore\u001b[0m  (create)\n  \u001b[32m+ .magistr/project.json\u001b[0m  (create)\n  \u001b[32m+ .magistr/conventions.md\u001b[0m  (create)\n  \u001b[32m+ .magistr/instructions.md\u001b[0m  (create)\n  \u001b[32m+ .mcp.json\u001b[0m  (create)\n  \u001b[32m+ .gitignore\u001b[0m  (create)\n  \u001b[32m+ .think-and-ship/project.json\u001b[0m  (create)\n\u001b[1mSummary:\u001b[0m 7 create, 0 overwrite, 0 remove, 0 unchanged, 0 preserved, 0 refused\n\u001b[32m✓\u001b[0m .magistr/.gitignore\n\u001b[32m✓\u001b[0m .magistr/project.json\n\u001b[32m✓\u001b[0m .magistr/conventions.md\n\u001b[32m✓\u001b[0m .magistr/instructions.md\n\u001b[32m✓\u001b[0m .mcp.json\n\u001b[32m✓\u001b[0m .gitignore\n\u001b[32m✓\u001b[0m .think-and-ship/project.json\n\n\u001b[1mmagistr scaffolded successfully\u001b[0m\n  Project: global project\n  Stack:   unknown + none\n  Files:   7 generated\nMCP connection and read-only context check passed.\nStarter prompt: Read the project context and source, then propose the first plan. Wait for my instruction before implementing it.\nTraceback (most recent call last):\n  File \"/Users/maintainer/Code/magistr/scripts/distribution.py\", line 271, in <module>\n    if __name__==\"__main__\":main()\n                            ~~~~^^\n  File \"/Users/maintainer/Code/magistr/scripts/distribution.py\", line 269, in main\n    elif args.action==\"verify-npm\":verify_npm(args)\n                                   ~~~~~~~~~~^^^^^^\n  File \"/Users/maintainer/Code/magistr/scripts/distribution.py\", line 252, in verify_npm\n    assert not any(n.endswith(\".rs\") or \"/node_modules/\" in n for n in names)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError",
         "verified": true,
         "command": "python3 -B scripts/distribution.py verify-npm --out target/cli-distribution",
         "exit_code": 1,
@@ -1441,7 +1441,7 @@
       "target": {
         "project_id": "magistr-5a5bc6",
         "execution": {
-          "working_copy": "/Users/alrik/Code/magistr",
+          "working_copy": "/Users/maintainer/Code/magistr",
           "execution_id": "default",
           "owner_generation": 28
         },
@@ -1456,7 +1456,7 @@
       "required": true,
       "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
       "source": {
-        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_root": "/Users/maintainer/Code/magistr",
         "workspace_generation": 137,
         "scheme": "magistr-source-snapshot/1",
         "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
@@ -1497,7 +1497,7 @@
       "target": {
         "project_id": "magistr-5a5bc6",
         "execution": {
-          "working_copy": "/Users/alrik/Code/magistr",
+          "working_copy": "/Users/maintainer/Code/magistr",
           "execution_id": "default",
           "owner_generation": 28
         },
@@ -1512,7 +1512,7 @@
       "required": true,
       "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
       "source": {
-        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_root": "/Users/maintainer/Code/magistr",
         "workspace_generation": 137,
         "scheme": "magistr-source-snapshot/1",
         "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
@@ -1529,7 +1529,7 @@
       "duration_ms": 10353,
       "outcome": {
         "passed": false,
-        "details": "$ cargo test -q -p magistr-cli --lib scaffold:: --locked\n[exit 101]\n\nrunning 393 tests\n....................................................................................... 87/393\n....................................................................................... 174/393\n....................................................................................... 261/393\n....................................................................................... 348/393\n............................................ 392/393\nscaffold::tool_guide::tests::tool_guide_snapshot --- FAILED\n\nfailures:\n\n---- scaffold::tool_guide::tests::tool_guide_snapshot stdout ----\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Snapshot Summary ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nSnapshot file: crates/magistr-cli/src/scaffold/snapshots/magistr__scaffold__tool_guide__tests__tools_md.snap\nSnapshot: tools_md\nSource: crates/magistr-cli/src/scaffold/tool_guide.tests.rs:36\n────────────────────────────────────────────────────────────────────────────────\nExpression: build_tool_guide()\n────────────────────────────────────────────────────────────────────────────────\n-old snapshot\n+new results\n────────────┬───────────────────────────────────────────────────────────────────\n   82    82 │   merged when its findings informed the result. Use `abandoned` only for an\n   83    83 │   investigation stopped without using its findings, and record why.\n   84    84 │ - Correct an earlier conclusion with `revises_step` and `revision_reason`;\n   85    85 │   preserve the earlier record. Link related execution through `execution_ref`\n   86       │-  and `record_progress.think_step`. Use meaningful names in prose rather than raw\n         86 │+  and `ship_record.think_step`. Use meaningful names in prose rather than raw\n   87    87 │   identifiers. Omit confidence unless there is a defensible basis for it.\n   88    88 │ - Before closing, review investigations opened for this work. Record their\n   89    89 │   conclusions and actual use, or leave them active with an explicit unresolved\n   90    90 │   question and next action. Do not mark unfinished investigations merged.\n────────────┴───────────────────────────────────────────────────────────────────\nTo update snapshots run `cargo insta review`\nStopped on the first failure. Run `cargo insta test` to run all snapshots.\n\nthread 'scaffold::tool_guide::tests::tool_guide_snapshot' (17202683) panicked at /Users/alrik/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/insta-1.46.3/src/runtime.rs:719:13:\nsnapshot assertion for 'tools_md' failed in line 36\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n\n\nfailures:\n    scaffold::tool_guide::tests::tool_guide_snapshot\n\ntest result: FAILED. 392 passed; 1 failed; 0 ignored; 0 measured; 2527 filtered out; finished in 0.64s\n\nstored new snapshot /Users/alrik/Code/magistr/crates/magistr-cli/src/scaffold/snapshots/magistr__scaffold__tool_guide__tests__tools_md.snap.new\nerror: test failed, to rerun pass `-p magistr-cli --lib`",
+        "details": "$ cargo test -q -p magistr-cli --lib scaffold:: --locked\n[exit 101]\n\nrunning 393 tests\n....................................................................................... 87/393\n....................................................................................... 174/393\n....................................................................................... 261/393\n....................................................................................... 348/393\n............................................ 392/393\nscaffold::tool_guide::tests::tool_guide_snapshot --- FAILED\n\nfailures:\n\n---- scaffold::tool_guide::tests::tool_guide_snapshot stdout ----\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Snapshot Summary ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nSnapshot file: crates/magistr-cli/src/scaffold/snapshots/magistr__scaffold__tool_guide__tests__tools_md.snap\nSnapshot: tools_md\nSource: crates/magistr-cli/src/scaffold/tool_guide.tests.rs:36\n────────────────────────────────────────────────────────────────────────────────\nExpression: build_tool_guide()\n────────────────────────────────────────────────────────────────────────────────\n-old snapshot\n+new results\n────────────┬───────────────────────────────────────────────────────────────────\n   82    82 │   merged when its findings informed the result. Use `abandoned` only for an\n   83    83 │   investigation stopped without using its findings, and record why.\n   84    84 │ - Correct an earlier conclusion with `revises_step` and `revision_reason`;\n   85    85 │   preserve the earlier record. Link related execution through `execution_ref`\n   86       │-  and `record_progress.think_step`. Use meaningful names in prose rather than raw\n         86 │+  and `ship_record.think_step`. Use meaningful names in prose rather than raw\n   87    87 │   identifiers. Omit confidence unless there is a defensible basis for it.\n   88    88 │ - Before closing, review investigations opened for this work. Record their\n   89    89 │   conclusions and actual use, or leave them active with an explicit unresolved\n   90    90 │   question and next action. Do not mark unfinished investigations merged.\n────────────┴───────────────────────────────────────────────────────────────────\nTo update snapshots run `cargo insta review`\nStopped on the first failure. Run `cargo insta test` to run all snapshots.\n\nthread 'scaffold::tool_guide::tests::tool_guide_snapshot' (17202683) panicked at /Users/maintainer/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/insta-1.46.3/src/runtime.rs:719:13:\nsnapshot assertion for 'tools_md' failed in line 36\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n\n\nfailures:\n    scaffold::tool_guide::tests::tool_guide_snapshot\n\ntest result: FAILED. 392 passed; 1 failed; 0 ignored; 0 measured; 2527 filtered out; finished in 0.64s\n\nstored new snapshot /Users/maintainer/Code/magistr/crates/magistr-cli/src/scaffold/snapshots/magistr__scaffold__tool_guide__tests__tools_md.snap.new\nerror: test failed, to rerun pass `-p magistr-cli --lib`",
         "verified": true,
         "command": "cargo test -q -p magistr-cli --lib scaffold:: --locked",
         "exit_code": 101,
@@ -1556,7 +1556,7 @@
       "target": {
         "project_id": "magistr-5a5bc6",
         "execution": {
-          "working_copy": "/Users/alrik/Code/magistr",
+          "working_copy": "/Users/maintainer/Code/magistr",
           "execution_id": "default",
           "owner_generation": 28
         },
@@ -1571,7 +1571,7 @@
       "required": true,
       "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
       "source": {
-        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_root": "/Users/maintainer/Code/magistr",
         "workspace_generation": 137,
         "scheme": "magistr-source-snapshot/1",
         "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
@@ -1612,7 +1612,7 @@
       "target": {
         "project_id": "magistr-5a5bc6",
         "execution": {
-          "working_copy": "/Users/alrik/Code/magistr",
+          "working_copy": "/Users/maintainer/Code/magistr",
           "execution_id": "default",
           "owner_generation": 28
         },
@@ -1627,7 +1627,7 @@
       "required": true,
       "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
       "source": {
-        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_root": "/Users/maintainer/Code/magistr",
         "workspace_generation": 137,
         "scheme": "magistr-source-snapshot/1",
         "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
@@ -1668,7 +1668,7 @@
       "target": {
         "project_id": "magistr-5a5bc6",
         "execution": {
-          "working_copy": "/Users/alrik/Code/magistr",
+          "working_copy": "/Users/maintainer/Code/magistr",
           "execution_id": "default",
           "owner_generation": 28
         },
@@ -1683,7 +1683,7 @@
       "required": true,
       "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
       "source": {
-        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_root": "/Users/maintainer/Code/magistr",
         "workspace_generation": 137,
         "scheme": "magistr-source-snapshot/1",
         "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
@@ -1724,7 +1724,7 @@
       "target": {
         "project_id": "magistr-5a5bc6",
         "execution": {
-          "working_copy": "/Users/alrik/Code/magistr",
+          "working_copy": "/Users/maintainer/Code/magistr",
           "execution_id": "default",
           "owner_generation": 28
         },
@@ -1739,7 +1739,7 @@
       "required": true,
       "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
       "source": {
-        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_root": "/Users/maintainer/Code/magistr",
         "workspace_generation": 137,
         "scheme": "magistr-source-snapshot/1",
         "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
@@ -1780,7 +1780,7 @@
       "target": {
         "project_id": "magistr-5a5bc6",
         "execution": {
-          "working_copy": "/Users/alrik/Code/magistr",
+          "working_copy": "/Users/maintainer/Code/magistr",
           "execution_id": "default",
           "owner_generation": 28
         },
@@ -1795,7 +1795,7 @@
       "required": true,
       "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
       "source": {
-        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_root": "/Users/maintainer/Code/magistr",
         "workspace_generation": 137,
         "scheme": "magistr-source-snapshot/1",
         "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
@@ -1836,7 +1836,7 @@
       "target": {
         "project_id": "magistr-5a5bc6",
         "execution": {
-          "working_copy": "/Users/alrik/Code/magistr",
+          "working_copy": "/Users/maintainer/Code/magistr",
           "execution_id": "default",
           "owner_generation": 28
         },
@@ -1851,7 +1851,7 @@
       "required": true,
       "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
       "source": {
-        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_root": "/Users/maintainer/Code/magistr",
         "workspace_generation": 137,
         "scheme": "magistr-source-snapshot/1",
         "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
@@ -1892,7 +1892,7 @@
       "target": {
         "project_id": "magistr-5a5bc6",
         "execution": {
-          "working_copy": "/Users/alrik/Code/magistr",
+          "working_copy": "/Users/maintainer/Code/magistr",
           "execution_id": "default",
           "owner_generation": 28
         },
@@ -1907,7 +1907,7 @@
       "required": true,
       "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
       "source": {
-        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_root": "/Users/maintainer/Code/magistr",
         "workspace_generation": 137,
         "scheme": "magistr-source-snapshot/1",
         "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
@@ -1948,7 +1948,7 @@
       "target": {
         "project_id": "magistr-5a5bc6",
         "execution": {
-          "working_copy": "/Users/alrik/Code/magistr",
+          "working_copy": "/Users/maintainer/Code/magistr",
           "execution_id": "default",
           "owner_generation": 28
         },
@@ -1963,7 +1963,7 @@
       "required": true,
       "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
       "source": {
-        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_root": "/Users/maintainer/Code/magistr",
         "workspace_generation": 137,
         "scheme": "magistr-source-snapshot/1",
         "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
@@ -2004,7 +2004,7 @@
       "target": {
         "project_id": "magistr-5a5bc6",
         "execution": {
-          "working_copy": "/Users/alrik/Code/magistr",
+          "working_copy": "/Users/maintainer/Code/magistr",
           "execution_id": "default",
           "owner_generation": 28
         },
@@ -2019,7 +2019,7 @@
       "required": true,
       "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
       "source": {
-        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_root": "/Users/maintainer/Code/magistr",
         "workspace_generation": 137,
         "scheme": "magistr-source-snapshot/1",
         "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
@@ -2063,7 +2063,7 @@
       "target": {
         "project_id": "magistr-5a5bc6",
         "execution": {
-          "working_copy": "/Users/alrik/Code/magistr",
+          "working_copy": "/Users/maintainer/Code/magistr",
           "execution_id": "default",
           "owner_generation": 28
         },
@@ -2078,7 +2078,7 @@
       "required": true,
       "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
       "source": {
-        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_root": "/Users/maintainer/Code/magistr",
         "workspace_generation": 137,
         "scheme": "magistr-source-snapshot/1",
         "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
@@ -2119,7 +2119,7 @@
       "target": {
         "project_id": "magistr-5a5bc6",
         "execution": {
-          "working_copy": "/Users/alrik/Code/magistr",
+          "working_copy": "/Users/maintainer/Code/magistr",
           "execution_id": "default",
           "owner_generation": 28
         },
@@ -2134,7 +2134,7 @@
       "required": true,
       "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
       "source": {
-        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_root": "/Users/maintainer/Code/magistr",
         "workspace_generation": 137,
         "scheme": "magistr-source-snapshot/1",
         "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
@@ -2175,7 +2175,7 @@
       "target": {
         "project_id": "magistr-5a5bc6",
         "execution": {
-          "working_copy": "/Users/alrik/Code/magistr",
+          "working_copy": "/Users/maintainer/Code/magistr",
           "execution_id": "default",
           "owner_generation": 28
         },
@@ -2190,7 +2190,7 @@
       "required": true,
       "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
       "source": {
-        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_root": "/Users/maintainer/Code/magistr",
         "workspace_generation": 137,
         "scheme": "magistr-source-snapshot/1",
         "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",
@@ -2231,7 +2231,7 @@
       "target": {
         "project_id": "magistr-5a5bc6",
         "execution": {
-          "working_copy": "/Users/alrik/Code/magistr",
+          "working_copy": "/Users/maintainer/Code/magistr",
           "execution_id": "default",
           "owner_generation": 28
         },
@@ -2246,7 +2246,7 @@
       "required": true,
       "acceptance_revision": "1e1810c6f25c4dbe84e672dd6fe59d3b00213694eb13568e809c73131a7467ec",
       "source": {
-        "workspace_root": "/Users/alrik/Code/magistr",
+        "workspace_root": "/Users/maintainer/Code/magistr",
         "workspace_generation": 137,
         "scheme": "magistr-source-snapshot/1",
         "policy_digest": "13e1c1a169f89d0bcafbdad6b187f5289a96202fe4cb0f4ceb5fac787dda4fbb",

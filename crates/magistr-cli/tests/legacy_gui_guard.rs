@@ -94,10 +94,12 @@ impl Project {
     /// The scaffolded hook script, pointed at the built binary.
     #[cfg(unix)]
     fn hook_script(&self, rel: &str) -> Output {
-        let script = Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../.."))
-            .join(".claude/hooks/magistr-guard.sh");
+        // The scaffold template is the owner of every generated hook; the
+        // repository's own copy is generated from it and not tracked.
+        let script = Path::new(env!("CARGO_MANIFEST_DIR")).join("templates/hooks/magistr-guard.sh");
         self.run(
-            Command::new(script)
+            Command::new("sh")
+                .arg(script)
                 .arg("write")
                 .env("MAGISTR_BIN", env!("CARGO_BIN_EXE_magistr"))
                 .env("CLAUDE_PROJECT_DIR", &self.root),
@@ -307,16 +309,21 @@ fn the_freeze_is_declared_not_hardcoded() {
     assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
 }
 
-/// The gate the hook depends on is wired: `.claude/settings.json` routes the
-/// file-editing tools at `magistr-guard.sh write`. Without the matcher the
-/// binary above is never asked.
+/// The gate the hook depends on is wired: the settings template every
+/// generated `.claude/settings.json` comes from routes the file-editing tools
+/// at `magistr-guard.sh write`. Without the matcher the binary above is never
+/// asked. The repository's own setup is generated from this template and not
+/// tracked, so the template is the owner under test.
 #[test]
-fn this_repo_wires_the_write_hook() {
+fn the_settings_template_wires_the_write_hook() {
     let settings = std::fs::read_to_string(
-        Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../..")).join(".claude/settings.json"),
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("templates/settings.json.tmpl"),
     )
-    .expect("read settings.json");
-    let json: serde_json::Value = serde_json::from_str(&settings).expect("settings.json is JSON");
+    .expect("read settings.json.tmpl");
+    // The permission list placeholder is the template's only non-JSON token.
+    let settings = settings.replace("{{mcp_permissions}}", "\"mcp__magistr\"");
+    let json: serde_json::Value =
+        serde_json::from_str(&settings).expect("settings.json.tmpl is JSON once rendered");
     let matchers = json["hooks"]["PreToolUse"]
         .as_array()
         .expect("PreToolUse hooks");

@@ -8,10 +8,12 @@
 //! is consulted only after a bundled miss (research R7, SC-002).
 //!
 //! Two execution lanes (research R5): the WASM lane drives the pack's
-//! grammar bytes through tree-sitter's own `WasmStore` — note the engine
-//! type below is `tree_sitter::wasmtime` (the c-api's wasmtime 36), NEVER
-//! the sandbox host's wasmtime 48; the two majors coexist as distinct
-//! crates (research R2). The native lane is the blessing-gated promotion:
+//! grammar bytes through tree-sitter's own `WasmStore` — the engine type
+//! below is `tree_sitter::wasmtime`, the c-api's re-export, and this
+//! grammar engine is always a separate instance from the sandbox host's
+//! engine even now that both resolve to the same wasmtime crate (research
+//! R2 accepted two majors; tree-sitter 0.27 unified them). The native lane
+//! is the blessing-gated promotion:
 //! a blessed pack whose language this build carries as a native grammar
 //! crate runs on the same `LanguageFn` path as the bundled twelve.
 //!
@@ -92,13 +94,15 @@ fn registry() -> &'static RwLock<Vec<Entry>> {
     REGISTRY.get_or_init(|| RwLock::new(Vec::new()))
 }
 
-/// The grammar engine (tree-sitter's wasmtime 36), initialised once. Traps
-/// are native faults in every wasmtime; this engine and the sandbox host's
-/// wasmtime 48 must both use chaining POSIX signal handlers rather than the
-/// macOS default of one process-wide Mach exception port, or a trap raised by
-/// whichever engine did NOT install the port last kills the process with
-/// SIGILL (see `sandbox::engine`). `pub(crate)` so the sandbox regression test
-/// can warm this engine before trapping a guest in the other one.
+/// The grammar engine (tree-sitter's wasmtime), initialised once. Traps are
+/// native faults in every wasmtime; this engine and the sandbox host's engine
+/// both use chaining POSIX signal handlers rather than the macOS default of
+/// one process-wide Mach exception port. That was mandatory while the two
+/// engines came from different wasmtime majors (a trap raised by whichever
+/// engine did NOT install the port last killed the process with SIGILL) and
+/// is kept as the one trap-handling policy now that they share a crate (see
+/// `sandbox::engine`). `pub(crate)` so the sandbox regression test can warm
+/// this engine before trapping a guest in the other one.
 pub(crate) fn grammar_engine() -> &'static GrammarEngine {
     static ENGINE: OnceLock<GrammarEngine> = OnceLock::new();
     ENGINE.get_or_init(|| {
@@ -436,7 +440,7 @@ pub fn extract(id: &str, source: &str) -> Option<Result<Extraction, CoreError>> 
         while let Some(m) = matches.next() {
             let mut name_text: Option<String> = None;
             let mut definition: Option<(&'static str, tree_sitter::Node)> = None;
-            for capture in m.captures {
+            for capture in m.captures() {
                 let capture_name = names[capture.index as usize];
                 if capture_name == "name" {
                     name_text = capture

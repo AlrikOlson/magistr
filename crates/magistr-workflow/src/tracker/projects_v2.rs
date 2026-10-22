@@ -36,7 +36,7 @@
 //!
 //! ```text
 //!   https://github.com/orgs/acme/projects/12    (or the bare orgs/acme/projects/12)
-//!   https://github.com/users/alrik/projects/3   (or the bare users/alrik/projects/3)
+//!   https://github.com/users/octocat/projects/3   (or the bare users/octocat/projects/3)
 //! ```
 //!
 //! # What a request costs, which is not what the sibling adapter charges
@@ -1776,10 +1776,10 @@ mod tests {
 
     #[test]
     fn a_user_board_resolves_to_the_user_root_field() {
-        let addr = BoardAddress::parse("https://github.com/users/alrik/projects/3").unwrap();
+        let addr = BoardAddress::parse("https://github.com/users/octocat/projects/3").unwrap();
         assert_eq!(addr.owner_kind, OwnerKind::User);
         assert_eq!(addr.owner_kind.root_field(), "user");
-        assert_eq!(addr.login, "alrik");
+        assert_eq!(addr.login, "octocat");
         assert_eq!(addr.number, 3);
     }
 
@@ -1964,7 +1964,7 @@ mod tests {
         assert!(q.contains("organization(login: $login)"), "got: {q}");
         assert!(!q.contains("user(login:"), "got: {q}");
 
-        let user = ProjectsV2Client::new("users/alrik/projects/3").unwrap();
+        let user = ProjectsV2Client::new("users/octocat/projects/3").unwrap();
         let q = user.board_query();
         assert!(q.contains("user(login: $login)"), "got: {q}");
         assert!(!q.contains("organization(login:"), "got: {q}");

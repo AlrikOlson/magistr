@@ -161,9 +161,11 @@ fn next_prompt_includes_plan_entry_status() {
 }
 
 /// The shared skill contract owns phase transitions; rule headings are host
-/// presentation. Keep the runtime phase parser and both project copies aligned.
+/// presentation. Keep the runtime phase parser and the shared template aligned.
+/// The repository's own skill copies are generated from this template by
+/// `magistr init` and are not tracked; the scaffold tests cover that rendering.
 #[test]
-fn shared_workflow_uses_native_phases_and_matches_project_skills() {
+fn shared_workflow_uses_native_phases_and_the_task_lifecycle() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
     let shared =
         std::fs::read_to_string(root.join("crates/magistr-cli/templates/workflows/next.md"))
@@ -187,18 +189,6 @@ fn shared_workflow_uses_native_phases_and_matches_project_skills() {
         assert!(
             shared.contains(tool),
             "native task lifecycle requires {tool}"
-        );
-    }
-    for (host, invocation) in [(".claude", "/"), (".agents", "$")] {
-        let generated = std::fs::read_to_string(root.join(format!("{host}/skills/next/SKILL.md")))
-            .expect("project next skill");
-        assert_eq!(
-            generated,
-            shared.replace("{{invoke}}", invocation).replace(
-                "{{next_recovery_guidance}}",
-                magistr_engine::prompt::PromptConfig::NEXT_RECOVERY_GUIDANCE.trim_end(),
-            ),
-            "{host}"
         );
     }
 }

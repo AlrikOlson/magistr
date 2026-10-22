@@ -1,6 +1,6 @@
 use super::ConfirmationError;
 use crate::jail::WorkspaceKey;
-use hmac::{Hmac, Mac};
+use hmac::{Hmac, KeyInit, Mac};
 use sha2::Sha256;
 
 /// Workspace-key authenticator for the exact request and finalized byte plan.

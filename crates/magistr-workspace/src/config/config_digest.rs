@@ -32,7 +32,7 @@ impl ConfigDigest {
                 Ok(bytes) => ConfigLayerDigest {
                     layer: *layer,
                     present: true,
-                    digest: format!("{:x}", Sha256::digest(&bytes)),
+                    digest: hex::encode(Sha256::digest(&bytes)),
                 },
                 Err(error) if error.kind() == io::ErrorKind::NotFound => ConfigLayerDigest {
                     layer: *layer,
@@ -65,7 +65,7 @@ impl ConfigDigest {
             frame(&mut digest, &[u8::from(layer.present)]);
             frame(&mut digest, layer.digest.as_bytes());
         }
-        format!("{:x}", digest.finalize())
+        hex::encode(digest.finalize())
     }
 
     /// The layers that differ between this observation and a later one,

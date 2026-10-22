@@ -54,7 +54,9 @@ use magistr_workflow::think::engine::core::ReasoningServer;
 use magistr_workflow::tracker::propose_consent::{ProposeConsent, ProposeConsentSource};
 use rmcp::{
     ClientHandler, RoleClient, ServiceExt,
-    model::{ClientCapabilities, ClientInfo, ElicitRequestParams, ElicitResult, ElicitationAction},
+    model::{
+        ClientCapabilities, ClientConfig, ElicitRequestParams, ElicitResult, ElicitationAction,
+    },
     service::RequestContext,
 };
 use serde_json::json;
@@ -94,8 +96,8 @@ impl AskableClient {
 }
 
 impl ClientHandler for AskableClient {
-    fn get_info(&self) -> ClientInfo {
-        let mut info = ClientInfo::default();
+    fn get_info(&self) -> ClientConfig {
+        let mut info = ClientConfig::default();
         if self.declares {
             info.capabilities = ClientCapabilities::builder().enable_elicitation().build();
         }

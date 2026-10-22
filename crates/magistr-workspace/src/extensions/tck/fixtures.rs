@@ -14,7 +14,7 @@ pub(super) const SPIN_WAT: &str = r#"
       (i32.const 16)))
   (core instance $i (instantiate $m))
   (func (export "invoke") (param "payload" string) (result string)
-    (canon lift (core func $i "spin") (memory $i "mem") (realloc (func $i "realloc"))))
+    (canon lift (core func $i "spin") (memory (core memory $i "mem")) (realloc (core func $i "realloc"))))
 )
 "#;
 
@@ -33,6 +33,6 @@ pub(super) const GROW_WAT: &str = r#"
       (i32.const 16)))
   (core instance $i (instantiate $m))
   (func (export "invoke") (param "payload" string) (result string)
-    (canon lift (core func $i "grow") (memory $i "mem") (realloc (func $i "realloc"))))
+    (canon lift (core func $i "grow") (memory (core memory $i "mem")) (realloc (core func $i "realloc"))))
 )
 "#;

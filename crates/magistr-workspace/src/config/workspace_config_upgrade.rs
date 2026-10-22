@@ -27,8 +27,8 @@ impl WorkspaceConfigUpgrade {
         // content-addressed archive also makes a crash before unlink retryable.
         use sha2::{Digest, Sha256};
         let archive = format!(
-            ".magistr/upgrades/workspace-config/{:x}.toml",
-            Sha256::digest(old.as_bytes())
+            ".magistr/upgrades/workspace-config/{}.toml",
+            hex::encode(Sha256::digest(old.as_bytes()))
         );
         match read(root, &archive)? {
             Some(saved) if saved != old => {

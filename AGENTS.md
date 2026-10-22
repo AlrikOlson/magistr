@@ -2,11 +2,11 @@
 
 Magistr is a Rust workspace. See [development](docs/development.md) for setup,
 [architecture](docs/architecture/overview.md) for crate boundaries, and
-[conventions](.claude/rules/conventions.md) for Rust style.
+[conventions](.magistr/conventions.md) for Rust style.
 
 ## Architecture first
 
-Core rule, above every other rule in this file and in `.claude/rules/`: work as
+Core rule, above every other rule in this file and in generated agent rules: work as
 the project's architect at all times. It applies to every task, including
 roadmap chunks, bug fixes, tests, documentation and questions to the owner. No
 chunk, acceptance criterion, deadline, scope note or self-imposed constraint
@@ -128,7 +128,7 @@ Read the relevant terminal or desktop architecture guide before changing it.
 ## Tools and state
 
 Use the configured Magistr server for workflow and workspace tools, including source
-navigation and edits. Follow [Workspace routing](.agents/skills/workspace-routing/SKILL.md).
+navigation and edits. Follow [Workspace routing](crates/magistr-cli/templates/skills/workspace-routing/SKILL.md).
 Git, development, and diagnostics may use the shell. Explain focused fallbacks.
 Do not kill a Workspace lock owner or start a competing workspace or workflow server.
 
@@ -141,8 +141,11 @@ The coordinating session owns shared workflow state; delegate separate files.
 
 ## Agent setup
 
-Launch Codex with `./.codex/run`. See [Codex setup](docs/reference/codex.md).
-Keep `.codex/config.toml` local and ignored. Prefer this repository's skills when
+Generated agent setup (`.claude/`, `.agents/`, `.codex/`, `.cursor/` and
+`.github/copilot-instructions.md`) is local to each contributor and ignored by
+Git. Create it with `magistr init --agent <claude|codex|cursor|copilot>` in
+this checkout and refresh it with `magistr repair`; never commit it.
+Launch Codex with `./.codex/run`. See [Codex setup](docs/reference/codex.md). Prefer this repository's skills when
 names overlap. `$next` implements one ready chunk; `$next-loop` respects the
 requested limit. Reviews and setup do not authorize roadmap implementation.
 Run required gates explicitly; client hooks are supplementary.

@@ -31,7 +31,7 @@ impl FileContent {
     /// SHA-256 of the original bytes, independent of the content variant.
     #[must_use]
     pub fn content_hash(&self) -> String {
-        format!("{:x}", Sha256::digest(self.as_bytes()))
+        hex::encode(Sha256::digest(self.as_bytes()))
     }
 }
 

@@ -115,6 +115,6 @@ impl Snapshot {
         let mut hash = Sha256::new();
         hash.update(HASH_DOMAIN);
         hash.update(bytes);
-        Ok(format!("{:x}", hash.finalize()))
+        Ok(hex::encode(hash.finalize()))
     }
 }

@@ -7,11 +7,12 @@ recommended design rather than a choice of workarounds. The full rule is
 [Architecture first](AGENTS.md#architecture-first); nothing suspends it.
 
 Follow [AGENTS.md](AGENTS.md) and the
-[Rust conventions](.claude/rules/conventions.md).
-Use the project skills in `.claude/skills/` and the configured Magistr and
-workspace tools through the same connection. Build commands and required checks are in
-`.magistr/project.json`; setup instructions are in
-[development](docs/development.md).
+[Rust conventions](.magistr/conventions.md).
+The project skills, rules and hooks under `.claude/` are generated locally by
+`magistr init --agent claude` and are not committed. Use them with the
+configured Magistr and workspace tools through the same connection. Build
+commands and required checks are in `.magistr/project.json`; setup
+instructions are in [development](docs/development.md).
 
 <!-- magistr -->
 # magistr

@@ -2,7 +2,7 @@ use super::*;
 use ed25519_dalek::{Signer, SigningKey};
 
 fn generate_test_keypair() -> (SigningKey, VerifyingKey) {
-    let mut rng = rand::rngs::OsRng;
+    let mut rng = rand::rng();
     let signing_key = SigningKey::generate(&mut rng);
     let verifying_key = signing_key.verifying_key();
     (signing_key, verifying_key)

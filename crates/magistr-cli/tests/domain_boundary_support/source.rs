@@ -335,11 +335,11 @@ impl<'ast> Visit<'ast> for SourceGuard {
         self.reject("foreign ABI effect interface");
     }
 
-    fn visit_type_bare_fn(&mut self, function: &'ast syn::TypeBareFn) {
+    fn visit_type_fn_ptr(&mut self, function: &'ast syn::TypeFnPtr) {
         if function.unsafety.is_some() {
             self.reject("unsafe function pointer");
         }
-        visit::visit_type_bare_fn(self, function);
+        visit::visit_type_fn_ptr(self, function);
     }
 
     fn visit_expr_unsafe(&mut self, _: &'ast syn::ExprUnsafe) {
@@ -347,7 +347,9 @@ impl<'ast> Visit<'ast> for SourceGuard {
     }
 
     fn visit_signature(&mut self, signature: &'ast syn::Signature) {
-        if signature.unsafety.is_some() || (!self.allow_async && signature.asyncness.is_some()) {
+        if matches!(signature.safety, syn::Safety::Unsafe(_))
+            || (!self.allow_async && signature.asyncness.is_some())
+        {
             self.reject("unsafe or async domain function");
         }
         visit::visit_signature(self, signature);

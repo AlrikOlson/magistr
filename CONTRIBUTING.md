@@ -8,9 +8,12 @@ require repository access. For using Magistr on another project, read the
 
 1. Read [project instructions](AGENTS.md), the [development guide](docs/development.md),
    and the [architecture overview](docs/architecture/overview.md).
-2. Inspect existing code and native roadmap records before proposing work.
-3. Identify which component owns the behavior and fix the problem there.
-4. Keep the change coherent, preserve unrelated work, and describe the observable
+2. Generate your own agent setup with `magistr init --agent <claude|codex|cursor|copilot>`.
+   The generated `.claude/`, `.agents/`, `.codex/`, `.cursor/` and
+   `.github/copilot-instructions.md` are ignored by Git; never commit them.
+3. Inspect existing code and native roadmap records before proposing work.
+4. Identify which component owns the behavior and fix the problem there.
+5. Keep the change coherent, preserve unrelated work, and describe the observable
    result and acceptance criteria.
 
 The repository keeps roadmaps and work plans in Magistr. Do not generate

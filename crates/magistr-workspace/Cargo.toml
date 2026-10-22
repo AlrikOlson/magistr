@@ -19,15 +19,16 @@ default = ["sandbox", "lang-pack"]
 sandbox = ["dep:wasmtime", "dep:wasmtime-wasi"]
 # Dynamic language registry for WASM lang packs (SDD §8.3, feature 002).
 # Native builds only, like `sandbox`: tree-sitter's wasm feature pins its own
-# wasmtime major (36 via wasmtime-c-api-impl) which coexists with the sandbox
-# host's 48 as distinct crates — the accepted double-compile cost is recorded
-# in specs/002-wasm-lang-pack/research.md R2. tree-sitter-gleam is the native
-# promotion lane for the first-party pack (research R5).
+# wasmtime major through wasmtime-c-api-impl. Since tree-sitter 0.27 that is
+# the same wasmtime 48 the sandbox host uses, so the double compile that
+# specs/002-wasm-lang-pack/research.md R2 accepted is gone; the two engines
+# are still separate instances. tree-sitter-gleam is the native promotion
+# lane for the first-party pack (research R5).
 lang-pack = ["tree-sitter/wasm", "dep:tree-sitter-gleam", "dep:streaming-iterator"]
 [dependencies]
 magistr-process = { workspace = true }
-tree-sitter = "0.26.12"
-tree-sitter-language = "0.1.7"
+tree-sitter = "0.27.1"
+tree-sitter-language = "0.1.9"
 tree-sitter-bash = "0.25.1"
 tree-sitter-c = "0.24.2"
 tree-sitter-c-sharp = "0.23.5"
@@ -44,21 +45,22 @@ tree-sitter-gleam = { version = "1.0.0", optional = true }
 streaming-iterator = { version = "0.1.9", optional = true }
 
 grep = "0.4.1"
-ignore = "0.4.30"
+ignore = "0.4.33"
 globset = "0.4"
-ast-grep-core = "0.45.1"
+ast-grep-core = "0.51.0"
 thiserror = "2"
 serde = { version = "1.0.229", features = ["derive"] }
-serde_json = { version = "1.0.151", features = ["preserve_order"] }
+serde_json = { version = "1.0.154", features = ["preserve_order"] }
 regex = "1"
-similar = { version = "2", default-features = false, features = ["text"] }
-toml = { version = "1.0.6", features = ["preserve_order"] }
+similar = { version = "3", default-features = false, features = ["text"] }
+toml = { version = "1.1.8", features = ["preserve_order"] }
 toml_edit = "0.25"
-sha2 = "0.10"
-hmac = "0.12"
-saphyr-parser = "0.0.12"
+sha2 = "0.11"
+hex = "0.4"
+hmac = "0.13"
+saphyr-parser = "0.2.2"
 rusqlite = { version = "0.40", features = ["bundled", "limits"] }
-zstd = "0.13"
+zstd = "0.14"
 flate2 = "1"
 notify = "8"
 getrandom = "0.4"
@@ -66,11 +68,11 @@ tempfile = "3"
 tokio = { version = "1", features = ["io-util", "io-std", "macros", "process", "rt-multi-thread", "sync", "time"] }
 tokio-util = { version = "0.7", features = ["rt"] }
 
-wasmtime = { version = "48.0.6", optional = true }
-wasmtime-wasi = { version = "48.0.6", optional = true }
+wasmtime = { version = "48.0.7", optional = true }
+wasmtime-wasi = { version = "48.0.7", optional = true }
 
 [dev-dependencies]
-wit-parser = "0.257.1"
+wit-parser = "0.262.0"
 
 # specs/007-resolver-server-pool research R5: OS-level kill-on-parent-death for
 # pooled language-server processes. Both crates are already in Cargo.lock

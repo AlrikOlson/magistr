@@ -56,7 +56,7 @@ impl Observation {
         let hash = if oversized {
             String::new()
         } else {
-            format!("{:x}", Sha256::digest(&bytes))
+            hex::encode(Sha256::digest(&bytes))
         };
         let content = if oversized || bytes.iter().take(8192).any(|b| *b == 0) {
             None

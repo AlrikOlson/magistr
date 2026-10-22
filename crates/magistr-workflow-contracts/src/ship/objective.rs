@@ -60,7 +60,11 @@ impl Objective {
             VerificationMode::Full => b"full",
             VerificationMode::Focused => b"focused",
         });
-        format!("{:x}", digest.finalize())
+        digest
+            .finalize()
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect()
     }
 }
 

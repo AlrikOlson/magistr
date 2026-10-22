@@ -63,10 +63,12 @@ impl ProxyStdio {
                 Err(error) if error.kind() == io::ErrorKind::WouldBlock => {
                     // Register only when I/O needs to wait. Regular files and
                     // /dev/null never do, and epoll cannot register them.
-                    self.readiness = Some(AsyncFd::with_interest(
-                        Arc::clone(&self.file),
-                        self.interest,
-                    )?);
+                    // SAFETY: the registered handle is a shared `Arc<File>`
+                    // owned by this reader, so the descriptor stays open and
+                    // valid for as long as the registration can be polled.
+                    self.readiness = Some(unsafe {
+                        AsyncFd::register_with_interest(Arc::clone(&self.file), self.interest)
+                    }?);
                 }
                 result => return Poll::Ready(result),
             }

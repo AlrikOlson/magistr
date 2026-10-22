@@ -884,16 +884,18 @@ fn build_engine(cache: Option<wasmtime::Cache>) -> Result<Engine, String> {
     config.consume_fuel(true);
     config.cache(cache);
     config.wasm_component_model(true);
-    // Two wasmtime majors share this process: this engine (48) and
-    // tree-sitter's grammar engine (36, `lang_registry`). Wasmtime
+    // Two wasmtime engines share this process: this one and
+    // tree-sitter's grammar engine (`lang_registry`). Wasmtime
     // implements guest traps as native faults; on macOS its default
-    // Mach exception port is process-wide and does not recognise the
-    // OTHER copy's JIT code, so a trap raised by one engine after the
-    // other installed its port surfaces as a plain SIGILL and kills
-    // the host (observed under `bun test` once a lang pack had been
-    // loaded before a sandbox guest trapped). POSIX signal handlers
-    // chain to the previously installed handler, so both copies
-    // coexist; the setting is a no-op off macOS.
+    // Mach exception port is process-wide, and while the two engines
+    // came from different wasmtime majors the port did not recognise
+    // the OTHER copy's JIT code, so a trap raised by one engine after
+    // the other installed its port surfaced as a plain SIGILL and
+    // killed the host (observed under `bun test` once a lang pack had
+    // been loaded before a sandbox guest trapped). tree-sitter 0.27
+    // moved to the same wasmtime 48, so the crash cannot recur, but
+    // chaining POSIX handlers remain the one trap-handling policy for
+    // both engines; the setting is a no-op off macOS.
     config.macos_use_mach_ports(false);
     Engine::new(&config).map_err(|e| e.to_string())
 }
@@ -2539,7 +2541,7 @@ mod tests {
           (i32.const 16)))
       (core instance $i (instantiate $m))
       (func (export "invoke") (param "payload" string) (result string)
-        (canon lift (core func $i "echo") (memory $i "mem") (realloc (func $i "realloc"))))
+        (canon lift (core func $i "echo") (memory (core memory $i "mem")) (realloc (core func $i "realloc"))))
     )
     "#;
 
@@ -2557,7 +2559,7 @@ mod tests {
           (i32.const 16)))
       (core instance $i (instantiate $m))
       (func $invoke (param "payload" string) (result string)
-        (canon lift (core func $i "echo") (memory $i "mem") (realloc (func $i "realloc"))))
+        (canon lift (core func $i "echo") (memory (core memory $i "mem")) (realloc (core func $i "realloc"))))
       (instance $guest (export "invoke" (func $invoke)))
       (export "magistr:tool/guest@0.1.0" (instance $guest))
     )
@@ -2573,7 +2575,7 @@ mod tests {
         (func (export "boom") (param i32 i32) (result i32) unreachable))
       (core instance $i (instantiate $m))
       (func (export "invoke") (param "payload" string) (result string)
-        (canon lift (core func $i "boom") (memory $i "mem") (realloc (func $i "realloc"))))
+        (canon lift (core func $i "boom") (memory (core memory $i "mem")) (realloc (core func $i "realloc"))))
     )
     "#;
 
@@ -2597,7 +2599,7 @@ mod tests {
           (i32.const 4096)))
       (core instance $mem (instantiate $mem_mod))
       (core func $open_core
-        (canon lower (func $sp "open") (memory $mem "mem") (realloc (func $mem "realloc"))))
+        (canon lower (func $sp "open") (memory (core memory $mem "mem")) (realloc (core func $mem "realloc"))))
       (core module $m
         (import "env" "mem" (memory 1))
         (import "sp" "open" (func $open (param i32 i32 i32)))
@@ -2825,9 +2827,10 @@ mod tests {
         assert!(matches!(outcome.end, GuestEnd::GuestTrap(_)));
     }
 
-    /// Two wasmtime majors in one process: a guest trap in this engine must
-    /// stay data whether tree-sitter's grammar engine (wasmtime 36) was
-    /// initialised before or after it. Honest scope: this plain Rust binary
+    /// Two wasmtime engines in one process (different majors until
+    /// tree-sitter 0.27): a guest trap in this engine must stay data
+    /// whether tree-sitter's grammar engine was initialised before or
+    /// after it. Honest scope: this plain Rust binary
     /// did NOT die with the Mach-port default — the SIGILL only reproduced
     /// inside Bun's `bun test` process (four TS files loading both engines
     /// before a sandbox guest trapped, 4/4 crashes before the
@@ -3291,7 +3294,7 @@ mod tests {
           (i32.const 4096)))
       (core instance $mem (instantiate $mem_mod))
       (core func $open_core
-        (canon lower (func $sp "open") (memory $mem "mem") (realloc (func $mem "realloc"))))
+        (canon lower (func $sp "open") (memory (core memory $mem "mem")) (realloc (core func $mem "realloc"))))
       (core module $m
         (import "env" "mem" (memory 1))
         (import "sp" "open" (func $open (param i32 i32 i32)))
@@ -3304,7 +3307,7 @@ mod tests {
         (with "env" (instance (export "mem" (memory $mem "mem"))))
         (with "sp" (instance (export "open" (func $open_core))))))
       (func (export "invoke") (param "payload" string) (result string)
-        (canon lift (core func $i "invoke") (memory $mem "mem") (realloc (func $mem "realloc"))))
+        (canon lift (core func $i "invoke") (memory (core memory $mem "mem")) (realloc (core func $mem "realloc"))))
     )
     "#;
 

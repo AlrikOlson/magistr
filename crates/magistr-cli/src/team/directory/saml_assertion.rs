@@ -71,7 +71,7 @@ impl SamlAssertion {
                 Event::Empty(e) => state.open(&e, false)?,
                 Event::End(e) => state.close(&local_name(e.local_name().as_ref())),
                 Event::Text(e) => {
-                    let text = e.xml10_content().map_err(bad_xml)?;
+                    let text = e.xml10_content();
                     state.push_text(&text);
                 }
                 Event::GeneralRef(e) => state.push_text(&entity(&e)?),
@@ -228,8 +228,8 @@ fn refused(why: &str) -> MagistrError {
     MagistrError::Permission(format!("SAML assertion refused: {why}"))
 }
 
-fn local_name(bytes: &[u8]) -> String {
-    String::from_utf8_lossy(bytes).into_owned()
+fn local_name(name: &str) -> String {
+    name.to_owned()
 }
 
 /// The walk over the document: an element stack, the text piling up
@@ -342,8 +342,8 @@ fn entity(e: &BytesRef<'_>) -> Result<String, MagistrError> {
     if let Some(ch) = e.resolve_char_ref().map_err(bad_xml)? {
         return Ok(ch.to_string());
     }
-    let name = e.decode().map_err(bad_xml)?;
-    resolve_predefined_entity(&name)
+    let name: &str = e;
+    resolve_predefined_entity(name)
         .map(str::to_string)
         .ok_or_else(|| {
             refused(&format!(
@@ -356,7 +356,7 @@ fn entity(e: &BytesRef<'_>) -> Result<String, MagistrError> {
 fn attr(e: &BytesStart<'_>, name: &str) -> Result<Option<String>, MagistrError> {
     for attribute in e.attributes() {
         let attribute = attribute.map_err(bad_xml)?;
-        if attribute.key.local_name().as_ref() == name.as_bytes() {
+        if attribute.key.local_name().as_ref() == name {
             return Ok(Some(
                 attribute
                     .normalized_value(XmlVersion::Implicit1_0)

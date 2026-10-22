@@ -13,6 +13,6 @@ magistr-application = { workspace = true }
 tokio = { version = "1", features = ["rt", "sync", "macros", "time"] }
 
 [dev-dependencies]
-toml = "1.0.6"
+toml = "1.1.8"
 magistr-domain = { workspace = true }
 tokio = { version = "1", features = ["rt-multi-thread"] }

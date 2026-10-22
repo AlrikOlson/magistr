@@ -61,7 +61,7 @@ impl WorkspaceIdentity {
             Some(generation) => frame(&mut digest, &generation.to_le_bytes()),
             None => frame(&mut digest, b""),
         }
-        format!("{:x}", digest.finalize())
+        hex::encode(digest.finalize())
     }
 }
 

@@ -10,7 +10,6 @@ license = "MIT"
 [dependencies]
 magistr-domain = { workspace = true }
 magistr-process = { workspace = true }
-chrono = { version = "0.4", features = ["serde"] }
 glob = "0.3"
 ignore = "0.4"
 magistr-engine = { workspace = true }
@@ -22,7 +21,7 @@ serde_json = "1"
 serde-saphyr = { workspace = true, features = ["serialize", "deserialize"] }
 shell-escape = "0.1"
 thiserror = "2"
-toml = "1.0.6"
+toml = "1.1.8"
 toml_edit = "0.25"
 tracing = "0.1"
 ureq = "3"

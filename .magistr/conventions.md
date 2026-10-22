@@ -29,6 +29,12 @@
 - Prefer iterators and combinators over manual loops. Chain `.map()`, `.filter()`, `.collect()`.
 - Use `enum` with variants over boolean flags or stringly-typed dispatch.
 
+## File Structure
+
+- **Cohesive modules, not item counts.** A module holds the public types and behavior that change together (one decision, one contract). Several `pub` items may share a file when it is a facade internal: its parent declares it `mod name;` (never `pub mod`) and re-exports the surface with `pub use name::…`, it opens with a `//!` doc naming what the items decide together and why they change together, and it has its companion `{name}.tests.rs`. A file reached through a public module path exports at most one item. `pub mod`, `pub use` and impl blocks never count.
+- **Tests in separate files.** Unit tests go in `{name}.tests.rs`, NOT inline `#[cfg(test)] mod tests {}` blocks. The test file uses `use super::*;` to access the parent module's internals.
+- **Fitness over structure.** The checks that carry this policy are behavior and boundary tests: the companion suites, the dependency-direction rule, and the `domain_boundary` / `application_boundary` suites. Enforced by `scripts/lint-structure.sh` on the owned crates; `.magistr/lint-structure-allowlist.txt` is a grandfathered baseline that is pruned, never extended. Imported subsystems keep their own per-file ratchets.
+
 ## Async
 
 - Use `tokio` as the async runtime. Annotate entry points with `#[tokio::main]` or `#[tokio::test]`.
@@ -57,14 +63,13 @@
 
 ## Testing
 
-- Inline unit tests in `#[cfg(test)] mod tests {}` at the bottom of each module.
+- Unit tests in `{name}.tests.rs` files alongside the module they test.
 - Integration tests in `tests/` directory.
 - Use `assert_eq!`, `assert_ne!`, `assert!(cond, "message")`. Prefer `assert_matches!` for enum variants.
 - Test error paths, not just happy paths.
 - Use `tempfile` for filesystem tests — never write to fixed paths.
 - Use `#[tokio::test]` for async tests. Prefer `tokio::time::pause()` over real sleeps.
 - Use `insta` for snapshot testing complex output (serialized structs, rendered UI, error messages).
-- Prefer `proptest` or `quickcheck` for property-based testing of pure functions.
 
 ## Workspace
 

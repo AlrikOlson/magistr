@@ -66,10 +66,13 @@ def check(root):
 
     project = json.loads((root / ".magistr/project.json").read_text())
     require(project.get("roadmap_exports") is False, "roadmap_exports must remain false")
-    settings = json.loads((root / ".claude/settings.json").read_text())
-    require("mcp__magistr__roadmap_export" in settings.get("permissions", {}).get("deny", []),
-            "the checked-in Claude export-tool denial must remain enabled")
-    # Codex configuration is intentionally local/ignored; check it when present.
+    # Generated agent setup is local/ignored (`magistr init`); check each client
+    # when present. The tracked owner of the policy is roadmap_exports above.
+    settings_path = root / ".claude/settings.json"
+    if settings_path.is_file():
+        settings = json.loads(settings_path.read_text())
+        require("mcp__magistr__roadmap_export" in settings.get("permissions", {}).get("deny", []),
+                "the local Claude export-tool denial must remain enabled")
     codex_path = root / ".codex/config.toml"
     if codex_path.is_file():
         codex = tomllib.loads(codex_path.read_text())

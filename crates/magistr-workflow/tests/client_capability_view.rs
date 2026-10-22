@@ -47,7 +47,7 @@ use magistr_workflow::think::engine::core::ReasoningServer;
 use rmcp::{
     ClientHandler, RoleClient, ServiceExt,
     model::{
-        CallToolRequestParams, ClientCapabilities, ClientInfo, ElicitationCapability,
+        CallToolRequestParams, ClientCapabilities, ClientConfig, ElicitationCapability,
         Implementation, TASKS_EXTENSION_ID,
     },
 };
@@ -78,8 +78,8 @@ struct DeclaringClient {
 }
 
 impl ClientHandler for DeclaringClient {
-    fn get_info(&self) -> ClientInfo {
-        let mut info = ClientInfo::default();
+    fn get_info(&self) -> ClientConfig {
+        let mut info = ClientConfig::default();
         let mut builder = ClientCapabilities::builder();
         if self.declares.tasks {
             builder = builder.enable_tasks();

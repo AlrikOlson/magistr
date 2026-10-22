@@ -178,7 +178,7 @@ impl WorkItem {
         // or the cheap skip in the projector eats the projectId attach and the
         // container stays empty for every already-mirrored issue.
         feed(&mut h, self.group.as_deref().unwrap_or(""));
-        format!("{:x}", h.finalize())
+        hex::encode(h.finalize())
     }
 }
 

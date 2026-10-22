@@ -35,7 +35,7 @@ impl SourceManifest {
             frame(&mut digest, &entry.size.to_le_bytes());
             frame(&mut digest, entry.digest.as_bytes());
         }
-        format!("{:x}", digest.finalize())
+        hex::encode(digest.finalize())
     }
 
     /// The paths that differ between this manifest and a later observation.

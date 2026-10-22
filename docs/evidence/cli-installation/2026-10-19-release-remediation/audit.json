@@ -736,6 +736,6 @@
   ],
   "worktree": {
     "policy": "Evidence and release documentation commits after the selected source do not alter product, build, package or workflow inputs. Final Git cleanliness and restored administrator enforcement are recorded by native launch-administration checks after the final evidence push.",
-    "preservedBackup": "/Users/alrik/Backups/magistr-migration-20260909T165550Z/gui2-preview"
+    "preservedBackup": "/Users/maintainer/Backups/magistr-migration-20260909T165550Z/gui2-preview"
   }
 }

@@ -51,10 +51,8 @@ fn b64url(bytes: &[u8]) -> String {
 /// 32 bytes from the OS CSPRNG. Both the verifier and the CSRF state need
 /// unguessable values; a weak source here defeats both at once.
 fn random_32() -> [u8; 32] {
-    use chacha20poly1305::aead::rand_core::RngCore;
-    let mut bytes = [0u8; 32];
-    chacha20poly1305::aead::OsRng.fill_bytes(&mut bytes);
-    bytes
+    use chacha20poly1305::aead::Generate;
+    <[u8; 32]>::generate()
 }
 
 /// A PKCE verifier/challenge pair (RFC 7636, S256).

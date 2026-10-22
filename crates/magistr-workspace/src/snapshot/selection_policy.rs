@@ -74,7 +74,7 @@ impl SelectionPolicy {
                 frame(&mut digest, root.as_bytes());
             }
         }
-        format!("{:x}", digest.finalize())
+        hex::encode(digest.finalize())
     }
 
     /// Configuration then artifacts, in declaration order.

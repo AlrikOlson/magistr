@@ -175,7 +175,10 @@ def cargo_errors(root):
                     f"production package resolves outside the repository: {package['name']}")
     majors = {int(packages[package_id]["version"].split(".")[0]) for package_id in native_graph
               if packages[package_id]["name"] == "wasmtime"}
-    require(majors == {36, 48}, "native default features must retain parser Wasmtime 36 and extension Wasmtime 48")
+    # tree-sitter 0.27 moved the parser lane onto the extension host's Wasmtime,
+    # so both lanes compile one major; a split would reintroduce the double
+    # compile and the Mach-port trap hazard the sandbox comments describe.
+    require(majors == {48}, "native default features must run the parser and extension lanes on one Wasmtime major (48)")
     return errors
 
 

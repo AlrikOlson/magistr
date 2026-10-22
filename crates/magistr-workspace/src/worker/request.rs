@@ -157,7 +157,7 @@ impl WorkerRequest {
         let mut hash = HashWriter(Sha256::new());
         serde_json::to_writer(&mut hash, self).ok()?;
         let label: String = label.chars().take(120).collect();
-        Some(format!("{label}:{:x}", hash.0.finalize()))
+        Some(format!("{label}:{}", hex::encode(hash.0.finalize())))
     }
 }
 

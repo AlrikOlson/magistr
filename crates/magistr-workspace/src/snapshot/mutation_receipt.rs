@@ -118,7 +118,7 @@ impl MutationReceipt {
                 frame(&mut digest, file.kind.as_bytes());
                 frame(&mut digest, file.after_hash.as_bytes());
             }
-            format!("{:x}", digest.finalize())
+            hex::encode(digest.finalize())
         });
         Self {
             journal_seq: op.seq,

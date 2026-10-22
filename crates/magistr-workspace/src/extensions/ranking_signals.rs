@@ -568,7 +568,7 @@ async fn score_and_log(
             .map(|s| s.pkg.clone())
             .collect()
     };
-    let query_hash = format!("{:x}", Sha256::digest(query.as_bytes()));
+    let query_hash = hex::encode(Sha256::digest(query.as_bytes()));
     append_shadow_log(
         inner,
         &json!({

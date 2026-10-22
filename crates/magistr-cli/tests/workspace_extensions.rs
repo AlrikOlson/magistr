@@ -58,7 +58,7 @@ const ECHO_TOOL_WAT: &str = r#"
       (i32.const 16)))
   (core instance $i (instantiate $m))
   (func (export "invoke") (param "payload" string) (result string)
-    (canon lift (core func $i "echo") (memory $i "mem") (realloc (func $i "realloc"))))
+    (canon lift (core func $i "echo") (memory (core memory $i "mem")) (realloc (core func $i "realloc"))))
 )
 "#;
 
@@ -86,7 +86,7 @@ const CRASH_TOOL_WAT: &str = r#"
     (func (export "boom") (param i32 i32) (result i32) unreachable))
   (core instance $i (instantiate $m))
   (func (export "invoke") (param "payload" string) (result string)
-    (canon lift (core func $i "boom") (memory $i "mem") (realloc (func $i "realloc"))))
+    (canon lift (core func $i "boom") (memory (core memory $i "mem")) (realloc (core func $i "realloc"))))
 )
 "#;
 
