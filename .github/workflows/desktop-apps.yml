@@ -16,7 +16,8 @@ jobs:
   package:
     name: Desktop checks and installer (macOS)
     runs-on: macos-15
-    timeout-minutes: 30
+    # Cold desktop lint and test builds measured 621 s and about 600 s on 2026-10-22.
+    timeout-minutes: 45
     defaults:
       run:
         shell: bash
@@ -43,7 +44,6 @@ jobs:
             crates/magistr-desktop -> target
           shared-key: desktop
           cache-workspace-crates: true
-          key: ${{ hashFiles('crates/**/*.rs', 'crates/magistr-desktop/ui/**', 'scripts/desktop*.mjs') }}
       - name: Install desktop test dependencies
         run: npm ci --prefix crates/magistr-desktop
       - name: Verify formatting, launcher and input contracts
@@ -54,7 +54,7 @@ jobs:
       - name: Check and lint development desktop targets
         run: python3 -B scripts/ci_timing.py --name desktop-lint --budget 900 -- cargo clippy --manifest-path crates/magistr-desktop/Cargo.toml --all-targets --target "$DESKTOP_TARGET" --locked -- -D warnings
       - name: Compile development desktop tests
-        run: python3 -B scripts/ci_timing.py --name desktop-test-build --budget 600 -- cargo nextest run --manifest-path crates/magistr-desktop/Cargo.toml --target "$DESKTOP_TARGET" --locked --no-run
+        run: python3 -B scripts/ci_timing.py --name desktop-test-build --budget 900 -- cargo nextest run --manifest-path crates/magistr-desktop/Cargo.toml --target "$DESKTOP_TARGET" --locked --no-run
       - name: Test development desktop
         run: python3 -B scripts/ci_timing.py --name desktop-tests --budget 180 -- cargo nextest run --manifest-path crates/magistr-desktop/Cargo.toml --target "$DESKTOP_TARGET" --locked
       - name: Build native app and installer

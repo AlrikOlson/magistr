@@ -25,7 +25,6 @@ jobs:
         with:
           shared-key: cli-release
           cache-workspace-crates: true
-          key: ${{ hashFiles('crates/**/*.rs', 'scripts/package-release.sh') }}
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version-file: .node-version

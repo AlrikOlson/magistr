@@ -77,9 +77,10 @@ jobs:
       - run: rustup show active-toolchain
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
         with:
+          # Keyed on lockfiles and toolchain only: a source change must restore
+          # the dependency and workspace artifacts and rebuild just the changed crates.
           shared-key: ci-rust
           cache-workspace-crates: true
-          key: ${{ hashFiles('crates/**/*.rs', 'crates/**/build.rs', '.config/nextest.toml') }}
       - uses: ./.github/actions/install-nextest
       - name: Check selected Rust targets and compile their tests once
         env:
@@ -270,7 +271,7 @@ jobs:
     if: needs.plan.outputs.package == 'true' && needs.plan.outputs.reuse != 'true'
     name: Package and verify (macOS)
     runs-on: macos-15
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -280,9 +281,9 @@ jobs:
         with:
           shared-key: cli-release
           cache-workspace-crates: true
-          key: ${{ hashFiles('crates/**/*.rs', 'scripts/package-release.sh') }}
+      # A cold release build of the whole workspace measured 742 s on 2026-10-22.
       - name: Build host archive
-        run: python3 -B scripts/ci_timing.py --name cli-package --budget 720 -- bash scripts/package-release.sh
+        run: python3 -B scripts/ci_timing.py --name cli-package --budget 1200 -- bash scripts/package-release.sh
       - name: Verify archive checksums
         run: cd target/release-dist && for checksum in *.sha256; do shasum -a 256 -c "$checksum"; done
       - name: Save timing evidence
