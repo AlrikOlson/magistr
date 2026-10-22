@@ -1,11 +1,17 @@
 # CLI package release
 
-**Current release boundary:** the [19 October remediation audit and full checklist](evidence/cli-installation/2026-10-19-release-remediation/README.md)
+**Current release boundary:** the first public version is **`1.0.0-beta.1`**, a
+semver pre-release on the npm `beta` channel; the
+[21 October beta-1 candidate record](evidence/cli-installation/2026-10-21-beta-1-candidate/README.md)
+describes the version, channel and remaining owner actions. The
+[19 October remediation audit and full checklist](evidence/cli-installation/2026-10-19-release-remediation/README.md)
 record the corrected source, qualified Cargo/npm artifacts, current security results,
-real-client checks and reviewed screenshots. Publication still requires the owner's
-registry credentials, repository visibility decision and approval of the exact
-candidate. Recheck the security receipt's 24-hour validity before uploading.
-The [original audit](evidence/cli-installation/2026-10-19-release-audit/README.md)
+real-client checks and reviewed screenshots; its engineering results still apply
+and a fresh hosted package run is required for the beta-1 source. Publication
+still requires the owner's registry credentials, repository visibility decision
+and approval of the exact candidate. Recheck the security receipt's 24-hour
+validity before uploading. The
+[original audit](evidence/cli-installation/2026-10-19-release-audit/README.md)
 is retained as the historical record of findings that prompted these fixes.
 
 The first package target is Apple Silicon running macOS 15 or later. Clean
@@ -24,13 +30,29 @@ Gatekeeper behavior for a browser-downloaded archive.
 ## Version management
 
 The authoritative product version is `workspace.package.version` in the root
-`Cargo.toml`. Keep the first public release at `0.1.0`; `1.0.0` signals a
-stable public API. See [Semantic Versioning](https://semver.org/).
+`Cargo.toml`. The first public version is `1.0.0-beta.1`; the beta line
+(`1.0.0-beta.N`) precedes the stable `1.0.0`, which signals a stable public
+API. Pre-release identifiers follow [Semantic Versioning](https://semver.org/):
+a hyphen, then dot-separated identifiers (`1.0.0-beta.1`, never `1.0.0.beta-1`).
+The version owner refuses any other spelling before writing.
+
+The version also decides the **release channel**. `python3 scripts/version.py channel`
+prints the npm dist-tag for the canonical version: `beta` for a pre-release,
+`latest` for a stable version. Every publication consumer derives the tag from
+the reviewed artifact version rather than hard-coding it: the publish workflow
+passes it to `npm publish --tag`, the release-stage public gate verifies the
+package on that tag, and the hosted npm verification serves the packed artifact
+on the same tag. `latest` therefore stays reserved for `1.0.0`.
+
+Cargo has no channels. `cargo install` avoids pre-release versions unless one is
+named explicitly, so pre-release installation instructions must pin the exact
+version (`cargo install magistr-cli@1.0.0-beta.1 --locked`). Internal registry
+requirements are exact (`=1.0.0-beta.1`) and need no change.
 
 Use one command for a release version change:
 
 ```sh
-python3 scripts/version.py set 0.2.0
+python3 scripts/version.py set 1.0.0-beta.2
 python3 scripts/version.py check
 ```
 
@@ -153,11 +175,15 @@ with the owner's npm login and interactive 2FA; do not publish a placeholder:
 ```sh
 reviewed=$(python3 scripts/cli-release.py verify --out target/cli-distribution --source REVIEWED_SOURCE_SHA)
 npm_archive=$(printf '%s' "$reviewed" | python3 -c 'import json,sys; print(json.load(sys.stdin)["npm"])')
+npm_tag=$(printf '%s' "$reviewed" | python3 -c 'import json,sys; print(json.load(sys.stdin)["npmTag"])')
 ./scripts/public-link-check.sh --stage publication
-npm publish "target/cli-distribution/$npm_archive" --access public
+npm publish "target/cli-distribution/$npm_archive" --access public --tag "$npm_tag"
 ```
 
 This command publishes the first npm package. Run it only after authorization.
+The dist-tag comes from the verified artifact (`beta` for `1.0.0-beta.1`), so a
+pre-release never lands on `latest`; a wrongly tagged upload is corrected with
+`npm dist-tag`, never by unpublishing.
 After that upload, configure the package's trusted publisher at
 [npm package settings](https://www.npmjs.com/package/magistr/access):
 
@@ -186,9 +212,10 @@ repositories. Private repositories can publish but do not receive that provenanc
 
 ## Verify deployed launch information
 
-The public gate checks rendered installation instructions, including selected
-agents and the planning boundary, as well as anonymous reachability. HTTP 200
-alone is insufficient: an old guide or a redirect to an unrelated page fails.
+The public gate checks the rendered installation, agent setup, upgrade and
+uninstall guides for their current commands and the planning boundary, as well
+as anonymous reachability. HTTP 200 alone is insufficient: an old guide or a
+redirect to an unrelated page fails.
 
 Use the stage that matches the work being checked:
 
@@ -212,10 +239,13 @@ returns to the report form. It does not require packages to exist yet.
 [GitHub reporting API](https://docs.github.com/en/rest/repos/repos#check-if-private-vulnerability-reporting-is-enabled-for-a-repository)
 
 The release stage also requires the current Cargo version, the current npm
-latest version, and removal of the unpublished-package notice. The publisher
-runs the publication stage before uploads. Every push and pull request checks the
-deployed website stage. The manual/tag release-readiness workflow runs the release
-stage and fails when any required check fails.
+version on its channel dist-tag (`beta` for a pre-release, `latest` for a
+stable version), and removal of the unpublished-package notice. The publisher
+runs the publication stage before uploads. The readiness workflow's public
+endpoint job checks the deployed website stage on its weekly schedule and runs
+the release stage on manual and tag runs, failing when any required check
+fails; pushes and pull requests verify the built site, not the deployment, so
+run the website stage locally after changing the manual.
 No stage changes repository visibility, enables reporting, deploys the website
 or publishes packages.
 
@@ -261,8 +291,9 @@ Account overrides can differ. This is registry waiting, not a build: the
 publisher performs no Rust compilation and bounds waiting to two hours.
 [Current registry quota implementation](https://github.com/rust-lang/crates.io/blob/6cf63268f7fac38f8d255bbb22497c8ecff35d57/src/rate_limiter.rs)
 
-The npm job uses trusted publishing after first-publication setup. Selecting
-Cargo alone allows the first Cargo release without attempting npm OIDC.
+The npm job uses trusted publishing after first-publication setup and passes
+the dist-tag reported by the artifact verification. Selecting Cargo alone
+allows the first Cargo release without attempting npm OIDC.
 
 ### Continue an interrupted Cargo publication
 
@@ -311,14 +342,23 @@ unpublish a package expecting to reuse its version.
 No package is published by preparing or verifying artifacts. The owner declares
 public release separately.
 
+### Tag and announce
+
+After both registry uploads pass their real-registry installation and hash
+checks, and the installation guide no longer says packages are unpublished,
+create the annotated tag `v1.0.0-beta.1` on the reviewed source and a GitHub
+release marked **pre-release** with the candidate's release notes and checksums.
+Pushing a `v*` tag runs the release-stage public gate, which must pass. Do not
+tag before the uploads: the gate would fail on the missing registry versions.
+
 ## Install, upgrade, repair and remove
 
-After publication:
+After publication of the beta:
 
 ```sh
-cargo install magistr-cli --locked
+cargo install magistr-cli@1.0.0-beta.1 --locked
 # or:
-npm install --global magistr
+npm install --global magistr@beta
 
 magistr init
 magistr doctor
@@ -328,9 +368,14 @@ magistr remove --dry-run
 magistr remove --yes
 ```
 
-Upgrade with `cargo install magistr-cli --locked --force` or
-`npm install --global magistr@latest`, then explicitly run `magistr repair`
-in each project. npx-generated configurations pin the package version; run the
+The Cargo command names the exact version because `cargo install` skips
+pre-releases otherwise. The npm `beta` tag resolves to the current beta.
+Stable releases use `cargo install magistr-cli --locked` and
+`npm install --global magistr` once `1.0.0` is published on `latest`.
+
+Upgrade with `cargo install magistr-cli@<version> --locked --force` or
+`npm install --global magistr@beta` (stable: `magistr@latest`), then explicitly
+run `magistr repair` in each project. npx-generated configurations pin the package version; run the
 new version's setup/repair to update them. Existing sessions keep their admitted
 owners until closed; reopen clients to use a new installation.
 

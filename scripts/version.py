@@ -10,10 +10,16 @@ import tomllib
 ROOT = Path(__file__).resolve().parents[1]
 NUMBER = r"(?:0|[1-9][0-9]*)"
 IDENTIFIER = rf"(?:{NUMBER}|[0-9]*[A-Za-z-][0-9A-Za-z-]*)"
-SEMVER = re.compile(rf"{NUMBER}\.{NUMBER}\.{NUMBER}(?:-{IDENTIFIER}(?:\.{IDENTIFIER})*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?")
+SEMVER = re.compile(rf"{NUMBER}\.{NUMBER}\.{NUMBER}(?P<prerelease>-{IDENTIFIER}(?:\.{IDENTIFIER})*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?")
 JSON_COPIES = ("npm/magistr/package.json", "plugins/magistr/.claude-plugin/plugin.json")
 PRIVATE_PACKAGES = ("apps/website/package.json", "crates/magistr-desktop/package.json")
 DESKTOP = "crates/magistr-desktop/Cargo.toml"
+# Release channels. A semver pre-release such as 1.0.0-beta.1 is published and
+# verified on the npm `beta` dist-tag; `latest` is reserved for stable versions.
+# Cargo has no dist-tags: `cargo install` skips pre-releases unless the exact
+# version is named, so pre-release install instructions must pin it.
+PRERELEASE_TAG = "beta"
+STABLE_TAG = "latest"
 
 
 def toml(path):
@@ -25,6 +31,14 @@ def product_version(root=ROOT):
     if not isinstance(version, str) or not SEMVER.fullmatch(version):
         raise ValueError("workspace.package.version must be a semantic version")
     return version
+
+
+def npm_dist_tag(version):
+    """The npm dist-tag a product version is published and verified on."""
+    match = SEMVER.fullmatch(version) if isinstance(version, str) else None
+    if match is None:
+        raise ValueError("Use a semantic version such as 1.0.0 or 1.0.0-beta.1")
+    return PRERELEASE_TAG if match.group("prerelease") else STABLE_TAG
 
 
 def members(root):
@@ -164,6 +178,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="action", required=True)
     commands.add_parser("show", help="Print the canonical release version")
+    commands.add_parser("channel", help="Print the npm dist-tag the canonical version publishes on")
     commands.add_parser("check", help="Refuse version or lockfile drift without writing")
     commands.add_parser("sync", help="Regenerate metadata from the canonical version")
     change = commands.add_parser("set", help="Change the version and regenerate all release metadata")
@@ -172,6 +187,8 @@ def main():
     try:
         if args.action == "show":
             print(product_version())
+        elif args.action == "channel":
+            print(npm_dist_tag(product_version()))
         elif args.action == "check":
             print(f"Release version {check()} is consistent")
         else:

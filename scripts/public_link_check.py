@@ -11,20 +11,28 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-from version import product_version
+from version import npm_dist_tag, product_version
 
 REPOSITORY = "AlrikOlson/magistr"
 SITE = "https://magistr.dev"
-GUIDE_CONTRACT = (
-    "Setup adds files only for the agents you choose.",
-    "Setup does not start implementation.",
-    "magistr doctor .",
-    "magistr repair . --dry-run",
-    "magistr remove . --dry-run",
-    "magistr init . --agent codex --yes",
-    "magistr init . --agent claude --yes",
-    "magistr init . --agent portable --yes",
-)
+# The deployed manual splits the launch instructions across four guides. Each
+# guide must still show its current commands and the planning boundary; an old
+# deployment or an unrelated redirect fails even when it answers 200.
+GUIDE_CONTRACT = {
+    "installation": (
+        "magistr --version",
+        "Apple Silicon macOS 15 or later",
+    ),
+    "agents": (
+        "magistr init . --agent codex --yes",
+        "magistr init . --agent claude --yes",
+        "magistr init . --agent portable --yes",
+        "magistr doctor .",
+        "It does not start implementation.",
+    ),
+    "upgrades": ("magistr repair . --dry-run",),
+    "uninstall": ("magistr remove . --dry-run",),
+}
 OBSOLETE_GUIDE = ("Claude Code setup is always written", "think-and-ship", "workbench-mcp")
 
 
@@ -89,6 +97,9 @@ def audit(stage, version, *, site=SITE, repository=REPOSITORY, github="https://g
         raise ValueError("Unknown public readiness stage")
     if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository):
         raise ValueError("Invalid GitHub repository")
+    # A pre-release is published on the `beta` dist-tag and must be verified
+    # there; `latest` serving the same version would be a mis-tagged upload.
+    npm_tag = npm_dist_tag(version)
     checks = []
 
     def record(name, url, response, passed, detail):
@@ -104,15 +115,20 @@ def audit(stage, version, *, site=SITE, repository=REPOSITORY, github="https://g
 
     page("Website", site.rstrip("/") + "/")
     guide_url = site.rstrip("/") + "/docs/installation/"
-    guide = page("Installation guide", guide_url)
-    parser = VisibleText()
-    parser.feed(guide["body"])
-    rendered = parser.text()
-    missing = [text for text in GUIDE_CONTRACT if text not in rendered]
-    obsolete = [text for text in OBSOLETE_GUIDE if text.casefold() in rendered.casefold()]
-    record("Current installation behavior", guide_url, guide, not missing and not obsolete,
-           json.dumps({"missing": missing, "obsolete": obsolete}) if missing or obsolete
-           else "Selected-agent setup, planning boundary, doctor, repair and removal are current")
+    rendered = ""
+    for name, required in GUIDE_CONTRACT.items():
+        url = site.rstrip("/") + f"/docs/{name}/"
+        guide = page(f"{name.capitalize()} guide", url)
+        parser = VisibleText()
+        parser.feed(guide["body"])
+        text = parser.text()
+        if name == "installation":
+            rendered = text
+        missing = [item for item in required if item not in text]
+        obsolete = [item for item in OBSOLETE_GUIDE if item.casefold() in text.casefold()]
+        record(f"Current {name} guide", url, guide, not missing and not obsolete,
+               json.dumps({"missing": missing, "obsolete": obsolete}) if missing or obsolete
+               else "Current commands and planning boundary are deployed")
 
     if stage in ("publication", "release"):
         repo_url = github.rstrip("/") + "/" + repository
@@ -148,7 +164,7 @@ def audit(stage, version, *, site=SITE, repository=REPOSITORY, github="https://g
                "Installation page still says packages are unpublished" if unpublished
                else "Installation instructions no longer claim packages are unpublished")
         for label, url, identity in (
-            ("Published npm version", npm.rstrip("/") + "/magistr/latest",
+            ("Published npm version", npm.rstrip("/") + f"/magistr/{npm_tag}",
              lambda value: value.get("name") == "magistr" and value.get("version") == version),
             ("Published Cargo version", cargo.rstrip("/") + f"/api/v1/crates/magistr-cli/{version}",
              lambda value: value.get("version", {}).get("crate") == "magistr-cli"
@@ -163,7 +179,7 @@ def audit(stage, version, *, site=SITE, repository=REPOSITORY, github="https://g
             record(label, url, response, matches,
                    f"Registry serves {version}" if matches else f"Registry does not serve the expected {version}")
 
-    return {"schema": 1, "stage": stage, "version": version,
+    return {"schema": 1, "stage": stage, "version": version, "npmTag": npm_tag,
             "checkedAt": datetime.now(timezone.utc).isoformat(),
             "passed": all(check["passed"] for check in checks), "checks": checks}
 
