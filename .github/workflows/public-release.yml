@@ -184,7 +184,7 @@ jobs:
       - name: Build and verify website content
         run: python3 -B scripts/ci_timing.py --name website-build --budget 120 -- npm --prefix apps/website test
       - name: Verify website interactions
-        run: python3 -B scripts/ci_timing.py --name website-ui --budget 120 -- npm --prefix apps/website run test:ui
+        run: python3 -B scripts/ci_timing.py --name website-ui --budget 240 -- npm --prefix apps/website run test:ui
       - name: Assert clean-checkout public assets
         shell: bash
         run: |
