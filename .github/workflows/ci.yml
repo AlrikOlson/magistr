@@ -330,7 +330,7 @@ jobs:
   # The one required status check for main. Every job the plan selected must have
   # succeeded; every job it did not select must have been skipped, never missing.
   ci:
-    name: Rust and website gates
+    name: CI
     needs: [plan, policy, rust-build, rust-tests, website, contracts, visual, desktop, package]
     if: always()
     runs-on: ubuntu-latest

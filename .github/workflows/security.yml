@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   security:
-    name: Current dependency and secret checks
+    name: Security
     # The scan evaluates the macOS release target graph on any host; Linux keeps
     # the five concurrent macOS jobs free for builds.
     runs-on: ubuntu-latest
