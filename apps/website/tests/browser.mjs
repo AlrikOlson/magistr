@@ -31,6 +31,11 @@ async function playbackLayout(page){
  if(metrics.width<=600)assert(metrics.sliderWidth>230,"Compact timeline has room to scrub precisely");
 }
 async function seek(page,index){await page.locator('[aria-label="Recorded action"]').evaluate((e,n)=>{e.value=String(n);e.dispatchEvent(new Event("input",{bubbles:true}));},index);await page.waitForFunction(i=>document.querySelector("[data-terminal]").dataset.renderedIndex===String(i),index);}
+// The rendered screen, row by row. The host also contains xterm's aria-live
+// region, which fills on a debounced render and is never emptied by reset(), so
+// text from a canceled stream can legitimately linger there after a seek.
+const screenText=async page=>(await page.locator("[data-terminal] .xterm-rows>div").allTextContents()).join("\n");
+const settled=page=>page.waitForFunction(()=>document.querySelector("[data-terminal]").dataset.streaming!=="true");
 const changeIndex=recording.events.findLastIndex(e=>e.file?.path==="src/main.rs");
 const checkIndex=recording.events.findIndex(e=>e.check?.verified&&!e.check.passed);
 const diagnosticIndex=recording.events.findIndex(e=>e.output.includes("collapsible_if"));
@@ -155,7 +160,7 @@ try{
    // Coalesce quick seeks; neither the terminal nor project readers may retain the future.
    await page.locator('[aria-label="Recorded action"]').evaluate(e=>{for(const i of [60,5,45,0]){e.value=String(i);e.dispatchEvent(new Event("input",{bubbles:true}));}});
    await page.waitForFunction(()=>document.querySelector("[data-terminal]").dataset.renderedIndex==="0");
-   assert(!(await page.locator("[data-terminal]").textContent()).includes("Tactical policy as"));
+   assert(!(await screenText(page)).includes("Tactical policy as"));
    await capture(page,"terminal-start-"+suffix,"Opening human request in the Codex prompt gutter",{region:".build-window"});
    await openView(page,"checks");assert((await page.locator("[data-record-view]").textContent()).includes("No checks"));
    await page.getByRole("button",{name:"Close details",exact:true}).click();
@@ -216,10 +221,11 @@ try{
     await page.locator("[data-play]").click();
     await page.waitForFunction(n=>Number(document.querySelector("[data-terminal]").dataset.revealed)>Number(n),paused);
     await page.locator("[data-speed]").selectOption("4");
-    await seek(page,0);
-    await page.waitForTimeout(100);
+    await seek(page,0);await settled(page);
     assert.equal(await page.locator("[data-terminal]").getAttribute("data-rendered-index"),"0","Scrubbing cancels an active stream");
-    assert(!(await page.locator("[data-terminal]").textContent()).includes("playable board"),"Canceled text cannot arrive after a seek");
+    const screen=await screenText(page);
+    assert(!/playable\s+board/.test(screen),"Canceled text cannot arrive after a seek");
+    assert(/good\s+fit/.test(screen),"The seek target is on screen");
     const finalReply=recording.events.findLastIndex((e,i)=>e.kind==="message"&&i<=end);
     await seek(page,finalReply);await page.locator("[data-speed]").selectOption("1");
     await page.locator("[data-play]").click();
