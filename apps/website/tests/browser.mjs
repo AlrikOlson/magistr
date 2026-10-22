@@ -4,7 +4,7 @@ import {createHash} from "node:crypto";
 import {resolve,dirname,extname,sep} from "node:path";
 import {fileURLToPath} from "node:url";
 import {webkit} from "playwright";
-import {chapters} from "../src/data/build-recording.mjs";
+import {chapters,walkthroughEnd} from "../src/data/build-recording.mjs";
 import {explanationFor} from "../src/data/build-explanations.mjs";
 import {root,repo,dist,arg,startServer,configureNetwork,stable,noOverflow,tree} from "./browser-support.mjs";
 const captureOnly=arg("--capture-only")?new RegExp(arg("--capture-only")):null;
@@ -12,7 +12,7 @@ const evidence=arg("--evidence-dir")?resolve(repo,arg("--evidence-dir")):null;
 if(evidence){assert(evidence.startsWith(resolve(repo,"docs/evidence/desktop-iterations")+sep));await mkdir(evidence,{recursive:true});assert(!(await readdir(evidence)).some(n=>n.endsWith(".png")),"Use a new iteration folder");}
 const {server,origin}=await startServer();
 const browser=await webkit.launch(),captures=[],checks=[],errors=[];
-const recording=JSON.parse(await readFile(resolve(root,"public/demo/tic-tac-toe/recording.json"),"utf8")),parts=chapters(recording);
+const recording=JSON.parse(await readFile(resolve(root,"public/demo/tic-tac-toe/recording.json"),"utf8")),parts=chapters(recording),end=walkthroughEnd(recording);
 const sourcePaths=evidence?[...await tree("apps/website/src"),...await tree("crates/magistr-desktop/ui"),...await tree("apps/website/scripts"),"apps/website/astro.config.mjs","apps/website/package.json","apps/website/package-lock.json","apps/website/tests/browser.mjs","apps/website/public/demo/tic-tac-toe/recording.json","apps/website/public/demo/tic-tac-toe/manifest.json"]:[];
 const sourceHashes=Object.fromEntries(await Promise.all(sourcePaths.map(async p=>[p,createHash("sha256").update(await readFile(resolve(repo,p))).digest("hex")])));
 async function capture(page,name,state,{full=false,region,settle=true}={}){
@@ -127,7 +127,7 @@ try{
    await page.keyboard.press("Escape");assert(await page.locator("#build-details").isHidden());
    assert(await page.locator('[data-view="roadmap"]').evaluate(e=>e===document.activeElement));
 
-   await seek(page,parts[2].index);await openView(page,"reasoning");
+   await seek(page,recording.events.findIndex(e=>e.branch?.status==="merged"));await openView(page,"reasoning");
    await capture(page,"reasoning-"+suffix,"Recorded opponent investigation and its conclusion",{region:"#build-details"});
    await page.locator("[data-record-view]").getByRole("button",{name:"The short policy misses a fork when it plays second",exact:width>1000}).click();
    assert((await page.locator(".record-reader").textContent()).includes("Why"));
@@ -144,7 +144,7 @@ try{
    assert(await page.locator(".record-reader .output-code span[style]").count()>10);
    await capture(page,"diagnostic-reader-"+suffix,"Rust code inside the complete compiler diagnostic",{region:"#build-details"});
    await page.getByRole("button",{name:"Close details",exact:true}).click();
-   await seek(page,recording.events.length-1);await openView(page,"work");
+   await seek(page,end);await openView(page,"work");
    assert.equal(await page.locator(".record-list>li").count(),4);
    await page.locator(".record-list button").first().click();
    await page.locator(".record-reader button").filter({hasText:"Passed:"}).first().click();
@@ -170,7 +170,7 @@ try{
    assert.equal(await page.getByRole("button",{name:"Play",exact:true}).getAttribute("aria-pressed"),"false");
 
    // Keep pointer targets stationary through every message, long annotation,
-   // failed check and source change. One batch avoids 98 browser round trips.
+   // failed check and source change. One batch avoids a browser round trip per action.
    await seek(page,0);
    await page.locator(".build-transport").scrollIntoViewIfNeeded();
    const stability=await page.evaluate(async count=>{
@@ -186,10 +186,13 @@ try{
      if(Math.abs(r.top-first.top)>1||Math.abs(r.left-first.left)>1)failures.push({i,top:r.top,left:r.left});
     }
     return failures;
-   },recording.events.length);
-   assert.deepEqual(stability,[],"Step controls stay put through the whole session");
+   },end+1);
+   assert.deepEqual(stability,[],"Step controls stay put through the whole walkthrough");
+   assert.equal(await page.locator("[data-build]").getAttribute("data-index"),String(end),"The timeline stops at the finished game");
+   assert(await page.locator("[data-next]").isDisabled(),"Nothing follows the finished game in the player");
    await page.locator("[data-open-transcript]").click();
-   assert.equal(await page.locator(".session-conversation>li").count(),recording.events.length);
+   assert.equal(await page.locator(".session-conversation>li:not(.conversation-divider)").count(),recording.events.length,"The full session keeps every message, including the ones after the game");
+   assert.equal(await page.locator(".session-conversation>li.conversation-divider").count(),1,"The full session marks where the walkthrough ends");
    assert.equal(await page.locator('.session-conversation [data-role="user"]').count(),2);
    await capture(page,"session-dialog-"+suffix,"Full conversation with timestamps that return to the selected moment",{region:"#build-details"});
    await page.keyboard.press("Escape");
@@ -217,13 +220,14 @@ try{
     await page.waitForTimeout(100);
     assert.equal(await page.locator("[data-terminal]").getAttribute("data-rendered-index"),"0","Scrubbing cancels an active stream");
     assert(!(await page.locator("[data-terminal]").textContent()).includes("playable board"),"Canceled text cannot arrive after a seek");
-    await seek(page,recording.events.length-1);await page.locator("[data-speed]").selectOption("1");
+    const finalReply=recording.events.findLastIndex((e,i)=>e.kind==="message"&&i<=end);
+    await seek(page,finalReply);await page.locator("[data-speed]").selectOption("1");
     await page.locator("[data-play]").click();
     await page.waitForFunction(()=>Number(document.querySelector("[data-terminal]").dataset.revealed)>5);
     await page.locator("[data-play]").click();
-    await capture(page,"stream-final-paused-"+suffix,"Pause the final handover and resume it without restarting the session",{region:".build-window"});
+    await capture(page,"stream-final-paused-"+suffix,"Pause the last reply of the walkthrough and resume it without restarting the session",{region:".build-window"});
     await page.locator("[data-speed]").selectOption("4");await page.locator("[data-play]").click();
-    assert.equal(await page.locator("[data-build]").getAttribute("data-index"),String(recording.events.length-1),"Resume stays on the incomplete final reply");
+    assert.equal(await page.locator("[data-build]").getAttribute("data-index"),String(finalReply),"Resume stays on the incomplete reply");
     await page.getByRole("button",{name:"Play",exact:true}).waitFor();
     await page.locator("[data-play]").click();
     await page.waitForFunction(()=>document.querySelector("[data-build]").dataset.index==="0");

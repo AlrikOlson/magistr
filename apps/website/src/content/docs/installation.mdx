@@ -13,13 +13,12 @@ import { version } from "../../../../../npm/magistr/package.json";
 
 The current source preview is **v{version}**, for **Apple Silicon macOS 15 or
 later**. Magistr has not been publicly released. The
-[repository](https://github.com/AlrikOlson/magistr) requires access, and npm and
+[repository](https://github.com/AlrikOlson/magistr) is public, and npm and
 Cargo registry packages are not published yet.
 
 ## Before you install
 
-You need repository access, Git, Rust **1.95 or later**, and the macOS command-line
-build tools. Check Git and Rust in a terminal:
+You need Git, Rust **1.95 or later**, and the macOS command-line build tools. Check Git and Rust in a terminal:
 
 ```sh
 git --version
@@ -58,7 +57,7 @@ Installation alone does not connect any project or start implementation.
 
 | Symptom | What to do |
 | --- | --- |
-| Git reports that the repository is unavailable | Confirm that your GitHub account has repository access and that Git uses that account. |
+| Git reports that the repository is unavailable | Check your network connection and the repository URL in the clone command. |
 | Rust reports an unsupported version | Install Rust 1.95 or later, then retry the locked build. |
 | A compiler or linker is missing | Finish installing the macOS command-line build tools. |
 | The shell cannot find `magistr` | Add Cargo's binary directory to your shell's `PATH`, reopen the terminal, and run `magistr --version`. |

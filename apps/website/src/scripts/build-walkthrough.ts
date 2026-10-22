@@ -1,4 +1,4 @@
-import {stateAt,chapters,elapsed,kindLabels,statusLabels} from "../data/build-recording.mjs";
+import {stateAt,chapters,elapsed,kindLabels,statusLabels,walkthroughEnd} from "../data/build-recording.mjs";
 import {RoadmapSurface} from "../../../../crates/magistr-desktop/ui/work_roadmap_surface.mjs";
 import {ReasoningMap} from "../../../../crates/magistr-desktop/ui/work_reasoning_map.mjs";
 import "../../../../crates/magistr-desktop/ui/work_surface.css";
@@ -16,7 +16,7 @@ async function setup(root:HTMLElement){
   if(responses.some(r=>!r.ok))throw Error("Recording unavailable");
   const [recording,playback]=await Promise.all(responses.map(r=>r.json()));
   if(recording.version!==1||playback.version!==2||!recording.events?.length||playback.events?.length!==recording.events.length||playback.events.some((e:any,i:number)=>e.id!==recording.events[i].id))throw Error("Recording unavailable");
-  const events=recording.events,parts=chapters(recording);
+  const events=recording.events,parts=chapters(recording),end=walkthroughEnd(recording);
  events.forEach(e=>explanationFor(e.id));
   const host=root.querySelector<HTMLElement>("[data-terminal]")!,details=root.querySelector<HTMLDialogElement>("#build-details")!;
   const panel=root.querySelector<HTMLElement>("#build-panel")!,records=root.querySelector<HTMLElement>("[data-record-view]")!;
@@ -101,8 +101,10 @@ async function setup(root:HTMLElement){
     const list=el("ol","","session-conversation");
     for(const [i,e]of events.entries()){
      const item=el("li");item.dataset.role=e.role??"tool";
+     if(i===end+1)list.append(el("li","After the finished game, the same session published this page. These replies are not part of the walkthrough.","conversation-divider"));
      const heading=el("div","","conversation-heading");
-     heading.append(el("strong",e.kind==="message"?(e.role==="user"?"You":"Codex"):explanationFor(e.id).title),button(elapsed(recording,i)+" ↗",()=>{closeDetails();seek(i,true);}));
+     heading.append(el("strong",e.kind==="message"?(e.role==="user"?"You":"Codex"):explanationFor(e.id).title));
+     if(i<=end)heading.append(button(elapsed(recording,i)+" ↗",()=>{closeDetails();seek(i,true);}));else heading.append(el("span",elapsed(recording,i),"conversation-time"));
      item.append(heading);
      if(e.kind==="message")item.append(cloneOutput(e.id));
      list.append(item);
@@ -138,7 +140,7 @@ async function setup(root:HTMLElement){
   function annotate(){
    const e=events[index],s=stateAt(recording,index),facts=root.querySelector<HTMLElement>("[data-action-facts]")!;
    root.querySelector("[data-action-kind]")!.textContent=e.kind==="message"?(e.role==="user"?"You":"Codex"):kindLabels[e.kind];
-   root.querySelector("[data-action-number]")!.textContent=(index+1)+" / "+events.length;
+   root.querySelector("[data-action-number]")!.textContent=(index+1)+" / "+(end+1);
    const explanation=explanationFor(e.id);
    root.querySelector("[data-action-title]")!.textContent=explanation.title;
    root.querySelector("[data-action-explanation]")!.innerHTML=explanationHTML(explanation);
@@ -167,7 +169,7 @@ async function setup(root:HTMLElement){
   function render(){
    root.dataset.index=String(index);slider.value=String(index);slider.setAttribute("aria-valuetext",elapsed(recording,index)+" · "+explanationFor(events[index].id).title);
    root.querySelector("[data-time]")!.textContent=elapsed(recording,index);
-   prev.disabled=index===0;next.disabled=index===events.length-1;
+   prev.disabled=index===0;next.disabled=index===end;
    const chapter=parts.reduce((found,p,i)=>index>=p.index?i:found,0);
    chapterButtons.forEach((b,i)=>{if(i===chapter)b.setAttribute("aria-current","step");else b.removeAttribute("aria-current");});
    root.querySelector("[data-explanation]")!.textContent=parts[chapter].note;
@@ -175,14 +177,14 @@ async function setup(root:HTMLElement){
    if(view){showDetails(view,false);renderRecords();}
   }
   const seek=(value:number,announce=false)=>{
-   ended=false;index=Math.max(0,Math.min(events.length-1,value));if(view==="file"||view==="output")closeDetails(false);
+   ended=false;index=Math.max(0,Math.min(end,value));if(view==="file"||view==="output")closeDetails(false);
    render();void terminal.seek(index);if(announce)root.querySelector(".build-announcement")!.textContent=explanationFor(events[index].id).title;
   };
   const playCurrent=async()=>{
    const run=++cycle;
    await terminal.play(index,Number(speed.value));
    if(!playing||run!==cycle)return;
-   if(index>=events.length-1){ended=true;stop();return;}
+   if(index>=end){ended=true;stop();return;}
    const delay=Math.max(800,Math.min(4000,(Date.parse(events[index+1].at)-Date.parse(events[index].at))))/Number(speed.value);
    timer=setTimeout(()=>{timer=undefined;index++;render();void playCurrent();},delay);
   };

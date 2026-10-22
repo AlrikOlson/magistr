@@ -30,7 +30,10 @@ suites; documentation scenarios live in `tests/docs-browser.mjs`.
 
  The landing page's only interactive
 example is BuildWalkthrough.astro and build-walkthrough.ts. It replays the
-allowlisted records in public/demo/tic-tac-toe/recording.json.
+allowlisted records in public/demo/tic-tac-toe/recording.json. The player
+and its chapters stop at `walkthroughEnd`, the last recorded project action;
+the replies that then published this site stay in the full session behind a
+divider. The page says plainly that the session built its own example.
 
 terminal-playback.ts owns the read-only xterm.js terminal. Seeking rebuilds its
 scrollback up to the current entry; queued writes coalesce to the latest seek.

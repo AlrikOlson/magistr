@@ -1,7 +1,7 @@
 {
   "name": "Magistr",
   "short_name": "Magistr",
-  "description": "Project planning for Codex and Claude Code.",
+  "description": "Build bigger projects with your coding agent.",
   "start_url": "/",
   "display": "browser",
   "background_color": "#fafaf7",

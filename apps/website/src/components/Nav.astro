@@ -35,7 +35,7 @@ const current = Astro.url.pathname;
   </div>
   <ul id="mobile-menu" class="mobile-menu" data-mobile-menu hidden>
     {links.map(({ label, href }) => <li><a href={href} aria-current={href === "/docs" && current.startsWith("/docs") ? "location" : href === current.replace(/\/$/, "") ? "page" : undefined}>{label}</a></li>)}
-    <li><a href="https://github.com/AlrikOlson/magistr" target="_blank" rel="noopener noreferrer">Repository (access required)<span class="sr-only">(opens in a new tab)</span></a></li>
+    <li><a href="https://github.com/AlrikOlson/magistr" target="_blank" rel="noopener noreferrer">Repository<span class="sr-only"> (opens in a new tab)</span></a></li>
   </ul>
 </nav>
 <script is:inline>

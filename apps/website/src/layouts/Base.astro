@@ -12,8 +12,8 @@ interface Props {
 }
 
 const {
-  title = "Build a project with Magistr",
-  description = "Build bigger projects with your coding agent. Keep the roadmap, recorded reasoning, work chunks and checks together with Magistr.",
+  title = "Magistr · Build bigger projects with your coding agent",
+  description = "Build bigger projects with your coding agent. Magistr keeps the roadmap, the reasons behind decisions and the checks with your project, so the next session can continue where this one stopped.",
   ogImage,
   jsonLd,
   noindex = false,
@@ -41,7 +41,7 @@ const ogImageUrl = new URL(ogImage ?? publicAssetUrl("og-image.png"), Astro.site
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={ogImageUrl.href} />
-    <meta property="og:image:alt" content="Build a project with Magistr" />
+    <meta property="og:image:alt" content="Magistr: build bigger projects with your coding agent." />
     <meta property="og:url" content={canonicalUrl.href} />
     <meta property="og:site_name" content="Magistr" />
     <meta property="og:locale" content="en_US" />

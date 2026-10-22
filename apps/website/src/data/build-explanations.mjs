@@ -539,12 +539,12 @@ export const explanations = {
 Object.assign(explanations, {
   "message-1": {
     "title": "Ask for a Bevy game",
-    "summary": "You ask the agent to build a small game. This is where the project starts.",
+    "summary": "You change course: a small Bevy game instead of the earlier plan. This is where the project starts.",
     "details": []
   },
   "message-2": {
     "title": "Agree on what to build",
-    "summary": "Codex proposes a playable board, a computer opponent, and rematches.",
+    "summary": "Codex proposes a playable board, a computer opponent, and rematches. The walkthrough it mentions is this page.",
     "details": []
   },
   "message-3": {

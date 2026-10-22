@@ -46,7 +46,9 @@ const releaseVersion = JSON.parse(readFileSync(new URL("../../../npm/magistr/pac
 assert(indexHtml.includes(`v${releaseVersion}`), "the current development version is named");
 assert(indexHtml.includes(`"softwareVersion":"${releaseVersion}"`), "structured metadata uses the release version");
 assert(!indexHtml.includes("cargo install magistr"), "no registry installation command");
-assert(indexHtml.includes("Registry packages are not published yet") && indexHtml.includes("repository access"), "preview availability is explicit");
+assert(indexHtml.includes("Registry packages are not published yet") && indexHtml.includes("public source repository"), "preview availability is explicit");
+assert(!indexHtml.includes("access required") && !indexHtml.includes("Access required") && !indexHtml.includes("repository access"), "the public repository is not described as restricted");
+assert(indexHtml.includes("Build bigger projects with your coding agent.") && indexHtml.includes("This is the Codex session that built the example on this page."), "one tagline and an honest recording provenance");
 assert(indexHtml.includes('"operatingSystem":"macOS (Apple Silicon)"'), "first release metadata targets Apple Silicon macOS");
 assert(indexHtml.includes('"downloadUrl":"https://magistr.dev/docs/installation"'), "download metadata points to current installation instructions");
 
@@ -60,7 +62,7 @@ console.log("\nNavigation and accessibility:");
 assert(indexHtml.includes('aria-label="Primary"'), "primary navigation labelled");
 assert(indexHtml.includes('href="/#workflow"') && indexHtml.includes('href="/#install"') && indexHtml.includes('href="/docs/installation"'), "navigation reaches the current sections and guides");
 assert(indexHtml.includes('class="skip-link" href="#main-content"') && indexHtml.includes('id="main-content"'), "skip link reaches main");
-assert(indexHtml.includes("Repository") && indexHtml.includes("Access required"), "repository access is stated with the link");
+assert(indexHtml.includes("Repository") && indexHtml.includes('href="https://github.com/AlrikOlson/magistr"'), "the repository is linked");
 assert(indexHtml.includes('aria-controls="mobile-menu"') && indexHtml.includes('id="mobile-menu"'), "mobile menu is wired");
 assert(installHtml.includes('aria-current="page"'), "the docs link and the sidebar mark the active page");
 for (const [name, html] of productPages) {

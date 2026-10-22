@@ -1,6 +1,6 @@
 # Magistr
 
-**Plan and finish work with your coding agent across sessions.**
+**Build bigger projects with your coding agent.**
 
 [Explore Magistr](https://magistr.dev) · [Documentation](https://magistr.dev/docs) ·
 [Installation](https://magistr.dev/docs/installation)
@@ -10,8 +10,8 @@ verification results available to connected coding agents. Your agent still
 writes the code and uses its own model account. Git keeps your source history;
 Magistr keeps the project records needed to continue the work.
 
-Magistr is a source preview. It has not been publicly released; the repository
-requires access, and npm and Cargo registry packages are not published yet.
+Magistr is a source preview. The repository is public; npm and Cargo registry
+packages are not published yet.
 The CLI preview targets Apple Silicon macOS 15 or later.
 
 ## Get started
@@ -50,7 +50,7 @@ The manual can be read without watching it.
 
 The [desktop guide](https://magistr.dev/docs/desktop) covers opening the preview,
 its build requirements, conversations, and current capabilities. Development
-packages require repository access and are not publicly signed or notarized.
+packages need a GitHub account to download and are not publicly signed or notarized.
 
 ## Reference and maintenance
 
