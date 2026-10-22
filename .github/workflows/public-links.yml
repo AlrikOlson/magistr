@@ -1,0 +1,33 @@
+name: Public endpoints
+
+# Anonymous checks of the deployed site and, for releases, the registries. Kept
+# apart from CI so that verification caches never run in a tag-triggered workflow.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+  schedule:
+    - cron: '23 8 * * 1'
+
+permissions: {}
+
+concurrency:
+  group: public-links-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  public-links:
+    name: Anonymous public endpoint gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      - name: Probe configured public URLs
+        env:
+          # Scheduled runs check the deployed guides; manual and tag runs require the published registries too.
+          PUBLIC_GATE_STAGE: ${{ github.event_name == 'schedule' && 'website' || 'release' }}
+        run: ./scripts/public-link-check.sh --stage "$PUBLIC_GATE_STAGE" --out target/public-release-readiness.json

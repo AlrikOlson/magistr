@@ -37,7 +37,7 @@ class SelectionTests(unittest.TestCase):
         self.assertFalse(plan["package"])
 
     def test_unknown_inputs_and_workflows_select_every_gate(self):
-        for path in ("new-generator.py", ".github/workflows/public-release.yml",
+        for path in ("new-generator.py", ".github/workflows/ci.yml",
                      "crates/new-owner/src/lib.rs", "Cargo.lock", "crates/leaf/Cargo.toml"):
             with self.subTest(path=path):
                 plan = self.plan(path)
@@ -70,17 +70,15 @@ class SelectionTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     ci.validate(plan, needs)
 
-    def test_reuse_needs_a_source_bound_successful_eligible_verification(self):
-        now = datetime.now(timezone.utc)
-        valid = {"updated_at": now.isoformat(), "head_sha": "a" * 40, "event": "push",
-                 "head_branch": "verify/change", "path": ".github/workflows/public-release.yml",
-                 "status": "completed", "conclusion": "success"}
-        self.assertTrue(ci.reusable(valid, "a" * 40, now))
-        for key, value in (("head_sha", "b" * 40), ("event", "workflow_dispatch"),
-                           ("head_branch", "main"), ("conclusion", "failure"),
-                           ("updated_at", (now - timedelta(hours=25)).isoformat())):
-            with self.subTest(key=key):
-                self.assertFalse(ci.reusable(dict(valid, **{key: value}), "a" * 40, now))
+    def test_broad_selections_slice_tests_and_small_ones_stay_on_one_worker(self):
+        graph, locations = ci.graph()
+        broad = ci.affected(["Cargo.lock"], graph, locations)
+        self.assertEqual(broad["slices"], [1, 2, 3])
+        self.assertEqual(broad["slice_count"], 3)
+        small = self.plan("crates/leaf/src/lib.rs")
+        self.assertEqual(small["slices"], [1])
+        self.assertEqual(small["slice_count"], 1)
+        self.assertNotIn("reuse", small)
 
     def test_stage_deadline_reports_real_command_exit_and_timeout(self):
         import sys

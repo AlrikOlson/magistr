@@ -3,6 +3,7 @@
 from datetime import datetime, timedelta, timezone
 import importlib.util
 import json
+import subprocess
 from pathlib import Path
 import tempfile
 import unittest
@@ -109,8 +110,41 @@ class SecurityGateTests(unittest.TestCase):
         self.assertTrue(security.npm_findings({"auditReportVersion": 2, "vulnerabilities": {}})["passed"])
         self.assertFalse(security.npm_findings({"auditReportVersion": 2, "vulnerabilities": {
             "example": {"severity": "low", "via": ["transitive"]}}})["passed"])
-        with self.assertRaises(ValueError):
-            security.npm_findings({"error": {"code": "network"}})
+        with self.assertRaisesRegex(ValueError, 'apps/website.*"code": "ETIMEDOUT".*registry unreachable'
+                                    r'.*\nnpm log:\nnpm http fetch POST .*bulk'):
+            security.npm_findings({"error": {"code": "ETIMEDOUT", "summary": "registry unreachable"}}, "apps/website",
+                                  "npm http fetch POST https://registry.npmjs.org/-/npm/v1/security/advisories/bulk\n")
+        with self.assertRaisesRegex(ValueError, "did not return a complete report$"):
+            security.npm_findings({"auditReportVersion": 1, "vulnerabilities": {}})
+        with self.assertRaisesRegex(ValueError, r"advisory service did not answer .*status\.npmjs\.org"):
+            security.npm_findings({"error": {"summary": "", "detail": ""}}, "scripts",
+                                  "npm warn audit network timeout at: https://registry.npmjs.org/-/npm/v1/security/advisories/bulk\n"
+                                  "npm error audit endpoint returned an error\n")
+
+    def test_npm_audit_retries_a_hung_advisory_request_a_bounded_number_of_times(self):
+        timeout = "npm warn audit network timeout at: https://registry.npmjs.org/-/npm/v1/security/advisories/bulk\n"
+        calls = []
+
+        def run(args, **kwargs):
+            calls.append(args)
+            if len(calls) < 3:
+                return subprocess.CompletedProcess(args, 1, json.dumps({"error": {"summary": "", "detail": ""}}), timeout)
+            return subprocess.CompletedProcess(args, 0, json.dumps({"auditReportVersion": 2, "vulnerabilities": {}}), "")
+
+        report, log = security.npm_audit("scripts", run=run)
+        self.assertEqual(report["auditReportVersion"], 2)
+        self.assertEqual(len(calls), 3)
+        self.assertIn("--fetch-timeout=60000", calls[0])
+        self.assertIn("[attempt 3]", log)
+        self.assertTrue(security.npm_findings(report, "scripts", log)["passed"])
+
+        calls.clear()
+        always = lambda args, **kwargs: subprocess.CompletedProcess(
+            args, 1, json.dumps({"error": {"summary": "", "detail": ""}}), timeout)
+        report, log = security.npm_audit("scripts", run=always, attempts=2)
+        self.assertEqual(log.count("[attempt"), 2)
+        with self.assertRaisesRegex(ValueError, "advisory service did not answer"):
+            security.npm_findings(report, "scripts", log)
 
     def receipt(self):
         return {"schema": 1, "passed": True, "source": SOURCE, "sourceDirty": False,
@@ -213,6 +247,18 @@ class SecurityGateTests(unittest.TestCase):
                 security.check_release_configuration(self.root, ["workflow.yml"])
         action.write_text(prefix + "cargo-nextest@0.9.130\n")
         security.check_release_configuration(self.root, ["workflow.yml"])
+
+    def test_scanner_pins_cover_both_ci_hosts_and_refuse_others(self):
+        for host in (("Darwin", "arm64"), ("Linux", "x86_64")):
+            url, digest = security.host_pin(*host)
+            self.assertTrue(url.startswith(security.GITLEAKS_RELEASE) and url.endswith(".tar.gz"), url)
+            self.assertIn(security.GITLEAKS_VERSION, url)
+            self.assertRegex(digest, r"^[0-9a-f]{64}$")
+        self.assertIn("darwin_arm64", security.host_pin("Darwin", "arm64")[0])
+        self.assertIn("linux_x64", security.host_pin("Linux", "x86_64")[0])
+        for host in (("Windows", "AMD64"), ("Linux", "aarch64"), ("Darwin", "x86_64")):
+            with self.subTest(host=host), self.assertRaisesRegex(ValueError, "no reviewed scanner pin"):
+                security.host_pin(*host)
 
     def test_empty_or_unrecognized_dependency_graph_does_not_silently_pass(self):
         for graph in ("", "magistr-cli v0.1.0\nunparsed row", "dependency v1.0.0"):

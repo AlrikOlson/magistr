@@ -8,18 +8,20 @@ on:
         required: true
         type: string
       registry:
-        description: Registry to publish (first npm publication is manual; see docs/releasing-cli.md)
+        description: >-
+          Registry to publish. cargo uses CARGO_REGISTRY_TOKEN (required for the first
+          publication of a crate); cargo-trusted uses crates.io Trusted Publishing for
+          crates that already exist and are configured for this workflow. The first npm
+          publication is manual; see docs/releasing-cli.md.
         required: true
         type: choice
-        options: [cargo, npm]
+        options: [cargo, cargo-trusted, npm]
       resume_run:
         description: Previous Cargo publication run ID, required when continuing an interrupted upload
         required: false
         type: string
 
-permissions:
-  contents: read
-  actions: read
+permissions: {}
 
 concurrency:
   group: cli-publication
@@ -38,7 +40,7 @@ jobs:
       actions: read
       id-token: write
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           persist-credentials: false
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
@@ -61,7 +63,7 @@ jobs:
           run-id: ${{ inputs.package_run }}
           github-token: ${{ github.token }}
       - name: Restore previous Cargo publication receipt
-        if: inputs.registry == 'cargo' && inputs.resume_run != ''
+        if: startsWith(inputs.registry, 'cargo') && inputs.resume_run != ''
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: cargo-publication
@@ -78,16 +80,29 @@ jobs:
           npm_tag=$(printf '%s' "$verified" | python3 -c 'import json,sys; print(json.load(sys.stdin)["npmTag"])')
           echo "npm=$npm_archive" >> "$GITHUB_OUTPUT"
           echo "npm_tag=$npm_tag" >> "$GITHUB_OUTPUT"
+      - name: Verify the build provenance attestation of every archive
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          for archive in target/cli-distribution/*.crate target/cli-distribution/*.tgz; do
+            gh attestation verify "$archive" --repo "$RELEASE_REPOSITORY"
+          done
       - name: Check current public installation and support routes
         run: ./scripts/public-link-check.sh --stage publication --out target/publication-readiness.json
+      - name: Obtain a short-lived crates.io token through Trusted Publishing
+        if: inputs.registry == 'cargo-trusted'
+        id: trusted
+        uses: rust-lang/crates-io-auth-action@3268eb413133e2960fa4ae0e963ca76380c54cd9 # v1.0.6
       - name: Publish exact Cargo archives in dependency order
-        if: inputs.registry == 'cargo'
+        if: startsWith(inputs.registry, 'cargo')
         env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ inputs.registry == 'cargo-trusted' && steps.trusted.outputs.token || secrets.CARGO_REGISTRY_TOKEN }}
           SOURCE_SHA: ${{ steps.source.outputs.sha }}
         run: python3 scripts/cli-release.py publish-cargo --out target/cli-distribution --source "$SOURCE_SHA" --max-wait 7200
       - name: Retain completed and uncertain Cargo effects
-        if: always() && inputs.registry == 'cargo'
+        if: always() && startsWith(inputs.registry, 'cargo')
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: cargo-publication

@@ -5,7 +5,7 @@ import sys
 import tempfile
 import time
 import unittest
-from ci_timing import run, slow_tests
+from ci_timing import run, select_budget, slow_tests
 
 
 class TimingTests(unittest.TestCase):
@@ -26,6 +26,13 @@ class TimingTests(unittest.TestCase):
             time.sleep(0.1)
             self.assertEqual(heartbeat.read_text(), final, "a timed-out child survived")
             self.assertLess(result["seconds"], 7)
+
+    def test_cold_budget_applies_only_when_the_rust_cache_missed(self):
+        self.assertEqual(select_budget(900, 1500, "true"), (900, False))
+        self.assertEqual(select_budget(900, 1500, "false"), (1500, True))
+        self.assertEqual(select_budget(900, 1500, ""), (1500, True))
+        self.assertEqual(select_budget(900, None, "false"), (900, True))
+        self.assertEqual(select_budget(900, None, None), (900, False))
 
     def test_junit_timings_are_ordered_and_missing_reports_are_not_invented(self):
         with tempfile.TemporaryDirectory() as directory:

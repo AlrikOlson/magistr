@@ -10,14 +10,23 @@ Run a local diagnostic with the same scanners:
 ```sh
 cargo install cargo-audit --locked --version 0.22.1
 python3 -B scripts/release-security.py install-gitleaks --out /tmp/magistr-security-bin
-PATH="/tmp/magistr-security-bin:$PATH" python3 -B scripts/release-security.py scan \
+python3 -B scripts/release-security.py scan --gitleaks /tmp/magistr-security-bin/gitleaks \
   --source "$(git rev-parse HEAD)" --out target/release-security/security-verification.json \
   --allow-dirty
 ```
 
 `--allow-dirty` supports local investigation; its receipt explicitly records a
-dirty tree and cannot authorize publication. A clean scan also requires complete
-Git history. The hosted checkout uses `fetch-depth: 0`.
+dirty tree and cannot authorize publication. The scan evaluates the macOS
+release target graph (`cargo tree --target aarch64-apple-darwin`, `cargo audit
+--target-os macos`) on either reviewed host: the Security workflow runs it on
+Linux x86_64, package runs on macOS arm64; each host has its own pinned gitleaks
+archive and checksum in `scripts/release-security.py`. Each npm audit request
+has a 60 s fetch timeout and is attempted three times; a refusal carries npm's
+log, and when the advisory service still has not answered (as during the
+registry incident of 2026-10-22) the refusal says so and the scan is rerun once
+https://status.npmjs.org is clear, because an unanswered audit is not a clean one.
+A clean scan also requires complete Git history. The hosted checkout uses
+`fetch-depth: 0`.
 
 The gate checks:
 

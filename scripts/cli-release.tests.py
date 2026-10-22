@@ -39,9 +39,9 @@ class HostedRunTests(unittest.TestCase):
                  "run_number": 1}
         with patch.object(release, "github", side_effect=[run, {"workflow_runs": [check]},
                                                         {"workflow_runs": []}]) as api:
-            with self.assertRaisesRegex(ValueError, "release-security"):
+            with self.assertRaisesRegex(ValueError, "Security"):
                 release.select_run("owner/repo", "123")
-        self.assertIn("release-security.yml", api.call_args.args[0])
+        self.assertIn("security.yml", api.call_args.args[0])
 
 
     def test_resume_run_must_be_completed_manual_publication_from_this_repository(self):

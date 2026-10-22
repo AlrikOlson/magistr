@@ -20,15 +20,31 @@ TARGET = "aarch64-apple-darwin"
 MAX_RECEIPT_AGE = timedelta(hours=24)
 CARGO_AUDIT_VERSION = "0.22.1"
 GITLEAKS_VERSION = "8.30.1"
-GITLEAKS_URL = ("https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/"
-                "gitleaks_8.30.1_darwin_arm64.tar.gz")
-GITLEAKS_SHA256 = "b40ab0ae55c505963e365f271a8d3846efbc170aa17f2607f13df610a9aeb6a5"
+GITLEAKS_RELEASE = "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/"
+# Reviewed scanner binaries per CI host. The dependency graph is always evaluated
+# for the macOS release target, so the scan itself may run on either host.
+GITLEAKS_PINS = {
+    ("Darwin", "arm64"): ("gitleaks_8.30.1_darwin_arm64.tar.gz",
+                          "b40ab0ae55c505963e365f271a8d3846efbc170aa17f2607f13df610a9aeb6a5"),
+    ("Linux", "x86_64"): ("gitleaks_8.30.1_linux_x64.tar.gz",
+                          "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"),
+}
 REQUIRED_CHECKS = {"cargo", "npm:apps/website", "npm:scripts", "secrets"}
 
 
 def require(condition, message):
     if not condition:
         raise ValueError(message)
+
+
+def host_pin(system=None, machine=None):
+    """The reviewed gitleaks archive for this host; other hosts are refused."""
+    host = (system or platform.system(), machine or platform.machine())
+    require(host in GITLEAKS_PINS,
+            "Release security scans run on macOS arm64 or Linux x86_64 hosts; "
+            f"{host[0]} {host[1]} has no reviewed scanner pin")
+    archive, digest = GITLEAKS_PINS[host]
+    return GITLEAKS_RELEASE + archive, digest
 
 
 def sha256(path):
@@ -138,9 +154,41 @@ def secret_findings(findings, reviews):
             "inlineAllowComments": False}
 
 
-def npm_findings(report):
-    require("error" not in report and report.get("auditReportVersion") == 2,
-            "npm audit did not return a complete report")
+NPM_AUDIT_ATTEMPTS = 3
+NPM_AUDIT_TIMEOUT_MS = 60000
+
+
+def is_advisory_timeout(log):
+    return "audit network timeout" in log
+
+
+def npm_audit(project, run=subprocess.run, attempts=NPM_AUDIT_ATTEMPTS):
+    """Audit one npm project; a hung advisory request is retried a bounded number of times."""
+    log = ""
+    for attempt in range(1, attempts + 1):
+        audit = run(["npm", "audit", "--json", "--ignore-scripts",
+                     "--registry", "https://registry.npmjs.org",
+                     f"--fetch-timeout={NPM_AUDIT_TIMEOUT_MS}", "--fetch-retries=0"],
+                    cwd=ROOT / project, text=True, capture_output=True, timeout=600)
+        log += f"[attempt {attempt}]\n{audit.stderr.strip()}\n"
+        require(audit.returncode in (0, 1),
+                f"npm audit for {project} failed with exit {audit.returncode}; security scan incomplete"
+                f"\nnpm log:\n{log.strip()[-1500:]}")
+        if not is_advisory_timeout(audit.stderr) or attempt == attempts:
+            return json.loads(audit.stdout), log
+    raise AssertionError("unreachable")
+
+
+def npm_findings(report, project="npm", log=""):
+    error = report.get("error") if isinstance(report, dict) else None
+    detail = f": {json.dumps(error, sort_keys=True)[:1500]}" if error is not None else ""
+    log = log.strip()[-1500:]
+    if is_advisory_timeout(log):
+        detail = ("; npm's advisory service did not answer (see https://status.npmjs.org), "
+                  "rerun the scan once it does" + detail)
+    require(error is None and report.get("auditReportVersion") == 2,
+            f"npm audit for {project} did not return a complete report{detail}"
+            + (f"\nnpm log:\n{log}" if log else ""))
     records = [{"package": name, "severity": item["severity"],
                 "advisories": [{"title": via["title"], "url": via["url"],
                                "range": via.get("range")}
@@ -245,15 +293,14 @@ def source_inputs():
     return {path.relative_to(ROOT).as_posix(): sha256(path) for path in sorted(paths)}
 
 
-def scan(source, output, artifacts=None, allow_dirty=False):
+def scan(source, output, artifacts=None, allow_dirty=False, gitleaks="gitleaks"):
     # Failed or interrupted rescans must never leave an earlier green receipt in place.
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps({"schema": 1, "passed": False, "source": source,
                                   "checks": {}, "failure": "Scan incomplete"}) + "\n")
     require(re.fullmatch(r"[0-9a-f]{40}", source) is not None and git("rev-parse", "HEAD") == source,
             "Security scan must use the checked-out source revision")
-    require(platform.system() == "Darwin" and platform.machine() == "arm64",
-            "Release security scans require macOS arm64 for the native dependency graph")
+    host_pin()  # the scanner pin exists for this host
     require(git("rev-parse", "--is-shallow-repository") == "false",
             "Secret scan requires full Git history (checkout fetch-depth: 0)")
     dirty = bool(git("status", "--porcelain", "--untracked-files=normal"))
@@ -265,7 +312,7 @@ def scan(source, output, artifacts=None, allow_dirty=False):
     started = datetime.now(timezone.utc)
     require(invoke(["cargo", "audit", "--version"]).split()[-1] == CARGO_AUDIT_VERSION,
             "Install the pinned cargo-audit version")
-    require(invoke(["gitleaks", "version"]).strip() == GITLEAKS_VERSION,
+    require(invoke([gitleaks, "version"]).strip() == GITLEAKS_VERSION,
             "Install the pinned gitleaks version")
     tree = invoke(["cargo", "tree", "--locked", "-p", "magistr-cli", "--target", TARGET,
                    "--edges", "normal,build", "--prefix", "none", "--format", "{p}"])
@@ -277,7 +324,7 @@ def scan(source, output, artifacts=None, allow_dirty=False):
         ignore = temporary / "empty-ignore"
         ignore.write_text("")
         leaks = temporary / "secrets.json"
-        invoke(["gitleaks", "git", str(ROOT), "--log-opts", f"--full-history {source}",
+        invoke([gitleaks, "git", str(ROOT), "--log-opts", f"--full-history {source}",
                 "--redact=100", "--no-banner", "--no-color", "--ignore-gitleaks-allow",
                 "--config", str(config), "--gitleaks-ignore-path", str(ignore),
                 "--report-format", "json", "--report-path", str(leaks)], accepted=(0, 1))
@@ -290,10 +337,8 @@ def scan(source, output, artifacts=None, allow_dirty=False):
                                      policy["dependencyExceptions"], started.date()),
               "secrets": secrets}
     for project in ("apps/website", "scripts"):
-        report = json.loads(invoke(["npm", "audit", "--json", "--ignore-scripts",
-                                    "--registry", "https://registry.npmjs.org"],
-                                   cwd=ROOT / project, accepted=(0, 1)))
-        checks[f"npm:{project}"] = npm_findings(report)
+        report, log = npm_audit(project)
+        checks[f"npm:{project}"] = npm_findings(report, project, log)
     require(source_inputs() == inputs and git("rev-parse", "HEAD") == source,
             "Security inputs changed during the scan; run again")
     require(artifact_hashes(artifacts) == artifacts_before, "Artifacts changed during the security scan")
@@ -315,11 +360,10 @@ def scan(source, output, artifacts=None, allow_dirty=False):
 
 
 def install_gitleaks(directory):
-    require(platform.system() == "Darwin" and platform.machine() == "arm64",
-            "Release scanner bootstrap supports macOS arm64")
-    with urllib.request.urlopen(GITLEAKS_URL, timeout=60) as response:
+    url, digest = host_pin()
+    with urllib.request.urlopen(url, timeout=60) as response:
         archive = response.read()
-    require(hashlib.sha256(archive).hexdigest() == GITLEAKS_SHA256,
+    require(hashlib.sha256(archive).hexdigest() == digest,
             "Gitleaks download checksum differs")
     with tarfile.open(fileobj=io.BytesIO(archive), mode="r:gz") as package:
         member = package.getmember("gitleaks")
@@ -341,6 +385,8 @@ def main():
     check.add_argument("--artifacts", type=Path)
     check.add_argument("--allow-dirty", action="store_true",
                        help="Local diagnostics only; receipt cannot authorize publication")
+    check.add_argument("--gitleaks", default="gitleaks",
+                       help="Path of the pinned gitleaks executable (default: resolved on PATH)")
     install = commands.add_parser("install-gitleaks")
     install.add_argument("--out", type=Path, required=True)
     commands.add_parser("tools")
@@ -348,7 +394,7 @@ def main():
     args = parser.parse_args()
     try:
         if args.action == "scan":
-            return 0 if scan(args.source, args.out, args.artifacts, args.allow_dirty) else 1
+            return 0 if scan(args.source, args.out, args.artifacts, args.allow_dirty, args.gitleaks) else 1
         if args.action == "configuration":
             print(json.dumps({"passed": True, "files": sorted(check_release_configuration())}))
             return 0

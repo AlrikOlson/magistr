@@ -4,25 +4,84 @@ on:
   workflow_call:
   workflow_dispatch:
 
-permissions:
-  contents: read
+permissions: {}
 
 env:
   CARGO_INCREMENTAL: '0'
   CARGO_PROFILE_DEV_DEBUG: '0'
   CARGO_PROFILE_TEST_DEBUG: '0'
+  CARGO_TERM_COLOR: always
 
 jobs:
-  package:
-    name: Desktop checks and installer (macOS)
+  dev:
+    name: Desktop checks (macOS)
     runs-on: macos-15
-    # Cold desktop lint and test builds measured 621 s and about 600 s on 2026-10-22.
-    timeout-minutes: 45
+    # Cold desktop clippy and test builds measured 621 s and about 600 s on 2026-10-22.
+    timeout-minutes: 55
+    permissions:
+      contents: read
     defaults:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      - run: rustup show active-toolchain
+      - uses: ./.github/actions/install-nextest
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .node-version
+          cache: npm
+          cache-dependency-path: crates/magistr-desktop/package-lock.json
+      - name: Select the native target
+        run: echo "DESKTOP_TARGET=$(rustc -vV | awk '/^host:/ { print $2 }')" >> "$GITHUB_ENV"
+      - id: rust-cache
+        uses: ./.github/actions/rust-cache
+        with:
+          shared-key: desktop
+          workspaces: |
+            . -> target
+            crates/magistr-desktop -> target
+      - name: Install desktop test dependencies
+        run: npm ci --prefix crates/magistr-desktop
+      - name: Verify formatting, launcher and input contracts
+        run: |
+          cargo fmt --manifest-path crates/magistr-desktop/Cargo.toml -- --check
+          node --check scripts/desktop.mjs
+          node --test scripts/desktop-launcher.tests.mjs crates/magistr-desktop/tests/*.mjs
+      - name: Check and lint development desktop targets
+        env:
+          RUST_CACHE_HIT: ${{ steps.rust-cache.outputs.cache-hit }}
+        run: python3 -B scripts/ci_timing.py --name desktop-lint --budget 900 --cold-budget 1500 --cache-hit "$RUST_CACHE_HIT" -- cargo clippy --manifest-path crates/magistr-desktop/Cargo.toml --all-targets --target "$DESKTOP_TARGET" --locked -- -D warnings
+      - name: Compile development desktop tests
+        env:
+          RUST_CACHE_HIT: ${{ steps.rust-cache.outputs.cache-hit }}
+        run: python3 -B scripts/ci_timing.py --name desktop-test-build --budget 900 --cold-budget 1500 --cache-hit "$RUST_CACHE_HIT" -- cargo nextest run --manifest-path crates/magistr-desktop/Cargo.toml --target "$DESKTOP_TARGET" --locked --no-run
+      - name: Test development desktop
+        run: python3 -B scripts/ci_timing.py --name desktop-tests --budget 180 -- cargo nextest run --manifest-path crates/magistr-desktop/Cargo.toml --target "$DESKTOP_TARGET" --locked
+      - name: Save timing evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: timing-desktop-dev
+          path: |
+            target/ci-timings/
+            target/nextest/ci/junit.xml
+          retention-days: 7
+          if-no-files-found: warn
+
+  packaged:
+    name: Desktop installer (macOS)
+    runs-on: macos-15
+    timeout-minutes: 55
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           persist-credentials: false
       - run: rustup show active-toolchain
@@ -37,33 +96,24 @@ jobs:
           python-version-file: .python-version
       - name: Select the native target
         run: echo "DESKTOP_TARGET=$(rustc -vV | awk '/^host:/ { print $2 }')" >> "$GITHUB_ENV"
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+      - id: rust-cache
+        uses: ./.github/actions/rust-cache
         with:
+          shared-key: desktop
           workspaces: |
             . -> target
             crates/magistr-desktop -> target
-          shared-key: desktop
-          cache-workspace-crates: true
-      - name: Install desktop test dependencies
+      - name: Install desktop build dependencies
         run: npm ci --prefix crates/magistr-desktop
-      - name: Verify formatting, launcher and input contracts
-        run: |
-          cargo fmt --manifest-path crates/magistr-desktop/Cargo.toml -- --check
-          node --check scripts/desktop.mjs
-          node --test scripts/desktop-launcher.tests.mjs crates/magistr-desktop/tests/*.mjs
-      - name: Check and lint development desktop targets
-        run: python3 -B scripts/ci_timing.py --name desktop-lint --budget 900 -- cargo clippy --manifest-path crates/magistr-desktop/Cargo.toml --all-targets --target "$DESKTOP_TARGET" --locked -- -D warnings
-      - name: Compile development desktop tests
-        run: python3 -B scripts/ci_timing.py --name desktop-test-build --budget 900 -- cargo nextest run --manifest-path crates/magistr-desktop/Cargo.toml --target "$DESKTOP_TARGET" --locked --no-run
-      - name: Test development desktop
-        run: python3 -B scripts/ci_timing.py --name desktop-tests --budget 180 -- cargo nextest run --manifest-path crates/magistr-desktop/Cargo.toml --target "$DESKTOP_TARGET" --locked
       - name: Build native app and installer
-        run: python3 -B scripts/ci_timing.py --name desktop-package --budget 720 -- node scripts/desktop.mjs package --debug
+        env:
+          RUST_CACHE_HIT: ${{ steps.rust-cache.outputs.cache-hit }}
+        run: python3 -B scripts/ci_timing.py --name desktop-package --budget 900 --cold-budget 2100 --cache-hit "$RUST_CACHE_HIT" -- node scripts/desktop.mjs package --debug
       - name: Check and lint packaged desktop targets
-        run: cargo clippy --manifest-path crates/magistr-desktop/Cargo.toml --all-targets --target "$DESKTOP_TARGET" --features custom-protocol --locked -- -D warnings
+        run: python3 -B scripts/ci_timing.py --name desktop-packaged-lint --budget 300 -- cargo clippy --manifest-path crates/magistr-desktop/Cargo.toml --all-targets --target "$DESKTOP_TARGET" --features custom-protocol --locked -- -D warnings
       - name: Test packaged desktop and process ownership
         run: |
-          cargo nextest run --manifest-path crates/magistr-desktop/Cargo.toml --target "$DESKTOP_TARGET" --features custom-protocol --locked
+          python3 -B scripts/ci_timing.py --name desktop-packaged-tests --budget 600 -- cargo nextest run --manifest-path crates/magistr-desktop/Cargo.toml --target "$DESKTOP_TARGET" --features custom-protocol --locked
           cargo nextest run -p magistr-process --target "$DESKTOP_TARGET" --locked
       - name: Verify Mac app contents and child roles
         run: |
@@ -80,7 +130,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: timing-desktop
+          name: timing-desktop-packaged
           path: |
             target/ci-timings/
             target/nextest/ci/junit.xml

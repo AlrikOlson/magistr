@@ -44,7 +44,7 @@ def check_run(run, repository):
     return sha
 
 
-def check_quality(runs, sha, label="release-readiness"):
+def check_quality(runs, sha, label="CI"):
     matching = [run for run in runs if run["head_sha"] == sha and run["event"] == "push"]
     require(matching, f"No {label} CI run exists for the package source")
     latest = max(matching, key=lambda run: run["run_number"])
@@ -62,10 +62,10 @@ def select_run(repository, run_id, resume_run=None):
     require(run_id.isdecimal(), "Package run ID must be numeric")
     run = github(f"repos/{repository}/actions/runs/{run_id}")
     sha = check_run(run, repository)
-    checks = github(f"repos/{repository}/actions/workflows/public-release.yml/runs?head_sha={sha}&per_page=100")
+    checks = github(f"repos/{repository}/actions/workflows/ci.yml/runs?head_sha={sha}&per_page=100")
     check_quality(checks["workflow_runs"], sha)
-    security = github(f"repos/{repository}/actions/workflows/release-security.yml/runs?head_sha={sha}&per_page=100")
-    check_quality(security["workflow_runs"], sha, "release-security")
+    security = github(f"repos/{repository}/actions/workflows/security.yml/runs?head_sha={sha}&per_page=100")
+    check_quality(security["workflow_runs"], sha, "Security")
     if resume_run:
         require(resume_run.isdecimal(), "Previous publication run ID must be numeric")
         previous = github(f"repos/{repository}/actions/runs/{resume_run}")

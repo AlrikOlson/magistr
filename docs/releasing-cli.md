@@ -241,11 +241,12 @@ returns to the report form. It does not require packages to exist yet.
 The release stage also requires the current Cargo version, the current npm
 version on its channel dist-tag (`beta` for a pre-release, `latest` for a
 stable version), and removal of the unpublished-package notice. The publisher
-runs the publication stage before uploads. The readiness workflow's public
-endpoint job checks the deployed website stage on its weekly schedule and runs
-the release stage on manual and tag runs, failing when any required check
-fails; pushes and pull requests verify the built site, not the deployment, so
-run the website stage locally after changing the manual.
+runs the publication stage before uploads. The **Public endpoints** workflow
+checks the deployed website stage weekly and runs the release stage on manual
+and tag runs, failing when any required check fails. The CI deploy job also
+runs the website stage against the live site after every deployment from
+`main`; until the Cloudflare secrets exist, run the website stage locally after
+changing the manual.
 No stage changes repository visibility, enables reporting, deploys the website
 or publishes packages.
 
@@ -257,10 +258,14 @@ installation without Rust/Bun, unified protocol and onboarding, source revisions
 archive checksums and both installation receipts.
 
 `Publish CLI packages` is a separate manual workflow on `main`. Supply the
-successful `CLI packages` run ID and select one registry (`cargo` or `npm`).
-It refuses an unsuccessful package run, another workflow or branch, and a source
-revision whose latest release-readiness or release-security push run has not
-passed. It downloads that run's artifacts and checks installation and current
+successful `CLI packages` run ID and select one registry: `cargo` (token,
+required while a crate does not exist yet), `cargo-trusted` (crates.io Trusted
+Publishing for crates that already exist and are configured for this workflow)
+or `npm`. It refuses an unsuccessful package run, another workflow or branch,
+and a source revision whose latest CI or Security push run has not passed. Every
+downloaded archive must carry the build provenance attestation that `CLI
+packages` created with `actions/attest-build-provenance`; `gh attestation verify`
+checks each one before anything is uploaded. It downloads that run's artifacts and checks installation and current
 security receipts against every archive hash. The publisher uses the current
 reviewed release scripts from main, with no source checkout change, package
 rebuild or repeated installation test.

@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""Resolve the affected CI contract; unknown inputs always select broad checks."""
+"""Resolve the affected CI contract; unknown inputs always select broad checks.
+
+Every push, including main, runs its selected jobs: main is the only ref whose
+caches other branches can restore, so it must build to keep them warm."""
 import argparse
-from datetime import datetime, timedelta, timezone
 import json
 import os
 from pathlib import Path
 import subprocess
 import tomllib
-import urllib.parse
-import urllib.request
 
 ROOT = Path(__file__).resolve().parent.parent
 JOBS = ("rust", "website", "desktop", "package", "contracts", "visual")
@@ -77,39 +77,12 @@ def affected(paths, packages, locations, full=False):
         plan.update({key: True for key in JOBS})
         plan["rust_packages"] = sorted(set(packages) - {desktop})
     plan["full"] = full
-    # Broad suites use build-once partitioning; a small crate check stays on one worker.
-    plan["partitions"] = [1, 2, 3, 4] if len(plan["rust_packages"]) > 3 else [1]
-    plan["partition_count"] = len(plan["partitions"])
-    plan["reuse"] = False
+    # Broad suites run the archive on three even slices (nextest `slice:`); a small
+    # crate check stays on one worker. Three keeps the burst under the five
+    # concurrent macOS jobs this plan allows.
+    plan["slices"] = [1, 2, 3] if len(plan["rust_packages"]) > 3 else [1]
+    plan["slice_count"] = len(plan["slices"])
     return plan
-
-
-def reusable(run, sha, now=None):
-    now = now or datetime.now(timezone.utc)
-    updated = datetime.fromisoformat(run["updated_at"].replace("Z", "+00:00"))
-    return (run.get("head_sha") == sha and run.get("event") == "push"
-            and run.get("head_branch", "").startswith("verify/")
-            and run.get("path") == ".github/workflows/public-release.yml"
-            and run.get("status") == "completed" and run.get("conclusion") == "success"
-            and timedelta() <= now - updated <= timedelta(hours=24))
-
-
-def previous_verification(sha):
-    """Reuse only a successful eligible push of this exact workflow/source revision."""
-    token, repository = os.environ.get("GH_TOKEN"), os.environ.get("GITHUB_REPOSITORY")
-    if not token or not repository:
-        return None
-    query = urllib.parse.urlencode({"head_sha": sha, "event": "push", "status": "success",
-                                    "per_page": 100})
-    url = f"https://api.github.com/repos/{repository}/actions/workflows/public-release.yml/runs?{query}"
-    request = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}",
-                                                  "Accept": "application/vnd.github+json"})
-    try:
-        with urllib.request.urlopen(request, timeout=20) as response:
-            runs = json.load(response)["workflow_runs"]
-    except (OSError, ValueError, KeyError):
-        return None  # An unavailable cache must run the real checks.
-    return next((run["html_url"] for run in runs if reusable(run, sha)), None)
 
 
 def validate(plan, needs):
@@ -119,14 +92,11 @@ def validate(plan, needs):
         raise ValueError("Verification policy tests failed")
     for kind in JOBS:
         names = ("rust-build", "rust-tests") if kind == "rust" else (kind,)
-        selected = plan[kind] and not plan["reuse"]
-        expected = "success" if selected else "skipped"
+        expected = "success" if plan[kind] else "skipped"
         for name in names:
             actual = needs.get(name, {}).get("result")
             if actual != expected:
                 raise ValueError(f"{name}: expected {expected}, received {actual}")
-    if plan["reuse"] and not plan.get("verified_run"):
-        raise ValueError("A reused plan has no successful exact-commit verification")
 
 
 def main():
@@ -158,10 +128,6 @@ def main():
     packages, locations = graph()
     plan = affected(paths, packages, locations, full)
     plan.update({"source": head, "base": base, "changed": paths})
-    if event == "push" and os.environ.get("GITHUB_REF") == "refs/heads/main":
-        verified = previous_verification(head)
-        if verified:
-            plan.update({"reuse": True, "verified_run": verified})
     output = Path(args.out)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(plan, indent=2) + "\n")

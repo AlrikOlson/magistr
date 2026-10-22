@@ -19,13 +19,14 @@ runs:
       shell: bash
       run: python3 -B scripts/release-security.py tools >> "$GITHUB_OUTPUT"
     - name: Install the pinned Cargo scanner
-      uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2
+      uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2.87.29
       with:
         tool: ${{ steps.tools.outputs.cargo-audit }}
         fallback: none
     - name: Install the checksum-verified secret scanner
       shell: bash
-      run: python3 -B scripts/release-security.py install-gitleaks --out "$RUNNER_TEMP/magistr-security-bin" >> "$GITHUB_PATH"
+      # The scanner is addressed by its installed path; the job PATH is never rewritten.
+      run: python3 -B scripts/release-security.py install-gitleaks --out "$RUNNER_TEMP/magistr-security-bin"
     - name: Scan source and artifacts
       shell: bash
       env:
@@ -37,4 +38,5 @@ runs:
         if [[ -n "$SECURITY_ARTIFACTS" ]]; then
           args+=(--artifacts "$SECURITY_ARTIFACTS")
         fi
-        python3 -B scripts/release-security.py scan --source "$SECURITY_SOURCE" --out "$SECURITY_RECEIPT" "${args[@]}"
+        python3 -B scripts/release-security.py scan --source "$SECURITY_SOURCE" --out "$SECURITY_RECEIPT" \
+          --gitleaks "$RUNNER_TEMP/magistr-security-bin/gitleaks" "${args[@]}"

@@ -44,7 +44,7 @@ def main():
         run("cargo", "nextest", "run", "--archive-file", "target/ci-tests.tar.zst",
             "--extract-to", str(ROOT), "--extract-overwrite", "--workspace-remap", str(ROOT),
             "--profile", "diagnostic" if os.environ.get("GITHUB_EVENT_NAME") in
-            ("schedule", "workflow_dispatch") else "ci", "--partition", f"hash:{args.partition}")
+            ("schedule", "workflow_dispatch") else "ci", "--partition", f"slice:{args.partition}")
     else:
         for script in ("lint-structure", "native-write-path-gate", "workflow-source-gate",
                        "workspace-source-gate", "lint-duplication", "legacy-gui-ratchet"):

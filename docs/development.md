@@ -92,25 +92,38 @@ current sources.
 
 ## CI and direct pushes
 
-CI selects changed packages and their reverse dependencies. Website/docs changes
-run website checks; shared build inputs and unclassified paths select the full
-matrix. Rust tests compile once into a nextest archive shared by test partitions.
-Normal pushes fail fast; scheduled/manual diagnostic runs collect all failures.
-Each stage has a deadline and uploads timing JSON and the slowest test results.
+Three workflows verify every push to `main` and `verify/**` and every pull
+request; two more are manual release steps.
+
+| Workflow | Jobs | Runner |
+| --- | --- | --- |
+| `ci.yml` (required check **CI**) | `plan` selects affected jobs from changed paths and the Cargo graph; `policy` runs the selector tests, actionlint and zizmor; `rust-build` lints and archives the tests once; `rust-tests` runs three nextest slices of that archive; `website` builds and checks the manual in WebKit; `contracts` runs the source gates and script suites; `visual` runs the screenshot gate against the evidence submodule; `desktop` calls `desktop-apps.yml` (dev checks and installer in parallel); `package` builds the host archive; `ci` aggregates; `deploy-website` publishes to Cloudflare Pages from `main` when the deployment secrets exist | macOS for Rust, website and desktop; Linux for everything scripted |
+| `security.yml` (required check **Security**) | dependency advisories, npm audits and full-history secret scan for the macOS release target | Linux |
+| `public-links.yml` | anonymous checks of the deployed guides weekly; registry and release checks on manual and tag runs | Linux |
+| `cli-packages.yml`, `cli-publish.yml` | manual release build with provenance attestations; manual publication with attestation verification | macOS |
+
+Rust caches are keyed on the toolchain and lockfiles only and are **written by
+`main` and read by every other ref**: GitHub shares caches from the default
+branch but never between sibling branches, so every push to `main` runs its
+selected jobs to keep the shared caches warm. A verify branch therefore
+rebuilds only the crates it changed. Each compile stage has two deadlines: the
+warm one applies when the exact Rust cache was restored, the cold one when it
+was not (the first run after a lockfile change, or `main` itself after one).
+`scripts/ci_timing.py` selects the deadline from the cache's `cache-hit` output
+and records the real duration, whether the run was cold, and the slowest tests.
+Normal pushes fail fast; scheduled and manual diagnostic runs collect all failures.
 
 Direct delivery to protected `main` uses the actual required push checks:
 
 ```sh
 git push origin HEAD:verify/my-change
-# After both required checks pass on this exact commit:
+# After CI and Security pass on this exact commit:
 git push origin HEAD:main
 ```
 
 This does not create a pull request. If `main` moves, integrate it and verify the
-new commit. A successful verification push of the same commit within 24 hours
-lets the main workflow reuse its quality result. Security checks still run with
-current advisories. Anonymous public-link checks belong to release readiness
-and scheduled monitoring; private/unpublished endpoints do not block copy edits.
+new commit. Anonymous public-link checks belong to the public endpoints workflow
+and to the deploy job; private or unpublished endpoints do not block copy edits.
 
 `scripts/nextest-config-gate.sh` uses nextest's parser without compiling tests.
 If a profile defines `default-filter`, also provide `--archive <path>` from a

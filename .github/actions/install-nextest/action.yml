@@ -4,7 +4,7 @@ runs:
   using: composite
   steps:
     - name: Install the pinned test runner
-      uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2
+      uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2.87.29
       with:
         tool: cargo-nextest@0.9.130
         fallback: none

@@ -1,0 +1,27 @@
+name: Rust build cache
+description: >-
+  Restore the shared Rust cache for a job and save it only from main. rust-cache keys on
+  the toolchain, lockfiles and .cargo/config.toml; GitHub shares caches written by the
+  default branch with every other ref, so main is the one writer and branches only read.
+inputs:
+  shared-key:
+    description: Cache set shared by every job that builds the same profile (ci-rust, cli-release, desktop)
+    required: true
+  workspaces:
+    description: Newline-separated "workspace -> target" entries
+    required: false
+    default: ". -> target"
+outputs:
+  cache-hit:
+    description: "'true' when the exact cache key was restored; anything else means a cold build"
+    value: ${{ steps.cache.outputs.cache-hit }}
+runs:
+  using: composite
+  steps:
+    - id: cache
+      uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      with:
+        shared-key: ${{ inputs.shared-key }}
+        workspaces: ${{ inputs.workspaces }}
+        cache-workspace-crates: true
+        save-if: ${{ github.ref == 'refs/heads/main' }}
