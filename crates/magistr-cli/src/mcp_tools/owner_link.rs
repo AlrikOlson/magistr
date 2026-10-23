@@ -1,11 +1,13 @@
 //! Workflow owner admission and orderly settlement behind the shared MCP bridge.
 use color_eyre::eyre;
-#[cfg(unix)]
-use magistr_engine::native::{AttachError, CallerIdentity, OwnerClient, WriterRole};
+#[cfg(any(unix, windows))]
+use magistr_engine::native::{
+    AttachError, CallerIdentity, LocalStream, OwnerClient, OwnerGeneration, WriterRole,
+};
 use magistr_engine::native::{NativeConfig, OwnerEndpoint};
 use rmcp::{ServiceExt, service::ServerInitializeError};
 use std::path::PathBuf;
-#[cfg(unix)]
+#[cfg(any(unix, windows))]
 use std::time::Duration;
 use tokio::task::JoinHandle;
 
@@ -60,9 +62,9 @@ impl BridgeLink for Link {
     type Options = Options;
 
     async fn open(options: &Options) -> Result<Self, String> {
-        #[cfg(unix)]
+        #[cfg(any(unix, windows))]
         let deadline = tokio::time::Instant::now() + Duration::from_secs(5);
-        #[cfg(not(unix))]
+        #[cfg(not(any(unix, windows)))]
         return Self::embed(
             MagistrService::new(options.root.clone(), &options.config)
                 .await
@@ -70,11 +72,10 @@ impl BridgeLink for Link {
         )
         .await
         .map_err(|e| e.to_string());
-        #[cfg(unix)]
+        #[cfg(any(unix, windows))]
         loop {
             match MagistrService::new(options.root.clone(), &options.config).await {
                 Ok(service) => return Self::embed(service).await.map_err(|e| e.to_string()),
-                #[cfg(unix)]
                 Err(refusal) if refusal.kind() == std::io::ErrorKind::WouldBlock => {
                     let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
                     if remaining.is_zero() {
@@ -82,23 +83,9 @@ impl BridgeLink for Link {
                             "{refusal}; project attachment timed out after 5 seconds"
                         ));
                     }
-                    let config = options.config.clone();
-                    let attached = tokio::task::spawn_blocking(move || {
-                        OwnerClient::attach_mcp(
-                            &config,
-                            config.resolve_project_id(),
-                            WriterRole::Service,
-                            CallerIdentity::this_process("mcp"),
-                            remaining.min(Duration::from_millis(250)),
-                        )
-                    })
-                    .await
-                    .map_err(|e| e.to_string())?;
-                    match attached {
+                    match attach(&options.config, remaining.min(Duration::from_millis(250))).await?
+                    {
                         Ok((generation, stream)) => {
-                            stream.set_nonblocking(true).map_err(|e| e.to_string())?;
-                            let stream = tokio::net::UnixStream::from_std(stream)
-                                .map_err(|e| e.to_string())?;
                             return Ok(Self {
                                 frames: Frames::new(stream),
                                 embedded: None,
@@ -153,4 +140,51 @@ impl BridgeLink for Link {
         }
         Ok(())
     }
+}
+
+/// One bounded attempt to attach to the MCP session of the project's
+/// service owner. The outer error is this process failing, the inner one
+/// the owner's answer.
+#[cfg(unix)]
+async fn attach(
+    config: &NativeConfig,
+    deadline: Duration,
+) -> Result<Result<(OwnerGeneration, LocalStream), AttachError>, String> {
+    let config = config.clone();
+    let attached = tokio::task::spawn_blocking(move || {
+        OwnerClient::attach_mcp(
+            &config,
+            config.resolve_project_id(),
+            WriterRole::Service,
+            CallerIdentity::this_process("mcp"),
+            deadline,
+        )
+    })
+    .await
+    .map_err(|e| e.to_string())?;
+    let (generation, stream) = match attached {
+        Ok(attached) => attached,
+        Err(error) => return Ok(Err(error)),
+    };
+    stream.set_nonblocking(true).map_err(|e| e.to_string())?;
+    let stream = tokio::net::UnixStream::from_std(stream).map_err(|e| e.to_string())?;
+    Ok(Ok((generation, stream)))
+}
+
+/// One bounded attempt to attach to the MCP session of the project's
+/// service owner. The outer error is this process failing, the inner one
+/// the owner's answer.
+#[cfg(windows)]
+async fn attach(
+    config: &NativeConfig,
+    deadline: Duration,
+) -> Result<Result<(OwnerGeneration, LocalStream), AttachError>, String> {
+    Ok(OwnerClient::attach_mcp(
+        config,
+        config.resolve_project_id(),
+        WriterRole::Service,
+        CallerIdentity::this_process("mcp"),
+        deadline,
+    )
+    .await)
 }

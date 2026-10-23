@@ -39,7 +39,7 @@ pub struct OwnerClient {
     path: PathBuf,
     hello: Hello,
     deadline: Duration,
-    link: Option<unix::Link>,
+    link: Option<transport::Link>,
     generation: OwnerGeneration,
     owner_pid: u32,
     next_id: u64,
@@ -83,7 +83,7 @@ impl OwnerClient {
     /// [`AttachError::Unavailable`] when nothing listens at the endpoint,
     /// [`AttachError::Refused`] with the owner's reason, [`AttachError::Deadline`]
     /// when the handshake is not answered in time, [`AttachError::Unsupported`]
-    /// off Unix.
+    /// on a platform with neither Unix sockets nor named pipes.
     pub fn attach_with(
         config: &NativeConfig,
         project_id: String,
@@ -100,7 +100,7 @@ impl OwnerClient {
             context: Some(config.execution_context()),
             caller,
         };
-        let (link, generation, owner_pid) = unix::connect(&path, &hello, deadline)?;
+        let (link, generation, owner_pid) = transport::connect(&path, &hello, deadline)?;
         Ok(Self {
             path,
             hello,
@@ -139,6 +139,37 @@ impl OwnerClient {
         Self::attach_mcp_at(&path, &hello, deadline)
     }
 
+    /// Attach for the owner's MCP session over its pipe: the handshake is
+    /// done here, on the caller's runtime, and the pipe — positioned exactly
+    /// after the welcome — is handed back for the caller to speak MCP on.
+    /// The deadline bounds the connect and the greeting together.
+    ///
+    /// # Errors
+    /// As [`Self::attach_with`]; an owner without an MCP session refuses
+    /// with [`AttachRefusal::Unsupported`](super::AttachRefusal::Unsupported).
+    #[cfg(windows)]
+    pub async fn attach_mcp(
+        config: &NativeConfig,
+        project_id: String,
+        role: WriterRole,
+        caller: CallerIdentity,
+        deadline: Duration,
+    ) -> Result<(OwnerGeneration, super::LocalStream), AttachError> {
+        let path = owner_socket_path(config, &project_id, role);
+        let hello = Hello {
+            protocol: OWNER_PROTOCOL_VERSION,
+            build: BuildIdentity::this_build(),
+            identity: OwnerIdentity::Workflow { project_id, role },
+            attach: AttachKind::Mcp,
+            context: Some(config.execution_context()),
+            caller,
+        };
+        tokio::time::timeout(deadline, super::owner_workspace_link::greet(&path, &hello))
+            .await
+            .map_err(|_| AttachError::Deadline(deadline))?
+            .map(|(generation, _, stream)| (generation, stream))
+    }
+
     /// Attach to the MCP session of an owner of the canonical workspace root.
     /// This opens no workspace store and takes no workflow or workspace lease.
     /// The returned generation names the owner reached by this connection.
@@ -160,7 +191,7 @@ impl OwnerClient {
         hello: &Hello,
         deadline: Duration,
     ) -> Result<(OwnerGeneration, std::os::unix::net::UnixStream), AttachError> {
-        let (link, generation, _) = unix::connect(path, hello, deadline)?;
+        let (link, generation, _) = transport::connect(path, hello, deadline)?;
         let stream = link.into_stream();
         stream
             .set_read_timeout(None)
@@ -203,7 +234,8 @@ impl OwnerClient {
     /// As [`Self::attach_with`].
     pub fn reconnect(&mut self) -> Result<OwnerGeneration, AttachError> {
         self.link = None;
-        let (link, generation, owner_pid) = unix::connect(&self.path, &self.hello, self.deadline)?;
+        let (link, generation, owner_pid) =
+            transport::connect(&self.path, &self.hello, self.deadline)?;
         self.link = Some(link);
         self.generation = generation;
         self.owner_pid = owner_pid;
@@ -287,9 +319,16 @@ pub(super) fn probe_line(
     hello: &Hello,
     deadline: Duration,
 ) -> Result<super::owner_report::OwnerReport, AttachError> {
-    let (mut link, _, _) = unix::connect(path, hello, deadline)?;
+    let (mut link, _, _) = transport::connect(path, hello, deadline)?;
     link.next_line(deadline)
 }
+
+#[cfg(unix)]
+use unix as transport;
+#[cfg(not(any(unix, windows)))]
+use unsupported as transport;
+#[cfg(windows)]
+use windows as transport;
 
 #[cfg(unix)]
 mod unix {
@@ -434,8 +473,153 @@ mod unix {
     }
 }
 
-#[cfg(not(unix))]
-mod unix {
+#[cfg(windows)]
+mod windows {
+    use std::future::Future;
+    use std::path::Path;
+    use std::time::Duration;
+
+    use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+    use tokio::runtime::Runtime;
+
+    use crate::native::LocalStream;
+    use crate::native::attach_error::AttachError;
+    use crate::native::owner_generation::OwnerGeneration;
+    use crate::native::owner_reply::OwnerReply;
+    use crate::native::owner_wire::{ClientFrame, CommandRefusal, Hello, ReplyFrame};
+    use crate::native::owner_workspace_link::{greet, link_error};
+
+    /// One attached connection: the owner's pipe, and the private runtime
+    /// whose reactor it is registered with. A synchronous pipe read cannot
+    /// be bounded, so every round trip runs on that runtime under the
+    /// deadline instead. The pipe is declared first so it is closed while
+    /// its reactor still runs.
+    #[derive(Debug)]
+    pub(super) struct Link {
+        stream: BufReader<LocalStream>,
+        runtime: PrivateRuntime,
+        deadline: Duration,
+    }
+
+    /// A runtime only one link drives, shut down in the background when the
+    /// link goes: a client dropped inside an async context must not panic.
+    #[derive(Debug)]
+    struct PrivateRuntime(Option<Runtime>);
+
+    impl Drop for PrivateRuntime {
+        fn drop(&mut self) {
+            if let Some(runtime) = self.0.take() {
+                runtime.shutdown_background();
+            }
+        }
+    }
+
+    pub(super) fn connect(
+        path: &Path,
+        hello: &Hello,
+        deadline: Duration,
+    ) -> Result<(Link, OwnerGeneration, u32), AttachError> {
+        let runtime = PrivateRuntime(Some(
+            tokio::runtime::Builder::new_current_thread()
+                .enable_io()
+                .enable_time()
+                .build()
+                .map_err(AttachError::Unavailable)?,
+        ));
+        let (generation, owner_pid, stream) = block(&runtime, deadline, greet(path, hello))?;
+        let link = Link {
+            stream: BufReader::new(stream),
+            runtime,
+            deadline,
+        };
+        Ok((link, generation, owner_pid))
+    }
+
+    impl Link {
+        pub(super) fn exchange(
+            &mut self,
+            frame: &ClientFrame,
+            id: u64,
+            deadline: Duration,
+        ) -> Result<Result<OwnerReply, CommandRefusal>, AttachError> {
+            let stream = &mut self.stream;
+            block(&self.runtime, deadline, async move {
+                write_line(stream, frame).await?;
+                loop {
+                    let reply: ReplyFrame = read_line(stream).await?;
+                    if reply.id == id {
+                        return Ok(reply.outcome);
+                    }
+                }
+            })
+        }
+
+        pub(super) fn detach(&mut self) {
+            let stream = &mut self.stream;
+            let _ = block(&self.runtime, self.deadline, async move {
+                write_line(stream, &ClientFrame::Detach).await?;
+                stream.shutdown().await.map_err(link_error)
+            });
+        }
+
+        /// The next line the owner writes, as `T`; EOF is the owner gone.
+        pub(super) fn next_line<T: serde::de::DeserializeOwned + Send>(
+            &mut self,
+            deadline: Duration,
+        ) -> Result<T, AttachError> {
+            let stream = &mut self.stream;
+            block(&self.runtime, deadline, read_line(stream))
+        }
+    }
+
+    /// Run `work` on the link's runtime, bounded by `deadline`. It runs on
+    /// a scoped thread of its own because a caller already inside an async
+    /// runtime may not block on another one from its own thread.
+    fn block<T: Send>(
+        runtime: &PrivateRuntime,
+        deadline: Duration,
+        work: impl Future<Output = Result<T, AttachError>> + Send,
+    ) -> Result<T, AttachError> {
+        let Some(runtime) = &runtime.0 else {
+            return Err(AttachError::Detached);
+        };
+        std::thread::scope(|scope| {
+            scope
+                .spawn(|| {
+                    runtime.block_on(async {
+                        tokio::time::timeout(deadline, work)
+                            .await
+                            .map_err(|_| AttachError::Deadline(deadline))?
+                    })
+                })
+                .join()
+                .unwrap_or_else(|panic| std::panic::resume_unwind(panic))
+        })
+    }
+
+    async fn write_line<T: serde::Serialize + Sync>(
+        stream: &mut BufReader<LocalStream>,
+        value: &T,
+    ) -> Result<(), AttachError> {
+        let mut bytes = serde_json::to_vec(value).map_err(|e| AttachError::Wire(e.to_string()))?;
+        bytes.push(b'\n');
+        stream.write_all(&bytes).await.map_err(link_error)?;
+        stream.flush().await.map_err(link_error)
+    }
+
+    async fn read_line<T: serde::de::DeserializeOwned>(
+        stream: &mut BufReader<LocalStream>,
+    ) -> Result<T, AttachError> {
+        let mut line = String::new();
+        if stream.read_line(&mut line).await.map_err(link_error)? == 0 {
+            return Err(AttachError::OwnerGone);
+        }
+        serde_json::from_str(line.trim_end()).map_err(|e| AttachError::Wire(e.to_string()))
+    }
+}
+
+#[cfg(not(any(unix, windows)))]
+mod unsupported {
     use std::path::Path;
     use std::time::Duration;
 

@@ -61,7 +61,8 @@ impl OwnerEndpoint {
     ///
     /// # Errors
     /// A live or non-socket endpoint is preserved and refused. Only a stale
-    /// socket is reclaimed. Local attachment requires Unix domain sockets.
+    /// socket is reclaimed. Local attachment requires Unix domain sockets
+    /// or Windows named pipes.
     pub async fn serve_with(engines: NativeEngines, mcp: Option<McpAcceptor>) -> io::Result<Self> {
         Self::serve_workflow(engines.shared_authority(), Some(engines), mcp).await
     }
@@ -165,9 +166,6 @@ impl OwnerEndpoint {
     }
 
     /// The Windows endpoint: a pipe granted to this process's user alone.
-    /// Only a workspace owner serves one; the workflow owner's clients
-    /// attach synchronously and have no pipe transport yet, so it is
-    /// refused rather than served to nobody.
     #[cfg(windows)]
     async fn serve_at(
         identity: OwnerIdentity,
@@ -177,12 +175,6 @@ impl OwnerEndpoint {
         engines: Option<NativeEngines>,
         mcp: Option<McpAcceptor>,
     ) -> io::Result<Self> {
-        if !matches!(identity, OwnerIdentity::Workspace { .. }) {
-            return Err(io::Error::new(
-                io::ErrorKind::Unsupported,
-                "magistr: the workflow owner endpoint needs Unix domain sockets",
-            ));
-        }
         let user = super::user_sid::current_user()?;
         let listener = PipeListener::bind(&path, &user)?;
         let shared = Arc::new(OwnerConnections::new(
@@ -234,6 +226,10 @@ mod tests;
 #[cfg(all(test, windows))]
 #[path = "owner_workspace_windows.tests.rs"]
 mod windows_tests;
+
+#[cfg(all(test, windows))]
+#[path = "owner_workflow_windows.tests.rs"]
+mod workflow_windows_tests;
 
 #[cfg(all(test, unix))]
 #[path = "owner_workspace.tests.rs"]

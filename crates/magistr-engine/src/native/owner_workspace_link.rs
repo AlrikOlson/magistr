@@ -1,4 +1,4 @@
-//! One absolute deadline for a workspace connection and its greeting.
+//! One absolute deadline for an owner connection and its greeting.
 
 use std::{io, path::Path, time::Duration};
 
@@ -27,9 +27,10 @@ pub(super) async fn attach(
         context: None,
         caller,
     };
-    tokio::time::timeout(deadline, exchange(&path, &hello))
+    tokio::time::timeout(deadline, greet(&path, &hello))
         .await
         .map_err(|_| AttachError::Deadline(deadline))?
+        .map(|(generation, _, stream)| (generation, stream))
 }
 
 #[cfg(unix)]
@@ -44,10 +45,13 @@ async fn connect(path: &Path) -> io::Result<LocalStream> {
         .map(LocalStream::Client)
 }
 
-async fn exchange(
+/// Connect to the endpoint at `path`, send `hello` and read the greeting
+/// byte by byte, so the stream is handed back positioned exactly after it.
+/// The caller bounds the whole exchange.
+pub(super) async fn greet(
     path: &Path,
     hello: &Hello,
-) -> Result<(OwnerGeneration, LocalStream), AttachError> {
+) -> Result<(OwnerGeneration, u32, LocalStream), AttachError> {
     let mut stream = connect(path).await.map_err(AttachError::Unavailable)?;
     let mut bytes =
         serde_json::to_vec(hello).map_err(|error| AttachError::Wire(error.to_string()))?;
@@ -71,12 +75,15 @@ async fn exchange(
     let greeting: Greeting =
         serde_json::from_slice(&line).map_err(|error| AttachError::Wire(error.to_string()))?;
     match greeting {
-        Greeting::Welcome { generation, .. } => Ok((generation, stream)),
+        Greeting::Welcome {
+            generation,
+            owner_pid,
+        } => Ok((generation, owner_pid, stream)),
         Greeting::Refused(refusal) => Err(AttachError::Refused(refusal)),
     }
 }
 
-fn link_error(error: io::Error) -> AttachError {
+pub(super) fn link_error(error: io::Error) -> AttachError {
     if matches!(
         error.kind(),
         io::ErrorKind::UnexpectedEof

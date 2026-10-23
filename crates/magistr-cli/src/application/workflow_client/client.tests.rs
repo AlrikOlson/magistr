@@ -129,7 +129,7 @@ fn a_second_host_on_the_same_project_is_refused_until_the_first_is_gone() {
 }
 
 /// A pending chunk on the host's writer.
-#[cfg(unix)]
+#[cfg(any(unix, windows))]
 fn seed_chunk(host: &EngineClient, id: &str) {
     host.writer()
         .expect("the host")
@@ -155,7 +155,13 @@ fn attachable(root: &Path, data: &Path) -> NativeConfig {
     config(root, data).with_runtime_dir("/tmp")
 }
 
-#[cfg(unix)]
+/// A pipe name does not depend on the store's depth.
+#[cfg(windows)]
+fn attachable(root: &Path, data: &Path) -> NativeConfig {
+    config(root, data)
+}
+
+#[cfg(any(unix, windows))]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn a_second_cockpit_attaches_to_the_running_host_and_acts_through_it() {
     let tmp = tempfile::tempdir().expect("tempdir");
@@ -210,7 +216,7 @@ async fn a_second_cockpit_attaches_to_the_running_host_and_acts_through_it() {
     drop(endpoint);
 }
 
-#[cfg(unix)]
+#[cfg(any(unix, windows))]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn a_held_host_without_an_endpoint_fails_closed() {
     let tmp = tempfile::tempdir().expect("tempdir");
@@ -236,7 +242,7 @@ async fn a_held_host_without_an_endpoint_fails_closed() {
     assert!(host.writer().is_some() && host.attached_generation().is_none());
 }
 
-#[cfg(unix)]
+#[cfg(any(unix, windows))]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn an_attached_port_reports_a_gone_owner_and_opens_nothing() {
     let tmp = tempfile::tempdir().expect("tempdir");
@@ -267,9 +273,9 @@ async fn an_attached_port_reports_a_gone_owner_and_opens_nothing() {
         .expect("the role is free: the attached cockpit held nothing");
 }
 
-#[cfg(not(unix))]
+#[cfg(not(any(unix, windows)))]
 #[tokio::test]
-async fn a_host_off_unix_serves_no_endpoint_and_still_starts() {
+async fn a_host_without_local_endpoints_serves_none_and_still_starts() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let root = tmp.path().join("proj");
     std::fs::create_dir_all(&root).expect("root");

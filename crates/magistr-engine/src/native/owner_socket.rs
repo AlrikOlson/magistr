@@ -4,7 +4,9 @@ use std::path::PathBuf;
 
 use sha2::{Digest, Sha256};
 
-use super::native_config::{NativeConfig, fits_sun_path};
+use super::native_config::NativeConfig;
+#[cfg(not(windows))]
+use super::native_config::fits_sun_path;
 use super::owner_lease::lock_path;
 use super::writer_role::WriterRole;
 
@@ -19,10 +21,36 @@ use super::writer_role::WriterRole;
 /// that fits the kernel's `sun_path`; a store rooted deep enough to
 /// overflow it gets `<runtime_dir>/magistr-<digest>.workflow.sock`, the
 /// digest being the lock path's, and a runtime directory that is itself
-/// too deep falls back to `/tmp`.
+/// too deep falls back to `/tmp`. On Windows it is a named pipe keyed by
+/// this user and the canonical lock path.
 #[must_use]
 pub fn owner_socket_path(tas: &NativeConfig, project_id: &str, role: WriterRole) -> PathBuf {
     let lock = canonical_location(lock_path(tas, project_id, role));
+    #[cfg(windows)]
+    {
+        workflow_pipe_name(&lock)
+    }
+    #[cfg(not(windows))]
+    {
+        beside_or_short(tas, &lock)
+    }
+}
+
+/// The pipe for the lock at `lock`. A user that cannot be read keys the
+/// name by the lock alone: such a process can neither serve nor verify a
+/// pipe, so the name only has to be stable, and the pipe's own access
+/// control still admits its owner's user alone.
+#[cfg(windows)]
+fn workflow_pipe_name(lock: &std::path::Path) -> PathBuf {
+    let key = lock.as_os_str().as_encoded_bytes();
+    super::owner_pipe::pipe_name("workflow", key).unwrap_or_else(|_| {
+        let digest = hex_prefix(&lock.to_string_lossy());
+        PathBuf::from(format!(r"\\.\pipe\magistr-workflow-{digest}"))
+    })
+}
+
+#[cfg(not(windows))]
+fn beside_or_short(tas: &NativeConfig, lock: &std::path::Path) -> PathBuf {
     let beside = PathBuf::from(format!("{}.sock", lock.display()));
     if fits_sun_path(&beside) {
         return beside;
@@ -68,6 +96,6 @@ fn hex_prefix(text: &str) -> String {
         .collect()
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 #[path = "owner_socket.tests.rs"]
 mod tests;
