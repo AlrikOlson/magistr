@@ -1,5 +1,6 @@
 use super::*;
 use crate::native::{NativeReader, ProjectAuthority, WriterRole};
+use std::fs::File;
 use magistr_workflow::{roadmap::domain::ChunkStatus, ship::domain::task::TaskType};
 
 fn fixture() -> (tempfile::TempDir, NativeConfig, NativeConfig) {

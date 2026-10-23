@@ -48,7 +48,7 @@ impl WorkspaceConfigUpgrade {
             ));
         }
         std::fs::remove_file(root.join("workbench.toml"))?;
-        std::fs::File::open(root)?.sync_all()
+        sync_directory(root)
     }
 }
 
@@ -152,7 +152,17 @@ fn publish(root: &Path, relative: &str, content: &str, expected: Option<&str>) -
     } else {
         staged.persist_noclobber(&path).map_err(|e| e.error)?;
     }
-    std::fs::File::open(parent)?.sync_all()
+    sync_directory(parent)
+}
+
+/// Make a changed directory entry durable. Windows cannot open a directory
+/// as a file and commits the entry with the rename or removal itself.
+fn sync_directory(directory: &Path) -> io::Result<()> {
+    #[cfg(unix)]
+    std::fs::File::open(directory)?.sync_all()?;
+    #[cfg(not(unix))]
+    let _ = directory;
+    Ok(())
 }
 
 #[cfg(test)]

@@ -324,9 +324,19 @@ fn backup_upgrade(root: &Path, change: &PlannedChange) -> crate::error::Result<(
                     && std::fs::read(&full)? == before.as_bytes() => {}
             Err(error) => return Err(error.error),
         }
-        std::fs::File::open(parent)?.sync_all()
+        sync_directory(parent)
     };
     save().map_err(|e| MagistrError::io(&full, e))
+}
+
+/// Make a new directory entry durable. Windows cannot open a directory as a
+/// file and commits the entry with the rename itself.
+fn sync_directory(directory: &Path) -> std::io::Result<()> {
+    #[cfg(unix)]
+    std::fs::File::open(directory)?.sync_all()?;
+    #[cfg(not(unix))]
+    let _ = directory;
+    Ok(())
 }
 
 /// Create `full` with `content`, failing if anything is there already.

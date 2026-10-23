@@ -2,7 +2,7 @@ use super::{NativeConfig, owner_lease::OwnerLease};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{
-    fs::{self, File},
+    fs,
     io::{self, Write},
     path::{Path, PathBuf},
 };
@@ -302,7 +302,17 @@ fn publish(path: &Path, bytes: &[u8], replace: bool) -> io::Result<()> {
     } else {
         staged.persist_noclobber(path).map_err(|e| e.error)?;
     }
-    File::open(parent)?.sync_all()
+    sync_directory(parent)
+}
+
+/// Make a new directory entry durable. Windows cannot open a directory as a
+/// file and commits the entry with the rename itself.
+fn sync_directory(directory: &Path) -> io::Result<()> {
+    #[cfg(unix)]
+    fs::File::open(directory)?.sync_all()?;
+    #[cfg(not(unix))]
+    let _ = directory;
+    Ok(())
 }
 
 #[cfg(test)]
