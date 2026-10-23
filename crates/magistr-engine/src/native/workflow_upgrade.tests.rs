@@ -1,7 +1,7 @@
 use super::*;
 use crate::native::{NativeReader, ProjectAuthority, WriterRole};
-use std::fs::File;
 use magistr_workflow::{roadmap::domain::ChunkStatus, ship::domain::task::TaskType};
+use std::fs::File;
 
 fn fixture() -> (tempfile::TempDir, NativeConfig, NativeConfig) {
     let dir = tempfile::tempdir().unwrap();
@@ -366,4 +366,71 @@ fn a_live_older_document_owner_blocks_conversion_before_any_copy() {
     );
     drop(lock);
     drop(ProjectAuthority::admit(&current, WriterRole::Host).unwrap());
+}
+
+/// One user's environment naming two stores, as Git Bash and PowerShell do
+/// on Windows: the launch uses the first, the other is ranked below it.
+fn two_store_launch(dir: &Path) -> NativeConfig {
+    let root = dir.join("project");
+    fs::create_dir_all(root.join(".magistr")).unwrap();
+    fs::write(
+        root.join(".magistr/project.json"),
+        r#"{"project":{"id":"saved-project"}}"#,
+    )
+    .unwrap();
+    let home = dir.join("home").to_string_lossy().into_owned();
+    let appdata = dir.join("appdata").to_string_lossy().into_owned();
+    NativeConfig::from_lookup(&root, move |key| match key {
+        "HOME" => Some(home.clone()),
+        "APPDATA" => Some(appdata.clone()),
+        _ => None,
+    })
+}
+
+fn request_state(config: &NativeConfig) -> serde_json::Value {
+    serde_json::from_slice(
+        &fs::read(config.workflow_root().join(WorkflowUpgrade::REQUEST)).unwrap(),
+    )
+    .unwrap()
+}
+
+#[test]
+fn work_saved_under_another_store_of_the_same_user_refuses_instead_of_completing() {
+    let dir = tempfile::tempdir().unwrap();
+    let launch = two_store_launch(dir.path());
+    let elsewhere = launch.other_data_dirs[0].clone();
+    let older = older_root(&elsewhere).expect("an older sibling");
+    let writer = ProjectAuthority::admit_for_project(
+        &launch.clone().with_data_dir(&older),
+        "saved-project".into(),
+        WriterRole::Host,
+    )
+    .unwrap()
+    .open();
+    writer
+        .ship_set_objective("Keep this work".into(), vec![], vec![], "saved".into())
+        .unwrap();
+    drop(writer);
+    request(&launch);
+
+    let refused = ProjectAuthority::admit(&launch, WriterRole::Host).unwrap_err();
+    let message = refused.to_string();
+    assert!(message.contains(&older.display().to_string()), "{message}");
+    assert!(message.contains("MAGISTR_WORKFLOW_DATA_DIR"), "{message}");
+    assert_eq!(request_state(&launch)["complete"], false);
+    assert!(
+        records(launch.data_dir(), "saved-project")
+            .unwrap()
+            .is_empty()
+    );
+    assert!(!records(&older, "saved-project").unwrap().is_empty());
+}
+
+#[test]
+fn a_project_that_never_saved_work_still_completes_its_upgrade() {
+    let dir = tempfile::tempdir().unwrap();
+    let launch = two_store_launch(dir.path());
+    request(&launch);
+    drop(ProjectAuthority::admit(&launch, WriterRole::Host).unwrap());
+    assert_eq!(request_state(&launch)["complete"], true);
 }

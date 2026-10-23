@@ -101,6 +101,9 @@ impl WorkflowUpgrade {
                 imported.push((relative, bytes));
             }
         }
+        if imported.is_empty() && !Self::has_records(config, id)? {
+            refuse_work_saved_elsewhere(config, id)?;
+        }
         // The family codecs validate converted documents. In particular the
         // strict current readers must never decode old bytes before conversion.
         let imported = converted_records(config, id, imported)?;
@@ -140,6 +143,32 @@ impl WorkflowUpgrade {
             true,
         )
     }
+}
+
+/// An upgrade that finds nothing must not record itself complete while this
+/// project's work sits in a store another environment of the same user
+/// names: that would hide the work from every later launch here.
+fn refuse_work_saved_elsewhere(config: &NativeConfig, id: &str) -> io::Result<()> {
+    for store in &config.other_data_dirs {
+        let older = older_root(store);
+        let found = [Some(store.as_path()), older.as_deref()]
+            .into_iter()
+            .flatten()
+            .find_map(|root| match records(root, id) {
+                Ok(found) if !found.is_empty() => Some(Ok(root.to_path_buf())),
+                Ok(_) => None,
+                Err(error) => Some(Err(error)),
+            });
+        if let Some(root) = found.transpose()? {
+            return Err(io::Error::other(format!(
+                "This project's saved work is in {}, but this launch uses {}. Set MAGISTR_WORKFLOW_DATA_DIR to {} and retry; nothing was changed.",
+                root.display(),
+                config.data_dir().display(),
+                store.display()
+            )));
+        }
+    }
+    Ok(())
 }
 
 fn older_root(current: &Path) -> Option<PathBuf> {

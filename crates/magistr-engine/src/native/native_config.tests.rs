@@ -66,6 +66,7 @@ fn blank_data_dir_falls_through_to_the_library_chain() {
     );
 }
 
+#[cfg(not(windows))]
 #[test]
 fn data_dir_fallbacks_use_only_the_injected_home_variables() {
     for (vars, expected) in [
@@ -80,6 +81,43 @@ fn data_dir_fallbacks_use_only_the_injected_home_variables() {
         (
             vec![("USERPROFILE", "/injected/profile")],
             "/injected/profile/AppData/Roaming/magistr/workflow",
+        ),
+    ] {
+        let cfg = NativeConfig::from_lookup("/p", lookup(vars));
+        assert_eq!(cfg.data_dir, PathBuf::from(expected));
+    }
+}
+
+// Git Bash sets HOME and PowerShell does not; both must reach one store.
+#[cfg(windows)]
+#[test]
+fn every_windows_shell_resolves_the_roaming_store() {
+    for (vars, expected) in [
+        (
+            vec![("HOME", "/injected/home"), ("APPDATA", "/injected/appdata")],
+            "/injected/appdata/magistr/workflow",
+        ),
+        (
+            vec![("APPDATA", "/injected/appdata")],
+            "/injected/appdata/magistr/workflow",
+        ),
+        (
+            vec![
+                ("HOME", "/injected/home"),
+                ("USERPROFILE", "/injected/profile"),
+            ],
+            "/injected/profile/AppData/Roaming/magistr/workflow",
+        ),
+        (
+            vec![("HOME", "/injected/home")],
+            "/injected/home/.local/share/magistr/workflow",
+        ),
+        (
+            vec![
+                ("XDG_DATA_HOME", "/injected/xdg"),
+                ("APPDATA", "/injected/appdata"),
+            ],
+            "/injected/xdg/magistr/workflow",
         ),
     ] {
         let cfg = NativeConfig::from_lookup("/p", lookup(vars));

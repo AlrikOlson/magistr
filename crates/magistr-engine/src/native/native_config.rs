@@ -39,6 +39,10 @@ pub struct NativeConfig {
     pub(super) project_root: PathBuf,
     /// Store root; each family persists under `<data_dir>/<family>/sessions`.
     pub(super) data_dir: PathBuf,
+    /// The stores the lower-ranked home variables of the same environment
+    /// name. Never opened: an upgrade that finds nothing in `data_dir` reads
+    /// them only to refuse when this project's work is saved elsewhere.
+    pub(super) other_data_dirs: Vec<PathBuf>,
     /// Whether anything written survives the process.
     pub(super) persist: bool,
     /// Unix socket an external server broadcasts on, if configured.
@@ -80,6 +84,7 @@ impl PartialEq for NativeConfig {
     fn eq(&self, other: &Self) -> bool {
         self.project_root == other.project_root
             && self.data_dir == other.data_dir
+            && self.other_data_dirs == other.other_data_dirs
             && self.persist == other.persist
             && self.broadcast_path == other.broadcast_path
             && self.runtime_dir == other.runtime_dir
@@ -148,6 +153,19 @@ impl NativeConfig {
             .entry("persistence.enabled")
             .or_insert(ConfigSource::Default);
 
+        // Windows launchers disagree about HOME: Git Bash sets it, while
+        // PowerShell, IDEs and agent hosts do not. The roaming profile is the
+        // one location they all name, so there it precedes HOME; otherwise
+        // the same user would reach a different store from each shell.
+        #[cfg(windows)]
+        let data_candidates = [
+            ("MAGISTR_WORKFLOW_DATA_DIR", ""),
+            ("XDG_DATA_HOME", "magistr/workflow"),
+            ("APPDATA", "magistr/workflow"),
+            ("USERPROFILE", "AppData/Roaming/magistr/workflow"),
+            ("HOME", ".local/share/magistr/workflow"),
+        ];
+        #[cfg(not(windows))]
         let data_candidates = [
             ("MAGISTR_WORKFLOW_DATA_DIR", ""),
             ("XDG_DATA_HOME", "magistr/workflow"),
@@ -155,17 +173,25 @@ impl NativeConfig {
             ("APPDATA", "magistr/workflow"),
             ("USERPROFILE", "AppData/Roaming/magistr/workflow"),
         ];
-        let data_dir = data_candidates
-            .into_iter()
-            .find_map(|(key, suffix)| {
-                non_empty(key).map(|value| {
-                    sources.insert("persistence.data_dir", ConfigSource::Environment(key));
-                    if suffix.is_empty() {
-                        PathBuf::from(value)
-                    } else {
-                        PathBuf::from(value).join(suffix)
-                    }
-                })
+        let mut named = data_candidates.into_iter().filter_map(|(key, suffix)| {
+            non_empty(key).map(|value| {
+                let dir = if suffix.is_empty() {
+                    PathBuf::from(value)
+                } else {
+                    PathBuf::from(value).join(suffix)
+                };
+                (key, dir)
+            })
+        });
+        let chosen = named.next();
+        let mut other_data_dirs: Vec<PathBuf> = named.map(|(_, dir)| dir).collect();
+        if let Some((_, dir)) = &chosen {
+            other_data_dirs.retain(|other| other != dir);
+        }
+        let data_dir = chosen
+            .map(|(key, dir)| {
+                sources.insert("persistence.data_dir", ConfigSource::Environment(key));
+                dir
             })
             .unwrap_or_else(|| {
                 // On Unix temp_dir uses TMPDIR; Windows also accepts TEMP/TMP.
@@ -244,6 +270,7 @@ impl NativeConfig {
         Self {
             project_root,
             data_dir,
+            other_data_dirs,
             persist,
             broadcast_path,
             runtime_dir,
@@ -378,6 +405,7 @@ impl NativeConfig {
     #[must_use]
     pub fn with_data_dir(mut self, dir: impl Into<PathBuf>) -> Self {
         self.data_dir = dir.into();
+        self.other_data_dirs.clear();
         self.sources
             .insert("persistence.data_dir", ConfigSource::Explicit);
         self
