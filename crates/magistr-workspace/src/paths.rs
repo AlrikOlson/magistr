@@ -9,7 +9,15 @@ pub(crate) fn is_owner_path(path: &Path) -> bool {
         if let Component::Normal(name) = part {
             let name = name.to_string_lossy();
             if name.eq_ignore_ascii_case(".git")
-                || (magistr && name.eq_ignore_ascii_case("workspace"))
+                || (magistr
+                    && [
+                        "workspace",
+                        "workflow-owner.lock",
+                        "project-owner.lock",
+                        "working-copy.lock",
+                    ]
+                    .iter()
+                    .any(|owned| name.eq_ignore_ascii_case(owned)))
             {
                 return true;
             }

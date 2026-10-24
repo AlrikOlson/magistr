@@ -77,6 +77,13 @@ tooling.
   retain their promised verification. An active ship task supplies recording
   context. Inspect `passed`,
   `recorded`, `note`, exit codes, and native errors; transport success is not evidence.
+- Declare complete check inputs and reuse valid recorded evidence. Use
+  `check_work(reuse_only: true)` when asking whether a previous result can be
+  reused: a miss records that nothing ran. Do not launch another command merely
+  because metadata, gate requiredness or elapsed time changed. Narrowed scopes
+  require retained path-level proof; missing proof is a stated limit, never a
+  fabricated pass. A new execution needs changed relevant inputs, a failure or
+  an unmet acceptance criterion.
 - Run focused checks while implementing, then the chosen verification once on
   the final source. After a failure, diagnose it and rerun affected checks.
   Do not repeat a failing suite without new evidence or a relevant correction;

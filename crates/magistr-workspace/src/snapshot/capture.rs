@@ -22,6 +22,7 @@ pub(super) fn capture(
 ) -> Result<SourceManifest, SnapshotError> {
     policy.validate()?;
     let mut manifest = SourceManifest::default();
+    let mut directories = std::collections::BTreeSet::new();
     for item in walker(root, policy).build() {
         let entry = item.map_err(|error| SnapshotError::Io {
             path: root.display().to_string(),
@@ -30,7 +31,11 @@ pub(super) fn capture(
         let Some(kind) = entry.file_type() else {
             continue;
         };
-        if kind.is_dir() || entry.path() == root {
+        if kind.is_dir() {
+            directories.insert(relative(root, entry.path())?);
+            continue;
+        }
+        if entry.path() == root {
             continue;
         }
         let relative = relative(root, entry.path())?;
@@ -44,20 +49,31 @@ pub(super) fn capture(
         }
     }
     for source in &policy.source_roots {
-        if !root
-            .join(source)
-            .try_exists()
-            .map_err(|error| io(source, error))?
-        {
-            if manifest.len() == policy.max_entries {
-                return Err(SnapshotError::SelectionTruncated {
-                    limit: policy.max_entries,
-                });
-            }
-            manifest
-                .entries
-                .insert(source.clone(), ManifestEntry::missing());
+        let name = source.replace('\\', "/");
+        if manifest.entries.contains_key(&name) {
+            continue;
         }
+        let absolute = root.join(source);
+        let observed = match fs::symlink_metadata(&absolute) {
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => ManifestEntry::missing(),
+            Err(error) => return Err(io(source, error)),
+            Ok(metadata) if metadata.is_dir() => {
+                if !directories.contains(&name) {
+                    return Err(SnapshotError::InvalidInput {
+                        path: source.clone(),
+                        reason: "the directory is excluded by ignore rules; name its required files explicitly".into(),
+                    });
+                }
+                continue;
+            }
+            Ok(_) => observe(root, &absolute, &name)?.unwrap_or_else(ManifestEntry::missing),
+        };
+        if manifest.len() == policy.max_entries {
+            return Err(SnapshotError::SelectionTruncated {
+                limit: policy.max_entries,
+            });
+        }
+        manifest.entries.insert(name, observed);
     }
     for input in policy.explicit_inputs() {
         let absolute = root.join(input);

@@ -10,6 +10,8 @@ pub enum CheckExecution {
     Exited { code: i32 },
     /// An owner-validated reference to an earlier successful execution.
     Reused { receipt_id: String },
+    /// No eligible earlier evidence was available; no command was launched.
+    ReuseUnavailable { reason: String },
     /// The command was killed at the caller's deadline.
     TimedOut,
     /// The run was ended from outside before the command finished.
@@ -42,7 +44,10 @@ impl CheckExecution {
     /// Whether a server ran a command for this outcome.
     #[must_use]
     pub const fn verified(&self) -> bool {
-        !matches!(self, Self::SelfReported { .. })
+        !matches!(
+            self,
+            Self::SelfReported { .. } | Self::ReuseUnavailable { .. }
+        )
     }
 
     /// The word for this outcome.
@@ -51,6 +56,7 @@ impl CheckExecution {
         match self {
             Self::Exited { code } => format!("exit {code}"),
             Self::Reused { receipt_id } => format!("reused {receipt_id}"),
+            Self::ReuseUnavailable { reason } => format!("not run: {reason}"),
             Self::TimedOut => "timed out".into(),
             Self::Cancelled => "cancelled".into(),
             Self::LaunchFailed { reason } => format!("launch failed: {reason}"),

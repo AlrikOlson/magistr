@@ -17,3 +17,19 @@ pub struct CheckOutcome {
     pub report: Option<ReportRecord>,
     pub results: Option<TestResults>,
 }
+
+impl CheckOutcome {
+    pub(crate) fn reuse_unavailable(command: Option<String>) -> Self {
+        let reason = "No matching reusable result was found; the command was not run.".to_owned();
+        Self {
+            passed: false,
+            verified: false,
+            details: reason.clone(),
+            command,
+            exit_code: None,
+            execution: CheckExecution::ReuseUnavailable { reason },
+            report: None,
+            results: None,
+        }
+    }
+}

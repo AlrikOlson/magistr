@@ -25,6 +25,11 @@ impl ShipUseCases {
         &self,
         mut request: CheckRequest,
     ) -> Result<Observed<CheckAdmission>, ShipError> {
+        if request.options.reuse_only && (!request.options.reuse || request.command.is_none()) {
+            return Err(ShipError::invalid_args(
+                "Reuse only requires a command and reuse enabled.",
+            ));
+        }
         if request.command.is_none() && request.passed.is_none() {
             return Err(ShipError::invalid_args(
                 "Provide a command or a check result.",

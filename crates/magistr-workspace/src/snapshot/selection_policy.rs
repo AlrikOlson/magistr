@@ -19,7 +19,8 @@ pub struct SelectionPolicy {
     /// snapshot instead of truncating it.
     pub max_entries: usize,
     /// Workspace-relative files/directories a check declares as its inputs.
-    /// Empty selects the whole source tree. Ignore rules still apply.
+    /// Empty selects the whole source tree. Directories honor ignore rules;
+    /// explicitly named files are observed even when ignored.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub source_roots: Vec<String>,
     /// Configuration read even when ignored; a missing one is recorded as missing.

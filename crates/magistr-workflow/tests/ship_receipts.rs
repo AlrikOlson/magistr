@@ -1224,3 +1224,73 @@ fn a_reused_result_cannot_claim_an_unverified_or_foreign_receipt() {
         .unwrap_err();
     assert_eq!(error.kind(), "invalid_reuse");
 }
+
+#[test]
+fn optional_evidence_remains_reusable_after_promotion_and_elapsed_time() {
+    let dir = tempfile::tempdir().unwrap();
+    let world = world();
+    let cases = stored(dir.path(), &world);
+    planned_focused(&cases);
+    let mut check = request("test", "cargo test");
+    check.required = false;
+    let admission = cases.admit_check(check).unwrap().value;
+    let original = cases
+        .settle_check(
+            admission,
+            outcome(CheckExecution::Exited { code: 0 }, "cargo test"),
+        )
+        .unwrap();
+    let id = original.receipt().value.id.clone();
+    let path = cases
+        .engine()
+        .lock()
+        .unwrap()
+        .receipts()
+        .directory()
+        .unwrap()
+        .join(format!("{id}.json"));
+    let mut record: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    record["admitted_at"] =
+        serde_json::json!((chrono::Utc::now() - chrono::Duration::days(2)).to_rfc3339());
+    std::fs::write(&path, serde_json::to_vec(&record).unwrap()).unwrap();
+    let admission = cases
+        .admit_check(request("test", "cargo test"))
+        .unwrap()
+        .value;
+    let reused = cases
+        .reuse_check(&admission)
+        .unwrap()
+        .expect("same certified inputs");
+    assert_eq!(reused.execution, CheckExecution::Reused { receipt_id: id });
+    cases.settle_check(admission, reused).unwrap();
+    cases.verify_completion("chunk:c1", None).unwrap();
+}
+
+#[tokio::test]
+async fn reuse_only_misses_settle_without_a_process_or_a_claimed_test_failure() {
+    let dir = tempfile::tempdir().unwrap();
+    let world = world();
+    let cases = stored(dir.path(), &world);
+    planned_focused(&cases);
+    let mut check = request("test", "a-command-that-must-never-start");
+    check.options.reuse_only = true;
+    let admission = cases.admit_check(check).unwrap().value;
+    let missing = cases
+        .reuse_check(&admission)
+        .unwrap()
+        .expect("explicit no-run outcome");
+    assert!(matches!(
+        missing.execution,
+        CheckExecution::ReuseUnavailable { .. }
+    ));
+    assert!(!missing.passed && !missing.verified && missing.exit_code.is_none());
+    // A caller that bypasses lookup still cannot execute a reuse-only request.
+    let direct = ShipUseCases::execute_check(&admission).await;
+    assert!(matches!(
+        direct.execution,
+        CheckExecution::ReuseUnavailable { .. }
+    ));
+    cases.settle_check(admission, missing).unwrap();
+    assert!(cases.verify_completion("chunk:c1", None).is_err());
+}

@@ -1,6 +1,5 @@
 //! Reuse only owner-executed, still-current evidence; every task gets its own receipt.
-
-use super::{CheckAdmission, CheckExecution, CheckOutcome, ShipError, ShipUseCases};
+use super::{CheckAdmission, CheckExecution, CheckOutcome, EvidencePort, ShipError, ShipUseCases};
 use crate::ship::domain::check::CheckType;
 use crate::ship::domain::check_receipt::CheckReceipt;
 
@@ -9,16 +8,30 @@ impl ShipUseCases {
         &self,
         admission: &CheckAdmission,
     ) -> Result<Option<CheckOutcome>, ShipError> {
+        let found = self.find_reusable_check(admission)?;
+        Ok(found.or_else(|| {
+            admission
+                .request
+                .options
+                .reuse_only
+                .then(|| CheckOutcome::reuse_unavailable(admission.request.command.clone()))
+        }))
+    }
+
+    fn find_reusable_check(
+        &self,
+        admission: &CheckAdmission,
+    ) -> Result<Option<CheckOutcome>, ShipError> {
         let request = &admission.request;
+        let Some(port) = self.evidence.as_deref() else {
+            return Ok(None);
+        };
         if !request.options.reuse
             || !matches!(
                 request.check_type,
                 CheckType::Test | CheckType::Lint | CheckType::Typecheck
             )
-            || !self
-                .evidence
-                .as_ref()
-                .is_some_and(|port| port.can_reuse(request))
+            || !port.can_reuse(request)
         {
             return Ok(None);
         }
@@ -30,31 +43,42 @@ impl ShipUseCases {
         }
         let ledger = self.lock()?.receipts().clone();
         let records = ledger.for_check(request, source)?;
-        // A newer failure or unfinished attempt must never be hidden by an
-        // older pass for the same command and input identity.
-        let Some(latest) = records
-            .iter()
-            .rev()
-            .find(|receipt| receipt.id != admission.receipt_id)
-        else {
+        // Compare each candidate's actual covered inputs. A newer failure or
+        // unfinished execution for those inputs must still block an older pass.
+        let mut latest = None;
+        for receipt in records.iter().rev() {
+            if receipt.id == admission.receipt_id
+                || matches!(
+                    receipt.execution(),
+                    Some(CheckExecution::ReuseUnavailable { .. })
+                )
+            {
+                continue;
+            }
+            if matching_source(receipt, admission, port)? {
+                latest = Some(receipt);
+                break;
+            }
+        }
+        let Some(latest) = latest.filter(|receipt| eligible(receipt, admission)) else {
             return Ok(None);
         };
-        if !eligible(latest, admission) {
-            return Ok(None);
-        }
         let original = match latest.execution() {
             Some(CheckExecution::Reused { receipt_id }) => ledger.get(receipt_id)?,
             _ => Some(latest.clone()),
         };
-        let Some(original) = original.filter(|receipt| {
-            eligible(receipt, admission)
-                && matches!(
-                    receipt.execution(),
-                    Some(CheckExecution::Exited { code: 0 })
-                )
-        }) else {
+        let Some(original) = original else {
             return Ok(None);
         };
+        if !eligible(&original, admission)
+            || !matching_source(&original, admission, port)?
+            || !matches!(
+                original.execution(),
+                Some(CheckExecution::Exited { code: 0 })
+            )
+        {
+            return Ok(None);
+        }
         let mut outcome = original.outcome.expect("eligible executed receipt");
         outcome.details = format!(
             "{}{}Reused verified receipt {}. Its command, selected inputs, configuration, toolchain and environment still match.",
@@ -78,26 +102,46 @@ impl ShipUseCases {
             return Ok(());
         };
         let original = self.lock()?.receipts().get(receipt_id)?;
-        if !admission.request.options.reuse
-            || !self
-                .evidence
-                .as_ref()
-                .is_some_and(|port| port.can_reuse(&admission.request))
-            || !original.as_ref().is_some_and(|receipt| {
-                eligible(receipt, admission)
+        let valid =
+            if let (Some(port), Some(original)) = (self.evidence.as_deref(), original.as_ref()) {
+                admission.request.options.reuse
+                    && port.can_reuse(&admission.request)
+                    && eligible(original, admission)
+                    && matching_source(original, admission, port)?
                     && matches!(
-                        receipt.execution(),
+                        original.execution(),
                         Some(CheckExecution::Exited { code: 0 })
                     )
-            })
-        {
+            } else {
+                false
+            };
+        if !valid {
             return Err(ShipError::refused(
                 "invalid_reuse",
-                "The earlier check no longer supplies matching verified evidence. Run the command again.",
+                "The earlier check no longer supplies matching verified evidence.",
             ));
         }
         Ok(())
     }
+}
+
+fn matching_source(
+    receipt: &CheckReceipt,
+    admission: &CheckAdmission,
+    port: &dyn EvidencePort,
+) -> Result<bool, ShipError> {
+    let (Some(before), Some(now)) = (&receipt.source, &admission.source) else {
+        return Ok(false);
+    };
+    if before.execution_digest.is_empty() {
+        return Ok(false);
+    }
+    port.inputs_match(before, now).map_err(|reason| {
+        ShipError::refused(
+            "source_unavailable",
+            format!("The earlier check inputs could not be verified: {reason}"),
+        )
+    })
 }
 
 fn eligible(receipt: &CheckReceipt, admission: &CheckAdmission) -> bool {
@@ -108,20 +152,12 @@ fn eligible(receipt: &CheckReceipt, admission: &CheckAdmission) -> bool {
         || receipt.gate != request.name
         || receipt.check_type != request.check_type
         || receipt.command != request.command
-        || receipt.required != request.required
         || !matches!(receipt.freshness, Some(super::SourceFreshness::Unchanged))
     {
         return false;
     }
-    let (Some(before), Some(now)) = (&receipt.source, &admission.source) else {
-        return false;
-    };
-    if before.execution_digest.is_empty() || before.drift_to(now).is_some() {
-        return false;
-    }
-    let Ok(recorded) = chrono::DateTime::parse_from_rfc3339(&receipt.admitted_at) else {
-        return false;
-    };
-    let age = chrono::Utc::now().signed_duration_since(recorded);
-    age.num_seconds() >= 0 && age < chrono::Duration::hours(24)
+    // Required/optional is an acceptance decision, not an execution input.
+    // Elapsed time alone cannot invalidate fully bound, unchanged local evidence.
+    chrono::DateTime::parse_from_rfc3339(&receipt.admitted_at)
+        .is_ok_and(|recorded| recorded <= chrono::Utc::now())
 }

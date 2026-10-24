@@ -620,7 +620,8 @@ impl NativeEngines {
                 })?;
             return self.services.ship.settle_check(admission, outcome);
         }
-        let (report, results) = match report {
+        let verified = execution.verified();
+        let (report, results) = match report.filter(|_| verified) {
             Some((format, path)) => {
                 let (record, results) = magistr_workflow::ship::report::read_report(format, path);
                 (Some(record), results)
@@ -630,7 +631,7 @@ impl NativeEngines {
         let outcome = CheckOutcome {
             passed: execution.passed(),
             details,
-            verified: true,
+            verified,
             command: admission.request.command.clone(),
             exit_code: execution.exit_code(),
             execution,

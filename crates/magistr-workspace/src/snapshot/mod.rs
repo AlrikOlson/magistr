@@ -23,6 +23,7 @@ mod mutation_status;
 mod receipt_file;
 mod scheme;
 mod selection_policy;
+mod snapshot_archive;
 mod snapshot_error;
 mod snapshot_validation;
 mod source_change;

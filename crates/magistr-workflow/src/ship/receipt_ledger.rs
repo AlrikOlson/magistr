@@ -250,7 +250,7 @@ impl ReceiptLedger {
         let mut records = if let Some(directory) = &self.directory {
             let _lock = lock_directory(directory)?;
             ensure_reuse_index(directory)?;
-            let bucket = directory.join("checks-v1").join(&key);
+            let bucket = directory.join("checks-v2").join(&key);
             let entries = match fs::read_dir(&bucket) {
                 Ok(entries) => entries,
                 Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
@@ -327,7 +327,7 @@ impl ReceiptLedger {
                 )
                 .map_err(ShipError::after_commit)?;
                 if let Some(key) = receipt_reuse_key(&receipt) {
-                    remove_membership(&directory.join("checks-v1").join(key), &receipt.id)?;
+                    remove_membership(&directory.join("checks-v2").join(key), &receipt.id)?;
                 }
                 report.removed += 1;
             }
@@ -599,8 +599,6 @@ fn reuse_key(
         command?,
         &source.workspace_root,
         &source.scheme,
-        &source.policy_digest,
-        &source.source_digest,
         &source.config_digest,
         &source.execution_digest,
     ))
@@ -625,7 +623,7 @@ fn add_reuse_membership(
     let Some(key) = receipt_reuse_key(receipt) else {
         return Ok(());
     };
-    let bucket = directory.join("checks-v1").join(key);
+    let bucket = directory.join("checks-v2").join(key);
     let member = bucket.join(format!("{}.ref", receipt.id));
     if existing && member.is_file() {
         return Ok(());
@@ -639,12 +637,12 @@ fn add_reuse_membership(
         .and_then(|file| file.sync_all())
         .map_err(|error| before(error.to_string()))?;
     sync_directory(&bucket)?;
-    sync_directory(&directory.join("checks-v1"))?;
+    sync_directory(&directory.join("checks-v2"))?;
     sync_directory(directory)
 }
 
 fn ensure_reuse_index(directory: &Path) -> Result<(), ShipError> {
-    let marker = directory.join("checks-v1/ready");
+    let marker = directory.join("checks-v2/ready");
     match fs::read(&marker) {
         Ok(bytes) if bytes == b"1\n" => return Ok(()),
         Ok(_) => return Err("Unsupported check input index version.".into()),
@@ -654,9 +652,9 @@ fn ensure_reuse_index(directory: &Path) -> Result<(), ShipError> {
     for receipt in read_directory(directory)?.into_values() {
         add_reuse_membership(directory, &receipt, false)?;
     }
-    fs::create_dir_all(directory.join("checks-v1")).map_err(|error| before(error.to_string()))?;
+    fs::create_dir_all(directory.join("checks-v2")).map_err(|error| before(error.to_string()))?;
     sync_directory(directory)?;
-    publish_bytes(&directory.join("checks-v1"), "ready", b"1\n")
+    publish_bytes(&directory.join("checks-v2"), "ready", b"1\n")
 }
 
 fn retain_reuse_origins<'a>(

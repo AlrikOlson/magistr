@@ -1,10 +1,13 @@
 use std::time::Duration;
 
 use magistr_cockpit::{cockpit::Msg, engine::EngineEvent};
+#[cfg(unix)]
+use magistr_engine::ReadState;
 use magistr_engine::{
-    ChunkStatus, NativeConfig, NativeEngines, NativeSnapshot, ProjectAuthority, ReadState,
-    SignalKind, WriterRole,
+    ChunkStatus, NativeConfig, NativeEngines, NativeSnapshot, ProjectAuthority, SignalKind,
+    WriterRole,
 };
+#[cfg(unix)]
 use magistr_workflow::infra::{Domain, Persistence};
 use tokio::sync::mpsc::UnboundedReceiver;
 

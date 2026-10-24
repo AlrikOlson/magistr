@@ -446,3 +446,141 @@ fn an_external_policy_or_the_command_scope_edited_around_a_gate_is_evidence_drif
             .is_ok()
     );
 }
+
+#[tokio::test]
+async fn real_host_reuses_narrowed_inputs_and_promotes_evidence_for_completion() {
+    let tmp = tempfile::tempdir().unwrap();
+    let (engines, root) = host(&tmp);
+    std::fs::write(root.join("Cargo.toml"),
+        "[package]\nname = \"evidence-fixture\"\nversion = \"0.1.0\"\nedition = \"2024\"\n[[bin]]\nname = \"fixture\"\npath = \"main.rs\"\n").unwrap();
+    std::fs::write(root.join("main.rs"), "fn main() {}\n").unwrap();
+    let command = "cargo fmt --all -- --check";
+    let config = serde_json::json!({
+        "project":{"name":"test","description":"","type":"cli"},
+        "stack":{"language":"rust","framework":"none","package_manager":"cargo","test_framework":"cargo-test","linter":"clippy","formatter":"rustfmt"},
+        "quality_gate":{"check":command,"test":"cargo test","lint":"cargo clippy"},
+        "format":{"extensions":["rs"],"command":"cargo fmt"},
+        "testing":{"companion_pattern":"{name}.tests.{ext}","test_dir":"alongside"},
+        "reference_repos":[],"state_prefix":"test"
+    });
+    std::fs::write(root.join(".magistr/project.json"), config.to_string()).unwrap();
+    engines
+        .ship_set_objective_with_verification(
+            "Reuse current evidence".into(),
+            vec![],
+            vec![],
+            "chunk:test".into(),
+            magistr_engine::native::VerificationMode::Focused,
+        )
+        .unwrap();
+    engines
+        .ship_add_task("verify".into(), "Verify".into(), TaskType::Test, None)
+        .unwrap();
+    engines.ship_start_task("verify").unwrap();
+    let first =
+        AdmittedCheck::admit(&engines, &root, None, "check", command.into(), false).unwrap();
+    let run = crate::utils::gate::run_gate(
+        "check",
+        command,
+        false,
+        &root,
+        30,
+        &tokio_util::sync::CancellationToken::new(),
+        |_| {},
+    )
+    .await;
+    assert!(run.execution().passed(), "{}", run.details());
+    let original = first
+        .settle(&engines, run.execution(), run.details())
+        .unwrap();
+    std::fs::write(root.join("notes.txt"), "changed unrelated metadata").unwrap();
+    let second = AdmittedCheck::admit_with_options(
+        &engines,
+        &root,
+        None,
+        "check",
+        command.into(),
+        true,
+        magistr_engine::native::CheckOptions {
+            inputs: vec!["Cargo.toml".into(), "main.rs".into()],
+            reuse_only: true,
+            ..Default::default()
+        },
+    )
+    .unwrap();
+    let reused = second
+        .reuse(&engines)
+        .unwrap()
+        .expect("the runner must not be called twice");
+    assert!(
+        matches!(reused.receipt().execution(), Some(CheckExecution::Reused { receipt_id })
+        if receipt_id == &original.receipt().id)
+    );
+    assert!(
+        engines
+            .ship_verify_completion("chunk:test", Some("verify"))
+            .unwrap()
+            .is_complete()
+    );
+
+    std::fs::write(root.join("main.rs"), "fn main() { panic!() }\n").unwrap();
+    let changed = AdmittedCheck::admit_with_options(
+        &engines,
+        &root,
+        None,
+        "check",
+        command.into(),
+        true,
+        magistr_engine::native::CheckOptions {
+            inputs: vec!["Cargo.toml".into(), "main.rs".into()],
+            reuse_only: true,
+            ..Default::default()
+        },
+    )
+    .unwrap();
+    let refused = changed
+        .reuse(&engines)
+        .unwrap()
+        .expect("settled non-execution");
+    assert!(matches!(
+        refused.receipt().execution(),
+        Some(CheckExecution::ReuseUnavailable { .. })
+    ));
+    assert!(!refused.receipt().verified());
+    assert!(!refused.check().unwrap().verified);
+    let report = root.join("target/nextest/default/junit.xml");
+    std::fs::create_dir_all(report.parent().unwrap()).unwrap();
+    std::fs::write(
+        &report,
+        "<testsuite tests=\"1\" failures=\"0\"><testcase name=\"stale\"/></testsuite>",
+    )
+    .unwrap();
+    let absent = AdmittedCheck::admit_with_options(
+        &engines,
+        &root,
+        None,
+        "test",
+        "cargo nextest run".into(),
+        true,
+        magistr_engine::native::CheckOptions {
+            inputs: vec!["Cargo.toml".into(), "main.rs".into()],
+            reuse_only: true,
+            ..Default::default()
+        },
+    )
+    .unwrap()
+    .reuse(&engines)
+    .unwrap()
+    .expect("non-execution is settled");
+    let check = absent.check().unwrap();
+    assert!(!check.verified && !check.passed);
+    assert!(
+        check.report.is_none() && check.results.is_none(),
+        "an old report cannot claim tests for a command that never ran"
+    );
+    assert!(
+        engines
+            .ship_verify_completion("chunk:test", Some("verify"))
+            .is_err()
+    );
+}

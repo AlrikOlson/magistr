@@ -29,6 +29,7 @@ async fn begin_receipt_task(client: &Client) {
     assert_eq!(started["value"]["status"], "active", "{started}");
 }
 
+#[cfg(unix)]
 fn set_source_command(root: &Path, command: &str) {
     let path = root.join(".magistr/project.json");
     let mut config: Value =

@@ -99,3 +99,6 @@ Thumbs.db
 /target/
 **/*.rs.bk
 # ── end magistr ──
+# Retained local verification output
+/local/verification/
+

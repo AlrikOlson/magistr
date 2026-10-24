@@ -8,8 +8,9 @@ use super::ObservationDrift;
 /// revision of the selected bytes, the digest of those bytes alone, the
 /// digest of the applicable external configuration layers, and what that
 /// observation may claim (`optimistic` for a live tree, `immutable` for an
-/// isolated export). The manifest and the layer contents stay with the
-/// capability; the workflow keeps only what a later comparison needs.
+/// isolated export). The capability retains the complete snapshot by revision;
+/// the workflow keeps its reference and asks that capability to prove narrower
+/// scopes. Missing historical snapshots can only use exact digest matching.
 ///
 /// The identities are kept apart on purpose: `revision` is the workspace's
 /// own name for the observation (it folds the owner generation in),

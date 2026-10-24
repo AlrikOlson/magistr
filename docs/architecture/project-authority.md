@@ -126,6 +126,43 @@ runners report an unrecorded result. An observation that cannot be taken
 refuses the admission before anything runs: an unobservable gate is never
 recorded as evidence.
 
+### Reusing checks
+
+A check may reuse an owner-executed pass when its command, selected source,
+configuration, toolchain and environment still match. Each task receives its own
+receipt referring to the original execution; it never claims another process exit.
+Optional evidence may become required without running again. Elapsed time alone
+does not invalidate unchanged local evidence.
+
+The workspace retains complete, content-addressed snapshots under
+`.magistr/workspace/source-snapshots` before verification admission. The host's
+evidence capability can therefore prove that a narrower declared scope was
+covered by an earlier observation, including each path's kind, mode, length and
+content hash. Removed or added included paths, wider scopes and changed selection
+policy cannot inherit that proof. Ignore-control files remain part of the proof.
+Named files are observed even when ignored; an ignored directory must name its
+required files instead of silently observing an empty selection. Runtime owner
+locks never become source inputs. Missing older snapshots allow exact digest
+matching only; they are never reconstructed from current bytes and labelled old.
+
+The derived `checks-v2` index finds candidates by command and execution context;
+the evidence capability decides input coverage. A newer relevant failure or
+unfinished execution still prevents an older pass from being reused. The index
+rebuilds from canonical receipts, including older records, without rewriting them.
+
+`check_work(reuse_only: true)` never launches the command on a miss. Both MCP and
+host callers settle an explicit unverified, nonpassing `reuse_unavailable`
+outcome. Use it when checking for existing evidence; decide what actually needs
+to run from that result. `reuse: false` still requests a fresh execution and
+cannot be combined with `reuse_only: true`.
+
+Known local test commands are eligible by default. Local Python/JavaScript
+verification scripts also require their script file explicitly named in the input
+closure; project gate policy can disable reuse. The fingerprint observes actual
+Python interpreters and installed distributions as well as the selected tools
+and environment. Declared inputs must include all dependencies; external or
+volatile checks must disable reuse.
+
 ### Receipt retention
 
 Receipts remain available across objective changes until explicitly compacted.

@@ -60,10 +60,13 @@ impl ExecutionFingerprint {
                 configuration.push(read_optional(&directory.join(marker))?);
             }
         }
-        if profile.contains("python") && executable("python3").is_some() {
+        for interpreter in ["python", "python3"]
+            .into_iter()
+            .filter(|name| profile.contains("python") && executable(name).is_some())
+        {
             // Installed packages can change without changing the interpreter or
             // lockfile. Hash the live distribution set, not a stale version cache.
-            configuration.push(probe(root, &["python3", "-c", "import hashlib,importlib.metadata as m; print(hashlib.sha256(repr(sorted((d.metadata.get('Name',''),d.version) for d in m.distributions())).encode()).hexdigest())"])?.into_bytes());
+            configuration.push(probe(root, &[interpreter, "-c", "import hashlib,importlib.metadata as m; print(hashlib.sha256(repr(sorted((d.metadata.get('Name',''),d.version) for d in m.distributions())).encode()).hexdigest())"])?.into_bytes());
         }
         let probes = probes(&profile);
         let mut tools: Vec<_> = probes
@@ -180,7 +183,7 @@ fn probes(command: &str) -> Vec<Vec<&'static str>> {
         }
     }
     if command.contains("python") {
-        result.push(vec!["python3", "--version"]);
+        result.extend([vec!["python", "--version"], vec!["python3", "--version"]]);
     }
     if command.split_whitespace().any(|word| word == "git") {
         result.push(vec!["git", "--version"]);

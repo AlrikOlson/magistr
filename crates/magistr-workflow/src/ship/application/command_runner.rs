@@ -152,6 +152,9 @@ pub(crate) fn tail_chars(s: &str) -> String {
 impl ShipUseCases {
     pub async fn execute_check(admission: &CheckAdmission) -> CheckOutcome {
         let request = &admission.request;
+        if request.options.reuse_only {
+            return CheckOutcome::reuse_unavailable(request.command.clone());
+        }
         let cwd = admission
             .source
             .as_ref()

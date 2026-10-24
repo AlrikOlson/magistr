@@ -8,6 +8,8 @@ pub struct CheckOptions {
     pub inputs: Vec<String>,
     /// Reuse an eligible verified result; false always executes the command.
     pub reuse: bool,
+    /// Require an eligible earlier result; never launch the command on a miss.
+    pub reuse_only: bool,
     /// Per-command deadline. The host configuration supplies the default.
     pub timeout_secs: Option<u64>,
     /// Selected by the host at admission; callers cannot supply provenance.
@@ -25,6 +27,7 @@ impl Default for CheckOptions {
         Self {
             inputs: Vec::new(),
             reuse: true,
+            reuse_only: false,
             timeout_secs: None,
             timeout_origin: None,
             max_parallel: None,

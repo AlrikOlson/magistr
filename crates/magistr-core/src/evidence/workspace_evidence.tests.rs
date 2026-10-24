@@ -416,3 +416,69 @@ fn configured_gate_scopes_deadlines_and_reuse_require_the_configured_command() {
         .observation();
     assert!(broad.inputs.is_empty());
 }
+
+#[test]
+fn retained_input_proof_allows_narrowing_but_never_changes_covered_bytes() {
+    let (_dir, root, evidence) = rig();
+    fs::write(root.join("README.md"), "before").unwrap();
+    let before = evidence
+        .observe_check("focused", Some("true"), &[])
+        .unwrap()
+        .observation();
+    fs::write(root.join("README.md"), "after").unwrap();
+    let now = evidence
+        .observe_check("focused", Some("true"), &["main.rs".into()])
+        .unwrap()
+        .observation();
+    assert!(before.drift_to(&now).is_some());
+    assert!(evidence.inputs_match(&before, &now).unwrap());
+    assert!(!evidence.inputs_match(&now, &before).unwrap());
+    fs::write(root.join("main.rs"), "fn main() { panic!() }").unwrap();
+    let changed = evidence
+        .observe_check("focused", Some("true"), &["main.rs".into()])
+        .unwrap()
+        .observation();
+    assert!(!evidence.inputs_match(&before, &changed).unwrap());
+    let mut unbound = before.clone();
+    unbound.revision = "0".repeat(64);
+    assert!(
+        !evidence.inputs_match(&unbound, &now).unwrap(),
+        "older observations without retained path evidence cannot be narrowed"
+    );
+    let mut forged = before;
+    forged.source_digest = "0".repeat(64);
+    assert!(!evidence.inputs_match(&forged, &now).unwrap());
+}
+
+#[test]
+fn local_script_reuse_needs_declared_source_and_rejects_shell_effects() {
+    let (_dir, root, _) = rig();
+    fs::create_dir(root.join("tools")).unwrap();
+    fs::write(root.join("tools/check.py"), "print('checked')").unwrap();
+    assert!(declared_script(
+        &root,
+        "python tools/check.py --quiet",
+        &["tools/check.py".into()]
+    ));
+    assert!(declared_script(
+        &root,
+        "python3 tools/check.py",
+        &["tools/check.py".into()]
+    ));
+    for (command, inputs) in [
+        ("python tools/check.py", vec![]),
+        ("python tools/check.py", vec!["tools".into()]),
+        ("python tools/check.py", vec!["main.rs".into()]),
+        (
+            "python tools/check.py && echo side-effect",
+            vec!["tools".into()],
+        ),
+        ("python ../check.py", vec!["tools".into()]),
+        ("python tools/missing.py", vec!["tools".into()]),
+    ] {
+        assert!(!declared_script(&root, command, &inputs), "{command}");
+    }
+    assert!(reusable_command("python -m unittest discover -s tests"));
+    assert!(reusable_command("python3 -m pytest tests"));
+    assert!(!reusable_command("python -c arbitrary"));
+}

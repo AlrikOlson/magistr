@@ -171,6 +171,7 @@ impl EvidencePort for WorkspaceEvidence {
         let policy = self.policy.clone().with_sources(sources);
         let snapshot =
             SourceSnapshot::capture(&self.root, policy).map_err(|error| error.to_string())?;
+        snapshot.retain().map_err(|error| error.to_string())?;
         let mut layers = self.layers.clone();
         layers.push((
             ConfigLayer::Workspace,
@@ -183,6 +184,43 @@ impl EvidencePort for WorkspaceEvidence {
         ))
     }
 
+    fn inputs_match(
+        &self,
+        before: &magistr_engine::native::SourceObservation,
+        now: &magistr_engine::native::SourceObservation,
+    ) -> Result<bool, String> {
+        if before.drift_to(now).is_none() {
+            return Ok(true);
+        }
+        if before.workspace_root != now.workspace_root
+            || before.scheme != now.scheme
+            || before.config_digest.is_empty()
+            || before.config_digest != now.config_digest
+            || before.execution_digest.is_empty()
+            || before.execution_digest != now.execution_digest
+        {
+            return Ok(false);
+        }
+        let old = SourceSnapshot::retained(&self.root, &before.revision)
+            .map_err(|error| error.to_string())?;
+        let current = SourceSnapshot::retained(&self.root, &now.revision)
+            .map_err(|error| error.to_string())?;
+        let (Some(old), Some(current)) = (old, current) else {
+            return Ok(false);
+        };
+        // A receipt cannot substitute a different archived scope or manifest.
+        if old.manifest.digest() != before.source_digest
+            || old.policy_digest != before.policy_digest
+            || old.policy.source_roots != before.inputs
+            || current.manifest.digest() != now.source_digest
+            || current.policy_digest != now.policy_digest
+            || current.policy.source_roots != now.inputs
+        {
+            return Ok(false);
+        }
+        Ok(old.covers(&current))
+    }
+
     fn can_reuse(&self, request: &magistr_engine::native::CheckRequest) -> bool {
         let Ok((_, policy)) = self.check_policy(&request.name, request.command.as_deref()) else {
             return false;
@@ -190,7 +228,10 @@ impl EvidencePort for WorkspaceEvidence {
         if let Some(reuse) = policy.and_then(|policy| policy.reuse) {
             return reuse;
         }
-        request.command.as_deref().is_some_and(reusable_command)
+        request.command.as_deref().is_some_and(|command| {
+            reusable_command(command)
+                || declared_script(&self.root, command, &request.options.inputs)
+        })
     }
 
     fn check_budget(
@@ -251,6 +292,52 @@ fn reusable_command(command: &str) -> bool {
             ["cargo", "check" | "clippy", ..]
                 | ["cargo", "test", ..]
                 | ["cargo", "nextest", "run", ..]
+                | ["python" | "python3", "-m", "unittest" | "pytest", ..]
         ) || (words.starts_with(&["cargo", "fmt"]) && words.contains(&"--check"))
     })
+}
+
+/// A local verification script is reusable when its source is explicitly part
+/// of the declared input closure. Project policy can always disable this.
+fn declared_script(root: &Path, command: &str, inputs: &[String]) -> bool {
+    if command
+        .chars()
+        .any(|ch| matches!(ch, ';' | '|' | '&' | '\n' | '\u{0060}' | '$' | '>' | '<'))
+    {
+        return false;
+    }
+    let words: Vec<_> = command.split_whitespace().collect();
+    let [
+        interpreter @ ("python" | "python3" | "node" | "bun"),
+        script,
+        ..,
+    ] = words.as_slice()
+    else {
+        return false;
+    };
+    let extension = Path::new(script)
+        .extension()
+        .and_then(|value| value.to_str());
+    if !matches!(
+        (*interpreter, extension),
+        ("python" | "python3", Some("py")) | ("node" | "bun", Some("js" | "mjs" | "cjs"))
+    ) || Path::new(script)
+        .components()
+        .any(|part| !matches!(part, std::path::Component::Normal(_)))
+    {
+        return false;
+    }
+    let Ok(path) = root.join(script).canonicalize() else {
+        return false;
+    };
+    let Ok(root) = root.canonicalize() else {
+        return false;
+    };
+    if !path.is_file() || !path.starts_with(&root) {
+        return false;
+    }
+    let Ok(relative) = path.strip_prefix(&root) else {
+        return false;
+    };
+    inputs.iter().any(|input| relative == Path::new(input))
 }

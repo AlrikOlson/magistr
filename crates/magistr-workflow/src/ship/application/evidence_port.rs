@@ -36,6 +36,16 @@ pub trait EvidencePort: Send + Sync {
         self.observe()
     }
 
+    /// Compare certified inputs through the capability that retained their proof.
+    /// Providers without path-level history retain exact observation matching.
+    fn inputs_match(
+        &self,
+        before: &super::SourceObservation,
+        now: &super::SourceObservation,
+    ) -> Result<bool, String> {
+        Ok(before.drift_to(now).is_none())
+    }
+
     /// Only the host can declare a command suitable for receipt reuse.
     fn can_reuse(&self, _request: &CheckRequest) -> bool {
         false
