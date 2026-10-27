@@ -43,21 +43,20 @@ rewrite applies an ast-grep pattern across a glob scope; replace_text is the anc
 fallback. Empty old populates an existing zero-byte file only. Every verb runs the §7.5 write engine: a new syntax error rejects the whole call \
 (PARSE_REJECTED with the parser message and rejected diff), applied diffs are the receipt, and \
 read's contentHash passed as expectedHash turns a changed file into STALE_ANCHOR with the fresh \
-hash. Single-file symbol/text edits auto-apply; rewrite, rename and anything touching >1 file or \
->200 changed lines is confirm-gated: MRTR clients approve the aggregated diff in-call via \
-elicitation, everyone else gets CONFIRM_REQUIRED carrying a confirmToken and re-invokes the \
-identical call with confirm to apply. Under edit.confirm_mode = \"token\", all verified writes \
-apply on the first call, including multi-file edits; edit.force_confirm restores the gates. \
-Dry runs never apply. A presented confirmation is still validated; a stale anchor answers \
+hash. Under the default edit.confirm_mode = \"token\", all verified writes apply on the first \
+call, including multi-file edits. edit.force_confirm (or the opt-in edit.confirm_mode = \
+\"elicit\") gates rewrite, rename and anything touching >1 file or >200 changed lines: the call \
+returns CONFIRM_REQUIRED carrying a confirmToken and the identical call re-invoked with confirm \
+applies; only elicit mode asks MRTR clients to approve the diff in-call. Dry runs never apply. A presented confirmation is still validated; a stale anchor answers \
 STALE_ANCHOR and a forged or mismatched token answers CONFIRM_MISMATCH.";
 
 const FILES: &str = "Typed file operations — replaces mv, cp, mkdir, touch and rm (SDD §9.5). \
 move is import-aware: import specifiers that resolve to the moved file are rewritten across the \
 workspace (typescript, javascript, python, java, c, c++ — specifier-based, name-resolution-free, \
 the notes say exactly what was rewritten) and the moved file's own relative imports are \
-recomputed. Moves and overwriting copies follow the shared confirmation policy: token mode \
-applies on the first call unless edit.force_confirm is set; human mode uses elicitation or \
-CONFIRM_REQUIRED + confirmToken. delete is a journal-backed move to \
+recomputed. Moves and overwriting copies follow the shared confirmation policy: the default \
+token mode applies on the first call unless edit.force_confirm is set; the opt-in elicit mode \
+uses elicitation or CONFIRM_REQUIRED + confirmToken. delete is a journal-backed move to \
 .magistr/workspace/trash/ — recoverable with undo, nothing is unlinked destructively. create is touch \
 (never overwrites); mkdir materializes the directory as a journaled .gitkeep. Every verb runs \
 the §7.5 write engine: dry-run diff, parse-verify, format, journal, atomic swap; read's \

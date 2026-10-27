@@ -24,6 +24,13 @@ fn workspace() -> tempfile::TempDir {
     )
     .expect("source");
     fs::write(dir.path().join("pending.txt"), "reviewed bytes\n").expect("move source");
+    // Confirmation fencing is exercised through the opt-in human gate.
+    fs::create_dir_all(dir.path().join(".magistr")).expect("settings directory");
+    fs::write(
+        dir.path().join(".magistr/workspace.toml"),
+        "[edit]\nconfirm_mode = \"elicit\"\n",
+    )
+    .expect("human confirmation mode");
     dir
 }
 

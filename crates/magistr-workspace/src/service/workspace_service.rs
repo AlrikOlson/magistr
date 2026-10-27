@@ -241,7 +241,8 @@ impl WorkspaceService {
         }
     }
 
-    /// Unattended token mode never elicits a human. Writes normally apply
+    /// Token mode, the default, never elicits a human; only an explicit
+    /// `edit.confirm_mode = "elicit"` turns elicitation on. Writes normally apply
     /// immediately; when `edit.force_confirm` restores a gate, its response
     /// carries the confirmation token instead of opening a dialog.
     #[must_use]

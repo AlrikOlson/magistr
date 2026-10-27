@@ -704,7 +704,7 @@ async fn write_creates_a_file_with_content_and_replaces_one_behind_the_same_gate
         .collect();
     let dir = workspace(&[("src/app.ts", APP_TS)]);
     let root = dir.path();
-    let service = open(root, &[]).await;
+    let service = open(root, &[("edit.confirm_mode", json!("elicit"))]).await;
     let (client, server) = serve(&service, TestClient::plain()).await;
 
     let created = call(
@@ -743,7 +743,7 @@ async fn write_creates_a_file_with_content_and_replaces_one_behind_the_same_gate
 "
     );
 
-    // Over the line limit the default mode asks, and the token applies.
+    // Over the line limit human mode asks, and the token applies.
     let args = json!({"path": "src/big.ts", "content": big});
     let gated = call(&client, "write", args.clone()).await;
     assert_eq!(error_code(&gated), "CONFIRM_REQUIRED");
@@ -805,7 +805,7 @@ fn rewrite_workspace() -> tempfile::TempDir {
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn the_token_flow_gates_a_multi_file_rewrite_and_the_identical_call_with_confirm_applies() {
     let dir = rewrite_workspace();
-    let service = open(dir.path(), &[]).await;
+    let service = open(dir.path(), &[("edit.confirm_mode", json!("elicit"))]).await;
     let (client, server) = serve(&service, TestClient::plain()).await;
     let gated = call(&client, "edit", REWRITE()).await;
     assert_eq!(error_code(&gated), "CONFIRM_REQUIRED");
@@ -838,7 +838,7 @@ async fn the_token_flow_gates_a_multi_file_rewrite_and_the_identical_call_with_c
 async fn mrtr_elicitation_applies_on_accept_keeps_the_token_on_decline_and_obeys_token_mode() {
     // Accept: the gated call completes inside one round trip.
     let dir = rewrite_workspace();
-    let service = open(dir.path(), &[]).await;
+    let service = open(dir.path(), &[("edit.confirm_mode", json!("elicit"))]).await;
     let handler = TestClient::answering(true);
     let (client, server) = serve(&service, handler.clone()).await;
     let applied = call(&client, "edit", REWRITE()).await;
@@ -859,13 +859,24 @@ async fn mrtr_elicitation_applies_on_accept_keeps_the_token_on_decline_and_obeys
 
     // Decline: nothing applied, the token envelope is the answer.
     let dir = rewrite_workspace();
-    let service = open(dir.path(), &[]).await;
+    let service = open(dir.path(), &[("edit.confirm_mode", json!("elicit"))]).await;
     let handler = TestClient::answering(false);
     let (client, server) = serve(&service, handler.clone()).await;
     let gated = call(&client, "edit", REWRITE()).await;
     assert_eq!(error_code(&gated), "CONFIRM_REQUIRED");
     assert_eq!(handler.questions().len(), 1);
     assert_eq!(seven_files(dir.path()), (false, false));
+    close(client, server, service).await;
+
+    // No configuration: elicitation is off by default, even for a client
+    // that would answer a dialog.
+    let dir = rewrite_workspace();
+    let service = open(dir.path(), &[]).await;
+    let handler = TestClient::answering(true);
+    let (client, server) = serve(&service, handler.clone()).await;
+    let applied = call(&client, "edit", REWRITE()).await;
+    assert_eq!(applied["ok"], true, "{applied}");
+    assert!(handler.questions().is_empty(), "the default never elicits");
     close(client, server, service).await;
 
     // Unattended mode applies once; force_confirm restores the token gate

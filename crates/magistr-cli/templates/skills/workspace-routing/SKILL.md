@@ -183,10 +183,10 @@ apply → format → journal → atomic swap. A batch that would break syntax ro
   missing file returns `FILE_NOT_FOUND`. Pass the returned `contentHash` as
   `expectedHash`. `workspace.edit.queue` supports the same empty anchor and
   optional `expectedHash`; create missing files in a separate call first.
-- `edit.confirm_mode = "token"` applies verified edits, writes, file operations and script
-  batches on the first call. The caller does not need to echo its own confirmation token.
-  Parse verification, path protection, staleness checks, journaling and undo still apply.
-- Human confirmation mode (`edit.confirm_mode = "elicit"`, the default) and
+- `edit.confirm_mode = "token"`, the default, applies verified edits, writes, file operations
+  and script batches on the first call. The caller does not need to echo its own confirmation
+  token. Parse verification, path protection, staleness checks, journaling and undo still apply.
+- Human confirmation mode (`edit.confirm_mode = "elicit"`, opt-in only) and
   `edit.force_confirm = true` gate multi-file changes, rewrites, renames, moves, overwriting
   copies, script batches and single-file writes over 200 changed lines. Review the returned
   diff and re-issue the identical call with `confirm` set to `confirmToken`; elicitation-capable

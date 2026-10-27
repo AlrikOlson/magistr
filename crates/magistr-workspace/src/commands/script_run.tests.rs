@@ -514,7 +514,7 @@ async fn unattended_script_batches_apply_once_and_forced_confirmation_remains() 
 
 #[tokio::test]
 async fn human_mode_gates_script_writes_and_the_token_flow_applies_the_queue() {
-    let mut h = Harness::new();
+    let mut h = Harness::with_config("[edit]\nconfirm_mode = \"elicit\"\n");
     let guest = done(
         json!("queued"),
         vec![json!({"file": "notes/a.txt", "old": "one TODO", "new": "one DONE"})],

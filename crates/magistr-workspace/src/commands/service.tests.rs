@@ -191,7 +191,7 @@ async fn empty_anchor_refuses_missing_populated_stale_and_out_of_range_targets()
 
 #[tokio::test]
 async fn large_empty_file_population_requires_confirmation_and_refuses_changed_content() {
-    let mut h = Harness::new();
+    let mut h = Harness::with_config(HUMAN_MODE);
     h.write("empty.txt", "");
     let big: String = (0..250).map(|i| format!("line {i}\n")).collect();
     let mut input = replace_text("empty.txt", "", &big);
@@ -307,7 +307,7 @@ async fn stale_anchors_and_missing_files_answer_the_retained_taxonomy_with_fresh
 
 #[tokio::test]
 async fn large_edits_are_confirm_gated_with_the_prepared_token_and_dry_runs_touch_nothing() {
-    let mut h = Harness::new();
+    let mut h = Harness::with_config(HUMAN_MODE);
     let big: String = (0..300).map(|i| format!("line {i}\n")).collect();
     h.write("notes/big.txt", &big);
     let input = replace_text("notes/big.txt", "line", "row");
@@ -356,6 +356,7 @@ async fn large_edits_are_confirm_gated_with_the_prepared_token_and_dry_runs_touc
 }
 
 const TOKEN_MODE: &str = "[edit]\nconfirm_mode = \"token\"\n";
+const HUMAN_MODE: &str = "[edit]\nconfirm_mode = \"elicit\"\n";
 
 #[tokio::test]
 async fn token_mode_applies_large_edits_and_multi_file_moves_on_the_first_call() {
@@ -472,7 +473,7 @@ async fn files_verbs_journal_one_op_each_and_delete_lands_in_the_trash() {
 
 #[tokio::test]
 async fn files_verb_semantics_noops_gating_and_protected_paths() {
-    let mut h = Harness::new();
+    let mut h = Harness::with_config(HUMAN_MODE);
     h.write("src/a.txt", "a\n");
     h.write("src/b.txt", "b\n");
     h.write("src/same.txt", "a\n");
@@ -767,7 +768,7 @@ async fn undo_after_an_external_edit_surfaces_the_three_way_choice_then_keeps_or
 
 #[tokio::test]
 async fn an_oversized_aggregated_diff_is_cut_honestly_in_the_confirm_answer() {
-    let mut h = Harness::new();
+    let mut h = Harness::with_config(HUMAN_MODE);
     let huge: String = (0..600).map(|i| format!("line {i}\n")).collect();
     h.write("notes/huge.txt", &huge);
     let (kind, notes) = refused(
@@ -945,7 +946,7 @@ fn served_write(path: &str, content: &str) -> WriteInput {
 
 #[tokio::test]
 async fn a_served_write_takes_the_gate_a_host_write_is_authorized_past() {
-    let mut h = Harness::new();
+    let mut h = Harness::with_config(HUMAN_MODE);
     let big: String = (0..300).map(|i| format!("line {i}\n")).collect();
 
     // Small new files land on the first call.

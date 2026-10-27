@@ -49,7 +49,7 @@ impl KeySpec {
         (
             "edit.confirm_mode",
             Self::Enum {
-                default: "elicit",
+                default: "token",
                 levels: &["elicit", "token"],
                 capped: false,
             },

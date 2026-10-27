@@ -242,7 +242,10 @@ async fn admission_creates_the_state_dir_key_and_journal_and_the_listing_starts_
     assert!(state.join("keys/workspace.key").is_file());
     assert!(state.join("journal.db").is_file());
     assert!(state.join("trace.jsonl").exists() || service.trace().is_enabled());
-    assert!(service.elicitation_allowed());
+    assert!(
+        !service.elicitation_allowed(),
+        "elicitation is never on by default"
+    );
     // The first build is kicked at open; the task derives from its status.
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(20);
     let task = loop {

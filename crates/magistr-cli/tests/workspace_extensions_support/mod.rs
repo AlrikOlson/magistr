@@ -50,7 +50,12 @@ impl Fixture {
             root.join(".magistr/workspace/journal.db"),
         ))
         .expect("sole test journal writer");
-        let policy = WorkspacePolicy::resolve(&ResolveOptions::new(&root)).expect("policy");
+        // The suite exercises the human confirmation gates, which are opt-in.
+        let mut resolve = ResolveOptions::new(&root);
+        resolve
+            .session_flags
+            .insert("edit.confirm_mode".into(), "elicit".into());
+        let policy = WorkspacePolicy::resolve(&resolve).expect("policy");
         let worker = Arc::new(
             WorkerSupervisor::new(
                 PathBuf::from(env!("CARGO_BIN_EXE_magistr")),

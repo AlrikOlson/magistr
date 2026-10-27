@@ -173,9 +173,10 @@ pub(super) fn workspace() -> tempfile::TempDir {
     // Exercise a live watcher and its joined shutdown without depending on
     // macOS FSEvents daemon registration under parallel process load. Native
     // watcher behavior is covered by workspace_index and index_watcher tests.
+    // Confirmation tests run against the opt-in human gate.
     std::fs::write(
         dir.path().join(".magistr/workspace.toml"),
-        "[watcher]\nmode = 'poll'\n",
+        "[watcher]\nmode = 'poll'\n[edit]\nconfirm_mode = 'elicit'\n",
     )
     .expect("deterministic lifecycle watcher");
     for file in ["alice.txt", "bob.txt", "shared.txt", "pending.txt"] {

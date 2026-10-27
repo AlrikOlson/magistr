@@ -203,12 +203,13 @@ async fn plugin(
     ))
 }
 
-/// The MRTR gate: a client that can answer a form elicitation gets the
-/// dry-run→confirm contract inside this one call — an accept re-runs the
-/// identical call with the minted token. Every other client, and every
-/// declined, cancelled or failed elicitation, keeps the equal-path token
-/// fallback: CONFIRM_REQUIRED carries confirmToken; a second call with
-/// confirm applies. `edit.confirm_mode = "token"` never elicits.
+/// The MRTR gate: under the opt-in `edit.confirm_mode = "elicit"`, a client
+/// that can answer a form elicitation gets the dry-run→confirm contract
+/// inside this one call — an accept re-runs the identical call with the
+/// minted token. Every other client, and every declined, cancelled or failed
+/// elicitation, keeps the equal-path token fallback: CONFIRM_REQUIRED carries
+/// confirmToken; a second call with confirm applies. The default token mode
+/// never elicits.
 async fn gated<R, F, Fut>(
     service: &WorkspaceService,
     context: &RequestContext<RoleServer>,

@@ -2,7 +2,7 @@
   "cases": [
     {
       "name": "defaults",
-      "effective": {"security.redaction": true, "security.allow_sideload": true, "security.protected_paths": [], "telemetry.consent": "off", "edit.force_confirm": false, "edit.confirm_mode": "elicit", "budgets.default": 4000, "format.enabled": true, "tracing.enabled": true, "watcher.mode": "auto"},
+      "effective": {"security.redaction": true, "security.allow_sideload": true, "security.protected_paths": [], "telemetry.consent": "off", "edit.force_confirm": false, "edit.confirm_mode": "token", "budgets.default": 4000, "format.enabled": true, "tracing.enabled": true, "watcher.mode": "auto"},
       "commands": {}, "violations": [], "warnings": [],
       "trace": {"security.redaction": ["defaults", null], "tracing.enabled": ["defaults", null]}
     },

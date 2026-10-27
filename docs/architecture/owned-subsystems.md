@@ -214,9 +214,9 @@ the new owner or admits the workspace itself. Unrecognized markers never attach.
 the current native tool schemas, the sealed envelope as both text and
 `structuredContent`, per-request envelope negotiation and session identity
 from `_meta`, and the shared write confirmation policy. In
-`edit.confirm_mode = "token"`, verified edits, file operations and script
-batches apply on the first call. Human mode uses MRTR form elicitation or a
-confirmation token; `edit.force_confirm` restores those gates in unattended
+`edit.confirm_mode = "token"`, the default, verified edits, file operations and
+script batches apply on the first call. Human mode (`"elicit"`, opt-in only)
+uses MRTR form elicitation or a confirmation token; `edit.force_confirm` restores those gates in unattended
 mode without opening a dialog. Dry runs never write; supplied confirmations,
 path protection, parse checks, staleness and journaling remain enforced.
 The adapter passes the request's cancellation

@@ -180,6 +180,12 @@ async fn owner_process_crash_releases_admission_and_fences_its_confirmation_on_r
     let dir = tempfile::tempdir().expect("scratch workspace");
     std::fs::create_dir(dir.path().join(".git")).expect("repository marker");
     std::fs::write(dir.path().join("pending.txt"), "reviewed bytes\n").expect("source");
+    std::fs::create_dir(dir.path().join(".magistr")).expect("settings directory");
+    std::fs::write(
+        dir.path().join(".magistr/workspace.toml"),
+        "[edit]\nconfirm_mode = \"elicit\"\n",
+    )
+    .expect("human confirmation mode");
     let (mut first_child, first) =
         tokio::time::timeout(Duration::from_secs(30), served_client(dir.path()))
             .await
