@@ -68,7 +68,16 @@ tempfile = "3"
 tokio = { version = "1", features = ["io-util", "io-std", "macros", "process", "rt-multi-thread", "sync", "time"] }
 tokio-util = { version = "0.7", features = ["rt"] }
 
-wasmtime = { version = "48.0.7", optional = true }
+# Wasmtime's defaults minus `cache`: its on-disk compiled-code cache pulls
+# zstd 0.13 (RUSTSEC-2026-0391/0398/0403 and the 0395-0406 soundness
+# advisories, unfixed in every wasmtime release). Compiled guests are
+# shared in-process by `cached_wasi_module` instead.
+wasmtime = { version = "48.0.7", optional = true, default-features = false, features = [
+    "addr2line", "anyhow", "async", "backtrace", "compile-time-builtins", "component-model",
+    "component-model-async", "coredump", "cranelift", "debug", "debug-builtins", "demangle",
+    "gc", "gc-copying", "gc-drc", "gc-null", "parallel-compilation", "pooling-allocator",
+    "profiling", "runtime", "stack-switching", "std", "threads", "wat", "wit-parser",
+] }
 wasmtime-wasi = { version = "48.0.7", optional = true }
 
 [dev-dependencies]

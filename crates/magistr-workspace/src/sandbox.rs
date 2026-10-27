@@ -867,22 +867,17 @@ fn read_frames(
 fn engine() -> Result<&'static Engine, SandboxError> {
     static ENGINE: OnceLock<Result<Engine, String>> = OnceLock::new();
     ENGINE
-        .get_or_init(|| {
-            // Wasmtime keys compiled code by guest bytes, compiler and engine
-            // configuration. Only immutable code is shared across workers;
-            // stores, capabilities, fuel and memory limits remain per run.
-            // A missing/unwritable cache must not prevent sandbox execution.
-            let cache = wasmtime::Cache::from_file(None).ok();
-            build_engine(cache)
-        })
+        .get_or_init(build_engine)
         .as_ref()
         .map_err(|e| SandboxError::Engine(e.clone()))
 }
 
-fn build_engine(cache: Option<wasmtime::Cache>) -> Result<Engine, String> {
+/// No on-disk compiled-code cache: wasmtime's pulls an advisory-laden zstd.
+/// `cached_wasi_module` shares immutable compiled code in-process; stores,
+/// capabilities, fuel and memory limits remain per run.
+fn build_engine() -> Result<Engine, String> {
     let mut config = Config::new();
     config.consume_fuel(true);
-    config.cache(cache);
     config.wasm_component_model(true);
     // Two wasmtime engines share this process: this one and
     // tree-sitter's grammar engine (`lang_registry`). Wasmtime
