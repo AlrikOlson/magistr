@@ -15,10 +15,10 @@ class SelectionTests(unittest.TestCase):
     def plan(self, *paths):
         return ci.affected(paths, self.graph, self.locations)
 
-    def test_website_does_not_compile_rust_or_package_desktop(self):
+    def test_website_does_not_compile_rust_or_package(self):
         plan = self.plan("apps/website/src/pages/index.astro", "README.md")
         self.assertTrue(plan["website"])
-        self.assertFalse(any(plan[key] for key in ("rust", "desktop", "package")))
+        self.assertFalse(any(plan[key] for key in ("rust", "package")))
 
     def test_recorded_website_demo_runs_website_checks_without_rust(self):
         for path in ("examples/support-inbox/store.py", "examples/bevy-tic-tac-toe/src/lib.rs",
@@ -26,13 +26,13 @@ class SelectionTests(unittest.TestCase):
             with self.subTest(path=path):
                 plan = self.plan(path)
                 self.assertTrue(plan["website"])
-                self.assertFalse(any(plan[key] for key in ("rust", "desktop", "package", "contracts")))
+                self.assertFalse(any(plan[key] for key in ("rust", "package", "contracts")))
         self.assertTrue(self.plan("examples/unclassified-project/main.py")["full"])
 
-    def test_reverse_dependencies_include_desktop_and_exclude_unrelated_crates(self):
+    def test_reverse_dependencies_exclude_unrelated_crates_and_the_desktop_app(self):
         plan = self.plan("crates/leaf/src/lib.rs")
         self.assertEqual(plan["rust_packages"], ["consumer", "leaf"])
-        self.assertTrue(plan["desktop"])
+        self.assertNotIn("desktop", plan)
         self.assertTrue(plan["contracts"])
         self.assertFalse(plan["package"])
 
@@ -44,14 +44,15 @@ class SelectionTests(unittest.TestCase):
                 self.assertTrue(all(plan[key] for key in ci.JOBS))
 
     def test_desktop_only_and_visual_evidence_select_their_owners(self):
-        self.assertFalse(self.plan("crates/magistr-desktop/ui/index.html")["rust"])
+        desktop = self.plan("crates/magistr-desktop/ui/index.html")
+        self.assertFalse(desktop["rust"] or desktop["full"])
         self.assertTrue(self.plan("docs/evidence/iteration/review.png")["visual"])
 
     def test_current_manifest_graph_includes_consumers(self):
         graph, locations = ci.graph()
         plan = ci.affected(["crates/magistr-workflow-contracts/src/lib.rs"], graph, locations)
         self.assertIn("magistr-cli", plan["rust_packages"])
-        self.assertTrue(plan["desktop"])
+        self.assertNotIn("magistr-desktop", plan["rust_packages"])
 
     def needs(self, plan):
         result = {"plan": {"result": "success"}, "policy": {"result": "success"}}

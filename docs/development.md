@@ -100,7 +100,7 @@ request; two more are manual release steps.
 
 | Workflow | Jobs | Runner |
 | --- | --- | --- |
-| `ci.yml` (required check **CI**) | `plan` selects affected jobs from changed paths and the Cargo graph; `policy` runs the selector tests, actionlint and zizmor; `rust-build` lints and archives the tests once; `rust-tests` runs three nextest slices of that archive; `website` builds and checks the manual in WebKit; `contracts` runs the source gates and script suites; `visual` runs the screenshot gate against the evidence submodule; `desktop` calls `desktop-apps.yml` (dev checks and installer in parallel); `package` builds the host archive; `ci` aggregates; `deploy-website` publishes to Cloudflare Pages from `main` when the deployment secrets exist | macOS for Rust, website and desktop; Linux for everything scripted |
+| `ci.yml` (required check **CI**) | `plan` selects affected jobs from changed paths and the Cargo graph; `policy` runs the selector tests, actionlint and zizmor; `rust-build` lints and archives the tests once; `rust-tests` runs three nextest slices of that archive; `website` builds and checks the manual in WebKit; `contracts` runs the source gates and script suites; `visual` runs the screenshot gate against the evidence submodule; `package` builds the host archive; `ci` aggregates; `deploy-website` publishes to Cloudflare Pages from `main` when the deployment secrets exist | macOS for Rust and website; Linux for everything scripted |
 | `security.yml` (required check **Security**) | dependency advisories, npm audits and full-history secret scan for the macOS release target | Linux |
 | `public-links.yml` | anonymous checks of the deployed guides weekly; registry and release checks on manual and tag runs | Linux |
 | `cli-packages.yml`, `cli-publish.yml` | manual release build with provenance attestations; manual publication with attestation verification | macOS |
@@ -162,7 +162,9 @@ installer under `nsis/`. Copy the Mac app to `~/Applications` or `/Applications`
 or run the Windows installer. Installed apps need neither Rust nor Node.js.
 Agent runtimes are still installed and authenticated separately.
 
-The **desktop apps** workflow builds and checks macOS by default, publishes
+The **desktop apps** workflow runs only when dispatched by hand; the desktop is
+not a supported release target, so the required CI check never builds it. It
+builds and checks macOS by default, publishes
 workflow artifacts and verifies packaged child roles. Windows builds and the
 installed-app check run only when explicitly selected in a manual workflow run.
 These are unsigned development artifacts, not a public release;

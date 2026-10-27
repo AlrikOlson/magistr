@@ -2,7 +2,10 @@
 """Resolve the affected CI contract; unknown inputs always select broad checks.
 
 Every push, including main, runs its selected jobs: main is the only ref whose
-caches other branches can restore, so it must build to keep them warm."""
+caches other branches can restore, so it must build to keep them warm.
+
+The desktop app is not a supported release target, so CI never builds it;
+desktop-apps.yml stays available as a manual workflow."""
 import argparse
 import json
 import os
@@ -11,7 +14,7 @@ import subprocess
 import tomllib
 
 ROOT = Path(__file__).resolve().parent.parent
-JOBS = ("rust", "website", "desktop", "package", "contracts", "visual")
+JOBS = ("rust", "website", "package", "contracts", "visual")
 
 
 def git(*args, root=ROOT):
@@ -69,7 +72,6 @@ def affected(paths, packages, locations, full=False):
             break
         selected |= consumers
     desktop = "magistr-desktop"
-    plan["desktop"] = desktop in selected
     plan["rust_packages"] = sorted(selected - {desktop})
     plan["rust"] = bool(plan["rust_packages"])
     plan["contracts"] = bool(selected)

@@ -32,7 +32,6 @@ jobs:
       plan: ${{ steps.plan.outputs.plan }}
       rust: ${{ steps.plan.outputs.rust }}
       website: ${{ steps.plan.outputs.website }}
-      desktop: ${{ steps.plan.outputs.desktop }}
       package: ${{ steps.plan.outputs.package }}
       contracts: ${{ steps.plan.outputs.contracts }}
       visual: ${{ steps.plan.outputs.visual }}
@@ -292,13 +291,6 @@ jobs:
           retention-days: 7
           if-no-files-found: warn
 
-  desktop:
-    needs: plan
-    if: needs.plan.outputs.desktop == 'true'
-    uses: ./.github/workflows/desktop-apps.yml
-    permissions:
-      contents: read
-
   package:
     name: Package and verify (macOS)
     needs: plan
@@ -336,7 +328,7 @@ jobs:
   # succeeded; every job it did not select must have been skipped, never missing.
   ci:
     name: CI
-    needs: [plan, policy, rust-build, rust-tests, website, contracts, visual, desktop, package]
+    needs: [plan, policy, rust-build, rust-tests, website, contracts, visual, package]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 3
