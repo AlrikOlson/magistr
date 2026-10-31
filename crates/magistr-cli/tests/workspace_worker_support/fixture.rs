@@ -44,6 +44,9 @@ fn receive() -> Option<String> {
 fn main() {
     let arguments: Vec<_> = std::env::args_os().collect();
     let mode = arguments[1].to_str().expect("fixture mode");
+    if mode == "probe" {
+        return;
+    }
     let log = Path::new(&arguments[2]);
     if mode == "sleep-child" {
         record(log, "descendant");

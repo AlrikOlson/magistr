@@ -109,7 +109,7 @@ impl Fixture {
         let deadline = Instant::now() + Duration::from_secs(20);
         loop {
             let status = index.status();
-            if !status.building && status.generation > 0 {
+            if !status.building && !status.refresh_pending && status.generation > 0 {
                 return index;
             }
             assert!(Instant::now() < deadline, "index did not warm: {status:?}");
@@ -377,7 +377,9 @@ impl Fixture {
         let deadline = Instant::now() + Duration::from_secs(20);
         loop {
             let status = index.status();
-            if !status.building && status.generation > before {
+            // A build that began before the request bumps the generation while
+            // still reporting itself pending; only a settled index has the rewrite.
+            if !status.building && !status.refresh_pending && status.generation > before {
                 return index;
             }
             assert!(

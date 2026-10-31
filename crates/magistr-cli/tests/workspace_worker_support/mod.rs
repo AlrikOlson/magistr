@@ -7,30 +7,68 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 pub(super) const WAIT: Duration = Duration::from_secs(10);
 
+/// One fixture executable per source and compiler, shared by every test
+/// process. Each nextest process compiling its own copy into a fresh directory
+/// made macOS scan a new binary on its first launch, often for longer than the
+/// deadlines these tests measure, so a stalled worker could be killed before
+/// it logged the event the test waits for.
 fn fixture_binary() -> PathBuf {
-    static BINARY: OnceLock<(tempfile::TempDir, PathBuf)> = OnceLock::new();
-    BINARY
-        .get_or_init(|| {
-            let directory = tempfile::tempdir().expect("fixture build directory");
-            let binary = directory.path().join("worker-fixture");
-            let source = Path::new(env!("CARGO_MANIFEST_DIR"))
-                .join("tests/workspace_worker_support/fixture.rs");
-            let result = std::process::Command::new("rustc")
-                .args(["--edition=2024", "--crate-name=workspace_worker_fixture"])
-                .arg(source)
-                .arg("-o")
-                .arg(&binary)
-                .output()
-                .expect("compile standalone worker fixture with the project toolchain");
-            assert!(
-                result.status.success(),
-                "fixture compiler: {}",
-                String::from_utf8_lossy(&result.stderr)
-            );
-            (directory, binary)
-        })
-        .1
-        .clone()
+    static BINARY: OnceLock<PathBuf> = OnceLock::new();
+    BINARY.get_or_init(build_shared_fixture).clone()
+}
+
+fn build_shared_fixture() -> PathBuf {
+    let source =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/workspace_worker_support/fixture.rs");
+    let directory = Path::new(env!("CARGO_TARGET_TMPDIR")).join("workspace-worker-fixture");
+    std::fs::create_dir_all(&directory).expect("fixture build directory");
+    let binary = directory.join(format!("worker-fixture-{:016x}", fixture_key(&source)));
+    if binary.is_file() {
+        return binary;
+    }
+    let lock = std::fs::File::create(directory.join(".build.lock")).expect("fixture build lock");
+    lock.lock().expect("lock fixture build");
+    if binary.is_file() {
+        return binary;
+    }
+    let partial = directory.join(format!(".worker-fixture-{}", std::process::id()));
+    let result = std::process::Command::new("rustc")
+        .args(["--edition=2024", "--crate-name=workspace_worker_fixture"])
+        .arg(&source)
+        .arg("-o")
+        .arg(&partial)
+        .output()
+        .expect("compile standalone worker fixture with the project toolchain");
+    assert!(
+        result.status.success(),
+        "fixture compiler: {}",
+        String::from_utf8_lossy(&result.stderr)
+    );
+    // The first launch of a new executable pays the platform's security scan.
+    // Pay it here, before any test starts timing a worker.
+    let probe = std::process::Command::new(&partial)
+        .arg("probe")
+        .status()
+        .expect("launch the fixture once");
+    assert!(probe.success(), "fixture probe: {probe}");
+    // Publish complete bytes only; a racing reader never runs a partial file.
+    std::fs::rename(&partial, &binary).expect("publish fixture executable");
+    binary
+}
+
+/// The fixture source and the compiler that builds it name one executable.
+fn fixture_key(source: &Path) -> u64 {
+    use std::hash::{Hash, Hasher};
+    let compiler = std::process::Command::new("rustc")
+        .arg("-vV")
+        .output()
+        .expect("query the project toolchain");
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    std::fs::read(source)
+        .expect("fixture source")
+        .hash(&mut hasher);
+    compiler.stdout.hash(&mut hasher);
+    hasher.finish()
 }
 
 pub(super) fn fixture(mode: &str, log: &Path, mut options: WorkerOptions) -> WorkerSupervisor {

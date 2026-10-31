@@ -8,8 +8,19 @@ fn fixture() -> tempfile::TempDir {
 fn script(root: &Path, name: &str, body: &str) -> PathBuf {
     use std::os::unix::fs::PermissionsExt;
     let path = root.join(name);
-    std::fs::write(&path, format!("#!/bin/sh\n{body}\n")).expect("script");
+    std::fs::write(
+        &path,
+        format!("#!/bin/sh\n[ \"$1\" = probe ] && exit 0\n{body}\n"),
+    )
+    .expect("script");
     std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o700)).expect("executable");
+    // The first launch of a new executable pays the platform's security scan,
+    // which under load outlasts the deadlines these tests measure.
+    let probe = std::process::Command::new(&path)
+        .arg("probe")
+        .status()
+        .expect("launch the script once");
+    assert!(probe.success(), "script probe: {probe}");
     path
 }
 
@@ -226,7 +237,9 @@ async fn timeout_kills_and_reaps_formatter_even_when_it_does_not_read_stdin() {
         root.path().to_path_buf(),
         FormatterOptions {
             biome: Some(binary),
-            timeout: std::time::Duration::from_millis(100),
+            // Long enough for the shell to record its pid before the kill,
+            // which the reaping assertion needs; stdin still blocks first.
+            timeout: std::time::Duration::from_secs(1),
             ..Default::default()
         },
     )

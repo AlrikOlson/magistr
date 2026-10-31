@@ -101,7 +101,9 @@ async fn stalled_startup_has_a_readiness_deadline_and_is_reaped() {
         "stall-start",
         &log,
         WorkerOptions {
-            ready_timeout: Duration::from_millis(150),
+            // Long enough for the stalled worker to launch and log its start,
+            // still far below the call timeout this deadline must not wait for.
+            ready_timeout: Duration::from_secs(1),
             ..options()
         },
     );
@@ -281,7 +283,9 @@ async fn active_deadline_reaps_worker_and_pre_cancelled_calls_never_spawn() {
         worker
             .call(
                 WorkerRequest::Ping,
-                Duration::from_millis(250),
+                // The stalled worker must launch and log the request before
+                // this deadline reaps it, or no process id is left to check.
+                Duration::from_secs(1),
                 &CancellationToken::new()
             )
             .await,
