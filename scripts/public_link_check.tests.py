@@ -55,8 +55,6 @@ class PublicReadinessTests(unittest.TestCase):
         self.set_route("/github/owner/repo/security/advisories/new", "", status=302,
                        headers={"Location": self.github + "/login?return_to=" + quote(self.form, safe="")})
         self.set_route("/npm/magistr/latest", '{"name":"magistr","version":"0.1.0"}')
-        self.set_route("/cargo/api/v1/crates/magistr-cli/0.1.0",
-                       '{"version":{"crate":"magistr-cli","num":"0.1.0","yanked":false}}')
 
     def set_route(self, path, body, status=200, headers=None):
         self.server.routes[path] = (status, body, headers or {})
@@ -77,7 +75,7 @@ class PublicReadinessTests(unittest.TestCase):
     def audit(self, stage="release", version="0.1.0"):
         return gate.audit(stage, version, site=self.site, repository=self.repository,
                           github=self.github, api=self.base + "/api",
-                          npm=self.base + "/npm", cargo=self.base + "/cargo")
+                          npm=self.base + "/npm")
 
     def failures(self, receipt):
         return [check["name"] for check in receipt["checks"] if not check["passed"]]
@@ -117,7 +115,7 @@ class PublicReadinessTests(unittest.TestCase):
         self.guide(extra="<p>registry packages are not published yet</p>")
         self.server.routes.pop("/npm/magistr/latest")
         self.assertTrue(self.audit("publication")["passed"])
-        self.assertFalse(any(path.startswith(("/npm/", "/cargo/")) for path in self.server.requests))
+        self.assertFalse(any(path.startswith("/npm/") for path in self.server.requests))
 
     def test_public_release_blocks_unpublished_copy(self):
         self.guide(extra="<p>registry packages are not published yet</p>")
@@ -148,8 +146,6 @@ class PublicReadinessTests(unittest.TestCase):
 
     def test_pre_release_is_verified_on_the_beta_tag_not_latest(self):
         self.set_route("/npm/magistr/latest", '{"name":"magistr","version":"1.0.0-beta.1"}')
-        self.set_route("/cargo/api/v1/crates/magistr-cli/1.0.0-beta.1",
-                       '{"version":{"crate":"magistr-cli","num":"1.0.0-beta.1","yanked":false}}')
         self.assertEqual(self.failures(self.audit(version="1.0.0-beta.1")), ["Published npm version"])
         self.assertNotIn("/npm/magistr/latest", self.server.requests)
         self.set_route("/npm/magistr/beta", '{"name":"magistr","version":"1.0.0-beta.1"}')
@@ -158,10 +154,9 @@ class PublicReadinessTests(unittest.TestCase):
         self.assertEqual(receipt["npmTag"], "beta")
         self.assertEqual(self.audit()["npmTag"], "latest")
 
-    def test_yanked_cargo_version_does_not_pass_release(self):
-        self.set_route("/cargo/api/v1/crates/magistr-cli/0.1.0",
-                       '{"version":{"crate":"magistr-cli","num":"0.1.0","yanked":true}}')
-        self.assertEqual(self.failures(self.audit()), ["Published Cargo version"])
+    def test_release_does_not_require_a_cargo_registry_version(self):
+        self.assertEqual(self.failures(self.audit()), [])
+        self.assertFalse(any("crates" in path for path in self.server.requests))
 
 
 if __name__ == "__main__":

@@ -91,8 +91,7 @@ def same_route(actual, expected):
 
 
 def audit(stage, version, *, site=SITE, repository=REPOSITORY, github="https://github.com",
-          api="https://api.github.com", npm="https://registry.npmjs.org",
-          cargo="https://crates.io", request=fetch):
+          api="https://api.github.com", npm="https://registry.npmjs.org", request=fetch):
     if stage not in ("website", "publication", "release"):
         raise ValueError("Unknown public readiness stage")
     if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository):
@@ -163,13 +162,10 @@ def audit(stage, version, *, site=SITE, repository=REPOSITORY, github="https://g
         record("Published installation instructions", guide_url, guide, not unpublished,
                "Installation page still says packages are unpublished" if unpublished
                else "Installation instructions no longer claim packages are unpublished")
+        # npm is the only registry: the CLI is not published to crates.io.
         for label, url, identity in (
             ("Published npm version", npm.rstrip("/") + f"/magistr/{npm_tag}",
              lambda value: value.get("name") == "magistr" and value.get("version") == version),
-            ("Published Cargo version", cargo.rstrip("/") + f"/api/v1/crates/magistr-cli/{version}",
-             lambda value: value.get("version", {}).get("crate") == "magistr-cli"
-             and value.get("version", {}).get("num") == version
-             and value.get("version", {}).get("yanked") is False),
         ):
             response = request(url)
             try:
