@@ -95,7 +95,7 @@ async fn built(index: &WorkspaceIndex, after: u64) {
     let deadline = Instant::now() + Duration::from_secs(20);
     loop {
         let status = index.status();
-        if !status.building && status.generation > after {
+        if !status.building && !status.refresh_pending && status.generation > after {
             return;
         }
         assert!(Instant::now() < deadline, "index did not build: {status:?}");

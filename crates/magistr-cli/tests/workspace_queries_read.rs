@@ -70,7 +70,7 @@ async fn warm(index: &WorkspaceIndex, after: u64) -> u64 {
     let deadline = Instant::now() + Duration::from_secs(15);
     loop {
         let status = index.status();
-        if !status.building && status.generation > after {
+        if !status.building && !status.refresh_pending && status.generation > after {
             return status.generation;
         }
         assert!(Instant::now() < deadline, "index did not warm: {status:?}");

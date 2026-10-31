@@ -1,4 +1,7 @@
-use super::{NativeConfig, owner_lease::OwnerLease};
+use super::{
+    NativeConfig,
+    owner_lease::{OwnerLease, lock_file},
+};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{
@@ -84,6 +87,10 @@ impl WorkflowUpgrade {
             ));
         }
         let mut imported = Vec::new();
+        // Record locks fence the copy only. They drop when the upgrade returns:
+        // kept on the lease, they would block this owner's own saves forever
+        // and hold one descriptor per saved record.
+        let mut fences = Vec::new();
         if let Some(source) = older_root(config.data_dir())
             && source.try_exists()?
         {
@@ -95,7 +102,10 @@ impl WorkflowUpgrade {
             // evidence; only current documents are published to the new store.
             for relative in records(&source, id)? {
                 let old = checked_path(&source, &relative)?;
-                lease.lock(&old.with_extension("json.lock"), "older saved record")?;
+                fences.push(lock_file(
+                    &old.with_extension("json.lock"),
+                    "older saved record",
+                )?);
                 let bytes = read_regular(&old)?
                     .ok_or_else(|| io::Error::other("Saved work moved during upgrade; retry."))?;
                 imported.push((relative, bytes));
@@ -109,7 +119,10 @@ impl WorkflowUpgrade {
         let imported = converted_records(config, id, imported)?;
         for (relative, bytes) in &imported {
             let path = checked_path(config.data_dir(), relative)?;
-            lease.lock(&path.with_extension("json.lock"), "saved record upgrade")?;
+            fences.push(lock_file(
+                &path.with_extension("json.lock"),
+                "saved record upgrade",
+            )?);
             if let Some(current) = read_regular(&path)?
                 && current != *bytes
             {

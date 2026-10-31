@@ -162,6 +162,50 @@ fn another_project_and_a_live_older_owner_are_left_alone() {
 }
 
 #[test]
+fn no_record_lock_outlives_the_upgrade_that_took_it() {
+    let (_dir, current, old) = fixture();
+    let paths = records(old.data_dir(), "saved-project").unwrap();
+    request(&current);
+    let owner = ProjectAuthority::admit(&current, WriterRole::Host).unwrap();
+    for relative in &paths {
+        for store in [old.data_dir(), current.data_dir()] {
+            let lock = File::options()
+                .read(true)
+                .write(true)
+                .open(store.join(relative).with_extension("json.lock"))
+                .unwrap();
+            assert!(
+                lock.try_lock().is_ok(),
+                "{} stays locked after the upgrade",
+                store.join(relative).display()
+            );
+        }
+    }
+    drop(owner);
+}
+
+#[test]
+fn the_owner_that_ran_the_upgrade_can_save_new_work() {
+    let (_dir, current, _old) = fixture();
+    request(&current);
+    let writer = ProjectAuthority::admit(&current, WriterRole::Host)
+        .unwrap()
+        .open();
+    let (done, finished) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let saved = writer
+            .ship_add_task("two".into(), "New work".into(), TaskType::Implement, None)
+            .is_ok();
+        let _ = done.send(saved);
+    });
+    assert_eq!(
+        finished.recv_timeout(std::time::Duration::from_secs(10)),
+        Ok(true),
+        "a save under the upgrading owner never waits on its own record lock"
+    );
+}
+
+#[test]
 fn an_older_owner_is_fenced_even_before_its_first_record() {
     let (_dir, current, old) = fixture();
     for path in records(old.data_dir(), "saved-project").unwrap() {

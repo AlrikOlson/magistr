@@ -80,37 +80,7 @@ impl OwnerLease {
     }
 
     pub(super) fn lock(&mut self, path: &Path, resource: &str) -> io::Result<()> {
-        let failure = |error: io::Error| {
-            io::Error::new(
-                error.kind(),
-                format!(
-                    "magistr: cannot acquire {resource} at {}: {error}; \
-                 startup refused before opening project engines. Close the existing writer \
-                 before retrying; do not delete its lock file.",
-                    path.display()
-                ),
-            )
-        };
-        if let Some(parent) = path.parent() {
-            std::fs::create_dir_all(parent).map_err(failure)?;
-        }
-        let file = File::options()
-            .read(true)
-            .write(true)
-            .create(true)
-            .truncate(false)
-            .open(path)
-            .map_err(failure)?;
-        file.try_lock().map_err(|error| {
-            failure(match error {
-                TryLockError::WouldBlock => io::Error::new(
-                    io::ErrorKind::WouldBlock,
-                    "another Magistr writer holds this resource",
-                ),
-                TryLockError::Error(error) => error,
-            })
-        })?;
-        self.files.push(file);
+        self.files.push(lock_file(path, resource)?);
         Ok(())
     }
 
@@ -142,6 +112,43 @@ impl OwnerLease {
         self.files.push(publisher);
         Ok(broadcaster)
     }
+}
+
+/// Take one advisory lock without waiting; the lock lasts as long as the
+/// returned handle. A lock the lease does not keep must be dropped by its
+/// taker, or this process's own transactions on that file wait forever.
+pub(super) fn lock_file(path: &Path, resource: &str) -> io::Result<File> {
+    let failure = |error: io::Error| {
+        io::Error::new(
+            error.kind(),
+            format!(
+                "magistr: cannot acquire {resource} at {}: {error}; \
+             startup refused before opening project engines. Close the existing writer \
+             before retrying; do not delete its lock file.",
+                path.display()
+            ),
+        )
+    };
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(failure)?;
+    }
+    let file = File::options()
+        .read(true)
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .open(path)
+        .map_err(failure)?;
+    file.try_lock().map_err(|error| {
+        failure(match error {
+            TryLockError::WouldBlock => io::Error::new(
+                io::ErrorKind::WouldBlock,
+                "another Magistr writer holds this resource",
+            ),
+            TryLockError::Error(error) => error,
+        })
+    })?;
+    Ok(file)
 }
 
 #[cfg(unix)]

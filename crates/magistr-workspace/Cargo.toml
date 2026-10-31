@@ -72,13 +72,13 @@ tokio-util = { version = "0.7", features = ["rt"] }
 # zstd 0.13 (RUSTSEC-2026-0391/0398/0403 and the 0395-0406 soundness
 # advisories, unfixed in every wasmtime release). Compiled guests are
 # shared in-process by `cached_wasi_module` instead.
-wasmtime = { version = "48.0.7", optional = true, default-features = false, features = [
+wasmtime = { version = "48.0.8", optional = true, default-features = false, features = [
     "addr2line", "anyhow", "async", "backtrace", "compile-time-builtins", "component-model",
     "component-model-async", "coredump", "cranelift", "debug", "debug-builtins", "demangle",
     "gc", "gc-copying", "gc-drc", "gc-null", "parallel-compilation", "pooling-allocator",
     "profiling", "runtime", "stack-switching", "std", "threads", "wat", "wit-parser",
 ] }
-wasmtime-wasi = { version = "48.0.7", optional = true }
+wasmtime-wasi = { version = "48.0.8", optional = true }
 
 [dev-dependencies]
 wit-parser = "0.262.0"
