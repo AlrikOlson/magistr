@@ -2575,7 +2575,7 @@ checksum = "dae608c151f68243f2b000364e1f7b186d9c29845f7d2d85bd31b9ad77ad552b"
 
 [[package]]
 name = "magistr-acp"
-version = "1.0.0-beta.1"
+version = "1.0.0-beta.2"
 dependencies = [
  "agent-client-protocol",
  "base64 0.23.1",
@@ -2595,7 +2595,7 @@ dependencies = [
 
 [[package]]
 name = "magistr-acp-agent"
-version = "1.0.0-beta.1"
+version = "1.0.0-beta.2"
 dependencies = [
  "agent-client-protocol",
  "reqwest",
@@ -2611,14 +2611,14 @@ dependencies = [
 
 [[package]]
 name = "magistr-application"
-version = "1.0.0-beta.1"
+version = "1.0.0-beta.2"
 dependencies = [
  "magistr-domain",
 ]
 
 [[package]]
 name = "magistr-cli"
-version = "1.0.0-beta.1"
+version = "1.0.0-beta.2"
 dependencies = [
  "agent-client-protocol",
  "assert_cmd",
@@ -2671,7 +2671,7 @@ dependencies = [
 
 [[package]]
 name = "magistr-cockpit"
-version = "1.0.0-beta.1"
+version = "1.0.0-beta.2"
 dependencies = [
  "magistr-application",
  "magistr-domain",
@@ -2685,7 +2685,7 @@ dependencies = [
 
 [[package]]
 name = "magistr-cockpit-runtime"
-version = "1.0.0-beta.1"
+version = "1.0.0-beta.2"
 dependencies = [
  "magistr-application",
  "magistr-cockpit",
@@ -2696,7 +2696,7 @@ dependencies = [
 
 [[package]]
 name = "magistr-core"
-version = "1.0.0-beta.1"
+version = "1.0.0-beta.2"
 dependencies = [
  "glob",
  "ignore",
@@ -2720,7 +2720,7 @@ dependencies = [
 
 [[package]]
 name = "magistr-domain"
-version = "1.0.0-beta.1"
+version = "1.0.0-beta.2"
 dependencies = [
  "serde",
  "serde_json",
@@ -2728,7 +2728,7 @@ dependencies = [
 
 [[package]]
 name = "magistr-engine"
-version = "1.0.0-beta.1"
+version = "1.0.0-beta.2"
 dependencies = [
  "chrono",
  "hex",
@@ -2749,7 +2749,7 @@ dependencies = [
 
 [[package]]
 name = "magistr-mcp"
-version = "1.0.0-beta.1"
+version = "1.0.0-beta.2"
 dependencies = [
  "jsonschema",
  "serde",
@@ -2760,7 +2760,7 @@ dependencies = [
 
 [[package]]
 name = "magistr-process"
-version = "1.0.0-beta.1"
+version = "1.0.0-beta.2"
 dependencies = [
  "libc",
  "rustix",
@@ -2772,14 +2772,14 @@ dependencies = [
 
 [[package]]
 name = "magistr-theme"
-version = "1.0.0-beta.1"
+version = "1.0.0-beta.2"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "magistr-workflow"
-version = "1.0.0-beta.1"
+version = "1.0.0-beta.2"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2814,7 +2814,7 @@ dependencies = [
 
 [[package]]
 name = "magistr-workflow-contracts"
-version = "1.0.0-beta.1"
+version = "1.0.0-beta.2"
 dependencies = [
  "chrono",
  "magistr-domain",
@@ -2826,7 +2826,7 @@ dependencies = [
 
 [[package]]
 name = "magistr-workspace"
-version = "1.0.0-beta.1"
+version = "1.0.0-beta.2"
 dependencies = [
  "ast-grep-core",
  "flate2",

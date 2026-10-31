@@ -1,13 +1,15 @@
 # CLI package release
 
-**Current release boundary:** the first public version is **`1.0.0-beta.1`**, a
-semver pre-release on the npm `beta` channel; the
+**Current release boundary:** the first public version is **`1.0.0-beta.2`**, a
+semver pre-release on the npm `beta` channel. `1.0.0-beta.1` was never published;
+beta.2 supersedes it with the fix that stops a saved-work upgrade's record locks
+from deadlocking the owner. The
 [21 October beta-1 candidate record](evidence/cli-installation/2026-10-21-beta-1-candidate/README.md)
-describes the version, channel and remaining owner actions. The
+describes the channel and remaining owner actions, which are unchanged. The
 [19 October remediation audit and full checklist](evidence/cli-installation/2026-10-19-release-remediation/README.md)
 record the corrected source, qualified Cargo/npm artifacts, current security results,
 real-client checks and reviewed screenshots; its engineering results still apply
-and a fresh hosted package run is required for the beta-1 source. Publication
+and a fresh hosted package run is required for the beta-2 source. Publication
 still requires the owner's registry credentials, repository visibility decision
 and approval of the exact candidate. Recheck the security receipt's 24-hour
 validity before uploading. The
@@ -30,7 +32,7 @@ Gatekeeper behavior for a browser-downloaded archive.
 ## Version management
 
 The authoritative product version is `workspace.package.version` in the root
-`Cargo.toml`. The first public version is `1.0.0-beta.1`; the beta line
+`Cargo.toml`. The first public version is `1.0.0-beta.2`; the beta line
 (`1.0.0-beta.N`) precedes the stable `1.0.0`, which signals a stable public
 API. Pre-release identifiers follow [Semantic Versioning](https://semver.org/):
 a hyphen, then dot-separated identifiers (`1.0.0-beta.1`, never `1.0.0.beta-1`).
@@ -46,8 +48,8 @@ on the same tag. `latest` therefore stays reserved for `1.0.0`.
 
 Cargo has no channels. `cargo install` avoids pre-release versions unless one is
 named explicitly, so pre-release installation instructions must pin the exact
-version (`cargo install magistr-cli@1.0.0-beta.1 --locked`). Internal registry
-requirements are exact (`=1.0.0-beta.1`) and need no change.
+version (`cargo install magistr-cli@1.0.0-beta.2 --locked`). Internal registry
+requirements are exact (`=1.0.0-beta.2`) and need no change.
 
 Use one command for a release version change:
 
@@ -181,7 +183,7 @@ npm publish "target/cli-distribution/$npm_archive" --access public --tag "$npm_t
 ```
 
 This command publishes the first npm package. Run it only after authorization.
-The dist-tag comes from the verified artifact (`beta` for `1.0.0-beta.1`), so a
+The dist-tag comes from the verified artifact (`beta` for `1.0.0-beta.2`), so a
 pre-release never lands on `latest`; a wrongly tagged upload is corrected with
 `npm dist-tag`, never by unpublishing.
 After that upload, configure the package's trusted publisher at
@@ -352,7 +354,7 @@ public release separately.
 
 After both registry uploads pass their real-registry installation and hash
 checks, and the installation guide no longer says packages are unpublished,
-create the annotated tag `v1.0.0-beta.1` on the reviewed source and a GitHub
+create the annotated tag `v1.0.0-beta.2` on the reviewed source and a GitHub
 release marked **pre-release** with the candidate's release notes and checksums.
 Pushing a `v*` tag runs the release-stage public gate, which must pass. Do not
 tag before the uploads: the gate would fail on the missing registry versions.
@@ -362,7 +364,7 @@ tag before the uploads: the gate would fail on the missing registry versions.
 After publication of the beta:
 
 ```sh
-cargo install magistr-cli@1.0.0-beta.1 --locked
+cargo install magistr-cli@1.0.0-beta.2 --locked
 # or:
 npm install --global magistr@beta
 
