@@ -11,15 +11,29 @@ it to a particular project.
 
 import { version } from "../../../../../npm/magistr/package.json";
 
-The current source preview is **v{version}**, for **Apple Silicon macOS 15 or
-later**. Magistr has not been publicly released. The
-[repository](https://github.com/AlrikOlson/magistr) is public, and npm and
-Cargo registry packages are not published yet.
+The current preview is **v{version}**, a beta pre-release for **Apple Silicon
+macOS 15 or later**. Magistr has not been officially publicly released. The beta
+is published on npm; it is not published to the Cargo registry. The
+[repository](https://github.com/AlrikOlson/magistr) is public if you prefer to
+build from source.
 
-## Before you install
+## Install with npm
 
-You need Git, Rust **1.95 or later**, CMake, and the macOS command-line build
-tools. Check Git, Rust, and CMake in a terminal:
+You need Node.js with npm. No Rust toolchain is required: the package contains
+the prebuilt executable. In a terminal, run:
+
+```sh
+npm install --global magistr@beta
+magistr --version
+```
+
+The `beta` tag selects the current pre-release. The last command should print
+the installed version.
+
+## Build from source instead
+
+To build the CLI yourself, you need Git, Rust **1.95 or later**, CMake, and the
+macOS command-line build tools. Check Git, Rust, and CMake in a terminal:
 
 ```sh
 git --version
@@ -45,9 +59,7 @@ during the build; the installed program does not need it.
 Install and sign in to your coding agent separately; Magistr does not provide
 an agent subscription.
 
-## Build and install
-
-In a terminal, choose a parent folder for the Magistr source checkout, then run:
+Then choose a parent folder for the Magistr source checkout and run:
 
 ```sh
 git clone https://github.com/AlrikOlson/magistr.git
@@ -72,11 +84,13 @@ Installation alone does not connect any project or start implementation.
 
 | Symptom | What to do |
 | --- | --- |
+| npm reports `EBADPLATFORM` | The package supports Apple Silicon macOS 15 or later only. |
+| npm reports a permissions error on global install | Use a Node.js installation managed by your user (for example through a version manager) rather than the system one, then retry. |
 | Git reports that the repository is unavailable | Check your network connection and the repository URL in the clone command. |
 | Rust reports an unsupported version | Install Rust 1.95 or later, then retry the locked build. |
 | A compiler or linker is missing | Finish installing the macOS command-line build tools. |
 | `failed to run custom build command for wasmtime-c-api-impl` and `failed to spawn cmake` | Install CMake with `brew install cmake`, open a new terminal, and run the install command again. |
-| The shell cannot find `magistr` | Add Cargo's binary directory to your shell's `PATH`, reopen the terminal, and run `magistr --version`. |
+| The shell cannot find `magistr` | Add npm's global binary directory (`npm prefix --global` followed by `/bin`) or Cargo's binary directory to your shell's `PATH`, reopen the terminal, and run `magistr --version`. |
 | An older executable still runs | Use `command -v magistr` to check which installation the shell selects. |
 
 Keep the complete build error if these steps do not resolve it. A connection

@@ -3,7 +3,16 @@
 **Current release boundary:** the first public version is **`1.0.0-beta.2`**, a
 semver pre-release on the npm `beta` channel. `1.0.0-beta.1` was never published;
 beta.2 supersedes it with the fix that stops a saved-work upgrade's record locks
-from deadlocking the owner. The
+from deadlocking the owner.
+
+**Registries:** the CLI is published on **npm only**. crates.io accepts a crate
+only when every dependency is also published, so the CLI needs all fourteen
+workspace crates, and a first publication waits roughly ninety minutes on the
+new-crate rate limit. The owner dropped Cargo publication on 31 October 2026.
+Six internal crates reached crates.io during the attempt and their
+`1.0.0-beta.2` versions are yanked. The release-stage public gate checks npm
+alone. The Cargo sections below describe tooling kept for a possible later
+return to crates.io; Cargo users build from source. The
 [21 October beta-1 candidate record](evidence/cli-installation/2026-10-21-beta-1-candidate/README.md)
 describes the channel and remaining owner actions, which are unchanged. The
 [19 October remediation audit and full checklist](evidence/cli-installation/2026-10-19-release-remediation/README.md)

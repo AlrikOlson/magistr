@@ -8,7 +8,7 @@ import Nav from "../components/Nav.astro";
 import Footer from "../components/Footer.astro";
 import BuildWalkthrough from "../components/BuildWalkthrough.astro";
 import {highlightCode} from "../../scripts/highlight-recording.mjs";
-const installCode = await highlightCode("git clone https://github.com/AlrikOlson/magistr.git\ncd magistr\ncargo install --locked --path crates/magistr-cli\nmagistr --version","shellscript");
+const installCode = await highlightCode("npm install --global magistr@beta\nmagistr --version","shellscript");
 const buildMinutes = minutes(recording, walkthroughEnd(recording));
 const jsonLd = [
   {"@context":"https://schema.org","@type":"WebSite","name":"Magistr","url":"https://magistr.dev",description},
@@ -65,9 +65,9 @@ const jsonLd = [
     <section id="install" class="section-shell section-block install-section" tabindex="-1" aria-labelledby="install-title">
       <div class="install-grid">
         <div class="section-heading">
-          <h2 id="install-title">Install the source preview</h2>
-          <p>v{version} builds from the <a href="https://github.com/AlrikOlson/magistr" target="_blank" rel="noopener noreferrer">public source repository<span class="sr-only"> (opens in a new tab)</span></a>. Registry packages are not published yet.</p>
-          <p>You'll need Apple Silicon macOS 15 or later, Rust 1.95 or later, Git, and the macOS command-line build tools. Bring your own Codex or Claude Code account.</p>
+          <h2 id="install-title">Install the beta</h2>
+          <p>v{version} is a beta pre-release on npm, with the prebuilt executable included. You can also build it from the <a href="https://github.com/AlrikOlson/magistr" target="_blank" rel="noopener noreferrer">public source repository<span class="sr-only"> (opens in a new tab)</span></a>.</p>
+          <p>You'll need Apple Silicon macOS 15 or later and Node.js with npm. Bring your own Codex or Claude Code account.</p>
           <a class="text-link" href="/docs/installation">Full installation instructions</a>
         </div>
         <div class="code-panel">
