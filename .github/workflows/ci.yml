@@ -75,12 +75,28 @@ jobs:
           echo "$ACTIONLINT_SHA256  $RUNNER_TEMP/actionlint.tar.gz" | sha256sum -c -
           tar -xzf "$RUNNER_TEMP/actionlint.tar.gz" -C "$RUNNER_TEMP" actionlint
           "$RUNNER_TEMP/actionlint" -color
+      # The online audits query the GitHub advisories API, which can time out.
+      # A real finding fails both attempts; only an unanswered request recovers.
       - name: Audit workflows for security weaknesses
+        id: zizmor
+        continue-on-error: true
         uses: zizmorcore/zizmor-action@85b2b9fb8e3325e7a23d7d0a9d7ba5ae0f999e3e # v0.7.1
         with:
           advanced-security: false
           min-severity: medium
           persona: regular
+          version: 1.31.1
+      - name: Wait before retrying the workflow audit
+        if: steps.zizmor.outcome == 'failure'
+        run: sleep 30
+      - name: Retry the workflow audit
+        if: steps.zizmor.outcome == 'failure'
+        uses: zizmorcore/zizmor-action@85b2b9fb8e3325e7a23d7d0a9d7ba5ae0f999e3e # v0.7.1
+        with:
+          advanced-security: false
+          min-severity: medium
+          persona: regular
+          version: 1.31.1
 
   rust-build:
     name: Rust lint and test build
