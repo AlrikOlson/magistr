@@ -79,11 +79,11 @@ Before announcing the development release:
 
 The baseline hero defect is resolved: the hero now references tracked `favicon.svg`, the broad PNG ignore has reviewed public exceptions, and CI checks the referenced assets from a clean checkout.
 
-The implementation uses the tracked SVG path and `.github/workflows/public-release.yml` asserts each reviewed public asset with `git ls-files`, `git check-ignore --no-index`, and a source scan for `/logo.png`. The same rule applies to future visual assets.
+The implementation uses the tracked SVG path and `.github/workflows/ci.yml` asserts each reviewed public asset with `git ls-files`, `git check-ignore --no-index`, and a source scan for `/logo.png`. The same rule applies to future visual assets.
 
 ### Resolved in closure: automated public-release lane
 
-`.github/workflows/public-release.yml` now runs Rust formatting/check/test/clippy, the website test, clean-checkout asset assertions, and an Ubuntu/macOS package/checksum matrix. `scripts/public-link-check.sh` probes the configured URLs; its strict failure remains the external release gate until the repository and DNS are live.
+`.github/workflows/ci.yml` (which replaced `public-release.yml` on 2026-10-21) runs Rust formatting/check/test/clippy, the website test, clean-checkout asset assertions, and the macOS package check. Every job that compiles the Rust workspace runs on `macos-15` with a shared build cache: the hosted Linux runner ran out of disk compiling the workspace (run 39307180372), so Linux runs only selection, policy, source-gate scripts, visual evidence and the website deploy. Main run 41253007941 (2026-10-31) passed the full sequence on that split: Rust lint and test build in 441 s and three test slices in 352–376 s. `scripts/public-link-check.sh` probes the configured URLs; its strict failure remains the external release gate until the repository and DNS are live.
 
 ### Resolved in closure: explicit distribution boundary
 
