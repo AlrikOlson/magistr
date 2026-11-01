@@ -25,6 +25,8 @@ These files require repository access. They describe changing Magistr itself.
   website, CI and delivery.
 - [Architecture overview](architecture/overview.md): component boundaries and
   links to the current technical contracts.
+- [Fleet contract](architecture/fleet.md): owners, checkouts, plan approval
+  and the directory for one plan shared across projects.
 - [Website](../apps/website/README.md): content ownership, routes, search,
   browser checks and evidence.
 

@@ -119,6 +119,10 @@ shows of the store arrives as typed [projections](projections.md): one
 producer, a whole snapshot and a sequenced live feed, decoded only at the
 transport edge.
 
+The [fleet contract](fleet.md) names the owner of every record that lets many
+projects share one plan: feature records and plan approval, checkouts and holds,
+cross-project dependency facts and the directory.
+
 The [peer protocol](peers.md) is a tested experiment for two-party plan agreement
 and worker admission. It is available only to unit tests or with the explicit
 `experimental-peer` engine feature; production hosts do not enable it. Runtime

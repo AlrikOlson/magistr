@@ -1,6 +1,6 @@
 # Fleet-scale shared plan
 
-1 November 2026. Design contract for running many agents against one plan that spans every project in a company. The interactive sources are two published pages, the fleet explainer and "A Day on the Graph"; the images below are captured from them. The tasks that deliver this design are listed at the end. Every word follows the [vocabulary](../reference/vocabulary.md).
+1 November 2026. Design contract for running many agents against one plan that spans every project in a company. The interactive sources are two published pages, the fleet explainer and "A Day on the Graph"; the images below are captured from them. The tasks that deliver this design are listed at the end, and the [fleet contract](../architecture/fleet.md) states what they build against. Every word follows the [vocabulary](../reference/vocabulary.md).
 
 ## Human outcome
 
