@@ -21,6 +21,9 @@ Two further decisions were settled on 1 November 2026:
 
 - **Plan approval lives in native state.** The plan and its approval are native records like every other. A GitHub pull request is one place to review and approve it, the same way Linear issues are one place to read tasks.
 - **Documentation lives in the repo and in a shareable doc.** This file is the spec; a shareable copy exists for people outside the codebase.
+- **Fleet words everywhere.** Plan, feature, task, team, checkout, request and decision log replace roadmap, group, chunk, lane, signal and think trace on every public surface: the desktop, MCP tool names, the CLI, skills, docs and the website. One glossary owns the mapping and one clean cutover applies it.
+- **The desktop adopts this design's visual identity.** Brass for claims, one color and shape per task state, a serif display face with monospace data, and control-room density. The look is chosen from complete editions the owner blesses before any code changes.
+- **The desktop opens on "Waiting on you".** Plan approvals, agent questions and stalled holds come first, with their ages and what they block; project progress and team capacity follow.
 
 ### Self-hosting the directory
 
@@ -160,4 +163,20 @@ Group "Fleet coordination", in dependency order:
 | `fleet-metrics` | Fleet metrics and a Grafana dashboard |
 | `fleet-scratch-proof` | End-to-end proof on scratch projects |
 
-Group "Fleet integrations" holds the product integrations shown above as backlog, with this document as their spec.
+Group "Desktop vision", ahead of everything else:
+
+| Chunk | Delivers |
+|---|---|
+| `vocabulary-glossary` | `docs/reference/vocabulary.md`, the one mapping from internal terms to public words |
+| `desktop-identity-design-round` | Complete-catalog desktop editions in this identity, blessed by the owner |
+| `vocabulary-cutover` | One rename across desktop, MCP, CLI, skills, docs and site |
+| `desktop-identity-cutover` | Tokens, typefaces, density and one state system in the desktop |
+| `desktop-waiting-home` | The "Waiting on you" home |
+| `desktop-plan-approval` | Reviewing and approving a feature's task list |
+| `desktop-checkouts-and-holds` | Holders, checkout timers and stalled holds everywhere tasks appear |
+| `desktop-team-capacity` | Team scope, slots and why agents are idle |
+| `desktop-company-board` | Every project as a region of one plan |
+| `desktop-requests-to-features` | Turning researched requests into drafted features |
+| `desktop-answer-questions` | Answering agent questions so the answer becomes the definition of done |
+
+Group "Fleet integrations" holds the product integrations shown above, with this document as their spec. Since 1 November 2026 every fleet, integration and desktop-vision chunk is pending at the top of the plan.
