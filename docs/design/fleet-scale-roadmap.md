@@ -1,28 +1,28 @@
-# Fleet-scale shared roadmap
+# Fleet-scale shared plan
 
-1 November 2026. Design contract for running many agents against one roadmap graph that spans every project in a company. The interactive sources are two published pages, "Claiming the Roadmap" and "A Day on the Graph"; the images below are captured from them. The roadmap chunks that deliver this design are listed at the end.
+1 November 2026. Design contract for running many agents against one plan that spans every project in a company. The interactive sources are two published pages, the fleet explainer and "A Day on the Graph"; the images below are captured from them. The tasks that deliver this design are listed at the end. Every word follows the [vocabulary](../reference/vocabulary.md).
 
 ## Human outcome
 
-A company runs hundreds of agents and a handful of people against one plan. People decide which features are worth building, approve each feature's task list once, and answer the few questions agents are not allowed to answer alone. Everything else, claiming tasks, recovering from crashed agents, checking work and marking it done, happens without a person. At any moment anyone can see what is being worked on, what is waiting on another team and what is waiting on a person.
+A company runs hundreds of agents and a handful of people against one plan. People decide which features are worth building, approve each feature's task list once, and answer the few questions agents are not allowed to answer alone. Everything else, checking out tasks, recovering from crashed agents, checking work and marking it done, happens without a person. At any moment anyone can see what is being worked on, what is waiting on another team and what is waiting on a person.
 
-The model is hypothetical until the chunks below ship. The mechanics it depends on (the lifecycle table, readiness, the single project writer, gate receipts) are the ones Magistr enforces today.
+The model is hypothetical until the tasks below are done. The mechanics it depends on (the lifecycle table, readiness, the single project writer, check results) are the ones Magistr enforces today.
 
 ## Decisions
 
 ![The four accepted decisions](../assets/fleet-scale/01-decisions.png)
 
-1. **Federated owners and an org directory.** Each project keeps its own owner, lease, gates and receipts. A task may depend on a task in another project. The directory registers owners and relays "done" as readiness. It owns no task and can change nothing.
-2. **One human gate per feature.** A person approves a feature's task list once. Inside an approved feature, agents claim, check and finish tasks with no person in the loop.
+1. **Federated owners and an org directory.** Each project keeps its own owner, checks and check results. A task may depend on a task in another project. The directory registers owners and relays "done" as readiness. It owns no task and can change nothing.
+2. **One approval per feature.** A person approves a feature's task list once. Inside an approved feature, agents check out, check and finish tasks with no person in the loop.
 3. **Scoped pull with limits.** Agents belong to a team bound to one or more features. They take the most urgent ready task inside that scope, and each feature has a limit on how many of its tasks run at once.
-4. **Renewable checkouts with fencing.** An agent's claim carries an expiry and a checkout number. Progress reports renew it. When it expires the task returns to the to-do list by itself, and a late submission under the old number is rejected even if its checks pass.
+4. **Renewable checkouts with fencing.** An agent's checkout carries an expiry and a checkout number. Progress reports renew it. When it expires the task returns to the to-do list by itself, and a late submission under the old number is rejected even if its checks pass.
 
-Two further decisions were settled on 1 November 2026:
+Five further decisions were settled on 1 November 2026:
 
 - **Plan approval lives in native state.** The plan and its approval are native records like every other. A GitHub pull request is one place to review and approve it, the same way Linear issues are one place to read tasks.
 - **Documentation lives in the repo and in a shareable doc.** This file is the spec; a shareable copy exists for people outside the codebase.
-- **Fleet words everywhere.** Plan, feature, task, team, checkout, request and decision log replace roadmap, group, chunk, lane, signal and think trace on every public surface: the desktop, MCP tool names, the CLI, skills, docs and the website. One glossary owns the mapping and one clean cutover applies it.
-- **The desktop adopts this design's visual identity.** Brass for claims, one color and shape per task state, a serif display face with monospace data, and control-room density. The look is chosen from complete editions the owner blesses before any code changes.
+- **Fleet words everywhere.** Plan, feature, task, team, checkout, request and decision log are the words on every public surface: the desktop, MCP tool names, the CLI, skills, docs, the website, saved records and code. The [vocabulary](../reference/vocabulary.md) owns the mapping from the earlier internal words, and one clean cutover applies it.
+- **The desktop adopts this design's visual identity.** Brass for checkouts, one color and shape per task state, a serif display face with monospace data, and control-room density. The look is chosen from complete editions the owner blesses before any code changes.
 - **The desktop opens on "Waiting on you".** Plan approvals, agent questions and stalled holds come first, with their ages and what they block; project progress and team capacity follow.
 
 ### Self-hosting the directory
@@ -35,7 +35,7 @@ People do not get an expiring checkout, because taking a task back silently can 
 
 1. Idle past a first threshold, the holder gets a nudge in their own tool.
 2. Idle past a second threshold, the hold appears in the approver's "waiting on a person" list with a one-click Release and a count of the tasks it blocks.
-3. Thresholds shrink as the number of blocked tasks grows: a task holding up three others escalates in hours, a leaf task in days.
+3. Thresholds shrink as the number of tasks it holds up grows: a task holding up three others escalates in hours, a leaf task in days.
 4. Release returns the task to the to-do list, keeps the person's branch and records who released it and why.
 
 Nothing releases a person's task unless another person decides to.
@@ -44,7 +44,7 @@ Nothing releases a person's task unless another person decides to.
 
 ![Lifecycle with the checkout expiry edge](../assets/fleet-scale/02-lifecycle.png)
 
-The six states and every legal move come from `ChunkStatus::allows` and do not change. Scale adds one automatic move: an expired agent checkout returns `in_progress` to `pending`. "Ready" stays a derived property, now with five conditions: pending, no recorded blocker, every dependency done including other projects', the feature's plan approved, and the feature under its limit.
+The six states (ideas, to do, in progress, waiting, done, retired) and every legal move come from the task lifecycle table and do not change. Scale adds one automatic move: an expired agent checkout returns a task from in progress to to do. "Ready" stays a derived property, now with five conditions: to do, no waiting reason, every dependency done including other projects', the feature's plan approved, and the feature under its limit.
 
 ## The shared graph
 
@@ -52,17 +52,17 @@ The six states and every legal move come from `ChunkStatus::allows` and do not c
 
 Each project is a region with its own owner. Dashed arrows are dependencies on another project's task; green means the dependency is done and the directory has relayed it. A project waiting on its plan approval is drawn dimmed.
 
-## A claim, end to end
+## A checkout, end to end
 
-![The six steps of a claim](../assets/fleet-scale/04-claim-steps.png)
+![The six steps of a checkout](../assets/fleet-scale/04-claim-steps.png)
 
 Ready, ask, admit with a checkout, renew by working, crash and expire, and the late submission rejected. An agent outside the team's scope never asks.
 
 ## Where people sit
 
-![The plan approval gate](../assets/fleet-scale/05-human-gate.png)
+![Plan approval](../assets/fleet-scale/05-human-gate.png)
 
-People appear in two places: approving a feature's task list, and answering questions an agent has marked as needing a decision. Claims, refusals, expiries, failed checks and completions never reach a person.
+People appear in two places: approving a feature's task list, and answering questions an agent has marked as needing a decision. Checkouts, refusals, expiries, failed checks and completions never reach a person.
 
 ## The whole company
 
@@ -84,7 +84,7 @@ Customer requests attach to issues as they already do. The Magistr app researche
 
 ![Plan review as a pull request](../assets/fleet-scale/11-github-plan-review.png)
 
-The drafted task list arrives as a pull request projected from the native plan. The tech lead splits one task with a suggested change and approves. The approval is recorded in native state; nothing is claimable before it.
+The drafted task list arrives as a pull request projected from the native plan. The tech lead splits one task with a suggested change and approves. The approval is recorded in native state; nothing can be checked out before it.
 
 ### 09:15 · Agents · session log
 
@@ -108,7 +108,7 @@ Magistr exports metrics and logs like any service. A crashed agent's checkout ex
 
 ![A needs-a-decision message in Slack](../assets/fleet-scale/15-slack-decision.png)
 
-The one question of the day. The agent writes its options into the task; the Magistr app posts it to the team channel. The engineer answers in the thread and the answer becomes part of the task's definition of done.
+The one question of the day. The agent writes its options into the task; the Magistr app posts it to the team channel. The engineer replies in Slack and the answer becomes part of the task's definition of done.
 
 ### 13:15 · Product manager · Linear project
 
@@ -136,20 +136,20 @@ Flow, spend and the three decisions that waited longest. The number that matters
 
 ## Research
 
-- **AWS AI-Driven Development Lifecycle.** Intent decomposes into units of work run as short bolts; the team approves the decomposition. Maps to features, tasks and the plan gate. [AWS DevOps blog](https://aws.amazon.com/blogs/devops/ai-driven-development-life-cycle), [glossary](https://awslabs.github.io/aidlc-workflows/guide/glossary/).
-- **Atlassian, Linear, Factory.** Agents pull unassigned, well-defined work; humans keep one gate. Maps to readiness, teams as assignees and receipts as the merge gate. [Atlassian governed agent loops](https://www.atlassian.com/blog/jira/governed-agent-loops).
+- **AWS AI-Driven Development Lifecycle.** Intent decomposes into units of work run as short bolts; the team approves the decomposition. Maps to features, tasks and plan approval. [AWS DevOps blog](https://aws.amazon.com/blogs/devops/ai-driven-development-life-cycle), [glossary](https://awslabs.github.io/aidlc-workflows/guide/glossary/).
+- **Atlassian, Linear, Factory.** Agents pull unassigned, well-defined work; humans keep one approval. Maps to readiness, teams as assignees and check results as the merge requirement. [Atlassian governed agent loops](https://www.atlassian.com/blog/jira/governed-agent-loops).
 - **Beads and Gas Town.** A git-backed graph tracker with a ready queue, limited to one repository. The directory fills the cross-repository gap. [Beads](https://github.com/steveyegge/beads).
-- **Queue leases.** Visibility timeouts are holds, not locks; renew on progress and fence stale attempts. Maps to checkouts. [SQS visibility timeouts](https://oneuptime.com/blog/post/2026-07-22-sqs-visibility-timeouts-concurrent-processing/view).
-- **Portfolio kanban.** Limit work in progress per state and group; make cross-team waits visible instead of working around them. Maps to feature limits and the "waiting on another team" count. [Portfolio WIP limits](https://businessmap.io/kanban-resources/portfolio-kanban/managing-portfolio-wip-limits).
+- **Queue visibility timeouts.** They are holds, not locks; renew on progress and fence stale attempts. Maps to checkouts. [SQS visibility timeouts](https://oneuptime.com/blog/post/2026-07-22-sqs-visibility-timeouts-concurrent-processing/view).
+- **Portfolio kanban.** Limit work in progress per state and feature; make cross-team waits visible instead of working around them. Maps to feature limits and the "waiting on another team" count. [Portfolio WIP limits](https://businessmap.io/kanban-resources/portfolio-kanban/managing-portfolio-wip-limits).
 - **Team Topologies.** Stream-aligned teams consume platform teams as a service. Maps to teams of agents and dependencies on shared projects. [Fowler](https://martinfowler.com/bliki/TeamTopologies.html).
 
 No published account of hundreds of agents across repositories was found; single-repository orchestrators report needing a coordinator at about 20 to 30 agents.
 
 ## Delivery
 
-Group "Fleet coordination", in dependency order:
+Feature "Fleet coordination", in dependency order:
 
-| Chunk | Delivers |
+| Task | Delivers |
 |---|---|
 | `fleet-contract` | `docs/architecture/fleet.md`: qualified ids, checkout and fencing protocol, holder kinds, staleness ladder, directory API, self-host topology |
 | `roadmap-group-record` | Features as records with state, approver, limit and budget; readiness requires approval |
@@ -163,9 +163,9 @@ Group "Fleet coordination", in dependency order:
 | `fleet-metrics` | Fleet metrics and a Grafana dashboard |
 | `fleet-scratch-proof` | End-to-end proof on scratch projects |
 
-Group "Desktop vision", ahead of everything else:
+Feature "Desktop vision", ahead of everything else:
 
-| Chunk | Delivers |
+| Task | Delivers |
 |---|---|
 | `vocabulary-glossary` | `docs/reference/vocabulary.md`, the one mapping from internal terms to public words |
 | `desktop-identity-design-round` | Complete-catalog desktop editions in this identity, blessed by the owner |
@@ -179,4 +179,4 @@ Group "Desktop vision", ahead of everything else:
 | `desktop-requests-to-features` | Turning researched requests into drafted features |
 | `desktop-answer-questions` | Answering agent questions so the answer becomes the definition of done |
 
-Group "Fleet integrations" holds the product integrations shown above, with this document as their spec. Since 1 November 2026 every fleet, integration and desktop-vision chunk is pending at the top of the plan.
+Feature "Fleet integrations" holds the product integrations shown above, with this document as their spec. Since 1 November 2026 every fleet, integration and desktop-vision task is to do at the top of the plan. Task ids are identifiers and keep their spelling.

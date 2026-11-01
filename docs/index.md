@@ -33,6 +33,7 @@ The native roadmap and work plans are stored in Magistr. Keep
 
 ## Technical reference
 
+- [Vocabulary](reference/vocabulary.md): the public word for every term, tool and command.
 - [Codex integration](reference/codex.md): launcher and project skill discovery.
 - [Authentication](reference/authentication.md): team-identity protocol and limits.
 - [Tool recovery](reference/tool-recovery.md): error and recovery contracts.
