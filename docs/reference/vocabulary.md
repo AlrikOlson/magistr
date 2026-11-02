@@ -39,6 +39,11 @@ owner decided the storage reach and the collision names on 1 November 2026.
 | focus | **focus** | Unchanged: the feature and mode a team is working in. |
 | phase | **phase** | Unchanged: research, plan, execute, verify, done. |
 | priority, band | **priority** | Unchanged. A smaller number is more urgent. |
+| (new) | **responsible person** | The person who answers for a task while an agent works it: by default the approver of its feature. Questions, stalled work and the done packet go to them. |
+| (new) | **done packet** | A finished task's result: each definition-of-done item tied to its proof, the change and its requests, approvals, and what is still not verified. "Checked by machines" and "approved by a person" are separate marks. |
+| (new) | **code location** | Where part of a project's code lives: a code host, a repository, a default branch and a folder. A project has one or more; several projects may share a repository. |
+| (new) | **code host** | The service that hosts a repository, such as GitHub, GitLab, Bitbucket, Gitea, Forgejo or Azure DevOps. Magistr reaches every code host through one port. |
+| (new) | **pull request**, **merge request** | A proposed change on a code host, named the way that host names it: merge request on GitLab, pull request everywhere else. "Request" alone means a [request](#terms) someone raised. |
 
 ### Collisions this table settles
 

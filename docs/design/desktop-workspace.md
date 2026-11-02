@@ -1,6 +1,8 @@
 # Desktop workspace — interaction restart
 
-15 October 2026. The owner rejected the previous layout pass and status-card composition. This is the current design contract; prior screenshot iterations remain historical evidence.
+15 October 2026. The owner rejected the previous layout pass and status-card composition. Prior screenshot iterations remain historical evidence.
+
+Since 2 November 2026 the [desktop identity](desktop-identity.md) is the design contract for the shell, navigation, visual identity, copy and every journey it lists, and it wins where the two disagree. This document still governs the authority model (which owner writes what) and the dependency canvas's interaction rules (pan, zoom, fit, ports, single-pointer alternatives) wherever a dependency canvas is drawn. The canvas is drawn with the identity's tokens, state marks and type. The "Frame and supporting views" section is replaced by the identity's shell.
 
 ## Human outcome
 
@@ -31,6 +33,8 @@ Work pieces and investigation threads have distinct forms. Work pieces expose in
 5. At minimum window size, keep the surface and inspector reachable, preserve their independent reading places and expose a direct close-inspector action.
 
 ## Frame and supporting views
+
+Replaced by the shell in [desktop identity](desktop-identity.md#shell): a sidebar of places, a titled page with a tab row, and a task sheet. The text below is kept as history.
 
 The project is the stable context. Conversation, Roadmap, Reasoning, Work and Feedback are destinations rather than repeated buttons in unrelated headers. Global project selection is separate from contextual actions. The project map uses the same camera and routing owner for readable project/conversation pieces, with undirected membership lines. Execution, request handling, settings, project admission and saved conversations use the same density, focus and disclosure language. Full content stays available and copyable. Compact reply outlines open on demand, and the canvas control footer remains outside the drawing area.
 

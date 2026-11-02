@@ -27,6 +27,9 @@ These files require repository access. They describe changing Magistr itself.
   links to the current technical contracts.
 - [Fleet contract](architecture/fleet.md): owners, checkouts, plan approval
   and the directory for one plan shared across projects.
+- [Desktop identity](design/desktop-identity.md): the desktop's blessed design
+  contract, with its [tokens](design/desktop/DESIGN.md) and
+  [product brief](design/desktop/PRODUCT.md).
 - [Website](../apps/website/README.md): content ownership, routes, search,
   browser checks and evidence.
 
